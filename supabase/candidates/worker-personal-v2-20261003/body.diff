@@ -1,0 +1,52 @@
+--- private.match_detail_without_calendar(nid uuid, pid uuid) before
++++ private.match_detail_without_calendar(nid uuid, pid uuid) after
+@@ -74,12 +74,7 @@
+              or (n.starts_at is null and n.ends_at is null and n.published_at is not null
+                  and n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE')))
+     then disp := array_append(disp,'CURRENT_AVAILABILITY_PAUSED'); end if;
+-  if not coalesce(pref.proactive_notifications,true) then disp := array_append(disp,'PROACTIVE_NOTIFICATIONS_PAUSED'); end if;
+-  if n.urgent
+-     and (n.schedule_kind = 'TODAY_FLEXIBLE'
+-          or (n.starts_at is not null and (n.starts_at at time zone tz)::date = (statement_timestamp() at time zone tz)::date))
+-     and not coalesce(pref.same_day_urgent_notifications,true)
+-    then disp := array_append(disp,'SAME_DAY_URGENT_NOTIFICATIONS_PAUSED'); end if;
++  disp := disp || private.worker_work_dispatch_blockers_v2(n,pref,statement_timestamp());
+   if not svc then disp := array_append(disp,'SERVICE_NOT_IN_WORK_PROFILE'); end if;
+   if not sched then disp := array_append(disp,'OUTSIDE_AVAILABILITY'); end if;
+   if not radiusok then disp := array_append(disp,'OUTSIDE_PREFERRED_RADIUS'); end if;
+--- private.dispatch_cheap_candidate_admitted(nid uuid, pid uuid) before
++++ private.dispatch_cheap_candidate_admitted(nid uuid, pid uuid) after
+@@ -10,7 +10,7 @@
+       and private.worker_dispatch_time_admitted(nid,pid)
+       and p.account_id <> n.requester_account_id
+       and private.accounts_same_world(n.requester_account_id, p.account_id)
+-      and coalesce(pref.proactive_notifications, true) = true
++      and cardinality(private.worker_work_dispatch_blockers_v2(n,pref,statement_timestamp()))=0
+       and (not n.verified_identity_required or private.identity_admitted(p.account_id))
+       and (cardinality(n.required_skills) = 0
+            or private.lower_arr(p.skills) && private.lower_arr(n.required_skills)
+--- private.guard_worker_preference_authority() before
++++ private.guard_worker_preference_authority() after
+@@ -13,6 +13,22 @@
+   end if;
+   if tg_op='DELETE' then
+     raise exception 'WORKER_PREFERENCES_REQUIRE_AUTHORITY' using errcode='42501';
++  end if;
++  -- WPP02-A: existing location/availability tokens cannot edit work choices.
++  if tg_op='INSERT' then
++    if (cardinality(new.desired_work_kinds)>0 or cardinality(new.declined_work_kinds)>0
++        or cardinality(new.work_notes)>0 or new.urgent_tasks_enabled is not null
++        or new.proactive_notifications is distinct from true)
++       and token is distinct from 'WORK_PREFERENCES_REVIEW_V2' then
++      raise exception 'WORKER_PREFERENCES_REQUIRE_REVIEW' using errcode='42501';
++    end if;
++  elsif (new.desired_work_kinds is distinct from old.desired_work_kinds
++      or new.declined_work_kinds is distinct from old.declined_work_kinds
++      or new.work_notes is distinct from old.work_notes
++      or new.urgent_tasks_enabled is distinct from old.urgent_tasks_enabled
++      or new.proactive_notifications is distinct from old.proactive_notifications)
++     and token is distinct from 'WORK_PREFERENCES_REVIEW_V2' then
++    raise exception 'WORKER_PREFERENCES_REQUIRE_REVIEW' using errcode='42501';
+   end if;
+   if tg_op='INSERT' then
+     if (new.approximate_lat is not null or new.approximate_lng is not null) and token is distinct from 'LOCATION_REVIEW' then

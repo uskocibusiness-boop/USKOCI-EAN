@@ -1,8 +1,22 @@
 # Radni AI profil V2 — izolovan ugovor, 2026-10-03
 
-**Status: SOURCE / CONTRACT CANDIDATE. Nije primenjiv SQL, nije deploy i nije završena funkcija.**
+**Status: PARTIAL SOURCE IMPLEMENTATION / NOT DEPLOY READY. WPP02-A ima forward SQL kandidat; PostgreSQL/CI dokaz nije izvršen. Ceo V2 nije završen.**
 
-Ovaj dokument konkretizuje preostali V2 deo [ličnog radnog profila](WORKER_PERSONAL_PROFILE_20261003.md). Kandidat je [worker-personal-v2-20261003](../../../supabase/candidates/worker-personal-v2-20261003/README.md). Ne menja primenjeni WPP01, Edge v18/v52, postojeći klijent, sertifikate ili podatke. Izrađeni su ugovor, čiste izvršive specifikacije i metadata preflight; instalacioni SQL namerno nije sastavljen od nepotpunih delova.
+Ovaj dokument konkretizuje preostali V2 deo [ličnog radnog profila](WORKER_PERSONAL_PROFILE_20261003.md). Kandidat je [worker-personal-v2-20261003](../../../supabase/candidates/worker-personal-v2-20261003/README.md). Ne menja primenjeni WPP01, Edge v18/v52, postojeći klijent, sertifikate ili podatke. Prvi korak bio je ugovor; naknadni konkretan SQL rez i njegove granice navedeni su ispod.
+
+## Naknadna izvorna implementacija WPP02-A
+
+Implementirani su četiri kanonska preference polja, validacija, proširen postojeći authority guard, privatni owned read/replace primitive i jedan dispatch-only predicate za detailed/cheap putanju. [Forward SQL](../../../supabase/candidates/worker-personal-v2-20261003/candidate.sql) proverava 11 stvarnih prethodnih funkcija i relevantnu šemu/ACL/trigger stanje. Menja tri postojeća tela, dodaje četiri privatne funkcije. Ne menja manual eligibility, score, iskustvo, V1 AI writer ili obaveštenja.
+
+Cheap selekcija ranije nije imala detailed same-day HITNO filter. Zajednički helper usklađuje taj deo; ukupne dve funkcije i dalje imaju različite svrhe i neke sopstvene uslove. Ne tvrdi se da su sve njihove odluke globalno iste.
+
+Privatni writer: auth → closure shared advisory lock → owned DRAFT/ACTIVE profile lock → preference row → expected-document provera → upis. Nema public endpoint-a/granta; future potpuni AI review writer mora dodatno vezati verziju, registry, source hash, notification revision i receipt. Samostalno pozivanje primitive iz aplikacije nije implementirano. Opisne napomene ne ulaze u dispatch filter.
+
+Nezavisan source pregled ispravio je redosled closure/profile lock-ova, granicu editabilnog profila i potpune signature/security metadata pinove rollback/resume helper-a. [Kompatibilna pauza](../../../supabase/candidates/worker-personal-v2-20261003/compatible-rollback.sql) čuva sve kolone i vrednosti, odbija novi upis sa PT409 i pauzira automatski izbor kada postoje novi filteri; ne vraća slanje odbijenih poslova. [Resume](../../../supabase/candidates/worker-personal-v2-20261003/resume.sql) prihvata samo tačno pauzirane funkcije.
+
+Lokalno izvršeno: osam SQL/PLpgSQL source/grammar granica, 18 semantičkih Node provera, JS syntax i workflow YAML. Nema PostgreSQL runtime rezultata. Pripremljeni [manual-only workflow](../../../.github/workflows/worker-personal-v2-candidate-proof.yml) ponovo koristi WPP01 disposable replay i postojeće dependency verzije. Na računaru nema PostgreSQL/Docker/WSL, a root je prijavio nedostupan GitHub Actions pristup. Pripremljeni stvarni Auth/PostgREST/SQL slučajevi zato su **NOT RUN**, uključujući prave lock overlap slučajeve.
+
+Potpuni AI/export/certificate paket ostaje potreban. [Granica budućeg approval artefakta](../../../supabase/candidates/worker-personal-v2-20261003/APPLICATION_BOUNDARY.md) konkretno navodi šta budući kompletan APPROVAL.md mora sadržati; nije zahtev za primenu parcijalnog SQL-a.
 
 ## Najmanji potpun sledeći rez
 
@@ -83,7 +97,7 @@ Nove kolone/verzija pomeraju schema digest; pojačan preference trigger pomera e
 
 `node --test supabase/candidates/worker-personal-v2-20261003/preferences.contract.test.mjs`:
 
-**18/18 PASS.** Testovi proveravaju 45 zamrznutih body-MD5 pinova i zatvorenu klasifikaciju, strogo čitanje/patch, očuvanje slobodnih napomena bez lažnog filtriranja, prednost odbijenih grupa, 48 kombinacija HITNO/legacy ponašanja, odvojenu selekciju i dostavu, registry stale, revision konflikt, očuvanje globalnog push pristanka i iskustvo 0–80.
+**18/18 PASS.** Testovi proveravaju 45 zamrznutih body-MD5 pinova i zatvorenu klasifikaciju, strogo čitanje/patch, očuvanje slobodnih napomena bez lažnog filtriranja, prednost odbijenih grupa, 24 kombinacije HITNO/legacy ponašanja, odvojenu selekciju i dostavu, registry stale, revision konflikt, očuvanje globalnog push pristanka i iskustvo 0–80.
 
 To je dokaz konzistentnosti izvršive specifikacije sa snimljenim metapodacima. **Nije SQL/Auth/concurrency, provider, native ili push dokaz.** `preflight.readonly.sql` samo poredi funkcijske pinove; nije instalacija, ne upisuje redove i ne proverava celu projektnu ekvivalenciju. U ovoj izradi nije izvršen; svež metadata snimak je već sačuvan.
 

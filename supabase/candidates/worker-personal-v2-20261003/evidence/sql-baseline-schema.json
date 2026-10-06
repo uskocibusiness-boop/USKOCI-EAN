@@ -1,0 +1,321 @@
+{
+  "observed_at": "2026-10-03 22:55:58.534283+00",
+  "columns": [
+    {
+      "name": "worker_profile_id",
+      "type": "uuid",
+      "default": null,
+      "notnull": true
+    },
+    {
+      "name": "worker_account_id",
+      "type": "uuid",
+      "default": null,
+      "notnull": true
+    },
+    {
+      "name": "timezone",
+      "type": "text",
+      "default": "'Europe/Belgrade'::text",
+      "notnull": true
+    },
+    {
+      "name": "approximate_lat",
+      "type": "numeric(6,2)",
+      "default": null,
+      "notnull": false
+    },
+    {
+      "name": "approximate_lng",
+      "type": "numeric(7,2)",
+      "default": null,
+      "notnull": false
+    },
+    {
+      "name": "approximate_geog",
+      "type": "geography(Point,4326)",
+      "default": "\nCASE\n    WHEN ((approximate_lat IS NOT NULL) AND (approximate_lng IS NOT NULL)) THEN (st_setsrid(st_makepoint((approximate_lng)::double precision, (approximate_lat)::double precision), 4326))::geography\n    ELSE NULL::geography\nEND",
+      "notnull": false
+    },
+    {
+      "name": "proactive_notifications",
+      "type": "boolean",
+      "default": "true",
+      "notnull": true
+    },
+    {
+      "name": "same_day_urgent_notifications",
+      "type": "boolean",
+      "default": "true",
+      "notnull": true
+    },
+    {
+      "name": "buffer_minutes",
+      "type": "integer",
+      "default": "30",
+      "notnull": true
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "default": "statement_timestamp()",
+      "notnull": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "default": "statement_timestamp()",
+      "notnull": true
+    }
+  ],
+  "constraints": [
+    {
+      "name": "wmp_lat_chk",
+      "definition": "CHECK (((approximate_lat IS NULL) OR ((approximate_lat >= ('-90'::integer)::numeric) AND (approximate_lat <= (90)::numeric))))"
+    },
+    {
+      "name": "wmp_lng_chk",
+      "definition": "CHECK (((approximate_lng IS NULL) OR ((approximate_lng >= ('-180'::integer)::numeric) AND (approximate_lng <= (180)::numeric))))"
+    },
+    {
+      "name": "worker_match_preferences_buffer_minutes_check",
+      "definition": "CHECK (((buffer_minutes >= 0) AND (buffer_minutes <= 180)))"
+    },
+    {
+      "name": "worker_match_preferences_pkey",
+      "definition": "PRIMARY KEY (worker_profile_id)"
+    },
+    {
+      "name": "worker_match_preferences_worker_account_id_fkey",
+      "definition": "FOREIGN KEY (worker_account_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "worker_match_preferences_worker_profile_id_fkey",
+      "definition": "FOREIGN KEY (worker_profile_id) REFERENCES app_profiles(id) ON DELETE CASCADE"
+    }
+  ],
+  "triggers": [
+    {
+      "name": "guard_wmp_write_trg",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER guard_wmp_write_trg BEFORE INSERT OR UPDATE ON public.worker_match_preferences FOR EACH ROW EXECUTE FUNCTION private.guard_wmp_write()"
+    },
+    {
+      "name": "pre_v3_closure_worker_preferences",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pre_v3_closure_worker_preferences BEFORE INSERT OR DELETE OR UPDATE ON public.worker_match_preferences FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('PROFILE', 'worker_profile_id')"
+    },
+    {
+      "name": "pre_v3_worker_preference_authority",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER pre_v3_worker_preference_authority BEFORE INSERT OR DELETE OR UPDATE ON public.worker_match_preferences FOR EACH ROW EXECUTE FUNCTION private.guard_worker_preference_authority()"
+    },
+    {
+      "name": "w02_availability_timezone",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER w02_availability_timezone BEFORE INSERT OR UPDATE ON public.worker_match_preferences FOR EACH ROW EXECUTE FUNCTION private.guard_availability_timezone()"
+    },
+    {
+      "name": "wmp_updated_at",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER wmp_updated_at BEFORE UPDATE ON public.worker_match_preferences FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()"
+    }
+  ],
+  "security": {
+    "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+    "rls": true,
+    "force": false,
+    "owner": "postgres"
+  },
+  "registry": [
+    {
+      "key": "work_kind:BASTA_DVORISTE",
+      "value": {
+        "kind": "BASTA_DVORISTE",
+        "stems": [
+          "bast",
+          "dvorist",
+          "kosenj",
+          "travnjak",
+          "garden",
+          "lawn"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:CISCENJE",
+      "value": {
+        "kind": "CISCENJE",
+        "stems": [
+          "cisc",
+          "odrzavanj",
+          "clean",
+          "usisav"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:DOSTAVA",
+      "value": {
+        "kind": "DOSTAVA",
+        "stems": [
+          "dostav",
+          "kurir",
+          "delivery",
+          "courier"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:ELEKTRO",
+      "value": {
+        "kind": "ELEKTRO",
+        "stems": [
+          "elektr",
+          "electr",
+          "struj",
+          "uticnic",
+          "prekidac",
+          "rasvet",
+          "sijalic"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:FIZICKI_POSLOVI",
+      "value": {
+        "kind": "FIZICKI_POSLOVI",
+        "stems": [
+          "fizick",
+          "nosenj",
+          "nosac",
+          "utovar",
+          "istovar",
+          "iznosenj",
+          "unosenj",
+          "labor",
+          "labour",
+          "loading"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:MOLERSKI_RADOVI",
+      "value": {
+        "kind": "MOLERSKI_RADOVI",
+        "stems": [
+          "moler",
+          "krecenj",
+          "farbanj",
+          "gletovanj",
+          "painting",
+          "painter",
+          "ofarb"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:MONTAZA_NAMESTAJA",
+      "value": {
+        "kind": "MONTAZA_NAMESTAJA",
+        "stems": [
+          "montaz",
+          "namestaj",
+          "ikea",
+          "furniture",
+          "assembl",
+          "ikee",
+          "ikei",
+          "ikeu",
+          "ikeom"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:PRANJE_PEGLANJE",
+      "value": {
+        "kind": "PRANJE_PEGLANJE",
+        "stems": [
+          "pegl",
+          "pranje vesa",
+          "laundry",
+          "ironing"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:SELIDBE_PREVOZ",
+      "value": {
+        "kind": "SELIDBE_PREVOZ",
+        "stems": [
+          "selid",
+          "prevoz",
+          "transport",
+          "kombi",
+          "moving",
+          "removal"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:SITNE_POPRAVKE",
+      "value": {
+        "kind": "SITNE_POPRAVKE",
+        "stems": [
+          "popravk",
+          "majstor",
+          "handyman",
+          "repair"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kind:VODOINSTALATER",
+      "value": {
+        "kind": "VODOINSTALATER",
+        "stems": [
+          "vodoinst",
+          "vodovod",
+          "slavin",
+          "odvod",
+          "bojler",
+          "plumb"
+        ],
+        "schema": "WORK_KIND_V1"
+      }
+    },
+    {
+      "key": "work_kinds_head",
+      "value": {
+        "kinds": [
+          "SELIDBE_PREVOZ",
+          "FIZICKI_POSLOVI",
+          "MONTAZA_NAMESTAJA",
+          "SITNE_POPRAVKE",
+          "MOLERSKI_RADOVI",
+          "ELEKTRO",
+          "VODOINSTALATER",
+          "CISCENJE",
+          "PRANJE_PEGLANJE",
+          "BASTA_DVORISTE",
+          "DOSTAVA"
+        ],
+        "schema": "WORK_KINDS_HEAD_V1",
+        "package": "EX-06 ex06b",
+        "previous": "PKG-031b hard-coded regular expressions, body md5 2113eb46ab7ea968b873e76d1de12377",
+        "foldVersion": "SR_LATIN_CYRILLIC_V1",
+        "classificationVersion": "WK-1"
+      }
+    }
+  ]
+}

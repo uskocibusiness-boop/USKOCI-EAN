@@ -1,0 +1,153 @@
+name: Worker V2 isolated candidate proof
+
+# Manual, disposable-only WPP02-A proof. Reuses the exact WPP01 historical
+# predecessor chain; current relevant pins remain mandatory. Not global DEV parity.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: worker-personal-v2-candidate-proof-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  disposable-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: '1'
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      PRE_V3_ARTIFACT_DIR: /tmp/wpp01-private
+      WPP01_ARTIFACT_DIR: /tmp/wpp01-artifacts
+      WPP02_ARTIFACT_DIR: /tmp/wpp02-artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Bind exact source and check all generated SQL before starting the database
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$WPP01_ARTIFACT_DIR" "$WPP02_ARTIFACT_DIR"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          git rev-parse HEAD 'HEAD^{tree}' > "$WPP01_ARTIFACT_DIR/source-binding.txt"
+          python3 -m pip install --quiet pglast==8.4
+          python3 supabase/candidates/worker-personal-profile-20261003/check-source.py | tee "$WPP01_ARTIFACT_DIR/source-check.txt"
+          node --check supabase/candidates/worker-personal-profile-20261003/prepare-chain.mjs
+          node --check supabase/candidates/worker-personal-profile-20261003/runtime.proof.mjs
+          python3 supabase/candidates/worker-personal-v2-20261003/check_sql_source.py | tee "$WPP02_ARTIFACT_DIR/source-check.txt"
+          node --check supabase/candidates/worker-personal-v2-20261003/runtime.proof.mjs
+          node --test supabase/candidates/worker-personal-v2-20261003/preferences.contract.test.mjs | tee "$WPP02_ARTIFACT_DIR/contract-checks.txt"
+          find supabase/candidates/worker-personal-v2-20261003 -type f -print0 | sort -z | xargs -0 sha256sum > "$WPP02_ARTIFACT_DIR/source-manifest-sha256.txt"
+          sha256sum .github/workflows/worker-personal-v2-candidate-proof.yml >> "$WPP02_ARTIFACT_DIR/source-manifest-sha256.txt"
+          sha256sum supabase/candidates/worker-personal-profile-20261003/* .github/workflows/worker-personal-profile-proof.yml > "$WPP01_ARTIFACT_DIR/source-manifest-sha256.txt"
+          dependency_exit=0
+          npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/01-dependencies.log" 2>&1 || dependency_exit=$?
+          printf '01-dependencies exit=%s\n' "$dependency_exit" | tee "$WPP01_ARTIFACT_DIR/stages.txt"
+          test "$dependency_exit" -eq 0
+          git diff --exit-code
+      - name: Reconstruct the established disposable historical live79
+        run: |
+          set -euo pipefail
+          umask 077
+          setup_exit=0
+          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/02-live79.log" 2>&1 || setup_exit=$?
+          printf '02-live79 exit=%s\n' "$setup_exit" | tee -a "$WPP01_ARTIFACT_DIR/stages.txt"
+          exit "$setup_exit"
+      - name: Guard loopback targets and replay unchanged predecessor stages
+        run: |
+          set -euo pipefail
+          umask 077
+          node --input-type=module - <<'NODE'
+          import {assertLocalDeviceProofTargets} from './supabase/proofs/ru5_device_ui_local_guard.mjs';
+          try {
+            assertLocalDeviceProofTargets(process.env.RU5_DEVICE_SUPABASE_URL, process.env.RU5_DEVICE_DB_URL);
+            if (process.env.DB_URL !== process.env.RU5_DEVICE_DB_URL) throw new Error();
+          } catch { console.error('FAIL WPP01_LOCAL_TARGET_ADMISSION'); process.exit(1); }
+          NODE
+          run_stage() {
+            local stage="$1" status=0
+            shift
+            printf '%s START\n' "$stage" | tee -a "$WPP01_ARTIFACT_DIR/stages.txt"
+            "$@" > "$PRE_V3_ARTIFACT_DIR/$stage.log" 2>&1 || status=$?
+            printf '%s exit=%s\n' "$stage" "$status" | tee -a "$WPP01_ARTIFACT_DIR/stages.txt"
+            return "$status"
+          }
+          run_stage 03-source147 python3 supabase/proofs/pkg023j/replay_source147.py
+          run_stage 04-dev-alpha-to-pkg026 node supabase/proofs/pkg027/pkg027_proof.mjs replay
+          run_stage 05-pkg027 node supabase/proofs/pkg028/pkg028_proof.mjs replay
+          run_stage 06-pkg028 node supabase/proofs/pkg029/pkg029_proof.mjs replay
+          run_stage 07-pkg029 node supabase/proofs/pkg030/pkg030_proof.mjs replay
+          run_stage 08-pkg030 node supabase/proofs/pkg031/pkg031_proof.mjs replay
+          run_stage 09-pkg031 node supabase/proofs/pkg032/pkg032_proof.mjs replay
+          run_stage 10-pkg032 node supabase/proofs/pkg033/pkg033_proof.mjs replay
+          run_stage 11-pkg033 node supabase/proofs/pkg034/pkg034_proof.mjs replay
+          run_stage 12-pkg034 node supabase/proofs/pkg035/pkg035_proof.mjs replay
+          run_stage 13-pkg035 node supabase/proofs/pkg037/pkg037_proof.mjs replay
+          run_stage 14-pkg037 node supabase/proofs/pkg038/pkg038_proof.mjs replay
+          run_stage 15-pkg038 node supabase/proofs/pkg039/pkg039_proof.mjs replay
+          run_stage 16-pkg039 node supabase/proofs/pkg040/pkg040_proof.mjs replay
+          run_stage 17-pkg040 node supabase/proofs/pkg042/pkg042_proof.mjs replay
+          run_stage 18-pkg042-to-pkg050 node supabase/proofs/pkg050/pkg050_proof.mjs
+          run_stage 19-ex04d psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/candidates/ex04d_candidates_page.sql
+          run_stage 20-ex06a psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/candidates/ex06a_flexible_window.sql
+          run_stage 21-ex06b psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/candidates/ex06b_alias_registry.sql
+          run_stage 22-exact-relevant-predecessors node supabase/candidates/worker-personal-profile-20261003/prepare-chain.mjs
+      - name: WPP02 actual disposable SQL and Auth boundaries
+        run: |
+          set -euo pipefail
+          umask 077
+          proof_exit=0
+          node supabase/candidates/worker-personal-v2-20261003/runtime.proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/23-wpp02-runtime.log" || proof_exit=${PIPESTATUS[0]}
+          grep -E '^(PASS|FAIL) WPP02' "$PRE_V3_ARTIFACT_DIR/23-wpp02-runtime.log" > "$WPP02_ARTIFACT_DIR/runtime-summary.txt" || true
+          cat "$WPP02_ARTIFACT_DIR/runtime-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+          test "$proof_exit" -eq 0
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const report=JSON.parse(readFileSync(process.env.WPP02_ARTIFACT_DIR+'/report.json','utf8'));
+          assert.equal(report.sourceSha,process.env.GITHUB_SHA);
+          assert.equal(report.result,'PASS');
+          assert.equal(report.liveAccess,false);
+          assert.equal(report.providerCalls,0);
+          assert.equal(report.pushSends,0);
+          assert.equal(report.certificateAdmitted,false);
+          assert.equal(report.fullAiReview,false);
+          assert.ok(report.checks.length>=15);
+          assert.ok(report.checks.every(c=>c.result==='PASS'));
+          NODE
+      - name: Always discard the disposable database
+        if: always()
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$WPP01_ARTIFACT_DIR" "$WPP02_ARTIFACT_DIR"
+          teardown_exit=0
+          if [[ -d /tmp/uskoci-ru5-device-ui ]]; then
+            cd /tmp/uskoci-ru5-device-ui
+            supabase stop --no-backup > "$PRE_V3_ARTIFACT_DIR/teardown.log" 2>&1 || teardown_exit=$?
+          fi
+          printf 'teardown exit=%s\n' "$teardown_exit" | tee -a "$WPP01_ARTIFACT_DIR/stages.txt"
+          exit "$teardown_exit"
+      - name: Upload only bounded source and result summaries
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: worker-personal-v2-candidate-${{ github.sha }}-${{ github.run_id }}
+          path: /tmp/wpp02-artifacts/
+          if-no-files-found: error
+          retention-days: 30
