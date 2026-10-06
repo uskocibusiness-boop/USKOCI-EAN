@@ -1,5 +1,7 @@
 # UI/UX pass - the plan and where it stands (kept in the repository 2026-10-02)
 
+Current continuation,6 October: [Home/worker exact local checkpoint](HOME_WORKER_REFINEMENT_20261006.md). The later owner direction and native review retain **two equally prominent Home actions**, with art left/text right. Earlier one-primary-tile descriptions below are historical iterations. The62-row registry and LIVE plan remain the execution authority.
+
 This is the plan of the UI/UX pass the owner ordered on 2026-10-02 ("kreni sad", see `OWNER_START_AND_COMPLAINTS_20261002.md`). It is NOT a second master plan: the single status registry stays `docs/control/redovi.json` and the LIVE plan `docs/current/USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html` (its "next" block carries the current cursor). Until 2026-10-02 the plan lived only in a working folder; this file and the three JSON files beside it are the durable copy.
 
 Files: `UIUX_PLAN_20261002.json` (waves, items with finding ids, conflicts resolved, items dropped, the 13 owner questions, the first visible win), `UIUX_AUDITS_20261002.json` (the per-area audits the plan was derived from: Home, Zadaci, Moji zadaci, Dogovori/chat, icons, motion), `UIUX_W1_RESULTS_20261002.json` (the four wave-1 authors and the two reviews). Finding ids (HP-, Z, MZ-, DG-F, ICO-, MO-M) point into the audits file.
