@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, BackHandler } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { workerAiClientService as api, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
@@ -15,7 +15,7 @@ import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiReviewDetails, type WorkerAiManualDraft } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { CalendarScreen } from '../../../ui/calendar/CalendarControls';
 import { T } from '../../../ui/Text';
@@ -40,7 +40,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
   const panelScope=useRef<object>({}),renderedPanel=panelScope.current,panelWrite=useRef(false);
-  const showPanel=(next:Panel)=>{panelScope.current={};setPanel(next);};
+  const manualEdits=useRef({dirty:false,revision:0,sourceRevision:null as number|null,value:null as WorkerAiManualDraft|null}),manualQuestion=useRef<object|null>(null);
+  const showPanel=(next:Panel)=>{manualEdits.current={dirty:false,revision:manualEdits.current.revision+1,sourceRevision:null,value:null};manualQuestion.current=null;
+    panelScope.current={};setPanel(next);};
   const [leaving,setLeaving]=useState(false);
   const [menu,setMenu]=useState(false);
   const draftText=useRef(input);draftText.current=input;
@@ -51,7 +53,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
-    if(focus.current===token)focus.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');
+    if(focus.current===token)focus.current=null;manualQuestion.current=null;retireConfirmation();abort.current?.abort();abort.current=null;setStream('');
   };},[retireConfirmation]));
   useEffect(()=>{const subscription=AppState.addEventListener('change',state=>{
     // Duplicate native activity notifications are not a return from background.
@@ -155,6 +157,20 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     }});
   const voiceBusy=voice.state.phase!=='IDLE';
   const enabled=canAct()&&!voiceBusy&&!awaiting&&!pending.current;
+  const manualBackBlocked=useRef(false);
+  manualBackBlocked.current=editor.busy||editor.loading||editor.uncertain||resuming;
+  useEffect(()=>{
+    if(manualQuestion.current){manualQuestion.current=null;retireConfirmation();}
+  },[editor.busy,editor.loading,editor.uncertain,data?.revision,foreground,retireConfirmation]);
+  const manualDraftConflict=manualEdits.current.dirty&&manualEdits.current.sourceRevision!==data?.revision;
+  const manualChanged=(value:WorkerAiManualDraft,dirty:boolean)=>{
+    if(!current()||panel!=='manual'||panelScope.current!==renderedPanel||panelWrite.current)return;
+    // Privacy unmounts the fields, not this owner-scoped draft. A newer server
+    // proposal never silently adopts edits made against an older revision.
+    if(manualEdits.current.dirty&&manualEdits.current.sourceRevision!==data?.revision)return;
+    manualEdits.current={dirty,revision:manualEdits.current.revision+1,sourceRevision:data?.revision??null,value};
+    manualQuestion.current=null;retireConfirmation();
+  };
   const leave=(navigate:()=>void)=>{
     if(!current()||panelScope.current!==renderedPanel)return;
     // Retire immediately, before navigation emits blur. Aborting the local stream is not a
@@ -164,10 +180,41 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   };
   const back=()=>{
     if(!current()||panelScope.current!==renderedPanel)return;
+    if(panel==='manual'){
+      // An unconfirmed patch is a server outcome to reconcile, never a local
+      // draft that a discard confirmation may throw away.
+      if(manualBackBlocked.current||panelWrite.current)return;
+      if(manualEdits.current.dirty){
+        if(manualQuestion.current)return;
+        const token={},revision=manualEdits.current.revision;manualQuestion.current=token;
+        confirmSheet.ask({title:'Odbaciti izmene?',message:'Ručne izmene neće biti primenjene na predlog profila.',
+          confirmLabel:'Odbaci izmene',cancelLabel:'Nastavi uređivanje',tone:'danger',
+          onCancel:()=>{if(manualQuestion.current===token)manualQuestion.current=null;},
+          onConfirm:()=>{
+            if(!current()||panelScope.current!==renderedPanel||manualQuestion.current!==token||manualBackBlocked.current
+              ||panelWrite.current||!manualEdits.current.dirty||manualEdits.current.revision!==revision)return;
+            showPanel('chat');
+          }});
+        return;
+      }
+      showPanel('chat');return;
+    }
     if(panel!=='chat'){if(!editor.busy&&!panelWrite.current)showPanel('chat');return;}
     leave(()=>router.canGoBack()?router.back():router.replace('/profil/radnik'));
   };
-  const refresh=()=>{if(current()&&!editor.busy&&!voiceBusy)void editor.refresh();};
+  const manualBack=useRef({panel,back});manualBack.current={panel,back};
+  useFocusEffect(useCallback(()=>{
+    const subscription=BackHandler.addEventListener('hardwareBackPress',()=>{
+      if(manualBack.current.panel!=='manual'||!focus.current||!active.current||!owns())return false;
+      // Android's keyboard consumes its own Back first; only a delivered JS
+      // event asks to leave the form. Processing/unknown outcomes consume it too.
+      manualBack.current.back();return true;
+    });return()=>subscription.remove();
+  },[owns]));
+  const refresh=()=>{if(current()&&!editor.busy&&!voiceBusy){
+    if(manualQuestion.current){manualQuestion.current=null;retireConfirmation();}
+    void editor.refresh();
+  }};
   const cancelPending=async()=>{
     const command=pending.current;if(!canAct()||voiceBusy||!data||!command||!recovery?.canCancel)return;
     await editor.save(async()=>{const result=await api.cancelTurn(data.conversationId,command.id);
@@ -218,8 +265,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
       recovery?.cancelled&&recovery.providerDispatched?'Odgovor je otkazan i podaci su ostali nepromenjeni. Pokušaj se ipak računa, jer je obrada već bila počela.':null;
   if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back}><WorkerProfileStatus loading={leaving||editor.loading||!foreground||resuming}
-    error={leaving?null:editor.error} retry={refresh}/></WorkerProfileFrame>;
-  const busyPanelCopy=editor.busy?<T accessibilityRole="alert" variant="meta" tone="muted">Sačekaj potvrdu pre povratka u razgovor.</T>:null;
+    error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
+  const busyPanelCopy=editor.busy?<T accessibilityRole="alert" variant="meta" tone="muted">Sačekaj potvrdu pre povratka u razgovor.</T>
+    :panel==='manual'&&editor.uncertain?<T accessibilityRole="alert" variant="meta" tone="muted">Prvo proveri ishod izmene, pa se vrati u razgovor.</T>:null;
   // The form owns its scroll and sticky save controls. A scrolling profile frame with a fixed
   // minimum height left those controls below a second scroll on smaller Android screens.
   if(panel==='availability')return <CalendarScreen title="Dostupnost za rad" back={back} scroll={false}
@@ -228,9 +276,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     <AvailabilityForm availability={data.candidate.availability} busy={editor.busy} uncertain={editor.uncertain} refreshing={editor.loading} candidateMode
       onSave={value=>{if(canAct()&&enabled)void patch(workerAvailabilityPatch(data.candidate.availability,value));}}/>
   </CalendarScreen>;
-  if(panel==='manual')return <WorkerProfileFrame back={back}><WorkerAiManual key={data.revision} profile={data.candidate} disabled={!enabled}
-    apply={value=>{void patch(value);}}/>{busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
-    <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></WorkerProfileFrame>;
+  if(panel==='manual')return <WorkerProfileFrame back={back}>
+    {manualDraftConflict?<T accessibilityRole="alert">Predlog profila je promenjen. Tvoj unos je zadržan, ali ove izmene više ne mogu da se primene.</T>:null}
+    <WorkerAiManual key={data.revision} profile={data.candidate} disabled={!enabled||manualDraftConflict}
+      initialDraft={manualEdits.current.dirty?manualEdits.current.value??undefined:undefined}
+      apply={value=>{if(!manualDraftConflict)void patch(value);}} onDraftChange={manualChanged}/>
+    {manualDraftConflict?<V2Action tone="neutral" label="Odbaci izmene i nastavi" kind="quiet" disabled={manualBackBlocked.current||panelWrite.current} onPress={back}/>:null}
+    {busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
+    <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
   if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
     return <WorkerProfileFrame back={back} footer={data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:<>
       <V2Action tone="neutral" label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}

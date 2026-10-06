@@ -65,7 +65,8 @@ describe('PKG-005 progressive Worker onboarding', () => {
     readProfile.mockResolvedValueOnce(null).mockResolvedValue(readyDraft({ grad: '' }));
     await render();
 
-    expect(action('Sačuvaj profil')).toBeTruthy();
+    expect(action('Uredi kroz razgovor')).toBeTruthy();
+    expect(action('Sačuvaj profil')).toBeUndefined();
     expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Proveri i aktiviraj profil')).toHaveLength(0);
 
     await act(async () => form().props.change({ ...form().props.draft, ime: 'Ana', vestine: ['Selidbe'] }));

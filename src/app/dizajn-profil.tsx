@@ -156,21 +156,19 @@ const GROUPS: Group[] = [
     { key: 'hub-busy', label: 'Profil: radnja u toku', draw: () => <Hub busy identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
       capabilityDetail="Profil je aktivan." workArea="Novi Sad" /> },
   ] },
-  { title: 'Veštine, alat i tim', scenes: [
+  { title: 'Lični radni profil', scenes: [
     { key: 'worker-loading', label: 'Radni profil: učitavanje', draw: () => <WorkerProfileFrame back={toList.current}>
       <WorkerProfileStatus loading retry={noop} /></WorkerProfileFrame> },
     { key: 'worker-error', label: 'Radni profil: greška', draw: () => <WorkerProfileFrame back={toList.current}>
       <WorkerProfileStatus loading={false} error="Profil nije učitan. Proveri vezu pa probaj ponovo." retry={noop} /></WorkerProfileFrame> },
     { key: 'worker-first', label: 'Radni profil: prvi put', draw: () => <Worker initial={workerDraft(null)} status={null}
-      checks={{ basics: false, area: false, capacity: false }} footer={<WorkerProfileFooter>{primary('Sačuvaj profil')}</WorkerProfileFooter>} /> },
+      checks={{ basics: false, area: false }} footer={<WorkerProfileFooter>{primary('Uredi kroz razgovor')}</WorkerProfileFooter>} /> },
     { key: 'worker-missing', label: 'Radni profil: nacrt, nedostaje', draw: () => <Worker initial={draft({ vestine: [], capacity: '' })} status="DRAFT"
       checks={{ basics: false, area: true, capacity: false }}
       footer={<WorkerProfileFooter error="Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.">
         {primary('Dopuni osnovne podatke')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
     { key: 'worker-ready', label: 'Radni profil: spreman za aktivaciju', draw: () => <Worker initial={draft()} status="DRAFT" checks={READY} readyToActivate
       footer={<WorkerProfileFooter>{primary('Proveri i aktiviraj profil')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
-    { key: 'worker-capacity', label: 'Radni profil: nacrt bez učitanog kapaciteta', draw: () => <Worker initial={draft({ capacityRevision: null })}
-      status="DRAFT" checks={READY} footer={<WorkerProfileFooter>{primary('Učitaj kapacitet profila')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
     { key: 'worker-active', label: 'Radni profil: aktivan', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}
       footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
     { key: 'worker-saved', label: 'Radni profil: sačuvano', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}

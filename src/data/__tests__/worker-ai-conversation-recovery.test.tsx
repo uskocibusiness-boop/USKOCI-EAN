@@ -2,8 +2,9 @@ import React from 'react';
 import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',K='44444444-4444-4444-8444-444444444444';
 let mockAccount=A,mockRevision=1,mockFocused=true,mockParams:{conversationId?:string}={conversationId:C};
-let mockRealAvailability=false,mockFontScale=1;
+let mockRealAvailability=false,mockRealManual=false,mockFontScale=1;
 const mockListeners=new Set<(s:string)=>void>();
+const mockBackHandlers=new Set<()=>boolean>();
 const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
 const mockJournal={load:jest.fn(),save:jest.fn(),clear:jest.fn()};let mockStored:unknown=null;
 const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(),setParams:jest.fn()};
@@ -13,6 +14,7 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native');re
  if(key==='Platform')return{OS:'android'};
  if(key==='useWindowDimensions')return()=>({width:320,height:640,scale:2,fontScale:mockFontScale});
  if(key==='AppState')return{currentState:'active',addEventListener:(_:string,fn:(s:string)=>void)=>{mockListeners.add(fn);return{remove:()=>mockListeners.delete(fn)};}};
+ if(key==='BackHandler')return{addEventListener:(_:string,fn:()=>boolean)=>{mockBackHandlers.add(fn);return{remove:()=>mockBackHandlers.delete(fn)};}};
  return Reflect.get(target,key);}});});
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
 jest.mock('@expo/ui/community/datetime-picker',()=>({DateTimePicker:'DateTimePicker'}));
@@ -28,7 +30,8 @@ jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({act
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfileFrame:(props:any)=>mockRealAvailability
  ?require('react').createElement(jest.requireActual('../../ui/workerProfile/WorkerProfilePresentation').WorkerProfileFrame,props)
  :require('react').createElement('Frame',props,props.children,props.footer),WorkerProfileStatus:'Status'}));
-jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiManual:'Manual',WorkerAiReviewDetails:'Review'}));
+jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiReviewDetails:'Review',
+ WorkerAiManual:(props:any)=>require('react').createElement(mockRealManual?jest.requireActual('../../ui/workerProfile/WorkerAiPresentation').WorkerAiManual:'Manual',props)}));
 jest.mock('../../ui/calendar/AvailabilityForm',()=>({AvailabilityForm:(props:any)=>require('react').createElement(mockRealAvailability
  ?jest.requireActual('../../ui/calendar/AvailabilityForm').AvailabilityForm:'Availability',props)}));
 jest.mock('../../ui/Text',()=>({T:'T'}));
@@ -61,7 +64,7 @@ const click=async(label:string)=>{await act(async()=>{action(label).props.onPres
 const sheets=()=>tree.root.findAllByType(ConfirmSheet);
 const answer=async(testID:'confirm-sheet-confirm'|'confirm-sheet-cancel')=>{await act(async()=>{tree.root.findByType(ConfirmSheet).findByProps({testID}).props.onPress();});};
 beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
- mockRealAvailability=false;mockFontScale=1;
+ mockRealAvailability=false;mockRealManual=false;mockFontScale=1;mockBackHandlers.clear();
  mockRouter.canGoBack.mockReturnValue(true);
  mockJournal.load.mockImplementation(async()=>mockStored);mockJournal.save.mockImplementation(async(i:unknown)=>{mockStored=i;});mockJournal.clear.mockImplementation(async()=>{mockStored=null;});
  mockApi.read.mockResolvedValue(ok(snapshot()));mockApi.open.mockResolvedValue(ok(snapshot()));mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery(),clientRequestId:key}));
@@ -211,6 +214,91 @@ const panelSubmit=(panel:string)=>panel==='manual'?()=>tree.root.findByType('Man
  :panel==='availability'?()=>tree.root.findByType('Availability' as any).props.onSave({...availability(),availableNow:true})
  :()=>action('Sačuvaj i aktiviraj profil').props.onPress();
 const panelBack=(panel:string)=>panel==='availability'?tree.root.findByType(CalendarScreen).props.back:tree.root.findByType('Frame' as any).props.back;
+const manualField=(label:string)=>tree.root.findByProps({accessibilityLabel:label});
+const editManual=(label:string,value:string)=>act(()=>manualField(label).props.onChangeText(value));
+const hardwareBack=async()=>{let handled=false;await act(async()=>{handled=[...mockBackHandlers].reverse().some(fn=>fn());});return handled;};
+const manualBack=async(entry:string)=>{if(entry==='hardware')expect(await hardwareBack()).toBe(true);else await act(async()=>panelBack('manual')());};
+
+it.each(['toolbar','hardware'])('%s manual Back asks before discarding, Continue retains fields, and confirm never patches',async entry=>{
+ mockRealManual=true;await render();await enterPanel('manual');
+ editManual('Kratko predstavljanje','Moj novi opis');editManual('Alat i oprema','Bušilica\nMerdevine');
+ await manualBack(entry);expect(sheets()).toHaveLength(1);expect(mockRouter.back).not.toHaveBeenCalled();
+ expect(mockApi.patch).not.toHaveBeenCalled();await answer('confirm-sheet-cancel');
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Moj novi opis');
+ expect(manualField('Alat i oprema').props.value).toBe('Bušilica\nMerdevine');
+ await manualBack(entry);await answer('confirm-sheet-confirm');expect(shell()).toBeTruthy();
+ expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+ await enterPanel('manual');expect(manualField('Kratko predstavljanje').props.value).toBe('');
+});
+it.each(['toolbar','hardware'])('%s clean manual Back returns directly, including an edit reverted to its original value',async entry=>{
+ mockRealManual=true;await render();await enterPanel('manual');
+ editManual('Ime na profilu','Ana');editManual('Ime na profilu','');
+ await manualBack(entry);expect(sheets()).toHaveLength(0);expect(shell()).toBeTruthy();
+ expect(mockRouter.back).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
+});
+it('manual fields survive privacy unmount and resume only within the same owner and candidate revision',async()=>{
+ mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Privatni lokalni opis');
+ const oldEdit=manualField('Kratko predstavljanje').props.onChangeText,oldApply=action('Primeni na pregled profila').props.onPress;
+ await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
+ await act(async()=>{for(const listener of [...mockListeners])listener('background');});
+ expect(tree.root.findAllByType('TextInput' as any)).toHaveLength(0);expect(visibleText()).not.toContain('Privatni lokalni opis');
+ await act(async()=>oldConfirm());expect(sheets()).toHaveLength(0);
+ await act(async()=>{for(const listener of [...mockListeners])listener('active');});
+ act(()=>{oldEdit('Kasni unos sakrivenog obrasca');oldApply();});
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Privatni lokalni opis');
+ expect(mockApi.patch).not.toHaveBeenCalled();
+ await manualBack('toolbar');expect(sheets()).toHaveLength(1);await answer('confirm-sheet-cancel');
+ mockApi.read.mockResolvedValue(ok({...snapshot(),revision:1,candidate:{...candidate(),bio:'Noviji predlog'}}));
+ await click('Proveri stanje razgovora');
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Privatni lokalni opis');
+ expect(manualField('Kratko predstavljanje').props.editable).toBe(false);
+ expect(action('Primeni na pregled profila').props.disabled).toBe(true);
+ expect(visibleText()).toContain('Predlog profila je promenjen');
+ await click('Primeni na pregled profila');expect(mockApi.patch).not.toHaveBeenCalled();
+ await click('Odbaci izmene i nastavi');await answer('confirm-sheet-confirm');await enterPanel('manual');
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Noviji predlog');
+ expect(manualField('Kratko predstavljanje').props.editable).toBe(true);
+});
+it.each(['account','conversation'])('a retained manual discard and private draft cannot cross a changed %s',async kind=>{
+ mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Stari privatni unos');
+ await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
+ await act(async()=>{if(kind==='account')mockRevision+=2;else mockParams={conversationId:B};tree.update(<Screen/>);});
+ await act(async()=>oldConfirm());expect(shell()).toBeTruthy();await enterPanel('manual');
+ expect(manualField('Kratko predstavljanje').props.value).toBe('');
+ expect(mockApi.patch).not.toHaveBeenCalled();expect(mockRouter.back).not.toHaveBeenCalled();
+});
+it('a failed manual refresh preserves the private draft and a visible Back choice before retry',async()=>{
+ mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Zadržan unos');
+ mockApi.read.mockResolvedValueOnce({ok:false,kod:'READ_FAILED',poruka:'Profil nije učitan.'});
+ await click('Proveri stanje razgovora');expect(tree.root.findAllByType('TextInput' as any)).toHaveLength(0);
+ await manualBack('hardware');expect(sheets()).toHaveLength(1);await answer('confirm-sheet-cancel');
+ await act(async()=>tree.root.findByType('Status' as any).props.retry());
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Zadržan unos');
+ expect(mockApi.patch).not.toHaveBeenCalled();
+});
+it('manual processing and unknown patch outcomes block toolbar/hardware discard until explicit readback',async()=>{
+ mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Nepotvrđena ispravka');
+ await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
+ const saving=deferred();mockApi.patch.mockReturnValueOnce(saving.promise);
+ await click('Primeni na pregled profila');await act(async()=>oldConfirm());
+ await manualBack('toolbar');await manualBack('hardware');
+ expect(sheets()).toHaveLength(0);expect(tree.root.findAllByType('Shell' as any)).toHaveLength(0);
+ expect(mockApi.patch).toHaveBeenCalledTimes(1);
+ await act(async()=>saving.resolve({ok:false,kod:'UNKNOWN',poruka:'Ishod nije potvrđen.'}));
+ await manualBack('toolbar');await manualBack('hardware');expect(sheets()).toHaveLength(0);
+ expect(visibleText()).toContain('Prvo proveri ishod izmene');
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Nepotvrđena ispravka');
+ await click('Proveri stanje razgovora');await manualBack('toolbar');expect(sheets()).toHaveLength(1);
+ await answer('confirm-sheet-cancel');expect(mockApi.patch).toHaveBeenCalledTimes(1);
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Nepotvrđena ispravka');
+});
+it('a keystroke invalidates a retained manual discard decision',async()=>{
+ mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Prvi unos');
+ await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
+ editManual('Kratko predstavljanje','Noviji unos');await act(async()=>oldConfirm());
+ expect(manualField('Kratko predstavljanje').props.value).toBe('Noviji unos');expect(sheets()).toHaveLength(0);
+ expect(mockApi.patch).not.toHaveBeenCalled();
+});
 it('a retired-field review refusal keeps a guarded restart path after same-review readback',async()=>{
  await render();await enterPanel('review');
  mockApi.save.mockResolvedValue({ok:false,kod:'WORKER_AI_STALE',poruka:'Pokreni nov razgovor.'});

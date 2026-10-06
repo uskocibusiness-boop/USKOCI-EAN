@@ -201,7 +201,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // the primary still has to save a change first.
   const primary: { label: string; run: () => void; activates?: boolean } = (() => {
     if (status === 'ACTIVE' || status === 'SUSPENDED') return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
-    if (firstSave) return { label: 'Sačuvaj profil', run: () => { void save(false); } };
+    if (firstSave) return localDirty
+      ? { label: 'Sačuvaj profil', run: () => { void save(false); } }
+      : { label: 'Uredi kroz razgovor', run: () => openConversation() };
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
     if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
