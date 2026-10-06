@@ -7,7 +7,7 @@ const mockListeners = new Set<(state: string) => void>();
 const mockBackHandlers = new Set<() => boolean>();
 const mockRead = jest.fn(), mockWrite = jest.fn(), mockScrollTo = jest.fn();
 const mockSource = { mojRadnikProfil: mockRead, azurirajRadnikProfil: mockWrite };
-const mockRouter = { back: jest.fn(), navigate: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) };
+const mockRouter = { back: jest.fn(), navigate: jest.fn(), push: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'Platform') return { OS: mockPlatform };
   if (key === 'AppState') return { currentState: 'active', addEventListener: (_: string, callback: (state: string) => void) => {
@@ -95,12 +95,21 @@ it.each(['ACTIVE', 'SUSPENDED'])('a clean %s profile has no save footer, while e
   expect(mockWrite).not.toHaveBeenCalled();
 });
 
-it('a successfully absent profile starts with truthful empty values and the primary action saves the first draft before activation', async () => {
+it('an absent pristine profile opens the guarded conversation without creating an empty profile', async () => {
+  mockRead.mockResolvedValue(null); await render();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj profil' })).toHaveLength(0);
+  click('Uredi kroz razgovor');
+  expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor');
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+
+it('a successfully absent profile saves manual input as a first draft before activation', async () => {
   mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
   expect(texts()).toContain('Pogledaj i uredi raspored'); expect(texts()).toContain('Izaberi gde želiš da radiš');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Koliko ljudi možeš da obezbediš' })).toHaveLength(0);
+  input('Ime na radnom profilu', 'Ana');
   click('Sačuvaj profil'); await settle();
-  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false });
+  expect(mockWrite).toHaveBeenCalledWith({ ime: 'Ana', zavrsi: false });
   expect(texts()).toContain('Profil je sačuvan i provereno učitan');
   expect(control('Proveri i aktiviraj profil')).toBeTruthy();
 });

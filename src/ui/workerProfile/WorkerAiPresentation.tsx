@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Switch, TextInput, View } from 'react-native';
 import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
 import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
@@ -134,13 +134,27 @@ function Field({label,value,change,disabled,numeric=false,multiline=false}:{labe
     value={value} editable={!disabled} onChangeText={v=>{if(!disabled)change(v);}} multiline={multiline} keyboardType={numeric?'number-pad':'default'} maxLength={numeric?3:multiline?25500:160}/></View>;
 }
 /** Manual correction of the proposal; applied to the proposal, saved only through the final review. */
-export function WorkerAiManual({profile,disabled,apply}:{profile:WorkerAiProfile;disabled:boolean;apply:(patch:WorkerAiPatch)=>void}){
-  const [name,setName]=useState(profile.displayName),[bio,setBio]=useState(profile.bio);
-  const [city,setCity]=useState(profile.location.city),[country,setCountry]=useState(profile.location.operatingCountryCode??''),[radius,setRadius]=useState(String(profile.location.radiusKm));
-  const [skills,setSkills]=useState(profile.skills.join('\n')),[tools,setTools]=useState(profile.tools.join('\n')),[vehicles,setVehicles]=useState(profile.vehicles.join('\n'));
+export type WorkerAiManualDraft={name:string;bio:string;city:string;country:string;radius:string;skills:string;tools:string;vehicles:string};
+export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChange}:{profile:WorkerAiProfile;disabled:boolean;apply:(patch:WorkerAiPatch)=>void;
+  initialDraft?:WorkerAiManualDraft;onDraftChange?:(value:WorkerAiManualDraft,dirty:boolean)=>void}){
+  const initial=useRef({name:profile.displayName,bio:profile.bio,city:profile.location.city,country:profile.location.operatingCountryCode??'',
+    radius:String(profile.location.radiusKm),skills:profile.skills.join('\n'),tools:profile.tools.join('\n'),vehicles:profile.vehicles.join('\n')});
+  const [values,setValues]=useState(initialDraft??initial.current),latest=useRef(values),notify=useRef(onDraftChange);notify.current=onDraftChange;
+  const alive=useRef(true),editable=useRef(!disabled);editable.current=!disabled;
+  const {name,bio,city,country,radius,skills,tools,vehicles}=values;
+  // A fresh revision mounts a fresh form. Report edits synchronously so Back in
+  // the same event batch cannot discard a keystroke before an effect runs.
+  const dirty=(value:WorkerAiManualDraft)=>(Object.keys(value) as (keyof WorkerAiManualDraft)[]).some(field=>value[field]!==initial.current[field]);
+  useEffect(()=>{alive.current=true;notify.current?.(latest.current,dirty(latest.current));return()=>{alive.current=false;};},[]);
+  const change=(key:keyof typeof values,value:string)=>{
+    if(!alive.current||!editable.current)return;
+    const next={...latest.current,[key]:value};latest.current=next;setValues(next);
+    notify.current?.(next,dirty(next));
+  };
   const [error,setError]=useState<string|null>(null);
   const submit=()=>{
-    if(disabled)return;
+    if(!alive.current||!editable.current)return;
+    const {name,bio,city,country,radius,skills,tools,vehicles}=latest.current;
     // Match the canonical ASCII btrim; Unicode whitespace is part of an authored term.
     const arrays=[skills,tools,vehicles].map(v=>capabilityTerms(v.split('\n').map(x=>x.replace(/^ +| +$/g,'')).filter(Boolean)));
     const countryValue=country.trim()?countryCode(country.trim().toUpperCase()):null;
@@ -151,12 +165,12 @@ export function WorkerAiManual({profile,disabled,apply}:{profile:WorkerAiProfile
   };
   return <><T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U liste unesi jednu stavku po redu.</T>
     <View style={s.section}><T variant="heading" style={s.ink}>Ko si i šta radiš</T>
-      <Field disabled={disabled} label="Ime na profilu" value={name} change={setName}/><Field disabled={disabled} label="Veštine i usluge" value={skills} change={setSkills} multiline/>
-      <Field disabled={disabled} label="Alat i oprema" value={tools} change={setTools} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={setVehicles} multiline/>
-      <Field disabled={disabled} label="Kratko predstavljanje" value={bio} change={setBio} multiline/></View>
+      <Field disabled={disabled} label="Ime na profilu" value={name} change={v=>change('name',v)}/><Field disabled={disabled} label="Veštine i usluge" value={skills} change={v=>change('skills',v)} multiline/>
+      <Field disabled={disabled} label="Alat i oprema" value={tools} change={v=>change('tools',v)} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={v=>change('vehicles',v)} multiline/>
+      <Field disabled={disabled} label="Kratko predstavljanje" value={bio} change={v=>change('bio',v)} multiline/></View>
     <View style={s.section}><T variant="heading" style={s.ink}>Područje rada</T>
-      <Field disabled={disabled} label="Država rada (npr. RS)" value={country} change={setCountry}/>
-      <Field disabled={disabled} label="Grad ili mesto rada" value={city} change={setCity}/><Field disabled={disabled} label="Radijus rada u km" value={radius} change={setRadius} numeric/></View>
+      <Field disabled={disabled} label="Država rada (npr. RS)" value={country} change={v=>change('country',v)}/>
+      <Field disabled={disabled} label="Grad ili mesto rada" value={city} change={v=>change('city',v)}/><Field disabled={disabled} label="Radijus rada u km" value={radius} change={v=>change('radius',v)} numeric/></View>
     {error?<View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View>:null}<V2Action tone="neutral" label="Primeni na pregled profila" disabled={disabled} onPress={submit}/>
   </>;
 }
