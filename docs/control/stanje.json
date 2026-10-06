@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-04T13:33:44Z",
-  "grana": "HEAD",
-  "head": "db05e71a",
-  "head_poruka": "docs(control): record proven push scheduler gate candidate",
+  "osvezeno": "2026-10-06T21:38:53Z",
+  "grana": "integration/spoj-20261006",
+  "head": "2572e29f",
+  "head_poruka": "Balance Home action height and clarify mixed attention",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -302,8 +302,8 @@
    }
   ],
   "owner_decision_20261002_all75": "2.10. 11:02: VLASNIK JE PRIHVATIO SVIH 75 PREDLOGA (stranica za odgovaranje https://claude.ai/artifact/9JRQthzUMM6M3qw4ZxCK2a, zapis u njenoj bazi: 75 dokumenata, svi „predlog“, bez napomena; pročitano 2.10.). Zapis odluka i posledica: docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISIONS_20261002_ALL75.md. Isto veče: „Primeni, a SAD radi na android emulatoru“: „Primeni“ bez imena paketa shvaćeno kao pokretanje primene prihvaćenih odluka u RADU (nije reč iz AGENTS 3.1.2 za DEV/PROD; nijedan serverski paket nije spreman, svaki traži svoje „PRIMENI <ime>“ posle approval bloka); QA je od sada na Android emulatoru USKOCI_V5_TEST (AGENTS 3.2.1 dopunjen), HONOR samo na njegovo „sad“. Izmenjen AGENTS.md: 3.1.5 (expo-audio odobren, expo-location uslovno), 3.1.7 (povučena rečenica o zero-device backlog retirement), 3.2.1 (emulator), 3.5.5 (obim V1). Dodatak 3.6.9 (UI odluke) NIJE upisan (sistem ga je blokirao): UI odluke stoje u zapisu odluka i u UI planu.",
-  "updated_at": "2026-09-28",
-  "source_head": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+  "updated_at": "2026-10-06",
+  "source_head": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
   "order": [
    "P0",
    "P1",
@@ -316,12 +316,12 @@
   ],
   "proposal": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P1_SEARCH_PROPOSAL.md",
   "approval": "ORDINARY_UI_FLOW_REFINEMENT_APPROVED_WITH_CRITICAL_REVIEW; TASKCARD_PEEK_UNCHANGED",
-  "tests": "Vraćena verzija 36c57b84: automatski CI 36357286414, TypeScript i 342 grupe / 7213 testova PASS. Izvršni izvor jednak je 10739a44; emulator je vraćen i provereni su mapa, cela lista, meni i povratak iz menija. Izvorni kvar pri povratku cele liste ostaje otvoren. Kandidat 2b2cf4d7 je odbijen uprkos uspešnim automatskim testovima.",
-  "device": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
+  "tests": "Aktuelno06.10:55 Home +60 personal-profile +81 worker-AI focused existing cases PASS, TypeScript and independent review PASS. One profile timeout passed on unchanged focused rerun. Native receipt42da is a bounded emulator check. No new full CI result; remote run37160107912/dd25 final result unknown because GitHub403.",
+  "device": "Aktuelno06.10: exact42da LOCAL_WINDOWS_RELEASE_X86_64, APK27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d, instaliran sa-r na USKOCI_V5_TEST. UID10227/session retained. Home1.15/1.3 i earn→Discovery→Back; prvi radni profil1.0/1.3 samo inertna native galerija. Završno Home/font1.15/motion1. Hladno/delimično čitanje ostaje otvoreno. Nema phone/FPS/provider/whole-app prihvatanja; tačan receipt: docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json.",
   "live_dev_scope": "Sveže metadata čitanje 27.09 u21:52UTC: ledger210, push Edge22 ACTIVE, šest poslednjih migracija imaju očekivane SHA256; oba sertifikatska reda f66818aa…1755b. Raniji tačan Edge readback ostaje zaseban dokaz. Exact flag poslednji put potvrđen OFF u20:12:44UTC; ovde nije ponovo čitan. Privatni readiness helper nije izvršavan.",
   "rule": "Normal UI/flow refinements, focused checks and consolidated device checkpoints authorized. Latest owner requests synchronization of finished work to canonical Git/DEV/app locations. Already applied packages need no repeat approval. Unfinished candidates still require completed proof/preconditions; certificate/dependency/payment restrictions remain. Source is not READY.",
-  "implementation": "Krug32: predlog ispravke native nestanka liste odbijen zbog ponovljenogAndroidANR. Četiri izmene izvora/testa potpuno povučene. Sve ranije dovršene dorade ostaju na10739a44; otvoreni native kvar nije proglašen rešenim.",
-  "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
+  "implementation": "Aktuelno06.10: exact42da local APK installed and bounded Home/first-profile emulator review passed. Manual AI lifecycle source verified. WPP02-A isolated SQL source verified, not applied or PostgreSQL-proven. Earlier top checkpoint remains under historical_top_checkpoint_20260928.",
+  "current_round": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_REFINEMENT_20261006.md",
   "dashboard_publication": "PENDING_REPUBLISH: prijavljen vlasnik je vidljiv; objavljena stranica odbija upis sa invalid_argument. Stari šablon netačno svakoj grešci dodaje tvrdnju o pravu izmene. Lokalno je poruka ispravljena; uzrok odbijanja i objava istog Artifact-a ostaju otvoreni. Generacija nije objava.",
   "previous_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_CORRECTIONS.md",
   "server_proof": "P0 SQL-role9PASS36330122549; P4 SQL/Auth13PASS36339724742; P5 SQL-role7PASS36341487304. Primena DEV potvrđena u zasebnom receipt-u; ovo nije ceo native/provajder tok.",
@@ -1317,7 +1317,7 @@
    "implementation": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
    "native_report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_31_NATIVE_RECEIPT.json"
   },
-  "next_owner_priority": "Popraviti originalni native povratak liste ciljano, bez globalnogflagfalse; sačuvati gorhom/SDK dokaze. Završeni Git/DEV paketi usaglašeni. Telefon ažurirati tek proverenomverzijom kadUSB dostupan; hostedtabla upis i P6/voice/provider/iOS ostaju otvoreni.",
+  "next_owner_priority": "Nastaviti preostale vizuelne tokove i kompletan WPP02 AI/review/save/dispatch paket. Hladno/delimično Home čitanje ostaje za ciljanu read-only dijagnostiku; uzrok nije utvrđen i ne otvara P6 bez potvrđene nove regresije. Ne ponavljati zatvorenu ograničenu vizuelnu proveru. GitHub account suspended blokira push/CI; potrebna je obnova pristupa. Whole-app, telefon i store granice ostaju otvorene.",
   "phone_apk_round30": {
    "status": "ARTIFACT_VERIFIED_NOT_YET_INSTALLED",
    "source": "baa328327b2d7861966780337f16c327c757e1c3",
@@ -1347,7 +1347,7 @@
    "signer_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
    "device_status": "USB_ABSENT_NOT_INSTALLED"
   },
-  "native_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
+  "native_receipt": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json",
   "native_sheet_round32": {
    "status": "REJECTED_NATIVE_ANR_SOURCE_REVERSED_APK_RESTORED",
    "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
@@ -1371,7 +1371,7 @@
     "native_boundary": "Scoped rollback recovery only; original full-return defect remains open."
    }
   },
-  "canonical_sync_commit": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b",
+  "canonical_sync_commit": "dd25f6983e58276477959d7e59599728a5388826",
   "branch_first_entry_audit": {
    "source": "d7b98abd",
    "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md",
@@ -1858,7 +1858,44 @@
    "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
    "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
    "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
-  }
+  },
+  "home_worker_refinement_20261006": {
+   "state": "SOURCE_VERIFIED / EXACT_LOCAL_APK_INSTALLED / BOUNDED_EMULATOR_REVIEW",
+   "report": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_REFINEMENT_20261006.md",
+   "nativeReceipt": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json",
+   "source": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+   "sourceTree": "9d585b0cf3aa0bbabb3de6d1fc88f444eeaee12c",
+   "scope": "Obe Home ilustracije levo96dp i tekst desno; jednaka neutralna dugmad, sadržaju prilagođena visina i nedvosmislen Čeka te. Prvi radni profil ima jedan razgovorni ulaz. Ručne AI ispravke imaju owner/revision/Back/background source zaštite.",
+   "checks": "55 Home +60 personal-profile +81 worker-AI existing cases PASS; TypeScript and independent review PASS. One initial profile timeout passed on focused unchanged rerun; no full CI claim.",
+   "delivery": "Home dd25f698 pushed. Later client and WPP02-A commits local only: GitHub HTTP403 account suspended. Remote build37160107912 final result unknown; not accepted.",
+   "native": "Exact42da local x86_64 APK 27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; attestations and install-r PASS, UID10227 retained. Home ordinary/large text and actual earn→Discovery→Back inspected; first-profile gallery inspected. Final font1.15/motion1/Home.",
+   "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
+   "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja.",
+   "openMapObservation": "Duga atribucija u postojećoj rezervisanoj traci ostaje za zasebnu kompoziciju mape. Mapa i8 zadataka su učitani, ali bez prihvatanja celog mapnog toka ili merenja latencije."
+  },
+  "worker_v2_sql_candidate_20261006": {
+   "state": "ISOLATED_SQL_SOURCE_VERIFIED / RUNTIME_NOT_RUN / NOT_DEPLOY_READY",
+   "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+   "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+   "source": "38ada0e4",
+   "candidateSha256": "20c4d420642f50731a390c4b11bcf01ab12c03eeaa07ac8d08fccddfd336df65",
+   "scope": "Canonical desired/declined groups, descriptive notes and urgency preference; private writer; detailed/cheap dispatch parity; compatible pause/resume. Bez javnog endpointa.",
+   "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
+   "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
+   "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
+  },
+  "historical_top_checkpoint_20260928": {
+   "updated_at": "2026-09-28",
+   "source_head": "10739a440611fc32e3bd6d9ee6dd66a5479e091b",
+   "current_round": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_SHEET_SYNC.md",
+   "next_owner_priority": "Popraviti originalni native povratak liste ciljano, bez globalnogflagfalse; sačuvati gorhom/SDK dokaze. Završeni Git/DEV paketi usaglašeni. Telefon ažurirati tek proverenomverzijom kadUSB dostupan; hostedtabla upis i P6/voice/provider/iOS ostaju otvoreni.",
+   "implementation": "Krug32: predlog ispravke native nestanka liste odbijen zbog ponovljenogAndroidANR. Četiri izmene izvora/testa potpuno povučene. Sve ranije dovršene dorade ostaju na10739a44; otvoreni native kvar nije proglašen rešenim.",
+   "device": "Emulator5556 vraćen sa-r na10739a44/run36353185115; instaliraniSHA4c476cff…28a4e odgovara. Sesija očuvana; mapa/10zadataka, FULL, skrol→Još mogućnosti→Back viđeni bez ANR u ovom krugu. To ne zatvara raniji nestanak liste pri povratku iz drugog ekrana. TelefonUSB odsutan;2b2APK odbijen i nije instaliran.",
+   "native_receipt": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_32_NATIVE_RECEIPT.json",
+   "tests": "Vraćena verzija 36c57b84: automatski CI 36357286414, TypeScript i 342 grupe / 7213 testova PASS. Izvršni izvor jednak je 10739a44; emulator je vraćen i provereni su mapa, cela lista, meni i povratak iz menija. Izvorni kvar pri povratku cele liste ostaje otvoren. Kandidat 2b2cf4d7 je odbijen uprkos uspešnim automatskim testovima.",
+   "canonical_sync_commit": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b"
+  },
+  "canonical_sync_status": "LAST_SUCCESSFUL_PUSH_DD25; later42da client and38ada WPP02-A source commits are LOCAL_ONLY. GitHub403 account suspended blocks push/CI. This is not DEV/Edge application."
  },
  "redovi": [
   {
@@ -1891,8 +1928,8 @@
     "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "EX-04 (ROUND_77, 2026-10-01, APK 93e48799 / izvor bf48a5db, fizički HONOR, podaci i sesija sačuvani): Početna se otvara sa istim pločicama i brojevima kao stari build; čitanja ocena po Dogovoru 0 (naspram +24 u starom buildu); pozitivan put (Dogovor za ocenu) i Početna u celini na ovom buildu NISU proveravani, stanje ostaje DELIMIČNO. Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-24: Početna kao pregled (dve pločice, Čeka te, Moji zadaci i Moje prijave) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Na Androidu „velika slova“ (1,3) ne prebacuju pločice jednu ispod druge: ispravka ide sa drugim krugom. Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: APK 31598ac8 / run 35731932400 instaliran; Početna i vraćena sesija viđeni. Ceo tok nije prihvaćen. 03.10/759c327e, run37077513388: fizički HONOR/font1.15, Početna i profil vizuelno pregledani, tačan APK otisak i UID potvrđeni. Ograničen prikaz, ne ceo tok. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
-   "problem": "RC-03 je ublažen u R18: četiri paralelne provere ocena i rok četiri sekunde posle stranica Dogovora. Ukupan broj ostaje P+C; potreban je zbirni server odgovor.",
-   "sledece": "Audit 24.09: čitanje Dogovora čeka zasebnu proveru ocene za svaki završen Dogovor; spor odgovor može oboriti taj deo Početne. Ograničiti/dopuniti projekciju, dokazati da aktivni Dogovori ostaju dostupni. Četiri razloga za pažnju ostaju serverske činjenice. R10 / 25.09, 0f4d7644: početna ima izdvojenu karticu termina, posla i osobe, uz iste obaveze i brojeve. Tipovi i 312 grupa / 6067 testova prolaze. APK 36115051955 je potvrđen i instaliran na emulatoru; kontrola filtera pri velikom tekstu je ponovo pregledana. Slike i ograničenja su u R10 izveštaju; fizički telefon nije proveren. docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md R12 / 25.09: čista bela podloga; bez mentol panela i zelenkastih senki. Ikonice, tekst i jasne akcije nose boju. Tipovi i 313 grupa / 6083 testa prolaze. APK 36128635882 (21f8a0cb) potvrđen je po otisku i instaliran na emulatoru bez brisanja podataka. Ograničen pregled bele podloge obuhvata devet prikaza: sedam probnih i dva samo za čitanje. To nije provera stvarnog celog toka ni fizičkog telefona. Izvor: docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md R13 (25.09): otvorena Početna sa dve ilustrovane radnje, listom pažnje i sledećim Dogovorom. Detalji i dokazi: docs/implementation/design-system/r13-product-experience-20260925/REPORT.md. Tipovi i 314 grupa / 6113 testova prolaze. APK 36138797360 (1b018b17) je potvrđen i pregledan na emulatoru; 14 početnih i četiri korektivna prikaza imaju zabeležen opseg. Umerena cena i približavanje izabranog pina provereni su pri normalnoj veličini teksta. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. Vizuelni pregled 25.09, posle R15: vlasnik nije prihvatio izgled. DD-09: olakšati karticu sledećeg Dogovora i jasnije razdvojiti pažnju, početne radnje i lične liste. Ovo je analiza i predlog, bez nove izmene aplikacije. docs/implementation/design-system/design-diagnosis-20260925/REPORT.md R17: sledeći Dogovor je sažetiji, posao vodi do termina i osobe. Dve početne radnje i četiri serverska razloga za pažnju ostaju. Tipovi i 316 grupa / 6151 testova prolaze. APK 8500bf29 je potvrđen i instaliran na telefon i emulator. Ograničen pregled je u docs/implementation/design-system/r17-conversation-appointments-20260925/RECEIPT.json; to nije potvrda celog toka. Istraživanje 25.09 — predlog, nije primenjeno: Početna: odvojiti pažnju, dve početne radnje i sledeći prihvaćeni termin; istorija ocena ne sme da uspori aktivne Dogovore. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. R18: provere ocena imaju najviše četiri paralelna poziva i ukupno četiri sekunde za dopunu posle stranica Dogovora. Nepoznat broj nije nula. Tipovi i 317 grupa/6185 testova prolaze. docs/implementation/design-system/r18-continuity-20260925/REPORT.md Završni krug04: uklonjena neupotrebljena dopuna hitnosti na Početnoj; zbirne ocene i skaliranje ostaju otvoreni. Završni krug12 (27.09, 672804db): Obaveza i stvarni naslov posla odvojeni su. Sledeći Dogovor bira budući prihvaćeni termin; ostali aktivni poslovi imaju neutralan naslov. Kod ovog kruga uključen je u kasnije instalirane APK-ove; to samo po sebi ne potvrđuje sve ponašanje ove stavke. Važi najnoviji tačno ograničen device receipt. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Inbox/native krug03.10: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md; source3 je instaliran na telefonu i emulatoru, ograničen vizuelni pregled potvrđen. Novi Poruke reader je DEV APPLIED; novi četiri-tab UI i robot zahtevaju sledeći tačan APK. Push nije proglašen završenim. Native03.10: source97926fef installed both devices with exact attestations; HONOR inbox and emulator chat/keyboard/Back/notification/large-text were inspected. Scope and five next-source refinements: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. No whole-flow/voice/push completion claimed. Krug03.10/759c327e: tačan APK na oba uređaja; ograničen vizuelni pregled Početne/profila. Nijedno polje profila nije menjano. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
+   "problem": "Aktuelno06.10: exact42da Home kompozicija i earn→Discovery→Back ograničeno potvrđeni na emulatoru. Povremeno hladno/delimično Home čitanje nije uspelo; retry/rekreacija vraća podatke, uzrok neutvrđen. Telefon, učitavanje, performanse i whole-app pregled nisu time zatvoreni. EX04 zbirno čitanje je ranije primenjeno; stari RC03 N+1 navod je istorijski.",
+   "sledece": "Aktuelno06.10: zadržati potvrđen par početnih radnji i novi raspored pri velikom tekstu. Ciljana read-only dijagnostika povremenog hladnog/delimičnog čitanja bez pretpostavljanja uzroka ili ponovnog otvaranja P6. Sledeći su preostali whole-app/phone/performance tokovi, ne ponavljanje istog bounded vizuelnog kruga. Raniji izveštaji ispod su istorija sa sopstvenim obimom. Audit 24.09: čitanje Dogovora čeka zasebnu proveru ocene za svaki završen Dogovor; spor odgovor može oboriti taj deo Početne. Ograničiti/dopuniti projekciju, dokazati da aktivni Dogovori ostaju dostupni. Četiri razloga za pažnju ostaju serverske činjenice. R10 / 25.09, 0f4d7644: početna ima izdvojenu karticu termina, posla i osobe, uz iste obaveze i brojeve. Tipovi i 312 grupa / 6067 testova prolaze. APK 36115051955 je potvrđen i instaliran na emulatoru; kontrola filtera pri velikom tekstu je ponovo pregledana. Slike i ograničenja su u R10 izveštaju; fizički telefon nije proveren. docs/implementation/design-system/r10-home-and-discovery-20260925/REPORT.md R12 / 25.09: čista bela podloga; bez mentol panela i zelenkastih senki. Ikonice, tekst i jasne akcije nose boju. Tipovi i 313 grupa / 6083 testa prolaze. APK 36128635882 (21f8a0cb) potvrđen je po otisku i instaliran na emulatoru bez brisanja podataka. Ograničen pregled bele podloge obuhvata devet prikaza: sedam probnih i dva samo za čitanje. To nije provera stvarnog celog toka ni fizičkog telefona. Izvor: docs/implementation/design-system/r12-white-surfaces-20260925/REPORT.md R13 (25.09): otvorena Početna sa dve ilustrovane radnje, listom pažnje i sledećim Dogovorom. Detalji i dokazi: docs/implementation/design-system/r13-product-experience-20260925/REPORT.md. Tipovi i 314 grupa / 6113 testova prolaze. APK 36138797360 (1b018b17) je potvrđen i pregledan na emulatoru; 14 početnih i četiri korektivna prikaza imaju zabeležen opseg. Umerena cena i približavanje izabranog pina provereni su pri normalnoj veličini teksta. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. Vizuelni pregled 25.09, posle R15: vlasnik nije prihvatio izgled. DD-09: olakšati karticu sledećeg Dogovora i jasnije razdvojiti pažnju, početne radnje i lične liste. Ovo je analiza i predlog, bez nove izmene aplikacije. docs/implementation/design-system/design-diagnosis-20260925/REPORT.md R17: sledeći Dogovor je sažetiji, posao vodi do termina i osobe. Dve početne radnje i četiri serverska razloga za pažnju ostaju. Tipovi i 316 grupa / 6151 testova prolaze. APK 8500bf29 je potvrđen i instaliran na telefon i emulator. Ograničen pregled je u docs/implementation/design-system/r17-conversation-appointments-20260925/RECEIPT.json; to nije potvrda celog toka. Istraživanje 25.09 — predlog, nije primenjeno: Početna: odvojiti pažnju, dve početne radnje i sledeći prihvaćeni termin; istorija ocena ne sme da uspori aktivne Dogovore. Detaljan plan: docs/implementation/design-system/premium-research-plan-20260925/PLAN.md. R18: provere ocena imaju najviše četiri paralelna poziva i ukupno četiri sekunde za dopunu posle stranica Dogovora. Nepoznat broj nije nula. Tipovi i 317 grupa/6185 testova prolaze. docs/implementation/design-system/r18-continuity-20260925/REPORT.md Završni krug04: uklonjena neupotrebljena dopuna hitnosti na Početnoj; zbirne ocene i skaliranje ostaju otvoreni. Završni krug12 (27.09, 672804db): Obaveza i stvarni naslov posla odvojeni su. Sledeći Dogovor bira budući prihvaćeni termin; ostali aktivni poslovi imaju neutralan naslov. Kod ovog kruga uključen je u kasnije instalirane APK-ove; to samo po sebi ne potvrđuje sve ponašanje ove stavke. Važi najnoviji tačno ograničen device receipt. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Inbox/native krug03.10: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md; source3 je instaliran na telefonu i emulatoru, ograničen vizuelni pregled potvrđen. Novi Poruke reader je DEV APPLIED; novi četiri-tab UI i robot zahtevaju sledeći tačan APK. Push nije proglašen završenim. Native03.10: source97926fef installed both devices with exact attestations; HONOR inbox and emulator chat/keyboard/Back/notification/large-text were inspected. Scope and five next-source refinements: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. No whole-flow/voice/push completion claimed. Krug03.10/759c327e: tačan APK na oba uređaja; ograničen vizuelni pregled Početne/profila. Nijedno polje profila nije menjano. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -1978,6 +2015,19 @@
      "native": "Exact1a03 emulator install UID10227 preserved/font1.15/motion1. Profile scroll→WORKER settings→Back and availability→Back return pixel-identical content region; next drag stays put. Home new wordmark retained. Material994c About1.0/1.3 and original gallery replay/reentry/system reduced motion accepted; +/− map controls fixed and functional. Parent1b38 selected pin/detail/Back/FULL/source-sheet and map1.3 evidence retain own scope.",
      "next": "WorkerV2 remains isolated/not applicable: needs full SQL/client/Edge/matching/export/erasure/atomic concurrency and policy-binding resolution. Whole-app visual/flow review, real unauth entry/cold splash and physical phone remain open.",
      "boundary": "No backend/Edge/certificate change, business/preference save, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance. Local tracker generated; prior remote-dashboard file-picker blocker not resolved."
+    },
+    "home_worker_refinement_20261006": {
+     "state": "SOURCE_VERIFIED / EXACT_LOCAL_APK_INSTALLED / BOUNDED_EMULATOR_REVIEW",
+     "report": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_REFINEMENT_20261006.md",
+     "nativeReceipt": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json",
+     "source": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+     "sourceTree": "9d585b0cf3aa0bbabb3de6d1fc88f444eeaee12c",
+     "scope": "Obe Home ilustracije levo96dp i tekst desno; jednaka neutralna dugmad, sadržaju prilagođena visina i nedvosmislen Čeka te. Prvi radni profil ima jedan razgovorni ulaz. Ručne AI ispravke imaju owner/revision/Back/background source zaštite.",
+     "checks": "55 Home +60 personal-profile +81 worker-AI existing cases PASS; TypeScript and independent review PASS. One initial profile timeout passed on focused unchanged rerun; no full CI claim.",
+     "delivery": "Home dd25f698 pushed. Later client and WPP02-A commits local only: GitHub HTTP403 account suspended. Remote build37160107912 final result unknown; not accepted.",
+     "native": "Exact42da local x86_64 APK 27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; attestations and install-r PASS, UID10227 retained. Home ordinary/large text and actual earn→Discovery→Back inspected; first-profile gallery inspected. Final font1.15/motion1/Home.",
+     "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
+     "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja."
     }
    },
    "ukupno": "PROBLEM",
@@ -3579,8 +3629,8 @@
     "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Lični profil i discard/povratak primenjeni i provereni na emulatoru. Preostaju verzionisane željene/odbijene vrste posla i relevantna/HITNO obaveštenja u AI razgovoru; puna provider→save→matching provera nije izvršena.",
-   "sledece": "Verzionisani preferences ugovor sa source hash/review/export/erasure i zasebnim certificate gate-om; konkretna granica dokumentovana u docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md.",
+   "problem": "Lični profil je ranije primenjen/proveren. exact42da prvi ulaz je vizuelno potvrđen u inertnoj native galeriji; ručne AI ispravke imaju source Back/background zaštite. WPP02-A preference/dispatch SQL nije izvršen/primenjen; ceo novi AI→review→save→matching tok ostaje otvoren.",
+   "sledece": "Nastaviti puni verzionisani WPP02: AI/client/Edge, source/review/registry hash, uski notification merge, disposable SQL konkurentnost, export/erasure/holds i certificate admission. Native galerija ne dokazuje da su preference povezane sa live push-om. Granice: docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3709,6 +3759,30 @@
      "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
      "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
      "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
+    },
+    "home_worker_refinement_20261006": {
+     "state": "SOURCE_VERIFIED / EXACT_LOCAL_APK_INSTALLED / BOUNDED_EMULATOR_REVIEW",
+     "report": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_REFINEMENT_20261006.md",
+     "nativeReceipt": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json",
+     "source": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+     "sourceTree": "9d585b0cf3aa0bbabb3de6d1fc88f444eeaee12c",
+     "scope": "Obe Home ilustracije levo96dp i tekst desno; jednaka neutralna dugmad, sadržaju prilagođena visina i nedvosmislen Čeka te. Prvi radni profil ima jedan razgovorni ulaz. Ručne AI ispravke imaju owner/revision/Back/background source zaštite.",
+     "checks": "55 Home +60 personal-profile +81 worker-AI existing cases PASS; TypeScript and independent review PASS. One initial profile timeout passed on focused unchanged rerun; no full CI claim.",
+     "delivery": "Home dd25f698 pushed. Later client and WPP02-A commits local only: GitHub HTTP403 account suspended. Remote build37160107912 final result unknown; not accepted.",
+     "native": "Exact42da local x86_64 APK 27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; attestations and install-r PASS, UID10227 retained. Home ordinary/large text and actual earn→Discovery→Back inspected; first-profile gallery inspected. Final font1.15/motion1/Home.",
+     "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
+     "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja."
+    },
+    "worker_v2_sql_candidate_20261006": {
+     "state": "ISOLATED_SQL_SOURCE_VERIFIED / RUNTIME_NOT_RUN / NOT_DEPLOY_READY",
+     "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+     "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+     "source": "38ada0e4",
+     "candidateSha256": "20c4d420642f50731a390c4b11bcf01ab12c03eeaa07ac8d08fccddfd336df65",
+     "scope": "Canonical desired/declined groups, descriptive notes and urgency preference; private writer; detailed/cheap dispatch parity; compatible pause/resume. Bez javnog endpointa.",
+     "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
+     "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
+     "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
     }
    },
    "ukupno": "PROBLEM",
@@ -3780,8 +3854,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Lični profil i discard/povratak primenjeni i provereni na emulatoru. Preostaju verzionisane željene/odbijene vrste posla i relevantna/HITNO obaveštenja u AI razgovoru; puna provider→save→matching provera nije izvršena.",
-   "sledece": "Verzionisani preferences ugovor sa source hash/review/export/erasure i zasebnim certificate gate-om; konkretna granica dokumentovana u docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md.",
+   "problem": "Lični profil je ranije primenjen/proveren. exact42da prvi ulaz je vizuelno potvrđen u inertnoj native galeriji; ručne AI ispravke imaju source Back/background zaštite. WPP02-A preference/dispatch SQL nije izvršen/primenjen; ceo novi AI→review→save→matching tok ostaje otvoren.",
+   "sledece": "Nastaviti puni verzionisani WPP02: AI/client/Edge, source/review/registry hash, uski notification merge, disposable SQL konkurentnost, export/erasure/holds i certificate admission. Native galerija ne dokazuje da su preference povezane sa live push-om. Granice: docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3903,6 +3977,30 @@
      "sourceCheck": "18 pure contract cases PASS,45 frozen function pins; checksums independently verified. No SQL/Auth/concurrency/native/provider/push evidence.",
      "missing": "V2 desired/declined work, descriptive notes, experience and urgency/notification preferences require complete versioned SQL/client/Edge, atomic merge, matching parity, export/erasure and exact certificate proof. Existing export policy set count0 / binding null remains unresolved; no policy invented.",
      "boundary": "No install SQL/runtime imports/deploy/data changes. WPP01 remains applied. No approval requested for incomplete package."
+    },
+    "home_worker_refinement_20261006": {
+     "state": "SOURCE_VERIFIED / EXACT_LOCAL_APK_INSTALLED / BOUNDED_EMULATOR_REVIEW",
+     "report": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_REFINEMENT_20261006.md",
+     "nativeReceipt": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json",
+     "source": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+     "sourceTree": "9d585b0cf3aa0bbabb3de6d1fc88f444eeaee12c",
+     "scope": "Obe Home ilustracije levo96dp i tekst desno; jednaka neutralna dugmad, sadržaju prilagođena visina i nedvosmislen Čeka te. Prvi radni profil ima jedan razgovorni ulaz. Ručne AI ispravke imaju owner/revision/Back/background source zaštite.",
+     "checks": "55 Home +60 personal-profile +81 worker-AI existing cases PASS; TypeScript and independent review PASS. One initial profile timeout passed on focused unchanged rerun; no full CI claim.",
+     "delivery": "Home dd25f698 pushed. Later client and WPP02-A commits local only: GitHub HTTP403 account suspended. Remote build37160107912 final result unknown; not accepted.",
+     "native": "Exact42da local x86_64 APK 27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; attestations and install-r PASS, UID10227 retained. Home ordinary/large text and actual earn→Discovery→Back inspected; first-profile gallery inspected. Final font1.15/motion1/Home.",
+     "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
+     "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja."
+    },
+    "worker_v2_sql_candidate_20261006": {
+     "state": "ISOLATED_SQL_SOURCE_VERIFIED / RUNTIME_NOT_RUN / NOT_DEPLOY_READY",
+     "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+     "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+     "source": "38ada0e4",
+     "candidateSha256": "20c4d420642f50731a390c4b11bcf01ab12c03eeaa07ac8d08fccddfd336df65",
+     "scope": "Canonical desired/declined groups, descriptive notes and urgency preference; private writer; detailed/cheap dispatch parity; compatible pause/resume. Bez javnog endpointa.",
+     "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
+     "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
+     "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
     }
    },
    "ukupno": "PROBLEM",
@@ -7533,6 +7631,17 @@
      "ci_run": 37205976592,
      "proven": "Inactive provider + CREATED => PUSH IDLE and zero Edge calls with backlog unchanged; active provider + same backlog => exactly one PUSH Edge call; inactive provider + TICKET_PENDING => IDLE; DATA_EXPORT and ACCOUNT_CLOSURE remain independent; strict revert restores predecessor hash and old scheduler semantics.",
      "boundary": "No DEV/PROD data, function, cron, provider flag or Edge deployment changed. Application requires explicit owner 'primeni'. Backlog rows remain untouched."
+    },
+    "worker_v2_sql_candidate_20261006": {
+     "state": "ISOLATED_SQL_SOURCE_VERIFIED / RUNTIME_NOT_RUN / NOT_DEPLOY_READY",
+     "report": "docs/implementation/ui-ux-pass-20261002/WORKER_V2_CONTRACT_20261003.md",
+     "candidate": "supabase/candidates/worker-personal-v2-20261003/README.md",
+     "source": "38ada0e4",
+     "candidateSha256": "20c4d420642f50731a390c4b11bcf01ab12c03eeaa07ac8d08fccddfd336df65",
+     "scope": "Canonical desired/declined groups, descriptive notes and urgency preference; private writer; detailed/cheap dispatch parity; compatible pause/resume. Bez javnog endpointa.",
+     "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
+     "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
+     "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
     }
    },
    "ukupno": "PROBLEM",
@@ -8990,7 +9099,20 @@
     "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
     "status": "OGRANIČENE RECOVERY REGRESIJE PROŠLE / CEO TOK I UREĐAJ ČEKAJU",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json",
-    "round73": "P6 obuhvat: svako P6 čitanje ima rok od 15 s koji zaustavlja sopstveni zahtev; blur/background/promena naloga povlače čitanja (retire); dupli dodir pina/zatvaranje rešava brojač izbora; isteklo serversko sidro se obnavlja jednim novim otvaranjem. Ceo offline/reconnect sistem nije potvrđen ovim paketom."
+    "round73": "P6 obuhvat: svako P6 čitanje ima rok od 15 s koji zaustavlja sopstveni zahtev; blur/background/promena naloga povlače čitanja (retire); dupli dodir pina/zatvaranje rešava brojač izbora; isteklo serversko sidro se obnavlja jednim novim otvaranjem. Ceo offline/reconnect sistem nije potvrđen ovim paketom.",
+    "home_worker_refinement_20261006": {
+     "state": "SOURCE_VERIFIED / EXACT_LOCAL_APK_INSTALLED / BOUNDED_EMULATOR_REVIEW",
+     "report": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_REFINEMENT_20261006.md",
+     "nativeReceipt": "docs/implementation/ui-ux-pass-20261002/HOME_WORKER_NATIVE_20261006.json",
+     "source": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+     "sourceTree": "9d585b0cf3aa0bbabb3de6d1fc88f444eeaee12c",
+     "scope": "Obe Home ilustracije levo96dp i tekst desno; jednaka neutralna dugmad, sadržaju prilagođena visina i nedvosmislen Čeka te. Prvi radni profil ima jedan razgovorni ulaz. Ručne AI ispravke imaju owner/revision/Back/background source zaštite.",
+     "checks": "55 Home +60 personal-profile +81 worker-AI existing cases PASS; TypeScript and independent review PASS. One initial profile timeout passed on focused unchanged rerun; no full CI claim.",
+     "delivery": "Home dd25f698 pushed. Later client and WPP02-A commits local only: GitHub HTTP403 account suspended. Remote build37160107912 final result unknown; not accepted.",
+     "native": "Exact42da local x86_64 APK 27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; attestations and install-r PASS, UID10227 retained. Home ordinary/large text and actual earn→Discovery→Back inspected; first-profile gallery inspected. Final font1.15/motion1/Home.",
+     "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
+     "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja."
+    }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
    "veza": {
@@ -9133,7 +9255,11 @@
    "preko_edge": true
   }
  ],
- "aplikacija_zove_a_server_nema": [],
+ "aplikacija_zove_a_server_nema": [
+  "rpc_get_need_search_state",
+  "rpc_get_reopen_remaining_search_receipt",
+  "rpc_reopen_remaining_search"
+ ],
  "nepovezani_pozivi_a_server_nema": [],
  "tokovi": {
   "stavke": [
@@ -9843,7 +9969,11 @@
   "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "novo_slomljeno": [],
+  "novo_slomljeno": [
+   "rpc_get_need_search_state",
+   "rpc_get_reopen_remaining_search_receipt",
+   "rpc_reopen_remaining_search"
+  ],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
  "blokade": [

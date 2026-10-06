@@ -1,0 +1,81 @@
+{
+  "source": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+  "result": "BOUNDED_NATIVE_PASS",
+  "finalFont": "1.15",
+  "finalScreen": "Home",
+  "motion": "1",
+  "screenshots": [
+    "home-42da-first-screen.png",
+    "home-42da-100-ready.png",
+    "home-42da-130-retry.png",
+    "home-42da-130-ready.png",
+    "worker-42da-first-100-ready.png",
+    "worker-42da-first-130.png",
+    "worker-42da-first-130-scroll.png",
+    "home-earn-42da-discovery.png",
+    "home-earn-42da-discovery-settled.png",
+    "home-42da-115-final.png"
+  ],
+  "summary": "Exact42da emulator Home retains equal raised launch actions with dimensional artwork left and text right. Ordinary1.0 action layout was inspected in a partial-read state; loaded1.15 and1.3 were inspected separately. Large-text actions no longer reserve four empty lines, and mixed attention/rating content has no incomplete numeric heading. Actual Uskoči i zaradi opened Discovery: eight tasks and subsequently the map loaded. Hardware Back returned to actual Home, with attention/rating content and the same account. Inert first-worker-profile native scenes at1.0 and1.3 show an open introduction and one sticky AI action; a scrolled1.3 scene preserves manual sections. No business command, AI call or save was issued.",
+  "independentReview": "Separate source and native review accepted the42da Home height/count correction at1.3, final Home at1.15, and first-profile gallery at1.0/1.3: no clipping, overlap or new visual blocker. The final Discovery image shows the map and eight tasks but is not whole-map flow acceptance. Attribution length and cold/partial Home reads remain open. These reviews do not prove provider/save behavior or a loading fix.",
+  "openObservations": [
+    "Cold Home read failed once; manual Osveži pregled recovered its content. Font/activity recreation also produced a partial-read state. Later recreation and final return loaded the content. Cause is unestablished; failures are retained, not hidden by successful screenshots.",
+    "Discovery attribution uses the existing reserved band and can be visually long at1.15. Its typography/composition remains for a separate map refinement; neither attribution nor map code changed in this slice.",
+    "Map loaded after task data. No controlled latency or phone responsiveness measurement was taken."
+  ],
+  "readFailureEvidence": [
+    "home-42da-first-screen.png: actual cold Home error",
+    "home-42da-100-ready.png: filename is historical; image is PARTIAL READ, not a ready-state acceptance"
+  ],
+  "excludedEvidence": [
+    "worker-42da-first-100.png: captured before navigation frame committed; shows gallery list, not worker scene",
+    "home-42da-100-loaded.png: initial skeleton, not fully loaded content"
+  ],
+  "readOnlyJourney": "Actual Home -> Uskoči i zaradi -> Discovery list/map -> hardware Back -> Home",
+  "firstProfileEvidence": "Existing inert native design gallery; no auth bypass, new account, profile write or provider call",
+  "businessMutation": false,
+  "physicalPhone": false,
+  "sourceTree": "9d585b0cf3aa0bbabb3de6d1fc88f444eeaee12c",
+  "apkSha256": "27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d",
+  "buildType": "LOCAL_WINDOWS_RELEASE_X86_64",
+  "workflowRun": null,
+  "avd": "USKOCI_V5_TEST",
+  "install": "adb install -r",
+  "uidBefore": "10227",
+  "uidAfter": "10227",
+  "appDataCleared": false,
+  "artifactChecks": [
+    "recovery PASS",
+    "icon PASS",
+    "reanimated PASS",
+    "signature compatibility PASS"
+  ],
+  "embeddedBuildIdentity": {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "sourceCommit": "42da3d4028e8f346c34e59da4c5a5c22fe12941a",
+    "sourceDirty": {},
+    "backendTarget": "canonical",
+    "backendRelease": {}
+  },
+  "imageSha256": {
+    "home-42da-first-screen.png": "16cf28a17a9d6999d8c21a1bc8d96598ae8f79598cb2a65735de1650a91197e8",
+    "home-42da-100-ready.png": "19e7bdbdb177c311351f3a8e9c1b3c80ee47364ea7e7154cdcce0f3e3b6ad658",
+    "home-42da-130-retry.png": "dbe69f2e3fae8ba5d3b902dcad7495954774b37cc1e5637983b02b0dad79ef89",
+    "home-42da-130-ready.png": "06fc1c3f65dfc853a072c2f36029ecefeefd50aa5c83160a1caa1b975813039f",
+    "worker-42da-first-100-ready.png": "9100962665ff4ac7f86b83738ce651a868baa1c22476b4b073b02f8ca5deeed0",
+    "worker-42da-first-130.png": "f53a2f90b2f905578713fe68eeffaaea8073e9de0b5f75b3594671fbf8958f85",
+    "worker-42da-first-130-scroll.png": "1f090981d9426d31e9238ea6898e5fa5b494b08b0f07a63d0710d0523d8de1fc",
+    "home-earn-42da-discovery.png": "8088e246df4ca2030dd60a378b5c94a3c039dbee6bfeff3bab12e2955882a096",
+    "home-earn-42da-discovery-settled.png": "0660fd2f354df338dcf69b2d021f25fc960aea89f58491d2edb2af727110606f",
+    "home-42da-115-final.png": "53e048a44da72e2d54cef2da43d799bc21dbcb7ef0994cea7420673ca9a0ce29"
+  },
+  "evidenceWorkspace": "C:/Users/user/Documents/Codex/2026-10-02/new-chat/native-w2",
+  "limits": [
+    "Emulator only; no phone/FPS/store/whole-app acceptance.",
+    "First-profile layouts are inert native gallery evidence, not provider/save proof.",
+    "Manual AI lifecycle has source checks, not a new live provider journey.",
+    "No DEV/Edge/certificate/preference write or push send.",
+    "Intermittent cold/partial Home reads were observed; retry/recreation recovered data. Cause is unestablished and this is not closed by the visual review."
+  ]
+}
