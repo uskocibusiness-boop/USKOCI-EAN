@@ -387,14 +387,16 @@ it.each([
   expect(row('Moje prijave').accessibilityLabel).toBe(waiting);
 });
 
-it('PKG-042: server attention remains visible with its full total when all three preview reads fail', async () => {
+it('PKG-042: server attention and remaining rows stay visible without a misleading combined count when preview reads fail', async () => {
   for (const read of [mockSource.mojePotrebe, mockSource.mojePrijave, mockSource.mojiDogovori]) read.mockRejectedValue(new Error('READ_FAILED'));
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'application:server:stale', title: 'Zadatak je izmenjen',
     detail: 'Pregledaj uslove', target: { kind: 'APPLICATION', applicationId: 'server' } }], more: 12, asOf: '2026-09-22T10:00:00Z' });
   await render();
   expect(text()).toContain('Zadatak je izmenjen'); expect(text()).toMatch(/I još\s+12/);
-  expect(tree.root.findAll(node => String(node.type) === 'T').some(node => node.props.children === 13)).toBe(true);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka te: 13 stavki' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
+  // The independent rating read is unknown; its recovery action shares this section.
+  // Keep all server rows and its "12 more", without implying that 13 counts every action.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka te: 13 stavki' })).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka te' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
 
   await act(async () => row('Zadatak je izmenjen').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'server' } });

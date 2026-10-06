@@ -38,8 +38,10 @@ function StartActions({ compact, onPublish, onEarn }: {
   compact: boolean; onPublish: () => void; onEarn: () => void;
 }) {
   const textScale = useTextScale();
-  // Reserve the same two title/copy lines for each door; text can still grow beyond this minimum.
-  const minHeight = Math.ceil(40 + 2 * 27 * textScale + 2 * 20 * textScale);
+  // Share an art/content-sized minimum. Wrapped text grows naturally; do not reserve
+  // four empty lines when Android large text still renders both labels on one line.
+  const minHeight = Math.ceil(2 * sys.space.lg + Math.max(compact ? 64 : 96,
+    27 * textScale + sys.space.sm + 20 * textScale));
   return <View style={s.actions}>
     <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
       haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.createEntry, materialControl.raised, { minHeight }]}>
@@ -185,7 +187,8 @@ export function HomePresentation(p: HomePresentationProps) {
   const next = home?.agreements.kind === 'known' ? home.agreements.value.rows[0] ?? null : null;
   agreements.settle(next ? [next.id] : []);
   const attentionUnavailable = home?.attentionState === 'unavailable';
-  // Server rows keep their own count; a finished Dogovor waiting for my rating stands under them, never counted with them.
+  // Ratings share the next-action section but are not part of the server attention count.
+  // Show that count only when no ratings are waiting and their read is complete.
   const waitingShown = !!home && (attentionUnavailable || home.attention.length > 0 || home.ratingsDue === null || home.ratingsDue > 0);
   // Before the first answer a front door has no line; after a failed read it says so, never "0".
   const tasksDetail = home ? tasksLine(home.mine.tasks) : p.error ? 'Trenutno nisu učitani' : null;
@@ -204,7 +207,8 @@ export function HomePresentation(p: HomePresentationProps) {
         <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
       </View> : null}
       {home && waitingShown ? <Section title="Čeka te"
-        count={home.attention.length > 0 && (home.attentionState === 'known' || !home.partial) ? home.attention.length + home.attentionMore : undefined}>
+        count={home.ratingsDue === 0 && home.attention.length > 0 && (home.attentionState === 'known' || !home.partial)
+          ? home.attention.length + home.attentionMore : undefined}>
         {attentionUnavailable ? <Unavailable what="Podaci o obavezama" /> : null}
         {home.attention.length > 0 ? <View style={s.attention}>
           {home.attention.map((item, index) => <Appear key={item.id} index={index} animate={waiting.isNew(item.id)}>
