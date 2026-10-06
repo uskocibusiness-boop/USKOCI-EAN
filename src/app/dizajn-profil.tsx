@@ -94,7 +94,7 @@ function Worker({ initial, status, checks, readyToActivate = false, disabled = f
   const [value, setValue] = useState(initial);
   return <WorkerProfileFrame back={toList.current} footer={footer}>
     <WorkerProfileForm draft={value} change={setValue} disabled={disabled} status={status} navigate={noop} checks={checks}
-      readyToActivate={readyToActivate} openConversation={noop} />
+      readyToActivate={readyToActivate} openConversation={noop} profileExists={status !== null} />
   </WorkerProfileFrame>;
 }
 const primary = (label: string, extra: { disabled?: boolean; loading?: boolean; success?: boolean } = {}) =>

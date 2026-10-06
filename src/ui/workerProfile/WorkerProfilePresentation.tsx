@@ -220,7 +220,7 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
 
 export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'tool' | 'vehicle'; token: number };
 /** AI is the main setup route. The same owned draft, save/readback and navigation guards govern manual corrections. */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation }: {
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
@@ -241,9 +241,16 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const toggle = (key: NonNullable<typeof editing>) => { if (!disabled) setEditing(editing === key ? null : key); };
   const grad = draft.grad.trim();
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Izaberi gde želiš da radiš';
+  // Before a profile exists, the footer owns the single conversation action.
+  // Required activation checks belong to the saved draft, not a warning before setup.
+  const firstSetup = !profileExists && status === null && !!openConversation;
   return <View style={s.form}>
-    <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />
-    {openConversation ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
+    {firstSetup ? <View style={s.setupIntro}>
+      <ConversationArt size={96} />
+      <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričaj čime se baviš</T>
+      <T variant="note" tone="muted">Veštine, oprema i područje rada — kroz razgovor.</T>
+    </View> : <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />}
+    {openConversation && !firstSetup ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
       accessibilityHint="Razgovor o poslovima, alatu, vozilima i području rada."
       accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
       style={[s.conversationEntry, materialControl.raised]}>
@@ -302,6 +309,7 @@ const s = StyleSheet.create({
   footerTyping: { paddingVertical: 0, borderTopWidth: 0, gap: 0 },
   answer: { gap: 8 }, answerTyping: { paddingVertical: 12 },
   form: { gap: sys.space.xxl },
+  setupIntro: { gap: 12, paddingTop: 8, paddingBottom: 24 },
   conversationEntry: { padding: 20, gap: 16, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
     borderWidth: 1, borderColor: sys.color.surface },
   conversationCopy: { flexDirection: 'row', alignItems: 'center', gap: 16 },
