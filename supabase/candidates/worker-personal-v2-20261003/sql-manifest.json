@@ -1,0 +1,113 @@
+{
+  "id": "WPP02-A",
+  "status": "IMPLEMENTED_SOURCE_CANDIDATE_NOT_DEPLOY_READY",
+  "liveApplied": false,
+  "scope": "Canonical preferences, private write primitive, common dispatch predicate. Full AI/export/certificate/client remain separate.",
+  "baselineObservedAt": "2026-10-03 22:55:58.534283+00",
+  "functions": [
+    {
+      "signature": "private.match_detail_without_calendar(nid uuid, pid uuid)",
+      "before_md5": "ef5de901069c1a8cfa729cfb6bbadde9",
+      "after_md5": "0f081c20abf7cde1d629d13110ea5c0c"
+    },
+    {
+      "signature": "private.dispatch_cheap_candidate_admitted(nid uuid, pid uuid)",
+      "before_md5": "e51de37e0883fcd3cd4e6e3c42fb6ee1",
+      "after_md5": "f23e00c1e35a8367288de4f0b8548f6b"
+    },
+    {
+      "signature": "private.guard_worker_preference_authority()",
+      "before_md5": "71ca41ff8d3ae6ae5e6c5a8c149d95ab",
+      "after_md5": "315312470b38df077c213db0a85ba027"
+    }
+  ],
+  "dependencies": [
+    {
+      "signature": "private.closure_assert_open(a uuid, b uuid)",
+      "body_md5": "dc9bc4c718593850da4fdb49e612dbd2"
+    },
+    {
+      "signature": "private.guard_profile_write()",
+      "body_md5": "319fef6fe239a21ecf134476ed2b90a4"
+    },
+    {
+      "signature": "private.guard_wmp_write()",
+      "body_md5": "cf2100141a25ab38a0dda85fcb51dc86"
+    },
+    {
+      "signature": "private.guard_worker_fact_authority()",
+      "body_md5": "a6be4e85f69592615e8c5b8272028d0d"
+    },
+    {
+      "signature": "private.work_kinds_v5(p_values text[])",
+      "body_md5": "78fca96231ddc713cf18990f5a2a34ef"
+    },
+    {
+      "signature": "private.availability_is_future(kind text, s timestamp with time zone, e timestamp with time zone, at_now timestamp with time zone)",
+      "body_md5": "3a1aee763e9fe3d0f06d6ba04ef21aac"
+    },
+    {
+      "signature": "private.closure_redaction_allowed_v5(rel oid, op text, before_row jsonb, after_row jsonb)",
+      "body_md5": "7fabcc71502e065e638364fc3d58b761"
+    },
+    {
+      "signature": "private.worker_dispatch_time_admitted(nid uuid, pid uuid)",
+      "body_md5": "4f0beb65922d2b3d947d69e68a56a956"
+    }
+  ],
+  "newFunctions": [
+    {
+      "name": "private.worker_work_lists_valid_v2",
+      "body_md5": "3ddd659862965293103248cbb9fecc14",
+      "rollback_md5": null,
+      "args": "text[],text[],text[]",
+      "argnames": "{desired,declined,notes}",
+      "security": false,
+      "volatility": "i",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "name": "private.worker_work_preferences_document_v2",
+      "body_md5": "ffee305ac69b8c0e73f7a87f6f6c4f14",
+      "rollback_md5": null,
+      "args": "uuid",
+      "argnames": "{pid}",
+      "security": true,
+      "volatility": "s",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.worker_work_preferences_replace_v2",
+      "body_md5": "7b62a865236daa774a27f62a9cdd632b",
+      "rollback_md5": "4d070eff8fd56d677f06f9addfc76c62",
+      "args": "uuid,uuid,jsonb,jsonb",
+      "argnames": "{aid,pid,expected,wanted}",
+      "security": true,
+      "volatility": "v",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "name": "private.worker_work_dispatch_blockers_v2",
+      "body_md5": "39bdf121c70382791f932c04dd86ac6e",
+      "rollback_md5": "c1f8645435ce8a6caa083f0774f88fed",
+      "args": "public.needs,public.worker_match_preferences,timestamp with time zone",
+      "argnames": "{n,pref,at_time}",
+      "security": false,
+      "volatility": "s",
+      "acl": "{postgres=X/postgres}"
+    }
+  ],
+  "remaining": [
+    "Full versioned atomic AI review/save + notifications",
+    "Export projection + existing missing policy binding",
+    "Closure/certificate admission",
+    "V1/V2 client and Edge rollout"
+  ],
+  "runtimeProof": "PREPARED_NOT_RUN",
+  "artifact_sha256": {
+    "candidate.sql": "20c4d420642f50731a390c4b11bcf01ab12c03eeaa07ac8d08fccddfd336df65",
+    "compatible-rollback.sql": "f1137ddfc985b27bf8dab0415a981038206803a8b75038ac06ddbc7f2cf7f058",
+    "resume.sql": "60dd6d9a25eb94145807fadc254116e6e087a27657a4e06b961541913084091c",
+    "body.diff": "28251cbb26dad6034695d94a788002723d61a67575cc04a57f56817d34c34462"
+  }
+}

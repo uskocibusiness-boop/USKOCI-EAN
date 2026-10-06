@@ -1,0 +1,42 @@
+{
+  "unit": "WPP02-A",
+  "recordedAt": "2026-10-06T19:26:14.707176+00:00",
+  "status": "SOURCE_VERIFIED_RUNTIME_NOT_RUN",
+  "checks": {
+    "sourceAndGrammarBoundaries": 8,
+    "nodeContractTests": 18,
+    "nodeContractFailures": 0,
+    "runtimeJavascriptSyntax": "PASS",
+    "workflowYaml": "PASS using existing yaml dependency"
+  },
+  "postgresExecution": "NOT_RUN",
+  "workflowDispatch": "NOT_RUN",
+  "reason": "No local psql/Postgres/Docker/WSL. Root reports GitHub Actions unavailable.",
+  "preparedRuntimeCases": 15,
+  "fullAiExportCertificateAdmission": false,
+  "liveApplied": false,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "sha256": {
+    "canonical.sql": "34c098331013786b2b6f588811a8e54f549fe9d43516e60066cb1f08bb5ec691",
+    "build_sql_candidate.py": "5e95877cc5b41805a1089666cf96d67bc852fa44af34884a6c65c8a945cfc343",
+    "check_sql_source.py": "63cda038c7b54feeb007627ef665b34313fee373127bd370e3c3abba751b9dfd",
+    "candidate.sql": "20c4d420642f50731a390c4b11bcf01ab12c03eeaa07ac8d08fccddfd336df65",
+    "compatible-rollback.sql": "f1137ddfc985b27bf8dab0415a981038206803a8b75038ac06ddbc7f2cf7f058",
+    "resume.sql": "60dd6d9a25eb94145807fadc254116e6e087a27657a4e06b961541913084091c",
+    "body.diff": "28251cbb26dad6034695d94a788002723d61a67575cc04a57f56817d34c34462",
+    "sql-manifest.json": "4212ad82262d647cbd3e69f81ef4d4d29e257c4e90d4893ad4e923481a4abd9d",
+    "runtime.proof.mjs": "4d6458ef2089c9bbca7ff7ad835fcbf350aee652a79c087dba2deaa5bbe5086d"
+  },
+  "workflowSha256": "574fe0080018738dda320c9432ea788a276702b32952a060407bc09a2d367f0a",
+  "correctedSourceFailures": [
+    "Generated DDL separators",
+    "Windows UTF-8 read",
+    "Python PyYAML absent; existing Node yaml used"
+  ],
+  "independentReviewFixes": [
+    "Closure advisory before profile lock",
+    "DRAFT/ACTIVE editable status",
+    "Exact helper signature and security metadata plus overload refusal"
+  ]
+}
