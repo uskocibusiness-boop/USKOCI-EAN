@@ -1,0 +1,182 @@
+{
+  "id": "MATCH-V1",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI MATCH-V1",
+  "devStateReadAt": "2026-10-07",
+  "devLedger": 227,
+  "devLatestVersion": "20261005101102",
+  "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+  "certificateMoves": false,
+  "functions": [
+    {
+      "signature": "private.match_detail_without_calendar(uuid,uuid)",
+      "before_md5": "ef5de901069c1a8cfa729cfb6bbadde9",
+      "after_md5": "efd50886ff898f45129d33231761d189"
+    },
+    {
+      "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+      "before_md5": "e51de37e0883fcd3cd4e6e3c42fb6ee1",
+      "after_md5": "cec5c0a2c13af6718af53b7a80245f28"
+    },
+    {
+      "signature": "private.worker_dispatch_time_admitted(uuid,uuid)",
+      "before_md5": "4f0beb65922d2b3d947d69e68a56a956",
+      "after_md5": "a58f1d1a2d21fa057867c153ae62ba4e"
+    },
+    {
+      "signature": "private.dispatch_next_wave(uuid)",
+      "before_md5": "2b58d69640ac802a5dd3fa3cef6c56d0",
+      "after_md5": "0bd8b64ae629f5a62960f5f45e65132b"
+    },
+    {
+      "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+      "before_md5": "8798cb6b6f004ecd5d88dd472cd6de0b",
+      "after_md5": "76280b0ad653d2fc10199bca2c3971a8"
+    },
+    {
+      "signature": "private.candidate_profile_ids(uuid,integer)",
+      "before_md5": "dca4ddc8080a52c8af83c33689c5568e",
+      "after_md5": "5414fa5a122e2055c71dd37993a6ad83"
+    }
+  ],
+  "newFunctions": [
+    {
+      "signature": "private.worker_need_time_tier_v1(uuid,uuid)",
+      "body_md5": "753027749309ccc110f486cbfb4866e4",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "private.worker_need_fit_v1(uuid,uuid,boolean)",
+      "body_md5": "ab221f0091d78856bb42f702ddecd016",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "private.worker_need_match_v1(uuid,uuid)",
+      "body_md5": "ef94ef7de07a347824ace68789f08c41",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
+      "body_md5": "9104edac66d52ba630b91fac58c7fcbc",
+      "acl": "{postgres=X/postgres}"
+    }
+  ],
+  "unchangedDependencies": [
+    {
+      "signature": "private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)",
+      "body_md5": "3a1aee763e9fe3d0f06d6ba04ef21aac"
+    },
+    {
+      "signature": "private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)",
+      "body_md5": "5107af3020a3beb7bb45e6e90e7a203b"
+    },
+    {
+      "signature": "private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)",
+      "body_md5": "e29a7bade1437e3f2067924b5179ddfd"
+    },
+    {
+      "signature": "private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)",
+      "body_md5": "417c9db16bbe70ed9ad652380790900c"
+    },
+    {
+      "signature": "private.availability_timezone_valid(text)",
+      "body_md5": "013f884ca649cb5246f39eaf9f2e0ec9",
+      "alsoAcceptedAfterZonePerf": "be95520dabe35febd8e9fa15f0ce0309"
+    },
+    {
+      "signature": "private.effective_radius_km(integer)",
+      "body_md5": "fa9b8c7fcafd65ebb4d98f538fff5223"
+    },
+    {
+      "signature": "private.haversine_km(numeric,numeric,numeric,numeric)",
+      "body_md5": "027cf272c3616d952c7f241353ffd5a2"
+    },
+    {
+      "signature": "private.accounts_same_world(uuid,uuid)",
+      "body_md5": "16f541f952d4e1e2dbb4fc87e594d572"
+    },
+    {
+      "signature": "private.identity_admitted(uuid)",
+      "body_md5": "9f4684bfd84df734cb8438b14aff0c16"
+    },
+    {
+      "signature": "private.lower_arr(text[])",
+      "body_md5": "07f449cf589196cc8ca349b4f5ca460c"
+    },
+    {
+      "signature": "private.work_kinds_v5(text[])",
+      "body_md5": "78fca96231ddc713cf18990f5a2a34ef"
+    },
+    {
+      "signature": "private.enqueue_dispatch(uuid,timestamp with time zone)",
+      "body_md5": "470ed6ab6501c69bf9ebbfe057ccd0fb"
+    },
+    {
+      "signature": "private.match_detail(uuid,uuid)",
+      "body_md5": "38c7894a8cf43a8f32bd5a30bc2cbd09"
+    },
+    {
+      "signature": "private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)",
+      "body_md5": "781956cab666befab216b3ce2334ca1d"
+    },
+    {
+      "signature": "private.need_search_time_admitted_v1(uuid,timestamp with time zone)",
+      "body_md5": "b830cd07c2a5db101a3a28096256a75b"
+    },
+    {
+      "signature": "private.requeue_open_needs_for_worker_v5(uuid)",
+      "body_md5": "371bb38ea1d7180ca6222409f1a9a591"
+    }
+  ],
+  "zonePerf": {
+    "candidate": "supabase/candidates/zone-perf-20261007/",
+    "helper": "private.availability_timezone_valid(text)",
+    "liveMd5": "013f884ca649cb5246f39eaf9f2e0ec9",
+    "zonePerfMd5": "be95520dabe35febd8e9fa15f0ce0309",
+    "note": "independent: this package neither needs nor changes the helper; apply ZONE-PERF first for speed (either order is accepted and proven)"
+  },
+  "dataRows": [
+    {
+      "table": "private.marketplace_config",
+      "key": "match_v1_profile_requeue",
+      "value": "{after: apply time}"
+    },
+    {
+      "table": "private.marketplace_config",
+      "key": "match_v1_dispatch",
+      "value": {
+        "mode": "ALL",
+        "ceiling": 500,
+        "validMinutes": 1440,
+        "tickBudgetSeconds": 40,
+        "owner": "MATCH-V1 2026-10-07"
+      },
+      "meaning": "mode ALL = one wave to every admitted worker (ceiling per task revision, validity of deliveries, tick time budget); mode LADDER = the waves of today; no row = LADDER"
+    }
+  ],
+  "dispatchSwitch": {
+    "key": "match_v1_dispatch",
+    "default": {
+      "mode": "ALL",
+      "ceiling": 500,
+      "validMinutes": 1440,
+      "tickBudgetSeconds": 40,
+      "owner": "MATCH-V1 2026-10-07"
+    },
+    "ladderOn": "switch-ladder-on.sql",
+    "ladderOff": "switch-ladder-off.sql"
+  },
+  "artifact_sha256": {
+    "candidate.sql": "e850897851f7609f1283f56e36ff6f11263a7f4c697c84c150a5018cf2dbb4e0",
+    "candidate.in-transaction.sql": "0e093fb77a12f2f7ac7746d4ef821a1427ec381346d04bfbda6ce1d8afd51ea4",
+    "revert.sql": "f8f416b34cb0b19da4492d0c589f7114eba5454a663102939c60bcba8cd035c7",
+    "switch-ladder-on.sql": "ae1a50daab492e61ced6a2cc51ad1b82f61b06d9d4ff4d2109aa9625d38fb5d8",
+    "switch-ladder-off.sql": "140931a6e6bb2e0157f10eb92f9d1795c420cab506957a66e96261de64a37b95",
+    "preflight.readonly.sql": "61734067407df875371036fc22365920877c2b9cfa7942a7016a107200bf6e5d",
+    "postflight.readonly.sql": "476b96ec7697d5ffbf6d12de11591994673e5767cca81e69f4d77ef64476decb",
+    "body.diff": "1247993d251cf5bef572939a48dfb6af4a9f93a3f34a1c417518ebd1eec3c315",
+    "patches.json": "993ffe503b2bf7a0853c7a65bd6fe4b9966fab0787b25261367f9baf57d99246"
+  }
+}

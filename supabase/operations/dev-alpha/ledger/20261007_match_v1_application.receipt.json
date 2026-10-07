@@ -1,0 +1,97 @@
+{
+  "schema": "USKOCI_DEV_MATCH_V1_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "MATCH-V1: ONE shared \"Odgovara mi\" rule = kind of work + area + time. Four NEW private functions (worker_need_time_tier_v1, worker_need_fit_v1, worker_need_match_v1, requeue_changed_worker_profiles_v1), six REPLACED bodies (match_detail_without_calendar, dispatch_cheap_candidate_admitted, worker_dispatch_time_admitted, dispatch_next_wave, dispatch_tick, candidate_profile_ids) and two private.marketplace_config data rows (match_v1_profile_requeue = the watermark, match_v1_dispatch = the dispatch switch). Default dispatch mode ALL: one wave to every worker the rule admits, nearest first, up to a per-task-revision safety ceiling; the ladder 5/5/10/20 is kept behind the same row (mode LADDER). Tools, vehicles, experience and the minimum fee are no condition and no score. A direct profile write re-queues open tasks. No table, column, constraint, trigger, policy or grant on an existing object changed.",
+  "sourceCommit": "8075ae6f on candidate/match-v1-20261007 (remote novi), folder supabase/candidates/match-v1-20261007/ (copied byte-identical into this checkout with this receipt); final proof run 37662617758 (jobs zone, behaviour and load all green, disposable database only, workflow .github/workflows/match-v1-discovery-zamene-proof.yml)",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself, given after the proof summaries. MATCH-V1 was proven (disposable database, FAIL before / PASS after, exact revert, certificate unchanged, load numbers) and moves nothing the owner reserved: no money, keys, legal text, real-data deletion, store, push, dependency or certificate change. Later in the same conversation the owner named a ceiling up to 10,000 notified workers per task (\"do 10.000\") instead of 5000; the ceiling was set to 10000 right after the apply (see afterApplyConfig) and that was reported to him in chat. The ladder (switch-ladder-on.sql) is NOT switched on; it stays his word.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply: ledger 230 (the packaged flags ledgerIs227 and latestIsEx06eR3 read false by construction - the preflight was written before ZONE-PERF, CANCEL-INFO and PROFILE-TRUST were applied the same day - and were not used), every other flag true: pinsMatch true with pinMismatches [] over the 22 pinned functions (6 predecessors + 16 dependencies), zoneHelperState ZONE_PERF_APPLIED, the four new functions and both new rows absent, the ladder rows dispatch_normal and dispatch_urgent present, closure not executing, certificate ready with closure digest 3a785d42... and erasure program digest 2027655d..., 5 active worker profiles, 8 open tasks.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). The statement was sent byte-exact through the connector and the stored statement was read back from supabase_migrations.schema_migrations afterwards: 1 statement, 56949 characters (56950 bytes; one non-ASCII character, the z-caron in the notification title 'moze'), md5 0ec94359fbfb8015a78085535b13f114, equal to the md5 of the file.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: certificate ready; the four new functions and both new rows absent; the 16 dependency body md5 pins (the zone helper accepted in either of its two known states); the 6 predecessor body md5 pins. Each of the six replacements: preimage md5, md5 of the new body against the generator's value, exactly one anchor of the old body in pg_get_functiondef, then the whole pg_proc row apart from the body and the function comment asserted unchanged. Post-guards: the four new bodies pinned by md5 with security definer, volatility, owner postgres, search_path=pg_catalog and ACL {postgres=X/postgres}; the six replaced bodies pinned by md5; the 16 dependencies unchanged; the watermark row present; the dispatch row equal to the default; both closure digests equal before and after (a temporary table of the pre-apply digests) and the certificate ready. Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 230,
+    "after": 231,
+    "version": "20261007203903",
+    "name": "dev_alpha_match_v1_application",
+    "storedStatementChars": 56949,
+    "statements": 1,
+    "storedStatementMd5": "0ec94359fbfb8015a78085535b13f114",
+    "fileSha256": "0e093fb77a12f2f7ac7746d4ef821a1427ec381346d04bfbda6ce1d8afd51ea4",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (0ec94359fbfb8015a78085535b13f114): read back after the apply (md5 0ec94359fbfb8015a78085535b13f114, 56949 chars / 56950 bytes, 1 statement)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "None of the ten functions is in closure_erasure_program_digest_v5 or closure_schema_digest_v5_139 and no table, column, constraint, trigger, policy or grant changed; the two rows are data. An AFTER UPDATE trigger on app_profiles was deliberately not used because it would have moved both digests. The same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "476b96ec7697d5ffbf6d12de11591994673e5767cca81e69f4d77ef64476decb",
+    "bodiesAfter": true,
+    "dependenciesUnchanged": true,
+    "zoneHelperState": "ZONE_PERF_APPLIED",
+    "newFunctionAcl": true,
+    "dispatchRowIsTheDefault": true,
+    "ladderRowsStillThere": true,
+    "watermark": "2026-10-07T20:39:03.847007+00:00",
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/match-v1-20261007/revert.sql",
+    "sha256": "f8f416b34cb0b19da4492d0c589f7114eba5454a663102939c60bcba8cd035c7",
+    "applied": false,
+    "effect": "revert.sql restores the six predecessor bodies byte for byte and deletes the four new functions and both configuration rows, i.e. the ladder of before (refuses while DISCOVERY-ZAMENE is applied). Code and configuration rollback only: notifications and deliveries already written stay, and so does the ceiling change (the row is deleted)."
+  },
+  "notProven": [
+    "No wave of the new rule has run on DEV data yet at the time of writing; the disposable-database proof (run 37662617758: zone, behaviour, load) covers the behaviour, the exact revert and the timing.",
+    "No HTTP/JWT test of a manual application (rpc_submit_response / rpc_select_response read responseAllowed) against DEV after the change.",
+    "The load numbers (300 and 1,000 matching workers, a tick of 25 tasks x 500 workers in about 24 s) come from a disposable server; a single wave to 10,000 workers was not measured (about 2 ms per worker, so about 20 s extrapolated) and 4 rows per notified worker are written. MATCH-V1B (waves for remote tasks) is the follow-up.",
+    "Push stays disabled: the PUSH notification rows of a wave are written but nothing is sent. No client change yet reads the new codes or the timeTier."
+  ],
+  "followUps": [
+    "DISCOVERY-ZAMENE (\"Za mene\" reads the same rule): read its README, apply if it moves no certificate.",
+    "MATCH-V1B: remote tasks in waves (300, then 1,000 every 30 minutes), per-worker daily cap default off; separate package.",
+    "switch-ladder-on.sql only on the owner's word; the ceiling can be changed with one guarded update of the same row.",
+    "Older, still unapplied candidates that pin candidate_profile_ids (ex06a, ex06d F5, the WPP02 files) need their pins regenerated before they could ever be applied after MATCH-V1."
+  ],
+  "filesCopiedToThisCheckout": [
+    "body.diff",
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "live-functions.json",
+    "manifest.json",
+    "patches.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql",
+    "switch-ladder-off.sql",
+    "switch-ladder-on.sql"
+  ],
+  "measurement": {
+    "firstTickAfterApply": "The next minute's tick (about 20:40 UTC) ran the new dispatch_tick without error: the profile re-queue watermark moved from 20:39:03 to 20:39:30 (cutoff = tick time minus 30 s). No dispatch round, delivery or OPPORTUNITY_AVAILABLE event was created in the first minute: all 7 queued tasks were in their exponential back-off after earlier NO_ELIGIBLE_CANDIDATES results (next checks from 20:43 UTC, the rest later, up to 01:46 UTC).",
+    "dryRunReadOnly": "Read-only, 2026-10-07 20:40 UTC, over the 8 open tasks and the 5 active worker profiles (4 of them can apply to any task, the fifth is the publisher's own): the new prefilter admits 3 not-yet-notified workers for each of 3 tasks (a FLEXIBLE cleaning task, a FLEXIBLE painting task, a FLEXIBLE maths-lessons task) and 0 for the other 5 (a TOMORROW_FLEXIBLE cleaning task and a FLEXIBLE wall-painting task already notified once, a TODAY_FLEXIBLE car repair, a FLEXIBLE ticket-buying errand and a FIXED_WINDOW wardrobe carrying task that no active worker fits by kind of work or time). match_detail says responseAllowed true for 4 workers on every task (tools, vehicles, experience and fee no longer refuse an application).",
+    "notYetObserved": "the first real wave on DEV data was not yet observed when this receipt was written"
+  },
+  "afterApplyConfig": {
+    "statement": "one guarded UPDATE of the one row private.marketplace_config 'match_v1_dispatch': set ceiling 500 -> 10000, only where the value still equalled the default row exactly; run through execute_sql at 2026-10-07 20:39:59 UTC (a data change, not a migration, so no ledger row)",
+    "readBack": {
+      "mode": "ALL",
+      "ceiling": 10000,
+      "validMinutes": 1440,
+      "tickBudgetSeconds": 40,
+      "owner": "MATCH-V1 2026-10-07",
+      "updated_at": "2026-10-07 20:39:59.605291+00"
+    },
+    "why": "the owner named a ceiling up to 10,000 notified workers per task revision; 10000 is the largest value the code accepts. The ceiling is a safety valve (four rows per notified worker), not a business rule.",
+    "note": "mode stays ALL; the ladder is not switched on. MATCH-V1B (remote tasks in waves) is the follow-up that makes a very large audience cheap; until it is applied a task with thousands of matching workers would be notified in one wave. DEV has 5 active worker profiles, so the ceiling cannot bind today."
+  },
+  "orderWithOtherPackages": "Applied after ZONE-PERF (ledger 228), CANCEL-INFO (229) and PROFILE-TRUST (230) of the same day; none of them touches a function of this package, and the zone helper pin accepts ZONE-PERF's body. DISCOVERY-ZAMENE (reads the shared rule) is applied after this, never before."
+}

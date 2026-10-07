@@ -1,0 +1,7 @@
+# PROFILE-TRUST: six NEW functions (three authenticated-only reads public.rpc_public_work_trust_v1(uuid), public.rpc_my_work_stats_v1(), public.rpc_list_received_reviews_v1(integer,text) and three private helpers private.work_trust_counts_v1(uuid), private.profile_trust_visibility_v1(), private.received_reviews_detail_v1()) and two private.marketplace_config data rows that hold the owner's two OPEN privacy decisions at their privacy-preserving defaults (profile_trust_visibility OWN_ONLY, received_reviews_detail COMMENTED_ONLY). Definition WORK_TRUST_V1: reliabilityPercent = floor(100 * completed / (completed + cancelled by the worker)), null below 5. No existing function, table, column, constraint, trigger, policy or grant changed; no new table. is APPLIED to canonical DEV (2026-10-07)
+
+The README in this folder was written before the application and still says "SOURCE ONLY, NOT APPLIED"; it is kept byte-identical to the candidate branch (candidate/profile-trust-20261007) so a later merge of that branch stays a no-op for these files.
+
+- Applied on: the owner's standing order of 2026-10-07 ("DA, PRIMENJUJ DOKAZANE PAKETE SAM"); ledger 229 -> 230, version 20261007202528, name `dev_alpha_profile_trust_application`.
+- Receipt with every hash, the postflight result, the read-back and the revert: `supabase/operations/dev-alpha/ledger/20261007_profile_trust_application.receipt.json`.
+- Revert: `revert.sql` (not applied).

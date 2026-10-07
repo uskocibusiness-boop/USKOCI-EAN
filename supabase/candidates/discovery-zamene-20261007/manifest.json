@@ -1,0 +1,49 @@
+{
+  "id": "DISCOVERY-ZAMENE",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI DISCOVERY-ZAMENE",
+  "requiresApplied": "MATCH-V1",
+  "certificateMoves": false,
+  "functions": [
+    {
+      "signature": "public.rpc_discovery_v1(jsonb)",
+      "before_md5": "1c60224483697732c496df5b9207f08f",
+      "after_md5": "dc69802e3ba209232a8be095f60e9c9f"
+    }
+  ],
+  "newFunctions": [
+    {
+      "signature": "public.discovery_for_me_state_v1()",
+      "body_md5": "bd4dcf16863e7564a5d82ac22aca1418",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    },
+    {
+      "signature": "public.discovery_for_me_v1(uuid)",
+      "body_md5": "60c104139cebbccfa16a570fc3386c0c",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    }
+  ],
+  "matchV1Pins": [
+    {
+      "signature": "private.worker_need_time_tier_v1(uuid,uuid)",
+      "body_md5": "753027749309ccc110f486cbfb4866e4"
+    },
+    {
+      "signature": "private.worker_need_fit_v1(uuid,uuid,boolean)",
+      "body_md5": "ab221f0091d78856bb42f702ddecd016"
+    },
+    {
+      "signature": "private.worker_need_match_v1(uuid,uuid)",
+      "body_md5": "ef94ef7de07a347824ace68789f08c41"
+    }
+  ],
+  "artifact_sha256": {
+    "candidate.sql": "554faa74f2149d8624e0f867464e19e9be55bd4778ff1169f7909f969f7fbbb1",
+    "revert.sql": "60d57988df1ffdf9b92943fc9bf4a3ed9ab641c17172d4e559130e1039849e9a",
+    "preflight.readonly.sql": "a26e85a713364ae6de9dae270cb9ffc4d9fb57d30a0365229b711bed4c5e3606",
+    "postflight.readonly.sql": "f11d46a89219dad0c5bbadc9fc84c13b8a62daeebef35dedacfd401cd1fa7cce",
+    "body.diff": "7b5a788be376c553a75e1afc12f42dab26da9525fca2d1bb39470054458bd052",
+    "patches.json": "cacab79aa36b18a973b98c524570d9c8cd8d7f7b485771d7cba0cb57b99cee72"
+  }
+}

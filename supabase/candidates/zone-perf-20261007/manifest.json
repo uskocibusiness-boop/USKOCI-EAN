@@ -1,0 +1,81 @@
+{
+  "id": "ZONE-PERF",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI ZONE-PERF",
+  "devStateReadAt": "2026-10-07",
+  "devLedger": 227,
+  "devLatestVersion": "20261005101102",
+  "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+  "certificateMoves": false,
+  "closureRoster": "closure_source_digest_v5 hashes a fixed list of 99 function signatures plus the schema digest and the erasure program digest; private.availability_timezone_valid is in none of them (read from the DEV function bodies 2026-10-07). The apply and the revert assert both digests unchanged.",
+  "functions": [
+    {
+      "signature": "private.availability_timezone_valid(text)",
+      "before_md5": "013f884ca649cb5246f39eaf9f2e0ec9",
+      "after_md5": "be95520dabe35febd8e9fa15f0ce0309",
+      "language": "sql",
+      "volatility": "STABLE",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    }
+  ],
+  "newFunctions": [],
+  "dataRows": [],
+  "fastPathNames": [
+    "Europe/Belgrade",
+    "UTC"
+  ],
+  "truthTableProbes": [
+    null,
+    "",
+    "UTC",
+    "Europe/Belgrade",
+    "Europe/Paris",
+    "America/New_York",
+    "EST5EDT",
+    "posix/Europe/Belgrade",
+    "right/UTC",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "Not/AZone",
+    "europe/belgrade",
+    " Europe/Belgrade",
+    "Europe/Belgrade ",
+    "UTC ",
+    "utc",
+    "Etc/GMT+1",
+    "Etc/UTC",
+    "Asia/Kolkata",
+    "Europe/Zagreb",
+    "Europe/Sarajevo",
+    "GMT",
+    "Zulu",
+    "Etc/Zulu",
+    "Europe/",
+    "/",
+    "Europe/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "directCallers": [
+    "private.guard_availability_timezone()",
+    "private.normalize_worker_ai_availability(uuid,uuid,jsonb)",
+    "private.relative_schedule_end_v5(text,timestamp with time zone,text)",
+    "private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)",
+    "private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)",
+    "private.worker_dispatch_time_admitted(uuid,uuid)",
+    "public.rpc_save_worker_availability(text,jsonb)"
+  ],
+  "readerChain": "rpc_home_attention / rpc_list_my_needs_page / rpc_list_my_tasks (via rpc_read_task) -> public.selectable_application_count -> private.need_candidate_states_v5 -> private.match_detail_for_calendar_interval -> private.match_detail_without_calendar -> private.worker_dispatch_time_admitted -> this helper",
+  "artifact_sha256": {
+    "candidate.sql": "98288b1d377722d761b20c091f6dbfa850a40114a9b087b36c7c48f8515efab2",
+    "candidate.in-transaction.sql": "b52c4552d7ab51c901d0fabcade045da91f699b2caa0f6ee56fe28e669c14bb6",
+    "revert.sql": "c914e45c6b0eb93d89c99bd0529abf816eb123c7486682432ef1328605dee7fa",
+    "preflight.readonly.sql": "e96ff463597458e591f4b4bd503524d20e0d01b249a72d8791ba2c81dfac13e8",
+    "postflight.readonly.sql": "46f7da568f154adf96e5889dc0d38f37432a4d2a0cf75aa348f61b188ac2353e",
+    "body.diff": "f8949a697a115cab11f195dabedf79d630d168bfa03ab1ddcc078c64ffe77904",
+    "patches.json": "11977b1fea27dbf9bc4e9e2de804502f313cfee1cffbcee8ecbb84db358d4eba"
+  }
+}

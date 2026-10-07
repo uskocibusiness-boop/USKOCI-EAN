@@ -1,0 +1,68 @@
+[
+  {
+    "signature": "public.rpc_get_public_profile(uuid)",
+    "role": "REFERENCE: completedCount and the gate order (ACTIVE profile, closure restriction, block, world) that the public trust read repeats",
+    "language": "plpgsql",
+    "volatility": "s",
+    "security_definer": true,
+    "config": ["search_path=pg_catalog"],
+    "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+    "body_md5": "9ecc0b69096f1167d02e0bb7b9656bc0",
+    "body": "\ndeclare\n  v_actor uuid := auth.uid();\n  v_profile public.app_profiles;\n  v_completed bigint := 0;\n  v_reputation jsonb;\nbegin\n  if v_actor is null then\n    raise exception 'AUTH_REQUIRED' using errcode = '42501';\n  end if;\n\n  if p_profile_id is null then\n    raise exception 'PROFILE_ID_REQUIRED' using errcode = '22023';\n  end if;\n\n  select p.*\n  into v_profile\n  from public.app_profiles p\n  where p.id = p_profile_id\n    and p.profile_status = 'ACTIVE'\n    and p.kind in ('REQUESTER', 'WORKER');\n\n  if not found then\n    return null;\n  end if;\n\n  if private.closure_account_restricted(v_actor) or private.closure_account_restricted(v_profile.account_id) then return null; end if;\n  if private.safety_pair_blocked(v_actor,v_profile.account_id) then return null; end if;\n  if not private.accounts_same_world(v_actor, v_profile.account_id) then return null; end if;\n  if v_profile.kind = 'REQUESTER' then\n    select count(*)\n    into v_completed\n    from public.agreements a\n    where a.requester_profile_id = v_profile.id\n      and a.status = 'COMPLETED';\n  else\n    select count(*)\n    into v_completed\n    from public.agreements a\n    where a.worker_profile_id = v_profile.id\n      and a.status = 'COMPLETED';\n  end if;\n\n  v_reputation:=private.account_reputation(v_profile.account_id);\n  return jsonb_build_object(\n    'profileId', v_profile.id,\n    'role', v_profile.kind,\n    'displayName', nullif(btrim(v_profile.display_name), ''),\n    'avatarPath', v_profile.avatar_path,\n    'city', nullif(btrim(v_profile.city), ''),\n    'publicSummary', jsonb_build_object(\n      'headline', case when v_profile.kind = 'WORKER' then nullif(btrim(v_profile.headline), '') else null end,\n      'bio', case when v_profile.kind = 'WORKER' then nullif(btrim(v_profile.bio), '') else null end\n    ),\n    'trust', jsonb_build_object(\n      'ratingAverage', v_reputation->'averageRating',\n      'reviewCount', v_reputation->'reviewCount',\n      'completedCount', v_completed,\n      'identityVerified', false,\n      'ratingAvailable', (v_reputation->>'reviewCount')::bigint>0,\n      'reviewsAvailable', true,\n      'identityVerificationAvailable', false\n    )\n  );\nend;\n"
+  },
+  {
+    "signature": "private.safety_pair_blocked(uuid,uuid)",
+    "role": "GATE: a block in either direction",
+    "language": "sql",
+    "volatility": "s",
+    "security_definer": true,
+    "config": ["search_path=pg_catalog"],
+    "acl": "{postgres=X/postgres}",
+    "body_md5": "698fb21abb0379743bc7ab09d9f946ad",
+    "body": " select exists(select 1 from private.account_blocks x where x.active\n and ((x.blocker_account_id=a and x.blocked_account_id=b) or (x.blocker_account_id=b and x.blocked_account_id=a))); "
+  },
+  {
+    "signature": "private.closure_account_restricted(uuid)",
+    "role": "GATE: an account under a closure restriction",
+    "language": "sql",
+    "volatility": "s",
+    "security_definer": true,
+    "config": ["search_path=pg_catalog"],
+    "acl": "{postgres=X/postgres}",
+    "body_md5": "f4999250c315e0253374d4611291c7ad",
+    "body": " select exists(select 1 from private.account_closure_requests r where r.account_id=a\n and r.state in('READY','EXECUTING','FAILED','CLOSED')); "
+  },
+  {
+    "signature": "private.accounts_same_world(uuid,uuid)",
+    "role": "GATE: the TEST / REAL world of two accounts",
+    "language": "sql",
+    "volatility": "s",
+    "security_definer": true,
+    "config": ["search_path=pg_catalog"],
+    "acl": "{postgres=X/postgres}",
+    "body_md5": "16f541f952d4e1e2dbb4fc87e594d572",
+    "body": "\n  select private.account_visibility_world(p_a) = private.account_visibility_world(p_b);\n"
+  },
+  {
+    "signature": "private.account_visibility_world(uuid)",
+    "role": "GATE: the world of one account (PKG-029e keeps the owner's accounts in TEST while testing)",
+    "language": "sql",
+    "volatility": "s",
+    "security_definer": true,
+    "config": ["search_path=pg_catalog"],
+    "acl": "{postgres=X/postgres}",
+    "body_md5": "876cfc16f0ed1c4d32b128e8e18bdcda",
+    "body": "\n  select case when coalesce(private.account_lineage(p_account_id), 'UNCLASSIFIED')\n                in ('DEV_ACCEPTANCE_QA','SYNTHETIC_ACCEPTANCE_FIXTURE','OPERATOR',\n                    -- PKG-029e, owner decision 2026-09-21 (\"dok testiramo\"): the owner's own accounts share the\n                    -- test world while testing. Take these two out again before real users arrive.\n                    'OWNER_PERSONAL','OWNER_BUSINESS') then 'TEST' else 'REAL' end;\n"
+  },
+  {
+    "signature": "private.account_lineage(uuid)",
+    "role": "GATE: the lineage row behind the world",
+    "language": "sql",
+    "volatility": "s",
+    "security_definer": true,
+    "config": ["search_path=pg_catalog"],
+    "acl": "{postgres=X/postgres}",
+    "body_md5": "c08602534ee5e0f0aa826db0913fde81",
+    "body": "\n  select coalesce((select l.lineage from private.account_lineage_v5 l where l.account_id = p_account_id), 'UNCLASSIFIED');\n"
+  }
+]

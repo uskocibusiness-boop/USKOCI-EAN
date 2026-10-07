@@ -1,0 +1,32 @@
+[
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " filter_key text; scope_key text; need_id uuid; people integer; page_limit integer;\n",
+    "after": " filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_doc jsonb; fm_lat numeric; fm_lng numeric; fm_radius numeric;\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " if jsonb_typeof(f) is distinct from 'object' or f-array['text','price','where','places','when','dates','place']<>'{}'\n   or not(f?&array['text','price','where','places','when','dates','place'])\n",
+    "after": " if jsonb_typeof(f) is distinct from 'object' or f-array['text','price','where','places','when','dates','place','forMe']<>'{}'\n   or not(f?&array['text','price','where','places','when','dates','place'])\n   or (f?'forMe' and jsonb_typeof(f->'forMe') is distinct from 'boolean')\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catalog.\"sr-Latn-RS-x-icu\");\n",
+    "after": " -- DISCOVERY-ZAMENE (owner 2026-10-07): the optional \"forMe\" key narrows PAGE, MAP, PLACES and their counts to the\n -- caller's \"Odgovara mi\" (private.worker_need_match_v1: kind of work + area + time), the same rule as the\n -- notifications. Absent or false keeps the request, its filterKey and the response exactly as before.\n for_me:=coalesce((f->>'forMe')::boolean,false);\n if for_me then\n  for_me_doc:=public.discovery_for_me_state_v1();\n  if for_me_doc->>'state' is distinct from 'ACTIVE' then\n   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_doc->>'state','MISSING');\n  end if;\n  -- The caller's circle is read ONCE per request; it feeds a conservative distance pre-test below (the exact rule stays the only authority).\n  fm_lat:=(for_me_doc->>'lat')::numeric; fm_lng:=(for_me_doc->>'lng')::numeric; fm_radius:=(for_me_doc->>'radiusKm')::numeric;\n end if;\n query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catalog.\"sr-Latn-RS-x-icu\");\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "   'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);\n",
+    "after": "   'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);\n if for_me then f:=f||'{\"forMe\":true}'::jsonb; end if;\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": ",0))>=people)\n  ), place_wanted as materialized (",
+    "after": ",0))>=people)\n    and (not for_me or fm_lat is null or fm_lng is null or n.execution_location_mode='REMOTE' or n.approximate_lat is null or n.approximate_lng is null\n      or 6371.0*2*asin(least(1,sqrt(power(sin(radians((n.approximate_lat-fm_lat)::double precision)/2),2)\n        +cos(radians(n.approximate_lat::double precision))*cos(radians(fm_lat::double precision))\n        *power(sin(radians((n.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)\n    and (not for_me or public.discovery_for_me_v1(n.id))\n  ), place_wanted as materialized ("
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "),query_text)>0)\n ), qualified as materialized (",
+    "after": "),query_text)>0)\n   and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null\n      or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)\n        +cos(radians(b.approximate_lat::double precision))*cos(radians(fm_lat::double precision))\n        *power(sin(radians((b.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n ), qualified as materialized ("
+  }
+]

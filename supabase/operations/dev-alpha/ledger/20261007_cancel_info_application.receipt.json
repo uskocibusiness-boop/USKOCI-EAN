@@ -1,0 +1,71 @@
+{
+  "schema": "USKOCI_DEV_CANCEL_INFO_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "CANCEL-INFO: two NEW read functions, private.agreement_cancellation_facts_v1(uuid) and public.rpc_agreement_cancellation_v1(uuid[]) (EXECUTE: authenticated only). When, by which side and why a Dogovor was cancelled, read from what the only writer public.rpc_cancel_agreement(uuid,text) already leaves behind (status + updated_at, the AGREEMENT_CANCELLED event, the canceller's reason message). No existing function, table, column, trigger, policy or grant changed; no data row.",
+  "sourceCommit": "c73509eb on candidate/profile-trust-20261007 (remote novi), folder supabase/candidates/cancel-info-20261007/ (copied byte-identical into this checkout with this receipt); proof run 37677943291 (behavior 43/43, order 6/6)",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself, given after the proof summaries. CANCEL-INFO was proven (disposable database, FAIL before / PASS after, exact revert, certificate unchanged) and moves nothing the owner reserved (no money, keys, legal text, real-data deletion, store, push, dependency or certificate change).",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply: ledger 228, certificate ready, closure digest 3a785d42..., erasure program digest 2027655d..., closure not executing, no dependency drift (rpc_cancel_agreement e59b8f7d..., emit_event 67413eff..., set_updated_at d2ba7342...), new functions absent, rpc_cancel_agreement is the only writer of status CANCELLED, 3 cancelled Dogovori all with the event at the same instant as updated_at and the reason message at that instant.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). Before sending, the typed text was measured by the database itself (select md5(...)) and equalled the file: md5 f8367cc158637f13fd19f23267ce5f66, 12399 characters.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: certificate ready, new functions absent, dependency body md5 pins, table shapes of public.agreements / user_activity_events / agreement_messages, the updated_at trigger. Post-guards: both new bodies pinned by md5 with security definer, stable, owner postgres, search_path=pg_catalog and the exact ACL, dependencies unchanged, both closure digests equal before and after. Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 228,
+    "after": 229,
+    "version": "20261007201845",
+    "name": "dev_alpha_cancel_info_application",
+    "storedStatementChars": 12399,
+    "statements": 1,
+    "storedStatementMd5": "f8367cc158637f13fd19f23267ce5f66",
+    "fileSha256": "23fb7c17351d101dbfc7b26c1eaf48ddabe045a016a988db6f28b419a21ecd88",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (f8367cc158637f13fd19f23267ce5f66): read back after the apply, 1 statement, 12399 chars."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "Two new functions are in none of the 99 certified signatures; the same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "358216926f754a8c11fce6c5e7ceac1b95d2075dd07d6db6db7d40f0188cde96",
+    "newFunctions": true,
+    "anonCannotExecute": true,
+    "authenticatedCanExecute": true,
+    "dependencyDrift": [],
+    "cancelledAgreements": 3,
+    "helperAnswers": 3,
+    "sideKnown": 3,
+    "reasonKept": 3,
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/cancel-info-20261007/revert.sql",
+    "sha256": "3a469ec4542f20afbc4676034a5f7a3e280044f42d629e39fe62071d7c10b929",
+    "applied": false,
+    "effect": "Drops the two new functions only. Nothing else was created or written, so it can be applied at any time; a client that already calls rpc_agreement_cancellation_v1 would then get PGRST202."
+  },
+  "notProven": [
+    "No HTTP/JWT call of rpc_agreement_cancellation_v1 on DEV yet (the helper was exercised through SQL as the owner role; the disposable-database proof covers 9 cases including a blocked pair and a closed account).",
+    "No client calls it yet: the cancellation line (T3a cancellationLine) waits for a mapper."
+  ],
+  "followUps": [
+    "PROFILE-TRUST (same branch) reads this package's helper: apply it second.",
+    "Wire the client: Dogovori list/detail 'Otkazano {datum} - {ko} - {razlog}' through rpc_agreement_cancellation_v1."
+  ],
+  "filesCopiedToThisCheckout": [
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "live-functions.json",
+    "manifest.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql"
+  ]
+}

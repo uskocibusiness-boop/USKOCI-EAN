@@ -1,0 +1,76 @@
+{
+  "schema": "USKOCI_DEV_DISCOVERY_ZAMENE_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "DISCOVERY-ZAMENE: the optional filter key forMe in public.rpc_discovery_v1(jsonb) (one anchored edit of the body, P6 rollout v3 md5 1c602244... to dc69802e...) narrows PAGE, MAP, PLACES and their counts to the caller's \"Odgovara mi\" = private.worker_need_match_v1 (kind of work + area + time, the same rule as the notifications after MATCH-V1); plus two NEW authenticated-only helpers public.discovery_for_me_state_v1() and public.discovery_for_me_v1(uuid). Absent or false: the request, filterKey, anchors, cursors and response are identical to before. The map and the list still show ALL tasks by default. No table, column, constraint, trigger, policy or grant on an existing object changed.",
+  "sourceCommit": "8075ae6f on candidate/match-v1-20261007 (remote novi), folder supabase/candidates/discovery-zamene-20261007/ (copied byte-identical into this checkout with this receipt, plus the derived candidate.in-transaction.sql described in typedCheck); final proof run 37662617758 (jobs zone, behaviour and load all green, disposable database only, workflow .github/workflows/match-v1-discovery-zamene-proof.yml)",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself, given after the proof summaries. DISCOVERY-ZAMENE was proven (disposable database, FAIL before / PASS after, byte-identical default response, exact revert, certificate unchanged, load numbers) and moves nothing the owner reserved: no money, keys, legal text, real-data deletion, store, push, dependency or certificate change. It is applied after MATCH-V1, as its README requires.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply: ledger 231, latest version 20261007203903 (MATCH-V1), matchV1Applied true (the three rule functions at their pinned md5), readerIsP6V3 true (rpc_discovery_v1 body md5 1c60224483697732c496df5b9207f08f), reader ACL {postgres=X/postgres,authenticated=X/postgres}, helpersAbsent true, certificateReady true with closure digest 3a785d42... , openPointToPointWithoutPoint 0 (the 4 legacy test tasks without a pin that the README mentions are no longer open).",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). The packaged candidate.sql carries its own transaction control (a begin; as line 6 and a commit; as the last line), which would nest inside and close the connector's own transaction early. The statement sent is therefore candidate.sql without exactly those two lines (candidate.in-transaction.sql, derived in this checkout by dropping line 6 and the last line; candidate.sql 41494 bytes, md5 4f3c30356af57ec8c11c224c5aad65e6, sha256 554faa74f2149d86... equal to the manifest; the derived file 41479 bytes, 497 lines, pure ASCII, md5 b807226efc56b7ce89ad1ce5e2ebf381). It was sent byte-exact and the stored statement was read back from supabase_migrations.schema_migrations afterwards: 1 statement, 41479 characters (41479 bytes), md5 b807226efc56b7ce89ad1ce5e2ebf381, equal to the derived file.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: certificate ready; the two helpers absent; MATCH-V1's three rule functions pinned by body md5; the reader's predecessor md5. The reader replacement: preimage md5, exactly one anchor of the old body in pg_get_functiondef, then the new body md5 dc69802e3ba209232a8be095f60e9c9f, the whole pg_proc row apart from the body and the function comment asserted unchanged (so SECURITY INVOKER, STABLE and the ACL stay). Post-guards: the two helpers pinned by md5 with security definer, stable, owner postgres, search_path=pg_catalog and ACL {postgres=X/postgres,authenticated=X/postgres}; the reader ACL unchanged; both closure digests equal before and after (a temporary table of the pre-apply digests) and the certificate ready. Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 231,
+    "after": 232,
+    "version": "20261007204555",
+    "name": "dev_alpha_discovery_zamene_application",
+    "storedStatementChars": 41479,
+    "statements": 1,
+    "storedStatementMd5": "b807226efc56b7ce89ad1ce5e2ebf381",
+    "fileSha256": "3097fa57aa05e3c351bac2ab04847af0a6f2d6a41d464e66284a5c6046157e03",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (b807226efc56b7ce89ad1ce5e2ebf381): read back after the apply (md5 b807226efc56b7ce89ad1ce5e2ebf381, 41479 chars / 41479 bytes, 1 statement)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "rpc_discovery_v1 and the two helpers are in none of the certified signatures. The same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "f11d46a89219dad0c5bbadc9fc84c13b8a62daeebef35dedacfd401cd1fa7cce",
+    "readerAfter": true,
+    "helpers": true,
+    "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+    "anonCannotExecute": true,
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/discovery-zamene-20261007/revert.sql",
+    "sha256": "60d57988df1ffdf9b92943fc9bf4a3ed9ab641c17172d4e559130e1039849e9a",
+    "applied": false,
+    "effect": "revert.sql restores the reader body byte for byte (md5 1c602244...) and drops the two helpers; code rollback only. A client that already sends forMe would then get P6_INVALID_FILTER from the server."
+  },
+  "notProven": [
+    "No HTTP/JWT call through PostgREST of the new filter on DEV yet (the check above ran as SQL with a session claim); the disposable-database proof covers PostgREST, the default-response identity, the refusal paths and the timing.",
+    "The refusal P6_FOR_ME_PROFILE_REQUIRED (no worker profile, or a draft one) was not exercised on DEV, only on the disposable database.",
+    "The timing of forMe over 100 and 1,000 open tasks comes from the disposable server (the reader as a whole is still linear in the open tasks; the spatial prefilter is a separate package).",
+    "No client sends forMe yet: the Zadaci switch waits behind a flag and a mapper (CLIENT_CONTRACT.md)."
+  ],
+  "followUps": [
+    "Wire the client per supabase/candidates/discovery-zamene-20261007/CLIENT_CONTRACT.md: filter key forMe (boolean), a new anchor when it changes, the refusal copy \"Za mene radi kad je radni profil aktivan.\", the switch off by default.",
+    "The spatial prefilter of the whole reader (ZAVRSNA_PROVERA section 5.3) stays its own package."
+  ],
+  "filesCopiedToThisCheckout": [
+    "body.diff",
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "CLIENT_CONTRACT.md",
+    "live-functions.json",
+    "manifest.json",
+    "patches.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql"
+  ],
+  "measurement": {
+    "liveReadOnlyCheck": "2026-10-07 20:46 UTC, read-only (session claim sub set to the owner's account, whose worker profile is ACTIVE with a point and a 100 km radius; nothing written): PAGE over the open public tasks returned 7 tasks with forMe absent and 7 with forMe false, with the same filterKey, the same items and the same counts (byte-identical default, as the proof states); with forMe true it returned 1 task (counts mapped 1, listed 1, inArea 1, withoutPoint 0)."
+  },
+  "orderWithOtherPackages": "Applied after MATCH-V1 (ledger 231), whose three rule functions it pins; ZONE-PERF (228), CANCEL-INFO (229) and PROFILE-TRUST (230) of the same day are independent of it."
+}

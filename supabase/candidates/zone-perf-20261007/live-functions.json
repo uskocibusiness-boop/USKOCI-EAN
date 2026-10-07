@@ -1,0 +1,7 @@
+[
+  {
+    "signature": "private.availability_timezone_valid(text)",
+    "body": "\n  select value is not null and length(value)<=100\n    and (value='UTC' or position('/' in value)>0)\n    and value not like 'posix/%' and value not like 'right/%'\n    and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value);\n",
+    "body_md5": "013f884ca649cb5246f39eaf9f2e0ec9"
+  }
+]

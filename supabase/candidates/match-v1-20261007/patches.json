@@ -1,0 +1,142 @@
+[
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  tz text; local_day date;\n  svc boolean; toolsok boolean; vehok boolean; expok boolean;\n  sched boolean; dist numeric; radiusok boolean; feeok boolean;\n",
+    "after": "  tz text; local_day date; fit jsonb; tier integer;\n  svc boolean;\n  sched boolean; dist numeric; radiusok boolean;\n"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  svc := cardinality(n.required_skills) = 0\n         or private.lower_arr(p.skills) && private.lower_arr(n.required_skills)\n         -- PKG-031b (deep read 9.3): the same kind of work in other words (\"Ciscenje stana\" / \"čišćenje stana\").\n         or private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills);\n  toolsok := private.lower_arr(p.tools) @> private.lower_arr(n.required_tools);\n  -- WPP01: licenses no longer participate in admission or resource ranking.\n  vehok := private.lower_arr(p.vehicles) @> private.lower_arr(n.required_vehicles);\n  expok := coalesce(n.minimum_experience_years,0) = 0\n           or coalesce(p.years_experience,0) >= n.minimum_experience_years;\n  sched := private.worker_dispatch_time_admitted(nid,pid);\n  effective_radius := private.effective_radius_km(p.radius_km);\n\n  if n.execution_location_mode = 'REMOTE' then\n    dist := null; radiusok := true;\n  else\n    dist := private.haversine_km(n.approximate_lat, n.approximate_lng,\n                                 pref.approximate_lat, pref.approximate_lng);\n    radiusok := case\n      when dist is not null then dist <= effective_radius\n      else btrim(coalesce(n.approximate_city,'')) <> ''\n           and lower(coalesce(n.approximate_city,'')) = lower(coalesce(p.city,''))\n    end;\n  end if;\n\n  feeok := n.mode = 'OFFERS'\n           or coalesce(p.minimum_fee_rsd,0) = 0\n           or (n.requester_price_rsd is not null and n.requester_price_rsd >= p.minimum_fee_rsd);\n\n",
+    "after": "  -- MATCH-V1 (owner 2026-10-07): \"Odgovara mi\" = kind of work + area + time, read from the ONE shared rule\n  -- private.worker_need_fit_v1 (the dispatch prefilter and \"Za mene\" use the same rule). Tools, vehicles,\n  -- experience and the minimum fee are information for the requester: never a gate and never a score.\n  fit := private.worker_need_fit_v1(nid,pid,false);\n  svc := (fit->>'service')::boolean;\n  tier := (fit->>'timeTier')::integer;\n  sched := tier is not null;\n  effective_radius := (fit->>'effectiveRadiusKm')::numeric;\n  dist := (fit->>'distanceKm')::numeric;\n  radiusok := (fit->>'area')::boolean;\n\n"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  if not toolsok then hard := array_append(hard,'MISSING_REQUIRED_TOOL'); end if;\n  if not vehok  then hard := array_append(hard,'MISSING_REQUIRED_VEHICLE'); end if;\n  if not expok  then hard := array_append(hard,'INSUFFICIENT_EXPERIENCE'); end if;\n",
+    "after": "  -- MATCH-V1: missing tools, vehicles or experience no longer refuse an application.\n"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  if not coalesce(p.available_now,false)\n    -- EX-06 ex06a: a TOMORROW_FLEXIBLE / WEEK_FLEXIBLE task stored without a window and published is matched against the window private.worker_dispatch_time_admitted derives for it,\n    -- so it is future availability here too (W02: live intent off but a real weekly schedule is not paused for a future task). Live intent alone is still no availability.\n    and not (private.availability_is_future(n.schedule_kind,n.starts_at,n.ends_at,statement_timestamp())\n             or (n.starts_at is null and n.ends_at is null and n.published_at is not null\n                 and n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE')))\n    then disp := array_append(disp,'CURRENT_AVAILABILITY_PAUSED'); end if;\n",
+    "after": "  -- MATCH-V1: the time rule, \"Mogu odmah\" included, lives only in private.worker_need_time_tier_v1\n  -- (OUTSIDE_AVAILABILITY below); live intent is no longer a separate gate.\n"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  if not feeok then disp := array_append(disp,'BELOW_MINIMUM_FEE'); end if;\n",
+    "after": ""
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     -- PKG-031b",
+    "after": "  if coalesce(cardinality(p.exclusions),0) > 0 and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     -- PKG-031b"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;",
+    "after": "     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  -- Bodovanje: donorove tezine 30/25/15/15/10/5.\n",
+    "after": "  -- Bodovanje: donorove tezine 30/25/15/10/5. MATCH-V1 drops the 15 resource points (RESOURCES_MATCH);\n  -- 'resources' stays 0 in scoreComponents for wire compatibility.\n"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  if toolsok and vehok then reasons := array_append(reasons,'RESOURCES_MATCH'); rs := 15; end if;\n",
+    "after": ""
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "    'liveStateDate', local_day,\n",
+    "after": "    'liveStateDate', local_day,\n    'timeTier', tier,\n"
+  },
+  {
+    "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+    "before": "      and p.profile_status = 'ACTIVE'\n      and private.worker_dispatch_time_admitted(nid,pid)\n      and p.account_id <> n.requester_account_id\n      and private.accounts_same_world(n.requester_account_id, p.account_id)\n      and coalesce(pref.proactive_notifications, true) = true\n      and (not n.verified_identity_required or private.identity_admitted(p.account_id))\n      and (cardinality(n.required_skills) = 0\n           or private.lower_arr(p.skills) && private.lower_arr(n.required_skills)\n           or private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills))\n      -- WPP01: licenses are retired from task eligibility; historical arrays remain stored.\n      and private.lower_arr(p.tools) @> private.lower_arr(n.required_tools)\n      and private.lower_arr(p.vehicles) @> private.lower_arr(n.required_vehicles)\n      and (coalesce(n.minimum_experience_years,0) = 0\n           or coalesce(p.years_experience,0) >= n.minimum_experience_years)\n      and not (private.lower_arr(p.exclusions)\n               && private.lower_arr(array_prepend(n.category, n.required_skills))\n               or private.work_kinds_v5(p.exclusions)\n               && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))\n      and (n.mode = 'OFFERS' or coalesce(p.minimum_fee_rsd,0) = 0\n           or (n.requester_price_rsd is not null and n.requester_price_rsd >= p.minimum_fee_rsd))\n",
+    "after": "      and p.profile_status = 'ACTIVE'\n      and coalesce(pref.proactive_notifications, true) = true\n      -- MATCH-V1 (owner 2026-10-07): the ONE shared \"Odgovara mi\" rule: kind of work + area + time and the existing\n      -- hard exceptions (own task, other world, identity, exclusions). Tools, vehicles, experience and the\n      -- minimum fee are no longer conditions; licenses were retired by WPP01. The rule takes the ROW columns, never\n      -- the bare parameters: a parameter-only call is a one-time filter that would run before the status filter above,\n      -- for every draft or suspended profile the candidate loop visits.\n      and private.worker_need_match_v1(n.id, p.id)\n"
+  },
+  {
+    "signature": "private.worker_dispatch_time_admitted(uuid,uuid)",
+    "before": "\ndeclare n public.needs; p public.app_profiles; tz text; wtz text; at_now timestamptz:=statement_timestamp(); periods tstzmultirange;\n  ws timestamptz; we timestamptz; anchor_day date;\nbegin\n  select * into n from public.needs where id=nid;\n  if not found then return false; end if;\n  select * into p from public.app_profiles where id=pid and kind='WORKER' and profile_status='ACTIVE';\n  if not found then return false; end if;\n  select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;\n  tz:=coalesce(tz,'Europe/Belgrade');\n  if not private.availability_timezone_valid(tz) then return false; end if;\n  -- EX-06 ex06a (S03 finding F1). A TOMORROW_FLEXIBLE or WEEK_FLEXIBLE task stored WITHOUT a window used to be refused for every worker (availability_is_future is false without one).\n  -- It is now matched against the window its own words mean, derived in the task's timezone (Europe/Belgrade when the task has none or an invalid one, never the worker's):\n  -- sutra = the local calendar day after the publication day; ove nedelje = the publication day to the end of that local Monday-Sunday week (the existing rule below clips the start to now,\n  -- so it is the remaining part of the week). The anchor is published_at (as private.relative_schedule_end_v5 does), so a later wave does not move \"tomorrow\"; a task without published_at\n  -- keeps the refusal. The rule that follows is the existing one: some real available time inside the window, never the whole day or week. A stored window (or one endpoint) and every other\n  -- schedule kind are exactly as before.\n  ws:=n.starts_at; we:=n.ends_at;\n  if n.starts_at is null and n.ends_at is null and n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') then\n    if n.published_at is null then return false; end if;\n    wtz:=case when n.task_timezone is not null and private.availability_timezone_valid(n.task_timezone) then n.task_timezone else 'Europe/Belgrade' end;\n    anchor_day:=(n.published_at at time zone wtz)::date;\n    if n.schedule_kind='TOMORROW_FLEXIBLE' then\n      ws:=(anchor_day+1)::timestamp at time zone wtz; we:=(anchor_day+2)::timestamp at time zone wtz;\n    else\n      ws:=anchor_day::timestamp at time zone wtz; we:=(anchor_day+(8-extract(isodow from anchor_day)::integer))::timestamp at time zone wtz;\n    end if;\n  end if;\n  if private.availability_is_future(n.schedule_kind,ws,we,at_now) then\n    periods:=private.worker_available_periods(pid,greatest(ws,at_now),we,tz);\n    if n.schedule_kind='FIXED_WINDOW' then return periods @> tstzrange(ws,we,'[)'); end if;\n    -- A flexible search window needs some real available time, not the whole\n    -- day/week. It never reserves this window or invents an estimated duration.\n    return periods<>'{}'::tstzmultirange;\n  end if;\n  if n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') or\n    (n.ends_at is not null and n.ends_at<=at_now) then return false; end if;\n  if not p.available_now then return false; end if;\n  if exists(select 1 from public.profile_availability_windows w where w.profile_id=pid\n    and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)\n    or exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid\n      and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now) then return false; end if;\n  if n.schedule_kind='FIXED_WINDOW' then return private.schedule_fit(pid,n.starts_at,n.ends_at,tz); end if;\n  return true;\nend;\n",
+    "after": "\nbegin\n  -- MATCH-V1 (owner 2026-10-07): the time part of \"Odgovara mi\" and its order live in\n  -- private.worker_need_time_tier_v1; this wrapper keeps its signature for existing readers.\n  return private.worker_need_time_tier_v1(nid,pid) is not null;\nend;\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  c record; d jsonb; deadline timestamptz; urg text;\nbegin\n",
+    "after": "  c record; d jsonb; deadline timestamptz; urg text;\n  -- MATCH-V1 (owner 2026-10-07): the switch row private.marketplace_config 'match_v1_dispatch' (see below).\n  sw jsonb; all_mode boolean := false; sw_ceiling integer; sw_valid integer; delivered integer := 0; valid_until timestamptz;\nbegin\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  if active >= target and active_coverage >= remaining then\n",
+    "after": "  -- MATCH-V1 (owner 2026-10-07): HOW does this server dispatch? One switch row decides; turning the ladder on needs no code change.\n  --   mode ALL (the default of this package): ONE wave to EVERY worker the shared rule admits, nearest first, in this tick. No group of\n  --     5 / 5 / 10 / 20, no waiting window between groups, no stop after N responses (a stop would starve later workers of their\n  --     notification). A worker who becomes eligible later (a new or a changed profile) is reached by the next wave of the same task\n  --     (the profile re-queue); a worker already notified for this revision is never notified twice. Safety ceiling: at most 'ceiling'\n  --     notified workers per task REVISION (default 500). Above it nobody more is notified for that revision: the task stays on the\n  --     map and the list for everyone and applying stays open; the wave answers DELIVERY_CEILING_REACHED (the tick records it in\n  --     dispatch_schedule.last_reason and keeps its normal back-off check); raising the ceiling continues with the workers not yet\n  --     notified, nearest first. Deliveries and their notifications stay valid for 'validMinutes' (default 24 h): the push transport\n  --     needs time to reach hundreds of workers and an expired notification would be a worker who never heard of the task.\n  --   mode LADDER (or no row): today's waves, unchanged (dispatch_normal / dispatch_urgent: waveSizes, windowMinutes, targetResponses,\n  --     candidate budget). \"Mogu odmah\" first (timeTier) orders the workers inside a wave in both modes.\n  select value into sw from private.marketplace_config where key = 'match_v1_dispatch';\n  if sw is not null then\n    if jsonb_typeof(sw) <> 'object' or coalesce(sw->>'mode','') not in ('ALL','LADDER') then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n    all_mode := sw->>'mode' = 'ALL';\n  end if;\n  if all_mode then\n    begin\n      sw_ceiling := (sw->>'ceiling')::integer;\n      sw_valid := (sw->>'validMinutes')::integer;\n    exception when others then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end;\n    if sw_ceiling is null or sw_ceiling < 1 or sw_ceiling > 10000 or sw_valid is null or sw_valid < 1 or sw_valid > 10080 then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n    select count(*) into delivered from public.opportunity_deliveries where need_id = nid and need_revision = n.revision;\n    if delivered >= sw_ceiling then\n      return jsonb_build_object('status','STOPPED','reason','DELIVERY_CEILING_REACHED','inserted',0,'mode','ALL','ceiling',sw_ceiling,\n        'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,\n        'selectedSlots',selected,'remainingSlots',remaining);\n    end if;\n  end if;\n\n  if not all_mode and active >= target and active_coverage >= remaining then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);\n  candidate_limit := (budget->>'limit')::integer;\n  budget_source := budget->>'source';\n  if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then\n    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n  end if;\n",
+    "after": "  if all_mode then\n    -- MATCH-V1: every admitted worker, up to what is left of the ceiling of this task revision ('FIXED' is the allowed budget source).\n    candidate_limit := sw_ceiling - delivered;\n    budget_source := 'FIXED';\n  else\n    budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);\n    candidate_limit := (budget->>'limit')::integer;\n    budget_source := budget->>'source';\n    if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n  end if;\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  if policy_wave_no > jsonb_array_length(sizes) then\n",
+    "after": "  if not all_mode and policy_wave_no > jsonb_array_length(sizes) then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  batch := (sizes->>(policy_wave_no-1))::integer;\n\n  -- O-3: pod izbora za HITNO.\n  if urg = 'URGENT' then\n",
+    "after": "  batch := case when all_mode then candidate_limit else (sizes->>(policy_wave_no-1))::integer end;\n\n  -- O-3: pod izbora za HITNO.\n  if urg = 'URGENT' and not all_mode then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  deadline := statement_timestamp() + make_interval(mins => windowm);\n",
+    "after": "  deadline := statement_timestamp() + make_interval(mins => windowm);\n  -- MATCH-V1: 'deadline' is when this wave's window ends (the tick checks the task again then). In mode ALL the deliveries and their\n  -- notifications outlive it: they stay valid for 'validMinutes', for an urgent task not beyond the end of its urgency.\n  valid_until := deadline;\n  if all_mode then\n    valid_until := statement_timestamp() + make_interval(mins => sw_valid);\n    if urg = 'URGENT' then valid_until := least(valid_until, n.urgent_expires_at); end if;\n  end if;\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', deadline)\n",
+    "after": "        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', valid_until)\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "        p_expires_at => deadline);\n",
+    "after": "        p_expires_at => valid_until);\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "    order by (s.detail->>'score')::numeric desc, s.pid\n",
+    "after": "    -- MATCH-V1: \"Mogu odmah\" first for a task danas/odmah (timeTier 1), then the schedule (2); score within a tier.\n    order by coalesce((s.detail->>'timeTier')::integer, 9), (s.detail->>'score')::numeric desc, s.pid\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "    'authoritative', true);\nend;",
+    "after": "    'authoritative', true)\n    || case when all_mode then jsonb_build_object('mode','ALL','ceiling',sw_ceiling,'deliveredBefore',delivered,'validUntil',valid_until)\n            else '{}'::jsonb end;\nend;"
+  },
+  {
+    "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+    "before": "  claimed uuid[]; r record; candidate record; res jsonb;\n",
+    "after": "  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;\n  tick_started timestamptz := clock_timestamp(); tick_budget numeric := 40; deferred integer := 0;\n"
+  },
+  {
+    "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+    "before": "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n",
+    "after": "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n\n  -- MATCH-V1 (owner 2026-10-07): a direct profile write (the manual profile editor) brings the open tasks back\n  -- to the queue as the RPC saves do: once per change, before this tick claims anything. A failure here is\n  -- reported in the result and never stops the dispatch.\n  begin\n    profile_requeue := private.requeue_changed_worker_profiles_v1(p_at);\n  exception when others then\n    profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));\n  end;\n\n  -- MATCH-V1: the time budget of this tick (private.marketplace_config 'match_v1_dispatch', tickBudgetSeconds, default 40 s). One wave\n  -- to hundreds of workers takes seconds. After the budget this tick starts no further task: the claimed tasks it did not start are\n  -- released and come first on the next tick, so one heavy minute can never run into the statement timeout, roll back and repeat\n  -- forever. At least one task is always handled. A bad setting never stops the dispatch (default 40 s).\n  begin\n    select coalesce((value->>'tickBudgetSeconds')::numeric, 40) into tick_budget\n      from private.marketplace_config where key = 'match_v1_dispatch';\n  exception when others then\n    tick_budget := 40;\n  end;\n  tick_budget := least(greatest(coalesce(tick_budget, 40), 0.001), 100);\n"
+  },
+  {
+    "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+    "before": "  for r in select unnest(claimed) as need_id loop\n    processed := processed + 1;\n",
+    "after": "  for r in select unnest(claimed) as need_id loop\n    if processed > 0 and clock_timestamp() - tick_started > make_interval(secs => tick_budget) then\n      update private.dispatch_schedule set locked_until = null where need_id = r.need_id;\n      deferred := deferred + 1;\n      continue;\n    end if;\n    processed := processed + 1;\n"
+  },
+  {
+    "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+    "before": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));",
+    "after": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n                            'deferred',deferred,'profileRequeue',profile_requeue);"
+  },
+  {
+    "signature": "private.candidate_profile_ids(uuid,integer)",
+    "before": "        where p.kind = 'WORKER'\n          and (pref.worker_profile_id is null or pref.approximate_geog is null)\n",
+    "after": "        where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it\n          and (pref.worker_profile_id is null or pref.approximate_geog is null)\n"
+  },
+  {
+    "signature": "private.candidate_profile_ids(uuid,integer)",
+    "before": "    where p.kind = 'WORKER'\n    order by case when p.id >= n.id then 0 else 1 end, p.id\n",
+    "after": "    where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it\n    order by case when p.id >= n.id then 0 else 1 end, p.id\n"
+  }
+]

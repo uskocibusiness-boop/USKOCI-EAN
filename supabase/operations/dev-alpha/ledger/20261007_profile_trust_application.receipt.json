@@ -1,0 +1,77 @@
+{
+  "schema": "USKOCI_DEV_PROFILE_TRUST_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "PROFILE-TRUST: six NEW functions (three authenticated-only reads public.rpc_public_work_trust_v1(uuid), public.rpc_my_work_stats_v1(), public.rpc_list_received_reviews_v1(integer,text) and three private helpers private.work_trust_counts_v1(uuid), private.profile_trust_visibility_v1(), private.received_reviews_detail_v1()) and two private.marketplace_config data rows that hold the owner's two OPEN privacy decisions at their privacy-preserving defaults (profile_trust_visibility OWN_ONLY, received_reviews_detail COMMENTED_ONLY). Definition WORK_TRUST_V1: reliabilityPercent = floor(100 * completed / (completed + cancelled by the worker)), null below 5. No existing function, table, column, constraint, trigger, policy or grant changed; no new table.",
+  "sourceCommit": "c73509eb on candidate/profile-trust-20261007 (remote novi), folder supabase/candidates/profile-trust-20261007/ (copied byte-identical into this checkout with this receipt); proof run 37677943291 (behavior 43/43, order 6/6, disposable database only)",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself, given after the proof summaries. PROFILE-TRUST was proven (disposable database, FAIL before / PASS after, exact revert, certificate unchanged) and moves nothing the owner reserved: no money, keys, legal text, real-data deletion, store, push, dependency or certificate change. The two privacy decisions it contains (who may read the reliability percentage and the Dogovor count; whether star-only received reviews are listed one by one) are NOT taken by this application: both rows were written at the privacy-preserving defaults, so the percentage is visible to the person themself only. The owner's wish that the percentage be visible to everyone after 5 Dogovori (\"OVO SE SLAZEM I ODOBRAVAM\") is built switched OFF until he says; switch-public.sql is NOT applied.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply: ledger 229, CANCEL-INFO applied (agreement_cancellation_facts_v1 body md5 65eec38f...), no dependency drift (rpc_get_public_profile 9ecc0b69..., safety_pair_blocked 698fb21a..., closure_account_restricted f4999250..., accounts_same_world 16f541f9..., account_visibility_world 876cfc16..., account_lineage c0860253...), read shapes of the eight tables as expected including D12's private.agreement_review_comments_v1, the six new functions and both config rows absent, certificate ready with closure digest 3a785d42... and erasure program digest 2027655d..., 7 reviews, 0 comments, agreements CANCELLED 3 / COMPLETED 4 / CONFIRMED 3, 5 active worker profiles.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). The statement was sent byte-exact through the connector and the stored statement was read back from supabase_migrations.schema_migrations afterwards: 1 statement, 27421 characters, md5 bdbbb3c4028b848f105643a17b7c35f5, equal to the md5 of the file.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: certificate ready, the six functions and both config rows absent, CANCEL-INFO's helper pinned by body md5, the six dependency body md5 pins, and the read shapes of private.agreement_review_comments_v1, private.agreement_reviews, private.account_blocks, public.app_profiles, public.agreements, public.marketplace_responses, public.needs and private.marketplace_config. Post-guards: all six new bodies pinned by md5 with security definer, stable, owner postgres, search_path=pg_catalog and the exact ACL (authenticated only on the three RPCs, owner only on the three helpers), both config rows equal to their defaults, all seven dependencies unchanged, both closure digests equal before and after (a temporary table of the pre-apply digests). Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 229,
+    "after": 230,
+    "version": "20261007202528",
+    "name": "dev_alpha_profile_trust_application",
+    "storedStatementChars": 27421,
+    "statements": 1,
+    "storedStatementMd5": "bdbbb3c4028b848f105643a17b7c35f5",
+    "fileSha256": "95dd41a38d577cf470b4514efc353c2bcb232e0da0486110c7d04d9b8824f8f6",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (bdbbb3c4028b848f105643a17b7c35f5): read back after the apply (md5 bdbbb3c4028b848f105643a17b7c35f5, 27421 chars, 1 statement)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "None of the six new functions is among the certified signatures and none is a trigger function; the two rows are data. The same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "8c400ff4f51bb5210e9d44136c3b16424b770dfd8b7ea60d0ec5e2b99c9aff7c",
+    "newFunctions": true,
+    "anonCannotExecute": true,
+    "authenticatedCanExecute": true,
+    "configRowsAtDefault": true,
+    "visibility": "OWN_ONLY",
+    "receivedReviewsDetail": "COMMENTED_ONLY",
+    "dependencyDrift": [],
+    "completedCountMismatches": 0,
+    "workerProfilesWithReliability": 0,
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/profile-trust-20261007/revert.sql",
+    "sha256": "5017da1ce3c3ecc919a65e47b22b648aa5a94b68f6ba54ca5e131baea0c41e3c",
+    "applied": false,
+    "effect": "Drops the six functions and deletes both config rows, whatever mode they were switched to (code and configuration rollback; no user data is touched). Nothing else was created or written, so it can be applied at any time; a client that already calls the three RPCs would then get PGRST202. CANCEL-INFO may be reverted afterwards."
+  },
+  "notProven": [
+    "No HTTP/JWT call of the three RPCs on DEV yet; the disposable-database proof covers them with real Auth and PostgREST (43 checks), and DEV shows 0 worker profiles with a reliability percentage (nobody has 5 qualifying Dogovori yet, so the percentage cannot appear on DEV data).",
+    "No client calls them yet: the trust block of the public profile sheet and candidate card, the own funnel on the profile (Poslate prijave -> Dogovoreno -> Zavrseno) and the received-reviews list wait for mappers.",
+    "Both privacy decisions are still the owner's: switch-public.sql and switch-reviews-all.sql are not applied."
+  ],
+  "followUps": [
+    "Wire the client: rpc_public_work_trust_v1(profileId) on the public profile sheet and on candidate cards, rpc_my_work_stats_v1() on the profile, rpc_list_received_reviews_v1 behind the existing received-ratings screen.",
+    "Percentage visible to everyone after 5 Dogovori: the owner agreed in principle; it is switched on only by his word (switch-public.sql, guarded update of one row)."
+  ],
+  "filesCopiedToThisCheckout": [
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "live-functions.json",
+    "manifest.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql",
+    "switch-own-only.sql",
+    "switch-public.sql",
+    "switch-reviews-all.sql",
+    "switch-reviews-commented-only.sql"
+  ]
+}
