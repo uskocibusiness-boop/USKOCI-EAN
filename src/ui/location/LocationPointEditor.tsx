@@ -24,8 +24,20 @@ export type PointPrompt = {
   acquire: () => PointPromptLease | null;
 };
 
+// Serbian Cyrillic to Latin. OSM / LocationIQ labels for Serbia are often Cyrillic ("Булевар ослобођења") while people
+// type or speak Latin; matching and the shown address both use Latin.
+const CYRILLIC: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'đ', е: 'e', ж: 'ž', з: 'z', и: 'i', ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm',
+  н: 'n', њ: 'nj', о: 'o', п: 'p', р: 'r', с: 's', т: 't', ћ: 'ć', у: 'u', ф: 'f', х: 'h', ц: 'c', ч: 'č', џ: 'dž', ш: 'š',
+};
+export const toSerbianLatin = (value: string): string => value.replace(/[Ѐ-ӿ]/g, letter => {
+  const lower = letter.toLowerCase(), latin = CYRILLIC[lower];
+  if (latin === undefined) return letter;
+  return letter === lower ? latin : latin.charAt(0).toUpperCase() + latin.slice(1);
+});
+
 const searchTokens = (value: string): readonly string[] => {
-  const normalized = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd');
+  const normalized = toSerbianLatin(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd');
   return [...new Set(normalized.split(/[^a-z0-9\u0400-\u04ff]+/g).filter(token => token.length > 1 || /^\d+$/.test(token)))];
 };
 
@@ -50,6 +62,18 @@ const candidateFitsSeed = (query: string, label: string): boolean => {
   const required = words.length <= 2 ? words.length : Math.ceil(words.length * 0.75);
   return matched >= required;
 };
+
+/** Several provider rows for one house (the building and a shop in it) are one place when every row describes
+ * what was asked for and all lie within a few metres of the first. Rows that are really different stay ambiguous. */
+const SAME_PLACE_METRES = 50;
+const metresBetween = (a: ResolvedPinPosition, b: ResolvedPinPosition): number => {
+  const dLat = (a.latitude - b.latitude) * 111_320;
+  const dLon = (a.longitude - b.longitude) * 111_320 * Math.cos(((a.latitude + b.latitude) / 2) * Math.PI / 180);
+  return Math.sqrt(dLat * dLat + dLon * dLon);
+};
+const samePlaceCandidates = <C extends { label: string; position: ResolvedPinPosition }>(query: string, candidates: readonly C[]): readonly C[] =>
+  candidates.length > 1 && candidates.every(item => candidateFitsSeed(query, item.label)
+    && metresBetween(item.position, candidates[0].position) <= SAME_PLACE_METRES) ? [candidates[0]] : candidates;
 
 /** A weak provider result may still identify the right street even when it cannot prove the house number.
  * That is enough to zoom the camera to the street, never enough to create or confirm a pin. */
@@ -206,8 +230,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     if (conversation) { setAddress(''); setPlaceByHand(false); setCorrectionOpen(false); }
     const epoch = requestEpoch.current;
     try {
-      const result = await resolver.search({ text: searchText, countryCode, scopeKey });
+      const raw = await resolver.search({ text: searchText, countryCode, scopeKey });
       if (!alive.current || !focus.current || current.current.disabled || epoch !== requestEpoch.current) return;
+      const result = raw.status === 'PROPOSALS' ? { ...raw, candidates: samePlaceCandidates(searchText, raw.candidates) } : raw;
       setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
       // One result can be shown for human confirmation. Multiple results are unresolved:
       // their labels contain no structured city authority, and rank is not a choice.
@@ -215,8 +240,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       if (conversation && result.status === 'PROPOSALS' && result.candidates.length === 1) {
         const candidate = result.candidates[0];
         if (candidateFitsSeed(searchText, candidate.label)) {
-          setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(candidate.label);
-          setAddress(candidate.label);
+          const shown = toSerbianLatin(candidate.label);
+          setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(shown);
+          setAddress(shown);
           setCorrectionOpen(false);
         }
       }

@@ -396,6 +396,43 @@ describe('compact conversation proposal', () => {
     }));
   });
 
+  // OSM / LocationIQ return Serbian labels in Cyrillic (seen 2026-10-07 for a Novi Sad street address); the person speaks Latin.
+  it('places the pin for a Cyrillic provider label of the spoken Latin address and shows the address in Latin', async () => {
+    const house = { ...candidate, label: '10, Булевар ослобођења, Роткварија, Нови Сад, Србија',
+      position: { latitude: 45.2589, longitude: 19.8327 } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [house], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Bulevar oslobođenja 10, Novi Sad',
+      conversationSummary: { title: 'Početak', description: 'Bulevar oslobođenja 10, Novi Sad' } });
+    expect(map().props).toMatchObject({ position: house.position, height: 156, compact: true });
+    expect(text()).toContain('Da li je ovo početak?');
+    expect(text()).not.toContain('Tačna tačka nije pronađena');
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ latitudeE6: 45258900, longitudeE6: 19832700,
+      address: '10, Bulevar oslobođenja, Rotkvarija, Novi Sad, Srbija' }));
+  });
+
+  it('treats several results for the same house a few metres apart as one place', async () => {
+    const house = { ...candidate, label: '10, Булевар ослобођења, Нови Сад, Србија', position: { latitude: 45.258900, longitude: 19.832700 } };
+    const shop = { ...candidate, label: 'Lokal, 10, Булевар ослобођења, Нови Сад, Србија', position: { latitude: 45.258930, longitude: 19.832760 },
+      origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [shop, house], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Bulevar oslobođenja 10, Novi Sad',
+      conversationSummary: { title: 'Početak', description: 'Bulevar oslobođenja 10, Novi Sad' } });
+    expect(map().props.position).toEqual(shop.position);
+    expect(text()).toContain('Da li je ovo početak?');
+    expect(button('Potvrdi tačku: Početak')).toBeDefined();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('zooms to a Cyrillic street-only fallback without inventing the house pin', async () => {
+    const street = { ...candidate, label: 'Булевар ослобођења, Нови Сад, Србија', position: { latitude: 45.2550, longitude: 19.8400 } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [street], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Bulevar oslobođenja 10, Novi Sad',
+      conversationSummary: { title: 'Početak', description: 'Bulevar oslobođenja 10, Novi Sad' } });
+    expect(map().props).toMatchObject({ position: null, cameraHint: [street.position], cameraHintZoom: 16.5 });
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
+  });
+
   it('keeps ambiguous results unresolved but immediately frames their region, then confirms only an explicitly placed pin', async () => {
     const other = { ...candidate, label: 'Another actual result', position: { latitude: 45, longitude: 19 },
       origin: { ...candidate.origin, candidateHint: 'candidate-2' } };
