@@ -4,9 +4,10 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SafeArea from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter, BottomSheetScrollView, type BottomSheetBackdropProps,
   type BottomSheetBackgroundProps, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
-import { X } from 'phosphor-react-native';
+import { Easing } from 'react-native-reanimated';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { Glyph } from '../system/Glyph';
 import { brandAction, sys } from '../system/tokens';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 
@@ -22,6 +23,16 @@ export const SHEET_TOUCH = Math.max(48, sys.touch.min);
  * until they read the token directly.
  */
 export const SHEET_SPRING = sys.motion.sheetSpring;
+/**
+ * How a sheet leaves when a COMMAND closes it (a button, the ×, Android Back): 170 ms on the decelerating curve, quicker than
+ * the spring that opens it (plan 2.20, rule R2); reduced motion closes at once. Gorhom's `close()` takes it as that one call's
+ * own configuration, so what the finger carries (a drag down) and a tap on the backdrop keep settling on `SHEET_SPRING`. Built
+ * when asked, not when the file loads: a suite that stands in for Reanimated without its `Easing` still loads the sheet, and
+ * then closes it on the timing's own default curve.
+ */
+export function sheetCloseConfig(reduced: boolean) {
+  return reduced ? { duration: 0 } : { duration: sys.motion.sheetClose, easing: Easing?.bezier?.(...sys.motion.easeOut) };
+}
 /** What the tap-outside area says it does on a sheet that simply closes. */
 export const SHEET_BACKDROP_HINT = 'Zatvara pregled bez primene izbora.';
 /** What the tap-outside area says on a sheet with unsaved input: a tap there asks first, it does not close. */
@@ -112,8 +123,9 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
   const dismiss = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
-    if (sheet.current) sheet.current.close(); else onClose();
-  }, [onClose]);
+    // The close is a command: it leaves on its own short timing (`SHEET_CLOSE`), or at once under reduced motion.
+    if (sheet.current) sheet.current.close(sheetCloseConfig(reduced)); else onClose();
+  }, [onClose, reduced]);
   /** Every way out the person takes: ×, Android Back, the backdrop. */
   const requestClose = useCallback(() => {
     const now = state.current;
@@ -171,7 +183,7 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
               <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
               {closeButton ? <Press accessibilityRole="button" accessibilityLabel={closeLabel} accessibilityState={{ disabled: !dismissible }}
                 disabled={!dismissible} onPress={requestClose} haptic="select" style={s.close}>
-                <X size={22} color={sys.color.ink} /></Press> : null}
+                <Glyph name="close" size={24} /></Press> : null}
             </View></View> : null}
             <View style={[s.stack, pinned ? null : { paddingBottom: bottom }]}>
               {children(dismiss)}

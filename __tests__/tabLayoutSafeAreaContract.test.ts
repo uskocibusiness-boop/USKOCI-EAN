@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, useWindowDimensions } from 'react-native';
 import TabLayout from '../src/app/(app)/_layout';
 import { TabLabel, tabBarHeight } from '../src/ui/system/TabBarItem';
+import { PorukaHost } from '../src/ui/system/Poruka';
 import { sys } from '../src/ui/system/tokens';
 import { textWidth } from '../src/ui/v2/cardHeadFit';
 let mockReducedMotion = false;
@@ -60,8 +61,10 @@ function configuration(bottom = 0, fontScale = 1, width = 390) {
   const tabs = ['index', 'zadaci', 'dogovori'].map(name => layout.props.screenOptions({ route: { name, key: name }, navigation: {
     getState: () => ({ index: 0, routes: [route], history: [{ type: 'route', key: route.key }] }),
   } }));
+  // Where the layout tells the one outcome bar ("Poruka") the navigator's bottom chrome ends, read while the layout is mounted.
+  const clearances = tree.root.findAllByType(PorukaHost).map((host) => host.props.clearance as number);
   act(() => tree.unmount());
-  return { screens, options, tabs };
+  return { screens, options, tabs, clearances };
 }
 
 function visible() {
@@ -124,6 +127,15 @@ describe('V3 one-shell navigation and system navigation clearance', () => {
     const files = routeFiles(directory).map((path) => relative(directory, path)
       .replace(/\\/g, '/').replace(/\.tsx$/, '')).sort();
     expect(configuration().screens.map((screen) => screen.name).sort()).toEqual(files);
+  });
+
+  // The ONE outcome bar (plan 2.4, "Poruka") has a single host, mounted beside the navigator. The layout tells it where its own
+  // bottom chrome ends (the bar and the margin under it, which is the system inset or 12), so a message floats above the bar on
+  // the three roots and, where the bar is hidden, above a flow's own footer.
+  it.each([[0, 1], [34, 1], [34, 1.15], [48, 1.3]])('mounts the one Poruka host beside the navigator, clear of the bar and its margin (inset %i, text %f)', (bottom, scale) => {
+    const { options, clearances } = configuration(bottom, scale);
+    expect(clearances).toEqual([options.tabBarStyle.height + options.tabBarStyle.marginBottom]);
+    expect(clearances[0]).toBeGreaterThanOrEqual(tabBarHeight(sys.type.navLabel.lineHeight, 0) + 12);
   });
 
   it('keeps usable controls above the system navigation clearance and no-slide navigation', () => {

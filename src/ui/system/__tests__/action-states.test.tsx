@@ -203,6 +203,31 @@ it('announces a reason that appears or changes, but not the one it was drawn wit
   expect(announce).toHaveBeenCalledTimes(2);
 });
 
+// Plan 2.18 (owner: one green primary action per screen): `tone="neutral"` + `brandAction` drew a BLACK primary on the worker
+// profile, the profile conversation and two actions of the AI task; `kind="primary"` + `tone="neutral"` did too. A primary is
+// green with a white label in every tone; `neutral` is only the ink of a control that is not the primary.
+it('draws every primary action green with a white label in any tone: neutral never makes one black', async () => {
+  const primaries: Partial<React.ComponentProps<typeof V2Action>>[] = [
+    { style: brandAction }, { style: brandAction, tone: 'neutral' }, { style: brandAction, tone: 'brand' },
+    { kind: 'primary' }, { kind: 'primary', tone: 'neutral' }, { kind: 'primary', tone: 'neutral', style: brandAction },
+  ];
+  for (const props of primaries) {
+    await render(<V2Action label="Pregledaj i objavi" onPress={noop} {...props} />);
+    expect([props, flat(surface()).backgroundColor, flat(surface()).minHeight]).toEqual([props, sys.color.green, 54]);
+    expect([props, flat(label('Pregledaj i objavi')).color]).toEqual([props, sys.color.onGreen]);
+    expect(flat(surface()).backgroundColor).not.toBe(sys.color.ink);
+  }
+  // A control that is not the primary keeps what neutral means: ink words, on white, a line or nothing.
+  await render(<V2Action label="Sačuvaj kao nacrt" kind="quiet" tone="neutral" onPress={noop} />);
+  expect([flat(surface()).backgroundColor, flat(label('Sačuvaj kao nacrt')).color]).toEqual(['transparent', sys.color.ink]);
+  await render(<V2Action label="Proveri stanje" tone="neutral" onPress={noop} />);
+  expect([flat(surface()).backgroundColor, flat(label('Proveri stanje')).color]).toEqual([sys.color.surface, sys.color.ink]);
+  // And a primary that cannot be pressed is the grey wash with a reason, never black and never faded.
+  await render(<V2Action label="Pregledaj i objavi" tone="neutral" style={brandAction} disabled reason="Još treba naslov." onPress={noop} />);
+  expect(flat(surface())).toMatchObject({ backgroundColor: sys.color.wash }); expect(flat(surface()).opacity ?? 1).toBe(1);
+  expect(flat(label('Pregledaj i objavi')).color).toBe(sys.color.muted);
+});
+
 it('writes the label white on the brand surface and green on every other action', async () => {
   await render(<V2Action label="Objavi" style={brandAction} onPress={noop} />);
   expect(flat(label('Objavi')).color).toBe(sys.color.onGreen);

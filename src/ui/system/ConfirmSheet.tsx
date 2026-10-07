@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { ActivityIndicator, Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { ProductSheet, SHEET_TOUCH } from '../product/ProductSheet';
-import { brandAction, sys } from './tokens';
+import { useReducedMotion } from './motion';
+import { brandAction, sheetLift, sys } from './tokens';
 
 /**
  * How long a confirmed command holds the sheet before Back and a tap outside work again. A command and its re-read can
@@ -11,6 +12,16 @@ import { brandAction, sys } from './tokens';
  * the person may close the window; the command carries on and the screen that owns it keeps showing that it runs.
  */
 export const SLOW_COMMAND_MS = 2500;
+
+/**
+ * What draws a question (plan 2.20, owner 2026-10-07: "short confirmations are a centred dialog; bottom sheets only for
+ * menus and pickers/forms"):
+ * - `dialog`: a white card in the middle of the screen over a dimmed screen. A short question: a title that names what
+ *   happens, one sentence, one confirm and a quiet way out. Every question asked so far is one of these.
+ * - `sheet`: the bottom sheet (`ProductSheet`). For a question that needs room: a list of reasons, chips or a field
+ *   (`extra`), which want the height and the keyboard.
+ */
+export type ConfirmForm = 'dialog' | 'sheet';
 
 export type ConfirmRequest = {
   title: string;
@@ -27,16 +38,40 @@ export type ConfirmRequest = {
   /** Every ending that is not the confirm: the cancel button, Back, a tap outside, a drag down, or the sheet being
    *  retired by its screen. Runs at most once, and never after the confirm. */
   onCancel?: () => void;
+  /**
+   * Content under the sentence that needs room: a list of reasons, chips, a field. A question that has it is a bottom
+   * sheet, whatever `form` says (see `confirmFormOf`): the content needs the height, and a field needs the keyboard. It
+   * keeps its own state and reports through the caller's callbacks; this component only draws it.
+   */
+  extra?: ReactNode;
+  /**
+   * What draws the question. Left out, it follows from the request: a bottom sheet when there is `extra` content, a dialog
+   * otherwise. Say `'sheet'` to keep the bottom sheet for a question that has no extra content. `'dialog'` together with
+   * `extra` is not honoured: the content has nowhere to stand in a dialog, so the sheet is drawn.
+   */
+  form?: ConfirmForm;
 };
 
 /**
- * A question asked inside the app instead of a system alert: a title, one sentence, a quiet cancel and ONE confirm.
- * Mounted means open. `onClosed` runs once the sheet is gone (or was taken away by its parent), whatever ended it.
+ * Which form a request is drawn in. ONE rule, here: extra content always needs the sheet; otherwise the request's own
+ * `form` if it names one; otherwise a dialog. No call site changes form by itself: a request that carries neither field is
+ * a dialog, and the only way to a sheet is content that needs it or the caller's explicit word.
  */
-export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', onConfirm, onCancel,
-  onClosed, reduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
+export function confirmFormOf(request: Pick<ConfirmRequest, 'form' | 'extra'>): ConfirmForm {
+  const extra = request.extra;
+  if (extra !== undefined && extra !== null && extra !== false) return 'sheet';
+  return request.form ?? 'dialog';
+}
+
+/**
+ * What every form of the question shares: the one decision it takes, said once. The confirm runs the caller's command at
+ * most once; a promise it returns keeps the confirm busy until it settles; every other ending (the cancel, Back, a tap
+ * outside, a drag down, the screen taking the question away) is a cancel, and a cancel never follows a confirm. `ended`
+ * reports that the question is over, once; `dismiss`, which each form brings, is how that form leaves.
+ */
+function useConfirmFlow({ onConfirm, onCancel, onClosed }: Pick<ConfirmRequest, 'onConfirm' | 'onCancel'> & { onClosed: () => void }) {
   const [busy, setBusy] = useState(false);
-  // A command that has run for SLOW_COMMAND_MS no longer holds the person in the sheet.
+  // A command that has run for SLOW_COMMAND_MS no longer holds the person in the question.
   const [slow, setSlow] = useState(false);
   const decided = useRef(false), closed = useRef(false), alive = useRef(true);
   const latest = useRef({ onCancel, onClosed }); latest.current = { onCancel, onClosed };
@@ -56,7 +91,7 @@ export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odus
     try { result = onConfirm?.(); } catch (error) { dismiss(); throw error; }
     if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
       setBusy(true);
-      // Busy until the sheet is gone: the button does not flash back to pressable while it slides away.
+      // Busy until the question is gone: the button does not flash back to pressable while it leaves.
       const settle = () => { if (alive.current) dismiss(); };
       (result as PromiseLike<unknown>).then(settle, settle);
       return;
@@ -64,13 +99,36 @@ export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odus
     dismiss();
   };
   const cancel = (dismiss: () => void) => { if (busy || decided.current) return; decline(); dismiss(); };
+  return { busy, slow, ended, confirm, cancel, dismissible: !busy || slow };
+}
+
+/** What a tap outside says it does, for a screen reader: it closes the question as a "no", or only the window once a command runs on. */
+const outsideHint = (busy: boolean, cancelLabel: string | null) =>
+  busy ? 'Zatvara prozor; radnja se nastavlja.' : cancelLabel === null ? 'Zatvara obaveštenje.' : 'Zatvara pitanje bez potvrde.';
+
+/**
+ * A question asked inside the app instead of a system alert: a title, one sentence, a quiet cancel and ONE confirm.
+ * Mounted means open. `onClosed` runs once the question is over (or was taken away by its parent), whatever ended it.
+ *
+ * Drawn in the form `confirmFormOf(request)` names: a centred dialog for a short question, the bottom sheet for one that
+ * carries `extra` content (or whose caller asks for `form: 'sheet'`). Both forms have the same contract, tested by the same
+ * cases: one confirm that runs once, a busy state while its command runs, every other ending routed to the cancel path.
+ */
+export function ConfirmSheet(props: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
+  return confirmFormOf(props) === 'sheet' ? <ConfirmSheetBottom {...props} /> : <ConfirmDialog {...props} />;
+}
+
+/** The question as a bottom sheet: the one sheet engine, a pinned confirm and a quiet cancel, under the sentence and any extra content. */
+function ConfirmSheetBottom({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', extra, onConfirm, onCancel,
+  onClosed, reduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
+  const { busy, dismissible, ended, confirm, cancel } = useConfirmFlow({ onConfirm, onCancel, onClosed });
   const danger = tone === 'danger';
   // Leaving a slow command's sheet is not a cancel: `decided` is already set, so the cancel path does not run again.
-  return <ProductSheet title={title} closeButton={false} dismissible={!busy || slow} reduced={reduced} onClose={ended}
+  return <ProductSheet title={title} closeButton={false} dismissible={dismissible} reduced={reduced} onClose={ended}
     // A tap outside the question closes it as a "no"; a notice (nothing to cancel) it simply closes. While the command runs
     // a tap outside does nothing, so the sheet takes it out of what a screen reader visits; once the command runs long it
     // only closes the window and the command carries on.
-    backdropHint={busy ? 'Zatvara prozor; radnja se nastavlja.' : cancelLabel === null ? 'Zatvara obaveštenje.' : 'Zatvara pitanje bez potvrde.'}
+    backdropHint={outsideHint(busy, cancelLabel)}
     footer={dismiss => <View style={s.actions}>
       <Press testID="confirm-sheet-confirm" accessibilityRole="button" accessibilityLabel={confirmLabel}
         accessibilityState={{ disabled: busy, busy }} disabled={busy} haptic={busy ? 'none' : danger ? 'medium' : 'light'}
@@ -79,13 +137,84 @@ export function ConfirmSheet({ title, message, confirmLabel, cancelLabel = 'Odus
         <T variant="action" style={s.onFilled}>{confirmLabel}</T>
       </Press>
       {cancelLabel === null ? null : <Press testID="confirm-sheet-cancel" accessibilityRole="button" accessibilityLabel={cancelLabel}
-        accessibilityState={{ disabled: busy }} disabled={busy} haptic="select" onPress={() => cancel(dismiss)}
-        style={[s.cancel, busy && s.faded]}>
-        <T variant="action" style={s.quiet}>{cancelLabel}</T>
+        accessibilityState={{ disabled: busy }} disabled={busy} haptic="select" onPress={() => cancel(dismiss)} style={s.cancel}>
+        {/* While the command runs the quiet way out is grey, as a button that cannot be used is: never a faded ghost. */}
+        <T variant="action" style={busy ? s.quietOff : s.quiet}>{cancelLabel}</T>
       </Press>}
     </View>}>
-    {() => <T variant="copy" tone="muted">{message}</T>}
+    {() => extra === undefined || extra === null || extra === false ? <T variant="copy" tone="muted">{message}</T>
+      : <><T variant="copy" tone="muted">{message}</T>{extra}</>}
   </ProductSheet>;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The centred dialog (plan 2.20)
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** The widest a dialog gets: a sentence at the app's copy size reads comfortably in it, and a narrow phone keeps 24 on each side. */
+export const DIALOG_MAX_WIDTH = 340;
+const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
+
+/**
+ * The question as a dialog: a native transparent Modal (it owns focus and Android Back, and covers the status bar) over a
+ * dimmed screen, and in it a white card with corner 24 and a soft shadow, at most 340 wide and 24 from every edge. The title
+ * names what happens, one sentence says what follows (it scrolls when the person's text size makes it long, with the title and
+ * the two commands staying put), then ONE confirm in green (danger red for something that ends) and a quiet way out.
+ *
+ * MOTION. It opens on a scale from 0.96 to 1 over 200 ms on the decelerating curve (native `Animated`, native driver; rule R4:
+ * no Reanimated `exiting`, B22), inside the Modal's own fade (`animationType="fade"`: the window fades in over the system's
+ * short animation time, the dim with it). It LEAVES on that same native window fade: the screen is told the question is over
+ * the moment it is answered, and the platform lets the dialog's window fade out after React has dropped it. A leaving driven
+ * from JS (the plan's 140 ms fade and shrink) would have to keep the card in the tree after its screen believes it is gone;
+ * about thirty screen suites assert that it is gone at once, and a card that lingers shows up in their text. Under reduced
+ * motion `animationType` is `none` and the card does not scale: it is there, and then it is gone. The window's own fade is the
+ * system's, so it also follows the person's "remove animations" setting.
+ */
+function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', onConfirm, onCancel, onClosed,
+  reduced: callerReduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
+  const systemReduced = useReducedMotion();
+  const reduced = callerReduced ?? systemReduced;
+  const { busy, dismissible, ended, confirm, cancel } = useConfirmFlow({ onConfirm, onCancel, onClosed });
+  const { height } = useWindowDimensions();
+  const [scale] = useState(() => new Animated.Value(reduced ? 1 : sys.motion.dialog.from));
+  useEffect(() => {
+    if (reduced) { scale.setValue(1); return; }
+    const run = Animated.timing(scale, { toValue: 1, duration: sys.motion.dialog.enter, easing: EASE_OUT, useNativeDriver: true });
+    run.start();
+    return () => run.stop();
+  }, [reduced, scale]);
+  // A dialog has no animation of its own to wait for, so "dismiss" is "the question is over". Back and a tap outside are the
+  // same one way out: a "no" (a cancel) while the question is open, and only the window once a long command runs on.
+  const requestClose = () => { if (dismissible) ended(); };
+  const danger = tone === 'danger';
+  return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}>
+    <View testID="confirm-dialog" style={s.layer}>
+      {/* The dim is the tap-outside area: a tap is a "no", does nothing while the command it started runs, and then it is not visited at all. */}
+      <Pressable testID="confirm-sheet-scrim" style={[StyleSheet.absoluteFill, s.dim]} onPress={requestClose} accessible={dismissible}
+        accessibilityRole="button" accessibilityLabel="Zatvori" accessibilityHint={dismissible ? outsideHint(busy, cancelLabel) : 'Zatvori'} />
+      <Animated.View accessibilityViewIsModal
+        style={[s.card, { maxHeight: height - 2 * sys.space.xl }, reduced ? null : { transform: [{ scale }] }]}>
+        <T accessibilityRole="header" variant="heading" style={s.title}>{title}</T>
+        {/* Only a sentence that does not fit scrolls; its bar is always drawn then, so the person can see there is more. */}
+        <ScrollView style={s.body} persistentScrollbar>
+          <T variant="copy" tone="muted">{message}</T>
+        </ScrollView>
+        <View style={s.actions}>
+          <Press testID="confirm-sheet-confirm" accessibilityRole="button" accessibilityLabel={confirmLabel}
+            accessibilityState={{ disabled: busy, busy }} disabled={busy} haptic={busy ? 'none' : danger ? 'medium' : 'light'}
+            onPress={() => confirm(ended)} style={[s.confirm, danger && s.danger]}>
+            {busy ? <ActivityIndicator accessibilityElementsHidden importantForAccessibility="no-hide-descendants" color={sys.color.onGreen} /> : null}
+            <T variant="action" style={s.onFilled}>{confirmLabel}</T>
+          </Press>
+          {cancelLabel === null ? null : <Press testID="confirm-sheet-cancel" accessibilityRole="button" accessibilityLabel={cancelLabel}
+            accessibilityState={{ disabled: busy }} disabled={busy} haptic="select" onPress={() => cancel(ended)} style={s.cancel}>
+            {/* While the command runs the quiet way out is grey, as a button that cannot be used is: never a faded ghost. */}
+            <T variant="action" style={busy ? s.quietOff : s.quiet}>{cancelLabel}</T>
+          </Press>}
+        </View>
+      </Animated.View>
+    </View>
+  </Modal>;
 }
 
 type Held = ConfirmRequest & { id: number };
@@ -121,6 +250,13 @@ const s = StyleSheet.create({
   danger: { backgroundColor: sys.color.danger },
   onFilled: { color: sys.color.onGreen, textAlign: 'center', flexShrink: 1 },
   cancel: { minHeight: SHEET_TOUCH, borderRadius: sys.radius.primary, paddingHorizontal: sys.space.base, alignItems: 'center', justifyContent: 'center' },
-  faded: { opacity: 0.45 },
   quiet: { color: sys.color.green, textAlign: 'center' },
+  quietOff: { color: sys.color.muted, textAlign: 'center' },
+  // The dialog: a layer that fills the window and centres the card, the dim behind it (the tap-outside area), and the card.
+  layer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: sys.space.xl },
+  dim: { backgroundColor: sys.color.dim },
+  card: { width: '100%', maxWidth: DIALOG_MAX_WIDTH, backgroundColor: sys.color.surface, borderRadius: sys.radius.card,
+    paddingHorizontal: sys.space.xl, paddingTop: sys.space.xl, paddingBottom: sys.space.base, gap: sys.space.md, ...sheetLift.detached },
+  title: { color: sys.color.ink },
+  body: { flexGrow: 0, flexShrink: 1 },
 });

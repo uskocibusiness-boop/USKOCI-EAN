@@ -15,7 +15,9 @@ export const ACTION_MIN_HEIGHT = 48;
  * The one action of the app (master design plan, 2026-09-24: `V2Action` keeps its name, the old `Button` is gone).
  * Reuses existing UI-thread press feedback, system reduced motion and haptics.
  *
- * Primary is the green next action; neutral primary is reserved for contextual controls.
+ * EVERY primary action is green with a white label (owner: one green primary action per screen; plan 2.18): `kind="primary"`
+ * and a `brandAction` style, in any tone. `tone="neutral"` only changes the ink of a secondary or quiet control's label; it
+ * never turns a primary black (it did, for `tone="neutral"` + `brandAction`, on four screens).
  * Secondary is white with a line; quiet is a link; destructive uses danger ink.
  * Existing `brandAction` callers share the same green surface and white label.
  *
@@ -40,7 +42,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
   /** Row context for assistive technology without repeating the task title on the visible action. */
   accessibilityLabel?: string;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
-  /** Scoped neutral palette: preserve action behavior and geometry while using ink/white hierarchy. */
+  /** `neutral` writes a secondary or quiet control's label in ink instead of green. It never changes a primary: that is green. */
   tone?: 'brand' | 'neutral';
   /** Smaller type for a secondary control that must not compete with the content. The
    *  touch target keeps its full minimum height, so it is no harder to hit. */
@@ -75,9 +77,8 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
     style={[{ minHeight: kind === 'primary' ? 54 : ACTION_MIN_HEIGHT, borderRadius: sys.radius.control,
       paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, gap: sys.space.sm,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: kind === 'primary' ? (tone === 'neutral' ? sys.color.ink : sys.color.green) : kind === 'secondary' ? sys.color.surface : 'transparent',
+      backgroundColor: kind === 'primary' ? sys.color.green : kind === 'secondary' ? sys.color.surface : 'transparent',
       borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong }, inner,
-      tone === 'neutral' && onBrand ? s.neutralBrand : null,
       resting && filled ? s.restingFilled : null, error ? s.errorEdge : null]}>
     {lead}<T variant={compact ? 'meta' : 'action'} style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>
   </Press>;
@@ -145,7 +146,6 @@ function ConfirmedCheck({ color }: { color: string }) {
 }
 
 const s = StyleSheet.create({
-  neutralBrand: { backgroundColor: sys.color.ink, borderColor: sys.color.ink },
   column: { gap: sys.space.xs },
   restingFilled: { backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line },
   errorEdge: { borderWidth: 2, borderColor: sys.color.danger },

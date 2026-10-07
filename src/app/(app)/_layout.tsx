@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../../ui/system/TabBarItem';
 import { useTextScale } from '../../ui/system/textScale';
+import { PorukaHost } from '../../ui/system/Poruka';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
@@ -156,7 +157,10 @@ export default function TabLayout() {
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
   const REDIRECT = { ...FULL, animation: 'none' as const };
-  return <Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
+  // Where the bar's top edge is, measured from the window's bottom: the one "Poruka" (the short outcome bar) floats above it
+  // on every screen of this navigator, so it never covers the bar and, where the bar is hidden, clears a flow's own footer.
+  const barClearance = tabBarHeight(labelHeight, TAB_BAR_PADDING) + Math.max(12, insets.bottom);
+  return <><Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
     UNSTABLE_router={original => ({
       // Every replace is taken as a jump that leaves the screen it replaces (see `replacedAsJump`), and a retired entry
       // never stays in the history.
@@ -230,7 +234,9 @@ export default function TabLayout() {
     <Tabs.Screen name="profil/izvoz" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/privatnost" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/obavestenja" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/ocene" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="raspored" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="arhiva" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="mesto-zadatka" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="pregled-nacrta" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="pregled-zadatka" options={{ href: null, ...FULL }} />
@@ -241,5 +247,9 @@ export default function TabLayout() {
     <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="prilike/[id]" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="prilike/[id]/prijava" options={{ href: null, ...FULL }} />
-  </Tabs>;
+  </Tabs>
+  {/* The host of the outcome bar for every screen of this navigator: screens call `poruka.show(...)` and render nothing, and it
+      idles as nothing. The root stack's own screens (`dogovor/[id]`, `obavestenja`, `prijave`) lie ABOVE this navigator and
+      cover it, so each of them mounts a host of its own. */}
+  <PorukaHost clearance={barClearance} /></>;
 }
