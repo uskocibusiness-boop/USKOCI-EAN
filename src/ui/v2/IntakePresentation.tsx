@@ -22,10 +22,42 @@ import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
+import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
+import { confirmedPlaceEntries } from '../location/placeText';
+import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import { publicSummary, type Summary } from './draftSummary';
 
 // The point sheet reaches the native map through the point editor, so it loads only when opened.
 const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
+
+/**
+ * Where the confirmed-place line sits in the thread: after the message that was last when this place was first seen
+ * confirmed, so later messages scroll it up (owner, 2026-10-07). Kept per conversation for the life of the app, so a return
+ * to the conversation keeps that order; only fingerprints and message ids are held, never an address or a coordinate.
+ * A place first seen already confirmed (a cold start) sits after the last message loaded.
+ */
+type PlaceAnchor = Readonly<{ identity: string; after: string | null; points: Readonly<Record<string, string>>; acknowledged: readonly LocationSlot[] }>;
+const placeAnchors = new Map<string, PlaceAnchor>();
+const fingerprint = (value: string): string => {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 0x01000193); }
+  return (hash >>> 0).toString(36);
+};
+const pointFingerprint = (point: ConfirmedLocationPoint) => fingerprint(JSON.stringify([point.latitudeE6, point.longitudeE6,
+  point.address ?? null, point.origin.kind]));
+/** `live`: this visit had the place's editor open, so a newly confirmed point was confirmed just now. */
+function anchorPlace(conversationId: string, placeKey: string, points: readonly ConfirmedLocationPoint[], after: string | null, live: boolean): PlaceAnchor {
+  const identity = fingerprint(placeKey), previous = placeAnchors.get(conversationId);
+  if (previous?.identity === identity) return previous;
+  const ids = Object.fromEntries(points.map(point => [point.slot, pointFingerprint(point)]));
+  // A pin the person placed or moved by hand and confirmed in this visit is acknowledged as the new place.
+  const acknowledged = live ? points.filter(point => point.origin.kind === 'MANUAL_PIN' && previous?.points[point.slot] !== ids[point.slot])
+    .map(point => point.slot) : [];
+  const next: PlaceAnchor = { identity, after, points: ids, acknowledged };
+  placeAnchors.delete(conversationId); placeAnchors.set(conversationId, next);
+  if (placeAnchors.size > 50) { const oldest = placeAnchors.keys().next().value; if (oldest !== undefined) placeAnchors.delete(oldest); }
+  return next;
+}
 
 type Props = {
   /** Stable through first-send server ID assignment; replaced only when the owned route changes. */
@@ -158,6 +190,9 @@ export function IntakePresentation(props: Props) {
   const [panel, setPanel] = useState<'options' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
   const [hiddenPlace, setHiddenPlace] = useState<string | null>(null);
+  // A confirmed place reopens its editor only on an explicit tap of its line; this is the place that tap was for.
+  const [savedPlaceEdit, setSavedPlaceEdit] = useState<string | null>(null);
+  const askSeen = useRef(false);
   const [editingPlace, setEditingPlace] = useState(false);
   const editingPlaceNow = useRef(false);
   const closePlace = useRef<(() => void) | null>(null);
@@ -196,7 +231,18 @@ export function IntakePresentation(props: Props) {
   const needsPoint = open && gap.total > 0 && gap.done < gap.total;
   const showPlace = open && hasConversation && conversation.safety !== 'BLOCK' && gap.total > 0;
   const placeDisabled = props.locationDisabled ?? (busy || pending || !props.canEdit || !!props.error);
-  const contextualReply = !!props.locationDialogueEnabled && showPlace && !pointAskHidden && !!promptToken && !placeDisabled;
+  const placeLocked = useRef(placeDisabled); placeLocked.current = placeDisabled;
+  // Owner, phone test 2026-10-07: once the place is confirmed the conversation simply continues. The confirmation becomes
+  // one line of the thread (`threadNotes` below) instead of a block docked above the composer; its editor is mounted only
+  // while the place is still missing, or after an explicit tap on that line.
+  const confirmedPoints = place?.resolvedLocation?.points ?? [];
+  const placeComplete = showPlace && !needsPoint && confirmedPoints.length > 0;
+  const editingSavedPlace = placeComplete && savedPlaceEdit === placeKey;
+  const askOpen = showPlace && (placeComplete ? editingSavedPlace : !pointAskHidden);
+  if (askOpen) askSeen.current = true;
+  const anchor = placeComplete ? anchorPlace(conversation.conversationId, placeKey, confirmedPoints,
+    conversation.messages.at(-1)?.id ?? null, askSeen.current) : null;
+  const contextualReply = !!props.locationDialogueEnabled && askOpen && !!promptToken && !placeDisabled;
   const send = () => { if (!editingPlaceNow.current || contextualReply) props.onSend(); };
   const reviewAllowed = props.canReview && !editingPlace;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
@@ -222,17 +268,27 @@ export function IntakePresentation(props: Props) {
   // on, so there is no menu either.
   const menu: SheetAction[] = [];
   if (props.canReview) menu.push({ key: 'review', label: props.reviewLabel, icon: 'document', disabled: !reviewAllowed, onPress: outsidePlace(props.onReview) });
-  // Confirmed points remain in the thread as a compact map with an explicit edit action.
-  // Hiding this surface affects only its current location identity, never the next place.
-  if (showPlace && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setHiddenPlace(null) });
+  // A missing point put away with "Kasnije" comes back from here. Hiding affects only its current location identity, never
+  // the next place; a confirmed place is its own line in the thread and needs no menu row.
+  if (showPlace && !placeComplete && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setHiddenPlace(null) });
   if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi Zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
+  // One line, built locally from the confirmed point (no AI call): street and number, the place, and the way back to the map.
+  const placeLine = placeComplete && anchor && place ? <ConfirmedPlaceLine testID="intake-place-line"
+    entries={confirmedPlaceEntries(confirmedPoints, { geography: place.geography, exactAddress: place.exactAddress }, new Set(anchor.acknowledged))}
+    onEdit={!placeDisabled && !editingSavedPlace && !editingPlace ? () => {
+      if (editingPlaceNow.current || placeLocked.current) return;
+      Keyboard.dismiss(); setSavedPlaceEdit(placeKey);
+    } : undefined} /> : null;
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     cardPlacement={readyForReview ? 'end' : 'top'}
-    interactiveContextKey={editingPlace && showPlace && !pointAskHidden ? placeKey : undefined}
+    interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
+    // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
+    revealInteractiveContext={editingSavedPlace}
+    threadNotes={placeLine && anchor ? [{ key: 'place', afterMessageId: anchor.after, node: placeLine }] : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
@@ -265,20 +321,26 @@ export function IntakePresentation(props: Props) {
       </View> : null}
       {safetyCopy && conversation.safety === 'BLOCK' ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
     </> : undefined}
-    // The map is task context on the white reading surface. Recovery keeps its own distinct status well.
-    context={showPlace ? <>
-      {showPlace && !pointAskHidden ? <>
-        <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
-          <ConversationPointAsk key={placeKey} conversationId={conversation.conversationId} disabled={placeDisabled}
-            onEditingChange={reportEditingPlace} onCloseRequestReady={registerPlaceClose}
-            onPromptReady={props.locationDialogueEnabled ? registerPlacePrompt : undefined}
-            onSaved={props.onRefresh} onClose={() => { reportEditingPlace(false); setHiddenPlace(placeKey); }} />
-        </Suspense>
-      </> : null}
-      {showPlace && pointAskHidden
+    // The point being asked for (or explicitly reopened) is task context on the white reading surface, at the end of the
+    // thread. A confirmed place is not context: it is the line above. Nothing is passed when there is nothing to show, so no
+    // empty block is drawn. Recovery keeps its own distinct status well.
+    context={askOpen ? <Suspense fallback={<T accessibilityLiveRegion="polite" tone="muted">Otvaramo mapu…</T>}>
+      <ConversationPointAsk key={placeKey} conversationId={conversation.conversationId} disabled={placeDisabled}
+        startEditing={editingSavedPlace}
+        onEditingChange={reportEditingPlace} onCloseRequestReady={registerPlaceClose}
+        onPromptReady={props.locationDialogueEnabled ? registerPlacePrompt : undefined}
+        // A reopened saved place is done once its save is confirmed: the editor closes into the line, also when the same
+        // place was confirmed again (its identity, and so this visit's key, would not change). A missing point keeps its ask
+        // until the readback shows it complete.
+        onSaved={editingSavedPlace ? () => { setSavedPlaceEdit(null); props.onRefresh(); } : props.onRefresh} onClose={() => {
+          reportEditingPlace(false);
+          // Closing a reopened saved place returns to its line; a missing point that is put away leaves its way back.
+          if (editingSavedPlace) setSavedPlaceEdit(null); else setHiddenPlace(placeKey);
+        }} />
+    </Suspense>
+      : showPlace && !placeComplete && pointAskHidden
         ? <V2Action tone="neutral" label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
-          onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : null}
-    </> : undefined}
+          onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>

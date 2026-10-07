@@ -515,3 +515,30 @@ it('keeps web camera context passive under the existing native-only editor limit
   expect(text()).toContain('Otvori mobilnu aplikaciju');
   expect(onChoose).not.toHaveBeenCalled();
 });
+
+// Owner, 2026-10-07: the small chat map carries its own expand control in its top-right corner, a 44 dp target that opens
+// the full-screen pin editor. It is opt-in (only the conversation's compact map asks for it), it is there while the tiles
+// load, and a disabled map answers it with nothing.
+it('draws an opt-in expand control in the frame’s top-right corner with a 44 dp target and its spoken name', async () => {
+  const onPress = jest.fn();
+  await render({ position: { latitude: 45.25, longitude: 19.83 }, compact: true, height: 156,
+    expand: { label: 'Uvećaj mapu za: Mesto zadatka', onPress } });
+  const expand = () => frame().findByProps({ accessibilityLabel: 'Uvećaj mapu za: Mesto zadatka' });
+  expect(expand().props).toMatchObject({ accessibilityRole: 'button', accessibilityHint: 'Otvara mapu preko celog ekrana.',
+    accessibilityState: { disabled: false }, hitSlop: 0 });
+  expect(expand().props.style).toMatchObject({ position: 'absolute', top: sys.space.sm, right: sys.space.sm, width: 44, height: 44,
+    backgroundColor: sys.color.surface });
+  await act(async () => expand().props.onPress()); expect(onPress).toHaveBeenCalledTimes(1);
+  await ready();
+  expect(frame().findAllByProps({ accessibilityLabel: 'Uvećaj mapu za: Mesto zadatka' })).toHaveLength(1);
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={{ latitude: 45.25, longitude: 19.83 }} compact height={156}
+    expand={{ label: 'Uvećaj mapu za: Mesto zadatka', onPress, disabled: true }} />));
+  expect(expand().props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
+  await act(async () => expand().props.onPress()); expect(onPress).toHaveBeenCalledTimes(1);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+it('draws no expand control unless asked, so the full-screen map and every other map stay as they were', async () => {
+  await render({ position: { latitude: 45.25, longitude: 19.83 }, compact: true, fill: true }); await ready();
+  expect(tree.root.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Uvećaj mapu'))).toHaveLength(0);
+});

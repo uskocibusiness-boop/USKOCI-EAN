@@ -18,6 +18,8 @@ import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } fro
 import { useConversationArrival } from './useConversationArrival';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
+/** A line of the conversation's own history that is not a message (a confirmed place), drawn after the message it followed. */
+export type ConversationNote = { key: string; afterMessageId: string | null; node: ReactNode };
 const DraftDisclosure = createContext<{ expanded: boolean; toggle: () => void } | null>(null);
 /** Disclosure is presentation state, never the command that prepares the full review. */
 export function useAiDraftDisclosure() {
@@ -43,6 +45,11 @@ export type AiConversationShellProps = {
   context?: ReactNode;
   /** An owned inline editing visit. Reveal its top once; local height changes never follow the thread end. */
   interactiveContextKey?: string;
+  /** The visit was asked for explicitly (a tap on a line far up the thread): reveal it even while earlier messages are read. */
+  revealInteractiveContext?: boolean;
+  /** History notes, each an ordinary item of the message list after the message it followed (owner, 2026-10-07: nothing
+   *  stays docked at the bottom). A null anchor, or one no longer in the thread, places the note after the last message. */
+  threadNotes?: readonly ConversationNote[];
   /** The conversation's next primary step, shown above the composer when the draft is ready. */
   footerAction?: ReactNode;
   /** Speech: the microphone in the composer, the voice mode behind the waveform button. Left out when speech is closed. */
@@ -145,10 +152,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
     anchorConversation.current = p.conversationKey;
     contextOwner.current = contextActive.current && p.interactiveContextKey !== undefined
       ? { key: p.interactiveContextKey, conversation: p.conversationKey,
-          pending: newConversation || (followLatest.current && !userScrolling.current), measuring: false } : null;
+          pending: newConversation || !!p.revealInteractiveContext || (followLatest.current && !userScrolling.current), measuring: false } : null;
     revealContext();
     return () => { contextOwner.current = null; cancelFollow(); };
-  }, [p.conversationKey, p.interactiveContextKey, !!p.context, cancelFollow, revealContext]);
+  }, [p.conversationKey, p.interactiveContextKey, !!p.context, !!p.revealInteractiveContext, cancelFollow, revealContext]);
   const cancelContextReveal = () => { if (contextOwner.current) contextOwner.current.pending = false; };
   const followAfterLayout = useCallback(() => {
     if (contextActive.current || !followLatest.current || userScrolling.current || !activity.current) return;
@@ -215,6 +222,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
 
   // Voice mode shows the last exchange: what the person said last and the answer to it, or the answer being written.
   const last = p.messages.at(-1), beforeLast = p.messages.at(-2);
+  const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText;
+  // History notes are not messages: no entrance, no speaker, and nothing about them is docked outside the thread.
+  const notes = p.threadNotes ?? [], anchored = new Set(p.messages.map(message => message.id));
+  const drawNote = (note: ConversationNote) => <View key={`note:${note.key}`} testID="ai-thread-note">{note.node}</View>;
   const answer = p.streamingText || (!p.sentMessage && last?.fromAi ? last.body : null);
   const said = p.sentMessage ?? (last && !last.fromAi ? last.body : last?.fromAi && beforeLast && !beforeLast.fromAi ? beforeLast.body : null);
 
@@ -232,7 +243,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       <ScrollView ref={thread} innerViewRef={threadContent} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
-        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && !p.context && s.threadEmpty]}
+        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && !p.context && !notes.length && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScrollBeginDrag={() => { cancelContextReveal(); cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
         onScroll={syncReadingPosition}
@@ -279,7 +290,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           }
         }}>{pinned && inlineSummary && !cardAtEnd ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
         <View style={s.turns}>
-        {p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText ? <View style={s.welcome}>
+        {welcomeShown ? <View style={s.welcome}>
           {!keyboard ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
             <AiAssistantWelcome conversationKey={p.conversationKey} memory={assistantWelcome} />
           </View> : null}
@@ -300,11 +311,15 @@ export function AiConversationShell(p: AiConversationShellProps) {
             onPress={privacy} style={s.privacy}>
             <Info size={16} color={sys.color.muted} /><T variant="meta" tone="muted">O govornom unosu i privatnosti</T>
           </Press> : null}
-        </View> : p.messages.map((message, index) => <Turn key={message.id} {...message}
+        </View> : null}
+        {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting. */}
+        {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [<Turn key={message.id} {...message}
           showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
-          reduced={reduced || !arrival.shouldEnter(message.id)} />)}
+          reduced={reduced || !arrival.shouldEnter(message.id)} />,
+          ...notes.filter(note => note.afterMessageId === message.id).map(drawNote)])),
+          ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
             not yet part of the record. */}
         {p.sentMessage ? <View accessibilityLabel={`Ti, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
@@ -342,8 +357,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
           hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
             Keyboard.dismiss(); setHoldHint(false); setVoiceReview(hasText); setVoiceMode(true); } } : undefined} /> : null}
         {/* When the thread's own recovery note already explains the wait, the line here would say it twice; the send
-            button still says it to a screen reader. */}
-        {sendReason && voiceIdle && !p.status ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+            button still says it to a screen reader. The same holds while the message is being sent: the thread shows the
+            answer arriving, so no line is docked above the composer for it. */}
+        {sendReason && voiceIdle && !p.status && !(p.pending && p.busy) ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
         <View testID="ai-composer" onLayout={event => {
           const width = event.nativeEvent.layout.width;

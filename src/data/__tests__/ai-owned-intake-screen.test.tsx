@@ -97,6 +97,7 @@ import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { ProductSheet } from '../../ui/product/ProductSheet';
+import { AiConversationShell } from '../../ui/aiFirst/AiConversationShell';
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const ok = <T,>(podatak: T) => ({ ok: true as const, podatak });
@@ -458,6 +459,45 @@ it('requires real readback after unknown and retries the same key/body only when
   await act(async () => input().onChangeText('different body')); expect(input().value).toBe(sent[1]);
   await act(async () => submit().onPress()); expect(mockSend.mock.calls[1].slice(0,3)).toEqual(sent.slice(0,3));
 });
+// Owner, phone test 2026-10-07: while "Stiže odgovor…" was on screen a grey box said "Ishod slanja nije potvrđen. Proveri ga
+// pre sledeće poruke." with "Proveri ishod". The send was simply still running: the command had set its pending request,
+// the last read still held no turn for it, so the status fell through every known branch to the unknown-outcome sentence.
+// Unknown is a fact only once the call has settled without a confirmed outcome.
+it.each(['first send', 'existing conversation'] as const)('shows no unknown-outcome box while the %s is in flight or streaming, only after it settles unconfirmed', async kind => {
+  const held = deferred(); mockSend.mockReturnValueOnce(held.promise);
+  if (kind === 'existing conversation') {
+    mockLoad.mockResolvedValue(conversation({ messages: [{ id: other, fromAi: true, body: 'Šta ti treba?', safety: 'ALLOW', proposedFactIds: [] }] }));
+    await resume();
+  } else await render();
+  await type(); await act(async () => { void submit().onPress(); });
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  const box = () => tree.root.findAllByProps({ testID: 'ai-recovery-in-thread' });
+  const settledOnly = () => {
+    expect(text()).not.toContain('Ishod slanja nije potvrđen'); expect(tree.root.findAllByProps({ label: 'Proveri ishod' })).toHaveLength(0);
+    expect(box()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-send-reason' })).toHaveLength(0);
+  };
+  expect(text()).toContain('Stiže odgovor…'); settledOnly();
+  await act(async () => mockSend.mock.calls[0][3].onText('Evo, '));
+  expect(text()).toContain('Evo, '); settledOnly();
+  await act(async () => held.resolve(unknown()));
+  expect(text()).toContain('Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.');
+  expect(box()).toHaveLength(1); expect(button('Proveri ishod').disabled).toBe(false);
+  expect(mockSend).toHaveBeenCalledTimes(1);
+});
+it('keeps the retry, cancel and "AI još obrađuje" paths once a send has settled, and hides them again while the retry runs', async () => {
+  await render(); await type(); await act(async () => submit().onPress());
+  await act(async () => button('Proveri ishod').onPress());
+  expect(text()).toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(button('Otkaži slanje poruke')).toBeDefined();
+  const held = deferred(); mockSend.mockReturnValueOnce(held.promise);
+  await act(async () => { void submit().onPress(); });
+  expect(mockSend).toHaveBeenCalledTimes(2);
+  expect(text()).not.toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(text()).not.toContain('Ishod slanja nije potvrđen');
+  expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'ai-recovery-in-thread' })).toHaveLength(0);
+  mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
+  await act(async () => held.resolve(turn(mockSend.mock.calls[1][2], 'PROCESSING')));
+  expect(text()).toContain('AI još obrađuje poruku. Proveri ishod.'); expect(button('Proveri ishod').disabled).toBe(false);
+});
 it('keeps an in-progress server receipt read-only and never polls or retries automatically', async () => {
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
   await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proveri ishod').onPress());
@@ -799,7 +839,10 @@ it('keeps a saved place inline and brings a put-away point ask back from the men
     points: [{ slot: 'start', latitudeE6: 45230000, longitudeE6: 19830000, origin: { kind: 'MANUAL_PIN' } }] }), privacyClass: 'PRIVATE' as const };
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
   mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), placed], messages: said })); await resume();
-  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(1);
+  // A saved place is one line of the thread now (owner, 2026-10-07); its editor opens only when that line is tapped.
+  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.find(node => typeof node.type === 'string' && node.props.testID === 'intake-place-line').props.accessibilityLabel)
+    .toBe('Potvrđeno mesto: tačka na mapi');
   expect(text()).not.toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
   await options();
   expect(menuItems('Izmeni mesto na mapi')).toHaveLength(0); expect(menuItems('Mesto na mapi')).toHaveLength(0);
@@ -841,6 +884,123 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
   await act(async () => point.onEditingChange(false));
   expect(input().value).toBe('Još jedna napomena');
   expect(submit().accessibilityState.disabled).toBe(false);
+});
+
+// Owner, phone test 2026-10-07 ("Neću da mi na dnu stoji ništa... To ostane u četu i ide gore sa drugim porukama"): once the
+// place is confirmed the conversation simply continues. The confirmation is ONE line of the message list, in the order it
+// happened, and scrolls up with the messages; nothing about the place stays docked above the composer.
+describe('the confirmed place is a line of the conversation', () => {
+  const geography = { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Rotkvarija' } };
+  const provider = '65, Bulevar oslobođenja, MZ Žitni trg, Rotkvarija, Novi Sad, Grad Novi Sad, Južnobački okrug, Srbija';
+  const message = (messageId: string, fromAi: boolean, body: string) => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
+  const before = [message('m1', true, 'Gde treba da se dođe?'), message('m2', false, 'Bulevar oslobođenja 65, Novi Sad')];
+  const later = [message('m3', false, 'Sutra u deset.'), message('m4', true, 'Zapisao sam termin.')];
+  type Pin = { latitudeE6: number; longitudeE6: number; origin: { kind: 'MANUAL_PIN' } | { kind: 'PROVIDER_CANDIDATE'; providerHint: string; candidateHint: string | null }; address?: string };
+  const placed = (pin: Pin | null, messages: ReturnType<typeof message>[]) => {
+    const exactAddress = pin?.address ?? null;
+    const facts: AiNeedV2Conversation['facts'] = [publicFact('need.task_geography', geography), publicFact('need.task_country_code', 'RS')];
+    if (exactAddress) facts.push({ ...publicFact('need.exact_address', exactAddress), privacyClass: 'PRIVATE' });
+    if (pin) facts.push({ ...publicFact('need.resolved_location', { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress },
+      points: [{ slot: 'start', ...pin }] }), privacyClass: 'PRIVATE' });
+    return conversation({ facts, messages });
+  };
+  const fromProvider: Pin = { latitudeE6: 45_258_900, longitudeE6: 19_832_700, address: provider,
+    origin: { kind: 'PROVIDER_CANDIDATE', providerHint: 'locationiq', candidateHint: null } };
+  const movedByHand: Pin = { latitudeE6: 45_259_400, longitudeE6: 19_833_100, address: '67, Bulevar oslobođenja, Novi Sad', origin: { kind: 'MANUAL_PIN' } };
+  // The drawn line (its host view), not the component that carries the same test id.
+  const isLine = (node: { type: unknown; props: { testID?: unknown } }) => typeof node.type === 'string' && node.props.testID === 'intake-place-line';
+  const line = () => tree.root.find(isLine);
+  const flat = (node: ReturnType<typeof line>): string => node.children.map(child => typeof child === 'string' ? child : flat(child)).join('');
+  const sentence = () => line().findAll(node => node.type === ('T' as React.ElementType) && node.props.tone === 'muted'
+    && node.children.some(child => typeof child !== 'string')).map(flat);
+  const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    .map(node => isLine(node) ? 'PLACE' : node.props.accessibilityLabel);
+  const docked = () => ['ai-composer-footer', 'ai-pinned-card'].flatMap(region => tree.root.findAllByProps({ testID: region }))
+    .flatMap(region => [...region.findAll(isLine), ...region.findAllByType('PointAsk' as React.ElementType)]);
+  const ask = () => tree.root.findByType('PointAsk' as React.ElementType).props;
+  const asks = () => tree.root.findAllByType('PointAsk' as React.ElementType);
+
+  it('turns the confirmation into one line inside the message list, in order, and leaves nothing above the composer', async () => {
+    mockLoad.mockResolvedValue(placed(null, before)); await resume();
+    expect(asks()).toHaveLength(1);
+    expect(tree.root.findByProps({ testID: 'ai-task-context' }).findAllByType('PointAsk' as React.ElementType)).toHaveLength(1);
+    // The person confirms the proposed pin; the ask's own save hands the canonical readback to the screen.
+    mockLoad.mockResolvedValue(placed(fromProvider, before));
+    await act(async () => ask().onSaved());
+    expect(asks()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Pokaži mesto na mapi' })).toHaveLength(0);
+    expect(tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(isLine)).toHaveLength(1);
+    expect(docked()).toHaveLength(0);
+    expect(sentence()).toEqual(['Potvrđeno mesto: Bulevar oslobođenja 65, Novi Sad']);
+    expect(line().props.accessibilityLabel).toBe(`Potvrđeno mesto: ${provider}`); // The whole label stays for a screen reader.
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE']);
+    // The conversation continues below it.
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockLoad.mockResolvedValue(placed(fromProvider, [...before, ...later]));
+    await type('Sutra u deset.'); await act(async () => submit().onPress());
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE',
+      'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.']);
+    expect(docked()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
+  });
+
+  it('reopens the map editor from the line and returns to the line when it is closed', async () => {
+    mockLoad.mockResolvedValue(placed(fromProvider, before)); await resume();
+    expect(asks()).toHaveLength(0); expect(flat(line())).toContain('Izmeni');
+    expect(line().props).toMatchObject({ accessibilityRole: 'button', accessibilityHint: 'Otvara mapu da promeniš mesto.' });
+    await act(async () => line().props.onPress());
+    expect(ask()).toMatchObject({ startEditing: true, conversationId: id });
+    expect(tree.root.findByType(AiConversationShell).props).toMatchObject({ revealInteractiveContext: true });
+    await act(async () => ask().onEditingChange(true));
+    // While its editor is open the line stays in history but is not a second way in, and sending waits for the map.
+    expect(line().props.onPress).toBeUndefined(); expect(flat(line())).not.toContain('Izmeni');
+    expect(tree.root.findByType(AiConversationShell).props.interactiveContextKey).toBeDefined();
+    await act(async () => { ask().onEditingChange(false); ask().onClose(); });
+    expect(asks()).toHaveLength(0); expect(line().props.onPress).toBeDefined();
+    expect(tree.root.findAllByProps({ label: 'Pokaži mesto na mapi' })).toHaveLength(0);
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('acknowledges a pin the person moved with one local line at the point it happened, without an AI call', async () => {
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockLoad.mockResolvedValue(placed(fromProvider, before)); await resume();
+    mockLoad.mockResolvedValue(placed(fromProvider, [...before, ...later]));
+    await type('Sutra u deset.'); await act(async () => submit().onPress());
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE',
+      'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.']);
+    const sends = mockSend.mock.calls.length;
+    await act(async () => line().props.onPress());
+    mockLoad.mockResolvedValue(placed(movedByHand, [...before, ...later]));
+    await act(async () => ask().onSaved());
+    expect(asks()).toHaveLength(0);
+    expect(sentence()).toEqual(['U redu, mesto zadatka je sada: Bulevar oslobođenja 67, Novi Sad.']);
+    expect(line().props.accessibilityLabel).toBe('U redu, mesto zadatka je sada: 67, Bulevar oslobođenja, Novi Sad');
+    // The acknowledgement belongs where it happened: after the latest message, as the one line for this place.
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad',
+      'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.', 'PLACE']);
+    expect(mockSend).toHaveBeenCalledTimes(sends); expect(docked()).toHaveLength(0);
+  });
+
+  it('closes a reopened editor once its save is confirmed, even when the same place was confirmed again', async () => {
+    mockLoad.mockResolvedValue(placed(fromProvider, before)); await resume();
+    await act(async () => line().props.onPress());
+    expect(asks()).toHaveLength(1);
+    await act(async () => ask().onSaved());
+    expect(asks()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
+    expect(sentence()).toEqual(['Potvrđeno mesto: Bulevar oslobođenja 65, Novi Sad']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'PLACE']);
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('keeps the line but offers no edit while a send is in flight', async () => {
+    const held = deferred(); mockSend.mockReturnValueOnce(held.promise);
+    mockLoad.mockResolvedValue(placed(fromProvider, before)); await resume();
+    await type('Još nešto.'); await act(async () => { void submit().onPress(); });
+    expect(line().props.onPress).toBeUndefined(); expect(tree.root.findAllByProps({ testID: 'ai-recovery-in-thread' })).toHaveLength(0);
+    await act(async () => held.resolve(turn(mockSend.mock.calls[0][2], 'SUCCEEDED')));
+  });
 });
 
 it('does not treat old city coordinates as confirmed for a new city with the same slot', async () => {

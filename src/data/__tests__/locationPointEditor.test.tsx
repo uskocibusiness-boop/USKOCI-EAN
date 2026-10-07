@@ -308,11 +308,15 @@ describe('compact conversation proposal', () => {
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: candidate.label,
       conversationSummary: { title: 'Početak', description: candidate.label } });
     expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
-    await press('Uvećaj mapu za: Početak');
+    // Owner, 2026-10-07: the expand control sits in the small map's own top-right corner, not as a button under it.
+    expect(button('Uvećaj mapu za: Početak')).toBeUndefined();
+    expect(map().props.expand).toMatchObject({ label: 'Uvećaj mapu za: Početak', disabled: false });
+    await act(async () => map().props.expand.onPress());
     let maps = tree.root.findAllByType('PinMap' as React.ElementType);
     expect(maps).toHaveLength(2);
     const expanded = maps.find(node => node.props.fill === true)!;
     expect(expanded.props).toMatchObject({ position: candidate.position, compact: true, fill: true });
+    expect(expanded.props.expand).toBeUndefined();
     const moved = { latitude: 45.251234, longitude: 19.831234 };
     await act(async () => { expanded.props.onChoose(moved); });
     expect(resolver.reverse).toHaveBeenCalledWith({ position: moved, countryCode: 'RS', scopeKey: props.scopeKey });
@@ -325,6 +329,47 @@ describe('compact conversation proposal', () => {
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234,
       origin: { kind: 'MANUAL_PIN' }, address: candidate.label });
+  });
+
+  // Owner, 2026-10-07: a pin the person moves (on the small or the expanded map) becomes the task's place. Its address
+  // comes from the existing reverse lookup of that exact pin; an answer for an earlier pin never replaces it.
+  it('makes the pin the person moved the new place, ahead of any late answer for an earlier pin', async () => {
+    const resolver = configured();
+    const first = deferred<ConfiguredLocationResolution>(), second = deferred<ConfiguredLocationResolution>();
+    resolver.reverse.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: candidate.label,
+      conversationSummary: { title: 'Početak', description: candidate.label } });
+    await act(async () => map().props.expand.onPress());
+    const expanded = () => tree.root.findAllByType('PinMap' as React.ElementType).find(node => node.props.fill === true)!;
+    await act(async () => { expanded().props.onChoose({ latitude: 45.25, longitude: 19.83 }); });
+    await act(async () => { expanded().props.onChoose({ latitude: 45.26, longitude: 19.84 }); });
+    await act(async () => first.resolve({ status: 'PROPOSALS', requiresConfirmation: true,
+      candidates: [{ ...candidate, label: 'Stara adresa 1, Novi Sad', position: { latitude: 45.25, longitude: 19.83 } }] }));
+    expect(button('Potvrdi tačku: Početak').props.disabled).toBe(true); // Still reading the address of the pin that counts.
+    await act(async () => second.resolve({ status: 'PROPOSALS', requiresConfirmation: true,
+      candidates: [{ ...candidate, label: '67, Булевар ослобођења, Нови Сад', position: { latitude: 45.2601, longitude: 19.8402 } }] }));
+    expect(tree.root.findAllByType('PinMap' as React.ElementType).every(node =>
+      node.props.position.latitude === 45.26 && node.props.position.longitude === 19.84)).toBe(true);
+    expect(text()).toContain('67, Bulevar oslobođenja, Novi Sad'); expect(text()).not.toContain('Stara adresa');
+    // Confirmed in the large map itself.
+    const inLarge = tree.root.findByType('Modal' as React.ElementType).findAllByType('Button' as React.ElementType)
+      .find(node => named(node) === 'Potvrdi tačku: Početak')!;
+    await act(async () => { inLarge.props.onPress(); });
+    expect(props.onConfirm).toHaveBeenCalledTimes(1);
+    expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45260000, longitudeE6: 19840000,
+      origin: { kind: 'MANUAL_PIN' }, address: '67, Bulevar oslobođenja, Novi Sad' });
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1); // The large map closes on confirmation.
+  });
+
+  it('turns the small map’s expand control off with the rest of the editor and rejects a retained press', async () => {
+    const saved = { slot: 'start' as const, latitudeE6: 45200000, longitudeE6: 19800000, origin: { kind: 'MANUAL_PIN' as const } };
+    await render({ resolver: configured(), point: saved, presentation: 'conversation', autoLocate: true, initialQuery: 'Place' });
+    expect(map().props.expand.disabled).toBe(false);
+    const retained = map().props.expand.onPress;
+    mockFocused = false; await update();
+    expect(map().props.expand.disabled).toBe(true);
+    await act(async () => retained());
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(1);
   });
 
   it('opens the large map from Nije tu instead of forcing precise correction inside 156 px', async () => {

@@ -16,6 +16,7 @@ import { FactArt } from '../system/FactArt';
 import { brandAction, sys } from '../system/tokens';
 import { LocationDetails, LocationField } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
+import { toSerbianLatin } from './placeText';
 
 type DialogueContext = LocationDialogueRequest['locationContext'];
 export type PointPromptLease = { isCurrent: () => boolean; confirm: () => boolean; correct: () => boolean; cancel: () => void };
@@ -24,17 +25,9 @@ export type PointPrompt = {
   acquire: () => PointPromptLease | null;
 };
 
-// Serbian Cyrillic to Latin. OSM / LocationIQ labels for Serbia are often Cyrillic ("Булевар ослобођења") while people
-// type or speak Latin; matching and the shown address both use Latin.
-const CYRILLIC: Record<string, string> = {
-  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'đ', е: 'e', ж: 'ž', з: 'z', и: 'i', ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm',
-  н: 'n', њ: 'nj', о: 'o', п: 'p', р: 'r', с: 's', т: 't', ћ: 'ć', у: 'u', ф: 'f', х: 'h', ц: 'c', ч: 'č', џ: 'dž', ш: 'š',
-};
-export const toSerbianLatin = (value: string): string => value.replace(/[Ѐ-ӿ]/g, letter => {
-  const lower = letter.toLowerCase(), latin = CYRILLIC[lower];
-  if (latin === undefined) return letter;
-  return letter === lower ? latin : latin.charAt(0).toUpperCase() + latin.slice(1);
-});
+// Serbian Cyrillic to Latin lives with the other place words (map-free), so the conversation's confirmed-place line can
+// read a provider label the same way without loading the native map.
+export { toSerbianLatin };
 
 const searchTokens = (value: string): readonly string[] => {
   const normalized = toSerbianLatin(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd');
@@ -201,8 +194,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       setLookup(result.status === 'CANCELLED' ? { status: 'IDLE' } : result);
       // The reverse contract admits at most one address. It labels the user's pin;
       // the provider's nearest coordinates must never replace that exact selection.
+      // Adopted by the conversation, it reads in Latin like a searched address (provider labels are often Cyrillic).
       if (adoptProposal && result.status === 'PROPOSALS' && result.candidates.length === 1) {
-        setAddress(result.candidates[0].label); setSelectedLabel(result.candidates[0].label);
+        const shown = toSerbianLatin(result.candidates[0].label);
+        setAddress(shown); setSelectedLabel(shown);
       }
     } catch {
       if (ownsRequest()) setLookup({ status: 'UNAVAILABLE' });
@@ -425,11 +420,12 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
         }} /> : null}
       {position || placeByHand || ambiguous || contextOnly ? <>
+        {/* The expand control is the small map's own top-right corner (owner, 2026-10-07), not a button under it. */}
         <ResolvedPinMap position={position} cameraHint={shownCameraHint}
           cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={scopeKey}
-          disabled={controlDisabled || !focused} height={156} compact />
-        <Button tone="neutral" label="Uvećaj mapu" accessibilityLabel={`Uvećaj mapu za: ${title}`} kind="quiet"
-          disabled={controlDisabled || !focused} onPress={() => { if (owns()) setExpandedMap(true); }} />
+          disabled={controlDisabled || !focused} height={156} compact
+          expand={{ label: `Uvećaj mapu za: ${title}`, disabled: controlDisabled || !focused,
+            onPress: () => { if (owns()) setExpandedMap(true); } }} />
         <Modal visible={expandedMap} animationType="slide" onRequestClose={() => { if (owns()) setExpandedMap(false); }}>
           <SafeAreaView style={editorStyles.fullScreen} edges={['top', 'bottom']} accessibilityViewIsModal>
             <View style={editorStyles.fullHeader}>

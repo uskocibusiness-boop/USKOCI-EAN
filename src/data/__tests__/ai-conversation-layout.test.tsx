@@ -85,6 +85,25 @@ it.each([
   expect(text()).toContain(p.welcome);
   expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(0);
 });
+// Owner, 2026-10-07: "Neću da mi na dnu stoji ništa... To ostane u četu i ide gore sa drugim porukama." A note of the
+// conversation's own history (the confirmed place) is an ordinary item of the message list, in the order it happened.
+it('draws a history note inside the message list after the message it followed, never in a docked region',async()=>{
+  const p=props();p.messages=[{id:'a',fromAi:true,body:'Gde je mesto?'},{id:'b',fromAi:false,body:'Bulevar oslobođenja 65'},
+    {id:'c',fromAi:true,body:'Kada ti treba?'}];
+  p.threadNotes=[{key:'place',afterMessageId:'b',node:<View testID="place-note"/>}];
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  const order=()=>tree.root.findByProps({testID:'ai-conversation-thread'}).findAll(node=>node.props.testID==='place-note'
+    ||(typeof node.props.accessibilityLabel==='string'&&/^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    .map(node=>node.props.testID??node.props.accessibilityLabel);
+  expect(order()).toEqual(['USKOČI: Gde je mesto?','Ti: Bulevar oslobođenja 65','place-note','USKOČI: Kada ti treba?']);
+  for(const region of ['ai-composer-footer','ai-pinned-card']) expect(tree.root.findAllByProps({testID:region}).flatMap(node=>node.findAllByProps({testID:'place-note'}))).toHaveLength(0);
+  // A later message goes below it; an anchor that is no longer in the thread puts the note after the last message.
+  await act(async()=>tree.update(<AiConversationShell {...p} messages={[...p.messages,{id:'d',fromAi:false,body:'Sutra.'}]}/>));
+  expect(order()).toEqual(['USKOČI: Gde je mesto?','Ti: Bulevar oslobođenja 65','place-note','USKOČI: Kada ti treba?','Ti: Sutra.']);
+  await act(async()=>tree.update(<AiConversationShell {...p} threadNotes={[{key:'place',afterMessageId:'gone',node:<View testID="place-note"/>}]}/>));
+  expect(order()).toEqual(['USKOČI: Gde je mesto?','Ti: Bulevar oslobođenja 65','USKOČI: Kada ti treba?','place-note']);
+  expect(p.onSend).not.toHaveBeenCalled();
+});
 it('offers a way in before the first word, and one tap puts it in the message',async()=>{
   // 38 of the first 62 conversations never received a single message: the screen opened, said
   // "Reci šta ti treba" over an empty card, and was left. An opening is a start, not a command,
@@ -270,6 +289,32 @@ describe('deliberate reading intent', () => {
     });
     expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 200, animated: false });
     expect(native.scrollToEnd).not.toHaveBeenCalled();
+  });
+  // A tap on the confirmed place, which may sit far up the thread, opens its editor at the end: an explicit request reveals
+  // that editor even while earlier messages are being read, which an editor that merely appeared never does.
+  it('reveals an explicitly requested editor while earlier messages are being read', async () => {
+    const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];
+    const native = await mount(p);
+    await act(async () => {
+      scroller().props.onLayout(layout(400)); flushFrame();
+      scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(100)); scroller().props.onScrollEndDrag(position(100));
+    });
+    native.scrollTo.mockClear(); native.scrollToEnd.mockClear();
+    await act(async () => tree.update(<AiConversationShell {...p} context={<View />} interactiveContextKey="place-saved" revealInteractiveContext />));
+    await act(async () => flushFrame());
+    expect(native.context.measureLayout).toHaveBeenCalledTimes(1);
+    await act(async () => native.measurements[0](0, 880, 300, 200));
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 880, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+    // The same editor without an explicit request keeps the reader where they are.
+    await act(async () => tree.update(<AiConversationShell {...p} />));
+    native.scrollTo.mockClear(); native.context.measureLayout.mockClear();
+    await act(async () => {
+      scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(100)); scroller().props.onScrollEndDrag(position(100));
+    });
+    await act(async () => tree.update(<AiConversationShell {...p} context={<View />} interactiveContextKey="place-other" />));
+    await act(async () => flushFrame());
+    expect(native.context.measureLayout).not.toHaveBeenCalled(); expect(native.scrollTo).not.toHaveBeenCalled();
   });
   it('preserves the deliberate history offset when context, viewport and streaming content change', async () => {
     const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Ranije pitanje' }];
@@ -543,6 +588,10 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     const busy = { ...p, busy: true };
     await act(async () => tree.update(<AiConversationShell {...busy} />));
     expect(tree.root.findByProps({ testID: 'ai-send' }).props.accessibilityHint).toBe('Poruka se šalje.');
+    // While it is being sent the thread itself says so ("Stiže odgovor…" or the streamed answer); nothing more is docked
+    // above the composer (owner, 2026-10-07: nothing may stay at the bottom). The button still says why to a screen reader.
+    expect(tree.root.findAllByProps({ testID: 'ai-send-reason' })).toHaveLength(0);
+    expect(text()).toContain('Stiže odgovor…');
   });
   it('a send that can go says nothing extra', async () => {
     const p = props(); p.canSend = true;

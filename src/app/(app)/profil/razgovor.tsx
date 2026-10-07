@@ -15,7 +15,7 @@ import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiReviewDetails, type WorkerAiManualDraft } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiReviewDetails, type WorkerAiManualDraft } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { CalendarScreen } from '../../../ui/calendar/CalendarControls';
 import { T } from '../../../ui/Text';
@@ -292,6 +292,8 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       <WorkerAiReviewDetails review={frozen}/>
+      {/* Owner 2026-10-07: the interview ends by saying what it is for, as a fixed line (no extra AI call, no server change). */}
+      {!data.saved?<WorkerAiNotificationsNote/>:null}
       {busyPanelCopy}
       {/* The save button below is grey for one of these reasons; the details above name a missing field themselves. */}
       {!data.saved&&(expired||!writable)?<T variant="meta" tone="muted">{expired?'Ovaj pregled više ne važi. Učitaj novi pregled pre čuvanja.':statusCopy??'Ovaj predlog trenutno ne može da se sačuva.'}</T>:null}

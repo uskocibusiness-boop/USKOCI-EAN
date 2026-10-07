@@ -19,6 +19,9 @@ export type ResolvedPinMapProps = Readonly<{
   compact?: boolean;
   /** Full-screen editor: the native frame fills the available safe-area body without owning point state. */
   fill?: boolean;
+  /** The conversation's small map: an expand control in the frame's top-right corner that opens the caller's
+   *  full-screen editor. It never moves, selects or saves a point. */
+  expand?: Readonly<{ label: string; onPress: () => void; disabled?: boolean }>;
 }>;
 
 // Public style configuration reused from the reviewed PR67 renderer. No address,

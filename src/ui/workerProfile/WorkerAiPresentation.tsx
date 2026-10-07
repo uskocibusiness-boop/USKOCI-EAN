@@ -84,6 +84,12 @@ function ReviewSection({title,art,children}:{title:string;art:FactArtKind;childr
     <View style={s.reviewRows}>{children}</View>
   </View>;
 }
+/** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
+export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
+export function WorkerAiNotificationsNote(){
+  return <View style={s.previewFact}><FactArt kind="bell" size={24} cut="art"/>
+    <T testID="worker-review-notifications-note" variant="body" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></View>;
+}
 /** Frozen personal-profile review. Legacy wire fields remain stored, but the personal-profile save no longer writes them. */
 export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
   const p=review.profile;

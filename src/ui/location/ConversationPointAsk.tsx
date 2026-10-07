@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { BackHandler, View } from 'react-native';
 import type { ConfirmedLocationPoint, LocationSlot, NeedLocationReview } from '../../contracts/location';
-import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import { locationSlots, normalizeNeedLocation } from '../../lib/location';
@@ -12,10 +11,10 @@ import { Press } from '../Press';
 import { V2Action as Button } from '../v2/V2Action';
 import { LocationPointEditor, type PointPrompt } from './LocationPointEditor';
 import type { LocationDialogueRequest, LocationDialogueResult } from '../../contracts/locationDialogue';
-import { LocationMapPreview } from './LocationMapPreview';
 import { useConfirmSheet } from '../system/ConfirmSheet';
-import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
+import { ConfirmedPlaceLine } from './ConfirmedPlaceLine';
+import { confirmedPlaceEntries, slotSeed as seed, slotTitle as title } from './placeText';
 
 /**
  * The conversation asks for the map point instead of waiting for the person to discover a form.
@@ -30,67 +29,8 @@ import { sys } from '../system/tokens';
  * the person said out loud rather than on an empty map.
  */
 
-const title = (slot: LocationSlot, geography: NeedTaskGeography | null): string => {
-  if (slot === 'start') return geography?.mode === 'STATIONARY' ? 'Mesto zadatka' : 'Polazište';
-  if (slot === 'end') return 'Odredište';
-  if (slot === 'serviceArea') return 'Područje rada';
-  return `Stanica ${Number(slot.slice('waypoints/'.length)) + 1}`;
-};
-
-const normalizedPlaceText = (value: string): string => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-  .toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, ' ').trim();
-
-const exactAddressForSlot = (slot: LocationSlot, value: NeedLocationReview['value']): string | null => {
-  const geography = value.geography, exact = value.exactAddress?.trim();
-  if (!geography || !exact) return null;
-  if (geography.mode === 'STATIONARY' && slot === 'start') return exact;
-  const place = slot === 'start' ? geography.start
-    : slot === 'end' ? geography.end
-      : slot === 'serviceArea' ? geography.serviceArea
-        : geography.waypoints?.[Number(slot.slice('waypoints/'.length))];
-  if (!place) return null;
-  // A route has one legacy private exact-address fact, so bind it only when the street/POI
-  // text itself matches this slot. City is deliberately excluded: both ends often share it.
-  const exactNormalized = normalizedPlaceText(exact);
-  const identities = [place.label, place.area].filter((part): part is string => typeof part === 'string')
-    .map(part => normalizedPlaceText(part)).filter(part => part.length >= 4);
-  return identities.some(identity => exactNormalized.includes(identity)) ? exact : null;
-};
-
-const uniqueSeedParts = (parts: readonly (string | null | undefined)[]): string[] => {
-  const result: string[] = [];
-  for (const raw of parts) {
-    if (typeof raw !== 'string') continue;
-    for (const piece of raw.split(',').map(part => part.trim()).filter(Boolean)) {
-      const normalized = normalizedPlaceText(piece);
-      if (!normalized || result.some(existing => {
-        const existingTokens = new Set(normalizedPlaceText(existing).split(' ').filter(Boolean));
-        const candidateTokens = normalized.split(' ').filter(Boolean);
-        return candidateTokens.length > 0 && candidateTokens.every(token => existingTokens.has(token));
-      })) continue;
-      result.push(piece);
-    }
-  }
-  return result;
-};
-
-/** The most precise thing already known for this slot, used only as a search seed. */
-const seed = (slot: LocationSlot, value: NeedLocationReview['value']): string => {
-  const geography = value.geography;
-  const place = slot === 'start' ? geography?.start
-    : slot === 'end' ? geography?.end
-      : slot === 'serviceArea' ? geography?.serviceArea
-        : geography?.waypoints?.[Number(slot.slice('waypoints/'.length))];
-  // Use the private house/street string only when it can be bound to this slot by the slot's
-  // own street/POI identity. That gives the geocoder the exact spoken address without ever
-  // copying one endpoint's private address onto another endpoint.
-  return uniqueSeedParts([exactAddressForSlot(slot, value), place?.label, place?.area, place?.city]).join(', ');
-};
-
-/** A manually confirmed coordinate is not a resolved address; the conversation seed stays separate. */
-const confirmedPointLabel = (point: ConfirmedLocationPoint, value: NeedLocationReview['value']): string =>
-  point.address || (point.origin.kind === 'MANUAL_PIN' ? 'Tačka potvrđena na mapi'
-    : seed(point.slot, value) || 'Tačka potvrđena na mapi');
+// The slot names, the search seed and the confirmed-place words live in `placeText` (map-free), shared with the
+// conversation's own confirmed-place line.
 
 type State =
   | { kind: 'LOADING' }
@@ -108,6 +48,8 @@ export type LocationReplyLease = {
 export type LocationReplyPrompt = { context: LocationDialogueRequest['locationContext']; acquire: () => LocationReplyLease | null };
 
 type Props = { conversationId: string; onSaved: () => void; onClose: () => void;
+  /** Opened from the conversation's confirmed-place line: a saved place opens straight in its editor. */
+  startEditing?: boolean;
   disabled?: boolean; onEditingChange?: (editing: boolean) => void;
   onPromptReady?: (prompt: LocationReplyPrompt | null) => void;
   onCloseRequestReady?: (handler: (() => void) | null) => void };
@@ -134,7 +76,9 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   const [points, setPoints] = useState<readonly ConfirmedLocationPoint[]>([]);
   const baseline = useRef<readonly ConfirmedLocationPoint[]>([]);
   const [editing, setEditing] = useState(false);
-  const [summaryMapOpen, setSummaryMapOpen] = useState(false);
+  // The points this visit's last save changed: a pin the person placed by hand there is acknowledged as the new place.
+  const [changedSlots, setChangedSlots] = useState<ReadonlySet<LocationSlot>>(new Set());
+  const startEditing = useRef(props.startEditing); startEditing.current = props.startEditing;
   const [selected, setSelected] = useState<LocationSlot | null>(null);
   const [pendingSlot, setPendingSlot] = useState<LocationSlot | null>(null);
   const [editorEpoch, setEditorEpoch] = useState(0);
@@ -160,7 +104,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   const activeReply = useRef<LocationReplyLease | null>(null);
   const committedPoint = useRef<Promise<boolean> | null>(null);
   const view = useRef<object | null>(null);
-  const renderedView = useMemo(() => ({}), [state, points, selected, pendingSlot, editorEpoch, focusVisit, editing, summaryMapOpen, props.disabled]); view.current = renderedView;
+  const renderedView = useMemo(() => ({}), [state, points, selected, pendingSlot, editorEpoch, focusVisit, editing, props.disabled]); view.current = renderedView;
   const renderedFocus = focusEpoch.current;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -179,7 +123,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     if (!ownsAccount() || saving.current || disabled.current) return;
     const epoch = ++loadEpoch.current;
     view.current = null;
-    setState({ kind: 'LOADING' }); setSummaryMapOpen(false);
+    setState({ kind: 'LOADING' });
     const result = await needLocationClientService.read(props.conversationId).catch(() => ({ ok: false as const,
       kod: 'NEED_LOCATION_READ_FAILED', poruka: 'Mesto nije učitano. Pokušaj ponovo.' }));
     if (!ownsAccount() || disabled.current || epoch !== loadEpoch.current) return;
@@ -188,9 +132,11 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     baseline.current = loaded; setPoints(loaded);
     const required = result.podatak.value.geography ? locationSlots(result.podatak.value.geography) : [];
     const incomplete = required.some(slot => !loaded.some(point => point.slot === slot));
+    // Opened from the confirmed-place line: the saved place goes straight to its editor (the old summary's "Izmeni").
+    const reopen = !!startEditing.current && required.length > 0 && result.podatak.editable;
     // The parent's send/review callbacks must stop immediately, before passive effects run.
-    if (incomplete && result.podatak.editable && result.podatak.value.taskCountryCode && focus.current) reportEditing(true);
-    setEditing(incomplete);
+    if ((incomplete || reopen) && result.podatak.editable && result.podatak.value.taskCountryCode && focus.current) reportEditing(true);
+    setEditing(incomplete || reopen);
     setSelected(null); setPendingSlot(null); setEditorEpoch(value => value + 1);
     setState({ kind: 'READY', review: result.podatak });
   }, [props.conversationId, ownsAccount, reportEditing]);
@@ -253,7 +199,11 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     const saved = result.podatak.review, confirmed = savedPoints(saved.value);
     const savedSlots = saved.value.geography ? locationSlots(saved.value.geography) : [];
     const complete = savedSlots.length > 0 && savedSlots.every(slot => confirmed.some(point => point.slot === slot));
-    baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null); setSummaryMapOpen(false);
+    setChangedSlots(new Set(confirmed.filter(point => {
+      const before = baseline.current.find(prior => prior.slot === point.slot);
+      return !before || pointKey(before) !== pointKey(point);
+    }).map(point => point.slot)));
+    baseline.current = confirmed; setPoints(confirmed); setPendingSlot(null); setSelected(null);
     setEditing(!complete); setEditorEpoch(value => value + 1);
     setState(complete ? { kind: 'SAVED', review: saved } : { kind: 'READY', review: saved });
     // Every explicit point confirmation is durable immediately. Parent readback receives the new
@@ -328,7 +278,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
   const completeSummary = slots.length > 0 && slots.every(slot => summaryPoints.some(point => point.slot === slot));
   const editSaved = () => {
     if (!canAct() || !review?.editable || editing || !completeSummary) return false;
-    view.current = null; setSummaryMapOpen(false); reportEditing(true); setEditing(true); setState({ kind: 'READY', review });
+    view.current = null; reportEditing(true); setEditing(true); setState({ kind: 'READY', review });
     return true;
   };
   const replyScope = slots.length > 0 && !!country && !!review?.editable && !inactive && editing && state.kind === 'READY';
@@ -399,35 +349,15 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     <Button kind="quiet" label="Zatvori" disabled={inactive} onPress={leave} />
   </View>;
 
-  if (!editing && completeSummary) {
-    const routeSummary = geography.mode === 'POINT_TO_POINT' || geography.mode === 'MULTI_STOP';
-    const summaryText = routeSummary ? 'Ruta je potvrđena.'
-      : summaryPoints.map(point => `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`).join(' · ');
-    return <View style={{ gap: 6 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <FactArt kind="check" size={20} cut="art" role="confirmed" />
-        </View>
-        <T accessibilityRole={state.kind === 'SAVED' ? 'alert' : 'header'} variant="bodyStrong" style={{ flex: 1 }}>
-          Mesto je potvrđeno
-        </T>
-      </View>
-      <T variant="note" tone="muted" numberOfLines={2}>{summaryText}</T>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        <Button tone="neutral" kind="quiet" compact style={{ minHeight: 44, flexShrink: 1 }}
-          label={summaryMapOpen ? 'Sakrij mapu' : 'Mapa'} accessibilityLabel={summaryMapOpen ? 'Sakrij mapu mesta' : 'Prikaži mapu mesta'} disabled={inactive} onPress={() => {
-            if (!canAct()) return;
-            view.current = null; setSummaryMapOpen(open => !open);
-          }} />
-        {review.editable ? <Button tone="neutral" kind="quiet" compact style={{ minHeight: 44, flexShrink: 1 }}
-          label="Izmeni" accessibilityLabel="Nije tu? Izmeni mesto" disabled={inactive} onPress={editSaved} /> : null}
-      </View>
-      {summaryMapOpen && !inactive ? <LocationMapPreview scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}`}
-        points={summaryPoints.map(point => ({ id: point.slot,
-          label: `${title(point.slot, geography)}: ${confirmedPointLabel(point, review.value)}`,
-          latitude: point.latitudeE6 / 1_000_000, longitude: point.longitudeE6 / 1_000_000 }))}
-        route={geography.mode === 'POINT_TO_POINT' || geography.mode === 'MULTI_STOP'} /> : null}
-    </View>;
+  // A saved place is one compact line (owner, phone test 2026-10-07): the docked block with the provider's whole label,
+  // "Mapa" and "Izmeni" got in the way of the conversation. The line itself is the edit entry; its map is the editor's.
+  // Opened from the conversation's own line for a place that can no longer change, the read-only answer below says why.
+  if (!editing && completeSummary && !(props.startEditing && !review.editable)) {
+    const saved = state.kind === 'SAVED';
+    const acknowledged = new Set(saved ? summaryPoints.filter(point => point.origin.kind === 'MANUAL_PIN' && changedSlots.has(point.slot))
+      .map(point => point.slot) : []);
+    return <ConfirmedPlaceLine entries={confirmedPlaceEntries(summaryPoints, review.value, acknowledged)} announce={saved}
+      onEdit={review.editable && !inactive ? () => { editSaved(); } : undefined} />;
   }
 
   if (!review.editable) return <View style={{ gap: 12 }}>

@@ -31,6 +31,7 @@ jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfile
  ?require('react').createElement(jest.requireActual('../../ui/workerProfile/WorkerProfilePresentation').WorkerProfileFrame,props)
  :require('react').createElement('Frame',props,props.children,props.footer),WorkerProfileStatus:'Status'}));
 jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiReviewDetails:'Review',
+ WorkerAiNotificationsNote:(props:any)=>require('react').createElement(jest.requireActual('../../ui/workerProfile/WorkerAiPresentation').WorkerAiNotificationsNote,props),
  WorkerAiManual:(props:any)=>require('react').createElement(mockRealManual?jest.requireActual('../../ui/workerProfile/WorkerAiPresentation').WorkerAiManual:'Manual',props)}));
 jest.mock('../../ui/calendar/AvailabilityForm',()=>({AvailabilityForm:(props:any)=>require('react').createElement(mockRealAvailability
  ?jest.requireActual('../../ui/calendar/AvailabilityForm').AvailabilityForm:'Availability',props)}));
@@ -298,6 +299,13 @@ it('a keystroke invalidates a retained manual discard decision',async()=>{
  editManual('Kratko predstavljanje','Noviji unos');await act(async()=>oldConfirm());
  expect(manualField('Kratko predstavljanje').props.value).toBe('Noviji unos');expect(sheets()).toHaveLength(0);
  expect(mockApi.patch).not.toHaveBeenCalled();
+});
+it('the review says the profile drives new-task notifications for matching tasks (owner 2026-10-07)',async()=>{
+ await render();await enterPanel('review');
+ const note=tree.root.findAll(node=>node.props?.testID==='worker-review-notifications-note');
+ expect(note.length).toBeGreaterThan(0);
+ expect(note[0].props.children).toBe('Podaci iz tvog radnog profila koriste se za obaveštenja o zadacima koji odgovaraju tvojim veštinama, području i vremenu.');
+ expect(note[0].props.tone).toBeUndefined();
 });
 it('a retired-field review refusal keeps a guarded restart path after same-review readback',async()=>{
  await render();await enterPanel('review');

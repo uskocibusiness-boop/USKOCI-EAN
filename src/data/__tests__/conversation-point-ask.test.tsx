@@ -107,11 +107,19 @@ describe('the conversation point ask', () => {
   afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.restoreAllMocks(); });
 
   const mount = async (onSaved = jest.fn(), onClose = jest.fn(), options: Pick<ComponentProps<typeof ConversationPointAsk>,
-    'disabled' | 'onEditingChange' | 'onCloseRequestReady'> = {}) => {
+    'disabled' | 'onEditingChange' | 'onCloseRequestReady' | 'startEditing'> = {}) => {
     await act(async () => { tree = create(<ConversationPointAsk conversationId={CONVERSATION} onSaved={onSaved} onClose={onClose} {...options} />); });
     return { onSaved, onClose };
   };
   const editor = () => tree!.root.findByType(LocationPointEditor);
+  // The confirmed place is one compact line now (owner, 2026-10-07); tapping it is the explicit edit entry.
+  const line = () => tree!.root.findByProps({ testID: 'confirmed-place-line' });
+  const edit = async () => { await act(async () => line().props.onPress()); };
+  type Node = ReturnType<typeof line>;
+  const flat = (node: Node): string => node.children.map(child => typeof child === 'string' ? child : flat(child)).join('');
+  /** The line's sentences as they read, one per point. */
+  const sentences = () => line().findAll(node => String(node.type) === 'T' && node.props.tone === 'muted'
+    && node.children.some(child => typeof child !== 'string')).map(flat);
   const slots = () => tree!.root.findAll(node => node.props.accessibilityRole === 'radio');
   const choose = async (label: string) => { await act(async () => {
     slots().find(node => node.props.accessibilityLabel.startsWith(`${label},`))!.props.onPress();
@@ -121,7 +129,9 @@ describe('the conversation point ask', () => {
     tree!.root.findByType(ConfirmSheet).findByProps({ testID }).props.onPress();
   }); };
 
-  it('opens a saved route as an ordered exact preview and hides it without a loss warning or a write', async () => {
+  // Owner, phone test 2026-10-07: the docked "Mesto je potvrđeno / <whole provider label> / Mapa / Izmeni" block got in the
+  // way. A saved place is one compact line; its map opens through the edit, never as a second preview beside the thread.
+  it('shows a saved route as one compact line in route order, with no map preview, loss warning or write', async () => {
     const start = { ...point('start'), address: 'Sačuvano polazište' };
     const end = { ...point('end'), latitudeE6: 45_250_111, address: 'Sačuvano odredište' };
     mockRead.mockResolvedValue({ ok: true, podatak: review([end, start]) });
@@ -129,29 +139,52 @@ describe('the conversation point ask', () => {
     const { onClose } = await mount(undefined, undefined, { onEditingChange });
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
-    await press('Mapa');
-    expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: true, points: [
-      { id: 'start', label: 'Polazište: Sačuvano polazište', latitude: 45.255, longitude: 19.845 },
-      { id: 'end', label: 'Odredište: Sačuvano odredište', latitude: 45.250111, longitude: 19.845 },
-    ] });
+    expect(sentences()).toEqual(['Potvrđeno polazište: Sačuvano polazište', 'Potvrđeno odredište: Sačuvano odredište']);
+    expect(line().props).toMatchObject({ accessibilityRole: 'button',
+      accessibilityLabel: 'Potvrđeno polazište: Sačuvano polazište. Potvrđeno odredište: Sačuvano odredište' });
+    expect(tree!.root.findAllByProps({ label: 'Mapa' })).toHaveLength(0);
     expect(onEditingChange).toHaveBeenLastCalledWith(false);
-    await press('Sakrij mapu');
-    expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
     expect(onClose).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
     expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 
-  it('previews a saved work point as one point without route semantics', async () => {
+  it('shows a saved work point as "Potvrđeno mesto" without route semantics', async () => {
     const value = review([point('start')]).value;
     const geography = { mode: 'STATIONARY' as const, start: { city: 'Novi Sad' } };
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...value, geography,
       resolvedLocation: { ...value.resolvedLocation!, binding: { ...value.resolvedLocation!.binding, geography } } } } });
     await mount();
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
-    await press('Mapa');
-    expect(tree!.root.findByType(LocationMapPreview).props).toMatchObject({ route: false,
-      points: [{ id: 'start', label: 'Mesto zadatka: Tačka potvrđena na mapi' }] });
+    // A hand-placed pin without an address has no street to show: it is said to be a point on the map, nothing invented.
+    expect(sentences()).toEqual(['Potvrđeno mesto: tačka na mapi']);
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
+  });
+
+  it('opens the editor at once when asked to change a saved place, and a clean close writes nothing', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
+    const onEditingChange = jest.fn();
+    const { onClose } = await mount(undefined, undefined, { onEditingChange, startEditing: true });
+    expect(tree!.root.findAllByProps({ testID: 'confirmed-place-line' })).toHaveLength(0);
+    expect(editor().props.point).toEqual(point('start'));
+    expect(onEditingChange).toHaveBeenLastCalledWith(true);
+    await press('Zatvori');
+    expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
+    expect(tree!.root.findAllByType(ConfirmSheet)).toHaveLength(0);
+  });
+
+  it('says a saved place can no longer be changed here instead of opening an editor for it', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review([point('start'), point('end')]), editable: false } });
+    const { onClose } = await mount(undefined, undefined, { startEditing: true });
+    expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
+    expect(tree!.root.findAllByProps({ testID: 'confirmed-place-line' })).toHaveLength(0);
+    await press('Zatvori'); expect(onClose).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('a saved conversation keeps its confirmed line but offers no edit', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review([point('start'), point('end')]), editable: false } });
+    await mount();
+    expect(line().props.onPress).toBeUndefined(); expect(line().props.accessibilityRole).toBeUndefined();
+    expect(flat(line())).not.toContain('Izmeni');
   });
 
   it('does not present a full set bound to a different geography as saved', async () => {
@@ -168,7 +201,7 @@ describe('the conversation point ask', () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const onEditingChange = jest.fn();
     const { onClose } = await mount(undefined, undefined, { onEditingChange });
-    await press('Izmeni');
+    await edit();
     expect(editor().props.point).toEqual(point('start'));
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
     expect(onEditingChange).toHaveBeenLastCalledWith(true);
@@ -182,7 +215,7 @@ describe('the conversation point ask', () => {
     let editingNow = false;
     await mount(undefined, undefined, { onEditingChange: editing => { editingNow = editing; } });
     expect(editingNow).toBe(false);
-    const begin = tree!.root.findByProps({ label: 'Izmeni' }).props.onPress;
+    const begin = line().props.onPress;
     await act(async () => {
       begin();
       // A retained parent send/review callback can run here, before React's effects.
@@ -193,7 +226,7 @@ describe('the conversation point ask', () => {
   it('warns about an unconfirmed saved-point edit without claiming saved points will be lost', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const { onClose } = await mount();
-    await press('Izmeni');
+    await edit();
     await act(async () => editor().props.onInvalidate());
     await press('Zatvori');
     expect(tree!.root.findByType(ConfirmSheet).props).toMatchObject({ title: 'Izmena tačke nije potvrđena',
@@ -216,7 +249,7 @@ describe('the conversation point ask', () => {
   it('discarding a pending edit restores a clean saved baseline and does not create a second loss warning', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const { onClose } = await mount();
-    await press('Izmeni'); await act(async () => editor().props.onInvalidate());
+    await edit(); await act(async () => editor().props.onInvalidate());
     await choose('Odredište'); await answer('confirm-sheet-confirm'); await choose('Polazište');
     expect(editor().props.point).toEqual(point('start'));
     await press('Zatvori');
@@ -241,23 +274,24 @@ describe('the conversation point ask', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('returns an explicitly changed full set to its receipt preview and uses the new revision on a later edit', async () => {
+  it('returns an explicitly changed full set to its receipt line and uses the new revision on a later edit', async () => {
     const initial = review([point('start'), point('end')]);
     const moved = { ...point('start'), latitudeE6: 45_260_000, address: 'Nova potvrđena tačka' };
     const receipt = { ...review([moved, point('end')]), confirmed: true, revision: 'b'.repeat(64) };
     mockRead.mockResolvedValue({ ok: true, podatak: initial });
     mockSave.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, review: receipt } });
     const onEditingChange = jest.fn(); const { onSaved } = await mount(undefined, undefined, { onEditingChange });
-    await press('Izmeni'); await act(async () => editor().props.onInvalidate());
+    await edit(); await act(async () => editor().props.onInvalidate());
     expect(mockSave).not.toHaveBeenCalled();
     await act(async () => editor().props.onConfirm(moved));
     expect(mockSave).toHaveBeenCalledTimes(1); expect(onSaved).toHaveBeenCalledTimes(1);
     expect(mockSave.mock.calls[0][0].expectedRevision).toBe(initial.revision);
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
-    await press('Mapa');
-    expect(tree!.root.findByType(LocationMapPreview).props.points[0]).toMatchObject({ latitude: 45.26 });
+    // The receipt's own points, said once; a pin the person placed by hand is acknowledged as the new place.
+    expect(sentences()).toEqual(['U redu, polazište je sada: Nova potvrđena tačka.', 'Potvrđeno odredište: tačka na mapi']);
+    expect(line().props.accessibilityLiveRegion).toBe('polite');
     expect(onEditingChange).toHaveBeenLastCalledWith(false);
-    await press('Izmeni');
+    await edit();
     expect(editor().props.point).toEqual(moved);
     await act(async () => editor().props.onConfirm(moved));
     expect(mockSave.mock.calls[1][0].expectedRevision).toBe(receipt.revision);
@@ -299,9 +333,10 @@ describe('the conversation point ask', () => {
   it('removes navigation while disabled and rejects a retained edit entry', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const callbacks = await mount();
-    const oldEdit = tree!.root.findByProps({ label: 'Izmeni' }).props.onPress;
+    const oldEdit = line().props.onPress;
     await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} disabled />));
     expect(tree!.root.findAllByType(LocationMapPreview)).toHaveLength(0);
+    expect(line().props.onPress).toBeUndefined();
     await act(async () => oldEdit());
     expect(tree!.root.findAllByType(LocationPointEditor)).toHaveLength(0);
     expect(mockSave).not.toHaveBeenCalled();
@@ -310,7 +345,7 @@ describe('the conversation point ask', () => {
   it.each(['account', 'ABA'] as const)('rejects a saved preview edit entry after %s changes', async reason => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     const callbacks = await mount();
-    const oldEdit = tree!.root.findByProps({ label: 'Izmeni' }).props.onPress;
+    const oldEdit = line().props.onPress;
     mockSession = { user: { id: reason === 'ABA' ? mockSession.user.id : '33333333-3333-4333-8333-333333333333' }, accountRevision: 3 };
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review([point('start'), point('end')]), accountId: mockSession.user.id } });
     await act(async () => tree!.update(<ConversationPointAsk conversationId={CONVERSATION} {...callbacks} />));
@@ -416,7 +451,7 @@ describe('the conversation point ask', () => {
   it('asks before switching away from an unconfirmed edit on an explicitly reopened saved route', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: review([point('start'), point('end')]) });
     await mount();
-    await press('Izmeni');
+    await edit();
     await act(async () => editor().props.onInvalidate());
     await choose('Odredište');
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();

@@ -62,6 +62,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
+  // The send command that is running right now, if any. While it runs its outcome is not unknown, it is not here yet:
+  // the owned editor is busy with exactly this command, and only once it settles may the screen say what is uncertain.
+  const sendFlight = useRef<object | null>(null);
   const focus = useRef<object | null>(null), navigating = useRef(false);
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
@@ -173,7 +176,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     // Context remains attached to the original request key, including in-memory safe retries. A restored journal id
     // has no context/lease and can only recover its receipt; it cannot replay a confirmation against a new map.
     locationFlight.current = pointLease;
+    // Marked inside the admitted command only: a retained second tap that the editor refuses must not clear the first one.
+    const flight = {};
     try { await editor.save(async () => {
+      sendFlight.current = flight;
       // The first word is what makes the conversation exist. `openRequestId` is fixed for this
       // screen, so a second tap or a retry asks for the same conversation rather than another one.
       let id = conversation.current;
@@ -221,6 +227,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       if (!result.ok) return result;
       return read();
     }); } finally {
+      if (sendFlight.current === flight) sendFlight.current = null;
       pointLease?.cancel();
       if (locationFlight.current === pointLease) locationFlight.current = null;
     }
@@ -333,7 +340,12 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     error={greska ?? 'Razgovor nije dostupan.'} retry={invalidRoute || recoveryConversation ? undefined : osvezi} back={back}
     recover={recoveryConversation ? () => navigate(() => router.replace({ pathname: '/nova', params: { conversationId: recoveryConversation } })) : undefined} />;
 
-  const statusCopy = stanje.status !== 'OPEN'
+  // The send is still running (the answer may be streaming): "Stiže odgovor…" is the whole truth, so no recovery is drawn.
+  // Before 2026-10-07 the request was already pending here while the last read held no turn for it, and the copy below fell
+  // through to "Ishod slanja nije potvrđen" with a disabled "Proveri ishod" under a reply that was arriving. Every recovery
+  // branch below still applies the moment the command settles without a confirmed outcome.
+  const sending = radi && sendFlight.current !== null;
+  const statusCopy = sending && stanje.status === 'OPEN' ? null : stanje.status !== 'OPEN'
     ? stanje.status === 'ABANDONED' ? 'Razgovor je napušten.'
       : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani Zadatak možeš otvoriti iz pregleda.'
         : 'Nastavak ovog razgovora nije dostupan.'
@@ -382,9 +394,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       onKeepText: keepTranscript } : undefined}
     canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewLabel={stanje.review.boundNeedId ? 'Pregledaj izmene' : 'Pregledaj zadatak'}
-    showReadback={!!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}
+    showReadback={!sending && !!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}
     readbackDisabled={radi || editor.loading}
-    onCancelPending={pending && editor.data?.recovery?.canCancel ? cancelPendingTurn : undefined}
+    onCancelPending={!sending && pending && editor.data?.recovery?.canCancel ? cancelPendingTurn : undefined}
     cancelPendingDisabled={!canAct()}
     cancelPendingDispatched={editor.data?.recovery?.providerDispatched}
     showAbandon={!!razgovorId && stanje.status === 'OPEN' && !stanje.review.boundNeedId}

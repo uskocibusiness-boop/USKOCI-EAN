@@ -6,6 +6,7 @@ import { sys } from '../system/tokens';
 import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { Glyph } from '../system/Glyph';
 import { cameraHintBounds, displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 import { useMapStyle } from './mapStyle';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';
@@ -223,6 +224,14 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T><T variant="meta" tone="muted">Proveri vezu. Uneti podaci ostaju u obrascu.</T>
             <Button label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (owns()) props.retry(); }} /></>}
       </View> : null}
+      {/* Drawn after the loading/failure layer so it stays reachable while the tiles arrive; a real 44 dp target. */}
+      {props.expand ? <Press accessibilityRole="button" accessibilityLabel={props.expand.label}
+        accessibilityHint="Otvara mapu preko celog ekrana." accessibilityState={{ disabled: !!props.expand.disabled }}
+        disabled={props.expand.disabled} haptic={props.expand.disabled ? 'none' : 'select'} hitSlop={0}
+        onPress={() => { const expand = latest.current.props.expand; if (expand && !expand.disabled && owns()) expand.onPress(); }}
+        style={styles.expand}>
+        <Glyph name="expand" size={20} tone={props.expand.disabled ? 'muted' : 'ink'} />
+      </Press> : null}
     </View>
     {/* Real 48 dp targets: hitSlop alone is clipped by a smaller parent. Wrapping also keeps all credits available
         at 320 dp and with large text, without reducing the map's usable area. */}
@@ -277,6 +286,10 @@ const styles = StyleSheet.create({
   creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
   credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
+  // A white map control (as Discovery's zoom), inside the rounded frame and clear of the credits below it.
+  expand: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, width: 44, height: 44, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center',
+    ...sys.elevation.soft },
   area: { width: AREA, height: AREA, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.greenEdge,
     overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   areaFill: { ...StyleSheet.absoluteFill, backgroundColor: sys.color.green, opacity: 0.16 },
