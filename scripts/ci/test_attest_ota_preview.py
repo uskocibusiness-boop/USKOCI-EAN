@@ -118,6 +118,12 @@ class SigningTool(unittest.TestCase):
         on_stderr = subprocess.CompletedProcess([], 0, stdout="Verifies\n", stderr=f"Signer #1 certificate SHA-256 digest: {digest}\n")
         with mock.patch.object(a, "sdk_tool", return_value="apksigner"), mock.patch.object(a.subprocess, "run", return_value=on_stderr):
             self.assertEqual(a.apk_signing_fingerprints(Path("x.apk")), [digest])
+        # build-tools 37 format (seen on the GitHub runner 2026-10-07): one line per scheme; the public-key digest must not count.
+        v37 = subprocess.CompletedProcess([], 0, stdout=(f"Verifies\nV2 Signer: certificate SHA-256 digest: {digest}\n"
+                                                        f"V3 Signer: certificate SHA-256 digest: {digest}\n"
+                                                        f"V2 Signer: public key SHA-256 digest: {'cd' * 32}\n"), stderr="")
+        with mock.patch.object(a, "sdk_tool", return_value="apksigner"), mock.patch.object(a.subprocess, "run", return_value=v37):
+            self.assertEqual(a.apk_signing_fingerprints(Path("x.apk")), [digest])
         nothing = subprocess.CompletedProcess([], 0, stdout="Verifies\n", stderr="")
         with mock.patch.object(a, "sdk_tool", return_value="apksigner"), mock.patch.object(a.subprocess, "run", return_value=nothing):
             with self.assertRaisesRegex(ValueError, "APK_SIGNING_FINGERPRINT_MISSING"):

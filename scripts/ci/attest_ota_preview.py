@@ -144,7 +144,10 @@ def apk_signing_fingerprints(apk: Path) -> list:
     tool = sdk_tool("apksigner")
     result = subprocess.run([tool, "verify", "--print-certs", "-v", str(apk)], capture_output=True, text=True)
     combined = (result.stdout or "") + "\n" + (result.stderr or "")
-    fingerprints = re.findall(r"Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})", combined)
+    # build-tools <= 36 print "Signer #1 certificate SHA-256 digest: <hex>"; build-tools 37 prints
+    # "V2 Signer: certificate SHA-256 digest: <hex>" (one line per scheme). Public-key digests are never matched.
+    found = re.findall(r"(?:Signer #\d+|V\d+(?:\.\d+)? Signer:) certificate SHA-256 digest: ([a-fA-F0-9]{64})", combined)
+    fingerprints = list(dict.fromkeys(value.lower() for value in found))
     if not fingerprints:
         # Diagnostic only: the tool path, its exit code and the first public lines (certificate digests are public, keys never appear).
         head = " | ".join(line.strip() for line in combined.strip().splitlines()[:4])[:300]
