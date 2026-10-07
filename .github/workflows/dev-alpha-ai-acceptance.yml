@@ -43,7 +43,7 @@ jobs:
           node-version: '24'
       - name: Refuse to start without an acceptance credential
         env:
-          DEV_ACCEPTANCE_EMAIL: ${{ vars.DEV_ACCEPTANCE_EMAIL }}
+          DEV_ACCEPTANCE_EMAIL: ${{ vars.DEV_ACCEPTANCE_EMAIL || secrets.DEV_ACCEPTANCE_EMAIL }}
           DEV_ACCEPTANCE_PASSWORD: ${{ secrets.DEV_ACCEPTANCE_PASSWORD }}
         run: |
           set -euo pipefail
@@ -55,7 +55,7 @@ jobs:
           esac
       - name: Authenticated AI acceptance on canonical DEV/ALPHA
         env:
-          DEV_ACCEPTANCE_EMAIL: ${{ vars.DEV_ACCEPTANCE_EMAIL }}
+          DEV_ACCEPTANCE_EMAIL: ${{ vars.DEV_ACCEPTANCE_EMAIL || secrets.DEV_ACCEPTANCE_EMAIL }}
           DEV_ACCEPTANCE_PASSWORD: ${{ secrets.DEV_ACCEPTANCE_PASSWORD }}
           DEV_ACCEPTANCE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
           DEV_ACCEPTANCE_SCENARIOS: ${{ inputs.scenarios }}

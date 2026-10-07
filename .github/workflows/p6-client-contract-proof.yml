@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   prove:
-    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

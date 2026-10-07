@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   measure:
-    if: github.repository == 'Uskoci1/USKOCI-CLEAN'
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:

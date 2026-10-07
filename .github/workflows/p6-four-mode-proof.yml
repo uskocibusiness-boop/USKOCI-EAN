@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   disposable-proof:
-    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions:

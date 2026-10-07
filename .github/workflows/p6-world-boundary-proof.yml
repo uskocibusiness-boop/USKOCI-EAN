@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   prove:
-    if: github.repository == 'Uskoci1/USKOCI-CLEAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/work/uskoci-ui-unification-20260924'
     runs-on: ubuntu-latest
     # The bulk lineage seeding (100 000 auth.users rows through the profile trigger) and the measurements at 100 000 rows are the long part; the helper's
     # per-row classifier cost is exactly what is being measured, so the budget is deliberately generous rather than tuned.
