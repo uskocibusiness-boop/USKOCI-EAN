@@ -20,10 +20,11 @@ group('fill', ['building'], { 'fill-color': m.building, 'fill-outline-color': m.
 group('fill', ['road_area_pier', 'aeroway-area'], { 'fill-color': m.road });
 group('line', ['waterway'], { 'line-color': m.waterLine });
 group('line', ['highway_path'], { 'line-color': m.path });
-group('line', ['highway_minor', 'highway_major_inner', 'highway_motorway_inner',
-  'highway_motorway_bridge_inner', 'road_pier', 'aeroway-runway'], { 'line-color': m.road });
-group('line', ['highway_major_casing', 'highway_major_subtle', 'highway_motorway_casing',
-  'highway_motorway_subtle', 'highway_motorway_bridge_casing', 'aeroway-runway-casing',
+group('line', ['highway_minor', 'road_pier', 'aeroway-runway'], { 'line-color': m.road });
+// Main streets carry a light warm tint with a firmer edge, so a person can follow them on a small chat map.
+group('line', ['highway_major_inner', 'highway_motorway_inner', 'highway_motorway_bridge_inner'], { 'line-color': m.roadMajor });
+group('line', ['highway_major_casing', 'highway_motorway_casing', 'highway_motorway_bridge_casing'], { 'line-color': m.roadMajorEdge });
+group('line', ['highway_major_subtle', 'highway_motorway_subtle', 'aeroway-runway-casing',
   'aeroway-taxiway'], { 'line-color': m.roadEdge });
 group('line', ['railway', 'railway_transit', 'railway_service'], { 'line-color': m.transit });
 group('line', ['boundary_2', 'boundary_3', 'boundary_disputed'], { 'line-color': m.boundary });

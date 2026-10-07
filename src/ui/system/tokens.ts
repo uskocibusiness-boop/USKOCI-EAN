@@ -120,24 +120,30 @@ export const sys = {
     onUser: '#FFFFFF',
     iconWell: '#F5F5F5',
   },
-  /** Public map geography: colors only, independent from the interactive brand markers and their states. */
+  /**
+   * Public map geography: colors only, independent from the interactive brand markers and their states.
+   * Owner 2026-10-07 ("obojenije, da se vide lepo ulice"): a warm light ground so white streets read against it, firmer
+   * street edges, light-yellow main streets, greener parks and bluer water. Supersedes the near-white palette (U07 default).
+   */
   map: {
-    ground: '#FAFAF8',
-    residential: '#F3F3F0',
-    park: '#CEE3AE',
-    woodland: '#B2D391',
-    water: '#91CFEA',
-    waterLine: '#63B1D3',
-    waterLabel: '#315E74',
-    building: '#E1E5E7',
-    buildingEdge: '#D3DADF',
+    ground: '#EFEDE8',
+    residential: '#E9E7E1',
+    park: '#BEE09F',
+    woodland: '#A5D387',
+    water: '#8DCAEE',
+    waterLine: '#5FAED6',
+    waterLabel: '#2B5A72',
+    building: '#DCDAD4',
+    buildingEdge: '#C9C6BF',
     road: '#FFFFFF',
-    roadEdge: '#D4DADF',
-    path: '#BDCDAA',
-    transit: '#B5BEC4',
-    boundary: '#A5AFB4',
-    label: '#354249',
-    roadLabel: '#5B656C',
+    roadEdge: '#C2C6CA',
+    roadMajor: '#FFE9A6',
+    roadMajorEdge: '#E1BD5C',
+    path: '#AFC498',
+    transit: '#A8B1B7',
+    boundary: '#98A2A7',
+    label: '#2E393F',
+    roadLabel: '#46525A',
   },
   /**
    * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
