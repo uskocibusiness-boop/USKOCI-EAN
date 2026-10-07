@@ -66,7 +66,8 @@ env:
 jobs:
   android-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # 35 cut a run that was only slow (2026-10-07: run 37613049263 hit the limit; the build before took 24m42s).
+    timeout-minutes: 55
 
     steps:
       - name: Checkout canonical branch

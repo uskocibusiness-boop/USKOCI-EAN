@@ -36,6 +36,11 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW",
+        "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+        "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+        "EXPO_PUBLIC_VOICE_MESSAGES": "1",
+        "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+        "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
         "USKOCI_OTA_TARGET": "production"
       },
       "channel": "production"
