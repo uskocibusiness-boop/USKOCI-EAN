@@ -5,10 +5,10 @@
     "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
     "concurrencyAcceptance": false
   },
-  "generated_at": "2026-10-07T09:53:20Z",
-  "ledger_total": 227,
-  "ledger_dev_alpha": 78,
-  "ledger_last": "dev_alpha_ex06e_r3_lifecycle_recovery",
+  "generated_at": "2026-10-07T23:06:00Z",
+  "ledger_total": 233,
+  "ledger_dev_alpha": 84,
+  "ledger_last": "dev_alpha_match_v1b_application",
   "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "cron": [
     {
@@ -31,6 +31,7 @@
     "rpc_accept_reviewed_legal_bundle",
     "rpc_activate_urgent",
     "rpc_admit_account_lineage_service",
+    "rpc_agreement_cancellation_v1",
     "rpc_agreement_invalidation_visible_v1",
     "rpc_agreement_photo_read_service_v5",
     "rpc_agreement_photo_upload_service_v5",
@@ -160,6 +161,7 @@
     "rpc_list_need_candidates",
     "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
+    "rpc_list_received_reviews_v1",
     "rpc_list_review_comments_v1",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
@@ -169,6 +171,7 @@
     "rpc_mark_response_viewed",
     "rpc_mark_work_done",
     "rpc_moderate_review_comment_service_v1",
+    "rpc_my_work_stats_v1",
     "rpc_open_worker_ai",
     "rpc_patch_worker_ai",
     "rpc_prepare_account_closure",
@@ -176,6 +179,7 @@
     "rpc_prepare_worker_ai_review",
     "rpc_propose_agreement_change",
     "rpc_propose_agreement_change_v2",
+    "rpc_public_work_trust_v1",
     "rpc_publish_accepted_ai_task_review",
     "rpc_publish_need",
     "rpc_publish_need_canonical",
@@ -286,6 +290,7 @@
     "rpc_accept_legal_bundle",
     "rpc_accept_reviewed_legal_bundle",
     "rpc_activate_urgent",
+    "rpc_agreement_cancellation_v1",
     "rpc_agreement_invalidation_visible_v1",
     "rpc_ai_abandon_need_conversation_v2",
     "rpc_ai_cancel_need_turn_v2",
@@ -364,6 +369,7 @@
     "rpc_list_need_candidates",
     "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
+    "rpc_list_received_reviews_v1",
     "rpc_list_review_comments_v1",
     "rpc_mark_activity_event_read",
     "rpc_mark_agreement_messages_read",
@@ -372,12 +378,14 @@
     "rpc_mark_inbox_read",
     "rpc_mark_response_viewed",
     "rpc_mark_work_done",
+    "rpc_my_work_stats_v1",
     "rpc_open_worker_ai",
     "rpc_patch_worker_ai",
     "rpc_prepare_account_closure",
     "rpc_prepare_ai_task_review",
     "rpc_prepare_worker_ai_review",
     "rpc_propose_agreement_change_v2",
+    "rpc_public_work_trust_v1",
     "rpc_publish_accepted_ai_task_review",
     "rpc_publish_need_canonical",
     "rpc_read_account_closure_execution",
@@ -641,6 +649,69 @@
   "refresh_20261007": {
     "capturedAt": "2026-10-07T09:53:20Z",
     "scope": "Read-only refresh of the catalog (docs/control/dev_snapshot.sql) and the Edge list after EX06e r3 (ledger 227). Nothing written. The three RPCs the table called missing (rpc_get_need_search_state, rpc_get_reopen_remaining_search_receipt, rpc_reopen_remaining_search) exist on DEV; the warning came from the 2026-10-03 snapshot.",
+    "problems": []
+  },
+  "refresh_20261008": {
+    "capturedAt": "2026-10-07T22:26:56Z",
+    "scope": "Read-only refresh of the catalog (docs/control/dev_snapshot.sql run through execute_sql) and the Edge list (list_edge_functions) after the five server packages applied on 2026-10-07 (ledger 227 -> 232, dev_alpha 78 -> 83; last migration 20261007204555 dev_alpha_discovery_zamene_application). Refreshed: generated_at, ledger_total, ledger_dev_alpha, ledger_last, rpc_all (254 -> 258 names) and rpc_authenticated (178 -> 182), both verified by md5 against the database (ab9df4f16bd4de7646c36fbabc353007 and f5528146b6549117a43182fc8a9138c3). Re-read and unchanged: certificate_live = certificate_certified, retention_ai_ready, cron (2 active jobs, 0 failures, 2880 runs in 24 h), edge (11 ACTIVE functions, same versions and verify_jwt). Not returned by the query and therefore carried forward with their own timestamps: private_current_status, private_observed_at, application_receipt, how and the per-package notes. Nothing was written to DEV.",
+    "packagesApplied": [
+      {
+        "ledger": 228,
+        "version": "20261007192233",
+        "name": "dev_alpha_zone_perf_application",
+        "effect": "ZONE-PERF: one function body replaced, private.availability_timezone_valid(text); no new object, table, grant or data row.",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261007_zone_perf_application.receipt.json"
+      },
+      {
+        "ledger": 229,
+        "version": "20261007201845",
+        "name": "dev_alpha_cancel_info_application",
+        "effect": "CANCEL-INFO: two new read functions, private.agreement_cancellation_facts_v1(uuid) and public.rpc_agreement_cancellation_v1(uuid[]); no data row.",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261007_cancel_info_application.receipt.json"
+      },
+      {
+        "ledger": 230,
+        "version": "20261007202528",
+        "name": "dev_alpha_profile_trust_application",
+        "effect": "PROFILE-TRUST: three new public reads (rpc_public_work_trust_v1, rpc_my_work_stats_v1, rpc_list_received_reviews_v1), three private helpers and two private.marketplace_config rows at privacy-preserving defaults (profile_trust_visibility OWN_ONLY, received_reviews_detail COMMENTED_ONLY).",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261007_profile_trust_application.receipt.json"
+      },
+      {
+        "ledger": 231,
+        "version": "20261007203903",
+        "name": "dev_alpha_match_v1_application",
+        "effect": "MATCH-V1: one shared \"Odgovara mi\" rule (kind of work + area + time): four new private functions, six replaced bodies, two private.marketplace_config rows (match_v1_profile_requeue, match_v1_dispatch). A later guarded config UPDATE (ceiling 500 -> 10000, mode ALL) is a data change without a ledger row, recorded in the receipt.",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261007_match_v1_application.receipt.json"
+      },
+      {
+        "ledger": 232,
+        "version": "20261007204555",
+        "name": "dev_alpha_discovery_zamene_application",
+        "effect": "DISCOVERY-ZAMENE: optional forMe filter in public.rpc_discovery_v1(jsonb) (body md5 1c602244... -> dc69802e...) plus two new helpers, public.discovery_for_me_state_v1() and public.discovery_for_me_v1(uuid).",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261007_discovery_zamene_application.receipt.json"
+      },
+      {
+        "ledger": 233,
+        "version": "20261007230023",
+        "name": "dev_alpha_match_v1b_application",
+        "effect": "MATCH-V1B (applied 2026-10-08 00:00 CEDT): five new private functions (worker_notify_room_v1b, candidate_profile_ids_v1b, remote_wave_candidates_v1b, dispatch_config_v1b, dispatch_remote_wave_v1b), private.dispatch_next_wave replaced (MATCH-V1 0bd8b64a... -> d3cdfe2b...), eight new keys in the data row private.marketplace_config match_v1_dispatch (remote tasks in waves, notify budget of 1000 per transaction, daily cap OFF). No public RPC, table, grant or certificate change, so rpc_all / rpc_authenticated stay as above. A later guarded config UPDATE (ceiling 1000 -> 10000) is a data change without a ledger row, recorded in the receipt.",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261008_match_v1b_application.receipt.json"
+      }
+    ],
+    "newPublicFunctions": {
+      "listedInRpcLists": [
+        "rpc_agreement_cancellation_v1",
+        "rpc_public_work_trust_v1",
+        "rpc_my_work_stats_v1",
+        "rpc_list_received_reviews_v1"
+      ],
+      "outsideRpcPrefix": [
+        "discovery_for_me_state_v1",
+        "discovery_for_me_v1"
+      ],
+      "readback": "pg_proc read right after the snapshot: all six exist in schema public, SECURITY DEFINER, EXECUTE for authenticated and not for anon. The two discovery_for_me_* names do not start with rpc_, so the rpc_all / rpc_authenticated filter of dev_snapshot.sql does not list them."
+    },
+    "certificate": "closure source digest live = certified = 3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23; erasure program digest 2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f (read separately with private.closure_erasure_program_digest_v5(); it is not part of dev_snapshot.sql); retention_ai_ready true. Unchanged by all five packages.",
     "problems": []
   }
 }

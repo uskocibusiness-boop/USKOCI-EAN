@@ -1,0 +1,37 @@
+[
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  sw jsonb; all_mode boolean := false; sw_ceiling integer; sw_valid integer; delivered integer := 0; valid_until timestamptz;\nbegin\n",
+    "after": "  sw jsonb; all_mode boolean := false; sw_ceiling integer; sw_valid integer; delivered integer := 0; valid_until timestamptz;\n  -- MATCH-V1B (owner 2026-10-07): the checked knobs of the new layers, whether this task is sent in waves, the per-worker daily cap.\n  cfgb jsonb; remote_on boolean := false; daily_cap integer;\n  -- MATCH-V1B: the notify budget of one database transaction (the lock table), what the transaction has used, and whether a wave was cut by it.\n  tx_budget integer; tx_used integer := 0; chunked boolean := false;\nbegin\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "    select count(*) into delivered from public.opportunity_deliveries where need_id = nid and need_revision = n.revision;\n    if delivered >= sw_ceiling then\n",
+    "after": "    -- MATCH-V1B (owner 2026-10-07): three layers on top of mode ALL (the knobs are checked here; a bad one is the named error):\n    --   1. a task WITHOUT a place (remote, or without coordinates) is sent in WAVES (private.dispatch_remote_wave_v1b) with its own\n    --      ceiling, instead of one wave to everybody;\n    --   2. a worker who already got workerDailyCap proactive new-task notifications in the last 24 hours is skipped for this task,\n    --      without using up a place of any ceiling; an urgent task ignores the cap;\n    --   3. a task WITH a place keeps the one wave and the ceiling of MATCH-V1, but one database transaction (one tick) notifies at most\n    --      workerNotifyPerTransaction workers in all (every notified recipient holds two locks of the shared lock table until the end\n    --      of the transaction, about 4,800 entries on the whole server): a larger wave is sent in chunks, one per tick.\n    -- The ladder (mode LADDER) never reaches this block.\n    cfgb := private.dispatch_config_v1b(sw);\n    remote_on := (cfgb->>'remoteWaves')::boolean\n                 and not coalesce((n.execution_location_mode in ('STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED'))\n                                  and n.approx_geog is not null, false);\n    daily_cap := case when urg = 'URGENT' then null else (cfgb->>'workerDailyCap')::integer end;\n    tx_budget := (cfgb->>'notifyBudget')::integer;\n    tx_used := coalesce(nullif(current_setting('v1b.notified', true), '')::integer, 0);\n    select count(*) into delivered from public.opportunity_deliveries where need_id = nid and need_revision = n.revision;\n    if delivered >= sw_ceiling and not remote_on then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "\n  if not all_mode and active >= target and active_coverage >= remaining then\n",
+    "after": "\n  -- MATCH-V1B: a task without a place goes to the waves of the remote function (its own ceiling, pace and stop).\n  if remote_on then\n    return private.dispatch_remote_wave_v1b(nid, sw, cfgb, urg, windowm, target, remaining, selected, active, active_coverage, delivered, tx_budget - tx_used);\n  end if;\n\n  if not all_mode and active >= target and active_coverage >= remaining then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "      from private.candidate_profile_ids(n.id, candidate_limit)\n",
+    "after": "      from private.candidate_profile_ids_v1b(n.id, candidate_limit, daily_cap)\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "    candidate_limit := sw_ceiling - delivered;\n    budget_source := 'FIXED';\n  else\n",
+    "after": "    candidate_limit := sw_ceiling - delivered;\n    budget_source := 'FIXED';\n    -- MATCH-V1B: the notify budget of this transaction (the lock table). Nothing left: the wave waits for the next tick, due at once.\n    -- More workers than what is left: this wave is a chunk of at most that many; a chunk that comes back full is followed by the next one at the next tick.\n    if tx_budget - tx_used < 1 then\n      return jsonb_build_object('status','SENT','inserted',0,'waiting',true,'deferred','TRANSACTION_NOTIFY_BUDGET','mode','ALL','ceiling',sw_ceiling,\n        'deliveredBefore',delivered,'deadlineAt',statement_timestamp(),'txNotifyBudget',tx_budget,'activeResponses',active,'activeCoverage',active_coverage,\n        'selectedSlots',selected,'remainingSlots',remaining);\n    end if;\n    if candidate_limit > tx_budget - tx_used then\n      candidate_limit := tx_budget - tx_used;\n      chunked := true;\n    end if;\n  else\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  if inserted = 0 then\n    update public.dispatch_rounds\n       set status = 'STOPPED', stop_reason = 'NO_ELIGIBLE_CANDIDATES'\n     where id = roundid;\n  end if;\n",
+    "after": "  if inserted = 0 then\n    update public.dispatch_rounds\n       set status = 'STOPPED', stop_reason = 'NO_ELIGIBLE_CANDIDATES'\n     where id = roundid;\n  end if;\n\n  -- MATCH-V1B: what this transaction has notified so far (read by the next task of the same tick; a rolled-back task takes its share back with it).\n  if all_mode then\n    perform set_config('v1b.notified', (tx_used + inserted)::text, true);\n    if chunked and inserted >= batch then deadline := statement_timestamp(); end if;\n  end if;\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "    || case when all_mode then jsonb_build_object('mode','ALL','ceiling',sw_ceiling,'deliveredBefore',delivered,'validUntil',valid_until)\n            else '{}'::jsonb end;\n",
+    "after": "    || case when all_mode then jsonb_build_object('mode','ALL','ceiling',sw_ceiling,'deliveredBefore',delivered,'validUntil',valid_until)\n            else '{}'::jsonb end\n    || case when chunked and inserted >= batch then jsonb_build_object('chunk',true,'txNotifyBudget',tx_budget) else '{}'::jsonb end;\n"
+  }
+]

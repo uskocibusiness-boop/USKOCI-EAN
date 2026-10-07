@@ -1,0 +1,104 @@
+{
+  "schema": "USKOCI_DEV_MATCH_V1B_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "MATCH-V1B: a task WITHOUT a place (remote, or without an approximate point) is sent in WAVES (first 300, then 1,000 workers every 30 minutes, until 5 active applications cover its open slots or the task is agreed/cancelled, at most 10,000 per task revision); ONE database transaction (one tick) notifies at most 1,000 workers in all (each notified worker holds two advisory locks of the shared lock table, about 4,800 entries on DEV), so a larger wave of a task WITH a place is sent in chunks of at most 1,000 per tick; an optional per-worker daily cap of new-task notifications (default OFF = 1000). Five NEW private functions (worker_notify_room_v1b, candidate_profile_ids_v1b, remote_wave_candidates_v1b, dispatch_config_v1b, dispatch_remote_wave_v1b), ONE REPLACED body (private.dispatch_next_wave, MATCH-V1 0bd8b64a -> d3cdfe2b) and eight new keys in the one data row private.marketplace_config 'match_v1_dispatch'. The ladder (mode LADDER) is untouched. No table, column, constraint, trigger, policy, index or grant on an existing object changed.",
+  "sourceCommit": "1ab323d8 on candidate/match-v1-20261007 (remote novi), folder supabase/candidates/match-v1b-remote-waves-20261007/ (copied byte-identical into this checkout with this receipt); final proof run 37696505357 on commit b2c51654 (behaviour 38 checks and load 20 checks, all PASS, disposable database only, workflow .github/workflows/match-v1b-remote-waves-proof.yml)",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself (AGENTS.md section 3.1 rule 10), later the same conversation \"ili da stavimo ograničenje do 10.000\" for the per-task notification ceiling. MATCH-V1B was proven on a disposable database (FAIL before / PASS after, exact revert, closure certificate unchanged, load numbers) and moves nothing the owner reserved: no money, keys, legal text, real-data deletion, store, push, dependency, certificate change, privacy switch or the ladder. The README of the package, written before the standing order, still says the owner's exact word 'PRIMENI MATCH-V1B' is needed; the standing order replaced that default for proven packages. The daily cap stays OFF and the ladder stays off; both are his word.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV a few minutes before the apply (2026-10-07 about 22:57 UTC): ledger 232, latest version 20261007204555, certificateReady true, closure digest 3a785d42... and erasure program digest 2027655d..., matchV1Applied true, waveIsMatchV1 true (md5 0bd8b64a...), pinsMatch true with pinMismatches [] over the 12 pinned dependencies, newFunctionsAbsent true, dispatchRowHasNoNewKeys true (row: mode ALL, ceiling 1000, validMinutes 1440, tickBudgetSeconds 40), closureNotExecuting true, 5 active worker profiles, 7 open tasks, 0 open tasks without a place.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). The statement was typed into the connector byte-exact (48,312 bytes, two non-ASCII characters, the z-caron in the notification title 'moze', that text is MATCH-V1's own and was left as pinned) and the stored statement was read back from supabase_migrations.schema_migrations afterwards: 1 statement, 48310 characters (48312 bytes), md5 5704ddb81d36c2936be0f709dd90a769, equal to the md5 of the file. The working-tree file and the committed blob are LF-only (0 CR), identical to what CI applied.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: certificate ready; none of the five new functions present and none of the eight new keys in the row (MATCH_V1B_ALREADY_OR_PARTIALLY_APPLIED); MATCH-V1 present; the 12 dependency body md5 pins; the predecessor body md5 of private.dispatch_next_wave; the dispatch row a valid MATCH-V1 row. The replacement: preimage md5, md5 of the new body against the generator's value, exactly one anchor of the old body in pg_get_functiondef, then the whole pg_proc row apart from the body and the function comment asserted unchanged. Post-guards: the five new bodies pinned by md5 with security definer, volatility, owner postgres, search_path=pg_catalog and ACL {postgres=X/postgres}; the replaced body pinned; the 12 dependencies unchanged; the row equal to before plus exactly the eight new keys; the defaults present; the knobs valid; both closure digests equal before and after (a temporary table of the pre-apply digests) and the certificate ready. Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 232,
+    "after": 233,
+    "version": "20261007230023",
+    "name": "dev_alpha_match_v1b_application",
+    "storedStatementChars": 48310,
+    "statements": 1,
+    "storedStatementMd5": "5704ddb81d36c2936be0f709dd90a769",
+    "fileSha256": "83aee233f70024b2fcce499370c6539111b025608e6fba1c339084af743d8c30",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (5704ddb81d36c2936be0f709dd90a769): read back after the apply (md5 5704ddb81d36c2936be0f709dd90a769, 48310 chars / 48312 bytes, 1 statement)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "The six functions are outside closure_erasure_program_digest_v5 and closure_schema_digest_v5_139; no table, column, constraint, trigger, policy, index or grant changed; the keys are data. The same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "58d29e57a4a472b027b0a3d0fc53429b5b6fdb058aac76f527f1e14aca7650b1",
+    "bodiesAfter": true,
+    "dependenciesUnchanged": true,
+    "newFunctionAcl": true,
+    "knobsValid": {
+      "remoteWaves": true,
+      "notifyBudget": 1000,
+      "workerDailyCap": null
+    },
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/match-v1b-remote-waves-20261007/revert.sql",
+    "sha256": "decfeb58057a40ff76c33c827de1cfcc662eb34961c06d2527cdf22574558540",
+    "applied": false,
+    "effect": "revert.sql restores the MATCH-V1 body of private.dispatch_next_wave byte for byte, drops the five new functions and removes the eight keys from the row (every other value stays; lower the ceiling to 1,000 or less first). Code and configuration rollback only: deliveries, events, rounds and notifications already written stay."
+  },
+  "notProven": [
+    "No remote wave, no chunk and no budget deferral has run on DEV data yet (no open task without a place; 5 active worker profiles).",
+    "Whether the push provider delivers thousands of pushes in time is not measured and V1B does not touch the push transport: the existing sender sends about one push per minute (rpc_claim_push_transport claims one attempt per call), so a wave of 1,000 needs about 17 hours to leave the push queue and a notification expires after 24 hours; the in-app notification is immediate. A batch claim, a fair order between tasks and a queue-age metric are a separate package (PUSH-KAPACITET) that must precede any push.",
+    "The 40,000-worker load numbers (a wave of 1,000 in about 1.3 s, flat from the first to the last wave) come from a disposable server; CI hardware varies by about 1.5x.",
+    "The notification title still says 'Vam' (formal) in MATCH-V1's function body; the wording rule 'ti' is a separate, tiny text package."
+  ],
+  "followUps": [
+    "PUSH-KAPACITET (batch claim in rpc_claim_push_transport, fair order between tasks, queue-age metric) before any push is switched on.",
+    "A text-only package: the notification title 'Nova prilika koja može da Vam odgovara' -> 'ti' voice (private.dispatch_next_wave and private.dispatch_remote_wave_v1b both carry it; pins must be regenerated).",
+    "workerDailyCap stays 1000 (off) until the owner chooses a number; the switch scripts switch-remote-waves-off.sql / -on.sql are in the folder and each is one guarded update.",
+    "The production Supabase project (a NEW project, decision R04) needs MATCH-V1, MATCH-V1B and the B24 candidates applied before its first real user."
+  ],
+  "filesCopiedToThisCheckout": [
+    "body.diff",
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "manifest.json",
+    "patches.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql",
+    "switch-remote-waves-off.sql",
+    "switch-remote-waves-on.sql"
+  ],
+  "measurement": {
+    "firstTickAfterApply": "The cron jobs 1 and 2 ran at 2026-10-07 23:01:00 UTC (37 seconds after the apply) and both succeeded (483 ms and 391 ms); the tick checked one task (back-off result STOPPED, next check 05:01 UTC). No error. DEV has 5 active worker profiles and 0 open tasks without a place, so neither the waves nor the budget can bind on DEV data today; the 38 behaviour and 20 load checks of the disposable proof cover them.",
+    "notYetObserved": "no remote wave and no chunk have run on DEV data"
+  },
+  "afterApplyConfig": {
+    "statement": "one guarded UPDATE of the one row private.marketplace_config 'match_v1_dispatch': ceiling 1000 -> 10000, only where mode was ALL, ceiling 1000, owner 'MATCH-V1 2026-10-07', workerNotifyPerTransaction 1000 and remoteWaves true; run through execute_sql at 2026-10-07 23:01:22 UTC (a data change, not a migration, so no ledger row); the returned row passed private.dispatch_config_v1b (remoteWaves true, notifyBudget 1000, workerDailyCap off)",
+    "readBack": {
+      "mode": "ALL",
+      "ceiling": 10000,
+      "remoteWaves": true,
+      "remoteWaveSize": 300,
+      "remoteNextWaveSize": 1000,
+      "remoteWaveMinutes": 30,
+      "remoteStopAfterResponses": 5,
+      "remoteCeiling": 10000,
+      "workerDailyCap": 1000,
+      "workerNotifyPerTransaction": 1000,
+      "validMinutes": 1440,
+      "tickBudgetSeconds": 40,
+      "owner": "MATCH-V1 2026-10-07",
+      "updated_at": "2026-10-07 23:01:22.007106+00"
+    },
+    "why": "the ceiling had been lowered from the owner's 10000 to 1000 on 2026-10-07 at 21:47 UTC because one transaction can notify only about 4,000 distinct workers (two advisory locks per notified worker). MATCH-V1B's per-transaction notify budget (1,000) and chunking remove that limit, so the ceiling the owner named is restored.",
+    "note": "mode stays ALL; the ladder is not switched on; the daily cap is OFF (1000). A task with a place and 10,000 matching workers is complete after ten ticks (one per minute); a task without a place reaches 10,000 workers in about five hours."
+  },
+  "orderWithOtherPackages": "Applied after ZONE-PERF (228), CANCEL-INFO (229), PROFILE-TRUST (230), MATCH-V1 (231) and DISCOVERY-ZAMENE (232). DISCOVERY-ZAMENE does not touch the wave (both orders were proven). A later revert must go DISCOVERY-ZAMENE -> MATCH-V1B (revert.sql, after lowering ceiling to 1000 or less) -> MATCH-V1 -> ZONE-PERF."
+}
