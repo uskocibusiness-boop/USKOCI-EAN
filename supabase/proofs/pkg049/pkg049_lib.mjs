@@ -338,10 +338,10 @@ export const SERBIAN_COPY = Object.freeze({
   /** src/data/applicationSelectionClientService.ts, applicationSelectionErrors: the new-offer and selection paths. */
   application: Object.freeze({
     INVALID_PRICE: 'Unesi ceo pozitivan iznos u RSD.',
-    FIXED_PRICE_NOT_READY: 'Cena Zadatka trenutno nije spremna. Ponovo otvori Zadatak.',
+    FIXED_PRICE_NOT_READY: 'Cena zadatka trenutno nije spremna. Ponovo otvori zadatak.',
     FIXED_PRICE_MISMATCH: 'Cena prijave mora da prati cenu i obračun iz zadatka. Izmeni prijavu prema aktuelnim uslovima.',
-    TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog Zadatka važi za ceo posao, pa prijava mora da pokrije sva mesta.',
-    UNKNOWN_PRICE_BASIS: 'Način obračuna cene na ovom Zadatku nije podržan u ovoj verziji aplikacije.',
+    TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog zadatka važi za ceo zadatak, pa prijava mora da pokrije sva mesta.',
+    UNKNOWN_PRICE_BASIS: 'Način obračuna cene na ovom zadatku nije podržan u ovoj verziji aplikacije.',
   }),
   /** src/data/legacyRpcFailure.ts, COPY: the reconfirmation path (ru4Production.resolveChangedApplication). */
   legacy: Object.freeze({

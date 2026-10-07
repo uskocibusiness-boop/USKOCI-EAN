@@ -79,7 +79,7 @@ beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation(() => {}); (Press as jest.Mock).mockClear(); open.mockClear();
   initial = { ...initialMarketplaceView(), mode: 'map', sheet: 'half' }; p6 = seam(); rows = Array.from({ length: MANY }, (_, index) => task(index));
 });
-afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
+afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
 test('a thousand tasks: the count is the server\'s exact one with the thousands set apart, and the list says it is read newest first', async () => {
   await render(); await body();
@@ -158,6 +158,10 @@ test('reading the next page is said over the list\'s end, in words, and it never
 });
 
 test('the list offers the age of every task of its page to the cards, and none for a task it has no time for or when it does not read the time', async () => {
+  // "pre 3 sata" is an answer for the same calendar day in Serbian time: on the real clock between 00:00 and 03:00 the same 180 minutes
+  // read "juče" (the CI run of 2026-10-08 00:22 failed on it). Only the date is frozen, at noon; every timer stays real.
+  jest.useFakeTimers({ now: new Date('2026-10-07T10:00:00Z'), doNotFake: ['hrtime', 'nextTick', 'performance', 'queueMicrotask', 'requestAnimationFrame',
+    'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'] });
   const minutes = (count: number) => new Date(Date.now() - count * 60_000).toISOString();
   p6 = seam({ published: new Map([['task-0', minutes(25)], ['task-1', minutes(180)]]) });
   await render(); await body();

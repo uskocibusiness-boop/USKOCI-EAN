@@ -76,6 +76,7 @@ on:
       - 'src/data/myApplicationsView.ts'
       - 'src/data/needClientService.ts'
       - 'src/data/needDetailPresentation.ts'
+      - 'src/data/needEnding.ts'
       - 'src/data/needUrgencyClientService.ts'
       - 'src/data/ownApplicationsPage.ts'
       - 'src/data/ownTasksPage.ts'
