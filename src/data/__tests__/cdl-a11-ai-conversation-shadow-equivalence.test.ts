@@ -55,7 +55,7 @@ describe('CDL-A11 — canonical AI conversation owner after shadow deletion', ()
     const result = await aiProductionOverrides.otvoriRazgovor();
     expect(mockRpc).not.toHaveBeenCalled();
     expect(result).toEqual({ ok: false, kod: 'OWNED_CONVERSATION_REQUIRED',
-      poruka: 'Otvori Novi Zadatak da započneš razgovor.' });
+      poruka: 'Otvori novi zadatak da započneš razgovor.' });
   });
 
   it('repeated legacy opens remain non-writing rather than creating duplicate records', async () => {

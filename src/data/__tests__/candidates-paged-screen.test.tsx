@@ -90,7 +90,7 @@ test('a first page that fails is an unavailable screen with a retry that reads t
 
 test('applications of another revision than the task\'s are refused as the whole list refuses them, and the retry reads again', async () => {
   await render(); await answer(0, page(['a'], false, 1, { potrebaRevizija: REVISION - 1 }));
-  expect(unavailable().props).toMatchObject({ loading: false, message: 'Zadatak se upravo promenio. Učitaj Prijave ponovo.' }); expect(list()).toBeUndefined();
+  expect(unavailable().props).toMatchObject({ loading: false, message: 'Zadatak se upravo promenio. Učitaj prijave ponovo.' }); expect(list()).toBeUndefined();
   await act(async () => unavailable().props.retry());
   await answer(1, page(['a'], false, 1)); expect(ids()).toEqual(['a']);
 });
@@ -100,7 +100,7 @@ test('a later page read after the task changed is never shown beside the first: 
   await act(async () => props().paging.onLoadMore());
   mockNeed.mockImplementation(async () => need(REVISION + 1));
   await answer(1, page(['c'], false, null, { potrebaRevizija: REVISION + 1 }));
-  expect(unavailable().props).toMatchObject({ loading: false, message: 'Zadatak se upravo promenio. Učitaj Prijave ponovo.' }); expect(list()).toBeUndefined();
+  expect(unavailable().props).toMatchObject({ loading: false, message: 'Zadatak se upravo promenio. Učitaj prijave ponovo.' }); expect(list()).toBeUndefined();
   await act(async () => unavailable().props.retry());
   expect(reads[2].request).toEqual({ limit: 50, cursor: null });   // from the top: a pull to refresh, not the page after the one that changed
   await answer(2, page(['a', 'b', 'c'], false, 3, { potrebaRevizija: REVISION + 1 }));

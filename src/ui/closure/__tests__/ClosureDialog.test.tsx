@@ -38,9 +38,12 @@ const askStart=async()=>{await act(async()=>button('Pokreni zatvaranje naloga').
 beforeEach(()=>{jest.clearAllMocks();mockAppListeners.clear();mockOwner={user:{id:A},accountRevision:1};mockFocused=true;mockLoad.mockResolvedValue(null);mockSave.mockResolvedValue(undefined);mockClear.mockResolvedValue(undefined);mockReview.mockResolvedValue(ok(ready()));mockRead.mockResolvedValue(ok({found:false,receipt:null,execution:null}));mockStart.mockResolvedValue({ok:false,kod:'CLOSURE_OUTCOME_UNKNOWN',poruka:'Ishod nije potvrđen.'});});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
 it('reads only on entry and starts once after explicit double tap, saving the key first',async()=>{await render();expect(mockStart).not.toHaveBeenCalled();mockSave.mockImplementation(async()=>{expect(mockStart).not.toHaveBeenCalled();});await askStart();expect(mockStart).not.toHaveBeenCalled();expect(text()).toContain('To ne možeš da poništiš');expect(sheets()[0].props).toMatchObject({confirmLabel:'Da, trajno zatvori nalog',cancelLabel:'Odustani',tone:'danger'});const press=confirmButton().props.onPress;await act(async()=>{press();press();});expect(mockStart).toHaveBeenCalledTimes(1);expect(mockSave).toHaveBeenCalledWith(pending());expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});});
-it('restores persisted unknown key with read only; absent does not auto-submit',async()=>{mockLoad.mockResolvedValue(pending());await render();expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});expect(mockStart).not.toHaveBeenCalled();expect(mockReview).not.toHaveBeenCalled();expect(button('Ponovi isti zahtev za zatvaranje')).toBeDefined();await act(async()=>button('Ponovi isti zahtev za zatvaranje').props.onPress());expect(mockStart).toHaveBeenCalledTimes(1);expect(mockStart.mock.calls[0][0]).toEqual(pending());});
+it('restores persisted unknown key with read only; absent does not auto-submit',async()=>{mockLoad.mockResolvedValue(pending());await render();expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});expect(mockStart).not.toHaveBeenCalled();expect(mockReview).not.toHaveBeenCalled();expect(button('Pošalji zahtev za zatvaranje ponovo')).toBeDefined();await act(async()=>button('Pošalji zahtev za zatvaranje ponovo').props.onPress());expect(mockStart).toHaveBeenCalledTimes(1);expect(mockStart.mock.calls[0][0]).toEqual(pending());});
 it('restored executing receipt does not become completed without worker evidence',async()=>{mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'EXECUTING',accountId:A,generation:R}}));await render();expect(text()).toContain('Zatvaranje još nije završeno');expect(text()).not.toContain('Nalog je zatvoren.');expect(mockStart).not.toHaveBeenCalled();expect(button('Pokreni zatvaranje naloga')).toBeUndefined();});
-it('server-ready false displays gate with no final action or invented period',async()=>{mockReview.mockResolvedValue(ok({...ready(),ready:false,code:'CLOSURE_POLICY_NOT_READY',retainedDatasets:null}));await render();expect(text()).toContain('Potpuna pravila zatvaranja i čuvanja još nisu objavljena');expect(button('Pokreni zatvaranje naloga')).toBeUndefined();expect(mockStart).not.toHaveBeenCalled();});
+it('server-ready false displays the gate: the final action stands last, grey, with its reason, and nothing is started or invented',async()=>{mockReview.mockResolvedValue(ok({...ready(),ready:false,code:'CLOSURE_POLICY_NOT_READY',retainedDatasets:null}));await render();expect(text()).toContain('Potpuna pravila zatvaranja i čuvanja još nisu objavljena');
+ // UI/UX pass 2026-10-07: not missing without a word but grey with the reason beside it (the owner's rule); it cannot start anything.
+ const final=tree.root.findAll(n=>n.props.label==='Pokreni zatvaranje naloga'&&'reason' in n.props)[0];expect(final.props).toMatchObject({disabled:true,reason:'Zatvaranje trenutno nije dostupno.'});
+ await act(async()=>button('Pokreni zatvaranje naloga').props.onPress());expect(sheets()).toHaveLength(0);expect(mockStart).not.toHaveBeenCalled();expect(mockSave).not.toHaveBeenCalled();expect(text()).not.toMatch(/\d+ (dan|dana|sat|sata)/);});
 it('the first tap only asks; cancelling leaves nothing started',async()=>{await render();await askStart();expect(mockSave).not.toHaveBeenCalled();expect(mockStart).not.toHaveBeenCalled();await act(async()=>cancelButton().props.onPress());expect(button('Pokreni zatvaranje naloga')).toBeDefined();expect(sheets()).toHaveLength(0);expect(mockStart).not.toHaveBeenCalled();});
 it('closing the review retires its confirmation before unmount and closes only once',async()=>{
  await render();await askStart();const kept=sheets()[0].props.onConfirm,close=button('Zatvori pregled').props.onPress;
@@ -114,7 +117,7 @@ it('complete AF22 receipt states limited pseudonymous records rather than retain
 // by the review it asked about, so an answer kept across a refresh, a refocus or a new review starts nothing.
 it('an answer kept across a refresh starts nothing',async()=>{
  await render();await askStart();const kept=sheets()[0].props.onConfirm;
- await act(async()=>button('Proveri stanje zahteva').props.onPress());expect(sheets()).toHaveLength(0);
+ await act(async()=>button('Osveži pregled').props.onPress());expect(sheets()).toHaveLength(0);
  await act(async()=>{await kept();});expect(mockSave).not.toHaveBeenCalled();expect(mockStart).not.toHaveBeenCalled();
 });
 it('an answer kept across a refocus starts nothing, and a fresh question still starts once',async()=>{
@@ -154,7 +157,7 @@ it('the flow\'s X is spoken as leaving the review, never as the closing itself',
 it('a read that fails before anything is known says so, with the check as its one way forward',async()=>{
  mockReview.mockResolvedValue({ok:false,kod:'X',poruka:'Pregled trenutno nije dostupan.'});await render();
  expect(text()).toContain('Stanje zatvaranja nije učitano');expect(text()).toContain('Pregled trenutno nije dostupan.');
- await act(async()=>button('Proveri stanje zahteva').props.onPress());expect(mockReview).toHaveBeenCalledTimes(2);
+ await act(async()=>button('Pokušaj ponovo').props.onPress());expect(mockReview).toHaveBeenCalledTimes(2);
 });
 // Round 5c review: the caught "not confirmed" words wait only while a saved start or preparation is there to check.
 it('a command that could not be read waits while its saved request remains, and is a failure without one',async()=>{
@@ -162,10 +165,42 @@ it('a command that could not be read waits while its saved request remains, and 
  const caught='Stanje zahteva nije potvrđeno. Sačuvani zahtev ostaje za proveru.';
  mockLoad.mockResolvedValue(pending());await render();
  mockRead.mockRejectedValue(new Error('lost'));
- await act(async()=>button('Ponovi isti zahtev za zatvaranje').props.onPress());
+ await act(async()=>button('Pošalji zahtev za zatvaranje ponovo').props.onPress());
  expect(note()?.props).toMatchObject({tone:'warn',children:caught});expect(mockStart).not.toHaveBeenCalled();
  await act(async()=>tree.unmount());
  mockLoad.mockResolvedValue(null);mockSave.mockRejectedValue(new Error('unavailable'));await render();await askStart();
  await act(async()=>confirmButton().props.onPress());
  expect(note()?.props).toMatchObject({tone:'danger',children:caught});expect(mockStart).not.toHaveBeenCalled();
+});
+// UI/UX pass 2026-10-07 (team T4c): the consequence is the first thing said, the irreversible action is the last thing on the
+// screen, and when it is not allowed it stands there grey with the reason beside it.
+const orderOf=(labels:string[])=>[...new Set(tree.root.findAll(n=>labels.includes(n.props.label)).map(n=>n.props.label as string))];
+it('the consequence is said first, with no sentence of orientation above it, and the irreversible action is the very last control',async()=>{
+ await render();
+ expect(text()).not.toContain('Pre pokretanja proveri obaveze');
+ expect(text().indexOf('Pregled pre zatvaranja.')).toBeLessThan(text().indexOf('Posle pokretanja'));
+ expect(text().indexOf('Posle pokretanja')).toBeLessThan(text().indexOf('Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'));
+ expect(orderOf(['Izvoz podataka','Osveži pregled','Pokreni zatvaranje naloga'])).toEqual(['Izvoz podataka','Osveži pregled','Pokreni zatvaranje naloga']);
+ // Allowed, so it is live (not grey), outlined in the danger colour, and it says no reason.
+ const final=tree.root.findAll(n=>n.props.label==='Pokreni zatvaranje naloga'&&'disabled' in n.props)[0];
+ expect(final.props.disabled).toBe(false);expect(final.props.kind).toBe('destructive');expect(final.props.reason).toBeUndefined();
+ expect(tree.root.findAll(n=>n.props.label==='Proveri stanje zahteva')).toHaveLength(0);
+});
+it.each([
+ ['CLOSURE_BLOCKED','Najpre reši obaveze navedene iznad.'],['CLOSURE_PREPARATION_REQUIRED','Najpre pripremi pregled.'],['CLOSURE_POLICY_NOT_READY','Zatvaranje trenutno nije dostupno.'],
+])('when closing is not allowed (%s) the final action is last and grey and says why',async(code,reason)=>{
+ mockReview.mockResolvedValue(ok({...ready(),ready:false,code,blockers:code==='CLOSURE_BLOCKED'?['OPEN_TASK']:[],retainedDatasets:null}));await render();
+ const final=tree.root.findAll(n=>n.props.label==='Pokreni zatvaranje naloga'&&'reason' in n.props)[0];
+ expect(final.props).toMatchObject({disabled:true,reason});
+ // Last in the scrolled content (the pinned footer under it holds the check or the preparation).
+ const labels=tree.root.findByType('ScrollView' as never).findAll(n=>typeof n.props.label==='string').map(n=>n.props.label as string);
+ expect(labels[labels.length-1]).toBe('Pokreni zatvaranje naloga');
+ await act(async()=>button('Pokreni zatvaranje naloga').props.onPress());expect(sheets()).toHaveLength(0);expect(mockStart).not.toHaveBeenCalled();
+});
+it('before anything is started the check is the review read again; once a request exists it checks the request',async()=>{
+ mockReview.mockResolvedValue(ok({...ready(),ready:false,code:'CLOSURE_BLOCKED',blockers:['OPEN_TASK'],retainedDatasets:null}));await render();
+ expect(button('Proveri ponovo')).toBeDefined();expect(tree.root.findAll(n=>n.props.label==='Proveri stanje zahteva')).toHaveLength(0);
+ await act(async()=>tree.unmount());
+ mockLoad.mockResolvedValue(pending());await render();
+ expect(button('Proveri stanje zahteva')).toBeDefined();expect(tree.root.findAll(n=>n.props.label==='Osveži pregled'||n.props.label==='Proveri ponovo')).toHaveLength(0);
 });

@@ -58,7 +58,7 @@ describe('CB1 — ask / answer / disposition', () => {
       const result = await preselectionQaClientService.askQuestion(NEED, 3, 'Pitanje?', REQ);
       expect(result).toMatchObject({ ok: false, kod: name });
       if (!result.ok) {
-        expect(result.poruka).toBe('Pitanja o Zadatku još nisu dostupna.');
+        expect(result.poruka).toBe('Pitanja o zadatku još nisu dostupna.');
         expect(result.poruka).not.toContain('RU4B');
       }
     }
@@ -73,7 +73,7 @@ describe('CB1 — ask / answer / disposition', () => {
     if (!stale.ok) expect(stale.poruka).toContain('izmenjen');
     resetRpc({ data: null, error: { code: 'P0001', message: 'RU4B_MATERIAL_REQUIRES_RU4_EDIT' } });
     const material = await preselectionQaClientService.answerQuestion(Q, 'Treba i kombi.', REQ);
-    if (!material.ok) expect(material.poruka).toContain('Izmeni Zadatak');
+    if (!material.ok) expect(material.poruka).toContain('Izmeni zadatak');
   });
 
   it('answers and reports a replayed receipt as replay', async () => {

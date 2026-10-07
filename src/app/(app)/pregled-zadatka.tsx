@@ -6,7 +6,7 @@ import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { reviewFactProblem } from '../../data/reviewFactProblem';
-import { rememberPublication } from '../../data/publicationHandoff';
+import { publishedTaskRoute, rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { choiceCorrectionText, editorCorrection, factChoiceValue, factChoices, factCorrectionValue, factEditorKind, factLabel,
@@ -38,7 +38,8 @@ import { AmountField, AmountWithOffers } from '../../ui/v2/AmountField';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 import { publicSummary } from '../../ui/v2/draftSummary';
-import { privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos } from '../../ui/objava/reviewFacts';
+import { SUPPORT_HAS_DUTY_OPERATOR, manualCheckCopy, privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos } from '../../ui/objava/reviewFacts';
+import { PublishedMoment } from '../../ui/objava/PublishedMoment';
 import { LocationMapPreview } from '../../ui/location/LocationMapPreview';
 import { PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFacts, ReviewFactRow, ReviewPhotos, ReviewPreview,
   ReviewSection, ReviewStatus, ReviewTodoList, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
@@ -83,6 +84,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // True once a publish or resume started on this screen read back its publication: only that confirms itself with the
   // spring. A published review restored on opening is simply shown (motion only on a real state change).
   const publishedHere = useRef(false);
+  // The calm "Objavljeno" moment that follows a publication confirmed on this screen (see `PublishedMoment`). It is shown once per
+  // publication, and it ends in the task's own overview.
+  const [moment, setMoment] = useState(false);
+  const momentShown = useRef(false);
   const deadlineProposal = useRef<string | null | undefined>(undefined);
   // The deadline is a term other people read, so it is set and shown in Serbian time like every
   // agreed time (owner rule 8.27); the facts above it already read in that zone.
@@ -282,21 +287,35 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const evaluation = command?.evaluation;
   const outcome = evaluation?.kind === 'DECISION' ? evaluation.decision.outcome : null;
   const published = command?.state === 'PUBLISHED' && snapshot?.publishedReadback;
-  const openPublished = () => {
+  // Opens the task that was just published: its OWN overview, where the owner sees what it is doing and what comes next, never the
+  // Zadaci map (owner, 2026-10-07). Every guard of the hand-off is the same as it was; only where it lands changed.
+  // It says whether the way on has started, so that Android Back during the moment is only taken when it leads somewhere.
+  const openPublished = (): boolean => {
     if (!canAct() || !published || !review || !command || !accountId
-      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
+      || AppState.currentState === 'background' || AppState.currentState === 'inactive') return false;
     const handoff = rememberPublication({ review, command, publishedReadback: true }, { accountId, accountRevision });
-    if (!handoff) return;
+    if (!handoff) return false;
     publishedHere.current = false;
-    navigate(() => router.replace({ pathname: '/zadaci', params: {
-      publishedNeedId: handoff.needId, publishedRevision: String(handoff.needRevision), publishedHandoff: handoff.token,
-    } }));
+    navigate(() => router.replace(publishedTaskRoute(handoff)));
+    return navigating.current;
   };
-  // Only a command completed on this visit moves forward automatically. Restoring an older published review
-  // keeps its explicit open action. Wait until the editor has accepted the canonical read and released its write.
+  // Only a command completed on this visit shows the "Objavljeno" moment, once, and only after the editor has accepted the canonical
+  // read and released its write. The moment continues by itself after `PUBLISHED_MOMENT_MS`, on a tap, and on Android Back. Restoring
+  // an older published review shows no moment: it keeps its explicit "Otvori zadatak".
   useEffect(() => {
-    if (publishedHere.current && published && !editor.busy && !editor.loading && !editor.uncertain) openPublished();
+    if (publishedHere.current && published && !momentShown.current && !editor.busy && !editor.loading && !editor.uncertain) {
+      momentShown.current = true; setMoment(true);
+    }
   }, [published, command, review, editor.busy, editor.loading, editor.uncertain]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openPublishedNow = useRef(openPublished); openPublishedNow.current = openPublished;
+  const momentOpen = moment && !!published;
+  // Back must not return into a finished conversation: during the moment it goes where the moment goes. If the way on cannot start
+  // (a fence refused it), Back is not swallowed: the person is never held on this screen.
+  useFocusEffect(useCallback(() => {
+    if (!momentOpen) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => openPublishedNow.current());
+    return () => subscription.remove();
+  }, [momentOpen]));
   // `draftId` is the Need this conversation is bound to, and it is set exactly when the person came
   // here to change a task that already exists rather than to publish a new one. The server already
   // knows the difference — accepting a bound review confirms an edit instead of creating a draft —
@@ -313,8 +332,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
-    // Deep read 8.7: support has no operator yet (7.31), so a review request waits; saying so is the honest part.
-    : outcome === 'REVIEW' ? 'Zadatak zahteva ručnu proveru i još nije objavljen. Podrška još nema dežurnog operatera, pa je najbrže da ga izmeniš i ponovo pošalješ.'
+    // Deep read 8.7: support has no operator yet (7.31), so a review request waits; saying so is the honest part, and (owner decision
+    // d07, 2026-10-07) the only way offered is "Izmeni zadatak": no request to support stands beside this sentence while nobody is on duty.
+    : outcome === 'REVIEW' ? manualCheckCopy()
     : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledaj pravila i izmeni zahtev.'
     : evaluation?.kind === 'NOT_READY' ? 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
     // ACCEPTED is exactly "the private draft exists and nothing after it has been confirmed", whether
@@ -412,6 +432,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     </ReviewFactRow>;
   };
 
+  // The moment replaces the whole review: a finished publication has nothing left to change here. It continues to the task's own
+  // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
+  if (momentOpen && command && review) return <PublishedMoment
+    title={revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.'}
+    line={revising ? 'Prijave stižu ovde.' : 'Prijave stižu ovde. Javićemo ti.'}
+    onContinue={openPublished} />;
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -466,7 +492,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             primary={{ label: 'Učitaj pregled i proveri ishod', onPress: refresh, disabled: editor.busy || editor.loading }} />
         : <>
           {resultCopy ? <ReviewStatus published={!!published} fresh={!!published && publishedHere.current} text={resultCopy} /> : null}
-          {command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
+          {SUPPORT_HAS_DUTY_OPERATOR && command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
             reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Zatraži pregled podrške"
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {command ? identityBlock : null}
@@ -518,7 +544,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         {/* After the tap there is one way forward at a time — open the published task, publish the
             saved draft, or go and change it — and that one wears the brand green; the check of the
             outcome stands beside it in white. */}
-        {published && command ? <V2Action label="Prikaži objavljen zadatak" style={brandAction} onPress={openPublished} />
+        {published && command ? <V2Action label="Otvori zadatak" style={brandAction} onPress={openPublished} />
           : command ? <>
             {/* Only one of the two green actions is ever drawn, and the editor's write in flight is that one's own. */}
             {!unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW')) ?

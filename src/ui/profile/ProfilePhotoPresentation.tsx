@@ -64,7 +64,7 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
       {/* After the read a retry is offered, so the line no longer asks for a check first; before it, the check is the one action. */}
       {retryable ? <>
         <T>Promena još nije potvrđena.</T>
-        <SettingsAction label="Ponovi istu promenu" loading={running === 'RETRY'} disabled={waiting} onPress={onRetry} />
+        <SettingsAction label="Pošalji promenu ponovo" loading={running === 'RETRY'} disabled={waiting} onPress={onRetry} />
         <SettingsAction label="Proveri sačuvanu fotografiju" kind="quiet" disabled={waiting} onPress={onCheck} />
       </> : <>
         <T>Slanje ili promena još nisu potvrđeni. Proveri ishod pre novog izbora.</T>

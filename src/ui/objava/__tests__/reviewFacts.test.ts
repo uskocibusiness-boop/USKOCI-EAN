@@ -77,7 +77,7 @@ describe('reviewTodos', () => {
   const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {} };
   it('never names the category', () => {
     expect(reviewTodos({ ...base, missingRequired: ['need.category'] }, null)).toEqual([
-      { key: 'missing', text: 'Treba još malo o samom poslu.', target: 'conversation' }]);
+      { key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' }]);
     const both = reviewTodos({ ...base, missingRequired: ['need.category', 'need.title'] }, null);
     expect(both[0].text).toBe('Nedostaje: Naslov.'); expect(both[0].text).not.toMatch(/ategorij/);
   });

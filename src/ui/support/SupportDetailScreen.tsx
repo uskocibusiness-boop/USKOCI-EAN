@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import type { SupportAction, SupportAppeal, SupportDecision, SupportDetail, SupportSnapshot } from '../../data/supportCaseTypes';
 import { ProductSheet } from '../product/ProductSheet';
 import { SettingsAction, SettingsGroup, SettingsText as T } from '../settings/SettingsPresentation';
+import { useConfirmSheet } from '../system/ConfirmSheet';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { supportActionAllowed } from './SupportController';
@@ -23,7 +24,8 @@ export function SupportDetailScreen({ caseId }: { caseId: string }) {
   return <SupportDetailView model={model} caseId={caseId} />;
 }
 
-const appealState = (appeal: SupportAppeal) => appeal.status === 'RECEIVED' ? 'Žalba je primljena'
+// One word for it everywhere: "ponovni pregled" (a "žalba" would promise a body that decides over support; there is none).
+const appealState = (appeal: SupportAppeal) => appeal.status === 'RECEIVED' ? 'Zahtev za ponovni pregled je primljen'
   : appeal.status === 'IN_REVIEW' ? 'Ponovni pregled je u toku' : 'Ponovni pregled je završen';
 
 /**
@@ -40,10 +42,18 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   const [cursors, setCursors] = useState<string[]>(['0']);
   const [reply, setReply] = useState({ key: '', text: '' });
   const [form, setForm] = useState<{ action: FormAction; targetId: string | null; key: string } | null>(null);
+  const confirm = useConfirmSheet();
   useEffect(() => { setCursors(['0']); setReply({ key: '', text: '' }); setForm(null); }, [model.incarnation]);
-  const detail = state.detail, busy = state.phase === 'LOADING' || state.phase === 'SENDING';
+  // `live` is the case the controller holds right now: it is null while a read runs, and every fence and command follows it.
+  // `detail` is what is DRAWN: while the person's own refresh runs, the case they were reading stays on screen under the
+  // spinner (read-only, every command waits grey) instead of being swapped for a skeleton. The first read has nothing to keep.
+  const live = state.detail, busy = state.phase === 'LOADING' || state.phase === 'SENDING';
+  const settled = useRef<{ incarnation: unknown; detail: SupportDetail } | null>(null);
+  if (state.phase === 'READY' && live) settled.current = { incarnation: model.incarnation, detail: live };
+  const kept = !live && state.phase === 'LOADING' && state.command === 'READ' && settled.current?.incarnation === model.incarnation ? settled.current.detail : null;
+  const detail = live ?? kept;
   // `key` is one revision of the case (a stale press, the form sheet and the scroll follow it); the reply follows the case.
-  const key = detail ? `${detail.case.id}:${detail.case.revision}` : '';
+  const key = live ? `${live.case.id}:${live.case.revision}` : '';
   const replyKey = detail?.case.id ?? '';
   const replyText = detail && reply.key === replyKey ? reply.text : '';
   // The person's own reply was confirmed: its words are sent, so they leave the field. A revision the other side made
@@ -54,7 +64,10 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   }, [receipt]); // eslint-disable-line react-hooks/exhaustive-deps
   // A read that drops the case (a reload, a failed read after a send) takes the form sheet with it, so the sheet does
   // not come back by itself, empty, when the same revision returns (round 5 review).
-  useEffect(() => { if (!detail) setForm(null); }, [detail]);
+  useEffect(() => { if (!live) setForm(null); }, [live]);
+  // A question about this case belongs to the revision it was asked on: a new revision (or a dropped case) retires it.
+  const closeQuestion = confirm.close;
+  useEffect(() => { closeQuestion(); }, [key, closeQuestion]);
   const scroll = useRef<ScrollView>(null), scrolledTo = useRef<string | null>(null);
   const page = (cursor: string, back = false) => {
     if (!current() || busy) return;
@@ -68,6 +81,15 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
   const open = (action: FormAction, id: string | null = null) => {
     if (!current() || actionsDisabled || !allowed(action)) return;
     setForm({ action, targetId: id, key });
+  };
+  // Closing a processed case is the one operator command that ends the person's chance to add to it, so it asks first, in the
+  // centred dialog, with what follows said in one sentence. The answer is fenced like every other press of this screen: it
+  // belongs to the render (and so the state and the revision) that asked, and a new revision retires the question.
+  const askClose = () => {
+    if (!current() || actionsDisabled || !allowed('CLOSE')) return;
+    confirm.ask({ title: 'Zatvoriti predmet?', message: 'Predmet se zatvara i dopune više nisu moguće. Odluka i razgovor ostaju u istoriji.',
+      confirmLabel: 'Zatvori predmet', tone: 'danger',
+      onConfirm: () => { if (current() && allowed('CLOSE')) return controller?.submit('CLOSE', {}, state); } });
   };
   const author = detail?.viewerRole !== 'OPERATOR';
   const replyKind = author ? 'AUTHOR_REPLY' as const : 'OPERATOR_REPLY' as const;
@@ -151,11 +173,11 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
       refresh={<RefreshControl refreshing={state.phase === 'LOADING'} onRefresh={reload} tintColor={sys.color.green} colors={[sys.color.green]} />}
       scrollRef={scroll} onContentSizeChange={() => {
         // The conversation opens at its newest line, and again after a confirmed reply; paging leaves the place alone.
-        if (!detail || scrolledTo.current === key) return; scrolledTo.current = key; scroll.current?.scrollToEnd?.({ animated: false });
+        if (!live || scrolledTo.current === key) return; scrolledTo.current = key; scroll.current?.scrollToEnd?.({ animated: false });
       }}
       composer={composer}>
-      {state.phase !== 'LOADING' && !(state.phase === 'ERROR' && !detail) ? <View style={s.head}>
-        <SettingsAction label="Osveži predmet" kind="quiet" disabled={busy} onPress={reload} />
+      {(state.phase !== 'LOADING' || kept) && !(state.phase === 'ERROR' && !detail) ? <View style={s.head}>
+        <SettingsAction label="Osveži predmet" kind="quiet" disabled={busy} loading={state.phase === 'LOADING'} onPress={reload} />
       </View> : null}
       {!detail ? state.phase === 'LOADING' ? <SupportLoading />
         : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtev nije učitan" body={state.message ?? undefined}
@@ -177,14 +199,14 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
               onPress={() => { if (current()) void controller?.submit('CLAIM', {}, state); }} /> : null}
             {allowed('REQUEST_INFO') ? <SettingsAction label="Zatraži dopunu" kind="quiet" disabled={actionsDisabled} onPress={() => open('REQUEST_INFO')} /> : null}
             {allowed('DECIDE') ? <SettingsAction label="Donesi odluku" kind="quiet" disabled={actionsDisabled} onPress={() => open('DECIDE')} /> : null}
-            {allowed('CLOSE') ? <SettingsAction label="Zatvori obrađeni predmet" kind="quiet" disabled={actionsDisabled}
-              onPress={() => { if (current()) void controller?.submit('CLOSE', {}, state); }} /> : null}
+            {allowed('CLOSE') ? <SettingsAction label="Zatvori obrađeni predmet" kind="quiet" disabled={actionsDisabled} onPress={askClose} /> : null}
           </View>
         </View> : null}
       </>}
     </SupportThreadFrame>
-    {detail && form && form.key === key && allowed(form.action) ? <SupportFormSheet key={`${key}:${form.action}:${form.targetId ?? ''}`}
-      action={form.action} targetId={form.targetId} detail={detail} model={model} onClose={() => setForm(null)} /> : null}
+    {live && form && form.key === key && allowed(form.action) ? <SupportFormSheet key={`${key}:${form.action}:${form.targetId ?? ''}`}
+      action={form.action} targetId={form.targetId} detail={live} model={model} onClose={() => setForm(null)} /> : null}
+    {confirm.sheet}
   </>;
 }
 
@@ -233,7 +255,7 @@ function SupportFormSheet({ action, targetId, detail, model, onClose }: {
     footer={() => <SettingsAction label={action === 'APPEAL' ? 'Pošalji zahtev za ponovni pregled' : deciding ? 'Sačuvaj odluku' : 'Pošalji poruku'}
       loading={state.phase === 'SENDING' && state.command === 'SEND' && state.pending?.kind === action} disabled={disabled || !valid} reason={why} onPress={submit} />}>
     {() => <View style={s.sheet}>
-      {action === 'APPEAL' ? <T variant="note" tone="muted">Žalba se odnosi na izabranu stvarnu odluku. Ovo je ponovni pregled podrške; ne predstavlja nezavisan žalbeni organ.</T> : null}
+      {action === 'APPEAL' ? <T variant="note" tone="muted">Zahtev za ponovni pregled odnosi se na izabranu odluku. Ovo je ponovni pregled u okviru podrške; ne predstavlja nezavisan žalbeni organ.</T> : null}
       {deciding ? <>
         <View style={supportStyles.list} accessibilityRole="radiogroup" accessibilityLabel="Odluka o zahtevu">
           <SupportChoiceRow kind="radio" label="Prihvati zahtev" selected={outcome === 'ACCEPTED'} disabled={disabled} onPress={() => { if (current()) setOutcome('ACCEPTED'); }} />

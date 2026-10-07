@@ -19,16 +19,16 @@ const isoInstant = (value: unknown): value is string => typeof value === 'string
 const remainingSearchErrors: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
   ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
-  NEED_ID_REVISION_REQUIRED: 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.',
-  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije spreman. Ponovo otvori Zadatak.',
-  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev već pripada drugoj radnji. Učitaj aktuelno stanje Zadatka.',
+  NEED_ID_REVISION_REQUIRED: 'Ponovo otvori zadatak i pregledaj aktuelne podatke.',
+  CLIENT_REQUEST_ID_INVALID: 'Zahtev nije spreman. Ponovo otvori zadatak.',
+  IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev već pripada drugoj radnji. Učitaj aktuelno stanje zadatka.',
   NEED_NOT_FOUND: 'Zadatak nije dostupan.',
-  NEED_NOT_OWNED: 'Potragu može da zatvori samo onaj ko je objavio Zadatak.',
+  NEED_NOT_OWNED: 'Potragu može da zatvori samo osoba koja je objavila zadatak.',
   STALE_REVIEW_REQUIRED: 'Zadatak je izmenjen. Pregledaj važeće uslove.',
-  REMAINING_SEARCH_CLOSE_REQUIRES_DOGOVOR: 'Najpre izaberi prijavu i napravi Dogovor. Ako odustaješ od celog Zadatka, otkaži Zadatak.',
-  NEED_REMAINING_SEARCH_NOT_OPEN: 'Ovaj Zadatak više nema otvorenu potragu. Učitaj aktuelno stanje.',
+  REMAINING_SEARCH_CLOSE_REQUIRES_DOGOVOR: 'Najpre izaberi prijavu i napravi Dogovor. Ako odustaješ od celog zadatka, otkaži zadatak.',
+  NEED_REMAINING_SEARCH_NOT_OPEN: 'Ovaj zadatak više nema otvorenu potragu. Učitaj aktuelno stanje.',
   REMAINING_SEARCH_CLOSE_REQUIRES_SELECTED_CAPACITY: 'Trenutno nema izabranih ljudi. Pregledaj Dogovore i prijave pre zatvaranja potrage.',
-  NO_REMAINING_SEARCH: 'Sva mesta su već popunjena. Učitaj aktuelno stanje Zadatka.',
+  NO_REMAINING_SEARCH: 'Sva mesta su već popunjena. Učitaj aktuelno stanje zadatka.',
 };
 export const knownRemainingSearchRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(remainingSearchErrors, kod);
 
@@ -125,7 +125,7 @@ export const ru4Production = {
       p_proposed_end_at: input.predlozeniKraj ?? null,
       p_scope_note: input.napomena ?? null,
     });
-    if (error) return fail(error, 'STALE_RESPONSE_RESOLUTION_FAILED', 'Prijava nije mogla da se uskladi sa izmenjenim Zadatkom.');
+    if (error) return fail(error, 'STALE_RESPONSE_RESOLUTION_FAILED', 'Prijava nije mogla da se uskladi sa izmenjenim zadatkom.');
     return {
       ok: true,
       podatak: {

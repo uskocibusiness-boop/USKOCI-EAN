@@ -132,7 +132,7 @@ export function taskStatus(item: MarketplaceItem, relation?: TaskCardRelation, s
   return relation === 'OWNED' ? { text: 'Tvoj zadatak', quiet: false }
     : relation === 'APPLIED' ? { text: 'Prijava poslata', quiet: false }
     : relation === 'UNKNOWN' ? { text: 'Tvoj status nije potvrđen', quiet: true }
-    : relation === 'PENDING' ? { text: 'Proveravam tvoj status…', quiet: true } : null;
+    : relation === 'PENDING' ? { text: 'Proveravamo…', quiet: true } : null;
 }
 
 /**

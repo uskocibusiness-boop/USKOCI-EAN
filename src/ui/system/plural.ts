@@ -40,3 +40,13 @@ export function dolaziOsoba(count: number): string {
   const few = !(hundred >= 11 && hundred <= 14) && ten >= 2 && ten <= 4;
   return `${few ? 'dolaze' : 'dolazi'} ${osoba(count)}`;
 }
+/**
+ * What a task still needs, as a sentence the verb agrees with: "Nedostaje još jedna osoba.", "Nedostaju još 2 osobe.",
+ * "Nedostaje još 5 osoba.", "Nedostaje još 21 osoba." (plural verb for 2 to 4 and 22 to 24, never 12 to 14). It was "Nedostaje još 2 ljudi".
+ */
+export function nedostajeOsoba(count: number): string {
+  if (count === 1) return 'Nedostaje još jedna osoba.';
+  const hundred = Math.abs(count) % 100, ten = Math.abs(count) % 10;
+  const few = !(hundred >= 11 && hundred <= 14) && ten >= 2 && ten <= 4;
+  return `${few ? 'Nedostaju' : 'Nedostaje'} još ${osoba(count)}.`;
+}

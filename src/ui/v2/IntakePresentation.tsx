@@ -217,7 +217,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
         <CaretRight size={18} color={canReview ? sys.color.ink : sys.color.muted} />
       </Press> : null}
     </View> : null}
-    {readyForReview ? <V2Action tone="neutral" label={editing ? 'Pregledaj izmene' : 'Pregledaj i objavi'}
+    {readyForReview ? <V2Action label={editing ? 'Pregledaj izmene' : 'Pregledaj i objavi'}
       style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} /> : null}
   </View>;
 }
@@ -313,7 +313,7 @@ export function IntakePresentation(props: Props) {
   // the next place; a confirmed place is its own line in the thread and needs no menu row.
   if (showPlace && !placeComplete && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setHiddenPlace(null) });
   if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
-  if (props.onNewTask) menu.push({ key: 'new', label: 'Novi Zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
+  if (props.onNewTask) menu.push({ key: 'new', label: 'Novi zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
@@ -352,7 +352,7 @@ export function IntakePresentation(props: Props) {
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
-    welcomeDetail="Opiši posao svojim rečima. Pre objave sve pregledaš."
+    welcomeDetail="Opiši zadatak svojim rečima. Pre objave sve pregledaš."
     placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
@@ -401,7 +401,7 @@ export function IntakePresentation(props: Props) {
         }} />
     </Suspense>
       : showPlace && !placeComplete && pointAskHidden
-        ? <V2Action tone="neutral" label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
+        ? <V2Action tone={needsPoint ? 'brand' : 'neutral'} label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
@@ -416,7 +416,7 @@ export function IntakePresentation(props: Props) {
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
       {props.onCancelPending ? <>
-        <T variant="note" style={s.muted}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, taj pokušaj se ipak računa.</T>
+        <T variant="note" style={s.muted}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, poruka se ipak računa kao poslata.</T>
         <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}

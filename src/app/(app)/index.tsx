@@ -8,6 +8,7 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { HomePresentation } from '../../ui/home/HomePresentation';
+import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 
 /**
  * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
@@ -73,6 +74,10 @@ function Home() {
       ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId, from: 'pocetna' } }) : router.navigate('/dogovori'))}
     onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
     onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
+    // Raspored: "Ceo raspored" opens the planner; the face of the other person in its block is read by the route's own
+    // photo element (a data client), as the header's avatar is, so the presentation and its gallery load none.
+    onPlanner={() => navigate(() => router.navigate('/raspored'))}
+    photo={(profileId, standIn) => <ProfilePhoto profileId={profileId} size={32} fallback={standIn} />}
     onRefresh={() => {
       if (!current() || resource.loading || retrying.current) return;
       const retry = {}; retrying.current = retry;

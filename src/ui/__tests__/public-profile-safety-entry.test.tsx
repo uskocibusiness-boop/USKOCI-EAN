@@ -46,7 +46,7 @@ it('says plainly that there is no target instead of opening a screen that cannot
   await act(async () => { tree = create(<Harness />); });
   await act(async () => { find(tree, 'Prijavi ili blokiraj').props.onPress(); });
   expect(mockNavigate).not.toHaveBeenCalled();
-  expect(alerts(tree)).toContain('Korisnik trenutno nije dostupan');
+  expect(alerts(tree)).toContain('Osoba trenutno nije dostupna');
 });
 
 it('carries the server refusal without inventing a navigation', async () => {

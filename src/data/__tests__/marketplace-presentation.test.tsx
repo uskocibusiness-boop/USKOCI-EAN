@@ -61,7 +61,7 @@ const click = async (label: string) => act(async () => (label === 'Prikaži zada
  : action(label)).props.onPress());
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const words = () => tree.root.findAllByType('T' as React.ElementType).map(node => node.props.children);
-const cards = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^Otvori Zadatak /.test(node.props.accessibilityLabel ?? ''));
+const cards = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^Otvori zadatak /.test(node.props.accessibilityLabel ?? ''));
 const list = () => tree.root.findByType('List' as React.ElementType);
 const scrollTo = async (y: number) => act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y } } }));
 const render = async () => act(async () => { tree = create(<Screen />); });
@@ -76,7 +76,7 @@ test('search opens from the header with the keyboard; clearing it keeps price, a
  expect(texts()).toContain('Nema zadataka u ovom prikazu');
  await tap('Obriši pretragu');
  expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', attention: false, section: 'active' });
- expect(press('Otvori Zadatak Pomoć one')).toBeTruthy();
+ expect(press('Otvori zadatak Pomoć one')).toBeTruthy();
 });
 test('the active tab speaks tasks waiting for a choice, then removes the count when none remain', async () => {
  rows = [row('waiting', { brojPrijavaZaIzbor: 3 }), row('ready'), row('draft', { stanje: 'NACRT', brojPrijavaZaIzbor: 5 })];
@@ -91,7 +91,7 @@ test('the active tab speaks tasks waiting for a choice, then removes the count w
 test('filter working copy can cancel and hardware back does not apply; Apply preserves selected choice', async () => {
  await render(); await tap('Filteri'); await tap('Tražim ponude'); await click('Odustani od filtera'); expect(snapshot.price).toBe('all');
  await tap('Filteri'); await tap('Navedena cena'); await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose()); expect(snapshot.price).toBe('all');
- await tap('Filteri'); await tap('Tražim ponude'); await click('Prikaži zadatke'); expect(snapshot.price).toBe('OFFERS'); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori Zadatak Pomoć one' })).toHaveLength(0);
+ await tap('Filteri'); await tap('Tražim ponude'); await click('Prikaži zadatke'); expect(snapshot.price).toBe('OFFERS'); expect(press('Otvori zadatak Pomoć two')).toBeTruthy(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori zadatak Pomoć one' })).toHaveLength(0);
 });
 test('drag/backdrop closure discards filter drafts and opens nothing', async () => {
  await render(); await tap('Filteri'); await tap('Tražim ponude');
@@ -139,7 +139,7 @@ test('owned active/draft/attention filters use actual rows and full long title r
  await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Treba moja radnja');
  expect(snapshot.attention).toBe(false); await click('Prikaži zadatke'); expect(snapshot.attention).toBe(true);
  await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await tap('Filteri, aktivni'); await tap('Treba moja radnja'); await click('Prikaži zadatke'); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy();
+ await tap('Filteri, aktivni'); await tap('Treba moja radnja'); await click('Prikaži zadatke'); expect(press('Otvori zadatak Pomoć two')).toBeTruthy();
 });
 
 test('attention and price are one filter draft: cancel, system back and reset have consistent effects', async () => {
@@ -160,7 +160,7 @@ test('attention and price are one filter draft: cancel, system back and reset ha
 test('my own tasks carry no floating creation action and no eyebrow; an empty list still offers the first task inline', async () => {
  withBack = true; rows = [row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 }), row('two', { stanje: 'OBJAVLJENA', brojPrijava: 0 })];
  await render();
- expect(press('Otvori Zadatak Pomoć one')).toBeTruthy();
+ expect(press('Otvori zadatak Pomoć one')).toBeTruthy();
  expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj zadatak' })).toHaveLength(0);
  expect(texts()).toContain('Moji zadaci'); expect(texts()).not.toContain('Moje aktivnosti');
  // Nothing of the retired discovery branch is drawn: no list/map switch and no map.
@@ -168,8 +168,8 @@ test('my own tasks carry no floating creation action and no eyebrow; an empty li
  expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
  await act(async () => tree.unmount()); rows = []; await render();
  // The same words as Početna's "Moji zadaci" door for an account with no task: "Zadatak" is the product's noun.
- expect(texts()).toContain('Još nemaš Zadatak');
- await click('Napravi prvi Zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
+ expect(texts()).toContain('Još nemaš zadatak');
+ await click('Napravi prvi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
 });
 test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {
  mockReduced = true; await render(); await tap('Filteri'); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
@@ -182,7 +182,7 @@ test('"Obriši uslove" clears search, price, attention and section, and asks for
  Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', attention: true, section: 'drafts' });
  await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
  await click('Obriši uslove');
- expect(snapshot).toEqual(initialMarketplaceView()); expect(press('Otvori Zadatak Pomoć two')).toBeTruthy();
+ expect(snapshot).toEqual(initialMarketplaceView()); expect(press('Otvori zadatak Pomoć two')).toBeTruthy();
  expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
 });
 test('"Pokušaj ponovo" after a failed read asks for the list again and changes nothing else', async () => {
@@ -193,16 +193,21 @@ test('"Pokušaj ponovo" after a failed read asks for the list again and changes 
 });
 
 // One task card (step 5a, 2026-09-24): on my own list the card's foot goes straight to the applications waiting for my
-// choice, with the very row that was pressed; the body still opens the task.
+// choice, with the very row that was pressed; the body still opens the task. Since 2026-10-07 the foot is the ONE next step in grey words.
 test('my own task\'s foot opens its applications with that row; the body still opens the task', async () => {
  withBack = true; rows = [row('one', { stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 2 }), row('two', { stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 })];
  await render();
- expect(tree.root.findAllByProps({ accessibilityLabel: '2 prijave čekaju izbor, Pomoć one' }).length).toBeGreaterThan(0);
- await tap('2 prijave čekaju izbor, Pomoć one'); expect(applications).toHaveBeenCalledWith(rows[0]); expect(open).not.toHaveBeenCalled();
- await tap('Otvori Zadatak Pomoć one'); expect(open).toHaveBeenCalledWith(rows[0]); expect(applications).toHaveBeenCalledTimes(1);
+ const foot = 'Imaš 2 prijave. Uporedi ih i izaberi. Zadatak: Pomoć one';
+ expect(tree.root.findAllByProps({ accessibilityLabel: foot }).length).toBeGreaterThan(0);
+ expect(press(foot).props.accessibilityHint).toBe('Otvara prijave za izbor.');
+ await tap(foot); expect(applications).toHaveBeenCalledWith(rows[0]); expect(open).not.toHaveBeenCalled();
+ await tap('Otvori zadatak Pomoć one'); expect(open).toHaveBeenCalledWith(rows[0]); expect(applications).toHaveBeenCalledTimes(1);
+ // The next step is said in grey words, and the foot says it as it is written: no "N prijava čeka izbor", no "Čeka prijave" that reads as "has none".
+ expect(texts()).toContain('Imaš 2 prijave. Uporedi ih i izaberi.');
+ expect(texts()).not.toMatch(/čeka izbor|čekaju izbor|Čeka prijave/);
  // Nothing to choose is said quietly and is not a target.
- expect(texts()).toContain('Još nema prijava za izbor');
- expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pomoć two') && node.props.accessibilityLabel !== 'Otvori Zadatak Pomoć two' && typeof node.props.onPress === 'function')).toHaveLength(0);
+ expect(texts()).toContain('Čekaš prijave. Javićemo ti.');
+ expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pomoć two') && node.props.accessibilityLabel !== 'Otvori zadatak Pomoć two' && typeof node.props.onPress === 'function')).toHaveLength(0);
 });
 // Review r3 item 8: the box's corner is the named `check` token, not a magic 6 dressed up as a nested corner.
 test('"Treba moja radnja" is a square checkbox, not a round radio', async () => {
@@ -213,14 +218,51 @@ test('"Treba moja radnja" is a square checkbox, not a round radio', async () => 
  expect(sys.radius.check).toBe(6);
  expect(radio.props.style[0]).toMatchObject({ width: 22, height: 22, borderRadius: 999 });
 });
-// Review r3 item 10: a card under a section named for its state does not say that state again ("Nacrt" on every card
-// under Nacrti, "Zatvoren" under Istorija); where the section does not say it, the card still does.
-test('a card does not repeat the state its section is named for, and still says it elsewhere', async () => {
- rows = [row('draft', { stanje: 'NACRT' }), row('closed', { stanje: 'ZATVORENA' }), row('partial', { stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })];
- await render(); expect(words()).toContain('1/2'); expect(words()).not.toContain('Delimično popunjen');
- await tap('Nacrti'); expect(press('Otvori Zadatak Pomoć draft')).toBeTruthy(); expect(words()).not.toContain('Nacrt');
- await tap('Istorija'); expect(press('Otvori Zadatak Pomoć closed')).toBeTruthy(); expect(words()).not.toContain('Zatvoren');
- await act(async () => tree.unmount()); initial.section = 'all'; await render();
- for (const state of ['Nacrt', 'Zatvoren']) expect(words()).toContain(state);
- expect(words()).toContain('1/2'); expect(words()).not.toContain('Delimično popunjen');
+// Plan 2.2 and 3.5 (owner 2026-10-07): every row of my own tasks wears the app's one chip, in the owner's eight words, in every tab (the
+// section no longer stands in for it: Istorija holds three different endings). "Čeka prijave" is not one of them.
+const hoursFromNow = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
+const partial = { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 }, full = { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 };
+test('every row says its state with the chip, in the owner\'s eight words, and the ending of a closed task is the one the server sent', async () => {
+ rows = [row('draft', { stanje: 'NACRT' }), row('published', { stanje: 'OBJAVLJENA' }),
+  row('choosing', { stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 }),
+  row('partial', { stanje: 'DELIMICNO_POPUNJENA', pokrivenost: partial, brojPrijavaZaIzbor: 0 }),
+  row('agreed', { stanje: 'POPUNJENA', pokrivenost: full }),
+  row('now', { stanje: 'POPUNJENA', pokrivenost: full, schedule: { kind: 'FIXED_WINDOW', startsAt: hoursFromNow(-1), endsAt: hoursFromNow(1) } }),
+  row('done', { stanje: 'ZATVORENA', kraj: 'COMPLETED' }), row('cancelled', { stanje: 'ZATVORENA', kraj: 'CANCELLED' }), row('expired', { stanje: 'ZATVORENA', kraj: 'EXPIRED' })];
+ initial.section = 'all'; await render();
+ const chips = () => tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel);
+ // The chip's accessible name is "word" or "word, detail"; the tree order is the list's order.
+ expect(chips()).toEqual(['Nacrt', 'Objavljen', 'Bira se, 3', 'Dogovoren, 1 od 2', 'Dogovoren', 'U toku', 'Završen', 'Otkazan', 'Istekao']);
+ expect(words()).toEqual(expect.arrayContaining(['Bira se · 3', 'Dogovoren · 1 od 2']));
+ // No row is without a state, and none says what the server never said: not "Zatvoren", not "Čeka prijave", not "Termin je sada".
+ expect(words()).not.toContain('Zatvoren'); expect(texts()).not.toMatch(/Čeka prijave|Termin je sada|Delimično popunjen|Popunjen/);
+ expect(cards()).toHaveLength(9);
+ // One next step, in grey words, where there is one.
+ expect(texts()).toContain('Nacrt nije objavljen. Nastavi uređivanje.'); expect(texts()).toContain('Čekaš prijave. Javićemo ti.');
+ expect(texts()).toContain('Dogovoreno 1 od 2. Čekaš prijave za ostala mesta.'); expect(texts()).toContain('Sva mesta su dogovorena. Dogovor vidiš u Dogovorima.');
+ expect(texts()).toContain('Dogovoreni termin je počeo. Dogovor vidiš u Dogovorima.');
+ expect(texts()).toContain('Otkazan zadatak ne prima prijave.'); expect(texts()).toContain('Rok za prijave je istekao bez izbora.');
+});
+test('the tabs still partition the rows, and a tab shows each row\'s state again: Nacrti the draft, Istorija its three endings', async () => {
+ rows = [row('draft', { stanje: 'NACRT' }), row('active', { stanje: 'OBJAVLJENA' }), row('done', { stanje: 'ZATVORENA', kraj: 'COMPLETED' }),
+  row('cancelled', { stanje: 'ZATVORENA', kraj: 'CANCELLED' }), row('expired', { stanje: 'ZATVORENA', kraj: 'EXPIRED' })];
+ await render(); expect(words()).toContain('Objavljen'); expect(cards()).toHaveLength(1);
+ await tap('Nacrti'); expect(press('Otvori zadatak Pomoć draft')).toBeTruthy(); expect(words()).toContain('Nacrt');
+ await tap('Istorija'); expect(cards()).toHaveLength(3); for (const word of ['Završen', 'Otkazan', 'Istekao']) expect(words()).toContain(word);
+});
+test('a closed task whose ending was not carried, and an archived one, get no chip they could not stand behind, and no card is lost', async () => {
+ rows = [row('unknown', { stanje: 'ZATVORENA' }), row('archived', { stanje: 'ZATVORENA', kraj: 'ARCHIVED' })]; initial.section = 'history'; await render();
+ expect(cards()).toHaveLength(2);
+ expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.testID === 'status-chip')).toHaveLength(0);
+ expect(texts()).toContain('Zadatak je zatvoren.'); expect(texts()).toContain('Zadatak je u arhivi.'); expect(words()).not.toContain('Zatvoren');
+});
+// Plan 2.2: an empty tab says what it is, and has nothing to "clear".
+test('an empty Nacrti or Istorija says what the tab holds and offers no "Obriši uslove"; a narrowed list still does', async () => {
+ rows = [row('active', { stanje: 'OBJAVLJENA' })];
+ await render(); await tap('Nacrti');
+ expect(texts()).toContain('Nemaš nacrt'); expect(texts()).not.toContain('Nema zadataka u ovom prikazu'); expect(tree.root.findAllByProps({ label: 'Obriši uslove' })).toHaveLength(0);
+ await tap('Istorija');
+ expect(texts()).toContain('Istorija je prazna'); expect(texts()).toContain('Ovde su završeni, otkazani i istekli zadaci.'); expect(tree.root.findAllByProps({ label: 'Obriši uslove' })).toHaveLength(0);
+ await tap('Pretraga'); await act(async () => press('Pretraži zadatke').props.onChangeText('nema takvog'));
+ expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(tree.root.findAllByProps({ label: 'Obriši uslove' }).length).toBeGreaterThan(0);
 });

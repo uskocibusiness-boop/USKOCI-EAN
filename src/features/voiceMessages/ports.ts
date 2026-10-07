@@ -3,7 +3,11 @@
  * TypeScript against these interfaces and is tested with fakes; the `expo-audio` and file-system adapters implement them and are the only place a
  * native module is touched. One audio owner at a time is enforced by `audioArbiter`, never by the adapters.
  */
-export type PermissionAnswer = 'granted' | 'denied' | 'blocked' | 'unavailable';
+/**
+ * `later`: the person answered "Ne sada" to the question that comes before the system's window (ui/permissions). The system was
+ * not asked and nothing went wrong, so the recording simply does not start and no message is shown.
+ */
+export type PermissionAnswer = 'granted' | 'denied' | 'blocked' | 'unavailable' | 'later';
 /** A finished recording: a file in the app's private cache and its real duration. The bytes stay in that file until it is uploaded or discarded. */
 export type RecordedFile = Readonly<{ uri: string; durationMs: number }>;
 export type InterruptReason = 'BACKGROUND' | 'AUDIO_FOCUS' | 'FAILED';

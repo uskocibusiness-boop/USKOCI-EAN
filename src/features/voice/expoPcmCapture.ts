@@ -3,6 +3,7 @@ import { AudioModule, getRecordingPermissionsAsync, requestRecordingPermissionsA
 import type { AudioStream, AudioStreamBuffer } from 'expo-audio';
 import type { NativePcmModule } from './nativeSpeechAdapter';
 import { SPEECH_LIMITS } from './speechProtocol';
+import { permissionAsk } from '../../ui/permissions/permissionAsk';
 
 type Subscription = { remove(): void };
 type Pcm = { sessionId: string; sequence: number; pcmBase64: string; rms: number };
@@ -15,13 +16,16 @@ type Session = {
 };
 
 /** Called only by the existing explicit hold-to-talk permission action. */
-export async function requestExpoSpeechPermission(signal: AbortSignal): Promise<'granted' | 'denied' | 'unavailable'> {
+export async function requestExpoSpeechPermission(signal: AbortSignal): Promise<'granted' | 'denied' | 'unavailable' | 'later'> {
   if (Platform.OS !== 'android' || signal.aborted) return 'unavailable';
   try {
     const permission = await getRecordingPermissionsAsync();
     if (signal.aborted) return 'denied';
     if (permission.granted) return 'granted';
     if (!permission.canAskAgain) return 'denied';
+    // The system is about to ask: say why first. "Ne sada" asks the system nothing; "Dozvoli" reaches its window even if the
+    // hold was let go while the question was read (the grant is for the next hold).
+    if (permissionAsk.hasHost() && await permissionAsk.ask('microphone') === 'later') return 'later';
     const asked = await requestRecordingPermissionsAsync();
     return !signal.aborted && asked.granted ? 'granted' : 'denied';
   } catch { return 'unavailable'; }

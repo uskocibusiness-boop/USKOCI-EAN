@@ -74,7 +74,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); mockListeners.cl
 it('reviews consequences, persists the frozen identity first and deduplicates retained final taps', async () => {
   await render(); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled(); await ask('DELETE_DRAFT');
   expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger',
-    message: 'Brišeš ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo ukloni iz nacrta.' });
+    message: 'Nacrt se briše zauvek i ne može da se vrati. Ako ima fotografije, prvo ih ukloni iz nacrta.' });
   const wait = deferred<void>(); mockStorage.setItem.mockReturnValue(wait.promise); const send = retainedConfirm();
   await act(async () => { void send(); void send(); }); expect(mockService.deleteDraftNeed).not.toHaveBeenCalled();
   expect(JSON.parse(mockStorage.setItem.mock.calls[0][1])).toEqual(command);
@@ -90,6 +90,10 @@ it('serves the owner of the Task: ownership is the whole condition, and there is
   await render();
   await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm');
   expect(mockService.deleteDraftNeed).toHaveBeenCalledWith(N, 3, '');
+});
+it('never cancels a draft: a draft is deleted, and the cancellation is not even asked', async () => {
+  await render(); await ask('CANCEL'); expect(sheets()).toHaveLength(0);
+  expect(mockStorage.setItem).not.toHaveBeenCalled(); expect(mockService.cancelNeed).not.toHaveBeenCalled();
 });
 it('keeps cancellation separate from deleting a published Task', async () => {
   need = { ...need, stanje: 'OBJAVLJENA' }; await render();
@@ -136,14 +140,14 @@ it('retires confirmation after Odustani and does not let an old cancel discard a
 });
 it('unknown command requires successful readback before an explicit identical retry', async () => {
   mockService.deleteDraftNeed.mockResolvedValueOnce(unknown); await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm');
-  expect(action('Ponovi isti zahtev').disabled).toBe(true); await tap('Ponovi isti zahtev'); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
+  expect(action('Pošalji ponovo').disabled).toBe(true); await tap('Pošalji ponovo'); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
   await tap('Proveri ishod'); expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command);
-  expect(action('Ponovi isti zahtev').disabled).toBe(false); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
-  await tap('Ponovi isti zahtev'); expect(mockService.deleteDraftNeed.mock.calls).toEqual([[N, 3, ''], [N, 3, '']]);
+  expect(action('Pošalji ponovo').disabled).toBe(false); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
+  await tap('Pošalji ponovo'); expect(mockService.deleteDraftNeed.mock.calls).toEqual([[N, 3, ''], [N, 3, '']]);
 });
 it('failed readback never licenses retry and missing list rows do not prove deletion', async () => {
   mockService.deleteDraftNeed.mockResolvedValue(unknown); mockService.readCommandReceipt.mockResolvedValue({ ok: false, kod: 'READ_FAILED', poruka: 'Nedostupno.' });
-  await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm'); await tap('Proveri ishod'); await tap('Ponovi isti zahtev');
+  await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm'); await tap('Proveri ishod'); await tap('Pošalji ponovo');
   expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1); expect(mockSource.mojePotrebe).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ label: 'Moji zadaci' })).toHaveLength(0);
 });
@@ -163,7 +167,7 @@ it.each(['corrupt', JSON.stringify({ ...command, needId: A }), JSON.stringify({ 
 it('server stale rejection needs a fresh review and cannot force replay', async () => {
   mockService.deleteDraftNeed.mockResolvedValue({ ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'Osveži zadatak.' });
   await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm');
-  expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0); await tap('Učitaj aktuelni zadatak');
+  expect(tree.root.findAllByProps({ label: 'Pošalji ponovo' })).toHaveLength(0); await tap('Učitaj aktuelni zadatak');
   expect(mockRefresh).toHaveBeenCalledTimes(1); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
 });
 it.each(['blur', 'account', 'background'])('fences pending persistence and retained handlers after %s', async change => {

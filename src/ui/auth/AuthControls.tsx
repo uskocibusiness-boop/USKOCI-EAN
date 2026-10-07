@@ -82,7 +82,25 @@ export function PrimaryButton({
   );
 }
 
+/** The quiet way out beside the one green action: a label in the muted ink, never a second filled button. */
+export function QuietButton({ title, onPress, disabled }: { title: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [styles.quiet, pressed && !disabled && styles.togglePressed, disabled && styles.disabled]}
+    >
+      <Text style={styles.quietText}>{title}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  quiet: { minHeight: 48, borderRadius: radius.primary, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 18 },
+  quietText: { ...type.action, color: c.muted, textAlign: 'center' },
   field: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.input,
     borderWidth: 1, borderColor: c.line, borderRadius: radius.cardCompact, minHeight: 66, paddingLeft: 15 },
   icon: { width: 22, alignItems: 'center' },

@@ -34,9 +34,26 @@ const publicInboxCopies = Object.freeze([
  ['USKOČI', 'Imaš novo obaveštenje. Otvori aplikaciju.'],
 ].map(([title, body]) => Object.freeze({ title, body })));
 
+/**
+ * The words the owner decided on (2026-10-07): "ti", no grammatical gender, "zadatak" and never "posao". Three of the pairs above
+ * break that rule and the Edge formatter still sends them: "Izabran si" (a masculine participle), "označila posao kao završen"
+ * (the banned word) and "Oporavak naloga" for a problem that was reported in a Dogovor (the wrong subject).
+ *
+ * These are their replacements, ACCEPTED HERE BEFORE THE SERVER SENDS THEM. A pair that is not in this file is not shown
+ * while the app is open, so the client has to know the new words first; then the push package (S6) can change
+ * `supabase/functions/_shared/pushNotificationCopy.mjs` to exactly these pairs in any order of roll-out, and an old build
+ * keeps recognising the old ones until it is retired. No pair here names a person, a task or a place (rule A20: nothing of
+ * the task on the lock screen). Nothing in this file sends, registers or enables a push.
+ */
+export const PLANNED_PUBLIC_INBOX_COPIES = Object.freeze([
+ ['Tvoja prijava je izabrana', 'Otvori Dogovor.'],
+ ['Potvrdi završetak', 'Zadatak je označen kao gotov.'],
+ ['Prijavljen je problem u Dogovoru', 'Otvori Dogovor da vidiš prijavljeni problem.'],
+].map(([title, body]) => Object.freeze({ title, body })));
+
 export function isPublicInboxCopy(title: unknown, body: unknown): boolean {
  return typeof title === 'string' && typeof body === 'string'
-  && publicInboxCopies.some(copy => copy.title === title && copy.body === body);
+  && [...publicInboxCopies, ...PLANNED_PUBLIC_INBOX_COPIES].some(copy => copy.title === title && copy.body === body);
 }
 
 /** Shared unchanged foreground admission: neither presentation nor a read hint

@@ -3,7 +3,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskReviewClientService';
 import type { NeedLocationInput } from '../../contracts/location';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
-import { readPublicationHandoff } from '../publicationHandoff';
+import { PUBLISHED_MOMENT_MS } from '../../ui/objava/PublishedMoment';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -51,7 +51,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
-import { StyleSheet } from 'react-native';
+import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { sys } from '../../ui/system/tokens';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });
@@ -201,6 +201,7 @@ it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('restores %s on 
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
   expect(text()).not.toContain('Zadatak je objavljen.');
   expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Otvori zadatak' })).toHaveLength(0);
   if (state === 'ACCEPTED') {
     // ACCEPTED is a private draft with nothing after it confirmed; the button says so.
     await act(async () => action('Objavi ovaj nacrt').onPress());
@@ -244,23 +245,19 @@ it.each([
   mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); mockNeed.mockResolvedValue(value);
   await render(); expect(mockNeed).toHaveBeenCalledWith(NEED);
   expect(text()).toContain('Objava je zabeležena. Ponovo učitaj zadatak');
-  expect(text()).not.toContain('Zadatak je objavljen.'); expect(tree.root.findAllByProps({ label: 'Prikaži objavljen zadatak' })).toHaveLength(0);
+  expect(text()).not.toContain('Zadatak je objavljen.'); expect(tree.root.findAllByProps({ label: 'Otvori zadatak' })).toHaveLength(0);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
-it('shows publication only after the current owned Need revision and published state are read, then opens Discovery for that task', async () => {
+it('shows publication only after the current owned Need revision and published state are read, then opens the task\'s own overview', async () => {
   const held = deferred(); mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); mockNeed.mockReturnValueOnce(held.promise);
   await render(); expect(text()).not.toContain('Zadatak je objavljen.');
   await act(async () => held.resolve({ id: NEED, narucilacId: OWNER, revizija: 1, stanje: 'CEKA_PRIJAVE' }));
-  expect(text()).toContain('Zadatak je objavljen.'); const retained = action('Prikaži objavljen zadatak').onPress;
+  expect(text()).toContain('Zadatak je objavljen.'); const retained = action('Otvori zadatak').onPress;
   await act(async () => { retained(); retained(); });
   expect(mockRouter.replace).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/zadaci', params: {
-    publishedNeedId: NEED, publishedRevision: '1', publishedHandoff: expect.stringMatching(/^publication-\d+$/),
-  } });
-  expect(readPublicationHandoff(mockRouter.replace.mock.calls[0][0].params)).toMatchObject({
-    accountId: OWNER, accountRevision: 1, needId: NEED, needRevision: 1,
-  });
+  // The owner lands on the task's own overview (2026-10-07), proved by the hand-off, and not on the Zadaci map.
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: NEED } });
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
@@ -504,16 +501,25 @@ it.each([undefined, 'malformed', [CONVERSATION]])('invalid conversation route pe
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
-it('offers support only for an evaluated REVIEW and passes just the exact opaque review reference', async () => {
+// Owner decision d07 (2026-10-07): support has no duty operator yet, and the sentence under the status says so. A request to support
+// stood right beneath it ("Zatraži pregled podrške"). While nobody is on duty the task held for a manual check offers ONLY the way
+// that works: "Izmeni zadatak". The entry comes back with the one line `SUPPORT_HAS_DUTY_OPERATOR` (reviewOutcome.test).
+it('a task held for a manual check says nobody is on duty and offers only "Izmeni zadatak", never a request to support', async () => {
   const evaluated = { ...command('EVALUATED'), evaluation: { kind: 'DECISION', decision: { outcome: 'REVIEW' } } };
-  mockLatest.mockResolvedValue(ok({ review: review(), command: evaluated })); await render();
-  const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
-  expect(entry.reference).toEqual({ kind: 'TASK_REVIEW', id: REVIEW, revision: null });
-  expect(JSON.stringify(entry.reference)).not.toContain('Privatna');
-  expect(entry.label).toBe('Zatraži pregled podrške'); expect(entry.disabled).toBe(false); expect(entry.canAct()).toBe(true);
+  mockLatest.mockResolvedValue(ok({ review: review(), command: evaluated })); mockOpenEdit.mockResolvedValue(ok({ conversationId: OTHER }));
+  await render();
+  expect(text()).toContain('Zadatak zahteva ručnu proveru i još nije objavljen.');
+  expect(text()).toContain('Podrška još nema dežurnog operatera');
+  expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Zatraži pregled podrške' })).toHaveLength(0);
+  expect(text()).not.toContain('Zatraži pregled podrške');
+  // One green action, the way that works; the check of the outcome stands beside it in white.
+  expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(1);
+  expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(sys.color.green);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
-  await blur(); expect(entry.canAct()).toBe(false);
-  await act(async () => entry.navigate(() => mockRouter.replace('must-not-open'))); expect(mockRouter.replace).not.toHaveBeenCalled();
+  await act(async () => action('Izmeni zadatak').onPress());
+  expect(mockOpenEdit).toHaveBeenCalledWith(NEED);
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: OTHER } });
 });
 it.each(['CLARIFY', 'BLOCK', 'ALLOW', 'NOT_READY', 'UNKNOWN_OUTCOME'] as const)('does not claim the REVIEW support entry for %s', async outcome => {
   const stored = outcome === 'NOT_READY' ? notReadyCommand() : outcome === 'UNKNOWN_OUTCOME' ? command('UNKNOWN_OUTCOME')
@@ -609,7 +615,12 @@ describe('the review reads as a task', () => {
     mockPrepare.mockResolvedValue(ok(review()));
     await render();
     expect(text()).toContain('Prenos ormara');
-    expect(text()).toContain('Ovako će drugi videti zadatak');
+    // "Ovako će drugi videti zadatak" was a sentence about where the person is (plan 2.17, 3.3): the card shows the task as it will look.
+    expect(text()).not.toContain('Ovako će drugi videti zadatak');
+    // The quiet correction of the title stays, under the card, and so does the card itself.
+    expect(tree.root.findAllByProps({ label: 'Izmeni naslov' })).toHaveLength(1);
+    const order = (value: string) => text().indexOf(value);
+    expect(order('Prenos ormara')).toBeLessThan(order('Još treba'));
   });
 
   it('names what is not stated in one line instead of a row each', async () => {
@@ -740,10 +751,10 @@ describe('round 6: the publish review', () => {
     mockPrepare.mockResolvedValue(ok({ ...review(), canAccept: false, missingRequired: ['need.category'] }));
     await render();
     expect(text()).not.toContain('Kategorija');
-    expect(text()).toContain('Treba još malo o samom poslu.');
+    expect(text()).toContain('Treba još malo o samom zadatku.');
     expect(text()).toContain('Prvo reši ono što još treba.');
     expect(publish().disabled).toBe(true);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Treba još malo o samom poslu.' }).props.onPress());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Treba još malo o samom zadatku.' }).props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
   });
 
@@ -928,5 +939,125 @@ describe('enum facts are chosen and the amount is typed as digits', () => {
     mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', null))); await render();
     expect(text()).toContain('Iznos još nije unet');
     expect(text()).not.toMatch(/\b0 RSD/);
+  });
+});
+
+// The "Objavljeno" moment (plan 2.9 and 3.3, owner 2026-10-07). A publication confirmed on this screen used to be replaced by the jump
+// to the map in the same breath, so nobody ever saw it. Now a calm moment holds for PUBLISHED_MOMENT_MS (at least 1,2 s), a tap or Android
+// Back continues at once, a screen reader is not hurried, and the owner lands on the task's OWN overview, not on the Zadaci map. Every
+// fence of the hand-off (focus, account, the read-back of the exact revision) is the one it was.
+describe('the Objavljeno moment', () => {
+  const OVERVIEW = { pathname: '/potrebe/[id]/pregled', params: { id: NEED } };
+  const published = () => ok({ review: review(), command: command('PUBLISHED') });
+  const publishHere = async (bound?: AiTaskReviewEnvelope) => {
+    const shown = bound ?? review();
+    mockLatest.mockResolvedValue(ok(null)); mockPrepare.mockResolvedValue(ok(shown)); mockRead.mockResolvedValue(ok({ review: shown, command: null }));
+    mockAccept.mockImplementation(async () => {
+      mockRead.mockResolvedValue(ok({ review: shown, command: command('PUBLISHED') })); mockLatest.mockResolvedValue(ok({ review: shown, command: command('PUBLISHED') }));
+      return ok(command('PUBLISHED'));
+    });
+    await render();
+    await act(async () => (bound ? tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' }).props : publish()).onPress());
+  };
+  const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
+  const reader = (on: boolean) => jest.spyOn(AccessibilityInfo, 'isScreenReaderEnabled').mockResolvedValue(on);
+  beforeEach(() => { jest.useFakeTimers(); });
+  afterEach(() => { jest.useRealTimers(); });
+
+  it('holds at least 1,2 s: the mark, what happened, what comes next and ONE green way on, then continues by itself to the overview', async () => {
+    expect(PUBLISHED_MOMENT_MS).toBeGreaterThanOrEqual(1200);
+    await publishHere();
+    expect(mockAccept).toHaveBeenCalledTimes(1);
+    expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain('Prijave stižu ovde. Javićemo ti.');
+    expect(tree.root.findByType('SuccessMark' as React.ElementType).props).toMatchObject({ fresh: true, size: 64 });
+    expect(tree.root.findAllByProps({ label: 'Otvori zadatak' })).toHaveLength(1);
+    expect(action('Otvori zadatak').kind).toBe('primary');
+    // The review under it is gone: a finished publication has nothing left to change here, and no second action is offered.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Sačuvaj nacrt' })).toHaveLength(0);
+    expect(tree.root.findAll(node => node.props?.accessibilityLabel === 'Nazad u razgovor')).toHaveLength(0);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    await advance(PUBLISHED_MOMENT_MS - 1);
+    expect(mockRouter.replace).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak je objavljen.');
+    await advance(1);
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+    expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockResume).not.toHaveBeenCalled();
+  });
+
+  it('never takes the owner to the Zadaci map', async () => {
+    await publishHere(); await advance(PUBLISHED_MOMENT_MS * 2);
+    for (const [route] of mockRouter.replace.mock.calls) expect(JSON.stringify(route)).not.toContain('zadaci');
+    expect(mockRouter.push).not.toHaveBeenCalled();
+  });
+
+  it('a tap continues at once, and only once, even if the timer comes after it', async () => {
+    await publishHere();
+    const tap = action('Otvori zadatak').onPress;
+    await act(async () => { tap(); tap(); });
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+    await advance(PUBLISHED_MOMENT_MS * 2); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it('Android Back goes where the moment goes, and not back into the finished conversation', async () => {
+    await publishHere();
+    expect(mockHardwareBack.size).toBe(1);
+    const handled: boolean[] = [];
+    await act(async () => { for (const handler of [...mockHardwareBack]) handled.push(handler()); });
+    expect(handled).toEqual([true]);
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+  });
+
+  it('a screen reader is not hurried: the moment waits for the person to continue', async () => {
+    const spy = reader(true);
+    try {
+      await publishHere(); await advance(PUBLISHED_MOMENT_MS * 4);
+      expect(mockRouter.replace).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak je objavljen.');
+      await act(async () => action('Otvori zadatak').onPress());
+      expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+    } finally { spy.mockRestore(); }
+  });
+
+  it('a changed account takes the moment and its continuation with it: nothing opens for the new account', async () => {
+    await publishHere();
+    mockSession = { user: { id: OTHER }, accountRevision: 2 }; await update();
+    await advance(PUBLISHED_MOMENT_MS * 2);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it('after a blur the fences still hold, and the way on is the explicit one when the screen is back', async () => {
+    await publishHere();
+    await blur(); await advance(PUBLISHED_MOMENT_MS * 2);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    await focus();
+    await act(async () => action('Otvori zadatak').onPress());
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+    expect(mockAccept).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirming the changes of a task that already exists says so, with no promise of a first application, and lands on the same overview', async () => {
+    await publishHere({ ...review(), draftId: NEED, draftRevision: 4 });
+    expect(text()).toContain('Izmene su objavljene.'); expect(text()).toContain('Prijave stižu ovde.');
+    expect(text()).not.toContain('Javićemo ti');
+    await advance(PUBLISHED_MOMENT_MS);
+    expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+  });
+
+  it('a restored publication shows no moment and does not move by itself: it keeps its explicit "Otvori zadatak"', async () => {
+    mockLatest.mockResolvedValue(published());
+    await render(); await advance(PUBLISHED_MOMENT_MS * 4);
+    expect(text()).toContain('Zadatak je objavljen.');
+    expect(tree.root.findByType('SuccessMark' as React.ElementType).props.fresh).toBe(false);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+    await act(async () => action('Otvori zadatak').onPress());
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
+  });
+
+  it('a publication that is not confirmed shows no moment', async () => {
+    mockLatest.mockResolvedValue(ok(null));
+    await render();
+    await act(async () => publish().onPress());   // the default acceptance answers "unknown outcome"
+    await advance(PUBLISHED_MOMENT_MS * 2);
+    expect(text()).not.toContain('Zadatak je objavljen.'); expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('SuccessMark' as React.ElementType)).toHaveLength(0);
   });
 });

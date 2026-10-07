@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { safetyClientService } from '../../../data/safetyClientService';
+import { safetyClientService, type AccountBlockReceipt } from '../../../data/safetyClientService';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { useSesija } from '../../../store/sesija';
+import { announceBlockChange, blockWords } from '../../../ui/safety/blockOutcome';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
-import { BlockedAccountsList, blockedName, type BlockedAccount } from '../../../ui/settings/BlockedAccountsList';
+import { BlockedAccountsList, type BlockedAccount } from '../../../ui/settings/BlockedAccountsList';
 import { SettingsScreen } from '../../../ui/settings/SettingsPresentation';
 
 export default function BlockedAccounts() {
@@ -14,25 +15,27 @@ export default function BlockedAccounts() {
 }
 
 /**
- * The people you block (step 11a, 2026-09-24): each is a person row with their own "Odblokiraj", asked once in a sheet
- * before the command goes. Opening the person still leads to the private report and the block itself. The unblock is
- * the existing revisioned, idempotent command: one request id per blocked revision, reused when the same unblock is
- * tried again, and nothing else is sent until the list has been read again after a refused or unknown outcome.
+ * The people you block (step 11a, 2026-09-24; UI/UX pass 2026-10-07): each is a person row with their own "Odblokiraj",
+ * asked once in the centred dialog (the person's name in its title and what follows in one sentence) before the command
+ * goes. Opening the person still leads to the private report and the block itself. The unblock is the existing
+ * revisioned, idempotent command: one request id per blocked revision, reused when the same unblock is tried again, and
+ * nothing else is sent until the list has been read again after a refused or unknown outcome. The confirmed outcome is
+ * said in the one outcome bar with "Vrati", which blocks the person again.
  */
 function OwnedBlocks() {
+  const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [cursor, setCursor] = useState<string | null>(null);
   const read = useCallback(() => safetyClientService.listMyBlocks(cursor), [cursor]), editor = useOwnedEditor(read);
   const confirmation = useConfirmSheet();
   const commands = useRef(new Map<string, { revision: number; id: string }>());
   const [pending, setPending] = useState<string | null>(null);
-  const lastUnblocked = useRef<string | null>(null);
   const closeConfirmation = confirmation.close;
   // A question left open is retired whenever its answer would land on a list that is no longer the one it was asked on.
   useFocusEffect(useCallback(() => () => closeConfirmation(), [closeConfirmation]));
   const refresh = () => { closeConfirmation(); void editor.refresh(); };
   const page = (next: string | null) => { closeConfirmation(); setCursor(next); };
   async function unblock(item: BlockedAccount) {
-    const target = item.targetAccountId, name = blockedName(item);
+    const target = item.targetAccountId;
     let command = commands.current.get(target);
     if (!command || command.revision !== item.revision) {
       command = { revision: item.revision, id: noviUuidZahtevId() };
@@ -41,13 +44,15 @@ function OwnedBlocks() {
     const frozen = command;
     // The page the question was asked on; `save` refuses to run on any other.
     const shown = editor.data;
+    // The server's receipt for this unblock, if it gets one: it is what the outcome bar is said from.
+    const done: { receipt?: AccountBlockReceipt } = {};
     setPending(target);
     try {
       await editor.save(async () => {
-        lastUnblocked.current = name;
         const result = await safetyClientService.setBlock({ targetAccountId: target, blocked: false,
           expectedRevision: frozen.revision, clientRequestId: frozen.id });
         if (!result.ok) return result;
+        done.receipt = result.podatak;
         commands.current.delete(target);
         // The receipt is the server's word that the block is gone. If the list cannot be read again right after it, the
         // unblock is still confirmed, so it is not reported as unconfirmed: the page shown stays, without that person.
@@ -62,14 +67,16 @@ function OwnedBlocks() {
         }
       });
     } finally { setPending(null); }
+    // Said once the server has confirmed it, in the one outcome bar (the person's name when the server returned it), with the way to put it back.
+    if (done.receipt && accountId) announceBlockChange(done.receipt, { accountId, accountRevision },
+      { text: item.displayName ? `Blokiranje je uklonjeno: ${item.displayName}.` : blockWords.removed, onSettled: () => { void editor.refresh(); } });
   }
-  const askUnblock = (item: BlockedAccount) => confirmation.ask({ title: blockedName(item),
+  const askUnblock = (item: BlockedAccount) => confirmation.ask({ title: item.displayName ? `Odblokirati ${item.displayName}?` : 'Odblokirati osobu?',
     message: 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.', confirmLabel: 'Odblokiraj',
     onConfirm: () => unblock(item) });
-  return <SettingsScreen title="Blokirani korisnici" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
+  return <SettingsScreen title="Blokirane osobe" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
     <BlockedAccountsList data={editor.data} loading={editor.loading} busy={editor.busy} error={editor.error} uncertain={editor.uncertain}
       cursor={cursor} pending={pending}
-      notice={editor.saved && lastUnblocked.current ? `Blokiranje je uklonjeno: ${lastUnblocked.current}.` : null}
       onOpen={item => router.navigate({ pathname: '/bezbednost', params: { targetAccountId: item.targetAccountId } })}
       onUnblock={askUnblock} onRefresh={refresh} onPage={page} />
     {confirmation.sheet}

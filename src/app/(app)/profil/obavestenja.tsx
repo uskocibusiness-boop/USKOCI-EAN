@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { INBOX_SET_LABEL } from '../../../ui/notifications/inboxCopy';
 import { PushPreferences } from '../../../ui/notifications/PushPreferences';
 import { useSesija, sesijaSada } from '../../../store/sesija';
 import { T } from '../../../ui/Text';
@@ -9,12 +10,13 @@ import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { DetailTopBar } from '../../../ui/system/DetailTopBar';
 import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
-const SETS = [{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Poslovi' }] as const;
+// The two sets carry the names the inbox gives its two filters ("Zadaci", "Moje prijave"): one name, one set, everywhere.
+const SETS = [{ key: 'REQUESTER', label: INBOX_SET_LABEL.REQUESTER }, { key: 'WORKER', label: INBOX_SET_LABEL.WORKER }] as const;
 type SetKey = typeof SETS[number]['key'];
 type ActionScope = { accountId: string; revision: number; leaving: boolean };
 const CAPTION: Record<SetKey, string> = {
  REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
- WORKER: 'Novi poslovi, tvoje prijave i Dogovori.',
+ WORKER: 'Novi zadaci, tvoje prijave i Dogovori.',
 };
 const WAIT_FOR_WRITE = 'Sačekaj da se čuvanje završi.';
 export default function PushSettings() {
@@ -61,7 +63,7 @@ export default function PushSettings() {
   if (!current()) return;
   if (!dirty) { proceed(); return; }
   // "Odustani" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
-  confirm.ask({ title: 'Odbaci izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
+  confirm.ask({ title: 'Odbaciti izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
    cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: () => { if (current()) proceed(); } });
  }
  const requestBack = () => discardThen(back);

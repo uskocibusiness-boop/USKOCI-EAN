@@ -62,7 +62,7 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.re
 // what MarketplacePresentation still draws. Both lists keep the same three guards, each on the screen that now has it.
 describe.each([
   ['Zadaci', 'Otvori priliku'],
-  ['Moji zadaci', 'Otvori Zadatak'],
+  ['Moji zadaci', 'Otvori zadatak'],
 ] as const)('%s', (screen, prefix) => {
   const discovery = screen === 'Zadaci';
   const task = (id: string): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat'], statusTekst: 'Otvoren',
@@ -88,7 +88,8 @@ describe.each([
     // V47): the words are a draft there, and the list takes them when the panel's one action applies them.
     if (discovery) {
       await act(async () => field('Pretraži zadatke').props.onPress());
-      await act(async () => field('Pretraži mesta i zadatke').props.onChangeText('Pomoć'));
+      await act(async () => field('Šta').props.onPress());
+      await act(async () => field('Šta tražiš').props.onChangeText('Pomoć'));
       await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
     } else {
       await act(async () => field('Pretraga').props.onPress());
@@ -171,7 +172,8 @@ describe('Moje prijave', () => {
     await act(async () => tree.update(<Screen pass={1} />));
     await act(async () => tree.update(<Screen pass={2} />));
     expect(written('Unos ormara x')).toBe(1); expect(written('Unos ormara y')).toBe(1);
-    expect(written('Novi Sad')).toBe(2);
+    // The card says the term once per application (and no place: the title names the task); a re-render draws it no more.
+    expect(written('20. septembar')).toBe(2); expect(written('Novi Sad')).toBe(0);
     await act(async () => field('Otvori zadatak: Unos ormara y').props.onPress());
     expect(task).toHaveBeenCalledWith(rows[1]);
     // Step 5c: withdrawing is the card's quiet foot link (its own press), no longer a V2Action button inside the card,

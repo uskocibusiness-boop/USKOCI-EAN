@@ -5,7 +5,7 @@ import type {
 import type { Ishod } from './ports';
 import { failure, positiveInteger, readReceipt, record, sameId, timestamp, uuid } from './serverReceipt';
 
-const NOT_READY_COPY = 'Pitanja o Zadatku još nisu dostupna.';
+const NOT_READY_COPY = 'Pitanja o zadatku još nisu dostupna.';
 const PUBLIC_FLOOR_COPY = 'Pitanja i odgovori su javni: bez telefona, e-pošte, linkova i naloga.';
 const STALE_COPY = 'Zadatak je u međuvremenu izmenjen. Osveži prikaz.';
 const QA_COPY: Readonly<Record<string, string>> = {
@@ -16,18 +16,18 @@ const QA_COPY: Readonly<Record<string, string>> = {
   OFF_PLATFORM_LINK_NOT_PUBLIC: PUBLIC_FLOOR_COPY, SOCIAL_HANDLE_NOT_PUBLIC: PUBLIC_FLOOR_COPY,
   STALE_NEED_REVISION: STALE_COPY, QUESTION_STALE_AFTER_NEED_REVISION: STALE_COPY,
   NEED_NOT_FOUND: 'Zadatak nije pronađen.', NEED_NOT_PUBLIC: 'Zadatak više nije javan.',
-  REQUESTER_CANNOT_ASK_OWN_TASK: 'Ne možeš postaviti pitanje na sopstveni Zadatak.',
-  ACTIVE_WORKER_REQUIRED: 'Dopuni Radni profil da postaviš pitanje.',
-  RU4B_MATERIAL_REQUIRES_RU4_EDIT: 'Ovaj odgovor menja Zadatak. Izmeni Zadatak umesto odgovora.',
+  REQUESTER_CANNOT_ASK_OWN_TASK: 'Ne možeš postaviti pitanje na sopstveni zadatak.',
+  ACTIVE_WORKER_REQUIRED: 'Dopuni radni profil da postaviš pitanje.',
+  RU4B_MATERIAL_REQUIRES_RU4_EDIT: 'Ovaj odgovor menja zadatak. Izmeni zadatak umesto odgovora.',
   QUESTION_NOT_FOUND: 'Pitanje nije pronađeno.', QUESTION_NOT_ANSWERABLE: 'Na ovo pitanje više ne može da se odgovori.',
-  QUESTION_NOT_PENDING: 'Ovo pitanje je već obrađeno.', NOT_NEED_OWNER: 'Ovo nije tvoj Zadatak.',
+  QUESTION_NOT_PENDING: 'Ovo pitanje je već obrađeno.', NOT_NEED_OWNER: 'Ovo nije tvoj zadatak.',
   RU4B_DISPOSITION_INVALID: 'Radnja nije prepoznata.',
   IDEMPOTENCY_KEY_REUSED: 'Radnja nije mogla da se ponovi sa istim zahtevom. Pokušaj ponovo.',
   REQUEST_ID_REQUIRED: 'Radnja trenutno nije mogla da se zabeleži. Pokušaj ponovo.',
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
 };
 function invalidRequestId() { return failure('REQUEST_ID_INVALID', QA_COPY.REQUEST_ID_REQUIRED); }
-function invalidInput() { return failure('QA_INVALID_INPUT', 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.'); }
+function invalidInput() { return failure('QA_INVALID_INPUT', 'Ponovo otvori zadatak i pregledaj aktuelne podatke.'); }
 function status(value: unknown): value is PreselectionQuestionStatus {
   return value === 'PENDING_ANSWER' || value === 'ANSWERED_PUBLIC' || value === 'IGNORED' || value === 'REPORTED';
 }

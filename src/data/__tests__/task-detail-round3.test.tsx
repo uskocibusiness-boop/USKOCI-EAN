@@ -91,13 +91,14 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(barTitle().props.style).opacity).toBe(1); expect(shown()).toBe(true);
   });
 
-  it('reads genuine photos, compact terms and work before requirements and publisher context', async () => {
+  it('reads genuine photos, compact terms and work, then the questions about it, before publisher context and the place', async () => {
     await render(<Stranger photos={<T>FOTOGRAFIJE</T>} map={<T>MAPA</T>} qa={<T>PITANJA</T>}
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
+    // Owner, 2026-10-07: what was asked about the work, and what its owner answered, is read right after the work.
     const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', '0/2', 'Beograd, Vračar', 'Sutra ujutru',
-      'Dva sprata bez lifta.', 'Kombi', 'Ana Anić', 'Mesto zadatka', 'MAPA', 'PITANJA'].map(at);
+      'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Ana Anić', 'Mesto zadatka', 'MAPA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -227,9 +228,9 @@ describe('my own task', () => {
     const edit = jest.fn(), cancel = jest.fn();
     await render(<Own value={mine()} onEdit={edit} lifecycleMenu={[cancelRow(cancel)]} />);
     expect(joined()).not.toContain('Upravljanje zadatkom');
-    expect(byLabel('Izmeni Zadatak')).toBeUndefined(); expect(byLabel('Otkazivanje zadatka')).toBeUndefined();
+    expect(byLabel('Izmeni zadatak')).toBeUndefined(); expect(byLabel('Otkazivanje zadatka')).toBeUndefined();
     await openMenu();
-    expect(menuItems().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni Zadatak', 'Otkaži zadatak']);
+    expect(menuItems().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni zadatak', 'Otkaži zadatak']);
     await act(async () => menuItems()[0].props.onPress()); expect(edit).toHaveBeenCalledTimes(1); expect(cancel).not.toHaveBeenCalled();
     await openMenu();
     const destructive = menuItems()[1];
@@ -279,6 +280,20 @@ describe('my own task', () => {
     const all = texts(), at = (value: string) => all.lastIndexOf(value);
     expect(at('Prenos ormara')).toBeLessThan(at('ISHOD KOMANDE'));
     expect(at('ISHOD KOMANDE')).toBeLessThan(all.indexOf('4.000 RSD'));
+  });
+
+  it('reads the questions people asked right after the work, where a stranger finds them, and before the place', async () => {
+    // Owner, 2026-10-07: the questions were a link at the very end; the section now sits with the work.
+    await render(<NeedPresentation need={mine()} loading={false} error={null} busy={false} remainingClosed={false} onBack={noop} onRefresh={noop}
+      onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} map={<T>MAPA</T>} qaAction={<T>PITANJA</T>} />);
+    const all = texts(), at = (value: string) => all.findIndex(text => text.includes(value));
+    const order = ['Prenos ormara', 'Ormar sa trećeg sprata.', 'PITANJA', 'Mesto zadatka', 'MAPA'].map(at);
+    expect(order.every(index => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // Without a section handed in, the slot draws nothing at all.
+    await act(async () => tree.update(<NeedPresentation need={mine()} loading={false} error={null} busy={false} remainingClosed={false} onBack={noop}
+      onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} map={<T>MAPA</T>} />));
+    expect(joined()).not.toContain('PITANJA');
   });
 });
 

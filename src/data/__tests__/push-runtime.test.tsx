@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { pendingRoute } from '../../store/pendingRoute';
 import { messagePushIntent } from '../../store/messagePushIntent';
 import { PushRuntime } from '../../ui/notifications/PushRuntime';
+import { PLANNED_PUBLIC_INBOX_COPIES } from '../../ui/notifications/publicInboxCopy';
 const mockPush = jest.fn(), mockCold = jest.fn(), mockClear = jest.fn(), mockSession = jest.fn(), mockRotate = jest.fn(), mockRevoke = jest.fn(), mockNative = jest.fn();
 const mockNavigate = jest.fn();
 const mockSetHandler = jest.fn();
@@ -185,6 +186,33 @@ it.each(['android', 'ios'] as const)('requires an exact public title/body tuple 
  }
 });
 
+// T4a (2026-10-07): the owner's words (no grammatical gender, "zadatak" and never "posao") are accepted BEFORE the push package changes
+// the Edge formatter, so the order of the two roll-outs does not matter. The formatter itself is untouched here.
+const LEGACY_BREAKS_THE_RULE = ['Izabran si', 'označila posao', 'Oporavak naloga'];
+it('the planned copy replaces exactly the three Edge pairs that break the owner\'s rules, and breaks none of them itself', () => {
+ const broken = transportContract.copies.filter(copy => LEGACY_BREAKS_THE_RULE.some(piece => `${copy.title} ${copy.body}`.includes(piece)));
+ expect(broken.map(copy => copy.eventType).sort()).toEqual(['COMPLETION_REQUIRED', 'RECOVERY_OPENED', 'RESPONSE_SELECTED'].flatMap(type => [type, type]).sort());
+ expect(PLANNED_PUBLIC_INBOX_COPIES).toHaveLength(3);
+ for (const copy of PLANNED_PUBLIC_INBOX_COPIES) {
+  expect(`${copy.title} ${copy.body}`).not.toMatch(/posa[ol]|poslov|Izabran si|označila|Oporavak naloga|Naručilac|Uskočer/i);
+  // Nothing of a person, a task or a place on the lock screen (rule A20): no pair here has a variable part.
+  expect(`${copy.title} ${copy.body}`).not.toMatch(/[{}$]/);
+ }
+ expect(PLANNED_PUBLIC_INBOX_COPIES.map(copy => copy.title)).toEqual(['Tvoja prijava je izabrana', 'Potvrdi završetak', 'Prijavljen je problem u Dogovoru']);
+});
+it.each(['android', 'ios'] as const)('shows the planned copy while the app is open on %s, exactly as a pair and nothing around it', async platform => {
+ jest.replaceProperty(Platform, 'OS', platform); await mount();
+ for (const copy of PLANNED_PUBLIC_INBOX_COPIES) {
+  expect(await present(notification({ title: copy.title, body: copy.body }))).toEqual(visible);
+  expect(await present(notification({ title: copy.title, body: copy.body + ' Private detail' }))).toEqual(hidden);
+  expect(await present(notification({ title: copy.title + ' Private detail', body: copy.body }))).toEqual(hidden);
+  expect(await present(notification({ title: copy.title, body: copy.body, data: { kind: 'INBOX', privateText: 'not allowed' } }))).toEqual(hidden);
+ }
+ // A planned title with a body of another pair is not a pair.
+ expect(await present(notification({ title: 'Tvoja prijava je izabrana', body: 'Zadatak je označen kao gotov.' }))).toEqual(hidden);
+ // And the old Edge pairs are still shown until the formatter changes: a roll-out in either order loses nothing.
+ for (const copy of transportContract.copies) expect(await present(notification({ title: copy.title, body: copy.body }))).toEqual(visible);
+});
 it.each(['android', 'ios'] as const)('foreground public copy is immediate local presentation only on %s; a later tap still opens Inbox once', async platform => {
  jest.replaceProperty(Platform, 'OS', platform); await mount();
  mockSession.mockClear(); mockCold.mockClear();

@@ -1,0 +1,93 @@
+{
+  "schema": "USKOCI_DEV_ZONE_PERF_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "ZONE-PERF: ONE function body replaced, private.availability_timezone_valid(text): Europe/Belgrade and UTC are answered without reading the whole zone catalog (1,196 zone files, about 73 ms per call on DEV); every other value runs today's exact expression. No new object, no table, column, constraint, trigger, policy, grant or data row.",
+  "sourceCommit": "8075ae6f on candidate/match-v1-20261007 (remote novi), folder supabase/candidates/zone-perf-20261007/ (copied byte-identical into this checkout with this receipt)",
+  "authorization": "2026-10-07 (owner, in chat, exact word): \"PRIMENI ZONE-PERF\", given after the proof summary (run 37662617758 on commit 3d0b56eb: job zone 16/16, behaviour 50/50, load 19/19). The owner's earlier sentence \"Primenjuj od sad sve što može bez daljeg pitanja\" was NOT used as authority for this application.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply: ledger 227, latest version 20261005101102, helper = predecessor (md5 013f884ca649cb5246f39eaf9f2e0ec9), not yet the postimage, certificate ready, closure digest 3a785d42..., erasure program digest 2027655d..., closure not executing, catalog holds Europe/Belgrade and UTC, helper metadata language sql / stable / not security definer / search_path=pg_catalog / ACL {postgres=X/postgres}, 5 active worker profiles, 7 open tasks.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). Before sending, the typed text was measured by the database itself (select md5(...)) and equalled the file: md5 965ff9f207aa6be88b692cf83cb21ae5, 6404 characters.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Guards in the same transaction: certificate ready; predecessor body md5 pinned; both fast-path names present in pg_timezone_names; 27 truth-table probes captured from the old helper and compared after the replacement; function metadata, ACL and comment compared before/after; postimage md5 pinned; both closure digests equal before and after. Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 227,
+    "after": 228,
+    "version": "20261007192233",
+    "name": "dev_alpha_zone_perf_application",
+    "statements": 1,
+    "storedStatementChars": 6404,
+    "storedStatementMd5": "965ff9f207aa6be88b692cf83cb21ae5",
+    "fileSha256": "b52c4552d7ab51c901d0fabcade045da91f699b2caa0f6ee56fe28e669c14bb6",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (965ff9f207aa6be88b692cf83cb21ae5)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "private.availability_timezone_valid is in none of the 99 certified function signatures; the same transaction asserted equality, and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "46f7da568f154adf96e5889dc0d38f37432a4d2a0cf75aa348f61b188ac2353e",
+    "helperIsPostimage": true,
+    "helperBodyMd5": "be95520dabe35febd8e9fa15f0ce0309",
+    "helperMetadata": {
+      "language": "sql",
+      "volatility": "STABLE",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres}"
+    },
+    "catalogHasFastPathNames": true,
+    "probes": 27,
+    "truthTableMismatches": [],
+    "certificateReady": true,
+    "problems": []
+  },
+  "measurementOnDev": {
+    "at": "2026-10-07 after the apply, read-only (a DO block that ends in an exception, so nothing was stored), as the account with 6 open tasks, role authenticated",
+    "helperEuropeBelgradeX200Ms": 7,
+    "helperEuropeParisX5Ms": 1149,
+    "rpc_home_attention_ms": {
+      "first": 75,
+      "second": 8,
+      "beforeAppliedPackage": "884 first / 86 warm (read-only measurement of the same day)"
+    },
+    "rpc_list_my_needs_page_ALL_30_ms": {
+      "first": 242,
+      "second": 23,
+      "beforeAppliedPackage": "356 (same day)"
+    },
+    "rpc_list_my_tasks_ms": 22,
+    "note": "A zone that is not Europe/Belgrade or UTC still pays the full catalog scan (Europe/Paris x5 = 1149 ms): rare and still correct. The phone has not measured this yet; real latencies come only from the phone."
+  },
+  "revert": {
+    "file": "supabase/candidates/zone-perf-20261007/revert.sql",
+    "sha256": "c914e45c6b0eb93d89c99bd0529abf816eb123c7486682432ef1328605dee7fa",
+    "applied": false,
+    "effect": "Restores the predecessor body (md5 013f884c...). Code rollback only: nothing else was created or written, so it can be applied at any time; the readers become slow again."
+  },
+  "orderWithOtherPackages": "MATCH-V1 and DISCOVERY-ZAMENE (same branch) pin this helper as a dependency and are proven in both orders; each still needs the owner's own exact word. After this application, older unapplied candidates that pin the helper's old body (ex06a, ex06d F5, the WPP02 files) need regenerated pins.",
+  "notProven": [
+    "No phone measurement of Home / Moji zadaci after this change (server-side milliseconds only).",
+    "The effect on the dispatch matcher is proven on the disposable database, not measured on DEV (no dispatch was run)."
+  ],
+  "filesCopiedToThisCheckout": [
+    "body.diff",
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "live-functions.json",
+    "manifest.json",
+    "patches.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql"
+  ]
+}

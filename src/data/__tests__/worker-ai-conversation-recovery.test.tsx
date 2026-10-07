@@ -80,7 +80,7 @@ it('a new empty interview starts with the invitation instead of an empty profile
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
  await render();
  expect(shell().props.card(false)).toBeNull();
- expect(shell().props.welcome).toBe('Koje poslove želiš da radiš?');
+ expect(shell().props.welcome).toBe('Koje zadatke želiš da preuzimaš?');
  expect(shell().props.canEdit).toBe(true);
  expect(await manualDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ it.each(['immediate','readback','retry'])('worker draft ownership: identical spo
  await act(async()=>expect(receive({text:'Radim vikendom.',isCurrent:()=>true,session:{mode:'hold'}})).toBe(true));
  const sent=mockApi.send.mock.calls[0].slice(0,3);
  if(outcome!=='immediate'){
-  succeedWorkerTurn();await click(outcome==='retry'?'Ponovi isto slanje':'Proveri stanje razgovora');
+  succeedWorkerTurn();await click(outcome==='retry'?'Pošalji ponovo':'Proveri stanje razgovora');
  }
  expect(shell().props.value).toBe('  Radim vikendom.  ');expect(shell().props.canEdit).toBe(true);
  expect(mockJournal.save.mock.calls[0][0]).toEqual({accountId:A,conversationId:C,clientRequestId:sent[2]});
@@ -129,7 +129,7 @@ it.each(['immediate','retry'])('worker draft ownership: typed %s success preserv
  expect(shell().props.value).toBe('  Radim vikendom.  ');
  if(outcome==='immediate')succeedWorkerTurn();
  await act(async()=>sending.resolve(outcome==='immediate'?ok(turn('SUCCEEDED',sent[2])):{ok:false,kod:'UNKNOWN',poruka:'Nepotvrđeno'}));
- if(outcome==='retry'){succeedWorkerTurn();await click('Ponovi isto slanje');expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(sent);}
+ if(outcome==='retry'){succeedWorkerTurn();await click('Pošalji ponovo');expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(sent);}
  expect(shell().props.value).toBe('  Radim vikendom.  ');expect(shell().props.canEdit).toBe(true);
  expect(mockApi.send).toHaveBeenCalledTimes(outcome==='retry'?2:1);expect(mockStored).toBeNull();
 });
@@ -222,14 +222,14 @@ const manualBack=async(entry:string)=>{if(entry==='hardware')expect(await hardwa
 
 it.each(['toolbar','hardware'])('%s manual Back asks before discarding, Continue retains fields, and confirm never patches',async entry=>{
  mockRealManual=true;await render();await enterPanel('manual');
- editManual('Kratko predstavljanje','Moj novi opis');editManual('Alat i oprema','Bušilica\nMerdevine');
+ editManual('O meni','Moj novi opis');editManual('Alat i oprema','Bušilica\nMerdevine');
  await manualBack(entry);expect(sheets()).toHaveLength(1);expect(mockRouter.back).not.toHaveBeenCalled();
  expect(mockApi.patch).not.toHaveBeenCalled();await answer('confirm-sheet-cancel');
- expect(manualField('Kratko predstavljanje').props.value).toBe('Moj novi opis');
+ expect(manualField('O meni').props.value).toBe('Moj novi opis');
  expect(manualField('Alat i oprema').props.value).toBe('Bušilica\nMerdevine');
  await manualBack(entry);await answer('confirm-sheet-confirm');expect(shell()).toBeTruthy();
  expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
- await enterPanel('manual');expect(manualField('Kratko predstavljanje').props.value).toBe('');
+ await enterPanel('manual');expect(manualField('O meni').props.value).toBe('');
 });
 it.each(['toolbar','hardware'])('%s clean manual Back returns directly, including an edit reverted to its original value',async entry=>{
  mockRealManual=true;await render();await enterPanel('manual');
@@ -238,47 +238,47 @@ it.each(['toolbar','hardware'])('%s clean manual Back returns directly, includin
  expect(mockRouter.back).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
 });
 it('manual fields survive privacy unmount and resume only within the same owner and candidate revision',async()=>{
- mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Privatni lokalni opis');
- const oldEdit=manualField('Kratko predstavljanje').props.onChangeText,oldApply=action('Primeni na pregled profila').props.onPress;
+ mockRealManual=true;await render();await enterPanel('manual');editManual('O meni','Privatni lokalni opis');
+ const oldEdit=manualField('O meni').props.onChangeText,oldApply=action('Primeni na pregled profila').props.onPress;
  await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
  await act(async()=>{for(const listener of [...mockListeners])listener('background');});
  expect(tree.root.findAllByType('TextInput' as any)).toHaveLength(0);expect(visibleText()).not.toContain('Privatni lokalni opis');
  await act(async()=>oldConfirm());expect(sheets()).toHaveLength(0);
  await act(async()=>{for(const listener of [...mockListeners])listener('active');});
  act(()=>{oldEdit('Kasni unos sakrivenog obrasca');oldApply();});
- expect(manualField('Kratko predstavljanje').props.value).toBe('Privatni lokalni opis');
+ expect(manualField('O meni').props.value).toBe('Privatni lokalni opis');
  expect(mockApi.patch).not.toHaveBeenCalled();
  await manualBack('toolbar');expect(sheets()).toHaveLength(1);await answer('confirm-sheet-cancel');
  mockApi.read.mockResolvedValue(ok({...snapshot(),revision:1,candidate:{...candidate(),bio:'Noviji predlog'}}));
  await click('Proveri stanje razgovora');
- expect(manualField('Kratko predstavljanje').props.value).toBe('Privatni lokalni opis');
- expect(manualField('Kratko predstavljanje').props.editable).toBe(false);
+ expect(manualField('O meni').props.value).toBe('Privatni lokalni opis');
+ expect(manualField('O meni').props.editable).toBe(false);
  expect(action('Primeni na pregled profila').props.disabled).toBe(true);
  expect(visibleText()).toContain('Predlog profila je promenjen');
  await click('Primeni na pregled profila');expect(mockApi.patch).not.toHaveBeenCalled();
  await click('Odbaci izmene i nastavi');await answer('confirm-sheet-confirm');await enterPanel('manual');
- expect(manualField('Kratko predstavljanje').props.value).toBe('Noviji predlog');
- expect(manualField('Kratko predstavljanje').props.editable).toBe(true);
+ expect(manualField('O meni').props.value).toBe('Noviji predlog');
+ expect(manualField('O meni').props.editable).toBe(true);
 });
 it.each(['account','conversation'])('a retained manual discard and private draft cannot cross a changed %s',async kind=>{
- mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Stari privatni unos');
+ mockRealManual=true;await render();await enterPanel('manual');editManual('O meni','Stari privatni unos');
  await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
  await act(async()=>{if(kind==='account')mockRevision+=2;else mockParams={conversationId:B};tree.update(<Screen/>);});
  await act(async()=>oldConfirm());expect(shell()).toBeTruthy();await enterPanel('manual');
- expect(manualField('Kratko predstavljanje').props.value).toBe('');
+ expect(manualField('O meni').props.value).toBe('');
  expect(mockApi.patch).not.toHaveBeenCalled();expect(mockRouter.back).not.toHaveBeenCalled();
 });
 it('a failed manual refresh preserves the private draft and a visible Back choice before retry',async()=>{
- mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Zadržan unos');
+ mockRealManual=true;await render();await enterPanel('manual');editManual('O meni','Zadržan unos');
  mockApi.read.mockResolvedValueOnce({ok:false,kod:'READ_FAILED',poruka:'Profil nije učitan.'});
  await click('Proveri stanje razgovora');expect(tree.root.findAllByType('TextInput' as any)).toHaveLength(0);
  await manualBack('hardware');expect(sheets()).toHaveLength(1);await answer('confirm-sheet-cancel');
  await act(async()=>tree.root.findByType('Status' as any).props.retry());
- expect(manualField('Kratko predstavljanje').props.value).toBe('Zadržan unos');
+ expect(manualField('O meni').props.value).toBe('Zadržan unos');
  expect(mockApi.patch).not.toHaveBeenCalled();
 });
 it('manual processing and unknown patch outcomes block toolbar/hardware discard until explicit readback',async()=>{
- mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Nepotvrđena ispravka');
+ mockRealManual=true;await render();await enterPanel('manual');editManual('O meni','Nepotvrđena ispravka');
  await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
  const saving=deferred();mockApi.patch.mockReturnValueOnce(saving.promise);
  await click('Primeni na pregled profila');await act(async()=>oldConfirm());
@@ -288,16 +288,16 @@ it('manual processing and unknown patch outcomes block toolbar/hardware discard 
  await act(async()=>saving.resolve({ok:false,kod:'UNKNOWN',poruka:'Ishod nije potvrđen.'}));
  await manualBack('toolbar');await manualBack('hardware');expect(sheets()).toHaveLength(0);
  expect(visibleText()).toContain('Prvo proveri ishod izmene');
- expect(manualField('Kratko predstavljanje').props.value).toBe('Nepotvrđena ispravka');
+ expect(manualField('O meni').props.value).toBe('Nepotvrđena ispravka');
  await click('Proveri stanje razgovora');await manualBack('toolbar');expect(sheets()).toHaveLength(1);
  await answer('confirm-sheet-cancel');expect(mockApi.patch).toHaveBeenCalledTimes(1);
- expect(manualField('Kratko predstavljanje').props.value).toBe('Nepotvrđena ispravka');
+ expect(manualField('O meni').props.value).toBe('Nepotvrđena ispravka');
 });
 it('a keystroke invalidates a retained manual discard decision',async()=>{
- mockRealManual=true;await render();await enterPanel('manual');editManual('Kratko predstavljanje','Prvi unos');
+ mockRealManual=true;await render();await enterPanel('manual');editManual('O meni','Prvi unos');
  await manualBack('toolbar');const oldConfirm=tree.root.findByType(ConfirmSheet).props.onConfirm!;
- editManual('Kratko predstavljanje','Noviji unos');await act(async()=>oldConfirm());
- expect(manualField('Kratko predstavljanje').props.value).toBe('Noviji unos');expect(sheets()).toHaveLength(0);
+ editManual('O meni','Noviji unos');await act(async()=>oldConfirm());
+ expect(manualField('O meni').props.value).toBe('Noviji unos');expect(sheets()).toHaveLength(0);
  expect(mockApi.patch).not.toHaveBeenCalled();
 });
 it('the review says the profile drives new-task notifications for matching tasks (owner 2026-10-07)',async()=>{
@@ -467,7 +467,7 @@ it('restores opaque pending key before any open or provider request and exposes 
  mockStored=intent();mockParams={};await render();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockApi.recoverTurn).toHaveBeenCalledWith(C,K);expect(mockRouter.setParams).toHaveBeenCalledWith({conversationId:C});
  expect(shell().props.canSend).toBe(false);expect(await manualDisabled()).toBe(true);
- expect(action('Otkaži prethodno slanje').props.disabled).toBe(false);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
+ expect(action('Otkaži prethodno slanje').props.disabled).toBe(false);expect(tree.root.findAllByProps({label:'Pošalji ponovo'})).toHaveLength(0);
  await click('Otkaži prethodno slanje');expect(mockApi.cancelTurn).toHaveBeenCalledWith(C,K);expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
 });
 it('lost preclaim response keeps typed body in memory and retries only the same persisted ID explicitly',async()=>{
@@ -475,12 +475,12 @@ it('lost preclaim response keeps typed body in memory and retries only the same 
  const key=mockApi.send.mock.calls[0][2];expect(mockJournal.save).toHaveBeenCalledWith({accountId:A,conversationId:C,clientRequestId:key});
  expect(JSON.stringify(mockJournal.save.mock.calls)).not.toContain('Sačuvan');expect(mockApi.send).toHaveBeenCalledTimes(1);
  expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(await manualDisabled()).toBe(true);
- await click('Ponovi isto slanje');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
+ await click('Pošalji ponovo');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
 });
 it('a server without dispatched-exit capability cannot enable retry, cancellation or manual save',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
  await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(await manualDisabled()).toBe(true);
- expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Ponovi isto slanje'})).toHaveLength(0);
+ expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Pošalji ponovo'})).toHaveLength(0);
  await click('Proveri stanje razgovora');expect(mockApi.send).not.toHaveBeenCalled();expect(action('Novi razgovor')).toBeTruthy();
 });
 it('canonical completed history retires key after restart without a provider call',async()=>{
@@ -545,7 +545,7 @@ it('dispatched unknown exposes explicit exit with cost copy and requires canonic
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
  mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));
  await render();expect(action('Odustani od odgovora').props.disabled).toBe(false);
- expect(visibleText()).toContain('taj pokušaj se ipak računa');expect(shell().props.canEdit).toBe(false);
+ expect(visibleText()).toContain('poruka se ipak računa kao poslata');expect(shell().props.canEdit).toBe(false);
  mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false});
   mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok(snapshot(turn('FAILED'))));return ok(value);});
  await click('Odustani od odgovora');expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);

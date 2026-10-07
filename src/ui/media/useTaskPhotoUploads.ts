@@ -141,7 +141,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
     if (!current()) return;
     const controller = new AbortController(); abort.current = controller;
     const run = sequence.current;
-    say(run && run.total > 1 ? `Šaljem fotografije · ${Math.min(run.total, run.done + 1)} od ${run.total}` : 'Šaljem fotografiju…', 'progress');
+    say(run && run.total > 1 ? `Šaljemo fotografije · ${Math.min(run.total, run.done + 1)} od ${run.total}` : 'Šaljemo fotografiju…', 'progress');
     const result = await mediaClientService.uploadTaskPhoto({ conversationId, clientRequestId: command.id,
       bytes: command.photo.bytes, contentType: command.photo.contentType }, { signal: controller.signal });
     if (!current()) return;

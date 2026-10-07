@@ -4,6 +4,7 @@ import type { FinalTranscript, NativeSpeechAdapter, NativeSpeechCapture, SpeechE
 import { decodeSpeechEvent, pcmBase64Bytes, SPEECH_LIMITS } from './speechProtocol';
 import { sharedAudioArbiter } from '../voiceMessages/audioArbiter';
 import type { AudioArbiter, AudioLease } from '../voiceMessages/ports';
+import { permissionAsk } from '../../ui/permissions/permissionAsk';
 
 type Subscription = { remove(): void };
 export interface NativePcmModule {
@@ -23,7 +24,7 @@ export type SpeechAdapterOptions = {
 export function createNativeSpeechAdapter(options: SpeechAdapterOptions): NativeSpeechAdapter {
   let native: NativePcmModule | null = null;
   const useExpo = process.env.EXPO_PUBLIC_SPEECH_CAPTURE === 'expo';
-  let expoPermission: ((signal: AbortSignal) => Promise<'granted' | 'denied' | 'unavailable'>) | null = null;
+  let expoPermission: ((signal: AbortSignal) => Promise<'granted' | 'denied' | 'unavailable' | 'later'>) | null = null;
   try {
     if (Platform.OS === 'android') {
       if (useExpo) {
@@ -42,6 +43,10 @@ export function createNativeSpeechAdapter(options: SpeechAdapterOptions): Native
       const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
       if (signal.aborted) return 'denied';
       if (granted) return 'granted';
+      // The system is about to ask: say why first (design proposal N). The person may let go of the button while reading it,
+      // which ends this gesture but not their answer, so "Dozvoli" still reaches the system's window and the next hold finds
+      // the permission given. "Ne sada" asks the system nothing. With nothing to draw the question, nothing changes at all.
+      if (permissionAsk.hasHost() && await permissionAsk.ask('microphone') === 'later') return 'later';
       const status = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
       return !signal.aborted && status === PermissionsAndroid.RESULTS.GRANTED ? 'granted' : 'denied';
     },

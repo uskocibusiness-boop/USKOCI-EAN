@@ -49,9 +49,10 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
   const compact = forced ?? stacked;
   const row = s.identity;
   const copy = s.copy;
-  const editName = <ChromeIconButton label="Izmeni ime" hint="Otvara ime na profilu." glyph="edit" raised disabled={busy}
+  // The pencil opens the whole of "Izmeni profil" (photo, name, "O meni", city and what is public), not only the name (T4a, 2026-10-07).
+  const editProfile = <ChromeIconButton label="Izmeni profil" hint="Otvara izmenu fotografije, imena i opisa." glyph="edit" raised disabled={busy}
     onPress={() => open('/profil/podaci')} />;
-  return <SettingsScreen title="Profil" disabled={busy} onBack={onBack} right={editName}>
+  return <SettingsScreen title="Profil" disabled={busy} onBack={onBack} right={editProfile}>
     <View style={[s.identitySection, compact && s.identityCompact]}>
       {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
       {identity.state === 'loading' ? <View key="loading" testID="profile-identity" accessible
@@ -64,7 +65,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
         <Avatar initials={null} size={PROFILE_AVATAR} />
         <View style={copy}>
           <T variant="bodyStrong">Profil trenutno nije dostupan.</T>
-          <T variant="note" tone="muted">Proveri vezu pa probaj ponovo.</T>
+          <T variant="note" tone="muted">Proveri vezu pa pokušaj ponovo.</T>
           <View style={s.retry}><SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={identity.retry} /></View>
         </View>
       </View> : <View key="ready" testID="profile-identity" accessible={false}
@@ -98,7 +99,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
         onPress={() => open('/profil/lokacija')} />
       <ProfileUtilityRow label="Dostupnost" detail="Kada mogu da radim" art="clock" disabled={busy}
         onPress={() => open('/profil/dostupnost')} />
-      <ProfileUtilityRow label="Kalendar obaveza" detail="Dogovoreni termini" art="calendar" disabled={busy} last
+      <ProfileUtilityRow label="Raspored" detail="Dogovoreni termini" art="calendar" disabled={busy} last
         onPress={() => open('/raspored')} />
     </SettingsGroup>
     <SettingsGroup title="Nalog i pomoć">
@@ -114,7 +115,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
     <SettingsGroup title="Privatnost">
       <ProfileUtilityRow label="Privatnost i podaci" detail="Šta je javno, rokovi čuvanja, zatvaranje naloga."
         disabled={busy} onPress={() => open('/profil/privatnost')} />
-      <ProfileUtilityRow label="Blokirani korisnici" detail="Tvoja blokiranja i privatne prijave."
+      <ProfileUtilityRow label="Blokirane osobe" detail="Tvoja blokiranja i privatne prijave."
         disabled={busy} onPress={() => open('/profil/blokirani')} />
       <ProfileUtilityRow label="Izvoz podataka" detail="Zahtev i preuzimanje svoje kopije."
         disabled={busy} onPress={() => open('/profil/izvoz')} />
@@ -122,7 +123,7 @@ export function ProfileHub({ identity, capabilityDetail, workArea, workSummary, 
         disabled={busy} last onPress={() => open('/profil/pravna')} />
     </SettingsGroup>
     <View style={styles.logout}>
-      {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Probaj ponovo.</T> : null}
+      {logoutError ? <T tone="danger" accessibilityRole="alert">Odjava nije potvrđena. Pokušaj ponovo.</T> : null}
       <SettingsAction label={busy ? 'Sačekaj…' : 'Odjavi se'} kind="quiet" disabled={busy}
         icon={<SignOut size={20} color={sys.color.muted} />} onPress={onLogout} />
     </View>

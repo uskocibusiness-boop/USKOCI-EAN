@@ -42,14 +42,16 @@ test('PKG-035: task detail retains history without promising an unavailable sele
   expect(texts()).toContain('Ukupno 7 prijava');
   expect(texts()).not.toContain('Sledeće: izbor.');
   expect(labels()).toContain('Otvori prijave. Trenutno nema prijava za izbor. Ukupno 7 prijava');
-  // The footer counts what the screen counts: a known zero is not drawn as "· 0", and the total is said, not shown as choosable.
+  // Nothing is the owner's to choose, so there is no green action (plan 3.5): the sentence says what the task waits for, and the
+  // history of the applications stays one quiet row away.
+  expect(texts()).toContain('Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.');
   expect(texts()).not.toContain('Pregledaj prijave · ');
-  expect(brand()).toEqual(['Pregledaj prijave, trenutno nema prijava za izbor, ukupno 7 prijava']);
+  expect(brand()).toEqual([]);
 });
-test('PKG-035: when the server has not said how many can be chosen, the footer counts the total and says so', async () => {
+test('PKG-035: when the server has not said how many can be chosen, the page counts the total and says so', async () => {
   await act(async () => { tree = create(<Screen value={need({ brojPrijava: 5 })} />); });
-  expect(texts()).toContain('Pregledaj prijave · 5');
-  expect(brand()).toEqual(['Pregledaj prijave, ukupno 5 prijava']);
+  expect(texts()).toContain('Imaš 5 prijava. Pogledaj ih.');
+  expect(brand()).toEqual(['Pogledaj prijave, ukupno 5 prijava']);
 });
 function Screen({ value, loading = false, error = null, remainingClosed = false }: {
   value: PotrebaProjekcija | null; loading?: boolean; error?: string | null; remainingClosed?: boolean;
@@ -66,27 +68,31 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
   expect(texts()).not.toMatch(/Ovo radiš kao|JA MOGU|MENI TREBA|iz Profila/);
   expect(labels()).not.toContain('Pređi u MENI TREBA'); expect(await menuLabels()).toContain('Izmeni nacrt');
 });
-test('a published Task leads with its title and actionable applications, retains work facts, and has one brand action', async () => {
-  await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
+test('a published Task leads with its state, title and the applications to choose among, retains work facts, and has one brand action', async () => {
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })} />); });
   const copy = texts();
-  expect(copy).toContain('Objavljen'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).not.toContain('2 osobe');
-  expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave za izbor');
-  expect(labels()).toContain('Otvori prijave. 3 prijave za izbor');
-  // The single primary action carries the count of applications that can be chosen.
-  expect(copy).toContain('Pregledaj prijave · 3');
-  expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
+  // ONE state (the chip every list wears, "Bira se · 3": it waits for the owner), the name, ONE grey sentence about what is next.
+  expect(copy).toContain('Bira se · 3'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).not.toContain('2 osobe');
+  expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('Imaš 3 prijave. Uporedi ih i izaberi.');
+  expect(copy).not.toContain('Čeka prijave');
+  // The applications are the one green action; a row that opened the same list would be a second door, so it is not drawn.
+  expect(labels()).not.toContain('Otvori prijave. 3 prijave za izbor');
+  expect(copy).toContain('Uporedi prijave'); expect(copy).not.toContain('Uporedi prijave · 3');
+  expect(brand()).toEqual(['Uporedi prijave, 3 prijave za izbor']);
   // The edit is behind "···" now, and opening the menu adds no second brand action.
-  expect(await menuLabels()).toContain('Izmeni Zadatak');
-  expect(brand()).toEqual(['Pregledaj prijave, 3 prijave za izbor']);
+  expect(await menuLabels()).toContain('Izmeni zadatak');
+  expect(brand()).toEqual(['Uporedi prijave, 3 prijave za izbor']);
   // Recomposed from zero (2026-09-23): the place is one section, never a disclosure that repeats it.
   expect(labels()).not.toContain('Mesto izvršenja');
   // Required equipment is now readable immediately, before any disclosure is opened.
   expect(copy).toContain('Trake');
   // Potrebno says how many places are taken; a price with no stated basis stays the bare amount, with no invented note.
   expect(copy).toContain('0/2');
-  expect(copy.indexOf('Prenos ormara')).toBeLessThan(copy.indexOf('Objavljen'));
-  // Applications are the owner's next decision; the retained work facts follow.
-  expect(copy.indexOf('3 prijave za izbor')).toBeLessThan(copy.indexOf('4.000 RSD'));
+  // The state is on top, the name under it, the next step under the name (the bar's hidden copy of the name comes first in the tree).
+  expect(copy.indexOf('Bira se · 3')).toBeLessThan(copy.lastIndexOf('Prenos ormara'));
+  expect(copy.lastIndexOf('Prenos ormara')).toBeLessThan(copy.indexOf('Imaš 3 prijave. Uporedi ih i izaberi.'));
+  // The next step is the owner's decision; the retained work facts follow.
+  expect(copy.indexOf('Imaš 3 prijave. Uporedi ih i izaberi.')).toBeLessThan(copy.indexOf('4.000 RSD'));
   expect(copy).not.toMatch(/Ukupno za ceo zadatak|Po osobi/);
 });
 test('V41 facts: the place, Termin as day and hours, Potrebno, and the price with what it covers', async () => {
@@ -119,8 +125,8 @@ test('an open price is a word, not an amount, and the owner is told who names it
   expect(texts()).not.toContain('popunjeno');
 });
 test('the footer leads somewhere with an arrow; while an action runs it says so, is disabled and points nowhere', async () => {
-  await act(async () => { tree = create(<Screen value={need({ brojPrijavaZaIzbor: 3 })} />); });
-  expect(byLabel('Pregledaj prijave, 3 prijave za izbor').findAllByType(ArrowRight)).toHaveLength(1);
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })} />); });
+  expect(byLabel('Uporedi prijave, 3 prijave za izbor').findAllByType(ArrowRight)).toHaveLength(1);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<NeedPresentation need={need()} loading={false} error={null} busy remainingClosed={false}
     onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} />); });
@@ -135,7 +141,7 @@ test('a server-authoritative recovery action replaces only the one footer CTA an
     onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} onAgreements={noop}
     primaryOverride={{ label: 'Ponovo traži ljude', onPress: onReopen }} />); });
   expect(texts()).toContain('preostala potraga je zatvorena');
-  expect(labels()).toContain('Moji dogovori');
+  expect(labels()).toContain('Moji Dogovori');
   expect(brand()).toEqual(['Ponovo traži ljude']);
   await act(async () => byLabel('Ponovo traži ljude').props.onPress());
   expect(onReopen).toHaveBeenCalledTimes(1);
@@ -143,23 +149,24 @@ test('a server-authoritative recovery action replaces only the one footer CTA an
 
 test('a private draft explains the next step and leads with the review; a closed remaining search is stated, not offered', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
-  // The state is one line under the title; the footer is the next step, so no card describes it as well.
-  expect(texts()).toContain('Privatan nacrt'); expect(texts()).not.toContain('Spremi zadatak za objavu'); expect(brand()).toEqual(['Pregledaj za objavu']);
+  // The state is the chip on top ("Nacrt"), the sentence under the title says it is private and what the one action does.
+  expect(texts()).toContain('Nacrt'); expect(texts()).toContain('Nacrt je privatan. Pregledaj ga i objavi.');
+  expect(texts()).not.toContain('Privatan nacrt'); expect(texts()).not.toContain('Spremi zadatak za objavu'); expect(brand()).toEqual(['Pregledaj za objavu']);
   const draftMenu = await menuLabels();
-  expect(draftMenu).toContain('Izmeni nacrt'); expect(draftMenu).not.toContain('Izmeni Zadatak');
+  expect(draftMenu).toContain('Izmeni nacrt'); expect(draftMenu).not.toContain('Izmeni zadatak');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })} remainingClosed />); });
   // Owner step 5b (2026-09-24): the closed search is said once, in the state line under the title, not in a note at the end.
   expect(texts()).toContain('preostala potraga je zatvorena'); expect(texts()).not.toContain('Originalni Zadatak');
   const closedMenu = await menuLabels();
-  expect(closedMenu).not.toContain('Ne traži više nikoga'); expect(closedMenu).not.toContain('Izmeni Zadatak');
+  expect(closedMenu).not.toContain('Ne traži više nikoga'); expect(closedMenu).not.toContain('Izmeni zadatak');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })} />); });
   expect(await menuLabels()).toContain('Ne traži više nikoga');
 });
 test('loading shows placeholder geometry with a spoken status; an error keeps one retry', async () => {
   await act(async () => { tree = create(<Screen value={null} loading />); });
-  expect(texts()).toContain('Učitavamo Zadatak…'); expect(brand()).toEqual([]);
+  expect(texts()).toContain('Učitavamo zadatak…'); expect(brand()).toEqual([]);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={null} error="Zadatak trenutno nije moguće učitati." />); });
   expect(texts()).toContain('Zadatak nije dostupan'); expect(byLabel('Pokušaj ponovo')).toBeTruthy(); expect(brand()).toEqual(['Pokušaj ponovo']);

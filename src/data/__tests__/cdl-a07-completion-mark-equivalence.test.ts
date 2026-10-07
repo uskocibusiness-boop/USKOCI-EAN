@@ -61,7 +61,7 @@ describe('CDL-A07 — canonical completion-mark contract', () => {
   });
 
   it.each([
-    ['message wins', { message: 'NOT_WORKER', code: '42501' }, { ok: false, kod: 'NOT_WORKER', poruka: 'Ovu radnju može da izvrši samo onaj ko je uskočio u ovaj Dogovor.' }],
+    ['message wins', { message: 'NOT_WORKER', code: '42501' }, { ok: false, kod: 'NOT_WORKER', poruka: 'Ovu radnju može da izvrši samo radnik iz ovog Dogovora.' }],
     ['code fallback', { code: '42501' }, { ok: false, kod: 'COMPLETION_FAILED', poruka: 'Završetak nije mogao da se označi.' }],
     ['full fallback', {}, { ok: false, kod: 'COMPLETION_FAILED', poruka: 'Završetak nije mogao da se označi.' }],
   ])('preserves active error mapping: %s', async (_label, error, expected) => {

@@ -69,6 +69,8 @@ export const sys = {
     money: '#202020',
     skeleton: '#EEEEEE',
     scrim: '#00000066',
+    /** The dim behind a centred dialog (plan 2.20: 0.35; a bottom sheet's own backdrop is 0.3 and lives in the sheet engine). */
+    dim: '#00000059',
     /**
      * The white veil a full-screen step panel lies on over the map (the Zadaci search, Discovery V47): the map still shows
      * through it, the white cards on it are what is read. No blur: there is no blur package, and none is added for this.
@@ -263,6 +265,19 @@ export const sys = {
      * Reduced motion replaces it with `{ duration: 0 }`.
      */
     sheetSpring: { stiffness: 300, damping: 30, mass: 1, overshootClamping: true },
+    /**
+     * A sheet that a COMMAND closes (a button, the ×, Android Back, a tap outside): a short timing on `easeOut`, 160-180 ms,
+     * quicker than the spring that opens it (plan 2.20; rule R2: exit is shorter than entry). Gorhom's `close()` takes it as
+     * its own configuration; what the finger carries (a drag down) keeps `sheetSpring`.
+     */
+    sheetClose: 170,
+    /**
+     * A centred dialog (plan 2.20): the card opens on a scale from `from` to 1 over `enter`, decelerating (`easeOut`), inside the
+     * native Modal's own fade. It leaves on that same window fade, which the platform plays after the screen has already been
+     * told the question is over, so no JS exit is spelled here (plan: 140 ms; the system's short animation time is what the
+     * window fade takes). Under reduced motion it neither fades nor scales: it is there, and then it is gone.
+     */
+    dialog: { enter: 200, from: 0.96 },
     /**
      * Loops, in milliseconds per half-turn (rule R4: focused screen only, never more than four at once, stopped in the
      * background and under reduced motion): the skeleton breath, the typing dots, the glow while listening.

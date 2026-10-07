@@ -48,7 +48,7 @@ test('Moje prijave names no app mode, offers tabs with counts as real tabs, and 
   expect(copy).toContain('Moje prijave'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
   for (const tab of ['Sve', 'Čeka te', 'Aktivne', 'Završene']) expect(byLabel(tab).props.accessibilityRole).toBe('tab');
   expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
-  expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Potrebna nova provera'); expect(copy).toContain('6.000 RSD');
+  expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Zadatak je izmenjen.'); expect(copy).toContain('6.000 RSD');
   expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene zadatka: Unos ormara c');
   // Review r4 item 1: the review foot's spoken name now starts with its visible words (WCAG 2.5.3); it was "Pregledaj izmene: …".
   // Every card is reachable as its own Task, and a list of applications spends no orange fill: the card
@@ -199,7 +199,11 @@ test('closed applications remove the brand action and say so; the requester prof
     poverenje: { ocenaProsek: 4.8, brojRecenzija: 3, zavrseniBroj: 5, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: false } } }} />));
   const copy = texts();
   // Step 7 (2026-09-24): the sheet wrote the raw number ("4.8"); a rating is written the Serbian way, as on every row.
-  expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('Ocena 4,8 3 recenzije'); expect(copy).toContain('Volim red.');
+  // T4b1 (2026-10-07): the rating and the finished tasks are rows with one spoken sentence each ("4,8 · 3 ocene", "Završeno 5 zadataka").
+  const facts = tree.root.findByProps({ testID: 'public-profile-facts' }).findAll(node => typeof node.type === 'string' && node.props.accessible === true)
+    .map(node => node.props.accessibilityLabel);
+  expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('Volim red.');
+  expect(facts).toEqual(['Ocena: 4,8, 3 ocene', 'Završeno 5 zadataka']);
   expect(copy).not.toContain('Identitet je potvrđen');
   await act(async () => byLabel('Zatvori javni profil').props.onPress()); expect(close).toHaveBeenCalledTimes(1);
 });

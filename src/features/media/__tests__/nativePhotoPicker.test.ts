@@ -1,7 +1,8 @@
-const mockLibrary = jest.fn(), mockCamera = jest.fn(), mockPermission = jest.fn(), mockManipulate = jest.fn();
+const mockLibrary = jest.fn(), mockCamera = jest.fn(), mockPermission = jest.fn(), mockManipulate = jest.fn(), mockCameraState = jest.fn();
 const mockFiles = new Map<string, { size: number; bytes: ArrayBuffer; exists: boolean }>(), mockDelete = jest.fn();
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: (...a: unknown[]) => mockLibrary(...a),
-  launchCameraAsync: (...a: unknown[]) => mockCamera(...a), requestCameraPermissionsAsync: () => mockPermission() }));
+  launchCameraAsync: (...a: unknown[]) => mockCamera(...a), requestCameraPermissionsAsync: () => mockPermission(),
+  getCameraPermissionsAsync: () => mockCameraState() }));
 jest.mock('expo-image-manipulator', () => ({ ImageManipulator: { manipulate: (...a: unknown[]) => mockManipulate(...a) }, SaveFormat: { JPEG: 'jpeg' } }));
 jest.mock('expo-file-system', () => ({ Paths: { cache: { uri: 'file:///cache/' } }, File: class {
   uri: string; constructor(value: string) { this.uri = value; } get exists() { return mockFiles.get(this.uri)?.exists ?? false; }
@@ -10,6 +11,7 @@ jest.mock('expo-file-system', () => ({ Paths: { cache: { uri: 'file:///cache/' }
   delete() { mockDelete(this.uri); }
 } }));
 import { pickPreparedPhoto, pickPreparedPhotos, photoSelectionSkipped, PhotoSelectionError } from '../nativePhotoPicker';
+import { answeringHost, holdingHost } from '../../../ui/permissions/testing/answeringHost';
 const original = 'file:///cache/picker/original.jpg', saved = 'file:///cache/output.jpg';
 const resize = jest.fn(), render = jest.fn(), save = jest.fn(), releaseContext = jest.fn(), releaseImage = jest.fn();
 beforeEach(() => {
@@ -51,6 +53,71 @@ it('requires camera permission and does not open the camera on denial', async ()
   mockPermission.mockResolvedValue({ granted: false });
   await expect(pickPreparedPhoto('CAMERA', () => true)).rejects.toEqual(new PhotoSelectionError('PERMISSION'));
   expect(mockCamera).not.toHaveBeenCalled(); expect(mockManipulate).not.toHaveBeenCalled();
+});
+
+// Design proposal N (owner, 2026-10-07): when the system is about to ask for the camera, one question comes first. The gallery is
+// the system's own picker and asks for nothing, so it never gets the question.
+describe('the question before the camera window', () => {
+  let host: { stop(): void } | undefined;
+  beforeEach(() => { mockCameraState.mockResolvedValue({ granted: false, canAskAgain: true }); });
+  afterEach(() => { host?.stop(); host = undefined; });
+
+  it('"Dozvoli": the system\'s own camera window follows, then the camera', async () => {
+    const asking = answeringHost('allow'); host = asking;
+    const result = await pickPreparedPhoto('CAMERA', () => true);
+    expect(asking.asked).toEqual(['photos']); expect(mockPermission).toHaveBeenCalledTimes(1);
+    expect(mockCamera).toHaveBeenCalledTimes(1); expect(result).toMatchObject({ contentType: 'image/jpeg' });
+  });
+
+  it('"Ne sada": the system is not asked, the camera does not open, and nothing is picked or said', async () => {
+    const asking = answeringHost('later'); host = asking;
+    expect(await pickPreparedPhoto('CAMERA', () => true)).toBeNull();
+    expect(await pickPreparedPhotos('CAMERA', () => true, { limit: 1 })).toBeNull();
+    expect(asking.asked).toEqual(['photos', 'photos']);
+    expect(mockPermission).not.toHaveBeenCalled(); expect(mockCamera).not.toHaveBeenCalled(); expect(mockManipulate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['already allowed', { granted: true, canAskAgain: true }],
+    ['refused for good, so the system will not open a window', { granted: false, canAskAgain: false }],
+  ])('is not asked when the camera is %s', async (_name, state) => {
+    mockCameraState.mockResolvedValue(state);
+    mockPermission.mockResolvedValue({ granted: state.granted });
+    const asking = answeringHost('later'); host = asking;
+    if (state.granted) expect(await pickPreparedPhoto('CAMERA', () => true)).toMatchObject({ contentType: 'image/jpeg' });
+    else await expect(pickPreparedPhoto('CAMERA', () => true)).rejects.toEqual(new PhotoSelectionError('PERMISSION'));
+    expect(asking.asked).toEqual([]); expect(mockPermission).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes straight on when the state cannot be read', async () => {
+    mockCameraState.mockRejectedValue(new Error('no module'));
+    const asking = answeringHost('later'); host = asking;
+    expect(await pickPreparedPhoto('CAMERA', () => true)).toMatchObject({ contentType: 'image/jpeg' });
+    expect(asking.asked).toEqual([]);
+  });
+
+  it('never asks about the gallery, which has no permission to explain', async () => {
+    const asking = answeringHost('later'); host = asking;
+    expect(await pickPreparedPhoto('LIBRARY', () => true)).toMatchObject({ contentType: 'image/jpeg' });
+    expect(await pickPreparedPhotos('LIBRARY', () => true, { limit: 3 })).not.toBeNull();
+    expect(asking.asked).toEqual([]); expect(mockCameraState).not.toHaveBeenCalled(); expect(mockPermission).not.toHaveBeenCalled();
+  });
+
+  it('does not open the system window for a caller that left while the question was read', async () => {
+    const held = holdingHost(); host = held;
+    let current = true;
+    const picking = pickPreparedPhoto('CAMERA', () => current);
+    for (let n = 0; n < 8; n++) await Promise.resolve();
+    expect(held.open()?.kind).toBe('photos');
+    current = false; held.answer('allow');
+    expect(await picking).toBeNull();
+    expect(mockPermission).not.toHaveBeenCalled(); expect(mockCamera).not.toHaveBeenCalled();
+  });
+
+  it('goes straight to the system when no host can draw the question', async () => {
+    expect(await pickPreparedPhoto('CAMERA', () => true)).toMatchObject({ contentType: 'image/jpeg' });
+    expect(mockPermission).toHaveBeenCalledTimes(1);
+  });
 });
 
 // Owner, 2026-10-07: several photos from one gallery pick, up to the slots still free; the camera takes one.

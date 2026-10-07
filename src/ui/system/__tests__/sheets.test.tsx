@@ -5,6 +5,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { ConfirmSheet, SLOW_COMMAND_MS, useConfirmSheet, type ConfirmRequest } from '../ConfirmSheet';
 import { ActionSheet, orderActions, type SheetAction } from '../ActionSheet';
 import { PeekSheet } from '../PeekSheet';
+import { Glyph } from '../Glyph';
 import { FOOTER_ESTIMATE, ProductSheet, SHEET_BACKDROP_HINT } from '../../product/ProductSheet';
 import { brandAction, pictureWell, sys } from '../tokens';
 import { Press } from '../../Press';
@@ -48,9 +49,12 @@ const flat = (style: unknown) => Object.assign({}, ...[style].flat(3).filter(Boo
 const backdropOf = () => sheet().props.backdropComponent({ animatedIndex: { value: 0 }, animatedPosition: { value: 0 }, style: {} });
 afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; jest.useRealTimers(); });
 
-describe('ConfirmSheet', () => {
+// The BOTTOM-SHEET FORM of the question: what a request that carries extra content, or whose caller says `form: 'sheet'`, is
+// drawn as (plan 2.20: "potvrda sa razlogom ili poljem"). A short question is a centred dialog now (owner 2026-10-07); its cases
+// are in confirm-dialog.test.tsx, case for case, so the one contract is held twice, once per form.
+describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
   const request = (patch: Partial<ConfirmRequest> = {}): ConfirmRequest => ({ title: 'Povući prijavu?',
-    message: 'Prijava više neće biti aktivna.', confirmLabel: 'Povuci', ...patch });
+    message: 'Prijava više neće biti aktivna.', confirmLabel: 'Povuci', form: 'sheet', ...patch });
 
   it('asks with a title, one sentence, one confirm and one quiet cancel', async () => {
     await render(<ConfirmSheet {...request()} onClosed={jest.fn()} />);
@@ -382,6 +386,53 @@ describe('ProductSheet', () => {
     await render(<ProductSheet title="Filteri" reduced={false} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
     expect(sheet().props.animateOnMount).toBe(true);
   });
+
+  // Plan 2.20: a sheet opens and settles on the one spring and leaves quicker than it came: a command (a button, the ×, Back)
+  // closes it over 160-180 ms on the decelerating curve, handed to Gorhom's own `close()`. Gorhom is a mock here, so this pins
+  // what the sheet ASKS for; how it looks on a phone is for the phone.
+  describe('closing', () => {
+    const closeOf = () => jest.spyOn((BottomSheet as unknown as { prototype: { close: (config?: unknown) => void } }).prototype, 'close');
+    afterEach(() => { jest.restoreAllMocks(); });
+
+    it('is asked for over 170 ms on the decelerating curve, whichever command closes it, and the spring stays what it opens on', async () => {
+      const close = closeOf();
+      expect(sys.motion.sheetClose).toBeGreaterThanOrEqual(160); expect(sys.motion.sheetClose).toBeLessThanOrEqual(180);
+      await render(<ProductSheet title="Filteri" onClose={jest.fn()} footer={dismiss => <Text testID="commit" onPress={dismiss}>Primeni</Text>}>
+        {() => <Text>Sadržaj</Text>}</ProductSheet>);
+      expect(sheet().props.animationConfigs).toBe(sys.motion.sheetSpring);
+      await press(byTestId('commit'));
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(close).toHaveBeenLastCalledWith({ duration: sys.motion.sheetClose, easing: expect.anything() });
+      // Back and the × go the same way.
+      await act(async () => tree.unmount());
+      close.mockClear();
+      await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+      await act(async () => { modal().props.onRequestClose(); });
+      expect(close).toHaveBeenLastCalledWith({ duration: sys.motion.sheetClose, easing: expect.anything() });
+    });
+
+    it('is at once under reduced motion, the system\'s or the caller\'s', async () => {
+      const close = closeOf();
+      mockReduced = true;
+      await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+      await act(async () => { modal().props.onRequestClose(); });
+      expect(close).toHaveBeenLastCalledWith({ duration: 0 });
+      await act(async () => tree.unmount()); mockReduced = false; close.mockClear();
+      await render(<ProductSheet title="Filteri" reduced onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+      await act(async () => { modal().props.onRequestClose(); });
+      expect(close).toHaveBeenLastCalledWith({ duration: 0 });
+    });
+  });
+
+  // Plan 2.20(b): one close glyph. The sheet's × used to be a Phosphor X at 22 of its own; it is the registry's `close` at 24 now,
+  // in the same 48 well.
+  it('draws its × as the one close glyph, 24 in a 48 hit area', async () => {
+    await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+    const close = tree.root.findByProps({ accessibilityLabel: 'Zatvori', accessibilityRole: 'button' });
+    const glyph = close.findByType(Glyph);
+    expect(glyph.props).toMatchObject({ name: 'close', size: 24 });
+    expect(flat(close.props.style)).toMatchObject({ width: 48, height: 48 });
+  });
 });
 
 describe('ActionSheet', () => {
@@ -460,6 +511,46 @@ describe('ActionSheet', () => {
     await press(tree.root.findByProps({ accessibilityLabel: 'Fotografije' }));
     expect(log).toEqual([]); expect(onClose).not.toHaveBeenCalled();
   });
+
+  // Plan 2.18: unavailable is a GREY surface with a reason, never a faded ghost of the live row (it was opacity 0.45, so a
+  // disabled destructive row was a pale red and a disabled row said nothing).
+  it('draws a row that cannot be used on the grey wash in muted ink, never faded, and says why in the line a subtitle would take', async () => {
+    const rows: SheetAction[] = [
+      { key: 'live', label: 'Otvori profil', icon: 'person', subtitle: 'Javni profil.', onPress: jest.fn() },
+      { key: 'why', label: 'Fotografije', icon: 'photo', disabled: true, reason: 'Nacrt još nema naslov.', subtitle: 'Dodaj slike u nacrt.', hint: 'Otvara fotografije.', onPress: jest.fn() },
+      { key: 'sub', label: 'Izvezi', icon: 'document', disabled: true, subtitle: 'Dostupno uskoro.', onPress: jest.fn() },
+      { key: 'bare', label: 'Podeli', icon: 'users', disabled: true, onPress: jest.fn() },
+      { key: 'end', label: 'Obriši nacrt', icon: 'shield', destructive: true, disabled: true, reason: 'Prvo ukloni fotografije.', onPress: jest.fn() },
+    ];
+    await render(<ActionSheet actions={rows} onClose={jest.fn()} />);
+    const row = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
+    const lines = (label: string) => row(label).findAll(node => node.type === ('T' as unknown as React.ElementType));
+    const well = (label: string) => row(label).findAll(node => typeof node.type === 'string' && flat(node.props.style).width === pictureWell.width)[0];
+    // A live row is as it was: no wash, its own ink, its subtitle.
+    expect(flat(row('Otvori profil').props.style).backgroundColor).toBeUndefined();
+    expect(flat(lines('Otvori profil')[0].props.style).color).toBe(sys.color.ink);
+    expect(lines('Otvori profil')[1].props.children).toBe('Javni profil.');
+    for (const label of ['Fotografije', 'Izvezi', 'Podeli', 'Obriši nacrt']) {
+      const style = flat(row(label).props.style);
+      expect([label, style.backgroundColor, style.opacity]).toEqual([label, sys.color.wash, undefined]);
+      expect([label, flat(lines(label)[0].props.style).color]).toEqual([label, sys.color.muted]);
+      expect([label, flat(well(label).props.style).backgroundColor]).toEqual([label, sys.color.surface]);
+      expect([label, row(label).props.accessibilityState]).toEqual([label, { disabled: true }]);
+    }
+    // The reason takes the subtitle's place and is what is spoken, before the row's own hint.
+    expect(lines('Fotografije').map(line => line.props.children)).toEqual(['Fotografije', 'Nacrt još nema naslov.']);
+    expect(row('Fotografije').props.accessibilityHint).toBe('Nacrt još nema naslov. Otvara fotografije.');
+    // A disabled row with only a subtitle keeps saying it; one with neither is grey and bare (the next wave gives it a reason).
+    expect(lines('Izvezi').map(line => line.props.children)).toEqual(['Izvezi', 'Dostupno uskoro.']);
+    expect(lines('Podeli').map(line => line.props.children)).toEqual(['Podeli']);
+    // Disabled wins over destructive: grey, not a pale red.
+    expect(lines('Obriši nacrt').map(line => line.props.children)).toEqual(['Obriši nacrt', 'Prvo ukloni fotografije.']);
+    expect(flat(well('Obriši nacrt').props.style).backgroundColor).not.toBe(sys.color.dangerSoft);
+    // And a reason on a live row is not drawn: it is for a row that cannot be used.
+    await act(async () => tree.unmount());
+    await render(<ActionSheet actions={[{ key: 'a', label: 'Otvori', icon: 'person', reason: 'Ne treba.', onPress: jest.fn() }]} onClose={jest.fn()} />);
+    expect(lines('Otvori').map(line => line.props.children)).toEqual(['Otvori']);
+  });
 });
 
 describe('PeekSheet', () => {
@@ -513,6 +604,23 @@ describe('PeekSheet', () => {
     mockReduced = true;
     await render(<PeekSheet label="Zadatak na mapi" active onClose={jest.fn()}>{() => <Text>Kartica</Text>}</PeekSheet>);
     expect(sheet().props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
+  });
+
+  // Plan 2.20: the card leaves like every sheet when a command closes it: 170 ms on the decelerating curve, or at once.
+  it('closes on the sheets\' own short timing when a command closes it, and at once under reduced motion', async () => {
+    const close = jest.spyOn((BottomSheet as unknown as { prototype: { close: (config?: unknown) => void } }).prototype, 'close');
+    try {
+      const card = () => <PeekSheet label="Zadatak na mapi" active onClose={jest.fn()}>{dismiss => <Text testID="card" onPress={dismiss}>Kartica</Text>}</PeekSheet>;
+      await render(card());
+      expect(sheet().props.animationConfigs).toBe(sys.motion.sheetSpring);
+      await press(byTestId('card'));
+      expect(close).toHaveBeenLastCalledWith({ duration: sys.motion.sheetClose, easing: expect.anything() });
+      await act(async () => tree.unmount());
+      mockReduced = true; close.mockClear();
+      await render(card());
+      await press(byTestId('card'));
+      expect(close).toHaveBeenLastCalledWith({ duration: 0 });
+    } finally { close.mockRestore(); }
   });
 
   // Discovery V47: the pin card is one floating card with its own ×, 16 dp in from both edges.

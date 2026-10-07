@@ -253,7 +253,7 @@ describe('when the outcome of the send is unknown', () => {
     // Checking finds no stored review, so the same command is offered again.
     await act(async () => action('Proveri sačuvanu ocenu').props.onPress()); await settle();
     server.submit = (body: Body) => ({ data: { ...receipt(body, body.p_comment ?? null), idempotentReplay: true }, error: null });
-    await act(async () => action('Ponovi istu ocenu').props.onPress()); await settle();
+    await act(async () => action('Sačuvaj ocenu ponovo').props.onPress()); await settle();
     expect(submits()).toHaveLength(2);
     expect(submits()[1]).toEqual(submits()[0]);
     expect(submits()[0].p_comment).toBe('Sve pohvale.');
@@ -339,7 +339,7 @@ describe('the comment text goes nowhere but the screen and the request', () => {
       await save();
       await act(async () => action('Proveri sačuvanu ocenu').props.onPress()); await settle();
       server.submit = (body: Body) => ({ data: receipt(body, `${SECRET} otherwise`), error: null });
-      await act(async () => action('Ponovi istu ocenu').props.onPress()); await settle();
+      await act(async () => action('Sačuvaj ocenu ponovo').props.onPress()); await settle();
       for (const spy of spies) expect(JSON.stringify(spy.mock.calls)).not.toContain('Tajni');
     } finally { for (const spy of spies) spy.mockRestore(); }
   });

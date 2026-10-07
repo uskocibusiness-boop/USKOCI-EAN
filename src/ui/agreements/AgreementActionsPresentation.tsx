@@ -5,9 +5,10 @@ import { ArrowClockwise } from 'phosphor-react-native';
 import type { AgreementChangeSnapshot, AgreementChangeTerms } from '../../data/agreementClientService';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
-import { novac } from '../../lib/novac';
+import { BEZ_IZNOSA, novac } from '../../lib/novac';
 import { CivilField } from '../calendar/CalendarControls';
 import { civilClock, civilDay, zonedParts } from '../calendar/calendarPresentation';
+import { Press } from '../Press';
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { FactArt, type FactArtKind } from '../system/FactArt';
@@ -15,7 +16,7 @@ import { FlowFooter } from '../system/FlowFooter';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
-import { brandAction, field, fieldBox, inset, sys } from '../system/tokens';
+import { brandAction, CHIP_CHOSEN_INSET, chipChosen, field, fieldBox, inset, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import type { AgreementActionsState } from './AgreementActionsController';
 import type { AgreementActionCommand } from './agreementActionsModel';
@@ -30,20 +31,27 @@ export type AgreementActionForm = { token: object; kind: 'PROPOSE' | 'CANCEL'; r
 const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? 'Termin nije potvrđen'
   : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, DOGOVORENA_ZONA);
 const scopeText = (terms: AgreementChangeTerms) => terms.scopeNote || 'Nije dodat opis';
+/**
+ * A price as the terms say it: an amount above zero is written as one, anything else - a price that was never saved - is
+ * "Iznos nije sačuvan", in words. A missing price never looks like an amount, and never reads "0 RSD".
+ */
+const priceText = (rsd: number) => Number.isFinite(rsd) && rsd > 0 ? novac(rsd) : BEZ_IZNOSA;
 
 /**
  * One fact of the terms. With `before`, the line under the value is the one mark of a change ("umesto 3.500 RSD") or
  * of none ("bez promene"); weight does not mark it, since the money value is bold whether it changed or not (round 6,
- * scene 09: the three facts carried three different emphases for one kind of difference).
+ * scene 09: the three facts carried three different emphases for one kind of difference). A price in words wears no
+ * amount style.
  */
 function Fact({ art, label, value, before }: { art: FactArtKind; label: string; value: string; before?: string | null }) {
   const compared = before !== undefined && before !== null, changed = compared && before !== value;
   const spoken = changed ? `${label}: ${value}, umesto ${before}` : compared ? `${label}: ${value}, bez promene` : `${label}: ${value}`;
+  const amount = art === 'money' && value !== BEZ_IZNOSA;
   return <View style={s.fact} accessible accessibilityLabel={spoken}>
     <FactArt kind={art} size={24} cut="art" />
     <View style={s.factCopy}>
       <T variant="meta" tone="muted">{label}</T>
-      <T variant={art === 'money' ? 'bodyStrong' : 'body'} style={art === 'money' ? s.money : undefined}>{value}</T>
+      <T variant={amount ? 'bodyStrong' : 'body'} style={amount ? s.money : undefined}>{value}</T>
       {changed ? <T variant="meta" tone="muted">umesto {before}</T> : compared ? <T variant="meta" tone="muted">bez promene</T> : null}
     </View>
   </View>;
@@ -53,7 +61,7 @@ function Fact({ art, label, value, before }: { art: FactArtKind; label: string; 
 function Terms({ terms, base }: { terms: AgreementChangeTerms | null; base?: AgreementChangeTerms | null }) {
   if (!terms) return <T variant="copy" tone="muted">Uslovi nisu dostupni za pregled.</T>;
   return <View style={s.facts}>
-    <Fact art="money" label="Cena" value={novac(terms.priceRsd)} before={base ? novac(base.priceRsd) : undefined} />
+    <Fact art="money" label="Cena" value={priceText(terms.priceRsd)} before={base ? priceText(base.priceRsd) : undefined} />
     <Fact art="calendar" label="Termin" value={schedule(terms)} before={base ? schedule(base) : undefined} />
     <Fact art="document" label="Obim" value={scopeText(terms)} before={base ? scopeText(base) : undefined} />
   </View>;
@@ -80,7 +88,7 @@ const WORDS: Record<string, { unconfirmed: string; confirmed: string; rejected: 
   WITHDRAW: { unconfirmed: 'Povlačenje predloga još nije potvrđeno', confirmed: 'Povlačenje je potvrđeno', rejected: 'Predlog nije povučen', again: 'Ponovo povuci predlog' },
   RESPOND: { unconfirmed: 'Odgovor na predlog još nije potvrđen', confirmed: 'Odgovor je poslat', rejected: 'Odgovor nije prošao', again: 'Ponovo pošalji odgovor' },
 };
-const wordsFor = (kind: string | null) => (kind && WORDS[kind]) || { unconfirmed: 'Ishod još nije potvrđen', confirmed: 'Potvrđeno', rejected: 'Nije prošlo', again: 'Ponovi isti zahtev' };
+const wordsFor = (kind: string | null) => (kind && WORDS[kind]) || { unconfirmed: 'Ishod još nije potvrđen', confirmed: 'Potvrđeno', rejected: 'Nije prošlo', again: 'Pošalji ponovo' };
 
 export type AgreementActionsPresentationProps = {
   phase: AgreementActionsState['phase']; snapshot: AgreementChangeSnapshot | null; accountId: string;
@@ -107,8 +115,11 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
     chrome = <ScreenChrome variant="flow" onClose={p.onCloseForm} closeLabel="Odustani od unosa" disabled={busy}
       title={form.reentry ? 'Ponovni unos prvobitnog zahteva' : form.kind === 'CANCEL' ? 'Otkazivanje Dogovora' : 'Predlog izmene'} step="Korak 1 od 2" />;
     body = <Form form={form} base={snapshot?.terms ?? null} busy={busy} onEdit={p.onEdit} />;
-    // The step's one decision, pinned under the scroll; what stopped it is said right under the button it stopped.
-    footer = <V2Action tone="neutral" label={form.kind === 'CANCEL' ? 'Pregledaj otkazivanje' : 'Pregledaj predlog'} style={brandAction} disabled={busy}
+    // The step's one decision, pinned under the scroll; what stopped it is said right under the button it stopped. A cancellation
+    // needs its reason: until one is chosen the decision is grey, with the reason why (plan 2.3), not a press that answers with an error.
+    const reasonMissing = form.kind === 'CANCEL' && !form.reason.trim();
+    footer = <V2Action tone="neutral" label={form.kind === 'CANCEL' ? 'Pregledaj otkazivanje' : 'Pregledaj predlog'} style={brandAction}
+      disabled={busy || reasonMissing} reason={reasonMissing && !busy ? (form.reentry ? 'Unesi razlog.' : 'Izaberi razlog.') : null}
       error={p.error} onPress={p.onPrepareForm} />;
   } else if (review) {
     chrome = <ScreenChrome variant="flow" onClose={p.onCloseReview} closeLabel="Odustani od radnje" disabled={busy}
@@ -208,6 +219,21 @@ function baseFields(base: AgreementChangeTerms | null, zone: string) {
     startDate: start?.date ?? null, startTime: start ? civilClock(start.time) : null, endDate: end?.date ?? null, endTime: end ? civilClock(end.time) : null };
 }
 
+/**
+ * The reasons a Dogovor is cancelled for, in the words a person would say them (plan 2.3). The server takes the words as the
+ * reason; "Drugo" asks for the person's own. No gendered participle: the reasons speak of the term, the task or the agreement.
+ */
+export const CANCEL_REASONS = ['Promenio se termin', 'Zadatak više nije potreban', 'Rešeno je drugačije', 'Ne mogu da ispoštujem dogovor',
+  'Druga strana se ne javlja'] as const;
+
+/** One reason, a pill: a chosen one wears the system's chosen-chip edge and a green word. At least 44 high. */
+function ReasonChip({ label, on, disabled, onPress }: { label: string; on: boolean; disabled: boolean; onPress: () => void }) {
+  return <Press accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: on, disabled }} disabled={disabled}
+    haptic="select" onPress={onPress} style={[s.reason, on && s.reasonOn]}>
+    <T variant="meta" style={[s.reasonText, on && s.reasonTextOn]}>{label}</T>
+  </Press>;
+}
+
 function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: AgreementChangeTerms | null; busy: boolean;
   onEdit: AgreementActionsPresentationProps['onEdit'] }) {
   // A form token owns this local reveal. A new form starts from its own source; once text was shown,
@@ -220,6 +246,13 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
     setScopeEditor({ token: form.token, open: hasScope });
   }
   const showScope = hasScope || (scopeEditor.token === form.token && scopeEditor.open);
+  // A cancellation's reason is chosen from chips, and "Drugo" opens the field for the person's own words. A re-entered request
+  // (the journal asks for the very same text again) keeps the plain field: its words must match the first attempt exactly.
+  const choosing = form.kind === 'CANCEL' && !form.reentry;
+  const [freeText, setFreeText] = useState({ token: form.token, open: false });
+  if (freeText.token !== form.token) setFreeText({ token: form.token, open: false });
+  const chosen = CANCEL_REASONS.find(reason => reason === form.reason) ?? null;
+  const writing = chosen === null && (freeText.open || form.reason.trim().length > 0);
   const was = baseFields(base, form.zone);
   // Under a field whose value left the terms in force: what it replaces, so step 1 already shows the change (scene 11).
   const instead = (shown: boolean, text: string) => shown ? <T variant="meta" tone="muted" numberOfLines={2}>umesto {text}</T> : null;
@@ -241,11 +274,11 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
             editable={!busy} keyboardType="number-pad" maxLength={100} style={s.amountInput} />
           <T variant="bodyStrong" style={s.unit} importantForAccessibility="no" accessibilityElementsHidden>RSD</T>
         </View>
-        {instead(was.price !== null && form.price.trim() !== was.price, base ? novac(base.priceRsd) : '')}
+        {instead(was.price !== null && form.price.trim() !== was.price, base ? priceText(base.priceRsd) : '')}
       </View>
-      {showScope ? input('Predloženi obim posla', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
+      {showScope ? input('Predloženi obim zadatka', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
         instead(was.scope !== null && form.scope.trim() !== was.scope, was.scope ?? ''))
-        : <V2Action label="Dodaj opis obima posla" kind="quiet" tone="neutral" disabled={busy}
+        : <V2Action label="Dodaj opis obima zadatka" kind="quiet" tone="neutral" disabled={busy}
           onPress={() => { if (currentScope.current.token === form.token && !currentScope.current.busy) setScopeEditor({ token: form.token, open: true }); }} style={s.scopeEntry} />}
       <T variant="meta" tone="muted">Vreme unosiš po vremenu u Srbiji.</T>
       {civil('Datum početka', 'date', form.startDate, startDate => onEdit({ startDate, startChanged: true }), was.startDate)}
@@ -253,7 +286,17 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
       {civil('Datum kraja', 'date', form.endDate, endDate => onEdit({ endDate, endChanged: true }), was.endDate)}
       {civil('Vreme kraja', 'time', form.endTime, endTime => onEdit({ endTime, endChanged: true }), was.endTime)}
     </> : null}
-    {input(form.kind === 'CANCEL' ? 'Razlog otkazivanja Dogovora' : 'Razlog predloga — opciono', form.reason, reason => onEdit({ reason }), true)}
+    {choosing ? <View style={s.field}>
+      <T variant="meta">Razlog otkazivanja Dogovora</T>
+      <View accessibilityRole="radiogroup" style={s.reasons}>
+        {CANCEL_REASONS.map(reason => <ReasonChip key={reason} label={reason} on={chosen === reason} disabled={busy}
+          onPress={() => { setFreeText({ token: form.token, open: false }); onEdit({ reason }); }} />)}
+        <ReasonChip label="Drugo" on={writing} disabled={busy}
+          onPress={() => { setFreeText({ token: form.token, open: true }); if (chosen) onEdit({ reason: '' }); }} />
+      </View>
+      {writing ? <TextInput accessibilityLabel="Razlog otkazivanja Dogovora" value={form.reason} onChangeText={reason => onEdit({ reason })}
+        editable={!busy} multiline maxLength={4000} autoFocus style={[s.input, s.multiline]} /> : null}
+    </View> : input(form.kind === 'CANCEL' ? 'Razlog otkazivanja Dogovora' : 'Razlog predloga — opciono', form.reason, reason => onEdit({ reason }), true)}
   </View>;
 }
 
@@ -267,7 +310,7 @@ function Review({ review, proposed, base, snapshot }: { review: AgreementActionC
       // The three sentences are the cancellation's binding words; they stay exactly as written.
       ? <>
         <View style={s.section}>
-          <T variant="meta" tone="muted">Dogovor koji otkazuješ</T>
+          {/* No eyebrow over the title ("Dogovor koji otkazuješ"): the bar already says "Otkazivanje Dogovora". */}
           <T variant="heading" accessibilityRole="header">{cancelContext?.title || 'Naziv Dogovora nije dostupan'}</T>
           <Fact art="person" label="Sa kim" value={cancelContext?.counterpartName || 'Ime druge strane nije dostupno'} />
           <Fact art="calendar" label="Važeći termin" value={cancelContext?.terms ? schedule(cancelContext.terms) : 'Termin nije dostupan'} />
@@ -302,6 +345,12 @@ const s = StyleSheet.create({
   doneCopy: { gap: sys.space.sm },
   scopeEntry: { alignSelf: 'flex-start', marginLeft: -sys.space.base },
   field: { gap: sys.space.xs },
+  reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, paddingVertical: sys.space.xs },
+  // A free chip has a 1 px edge; a chosen one has the system's 2 px green edge and takes 1 px off its side padding, so its words stay put.
+  reason: { minHeight: sys.touch.min, justifyContent: 'center', paddingHorizontal: 14, borderRadius: sys.radius.pill, borderWidth: 1,
+    borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
+  reasonOn: { ...chipChosen, paddingHorizontal: 14 - CHIP_CHOSEN_INSET },
+  reasonText: { color: sys.color.ink, fontWeight: '600' }, reasonTextOn: { color: sys.color.green },
   input: { ...field },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
   // The price row is the field box itself; the number's input is borderless inside it and RSD closes the row.

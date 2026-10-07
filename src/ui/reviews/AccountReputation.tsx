@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { reviewCommentBuilt } from '../../data/reviewCommentGate';
 import { accountReputationLabel, reviewsClientService, type AccountReputation as Reputation } from '../../data/reviewsClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { sys } from '../system/tokens';
 import { FactArt } from '../system/FactArt';
-import { ReviewCommentsSection, type ReviewCommentPhoto } from './ReviewCommentsSection';
+import { Glyph } from '../system/Glyph';
 
 /**
  * Only a real aggregate is drawn: anything without a numeric count (a read that is not this one) draws nothing, and a
@@ -22,17 +21,15 @@ const isReputation = (value: unknown): value is Reputation => {
 /**
  * One account reputation in both intents; an unavailable read is not zero reviews.
  *
- * With the D12 build flag on and a profile to read, the written comments about the person follow the rating line ("Komentari",
- * `ReviewCommentsSection`). Without the flag, or without a profile id, this is the rating line alone, exactly as it always was.
+ * T4a, 2026-10-07: the line is a way in. With `onOpen` it is a row that opens "Ocene" (the ratings the person received and gave);
+ * the written comments of D12 live there too, no longer under the rating on the profile. Without `onOpen` it is the line alone.
  */
-export function AccountReputation({ accountId, commentsProfileId, commentPhoto, centered = false }: {
+export function AccountReputation({ accountId, onOpen, centered = false }: {
   accountId: string;
-  /** Center only the rating summary in an identity passport; comments retain their full-width reading layout. */
+  /** Center only the rating summary in an identity passport. */
   centered?: boolean;
-  /** The profile whose comments are listed under the rating (any profile of the account: the list is account-level). */
-  commentsProfileId?: string | null;
-  /** How a reviewer's photo is drawn; the route that owns the media code hands it in. */
-  commentPhoto?: ReviewCommentPhoto;
+  /** Opens the ratings. Absent: the line is only a line. */
+  onOpen?: () => void;
 }) {
   const load = useCallback(async () => {
     const result = await reviewsClientService.reputation(accountId);
@@ -40,18 +37,18 @@ export function AccountReputation({ accountId, commentsProfileId, commentPhoto, 
     return result.podatak;
   }, [accountId]);
   const reputation = useFocusedResource(load);
-  const line = <View style={centered ? s.centered : undefined}><ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
-    onRetry={() => { void reputation.refresh(); }} /></View>;
-  return commentsProfileId && reviewCommentBuilt() ? <>{line}<ReviewCommentsSection profileId={commentsProfileId} photo={commentPhoto} /></> : line;
+  return <View style={centered ? s.centered : undefined}><ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
+    onRetry={() => { void reputation.refresh(); }} onOpen={onOpen} /></View>;
 }
 
 /**
- * The reputation as one line under the name in the profile's identity column (2026-09-24). While it reads: a still bar
- * where the line will be (no spinner, nothing moves). With reviews: the star and "4,8 · 12 ocena". With none: "Još nema
- * ocena" and no star. When the read fails: one 48 dp row that says so and offers "Osveži" in the same line, instead of a
- * full-width button under the name. Anything else draws nothing, never "undefined".
+ * The reputation as one line under the name in the profile's identity column (2026-09-24). While it reads: a still bar where
+ * the line will be (no spinner, nothing moves). With reviews: the star and "4,8 · 12 ocena". With none: "Još nema ocena" and
+ * no star. When the read fails: one 48 dp row that says so and offers "Osveži" in the same line, instead of a full-width button
+ * under the name. Anything else draws nothing, never "undefined". With `onOpen` a line that has an answer (ratings or none) is
+ * a 48 dp button that says where it goes ("Otvara ocene.") and ends in the quiet arrow every row onward ends in.
  */
-export function ReputationLine({ state, onRetry }: { state: 'loading' | 'error' | unknown; onRetry: () => void }) {
+export function ReputationLine({ state, onRetry, onOpen }: { state: 'loading' | 'error' | unknown; onRetry: () => void; onOpen?: () => void }) {
   if (state === 'loading') return <View accessibilityRole="progressbar" accessibilityLabel="Učitavanje reputacije" style={s.bar} />;
   if (state === 'error') return <Press accessibilityRole="button" accessibilityLabel="Osveži ocene" accessibilityHint="Ocene trenutno nisu dostupne."
     haptic="select" scaleTo={0.99} onPress={onRetry} style={s.retry}>
@@ -59,17 +56,23 @@ export function ReputationLine({ state, onRetry }: { state: 'loading' | 'error' 
     <T variant="note" style={s.action}>Osveži</T>
   </Press>;
   if (!isReputation(state)) return null;
-  if (state.reviewCount === 0) return <T variant="note" tone="muted">{accountReputationLabel(state)}</T>;
-  return <View style={s.line}>
-    <FactArt kind="star" size={18} />
-    <T variant="note" style={s.value}>{accountReputationLabel(state)}</T>
-  </View>;
+  const none = state.reviewCount === 0, label = accountReputationLabel(state);
+  const words = none ? <T variant="note" tone="muted">{label}</T>
+    : <View style={s.line}><FactArt kind="star" size={18} /><T variant="note" style={s.value}>{label}</T></View>;
+  if (!onOpen) return words;
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Otvara ocene." haptic="select"
+    scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.open}>
+    {words}
+    <Glyph name="caret-right" size={16} tone="muted" />
+  </Press>;
 }
 
 const s = StyleSheet.create({
   centered: { alignItems: 'center', maxWidth: '100%' },
   bar: { width: 112, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: 2 },
   retry: { minHeight: 48, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, alignSelf: 'flex-start' },
+  // No alignSelf: in the identity passport the wrapper centres it, elsewhere it starts at the edge like the words it replaces.
+  open: { minHeight: 48, flexDirection: 'row', alignItems: 'center', columnGap: sys.space.xs },
   shrink: { flexShrink: 1 },
   action: { color: sys.color.green, fontWeight: '600' },
   line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },

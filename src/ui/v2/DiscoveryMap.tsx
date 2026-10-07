@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
-import { Info, Minus, Plus } from 'phosphor-react-native';
 import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, publicBounds, type MarketplaceItem, type PinPlace, type PublicBounds }
   from '../../data/marketplaceView';
 import { readableTitle } from '../../data/needDetailPresentation';
@@ -12,6 +11,7 @@ import { useMapStyle, type MapStyle } from '../location/mapStyle';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from './V2Action';
+import { Glyph } from '../system/Glyph';
 import { sys } from '../system/tokens';
 import { zadataka } from '../system/plural';
 import { useReducedMotion } from '../system/motion';
@@ -21,7 +21,8 @@ import { useUrgencyClock } from './NeedUrgencyBadge';
 import { pinRelationWords, PricePill, type PillContent, type PinRelation } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 import { DISCOVERY_V1_PIN_IMAGES, DiscoveryV1ServerMarkerLayer } from './discovery/DiscoveryV1ServerMarkerLayer';
-import { clearBandBounds, rowOfLatitude } from './discovery/mapClearBand';
+import { CONTROL_GAP, CONTROL_SIZE, ZOOM_WIDTH, clearBandBounds, controlsRowWidth, rowOfLatitude } from './discovery/mapClearBand';
+import { useCoverValue, useRidingStyle } from './discovery/mapControls';
 import { traceDiscoveryV1 } from '../../data/discoveryV1Trace';
 
 type Owner = { key: string; active: boolean; epoch: number };
@@ -60,8 +61,9 @@ const showsBounds = (view: PublicBounds, wanted: PublicBounds) => {
 };
 /** A pill's own press may also reach the map as a tap on empty ground; within this long it is not one. */
 const PILL_TAP_MS = 400;
-const ZOOM_CAPSULE = { width: 44, height: 88 } as const;
 const GAP = sys.space.md;
+/** The row of controls keeps this far from the map's right edge. */
+const CONTROLS_INSET = sys.space.base;
 const CREDITS = [
   { text: '© OpenStreetMap', url: 'https://www.openstreetmap.org/copyright' },
   { text: '© OpenMapTiles', url: 'https://www.openmaptiles.org/' },
@@ -452,44 +454,43 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     moveCamera({ center: target.center, zoom: 12 }, sys.motion.camera);
     props.onNearbyConsumed?.(target.key);
   }, [props.centerNearby, status]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Sources and zoom have stable homes below search. Neither rides a selected card or the list sheet.
-  // Attribution remains visible in its reserved band; optional zoom steps out only when the sheet covers its target.
-  const height = frame?.height ?? 0, sheetTop = props.sheetTop;
+  // The map's controls (UX plan section P): the zoom buttons stand in one row directly ABOVE the list sheet and move with it; at the
+  // full stop the row is in the strip of map under the search pill, never behind the list and never below it. A pin's card that
+  // lies over the map's bottom lifts the row above the card. The credits keep their stable home under the search; at the full
+  // stop they share the strip, left of the buttons. All of it is arithmetic on the UI thread (`mapControls`), none of it springs.
+  const height = frame?.height ?? 0, sheetTop = props.sheetTop, locked = !!props.locked;
   const creditsTop = (props.toolsBottom ?? 0) + GAP;
-  const zoomTop = creditsTop + creditHeight + GAP;
-  const cover = useSharedValue(props.coverBottom ?? 0);
-  useEffect(() => {
-    const next = Math.max(0, props.coverBottom ?? 0);
-    cover.value = reduced ? next : withSpring(next, sys.motion.springSheet);
-  }, [props.coverBottom, reduced]); // eslint-disable-line react-hooks/exhaustive-deps
-  const zoomVisibility = useAnimatedStyle(() => {
-    const clearBottom = (sheetTop ? sheetTop.value : height) - cover.value;
-    const covered = clearBottom < zoomTop + ZOOM_CAPSULE.height + GAP;
-    // Remove an invisible control from hit testing. This is an instant visibility change, never a travelling button.
-    return { transform: [{ translateY: covered ? -2 * height : 0 }], opacity: covered ? 0 : 1 };
-  }, [height, zoomTop, sheetTop, cover]);
-  const zoom = status === 'ready' ? <View style={[s.zoom, { top: zoomTop }]}>
-      {([['Uvećaj mapu', Plus, 1], ['Umanji mapu', Minus, -1]] as const).map(([label, Glyph, delta], index) => <View key={label}>
+  const rowHeight = Math.max(creditHeight, CONTROL_SIZE);
+  const cover = useCoverValue(props.coverBottom ?? 0, reduced);
+  const ride = useRidingStyle({ sheetTop, cover, height, rowHeight, gap: GAP, minTop: props.controlsMinTop ?? creditsTop });
+  // "U blizini" stands right of the zoom buttons (the screen draws it, so it also works while no map is mounted).
+  const reserve = CONTROLS_INSET + controlsRowWidth(true, !!props.locateShown) + GAP;
+  const zoom = status === 'ready' ? <View testID="discovery-map-zoom" style={[s.zoom, {
+    right: CONTROLS_INSET + (props.locateShown ? CONTROL_SIZE + CONTROL_GAP : 0), top: Math.round((rowHeight - CONTROL_SIZE) / 2) }]}>
+      {([['Uvećaj mapu', 'plus', 1], ['Umanji mapu', 'minus', -1]] as const).map(([label, glyph, delta], index) => <View key={label} style={s.zoomHalf}>
         {index ? <View style={s.zoomRule} /> : null}
         <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !viewport }} disabled={!viewport}
-          // Each half is drawn 44 × 43; its touch reaches 48 × 49 outwards, never into the other half.
-          haptic="select" onPress={() => changeZoom(delta)} hitSlop={index ? { left: 2, right: 2, bottom: 6 } : { left: 2, right: 2, top: 6 }} style={s.zoomButton}>
-          <Glyph size={22} color={viewport ? sys.color.ink : sys.color.muted} /></Press>
+          // Each half is drawn 44 × 44; its touch reaches 2 outwards above, below and outside, never into the other half.
+          haptic="select" onPress={() => changeZoom(delta)} hitSlop={index ? { right: 2, top: 2, bottom: 2 } : { left: 2, top: 2, bottom: 2 }} style={s.zoomButton}>
+          <Glyph name={glyph} size={24} tone={viewport ? 'ink' : 'muted'} /></Press>
       </View>)}
     </View> : null;
-  const credits = <View testID="discovery-map-credits" style={[s.attribution, { top: creditsTop }]} onLayout={event => {
+  const credits = <View testID="discovery-map-credits" style={[s.attribution, { top: creditsTop }, locked && { right: reserve }]} onLayout={event => {
     const next = Math.ceil(event.nativeEvent.layout.height);
     if (Number.isFinite(next) && next >= 48) { setCreditHeight(current => current === next ? current : next); props.onCreditsHeight?.(next); }
   }}>
     <Press accessibilityRole="button" accessibilityLabel="Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap"
       accessibilityHint="Otvara izvore i licence mape." hitSlop={0} style={s.creditLink} onPress={() => { if (owns()) setSourcesOpen(true); }}>
-      <T variant="label" style={s.credit}>© OpenStreetMap · © OpenMapTiles</T><Info size={16} color={sys.color.muted} />
+      <T variant="label" style={s.credit}>© OpenStreetMap · © OpenMapTiles</T><Glyph name="info" size={16} tone="muted" />
     </Press>
   </View>;
   return <View style={s.container} onLayout={event => { const { width, height: tall } = event.nativeEvent.layout; if (width > 0 && tall > 0) setFrame(current => current?.width === width && current.height === tall ? current : { width, height: tall }); }}>
+    {/* With the list at its full height the map is a strip: it takes no gesture and a screen reader skips it (the strip below asks for the half height). */}
+    <View testID="discovery-map-box" style={s.mapBox} pointerEvents={locked ? 'none' : 'auto'} accessibilityElementsHidden={locked}
+      importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'}>
     <Map ref={map} style={s.map} mapStyle={props.mapStyle} androidView="texture" logo={false}
       attribution={false} tintColor={sys.color.muted}
-      touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija Zadatka"
+      touchPitch={false} touchRotate={false} accessibilityLabel="Mapa približnih lokacija zadatka"
       onDidFinishLoadingMap={() => { if (owns()) traceLoad('map-loaded'); mark('ready'); void readVisiblePins(); }}
       onDidFailLoadingMap={() => { if (owns()) traceLoad('native-error'); mark('failed'); }}
       // One real native frame per focus entry, not a timer or per-frame state updates. Map readiness alone
@@ -583,9 +584,10 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
           label={`${displaysUrgent(selected.urgency, urgencyNow) ? 'HITNO, ' : ''}${readableTitle(selected.naslov)}, ${pinLabel(selected).spoken}, približna lokacija`}
           content={pinLabel(selected)} urgent={displaysUrgent(selected.urgency, urgencyNow)} relation={relationFor(selected.id)} selected nativeReady={status === 'ready' && nativeFrameReady} owns={owns} /> : null}
     </Map>
-    {sheetTop && height
-      ? <Animated.View testID="discovery-map-zoom-layer" pointerEvents="box-none" style={[s.controlLayer, { height }, zoomVisibility]}>{zoom}</Animated.View>
-      : <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>{zoom}</View>}
+    </View>
+    {locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikaži više mape" accessibilityHint="Spušta listu do pola."
+      haptic="select" scaleTo={1} onPress={() => { if (owns()) props.onStripPress?.(); }} style={StyleSheet.absoluteFill} /> : null}
+    <Animated.View testID="discovery-map-zoom-layer" pointerEvents="box-none" style={[s.controlLayer, { height: rowHeight }, ride]}>{zoom}</Animated.View>
     {credits}
     {sourcesOpen ? <ActionSheet title="Izvori mape" reduced={reduced} onClose={() => setSourcesOpen(false)} actions={CREDITS.map(credit => ({
       key: credit.url, label: credit.text, icon: 'map' as const, hint: 'Otvara izvor u pregledaču.',
@@ -630,13 +632,15 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
     onLoadStatus={status => { if (surface.current === surfaceId && latestKey.current === owner.key) ready.current = status === 'ready'; }}
     onRetry={() => { if (owns()) { ready.current = false; setAttempt(value => value + 1); } }} />;
 }
-const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, map: { flex: 1 },
+const s = StyleSheet.create({ container: { flex: 1, minHeight: 180, backgroundColor: sys.color.greenSoft }, mapBox: { flex: 1 }, map: { flex: 1 },
+  // The row's layer: as wide as the map and as tall as its row; the UI thread moves it (`useRidingStyle`).
   controlLayer: { position: 'absolute', left: 0, right: 0, top: 0 },
-  // One capsule with a hairline between its halves, fixed at the right below the source strip.
-  zoom: { position: 'absolute', right: sys.space.base, width: ZOOM_CAPSULE.width, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.soft },
-  zoomButton: { width: ZOOM_CAPSULE.width - 2, height: ZOOM_CAPSULE.height / 2 - 1, alignItems: 'center', justifyContent: 'center' },
-  zoomRule: { height: 1, marginHorizontal: 10, backgroundColor: sys.color.line },
+  // One capsule, its two halves side by side with a hairline between them, to the left of "U blizini".
+  zoom: { position: 'absolute', width: ZOOM_WIDTH, height: CONTROL_SIZE, flexDirection: 'row', alignItems: 'center', borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.soft },
+  zoomHalf: { flexDirection: 'row', alignItems: 'center' },
+  zoomButton: { width: CONTROL_SIZE - 1, height: CONTROL_SIZE - 2, alignItems: 'center', justifyContent: 'center' },
+  zoomRule: { width: 1, height: 22, backgroundColor: sys.color.line },
   feedback: { ...StyleSheet.absoluteFill, padding: 24, gap: 16, justifyContent: 'center', backgroundColor: sys.color.surface },
   // Two required names remain visible, wrapping at larger text. One 48dp target opens every source, no scrolling rail.
   attribution: { position: 'absolute', left: sys.space.base, right: sys.space.base,

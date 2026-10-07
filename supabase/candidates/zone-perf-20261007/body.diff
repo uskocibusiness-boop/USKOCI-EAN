@@ -1,0 +1,20 @@
+--- private.availability_timezone_valid(text) BEFORE (DEV)
++++ private.availability_timezone_valid(text) AFTER (ZONE-PERF)
+@@ -1,5 +1,13 @@
+ 
+-  select value is not null and length(value)<=100
+-    and (value='UTC' or position('/' in value)>0)
+-    and value not like 'posix/%' and value not like 'right/%'
+-    and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value);
++  -- ZONE-PERF (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about 52 ms in CI and
++  -- 70-110 ms on canonical DEV per call, warm or cold) and this helper runs for every worker x task pair of the matcher, for every
++  -- relative deadline and for every availability save. The two names below are the product's own zones and are known to be in the
++  -- catalog (the candidate refuses to apply otherwise); they need no scan. Every other value is judged by exactly the expression
++  -- used before, so what is accepted and what is refused is unchanged.
++  select case
++    when value is null or length(value)>100 then false
++    when value in ('Europe/Belgrade','UTC') then true
++    else (value='UTC' or position('/' in value)>0)
++      and value not like 'posix/%' and value not like 'right/%'
++      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
++  end;

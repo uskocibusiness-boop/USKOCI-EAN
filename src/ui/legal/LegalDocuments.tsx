@@ -6,29 +6,32 @@ import { legalClientService } from '../../data/legalClientService';
 import { sesijaSada } from '../../store/sesija';
 import { InlineNote } from '../privacy/InlineNote';
 import { ProductSheet } from '../product/ProductSheet';
-import { SettingsAction, SettingsGroup, SettingsInfo, SettingsIntro, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
+import { SettingsAction, SettingsGroup, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
-import { CatalogArt } from '../system/CatalogArt';
 import { FactArt } from '../system/FactArt';
 import { SkeletonList } from '../system/Skeleton';
+import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { boundedLegalRead, legalHttpsUrl, reviewedDocuments, type LegalReviewState } from './legalReview';
 
 const legalTitle = (kind: LegalDocumentKind) => kind === 'TERMS' ? 'Uslovi korišćenja' : 'Politika privatnosti';
 export const processorRoles: Record<ProcessorLegalRole, string> = { PROCESSOR: 'Obrađivač', SUBPROCESSOR: 'Podobrađivač', INDEPENDENT_CONTROLLER: 'Samostalni rukovalac' };
+/** The one honest sentence when the documents are not published (and nothing is offered in their place). */
+export const LEGAL_NOT_PUBLISHED = 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.';
+const LEGAL_UNAVAILABLE = 'Dokumenti trenutno nisu dostupni.';
 
 export function LegalDocumentRows({ bundle, onOpen, disabled = false }: {
   bundle: LegalBundleStatus | null; onOpen: (document: LegalDocument) => void; disabled?: boolean;
 }) {
   const documents = reviewedDocuments(bundle);
   return documents ? <SettingsGroup title="Objavljeni dokumenti">{documents.map((document, index) =>
-    <SettingsRow key={document.kind} label={legalTitle(document.kind)} detail={`Verzija ${document.version} · Otvara se u pregledaču`}
-      icon={<CatalogArt kind={document.kind === 'TERMS' ? 'document' : 'shield'} muted={disabled} />}
+    <SettingsRow key={document.kind} label={legalTitle(document.kind)} detail="Otvara se u pregledaču"
+      icon={<FactArt kind={document.kind === 'TERMS' ? 'document' : 'shield'} size={32} muted={disabled} />}
       onPress={() => onOpen(document)} disabled={disabled} last={index === 1} />)}</SettingsGroup>
     // Not green: "not published" and "not available" are not good news, so they sit on the quiet wash.
     : <InlineNote tone="neutral" art={null}>
-      <View style={s.status}><CatalogArt kind="document" muted />
-        <T style={s.grow}>{bundle ? 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.' : 'Dokumenti trenutno nisu dostupni.'}</T></View>
+      <View style={s.status}><FactArt kind="document" size={32} muted />
+        <T style={s.grow}>{bundle ? LEGAL_NOT_PUBLISHED : LEGAL_UNAVAILABLE}</T></View>
     </InlineNote>;
 }
 
@@ -42,14 +45,14 @@ function Fact({ label, value }: { label: string; value: string }) {
   return <View style={s.fact}><T variant="note" tone="muted">{label}</T><T selectable>{value}</T></View>;
 }
 
-function ProviderDisclosure({ provider, onOpenUrl }: { provider: ProcessorMapProvider; onOpenUrl: (url: string) => void }) {
+function ProviderDisclosure({ provider, onOpenUrl, divider = true }: { provider: ProcessorMapProvider; onOpenUrl: (url: string) => void; divider?: boolean }) {
   const facts = ([
     ['Svrha obrade', provider.purpose], ['Podaci koji se obrađuju', provider.dataCategories.join(', ')],
     ['Regioni obrade', provider.processingRegions], ['Prenos podataka', provider.crossBorderTransfer ? provider.transferMechanism : 'Bez međunarodnog prenosa prema objavljenoj mapi.'],
     ['Čuvanje i brisanje', provider.retentionDeletionTerms], ['Podobrađivači', provider.subprocessorTerms],
     ['Osnov obrade', provider.legalBasisReference], ['Ugovor o obradi', provider.dpaReference],
   ] as const).filter(([, value]) => !!value);
-  return <Disclosure divider label={provider.providerDisplayName} hint={`${provider.legalEntityName} · ${processorRoles[provider.legalRole]}`}>
+  return <Disclosure divider={divider} label={provider.providerDisplayName} hint={`${provider.legalEntityName} · ${processorRoles[provider.legalRole]}`}>
     {facts.map(([label, value]) => <Fact key={label} label={label} value={value} />)}
     <SettingsAction label={`Obaveštenje o privatnosti · ${provider.providerDisplayName}`} kind="quiet" onPress={() => onOpenUrl(provider.privacyNoticeUrl)} />
   </Disclosure>;
@@ -70,27 +73,35 @@ export function LegalReviewView({ state, onBack, action, linkError, onOpen, onOp
   const receiptCurrent = state.receipt && documents && documents[0].sha256 === state.receipt.termsSha256 && documents[1].sha256 === state.receipt.privacySha256;
   const confirmed = state.bundle?.acceptedCurrentBundle || !!receiptCurrent;
   const processors = state.processors?.ready ? state.processors : null;
+  // The first read has nothing to show yet; a re-read keeps what was read on screen, with the refresh at the end at work.
+  const firstRead = state.loading && !state.bundle && !state.processors;
+  const processorGroup = processors ? <SettingsGroup title="Obrađivači podataka">
+    {processors.providers.map((provider, index) => <ProviderDisclosure key={provider.providerCode} provider={provider} onOpenUrl={onOpenUrl} divider={index > 0} />)}
+  </SettingsGroup> : null;
   return <SettingsScreen title="Pravila i saglasnosti" onBack={onBack} footer={action ? <>{state.error ? <ErrorLine>{state.error}</ErrorLine> : null}{action}</> : null}>
-    <SettingsIntro>Pročitaj važeće dokumente i podatke o obradi svojih podataka.</SettingsIntro>
-    {state.loading ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
-      {!action && state.error ? <InlineNote tone="danger">{state.error}</InlineNote> : null}
+    {firstRead ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
+      {!action && state.error && documents ? <InlineNote tone="danger">{state.error}</InlineNote> : null}
       {/* A record, not a celebration: the state of the acceptance stands above what it is about. */}
       {confirmed ? <View style={s.status}><FactArt kind="check" size={22} />
         <T style={s.grow} accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></View>
         : state.receipt ? <View style={s.status}><FactArt kind="info" size={22} />
           <T style={s.grow}>Prethodno prihvatanje je potvrđeno. Učitaj aktuelne dokumente ponovo.</T></View> : null}
-      <View style={s.documents}>
-        <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={onOpen} />
-        {linkError ? <ErrorLine>{linkError}</ErrorLine> : null}
-      </View>
-      <SettingsGroup title="Obrađivači podataka">
-        {processors ? <>
-          <SettingsInfo title={`Mapa obrade · ${processors.mapVersion}`} last>Podaci iz objavljene mape obrade.</SettingsInfo>
-          {processors.providers.map(provider => <ProviderDisclosure key={provider.providerCode} provider={provider} onOpenUrl={onOpenUrl} />)}
-        </> : <SettingsInfo title={state.processorError ? 'Podaci o obrađivačima nisu dostupni' : 'Mapa obrade još nije objavljena'} last>
-          {state.processorError ?? 'Podaci će biti dostupni kada bude objavljena potpuna mapa obrade.'}</SettingsInfo>}
-      </SettingsGroup>
-      <SettingsAction label="Osveži stanje" kind="quiet" disabled={state.busy} onPress={onRefresh} />
+      {documents ? <>
+        <View style={s.documents}>
+          <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={onOpen} />
+          {linkError ? <ErrorLine>{linkError}</ErrorLine> : null}
+        </View>
+        {processorGroup ?? <InlineNote tone="quiet" art={null}>{state.processorError ?? 'Podaci o obrađivačima još nisu objavljeni.'}</InlineNote>}
+        <SettingsAction label="Osveži stanje" kind="quiet" disabled={state.busy} loading={state.loading} onPress={onRefresh} />
+      </> : <>
+        {/* Nothing to read: ONE honest sentence and the one way to look again. No row for a document that does not exist, no empty
+            group for who processes the data, and no accept action (the route draws none without documents). */}
+        {state.bundle
+          ? <StateView kind="empty" art="document" title={LEGAL_NOT_PUBLISHED} quiet={{ label: 'Proveri ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />
+          : <StateView kind="error" art="document" title="Dokumenti nisu dostupni" body={state.error ?? LEGAL_UNAVAILABLE}
+            primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />}
+        {processorGroup}
+      </>}
     </>}
   </SettingsScreen>;
 }
@@ -137,7 +148,8 @@ export function PublicLegalBody({ loading, bundle, error, onOpen, onRefresh }: {
   loading: boolean; bundle: LegalBundleStatus | null; error: string | null; onOpen: (document: LegalDocument) => void; onRefresh: () => void;
 }) {
   return <View style={s.sheet}>
-    <T variant="copy" tone="muted">Otvori objavljene dokumente. Posle čitanja možeš nastaviti svoj formular.</T>
+    {/* The invitation to read is only said when there is something to read. */}
+    {!loading && reviewedDocuments(bundle) ? <T variant="copy" tone="muted">Otvori objavljene dokumente. Posle čitanja možeš nastaviti svoj formular.</T> : null}
     {loading ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={1} /></View>
       : <LegalDocumentRows bundle={bundle} onOpen={onOpen} />}
     {error ? <ErrorLine>{error}</ErrorLine> : null}

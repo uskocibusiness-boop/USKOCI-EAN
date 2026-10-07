@@ -48,9 +48,13 @@ const input = (label: string, value: string) => {
   act(() => control(label).props.onChangeText(value));
 };
 const settle = async () => { await act(async () => {}); };
-async function render() { await act(async () => { tree = create(<Profile />, {
+async function renderReading() { await act(async () => { tree = create(<Profile />, {
   createNodeMock: element => element.type === 'ScrollView' ? { scrollTo: mockScrollTo } : null,
 }); }); }
+// T4b1 (2026-10-07): a finished profile is READ first and "Izmeni ručno" turns it into the editor, so the tests of the editor
+// open it the way a person does. A draft, and a profile that does not exist yet, are the editor from the start.
+const toEditor = () => { const open = tree.root.findAllByProps({ accessibilityLabel: 'Izmeni ručno' }); if (open.length) act(() => open[0].props.onPress()); };
+async function render() { await renderReading(); toEditor(); }
 beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset().mockResolvedValue(profile); mockWrite.mockReset().mockResolvedValue({ ok: true, podatak: null });
   mockAccount = '10000000-0000-4000-8000-000000000001'; mockRevision = 1; mockIntent = 'uskocer'; mockFocused = true; mockPlatform = 'android';
@@ -61,7 +65,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTime
 // Since 2026-09-24 availability and the work area are summary rows that open their own editors: no switch, no dead fields.
 it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on %s, retaining true availability and comma-containing terms', async platform => {
   mockPlatform = platform; await render();
-  expect(texts()).toContain('Mogu odmah · pogledaj raspored'); expect(texts()).toContain('Novi Sad · 20 km');
+  expect(texts()).toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Novi Sad · 20 km');
   expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
   expect(texts()).toContain('Prevoz, utovar');
   // Availability is a factual row; notification consent remains in its own settings flow.
@@ -105,7 +109,7 @@ it('an absent pristine profile opens the guarded conversation without creating a
 
 it('a successfully absent profile saves manual input as a first draft before activation', async () => {
   mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
-  expect(texts()).toContain('Pogledaj i uredi raspored'); expect(texts()).toContain('Izaberi gde želiš da radiš');
+  expect(texts()).toContain('Pogledaj i uredi dostupnost'); expect(texts()).toContain('Izaberi gde želiš da radiš');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Koliko ljudi možeš da obezbediš' })).toHaveLength(0);
   input('Ime na radnom profilu', 'Ana');
   click('Sačuvaj profil'); await settle();
@@ -117,7 +121,7 @@ it('read failure offers retry without constructing a false/15km draft', async ()
   mockRead.mockRejectedValueOnce(new Error('private diagnostic')); await render();
   expect(texts()).toContain('Profil nije učitan'); expect(texts()).not.toContain('private diagnostic');
   expect(tree.root.findAllByProps({ label: 'Dostupnost' })).toHaveLength(0);
-  click('Ponovo učitaj profil'); await settle(); expect(texts()).toContain('Mogu odmah · pogledaj raspored');
+  click('Ponovo učitaj profil'); await settle(); expect(texts()).toContain('Mogu odmah · dostupnost');
 });
 it('location is read-only here and routes to the area editor', async () => {
   await render();
@@ -127,7 +131,7 @@ it('location is read-only here and routes to the area editor', async () => {
   click('Područje rada'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/lokacija');
 });
 it('opens existing notification settings on WORKER without implying that profile save enables push', async () => {
-  await render(); click('Obaveštenja o poslovima');
+  await render(); click('Obaveštenja o zadacima');
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/obavestenja', params: { skup: 'WORKER' } });
   expect(mockWrite).not.toHaveBeenCalled();
 });
@@ -137,7 +141,7 @@ const scrollEvent = (y: number) => ({ nativeEvent: { contentOffset: { x: 0, y } 
 const formLayout = () => tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout();
 async function focusProfile(focused: boolean) { mockFocused = focused; await act(async () => tree.update(<Profile />)); }
 
-it.each(['Obaveštenja o poslovima', 'Područje rada', 'Dostupnost'])('returns from %s to the reading position after native form layout, ignoring blur clamps', async label => {
+it.each(['Obaveštenja o zadacima', 'Područje rada', 'Dostupnost'])('returns from %s to the reading position after native form layout, ignoring blur clamps', async label => {
   await render();
   const oldScroll = readingScroll().props.onScroll;
   const oldLayout = tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout;
@@ -184,8 +188,8 @@ it('reading restoration survives a return read error but never crosses an accoun
 
 it('notification settings cannot drop an edited profile or use a callback from another account revision', async () => {
   await render();
-  const retained = control('Obaveštenja o poslovima').props.onPress;
-  input('Ime na radnom profilu', 'Lokalna izmena'); click('Obaveštenja o poslovima');
+  const retained = control('Obaveštenja o zadacima').props.onPress;
+  input('Ime na radnom profilu', 'Lokalna izmena'); click('Obaveštenja o zadacima');
   expect(mockRouter.navigate).not.toHaveBeenCalled();
   expect(texts()).toContain('Sačuvaj unos pre otvaranja drugog podešavanja.');
   expect(control('Ime na radnom profilu').props.value).toBe('Lokalna izmena');
@@ -194,9 +198,9 @@ it('notification settings cannot drop an edited profile or use a callback from a
 });
 it('notification navigation stays blocked while a profile save has an unknown outcome', async () => {
   mockWrite.mockResolvedValue({ ok: false, kod: 'TIMEOUT', poruka: 'unknown' });
-  await render(); const retained = control('Obaveštenja o poslovima').props.onPress;
+  await render(); const retained = control('Obaveštenja o zadacima').props.onPress;
   input('Ime na radnom profilu', 'Unos koji ostaje'); click('Sačuvaj izmene'); await settle();
-  act(() => retained()); click('Obaveštenja o poslovima');
+  act(() => retained()); click('Obaveštenja o zadacima');
   expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockWrite).toHaveBeenCalledTimes(1);
   expect(control('Ime na radnom profilu').props.value).toBe('Unos koji ostaje');
 });
@@ -249,7 +253,7 @@ it('unknown outcome preserves the immutable command and requires readback before
   expect(control('Ime na radnom profilu').props.editable).toBe(false); expect(texts()).not.toContain('raw upstream');
   expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
   click('Pogledaj sačuvani profil'); await settle(); act(() => oldSave()); expect(mockWrite).toHaveBeenCalledTimes(1);
-  click('Ponovi isto čuvanje'); await settle(); expect(mockWrite).toHaveBeenCalledTimes(2);
+  click('Sačuvaj ponovo'); await settle(); expect(mockWrite).toHaveBeenCalledTimes(2);
   expect(mockWrite.mock.calls[1][0]).toEqual(mockWrite.mock.calls[0][0]);
 });
 it('fresh mismatching readback permits explicit editing without silently dropping the attempted draft', async () => {
@@ -279,7 +283,7 @@ it('a save blocked by an unadded tool reopens that editor after switching to ide
 });
 it('availability is a read-only summary that links to its revision-bound writer', async () => {
   await render(); expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
-  expect(texts()).toContain('Mogu odmah · pogledaj raspored');
+  expect(texts()).toContain('Mogu odmah · dostupnost');
   click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
   expect(mockWrite).not.toHaveBeenCalled();
 });
@@ -308,7 +312,9 @@ it.each(['account'])('retires retained callbacks and late reads across %s change
   if (change === 'account') mockRevision += 2;
   await act(async () => tree.update(<Profile />)); act(() => oldSave()); expect(mockWrite).not.toHaveBeenCalled();
   await act(async () => late({ ...profile, ime: 'Aktuelni nalog' }));
-  openEditor('O meni');
+  // The new account's profile is read first, like any finished profile.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime na radnom profilu' })).toHaveLength(0);
+  toEditor(); openEditor('O meni');
   expect(control('Ime na radnom profilu').props.value).toBe('Aktuelni nalog'); expect(texts()).not.toContain('Unos starog naloga');
 });
 // Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
@@ -362,7 +368,7 @@ it('read timeout is bounded and late response cannot overwrite a successful repl
   mockRead.mockImplementationOnce(() => new Promise(resolve => { late = resolve; })); await render();
   await act(async () => jest.advanceTimersByTime(15_000)); click('Ponovo učitaj profil'); await settle();
   await act(async () => late({ ...profile, ime: 'Istekli odgovor' }));
-  openEditor('O meni'); expect(control('Ime na radnom profilu').props.value).toBe('Ana');
+  toEditor(); openEditor('O meni'); expect(control('Ime na radnom profilu').props.value).toBe('Ana');
 });
 it('a hanging transport becomes unknown without automatic replay or a late success announcement', async () => {
   jest.useFakeTimers(); let late!: (value: unknown) => void;
@@ -396,18 +402,21 @@ it.each(['toolbar', 'hardware'])('%s Back asks before discarding a local draft a
 });
 
 it('confirmed discard resets a cached route draft before reentry and retires its retained save callback', async () => {
-  await render(); input('O tvom iskustvu', 'QA lokalno');
+  await render(); input('O meni', 'QA lokalno');
   const previousSave = control('Sačuvaj izmene').props.onPress;
   click('Nazad'); click('Odbaci izmene');
   expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  // The router mock keeps the actual route mounted, just as a cached native route can remain mounted.
-  expect(control('O tvom iskustvu').props.value).toBe(profile.biografija);
+  // The router mock keeps the actual route mounted, just as a cached native route can remain mounted. Leaving reads the
+  // profile again next time (T4b1), and the editor it opens holds the saved values.
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime na radnom profilu' })).toHaveLength(0);
+  toEditor();
+  expect(control('O meni').props.value).toBe(profile.biografija);
   expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
   act(() => previousSave()); expect(mockWrite).not.toHaveBeenCalled();
   mockFocused = false; await act(async () => tree.update(<Profile />));
   mockFocused = true; await act(async () => tree.update(<Profile />));
   openEditor('O meni');
-  expect(control('O tvom iskustvu').props.value).toBe(profile.biografija);
+  expect(control('O meni').props.value).toBe(profile.biografija);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
   expect(texts()).not.toContain('QA lokalno');
   expect(mockWrite).not.toHaveBeenCalled();
@@ -521,5 +530,61 @@ describe('activation checklist', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitaj kapacitet profila' })).toHaveLength(0);
     input('Ime na radnom profilu', 'Ana Petrović');
     expect(control('Sačuvaj izmene')).toBeTruthy(); expect(texts()).not.toContain('Sve je spremno za aktivaciju.');
+  });
+});
+
+// T4b1 (2026-10-07), M3: a finished profile is READ first. No pencil on any line, the same facts, what the data really does,
+// and two ways to change it; "Izmeni ručno" is what opens the editor, which is the screen this file has always tested.
+describe('the saved profile is read first', () => {
+  it('shows the facts without a pencil, what the data does, and the two ways to change it', async () => {
+    await renderReading();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
+    expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+    expect(texts()).toContain('Ana'); expect(texts()).toContain('Prevoz, utovar');
+    expect(texts()).toContain('Novi Sad · 20 km'); expect(texts()).toContain('Mogu odmah · dostupnost');
+    expect(texts()).toContain('Bušilica'); expect(texts()).toContain('Kombi');
+    expect(texts()).toContain('Na šta utiče');
+    expect(control('Izmeni razgovorom')).toBeTruthy(); expect(control('Izmeni ručno')).toBeTruthy();
+    // A clean finished profile has no save footer: the one green primary of the screen is "Izmeni razgovorom".
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
+    expect(mockWrite).not.toHaveBeenCalled();
+  });
+  it('says only what the profile does today: notifications and the public profile, and no "Za mene" list', async () => {
+    await renderReading();
+    expect(texts()).toContain('Obaveštenja'); expect(texts()).toContain('Novi i već otvoreni zadaci koji ti odgovaraju');
+    expect(texts()).toContain('Javni profil'); expect(texts()).toContain('Ime, „O meni“ i grad vide osobe koje otvore tvoj profil');
+    expect(texts()).not.toMatch(/Za mene/);
+    expect(tree.root.findAllByProps({ testID: 'worker-effect-forMe' })).toHaveLength(0);
+  });
+  it('says what tools and vehicles do today, not what the owner decided the server will do', async () => {
+    await renderReading();
+    expect(texts()).toContain('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
+    expect(texts()).not.toContain('samo informacija'); expect(texts()).not.toMatch(/ne utiču na pretragu/);
+  });
+  it('"Izmeni razgovorom" opens the guarded conversation, and writes nothing', async () => {
+    await renderReading(); click('Izmeni razgovorom');
+    expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
+  });
+  it('the notifications row opens the worker notification settings, the other effect is not a control', async () => {
+    await renderReading(); click('Obaveštenja');
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/obavestenja', params: { skup: 'WORKER' } });
+    expect(tree.root.findByProps({ testID: 'worker-effect-public' }).props.onPress).toBeUndefined();
+  });
+  it('"Izmeni ručno" opens the editor, with its pencils, and leaving reads the profile again next time', async () => {
+    await renderReading(); click('Izmeni ručno');
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(0);
+    expect(control('Izmeni: O meni')).toBeTruthy(); expect(control('Izmeni: Vozila')).toBeTruthy();
+    click('Nazad'); expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
+  });
+  it('a suspended profile is read too, with the support way out, and a draft is not read but guided', async () => {
+    mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await renderReading();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
+    expect(texts()).toContain('Profil je trenutno suspendovan'); expect(control('Piši podršci')).toBeTruthy();
+    await act(async () => tree.unmount());
+    mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(0);
+    expect(control('Proveri i aktiviraj profil')).toBeTruthy();
   });
 });

@@ -6,6 +6,7 @@ import { discoveryV1ApplyOverlays, type DiscoveryV1OverlaySnapshot } from './dis
 import type { DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
 import type { MarketplaceView, PublicBounds } from './marketplaceView';
 import type { DiscoveryV1SearchSnapshot } from './discoveryV1SearchOwner';
+import type { DiscoveryV1Item } from './discoveryV1Contract';
 
 export type DiscoveryV1PresentationActions = {
   onSelectMarker: (marker: DiscoveryV1MapMarker) => void;
@@ -22,6 +23,21 @@ export type DiscoveryV1PresentationActions = {
   /** The list shows rows `first` to `last`: their optional details are read when they are outside the window read so far. */
   onVisibleRange?: (first: number, last: number) => void;
 };
+
+const NO_PUBLISHED: ReadonlyMap<string, string> = new Map();
+const publishedCache = new WeakMap<readonly DiscoveryV1Item[], ReadonlyMap<string, string>>();
+/**
+ * When each row of the page was published, by id, straight from the page's own rows (`publishedAt`: the server orders the page by it). The same
+ * array of rows gives the same map, so a card that asks its age is not asked to draw again by a parent that merely rendered.
+ */
+export function discoveryV1Published(items: readonly DiscoveryV1Item[]): ReadonlyMap<string, string> {
+  if (!items.length) return NO_PUBLISHED;
+  const known = publishedCache.get(items);
+  if (known) return known;
+  const made = new Map(items.map(item => [item.id, item.publishedAt] as const));
+  publishedCache.set(items, made);
+  return made;
+}
 
 export type DiscoveryV1PresentationBridgeModel = {
   items: DiscoveryPresentationProps['items'];
@@ -55,6 +71,7 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
       counts: snapshot.counts,
       // Whole-filter facts of every published task the server knows (not of the loaded page): which quick chips have anything to say.
       availability: snapshot.availability,
+      published: discoveryV1Published(snapshot.wireItems),
       ...(search && actions.onSearchDraft && actions.onNextSearchPlaces ? { search: {
         snapshot: search, onDraft: actions.onSearchDraft, onNextPlaces: actions.onNextSearchPlaces,
       } } : {}),

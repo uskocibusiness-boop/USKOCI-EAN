@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Platform, ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
@@ -61,8 +61,8 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   // Confirmed: the state is the title and the next step its sentence. The title used to be the step, and the body
   // then said the same step again ("Kada završiš, označi završetak. Kada završiš, označi završetak…").
   return { tone: 'green', title: 'Dogovoreno', body: !party ? null : worker
-    ? 'Kada završiš, označi završetak. Druga strana tada ima 48h da potvrdi ili prijavi problem.'
-    : 'Završetak potvrđuješ kada je posao obavljen.' };
+    ? 'Kada završiš, izaberi „Zadatak je gotov“. Druga strana tada potvrđuje završetak ili prijavljuje problem.'
+    : 'Završetak potvrđuješ kada je zadatak obavljen.' };
 }
 
 /** The step's own words where the step is mine, shared by the step card and the head of Poruke. */
@@ -142,14 +142,43 @@ function RecoveryMessage({ message, limit }: { message: string; limit: number })
 }
 
 /**
- * Sticky footer: exactly one brand action per state. The second button, "Otvori poruke", is gone: the
- * Poruke tab stands at the top of the same screen, so the footer said it twice and took a quarter of it.
+ * The grey sentence that stands in the footer's place when NOTHING waits for the person (plan 2.6): no green button, only the
+ * state in words - "Čeka da Marko potvrdi završetak.". The route calls it only when it has no action to offer. Null when the
+ * honest thing is to say nothing: the permissions could not be read, and the step card above already says how to read them again.
+ *
+ * - `worker`: I am the side that does the work; once it is reported done, the confirmation is the other side's.
+ * - `change`: a proposal waits; `mine` is null when its content could not be read.
+ * - `permissionsKnown`: the server's own answer about completion (`radnje`) was read.
  */
-export function WorkspaceFooter({ brand, loading = false, statusText, notice }: {
-  brand: { label: string; onPress: () => void; disabled?: boolean };
+export function agreementQuietLine({ state, party, worker, otherName, change, permissionsKnown }: {
+  state: DogovorProjekcija['stanje']; party: boolean; worker: boolean; otherName?: string | null;
+  change: { waits: boolean; mine: boolean | null }; permissionsKnown: boolean;
+}): string | null {
+  if (!party) return null;
+  // The name stands as the subject of its sentence, so it needs no case ending; the app's own stand-in for a missing name is not a name.
+  const given = otherName?.trim(), who = given && given !== 'Druga strana' ? given : 'druga strana';
+  if (state === 'CANCELLED') return 'Dogovor je otkazan.';
+  if (state === 'COMPLETED') return 'Dogovor je završen.';
+  if (change.waits) return change.mine === true ? `Čeka da ${who} odgovori na tvoj predlog izmene.` : 'Predlog izmene čeka odgovor.';
+  if (state === 'AWAITING_REQUESTER' && worker) return `Čeka da ${who} potvrdi završetak.`;
+  if (!permissionsKnown) return null;
+  return 'Završetak trenutno nije dostupan.';
+}
+
+/**
+ * Sticky footer: at most one brand action per state, and none when nothing waits for the person - then it is one grey sentence
+ * of the state (`quiet`). The second button, "Otvori poruke", is gone: the Poruke tab stands at the top of the same screen, so
+ * the footer said it twice and took a quarter of it. `statusText` is the quiet line above ("Osvežavamo…", "Čuvamo promenu…").
+ */
+export function WorkspaceFooter({ brand, quiet, loading = false, statusText, notice, onLayout }: {
+  brand: { label: string; onPress: () => void; disabled?: boolean } | null;
+  /** Said in place of the action when there is none. */
+  quiet?: string | null;
   loading?: boolean;
   statusText?: string | null;
   notice?: { message: string; refresh: () => void; refreshing: boolean } | null;
+  /** The screen reads the footer's height to keep the outcome bar above it. */
+  onLayout?: (event: LayoutChangeEvent) => void;
 }) {
   const { width, height } = useWindowDimensions(), textScale = useTextScale();
   // Bound the reading area, never the footer: enlarged command labels keep their full natural touch height.
@@ -163,14 +192,17 @@ export function WorkspaceFooter({ brand, loading = false, statusText, notice }: 
     // Clearing the message resets the episode: the same failure after a later attempt must be heard again.
     if (recoveryMessage) AccessibilityInfo.announceForAccessibility(recoveryMessage);
   }, [recoveryMessage]);
-  return <View testID="agreement-action-footer" style={s.footer}>
+  // A footer with nothing to say draws nothing, so a finished Dogovor does not carry an empty padded bar.
+  if (!brand && !quiet && !notice && !statusText) return null;
+  return <View testID="agreement-action-footer" onLayout={onLayout} style={s.footer}>
     {notice ? <View style={s.feedback}>
       <RecoveryMessage key={JSON.stringify([notice.message, width, textScale])} message={notice.message} limit={messageLimit} />
       <V2Action label="Osveži status Dogovora" kind="quiet" loading={notice.refreshing}
         disabled={notice.refreshing} onPress={notice.refresh} />
-    </View> : statusText ? <T variant="note" style={s.feedbackText}>{statusText}</T> : null}
-    <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}
+    </View> : statusText ? <T variant="note" tone="muted" style={s.statusLine}>{statusText}</T> : null}
+    {brand ? <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}
       onPress={brand.onPress} style={brandAction} />
+      : quiet ? <T testID="agreement-quiet-line" variant="note" tone="muted" style={s.quietLine}>{quiet}</T> : null}
   </View>;
 }
 
@@ -193,4 +225,7 @@ const s = StyleSheet.create({
   feedbackScroll: { flexGrow: 0, flexShrink: 0 },
   feedback: { padding: 12, gap: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.warnSoft },
   feedbackText: { color: sys.color.ink },
+  // The state in words where no action stands: grey, centred, as tall as the sentence needs - never a faded ghost of a button.
+  quietLine: { textAlign: 'center', paddingVertical: sys.space.xs },
+  statusLine: { textAlign: 'center' },
 });

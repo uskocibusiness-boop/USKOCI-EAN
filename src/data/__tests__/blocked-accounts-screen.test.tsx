@@ -25,6 +25,7 @@ jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', 
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Route from '../../app/(app)/profil/blokirani';
+import { poruka } from '../../ui/system/Poruka';
 
 const ok = (items: { targetAccountId: string; displayName: string | null; revision?: number }[], nextCursor: string | null = null) =>
   ({ ok: true, podatak: { accountId: A, authoritative: true, items: items.map(item => ({ revision: 1, ...item, accountId: A, blocked: true })), nextCursor } });
@@ -39,16 +40,16 @@ const person = (name: string) => people().find(node => node.props.name === name)
 const confirmButton = () => tree.root.findAll(node => node.props.testID === 'confirm-sheet-confirm')[0];
 const askUnblock = async (name: string) => act(async () => person(name).props.action.onPress());
 beforeEach(() => { jest.clearAllMocks(); mockRouter.canGoBack.mockReturnValue(true); mockList.mockResolvedValue(ok([])); });
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); poruka.hide(); });
 
 it('with nobody blocked, says how a block happens and offers a re-check instead of a bare "no data"', async () => {
   await render();
-  expect(text()).toContain('Još nema blokiranih korisnika.');
+  expect(text()).toContain('Još nema blokiranih osoba.');
   expect(text()).toContain('sa javnog profila osobe');
   expect(mockList).toHaveBeenCalledTimes(1);
   await act(async () => action('Proveri ponovo').onPress());
   expect(mockList).toHaveBeenCalledTimes(2);
-  expect(actions('Sledeći korisnici')).toHaveLength(0); expect(actions('Početak liste')).toHaveLength(0);
+  expect(actions('Sledeće osobe')).toHaveLength(0); expect(actions('Početak liste')).toHaveLength(0);
   // No sentence explaining the screen: the bar says where you are.
   expect(text()).not.toContain('Korisnici koje trenutno blokiraš');
 });
@@ -58,10 +59,10 @@ it('names each blocked person or says honestly that the name is unknown, and ope
   await render();
   expect(text()).not.toContain('Još nema blokiranih');
   expect(actions('Proveri ponovo')).toHaveLength(0);
-  expect(people().map(node => node.props.name)).toEqual(['Marko', 'USKOČI korisnik']);
+  expect(people().map(node => node.props.name)).toEqual(['Marko', 'Ime nije dostupno']);
   // The letters come from the real name only; an unknown person is drawn, never given letters.
   expect(people().map(node => node.props.initials)).toEqual(['M', null]);
-  expect(people().map(node => node.props.action.accessibilityLabel)).toEqual(['Odblokiraj, Marko', 'Odblokiraj, USKOČI korisnik']);
+  expect(people().map(node => node.props.action.accessibilityLabel)).toEqual(['Odblokiraj, Marko', 'Odblokiraj, Ime nije dostupno']);
   await act(async () => person('Marko').props.onOpen());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/bezbednost', params: { targetAccountId: B } });
 });
@@ -69,9 +70,9 @@ it('names each blocked person or says honestly that the name is unknown, and ope
 it('an empty later page offers the way back to the start, and Back with no history goes to the hub', async () => {
   mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko' }], C)).mockResolvedValue(ok([]));
   await render();
-  await act(async () => action('Sledeći korisnici').onPress());
+  await act(async () => action('Sledeće osobe').onPress());
   expect(mockList).toHaveBeenLastCalledWith(C);
-  expect(text()).toContain('Na ovoj stranici nema više korisnika.');
+  expect(text()).toContain('Na ovoj stranici nema više osoba.');
   expect(actions('Početak liste')).toHaveLength(1);
   mockRouter.canGoBack.mockReturnValue(false);
   await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
@@ -83,14 +84,14 @@ it('an empty later page offers the way back to the start, and Back with no histo
 it('an empty first page with more after it says nothing about nobody; an empty later page keeps "Početak liste"', async () => {
   mockList.mockResolvedValueOnce(ok([], C)).mockResolvedValueOnce(ok([], 'third'));
   await render();
-  expect(text()).not.toContain('Još nema blokiranih korisnika.');
+  expect(text()).not.toContain('Još nema blokiranih osoba.');
   // Round 5c: not a lone button either; the page says it is empty, and the way on follows (no way back to itself).
-  expect(text()).toContain('Na ovoj stranici nema više korisnika.');
-  expect(actions('Sledeći korisnici')).toHaveLength(1); expect(actions('Početak liste')).toHaveLength(0);
-  await act(async () => action('Sledeći korisnici').onPress());
+  expect(text()).toContain('Na ovoj stranici nema više osoba.');
+  expect(actions('Sledeće osobe')).toHaveLength(1); expect(actions('Početak liste')).toHaveLength(0);
+  await act(async () => action('Sledeće osobe').onPress());
   expect(mockList).toHaveBeenLastCalledWith(C);
-  expect(text()).toContain('Na ovoj stranici nema više korisnika.');
-  expect(actions('Početak liste')).toHaveLength(1); expect(actions('Sledeći korisnici')).toHaveLength(1);
+  expect(text()).toContain('Na ovoj stranici nema više osoba.');
+  expect(actions('Početak liste')).toHaveLength(1); expect(actions('Sledeće osobe')).toHaveLength(1);
 });
 
 // Step 11a (2026-09-24): unblocking happens on the list, asked once, through the same revisioned, idempotent command.
@@ -100,6 +101,8 @@ it('"Odblokiraj" asks first; only the confirm sends one unblock of the shown rev
   await render();
   await askUnblock('Marko');
   expect(mockSetBlock).not.toHaveBeenCalled();
+  // The question names the person and says in one sentence what follows.
+  expect(text()).toContain('Odblokirati Marko?');
   expect(text()).toContain('Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.');
   const confirm = confirmButton();
   await act(async () => { confirm.props.onPress(); confirm.props.onPress(); });
@@ -107,8 +110,37 @@ it('"Odblokiraj" asks first; only the confirm sends one unblock of the shown rev
   expect(mockSetBlock.mock.calls[0][0]).toMatchObject({ targetAccountId: B, blocked: false, expectedRevision: 4 });
   expect(typeof mockSetBlock.mock.calls[0][0].clientRequestId).toBe('string');
   expect(mockList).toHaveBeenLastCalledWith(null);
-  expect(text()).toContain('Blokiranje je uklonjeno: Marko.');
+  // The outcome is said in the one outcome bar, not as a line in the list, and it carries "Vrati".
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je uklonjeno: Marko.', confirmed: true, action: { label: 'Vrati' } });
+  expect(text()).not.toContain('Blokiranje je uklonjeno');
   expect(people()).toHaveLength(0);
+});
+
+it('"Vrati" blocks the person again with a command of its own from the receipt\'s revision, says so, and reads the list again', async () => {
+  mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko', revision: 4 }], null)).mockResolvedValue(ok([]));
+  mockSetBlock.mockResolvedValueOnce(receipt(B, 5));
+  await render(); await askUnblock('Marko'); await act(async () => confirmButton().props.onPress());
+  const first = mockSetBlock.mock.calls[0][0];
+  mockSetBlock.mockResolvedValueOnce({ ok: true, podatak: { accountId: A, targetAccountId: B, blocked: true, revision: 6, authoritative: true, clientRequestId: 'y', idempotentReplay: false } });
+  mockList.mockClear(); mockList.mockResolvedValue(ok([{ targetAccountId: B, displayName: 'Marko', revision: 6 }]));
+  await act(async () => poruka.current()!.action!.onPress());
+  expect(mockSetBlock).toHaveBeenCalledTimes(2);
+  expect(mockSetBlock.mock.calls[1][0]).toMatchObject({ targetAccountId: B, blocked: true, expectedRevision: 5 });
+  expect(mockSetBlock.mock.calls[1][0].clientRequestId).not.toBe(first.clientRequestId);
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je vraćeno.', confirmed: true }); expect(poruka.current()?.action).toBeUndefined();
+  expect(mockList).toHaveBeenCalledTimes(1); expect(people().map(node => node.props.name)).toEqual(['Marko']);
+});
+
+it('an undo the server does not confirm is said as not confirmed; a person with no known name is asked about and told about without one', async () => {
+  mockList.mockResolvedValueOnce(ok([{ targetAccountId: C, displayName: null, revision: 2 }])).mockResolvedValue(ok([]));
+  mockSetBlock.mockResolvedValueOnce(receipt(C, 3));
+  await render(); await askUnblock('Ime nije dostupno');
+  expect(text()).toContain('Odblokirati osobu?'); expect(text()).not.toContain('Odblokirati Ime nije dostupno');
+  await act(async () => confirmButton().props.onPress());
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je uklonjeno.', action: { label: 'Vrati' } });
+  mockSetBlock.mockRejectedValueOnce(new Error('offline'));
+  await act(async () => poruka.current()!.action!.onPress());
+  expect(poruka.current()).toMatchObject({ text: 'Promena nije potvrđena. Proveri stanje pa pokušaj ponovo.' }); expect(poruka.current()?.action).toBeUndefined();
 });
 
 it('a refused or unknown unblock locks every "Odblokiraj" until the list is read again, and a retry reuses the request id', async () => {
@@ -119,7 +151,7 @@ it('a refused or unknown unblock locks every "Odblokiraj" until the list is read
   expect(mockSetBlock).toHaveBeenCalledTimes(1);
   expect(text()).toContain('Ishod nije potvrđen. Proveri listu.');
   expect(people().every(node => node.props.action.disabled === true)).toBe(true);
-  expect(text()).not.toContain('Blokiranje je uklonjeno');
+  expect(text()).not.toContain('Blokiranje je uklonjeno'); expect(poruka.current()).toBeNull();
   await act(async () => action('Proveri listu').onPress());
   expect(people().every(node => node.props.action.disabled === false)).toBe(true);
   mockSetBlock.mockResolvedValueOnce(receipt(B, 5));
@@ -144,7 +176,7 @@ it('a question left open is retired when the list is read again, so a late confi
   await render();
   await askUnblock('Marko');
   const late = confirmButton().props.onPress;
-  await act(async () => action('Sledeći korisnici').onPress());
+  await act(async () => action('Sledeće osobe').onPress());
   expect(confirmButton()).toBeUndefined();
   await act(async () => { late(); });
   expect(mockSetBlock).not.toHaveBeenCalled();
@@ -181,7 +213,7 @@ it.each([['no answer', () => mockList.mockRejectedValueOnce(Error('offline'))],
     failNextRead();
     await askUnblock('Marko'); await act(async () => confirmButton().props.onPress());
     expect(mockSetBlock).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('Blokiranje je uklonjeno: Marko.');
+    expect(poruka.current()).toMatchObject({ text: 'Blokiranje je uklonjeno: Marko.', confirmed: true });
     expect(text()).not.toContain('Čuvanje nije potvrđeno');
     expect(people().map(node => node.props.name)).toEqual(['Ana']);
     expect(person('Ana').props.action.disabled).toBe(false);
@@ -194,7 +226,7 @@ it('a refused unblock is still reported as refused, whatever the list does after
   await render();
   await askUnblock('Marko'); await act(async () => confirmButton().props.onPress());
   expect(text()).toContain('Lista se promenila. Proveri je ponovo.');
-  expect(text()).not.toContain('Blokiranje je uklonjeno');
+  expect(text()).not.toContain('Blokiranje je uklonjeno'); expect(poruka.current()).toBeNull();
   expect(people().map(node => node.props.name)).toEqual(['Marko']);
   expect(person('Marko').props.action.disabled).toBe(true);
 });

@@ -6,7 +6,7 @@ export type VoiceErrorCode =
 
 export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   MIC_PERMISSION_DENIED: 'Mikrofon nije dozvoljen. Dozvolu možeš da promeniš u podešavanjima telefona.',
-  MIC_PERMISSION_BLOCKED: 'Mikrofon je isključen u podešavanjima telefona. Uključi ga da bi snimio glasovnu poruku.',
+  MIC_PERMISSION_BLOCKED: 'Mikrofon je isključen u podešavanjima telefona. Uključi ga za glasovnu poruku.',
   MIC_UNAVAILABLE: 'Mikrofon trenutno nije dostupan.',
   RECORDING_FAILED: 'Snimanje nije uspelo. Pokušaj ponovo.',
   RECORDING_TOO_SHORT: 'Snimak je prekratak. Drži malo duže.',

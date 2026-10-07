@@ -28,8 +28,8 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action', ACTION_MIN_HEIGHT
 jest.mock('../../ui/product/ProductDetails', () => ({ ProductHeader: 'Header' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/StateView', () => ({ StateView: 'StateView' }));
-jest.mock('../../ui/v2/CandidateFace', () => ({ CandidateCard: 'Card', CandidateCompareCard: 'CompareCard', CandidatePerson: 'Person', CandidateStatusLine: 'StatusLine',
-  UNPRICED: '—', candidateStatus: () => '', candidateTime: () => '', candidateValue: () => '' }));
+jest.mock('../../ui/v2/CandidateFace', () => ({ CandidateCard: 'Card', CandidateCompareCard: 'CompareCard', CandidatePerson: 'Person',
+  UNPRICED: '—', candidateChip: () => 'application.sent', candidateStatus: () => '', candidateTime: () => '', candidateValue: () => '' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 import { CandidateListPresentation, type CandidatesPaging } from '../../ui/v2/ApplicationSelectionPresentation';
 import { prijava } from '../../ui/system/plural';

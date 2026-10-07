@@ -47,9 +47,13 @@ const emailOnly = { emailPassword: true, emailSignup: true, phoneOtp: false,
 let tree: ReactTestRenderer;
 const host = (type: string) => tree.root.findAll(node => node.type === type);
 const textOf = (node: ReactTestInstance): string => node.children.map(child => typeof child === 'string' ? child : textOf(child)).join(' ');
-const button = (label: string) => host('Pressable').find(node => textOf(node).trim() === label)!;
+// The two ways in are tabs of one switch; a button is anything else with that word.
+const isTab = (node: ReactTestInstance) => node.props.accessibilityRole === 'tab';
+const button = (label: string) => host('Pressable').find(node => !isTab(node) && textOf(node).trim() === label)!;
+const tab = (label: string) => host('Pressable').find(node => isTab(node) && textOf(node).trim() === label)!;
 const input = (placeholder: string) => host('TextInput').find(node => node.props.placeholder === placeholder)!;
 async function press(label: string) { await act(async () => button(label).props.onPress()); }
+async function pressTab(label: string) { await act(async () => tab(label).props.onPress()); }
 async function fill(placeholder: string, value: string) { await act(async () => input(placeholder).props.onChangeText(value)); }
 function deferred<T>() {
   let resolve!: (value: T) => void; let reject!: (error: Error) => void;
@@ -66,12 +70,12 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it('says the legal documents are not published yet instead of asking to accept them (deep read 8.2)', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
-  await press('Napravi nalog');
+  await pressTab('Napravi nalog');
   await fill('ime@primer.rs', 'ana@example.test');
   expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(0);
   expect(host('Text').filter(node => node.props.accessibilityRole === 'link')).toHaveLength(0);
   expect(host('LegalModal')).toHaveLength(0);
-  expect(textOf(tree.root)).toContain('Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre javnog pokretanja.');
+  expect(textOf(tree.root)).toContain('Uslovi korišćenja i pravila privatnosti još nisu objavljeni.');
   expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
 });
@@ -112,9 +116,9 @@ it('handles a later recovery destination without remounting or carrying an enter
 it('does not replay an unchanged route parameter over the user-selected registration form', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
-  await press('Napravi nalog'); await fill('Ime', 'Ana');
+  await pressTab('Napravi nalog'); await fill('Ime', 'Ana');
   await act(async () => tree.update(<AuthScreen />));
-  expect(button('Već imaš nalog? Prijavi se')).toBeDefined();
+  expect(tab('Napravi nalog').props.accessibilityState).toMatchObject({ selected: true });
   expect(button('Prijavi se')).toBeUndefined();
   expect(input('Ime').props.value).toBe('Ana');
 });

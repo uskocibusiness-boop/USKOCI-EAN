@@ -14,7 +14,7 @@ const receipt = (ref: Ref, state: string, patch: Record<string, unknown> = {}) =
 const good = (podatak: unknown) => ({ ok: true as const, podatak });
 const bad = (kod: string, poruka = 'Poruka servisa.') => ({ ok: false as const, kod, poruka });
 
-function setup(patch: { agreement?: { version: number | null; writable: boolean }; permission?: 'granted' | 'denied' | 'blocked' | 'unavailable'; journal?: Ref[] } = {}) {
+function setup(patch: { agreement?: { version: number | null; writable: boolean }; permission?: 'granted' | 'denied' | 'blocked' | 'unavailable' | 'later'; journal?: Ref[] } = {}) {
   const recorder = createFakeRecorder({ permission: patch.permission }), player = createFakePlayer(), files = createFakeFiles({ [recordingUri]: new ArrayBuffer(2048) });
   const arbiter = createAudioArbiter();
   const live = { current: true, agreement: patch.agreement ?? { version: 3, writable: true }, clock: 1_000_000, handler: null as null | (() => void), capturing: false };
@@ -63,6 +63,17 @@ it.each([
 ] as const)('a %s microphone permission never starts a recording and says so in plain Serbian', async (permission, code) => {
   const s = setup({ permission }); await s.composer.start();
   expect(s.composer.getSnapshot()).toMatchObject({ phase: 'idle', error: { code, message: VOICE_ERROR_COPY[code] } }); expect(s.recorder.state.started).toBe(0); expect(s.arbiter.current()).toBeNull();
+});
+// Design proposal N: "Ne sada" to the question before the microphone window is not a refusal. Nothing is recorded, nothing is
+// said, and the composer is exactly as it was, so the next press of the microphone simply asks again.
+it('"Ne sada" to the question before the microphone window leaves the composer as it was, with no message', async () => {
+  const s = setup({ permission: 'later' }); await s.composer.start();
+  expect(s.composer.getSnapshot()).toMatchObject({ phase: 'idle', error: null, canRecord: true, canDiscard: false });
+  expect(s.recorder.state.started).toBe(0); expect(s.arbiter.current()).toBeNull(); expect(s.live.handler).toBeNull();
+  expect(s.recorder.state.permissionAsked).toBe(1);
+  // The next press starts normally once the permission is there.
+  s.recorder.state.permission = 'granted'; await s.composer.start();
+  expect(s.composer.getSnapshot().phase).toBe('recording');
 });
 it('a recorder that cannot start leaves no claim and no ticker', async () => {
   const s = setup(); s.recorder.state.startError = true; await s.composer.start();

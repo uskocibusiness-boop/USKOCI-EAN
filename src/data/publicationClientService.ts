@@ -7,23 +7,23 @@ import { failure, positiveInteger, readOwnedResult, readReceipt, record, sameId,
 import { supabaseKlijent } from './supabaseClient';
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da objaviš Zadatak.',
-  NEED_NOT_OWNED: 'Ovaj Zadatak ne možeš da objaviš.',
+  AUTH_REQUIRED: 'Prijavi se da objaviš zadatak.',
+  NEED_NOT_OWNED: 'Ovaj zadatak ne možeš da objaviš.',
   NEED_NOT_FOUND: 'Zadatak nije pronađen.',
   NEED_NOT_DRAFT: 'Zadatak više nije nacrt. Učitaj trenutno stanje.',
   NEED_REVISION_STALE: 'Zadatak je izmenjen. Učitaj novu verziju i ponovi proveru.',
   PUBLICATION_CONTEXT_STALE: 'Zadatak ili pravila su promenjeni. Ponovi proveru pre objave.',
-  PUBLICATION_CONTEXT_NOT_READY: 'Uslovi za objavu su promenjeni. Učitaj Zadatak i ponovi proveru.',
+  PUBLICATION_CONTEXT_NOT_READY: 'Uslovi za objavu su promenjeni. Učitaj zadatak i ponovi proveru.',
   PUBLICATION_DECISION_STALE: 'Potrebna je nova provera pre objave.',
   PUBLICATION_DECISION_CONTEXT_STALE: 'Zadatak ili pravila su promenjeni. Ponovi proveru pre objave.',
   PUBLICATION_DECISION_FINGERPRINT_STALE: 'Zadatak je promenjen. Ponovi proveru pre objave.',
-  PUBLICATION_DECISION_NOT_ALLOW: 'Ovaj Zadatak još nije odobren za objavu.',
+  PUBLICATION_DECISION_NOT_ALLOW: 'Ovaj zadatak još nije odobren za objavu.',
   PUBLICATION_POLICY_STALE: 'Pravila su promenjena. Ponovi proveru pre objave.',
   POLICY_BUNDLE_NOT_READY: 'Provera pravila trenutno nije dostupna. Nacrt je sačuvan.',
   POLICY_CONTENT_NOT_READY: 'Provera pravila trenutno nije dostupna. Nacrt je sačuvan.',
   PUBLICATION_LOCATION_INCOMPLETE: 'Potvrdi sve potrebne tačke lokacije pre objave.',
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
-  FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin, pa objavi Zadatak.',
+  FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin, pa objavi zadatak.',
   IDEMPOTENCY_KEY_REUSED: 'Zahtev se razlikuje od prethodnog pokušaja. Učitaj trenutno stanje.',
 };
 const NOT_READY = new Set<PublicationNotReadyCode>(['POLICY_NOT_READY', 'POLICY_CONTENT_NOT_READY', 'LOCATION_INCOMPLETE', 'COUNTRY_NOT_READY', 'PUBLIC_MEDIA_NOT_READY', 'EVALUATOR_UNAVAILABLE', 'EVALUATOR_INVALID_RESPONSE', 'RATE_LIMITED', 'NEED_CHANGED']);
@@ -64,7 +64,7 @@ export function decodePublicationEvaluation(raw: unknown, request: PublicationRe
     ...(value.missingSlots === undefined ? {} : { missingSlots: value.missingSlots as LocationSlot[] }) };
 }
 function validRequest(request: PublicationRequest): boolean { return uuid(request?.needId) && positiveInteger(request?.expectedRevision); }
-const invalid = () => Promise.resolve(failure('PUBLICATION_INPUT_INVALID', 'Učitaj Zadatak i proveri podatke pre objave.'));
+const invalid = () => Promise.resolve(failure('PUBLICATION_INPUT_INVALID', 'Učitaj zadatak i proveri podatke pre objave.'));
 
 export const publicationClientService = {
   evaluate(request: PublicationRequest): Promise<Ishod<PublicationEvaluation>> {

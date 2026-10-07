@@ -46,7 +46,7 @@ export default function AboutUskoci() {
         <HomeLaunchArt kind="discover" compact />
         <View style={[s.pathCopy, stacked && s.pathCopyStacked]}>
           <T variant="bodyStrong" accessibilityRole="header">Uskoči i zaradi</T>
-          <T variant="copy">Pronađi posao za svoje veštine.</T>
+          <T variant="copy">Pronađi zadatak za svoje veštine.</T>
         </View>
       </View>
       <T variant="note" tone="muted">AI pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.</T>

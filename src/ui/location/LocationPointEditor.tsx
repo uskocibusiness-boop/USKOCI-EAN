@@ -6,6 +6,7 @@ import type { ConfirmedLocationPoint, LocationPinOrigin, LocationSlot } from '..
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution, type LocationResolverCandidate } from '../../data/configuredLocationResolver';
 import { locationPrivateText } from '../../lib/location';
 import { captureCurrentLocation } from '../../data/nativeCurrentLocation';
+import { askForLocation } from '../permissions/locationPermission';
 import { sesijaSada } from '../../store/sesija';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import type { LocationDialogueRequest } from '../../contracts/locationDialogue';
@@ -267,6 +268,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       && hereRequest.current === request && requestEpoch.current === epoch
       && sesijaSada().user?.id === owner.user?.id && sesijaSada().accountRevision === owner.accountRevision;
     try {
+      // The system is about to ask for the person's place: say why first (design proposal N). "Ne sada" reads no position and
+      // says nothing; the button is as it was and the place can still be typed or marked on the map.
+      if (await askForLocation() === 'later') return;
+      if (!ownsRequest()) return;
       const result = await captureCurrentLocation(request.signal, ownsRequest);
       if (!ownsRequest()) return;
       hereRequest.current = null;
@@ -392,7 +397,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const lookupMessage = contextOnly
       ? 'Nismo našli dovoljno preciznu tačku za opis iz razgovora. Mapa je samo orijentir — dodirni tačno mesto ili ispravi opis.'
       : lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'
-      : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili probaj kasnije.'
+      : lookup.status === 'RATE_LIMITED' ? 'Previše pretraga za kratko vreme. Obeleži mesto na mapi ili pokušaj kasnije.'
         : lookup.status === 'INVALID_QUERY' ? 'Mesto iz razgovora nije dovoljno jasno. Obeleži ga na mapi ili ispravi opis.'
           : lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'Pretraga mesta nije dostupna. Obeleži mesto na mapi.'
             : 'Pretraga mesta nije uspela. Obeleži ga na mapi ili ispravi opis u razgovoru.';
@@ -513,7 +518,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {autoLocate ? <Button label={here === 'BUSY' ? 'Tražimo gde si…' : 'Koristi gde sam'} kind="quiet"
       disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
     {here === 'DENIED' ? <T variant="meta" accessibilityRole="alert">Pristup lokaciji nije dozvoljen. Možeš ga dozvoliti u podešavanjima ili upisati mesto iznad.</T> : null}
-    {here === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Ne mogu da očitam gde si. Upiši mesto iznad ili izaberi tačku na mapi.</T> : null}
+    {here === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Ne možemo da očitamo gde si. Upiši mesto iznad ili izaberi tačku na mapi.</T> : null}
     {lookup.status === 'LOADING' ? <T variant="meta" accessibilityLiveRegion="polite">Tražimo predloge za uneto mesto…</T> : null}
     {lookup.status === 'PROVIDER_ACTIVATION_BLOCKED' ? <T variant="meta" accessibilityLiveRegion="polite">Pretraga mesta još nije aktivirana. Tačku izaberi dodirom na mapi.</T> : null}
     {lookup.status === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Predlozi trenutno nisu dostupni. Pokušaj ponovo ili izaberi tačku na mapi.</T> : null}

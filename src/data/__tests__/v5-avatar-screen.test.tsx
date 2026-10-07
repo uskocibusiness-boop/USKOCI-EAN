@@ -59,7 +59,7 @@ it('restores an unknown apply by read only and replays its exact original avatar
   mockJournal.set(journalKey, JSON.stringify({ phase: 'APPLY', requestId: REQUEST, assetId: ASSET, expectedPath: prior }));
   mockRead.mockResolvedValue(ok(profile(prior))); await render();
   expect(mockReceipt).toHaveBeenCalledWith(REQUEST); expect(mockApply).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
-  await act(async () => action('Ponovi istu promenu').onPress());
+  await act(async () => action('Pošalji promenu ponovo').onPress());
   expect(mockApply).toHaveBeenCalledWith({ profileId: PROFILE, assetId: ASSET, expectedAvatarPath: prior });
 });
 it('retires a definitively rejected staged upload and never offers to apply it', async () => {
@@ -85,10 +85,10 @@ it.each(['MEDIA_INVALID_RESPONSE', 'MEDIA_UNCONFIRMED'])('retains a %s discard j
   expect(JSON.parse(stored!)).toEqual({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
   expect(mockDiscard.mock.calls).toEqual([[{ assetId: ASSET, profileId: PROFILE }]]);
   expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ label: 'Ponovi istu promenu' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Pošalji promenu ponovo' })).toHaveLength(0);
   await act(async () => action('Proveri sačuvanu fotografiju').onPress());
   expect(mockJournal.get(journalKey)).toBe(stored); expect(mockDiscard).toHaveBeenCalledTimes(1);
-  await act(async () => action('Ponovi istu promenu').onPress());
+  await act(async () => action('Pošalji promenu ponovo').onPress());
   expect(mockDiscard.mock.calls[1][0]).toEqual(mockDiscard.mock.calls[0][0]);
   expect(mockJournal.size).toBe(0); expect(mockUpload).toHaveBeenCalledTimes(1); expect(mockApply).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
 });
@@ -96,7 +96,7 @@ it('restores a pending discard in its profile journal without another upload or 
   const stored = JSON.stringify({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
   mockJournal.set(journalKey, stored); await render();
   expect(mockJournal.get(journalKey)).toBe(stored); expect(mockDiscard).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
-  await act(async () => action('Ponovi istu promenu').onPress());
+  await act(async () => action('Pošalji promenu ponovo').onPress());
   expect(mockDiscard.mock.calls).toEqual([[{ assetId: ASSET, profileId: PROFILE }]]); expect(mockJournal.size).toBe(0);
 });
 it('does not send pixels when opaque intent persistence fails', async () => {
@@ -107,7 +107,7 @@ it('clears a completed apply intent but renders newer current state without repl
   const newer = `${OWNER}/newer.jpg`;
   mockJournal.set(journalKey, JSON.stringify({ phase: 'APPLY', requestId: REQUEST, assetId: ASSET, expectedPath: null }));
   mockRead.mockResolvedValue(ok(profile(newer))); mockApply.mockResolvedValue(ok({ profileId: PROFILE, accountId: OWNER, assetId: ASSET, avatarPath: ref, saved: true, authoritative: true }));
-  await render(); await act(async () => action('Ponovi istu promenu').onPress());
+  await render(); await act(async () => action('Pošalji promenu ponovo').onPress());
   expect(mockJournal.size).toBe(0); expect(mockApply).toHaveBeenCalledTimes(1); expect(mockUpload).not.toHaveBeenCalled();
   expect(action('Izaberi iz galerije').disabled).toBe(false);
 });
@@ -179,12 +179,12 @@ it('a refusal of a command that sent nothing asks for the check its error names,
 it('a retried upload keeps its own button and spinner while it is sent', async () => {
   mockReceipt.mockResolvedValue(ok({ ...asset(), state: 'STAGED', ref: null }));
   await render(); await act(async () => action('Izaberi iz galerije').onPress());
-  expect(mockUpload).toHaveBeenCalledTimes(1); expect(action('Ponovi istu promenu').loading).toBe(false);
+  expect(mockUpload).toHaveBeenCalledTimes(1); expect(action('Pošalji promenu ponovo').loading).toBe(false);
   let finish!: (value: unknown) => void;
   mockUpload.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await act(async () => { void action('Ponovi istu promenu').onPress(); });
+  await act(async () => { void action('Pošalji promenu ponovo').onPress(); });
   expect(mockUpload).toHaveBeenCalledTimes(2);
-  expect(action('Ponovi istu promenu').loading).toBe(true);
+  expect(action('Pošalji promenu ponovo').loading).toBe(true);
   expect(JSON.stringify(tree.toJSON())).not.toContain('Proveri ishod pre novog izbora');
   await act(async () => finish(ok(asset())));
 });
@@ -194,5 +194,5 @@ it('while a change is unresolved nothing new can be picked and the retry is the 
   expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ label: 'Fotografiši' })).toHaveLength(0);
   const filled = tree.root.findAll(node => String(node.type) === 'Action' && (node.props.kind ?? 'primary') === 'primary').map(node => node.props.label);
-  expect(filled).toEqual(['Ponovi istu promenu']);
+  expect(filled).toEqual(['Pošalji promenu ponovo']);
 });

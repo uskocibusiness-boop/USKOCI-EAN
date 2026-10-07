@@ -36,7 +36,7 @@ test('the personal profile leads to AI setup and shows saved facts with one manu
   expect(labels()).not.toContain('Brzi izbor alata');
   await act(async () => byLabel('Uredi profil kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Izmeni: O meni').props.onPress());
-  expect(inputs()).toEqual(['Ime na radnom profilu', 'O tvom iskustvu']);
+  expect(inputs()).toEqual(['Ime na radnom profilu', 'O meni']);
   expect(tree.root.findByProps({ accessibilityLabel: 'Ime na radnom profilu' }).props.value).toBe('Marko Marić');
   await act(async () => byLabel('Izmeni: Alat i oprema').props.onPress());
   expect(inputs()).toEqual(['Nova stavka: Alat i oprema']);
@@ -48,7 +48,7 @@ test('the personal profile leads to AI setup and shows saved facts with one manu
 });
 test('status follows the server state and availability is a read-only summary, never a switch', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
-  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah · pogledaj raspored');
+  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah · dostupnost');
   expect(tree.root.findAllByType('Switch' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });

@@ -43,8 +43,8 @@ export const voiceActive = (state: VoiceSnapshot) => ACTIVE.includes(state.phase
 
 /** What each phase is called where it is shown or spoken; LISTENING and IDLE depend on the mode and are said by the caller. */
 const PHASE_WORDS: Partial<Record<VoicePhase, string>> = {
-  PERMISSION_PENDING: 'Čekam dozvolu mikrofona', PREPARING: 'Pripremamo govorni unos…', STARTING: 'Povezujem mikrofon…',
-  FINALIZING: 'Završavam transkript…',
+  PERMISSION_PENDING: 'Čekamo dozvolu mikrofona…', PREPARING: 'Pripremamo govorni unos…', STARTING: 'Povezujemo mikrofon…',
+  FINALIZING: 'Završavamo tekst…',
 };
 /** Shown when the microphone was only tapped: it listens while it is held. */
 export const HOLD_HINT = 'Drži mikrofon dok govoriš, pa pusti da pošalješ.';
@@ -93,7 +93,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   };
   // A running capture is said and drawn in its own mode; before one starts, the mode is the screen reader's.
   const review = reviewing(p.state, explicit);
-  const label = listening ? review ? 'Zaustavi i pregledaj tekst' : 'Slušam — pusti da pošalješ'
+  const label = listening ? review ? 'Zaustavi i pregledaj tekst' : 'Slušamo — pusti da pošalješ'
     : PHASE_WORDS[phase] ?? (explicit ? 'Pokreni govorni unos' : 'Drži da govoriš');
   const waiting = phase === 'PERMISSION_PENDING' || phase === 'PREPARING' || phase === 'STARTING' || phase === 'FINALIZING';
   const cancel = () => { if (gesture.current) { gesture.current = null; p.controller.cancel('gesture'); } };
@@ -225,8 +225,8 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
   const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
   const micLabel = listening ? review ? 'Zaustavi i pregledaj tekst' : 'Pošalji izgovoreno'
     : active ? `${PHASE_WORDS[state.phase]} Dodir prekida.` : finishing ? PHASE_WORDS.FINALIZING! : 'Počni da govoriš';
-  const line = state.error ? null : listening ? review ? 'Slušam. Dodirni kad završiš — tekst ide u polje za poruku.'
-      : 'Slušam. Dodirni kad završiš — poruka ide u razgovor.'
+  const line = state.error ? null : listening ? review ? 'Slušamo. Dodirni kad završiš — tekst ide u polje za poruku.'
+      : 'Slušamo. Dodirni kad završiš — poruka ide u razgovor.'
     : active || finishing ? PHASE_WORDS[state.phase]!
       // While the answer is being written the exchange above says "Stiže odgovor…" once, in its own live region
       // (review r4 ra item 10); the line under it would say it a second time.

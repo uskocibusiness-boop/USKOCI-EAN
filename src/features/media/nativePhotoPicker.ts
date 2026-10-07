@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { File, Paths } from 'expo-file-system';
+import { askInContext, type PermissionNeed } from '../../ui/permissions/permissionAsk';
 
 export type PreparedPhoto = { bytes: ArrayBuffer; contentType: 'image/jpeg'; width: number; height: number };
 export type PhotoSource = 'LIBRARY' | 'CAMERA';
@@ -20,10 +21,22 @@ function removeCacheCopy(uri: string | undefined) {
 
 type PickedAsset = ImagePicker.ImagePickerAsset;
 
-/** Opens the gallery or the camera; null when the person cancels or the caller is no longer current. */
+/** What the system would do if the camera were asked for now. Reading it asks for nothing. */
+async function cameraNeed(): Promise<PermissionNeed> {
+  const permission = await ImagePicker.getCameraPermissionsAsync();
+  return permission.granted ? 'granted' : permission.canAskAgain ? 'ask' : 'blocked';
+}
+
+/**
+ * Opens the gallery or the camera; null when the person cancels or the caller is no longer current. The gallery is the
+ * system's own picker and asks for no permission; the camera does, and when the system is about to ask the person is first told
+ * why (design proposal N). "Ne sada" is the person closing the picker: nothing is added, nothing is said, and the screen is as it was.
+ */
 async function launch(source: PhotoSource, current: () => boolean, limit: number): Promise<PickedAsset[] | null> {
   if (!current()) return null;
   if (source === 'CAMERA') {
+    if (await askInContext('photos', cameraNeed) === 'later') return null;
+    if (!current()) return null;
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!current()) return null;
     if (!permission.granted) throw new PhotoSelectionError('PERMISSION');

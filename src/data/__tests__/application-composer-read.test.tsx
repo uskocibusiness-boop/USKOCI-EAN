@@ -74,10 +74,10 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function reviewOffer() {
-  if (!press('Pošalji ovu Prijavu')) await tap('Pregledaj ponudu');
-  expect(press('Pošalji ovu Prijavu')).toBeDefined();
+  if (!press('Pošalji ovu prijavu')) await tap('Pregledaj ponudu');
+  expect(press('Pošalji ovu prijavu')).toBeDefined();
 }
-async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu Prijavu'); }
+async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu prijavu'); }
 async function offer() { await render(); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
 async function selection() { await render(Candidates); await tap('Pogledaj ponudu: Milan'); await tap('Pregledaj povezivanje'); }
 
@@ -122,7 +122,7 @@ it('refuses a submission when the authoritative task gate says remaining search 
   const presentation = tree!.root.findByType(require('../../ui/v2/ApplicationSelectionPresentation').ApplicationSelectionPresentation);
   await act(async () => { await presentation.props.submit(); });
   expect(mockSubmit).not.toHaveBeenCalled();
-  expect(text()).toContain('Proveri aktuelni Zadatak i aktivan radni profil.');
+  expect(text()).toContain('Proveri aktuelni zadatak i aktivan radni profil.');
 });
 // Round 2c (verifier va, should 5): the composer's block branch was pinned only by its text. The review button carries
 // the reason as its own line and spoken hint; the way out stands beside it; while a send runs the reason has its own line.
@@ -169,7 +169,7 @@ it('shows allowlisted eligibility guidance and correction links without changing
     applicationRefusal: true, hardBlockers: ['MISSING_REQUIRED_TOOL', 'CALENDAR_CONFLICT'] });
   await offer(); await sendOffer();
   const original = mockSubmit.mock.calls[0][0];
-  expect(text()).toContain('Radnom profilu nedostaje alat koji ovaj Zadatak zahteva.');
+  expect(text()).toContain('Radnom profilu nedostaje alat koji ovaj zadatak zahteva.');
   expect(text()).toContain('Termin se preklapa sa već potvrđenim Dogovorom.');
   expect(press('Dopuni radni profil')).toBeDefined(); expect(press('Otvori raspored')).toBeDefined();
   expect(press('Proveri ishod')).toBeUndefined(); expect(press('Sastavi novu ponudu')).toBeDefined();
@@ -187,7 +187,7 @@ it.each([
   expect(mockStorage.has(key)).toBe(true); expect(press('Proveri ishod')).toBeDefined();
   await tap('Proveri ishod');
   expect(mockStorage.has(key)).toBe(true); expect(press('Sastavi novu ponudu')).toBeUndefined();
-  expect(press('Ponovi istu Prijavu')).toBeDefined();
+  expect(press('Pošalji ponovo')).toBeDefined();
 });
 it('shows successful unavailability and a single real detail fallback navigation', async () => {
   mockTask.mockResolvedValue(null); mockRouter.canGoBack.mockReturnValue(false); await render();
@@ -218,7 +218,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     expect(AsyncStorage.setItem.mock.invocationCallOrder[0]).toBeLessThan(mockSubmit.mock.invocationCallOrder[0]);
     await remount();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
-    expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
+    expect(press('Pošalji ponovo')).toBeDefined(); expect(press('Pregledaj ponudu')).toBeUndefined();
     // r6: the saved offer stands under its own heading, in plain words (it said "Sačuvana je ista ponuda za proveru
     // ishoda. Ponavljanje koristi…"); the notice says what a repeat does without claiming the send arrived or not.
     expect(text()).toContain('Tvoja prijava'); expect(text()).toContain('Termin, cena i broj ljudi ostaju isti.');
@@ -227,19 +227,19 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     // The saved command is shown as facts, never as greyed fields that look editable.
     expect(text()).toContain('4.500 RSD'); expect(text()).toContain('2 osobe');
     expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
-    await tap('Ponovi istu Prijavu');
+    await tap('Pošalji ponovo');
     expect(mockSubmit).toHaveBeenCalledTimes(2); expect(mockSubmit.mock.calls[1][0]).toEqual(original);
     expect(mockSubmit.mock.calls[1][0].clientRequestId).toBe(original.clientRequestId);
     expect(text()).toContain('Prijava je poslata.'); expect(mockStorage.size).toBe(0);
     await remount();
-    expect(press('Pregledaj ponudu')).toBeDefined(); expect(press('Ponovi istu Prijavu')).toBeUndefined();
+    expect(press('Pregledaj ponudu')).toBeDefined(); expect(press('Pošalji ponovo')).toBeUndefined();
   });
   it('the identity is journaled before the send; a storage failure prevents the send and keeps the composer editable', async () => {
     AsyncStorage.setItem.mockRejectedValueOnce(new Error('disk full details'));
     await offer(); await sendOffer();
     expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('nije sačuvan na uređaju'); expect(text()).not.toContain('disk full details');
     // A fresh read of the task cannot fix a phone that could not save: no refresh is offered beside it.
-    expect(press('Osveži Zadatak')).toBeUndefined();
+    expect(press('Osveži zadatak')).toBeUndefined();
     expect(press('Pregledaj ponudu')).toBeDefined(); expect(field('Koliko ljudi dolazi').editable).toBe(true);
     await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
@@ -250,11 +250,11 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     const key = JOURNAL();
     mockAccount = { user: { id: 'owner-b' }, accountRevision: 1 };
     await remount();
-    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(press('Pregledaj ponudu')).toBeDefined();
+    expect(press('Pošalji ponovo')).toBeUndefined(); expect(press('Pregledaj ponudu')).toBeDefined();
     expect(mockStorage.has(key)).toBe(true); expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
     mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 };
     await remount();
-    expect(press('Ponovi istu Prijavu')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(press('Pošalji ponovo')).toBeDefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
   });
   it('a journal read that lands after an account change is not applied', async () => {
     mockSubmit.mockResolvedValueOnce(unconfirmed);
@@ -266,12 +266,12 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await act(async () => { tree = create(React.createElement(Composer)); });
     mockAccount = { user: { id: 'owner-b' }, accountRevision: 1 };
     await act(async () => { tree!.update(React.createElement(Composer)); held.resolve(mockStorage.get(JOURNAL()) ?? null); });
-    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(press('Pošalji ponovo')).toBeUndefined(); expect(mockSubmit).toHaveBeenCalledTimes(1);
   });
   it('a corrupt journal value is discarded without stranding the composer', async () => {
     mockStorage.set(JOURNAL(), '{"version":1,"accountId":"owner-a","needId":"garbage"}');
     await render();
-    expect(press('Ponovi istu Prijavu')).toBeUndefined(); expect(AsyncStorage.removeItem).toHaveBeenCalledWith(JOURNAL());
+    expect(press('Pošalji ponovo')).toBeUndefined(); expect(AsyncStorage.removeItem).toHaveBeenCalledWith(JOURNAL());
     expect(text()).toContain('nije čitljiv');
     await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); await sendOffer();
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(text()).toContain('Prijava je poslata.');
@@ -281,13 +281,13 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await offer(); await sendOffer();
     await remount();
     mockSubmit.mockResolvedValueOnce(unconfirmed);
-    await tap('Ponovi istu Prijavu');
+    await tap('Pošalji ponovo');
     expect(mockStorage.has(JOURNAL())).toBe(true); expect(press('Sastavi novu ponudu')).toBeUndefined();
     await tap('Proveri ishod');
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'STALE_REVIEW_REQUIRED',
       poruka: 'Zadatak ili Prijava su promenjeni. Pregledaj aktuelne podatke pre novog izbora.',
       applicationRefusal: true, hardBlockers: [] });
-    await tap('Ponovi istu Prijavu');
+    await tap('Pošalji ponovo');
     expect(text()).toContain('Zadatak ili Prijava su promenjeni'); expect(mockStorage.has(JOURNAL())).toBe(true);
     expect(press('Proveri ishod')).toBeUndefined(); expect(press('Sastavi novu ponudu')).toBeDefined();
     expect(text()).toContain('Ova ponuda nije primljena. Zadatak ili Prijava su promenjeni.');
@@ -300,7 +300,7 @@ describe('PKG-006 durable application command identity (GAP-0031)', () => {
     await offer(); await sendOffer();
     await remount();
     mockSubmit.mockResolvedValueOnce({ ok: false, kod: 'APPLICATION_SELECTION_INVALID_RECEIPT', poruka: 'Server nije vratio potpunu potvrdu radnje.' });
-    await tap('Ponovi istu Prijavu');
+    await tap('Pošalji ponovo');
     expect(text()).not.toContain('Prijava je poslata.'); expect(mockStorage.has(JOURNAL())).toBe(true);
     expect(press('Proveri ishod')).toBeDefined(); expect(press('Sastavi novu ponudu')).toBeUndefined();
   });
@@ -415,7 +415,7 @@ describe('R18 storage integrity', () => {
     await act(async () => tree!.unmount()); tree = undefined; await render();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
     expect(text()).toContain('Sačuvaj ovu tačnu ponudu.');
-    await tap('Ponovi istu Prijavu');
+    await tap('Pošalji ponovo');
     expect(mockSubmit.mock.calls[1][0]).toEqual(first);
   });
 
@@ -441,7 +441,7 @@ describe('R18 storage integrity', () => {
     expect(mockStorage.has(key())).toBe(true);
     await act(async () => tree!.unmount()); tree = undefined; await render();
     expect(mockSubmit).toHaveBeenCalledTimes(1);
-    await tap('Ponovi istu Prijavu');
+    await tap('Pošalji ponovo');
     expect(mockSubmit.mock.calls[1][0]).toEqual(first);
     expect(mockStorage.has(key())).toBe(false);
   });

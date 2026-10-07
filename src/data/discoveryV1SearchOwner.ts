@@ -27,14 +27,22 @@ type PlacesBase = {
   limit: number;
 };
 
+/**
+ * A draft asked about by the search panel. `placeSearch` is the letters typed in "Gde" to find a place: they narrow the
+ * places the server lists (its PLACES prefix) and nothing else, so they never reach the tasks' own text filter. A caller
+ * that does not say them (they are absent, not empty) gets what it always got: the filter's `query` is the prefix.
+ */
+export type SearchPreviewView=MarketplaceView&{placeSearch?:string};
+const placePrefix=(view:SearchPreviewView)=>placeKey(typeof view.placeSearch==='string'?view.placeSearch:view.query);
+
 const cloneBounds=(value:PublicBounds|null)=>value ? [...value] as PublicBounds : null;
-const cloneView=(view:MarketplaceView):MarketplaceView=>({...view,area:cloneBounds(view.area),
+const cloneView=(view:SearchPreviewView):SearchPreviewView=>({...view,area:cloneBounds(view.area),
   dates:view.dates?{...view.dates}:null,viewport:view.viewport?{...view.viewport,center:[...view.viewport.center] as [number,number],
     bounds:[...view.viewport.bounds] as PublicBounds}:null});
 
-export function discoveryV1SearchPreviewKey(view:MarketplaceView,mapArea:PublicBounds|null):string{
+export function discoveryV1SearchPreviewKey(view:SearchPreviewView,mapArea:PublicBounds|null):string{
   const plan=discoveryV1ViewPlan(view);
-  return JSON.stringify([plan.filter,plan.pageScope,mapArea?publicBounds(mapArea):null]);
+  return JSON.stringify([plan.filter,plan.pageScope,mapArea?publicBounds(mapArea):null,placePrefix(view)]);
 }
 
 /** How long a read preview answers the same draft again. */
@@ -54,7 +62,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     return snapshot();
   };
 
-  async function preview(next:MarketplaceView,mapArea:PublicBounds|null,limit=10){
+  async function preview(next:SearchPreviewView,mapArea:PublicBounds|null,limit=10){
     if(!active) return {kind:'stale' as const,snapshot:snapshot()};
     if(!Number.isSafeInteger(limit)||limit<1||limit>30) throw new Error('DISCOVERY_V1_SEARCH_PLACE_LIMIT');
     const view=cloneView(next),area=mapArea?publicBounds(mapArea):null;
@@ -77,7 +85,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     const remote=(view.where??'any')==='remote';
     const facetView:MarketplaceView={...view,query:'',place:null,area:null,pinPlace:null};
     const facetPlan=discoveryV1ViewPlan(facetView);
-    const base:PlacesBase={filter:facetPlan.filter,prefix:placeKey(view.query),facetArea:area,limit};
+    const base:PlacesBase={filter:facetPlan.filter,prefix:placePrefix(view),facetArea:area,limit};
     const placeRequest:DiscoveryV1PlacesRequest={mode:'PLACES',filter:base.filter,anchor:null,prefix:base.prefix,
       facetArea:base.facetArea?cloneBounds(base.facetArea):null,limit,after:null};
     const placeTask=remote ? Promise.resolve<unknown>(null) : transport(placeRequest,own.signal).catch(()=>null);

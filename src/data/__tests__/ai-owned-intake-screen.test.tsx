@@ -132,7 +132,7 @@ const render = async () => { await act(async () => { tree = create(<Intake />); 
 const update = async () => { await act(async () => tree.update(<Intake />)); };
 const button = (label: string) => tree.root.findByProps({ label }).props;
 const input = () => tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props;
-const submit = () => tree.root.findByProps({ accessibilityLabel: mockSend.mock.calls.length ? 'Ponovi istu poruku' : 'Pošalji poruku' }).props;
+const submit = () => tree.root.findByProps({ accessibilityLabel: mockSend.mock.calls.length ? 'Pošalji ponovo' : 'Pošalji poruku' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 // Typing and speaking are two modes: the field opens when the keyboard is chosen, and a
 // draft keeps it open. A test that types chooses it first, exactly as a person does.
@@ -1075,7 +1075,7 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
   const saved = conversation({ status }); saved.review.boundNeedId = status === 'COMPLETED' ? other : null;
   mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await resume();
   await options();
-  const start = menuItem('Novi Zadatak').onPress;
+  const start = menuItem('Novi zadatak').onPress;
   await act(async () => { start(); start(); }); expect(mockRouter.replace).toHaveBeenCalledTimes(1);
   const destination = mockRouter.replace.mock.calls[0][0];
   expect(destination.pathname).toBe('/nova'); expect(destination.params.conversationId).toBeUndefined();
@@ -1096,7 +1096,7 @@ it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after
 it('retains the new owned-open request after an unknown second-Task open outcome', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await resume();
   await options();
-  await act(async () => menuItem('Novi Zadatak').onPress());
+  await act(async () => menuItem('Novi zadatak').onPress());
   mockParams = mockRouter.replace.mock.calls[0][0].params; mockOpen.mockResolvedValueOnce(unknown());
   await update();
   mockLoad.mockResolvedValue(conversation());
@@ -1109,13 +1109,13 @@ it('retains the new owned-open request after an unknown second-Task open outcome
 });
 it('cannot use a retained new-Task action after losing its account or focus', async () => {
   mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED' })); await resume();
-  await options(); const old = menuItem('Novi Zadatak').onPress; await blur(); await focus(); await act(async () => old());
+  await options(); const old = menuItem('Novi zadatak').onPress; await blur(); await focus(); await act(async () => old());
   expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('does not advertise a new-Task bypass for an open safety-blocked conversation', async () => {
   mockLoad.mockResolvedValue(conversation({ safety: 'BLOCK' })); await resume();
-  expect(menuItems('Novi Zadatak')).toHaveLength(0);
-  await options(); expect(menuItems('Novi Zadatak')).toHaveLength(0);
+  expect(menuItems('Novi zadatak')).toHaveLength(0);
+  await options(); expect(menuItems('Novi zadatak')).toHaveLength(0);
 });
 it.each(['invalid', [id]])('rejects malformed new-entry key %s without creating a conversation', async entryKey => {
   mockParams = { entryKey }; await render(); expect(mockOpen).not.toHaveBeenCalled();
@@ -1221,7 +1221,7 @@ it('restored bound-edit dispatched exit explains retained cost and unlocks only 
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
   await render();expect(button('Odustani od odgovora').disabled).toBe(false);
   await openKeyboard();
-  expect(text()).toContain('taj pokušaj se ipak računa');expect(input().editable).toBe(false);
+  expect(text()).toContain('poruka se ipak računa kao poslata');expect(input().editable).toBe(false);
   const cancelled=recovery(turn(other,'FAILED').podatak,true,true);
   mockCancel.mockResolvedValue(cancelled);mockRecover.mockResolvedValue(cancelled);
   await act(async()=>button('Odustani od odgovora').onPress());

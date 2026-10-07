@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
-import { safetyClientService, SAFETY_CATEGORIES, type SafetyCategory, type SafetyReportCommand, type SafetyReportReceipt } from '../../data/safetyClientService';
+import { safetyClientService, SAFETY_CATEGORIES, type AccountBlockReceipt, type SafetyCategory, type SafetyReportCommand, type SafetyReportReceipt } from '../../data/safetyClientService';
 import { safetyTargetNameBuilt } from '../../data/safetyTargetNameGate';
 import { uuid } from '../../data/serverReceipt';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
@@ -14,7 +14,10 @@ import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { sys } from '../system/tokens';
 import { useConfirmSheet } from '../system/ConfirmSheet';
+import { StateView } from '../system/StateView';
+import { SuccessMark } from '../system/SuccessMark';
 import { vreme } from '../../lib/vreme';
+import { announceBlockChange } from './blockOutcome';
 import { useSafetyTargetName } from './useSafetyTargetName';
 
 const safetyCategoryCopy: Record<SafetyCategory, string> = {
@@ -23,6 +26,7 @@ const safetyCategoryCopy: Record<SafetyCategory, string> = {
 type Context = { targetAccountId: string; needId: string | null; agreementId: string | null };
 const back = () => router.canGoBack() ? router.back() : router.replace('/profil');
 const blockConsequence = 'Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni.';
+const unblockConsequence = 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.';
 
 /**
  * `profileId` (EX-07 S06) is the profile the person came from, handed on by the route only in a build compiled with the safety-target-name flag. It is an identifier,
@@ -53,40 +57,53 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     return command && command.accountId === accountId && command.accountRevision === accountRevision &&
       command.targetAccountId === p.targetAccountId && command.revision === editor.data?.revision ? command : null;
   };
-  const changeBlock = () => {
+  // The displayed name of the person, only for a build that carries the flag and only for the profile the person came from; it
+  // names the question ("Blokirati {ime}?") and heads the screen. With no name everything keeps its generic words.
+  const name = useSafetyTargetName(profileId && safetyTargetNameBuilt() ? profileId : null, p.targetAccountId);
+  const changeBlock = async () => {
     if (!currentChoice()) return;
     const value = editor.data!;
-    return editor.save(() => {
+    let confirmed: AccountBlockReceipt | null = null;
+    await editor.save(async () => {
       const c = retainedCommand() ?? { accountId: accountId!, accountRevision, targetAccountId: p.targetAccountId,
         revision: value.revision, blocked: !value.blocked, id: noviUuidZahtevId() };
       blockCommand.current = c;
-      return safetyClientService.setBlock({ targetAccountId: p.targetAccountId, blocked: c.blocked,
+      const result = await safetyClientService.setBlock({ targetAccountId: p.targetAccountId, blocked: c.blocked,
         expectedRevision: c.revision, clientRequestId: c.id });
+      if (result.ok) confirmed = result.podatak;
+      return result;
     });
+    // Said only once the server has confirmed it, in the one outcome bar, with the way to put it back.
+    const receipt = confirmed as AccountBlockReceipt | null;
+    if (receipt && accountId) announceBlockChange(receipt, { accountId, accountRevision }, { onSettled: () => { void editor.refresh(); } });
   };
   const askBlock = () => {
     if (!currentChoice()) return;
     // A reconciled retry keeps the already confirmed exact command; it is not a new block choice.
-    if (editor.data!.blocked || retainedCommand()) { void changeBlock(); return; }
-    confirmation.ask({ title: 'Blokirati korisnika?', message: blockConsequence, confirmLabel: 'Blokiraj korisnika',
+    if (retainedCommand()) { void changeBlock(); return; }
+    // Both directions ask once, in the centred dialog, with what follows in one sentence and the person's name when it is known.
+    if (editor.data!.blocked) confirmation.ask({ title: name ? `Odblokirati ${name}?` : 'Odblokirati osobu?', message: unblockConsequence,
+      confirmLabel: 'Odblokiraj', onConfirm: changeBlock });
+    else confirmation.ask({ title: name ? `Blokirati ${name}?` : 'Blokirati osobu?', message: blockConsequence, confirmLabel: 'Blokiraj osobu',
       tone: 'danger', onConfirm: changeBlock });
   };
   // Match SupportFrame: resize the existing settings scroll surface above the keyboard without rebuilding the form.
   return <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <SettingsScreen title="Bezbednost" onBack={back}>
-    {profileId && safetyTargetNameBuilt() ? <TargetName profileId={profileId} targetAccountId={p.targetAccountId} /> : null}
-    <T variant="note" tone="muted">Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno.</T>
+    {name ? <T variant="heading" accessibilityRole="header" numberOfLines={2} testID="safety-target-name">{name}</T> : null}
     <View style={s.section}>
-      <T variant="bodyStrong" accessibilityRole="header">Kontakt sa korisnikom</T>
+      <T variant="bodyStrong" accessibilityRole="header">Kontakt sa osobom</T>
       <T variant="copy">{blockConsequence}</T>
-      <T variant="note" tone="muted">Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.</T>
-      {editor.loading ? <T>Proveravamo blokiranje…</T> : null}
+      <T variant="note" tone="muted">{unblockConsequence}</T>
+      {/* The first read is a skeleton of the state and the action that will stand here; a re-read keeps them on screen. */}
+      {editor.loading && !editor.data ? <StateView kind="loading" title="Proveravamo blokiranje…" skeleton={{ count: 1, rows: 1, variant: 'plain' }} /> : null}
       {editor.error ? <T tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
       {editor.data ? <>
-        <T accessibilityLiveRegion="polite">{editor.data.blocked ? 'Korisnik je blokiran.' : 'Korisnik nije blokiran.'}</T>
-        <SettingsAction label={editor.busy ? 'Čuvam izbor…' : editor.data.blocked ? 'Odblokiraj korisnika' : 'Blokiraj korisnika'}
+        <T accessibilityLiveRegion="polite">{editor.data.blocked ? 'Osoba je blokirana.' : 'Osoba nije blokirana.'}</T>
+        {/* Keeps its words while the choice is saved, with a spinner: the same button, never a different one. */}
+        <SettingsAction label={editor.data.blocked ? 'Odblokiraj osobu' : 'Blokiraj osobu'} loading={editor.busy}
           kind={editor.data.blocked ? 'secondary' : 'destructive'} disabled={editor.loading || editor.busy || editor.uncertain}
-          onPress={askBlock} />
+          reason={editor.loading ? 'Proveravamo blokiranje…' : editor.uncertain ? 'Najpre proveri blokiranje.' : null} onPress={askBlock} />
       </> : null}
       {editor.error ? <SettingsAction label="Proveri blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
     </View>
@@ -95,20 +112,14 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
         it had no way through to support at all — the only paths in were the profile row and a
         publication review. */}
     <View style={[s.section, s.separated]}>
-      <T variant="bodyStrong" accessibilityRole="header">Treba ti operater?</T>
-      <T variant="note" tone="muted">Privatnu prijavu prima podrška, i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje.</T>
+      <T variant="bodyStrong" accessibilityRole="header">Imaš drugo pitanje?</T>
+      <T variant="note" tone="muted">Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje.</T>
       <SettingsAction label="Otvori zahtev podršci" kind="quiet"
         onPress={() => router.push('/podrska/novi')} />
     </View>
     {confirmation.sheet}
     </SettingsScreen>
   </KeyboardAvoidingView>;
-}
-
-/** The name of the person this screen is about, from the server's answer for the profile they came from; nothing at all while it is unknown (the generic copy below stays). */
-function TargetName({ profileId, targetAccountId }: { profileId: string; targetAccountId: string }) {
-  const name = useSafetyTargetName(profileId, targetAccountId);
-  return name ? <T variant="heading" accessibilityRole="header" numberOfLines={2} testID="safety-target-name">{name}</T> : null;
 }
 
 function PrivateReport(context: Context) {
@@ -122,16 +133,19 @@ function PrivateReport(context: Context) {
   const [busy, setBusy] = useState(true), [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState(false), [receipt, setReceipt] = useState<SafetyReportReceipt | null>(null);
-  const readReceipt = useCallback(async (current: () => boolean, requestId: string) => {
+  // Which command of this form is running, so only its own button shows the spinner; and whether the receipt on screen is
+  // news (this visit's send, or a check the person asked for) or only restored from an earlier visit.
+  const [working, setWorking] = useState<'send' | 'replay' | 'check' | 'new' | null>(null), [fresh, setFresh] = useState(false);
+  const readReceipt = useCallback(async (current: () => boolean, requestId: string, news = false) => {
     const result = await safetyClientService.readReportCommand(requestId);
     if (!current()) return;
-    if (result.ok && result.podatak.receipt) { setReceipt(result.podatak.receipt); setPending(false); setError(null); setReason(''); setNarrative(''); frozen.current = null; }
-    else { setPending(true); setError(result.ok ? 'Potvrda još nije stigla. Možeš ponovo proveriti ili poslati isti zahtev.' : result.poruka); }
+    if (result.ok && result.podatak.receipt) { setReceipt(result.podatak.receipt); setFresh(news); setPending(false); setError(null); setReason(''); setNarrative(''); frozen.current = null; }
+    else { setPending(true); setError(result.ok ? 'Potvrda još nije stigla. Možeš ponovo proveriti ili ponovo poslati.' : result.poruka); }
   }, []);
   useFocusEffect(useCallback(() => {
     const s = { busy: true, current: () => scope.current === s && !!accountId && sesijaSada().user?.id === accountId &&
       sesijaSada().accountRevision === accountRevision };
-    scope.current = s; setBusy(true); setLoaded(false); setError(null); setReceipt(null); setPending(false); key.current = null; frozen.current = null;
+    scope.current = s; setBusy(true); setLoaded(false); setError(null); setReceipt(null); setFresh(false); setWorking(null); setPending(false); key.current = null; frozen.current = null;
     setCategory(null); setReason(''); setNarrative('');
     void (async () => {
       try { const stored = await AsyncStorage.getItem(storageKey); if (!s.current()) return;
@@ -143,12 +157,13 @@ function PrivateReport(context: Context) {
     return () => { if (scope.current === s) scope.current = null; frozen.current = null; setReason(''); setNarrative(''); setReceipt(null); };
   }, [accountId, accountRevision, storageKey, readReceipt]));
   const rendered = scope.current;
-  const begin = () => { const s = scope.current; if (!s || s !== rendered || !s.current() || s.busy) return null;
-    s.busy = true; setBusy(true); setError(null); return s; };
-  const finish = (s: NonNullable<typeof rendered>) => { if (s.current()) { s.busy = false; setBusy(false); } };
+  const begin = (kind: 'send' | 'replay' | 'check' | 'new') => { const s = scope.current; if (!s || s !== rendered || !s.current() || s.busy) return null;
+    s.busy = true; setBusy(true); setWorking(kind); setError(null); return s; };
+  const finish = (s: NonNullable<typeof rendered>) => { if (s.current()) { s.busy = false; setBusy(false); setWorking(null); } };
   async function send() {
     if (!loaded || receipt || (!frozen.current && (!category || !reason.trim()))) return;
-    const s = begin(); if (!s) return;
+    // A send that repeats the frozen command is a replay: its button says so; the first send keeps the words it was pressed with.
+    const s = begin(frozen.current ? 'replay' : 'send'); if (!s) return;
     try {
       const id = key.current ?? noviUuidZahtevId();
       await AsyncStorage.setItem(storageKey, id); if (!s.current()) return;
@@ -156,27 +171,34 @@ function PrivateReport(context: Context) {
       const command = frozen.current ?? { ...context, category: category!, reason: reason.trim(), narrative: narrative.trim(), clientRequestId: id };
       frozen.current = command; setPending(true);
       const result = await safetyClientService.report(command); if (!s.current()) return;
-      if (result.ok) { setReceipt(result.podatak); setPending(false); setReason(''); setNarrative(''); frozen.current = null; }
+      if (result.ok) { setReceipt(result.podatak); setFresh(true); setPending(false); setReason(''); setNarrative(''); frozen.current = null; }
       else setError(result.poruka);
     } catch { if (s.current()) setError('Prijava nije potvrđena. Proveri potvrdu pre novog pokušaja.'); }
     finally { finish(s); }
   }
-  async function check() { const s = begin(); if (!s) return;
-    try { if (key.current) await readReceipt(s.current, key.current); }
+  async function check() { const s = begin('check'); if (!s) return;
+    try { if (key.current) await readReceipt(s.current, key.current, true); }
     finally { finish(s); }
   }
-  async function newReport() { if (!receipt) return; const s = begin(); if (!s) return;
+  async function newReport() { if (!receipt) return; const s = begin('new'); if (!s) return;
     try { await AsyncStorage.removeItem(storageKey); if (!s.current()) return;
-      key.current = null; frozen.current = null; setCategory(null); setReason(''); setNarrative(''); setReceipt(null); setPending(false);
+      key.current = null; frozen.current = null; setCategory(null); setReason(''); setNarrative(''); setReceipt(null); setFresh(false); setPending(false);
     } catch { if (s.current()) setError('Novi obrazac trenutno nije dostupan. Pokušaj ponovo.'); }
     finally { finish(s); }
   }
   const editable = loaded && !busy && !frozen.current && !receipt;
-  return <View style={[s.section, s.separated]}><T variant="bodyStrong" accessibilityRole="header">Privatna prijava</T>
-    <T variant="note" tone="muted">Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
-    {receipt ? <View style={{ gap: 12 }}><T accessibilityLiveRegion="polite">Prijava je primljena.</T>
-      <T variant="meta" tone="muted">{vreme(receipt.createdAt)}</T>
-      <SettingsAction label="Nova privatna prijava" kind="quiet" disabled={busy} onPress={() => { void newReport(); }} /></View> : <>
+  // A grey send carries its reason beside it (owner's rule): what the form still lacks, or that the earlier report is being checked.
+  const lacking = !category && !reason.trim() ? 'Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.'
+    : !category ? 'Izaberi kategoriju da bi slanje bilo dostupno.' : !reason.trim() ? 'Upiši kratak razlog da bi slanje bilo dostupno.' : null;
+  const sendWhy = !loaded ? busy ? 'Proveravamo prijavu…' : null : !busy && !frozen.current ? lacking : null;
+  return <View style={[s.section, s.separated]}><T variant="bodyStrong" accessibilityRole="header">Bezbednosna prijava podršci</T>
+    <T variant="note" tone="muted">Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
+    {/* The final state is a state of its own, not a line under the form: the form is gone, the receipt says what happened and when. */}
+    {receipt ? <View style={s.done}>
+      <SuccessMark fresh={fresh} size={56} />
+      <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite">Prijava je primljena.</T>
+      <T variant="note" tone="muted">{`Primljeno: ${vreme(receipt.createdAt)}`}</T>
+      <SettingsAction label="Nova privatna prijava" kind="quiet" disabled={busy} loading={working === 'new'} onPress={() => { void newReport(); }} /></View> : <>
       <View accessibilityRole="radiogroup">{SAFETY_CATEGORIES.map((value, index) => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
@@ -195,15 +217,12 @@ function PrivateReport(context: Context) {
         <T variant="note" tone="muted">Dodatni opis, ako želiš</T><TextInput accessibilityLabel="Dodatni privatni opis" value={narrative} maxLength={2000}
           onChangeText={value => { if (editable && scope.current === rendered && rendered?.current()) setNarrative(value); }} editable={editable} multiline textAlignVertical="top" style={[input, { minHeight: 120 }]} />
       </View>
-      <SettingsAction label={busy ? 'Proveravamo prijavu…' : pending ? 'Ponovi isti zahtev' : 'Pošalji privatnu prijavu'}
+      {/* The button keeps its words while it works, with a spinner; a failed restore speaks through `error` below. */}
+      <SettingsAction label={pending && working !== 'send' ? 'Pošalji ponovo' : 'Pošalji privatnu prijavu'} loading={working === 'send' || working === 'replay'} reason={sendWhy}
         disabled={!loaded || busy || (!frozen.current && (!category || !reason.trim()))} onPress={() => { void send(); }} />
-      {/* A grey button carries its reason (owner's rule); a failed restore already speaks through `error` below. */}
-      {loaded && !busy && !frozen.current && (!category || !reason.trim()) ? <T variant="meta" tone="muted">
-        {!category && !reason.trim() ? 'Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.'
-          : !category ? 'Izaberi kategoriju da bi slanje bilo dostupno.' : 'Upiši kratak razlog da bi slanje bilo dostupno.'}</T> : null}
     </>}
     {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
-    {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} onPress={() => { void check(); }} /> : null}
+    {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} /> : null}
   </View>;
 }
 const input = withInter({ borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });
@@ -213,6 +232,7 @@ const s = StyleSheet.create({
   section: { gap: sys.space.md },
   separated: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.md },
   field: { gap: sys.space.sm },
+  done: { gap: sys.space.md, alignItems: 'flex-start', paddingVertical: sys.space.sm },
 });
 const radioStyles = StyleSheet.create({
   row: { minHeight: 48, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line, flexDirection: 'row', alignItems: 'center', gap: 12 },

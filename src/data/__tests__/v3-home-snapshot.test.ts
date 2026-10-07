@@ -76,12 +76,13 @@ describe('Početna — composed from the reads that already exist, with no mode'
     expect(home.mine).toEqual({ tasks: known({ total: 1, active: 1, waiting: 0, drafts: 0, history: 0 }),
       applications: known({ total: 1, attention: 0, active: 1, finished: 0 }) });
     // One next Dogovor (2026-09-23); the other is one tab away and is counted, not dropped.
+    // The other side's profile id and initials ride along for their face (2026-10-07); a Dogovor with no accepted instant has no Raspored.
     expect(home.agreements).toEqual(known({ more: 1, rows: [
       { id: 'agreement:g-a', title: 'Dogovor g-a', detail: 'Tvoj zadatak · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-a' },
-        appointment: { timeText: 'danas 17h', counterpartName: 'Jelena', roleLabel: 'Tvoj zadatak' } }] }));
+        appointment: { timeText: 'danas 17h', counterpartName: 'Jelena', roleLabel: 'Tvoj zadatak', counterpartProfileId: null, counterpartInitials: 'JE' } }] }));
     expect(composeHome(reads({ agreements: known([agreement('g-c', 'uskocer')]) })).agreements).toEqual(known({ more: 0, rows: [
       { id: 'agreement:g-c', title: 'Dogovor g-c', detail: 'Uskačeš · Jelena · danas 17h', target: { kind: 'AGREEMENT', agreementId: 'g-c' },
-        appointment: { timeText: 'danas 17h', counterpartName: 'Jelena', roleLabel: 'Uskačeš' } }] }));
+        appointment: { timeText: 'danas 17h', counterpartName: 'Jelena', roleLabel: 'Uskačeš', counterpartProfileId: null, counterpartInitials: 'JE' } }] }));
     expect(home.firstRun).toBe(false);
   });
 
@@ -102,7 +103,8 @@ describe('Početna — composed from the reads that already exist, with no mode'
     const home = composeHome(reads({ agreements: known([agreement('unknown', 'uskocer', { ucesnici: [], vremeTekst: '' })]) }));
     expect(home.agreements).toEqual(known({ more: 0, rows: [{
       id: 'agreement:unknown', title: 'Dogovor unknown', target: { kind: 'AGREEMENT', agreementId: 'unknown' },
-      detail: 'Druga strana', appointment: { timeText: '', counterpartName: 'Druga strana', roleLabel: null },
+      detail: 'Druga strana', appointment: { timeText: '', counterpartName: 'Druga strana', roleLabel: null,
+        counterpartProfileId: null, counterpartInitials: null },
     }] }));
   });
 
@@ -220,5 +222,69 @@ describe('the next accepted appointment', () => {
     expect(home.agreements).toEqual(known({ more: 0, rows: [expect.objectContaining({ id: 'agreement:awaiting' })] }));
     if (home.agreements.kind === 'known') expect(home.agreements.value.rows[0]).not.toHaveProperty('upcoming');
     expect(home.ratingsDue).toBe(1); expect(home.ratingDueAgreementId).toBe('done');
+  });
+});
+
+// Coordinator, 2026-10-07: on the owner's account Početna used to show "Aktivni Dogovor … Termin nije potvrđen". A Dogovor
+// with no day to show it on must not vanish: with no appointment ahead it is counted in one quiet line, in Dogovori. Two kinds
+// have no day: a term that is not confirmed (no start, no end), and a confirmed Dogovor whose exact term has passed unfinished.
+describe('Raspored without a card: active Dogovori with no day to show them on', () => {
+  const now = Date.parse('2026-09-27T10:00:00Z');
+  const unconfirmed = (id: string, mine: 'narucilac' | 'uskocer' = 'uskocer', patch: Partial<DogovorProjekcija> = {}) =>
+    agreement(id, mine, { vremeTekst: 'Termin nije potvrđen', prihvacenPocetak: null, tacanTermin: null, ...patch });
+  /** Confirmed, its exact term ended on 26 September (before "now") and nobody has marked it done. */
+  const overdue = (id: string, patch: Partial<DogovorProjekcija> = {}) => agreement(id, 'uskocer', { prihvacenPocetak: '2026-09-26T07:00:00Z',
+    tacanTermin: { pocetak: '2026-09-26T07:00:00Z', kraj: '2026-09-26T08:00:00Z' }, ...patch });
+  const quiet = (home: ReturnType<typeof composeHome>) => home.agreements.kind === 'known' ? home.agreements.value.quietLine : null;
+  const quietKey = (home: ReturnType<typeof composeHome>) => home.agreements.kind === 'known' ? 'quietLine' in home.agreements.value : null;
+
+  it('a term that is not confirmed stays on Početna as one quiet line, with the Dogovor itself a row without Raspored words', () => {
+    const home = composeHome(reads({ agreements: known([unconfirmed('krecenje', 'narucilac')]) }), undefined, now);
+    expect(home.agreements).toEqual(known({ more: 0, quietLine: '1 Dogovor bez tačnog termina',
+      rows: [expect.objectContaining({ id: 'agreement:krecenje', appointment: expect.objectContaining({ timeText: 'Termin nije potvrđen' }) })] }));
+    if (home.agreements.kind === 'known') {
+      expect(home.agreements.value.rows[0]).not.toHaveProperty('raspored'); expect(home.agreements.value.rows[0]).not.toHaveProperty('upcoming');
+    }
+  });
+
+  it.each([[2, '2 Dogovora bez tačnog termina'], [5, '5 Dogovora bez tačnog termina'], [21, '21 Dogovor bez tačnog termina']])(
+    'counts %i of them in its Serbian form', (count, line) => {
+      const home = composeHome(reads({ agreements: known(Array.from({ length: count }, (_, index) => unconfirmed(`n${index}`))) }), undefined, now);
+      expect(quiet(home)).toBe(line);
+    });
+
+  it('a confirmed Dogovor whose exact term has passed unfinished is counted as waiting to be finished, with the verb agreeing', () => {
+    expect(quiet(composeHome(reads({ agreements: known([overdue('a')]) }), undefined, now))).toBe('1 Dogovor čeka završetak');
+    expect(quiet(composeHome(reads({ agreements: known([overdue('a'), overdue('b')]) }), undefined, now))).toBe('2 Dogovora čekaju završetak');
+    expect(quiet(composeHome(reads({ agreements: known([overdue('a'), overdue('b'), overdue('c'), overdue('d'), overdue('e')]) }), undefined, now)))
+      .toBe('5 Dogovora čeka završetak');
+    // Joined with " · " to the other part, the unconfirmed ones first.
+    expect(quiet(composeHome(reads({ agreements: known([overdue('a'), overdue('b'), unconfirmed('flex')]) }), undefined, now)))
+      .toBe('1 Dogovor bez tačnog termina · 2 Dogovora čekaju završetak');
+  });
+
+  it('is left to the card when an appointment lies ahead: the same counts ride in the card\'s own grey line', () => {
+    const home = composeHome(reads({ agreements: known([agreement('soon', 'uskocer', { prihvacenPocetak: '2026-09-28T07:00:00Z',
+      tacanTermin: { pocetak: '2026-09-28T07:00:00Z', kraj: '2026-09-28T08:00:00Z' } }), unconfirmed('krecenje'), overdue('a')]) }), undefined, now, 'Europe/Belgrade');
+    expect(quietKey(home)).toBe(false);
+    expect(home.agreements.kind === 'known' ? home.agreements.value.rows[0].raspored : null).toMatchObject({
+      when: 'Sutra · 09:00–10:00', more: '1 Dogovor bez tačnog termina · 1 Dogovor čeka završetak' });
+  });
+
+  it('says nothing when no active Dogovor has lost its day, and a Dogovori read that failed is still unavailable', () => {
+    for (const agreements of [[], [agreement('unknown', 'uskocer')], [unconfirmed('done', 'uskocer', { stanje: 'COMPLETED' })],
+      // Marked done, finished or cancelled: nobody is waiting for it to be finished.
+      [overdue('marked', { stanje: 'AWAITING_REQUESTER' }), overdue('finished', { stanje: 'COMPLETED' }), overdue('cancelled', { stanje: 'CANCELLED' })]]) {
+      const home = composeHome(reads({ agreements: known(agreements) }), undefined, now);
+      expect(quietKey(home)).toBe(false);
+    }
+    expect(composeHome(reads({ agreements: { kind: 'unavailable' } }), undefined, now).agreements).toEqual({ kind: 'unavailable' });
+  });
+
+  it('cannot tell without a term or a clock: a lone start has no end to have passed, and an unreadable "now" passes nothing', () => {
+    // A start with no end is a Dogovor with no exact term, not one that waits to be finished.
+    expect(quiet(composeHome(reads({ agreements: known([agreement('lone', 'uskocer', { prihvacenPocetak: '2026-09-26T07:00:00Z', tacanTermin: null })]) }), undefined, now)))
+      .toBe('1 Dogovor bez tačnog termina');
+    expect(quietKey(composeHome(reads({ agreements: known([overdue('a')]) }), undefined, Number.NaN))).toBe(false);
   });
 });

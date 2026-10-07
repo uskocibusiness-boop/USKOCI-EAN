@@ -38,7 +38,7 @@ export function useSafetyEntry(profileId: string | null | undefined,
       settle();
       if (!result.ok) { setError(result.poruka); return; }
       const target = result.podatak.available ? result.podatak.target : null;
-      if (!target) { setError('Korisnik trenutno nije dostupan.'); return; }
+      if (!target) { setError('Osoba trenutno nije dostupna.'); return; }
       // EX-07 S06: a build compiled with the safety-target-name flag hands on the PROFILE this was opened from (an identifier), so the safety screen can ask the server for
       // the name of that very profile. The name itself never travels in a route.
       router.navigate({ pathname: '/bezbednost', params: { targetAccountId: target.targetAccountId,

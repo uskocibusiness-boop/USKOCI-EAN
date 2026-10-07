@@ -1,5 +1,4 @@
 import { createContext, isValidElement, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { CaretRight, PencilSimple, X } from 'phosphor-react-native';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { StanjeProfila } from '../../contracts/projections';
@@ -8,6 +7,7 @@ import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
+import { Glyph } from '../system/Glyph';
 import { ToolArt } from '../system/ToolArt';
 import { StateView } from '../system/StateView';
 import { sys, field, materialControl } from '../system/tokens';
@@ -16,6 +16,8 @@ import { ConversationArt } from '../system/ConversationArt';
 import { SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
+import { WorkerProfileSaved } from './WorkerProfileSaved';
+import { availabilityRowDetail, toolsAndVehiclesNote } from './workerProfileFacts';
 
 /**
  * Frame of the worker profile: back, title, keyboard-safe body, sticky footer. `/profil/razgovor` and `/profil/lokacija`
@@ -137,7 +139,7 @@ function TermsEditor({ label, placeholder, values, pending, setPending, change, 
     {values.length ? <View style={s.chips}>{values.map((value, index) => <Press key={index} accessibilityRole="button"
       accessibilityLabel={`Ukloni ${label.toLowerCase()}: ${value}`} accessibilityState={{ disabled }} disabled={disabled}
       haptic="select" hitSlop={0} onPress={() => { if (!disabled) change(values.filter((_, i) => i !== index)); }} style={s.chip}>
-      <T variant="note" style={s.chipText}>{value}</T><X size={16} color={sys.color.muted} />
+      <T variant="note" style={s.chipText}>{value}</T><Glyph name="close" size={16} tone="muted" />
     </Press>)}</View> : null}
     <View style={[s.addRow, stacked && s.addRowStacked]}>
       <TextInput ref={inputRef} accessibilityLabel={`Nova stavka: ${label}`} placeholder={placeholder} placeholderTextColor={sys.color.muted}
@@ -159,7 +161,7 @@ function ProfileSection({ title, art, summary, summaryContent, empty, open, togg
     <View style={s.sectionHeading}><View style={s.grow}><SectionHead art={art} title={title} /></View>
       <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${title}`} accessibilityState={{ expanded: open, disabled }}
         disabled={disabled} onPress={toggle} haptic="select" style={[s.edit, materialControl.raised]}>
-        {open ? <X size={18} color={sys.color.ink} /> : <PencilSimple size={18} color={sys.color.ink} />}
+        <Glyph name={open ? 'close' : 'edit'} />
       </Press>
     </View>
     {open ? children : summaryContent ?? <ProfileSummary text={summary || empty} label={title} muted={!summary} />}
@@ -198,7 +200,7 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   if (status === 'ACTIVE') return <View style={s.activeLine}>
     <FactArt kind="check" size={20} /><T variant="note" style={[s.grow, s.ink]}>Profil je aktivan</T>
   </View>;
-  // Moderation wording stays the owner's until one word is chosen ("suspendovan" here, "obustavljen" on the hub).
+  // Moderation wording is one word in the whole app: "suspendovan" (owner, 2026-10-07).
   if (status === 'SUSPENDED') return <View style={[s.status, s.suspended]}>
     <T variant="bodyStrong" style={s.danger}>Profil je trenutno suspendovan</T>
     <T variant="note" style={s.ink}>Dok traje suspenzija, zadaci ti se ne nude.</T>
@@ -219,11 +221,19 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
 }
 
 export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'tool' | 'vehicle'; token: number };
-/** AI is the main setup route. The same owned draft, save/readback and navigation guards govern manual corrections. */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true }: {
+/**
+ * AI is the main setup route. The same owned draft, save/readback and navigation guards govern manual corrections.
+ *
+ * `reading` (M3) draws the saved profile for reading: no pencil on any line, what the data does, and the two ways to
+ * change it ("Izmeni razgovorom", and `onManual` for "Izmeni ručno", which the route answers by drawing this form again
+ * without `reading`). `primaryTaken` says the route's footer already holds the screen's green primary.
+ */
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true,
+  reading = false, onManual, primaryTaken = false }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
+  reading?: boolean; onManual?: () => void; primaryTaken?: boolean;
 }) {
   const [editing, setEditing] = useState<'identity' | 'skills' | 'tools' | 'vehicles' | null>(null);
   const { stacked } = useLayoutClass();
@@ -244,6 +254,9 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   // Before a profile exists, the footer owns the single conversation action.
   // Required activation checks belong to the saved draft, not a warning before setup.
   const firstSetup = !profileExists && status === null && !!openConversation;
+  if (reading && onManual) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
+    onManual={onManual} primaryTaken={primaryTaken}
+    status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />} />;
   return <View style={s.form}>
     {firstSetup ? <View style={s.setupIntro}>
       <ConversationArt size={96} />
@@ -251,28 +264,28 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <T variant="note" tone="muted">Veštine, oprema i područje rada — kroz razgovor.</T>
     </View> : <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />}
     {openConversation && !firstSetup ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
-      accessibilityHint="Razgovor o poslovima, alatu, vozilima i području rada."
+      accessibilityHint="Razgovor o zadacima, alatu, vozilima i području rada."
       accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
       style={[s.conversationEntry, materialControl.raised]}>
       <View style={[s.conversationCopy, stacked && s.conversationCopyStacked]}>
         <ConversationArt size={64} />
         <View style={s.grow}>
           <T variant="heading" tone={disabled ? 'muted' : 'ink'}>Ispričaj čime se baviš</T>
-          <T variant="note" tone="muted">Veštine, poslovi i oprema — kroz razgovor.</T>
+          <T variant="note" tone="muted">Veštine, zadaci i oprema — kroz razgovor.</T>
         </View>
       </View>
       <View style={s.conversationBottom}><T variant="bodyStrong" style={s.ink}>Uredi kroz razgovor</T>
-        <View style={s.arrow}><CaretRight size={20} color={sys.color.ink} /></View></View>
+        <View style={s.arrow}><Glyph name="caret-right" /></View></View>
     </Press> : null}
     <ProfileSection title="O meni" art="person" summary={[draft.ime, draft.biografija].filter(Boolean).join('\n')}
       summaryContent={draft.ime ? <View style={s.identityCopy}><T variant="title" accessibilityRole="header">{draft.ime}</T>
         {draft.biografija ? <ProfileSummary text={draft.biografija} label="O meni" muted /> : null}</View> : undefined}
       empty="Dodaj ime i nekoliko reči o svom iskustvu." open={editing === 'identity'} toggle={() => toggle('identity')} disabled={disabled}>
       <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
-      <Field label="O tvom iskustvu" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
+      <Field label="O meni" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
     </ProfileSection>
     <ProfileSection title="Veštine i usluge" art="tasks" summary={draft.vestine.join(' · ')}
-      empty="Koje poslove možeš da preuzmeš?" open={editing === 'skills'} toggle={() => toggle('skills')} disabled={disabled}>
+      empty="Koje zadatke možeš da preuzmeš?" open={editing === 'skills'} toggle={() => toggle('skills')} disabled={disabled}>
       <TermsEditor label="Veštine i usluge" placeholder="Dodaj veštinu ili uslugu" values={draft.vestine} pending={draft.newSkill}
         setPending={newSkill => patch({ newSkill })} change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })}
         disabled={disabled} inputRef={skillRef} />
@@ -281,8 +294,8 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} cut="art" />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')}
-        detail={draft.dostupanOdmah ? 'Mogu odmah · pogledaj raspored' : 'Pogledaj i uredi raspored'} />
-      <SettingsRow label="Obaveštenja o poslovima" detail="Novi zadaci i tihi sati" icon={<FactArt kind="bell" size={32} cut="art" />}
+        detail={availabilityRowDetail(draft.dostupanOdmah)} />
+      <SettingsRow label="Obaveštenja o zadacima" detail="Novi zadaci i tihi sati" icon={<FactArt kind="bell" size={32} cut="art" />}
         disabled={disabled} last onPress={() => navigate('/profil/obavestenja')} />
     </View>
     <ProfileSection title="Alat i oprema" art="tool" summary={draft.alati.join(' · ')}
@@ -291,10 +304,11 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
         setPending={newTool => patch({ newTool })} change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} inputRef={toolRef} />
     </ProfileSection>
     <ProfileSection title="Vozila" art="vehicle" summary={draft.vozila.join(' · ')}
-      empty="Dodaj vozilo ako ga koristiš za posao." open={editing === 'vehicles'} toggle={() => toggle('vehicles')} disabled={disabled}>
+      empty="Dodaj vozilo ako ga koristiš za zadatke." open={editing === 'vehicles'} toggle={() => toggle('vehicles')} disabled={disabled}>
       <TermsEditor label="Vozila" placeholder="Dodaj vozilo" values={draft.vozila} pending={draft.newVehicle}
         setPending={newVehicle => patch({ newVehicle })} change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} inputRef={vehicleRef} />
     </ProfileSection>
+    <T variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     <T variant="note" tone="muted">Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.</T>
   </View>;
 }

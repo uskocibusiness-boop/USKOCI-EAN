@@ -12,7 +12,7 @@ function harness() {
   let scope: VoiceScope | null = { accountId: 'account-a', accountRevision: 1, conversationId: 'owned-conversation' };
   let emit: (event: SpeechEvent) => void = () => {};
   let canCapture: () => boolean = () => false;
-  const permission = deferred<'granted' | 'denied' | 'unavailable'>();
+  const permission = deferred<'granted' | 'denied' | 'unavailable' | 'later'>();
   const started = deferred<void>();
   const final = deferred<FinalTranscript>();
   const capture: NativeSpeechCapture = { start: jest.fn(() => started.promise), stopCapture: jest.fn(),
@@ -43,6 +43,28 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     h.permission.resolve('granted'); await flush();
     expect(h.adapter.createCapture).not.toHaveBeenCalled();
     expect(h.onTranscript).not.toHaveBeenCalled(); expect(h.controller.getSnapshot().phase).toBe('IDLE');
+  });
+
+  // Design proposal N: "Ne sada" to the question before the microphone window is not a refusal and not an error. The gesture ends
+  // with no microphone, no message and no kept text, and the next hold starts as if nothing had happened.
+  it('ends the gesture calmly when the person says "Ne sada" to the question before the microphone window', async () => {
+    const h = harness(); expect(h.controller.begin('press-1')).toBe(true);
+    expect(h.controller.getSnapshot().phase).toBe('PERMISSION_PENDING');
+    h.permission.resolve('later'); await flush();
+    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: null, fallbackText: '', finalText: '', interimText: '' });
+    expect(h.adapter.createCapture).not.toHaveBeenCalled(); expect(h.onTranscript).not.toHaveBeenCalled();
+    // A timer left running would turn this into "Zahtev za mikrofon je istekao" a moment later.
+    jest.advanceTimersByTime(5000); expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: null });
+    expect(h.controller.begin('press-2')).toBe(true);
+    h.controller.release('press-2');
+  });
+
+  it('says nothing either when the hold was let go while the question was read and the answer is "Ne sada"', async () => {
+    const h = harness(); h.controller.begin('press-1'); h.controller.release('press-1');
+    expect(h.controller.getSnapshot().phase).toBe('IDLE');
+    h.permission.resolve('later'); await flush();
+    expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: null });
+    expect(h.adapter.createCapture).not.toHaveBeenCalled();
   });
 
   it('closes the pending native handle when release races asynchronous start', async () => {

@@ -6,7 +6,7 @@ import { agreementClientService } from '../../data/agreementClientService';
 import type { SupportPayloads, SupportReference, SupportTopic } from '../../data/supportCaseTypes';
 import { positiveInteger, uuid } from '../../data/serverReceipt';
 import { ProductSheet } from '../product/ProductSheet';
-import { SettingsAction, SettingsGroup, SettingsIntro, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
+import { SettingsAction, SettingsGroup, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { StateView } from '../system/StateView';
@@ -53,18 +53,20 @@ export function SupportNewView({ model, reference, readAgreements = () => agreem
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'));
   const busy = state.phase === 'LOADING' || state.phase === 'SENDING';
   if (reference === 'INVALID') return <SupportFrame title="Novi zahtev" onBack={back}>
-    <StateView kind="error" title="Kontekst zahteva nije ispravan" body="Ponovo otvori podršku iz Zadatka ili Dogovora."
+    <StateView kind="error" title="Kontekst zahteva nije ispravan" body="Ponovo otvori podršku iz zadatka ili Dogovora."
       primary={{ label: 'Otvori podršku', onPress: () => navigate(() => router.replace('/podrska')) }} />
   </SupportFrame>;
   if (state.receipt) {
     const receipt = state.receipt;
     // Replace, not push: this screen resets on its next focus, so Back from the case would land on an empty form.
-    return <SupportFrame title="Novi zahtev" onBack={back} footer={<SettingsAction label="Otvori potvrđeni predmet" disabled={busy}
+    return <SupportFrame title="Novi zahtev" onBack={back} footer={<SettingsAction label="Otvori zahtev" disabled={busy}
       onPress={() => navigate(() => router.replace({ pathname: '/podrska/[id]', params: { id: receipt.caseId } }))} />}>
       <View style={s.receipt}>
         <SuccessMark fresh size={64} />
         <T variant="title" accessibilityRole="header" accessibilityLiveRegion="polite">{`Potvrđen zahtev #${receipt.caseNumber}`}</T>
         <T variant="note" tone="muted">{`Primljeno: ${supportTime(receipt.createdAt)}`}</T>
+        {/* Where the answer will be, and nothing about when: no response time is promised. */}
+        <T variant="copy" tone="muted">Odgovor ćeš naći u Podršci.</T>
       </View>
     </SupportFrame>;
   }
@@ -113,7 +115,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   // unconfirmed send spins its own button in the panel above, and this one waits grey with its reason (round 5c review).
   const sending = state.phase === 'SENDING' && state.command === 'SEND';
   const lacking = valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
-    : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o Zadatku.'
+    : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o zadatku.'
       : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.' : 'Skrati tekst do dozvoljene dužine.';
   const missing = sending || (!disabled && valid) ? null
     : state.pending ? 'Najpre proveri prethodno slanje.'
@@ -162,7 +164,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
     channel: channel(topic), topic, title, body, desiredOutcome: desired.trim() ? desired : null, context,
     evidence: selectedEvidence ? [selectedEvidence] : [],
   }, state); };
-  const contextName = (kind: SupportReference['kind']) => kind === 'TASK_REVIEW' ? 'Pregledana odluka o Zadatku' : kind === 'TASK' ? 'Izabrani Zadatak'
+  const contextName = (kind: SupportReference['kind']) => kind === 'TASK_REVIEW' ? 'Pregledana odluka o zadatku' : kind === 'TASK' ? 'Izabrani zadatak'
     : kind === 'AGREEMENT_MESSAGE' ? 'Izabrana poruka iz Dogovora' : kind === 'GROUP_MESSAGE' ? 'Izabrana grupna poruka' : 'Namerno izabrana referenca';
   const sameAsEvidence = !!context && !!selectedEvidence && context.kind === selectedEvidence.kind && context.id === selectedEvidence.id;
   // The context is said once as an attachment row (not twice when it is the chosen message itself), but the sentence
@@ -176,7 +178,6 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const messageTone = supportMessageTone(state);
   return <SupportFrame title="Novi zahtev" onBack={leave} footer={hideForm ? undefined
     : <SettingsAction label="Pošalji privatni zahtev" loading={sending} disabled={disabled || !valid} reason={missing} onPress={send} />}>
-    <SettingsIntro>Izaberi temu i napiši šta želiš da razjasnimo. Sam prijem zahteva ne menja Zadatak, Dogovor ili ocenu.</SettingsIntro>
     <SupportRecoveryPanel model={model} receipt={false} />
     {state.phase === 'LOADING' && hideForm ? <SupportLoading />
       : state.phase === 'ERROR' && hideForm ? <StateView kind="error" title="Stanje zahteva nije učitano" body={state.message ?? undefined}

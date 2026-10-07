@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Easing, RefreshControl, ScrollView, StyleSheet, Switch, View, useWindowDimensions } from 'react-native';
-import { Check, Plus, Trash } from 'phosphor-react-native';
 import type { AvailabilityRule, AvailabilityWindow, WorkerAvailabilityInput } from '../../contracts/workerAvailability';
 import { calendarInstant } from '../../lib/calendarTime';
 import { normalizeWorkerAvailability, sameWorkerAvailability } from '../../lib/workerAvailability';
@@ -12,6 +11,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { Disclosure, TurningCaret } from '../system/Disclosure';
 import { ProductSheet } from '../product/ProductSheet';
+import { Glyph } from '../system/Glyph';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { urgentBuilt } from '../../lib/needUrgency';
 import { useReducedMotion } from '../system/motion';
@@ -260,7 +260,7 @@ export function CopySheet({ source, rules, close, apply }: {
         const on = chosen.includes(day.day);
         return <Press key={day.day} accessibilityRole="checkbox" accessibilityLabel={day.name} accessibilityState={{ checked: on }}
           haptic="select" onPress={() => toggle(day.day)} style={s.check}>
-          <View style={[s.box, on && s.boxOn]}>{on ? <Check size={16} weight="bold" color={sys.color.onDark} /> : null}</View>
+          <View style={[s.box, on && s.boxOn]}>{on ? <Glyph name="check" size={16} tone="onGreen" /> : null}</View>
           <T style={s.grow}>{day.name}</T>
         </Press>;
       })}</View>
@@ -375,7 +375,8 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   };
   const deleteItem = (kind: 'rules' | 'windows', id: string) => {
     if (!canEdit()) return;
-    confirmation.ask({ title: 'Ukloniti termin?', message: 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.',
+    // One word for one thing (UX plan 3.8): a slot of the week is a "termin", a special date is a "datum".
+    confirmation.ask({ title: kind === 'windows' ? 'Ukloniti datum?' : 'Ukloniti termin?', message: 'Promena će se sačuvati tek kada sačuvaš dostupnost. Dogovori ostaju nepromenjeni.',
       cancelLabel: 'Odustani', confirmLabel: 'Ukloni', tone: 'danger', onConfirm: () => update({ [kind]: draft[kind].filter(item => item.id !== id) }) });
   };
   const save = () => {
@@ -459,7 +460,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     <V2Action label={saveLabel} style={brandAction} loading={busy} disabled={blocked || sheetOpen} error={error} onPress={save} />
     <V2Action label="Odustani od izmena" kind="quiet" disabled={blocked} onPress={discard} />
   </FooterIn> : showSaved ? <FooterIn key="saved" reduced={reduced}>
-    <View style={s.saved}><Check size={20} weight="bold" color={sys.color.green} />
+    <View style={s.saved}><Glyph name="check" tone="green" />
       <T variant="bodyStrong" accessibilityRole="alert" style={{ color: sys.color.green }}>Dostupnost je sačuvana.</T></View>
   </FooterIn> : null;
   return <View style={s.fill}>
@@ -503,7 +504,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
               disabled={blocked} haptic="select" scaleTo={0.99} onPress={() => editRule(undefined, day.day)} style={s.dayRow}>
               <View style={stacked ? s.dayStack : s.dayLine}>
                 <T variant="body" style={s.dayName}>{day.name}</T>
-                <View style={[s.add, stacked && s.addStacked]}><Plus size={18} color={blocked ? sys.color.muted : sys.color.ink} />
+                <View style={[s.add, stacked && s.addStacked]}><Glyph name="plus" tone={blocked ? 'muted' : 'ink'} />
                   <T variant="note" style={{ color: blocked ? sys.color.muted : sys.color.ink }}>Dodaj</T></View>
               </View>
             </Press>}
@@ -521,7 +522,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
                 </Press>
                 <Press accessibilityRole="button" accessibilityLabel={`Ukloni ${day.name} ${civilClock(rule.startTime)}`} accessibilityState={{ disabled: blocked }}
                   disabled={blocked} haptic="select" onPress={() => deleteItem('rules', rule.id)} style={calendarStyles.icon}>
-                  <Trash size={20} color={blocked ? sys.color.muted : sys.color.danger} /></Press>
+                  <Glyph name="trash" tone={blocked ? 'muted' : 'danger'} /></Press>
               </View>)}
               <View style={s.dayActions}>
                 <V2Action label="Dodaj termin" accessibilityLabel={`Dodaj — ${day.name}`} kind="quiet" disabled={blocked}
@@ -559,7 +560,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
             </Press>
             <Press accessibilityRole="button" accessibilityLabel={`Ukloni datum ${day}`} accessibilityState={{ disabled: blocked }} disabled={blocked}
               haptic="select" onPress={() => deleteItem('windows', window.id)} style={calendarStyles.icon}>
-              <Trash size={20} color={blocked ? sys.color.muted : sys.color.danger} /></Press>
+              <Glyph name="trash" tone={blocked ? 'muted' : 'danger'} /></Press>
           </View>;
         })}</View> : <T variant="note" tone="muted">Nema posebnih datuma.</T>}
         <V2Action label="Dodaj datum" kind="secondary" disabled={blocked} onPress={() => { if (canEdit()) { retireEdit(); setWindowEditor({ value: null }); } }} />

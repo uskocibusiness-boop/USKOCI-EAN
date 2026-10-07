@@ -4,8 +4,10 @@ import { authTheme as c } from './authTheme';
 import { radius, type } from '../../theme/tokens';
 
 /** V5 premium auth presentation; route supplies real owned Auth state. */
-export function AuthIntro({ title, copy, eyebrow = 'JEDAN NALOG · OBE MOGUĆNOSTI', composition = 'hero' }: {
-  title: string; copy: string; eyebrow?: string; composition?: 'hero' | 'stage';
+export function AuthIntro({ title, copy, composition = 'hero' }: {
+  title: string;
+  /** The quiet line under the title. Left out, the title stands alone and the next thing on the screen follows closely. */
+  copy?: string; composition?: 'hero' | 'stage';
 }) {
   const stage = composition === 'stage';
   return <View>
@@ -13,25 +15,23 @@ export function AuthIntro({ title, copy, eyebrow = 'JEDAN NALOG · OBE MOGUĆNOS
     <View style={styles.badge} accessible={false} importantForAccessibility="no-hide-descendants">
       <BrandMark size={35} />
     </View>
-    </> : <View style={styles.identityRow}><BrandMark size={30} /><Text style={styles.inlineEyebrow}>{eyebrow}</Text></View>}
-    <View style={stage ? styles.stage : styles.hero}>
-      {stage ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text accessibilityRole="header" style={[styles.title, stage && styles.stageTitle]}>{title}</Text>
-      <Text style={[styles.copy, stage && styles.stageCopy]}>{copy}</Text>
+    </> : <View style={styles.identityRow}><BrandMark size={30} /></View>}
+    <View style={stage ? styles.stage : copy ? styles.hero : styles.heroAlone}>
+      <Text accessibilityRole="header" style={[styles.title, stage && styles.stageTitle, !copy && styles.titleAlone]}>{title}</Text>
+      {copy ? <Text style={[styles.copy, stage && styles.stageCopy]}>{copy}</Text> : null}
     </View>
   </View>;
 }
 const styles = StyleSheet.create({
   identityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, minHeight: 36 },
-  inlineEyebrow: { flex: 1, ...type.label, fontWeight: '600', letterSpacing: 0.4, color: c.accentLight },
   hero: { paddingTop: 4, paddingBottom: 20 },
+  heroAlone: { paddingTop: 4, paddingBottom: 16 },
+  titleAlone: { marginBottom: 0 },
   stage: { marginTop: 4, paddingTop: 2, paddingBottom: 4, marginBottom: 16 },
   stageTitle: { ...type.pageTitle, marginBottom: 10 },
   stageCopy: { ...type.copy, color: c.muted, marginBottom: 8 },
   badge: { width: 58, height: 58, borderRadius: radius.cardCompact, backgroundColor: c.sheet,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  // 11px was under the 12px floor the scale sets for anything that carries meaning.
-  eyebrow: { ...type.label, fontWeight: '600', letterSpacing: 0.4, color: c.accentLight, marginBottom: 8 },
   title: { ...type.hero, color: c.ink, marginBottom: 9 },
   copy: { ...type.copy, color: c.muted },
 });

@@ -100,7 +100,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     if (!key || !current()) return changed();
     await AsyncStorage.removeItem(key);
     if (!current()) return changed(); intent.current = null; bytes.current = null;
-    setNotice('Promena je zabeležena. Prikazujem trenutnu fotografiju.'); return read();
+    setNotice('Promena je zabeležena. Prikazujemo trenutnu fotografiju.'); return read();
   };
   const upload = async (command: Intent, photo: PreparedPhoto): Promise<Ishod<Snapshot>> => {
     if (!profileId || !command.requestId || !(await persist(command))) return changed();

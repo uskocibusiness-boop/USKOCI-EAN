@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { DogovorProjekcija } from '../../contracts/projections';
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
@@ -30,9 +30,11 @@ const agreement = (id: string, state: DogovorProjekcija['stanje'], requester = t
 });
 let rows: DogovorProjekcija[], loading: boolean, error: boolean, tree: ReactTestRenderer;
 const open = jest.fn(), refresh = jest.fn(), tasks = jest.fn();
+// "Now" for the day groups: Thursday 24 September 2026, 11:00 in Belgrade (09:00 UTC, CEST). The week is 21 to 27 September.
+const NOW = new Date('2026-09-24T09:00:00Z');
 function Screen() {
   const [section, setSection] = useState<AgreementCollectionSection>('active'), [confirmationOnly, setConfirmationOnly] = useState(false);
-  return <AgreementCollectionPresentation items={rows} loading={loading} error={error}
+  return <AgreementCollectionPresentation items={rows} loading={loading} error={error} now={NOW}
     section={section} confirmationOnly={confirmationOnly} onSection={setSection} onConfirmationOnly={setConfirmationOnly}
     onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />;
 }
@@ -56,12 +58,35 @@ test('active and history preserve both actual participant roles; attention means
   // the subject had changed. Početna keeps the first person because it puts the relation first.
   expect(texts()).toContain('Traži pomoć'); expect(texts()).toContain('Uskače na tvoj zadatak');
   expect(texts()).not.toContain('Uskočio si'); expect(texts()).not.toContain('Objavio si');
-  await tap('Čeka moju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
-  await tap('Čeka moju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
+  // The filter speaks to the person ("tvoju"), never in the first person ("moju").
+  await tap('Čeka tvoju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka moju potvrdu' })).toHaveLength(0);
+  await tap('Čeka tvoju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
   // Round-1 critique A11 (owner step 8): Aktivni and Istorija only. "Svi" repeated both sets and is gone.
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Svi' })).toHaveLength(0);
   // Nothing in history waits for a confirmation, so the filter is offered on Aktivni only.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka moju potvrdu' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
+});
+// Plan 2.6: Istorija has its own chips, "Sve · Završeni · Otkazani", and a cancelled Dogovor wears the one "Otkazan" chip.
+test('Istorija offers Sve, Završeni and Otkazani, narrows the list by them and says when a chip holds nothing', async () => {
+  rows = [agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED'), agreement('done-2', 'COMPLETED'), agreement('live', 'CONFIRMED')];
+  await render();
+  // Aktivni has no history chips, and Istorija has no confirmation filter.
+  expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(0);
+  await tap('Istorija');
+  const chips = () => tree.root.findAllByProps({ accessibilityRole: 'radio' }).map(node => [node.props.accessibilityLabel, node.props.accessibilityState.checked]);
+  expect(chips()).toEqual([['Sve', true], ['Završeni', false], ['Otkazani', false]]);
+  expect(titles()).toEqual(['done', 'off', 'done-2'].map(id => `Otvori Dogovor Posao ${id}`));
+  await tap('Završeni'); expect(chips()).toEqual([['Sve', false], ['Završeni', true], ['Otkazani', false]]);
+  expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao done-2']);
+  await tap('Otkazani'); expect(titles()).toEqual(['Otvori Dogovor Posao off']);
+  expect(cardTexts('Posao off')).toContain('Otkazan');
+  // A chip that holds nothing says so and leads back to "Sve", not to another empty view.
+  rows = [agreement('done', 'COMPLETED'), agreement('live', 'CONFIRMED')];
+  await act(async () => tree.update(<Screen />));
+  expect(texts()).toContain('Nema otkazanih Dogovora');
+  await act(async () => tree.root.findByProps({ label: 'Prikaži sve' }).props.onPress());
+  expect(titles()).toEqual(['Otvori Dogovor Posao done']);
 });
 // Round 2c (verifier vf, must 2): since 2026-09-24 a missing name reaches the screens as an empty string. The card wrote
 // `inicijali ?? '—'` (which lets '' through) and the Dogovor printed it bare, so both drew an empty green disc. The one
@@ -94,18 +119,22 @@ test('reuses full accepted amount, precise interval and coverage, without exposi
   await tap('Otvori Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
 });
 
-test('leads with the full-width work title before the person, then gives accepted facts the row width', async () => {
+test('leads with the person\'s face beside the work title (two lines at most) and "ime · uloga", then gives accepted facts the row width', async () => {
   const title = 'Popravka police u dnevnoj sobi i postavljanje velikog ogledala';
   rows = [{ ...agreement('work', 'CONFIRMED'), naslov: title }];
   await render();
   const body = card(title);
   const words = body.findAllByType('T' as React.ElementType);
   const heading = words.find(node => node.props.children === title)!;
+  // Plan 2.6: black title, two lines at most; the person under it as "ime · uloga", in grey.
+  expect(heading.props.numberOfLines).toBe(2);
   expect(heading.parent!.children[0]).toBe(heading);
-  expect(heading.props.numberOfLines).toBeUndefined();
-  const personRow = heading.parent!;
-  expect(personRow.findAll(node => typeof node.type !== 'string' && node.props.initials === 'DO' && node.props.size === 40)).toHaveLength(1);
-  const term = words.find(node => node.props.children === rows[0].vremeTekst)!;
+  const copy = words.find(node => node.props.children === 'Druga osoba · Uskače na tvoj zadatak')!;
+  expect(copy.parent).toBe(heading.parent); expect(copy.props.tone).toBe('muted');
+  const headRow = heading.parent!.parent!;
+  expect(headRow.findAll(node => typeof node.type !== 'string' && node.props.initials === 'DO' && node.props.size === 40)).toHaveLength(1);
+  // When and where is one grey line: the adapter's term (this Dogovor carries no accepted start), then the place.
+  const term = words.find(node => node.props.children === `${rows[0].vremeTekst} · Novi Sad`)!;
   for (let ancestor = term.parent; ancestor && ancestor !== body; ancestor = ancestor.parent) {
     const style = StyleSheet.flatten(ancestor.props.style) ?? {};
     expect(style.borderLeftWidth ?? 0).toBe(0);
@@ -149,8 +178,72 @@ test('old unknown ratings cannot preempt accepted appointments or confirmed rati
     { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
   ];
   await render();
-  expect(titles()).toEqual(['Otvori Dogovor Posao due', 'Otvori Dogovor Posao soon', 'Otvori Dogovor Posao later',
-    'Otvori Dogovor Posao no-term', 'Otvori Dogovor Posao old-unknown']);
+  // Both ratings have an orange foot, so both stand under "Čeka tebe", first; the one the read could not answer for comes after
+  // the one that is really due, whatever its date. Then the days: tomorrow, this week, and no term last.
+  expect(titles()).toEqual(['Otvori Dogovor Posao due', 'Otvori Dogovor Posao old-unknown', 'Otvori Dogovor Posao soon',
+    'Otvori Dogovor Posao later', 'Otvori Dogovor Posao no-term']);
+  expect(headers()).toEqual(['Čeka tebe', 'Sutra', 'Ove nedelje', 'Bez tačnog termina']);
+});
+
+// Plan 2.6: Aktivni is groups, "Čeka tebe" first and always, then the days in Serbian time, each under its own heading.
+const headers = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.props.accessibilityRole === 'header').map(node => node.props.children);
+test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasnije and Bez tačnog termina, each with its heading', async () => {
+  rows = [
+    { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
+    { ...agreement('later', 'CONFIRMED'), prihvacenPocetak: '2026-10-05T10:00:00Z' },
+    { ...agreement('week', 'CONFIRMED'), prihvacenPocetak: '2026-09-27T10:00:00Z' },
+    { ...agreement('tomorrow', 'CONFIRMED'), prihvacenPocetak: '2026-09-25T10:00:00Z' },
+    { ...agreement('today', 'CONFIRMED'), prihvacenPocetak: '2026-09-24T14:00:00Z' },
+    { ...agreement('waits', 'AWAITING_REQUESTER'), prihvacenPocetak: '2026-10-20T10:00:00Z' },
+    agreement('over', 'COMPLETED'), agreement('off', 'CANCELLED'),
+  ];
+  await render();
+  expect(headers()).toEqual(['Čeka tebe', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Bez tačnog termina']);
+  expect(titles()).toEqual(['waits', 'today', 'tomorrow', 'week', 'later', 'no-term'].map(id => `Otvori Dogovor Posao ${id}`));
+  // The rows of Istorija keep the server's order and carry no day headings.
+  await tap('Istorija'); expect(headers()).toEqual([]);
+  expect(titles()).toEqual(['over', 'off'].map(id => `Otvori Dogovor Posao ${id}`));
+});
+// Plan 2.6: the compact card says WHEN in Serbian time from the accepted instant, never from display text, and WHERE, in one grey line.
+test('a card writes the accepted start as "Danas 14:00 · Novi Beograd", and the day after as "Sutra"', async () => {
+  rows = [
+    { ...agreement('t', 'CONFIRMED'), prihvacenPocetak: '2026-09-24T12:00:00Z', putanjaTekst: 'Novi Beograd', vremeTekst: 'IGNORED DISPLAY TEXT' },
+    { ...agreement('m', 'CONFIRMED'), prihvacenPocetak: '2026-09-25T07:30:00Z', putanjaTekst: 'Zemun', vremeTekst: 'IGNORED DISPLAY TEXT' },
+    { ...agreement('r', 'CONFIRMED'), rezim: 'DALJINSKI', prihvacenPocetak: '2026-09-26T07:00:00Z', putanjaTekst: 'SKRIVENO' },
+  ];
+  await render();
+  expect(cardTexts('Posao t')).toContain('Danas 14:00 · Novi Beograd');
+  expect(cardTexts('Posao m')).toContain('Sutra 09:30 · Zemun');
+  expect(cardTexts('Posao r')).toContain('26. sep · 09:00 · Na daljinu');
+  expect(cardTexts('Posao t')).not.toContain('IGNORED DISPLAY TEXT'); expect(cardTexts('Posao r')).not.toContain('SKRIVENO');
+});
+test('a card wears one state chip: Dogovoren, U toku, Čeka potvrdu, Završen or Otkazan, with its shape and word', async () => {
+  const { STATUS_CHIPS } = require('../../ui/system/StatusChip');
+  rows = [
+    { ...agreement('agreed', 'CONFIRMED'), prihvacenPocetak: '2026-09-25T10:00:00Z' },
+    { ...agreement('now', 'CONFIRMED'), prihvacenPocetak: '2026-09-24T08:00:00Z', tacanTermin: { pocetak: '2026-09-24T08:00:00Z', kraj: '2026-09-24T10:00:00Z' } },
+    agreement('waits', 'AWAITING_REQUESTER'),
+    { ...agreement('rate', 'COMPLETED'), ocenaMoguca: true },
+    agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED'),
+  ];
+  await render();
+  const chipWord = (title: string) => card(title).findAllByType('T' as React.ElementType).map(node => node.props.children).filter(text => typeof text === 'string' && /^(Dogovoren|U toku|Čeka potvrdu|Završen|Otkazan)/.test(text));
+  expect(chipWord('Posao agreed')).toEqual(['Dogovoren · izmenjeni uslovi']);
+  expect(chipWord('Posao now')).toEqual(['U toku · izmenjeni uslovi']);
+  expect(chipWord('Posao waits')).toEqual(['Čeka potvrdu · izmenjeni uslovi']);
+  expect(chipWord('Posao rate')).toEqual(['Završen · izmenjeni uslovi']);
+  expect(STATUS_CHIPS['task.now'].word).toBe('U toku');
+  await tap('Istorija');
+  expect(chipWord('Posao done')).toEqual(['Završen · izmenjeni uslovi']);
+  expect(chipWord('Posao off')).toEqual(['Otkazan · izmenjeni uslovi']);
+  // Nothing about who cancelled or when: the Dogovor carries none of it, and a card invents nothing.
+  expect(cardTexts('Posao off')).not.toMatch(/Otkazao|Otkazala|otkazan\w* (od|u)|Razlog/);
+});
+test('a Dogovor whose day is behind us is not "Danas": it stands under "Ranije", before today\'s', async () => {
+  rows = [{ ...agreement('yesterday', 'CONFIRMED'), prihvacenPocetak: '2026-09-23T10:00:00Z' }, { ...agreement('today', 'CONFIRMED'), prihvacenPocetak: '2026-09-24T14:00:00Z' }];
+  await render();
+  expect(headers()).toEqual(['Ranije', 'Danas']);
+  expect(titles()).toEqual(['yesterday', 'today'].map(id => `Otvori Dogovor Posao ${id}`));
 });
 
 test('active order follows accepted instants after rescheduling, preserving offsets, microseconds and unknown order', async () => {
@@ -193,10 +286,16 @@ test('only a Dogovor that waits for me carries the strip, in the order the Dogov
   expect(cardTexts('Posao change')).toContain('Odgovori na predlog izmene'); expect(card('Posao change').props.accessibilityHint).toBe('Odgovori na predlog izmene. Prihvaćeni uslovi važe dok ne odgovoriš.');
   // My own proposal waits for the other side: said quietly, never as my task.
   expect(cardTexts('Posao mine')).toContain('Tvoja izmena čeka odgovor'); expect(card('Posao mine').props.accessibilityHint).toBeUndefined();
-  expect(cardTexts('Posao confirm')).toContain('Potvrdi završetak'); expect(cardTexts('Posao confirm')).toContain('Čeka se potvrda završetka');
+  expect(cardTexts('Posao confirm')).toContain('Potvrdi završetak'); expect(cardTexts('Posao confirm')).toContain('Čeka potvrdu');
   // A pending change blocks completion, so no strip asks for a confirmation the server would refuse.
   expect(cardTexts('Posao blocked')).not.toContain('Potvrdi završetak');
-  expect(cardTexts('Posao worker-waits')).toContain('Čeka se potvrda završetka'); expect(card('Posao worker-waits').props.accessibilityHint).toBeUndefined();
+  expect(cardTexts('Posao worker-waits')).toContain('Čeka potvrdu'); expect(card('Posao worker-waits').props.accessibilityHint).toBeUndefined();
+  // The chip is orange only for the confirmation that is mine; the same words wait quietly for the other side's.
+  const { STATUS_TONES } = require('../../ui/system/StatusChip');
+  const ground = (title: string) => StyleSheet.flatten(card(title).findByProps({ testID: 'status-chip' }).props.style).backgroundColor;
+  expect(ground('Posao confirm')).toBe(STATUS_TONES.attention.ground);
+  expect(ground('Posao worker-waits')).toBe(STATUS_TONES.neutral.ground);
+  expect(ground('Posao plain')).toBe(STATUS_TONES.green.ground);
   expect(card('Posao plain').props.accessibilityHint).toBeUndefined(); expect(cardTexts('Posao plain')).not.toMatch(/Potvrdi|Odgovori|Oceni|Čeka/);
 });
 test('a term that is missing stays one sentence and a missing place or amount is said in words, never as a value', async () => {
@@ -220,7 +319,8 @@ test('the term is one full line and its zone note stands on its own line', async
   rows = [{ ...agreement('zone', 'CONFIRMED'), vremeTekst: '24. sep · 17:00–19:00 (po vremenu u Srbiji)' }];
   await render();
   const lines = card('Posao zone').findAllByType('T' as React.ElementType).map(node => node.children.filter(child => typeof child === 'string').join(''));
-  expect(lines).toContain('24. sep · 17:00–19:00'); expect(lines).toContain('Po vremenu u Srbiji');
+  // The time and the place are one grey line (plan 2.6); the zone note a phone outside Serbia carries is a quiet line of its own.
+  expect(lines).toContain('24. sep · 17:00–19:00 · Novi Sad'); expect(lines).toContain('Po vremenu u Srbiji');
   expect(lines.some(line => line.includes('(po vremenu u Srbiji)'))).toBe(false);
 });
 // Round-1 critique B16: the whole card is the press, so it draws no caret of its own.
@@ -233,9 +333,10 @@ test('a card draws no caret; the body is the one press that opens the Dogovor', 
 test('a card says how many people only when it is more than the one person it shows', async () => {
   rows = [{ ...agreement('one', 'CONFIRMED'), pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } }, agreement('three', 'CONFIRMED')];
   await render();
-  const users = (title: string) => card(title).findAll(node => typeof node.type !== 'string' && node.props.kind === 'users');
-  expect(cardTexts('Posao one')).not.toContain('1 osoba'); expect(users('Posao one')).toHaveLength(0);
-  expect(cardTexts('Posao three')).toContain('3 osobe'); expect(users('Posao three')).toHaveLength(1);
+  // The count stands beside the accepted total ("2.500 RSD ukupno · 3 osobe"): the total is for all of them.
+  expect(cardTexts('Posao one')).not.toContain('1 osoba');
+  expect(cardTexts('Posao three')).toContain('3 osobe');
+  expect(card('Posao three').findAllByType('T' as React.ElementType).some(node => node.props.children === ' ukupno · 3 osobe')).toBe(true);
 });
 
 // Round-1 critique A2 and B1 (owner step 8): the "Oceni saradnju" strip looked like a button and opened the Dogovor. It
@@ -293,18 +394,22 @@ test('the header is profile, mark and bell only, and the calendar ends the tab r
   const bar = tree.root.findByType(ScreenChrome);
   expect(bar.props).toMatchObject({ variant: 'root', title: 'Dogovori' });
   expect(bar.props.right).toBeUndefined();
-  expect(bar.findAll(node => node.props.accessibilityLabel === 'Kalendar obaveza')).toHaveLength(0);
+  expect(bar.findAll(node => node.props.accessibilityLabel === 'Raspored')).toHaveLength(0);
   // The calendar stands in the same row as the underlined tabs, after them; the tabs may slide sideways beside it on a
   // narrow screen, so they sit in their own horizontal scroller.
   const scroller = tree.root.findByType(Segmented).parent!;
   expect(tree.root.findByType(Segmented).props.scroll).toBe(true);
   expect(scroller.type).toBe('View');
   const tabRow = scroller.parent!;
-  const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Kalendar obaveza');
+  const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Raspored');
   expect(entry).toHaveLength(1);
   expect(tabRow.children.map(child => typeof child === 'string' ? child : child === scroller ? 'tabs' : child.props.label))
-    .toEqual(['tabs', 'Kalendar obaveza']);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Kalendar obaveza' }).filter(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
+    .toEqual(['tabs', 'Raspored']);
+  // Plan 2.6: the planner's entry is a pill WITH its word beside the glyph, not an icon nobody can guess.
+  const pill = tabRow.children.find(child => typeof child !== 'string' && child !== scroller) as ReactTestInstance;
+  expect(pill.props).toMatchObject({ glyph: 'calendar', caption: 'Raspored', label: 'Raspored' });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Raspored' }).filter(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Kalendar obaveza' })).toHaveLength(0);
   await act(async () => entry[0].props.onPress());
   expect(calendar).toHaveBeenCalledTimes(1);
 });

@@ -19,7 +19,7 @@ export type NeedPublicationReadiness =
   | Readonly<{ kind: 'UNKNOWN' }>;
 
 const COPY: Readonly<Record<string, string>> = {
-  AUTH_REQUIRED: 'Prijavi se da bi video stanje Zadatka.',
+  AUTH_REQUIRED: 'Prijavi se da vidiš stanje zadatka.',
 };
 
 function decode(raw: unknown): NeedPublicationReadiness | null {
@@ -64,16 +64,16 @@ export function readinessCopy(readiness: NeedPublicationReadiness): { title: str
         : 'Ime ulice nije dovoljno da neko dođe. Otvori razgovor i potvrdi tačku na mapi.' };
   }
   if (readiness.code === 'COUNTRY_NOT_READY') {
-    return { title: 'Država Zadatka nije spremna', detail: 'Otvori razgovor i reci u kojoj državi je posao.' };
+    return { title: 'Država zadatka nije spremna', detail: 'Otvori razgovor i reci u kojoj državi je zadatak.' };
   }
   if (readiness.code === 'PUBLIC_MEDIA_NOT_READY') {
-    return { title: 'Fotografije se još obrađuju', detail: 'Sačekaj da se obrade pa probaj ponovo.' };
+    return { title: 'Fotografije se još obrađuju', detail: 'Sačekaj da se obrade pa pokušaj ponovo.' };
   }
   if (readiness.code === 'POLICY_NOT_READY' || readiness.code === 'POLICY_CONTENT_NOT_READY') {
-    return { title: 'Pravila objave nisu spremna', detail: 'Nije do tebe. Nacrt je sačuvan, probaj kasnije.' };
+    return { title: 'Pravila objave nisu spremna', detail: 'Nije do tebe. Nacrt je sačuvan, pokušaj kasnije.' };
   }
   if (readiness.code === 'EVALUATOR_UNAVAILABLE') {
-    return { title: 'Provera objave trenutno ne radi', detail: 'Nije do tebe. Nacrt je sačuvan, probaj kasnije.' };
+    return { title: 'Provera objave trenutno ne radi', detail: 'Nije do tebe. Nacrt je sačuvan, pokušaj kasnije.' };
   }
   return { title: 'Zadatak još ne može da se objavi', detail: 'Otvori pregled da vidiš šta nedostaje.' };
 }

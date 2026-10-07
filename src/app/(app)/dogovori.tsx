@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
+import type { HistoryFilter } from '../../ui/agreements/agreementListModel';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
 export default function Dogovori() {
@@ -16,8 +17,13 @@ export default function Dogovori() {
 function AgreementListSession() {
   // Display choices contain no private rows. Keep them through the foreground
   // privacy gate, but retire them with the account incarnation above.
-  const [section, setSection] = useState<AgreementCollectionSection>('active');
+  // The profile's "završeni Dogovori" lands on the section that holds the finished ones (`odeljak=istorija`), also when the tab is
+  // already mounted; without the param nothing changes.
+  const { odeljak } = useLocalSearchParams<{ odeljak?: string }>();
+  const [section, setSection] = useState<AgreementCollectionSection>(odeljak === 'istorija' ? 'history' : 'active');
+  useEffect(() => { if (odeljak === 'istorija') setSection('history'); }, [odeljak]);
   const [confirmationOnly, setConfirmationOnly] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const foreground = useRef({ active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', generation: 0 });
   const [, render] = useState(0);
   useEffect(() => {
@@ -32,12 +38,12 @@ function AgreementListSession() {
   // Retire private rows and callbacks synchronously, including a batched
   // background→foreground transition; returning creates a fresh owned read.
   return foreground.current.active ? <OwnedAgreements key={foreground.current.generation}
-    foreground={foreground.current} section={section} confirmationOnly={confirmationOnly}
-    onSection={setSection} onConfirmationOnly={setConfirmationOnly} /> : null;
+    foreground={foreground.current} section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter}
+    onSection={setSection} onConfirmationOnly={setConfirmationOnly} onHistoryFilter={setHistoryFilter} /> : null;
 }
-function OwnedAgreements({ foreground, section, confirmationOnly, onSection, onConfirmationOnly }: {
-  foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean;
-  onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
+function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, onSection, onConfirmationOnly, onHistoryFilter }: {
+  foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean; historyFilter: HistoryFilter;
+  onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void; onHistoryFilter: (value: HistoryFilter) => void;
 }) {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
@@ -89,9 +95,10 @@ function OwnedAgreements({ foreground, section, confirmationOnly, onSection, onC
   };
   const onProfile = () => navigate(() => router.navigate('/profil'));
   return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    section={section} confirmationOnly={confirmationOnly}
+    section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter}
     onSection={value => { if (current()) onSection(value); }}
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
+    onHistoryFilter={value => { if (current()) onHistoryFilter(value); }}
     onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={onProfile}

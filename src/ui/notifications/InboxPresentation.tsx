@@ -15,18 +15,31 @@ import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { useTextScale } from '../system/textScale';
 import { inset, sys } from '../system/tokens';
+import { INBOX_SET_LABEL, canMarkRead, inboxDestination } from './inboxCopy';
+import { SwipeToRead, type SwipeableRowHandle } from './SwipeToRead';
 
 /**
  * Chronological events, grouped by the server moment. Each event keeps its actual semantic illustration,
  * full-width title, supporting body and quiet clock. The unread dot shares the illustration footprint instead
  * of consuming a separate text gutter. An event has no actor/avatar contract: none is invented here.
  * The route/model still own read acknowledgment, target resolution and exact navigation.
+ *
+ * T4a, 2026-10-07: an unread row is heavier in its words as well as marked by the dot; under every row, with the clock, it
+ * says where a tap goes ("Otvara Dogovor"); and a finger can pull a row to the left to show "Pročitano", which settles that
+ * one notification without opening it (the same command is offered to a screen reader as a custom action).
  */
 export type InboxView = Pick<InboxState, 'page' | 'loading' | 'paging' | 'acting' | 'error' | 'unavailable'>;
 
+/** The three sets, in the owner's words: the same names the notification settings give their two sets. */
 export const INBOX_FILTERS: { label: string; role: InboxRole | null }[] = [
-  { label: 'Sve', role: null }, { label: 'Moji zadaci', role: 'REQUESTER' }, { label: 'Moje prijave', role: 'WORKER' },
+  { label: INBOX_SET_LABEL.ALL, role: null }, { label: INBOX_SET_LABEL.REQUESTER, role: 'REQUESTER' }, { label: INBOX_SET_LABEL.WORKER, role: 'WORKER' },
 ];
+
+/** The command of the swipe, in its own word and for a screen reader. */
+export const MARK_READ_LABEL = 'Pročitano';
+const MARK_READ_HINT = 'Označava obaveštenje kao pročitano.';
+const MARK_READ_ACTION = 'markRead';
+const MARK_READ_ACTIONS = [{ name: MARK_READ_ACTION, label: 'Označi kao pročitano' }];
 
 const EMPTY_TITLE: Record<'ALL' | InboxRole, string> = {
   ALL: 'Još nema obaveštenja',
@@ -87,15 +100,24 @@ function rowCopy(item: InboxItem): { primary: string; secondary: string } {
 }
 
 type RowProps = { item: InboxItem; moment: Trenutak | null; last: boolean; acting: boolean; disabled: boolean;
-  large: boolean; onOpen: (item: InboxItem) => void };
+  large: boolean; onOpen: (item: InboxItem) => void;
+  /** Settles this one notification without opening it. Absent: the row cannot be swiped. */ onMarkRead?: (item: InboxItem) => void;
+  /** A swiped row opened: the list closes the one that was open before. */ onSwipeOpen?: (row: SwipeableRowHandle) => void };
 
-function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen }: RowProps) {
+function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen, onMarkRead, onSwipeOpen }: RowProps) {
   const unread = !item.readAt;
   const art = inboxEventArt(item.eventType, item.family);
   const { primary, secondary } = rowCopy(item);
   const when = moment ? `. ${moment.dan}, ${moment.sat}` : '';
-  const time = moment ? <T variant="meta" tone="muted" numberOfLines={1} style={s.clock}>{moment.sat}</T> : null;
-  return <Press accessibilityRole="button" accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${item.title}. ${item.body}${when}`}
+  // The clock and where a tap goes share one quiet line: "14:05 · Otvara Dogovor". An event the table does not know says only the clock.
+  const where = inboxDestination(item);
+  const meta = [moment?.sat, where].filter(Boolean).join(' · ');
+  const markable = canMarkRead(item, !!onMarkRead);
+  const row = <Press accessibilityRole="button" accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${item.title}. ${item.body}${when}`}
+    accessibilityHint={where ? `${where}.` : undefined}
+    // The swipe is never the only way: a screen reader offers the same command in its actions menu.
+    accessibilityActions={markable ? MARK_READ_ACTIONS : undefined}
+    onAccessibilityAction={markable ? event => { if (event.nativeEvent.actionName === MARK_READ_ACTION) onMarkRead!(item); } : undefined}
     accessibilityState={{ disabled, busy: acting }} disabled={disabled} haptic="select" scaleTo={1}
     onPress={() => onOpen(item)} style={[s.row, last && s.rowLast]}>
     <View style={s.art} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
@@ -105,10 +127,14 @@ function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen }: R
     </View>
     <View style={s.copy}>
       <T variant={unread ? 'bodyStrong' : 'body'} numberOfLines={large ? 3 : 2} style={s.primary}>{primary}</T>
-      {secondary ? <T variant="note" tone="muted" numberOfLines={2}>{secondary}</T> : null}
-      {time}
+      {secondary ? <T variant="note" tone={unread ? 'ink' : 'muted'} numberOfLines={2}>{secondary}</T> : null}
+      {meta ? <T variant="meta" tone="muted" numberOfLines={2} style={s.clock}>{meta}</T> : null}
     </View>
   </Press>;
+  // Decided when the row mounts and never switched (a stable handler is handed down): a row that is read keeps its element type
+  // and slides back, instead of being rebuilt under the finger.
+  return onMarkRead ? <SwipeToRead enabled={markable} label={MARK_READ_LABEL} hint={MARK_READ_HINT} busy={disabled}
+    onRead={() => onMarkRead(item)} onOpen={onSwipeOpen}>{row}</SwipeToRead> : row;
 }
 const InboxRow = memo(InboxRowBase);
 
@@ -162,9 +188,12 @@ function useArrivals(items: readonly InboxItem[], list: string) {
   return appear;
 }
 
-export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, onMore, onSettings, zona, sada }: {
+export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, onRefresh, onMore, onSettings, zona, sada }: {
   state: InboxView; role: InboxRole | null; onRole: (role: InboxRole | null) => void;
-  onOpen: (item: InboxItem) => void; onReadAll: () => void; onRefresh: () => void; onMore: () => void; onSettings: () => void;
+  onOpen: (item: InboxItem) => void;
+  /** Reads ONE notification without opening it (the swipe). Hand down a stable function; absent, the rows cannot be swiped. */
+  onMarkRead?: (item: InboxItem) => void;
+  onReadAll: () => void; onRefresh: () => void; onMore: () => void; onSettings: () => void;
   /** Fixed only by the gallery and tests; the phone's zone and "now" otherwise. */ zona?: string; sada?: Date;
 }) {
   const { page, loading, paging, acting, error, unavailable } = state;
@@ -172,6 +201,12 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
   const large = useTextScale() >= 1.3;
   const items = page?.items;
   const rows = useMemo(() => inboxRows(items ?? [], { zona, sada }), [items, zona, sada]);
+  // At most one row stays pulled open: when another opens, the earlier one slides back.
+  const swiped = useRef<SwipeableRowHandle | null>(null);
+  const onSwipeOpen = useCallback((row: SwipeableRowHandle) => {
+    if (swiped.current && swiped.current !== row) swiped.current.close();
+    swiped.current = row;
+  }, []);
   // An event that arrives while the Inbox is open is worth a moment of motion; the ones that were there when it opened,
   // the ones a refresh returns unchanged and an older page are not. Only event rows take part, never a day header. Each
   // filter is its own list, so a filter's first page is what was there, too.
@@ -205,7 +240,7 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
             <View style={s.emptyCopy}>
               <T variant="title" accessibilityRole="header" style={s.emptyText}>{EMPTY_TITLE[role ?? 'ALL']}</T>
               {!role ? <T variant="copy" tone="muted" style={s.emptyText}>
-                Nove Prijave, poruke i važne promene stižu ovde — uz Zadatak ili Dogovor na koji se odnose.
+                Nove prijave, poruke i važne promene stižu ovde — uz zadatak ili Dogovor na koji se odnose.
               </T> : null}
             </View>
             {!role ? <V2Action kind="quiet" tone="neutral" compact label="Podesi obaveštenja" onPress={onSettings} /> : null}
@@ -224,8 +259,8 @@ export function InboxList({ state, role, onRole, onOpen, onReadAll, onRefresh, o
   const renderItem = useCallback(({ item: row }: { item: InboxRowModel }) => row.kind === 'day' ? <DayHeader label={row.label} first={row.first} />
     : <Appear animate={appear.isNew(row.item.id)}>
       <InboxRow item={row.item} moment={row.moment} last={row.last} acting={acting === row.item.id} disabled={busy}
-        large={large} onOpen={onOpen} />
-    </Appear>, [appear, acting, busy, large, onOpen]);
+        large={large} onOpen={onOpen} onMarkRead={onMarkRead} onSwipeOpen={onSwipeOpen} />
+    </Appear>, [appear, acting, busy, large, onOpen, onMarkRead, onSwipeOpen]);
 
   return <FlatList data={rows} keyExtractor={rowKey}
     contentContainerStyle={s.content} showsVerticalScrollIndicator={false}

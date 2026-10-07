@@ -56,9 +56,10 @@ const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /
 const maps = () => tree.root.findAllByType('DiscoveryMap' as React.ElementType);
 // Discovery V47: the search is a panel over the map; its one green action says how many tasks it will show.
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
+// The words that find tasks are typed in "Šta" (owner, 2026-10-07); the letters typed in "Gde" only find places.
 const search = async (words: string) => {
-  await tap('Pretraži zadatke');
-  await act(async () => press('Pretraži mesta i zadatke').props.onChangeText(words));
+  await tap('Pretraži zadatke'); await tap('Šta');
+  await act(async () => press('Šta tražiš').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
 // The one primary action is the element whose own surface is the brand surface (last style wins, as in React Native).
@@ -106,24 +107,30 @@ test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bo
 // From marketplace-presentation: under reduced motion the search appears at once (Discovery V47: the panel that replaced
 // the filter sheet). Nearby is now bound, but rendering or searching must not start native location.
 test('reduced motion opens search at once; Nearby waits for its own tap and no distance/geocoder is invented', async () => {
-  mockReduced = true; await render(); await tap('Uslovi pretrage');
+  mockReduced = true; await render();
+  await act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
+  await tap('Filteri');
   const modal = tree.root.findByType('Modal' as React.ElementType);
   expect(modal.props.animationType).toBe('none');
   expect(modal.findAllByType(BottomSheet)).toHaveLength(0);
   await tap('Gde');
-  expect(press('U blizini').props.accessibilityRole).toBe('button');
+  // The control above the list (beside the zoom buttons) is a button; in the panel "U blizini" is one of the places to choose (a radio), applied with the draft.
+  const nearby = (role: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'U blizini' && node.props.accessibilityRole === role);
+  expect(nearby('button')).toHaveLength(1); expect(nearby('radio')).toHaveLength(1);
   expect(loadNearbyLocation).not.toHaveBeenCalled();
+  await act(async () => nearby('radio')[0].props.onPress());
+  expect(loadNearbyLocation).not.toHaveBeenCalled(); // choosing it asks for nothing until the draft is applied
   expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
 });
 
 // From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.
 test('the search panel offers price modes as radios and its apply action is the only brand action', async () => {
-  await render(); await tap('Uslovi pretrage');
+  await render(); await tap('Filteri');
   // The panel opens Kada; the real progressive Cena section must be opened before choosing its price mode.
   expect(press('Cena').props.accessibilityState).toEqual({ expanded: false });
   await tap('Cena');
   expect(tree.root.findByProps({ testID: 'search-cena-toggle' }).props.accessibilityState).toEqual({ expanded: true });
-  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Tražim ponude');
+  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Prima ponude');
   expect(radio).toHaveLength(1);
   const brand = tree.root.findAllByType('Action' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);
   expect(brand.map(node => node.props.label)).toEqual(['Prikaži 2 zadatka']);
@@ -163,7 +170,7 @@ test('removing the price filter keeps the search, the area, the map position and
   Object.assign(initial, { price: 'OFFERS', query: 'Pomoć', area, viewport });
   await render();
   // Discovery V47: a price that is on is a chosen quick chip over the map, and the chip takes it away.
-  const chip = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Tražim ponude' && node.props.accessibilityState?.selected)[0];
+  const chip = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Prima ponude' && node.props.accessibilityState?.selected)[0];
   await act(async () => chip.props.onPress());
   expect(snapshot).toMatchObject({ price: 'all', query: 'Pomoć', area, viewport, mode: 'map' });
 });
@@ -177,6 +184,7 @@ test('with a search and a map area on, "Prikaži N zadataka" counts the list sho
   Object.assign(initial, { query: 'Pomoć', area: [19, 45, 20, 46] });
   await render();
   expect(cards().map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć one', 'Otvori priliku Pomoć pet', 'Otvori priliku Pomoć two']);
-  await tap('Uslovi pretrage');
+  // The list is lowered here (most tasks are on the map), so the row of chips stands over the map as well as in the sheet's header: the first one is the one in reach.
+  await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Filteri')[0].props.onPress());
   expect(showAction().props.label).toBe('Prikaži 3 zadatka');
 });

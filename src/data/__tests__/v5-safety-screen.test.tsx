@@ -24,6 +24,8 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsText: 'T', SettingsAction: 'Action' }));
 import { SafetyScreen } from '../../ui/safety/SafetyScreen';
+import { poruka } from '../../ui/system/Poruka';
+import { SuccessMark } from '../../ui/system/SuccessMark';
 let tree: ReactTestRenderer;
 const page = () => <SafetyScreen {...mockContext} />;
 const render = async () => { await act(async () => { tree = create(page()); }); };
@@ -50,23 +52,23 @@ beforeEach(() => { jest.clearAllMocks(); for (const f of Object.values(mockStora
   mockSafety.report.mockResolvedValue({ ok: false, kod: 'UNKNOWN', poruka: 'Ishod nije potvrđen.' });
   mockSafety.readReportCommand.mockResolvedValue({ ok: true, podatak: { found: false, receipt: null } });
 });
-afterEach(async () => { await act(async () => tree?.unmount()); });
+afterEach(async () => { await act(async () => tree?.unmount()); poruka.hide(); });
 it('asks the existing block consequence first; cancel sends nothing and a fresh confirmation sends the exact choice once', async () => {
-  await render(); await act(async () => action('Blokiraj korisnika').onPress());
-  expect(copy()).toContain('Blokirati korisnika?');
+  await render(); await act(async () => action('Blokiraj osobu').onPress());
+  expect(copy()).toContain('Blokirati osobu?');
   expect(copy()).toContain('Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni.');
   expect(mockSafety.setBlock).not.toHaveBeenCalled(); expect(mockRequestId).not.toHaveBeenCalled();
   const canceled = confirmButton().props.onPress;
   await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-cancel')[0].props.onPress());
   await act(async () => canceled());
   expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).not.toHaveBeenCalled(); expect(mockRequestId).not.toHaveBeenCalled();
-  await act(async () => action('Blokiraj korisnika').onPress());
+  await act(async () => action('Blokiraj osobu').onPress());
   const confirm = confirmButton().props.onPress; await act(async () => { confirm(); confirm(); });
   expect(mockSafety.setBlock.mock.calls).toEqual([[{ targetAccountId: B, blocked: true, expectedRevision: 0, clientRequestId: K }]]);
-  expect(mockRequestId).toHaveBeenCalledTimes(1); expect(copy()).toContain('Korisnik je blokiran.'); expect(mockSafety.report).not.toHaveBeenCalled();
+  expect(mockRequestId).toHaveBeenCalledTimes(1); expect(copy()).toContain('Osoba je blokirana.'); expect(mockSafety.report).not.toHaveBeenCalled();
 });
 it.each(['blur', 'account', 'incarnation', 'target', 'need', 'agreement'] as const)('retires a block question after %s changes and rejects its retained confirmation and opener', async change => {
-  await render(); const open = action('Blokiraj korisnika').onPress; await act(async () => open());
+  await render(); const open = action('Blokiraj osobu').onPress; await act(async () => open());
   const late = confirmButton().props.onPress;
   if (change === 'blur') mockFocused = false;
   else if (change === 'account') mockSession = { user: { id: K }, accountRevision: 2 };
@@ -78,32 +80,77 @@ it.each(['blur', 'account', 'incarnation', 'target', 'need', 'agreement'] as con
   await act(async () => { late(); open(); });
   expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).not.toHaveBeenCalled(); expect(mockRequestId).not.toHaveBeenCalled();
   if (change === 'blur') { mockFocused = true; await update(); }
-  await act(async () => action('Blokiraj korisnika').onPress()); await confirmBlock();
+  await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
   expect(mockSafety.setBlock).toHaveBeenCalledTimes(1); expect(mockSafety.setBlock.mock.calls[0][0].targetAccountId).toBe(mockContext.targetAccountId);
 });
 it('retires a question before a new read generation, including a retained refresh of the same revision', async () => {
   mockSafety.readBlock.mockRejectedValueOnce(new Error('offline'));
   await render(); const refresh = action('Proveri blokiranje').onPress; await act(async () => refresh());
-  const open = action('Blokiraj korisnika').onPress; await act(async () => open()); const late = confirmButton().props.onPress;
+  const open = action('Blokiraj osobu').onPress; await act(async () => open()); const late = confirmButton().props.onPress;
   await act(async () => { refresh(); late(); }); expect(confirmButton()).toBeUndefined();
   await act(async () => open()); expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).not.toHaveBeenCalled();
-  await act(async () => action('Blokiraj korisnika').onPress()); await confirmBlock(); expect(mockSafety.setBlock).toHaveBeenCalledTimes(1);
+  await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock(); expect(mockSafety.setBlock).toHaveBeenCalledTimes(1);
 });
 it('keeps an unknown block fenced until readback and then replays only the exact confirmed command', async () => {
   mockSafety.setBlock.mockResolvedValueOnce({ ok: false, kod: 'BLOCK_OUTCOME_UNKNOWN', poruka: 'Ishod blokiranja nije potvrđen.' });
-  await render(); await act(async () => action('Blokiraj korisnika').onPress()); await confirmBlock();
-  expect(action('Blokiraj korisnika').disabled).toBe(true); expect(copy()).toContain('Ishod blokiranja nije potvrđen.');
-  await act(async () => action('Blokiraj korisnika').onPress()); expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).toHaveBeenCalledTimes(1);
+  await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
+  expect(action('Blokiraj osobu').disabled).toBe(true); expect(copy()).toContain('Ishod blokiranja nije potvrđen.');
+  await act(async () => action('Blokiraj osobu').onPress()); expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).toHaveBeenCalledTimes(1);
   await act(async () => action('Proveri blokiranje').onPress());
-  await act(async () => action('Blokiraj korisnika').onPress());
+  await act(async () => action('Blokiraj osobu').onPress());
   expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).toHaveBeenCalledTimes(2);
   expect(mockSafety.setBlock.mock.calls[1][0]).toEqual(mockSafety.setBlock.mock.calls[0][0]); expect(mockRequestId).toHaveBeenCalledTimes(1);
 });
-it('preserves the existing explicit unblock action and revision without a new block question', async () => {
+// UI/UX pass 2026-10-07 (plan 2.3): the unblock asks too, in the centred dialog, with what follows in one sentence; and each
+// confirmed change is said in the one outcome bar with the way to put it back.
+it('unblocking asks first with what follows; only the confirm sends the exact revision, once', async () => {
   mockSafety.readBlock.mockResolvedValueOnce({ ok: true, podatak: { accountId: A, targetAccountId: B, blocked: true, revision: 4, authoritative: true } });
-  await render(); await act(async () => action('Odblokiraj korisnika').onPress());
-  expect(confirmButton()).toBeUndefined();
+  await render(); await act(async () => action('Odblokiraj osobu').onPress());
+  expect(copy()).toContain('Odblokirati osobu?');
+  expect(copy()).toContain('Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.');
+  expect(mockSafety.setBlock).not.toHaveBeenCalled(); expect(mockRequestId).not.toHaveBeenCalled();
+  const canceled = confirmButton().props.onPress;
+  await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-cancel')[0].props.onPress());
+  await act(async () => canceled());
+  expect(confirmButton()).toBeUndefined(); expect(mockSafety.setBlock).not.toHaveBeenCalled();
+  await act(async () => action('Odblokiraj osobu').onPress());
+  const confirm = confirmButton().props.onPress; await act(async () => { confirm(); confirm(); });
   expect(mockSafety.setBlock.mock.calls).toEqual([[{ targetAccountId: B, blocked: false, expectedRevision: 4, clientRequestId: K }]]);
+  expect(copy()).toContain('Osoba nije blokirana.');
+});
+it('a confirmed block is said in the outcome bar with "Vrati", which unblocks with a command of its own from the receipt\'s revision', async () => {
+  await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je sačuvano.', confirmed: true, action: { label: 'Vrati' } });
+  mockRequestId.mockClear();
+  await act(async () => poruka.current()!.action!.onPress());
+  expect(mockSafety.setBlock).toHaveBeenCalledTimes(2);
+  expect(mockSafety.setBlock.mock.calls[1][0]).toEqual({ targetAccountId: B, blocked: false, expectedRevision: 1, clientRequestId: K });
+  expect(mockRequestId).toHaveBeenCalledTimes(1);
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je uklonjeno.', confirmed: true }); expect(poruka.current()?.action).toBeUndefined();
+});
+it('a confirmed unblock is said with "Vrati", which blocks again from the receipt\'s revision', async () => {
+  mockSafety.readBlock.mockResolvedValueOnce({ ok: true, podatak: { accountId: A, targetAccountId: B, blocked: true, revision: 4, authoritative: true } });
+  await render(); await act(async () => action('Odblokiraj osobu').onPress()); await confirmBlock();
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je uklonjeno.', confirmed: true, action: { label: 'Vrati' } });
+  await act(async () => poruka.current()!.action!.onPress());
+  expect(mockSafety.setBlock.mock.calls[1][0]).toEqual({ targetAccountId: B, blocked: true, expectedRevision: 5, clientRequestId: K });
+  expect(poruka.current()).toMatchObject({ text: 'Blokiranje je vraćeno.' });
+});
+it('an undo the server does not confirm says so and offers nothing more; and a "Vrati" of another account does nothing', async () => {
+  await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
+  mockSafety.setBlock.mockResolvedValueOnce({ ok: false, kod: 'BLOCK_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
+  await act(async () => poruka.current()!.action!.onPress());
+  expect(poruka.current()).toMatchObject({ text: 'Promena nije potvrđena. Proveri stanje pa pokušaj ponovo.' }); expect(poruka.current()?.action).toBeUndefined();
+  // The bar of a change made by account A, pressed after the account changed under it, sends nothing.
+  poruka.hide(); await act(async () => tree.unmount());
+  await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
+  const onPress = poruka.current()!.action!.onPress; mockSession = { user: { id: K }, accountRevision: 2 }; mockSafety.setBlock.mockClear();
+  await act(async () => onPress()); expect(mockSafety.setBlock).not.toHaveBeenCalled();
+});
+it('a refused block says nothing in the outcome bar: only a confirmed change is announced', async () => {
+  mockSafety.setBlock.mockResolvedValueOnce({ ok: false, kod: 'BLOCK_OUTCOME_UNKNOWN', poruka: 'Ishod blokiranja nije potvrđen.' });
+  await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
+  expect(poruka.current()).toBeNull();
 });
 it('keeps five categories and sends only once on retained double tap, storing no report text', async () => {
   await render(); expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(5);
@@ -127,7 +174,7 @@ it('reads unknown receipt without another report and repeats only the frozen sam
   await render(); await fill(); await act(async () => action('Pošalji privatnu prijavu').onPress());
   await act(async () => action('Proveri potvrdu prijave').onPress());
   expect(mockSafety.report).toHaveBeenCalledTimes(1);
-  await act(async () => action('Ponovi isti zahtev').onPress());
+  await act(async () => action('Pošalji ponovo').onPress());
   expect(mockSafety.report.mock.calls[1][0]).toEqual(mockSafety.report.mock.calls[0][0]);
 });
 it('restores receipt after app recreation from opaque key without auto-submit', async () => {
@@ -144,14 +191,35 @@ it('cannot bypass a failed restore with a new command or send after blur', async
   await act(async () => send()); expect(mockSafety.report).not.toHaveBeenCalled();
 });
 it('a grey send button carries its reason until a category and a short reason are given', async () => {
-  const copy = () => tree.root.findAll(n => n.type === 'T' as React.ElementType).flatMap(n => n.children.filter(c => typeof c === 'string')).join(' ');
+  // The reason is the button's own (V2Action draws it under the button and speaks it as the hint), as on the support screens.
   await render(); expect(action('Pošalji privatnu prijavu').disabled).toBe(true);
-  expect(copy()).toContain('Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.');
+  expect(action('Pošalji privatnu prijavu').reason).toBe('Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uznemiravanje' }).props.onPress());
-  expect(copy()).toContain('Upiši kratak razlog da bi slanje bilo dostupno.');
+  expect(action('Pošalji privatnu prijavu').reason).toBe('Upiši kratak razlog da bi slanje bilo dostupno.');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' }).props.onChangeText('Privatan razlog'));
-  expect(action('Pošalji privatnu prijavu').disabled).toBe(false); expect(copy()).not.toContain('da bi slanje bilo dostupno');
+  expect(action('Pošalji privatnu prijavu').disabled).toBe(false); expect(action('Pošalji privatnu prijavu').reason).toBeNull();
   expect(mockSafety.report).not.toHaveBeenCalled();
+});
+it('while the earlier report is being looked up the send is grey and says so; while it sends it keeps its words with a spinner', async () => {
+  let release!: (value: unknown) => void; mockStorage.getItem.mockReturnValue(new Promise(resolve => { release = resolve; }));
+  await render(); expect(action('Pošalji privatnu prijavu')).toMatchObject({ disabled: true, reason: 'Proveravamo prijavu…' });
+  await act(async () => release(null));
+  await fill(); let finish!: (value: unknown) => void; mockSafety.report.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  await act(async () => { void action('Pošalji privatnu prijavu').onPress(); });
+  expect(action('Pošalji privatnu prijavu')).toMatchObject({ loading: true, disabled: true });
+  await act(async () => finish({ ok: true, podatak: receipt() }));
+});
+it('the report ends in a state of its own: the form is gone, the receipt says what happened and when, with the one way to a new report', async () => {
+  mockSafety.report.mockResolvedValue({ ok: true, podatak: receipt() });
+  await render(); await fill(); await act(async () => action('Pošalji privatnu prijavu').onPress());
+  expect(copy()).toContain('Prijava je primljena.'); expect(copy()).toContain('Primljeno:');
+  expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(0); expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodatni privatni opis' })).toHaveLength(0);
+  expect(action('Nova privatna prijava')).toBeDefined(); expect(tree.root.findAllByProps({ label: 'Pošalji privatnu prijavu' })).toHaveLength(0);
+  // News this visit is a fresh mark; the same receipt restored from an earlier visit is a still one.
+  expect(tree.root.findByType(SuccessMark).props.fresh).toBe(true);
+  await act(async () => tree.unmount());
+  mockStorage.getItem.mockResolvedValue(K); mockSafety.readReportCommand.mockResolvedValue({ ok: true, podatak: { found: true, receipt: receipt() } });
+  await render(); expect(tree.root.findByType(SuccessMark).props.fresh).toBe(false);
 });
 it('checks account again after pending local persistence before network I/O', async () => {
   let resolve!: () => void; mockStorage.setItem.mockImplementation(() => new Promise<void>(r => { resolve = r; }));

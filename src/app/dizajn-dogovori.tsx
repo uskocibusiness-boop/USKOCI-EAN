@@ -186,7 +186,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         {isGroupAgreement(item) ? <AgreementPeople agreement={item} /> : null}
         {/* The route's GroupConversationEntry reads the group; still here, in the words it says when the task has fewer
             than two independent people chosen, which is true of the group fixture (one worker for two places). */}
-        {item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.</T> : null}
+        {item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika.</T> : null}
         <AgreementSection art="phone" label="Kontakt" summary="Tvoj broj nije podeljen">
           <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
           <T variant="body" style={s.ink}>Broj druge strane: još nije podeljen</T>

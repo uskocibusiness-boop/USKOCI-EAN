@@ -34,7 +34,8 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
 /**
  * A task somebody else posted: first decide whether its work and terms suit me. The open white page puts the
  * work first, genuine task photos when present, and compact terms. The description and requirements are readable
- * before publisher context, approximate place and questions.
+ * before the questions, publisher context and approximate place; the questions come right after the work because what
+ * was asked about it, and what its owner answered, is part of understanding it.
  * The name comes into the bar once the large title has scrolled away; reporting the person who posted it waits
  * behind the bar's "···". The one action, chosen by what I am to this task, stays at the foot.
  * Presentation only; the route owns reads, deadline and guards.
@@ -81,7 +82,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
       {loading || error || missing ? <View style={s.state} accessibilityLiveRegion="polite">
         {loading ? <><View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T></>
           : <View style={card}><T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Zadatak trenutno nije moguće učitati.' : 'Zadatak nije dostupan.'}</T>
-            <T variant="copy" tone="muted" style={s.gapTop}>{error ? 'Proveri internet vezu i pokušaj ponovo.' : 'Možda je zatvoren ili više nije dostupan tvom nalogu. Vrati se na Zadatke.'}</T>
+            <T variant="copy" tone="muted" style={s.gapTop}>{error ? 'Proveri internet vezu i pokušaj ponovo.' : 'Možda je zatvoren ili više nije dostupan tvom nalogu. Vrati se na zadatke.'}</T>
             {canRetry ? <V2Action label="Pokušaj ponovo" onPress={retry} disabled={busy} style={[brandAction, s.gapTop]} /> : null}</View>}
         {stale ? <T variant="note" tone="muted">Poslednji učitani podaci. Osveži zadatak pre nastavka.</T> : null}
       </View> : null}
@@ -94,6 +95,9 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <TaskDecisionSummary need={need} price={price} />
         {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
         <TaskDecisionRequirements rows={needRequirementRows(need)} />
+        {/* What was asked about the work, and what its owner answered, is read with the work (owner, 2026-10-07: it was a
+            link at the very end, and nobody who read the task saw it). The route builds the section: it owns the reads. */}
+        {ready && !stale && qa ? <DetailSection>{qa}</DetailSection> : null}
         {/* Trust follows an understanding of the work. A missing rating stays explicitly missing. */}
         <View style={s.publisher}>
           <TaskDecisionPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
@@ -109,7 +113,6 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
             <T variant="note" tone="muted" style={s.grow}>Približno područje. Tačna adresa se deli tek u Dogovoru.</T></View>
           {route.length ? <DetailRoute rows={route} /> : null}
         </DetailSection> : null}
-        {ready && !stale && qa ? <DetailSection>{qa}</DetailSection> : null}
       </> : null}
     </ScrollView>
     {ready ? <View style={s.footer}>
@@ -122,7 +125,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <T variant="note" tone="muted" style={s.center}>{relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Tvoja prijava na ovaj zadatak je već poslata.'}</T>
           <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></>
           : relation.kind === 'UNKNOWN' ? <>
-            <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>Nismo uspeli da proverimo da li je zadatak tvoj ili si se već prijavio.</T>
+            <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>Nismo uspeli da proverimo da li je zadatak tvoj ili je prijava već poslata.</T>
             <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></>
             : canApply ? <>
               {deadline ? <T variant="note" tone="muted" style={s.center}>{`Prijave do ${deadline}`}</T> : null}

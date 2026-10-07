@@ -148,7 +148,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
       onRate: value => { if (editable && current() && !attemptRef.current) setRating(value); },
       onToggleTag: tag => { if (editable && current() && !attemptRef.current) setTags(values => values.includes(tag)
         ? values.filter(value => value !== tag) : values.length < context.tagCatalog.maxTags ? [...values, tag] : values); },
-      save: { label: settled ? 'Ponovi istu ocenu' : 'Sačuvaj ocenu', loading: workspace.busy, disabled: !enabled || rating < 1 || blocked !== null,
+      save: { label: settled ? 'Sačuvaj ocenu ponovo' : 'Sačuvaj ocenu', loading: workspace.busy, disabled: !enabled || rating < 1 || blocked !== null,
         reason: enabled && rating < 1 ? 'Izaberi ocenu od 1 do 5 pre slanja.' : enabled && blocked !== null ? blocked : null, onPress: submit },
       ...(commentPolicy ? { comment: { value: commentText, open: commentOpen || commentText !== '', editable, maxLength: commentPolicy.maxLength,
         count: reviewCommentLength(commentText), invalid: blocked !== null,

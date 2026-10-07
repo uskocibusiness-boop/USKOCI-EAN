@@ -55,7 +55,7 @@ export default function Prijava() {
       const opportunity = liveOpportunity ?? session.pending?.opportunity;
       const need = liveNeed ?? session.pending?.need;
       const profile = liveProfile ?? session.pending?.profile;
-      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proveri Zadatak i radni profil.' };
+      if (!opportunity || !need || !profile) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Podaci za prijavu nisu dostupni. Proveri zadatak i radni profil.' };
       if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
       session.notice = null;
       if (!session.pending && user?.id) {
@@ -69,7 +69,7 @@ export default function Prijava() {
           if (stored.state === 'CORRUPT') {
             await applicationCommandJournal.discard(user.id, id);
             if (generation !== session.readRevision) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
-            session.notice = 'Sačuvani zapis Prijave nije čitljiv, pa je uklonjen. Proveri svoje Prijave.';
+            session.notice = 'Sačuvani zapis prijave nije čitljiv, pa je uklonjen. Proveri svoje prijave.';
           } else if (stored.state === 'PRESENT' && !session.pending) {
             const command = stored.record.command;
             session.pending = { command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
@@ -123,9 +123,9 @@ export default function Prijava() {
       const people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (!Number.isSafeInteger(price) || price < 1 || price > 2_147_483_647 || !Number.isSafeInteger(people) ||
           people < 1 || people > data.need.pokrivenost.preostalo) { setValidation('Unesi celu cenu u RSD i broj ljudi koji staje u preostala mesta.'); return; }
-      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proveri aktuelni Zadatak i aktivan radni profil.'); return; }
+      if (data.profile.stanje !== 'ACTIVE' || data.opportunity.primaNovePrijave !== true) { setValidation('Proveri aktuelni zadatak i aktivan radni profil.'); return; }
       const deadline = data.opportunity.rokZaPrijaveIso;
-      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži Zadatak.'); return; }
+      if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži zadatak.'); return; }
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
         predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null });

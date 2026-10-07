@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { DownloadSimple } from 'phosphor-react-native';
 import type { DataExportFile, DataExportPreparation, DataExportStatus } from '../../../contracts/dataExport';
 import { dataExportClientService as exports } from '../../../data/dataExportClientService';
 import type { Ishod } from '../../../data/ports';
@@ -9,7 +8,6 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { saveDataExportFile } from '../../../lib/dataExportFile';
 import { noviZahtevId } from '../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { sys } from '../../../ui/system/tokens';
 import { SettingsAction as Button } from '../../../ui/settings/SettingsPresentation';
 import { ExportScreenView, type NoticeTone } from '../../../ui/privacy/ExportPresentation';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
@@ -160,26 +158,30 @@ function OwnedExport() {
               : saved.status === 'BUSY' ? 'Završi prethodni izbor fascikle pre novog pokušaja.'
                 : saved.status === 'FAILED' && saved.code === 'EXISTS' ? 'Ova kopija već postoji u izabranoj fascikli. Izaberi drugu fasciklu.'
                   : saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED' ? 'Čuvanje nije potvrđeno. U izabranoj fascikli može biti nepotpun fajl.'
-                    : 'Čuvanje nije potvrđeno. Proveri stanje pa probaj ponovo.';
+                    : 'Čuvanje nije potvrđeno. Proveri stanje pa pokušaj ponovo.';
       setNotice(copy, saved.status === 'SAVED' ? 'success'
         : saved.status === 'DOWNLOAD_STARTED' || saved.status === 'CANCELLED' || saved.status === 'BUSY' ? 'ink' : 'danger');
-    } catch { if (ownedDownload()) { requireFileReadback(true); setNotice('Preuzimanje nije potvrđeno. Proveri vezu pa probaj ponovo.', 'danger'); } }
+    } catch { if (ownedDownload()) { requireFileReadback(true); setNotice('Preuzimanje nije potvrđeno. Proveri vezu pa pokušaj ponovo.', 'danger'); } }
     finally { bytes?.bytes.fill(0); if (download.current === controller) { download.current = null; if (current()) setSavingFile(false); } }
   };
-  const readyView = !editor.loading && !editor.error && !!status && !fileReadbackRequired;
+  // A re-read the person asked for keeps the card and the footer on screen: the action waits grey and says why, so the layout
+  // does not jump and nothing is pressed over a state that is being read. The footer is absent only when there is nothing
+  // read to act on (the first read, a failed one, or one that must be read again before anything else).
+  const readyView = !editor.error && !!status && !fileReadbackRequired;
+  const rereading = editor.loading ? 'Učitavamo stanje…' : null;
   const primary = readyView ? available
     // The button whose own write is in flight keeps its words and shows a spinner (its green kept); the others wait grey
     // with theirs (round 5 review: the words no longer change while it works).
-    ? <Button label="Preuzmi i sačuvaj" disabled={busy} loading={savingFile}
-      icon={<DownloadSimple size={20} color={sys.color.onGreen} />} onPress={() => { void saveFile(); }} />
+    ? <Button label="Preuzmi i sačuvaj" disabled={busy || editor.loading} loading={savingFile} reason={rereading}
+      onPress={() => { void saveFile(); }} />
     : request && ['REQUESTED', 'PROCESSING'].includes(request.status)
-      ? <Button label="Pripremi kopiju" disabled={busy} loading={editor.busy && working === 'prepare'}
+      ? <Button label="Pripremi kopiju" disabled={busy || editor.loading} loading={editor.busy && working === 'prepare'} reason={rereading}
         onPress={() => { void prepare(); }} />
       // The retained key is set before the write, so while a first request runs its label is taken from `working`, not
       // from the key: the very first request never reads "Ponovi isti zahtev" beside its spinner.
       : <Button label={editor.busy && working === 'request' ? request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'
-          : pendingKey.current ? 'Ponovi isti zahtev' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy}
-        loading={editor.busy && (working === 'request' || working === 'replay')} onPress={() => { void requestExport(); }} />
+          : pendingKey.current ? 'Pošalji ponovo' : request ? 'Zatraži novu kopiju' : 'Zatraži izvoz'} disabled={busy || editor.loading}
+        loading={editor.busy && (working === 'request' || working === 'replay')} reason={rereading} onPress={() => { void requestExport(); }} />
     : null;
   const failed = editor.error || !status || fileReadbackRequired;
   return <><ExportScreenView onBack={back} loading={editor.loading} status={status ?? null} preparation={editor.data?.preparation ?? null}

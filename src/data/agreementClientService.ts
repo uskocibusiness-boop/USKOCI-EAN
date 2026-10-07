@@ -352,7 +352,7 @@ const changeErrors = {
   CLIENT_REQUEST_ID_REQUIRED: 'Zahtev nije spreman. Ponovo otvori izmenu.',
   CHANGE_REQUEST_ID_REUSED: 'Ovaj zahtev već pripada drugoj izmeni. Osveži predloge.',
   UNSUPPORTED_CHANGE_FIELD: 'Predlog sadrži nepodržanu izmenu.', INVALID_PRICE: 'Unesi pozitivan ceo iznos u RSD.',
-  CHANGE_SCOPE_INVALID: 'Proveri opis obima posla.', CHANGE_CURRENCY_INVALID: 'Valuta Dogovora mora biti RSD.',
+  CHANGE_SCOPE_INVALID: 'Proveri opis obima zadatka.', CHANGE_CURRENCY_INVALID: 'Valuta Dogovora mora biti RSD.',
   CHANGE_TERMS_INVALID: 'Uslovi predloga nisu dostupni za prihvatanje.',
   CHANGE_PROPOSAL_NOT_FOUND: 'Predlog izmene nije dostupan.', PROPOSER_CANNOT_RESPOND: 'Na predlog odgovara druga strana.',
   PROPOSAL_NOT_PENDING: 'Na ovaj predlog više nije moguće odgovoriti.', DECISION_REQUIRED: 'Izaberi odgovor na predlog.',
@@ -361,7 +361,7 @@ const changeErrors = {
   CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
   // PKG-031a (owner decision 2026-09-21, deep read 7.16): after the worker says done, the requester
   // confirms or reports a problem; the server refuses a cancel from a screen that did not know yet.
-  AGREEMENT_WORK_REPORTED_DONE: 'Radnik je javio da je posao gotov. Potvrdi završetak ili prijavi problem.',
+  AGREEMENT_WORK_REPORTED_DONE: 'Radnik je javio da je zadatak gotov. Potvrdi završetak ili prijavi problem.',
 };
 // Input refusal and malformed success receipt must never share a code: only the
 // former proves no command was accepted. The controller uses this same allowlist.

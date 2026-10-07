@@ -57,8 +57,26 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   onSelectPlace?: (key: string) => void;
   /** The chosen place, drawn as the green pill that says how many tasks it holds. */
   selectedPlace?: string | null;
-  /** The list sheet's top edge, in pixels from the map's top; fixed zoom hides when the sheet covers its target. */
+  /**
+   * The list sheet's top edge, in pixels from the map's top. The row of controls (the zoom buttons) stands directly above it and
+   * moves with it on the UI thread; without a sheet the row stands above the map's bottom edge.
+   */
   sheetTop?: SharedValue<number>;
+  /**
+   * The highest the row of controls may stand, in pixels from the map's top: the strip of map between the search pill and the list
+   * sheet at its full height. The row reaches it exactly when the sheet is full, so it is never behind the list. Without it, one gap
+   * under `toolsBottom`.
+   */
+  controlsMinTop?: number;
+  /**
+   * The list sheet is at its full height and only a strip of map shows above it: the map takes no gesture and a screen reader skips
+   * it, and a tap on the strip (not on a control or the credits) asks `onStripPress`.
+   */
+  locked?: boolean;
+  /** A tap on the strip of map above the full list: the list comes down to half. */
+  onStripPress?: () => void;
+  /** The screen draws "U blizini" at the right end of the row, so the zoom buttons stand one control further in. */
+  locateShown?: boolean;
   /** The floating search bar's bottom edge, in pixels from the map's top: fits and the credits keep clear of it. */
   toolsBottom?: number;
   /** Measured fixed attribution strip below search; lower sheet stops and selected previews keep it clear. */
@@ -73,7 +91,7 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   /** False until the screen has measured its body and floating tools. Initial bounds fit must not freeze estimates. */
   cameraLayoutReady?: boolean;
   /**
-   * The height of a card resting on the sheet's top line (a chosen pin's card), gap included; 0 when there is none. The
-   * fixed zoom hides if that cover reaches it. Attribution keeps its reserved position below search.
+   * The height of a card resting on the sheet's top line (a chosen pin's card), gap included; 0 when there is none. The row of
+   * controls stands above the card then, and moves there without a bounce. Attribution keeps its position below search.
    */
   coverBottom?: number };

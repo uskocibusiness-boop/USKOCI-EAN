@@ -33,7 +33,7 @@ const sourceFiles = (dir: string): string[] => readdirSync(join(repo, dir), { wi
   return /\.(?:ts|tsx)$/.test(entry.name) && !/\.test\.(?:ts|tsx)$/.test(entry.name) ? [path] : [];
 });
 
-/** TODAY'S importers (58 files). It only shrinks. */
+/** TODAY'S importers (54 files). It only shrinks. */
 const PHOSPHOR_IMPORTERS = new Set([
   'src/app/(app)/profil/izvoz.tsx',
   'src/app/auth.tsx',
@@ -51,7 +51,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/ui/aiFirst/FactValueEditors.tsx',
   'src/ui/aiFirst/VoiceComposer.tsx',
   'src/ui/auth/AuthControls.tsx',
-  'src/ui/calendar/AgendaScreen.tsx',
   'src/ui/calendar/AvailabilityForm.tsx',
   'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
   'src/ui/groups/GroupConversationPresentation.tsx',
@@ -62,7 +61,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/ui/objava/ReviewPresentation.tsx',
   'src/ui/privacy/ExportPresentation.tsx',
   'src/ui/product/ProductDetails.tsx',
-  'src/ui/product/ProductSheet.tsx',
   'src/ui/profile/ProfileHubPresentation.tsx',
   'src/ui/qa/TaskQaPresentation.tsx',
   'src/ui/reviews/AgreementReviewPresentation.tsx',
@@ -72,7 +70,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/ui/system/Disclosure.tsx',
   'src/ui/system/PillComposer.tsx',
   'src/ui/system/SuccessMark.tsx',
-  'src/ui/v2/AgreementCollectionPresentation.tsx',
   'src/ui/v2/AgreementPresentation.tsx',
   'src/ui/v2/AgreementThreadPresentation.tsx',
   'src/ui/v2/ApplicationComposerPresentation.tsx',
@@ -89,7 +86,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/ui/v2/discovery/DateRangeGrid.tsx',
   'src/ui/v2/discovery/DiscoveryPeek.tsx',
   'src/ui/v2/discovery/DiscoverySearchBar.tsx',
-  'src/ui/v2/discovery/DiscoverySearchPanel.tsx',
   'src/ui/v2/discovery/PricePill.tsx',
   'src/ui/workerProfile/WorkerAiPresentation.tsx',
   'src/ui/workerProfile/WorkerProfilePresentation.tsx',
@@ -120,7 +116,7 @@ describe('one place for a control icon: only Glyph imports the Phosphor package'
   });
 
   it('the list has the size it says, never lists Glyph itself, and Glyph really is the importer', () => {
-    expect(PHOSPHOR_IMPORTERS.size).toBe(58);
+    expect(PHOSPHOR_IMPORTERS.size).toBe(54);
     expect(PHOSPHOR_IMPORTERS.has(THE_GLYPH_FILE)).toBe(false);
     expect(importsPhosphor(read(THE_GLYPH_FILE))).toBe(true);
   });

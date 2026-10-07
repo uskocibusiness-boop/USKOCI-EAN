@@ -499,7 +499,6 @@ const MOTION_LITERALS_ALLOWED: Record<string, Partial<Record<MotionFamily, numbe
   'src/ui/v2/detail/TaskDecision.tsx': { scale: 1 },
   'src/ui/v2/discovery/DiscoveryPeek.tsx': { scale: 2 },
   'src/ui/v2/discovery/DiscoverySearchBar.tsx': { scale: 4 },
-  'src/ui/v2/discovery/DiscoverySearchPanel.tsx': { scale: 4 },
 };
 const TOKEN_FILE = 'src/ui/system/tokens.ts';
 

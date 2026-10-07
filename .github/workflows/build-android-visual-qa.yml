@@ -1,0 +1,110 @@
+name: Build Android visual QA APK (emulator, unpublished)
+
+# VISUAL QA ONLY (lead, 2026-10-07). An x86_64 emulator APK built from a work-in-progress branch named visual/**, so that screens can be LOOKED AT before an
+# integration commit exists. It skips the canonical ref check and the full regression ON PURPOSE: build-android-dev-apk.yml keeps both and stays the ONLY
+# workflow that may publish. This one uploads a workflow artifact and nothing else: no release, no dev-latest, no OTA. What it proves is how the screens look
+# and move on the emulator; it proves nothing about tests, the server or the phone, and it is never installed on the owner's phone.
+on:
+  push:
+    branches:
+      - 'visual/**'
+
+permissions:
+  contents: read
+
+env:
+  # Public client configuration by design (same values as the canonical build). No service-role/provider secret is stored here.
+  EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
+  EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
+  EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
+  EXPO_PUBLIC_P6_DISCOVERY_READER: '1'
+  EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
+  EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
+  EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
+  EXPO_PUBLIC_VOICE_MESSAGES: '1'
+  EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
+  EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+  CI: '1'
+  NODE_ENV: production
+
+jobs:
+  android-visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout the visual branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install locked dependencies
+        run: npm ci --include=dev
+
+      # Same Reanimated patch as every canonical build (RNR-01), so that motion on the emulator is the motion of the real build.
+      - name: Verify the Reanimated patch (RNR-01)
+        run: node scripts/verify-native-patches.cjs
+
+      - name: Generate native Android project
+        env:
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
+          USKOCI_PUSH_PROOF_BUILD: '0'
+        run: npx expo prebuild --platform android --clean
+
+      - name: Tune Gradle for the emulator APK
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'android/gradle.properties';
+          let text = fs.readFileSync(path, 'utf8');
+          const setProp = (key, value) => {
+            const re = new RegExp(`^${key.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}=.*$`, 'm');
+            const line = `${key}=${value}`;
+            text = re.test(text) ? text.replace(re, line) : `${text.trimEnd()}\n${line}\n`;
+          };
+          setProp('org.gradle.jvmargs', '-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8');
+          setProp('reactNativeArchitectures', 'x86_64');
+          fs.writeFileSync(path, text);
+          NODE
+
+      - name: Build standalone release APK (emulator)
+        working-directory: android
+        env:
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
+          USKOCI_PUSH_PROOF_BUILD: '0'
+        run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
+
+      - name: Prepare APK
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk USKOCI-VISUAL-QA.apk
+          sha256sum USKOCI-VISUAL-QA.apk > USKOCI-VISUAL-QA.apk.sha256
+          {
+            echo '### Visual QA APK — emulator only, NOT a release'
+            echo "Source commit: ${GITHUB_SHA}"
+            cat USKOCI-VISUAL-QA.apk.sha256
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-VISUAL-QA-APK
+          path: |
+            USKOCI-VISUAL-QA.apk
+            USKOCI-VISUAL-QA.apk.sha256
+          if-no-files-found: error
+          retention-days: 3
