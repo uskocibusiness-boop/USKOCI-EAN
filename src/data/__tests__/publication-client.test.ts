@@ -197,6 +197,9 @@ describe('canonical publication command and receipt', () => {
 describe('safe failures and actual session incarnation fences', () => {
   it.each(['evaluate', 'publish'] as const)('%s refuses signed-out calls before any SDK transport', async operation => {
     mockAuthEvent('SIGNED_OUT', null);
+    // Since 2026-10-07 the session store reads its own storage once after a sign-out, to tell a restricted account apart
+    // (sesija.explainSignOut). That read belongs to the store; this case is about the publication client sending nothing.
+    await flush(); mockGetSession.mockClear();
     const result = operation === 'evaluate' ? publication.evaluate(request) : publication.publish(command());
     await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_REQUIRED' });
     expect(mockGetSession).not.toHaveBeenCalled(); expect(mockInvoke).not.toHaveBeenCalled(); expect(mockRpc).not.toHaveBeenCalled();
