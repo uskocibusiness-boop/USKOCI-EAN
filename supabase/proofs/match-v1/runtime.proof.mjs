@@ -356,13 +356,17 @@ async function allModeCases() {
 /** A worker who becomes eligible after the wave (a profile moved into the area) is reached by the next wave of the same task, even when three applications already exist. */
 async function lateArrival(needAll) {
   for (const w of pool.workers.slice(0, 3)) { const a = await fx.submitApplication(w, needAll); assert.ok(a.ok, 'APPLICATION_REFUSED:' + JSON.stringify(a.error)); }
+  // other workers' profile saves re-queue every open task, so this task has had checks that found nobody new (STOPPED rounds); count only what the late worker adds
+  const roundsBefore = fx.readRounds(needAll.needId).length;
   await fx.setLocation(pool.late, {city: 'Novi Sad'}); pool.lateMoved = true;
   const t = tick();
   const d = deliveredIndexes(needAll.needId), rounds = fx.readRounds(needAll.needId), sched = fx.readSchedule(needAll.needId);
-  // rounds: the first wave (13), the check that found nobody new (STOPPED), and the wave for the late worker (SENT, the room left under the ceiling of 500)
-  const r = {deliveries: d.length, lateDelivered: d.includes(99), rounds: rounds.map(x => ({status: x.status, batch: Number(x.batch_size)})), scheduleStatus: sched.lastStatus, tickFailed: t.failed};
-  assert.equal(d.length, 14); assert.ok(d.includes(99), 'THE_LATE_WORKER_MUST_BE_REACHED'); assert.equal(rounds.length, 3);
-  assert.equal(rounds[1].status, 'STOPPED'); assert.equal(rounds[2].status, 'SENT'); assert.equal(Number(rounds[2].batch_size), 487, 'THE_ROOM_LEFT_UNDER_THE_CEILING');
+  // the wave for the late worker is ONE new round, SENT, with the room left under the ceiling of 500
+  const r = {deliveries: d.length, lateDelivered: d.includes(99), roundsBefore, roundsAfter: rounds.length, lastRound: {status: rounds.at(-1).status, batch: Number(rounds.at(-1).batch_size)},
+    firstRound: {status: rounds[0].status, batch: Number(rounds[0].batch_size)}, scheduleStatus: sched.lastStatus, tickFailed: t.failed};
+  assert.equal(d.length, 14); assert.ok(d.includes(99), 'THE_LATE_WORKER_MUST_BE_REACHED'); assert.equal(rounds.length, roundsBefore + 1);
+  assert.equal(rounds[0].status, 'SENT'); assert.equal(Number(rounds[0].batch_size), 500);
+  assert.equal(rounds.at(-1).status, 'SENT'); assert.equal(Number(rounds.at(-1).batch_size), 487, 'THE_ROOM_LEFT_UNDER_THE_CEILING');
   assert.equal(sched.lastStatus, 'SENT');
   report.observations.lateArrival = r; write();
   pass('MATCH_V1_ALL_LATE_WORKER_IS_REACHED_BY_THE_NEXT_WAVE_EVEN_AFTER_THREE_APPLICATIONS_NO_STOP_AFTER_N_RESPONSES', r);
@@ -522,10 +526,11 @@ try {
   pass('MATCH_V1_LADDER_SWITCH_ON_AND_OFF_BY_ONE_ROW_THE_SWITCH_SCRIPTS_GUARD_THEIR_STARTING_MODE', {on: 'switch-ladder-on.sql', off: 'switch-ladder-off.sql'});
   await lateArrival(allMode.needAll);
   // The first-refusal evaluation (prefilter, "Za mene") and the full one (detailed matcher) must agree on every pair on this chain.
-  const consistency = rows(`select count(*)::integer as pairs, count(*) filter (where (private.worker_need_fit_v1(n.id,p.id,true)->>'matches')
+  // (many workers and tasks exist by now: the pairs get their own bound, not the 20 s of the small helper)
+  const consistency = JSON.parse(timedSql(`select to_jsonb(r) from (select count(*)::integer as pairs, count(*) filter (where (private.worker_need_fit_v1(n.id,p.id,true)->>'matches')
       is distinct from (private.worker_need_fit_v1(n.id,p.id,false)->>'matches'))::integer as mismatches,
     count(*) filter (where (private.worker_need_fit_v1(n.id,p.id,true)->>'matches')::boolean)::integer as matching
-    from public.needs n cross join public.app_profiles p where p.kind='WORKER' and n.status in ('PUBLISHED','SELECTION')`)[0];
+    from public.needs n cross join public.app_profiles p where p.kind='WORKER' and n.status in ('PUBLISHED','SELECTION')) r`).output);
   assert.ok(consistency.pairs > 100 && consistency.matching > 0 && consistency.mismatches === 0, 'FIT_MODES_DISAGREE:' + JSON.stringify(consistency));
   pass('MATCH_V1_FIRST_REFUSAL_AND_FULL_EVALUATION_AGREE_ON_EVERY_PAIR', consistency);
   // The re-queue cursor: 250 profiles that share ONE updated_at (a bulk UPDATE) are handled 100 per tick, none skipped, none repeated.
