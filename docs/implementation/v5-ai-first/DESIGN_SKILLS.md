@@ -112,9 +112,11 @@ R1 Only transform and opacity move: never height, width, top or an SVG prop (the
    V4.9 entry scene is the one exception). An SVG draw pass is what the B22 Reanimated
    flood replays.
 R2 Enter decelerates and is longer than exit; easeOut is passed explicitly to every React
-   Navigation or Animated.timing spec. enter 240, exit 160, push 240 (the token is still
-   280 until the screen-transition item moves it), tab 150, toggle 180, press 120 in and
-   the spring out.
+   Navigation, Reanimated entrance or Animated.timing spec (a spec without a curve runs on
+   the library's own ease-in-out, which spends the first tenth of the time at 3 % of the
+   way). enter 240, exit 160, push 240, toggle 180, press 120 in and the spring out.
+   (Done 2026-10-08, B0: `(app)/_layout.tsx` passes push 240 AND easeOut; `Appear` uses
+   easeOut and an 8 dp start.)
 R3 Sheets and anything the finger carries settle on ONE critically damped spring,
    sys.motion.sheetSpring (stiffness 300, damping 30, overshootClamping). Nothing that
    carries text overshoots.
@@ -138,12 +140,12 @@ The motion tokens, all in `sys.motion` and nowhere else:
 | Token | Value | Used for |
 | --- | --- | --- |
 | `press` / `toggle` / `enter` / `exit` | 120 / 180 / 240 / 160 ms | a response, a switch, something arriving, something leaving |
-| `push` | 280 ms (target 240, R2) | a screen pushed onto the stack |
-| `tab` / `fade` | 150 / 160 ms | a tab's scene change, a skeleton giving way to content |
+| `push` | 240 ms (with `easeOut`, R2) | a screen pushed onto the stack |
 | `camera` / `stagger` | 360 / 40 ms | the map camera, rows arriving together (six at most) |
+| `tickGap` | 120 ms | the least time between two haptic ticks of the same weight or a lighter one (`ui/system/haptics.ts`, R5): a heavier tick, an outcome after a touch, is never held back |
 | `scale` | button 0.97, row 0.985, none 1 | the press ladder (`pressScale` is its button rung) |
 | `spring` | 400 ms, damping ratio 0.85 | the settle after a press |
-| `sheetSpring` | stiffness 300, damping 30, clamped | every sheet (`springSheet` is the map cover's older form) |
+| `sheetSpring` | stiffness 300, damping 30, clamped | every sheet (the older `springSheet`, `tab`, `fade`, `easeInOut` and `sheet` tokens were deleted on 2026-10-08: nothing read them) |
 | `loop` | breath 700, typing 520, glow 1600 ms | loops, per half-turn |
 | `arrive` | 800 ms, the arrive bezier | an empty state's picture settling in once |
 
@@ -205,11 +207,10 @@ delete that file's entry in the same change; never add one.
 Wave 1 (items 1.2 to 1.5) knowingly left these behind. Each is explained in the code and
 each is meant to be removed by a named later item, so none is forgotten:
 
-- `sys.motion.push` stays 280 ms, not the 240 ms of rule R2: the screen-transition item
-  moves it, together with `(app)/_layout.tsx` and the test that pins it.
-- `sys.motion.springSheet` is not deleted: `DiscoveryMap` still reads it (Reanimated's
-  duration form, a different shape from Gorhom's). The map item moves the map onto
-  `sheetSpring` and deletes it.
+- (Closed 2026-10-08, B0: `sys.motion.push` is 240 ms with `easeOut`, and `springSheet`
+  and the other dead tokens are deleted. Haptics: `ui/system/haptics.ts` `tick(kind)`;
+  `Press` goes through it; `Poruka.tsx` and `SuccessMark.tsx` still call `expo-haptics`
+  directly and move to `tick('success')` with the system pass.)
 - `PRESS_DELAY` (60 ms) lives in `Press.tsx` and not in `sys.motion` (it was added with
   the press rework, when `tokens.ts` was another item's file). It moves to
   `sys.motion.pressDelay` with the next change to `Press.tsx`.
