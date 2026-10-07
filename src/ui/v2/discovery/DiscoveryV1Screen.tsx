@@ -211,7 +211,10 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
       if (live() && touches.current === touch) setPendingKey(null);
     });
   }, [coordinator, execute]);
-  const onArea = useCallback((bounds: PublicBounds) => { void execute(() => coordinator.settleMap(bounds)); }, [coordinator, execute]);
+  // The list reads what the person can see; the map reads its whole frame.
+  const onArea = useCallback((bounds: PublicBounds, frame?: PublicBounds) => { void execute(() => coordinator.settleMap(bounds, frame)); }, [coordinator, execute]);
+  // The rows the list shows: their details are read in the background when they are outside the window read so far; the overlay commits when it lands.
+  const onVisibleRange = useCallback((first: number, last: number) => { if (live()) coordinator.showRows(first, last); }, [coordinator, live]);
   // The markers follow a camera move that is not the person's own; the list and the peek are not touched, and a read that proves nothing about
   // the list never clears its error.
   const onViewportSettled = useCallback((bounds: PublicBounds) => { void execute(async () => { await coordinator.refreshMap(bounds); }); }, [coordinator, execute]);
@@ -244,7 +247,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
 
   return <DiscoveryV1PresentationBridge snapshot={askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}
-    actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces }}
+    actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces, onVisibleRange }}
     canRetainMap={props.canRetainMap}
     loading={loading} refreshing={loading} error={error} scopeKey={props.scopeKey}
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}

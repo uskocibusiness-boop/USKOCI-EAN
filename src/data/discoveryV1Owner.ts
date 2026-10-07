@@ -112,13 +112,17 @@ export function createDiscoveryV1Owner(transport: DiscoveryV1OwnerTransport, isC
   };
   const requireIntent = () => intent;
 
+  /**
+   * A new list scope under the same filter and anchor. Only the list traversal is replaced: a place's POINT_MEMBERS read has its own scope and
+   * stays (a chosen place may outlive a settled pan); whoever lets the choice go retires it with `clearSelectionReads`.
+   */
   const setScope = (scope: DiscoveryV1Scope) => {
     const currentIntent = requireIntent();
     if (!currentIntent) return false;
-    abort(pageAbort); abort(membersAbort); pageAbort = membersAbort = null; nextPageFlight = nextMembersFlight = null;
-    pageSequence++; membersSequence++;
+    abort(pageAbort); pageAbort = null; nextPageFlight = null;
+    pageSequence++;
     intent = { ...currentIntent, scope: cloneScope(scope) };
-    page = null; members = null; membersBase = null;
+    page = null;
     return true;
   };
 

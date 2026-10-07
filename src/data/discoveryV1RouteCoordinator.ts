@@ -19,6 +19,12 @@ export type DiscoveryV1RouteSnapshot = {
 
 /** A return to the screen reads at most this many pages again before it restores the list offset (8 pages of 50 rows). */
 export const DISCOVERY_V1_RESTORE_PAGES=8;
+/**
+ * The optional details (the account's relations, urgency, the publisher's name and rating) are read for one window of at most
+ * DISCOVERY_V1_OVERLAY_LIMIT rows. The window follows the rows the list shows: it starts this many rows before the first one shown, on a step of
+ * DISCOVERY_V1_OVERLAY_STEP rows, and moves only when a shown row comes within DISCOVERY_V1_OVERLAY_MARGIN rows of an edge that has rows beyond it.
+ */
+export const DISCOVERY_V1_OVERLAY_LEAD=25,DISCOVERY_V1_OVERLAY_STEP=25,DISCOVERY_V1_OVERLAY_MARGIN=10;
 
 const cloneBounds=(value:PublicBounds|null)=>value?[...value] as PublicBounds:null;
 const cloneView=(view:MarketplaceView):MarketplaceView=>({...view,area:cloneBounds(view.area),dates:view.dates?{...view.dates}:null,
@@ -50,11 +56,12 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const anchorExpired=(error:unknown)=>error instanceof Error&&error.message==='DISCOVERY_V1_ANCHOR_EXPIRED';
   // While a read REPLACES what the screen shows (a filter, a place, an area, everything), the last COMPLETE picture stays in the snapshot and the new one lands whole.
   // A commit another action or the overlay makes in the middle of such a read would otherwise publish the owner's emptied state (no rows, no markers), which the screen
-  // reads as "nothing found" (found on the emulator: the list rose over the map right after a place was chosen). All of them drop the peek at once. A read that only ADDS
-  // to the picture (a next page, a map refresh, a selection) holds nothing back: what another read lands meanwhile is shown at once.
+  // reads as "nothing found" (found on the emulator: the list rose over the map right after a place was chosen). The card is not part of that picture: it is always the
+  // session's own (a filter, a place and everything drop it at once; a settled pan keeps it while its bucket stays on the map). A read that only ADDS to the picture
+  // (a next page, a map refresh, a selection) holds nothing back: what another read lands meanwhile is shown at once.
   let reading=0,held:DiscoveryV1ScreenSnapshot|null=null;
   const whileReplacing=async<T,>(work:()=>Promise<T>):Promise<T>=>{
-    if(reading++===0)held={...screen.snapshot(),peek:null};
+    if(reading++===0)held=screen.snapshot();
     try{return await work();}
     finally{if(--reading===0)held=null;}
   };
@@ -67,15 +74,19 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(fresh)selectedMarkerKey=null;
   };
   const screenSnapshot=():DiscoveryV1ScreenSnapshot=>{
-    const value=held??screen.snapshot();
+    const value=held?{...held,peek:screen.peekNow()}:screen.snapshot();
     return routeView?{...value,view:cloneView(routeView)}:value;
   };
   const snapshot=():DiscoveryV1RouteSnapshot=>({active,generation,view:routeView?cloneView(routeView):null,screen:screenSnapshot(),
     overlay:overlay.snapshot(),search:search.snapshot(),selectedMarkerKey,loadingMore});
 
+  // EX-03: the first row of the overlay window (see DISCOVERY_V1_OVERLAY_LEAD). Every read that replaces the list starts it at the top again.
+  let overlayStart=0;
+  const windowStart=(total:number)=>Math.max(0,Math.min(overlayStart,total-DISCOVERY_V1_OVERLAY_LIMIT));
   const refreshOverlay=async(g:number,options:{reuseProfiles?:boolean}={})=>{
     if(!driven())return false;
-    const rows=screen.snapshot().wireItems.slice(0,DISCOVERY_V1_OVERLAY_LIMIT);
+    const all=screen.snapshot().wireItems,start=windowStart(all.length);
+    const rows=all.slice(start,start+DISCOVERY_V1_OVERLAY_LIMIT);
     const result=await overlay.load(rows,options);
     const changed=current(g)&&result.kind==='applied';
     if(changed)binding.onOptionalState();
@@ -100,7 +111,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function open(next:MarketplaceView,pageLimit=50){
     if(!active)return {kind:'stale' as const,snapshot:snapshot()};
-    const g=++generation,chosen=selections;routeView={...cloneView(next),pages:1};selectedMarkerKey=null;loadingMore=false;
+    const g=++generation,chosen=selections;routeView={...cloneView(next),pages:1};selectedMarkerKey=null;loadingMore=false;overlayStart=0;
     const result=await whileReplacing(()=>screen.open(routeView!,pageLimit));
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind!=='applied')return {kind:result.kind,snapshot:snapshot()};
@@ -144,18 +155,26 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     return {kind:'passive' as const,snapshot:snapshot()};
   }
 
-  async function settleMap(bounds:PublicBounds){
+  /**
+   * A settled move of the person's own: the list reads `bounds` (what they can see between the tools and the sheet), the map reads `frame` (its whole
+   * view; `bounds` again when the caller has none). A chosen task or place stays chosen while its bucket is still on the map they now see.
+   */
+  async function settleMap(bounds:PublicBounds,frame:PublicBounds=bounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation,chosen=selections;
+    const g=generation;
     let result;
-    try{result=await whileReplacing(()=>screen.settleMap(bounds));}
+    try{result=await whileReplacing(()=>screen.settleMap(bounds,frame));}
     catch(error){
       if(!anchorExpired(error)||!current(g)||!routeView)throw error;
       return open({...routeView,area:[...bounds] as PublicBounds,pinPlace:null,selectedId:null,selectedPlace:null});
     }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      scoped(chosen,{area:[...bounds] as PublicBounds,pinPlace:null});refreshOverlayInBackground(g);
+      routeView={...routeView!,area:[...bounds] as PublicBounds,pinPlace:null,pages:1};overlayStart=0;
+      // The session let the choice go (its bucket left the map, or nothing was chosen): so does the route. A choice that still stands, or one made while
+      // the read was out, is the selection's own business.
+      if(screen.chosenKey()===null){selectedMarkerKey=null;routeView={...routeView,selectedId:null,selectedPlace:null};}
+      refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -184,7 +203,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      scoped(chosen,{pinPlace:pointKey(point)});refreshOverlayInBackground(g);
+      scoped(chosen,{pinPlace:pointKey(point)});overlayStart=0;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -200,7 +219,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
     if(result.kind==='applied'){
-      scoped(chosen,{area:null,pinPlace:null});refreshOverlayInBackground(g);
+      scoped(chosen,{area:null,pinPlace:null});overlayStart=0;refreshOverlayInBackground(g);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -227,6 +246,24 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   }
 
   const clearPeek=()=>{selections++;selectedMarkerKey=null;if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};screen.clearPeek();};
+
+  /**
+   * The list shows rows `first` to `last` (indexes into the loaded rows). When they come near an edge of the overlay window that has rows beyond it, the window
+   * moves to them and their details are read in the background (the publisher profiles already known are kept). Returns whether a read was started.
+   */
+  const showRows=(first:number,last:number):boolean=>{
+    if(!driven()||!routeView||!Number.isSafeInteger(first)||!Number.isSafeInteger(last)||first<0||last<first)return false;
+    const total=screen.snapshot().wireItems.length;
+    if(total<=DISCOVERY_V1_OVERLAY_LIMIT)return false;
+    const start=windowStart(total),end=start+DISCOVERY_V1_OVERLAY_LIMIT;
+    const roomAbove=start===0||first>=start+DISCOVERY_V1_OVERLAY_MARGIN, roomBelow=end>=total||last<end-DISCOVERY_V1_OVERLAY_MARGIN;
+    if(roomAbove&&roomBelow)return false;
+    const next=Math.max(0,Math.min(total-DISCOVERY_V1_OVERLAY_LIMIT,
+      Math.floor(Math.max(0,first-DISCOVERY_V1_OVERLAY_LEAD)/DISCOVERY_V1_OVERLAY_STEP)*DISCOVERY_V1_OVERLAY_STEP));
+    if(next===start)return false;
+    overlayStart=next;refreshOverlayInBackground(generation,{reuseProfiles:true});
+    return true;
+  };
 
   async function nextPage(){
     let g=generation;loadingMore=true;
@@ -290,7 +327,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   const retire=()=>{if(!active)return;active=false;generation++;loadingMore=false;selectedMarkerKey=null;routeView=null;held=null;
     screen.retire();overlay.retire();search.retire();};
 
-  return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,nextPage,previewSearch,nextSearchPlaces,applySearch,
+  return {open,restore,updateView,settleMap,refreshMap,showPoint,showAll,selectMarker,clearPeek,showRows,nextPage,previewSearch,nextSearchPlaces,applySearch,
     snapshot,peekNow:()=>screen.peekNow(),refreshOverlay:()=>refreshOverlay(generation),attach,detach,warm,retire};
 }
 

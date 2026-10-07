@@ -272,3 +272,37 @@ it('EX-03: a newer touch fences the known place card of an older one, and its la
  x.pending[2].resolve(page([ID1,ID2]));expect((await older).kind).toBe('stale');
  expect(s.snapshot().peek).toBeNull();
 });
+
+// Audit fixes 2 and 4: a settled pan of the person's own reads the list over what they can see and the map over its whole frame, and a chosen task stays
+// chosen (with its card) while its bucket is still on the map; a choice whose bucket left the map is let go.
+it('a settled pan reads the seen band for the list and the frame for the map, and keeps a chosen task whose bucket stays',async()=>{
+ const {x,s}=await openLoaded();
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[2].resolve(exact());await picked;
+ const card=s.snapshot().peek;expect(s.chosenKey()).toBe('task:'+ID1);
+ const moved=s.settleMap([19.6,44.6,20.4,45.4],[19.5,44.5,20.5,45.5]);
+ expect(x.pending[3].request).toEqual(expect.objectContaining({mode:'PAGE',scope:{kind:'AREA',bounds:[19.6,44.6,20.4,45.4]}}));
+ expect(x.pending[4].request).toEqual(expect.objectContaining({mode:'MAP',bounds:[19.5,44.5,20.5,45.5]}));
+ expect(s.snapshot().peek).toBe(card);                                              // the card stays while the move is read
+ x.pending[3].resolve(page([ID2]));x.pending[4].resolve(map([19.5,44.5,20.5,45.5]));
+ expect((await moved).kind).toBe('applied');
+ expect(s.snapshot().peek).toBe(card);expect(s.chosenKey()).toBe('task:'+ID1);
+ expect(s.snapshot().view).toMatchObject({area:[19.6,44.6,20.4,45.4],pinPlace:null});
+});
+it('a settled pan whose map no longer has the chosen bucket lets it go, and its late exact answer changes nothing',async()=>{
+ const {x,s}=await openLoaded([ID2]);
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);                         // not loaded: the exact read is out
+ const moved=s.settleMap([19.6,44.6,20.4,45.4],[19.5,44.5,20.5,45.5]);
+ x.pending[3].resolve(page([ID2]));x.pending[4].resolve({...map([19.5,44.5,20.5,45.5]),buckets:[]});
+ expect((await moved).kind).toBe('applied');
+ expect(s.chosenKey()).toBeNull();expect(s.snapshot().peek).toBeNull();
+ expect(x.pending[2].signal.aborted).toBe(true);
+ x.pending[2].resolve(exact());expect((await picked).kind).toBe('stale');expect(s.snapshot().peek).toBeNull();
+});
+// Audit fix 5: an unchanged answer is handed out again, not converted again.
+it('snapshots hand out the same rows, cards and markers until a new answer lands',async()=>{
+ const {x,s}=await openLoaded([ID1,ID2]);
+ const a=s.snapshot(),b=s.snapshot();
+ expect(b.items).toBe(a.items);expect(b.wireItems).toBe(a.wireItems);expect(b.mapMarkers).toBe(a.mapMarkers);
+ const more=s.settleMap([19.6,44.6,20.4,45.4]);x.pending[2].resolve(page([ID2]));x.pending[3].resolve(map([19.6,44.6,20.4,45.4]));await more;
+ const c=s.snapshot();expect(c.items).not.toBe(a.items);expect(c.items.map(row=>row.id)).toEqual([ID2]);expect(c.mapMarkers).not.toBe(a.mapMarkers);
+});

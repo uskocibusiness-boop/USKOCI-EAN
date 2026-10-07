@@ -26,3 +26,20 @@ it('refuses unbounded or duplicate marker input rather than truncating',()=>{
  expect(()=>discoveryV1ServerMarkerSpecs([markers[0],markers[0]] as any,null))
   .toThrow('DISCOVERY_V1_SERVER_MARKER_DUPLICATE');
 });
+
+// AGENTS §3.6.7 (audit fix 1): every bucket is a white capsule; a task is its mark (the bucket carries no price), a group says its count.
+it('gives every bucket its capsule sprite, its count and a unique stacking order (areas, then places, then tasks; north under south)',()=>{
+ const specs=discoveryV1ServerMarkerSpecs(markers as any,null);
+ expect(specs.map(spec=>spec.pin)).toEqual([
+  {image:'p6-pin-task',chosenImage:'p6-pin-task-chosen',count:''},
+  {image:'p6-pin-count-1',chosenImage:'p6-pin-count-1-chosen',count:'3'},
+  {image:'p6-pin-count-1',chosenImage:'p6-pin-count-1-chosen',count:'9'},
+ ]);
+ expect(specs.map(spec=>spec.order)).toEqual([2,1,0]);
+ const counts=[12,345,999,1000,48213].map(taskCount=>discoveryV1ServerMarkerSpecs([{...markers[1],taskCount}] as any,null)[0].pin);
+ expect(counts.map(pin=>[pin.count,pin.image])).toEqual([['12','p6-pin-count-2'],['345','p6-pin-count-3'],['999','p6-pin-count-3'],
+  ['999+','p6-pin-count-4'],['999+','p6-pin-count-4']]);
+ const north={...markers[0],key:'task:n',point:{lat:45.4,lng:19.8},taskId:'22222222-2222-4222-8222-222222222222'};
+ const order=discoveryV1ServerMarkerSpecs([markers[0],north] as any,null).map(spec=>spec.order);
+ expect(order).toEqual([1,0]);
+});

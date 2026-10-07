@@ -36,10 +36,11 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   onPublicationCameraRetired?: (token: string, scopeKey: string) => void;
   /**
    * The list follows the map (Discovery V47): once a move of the person's own (a drag, a pinch, a zoom button, a cluster
-   * tap) has settled and stayed still for `AREA_SETTLE_MS`, the map hands up the bounds it shows. The camera's own moves
-   * (the first fit, a chosen pin brought into view, a fit to a chosen place) never do.
+   * tap) has settled and stayed still for `AREA_SETTLE_MS`, the map hands up what the person can see of it (`bounds`: below
+   * the search tools, above the sheet or a card) and its whole view (`frame`, which the P6 buckets cover). The camera's own
+   * moves (the first fit, a chosen pin brought into view, a fit to a chosen place) never do.
    */
-  onArea: (bounds: PublicBounds) => void;
+  onArea: (bounds: PublicBounds, frame: PublicBounds) => void;
   onList: () => void;
   /** A tap on the map where there is no pin: whatever pin's card is open closes. */
   onClear?: () => void;

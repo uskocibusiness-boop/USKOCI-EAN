@@ -31,6 +31,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/ActionSheet', () => ({ ActionSheet: 'MapSources' }));
 import { DiscoveryMap, PillAnnotation, PILL_LIMIT } from '../../ui/v2/DiscoveryMap';
+import { DISCOVERY_V1_PIN_IMAGES, PIN_CHOSEN_SCALE, PIN_ICON_SIZE } from '../../ui/v2/discovery/DiscoveryV1ServerMarkerLayer';
 import { PricePill } from '../../ui/v2/discovery/PricePill';
 import { BrandMark } from '../../ui/entry/BrandAssets';
 import { noTaskRelations, taskRelationIndex } from '../taskRelation';
@@ -365,7 +366,8 @@ test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before lay
   } else expect(mockFit).not.toHaveBeenCalled();
   if (intent === 'pin') expect(mockEase).toHaveBeenCalledTimes(1);
   await act(async () => { jest.advanceTimersByTime(2_000); });
-  if (intent === 'pan') expect(search).toHaveBeenCalledWith(viewport.bounds);
+  // The list reads what is seen below the tools; the map keeps the whole view.
+  if (intent === 'pan') expect(search).toHaveBeenCalledWith([20.4, 44.7, 20.5, 44.868653], viewport.bounds);
   else expect(search).not.toHaveBeenCalled();
 });
 
@@ -663,16 +665,88 @@ test('the server buckets are one GeoJSON source with their own layers, and the l
   await render(); await measureFrame(800); await ready();
   expect(source().props.id).toBe('p6-buckets');
   expect(tree.root.findAllByType('Source' as React.ElementType)).toHaveLength(1);
+  // Each bucket says only what its capsule shows: its sprite, its count ('' for a task: the capsule is its mark) and its place in the stack.
+  // Order: areas under places under single tasks (north under south within a kind).
   expect(JSON.parse(source().props.data).features).toEqual([
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [20.45, 44.8] }, properties: { key: 'cluster:1', kind: 'CLUSTER', count: 5 } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [20.6, 44.9] }, properties: { key: 'task:1', kind: 'TASK', count: 1 } },
-    { type: 'Feature', geometry: { type: 'Point', coordinates: [20.3, 44.7] }, properties: { key: 'place:44.7:20.3', kind: 'PLACE', count: 30 } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [20.45, 44.8] }, properties: { key: 'cluster:1', kind: 'CLUSTER', count: 5, label: '5',
+      image: 'p6-pin-count-1', chosenImage: 'p6-pin-count-1-chosen', order: 0 } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [20.6, 44.9] }, properties: { key: 'task:1', kind: 'TASK', count: 1, label: '',
+      image: 'p6-pin-task', chosenImage: 'p6-pin-task-chosen', order: 2 } },
+    { type: 'Feature', geometry: { type: 'Point', coordinates: [20.3, 44.7] }, properties: { key: 'place:44.7:20.3', kind: 'PLACE', count: 30, label: '30',
+      image: 'p6-pin-count-2', chosenImage: 'p6-pin-count-2-chosen', order: 1 } },
   ]);
+  expect(JSON.parse(source().props.data).features.every((feature: { properties: object }) => !JSON.stringify(feature.properties).includes('taskId'))).toBe(true);
   expect(source().props.cluster).toBeUndefined();
-  expect(layerIds()).toEqual(['p6-halo', 'p6-discs', 'p6-counts', 'p6-marks']);
-  const halo = tree.root.findAllByType('Layer' as React.ElementType).find(node => node.props.id === 'p6-halo')!;
-  expect(halo.props.filter).toEqual(['==', ['get', 'key'], 'task:1']);
+  // Two layers: every capsule, and the chosen one alone on top of them.
+  expect(layerIds()).toEqual(['p6-pins', 'p6-chosen']);
+  const layer = (id: string) => tree.root.findAllByType('Layer' as React.ElementType).find(node => node.props.id === id)!;
+  expect(layer('p6-pins').props.filter).toEqual(['!=', ['get', 'key'], 'task:1']);
+  expect(layer('p6-chosen').props.filter).toEqual(['==', ['get', 'key'], 'task:1']);
   expect(annotations()).toHaveLength(0);
+});
+
+// AGENTS §3.6.7: a white capsule, the chosen one 6 % larger with the orange halo and label, drawn above the rest in a stable order, all in
+// native layers (no view annotations). Every expression is checked by the installed style parser, as the Android bridge reads it.
+test('the P6 pins are white capsules in one ordered layer, and the chosen capsule is 6 % larger on its own top layer', async () => {
+  extra = { p6Server: { markers: layerMarkers, selectedKey: 'place:44.7:20.3', wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() } };
+  await render(); await measureFrame(800); await ready();
+  const layers = tree.root.findAllByType('Layer' as React.ElementType);
+  const [pins, chosen] = layers;
+  expect([pins.props.type, chosen.props.type]).toEqual(['symbol', 'symbol']);
+  // Every capsule: one symbol (sprite and count together), stacked by its own unique order, never hidden by another.
+  expect(pins.props.layout).toMatchObject({ 'symbol-sort-key': ['get', 'order'], 'icon-image': ['get', 'image'], 'icon-size': PIN_ICON_SIZE,
+    'icon-allow-overlap': true, 'icon-ignore-placement': true, 'text-field': ['get', 'label'], 'text-allow-overlap': true });
+  expect(chosen.props.layout).toMatchObject({ 'icon-image': ['get', 'chosenImage'], 'icon-allow-overlap': true, 'text-field': ['get', 'label'] });
+  expect(chosen.props.layout['icon-size'] / pins.props.layout['icon-size']).toBeCloseTo(1.06, 10);
+  expect(chosen.props.layout['text-size'] / pins.props.layout['text-size']).toBeCloseTo(PIN_CHOSEN_SCALE, 10);
+  expect(chosen.props.paint['text-color']).toBe(sys.color.orangeInk);
+  // The sprites the layers name are the ones the map registers, and nothing else draws a pin (no halo or disc circles any more).
+  const images = tree.root.findByType('Images' as React.ElementType).props.images;
+  for (const name of Object.keys(DISCOVERY_V1_PIN_IMAGES)) expect(images[name]).toBeDefined();
+  expect(layers.every(node => node.props.type === 'symbol')).toBe(true);
+  // The installed parser accepts every layout and paint value of both layers (the Android bridge reads string-first arrays as expressions).
+  for (const node of layers) {
+    for (const [group, values] of [['layout_symbol', node.props.layout], ['paint_symbol', node.props.paint]] as const) {
+      for (const [name, value] of Object.entries(values as Record<string, unknown>)) {
+        const spec = (latest as unknown as Record<string, Record<string, StylePropertySpecification>>)[group][name];
+        expect(spec).toBeDefined();
+        // The bridge takes only a string-first array as an expression; a number pair (the count's offset) stays a plain value.
+        const literal = Array.isArray(value) && typeof value[0] !== 'string';
+        const parsed = expression.createPropertyExpression(literal ? ['literal', value] : value, name, spec);
+        if (parsed.result !== 'success') throw new Error(`${node.props.id} ${name}: ${parsed.value.map(error => error.message).join('; ')}`);
+      }
+    }
+  }
+  const evaluate = (value: unknown, group: 'layout_symbol' | 'paint_symbol', name: string, properties: Record<string, unknown>) => {
+    const spec = (latest as unknown as Record<string, Record<string, StylePropertySpecification>>)[group][name];
+    const parsed = expression.createPropertyExpression(value, name, spec);
+    if (parsed.result !== 'success') throw new Error(name);
+    return parsed.value.evaluate({ zoom: 12 }, { type: 'Point', properties } as never);
+  };
+  // An area's count is green, a place's count is ink, as on the legacy map; the font survives the bridge.
+  expect(evaluate(pins.props.paint['text-color'], 'paint_symbol', 'text-color', { kind: 'CLUSTER' }).toString()).toBe(evaluate(sys.color.green, 'paint_symbol', 'text-color', {}).toString());
+  expect(evaluate(pins.props.paint['text-color'], 'paint_symbol', 'text-color', { kind: 'PLACE' }).toString()).toBe(evaluate(sys.color.ink, 'paint_symbol', 'text-color', {}).toString());
+  expect(evaluate(pins.props.layout['text-font'], 'layout_symbol', 'text-font', {})).toEqual(['Noto Sans Regular']);
+});
+
+test('the stacking order is stable across reads, and a count beyond 999 says "999+" in the widest capsule', async () => {
+  const many = [
+    { kind: 'TASK', key: 'task:south', point: { lat: 44.70, lng: 20.4 }, taskId: '00000000-0000-4000-8000-000000000002', taskCount: 1 },
+    { kind: 'CLUSTER', key: 'cluster:big', point: { lat: 44.9, lng: 20.4 }, taskCount: 1200, distinctPointCount: 40, memberBounds: [20.3, 44.8, 20.5, 45] },
+    { kind: 'TASK', key: 'task:north', point: { lat: 44.80, lng: 20.4 }, taskId: '00000000-0000-4000-8000-000000000003', taskCount: 1 },
+    { kind: 'PLACE', key: 'place:44.75:20.4', point: { lat: 44.75, lng: 20.4 }, taskCount: 3 },
+  ];
+  extra = { p6Server: { markers: many, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() } };
+  await render(); await measureFrame(800); await ready();
+  const props = () => Object.fromEntries(JSON.parse(source().props.data).features.map((feature: { properties: { key: string } }) => [feature.properties.key, feature.properties]));
+  expect(props()['cluster:big']).toMatchObject({ label: '999+', image: 'p6-pin-count-4', order: 0 });
+  expect(props()['place:44.75:20.4']).toMatchObject({ label: '3', image: 'p6-pin-count-1', order: 1 });
+  // Two single tasks: the northern one under the southern one.
+  expect(props()['task:north'].order).toBeLessThan(props()['task:south'].order);
+  const first = props();
+  extra = { p6Server: { markers: [...many].reverse(), selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() } };
+  await update();
+  for (const key of Object.keys(first)) expect(props()[key].order).toBe(first[key].order);
 });
 
 test("a P6 cluster fits the camera to its members as the person's own move; a task or a place moves nothing", async () => {
@@ -687,7 +761,8 @@ test("a P6 cluster fits the camera to its members as the person's own move; a ta
   // The camera lands: opening the cluster was the person's move, so the area follows where it settled.
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.815], zoom: 12, bounds: [20.38, 44.7, 20.52, 44.9], userInteraction: false } }));
   await act(async () => { jest.advanceTimersByTime(2_000); });
-  expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.9]);
+  // The list reads what is seen below the 60 dp of tools (the 800 dp frame has no sheet here); the buckets read the whole view.
+  expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.885024], [20.38, 44.7, 20.52, 44.9]);
   // A task or a place moves no camera and asks for no area.
   mockFit.mockClear(); search.mockClear();
   await act(async () => press('task:1'));
@@ -714,7 +789,7 @@ test("a P6 cluster's settle reported seconds late is still the person's own move
   await act(async () => { jest.advanceTimersByTime(4_000); });
   await act(async () => settleAt([20.38, 44.7, 20.52, 44.9]));
   await act(async () => { jest.advanceTimersByTime(2_000); });
-  expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.9]);
+  expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith([20.38, 44.7, 20.52, 44.885024], [20.38, 44.7, 20.52, 44.9]);
   expect(onViewportSettled).not.toHaveBeenCalled();
   // The open is used once: the next settle of the camera's own is not the person's.
   await act(async () => settleAt([20.3, 44.6, 20.6, 44.95]));
@@ -813,7 +888,81 @@ test('a P6 settle that is not the person\'s own reports its region for the marke
   onViewportSettled.mockClear();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: true } }));
   await act(async () => { jest.advanceTimersByTime(2_000); });
-  expect(search).toHaveBeenCalledWith([20.3, 44.7, 20.5, 44.9]); expect(onViewportSettled).not.toHaveBeenCalled();
+  expect(search).toHaveBeenCalledWith([20.3, 44.7, 20.5, 44.885024], [20.3, 44.7, 20.5, 44.9]); expect(onViewportSettled).not.toHaveBeenCalled();
+});
+
+// Audit fix 2: the list reads what the person can see, not the part of the map under the search tools, the list sheet or a chosen pin's card.
+test('the list reads the band between the tools and the sheet or card; the buckets keep the whole view', async () => {
+  const sheetTop = { value: 500 };
+  extra = { p6Server: { markers: p6Markers, selectedKey: null, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() }, toolsBottom: 60, sheetTop };
+  await render(); await measureFrame(800); await ready();
+  const own = (bounds: number[]) => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds, userInteraction: true } });
+  await act(async () => own([20.3, 44.7, 20.5, 44.9]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenLastCalledWith([20.3, 44.775081, 20.5, 44.885024], [20.3, 44.7, 20.5, 44.9]);
+  // The sheet is read when the wait ends: it sank behind a card 300 dp high, which now covers more than the sheet's sliver.
+  sheetTop.value = 799; extra = { ...extra, coverBottom: 300 }; await update();
+  await act(async () => own([20.3, 44.7, 20.5, 44.9]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenLastCalledWith([20.3, 44.775081, 20.5, 44.885024], [20.3, 44.7, 20.5, 44.9]);
+  // A sheet at its full height leaves no band worth reading: the whole view is used rather than a sliver.
+  sheetTop.value = 80; extra = { ...extra, coverBottom: 0 }; await update();
+  await act(async () => own([20.3, 44.7, 20.5, 44.9]));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(search).toHaveBeenLastCalledWith([20.3, 44.7, 20.5, 44.9], [20.3, 44.7, 20.5, 44.9]);
+});
+
+// Audit fix 3: on the P6 path the chosen bucket is the map's to keep in sight. The camera moves only when the card (or the sheet) covers it, at the same
+// zoom and longitude, and that move is the camera's own (the markers follow it, the list does not).
+test('a chosen P6 pin that the card covers comes into the clear band; one the person can see stays put', async () => {
+  const low = { kind: 'TASK', key: 'task:low', point: { lat: 44.73, lng: 20.45 }, taskId: '00000000-0000-4000-8000-000000000004', taskCount: 1 };
+  const high = { kind: 'TASK', key: 'task:high', point: { lat: 44.82, lng: 20.35 }, taskId: '00000000-0000-4000-8000-000000000005', taskCount: 1 };
+  const onViewportSettled = jest.fn(), sheetTop = { value: 732 };
+  const seam = (selectedKey: string | null) => ({ markers: [low, high], selectedKey, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn(), onViewportSettled });
+  extra = { p6Server: seam(null), toolsBottom: 60, sheetTop, coverBottom: 0 };
+  await render(); await measureFrame(800); await ready();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 9, bounds: [20.1, 44.5, 20.8, 45.1], userInteraction: false } }));
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: true } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  mockEase.mockClear(); mockJump.mockClear(); mockFit.mockClear(); search.mockClear();
+  // The touch: the pin is where the finger was, so nothing moves.
+  extra = { ...extra, p6Server: seam('task:low') }; await update();
+  expect(mockEase).not.toHaveBeenCalled();
+  // The card lands, 300 dp high with its gaps: the low pin (about 85 % down the frame) is under it, so the camera brings it to the band's middle.
+  extra = { ...extra, coverBottom: 300 }; await update();
+  expect(mockEase).toHaveBeenCalledTimes(1);
+  const [{ center, ...move }] = mockEase.mock.calls[0];
+  expect(center[0]).toBeCloseTo(20.4, 9); expect(center[1]).toBe(44.73);         // the map's own longitude, the pin's latitude
+  expect(move).toEqual({ padding: { top: 60, right: 0, bottom: 300, left: 0 }, duration: sys.motion.camera });   // no zoom: it stays
+  // That move settles as the camera's own: the buckets follow it, the list does not.
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.76], zoom: 12, bounds: [20.3, 44.66, 20.5, 44.86], userInteraction: false } }));
+  await act(async () => { jest.advanceTimersByTime(2_000); });
+  expect(onViewportSettled).toHaveBeenCalledWith([20.3, 44.66, 20.5, 44.86]); expect(search).not.toHaveBeenCalled();
+  // A pin high on the map, clear of the card, is not moved.
+  mockEase.mockClear();
+  extra = { ...extra, coverBottom: 0, p6Server: seam('task:high') }; await update();
+  extra = { ...extra, coverBottom: 300 }; await update();
+  expect(mockEase).not.toHaveBeenCalled();
+});
+
+test('a choice the P6 map is mounted with stays put, and Reduce Motion jumps instead of flying', async () => {
+  const low = { kind: 'TASK', key: 'task:low', point: { lat: 44.73, lng: 20.45 }, taskId: '00000000-0000-4000-8000-000000000004', taskCount: 1 };
+  const seam = (selectedKey: string | null) => ({ markers: [low], selectedKey, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() });
+  extra = { p6Server: seam('task:low'), toolsBottom: 60, coverBottom: 300, viewport: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9] } };
+  await render(); await measureFrame(800); await ready();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: false } }));
+  extra = { ...extra, coverBottom: 320 }; await update();
+  expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).not.toHaveBeenCalled();
+  await act(async () => tree.unmount());
+  mockReduced = true;
+  extra = { p6Server: seam(null), toolsBottom: 60, coverBottom: 0, viewport: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9] } };
+  await render(); await measureFrame(800); await ready();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: false } }));
+  extra = { ...extra, p6Server: seam('task:low'), coverBottom: 300 }; await update();
+  expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).toHaveBeenCalledTimes(1);
+  const [{ center, ...move }] = mockJump.mock.calls[0];
+  expect(center[0]).toBeCloseTo(20.4, 9); expect(center[1]).toBe(44.73);
+  expect(move).toEqual({ padding: { top: 60, right: 0, bottom: 300, left: 0 } });
 });
 
 test('a P6 map restored with its saved viewport reports the region it settles into, and the legacy map never does', async () => {

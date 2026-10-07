@@ -62,6 +62,12 @@ export function discoveryV1OverlaySliceKey(items: readonly DiscoveryV1Item[]): s
   }).join('|');
 }
 
+type Overlaid = PrilikaProjekcija & { revision: number };
+/**
+ * EX-03: a row with its details is made again only when what it shows changes (the row, its publisher's profile object or its urgency object); every
+ * commit used to build every row anew, which also re-rendered every memoised list row. Nothing may mutate what this returns.
+ */
+const overlaid = new WeakMap<Overlaid, { profile: JavniProfilProjekcija | undefined; urgency: NeedUrgencyProjection | undefined; value: Overlaid }>();
 /** The rows with what the overlay knows about them; a row it has no answer for (not admitted, or not yet answered) stays bare. */
 export function discoveryV1ApplyOverlays(items: readonly DiscoveryV1Item[], overlay: DiscoveryV1OverlaySnapshot)
   : (PrilikaProjekcija & { revision: number })[] {
@@ -70,8 +76,12 @@ export function discoveryV1ApplyOverlays(items: readonly DiscoveryV1Item[], over
     const source = items[index];
     if (overlay.admitted.get(source.id) !== overlayFingerprint(source)) return item;
     const profile = overlay.profiles.get(source.requesterProfileId), urgency = overlay.urgency.get(source.id);
-    return { ...item, ...(urgency ? { urgency } : {}), narucilacIme: profile?.ime ?? '',
+    const known = overlaid.get(item);
+    if (known && known.profile === profile && known.urgency === urgency) return known.value;
+    const value = { ...item, ...(urgency ? { urgency } : {}), narucilacIme: profile?.ime ?? '',
       narucilacOcena: formatRating(profile), narucilacBrojOcena: reviewCount(profile), narucilacAvatarId: null };
+    overlaid.set(item, { profile, urgency, value });
+    return value;
   });
 }
 export function discoveryV1OverlayRelation(overlay: DiscoveryV1OverlaySnapshot, needId: string): TaskRelation {

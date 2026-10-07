@@ -58,8 +58,21 @@ function rawItem(item:DiscoveryV1Item):Record<string,unknown>{
     need_geography:item.publicTopology===null?null:{public_topology:item.publicTopology},
     need_requirement_details:item.criticalConditions===null?null:{critical_conditions:item.criticalConditions} };
 }
+/**
+ * EX-03 (client work per settle): a decoded row is never changed after the decoder made it, so its card projection is made once per row
+ * object and handed out again (a settle used to convert every row eight times: the held picture, the session, the overlay, every commit).
+ * The same object also lets the list keep its memoised rows. Nothing may mutate what this returns.
+ */
+const opportunities=new WeakMap<DiscoveryV1Item,PrilikaProjekcija & {revision:number}>();
 /** Core task facts only. Optional profile/rating/avatar/urgency reads are bounded overlays and never membership authority. */
 export function discoveryV1Opportunity(item:DiscoveryV1Item):PrilikaProjekcija & {revision:number}{
+  const known=opportunities.get(item);
+  if(known) return known;
+  const made=projectOpportunity(item);
+  opportunities.set(item,made);
+  return made;
+}
+function projectOpportunity(item:DiscoveryV1Item):PrilikaProjekcija & {revision:number}{
   const raw=rawItem(item), {detail,schedule}=readPublicNeedDetail(raw as Record<string,any>);
   const remote=detail.rezimLokacije==='REMOTE', covered=Math.min(item.requiredSlots,item.coveredSlots);
   return { id:item.id,revision:item.revision,naslov:item.title,opis:'',detalji:detail,statusTekst:'Traži ponude',

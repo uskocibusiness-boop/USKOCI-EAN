@@ -66,3 +66,22 @@ it('carries the viewport-settled action to the map seam only when the screen sup
  const withIt=discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,{...actions,onViewportSettled});
  expect(withIt.p6Seam.map.onViewportSettled).toBe(onViewportSettled);
 });
+
+// Audit fix 6: the quick chips are offered from the server's whole-filter availability, which the bridge hands to the presentation.
+it('hands the server availability and the visible-rows action to the presentation seam',()=>{
+ const onVisibleRange=jest.fn();
+ const model=discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,{...actions,onVisibleRange});
+ expect(model.p6Seam.availability).toEqual({hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['OFFERS']});
+ expect(model.p6Seam.onVisibleRange).toBe(onVisibleRange);
+ expect(discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,actions).p6Seam).not.toHaveProperty('onVisibleRange');
+});
+// Audit fix 5: a row with its details is the same object across commits while nothing it shows changed, so the list's memoised rows are not redone.
+it('the same row with the same details is the same object across commits; a changed profile makes a new one',()=>{
+ // Each commit takes a fresh overlay snapshot: new maps, the same profile and urgency objects.
+ const once=overlay(),first=discoveryV1PresentationBridgeModel(screen(),once,null,false,actions);
+ const second=discoveryV1PresentationBridgeModel(screen(),{...once,profiles:new Map(once.profiles),urgency:new Map(once.urgency)},null,false,actions);
+ expect(second.items[0]).toBe(first.items[0]);
+ const other=overlay();other.profiles=new Map([[PROFILE,{...other.profiles.get(PROFILE)!,ime:'Ana M.'}]]);
+ const third=discoveryV1PresentationBridgeModel(screen(),other,null,false,actions);
+ expect(third.items[0]).not.toBe(first.items[0]);expect(third.items[0]).toMatchObject({narucilacIme:'Ana M.'});
+});

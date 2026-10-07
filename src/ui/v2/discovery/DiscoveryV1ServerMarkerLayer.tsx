@@ -13,27 +13,53 @@ export type DiscoveryV1ServerMarkerLayerProps = {
 
 export const SERVER_MARKER_SOURCE_ID = 'p6-buckets';
 
+/** The capsule sprites (scripts/design/generate_p6_pins.py), 4 px per dp. The map registers them with its other pin images. */
+export const DISCOVERY_V1_PIN_IMAGES = {
+  'p6-pin-task': require('../../../../assets/discovery/p6-pin-task.png'),
+  'p6-pin-task-chosen': require('../../../../assets/discovery/p6-pin-task-chosen.png'),
+  'p6-pin-count-1': require('../../../../assets/discovery/p6-pin-count-1.png'),
+  'p6-pin-count-1-chosen': require('../../../../assets/discovery/p6-pin-count-1-chosen.png'),
+  'p6-pin-count-2': require('../../../../assets/discovery/p6-pin-count-2.png'),
+  'p6-pin-count-2-chosen': require('../../../../assets/discovery/p6-pin-count-2-chosen.png'),
+  'p6-pin-count-3': require('../../../../assets/discovery/p6-pin-count-3.png'),
+  'p6-pin-count-3-chosen': require('../../../../assets/discovery/p6-pin-count-3-chosen.png'),
+  'p6-pin-count-4': require('../../../../assets/discovery/p6-pin-count-4.png'),
+  'p6-pin-count-4-chosen': require('../../../../assets/discovery/p6-pin-count-4-chosen.png'),
+} as const;
+/** The sprites are drawn at 4 px per dp. */
+export const PIN_ICON_SIZE = 1 / 4;
+/** The chosen capsule is 6 % larger (AGENTS §3.6.7, as PricePill's SELECTED_SCALE). */
+export const PIN_CHOSEN_SCALE = 1.06;
+const COUNT_SIZE = 14;
+/** The count's centre is 15 dp right of the capsule's centre: after the mark well, before the right padding (PricePill's geometry). */
+const COUNT_OFFSET: [number, number] = [15 / COUNT_SIZE, 0];
+// The count's font is a literal list: MLRNStyleValue reads a string-first array as an expression, also for text-font. A place (several tasks
+// on one public point) says its count in ink, as PricePill's count does; an area says it in green, as the clusters of the map always have.
+// The halo in the same colour gives the regular face the weight of PricePill's 600.
+
 /**
- * The server's MAP buckets as native map layers: one GeoJSON point per bucket, drawn on the GL surface with the same circle/count/mark
- * layers the legacy clusters and fallback pins use. A bucket is at most 256 points, and a view annotation (a bitmap of a React view) is
- * the wrong tool for that many: it needs its child laid out inside an offscreen container and snapshot again on every change, and on the
- * emulator none was ever drawn. A layer has no such dependency, survives a style swap (the source is added to the new style), and needs
- * no accessibility node of its own: the list beside the map stays the readable path to every task.
+ * The server's MAP buckets as native map layers: one GeoJSON point per bucket, drawn on the GL surface. A bucket is at most 256 points, and a
+ * view annotation (a bitmap of a React view) is the wrong tool for that many: it needs its child laid out inside an offscreen container and
+ * snapshot again on every change, and on the emulator none was ever drawn. A layer has no such dependency, survives a style swap (the source
+ * is added to the new style), and needs no accessibility node of its own: the list beside the map stays the readable path to every task.
  *
- * TASK: a white disc with the USKOČI mark. PLACE (several tasks on one public point): a green disc with its count. CLUSTER (an area):
- * a white disc with a green ring and its count. Bundled enamel sprites refine the same centered shapes;
- * their counts remain native text and the circles remain a fallback. The chosen bucket keeps its orange halo.
+ * Every bucket is the PricePill capsule (AGENTS §3.6.7): white, a hairline edge and the USKOČI mark; a task is the mark alone (the bucket
+ * carries no price), a place or an area adds its count. Each capsule is one symbol, its count drawn with it, and `order` stacks them (areas,
+ * then places, then single tasks; north under south), so where capsules overlap one is drawn whole over the other. The chosen bucket leaves
+ * that layer for its own layer on top: the same capsule 6 % larger, with the orange edge and halo and its count in orange.
  */
 export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarkerLayer(props: DiscoveryV1ServerMarkerLayerProps) {
-  // Validates the bound and the keys (a duplicate or an oversized set is refused, never truncated).
-  const specs = discoveryV1ServerMarkerSpecs(props.markers, props.selectedKey);
+  // Validates the bound and the keys (a duplicate or an oversized set is refused, never truncated). Selection plays no part in the data.
+  const specs = useMemo(() => discoveryV1ServerMarkerSpecs(props.markers, null), [props.markers]);
   const byKey = useMemo(() => new Map(props.markers.map(marker => [marker.key, marker] as const)), [props.markers]);
-  const data = useMemo(() => JSON.stringify({ type: 'FeatureCollection', features: props.markers.map(marker => ({
-    type: 'Feature', geometry: { type: 'Point', coordinates: [marker.point.lng, marker.point.lat] },
-    properties: { key: marker.key, kind: marker.kind, count: marker.taskCount },
-  })) }), [props.markers]);
+  const data = useMemo(() => JSON.stringify({ type: 'FeatureCollection', features: specs.map(spec => ({
+    type: 'Feature', geometry: { type: 'Point', coordinates: [spec.point.lng, spec.point.lat] },
+    properties: { key: spec.marker.key, kind: spec.marker.kind, count: spec.marker.taskCount, label: spec.pin.count,
+      image: spec.pin.image, chosenImage: spec.pin.chosenImage, order: spec.order },
+  })) }), [specs]);
   // DEV package only: how many buckets are on the native map.
   useEffect(() => { traceDiscoveryV1('markers', `${Math.min(specs.length, 9999)}/1`); }, [specs.length]);
+  const chosen = props.selectedKey ?? '';
   return <GeoJSONSource id={SERVER_MARKER_SOURCE_ID} data={data} hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
     onPress={event => {
       event.stopPropagation();
@@ -41,18 +67,18 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
       const marker = typeof key === 'string' ? byKey.get(key) : undefined;
       if (marker) props.onSelect(marker);
     }}>
-    <Layer id="p6-halo" type="circle" filter={['==', ['get', 'key'], props.selectedKey ?? '']}
-      paint={{ 'circle-radius': 27, 'circle-color': sys.color.orangeHalo, 'circle-opacity': 0.9 }} />
-    <Layer id="p6-discs" type="circle"
-      paint={{ 'circle-radius': ['case', ['==', ['get', 'kind'], 'TASK'], 16, 20],
-        'circle-color': ['case', ['==', ['get', 'kind'], 'PLACE'], sys.color.green, sys.color.surface],
-        'circle-stroke-width': 2, 'circle-stroke-color': sys.color.green }} />
-    <Layer id="p6-counts" type="symbol" filter={['!=', ['get', 'kind'], 'TASK']}
-      layout={{ 'text-field': ['to-string', ['get', 'count']], 'text-size': 14, 'text-font': ['literal', ['Noto Sans Regular']], 'text-allow-overlap': true,
-        'icon-image': ['case', ['==', ['get', 'kind'], 'PLACE'], 'uskoci-place-material', 'uskoci-cluster-material'],
-        'icon-size': 48 / 160, 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-optional': true }}
-      paint={{ 'text-color': ['case', ['==', ['get', 'kind'], 'PLACE'], sys.color.surface, sys.color.green] }} />
-    <Layer id="p6-marks" type="symbol" filter={['==', ['get', 'kind'], 'TASK']}
-      layout={{ 'icon-image': 'uskoci-task-material', 'icon-size': 40 / 160, 'icon-allow-overlap': true, 'icon-ignore-placement': true }} />
+    <Layer id="p6-pins" type="symbol" filter={['!=', ['get', 'key'], chosen]}
+      layout={{ 'symbol-sort-key': ['get', 'order'], 'icon-image': ['get', 'image'], 'icon-size': PIN_ICON_SIZE,
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE, 'text-offset': COUNT_OFFSET,
+        'text-allow-overlap': true, 'text-ignore-placement': true }}
+      paint={{ 'text-color': ['case', ['==', ['get', 'kind'], 'CLUSTER'], sys.color.green, sys.color.ink],
+        'text-halo-color': ['case', ['==', ['get', 'kind'], 'CLUSTER'], sys.color.green, sys.color.ink], 'text-halo-width': 0.4 }} />
+    <Layer id="p6-chosen" type="symbol" filter={['==', ['get', 'key'], chosen]}
+      layout={{ 'icon-image': ['get', 'chosenImage'], 'icon-size': PIN_ICON_SIZE * PIN_CHOSEN_SCALE,
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE * PIN_CHOSEN_SCALE, 'text-offset': COUNT_OFFSET,
+        'text-allow-overlap': true, 'text-ignore-placement': true }}
+      paint={{ 'text-color': sys.color.orangeInk, 'text-halo-color': sys.color.orangeInk, 'text-halo-width': 0.4 }} />
   </GeoJSONSource>;
 });

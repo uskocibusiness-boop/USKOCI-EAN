@@ -23,6 +23,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { AREA_SETTLE_MS, DiscoveryMap } from '../../ui/v2/DiscoveryMap';
+import { clearBandBounds, latitudeAtRow, MIN_CLEAR_BAND, rowOfLatitude } from '../../ui/v2/discovery/mapClearBand';
 import { DiscoveryMap as WebMap } from '../../ui/v2/DiscoveryMap.web';
 import { sys } from '../../ui/system/tokens';
 import { useNearbyMap } from '../../ui/v2/discovery/useNearbyMap';
@@ -134,7 +135,9 @@ test('a move of the person\'s own settles, and after a short wait the list follo
  await wait(5_000); expect(search).not.toHaveBeenCalled();
  await act(async () => native().props.onRegionDidChange(moved(region)));
  await wait(AREA_SETTLE_MS - 1); expect(search).not.toHaveBeenCalled();
- await wait(1); expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith(region.bounds);
+ await wait(1); expect(search).toHaveBeenCalledTimes(1);
+ // With nothing over the map (no tools, no sheet, no card) what the person sees is the whole view: the list and the map read the same bounds.
+ expect(search).toHaveBeenCalledWith(region.bounds, region.bounds);
  expect(AREA_SETTLE_MS).toBe(450);
  // A malformed region offers nothing.
  await act(async () => native().props.onRegionDidChange(moved({ ...region, bounds: [-181, -1, 1, 1] })));
@@ -147,7 +150,7 @@ test('a pan in several strokes asks once, for where it ended; taking hold of the
  await wait(AREA_SETTLE_MS - 100);
  await act(async () => native().props.onRegionDidChange(moved(second)));
  await wait(AREA_SETTLE_MS - 100); expect(search).not.toHaveBeenCalled();
- await wait(100); expect(search.mock.calls).toEqual([[second.bounds]]);
+ await wait(100); expect(search.mock.calls).toEqual([[second.bounds, second.bounds]]);
  // The person takes hold of the map before the wait is over: that settle was not where they stopped.
  await act(async () => native().props.onRegionDidChange(moved(third)));
  await act(async () => native().props.onRegionWillChange(moved(third)));
@@ -155,7 +158,7 @@ test('a pan in several strokes asks once, for where it ended; taking hold of the
  // The app's own move starting does not cancel a wait of the person's.
  await act(async () => native().props.onRegionDidChange(moved(third)));
  await act(async () => native().props.onRegionWillChange({ nativeEvent: { ...third, userInteraction: false } }));
- await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[second.bounds], [third.bounds]]);
+ await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[second.bounds, second.bounds], [third.bounds, third.bounds]]);
 });
 test('a zoom button or a cluster tap counts as the person\'s move; a chosen pin brought into view never does', async () => {
  await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
@@ -163,7 +166,7 @@ test('a zoom button or a cluster tap counts as the person\'s move; a chosen pin 
  await act(async () => zoomButton('Uvećaj mapu').props.onPress());
  const zoomed = { ...region, zoom: 5, bounds: [-0.5, -0.5, 0.5, 0.5] };
  await act(async () => native().props.onRegionDidChange({ nativeEvent: zoomed }));
- await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[zoomed.bounds]]);
+ await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[zoomed.bounds, zoomed.bounds]]);
  // The intent is used once: the next settle of the app's own is not the person's.
  await act(async () => native().props.onRegionDidChange({ nativeEvent: region })); await wait(AREA_SETTLE_MS * 2);
  expect(search).toHaveBeenCalledTimes(1);
@@ -171,7 +174,7 @@ test('a zoom button or a cluster tap counts as the person\'s move; a chosen pin 
  mockExpand.mockResolvedValue(9); await pressFeature([cluster]);
  const opened = { ...region, zoom: 9, bounds: [-0.1, -0.1, 0.1, 0.1] };
  await act(async () => native().props.onRegionDidChange({ nativeEvent: opened })); await wait(AREA_SETTLE_MS);
- expect(search.mock.calls[1]).toEqual([opened.bounds]);
+ expect(search.mock.calls[1]).toEqual([opened.bounds, opened.bounds]);
  // A zoom tap that is followed by a chosen pin: the pin is brought into view by the camera, and that is never an area.
  await act(async () => zoomButton('Uvećaj mapu').props.onPress());
  selectedId = 'one'; await update();
@@ -227,7 +230,7 @@ test('the region the camera settles into on first load arms the area control wit
  await act(async () => native().props.onRegionDidChange(moved(region)));
  expect(setViewport).toHaveBeenCalledWith(region);
  await wait(AREA_SETTLE_MS);
- expect(search).toHaveBeenCalledWith(region.bounds);
+ expect(search).toHaveBeenCalledWith(region.bounds, region.bounds);
 });
 test('display deadline stays retryable, while actual success of the same current native map recovers without a remount', async () => {
  viewport = region as PublicViewport; await render(); const current = native(), late = current.props.onDidFinishLoadingMap;
@@ -447,4 +450,23 @@ test('native failure while a retained detail is on top prevents reuse on return'
  await act(async () => mapBefore.props.onDidFailLoadingMap());
  mockFocused = true; await update();
  expect(native()).not.toBe(mapBefore);
+});
+
+// Audit fix 2: the list follows the part of the map the person can see. The map is north-up and unpitched, so a row of pixels is one latitude.
+describe('the clear band between the search tools and the sheet', () => {
+  const view = [20.3, 44.7, 20.5, 44.9] as [number, number, number, number];
+  test('rows and latitudes are each other\'s inverse, and the edges of the view are its bounds', () => {
+    expect(rowOfLatitude(view, 800, 44.9)).toBeCloseTo(0, 9); expect(rowOfLatitude(view, 800, 44.7)).toBeCloseTo(800, 9);
+    for (const row of [0, 60, 333, 500, 800]) expect(rowOfLatitude(view, 800, latitudeAtRow(view, 800, row))).toBeCloseTo(row, 6);
+    // Web Mercator: the middle row is not the middle latitude.
+    expect(latitudeAtRow(view, 800, 400)).not.toBeCloseTo(44.8, 6);
+  });
+  test('the band keeps the width and each uncovered edge exactly, and a band too thin to mean anything is the whole view', () => {
+    expect(clearBandBounds(view, 800, 60, 500)).toEqual([20.3, 44.775081, 20.5, 44.885024]);
+    expect(clearBandBounds(view, 800, 0, 800)).toBe(view);
+    expect(clearBandBounds(view, 800, 0, 500)).toEqual([20.3, 44.775081, 20.5, 44.9]);
+    expect(clearBandBounds(view, 800, 60, 60 + MIN_CLEAR_BAND - 1)).toBe(view);
+    expect(clearBandBounds(view, 0, 60, 500)).toBe(view);
+    expect(clearBandBounds(view, 800, -20, 900)).toBe(view);
+  });
 });

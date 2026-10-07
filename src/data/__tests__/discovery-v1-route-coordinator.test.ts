@@ -1,3 +1,9 @@
+// Counts how many times a row is turned into a card (a transparent wrapper: every test still gets the real projection).
+const mockDetailReads = { count: 0 };
+jest.mock('../needClientService', () => {
+  const actual = jest.requireActual('../needClientService');
+  return { ...actual, readPublicNeedDetail: (...args: unknown[]) => { mockDetailReads.count++; return actual.readPublicNeedDetail(...args); } };
+});
 import { createDiscoveryV1RouteCoordinator, discoveryV1RouteIntentKey, DISCOVERY_V1_RESTORE_PAGES } from '../discoveryV1RouteCoordinator';
 import { initialMarketplaceView, type MarketplaceView } from '../marketplaceView';
 import { taskRelationIndex } from '../taskRelation';
@@ -565,4 +571,120 @@ it('EX-03: attaching a kept coordinator asks the relations again and the profile
  for (let n = 0; n < 40; n++) await Promise.resolve();
  expect(h.relations.mock.calls.length).toBe(relationsBefore + 1);       // the account's relations are asked again
  expect(profileReads.length).toBe(profilesBefore);                      // the known profile is not
+});
+
+// Audit fix 4: a pan of the person's own used to drop the chosen pin and its card. The choice now stays while its bucket is still on the map they
+// see after the move, and the card stays on screen while the move's reads are out.
+function settleHarness(){
+ const h=harness(),gate={page:null as ReturnType<typeof deferred<void>>|null};let buckets:any[]=[{kind:'TASK',key:'task:'+ID,point:{lat:45.25,lng:19.83},taskId:ID}];
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  h.calls.push(request);
+  if(request.mode==='MAP')return {...map(request.bounds),buckets,counts:{kind:'exact_live',observedAt:AT,mapped:12,withoutPoint:0}};
+  if(request.mode==='EXACT_PUBLIC')return exact();
+  if(request.mode==='PLACES')return places();
+  await gate.page?.promise;return page(12);
+ });
+ return {h,gate,transport,setBuckets:(next:any[])=>{buckets=next;}};
+}
+it('a settled pan keeps the chosen task and its card while its bucket is still on the map, the card staying on screen through the reads',async()=>{
+ const x=settleHarness(),route=createDiscoveryV1RouteCoordinator(x.transport,x.h.overlay);
+ await route.open(view());const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ x.gate.page=deferred<void>();
+ const settling=route.settleMap([19.6,44.6,20.4,45.3],[19.5,44.5,20.5,45.5]);
+ await Promise.resolve();await Promise.resolve();
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{id:ID}});expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+ x.gate.page.resolve();expect((await settling).kind).toBe('applied');
+ expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+ expect(route.snapshot().view).toMatchObject({selectedId:ID,selectedPlace:null,area:[19.6,44.6,20.4,45.3],pinPlace:null});
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{id:ID}});
+ // Audit fix 2: the list read what the person can see; the map read its whole frame.
+ const pageRequest=x.h.calls.findLast(call=>call.mode==='PAGE') as any,mapRequest=x.h.calls.findLast(call=>call.mode==='MAP') as any;
+ expect(pageRequest.scope).toEqual({kind:'AREA',bounds:[19.6,44.6,20.4,45.3]});expect(mapRequest.bounds).toEqual([19.5,44.5,20.5,45.5]);
+});
+it('a settled pan whose map no longer holds the chosen bucket lets the choice and its card go',async()=>{
+ const x=settleHarness(),route=createDiscoveryV1RouteCoordinator(x.transport,x.h.overlay);
+ await route.open(view());await route.selectMarker(route.snapshot().screen.mapMarkers[0]);
+ x.setBuckets([]);
+ expect((await route.settleMap([19.6,44.6,20.4,45.3],[19.5,44.5,20.5,45.5])).kind).toBe('applied');
+ expect(route.snapshot().selectedMarkerKey).toBeNull();expect(route.snapshot().view).toMatchObject({selectedId:null,selectedPlace:null});
+ expect(route.snapshot().screen.peek).toBeNull();
+ // With no separate frame the map reads the list's own bounds, as before.
+ const reads=x.h.calls.length;await route.settleMap([19.7,44.7,20.3,45.2]);
+ expect((x.h.calls.slice(reads).find(call=>call.mode==='MAP') as any).bounds).toEqual([19.7,44.7,20.3,45.2]);
+});
+it('a chosen place keeps its card and its members read across a settled pan while its bucket stays',async()=>{
+ const placeKey='place:45.26:19.84',bucket={kind:'PLACE',key:placeKey,point:{lat:45.26,lng:19.84},taskCount:2};
+ const x=settleHarness(),members=deferred<void>();x.setBuckets([bucket]);
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  if(request.mode==='PAGE'&&(request.scope as any).kind==='POINT_MEMBERS'){await members.promise;x.h.calls.push(request);
+   return {...page(2),items:[item(),{...item(),id:'33333333-3333-4333-8333-333333333333'}],counts:{...page(2).counts,mapped:2,listed:2,inArea:2}};}
+  return x.transport(request);
+ });
+ const route=createDiscoveryV1RouteCoordinator(transport,x.h.overlay);
+ await route.open(view());
+ const selecting=route.selectMarker(route.snapshot().screen.mapMarkers[0]);
+ // The person pans while the place's members are still being read: the members read is not part of the list's scope and survives the move.
+ expect((await route.settleMap([19.6,44.6,20.4,45.3],[19.5,44.5,20.5,45.5])).kind).toBe('applied');
+ members.resolve();expect(await selecting).toMatchObject({kind:'PLACE',applied:true});
+ expect(route.snapshot().selectedMarkerKey).toBe(placeKey);
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'PLACE',point:{lat:45.26,lng:19.84}});
+ expect((route.snapshot().screen.peek as any).items).toHaveLength(2);
+});
+
+// Audit fix 5: one settled pan of 50 rows used to turn every row into a card eight times (the held picture, the session, the overlay, every commit).
+it('a settled pan turns each new row into its card once, and an unchanged picture hands out the same rows again',async()=>{
+ const ids=Array.from({length:50},(_,n)=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`);
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  if(request.mode==='MAP')return map(request.bounds);
+  if(request.mode==='EXACT_PUBLIC')return exact();
+  return {...page(50),items:ids.map(id=>({...item(),id})),counts:{...page(50).counts,mapped:50,listed:50,inArea:50}};
+ });
+ const overlay={relations:jest.fn(async(asked:readonly string[])=>taskRelationIndex([],asked)),profile:jest.fn(async()=>null),urgencies:jest.fn(async()=>new Map())};
+ const route=createDiscoveryV1RouteCoordinator(transport,overlay);
+ await route.open(view());
+ const commit=()=>{const s=route.snapshot();return discoveryV1PresentationBridgeModel(s.screen,s.overlay,s.selectedMarkerKey,s.loadingMore,{} as DiscoveryV1PresentationActions,s.search);};
+ commit();
+ mockDetailReads.count=0;
+ await route.settleMap([19.6,44.6,20.4,45.3],[19.5,44.5,20.5,45.5]);
+ const first=commit();for(let n=0;n<40;n++)await Promise.resolve();const second=commit();
+ expect(mockDetailReads.count).toBe(50);
+ expect(second.items.every((row,index)=>row===first.items[index])).toBe(true);
+ expect(route.snapshot().screen.items).toBe(route.snapshot().screen.items);
+ expect(route.snapshot().screen.mapMarkers).toBe(route.snapshot().screen.mapMarkers);
+});
+
+// Audit fix 7: only the first hundred rows of a long list ever got their optional details (relation, publisher). The window now follows the rows on screen.
+function manyRows(total:number){
+ const id=(n:number)=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  if(request.mode==='MAP')return map(request.bounds);
+  if(request.mode!=='PAGE')return exact();
+  const start=request.after?Number(request.after.id.slice(0,8))+1:0,end=Math.min(total,start+50),more=end<total;
+  return {...page(total),items:Array.from({length:end-start},(_,n)=>({...item(),id:id(start+n)})),hasMore:more,
+   counts:{...page(total).counts,mapped:total,listed:total,inArea:total},nextCursor:more?{scopeKey:B,section:0,sortAt:AT,id:id(end-1)}:null};
+ });
+ const overlay={relations:jest.fn(async(asked:readonly string[])=>taskRelationIndex([],asked)),profile:jest.fn(async()=>null),urgencies:jest.fn(async()=>new Map())};
+ return {id,transport,overlay};
+}
+it('the optional details follow the rows the list shows, past the first hundred, and a new area starts at the top again',async()=>{
+ const x=manyRows(150),route=createDiscoveryV1RouteCoordinator(x.transport,x.overlay);
+ await route.restore(view({pages:3}));for(let n=0;n<40;n++)await Promise.resolve();
+ expect(route.snapshot().screen.items).toHaveLength(150);
+ const asked=()=>x.overlay.relations.mock.calls.at(-1)![0] as readonly string[];
+ expect(asked()).toEqual(Array.from({length:100},(_,n)=>x.id(n)));
+ // Rows well inside the window ask for nothing.
+ const calls=x.overlay.relations.mock.calls.length;
+ expect(route.showRows(10,20)).toBe(false);expect(route.showRows(-1,4)).toBe(false);expect(route.showRows(30,20)).toBe(false);
+ // Rows near the window's lower edge, with rows beyond it: the window moves to them.
+ expect(route.showRows(92,99)).toBe(true);for(let n=0;n<40;n++)await Promise.resolve();
+ expect(asked()).toEqual(Array.from({length:100},(_,n)=>x.id(50+n)));expect(x.overlay.relations.mock.calls.length).toBe(calls+1);
+ expect(route.showRows(120,149)).toBe(false);
+ expect(route.showRows(55,60)).toBe(true);for(let n=0;n<40;n++)await Promise.resolve();
+ expect(asked()[0]).toBe(x.id(25));
+ // The rows on screen carry the details the window read; a commit shows them.
+ const s=route.snapshot(),model=discoveryV1PresentationBridgeModel(s.screen,s.overlay,null,false,{} as DiscoveryV1PresentationActions,s.search);
+ expect(s.overlay.admitted.has(x.id(120))).toBe(true);expect(s.overlay.admitted.has(x.id(130))).toBe(false);expect(model.items).toHaveLength(150);
+ // A settled pan replaces the list: the window starts at its top again.
+ await route.settleMap([19.6,44.6,20.4,45.3],[19.5,44.5,20.5,45.5]);for(let n=0;n<40;n++)await Promise.resolve();
+ expect(asked()[0]).toBe(x.id(0));
 });

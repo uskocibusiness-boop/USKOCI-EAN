@@ -23,7 +23,7 @@ import { StateView } from '../system/StateView';
 import { floating, sys } from '../system/tokens';
 import { DiscoveryMap } from './DiscoveryMap';
 import type { DiscoveryV1ServerMapSeam } from './DiscoveryMap.types';
-import type { DiscoveryV1Counts } from '../../data/discoveryV1Contract';
+import type { DiscoveryV1Availability, DiscoveryV1Counts } from '../../data/discoveryV1Contract';
 import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
 import { DiscoverySearchBar, type QuickChip } from './discovery/DiscoverySearchBar';
@@ -49,15 +49,23 @@ export type DiscoveryV1PresentationSeam = {
   peek: { key: string; item: MarketplaceItem | null; place: readonly MarketplaceItem[] } | null;
   /** Exact live PAGE counts; loaded rows may be only the first bounded pages. */
   counts: DiscoveryV1Counts | null;
+  /**
+   * What the server says about every published task (not the loaded page): whether any names its work mode or its days, and which price modes exist.
+   * The quick chips are offered from it, so they do not come and go as the map moves. Null until a page has been read.
+   */
+  availability?: DiscoveryV1Availability | null;
   /** Server-owned draft count/locality facets. Loaded PAGE rows are never used as its fallback. */
   search?: DiscoveryV1SearchPanelSeam;
   pageHasMore: boolean;
   loadingMore?: boolean;
-  onArea: (bounds: PublicBounds) => void;
+  /** A settled move of the person's own: `bounds` is what they can see (the list's area), `frame` the map's whole view (its buckets). */
+  onArea: (bounds: PublicBounds, frame?: PublicBounds) => void;
   onClearPeek: () => void;
   onShowPlace: () => void;
   onShowAll: () => void;
   onNextPage: () => void;
+  /** The list shows rows `first` to `last` (indexes of `items`), so their optional details can be read. */
+  onVisibleRange?: (first: number, last: number) => void;
 };
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
@@ -409,7 +417,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const undated = useMemo(() => loading || error ? 0 : props.p6Seam?.counts?.undated
     ?? undatedCount(items, filters, undefined, now), [loading, error, items, filters, now, props.p6Seam?.counts?.undated]);
   const conditionCount = discoveryConditions(view);
-  const hasFilter = !!view.query.trim() || discoveryFiltered(view) || !!view.area || !!view.place || !!view.pinPlace;
   // Ownership only labels rows: counts describe the same public subset before and after the overlay arrives.
   const readiness: SearchReadiness = loading || props.collectionStatus === 'loading' ? 'loading'
     : error || props.collectionStatus === 'error' ? 'error' : 'ready';
@@ -572,9 +579,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   };
   // The list follows the map: a settled move of the person's own hands up the bounds it shows, and it is a new "where",
   // so the one point a place's list was narrowed to is let go.
-  const followArea = (bounds: PublicBounds) => {
+  const followArea = (bounds: PublicBounds, frame?: PublicBounds) => {
     userIntent?.(); retireListFocus();
-    if (props.p6Seam) { props.p6Seam.onArea(bounds); return; }
+    if (props.p6Seam) { props.p6Seam.onArea(bounds, frame); return; }
     const current = latestView.current;
     if (!sameBounds(bounds, current.area) || current.pinPlace) change({ area: bounds, pinPlace: null });
   };
@@ -749,21 +756,37 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   };
   const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet }); };
 
-  // Quick chips: each toggles one existing filter at once, and is offered only when the loaded tasks carry the fact it
-  // reads (or it is already on and must be removable). "N+ mesta" is offered only on a count of open places the read gave.
-  const timed = useMemo(() => saysWhen(items, now), [items, now]);
-  const workModes = useMemo(() => saysWorkMode(items), [items]);
+  // Quick chips: each toggles one existing filter at once, and is offered only when the tasks carry the fact it reads (or it is
+  // already on and must be removable). The legacy reader holds every task, so its loaded rows say it. P6 holds one area's pages,
+  // which change with every move of the map, so a chip read from them came and went while the person panned: there the server's
+  // whole-filter availability says it (kept through a read that has not answered yet), and "N+ mesta", which the server does not
+  // report, stays once any read in this account's visit showed a task with room for two (a server availability key would end this).
+  const p6 = props.p6Seam;
+  const lastAvailability = useRef<{ scopeKey: string; value: DiscoveryV1Availability } | null>(null);
+  if (p6?.availability) lastAvailability.current = { scopeKey: props.scopeKey, value: p6.availability };
+  const availability = p6 && lastAvailability.current?.scopeKey === props.scopeKey ? lastAvailability.current.value : null;
+  const roomSeen = useRef<string | null>(null);
+  const loadedRoom = useMemo(() => items.some(item => (openPlaces(item) ?? 0) >= 2), [items]);
+  if (loadedRoom) roomSeen.current = props.scopeKey;
+  const timed = useMemo(() => p6 ? !!availability?.hasKnownSchedule : saysWhen(items, now), [p6, availability, items, now]);
+  const workModes = useMemo(() => p6 ? !!availability?.hasKnownWorkMode : saysWorkMode(items), [p6, availability, items]);
+  const priceSaid = (key: 'MY_PRICE' | 'OFFERS') => p6 ? !!availability?.priceModes.includes(key) : items.some(item => item.rezimCene === key);
+  const roomSaid = p6 ? roomSeen.current === props.scopeKey : loadedRoom;
   const toggle = (patch: Partial<MarketplaceView>) => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
+  // The first slot of the rail is kept for a personal switch ("Za mene": the tasks that match the person's work profile). It needs a server
+  // filter key the P6 contract does not have yet, so nothing is offered there today; it goes in `leading`, ahead of the work-mode chips.
+  const leading: QuickChip[] = [];
   const chips: QuickChip[] = [
+    ...leading,
     // Remote work remains a direct way in, ahead of the optional date/price rail. It has no stale map scope.
     ...(['remote', 'onsite'] as const).filter(key => workModes || view.where === key).map(key => ({ key: `where:${key}`, label: said(WHERE, key),
       selected: view.where === key, onPress: () => toggle({ where: view.where === key ? 'any' : key }) })),
     ...QUICK_WHEN.filter(key => timed || currentWhen === key).map(key => ({ key: `when:${key}`, label: said(WHEN, key), selected: currentWhen === key,
       onPress: () => toggle({ when: currentWhen === key ? 'any' : key as WhenFilter, dates: null }) })),
-    ...(['MY_PRICE', 'OFFERS'] as const).filter(key => view.price === key || items.some(item => item.rezimCene === key)).map(key => ({
+    ...(['MY_PRICE', 'OFFERS'] as const).filter(key => view.price === key || priceSaid(key)).map(key => ({
       key: `price:${key}`, label: said(PRICE, key), selected: view.price === key, onPress: () => toggle({ price: view.price === key ? 'all' : key }) })),
-    ...(atLeast(freePlaces) > 1 || items.some(item => (openPlaces(item) ?? 0) >= 2) ? [{ key: 'places',
+    ...(atLeast(freePlaces) > 1 || roomSaid ? [{ key: 'places',
       label: atLeast(freePlaces) > 1 ? placesWords(freePlaces) : placesWords(2), selected: atLeast(freePlaces) > 1,
       onPress: () => toggle({ places: atLeast(freePlaces) > 1 ? 1 : 2 }) }] : []),
   ];
@@ -1028,10 +1051,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Gorhom sizes its content to the highest detent even at half height, so native viewability is trusted only at full.
   const [portraitIds, setPortraitIds] = useState<ReadonlySet<string>>(() => new Set());
   const portraitViewability = useRef({ itemVisiblePercentThreshold: 30, minimumViewTime: 180 }).current;
+  const visibleRangeRef = useRef(props.p6Seam?.onVisibleRange); visibleRangeRef.current = props.p6Seam?.onVisibleRange;
   const onVisibleRows = useCallback(({ viewableItems }: { viewableItems: ViewToken<MarketplaceItem>[] }) => {
     if (!currentList()) return;
-    const next = new Set(viewableItems.filter(token => token.isViewable).slice(0, 6).map(token => token.item.id));
+    const shown = viewableItems.filter(token => token.isViewable);
+    const next = new Set(shown.slice(0, 6).map(token => token.item.id));
     setPortraitIds(current => current.size === next.size && [...next].every(id => current.has(id)) ? current : next);
+    // P6: the rows on screen get their optional details (relation, publisher), not only the first hundred of the list.
+    const indexes = shown.map(token => token.index).filter((index): index is number => typeof index === 'number' && index >= 0);
+    if (indexes.length) visibleRangeRef.current?.(Math.min(...indexes), Math.max(...indexes));
   }, [currentList]);
   useEffect(() => { setPortraitIds(new Set()); }, [props.scopeKey]);
   const showPortraits = focused && !cardShown && sheetIndex === SNAP.full;
@@ -1040,21 +1068,24 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       portraitVisible={showPortraits && portraitIds.has(item.id)}
       section={sectionsRef.current.get(index)} />, [relation, openItem, showPortraits, portraitIds]);
 
-  // The one state view: reading, not read, nothing in this view, nothing yet — the meanings the list had before.
+  // The one state view: reading, not read, nothing here, nothing for these conditions, nothing at all. The map and the list always show every
+  // published task (owner, 2026-10-07): an empty list is never about the person's profile, only about where the map stands and what is searched.
+  // Tasks under these conditions exist elsewhere when the legacy read holds them, or when P6's whole-filter count says so.
+  const elsewhere = props.p6Seam ? (props.p6Seam.counts?.mapped ?? 0) > 0 : mapped.length > 0;
+  const conditionsOn = !!view.query.trim() || discoveryFiltered(view) || !!view.place;
   const empty = <View style={s.empty}>
     {loading || props.collectionStatus === 'loading' ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
       : error || props.collectionStatus === 'error' ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: refreshList }} />
         // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
-        : (pinPlace || area) && mapped.length ? <StateView art="map" title={pinPlace ? 'Nema zadataka na ovom mestu' : 'Nema zadataka u ovoj oblasti'}
-          body="Pomeri mapu ili prikaži sve zadatke." primary={{ label: 'Prikaži sve zadatke', onPress: showAll }} />
-          : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili obriši sve uslove."
+        : (pinPlace || area) && elsewhere ? <StateView art="map" title={pinPlace ? 'Nema zadataka na ovom mestu' : 'Nema zadataka u ovoj oblasti'}
+          body={pinPlace ? 'Pomeri mapu ili prikaži sve zadatke.' : 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.'}
+          primary={{ label: 'Prikaži sve zadatke', onPress: showAll }} />
+          : conditionsOn ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Nijedan zadatak ne odgovara ovim uslovima."
             primary={{ label: CLEAR_ALL, onPress: reset }} />
-            // The brand action is what the screen wants you to do. On the screen a worker meets before anything exists,
-            // that is not "refresh" — it is the profile that decides whether a task can ever be offered to them.
             : <StateView art="tasks" title="Trenutno nema otvorenih zadataka"
-              body="Zadaci se nude prema tvom radnom profilu — veštinama, području i dostupnosti."
-              primary={{ label: 'Dopuni radni profil', onPress: props.onProfile }} quiet={{ label: 'Osveži zadatke', onPress: refreshList }} />}
+              body="Kad neko objavi zadatak, videćeš ga ovde i na mapi."
+              primary={{ label: 'Osveži zadatke', onPress: refreshList }} />}
   </View>;
   // A time choice leaves out the tasks whose schedule names no day; the list says how many instead of hiding them silently.
   const footer = undated ? <View key={extent.sequence} onLayout={event => {

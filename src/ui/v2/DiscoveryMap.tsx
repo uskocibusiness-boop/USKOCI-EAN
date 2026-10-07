@@ -20,7 +20,8 @@ import { displaysUrgent } from '../../lib/needUrgency';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { pinRelationWords, PricePill, type PillContent, type PinRelation } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
-import { DiscoveryV1ServerMarkerLayer } from './discovery/DiscoveryV1ServerMarkerLayer';
+import { DISCOVERY_V1_PIN_IMAGES, DiscoveryV1ServerMarkerLayer } from './discovery/DiscoveryV1ServerMarkerLayer';
+import { clearBandBounds, rowOfLatitude } from './discovery/mapClearBand';
 import { traceDiscoveryV1 } from '../../data/discoveryV1Trace';
 
 type Owner = { key: string; active: boolean; epoch: number };
@@ -29,10 +30,13 @@ type LoadTraceEvent = 'map-mounted' | 'deadline' | 'native-error' | 'map-loaded'
 export const PILL_LIMIT = 40;
 const PIN_IMAGES = {
   'uskoci-task': require('../../../assets/entry-splash-mark.png'),
-  'uskoci-task-material': require('../../../assets/discovery/uskoci-task-material.png'),
-  'uskoci-place-material': require('../../../assets/discovery/uskoci-place-material.png'),
-  'uskoci-cluster-material': require('../../../assets/discovery/uskoci-cluster-material.png'),
+  ...DISCOVERY_V1_PIN_IMAGES,
 };
+/**
+ * Half the height of a P6 capsule as drawn when chosen (42 dp at 1.06), with a little air: a chosen pin is "seen" only when all of it is
+ * clear of the search tools above and of the card or sheet below.
+ */
+const PIN_HALF = 26;
 /** A changed list reaches the native source a moment later; the visible pins are read after it. */
 const PILL_SETTLE_MS = 300;
 /**
@@ -169,6 +173,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   const pillTap = useRef(0);
   const [visibleIds, setVisibleIds] = useState<readonly string[]>([]);
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
+  const frameNow = useRef(frame); frameNow.current = frame;
   const [creditHeight, setCreditHeight] = useState(48);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const mounted = useRef(true), load = useRef(status);
@@ -187,6 +192,15 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     : JSON.stringify(data), [serverMap?.markers, data]);
   const latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
+  /**
+   * The part of `bounds` the person can see right now: below the floating search tools and above the list sheet or a chosen pin's card. The list
+   * follows this band (a task under the sheet is not one they looked at); the server buckets keep the whole view.
+   */
+  const seenBounds = (bounds: PublicBounds) => {
+    const now = latest.current.props, height = frameNow.current?.height ?? 0;
+    const bottom = Math.min(now.sheetTop ? now.sheetTop.value : height, height - Math.max(0, now.coverBottom ?? 0));
+    return clearBandBounds(bounds, height, now.toolsBottom ?? 0, bottom);
+  };
   // Restore the actual visible bounds. Native camera `center` is the padded target after a pin/fit move; restoring
   // that target without its old padding moves the visible geography behind the sheet. Bounds already include that
   // offset, and need no new fit to the task dataset. This constructor runs only when this map session mounts.
@@ -360,6 +374,25 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     camera.current.fitBounds(memberBounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56, creditHeight),
       duration: reduced ? 0 : sys.motion.camera });
   };
+  // P6: a chosen bucket that the card (or the sheet, or the search tools) now covers comes into the clear band between them, at the same zoom and
+  // the same longitude: the camera's own move, so the markers follow it and the list does not. A pin the person can see stays where it is, and a
+  // choice the map was mounted with (a return to the screen) stays put. Checked when the choice changes and when the card's height is known.
+  const restoredChoice = useRef<string | null>(serverMap?.selectedKey ?? null);
+  useEffect(() => {
+    const key = serverMap?.selectedKey ?? null;
+    if (key !== restoredChoice.current) restoredChoice.current = null;
+    if (!key || key === restoredChoice.current || status !== 'ready' || !frame || props.cameraLayoutReady === false || !owns() || !camera.current) return;
+    const shown = viewport?.bounds, marker = serverMap?.markers.find(candidate => candidate.key === key);
+    if (!shown || !marker || marker.kind === 'CLUSTER') return;
+    const top = props.toolsBottom ?? 0;
+    const bottom = Math.min(props.sheetTop ? props.sheetTop.value : frame.height, frame.height - Math.max(0, props.coverBottom ?? 0));
+    if (bottom - top < 2 * PIN_HALF) return;
+    const row = rowOfLatitude(shown, frame.height, marker.point.lat);
+    if (row - PIN_HALF >= top && row + PIN_HALF <= bottom) return;
+    cancelArea(); intent.current = 0; openedCluster.current = null;
+    moveCamera({ center: [shown[0] <= shown[2] ? (shown[0] + shown[2]) / 2 : marker.point.lng, marker.point.lat],
+      padding: { top, right: 0, bottom: Math.max(0, frame.height - bottom), left: 0 } }, sys.motion.camera);
+  }, [serverMap?.selectedKey, props.coverBottom, status, frame, props.cameraLayoutReady, props.toolsBottom]); // eslint-disable-line react-hooks/exhaustive-deps
   // Exactly one first fit after BOTH native frame and screen overlays are measured. It is not a live camera binding:
   // changing rows, sheet height, tools or font size later cannot take the map away from the person's chosen view.
   useEffect(() => {
@@ -493,7 +526,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
             const bounds = value.bounds;
             areaTimer.current = setTimeout(() => {
               areaTimer.current = null;
-              if (mounted.current && props.owns() && load.current === 'ready') latest.current.props.onArea(bounds);
+              if (mounted.current && props.owns() && load.current === 'ready') latest.current.props.onArea(seenBounds(bounds), bounds);
             }, AREA_SETTLE_MS);
           } else if (serverMap) {
             // A camera move that is not the person's own (a fit, a chosen place, Nearby, a saved work area, a restored view): the list

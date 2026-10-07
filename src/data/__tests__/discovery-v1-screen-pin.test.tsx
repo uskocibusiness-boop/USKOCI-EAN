@@ -192,3 +192,15 @@ test('EX-03: a task that is not loaded leaves the card that is showing until the
   expect(traced()).toHaveLength(1);
   await act(async () => { tree.unmount(); });
 });
+
+// Audit fixes 2 and 7: the screen hands the coordinator the list's area with the map's whole frame, and the rows the list shows.
+test('a settled pan reaches the coordinator with the list area and the map frame, and the visible rows reach the overlay window', async () => {
+  mockCoordinator.settleMap = jest.fn(async () => ({ kind: 'applied' }));
+  mockCoordinator.showRows = jest.fn(() => true);
+  const tree = await render();
+  await act(async () => { mockBridge.props.actions.onArea([19.6, 44.6, 20.4, 45.4], [19.5, 44.5, 20.5, 45.5]); });
+  expect(mockCoordinator.settleMap).toHaveBeenCalledWith([19.6, 44.6, 20.4, 45.4], [19.5, 44.5, 20.5, 45.5]);
+  await act(async () => { mockBridge.props.actions.onVisibleRange(120, 131); });
+  expect(mockCoordinator.showRows).toHaveBeenCalledWith(120, 131);
+  await act(async () => { tree.unmount(); });
+});

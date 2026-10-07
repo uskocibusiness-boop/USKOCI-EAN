@@ -1825,7 +1825,10 @@ test('reading, not read and nothing in this view keep their meanings, through th
   expect(countLine().props.accessibilityLabel).toBe('Zadaci nisu učitani');
   await act(async () => tree.unmount());
   error = false; rows = []; await render();
-  expect(texts()).toContain('Trenutno nema otvorenih zadataka'); await click('Dopuni radni profil'); expect(profile).toHaveBeenCalledTimes(1);
+  // Owner, 2026-10-07: the map and the list always show every task, so nothing found is never about the person's profile.
+  expect(texts()).toContain('Trenutno nema otvorenih zadataka'); expect(texts()).toContain('Kad neko objavi zadatak, videćeš ga ovde i na mapi.');
+  expect(texts()).not.toContain('radnom profilu'); expect(action('Dopuni radni profil')).toBeUndefined();
+  refresh.mockClear(); await click('Osveži zadatke'); expect(refresh).toHaveBeenCalledTimes(1); expect(profile).not.toHaveBeenCalled();
   expect(countLine().props.accessibilityLabel).toBe('Nema zadataka');
   await act(async () => tree.unmount());
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
@@ -2493,4 +2496,75 @@ test('EX-03: a pin card opening and closing leaves every row of the list mounted
   const closed = rowViews();
   expect(closed).toHaveLength(6);
   expect(sameViews(closed, before)).toEqual(allSame);                     // ... on the very same rows
+});
+
+// Audit fix 8 (owner, 2026-10-07: the map and the list always show every task): an empty list says plainly why, and offers the one way out that fits.
+const AT_NOW = '2026-10-07T10:00:00.000000Z';
+const p6Counts = (mapped: number, listed = 0) => ({ kind: 'exact_live' as const, observedAt: AT_NOW, mapped, listed, inArea: listed, withoutPoint: 0, undated: 0 });
+describe('an empty P6 list says what is true', () => {
+  test('an area with nothing, while tasks exist elsewhere: zoom out or move the map, or show every task', async () => {
+    rows = []; initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9], sheet: 'half' }; p6Seam = { ...p6Seam_(), counts: p6Counts(7) };
+    await render();
+    expect(texts()).toContain('Nema zadataka u ovoj oblasti'); expect(texts()).toContain('Umanji mapu ili je pomeri da vidiš zadatke u okolini.');
+    expect(texts()).not.toContain('radnom profilu');
+    await click('Prikaži sve zadatke'); expect(p6Seam!.onShowAll).toHaveBeenCalledTimes(1);
+  });
+  test('conditions that match no task anywhere: the conditions are cleared, not the map', async () => {
+    rows = []; initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9], price: 'MY_PRICE', sheet: 'half' }; p6Seam = { ...p6Seam_(), counts: p6Counts(0) };
+    await render();
+    expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(texts()).toContain('Nijedan zadatak ne odgovara ovim uslovima.');
+    expect(action('Prikaži sve zadatke')).toBeUndefined();
+    await click('Obriši uslove'); expect(snapshot.price).toBe('all');
+  });
+  test('no task at all, under an area and no conditions: nothing is open yet, and the list can be read again', async () => {
+    rows = []; initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9], sheet: 'half' }; p6Seam = { ...p6Seam_(), counts: p6Counts(0) };
+    await render();
+    expect(texts()).toContain('Trenutno nema otvorenih zadataka'); expect(action('Obriši uslove')).toBeUndefined();
+    await click('Osveži zadatke'); expect(refresh).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Audit fix 6: P6 holds one area's pages, which change with every move of the map; a chip read from them came and went while the person panned.
+// The server's availability (every published task) says which chips have anything to say.
+describe('P6 quick chips follow the server availability, not the loaded page', () => {
+  const chipLabels = () => tree.root.findByType(DiscoverySearchBar).props.chips.map((chip: { label: string }) => chip.label);
+  const dated = { schedule: { kind: 'TOMORROW_FLEXIBLE', startsAt: null, endsAt: null } };
+  const narrow = (patch: Record<string, unknown> = {}) => row('narrow', { pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 }, ...patch });
+  test('chips come from the availability and stay while a read has not answered and the area holds nothing', async () => {
+    rows = [narrow(dated)];
+    p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['OFFERS'] } };
+    await render();
+    // The loaded row names a price and no work mode; the server says every task is OFFERS and some name a work mode.
+    expect(chipLabels()).toEqual(['Na daljinu', 'Na licu mesta', 'Danas', 'Sutra', 'Ove nedelje', 'Tražim ponude']);
+    // A pan: the new area holds nothing and its read has not answered yet. The rail does not move.
+    rows = []; p6Seam = { ...p6Seam!, availability: null }; await update();
+    expect(chipLabels()).toEqual(['Na daljinu', 'Na licu mesta', 'Danas', 'Sutra', 'Ove nedelje', 'Tražim ponude']);
+    // The server says nothing names its days: the time chips are not offered, whatever the page holds.
+    rows = [narrow(dated)]; p6Seam = { ...p6Seam!, availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: ['MY_PRICE', 'OFFERS'] } };
+    await update();
+    expect(chipLabels()).toEqual(['Navedena cena', 'Tražim ponude']);
+  });
+  test('"2+ mesta" stays once a read showed a task with room for two; the legacy reader still reads its rows', async () => {
+    rows = [narrow()]; p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: [] } };
+    await render(); expect(chipLabels()).toEqual([]);
+    rows = [row('roomy')]; await update(); expect(chipLabels()).toEqual(['2+ mesta']);
+    rows = [narrow()]; await update(); expect(chipLabels()).toEqual(['2+ mesta']);
+    await act(async () => tree.unmount());
+    p6Seam = undefined; rows = [narrow()]; await render();
+    expect(chipLabels()).not.toContain('2+ mesta');
+  });
+});
+
+// Audit fixes 2 and 7: the map hands the list what the person can see and keeps its whole view for its buckets; the rows the list shows get their details.
+test('P6: the area the map hands up reaches the seam with the whole view, and the rows on screen are reported for their details', async () => {
+  rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+  const onVisibleRange = jest.fn();
+  p6Seam = { ...p6Seam_(), onVisibleRange }; initial = { ...initial, sheet: 'full' };
+  await render();
+  await act(async () => map().props.onArea([20.3, 44.75, 20.5, 44.88], [20.3, 44.7, 20.5, 44.9]));
+  expect(p6Seam!.onArea).toHaveBeenCalledWith([20.3, 44.75, 20.5, 44.88], [20.3, 44.7, 20.5, 44.9]);
+  await act(async () => list().props.onViewableItemsChanged({ viewableItems: [
+    { item: rows[3], index: 3, isViewable: true }, { item: rows[2], index: 2, isViewable: true }, { item: rows[5], index: 5, isViewable: false },
+  ] }));
+  expect(onVisibleRange).toHaveBeenLastCalledWith(2, 3);
 });

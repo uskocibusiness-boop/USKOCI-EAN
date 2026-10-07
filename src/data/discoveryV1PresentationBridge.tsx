@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { DiscoveryPresentation, type DiscoveryPresentationProps, type DiscoveryV1PresentationSeam } from '../ui/v2/DiscoveryPresentation';
 import type { SearchDraft } from '../ui/v2/discovery/DiscoverySearchPanel';
 import type { DiscoveryV1ScreenSnapshot } from './discoveryV1ScreenSession';
@@ -10,13 +11,16 @@ export type DiscoveryV1PresentationActions = {
   onSelectMarker: (marker: DiscoveryV1MapMarker) => void;
   /** A camera move that is not the person's own settled here: the markers are read again over that region (the list is not). */
   onViewportSettled?: (bounds: PublicBounds) => void;
-  onArea: (bounds: PublicBounds) => void;
+  /** A settled move of the person's own: `bounds` is what they can see (the list's area), `frame` the map's whole view (its buckets). */
+  onArea: (bounds: PublicBounds, frame?: PublicBounds) => void;
   onClearPeek: () => void;
   onShowPlace: () => void;
   onShowAll: () => void;
   onNextPage: () => void;
   onSearchDraft?: (draft: SearchDraft, mapArea: PublicBounds | null) => void;
   onNextSearchPlaces?: () => void;
+  /** The list shows rows `first` to `last`: their optional details are read when they are outside the window read so far. */
+  onVisibleRange?: (first: number, last: number) => void;
 };
 
 export type DiscoveryV1PresentationBridgeModel = {
@@ -49,6 +53,8 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
         onSelect: actions.onSelectMarker, ...(actions.onViewportSettled ? { onViewportSettled: actions.onViewportSettled } : {}) },
       peek,
       counts: snapshot.counts,
+      // Whole-filter facts of every published task the server knows (not of the loaded page): which quick chips have anything to say.
+      availability: snapshot.availability,
       ...(search && actions.onSearchDraft && actions.onNextSearchPlaces ? { search: {
         snapshot: search, onDraft: actions.onSearchDraft, onNextPlaces: actions.onNextSearchPlaces,
       } } : {}),
@@ -59,8 +65,17 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
       onShowPlace: actions.onShowPlace,
       onShowAll: actions.onShowAll,
       onNextPage: actions.onNextPage,
+      ...(actions.onVisibleRange ? { onVisibleRange: actions.onVisibleRange } : {}),
     },
   };
+}
+
+/** The same array as last time when every row is the same object, so the list's memoised work (signatures, rows) is not redone for an unchanged read. */
+function useStableRows<T>(rows: readonly T[]): readonly T[] {
+  const last = useRef(rows);
+  const previous = last.current;
+  if (previous !== rows && (previous.length !== rows.length || rows.some((row, index) => row !== previous[index]))) last.current = rows;
+  return last.current;
 }
 
 export type DiscoveryV1PresentationBridgeProps =
@@ -81,6 +96,7 @@ export type DiscoveryV1PresentationBridgeProps =
 export function DiscoveryV1PresentationBridge({ snapshot, overlay, selectedMarkerKey, loadingMore = false, search, actions, ...props }
   : DiscoveryV1PresentationBridgeProps) {
   const model = discoveryV1PresentationBridgeModel(snapshot, overlay, selectedMarkerKey, loadingMore, actions, search);
-  return <DiscoveryPresentation {...props} items={model.items} view={model.view} relations={model.relations}
+  const items = useStableRows(model.items);
+  return <DiscoveryPresentation {...props} items={items} view={model.view} relations={model.relations}
     relationsPending={model.relationsPending} relationsError={model.relationsError} p6Seam={model.p6Seam} />;
 }
