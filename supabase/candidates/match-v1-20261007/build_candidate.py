@@ -33,10 +33,20 @@ WAVE = "private.dispatch_next_wave(uuid)"
 TICK = "private.dispatch_tick(integer,timestamp with time zone)"
 TZ = "private.availability_timezone_valid(text)"
 CAND = "private.candidate_profile_ids(uuid,integer)"
-CHANGED = [MATCH, CHEAP, TIME, WAVE, TICK, TZ, CAND]
+# The shared zone helper is NOT changed here any more: its fix is the separate, independent candidate ZONE-PERF (apply it FIRST). This
+# package calls the helper unchanged and accepts either of its two known bodies (the live one, or the ZONE-PERF one), so both orders work.
+CHANGED = [MATCH, CHEAP, TIME, WAVE, TICK, CAND]
 DEPENDENCIES = [s for s in live if s not in CHANGED]
-assert len(DEPENDENCIES) == 15, DEPENDENCIES
-TZ_FAST_NAMES = ("Europe/Belgrade", "UTC")
+assert len(DEPENDENCIES) == 16 and TZ in DEPENDENCIES, DEPENDENCIES
+ZONE_PERF_MANIFEST = json.loads((HERE.parent / "zone-perf-20261007" / "manifest.json").read_text(encoding="utf-8"))["functions"][0]
+assert ZONE_PERF_MANIFEST["signature"] == TZ and ZONE_PERF_MANIFEST["before_md5"] == md5(live[TZ])
+ZONE_PERF_AFTER_MD5 = ZONE_PERF_MANIFEST["after_md5"]
+
+
+def accepted(signature):
+    """Body hashes a pinned dependency may have: the live one, and for the zone helper also the ZONE-PERF post-image."""
+    return (md5(live[signature]), ZONE_PERF_AFTER_MD5) if signature == TZ else (md5(live[signature]),)
+
 
 after = {s: live[s] for s in CHANGED}
 edits = []
@@ -145,22 +155,9 @@ change(TICK, "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));",
        "                            'profileRequeue',profile_requeue);")
 
 # ---------------------------------------------------------------- private.availability_timezone_valid (shared helper)
-# Root cause of the stalled load proof of 2026-10-07 (run 37616332729): pg_timezone_names reads every zone file of the
-# server (1,196 zones, about 110 ms per call measured on canonical DEV) and the helper ran for every worker x task pair.
-after[TZ] = """
-  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about
-  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,
-  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the
-  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.
-  select case
-    when value is null or length(value)>100 then false
-    when value in ('Europe/Belgrade','UTC') then true
-    else (value='UTC' or position('/' in value)>0)
-      and value not like 'posix/%' and value not like 'right/%'
-      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
-  end;
-"""
-edits.append({"signature": TZ, "before": live[TZ], "after": after[TZ]})
+# NOT changed by this package. The stalled load proof of 2026-10-07 (run 37616332729) had one root cause: the helper reads the whole zone
+# catalog (about 52 ms in CI, 70-110 ms on canonical DEV, per call) for every worker x task pair. Its fix is the independent candidate
+# ZONE-PERF (supabase/candidates/zone-perf-20261007/), to be applied first; this package works with the helper in either state.
 
 # ---------------------------------------------------------------- private.candidate_profile_ids
 # The two fallback loops visited EVERY worker profile without a preference point, drafts included (every requester-only
@@ -436,11 +433,17 @@ CERT_READY = """ if private.closure_source_digest_v5() is null or private.closur
 """
 
 
+def md5_list(m):
+    ms = (m,) if isinstance(m, str) else tuple(m)
+    return "array[" + ",".join(quote(x) for x in ms) + "]::text[]"
+
+
 def pins_block(label, pairs):
+    """Every listed function must have one of its accepted body hashes (a hash or a tuple of hashes per signature)."""
     return (" for r in select * from (values\n"
-            + ",\n".join("  (" + quote(s) + "," + quote(m) + ")" for s, m in pairs)
-            + ") pins(signature,body_md5) loop\n"
-              "  if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5\n"
+            + ",\n".join("  (" + quote(s) + "," + md5_list(m) + ")" for s, m in pairs)
+            + ") pins(signature,body_md5s) loop\n"
+              "  if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)\n"
               "  then raise exception '" + label + ": %',r.signature using errcode='55000'; end if;\n"
               " end loop;\n")
 
@@ -495,19 +498,12 @@ def candidate(transaction=True):
           "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1'))\n"
           "  or exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + ")\n"
           " then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;\n")
-    s += pins_block("MATCH_V1_DEPENDENCY_DRIFT", [(d, md5(live[d])) for d in DEPENDENCIES])
+    # The shared zone helper is a pinned dependency that may be in either known state (live, or ZONE-PERF applied first).
+    s += pins_block("MATCH_V1_DEPENDENCY_DRIFT", [(d, accepted(d)) for d in DEPENDENCIES])
     s += pins_block("MATCH_V1_PREDECESSOR_DRIFT", [(c, md5(live[c])) for c in CHANGED])
-    # The helper's fast path names must exist in the server's zone catalog, or the fast path would accept a zone the old helper refuses.
-    s += (" if (select count(*) from pg_catalog.pg_timezone_names where name in (" + ",".join(quote(z) for z in TZ_FAST_NAMES) + "))<>" + str(len(TZ_FAST_NAMES)) + "\n"
-          " then raise exception 'MATCH_V1_TIMEZONE_CATALOG_LACKS_FAST_PATH_NAMES' using errcode='55000'; end if;\n")
     s += "end\n$match_v1_pre$;\n"
     s += ("create temporary table match_v1_certificate on commit drop as\n"
           " select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;\n")
-    # Truth table of the zone helper BEFORE the replacement (the old helper scans the catalog: about 0.1 s per probe that has a slash).
-    s += ("create temporary table match_v1_tz_probe on commit drop as\n"
-          " select v as value, private.availability_timezone_valid(v) as old_result\n"
-          " from unnest(array[null,'','UTC','Europe/Belgrade','Europe/Zagreb','Etc/GMT+1','posix/Europe/Belgrade','right/UTC','europe/belgrade',\n"
-          "   'Mars/Base','EST5EDT','Europe/Belgrade ','America/New_York','Asia/Kolkata',repeat('x',101)]::text[]) v;\n")
     for sig, head, body, _ in NEW:
         s += head + dollar(body) + ";\n"
         s += f"revoke all on function {sig} from public, anon, authenticated, service_role;\n"
@@ -517,10 +513,10 @@ def candidate(transaction=True):
     s += ("insert into private.marketplace_config(key,value,updated_at)\n"
           " values(" + quote(CONFIG_KEY) + ",jsonb_build_object('after',statement_timestamp(),'afterAccount','00000000-0000-0000-0000-000000000000','owner','MATCH-V1 2026-10-07'),statement_timestamp());\n")
     s += "do $match_v1_post$\ndeclare r record;\nbegin\n"
-    s += (" if exists(select 1 from match_v1_tz_probe t where private.availability_timezone_valid(t.value) is distinct from t.old_result)\n"
-          " then raise exception 'MATCH_V1_TIMEZONE_HELPER_TRUTH_TABLE_CHANGED' using errcode='55000'; end if;\n")
     s += new_function_checks("MATCH_V1_NEW_FUNCTION_DRIFT")
     s += pins_block("MATCH_V1_POSTIMAGE_DRIFT", [(c, md5(after[c])) for c in CHANGED])
+    # Nothing this package does may touch the shared zone helper: it is still in one of its two known states.
+    s += pins_block("MATCH_V1_DEPENDENCY_CHANGED", [(d, accepted(d)) for d in DEPENDENCIES])
     s += (" if (select count(*) from private.marketplace_config where key=" + quote(CONFIG_KEY) + " and (value->>'after')::timestamptz is not null)<>1\n"
           " then raise exception 'MATCH_V1_WATERMARK_MISSING' using errcode='55000'; end if;\n")
     s += (" if private.closure_source_digest_v5() is distinct from (select digest from match_v1_certificate)\n"
@@ -568,7 +564,12 @@ def revert():
 
 
 def pin_rows(pairs):
-    return ",\n".join("  (" + quote(s) + "," + quote(m) + ")" for s, m in pairs)
+    """VALUES rows (signature, body_md5s text[]): a hash or a tuple of accepted hashes per signature."""
+    return ",\n".join("  (" + quote(s) + "," + md5_list(m) + ")" for s, m in pairs)
+
+
+# One test for all pin lists: the function exists and its body is one of the accepted hashes.
+PIN_OK = "coalesce(md5(p.prosrc)=any(x.body_md5s),false)"
 
 
 PREFLIGHT = ("-- MATCH-V1 read-only preflight for canonical DEV leqcwgzvjsxugfgzdmth. No write. Expected: every flag true.\n"
@@ -582,29 +583,32 @@ PREFLIGHT = ("-- MATCH-V1 read-only preflight for canonical DEV leqcwgzvjsxugfgz
              "   and private.retention_ai_source_ready(),\n"
              " 'closureDigest',private.closure_source_digest_v5(),\n"
              " 'erasureProgramDigest',private.closure_erasure_program_digest_v5(),\n"
-             " 'pinsMatch',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values\n"
-             + pin_rows([(s, md5(live[s])) for s in CHANGED + DEPENDENCIES]) +
-             ") x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),\n"
+             " 'pinsMatch',(select bool_and(" + PIN_OK + ") from (values\n"
+             + pin_rows([(s, accepted(s)) for s in CHANGED + DEPENDENCIES]) +
+             ") x(signature,body_md5s) left join pg_proc p on p.oid=to_regprocedure(x.signature)),\n"
              " 'pinMismatches',(select coalesce(jsonb_agg(x.signature),'[]'::jsonb) from (values\n"
-             + pin_rows([(s, md5(live[s])) for s in CHANGED + DEPENDENCIES]) +
-             ") x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature) where md5(p.prosrc) is distinct from x.body_md5),\n"
+             + pin_rows([(s, accepted(s)) for s in CHANGED + DEPENDENCIES]) +
+             ") x(signature,body_md5s) left join pg_proc p on p.oid=to_regprocedure(x.signature) where not " + PIN_OK + "),\n"
+             " 'zoneHelperState',(select case md5(p.prosrc) when " + quote(md5(live[TZ])) + " then 'LIVE_SLOW_CATALOG_SCAN' when " + quote(ZONE_PERF_AFTER_MD5) + " then 'ZONE_PERF_APPLIED' else 'UNKNOWN' end\n"
+             "   from pg_proc p where p.oid=to_regprocedure(" + quote(TZ) + ")),\n"
              " 'newFunctionsAbsent',not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')\n"
              "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1')),\n"
              " 'watermarkAbsent',not exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + "),\n"
              " 'closureNotExecuting',not exists(select 1 from private.closure_executions_v5 where state='EXECUTING'),\n"
-             " 'tzCatalogHasFastPathNames',(select count(*) from pg_catalog.pg_timezone_names where name in (" + ",".join(quote(z) for z in TZ_FAST_NAMES) + "))=" + str(len(TZ_FAST_NAMES)) + ",\n"
              " 'activeWorkerProfiles',(select count(*) from public.app_profiles where kind='WORKER' and profile_status='ACTIVE'),\n"
              " 'openTasks',(select count(*) from public.needs where status in ('PUBLISHED','SELECTION') and published_at is not null)\n"
              ") as match_v1_preflight;\n")
 
 POSTFLIGHT = ("-- MATCH-V1 read-only postflight. No write. Expected: every flag true and the certificate equal to the preflight value.\n"
               "select jsonb_build_object(\n"
-              " 'bodiesAfter',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values\n"
+              " 'bodiesAfter',(select bool_and(" + PIN_OK + ") from (values\n"
               + pin_rows([(s, md5(after[s])) for s in CHANGED] + [(s, md5(b)) for s, _, b, _ in NEW]) +
-              ") x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),\n"
-              " 'dependenciesUnchanged',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values\n"
-              + pin_rows([(s, md5(live[s])) for s in DEPENDENCIES]) +
-              ") x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),\n"
+              ") x(signature,body_md5s) left join pg_proc p on p.oid=to_regprocedure(x.signature)),\n"
+              " 'dependenciesUnchanged',(select bool_and(" + PIN_OK + ") from (values\n"
+              + pin_rows([(s, accepted(s)) for s in DEPENDENCIES]) +
+              ") x(signature,body_md5s) left join pg_proc p on p.oid=to_regprocedure(x.signature)),\n"
+              " 'zoneHelperState',(select case md5(p.prosrc) when " + quote(md5(live[TZ])) + " then 'LIVE_SLOW_CATALOG_SCAN' when " + quote(ZONE_PERF_AFTER_MD5) + " then 'ZONE_PERF_APPLIED' else 'UNKNOWN' end\n"
+              "   from pg_proc p where p.oid=to_regprocedure(" + quote(TZ) + ")),\n"
               " 'newFunctionAcl',(select bool_and(p.proacl::text=" + quote(NEW_ACL) + " and p.prosecdef) from pg_proc p where p.oid in (\n  "
               + ",\n  ".join("to_regprocedure(" + quote(s) + ")" for s, _, _, _ in NEW) + ")),\n"
               " 'watermark',(select value->>'after' from private.marketplace_config where key=" + quote(CONFIG_KEY) + "),\n"
@@ -633,7 +637,9 @@ manifest = {
     "certificateMoves": False,
     "functions": [{"signature": s, "before_md5": md5(live[s]), "after_md5": md5(after[s])} for s in CHANGED],
     "newFunctions": [{"signature": s, "body_md5": md5(b), "acl": NEW_ACL} for s, _, b, _ in NEW],
-    "unchangedDependencies": [{"signature": s, "body_md5": md5(live[s])} for s in DEPENDENCIES],
+    "unchangedDependencies": [{"signature": s, "body_md5": md5(live[s]), **({"alsoAcceptedAfterZonePerf": ZONE_PERF_AFTER_MD5} if s == TZ else {})} for s in DEPENDENCIES],
+    "zonePerf": {"candidate": "supabase/candidates/zone-perf-20261007/", "helper": TZ, "liveMd5": md5(live[TZ]), "zonePerfMd5": ZONE_PERF_AFTER_MD5,
+                 "note": "independent: this package neither needs nor changes the helper; apply ZONE-PERF first for speed (either order is accepted and proven)"},
     "dataRows": [{"table": "private.marketplace_config", "key": CONFIG_KEY, "value": "{after: apply time}"}],
     "artifact_sha256": {k: sha(v) for k, v in files.items()},
 }

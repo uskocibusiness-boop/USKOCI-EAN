@@ -1,6 +1,6 @@
-name: MATCH-V1 and DISCOVERY-ZAMENE disposable proof
+name: ZONE-PERF, MATCH-V1 and DISCOVERY-ZAMENE disposable proof
 
-# Disposable-only proof of two SOURCE-ONLY server candidates (owner decisions 2026-10-07). It replays the
+# Disposable-only proof of three SOURCE-ONLY server candidates (owner decisions 2026-10-07). It replays the
 # established historical chain in canonical DEV order, admits only the exact relevant DEV bodies (fidelity.mjs),
 # then proves FAIL before / PASS after / exact revert with real Auth and PostgREST. Never touches DEV.
 on:
@@ -9,9 +9,11 @@ on:
     branches: [candidate/match-v1-20261007]
     paths:
       - '.github/workflows/match-v1-discovery-zamene-proof.yml'
+      - 'supabase/candidates/zone-perf-20261007/**'
       - 'supabase/candidates/match-v1-20261007/**'
       - 'supabase/candidates/discovery-zamene-20261007/**'
       - 'supabase/proofs/match-v1/**'
+      - 'supabase/proofs/zone-perf/**'
 permissions:
   contents: read
 concurrency:
@@ -19,8 +21,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   disposable-proof:
-    # Two independent jobs, each from its own fresh chain: the behaviour proof (FAIL before / PASS after / exact revert) and the load proof
-    # (old vs new milliseconds on many workers and tasks, hard timeouts). A slow measurement can never mask the behaviour verdict.
+    # Three independent jobs, each from its own fresh chain: the ZONE-PERF proof (one helper body, realistic seeded account, both orders with
+    # MATCH-V1), the behaviour proof (FAIL before / PASS after / exact revert) and the load proof (old vs new milliseconds on many workers and
+    # tasks, hard timeouts). A slow measurement can never mask a behaviour verdict.
     name: ${{ matrix.part }}
     if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
     runs-on: ubuntu-latest
@@ -28,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [behavior, load]
+        part: [zone, behavior, load]
     defaults:
       run:
         shell: bash
@@ -66,8 +69,8 @@ jobs:
           python3 -m pip install --quiet pglast==8.4
           python3 supabase/proofs/match-v1/check_source.py | tee "$MATCH_V1_ARTIFACT_DIR/source-check.txt"
           python3 supabase/candidates/worker-personal-profile-20261003/check-source.py > "$PRE_V3_ARTIFACT_DIR/wpp01-source-check.txt"
-          for f in supabase/proofs/match-v1/*.mjs; do node --check "$f"; done
-          find supabase/candidates/match-v1-20261007 supabase/candidates/discovery-zamene-20261007 supabase/proofs/match-v1 -type f -print0 | sort -z | xargs -0 sha256sum > "$MATCH_V1_ARTIFACT_DIR/source-manifest-sha256.txt"
+          for f in supabase/proofs/match-v1/*.mjs supabase/proofs/zone-perf/*.mjs; do node --check "$f"; done
+          find supabase/candidates/zone-perf-20261007 supabase/candidates/match-v1-20261007 supabase/candidates/discovery-zamene-20261007 supabase/proofs/match-v1 supabase/proofs/zone-perf -type f -print0 | sort -z | xargs -0 sha256sum > "$MATCH_V1_ARTIFACT_DIR/source-manifest-sha256.txt"
           sha256sum .github/workflows/match-v1-discovery-zamene-proof.yml >> "$MATCH_V1_ARTIFACT_DIR/source-manifest-sha256.txt"
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/npm.log" 2>&1
           git diff --exit-code
@@ -89,6 +92,32 @@ jobs:
           NODE
           node supabase/proofs/match-v1/chain.mjs
           node supabase/proofs/match-v1/fidelity.mjs
+      - name: ZONE-PERF proof on a realistic seeded account, truth table, both orders with MATCH-V1, exact revert
+        if: matrix.part == 'zone'
+        run: |
+          set -euo pipefail
+          umask 077
+          status=0
+          node supabase/proofs/zone-perf/runtime.proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/zone.log" || status=${PIPESTATUS[0]}
+          grep -E '^(PASS|FAIL) ' "$PRE_V3_ARTIFACT_DIR/zone.log" > "$MATCH_V1_ARTIFACT_DIR/zone-checks.txt" || true
+          if [ -f "$MATCH_V1_ARTIFACT_DIR/zone-summary.md" ]; then cat "$MATCH_V1_ARTIFACT_DIR/zone-summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          test "$status" -eq 0
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const dir = process.env.MATCH_V1_ARTIFACT_DIR;
+          const report = JSON.parse(readFileSync(dir + '/zone-report.json', 'utf8'));
+          const chain = JSON.parse(readFileSync(dir + '/chain-fidelity.json', 'utf8'));
+          assert.equal(report.sourceSha, process.env.GITHUB_SHA);
+          assert.equal(report.result, 'PASS');
+          assert.equal(report.failures.length, 0);
+          assert.equal(chain.result, 'PASS');
+          assert.equal(report.liveAccess, false);
+          assert.equal(report.providerCalls, 0);
+          assert.equal(report.pushSends, 0);
+          assert.ok(report.checks.length >= 12);
+          assert.ok(report.checks.every(c => c.result === 'PASS'));
+          NODE
       - name: Behaviour proof with real Auth and PostgREST, refusals and exact reverts
         if: matrix.part == 'behavior'
         run: |

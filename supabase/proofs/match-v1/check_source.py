@@ -15,7 +15,8 @@ from pglast.parser import parse_plpgsql_json
 ROOT = Path(__file__).resolve().parents[3]
 M = ROOT / "supabase/candidates/match-v1-20261007"
 D = ROOT / "supabase/candidates/discovery-zamene-20261007"
-for gen in (M / "build_candidate.py", D / "build_candidate.py"):
+Z = ROOT / "supabase/candidates/zone-perf-20261007"
+for gen in (Z / "build_candidate.py", M / "build_candidate.py", D / "build_candidate.py"):
     subprocess.run([sys.executable, str(gen), "--check"], check=True)
 
 
@@ -60,7 +61,7 @@ SIGNATURE_HEAD = {
 DEFAULT_HEAD = "nid uuid, pid uuid) returns jsonb"
 
 checked = 0
-for directory in (M, D):
+for directory in (Z, M, D):
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     after = bodies_after(directory)
     for f in manifest["functions"]:
@@ -72,7 +73,7 @@ for directory in (M, D):
         else:
             plpgsql("create function f(" + SIGNATURE_HEAD.get(f["signature"], DEFAULT_HEAD) + " language plpgsql as $syntax$" + body + "$syntax$")
         checked += 1
-    for name in ("candidate.sql", "revert.sql", "preflight.readonly.sql", "postflight.readonly.sql") + (("candidate.in-transaction.sql",) if directory == M else ()):
+    for name in ("candidate.sql", "revert.sql", "preflight.readonly.sql", "postflight.readonly.sql") + (("candidate.in-transaction.sql",) if directory in (M, Z) else ()):
         text = (directory / name).read_text(encoding="utf-8")
         assert "\r" not in text
         pglast.parse_sql(text)
@@ -127,9 +128,26 @@ assert ordered == sorted(ordered), "worker_need_fit_v1 must test status, area, s
 assert fit.count("p_first_refusal and") >= 5
 tier_code = code(tier)
 assert tier_code.index("return 1;") < tier_code.index("availability_timezone_valid(tz)"), "'bilo kad' must not read or validate a zone"
-tz = code(m_after["private.availability_timezone_valid(text)"])
-assert "value in ('Europe/Belgrade','UTC') then true" in tz and "pg_timezone_names" in tz and tz.index("'Europe/Belgrade'") < tz.index("pg_timezone_names")
-assert "availability_timezone_valid" not in tz
+# --- the shared zone helper belongs to ZONE-PERF alone; MATCH-V1 only calls it and accepts both of its known bodies
+TZ = "private.availability_timezone_valid(text)"
+m_manifest = json.loads((M / "manifest.json").read_text(encoding="utf-8"))
+z_manifest = json.loads((Z / "manifest.json").read_text(encoding="utf-8"))
+assert TZ not in [f["signature"] for f in m_manifest["functions"]], "MATCH-V1 must not change the zone helper"
+dep = [d for d in m_manifest["unchangedDependencies"] if d["signature"] == TZ]
+assert len(dep) == 1 and dep[0]["body_md5"] == z_manifest["functions"][0]["before_md5"] and dep[0]["alsoAcceptedAfterZonePerf"] == z_manifest["functions"][0]["after_md5"]
+z_live = {r["signature"]: r["body"] for r in json.loads((Z / "live-functions.json").read_text(encoding="utf-8"))}
+m_live = {r["signature"]: r["body"] for r in json.loads((M / "live-functions.json").read_text(encoding="utf-8"))}
+assert z_live[TZ] == m_live[TZ], "both packages pin the same live helper"
+tz = code(bodies_after(Z)[TZ])
+old_expression = code(z_live[TZ]).strip().removeprefix("select").strip().removesuffix(";").strip()
+assert "when value in ('Europe/Belgrade','UTC') then true" in tz and tz.index("'Europe/Belgrade'") < tz.index("pg_timezone_names"), "fast path must precede the catalog"
+assert tz.count("pg_timezone_names") == 1 and "availability_timezone_valid" not in tz and "set_config" not in tz and "current_setting" not in tz
+assert "length(value)<=100" in old_expression and "when value is null or length(value)>100 then false" in tz, "NULL and length rules"
+for rule in ("(value='UTC' or position('/' in value)>0)", "value not like 'posix/%'", "value not like 'right/%'", "z.name=value"):
+    assert rule in old_expression and rule in tz, ("TRUTH_TABLE_RULE_MISSING", rule)
+assert z_manifest["fastPathNames"] == ["Europe/Belgrade", "UTC"] and len(z_manifest["truthTableProbes"]) == 27
+z_candidate = (Z / "candidate.sql").read_text(encoding="utf-8")
+assert z_candidate.count("'Europe/Paris'") == 1 and "x" * 101 in z_candidate
 cand_ids = m_after["private.candidate_profile_ids(uuid,integer)"]
 assert cand_ids.count("p.profile_status = 'ACTIVE'") == 2 and cand_ids.count("where p.kind = 'WORKER'") == 2
 rq = code(requeue)
@@ -146,8 +164,8 @@ for alias, closing in (("n", "\n  ), place_wanted"), ("b", "\n ), qualified")):
 assert "fm_radius+0.01" in d_after and "for_me_doc->>'state'" in d_after
 assert "returns jsonb" in (D / "candidate.sql").read_text(encoding="utf-8").split("create function public.discovery_for_me_state_v1()")[1].split("as $dz_body$")[0]
 
-for text in (cand, (D / "candidate.sql").read_text(encoding="utf-8")):
+for text in (cand, (D / "candidate.sql").read_text(encoding="utf-8"), z_candidate):
     low = text.lower()
     for forbidden in ("create trigger", "create table", "alter table", "create policy", "drop policy", "create index", "session_replication_role"):
         assert forbidden not in low, ("CERTIFICATE_NEUTRAL_SHAPE", forbidden)
-print(f"PASS MATCH-V1 + DISCOVERY-ZAMENE offline: generators exact, {checked} SQL/PLpgSQL units parsed, rule and speed boundaries hold; runtime proof pending")
+print(f"PASS ZONE-PERF + MATCH-V1 + DISCOVERY-ZAMENE offline: generators exact, {checked} SQL/PLpgSQL units parsed, rule and speed boundaries hold; runtime proof pending")

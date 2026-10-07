@@ -2,16 +2,16 @@
 
 **Status: SOURCE ONLY, NOT APPLIED.** Canonical DEV `leqcwgzvjsxugfgzdmth` only on the owner's exact word **`PRIMENI MATCH-V1`**. Proof: `.github/workflows/match-v1-discovery-zamene-proof.yml` (disposable database only). Gaps closed: G1, G2, G3, G6 of `docs/implementation/ui-ux-pass-20261002/ZAVRSNA_PROVERA_20261007.md`.
 
-## Why this package also repairs a live speed problem (found 2026-10-07)
+## The live speed problem is fixed by ZONE-PERF, apply that FIRST (found 2026-10-07)
 
-The first load proof of this package stalled for 600 s on the **old, live** bodies. Root cause, measured read-only on canonical DEV: `private.availability_timezone_valid(text)` checks a zone name with `exists(select 1 from pg_catalog.pg_timezone_names ...)`. That view reads **every zone file of the server** (1,196 zones) on every call: about **111 ms per call** on DEV. The helper runs inside `worker_dispatch_time_admitted`, so the live prefilter and the live detailed matcher cost about **80-110 ms per worker x task pair** (measured on DEV: 5 pairs = 404 ms for the prefilter, 395 ms for `match_detail`). With 5 workers nobody notices; every wave scans workers until 40 are admitted, so 300 workers in range cost about 33 s per task and one tick of 25 tasks cannot finish in its minute. It also lengthens every manual application, candidate list row and availability save (`rpc_save_worker_availability`, the zone guard trigger).
+The first load proof of this package stalled for 600 s on the **old, live** bodies. Root cause, measured read-only on canonical DEV: `private.availability_timezone_valid(text)` checks a zone name with `exists(select 1 from pg_catalog.pg_timezone_names ...)`. That view reads **every zone file of the server** (1,196 zones) on every call: about 52 ms in CI, **70-110 ms per call on DEV**, warm or cold. The helper runs inside `worker_dispatch_time_admitted`, so the live prefilter and the live detailed matcher cost about **80-110 ms per worker x task pair**; the Home / "Moji zadaci" readers reach it through `selectable_application_count` for every application of every open own task.
 
-- **Fix, certificate-neutral:** the shared helper answers `Europe/Belgrade` and `UTC` without the scan (the candidate refuses to apply unless both names are in the catalog, and proves inside its transaction that the helper's answers for 15 probe values are unchanged); every other zone is judged exactly as before.
-- The rule itself now stops at the first refusal, cheapest check first (status, area, shared word, world, kind registry, exclusions, time) and never reads a zone for "bilo kad".
+- **The fix is its own, independent candidate: `supabase/candidates/zone-perf-20261007/` (owner word `PRIMENI ZONE-PERF`).** It replaces only the body of that one helper and is proven on its own (job `zone`). This package no longer touches the helper: it calls it unchanged and **accepts it in either of its two known states** (the live body, or the ZONE-PERF body). Both orders are proven (job `zone`: ZONE-PERF then MATCH-V1, and MATCH-V1 then ZONE-PERF, each reverting exactly). Without ZONE-PERF this package is correct but the matching stays as slow as it is today; apply ZONE-PERF first.
+- The rule itself stops at the first refusal, cheapest check first (status, area, shared word, world, kind registry, exclusions, time) and never reads a zone for "bilo kad".
 - `private.candidate_profile_ids` no longer visits DRAFT profiles in its two fallback loops (every requester-only account has one; `dispatch_cheap_candidate_admitted` refuses a profile that is not ACTIVE, so the admitted workers and their order are unchanged).
 - Hypothesis checked and **not** the cause: the age of a weekly availability rule. `worker_available_periods` expands only the days of the asked window, never from `starts_on` (the load proof measures a 2015 rule against one that starts today).
 
-Evidence and numbers: the `load` job of the proof workflow (`supabase/proofs/match-v1/load.proof.mjs`, summary table in the job page and `load-summary.md` in its artifact).
+Evidence and numbers: the `load` job of the proof workflow (`supabase/proofs/match-v1/load.proof.mjs`, summary table in the job page and `load-summary.md` in its artifact; its "OLD + ZONE-PERF only" column is the live bodies with only ZONE-PERF applied).
 
 ## Behaviour
 
@@ -35,12 +35,11 @@ Evidence and numbers: the `load` job of the proof workflow (`supabase/proofs/mat
 | `private.worker_dispatch_time_admitted(uuid,uuid)` | wrapper: `worker_need_time_tier_v1(...) is not null` |
 | `private.dispatch_next_wave(uuid)` | one `order by`: `timeTier`, then score |
 | `private.dispatch_tick(integer,timestamptz)` | calls the profile re-queue first; reports `profileRequeue` |
-| `private.availability_timezone_valid(text)` | shared helper: `Europe/Belgrade` and `UTC` answered without the catalog scan, everything else exactly as before (truth table asserted in the apply transaction) |
 | `private.candidate_profile_ids(uuid,integer)` | the two fallback loops visit ACTIVE profiles only (same admitted workers, same order) |
 | new `private.worker_need_time_tier_v1`, `private.worker_need_fit_v1(uuid,uuid,boolean)`, `private.worker_need_match_v1`, `private.requeue_changed_worker_profiles_v1` | SECURITY DEFINER, `search_path=pg_catalog`, ACL `{postgres=X/postgres}`. `fit(..., true)` (prefilter, "Za mene") stops at the first refusal, cheapest first: status/own task → shared word → area → world/identity → kind registry → exclusions (only when the list is not empty) → schedule; `fit(..., false)` (detailed matcher) computes every component. Same expressions, same answer. |
 | data | one `private.marketplace_config` row (`match_v1_profile_requeue`: watermark and keyset cursor) |
 
-Predecessor pins (DEV, 2026-10-07, ledger 227, latest `20261005101102`): `match_detail_without_calendar` `ef5de901…`, `dispatch_cheap_candidate_admitted` `e51de37e…`, `worker_dispatch_time_admitted` `4f0beb65…`, `dispatch_next_wave` `2b58d696…`, `dispatch_tick` `8798cb6b…`, `availability_timezone_valid` `013f884c…`, `candidate_profile_ids` `dca4ddc8…`, plus 15 unchanged dependencies (`manifest.json`). Older, still unapplied candidates that pin the helper or `candidate_profile_ids` (`ex06a`, `ex06d` F5, the WPP02 files) would need their pins regenerated before they could ever be applied after MATCH-V1. Every edit is anchored once; metadata, OIDs and comments are asserted unchanged.
+Predecessor pins (DEV, 2026-10-07, ledger 227, latest `20261005101102`): `match_detail_without_calendar` `ef5de901…`, `dispatch_cheap_candidate_admitted` `e51de37e…`, `worker_dispatch_time_admitted` `4f0beb65…`, `dispatch_next_wave` `2b58d696…`, `dispatch_tick` `8798cb6b…`, `candidate_profile_ids` `dca4ddc8…`, plus 16 unchanged dependencies (`manifest.json`), among them the shared zone helper `availability_timezone_valid`, accepted as `013f884c…` (live) **or** the ZONE-PERF body. Older, still unapplied candidates that pin `candidate_profile_ids` (`ex06a`, `ex06d` F5, the WPP02 files) would need their pins regenerated before they could ever be applied after MATCH-V1; those that pin the zone helper need the same after ZONE-PERF. Every edit is anchored once; metadata, OIDs and comments are asserted unchanged.
 
 **Closure certificate: does not move.** None of these bodies is in `closure_erasure_program_digest_v5` (fixed list + trigger functions of the redaction relations + table/trigger state) or `closure_schema_digest_v5_139`; no table, column, constraint, trigger, policy or grant on an existing object changes; the transaction asserts the digest, the erasure-program digest and readiness before and after (DEV `3a785d42…`). An `AFTER UPDATE` trigger on `app_profiles` was deliberately NOT used: it would move both digests and need a recertification.
 
@@ -52,6 +51,7 @@ No errcode `40001` anywhere (B24: deterministic conflicts are `PT409`); this pac
 
 ## Apply order on the owner's word
 
+0. Recommended: apply ZONE-PERF first (`supabase/candidates/zone-perf-20261007/`, its own owner word). `preflight.readonly.sql` reports `zoneHelperState`.
 1. `preflight.readonly.sql` → every flag true (ledger 227, pins, certificate ready, nothing pre-existing).
 2. `candidate.sql` as one migration (byte-exact, guarded).
 3. `postflight.readonly.sql` → bodies, ACLs, watermark, certificate unchanged; receipt in `supabase/operations/dev-alpha/ledger/`.

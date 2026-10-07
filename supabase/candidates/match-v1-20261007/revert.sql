@@ -502,12 +502,6 @@ begin
                             'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));
 end;
 $mv1_body$),
-  ('private.availability_timezone_valid(text)','07883c6475c5b206a0e00aa43c23ce44','013f884ca649cb5246f39eaf9f2e0ec9',$mv1_body$
-  select value is not null and length(value)<=100
-    and (value='UTC' or position('/' in value)>0)
-    and value not like 'posix/%' and value not like 'right/%'
-    and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value);
-$mv1_body$),
   ('private.candidate_profile_ids(uuid,integer)','5414fa5a122e2055c71dd37993a6ad83','dca4ddc8080a52c8af83c33689c5568e',$mv1_body$
 declare
   n public.needs; admitted integer := 0; c record; task_geog extensions.geography;
@@ -591,14 +585,13 @@ do $match_v1_revert_post$
 declare r record;
 begin
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','ef5de901069c1a8cfa729cfb6bbadde9'),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','e51de37e0883fcd3cd4e6e3c42fb6ee1'),
-  ('private.worker_dispatch_time_admitted(uuid,uuid)','4f0beb65922d2b3d947d69e68a56a956'),
-  ('private.dispatch_next_wave(uuid)','2b58d69640ac802a5dd3fa3cef6c56d0'),
-  ('private.dispatch_tick(integer,timestamp with time zone)','8798cb6b6f004ecd5d88dd472cd6de0b'),
-  ('private.availability_timezone_valid(text)','013f884ca649cb5246f39eaf9f2e0ec9'),
-  ('private.candidate_profile_ids(uuid,integer)','dca4ddc8080a52c8af83c33689c5568e')) pins(signature,body_md5) loop
-  if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
+  ('private.match_detail_without_calendar(uuid,uuid)',array['ef5de901069c1a8cfa729cfb6bbadde9']::text[]),
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)',array['e51de37e0883fcd3cd4e6e3c42fb6ee1']::text[]),
+  ('private.worker_dispatch_time_admitted(uuid,uuid)',array['4f0beb65922d2b3d947d69e68a56a956']::text[]),
+  ('private.dispatch_next_wave(uuid)',array['2b58d69640ac802a5dd3fa3cef6c56d0']::text[]),
+  ('private.dispatch_tick(integer,timestamp with time zone)',array['8798cb6b6f004ecd5d88dd472cd6de0b']::text[]),
+  ('private.candidate_profile_ids(uuid,integer)',array['dca4ddc8080a52c8af83c33689c5568e']::text[])) pins(signature,body_md5s) loop
+  if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
   then raise exception 'MATCH_V1_REVERT_POSTIMAGE_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')

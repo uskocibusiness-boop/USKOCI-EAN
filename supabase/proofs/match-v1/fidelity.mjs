@@ -9,7 +9,7 @@ import {assert, sql, rows, q, env} from '../pre_v3/closure_runtime.mjs';
 
 const md5 = s => createHash('md5').update(s).digest('hex');
 const live = new Map();
-for (const dir of ['supabase/candidates/match-v1-20261007/', 'supabase/candidates/discovery-zamene-20261007/']) {
+for (const dir of ['supabase/candidates/zone-perf-20261007/', 'supabase/candidates/match-v1-20261007/', 'supabase/candidates/discovery-zamene-20261007/']) {
   for (const row of JSON.parse(fs.readFileSync(dir + 'live-functions.json', 'utf8'))) {
     assert.equal(md5(row.body), row.body_md5);
     live.set(row.signature, row.body);
@@ -36,7 +36,7 @@ for (const [signature, expected] of live) {
 }
 const report = {result: mismatched.length ? 'FAIL' : 'PASS', relevantLiveBodyPins: live.size, exact: exact.length, converted, mismatched,
   certificateUnchanged: JSON.stringify(closure()) === JSON.stringify(before),
-  scope: 'Exact relevant DEV bodies (MATCH-V1 5 changed + 17 dependencies, DISCOVERY-ZAMENE 1) on the disposable chain. Not global DEV equivalence.'};
+  scope: 'Exact relevant DEV bodies (ZONE-PERF 1, MATCH-V1 6 changed + 16 dependencies, DISCOVERY-ZAMENE 1; 23 distinct) on the disposable chain. Not global DEV equivalence.'};
 fs.writeFileSync(path.join(env.MATCH_V1_ARTIFACT_DIR, 'chain-fidelity.json'), JSON.stringify(report, null, 2) + '\n');
 assert.equal(report.certificateUnchanged, true);
 if (mismatched.length) { console.error('FAIL MATCH_V1_RELEVANT_BODY_FIDELITY ' + JSON.stringify(mismatched)); process.exit(1); }

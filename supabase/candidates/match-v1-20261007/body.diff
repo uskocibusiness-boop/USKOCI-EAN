@@ -241,25 +241,6 @@
 +                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),
 +                            'profileRequeue',profile_requeue);
  end;
---- private.availability_timezone_valid(text) BEFORE (DEV)
-+++ private.availability_timezone_valid(text) AFTER (MATCH-V1)
-@@ -1,5 +1,12 @@
- 
--  select value is not null and length(value)<=100
--    and (value='UTC' or position('/' in value)>0)
--    and value not like 'posix/%' and value not like 'right/%'
--    and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value);
-+  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about
-+  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,
-+  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the
-+  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.
-+  select case
-+    when value is null or length(value)>100 then false
-+    when value in ('Europe/Belgrade','UTC') then true
-+    else (value='UTC' or position('/' in value)>0)
-+      and value not like 'posix/%' and value not like 'right/%'
-+      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
-+  end;
 --- private.candidate_profile_ids(uuid,integer) BEFORE (DEV)
 +++ private.candidate_profile_ids(uuid,integer) AFTER (MATCH-V1)
 @@ -28,7 +28,7 @@

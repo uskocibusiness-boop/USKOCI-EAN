@@ -4,8 +4,8 @@
 // (HARD_S) and in small chunks under a total budget: a timeout or an exhausted budget is RECORDED with the partial rows and milliseconds,
 // never thrown away. A measurement of the NEW code that does not complete fails the run.
 //
-// States measured on the SAME rows:  OLD = the live DEV bodies;  OLD_TZ = the live bodies with ONLY the shared zone helper replaced
-// (separates the zone fix from the rule rewrite);  NEW = MATCH-V1;  NEW_DZ = MATCH-V1 + DISCOVERY-ZAMENE.
+// States measured on the SAME rows:  OLD = the live DEV bodies;  OLD_TZ = the live bodies with ONLY ZONE-PERF applied (the shared zone
+// helper; separates the zone fix from the rule rewrite);  NEW = ZONE-PERF + MATCH-V1;  NEW_DZ = plus DISCOVERY-ZAMENE.
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -16,11 +16,10 @@ import {createFixtures} from '../ex06/lib/fixtures.mjs';
 const {assert, sql, rows, q, ok, env} = rt;
 const DB = env.DB_URL;
 assert.equal(DB, 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
-const M = 'supabase/candidates/match-v1-20261007/', D = 'supabase/candidates/discovery-zamene-20261007/';
+const M = 'supabase/candidates/match-v1-20261007/', D = 'supabase/candidates/discovery-zamene-20261007/', Z = 'supabase/candidates/zone-perf-20261007/';
 const mManifest = JSON.parse(fs.readFileSync(M + 'manifest.json', 'utf8'));
 const dManifest = JSON.parse(fs.readFileSync(D + 'manifest.json', 'utf8'));
-const mPatches = JSON.parse(fs.readFileSync(M + 'patches.json', 'utf8'));
-const mLive = JSON.parse(fs.readFileSync(M + 'live-functions.json', 'utf8'));
+const zManifest = JSON.parse(fs.readFileSync(Z + 'manifest.json', 'utf8'));
 const out = env.MATCH_V1_ARTIFACT_DIR;
 const md5 = text => createHash('md5').update(text).digest('hex');
 const sleepSync = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -28,8 +27,6 @@ const HARD_S = 90;       // statement_timeout of every single statement
 const BUDGET_S = 180;    // total budget of one measurement family (all its chunks)
 const WORKERS = 300, LOAD_TASKS = 100, DISC_TASKS = 900, DRAFTS = 3000;
 const TZ = 'private.availability_timezone_valid(text)';
-const tzOld = mLive.find(f => f.signature === TZ).body;
-const tzNew = mPatches.find(p => p.signature === TZ).after;
 const NIL = '00000000-0000-0000-0000-000000000000';
 const report = {unit: 'MATCH-V1 load', result: 'RUNNING', sourceSha: env.GITHUB_SHA, disposableOnly: true, liveAccess: false, providerCalls: 0, pushSends: 0,
   statementTimeoutSeconds: HARD_S, budgetSeconds: BUDGET_S, checks: [], failures: [], load: {}};
@@ -82,15 +79,6 @@ const brief = r => ({complete: r.complete, timedOut: r.timedOut, budgetExhausted
   n: r.n, matched: r.m, ms: Math.round(r.ms), msPerUnit: r.msPerUnit, unit: r.unit, ...(r.error ? {error: r.error} : {})});
 
 // ---------------------------------------------------------------- state changes
-const swapZoneHelper = (from, to) => {
-  const r = run(`do $s$ declare o oid:=to_regprocedure(${q(TZ)}); body text; def text; begin
-    select prosrc into body from pg_proc where oid=o;
-    if md5(body) is distinct from ${q(md5(from))} then raise exception 'SWAP_PREIMAGE_DRIFT'; end if;
-    def:=pg_get_functiondef(o); execute replace(def, body, $swap$${to}$swap$);
-    if (select md5(prosrc) from pg_proc where oid=o) is distinct from ${q(md5(to))} then raise exception 'SWAP_POSTIMAGE_DRIFT'; end if;
-  end $s$;`);
-  assert.ok(r.ok, 'SWAP_FAILED:' + r.error);
-};
 const applyFile = file => { const r = run(fs.readFileSync(file, 'utf8'), {timeoutS: 180}); assert.ok(r.ok, 'APPLY_FAILED:' + file + ':' + r.error); };
 const bodyMd5 = signature => sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(signature)})`);
 const catalog = () => sql(`select md5(string_agg(p.oid::regprocedure::text||':'||md5(p.prosrc)||':'||((to_jsonb(p)-'prosrc'-'oid')::text)||':'||coalesce(obj_description(p.oid,'pg_proc'),''),E'\\n' order by p.oid::regprocedure::text))
@@ -281,23 +269,24 @@ try {
     write();
   });
 
-  // ---- OLD_TZ: the live bodies with ONLY the shared zone helper replaced.
+  // ---- OLD_TZ: the live bodies with ONLY ZONE-PERF applied (the shared zone helper).
   section('OLD_TZ', () => {
-    swapZoneHelper(tzOld, tzNew); state = 'OLD_TZ';
+    applyFile(Z + 'candidate.sql'); state = 'OLD_TZ';
+    assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5); assert.deepEqual(closure(), baseClosure);
     report.load.OLD_TZ = {zoneHelper: microZone(2000)};
     measureState('OLD_TZ', tasks, {workersPerChunk: WORKERS, ...sample});
     report.load.OLD_TZ.profileRetrievalSlowTask = profile('OLD_TZ retrieval of one task', retrievalOf(slowTask));
     report.load.OLD_TZ.profileDetailed = profile('OLD_TZ detailed matcher, 1 task x all workers',
       `select count(*) into n from ${workerSet(WORKERS)} where (private.match_detail(${q(tasks[0])}::uuid, p.id)->>'dispatchEligible')::boolean is not null;`);
     report.load.OLD_TZ.ageOfRule = {old2015: microPeriods(ageWorkers[0].id, 300), startsToday: microPeriods(ageWorkers[1].id, 300), rows: ageWorkers};
-    swapZoneHelper(tzNew, tzOld); state = 'OLD';
     write();
   });
-  if (state === 'OLD_TZ') { swapZoneHelper(tzNew, tzOld); state = 'OLD'; }
+  if (state !== 'OLD_TZ') throw new Error('ZONE_PERF_NOT_APPLIED: MATCH-V1 is measured on top of it');
 
-  // ---- NEW: MATCH-V1.
+  // ---- NEW: MATCH-V1 on top of ZONE-PERF (the planned order).
   section('NEW', () => {
     applyFile(M + 'candidate.sql'); state = 'NEW';
+    assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5, 'MATCH_V1_TOUCHED_THE_ZONE_HELPER');
     for (const f of mManifest.functions) assert.equal(bodyMd5(f.signature), f.after_md5, 'POSTIMAGE:' + f.signature);
     assert.deepEqual(closure(), baseClosure);
     report.load.NEW = {zoneHelper: microZone(2000)};
@@ -363,8 +352,8 @@ try {
   // exact reverts, whatever happened above
   try {
     if (state === 'NEW_DZ') { applyFile(D + 'revert.sql'); state = 'NEW'; }
-    if (state === 'NEW') { applyFile(M + 'revert.sql'); state = 'OLD'; }
-    if (state === 'OLD_TZ') { swapZoneHelper(tzNew, tzOld); state = 'OLD'; }
+    if (state === 'NEW') { applyFile(M + 'revert.sql'); state = 'OLD_TZ'; }
+    if (state === 'OLD_TZ') { applyFile(Z + 'revert.sql'); state = 'OLD'; }
   } catch (error) { fail('REVERT', String(error).slice(0, 500)); }
   try {
     if (baseCatalog) { assert.equal(catalog(), baseCatalog); assert.deepEqual(closure(), baseClosure); pass('MATCH_V1_LOAD_STATES_REVERTED_CATALOG_AND_CERTIFICATE_RESTORED'); }
@@ -422,7 +411,7 @@ const disc = k => { const d = L.discovery?.[k]; return d ? `| ${f1(d.openTasks)}
 const lines = [
   '### MATCH-V1 load proof (disposable database, synthetic rows)', '',
   `Rows: ${f1(L.sizes?.activeWorkers)} active workers, ${f1(L.sizes?.draftProfiles)} draft profiles, ${f1(L.sizes?.loadTasks)} dispatch tasks, ${f1(L.sizes?.openTasks)} open tasks in all. Hard statement timeout ${HARD_S} s per statement, budget ${BUDGET_S} s per measurement.`, '',
-  '| measure | unit | OLD (live DEV bodies) | OLD + zone fix only | NEW (MATCH-V1) |', '|---|---|---|---|---|',
+  '| measure | unit | OLD (live DEV bodies) | OLD + ZONE-PERF only | NEW (ZONE-PERF + MATCH-V1) |', '|---|---|---|---|---|',
   `| zone helper | ms/call | ${cell('OLD', 'zoneHelper')} | ${cell('OLD_TZ', 'zoneHelper')} | ${cell('NEW', 'zoneHelper')} |`,
   `| prefilter (notification) | ms/pair | ${cell('OLD', 'prefilter')} | ${cell('OLD_TZ', 'prefilter')} | ${cell('NEW_SAME_SAMPLE', 'prefilter')} (same pairs), ${cell('NEW', 'prefilter')} (all) |`,
   `| detailed matcher | ms/pair | ${cell('OLD', 'detailed')} | ${cell('OLD_TZ', 'detailed')} | ${cell('NEW_SAME_SAMPLE', 'detailed')} (same pairs), ${cell('NEW', 'detailed')} (20 tasks) |`,

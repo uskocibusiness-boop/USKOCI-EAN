@@ -11,8 +11,9 @@ import {createFixtures, weeklyRule} from '../ex06/lib/fixtures.mjs';
 const {assert, sql, rows, q, randomUUID, ok, env} = rt;
 const DB = env.DB_URL;
 assert.equal(DB, 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
-const M = 'supabase/candidates/match-v1-20261007/', D = 'supabase/candidates/discovery-zamene-20261007/';
+const M = 'supabase/candidates/match-v1-20261007/', D = 'supabase/candidates/discovery-zamene-20261007/', Z = 'supabase/candidates/zone-perf-20261007/';
 const mManifest = JSON.parse(fs.readFileSync(M + 'manifest.json', 'utf8'));
+const zManifest = JSON.parse(fs.readFileSync(Z + 'manifest.json', 'utf8'));
 const dManifest = JSON.parse(fs.readFileSync(D + 'manifest.json', 'utf8'));
 const out = env.MATCH_V1_ARTIFACT_DIR;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -46,10 +47,7 @@ const closure = () => rows(`select private.closure_source_digest_v5() as digest,
 const conflicts40001 = () => Number(sql(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prosrc like '%40001%'`));
 const watermarkRows = () => Number(sql(`select count(*) from private.marketplace_config where key='match_v1_profile_requeue'`));
 const bodyMd5 = signature => sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(signature)})`);
-// Truth table of the shared zone helper (the candidate replaces its body; every answer must stay the same).
-const TZ_PROBES = [null, '', 'UTC', 'Europe/Belgrade', 'Europe/Zagreb', 'Europe/Sarajevo', 'Etc/GMT+1', 'posix/Europe/Belgrade', 'right/UTC', 'europe/belgrade',
-  'Mars/Base', 'EST5EDT', 'Europe/Belgrade ', 'UTC ', 'America/New_York', 'Asia/Kolkata', 'Asia/Tokyo', 'x'.repeat(101)];
-const tzTruth = () => rows(`select v as value, private.availability_timezone_valid(v) as result from unnest(array[${TZ_PROBES.map(v => v === null ? 'null' : q(v)).join(',')}]::text[]) with ordinality t(v, i) order by i`);
+const TZ = 'private.availability_timezone_valid(text)';
 
 const fx = createFixtures(rt, {needPath: 'direct'});
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
@@ -274,9 +272,10 @@ try {
   pass('MATCH_V1_DRIFT_AND_ORDER_REFUSALS_ARE_ATOMIC');
 
   // ---------------------------------------------------------------- MATCH-V1
-  // The zone helper before the change: its answers, and what one call costs (it scans the whole zone catalog).
-  const tzBefore = tzTruth();
-  const tzOldMs = timedSql(`select count(*) from generate_series(1,5) g where private.availability_timezone_valid(case when g>0 then 'Europe/Belgrade' end)`).ms;
+  // ZONE-PERF first, as planned (its own proof: supabase/proofs/zone-perf): the shared zone helper stops scanning the zone catalog. MATCH-V1 accepts the helper in either state.
+  psqlFile(Z + 'candidate.sql');
+  assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5); assert.deepEqual(closure(), baseClosure);
+  pass('MATCH_V1_ZONE_PERF_APPLIED_FIRST_AS_PLANNED_CERTIFICATE_UNCHANGED', {helperMd5: zManifest.functions[0].after_md5});
   psqlFile(M + 'candidate.sql');
   for (const f of mManifest.functions) assert.equal(bodyMd5(f.signature), f.after_md5, 'POSTIMAGE:' + f.signature);
   for (const f of mManifest.newFunctions) assert.equal(bodyMd5(f.signature), f.body_md5, 'NEW:' + f.signature);
@@ -284,11 +283,7 @@ try {
   assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001); assert.equal(watermarkRows(), 1);
   pass('MATCH_V1_APPLIED_EXACT_BODIES_CERTIFICATE_UNCHANGED_NO_NEW_40001', {certificate: baseClosure.certificate});
   refused(candidate, 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED');
-  assert.deepEqual(tzTruth(), tzBefore, 'ZONE_HELPER_ANSWERS_CHANGED');
-  const tzNewMs = timedSql(`select count(*) from generate_series(1,200) g where private.availability_timezone_valid(case when g>0 then 'Europe/Belgrade' end)`).ms;
-  assert.ok(tzNewMs < 3000, 'ZONE_HELPER_STILL_SCANS_THE_CATALOG:' + tzNewMs);
-  pass('MATCH_V1_ZONE_HELPER_SAME_ANSWERS_AND_NO_CATALOG_SCAN_FOR_THE_PRODUCT_ZONE',
-    {probes: TZ_PROBES.length, oldWallMsFor5Calls: tzOldMs, newWallMsFor200Calls: tzNewMs, answers: tzBefore.map(r => r.result)});
+  assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5, 'MATCH_V1_TOUCHED_THE_ZONE_HELPER');
   await fx.reloadSchema();
   expectNew(await matchingCases('after'));
   // The first-refusal evaluation (prefilter, "Za mene") and the full one (detailed matcher) must agree on every pair on this chain.
@@ -381,8 +376,10 @@ try {
   sameResponses(snapshot, await replayDefault(zs, snapshot));
   await forMeRefusedAsUnknownKey(zs, 'AFTER_DZ_REVERT');
   psqlFile(M + 'revert.sql');
+  assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5, 'MATCH_V1_REVERT_TOUCHED_THE_ZONE_HELPER');
+  psqlFile(Z + 'revert.sql');
   assert.equal(catalog(), baseCatalog); assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001); assert.equal(watermarkRows(), 0);
-  pass('MATCH_V1_AND_DISCOVERY_ZAMENE_EXACT_REVERT_CATALOG_AND_CERTIFICATE_RESTORED');
+  pass('ZONE_PERF_MATCH_V1_AND_DISCOVERY_ZAMENE_EXACT_REVERT_CATALOG_AND_CERTIFICATE_RESTORED');
   await fx.reloadSchema();
   expectOld(await matchingCases('reverted'), 'REVERTED');
 

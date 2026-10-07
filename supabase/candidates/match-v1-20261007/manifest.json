@@ -36,11 +36,6 @@
       "after_md5": "947783612b6bea3170cdbc6dd657e6fd"
     },
     {
-      "signature": "private.availability_timezone_valid(text)",
-      "before_md5": "013f884ca649cb5246f39eaf9f2e0ec9",
-      "after_md5": "07883c6475c5b206a0e00aa43c23ce44"
-    },
-    {
       "signature": "private.candidate_profile_ids(uuid,integer)",
       "before_md5": "dca4ddc8080a52c8af83c33689c5568e",
       "after_md5": "5414fa5a122e2055c71dd37993a6ad83"
@@ -84,6 +79,11 @@
     {
       "signature": "private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)",
       "body_md5": "417c9db16bbe70ed9ad652380790900c"
+    },
+    {
+      "signature": "private.availability_timezone_valid(text)",
+      "body_md5": "013f884ca649cb5246f39eaf9f2e0ec9",
+      "alsoAcceptedAfterZonePerf": "be95520dabe35febd8e9fa15f0ce0309"
     },
     {
       "signature": "private.effective_radius_km(integer)",
@@ -130,6 +130,13 @@
       "body_md5": "371bb38ea1d7180ca6222409f1a9a591"
     }
   ],
+  "zonePerf": {
+    "candidate": "supabase/candidates/zone-perf-20261007/",
+    "helper": "private.availability_timezone_valid(text)",
+    "liveMd5": "013f884ca649cb5246f39eaf9f2e0ec9",
+    "zonePerfMd5": "be95520dabe35febd8e9fa15f0ce0309",
+    "note": "independent: this package neither needs nor changes the helper; apply ZONE-PERF first for speed (either order is accepted and proven)"
+  },
   "dataRows": [
     {
       "table": "private.marketplace_config",
@@ -138,12 +145,12 @@
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "43b0274b5ee4157a64e7232c37a29d09730cddf86ec175e1113e15339542cbb8",
-    "candidate.in-transaction.sql": "b4cfb844afa9578312f0c943831099c5d5c24cde8e9b1ef0567966e120f4b247",
-    "revert.sql": "d24a479ef7d81c7a11c4e70699059418fb4b29b7006f23a32d63e6a026cca494",
-    "preflight.readonly.sql": "ca8d03291938b209ec6c465c9d24172be43e40f61a2c5f6f0b012fdafc919a99",
-    "postflight.readonly.sql": "2d074c52c82c4cadb98edd12d5d50dfb1b15dc235c7ff97ea24e9c94900584d1",
-    "body.diff": "9902a62b4ee200c1025263602505a9734e3d404494fd91598c19f59bd9123c85",
-    "patches.json": "8006ab0cb9d5d65afbff4b1a67d1dcba762d0fec0051a2d9e767bdceb7acd1ee"
+    "candidate.sql": "0823fd79a13fedad0d207320d8c621cfb6496ca5f155e45591a09db577160d2b",
+    "candidate.in-transaction.sql": "f473f1bab563341e1cfe7df86b10b7a730bef3b8f4c134418f8248485970f6ac",
+    "revert.sql": "6e913586330582ba80be57063a1acd2d4e3a6fc8ef246355d8a024ee4dddad37",
+    "preflight.readonly.sql": "3c1428e0a85cbc2f22189d8a3f732afe3926025973c43bc354e2db3192a66a0b",
+    "postflight.readonly.sql": "5ea116cb328fce97abf11ac71dbfccb46bbc98aff22d73876fbb4d8be2942100",
+    "body.diff": "da35cd4f5d36d09c83b4ed8224a1422bf39c22b19147bfc483e7c2169e7248a5",
+    "patches.json": "3e0da97a2496ae789ad092e65561879546efbef500927baf45df8f8df06b32b6"
   }
 }

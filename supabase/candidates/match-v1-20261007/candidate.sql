@@ -21,45 +21,39 @@ begin
   or exists(select 1 from private.marketplace_config where key='match_v1_profile_requeue')
  then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
-  ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)','3a1aee763e9fe3d0f06d6ba04ef21aac'),
-  ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)','5107af3020a3beb7bb45e6e90e7a203b'),
-  ('private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)','e29a7bade1437e3f2067924b5179ddfd'),
-  ('private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)','417c9db16bbe70ed9ad652380790900c'),
-  ('private.effective_radius_km(integer)','fa9b8c7fcafd65ebb4d98f538fff5223'),
-  ('private.haversine_km(numeric,numeric,numeric,numeric)','027cf272c3616d952c7f241353ffd5a2'),
-  ('private.accounts_same_world(uuid,uuid)','16f541f952d4e1e2dbb4fc87e594d572'),
-  ('private.identity_admitted(uuid)','9f4684bfd84df734cb8438b14aff0c16'),
-  ('private.lower_arr(text[])','07f449cf589196cc8ca349b4f5ca460c'),
-  ('private.work_kinds_v5(text[])','78fca96231ddc713cf18990f5a2a34ef'),
-  ('private.enqueue_dispatch(uuid,timestamp with time zone)','470ed6ab6501c69bf9ebbfe057ccd0fb'),
-  ('private.match_detail(uuid,uuid)','38c7894a8cf43a8f32bd5a30bc2cbd09'),
-  ('private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)','781956cab666befab216b3ce2334ca1d'),
-  ('private.need_search_time_admitted_v1(uuid,timestamp with time zone)','b830cd07c2a5db101a3a28096256a75b'),
-  ('private.requeue_open_needs_for_worker_v5(uuid)','371bb38ea1d7180ca6222409f1a9a591')) pins(signature,body_md5) loop
-  if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
+  ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)',array['3a1aee763e9fe3d0f06d6ba04ef21aac']::text[]),
+  ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)',array['5107af3020a3beb7bb45e6e90e7a203b']::text[]),
+  ('private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)',array['e29a7bade1437e3f2067924b5179ddfd']::text[]),
+  ('private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)',array['417c9db16bbe70ed9ad652380790900c']::text[]),
+  ('private.availability_timezone_valid(text)',array['013f884ca649cb5246f39eaf9f2e0ec9','be95520dabe35febd8e9fa15f0ce0309']::text[]),
+  ('private.effective_radius_km(integer)',array['fa9b8c7fcafd65ebb4d98f538fff5223']::text[]),
+  ('private.haversine_km(numeric,numeric,numeric,numeric)',array['027cf272c3616d952c7f241353ffd5a2']::text[]),
+  ('private.accounts_same_world(uuid,uuid)',array['16f541f952d4e1e2dbb4fc87e594d572']::text[]),
+  ('private.identity_admitted(uuid)',array['9f4684bfd84df734cb8438b14aff0c16']::text[]),
+  ('private.lower_arr(text[])',array['07f449cf589196cc8ca349b4f5ca460c']::text[]),
+  ('private.work_kinds_v5(text[])',array['78fca96231ddc713cf18990f5a2a34ef']::text[]),
+  ('private.enqueue_dispatch(uuid,timestamp with time zone)',array['470ed6ab6501c69bf9ebbfe057ccd0fb']::text[]),
+  ('private.match_detail(uuid,uuid)',array['38c7894a8cf43a8f32bd5a30bc2cbd09']::text[]),
+  ('private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)',array['781956cab666befab216b3ce2334ca1d']::text[]),
+  ('private.need_search_time_admitted_v1(uuid,timestamp with time zone)',array['b830cd07c2a5db101a3a28096256a75b']::text[]),
+  ('private.requeue_open_needs_for_worker_v5(uuid)',array['371bb38ea1d7180ca6222409f1a9a591']::text[])) pins(signature,body_md5s) loop
+  if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
   then raise exception 'MATCH_V1_DEPENDENCY_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','ef5de901069c1a8cfa729cfb6bbadde9'),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','e51de37e0883fcd3cd4e6e3c42fb6ee1'),
-  ('private.worker_dispatch_time_admitted(uuid,uuid)','4f0beb65922d2b3d947d69e68a56a956'),
-  ('private.dispatch_next_wave(uuid)','2b58d69640ac802a5dd3fa3cef6c56d0'),
-  ('private.dispatch_tick(integer,timestamp with time zone)','8798cb6b6f004ecd5d88dd472cd6de0b'),
-  ('private.availability_timezone_valid(text)','013f884ca649cb5246f39eaf9f2e0ec9'),
-  ('private.candidate_profile_ids(uuid,integer)','dca4ddc8080a52c8af83c33689c5568e')) pins(signature,body_md5) loop
-  if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
+  ('private.match_detail_without_calendar(uuid,uuid)',array['ef5de901069c1a8cfa729cfb6bbadde9']::text[]),
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)',array['e51de37e0883fcd3cd4e6e3c42fb6ee1']::text[]),
+  ('private.worker_dispatch_time_admitted(uuid,uuid)',array['4f0beb65922d2b3d947d69e68a56a956']::text[]),
+  ('private.dispatch_next_wave(uuid)',array['2b58d69640ac802a5dd3fa3cef6c56d0']::text[]),
+  ('private.dispatch_tick(integer,timestamp with time zone)',array['8798cb6b6f004ecd5d88dd472cd6de0b']::text[]),
+  ('private.candidate_profile_ids(uuid,integer)',array['dca4ddc8080a52c8af83c33689c5568e']::text[])) pins(signature,body_md5s) loop
+  if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
   then raise exception 'MATCH_V1_PREDECESSOR_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
- if (select count(*) from pg_catalog.pg_timezone_names where name in ('Europe/Belgrade','UTC'))<>2
- then raise exception 'MATCH_V1_TIMEZONE_CATALOG_LACKS_FAST_PATH_NAMES' using errcode='55000'; end if;
 end
 $match_v1_pre$;
 create temporary table match_v1_certificate on commit drop as
  select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;
-create temporary table match_v1_tz_probe on commit drop as
- select v as value, private.availability_timezone_valid(v) as old_result
- from unnest(array[null,'','UTC','Europe/Belgrade','Europe/Zagreb','Etc/GMT+1','posix/Europe/Belgrade','right/UTC','europe/belgrade',
-   'Mars/Base','EST5EDT','Europe/Belgrade ','America/New_York','Asia/Kolkata',repeat('x',101)]::text[]) v;
 create function private.worker_need_time_tier_v1(nid uuid, pid uuid)
  returns integer
  language plpgsql
@@ -705,19 +699,6 @@ begin
                             'profileRequeue',profile_requeue);
 end;
 $mv1_body$),
-  ('private.availability_timezone_valid(text)','013f884ca649cb5246f39eaf9f2e0ec9','07883c6475c5b206a0e00aa43c23ce44',$mv1_body$
-  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about
-  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,
-  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the
-  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.
-  select case
-    when value is null or length(value)>100 then false
-    when value in ('Europe/Belgrade','UTC') then true
-    else (value='UTC' or position('/' in value)>0)
-      and value not like 'posix/%' and value not like 'right/%'
-      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
-  end;
-$mv1_body$),
   ('private.candidate_profile_ids(uuid,integer)','dca4ddc8080a52c8af83c33689c5568e','5414fa5a122e2055c71dd37993a6ad83',$mv1_body$
 declare
   n public.needs; admitted integer := 0; c record; task_geog extensions.geography;
@@ -797,8 +778,6 @@ insert into private.marketplace_config(key,value,updated_at)
 do $match_v1_post$
 declare r record;
 begin
- if exists(select 1 from match_v1_tz_probe t where private.availability_timezone_valid(t.value) is distinct from t.old_result)
- then raise exception 'MATCH_V1_TIMEZONE_HELPER_TRUTH_TABLE_CHANGED' using errcode='55000'; end if;
  for r in select * from (values
   ('private.worker_need_time_tier_v1(uuid,uuid)','753027749309ccc110f486cbfb4866e4','s'),
   ('private.worker_need_fit_v1(uuid,uuid,boolean)','ab221f0091d78856bb42f702ddecd016','s'),
@@ -810,15 +789,34 @@ begin
   then raise exception 'MATCH_V1_NEW_FUNCTION_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','efd50886ff898f45129d33231761d189'),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','cec5c0a2c13af6718af53b7a80245f28'),
-  ('private.worker_dispatch_time_admitted(uuid,uuid)','a58f1d1a2d21fa057867c153ae62ba4e'),
-  ('private.dispatch_next_wave(uuid)','cafdef0ff95b5dc6467f4fa1db3dafc0'),
-  ('private.dispatch_tick(integer,timestamp with time zone)','947783612b6bea3170cdbc6dd657e6fd'),
-  ('private.availability_timezone_valid(text)','07883c6475c5b206a0e00aa43c23ce44'),
-  ('private.candidate_profile_ids(uuid,integer)','5414fa5a122e2055c71dd37993a6ad83')) pins(signature,body_md5) loop
-  if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
+  ('private.match_detail_without_calendar(uuid,uuid)',array['efd50886ff898f45129d33231761d189']::text[]),
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)',array['cec5c0a2c13af6718af53b7a80245f28']::text[]),
+  ('private.worker_dispatch_time_admitted(uuid,uuid)',array['a58f1d1a2d21fa057867c153ae62ba4e']::text[]),
+  ('private.dispatch_next_wave(uuid)',array['cafdef0ff95b5dc6467f4fa1db3dafc0']::text[]),
+  ('private.dispatch_tick(integer,timestamp with time zone)',array['947783612b6bea3170cdbc6dd657e6fd']::text[]),
+  ('private.candidate_profile_ids(uuid,integer)',array['5414fa5a122e2055c71dd37993a6ad83']::text[])) pins(signature,body_md5s) loop
+  if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
   then raise exception 'MATCH_V1_POSTIMAGE_DRIFT: %',r.signature using errcode='55000'; end if;
+ end loop;
+ for r in select * from (values
+  ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)',array['3a1aee763e9fe3d0f06d6ba04ef21aac']::text[]),
+  ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)',array['5107af3020a3beb7bb45e6e90e7a203b']::text[]),
+  ('private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)',array['e29a7bade1437e3f2067924b5179ddfd']::text[]),
+  ('private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)',array['417c9db16bbe70ed9ad652380790900c']::text[]),
+  ('private.availability_timezone_valid(text)',array['013f884ca649cb5246f39eaf9f2e0ec9','be95520dabe35febd8e9fa15f0ce0309']::text[]),
+  ('private.effective_radius_km(integer)',array['fa9b8c7fcafd65ebb4d98f538fff5223']::text[]),
+  ('private.haversine_km(numeric,numeric,numeric,numeric)',array['027cf272c3616d952c7f241353ffd5a2']::text[]),
+  ('private.accounts_same_world(uuid,uuid)',array['16f541f952d4e1e2dbb4fc87e594d572']::text[]),
+  ('private.identity_admitted(uuid)',array['9f4684bfd84df734cb8438b14aff0c16']::text[]),
+  ('private.lower_arr(text[])',array['07f449cf589196cc8ca349b4f5ca460c']::text[]),
+  ('private.work_kinds_v5(text[])',array['78fca96231ddc713cf18990f5a2a34ef']::text[]),
+  ('private.enqueue_dispatch(uuid,timestamp with time zone)',array['470ed6ab6501c69bf9ebbfe057ccd0fb']::text[]),
+  ('private.match_detail(uuid,uuid)',array['38c7894a8cf43a8f32bd5a30bc2cbd09']::text[]),
+  ('private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)',array['781956cab666befab216b3ce2334ca1d']::text[]),
+  ('private.need_search_time_admitted_v1(uuid,timestamp with time zone)',array['b830cd07c2a5db101a3a28096256a75b']::text[]),
+  ('private.requeue_open_needs_for_worker_v5(uuid)',array['371bb38ea1d7180ca6222409f1a9a591']::text[])) pins(signature,body_md5s) loop
+  if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
+  then raise exception 'MATCH_V1_DEPENDENCY_CHANGED: %',r.signature using errcode='55000'; end if;
  end loop;
  if (select count(*) from private.marketplace_config where key='match_v1_profile_requeue' and (value->>'after')::timestamptz is not null)<>1
  then raise exception 'MATCH_V1_WATERMARK_MISSING' using errcode='55000'; end if;
