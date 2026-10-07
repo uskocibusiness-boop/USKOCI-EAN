@@ -99,8 +99,8 @@ for kept in ("OWN_NEED", "ACCOUNT_OR_PROFILE_RESTRICTED", "IDENTITY_VERIFICATION
              "'responseAllowed', cardinality(hard) = 0", "'dispatchEligible', cardinality(hard) = 0 and cardinality(disp) = 0"):
     assert kept in m_after["private.match_detail_without_calendar(uuid,uuid)"], ("HARD_EXCEPTION_KEPT", kept)
 assert "OTHER_WORLD" in fit and "private.accounts_same_world" in fit and "PROFILE_EXCLUSION" in fit
-assert "private.worker_need_fit_v1(nid,pid)" in m_after["private.match_detail_without_calendar(uuid,uuid)"]
-assert "private.worker_need_match_v1(nid, pid)" in m_after["private.dispatch_cheap_candidate_admitted(uuid,uuid)"]
+assert "private.worker_need_fit_v1(nid,pid,false)" in m_after["private.match_detail_without_calendar(uuid,uuid)"]
+assert "private.worker_need_match_v1(n.id, p.id)" in m_after["private.dispatch_cheap_candidate_admitted(uuid,uuid)"]
 assert "coalesce((s.detail->>'timeTier')::integer, 9)" in m_after["private.dispatch_next_wave(uuid)"]
 assert "private.requeue_changed_worker_profiles_v1(p_at)" in m_after["private.dispatch_tick(integer,timestamp with time zone)"]
 d_after = bodies_after(D)["public.rpc_discovery_v1(jsonb)"]

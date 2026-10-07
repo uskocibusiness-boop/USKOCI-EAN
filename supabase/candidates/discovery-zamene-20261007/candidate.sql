@@ -20,8 +20,8 @@ begin
  then raise exception 'DISCOVERY_ZAMENE_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
   ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c'),
-  ('private.worker_need_fit_v1(uuid,uuid)','db3b5846709cb63b5304d8d66f657842'),
-  ('private.worker_need_match_v1(uuid,uuid)','68fd760b7efa3e83bd2fa34723af36af')) pins(signature,body_md5) loop
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd'),
+  ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41')) pins(signature,body_md5) loop
   if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
   then raise exception 'DISCOVERY_ZAMENE_REQUIRES_MATCH_V1: %',r.signature using errcode='55000'; end if;
  end loop;

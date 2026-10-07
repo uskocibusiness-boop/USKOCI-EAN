@@ -22,8 +22,8 @@ begin
  then raise exception 'MATCH_V1_REVERT_REQUIRES_DISCOVERY_ZAMENE_REVERT_FIRST' using errcode='55000'; end if;
  for r in select * from (values
   ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c','s'),
-  ('private.worker_need_fit_v1(uuid,uuid)','db3b5846709cb63b5304d8d66f657842','s'),
-  ('private.worker_need_match_v1(uuid,uuid)','68fd760b7efa3e83bd2fa34723af36af','s'),
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd','s'),
+  ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41','s'),
   ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','b608188b561dce987b4cc9bbc74eac56','v')) made(signature,body_md5,volatility) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile=r.volatility and p.proowner='postgres'::regrole
@@ -40,7 +40,7 @@ do $match_v1_revert_replace$
 declare r record; o oid; body text; def text; meta jsonb; comment_before text;
 begin
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','4c39ecb24a54be432a4f28c6f4cbf435','ef5de901069c1a8cfa729cfb6bbadde9',$mv1_body$
+  ('private.match_detail_without_calendar(uuid,uuid)','d1eb6dcd817af8d09b9f4a2a7d4fbf2f','ef5de901069c1a8cfa729cfb6bbadde9',$mv1_body$
 declare
   n public.needs; p public.app_profiles; pref public.worker_match_preferences;
   hard text[] := '{}'; disp text[] := '{}'; reasons text[] := '{}';
@@ -169,7 +169,7 @@ begin
   );
 end;
 $mv1_body$),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','563792537e89d451416f053205fdcace','e51de37e0883fcd3cd4e6e3c42fb6ee1',$mv1_body$
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','cec5c0a2c13af6718af53b7a80245f28','e51de37e0883fcd3cd4e6e3c42fb6ee1',$mv1_body$
   select exists (
     select 1
     from public.needs n
@@ -518,7 +518,7 @@ $mv1_body$)) patches(signature,before_md5,after_md5,new_body) loop
 end
 $match_v1_revert_replace$;
 drop function private.worker_need_match_v1(uuid,uuid);
-drop function private.worker_need_fit_v1(uuid,uuid);
+drop function private.worker_need_fit_v1(uuid,uuid,boolean);
 drop function private.requeue_changed_worker_profiles_v1(timestamp with time zone);
 drop function private.worker_need_time_tier_v1(uuid,uuid);
 delete from private.marketplace_config where key='match_v1_profile_requeue';

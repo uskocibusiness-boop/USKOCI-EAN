@@ -30,18 +30,18 @@
       "body_md5": "57c1d0b2fb78d652a555a3f76bd5bf4c"
     },
     {
-      "signature": "private.worker_need_fit_v1(uuid,uuid)",
-      "body_md5": "db3b5846709cb63b5304d8d66f657842"
+      "signature": "private.worker_need_fit_v1(uuid,uuid,boolean)",
+      "body_md5": "e6b4cb1dd3c6bddbd2eefd81ee9705dd"
     },
     {
       "signature": "private.worker_need_match_v1(uuid,uuid)",
-      "body_md5": "68fd760b7efa3e83bd2fa34723af36af"
+      "body_md5": "ef94ef7de07a347824ace68789f08c41"
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "20c15cdf9f29198e331811f906ae98500693e6392a305f26a9bfb7f60592fa6d",
+    "candidate.sql": "ce69476dce771b0b87cdc61e3f5457fe734f3f0490ad084849bf3865311cca42",
     "revert.sql": "617a6de8ed3811a9b64ae28028c40743429c7c5e2a7c3481337dace597b176dd",
-    "preflight.readonly.sql": "ec616909214a6b0bc43df6ebe16a7ab5eee1b0a4f34026cfcf027ee9cdc8a301",
+    "preflight.readonly.sql": "c6f404384149299e320deb1cbbd786a762773b049eb8302feddd969e796562e3",
     "postflight.readonly.sql": "d7a2167573c45ed5b886776ba6d860e31b3d52eb452860236b1d955fc8493b05",
     "body.diff": "ea00529d42d67e1c7726d065625294757c346ccb979a768eedef263048d5ce8d",
     "patches.json": "9691af312657ee95c8f1a3f17d976cbee5a2a402ca39a9401c51eb1460c536ac"

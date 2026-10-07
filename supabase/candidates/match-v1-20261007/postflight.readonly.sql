@@ -1,14 +1,14 @@
 -- MATCH-V1 read-only postflight. No write. Expected: every flag true and the certificate equal to the preflight value.
 select jsonb_build_object(
  'bodiesAfter',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','4c39ecb24a54be432a4f28c6f4cbf435'),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','563792537e89d451416f053205fdcace'),
+  ('private.match_detail_without_calendar(uuid,uuid)','d1eb6dcd817af8d09b9f4a2a7d4fbf2f'),
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','cec5c0a2c13af6718af53b7a80245f28'),
   ('private.worker_dispatch_time_admitted(uuid,uuid)','a58f1d1a2d21fa057867c153ae62ba4e'),
   ('private.dispatch_next_wave(uuid)','cafdef0ff95b5dc6467f4fa1db3dafc0'),
   ('private.dispatch_tick(integer,timestamp with time zone)','947783612b6bea3170cdbc6dd657e6fd'),
   ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c'),
-  ('private.worker_need_fit_v1(uuid,uuid)','db3b5846709cb63b5304d8d66f657842'),
-  ('private.worker_need_match_v1(uuid,uuid)','68fd760b7efa3e83bd2fa34723af36af'),
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd'),
+  ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41'),
   ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','b608188b561dce987b4cc9bbc74eac56')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
  'dependenciesUnchanged',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values
   ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)','3a1aee763e9fe3d0f06d6ba04ef21aac'),
@@ -30,7 +30,7 @@ select jsonb_build_object(
   ('private.requeue_open_needs_for_worker_v5(uuid)','371bb38ea1d7180ca6222409f1a9a591')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
  'newFunctionAcl',(select bool_and(p.proacl::text='{postgres=X/postgres}' and p.prosecdef) from pg_proc p where p.oid in (
   to_regprocedure('private.worker_need_time_tier_v1(uuid,uuid)'),
-  to_regprocedure('private.worker_need_fit_v1(uuid,uuid)'),
+  to_regprocedure('private.worker_need_fit_v1(uuid,uuid,boolean)'),
   to_regprocedure('private.worker_need_match_v1(uuid,uuid)'),
   to_regprocedure('private.requeue_changed_worker_profiles_v1(timestamp with time zone)'))),
  'watermark',(select value->>'after' from private.marketplace_config where key='match_v1_profile_requeue'),

@@ -4,8 +4,8 @@ select jsonb_build_object(
  'latestVersion',(select max(version) from supabase_migrations.schema_migrations),
  'matchV1Applied',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values
   ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c'),
-  ('private.worker_need_fit_v1(uuid,uuid)','db3b5846709cb63b5304d8d66f657842'),
-  ('private.worker_need_match_v1(uuid,uuid)','68fd760b7efa3e83bd2fa34723af36af')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd'),
+  ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
  'readerIsP6V3',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='1c60224483697732c496df5b9207f08f',
  'readerAcl',(select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')),
  'helpersAbsent',to_regprocedure('public.discovery_for_me_state_v1()') is null and to_regprocedure('public.discovery_for_me_v1(uuid)') is null,

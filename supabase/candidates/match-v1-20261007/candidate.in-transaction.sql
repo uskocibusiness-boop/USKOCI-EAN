@@ -139,7 +139,7 @@ begin
 end;
 $mv1_body$;
 revoke all on function private.worker_need_time_tier_v1(uuid,uuid) from public, anon, authenticated, service_role;
-create function private.worker_need_fit_v1(nid uuid, pid uuid)
+create function private.worker_need_fit_v1(nid uuid, pid uuid, p_first_refusal boolean)
  returns jsonb
  language plpgsql
  stable security definer
@@ -149,6 +149,9 @@ as $mv1_body$
 -- exceptions (inactive profile, own task, other world, identity, exclusions). Read by match_detail_without_calendar
 -- (dispatch and manual application), dispatch_cheap_candidate_admitted (dispatch prefilter) and "Za mene".
 -- Tools, vehicles, experience and the minimum fee are NOT conditions: information for the requester only.
+-- p_first_refusal=true (the dispatch prefilter, "Za mene"): stop at the first refusal, cheapest checks first, so a worker
+-- who is out of the area or does another kind of work costs no kind-of-work registry read and no schedule read.
+-- p_first_refusal=false (the detailed matcher): every component, for its blockers, reasons and score. Same expressions.
 declare
   n public.needs; p public.app_profiles; pref public.worker_match_preferences;
   hard text[]:='{}'; svc boolean; area boolean; dist numeric; radius numeric; tier integer;
@@ -163,20 +166,14 @@ begin
     return jsonb_build_object('matches',false,'service',false,'area',false,'timeTier',null,
       'distanceKm',null,'effectiveRadiusKm',null,'hard',jsonb_build_array('WORKER_PROFILE_NOT_FOUND'));
   end if;
-  select * into pref from public.worker_match_preferences where worker_profile_id=pid;
   if p.profile_status<>'ACTIVE' then hard:=array_append(hard,'ACCOUNT_OR_PROFILE_RESTRICTED'); end if;
   if n.requester_account_id=p.account_id then hard:=array_append(hard,'OWN_NEED'); end if;
-  if not private.accounts_same_world(n.requester_account_id,p.account_id) then hard:=array_append(hard,'OTHER_WORLD'); end if;
-  if n.verified_identity_required and not private.identity_admitted(p.account_id)
-    then hard:=array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
-  if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category,n.required_skills))
-     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category,n.required_skills))
-    then hard:=array_append(hard,'PROFILE_EXCLUSION'); end if;
-  -- Kind of work: the task names none, the same words, or the same kind in other words (PKG-031b / EX-06b).
+  if p_first_refusal and cardinality(hard)>0 then return jsonb_build_object('matches',false,'hard',to_jsonb(hard)); end if;
+  -- Kind of work, first the same words: the task names none, or worker and task share a word.
   svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0
-       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills)
-       or private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills),false);
+       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);
   -- Area: the worker's circle around the task's public point (a route's START point), the same city when a point is missing.
+  select * into pref from public.worker_match_preferences where worker_profile_id=pid;
   radius:=private.effective_radius_km(p.radius_km);
   if n.execution_location_mode='REMOTE' then
     dist:=null; area:=true;
@@ -185,12 +182,28 @@ begin
     area:=coalesce(case when dist is not null then dist<=radius
       else btrim(coalesce(n.approximate_city,''))<>'' and lower(coalesce(n.approximate_city,''))=lower(coalesce(p.city,'')) end,false);
   end if;
+  if p_first_refusal and not area then return jsonb_build_object('matches',false,'area',false); end if;
+  if not private.accounts_same_world(n.requester_account_id,p.account_id) then hard:=array_append(hard,'OTHER_WORLD'); end if;
+  if n.verified_identity_required and not private.identity_admitted(p.account_id)
+    then hard:=array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
+  if p_first_refusal and cardinality(hard)>0 then return jsonb_build_object('matches',false,'hard',to_jsonb(hard)); end if;
+  -- Kind of work in other words: the same hidden kind (PKG-031b / EX-06b), read only when no word is shared.
+  if not svc then
+    svc:=coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills),false);
+  end if;
+  if p_first_refusal and not svc then return jsonb_build_object('matches',false,'service',false); end if;
+  -- Exclusions (any spelling of the same kind). An empty list can exclude nothing, so its kinds are never read.
+  if coalesce(cardinality(p.exclusions),0)>0
+     and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category,n.required_skills))
+          or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category,n.required_skills)))
+    then hard:=array_append(hard,'PROFILE_EXCLUSION'); end if;
+  if p_first_refusal and cardinality(hard)>0 then return jsonb_build_object('matches',false,'hard',to_jsonb(hard)); end if;
   tier:=private.worker_need_time_tier_v1(nid,pid);
   return jsonb_build_object('matches',cardinality(hard)=0 and svc and area and tier is not null,
     'service',svc,'area',area,'timeTier',tier,'distanceKm',dist,'effectiveRadiusKm',radius,'hard',to_jsonb(hard));
 end;
 $mv1_body$;
-revoke all on function private.worker_need_fit_v1(uuid,uuid) from public, anon, authenticated, service_role;
+revoke all on function private.worker_need_fit_v1(uuid,uuid,boolean) from public, anon, authenticated, service_role;
 create function private.worker_need_match_v1(nid uuid, pid uuid)
  returns boolean
  language sql
@@ -198,7 +211,7 @@ create function private.worker_need_match_v1(nid uuid, pid uuid)
  set search_path to 'pg_catalog'
 as $mv1_body$
   -- MATCH-V1 (owner 2026-10-07): "Odgovara mi" as one boolean. Notifications (dispatch) and "Za mene" read exactly this.
-  select coalesce((private.worker_need_fit_v1(nid,pid)->>'matches')::boolean,false);
+  select coalesce((private.worker_need_fit_v1(nid,pid,true)->>'matches')::boolean,false);
 $mv1_body$;
 revoke all on function private.worker_need_match_v1(uuid,uuid) from public, anon, authenticated, service_role;
 create function private.requeue_changed_worker_profiles_v1(p_at timestamp with time zone)
@@ -260,7 +273,7 @@ do $match_v1_replace$
 declare r record; o oid; body text; def text; meta jsonb; comment_before text;
 begin
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','ef5de901069c1a8cfa729cfb6bbadde9','4c39ecb24a54be432a4f28c6f4cbf435',$mv1_body$
+  ('private.match_detail_without_calendar(uuid,uuid)','ef5de901069c1a8cfa729cfb6bbadde9','d1eb6dcd817af8d09b9f4a2a7d4fbf2f',$mv1_body$
 declare
   n public.needs; p public.app_profiles; pref public.worker_match_preferences;
   hard text[] := '{}'; disp text[] := '{}'; reasons text[] := '{}';
@@ -289,7 +302,7 @@ begin
   -- MATCH-V1 (owner 2026-10-07): "Odgovara mi" = kind of work + area + time, read from the ONE shared rule
   -- private.worker_need_fit_v1 (the dispatch prefilter and "Za mene" use the same rule). Tools, vehicles,
   -- experience and the minimum fee are information for the requester: never a gate and never a score.
-  fit := private.worker_need_fit_v1(nid,pid);
+  fit := private.worker_need_fit_v1(nid,pid,false);
   svc := (fit->>'service')::boolean;
   tier := (fit->>'timeTier')::integer;
   sched := tier is not null;
@@ -365,7 +378,7 @@ begin
   );
 end;
 $mv1_body$),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','e51de37e0883fcd3cd4e6e3c42fb6ee1','563792537e89d451416f053205fdcace',$mv1_body$
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','e51de37e0883fcd3cd4e6e3c42fb6ee1','cec5c0a2c13af6718af53b7a80245f28',$mv1_body$
   select exists (
     select 1
     from public.needs n
@@ -377,8 +390,10 @@ $mv1_body$),
       and coalesce(pref.proactive_notifications, true) = true
       -- MATCH-V1 (owner 2026-10-07): the ONE shared "Odgovara mi" rule: kind of work + area + time and the existing
       -- hard exceptions (own task, other world, identity, exclusions). Tools, vehicles, experience and the
-      -- minimum fee are no longer conditions; licenses were retired by WPP01.
-      and private.worker_need_match_v1(nid, pid)
+      -- minimum fee are no longer conditions; licenses were retired by WPP01. The rule takes the ROW columns, never
+      -- the bare parameters: a parameter-only call is a one-time filter that would run before the status filter above,
+      -- for every draft or suspended profile the candidate loop visits.
+      and private.worker_need_match_v1(n.id, p.id)
       and not exists (
         select 1 from public.opportunity_deliveries od
         where od.worker_account_id = p.account_id
@@ -678,8 +693,8 @@ declare r record;
 begin
  for r in select * from (values
   ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c','s'),
-  ('private.worker_need_fit_v1(uuid,uuid)','db3b5846709cb63b5304d8d66f657842','s'),
-  ('private.worker_need_match_v1(uuid,uuid)','68fd760b7efa3e83bd2fa34723af36af','s'),
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd','s'),
+  ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41','s'),
   ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','b608188b561dce987b4cc9bbc74eac56','v')) made(signature,body_md5,volatility) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile=r.volatility and p.proowner='postgres'::regrole
@@ -687,8 +702,8 @@ begin
   then raise exception 'MATCH_V1_NEW_FUNCTION_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','4c39ecb24a54be432a4f28c6f4cbf435'),
-  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','563792537e89d451416f053205fdcace'),
+  ('private.match_detail_without_calendar(uuid,uuid)','d1eb6dcd817af8d09b9f4a2a7d4fbf2f'),
+  ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','cec5c0a2c13af6718af53b7a80245f28'),
   ('private.worker_dispatch_time_admitted(uuid,uuid)','a58f1d1a2d21fa057867c153ae62ba4e'),
   ('private.dispatch_next_wave(uuid)','cafdef0ff95b5dc6467f4fa1db3dafc0'),
   ('private.dispatch_tick(integer,timestamp with time zone)','947783612b6bea3170cdbc6dd657e6fd')) pins(signature,body_md5) loop

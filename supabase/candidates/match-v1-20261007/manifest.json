@@ -13,12 +13,12 @@
     {
       "signature": "private.match_detail_without_calendar(uuid,uuid)",
       "before_md5": "ef5de901069c1a8cfa729cfb6bbadde9",
-      "after_md5": "4c39ecb24a54be432a4f28c6f4cbf435"
+      "after_md5": "d1eb6dcd817af8d09b9f4a2a7d4fbf2f"
     },
     {
       "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
       "before_md5": "e51de37e0883fcd3cd4e6e3c42fb6ee1",
-      "after_md5": "563792537e89d451416f053205fdcace"
+      "after_md5": "cec5c0a2c13af6718af53b7a80245f28"
     },
     {
       "signature": "private.worker_dispatch_time_admitted(uuid,uuid)",
@@ -43,13 +43,13 @@
       "acl": "{postgres=X/postgres}"
     },
     {
-      "signature": "private.worker_need_fit_v1(uuid,uuid)",
-      "body_md5": "db3b5846709cb63b5304d8d66f657842",
+      "signature": "private.worker_need_fit_v1(uuid,uuid,boolean)",
+      "body_md5": "e6b4cb1dd3c6bddbd2eefd81ee9705dd",
       "acl": "{postgres=X/postgres}"
     },
     {
       "signature": "private.worker_need_match_v1(uuid,uuid)",
-      "body_md5": "68fd760b7efa3e83bd2fa34723af36af",
+      "body_md5": "ef94ef7de07a347824ace68789f08c41",
       "acl": "{postgres=X/postgres}"
     },
     {
@@ -136,12 +136,12 @@
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "90bf2e4835a1ce04e95b389090c7986b9d09b79383dbb42689eb91d74ff4d3f3",
-    "candidate.in-transaction.sql": "c3c1fa3b87e02354b2145764510cc74274a553a8f0f3a57ebd9620bf73621a7b",
-    "revert.sql": "dc2e236c732d98c754fb6717ce90a1a5962521d65aa9a2a73c0321ee70515fd3",
+    "candidate.sql": "dc66cb654f6b9c0a4da835f2e942d6bf4bb788099e9256ba7ffe4d2153e0c3a7",
+    "candidate.in-transaction.sql": "d9821d3ef8c542fe38ba430540b3cfbb5ac295f3537e1116199b3f161f8070fc",
+    "revert.sql": "17bd5759503759e0b5beabcffcbfcbb77ce0dcd9d136a0897593ba9dc5216107",
     "preflight.readonly.sql": "3c5238f026fb7d772197664697f8734919b46f1a18bea1f3347552d0f21c9f0d",
-    "postflight.readonly.sql": "fd7d1e9e6fdcb6b908c613a18ec61f0ebc7c0f2396ac848b077d2b6e74d22a42",
-    "body.diff": "dbed8fa5f2d6fd9bdd8bda450afecbb3c2ce9e88ccf89c3bc48c20355638d7cc",
-    "patches.json": "e684ec24ae927aeac7ea93a6fce0707f9b66520224e1f22679303e050a7721eb"
+    "postflight.readonly.sql": "5d6971be548bfebf7bb362a58191061440a4a23627919737974609f27a59deed",
+    "body.diff": "18610da7b7060d5ea1379c3917d7071a02b78b4e87905893dd2b52fa7bb2a71c",
+    "patches.json": "f915ca679321ed5afca244a44269d824c233888313e0d9e47673404aeabdad91"
   }
 }

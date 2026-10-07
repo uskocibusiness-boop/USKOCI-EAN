@@ -47,7 +47,7 @@
 +  -- MATCH-V1 (owner 2026-10-07): "Odgovara mi" = kind of work + area + time, read from the ONE shared rule
 +  -- private.worker_need_fit_v1 (the dispatch prefilter and "Za mene" use the same rule). Tools, vehicles,
 +  -- experience and the minimum fee are information for the requester: never a gate and never a score.
-+  fit := private.worker_need_fit_v1(nid,pid);
++  fit := private.worker_need_fit_v1(nid,pid,false);
 +  svc := (fit->>'service')::boolean;
 +  tier := (fit->>'timeTier')::integer;
 +  sched := tier is not null;
@@ -113,7 +113,7 @@
        'capability', cap, 'schedule', ss, 'distanceToStart', ds,
 --- private.dispatch_cheap_candidate_admitted(uuid,uuid) BEFORE (DEV)
 +++ private.dispatch_cheap_candidate_admitted(uuid,uuid) AFTER (MATCH-V1)
-@@ -7,25 +7,11 @@
+@@ -7,25 +7,13 @@
      where n.id = nid
        and p.kind = 'WORKER'
        and p.profile_status = 'ACTIVE'
@@ -138,8 +138,10 @@
 -           or (n.requester_price_rsd is not null and n.requester_price_rsd >= p.minimum_fee_rsd))
 +      -- MATCH-V1 (owner 2026-10-07): the ONE shared "Odgovara mi" rule: kind of work + area + time and the existing
 +      -- hard exceptions (own task, other world, identity, exclusions). Tools, vehicles, experience and the
-+      -- minimum fee are no longer conditions; licenses were retired by WPP01.
-+      and private.worker_need_match_v1(nid, pid)
++      -- minimum fee are no longer conditions; licenses were retired by WPP01. The rule takes the ROW columns, never
++      -- the bare parameters: a parameter-only call is a one-time filter that would run before the status filter above,
++      -- for every draft or suspended profile the candidate loop visits.
++      and private.worker_need_match_v1(n.id, p.id)
        and not exists (
          select 1 from public.opportunity_deliveries od
          where od.worker_account_id = p.account_id

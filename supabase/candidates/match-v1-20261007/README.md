@@ -20,11 +20,11 @@
 | Function | Change |
 | --- | --- |
 | `private.match_detail_without_calendar(uuid,uuid)` | reads the shared rule; tool/vehicle/experience/fee gates, the live-intent gate and `RESOURCES_MATCH` removed; adds `timeTier` |
-| `private.dispatch_cheap_candidate_admitted(uuid,uuid)` | = rule + notifications on + not yet delivered |
+| `private.dispatch_cheap_candidate_admitted(uuid,uuid)` | = rule + notifications on + not yet delivered; the rule gets the row columns (`n.id, p.id`), so it is a join filter behind the ACTIVE-status filter, never a one-time filter run for every draft profile |
 | `private.worker_dispatch_time_admitted(uuid,uuid)` | wrapper: `worker_need_time_tier_v1(...) is not null` |
 | `private.dispatch_next_wave(uuid)` | one `order by`: `timeTier`, then score |
 | `private.dispatch_tick(integer,timestamptz)` | calls the profile re-queue first; reports `profileRequeue` |
-| new `private.worker_need_time_tier_v1`, `private.worker_need_fit_v1`, `private.worker_need_match_v1`, `private.requeue_changed_worker_profiles_v1` | SECURITY DEFINER, `search_path=pg_catalog`, ACL `{postgres=X/postgres}` |
+| new `private.worker_need_time_tier_v1`, `private.worker_need_fit_v1(uuid,uuid,boolean)`, `private.worker_need_match_v1`, `private.requeue_changed_worker_profiles_v1` | SECURITY DEFINER, `search_path=pg_catalog`, ACL `{postgres=X/postgres}`. `fit(..., true)` (prefilter, "Za mene") stops at the first refusal, cheapest first: status/own task → shared word → area → world/identity → kind registry → exclusions (only when the list is not empty) → schedule; `fit(..., false)` (detailed matcher) computes every component. Same expressions, same answer. |
 | data | one `private.marketplace_config` row (`match_v1_profile_requeue`) |
 
 Predecessor pins (DEV, 2026-10-07, ledger 227, latest `20261005101102`): `match_detail_without_calendar` `ef5de901…`, `dispatch_cheap_candidate_admitted` `e51de37e…`, `worker_dispatch_time_admitted` `4f0beb65…`, `dispatch_next_wave` `2b58d696…`, `dispatch_tick` `8798cb6b…`, plus 17 unchanged dependencies (`manifest.json`). Every edit is anchored once; metadata, OIDs and comments are asserted unchanged.

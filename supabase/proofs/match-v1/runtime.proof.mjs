@@ -21,6 +21,16 @@ const report = {unit: 'MATCH-V1 + DISCOVERY-ZAMENE', result: 'RUNNING', sourceSh
 const write = () => fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
 const pass = (name, detail) => { report.checks.push({name, result: 'PASS', ...(detail === undefined ? {} : {detail})}); write(); console.log('PASS ' + name); };
 const psqlFile = file => execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', file], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
+// Long statements (ticks, load measurements) get their own bound and their wall time is recorded.
+function timedSql(text, timeout = 600000) {
+  const started = Date.now();
+  const output = execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-At'], {input: text, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout}).trim();
+  return {output, ms: Date.now() - started};
+}
+function tick(batch = 200) {
+  const {output, ms} = timedSql(`select private.dispatch_tick(${Number(batch)}, statement_timestamp())`);
+  return {...JSON.parse(output.split('\n').at(-1)), wallMs: ms};
+}
 function refused(text, expected) {
   let error;
   try { execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], {input: text, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 180000}); }
@@ -114,16 +124,17 @@ async function matchingCases(phase) {
     o.today = {cheap: cheapOf, tiers, scores, waves}; }
   // C5: a manual skill edit (the direct PostgREST UPDATE of workerProfileClientService) after the task found nobody.
   { const s = `mv1-c5-${tag}`, other = `mv1-c5-other-${tag}`, w = await worker('c5', other), n = await make({skill: s});
-    fx.runTick(null, 200);
+    const t1 = tick();
     const first = fx.readSchedule(n.needId);
     await ok(w.client.from('app_profiles').update({skills: [other, s]}).eq('id', w.profileId).eq('account_id', w.id).eq('kind', 'WORKER').select('id').single());
     await sleep(32000);
-    const second = fx.runTick(null, 200);
+    const second = tick();
     const d = delivered(n, w);
-    const third = fx.runTick(null, 200);
+    const third = tick();
     const last = fx.readSchedule(n.needId);
     o.manualEdit = {firstStatus: first.lastStatus, firstReason: first.lastReason, delivered: d, requeueAfterEdit: second.profileRequeue ?? null,
-      requeueNextTick: third.profileRequeue ?? null, lastStatus: last.lastStatus, nextRunInFuture: last.nextRunAt ? Date.parse(last.nextRunAt) > Date.now() : null}; }
+      requeueNextTick: third.profileRequeue ?? null, lastStatus: last.lastStatus, nextRunInFuture: last.nextRunAt ? Date.parse(last.nextRunAt) > Date.now() : null,
+      ticks: [t1, second, third].map(t => ({wallMs: t.wallMs, processed: t.processed, sent: t.sent, stopped: t.stopped, failed: t.failed}))}; }
   report.observations[phase] = o; write();
   return o;
 }
@@ -228,6 +239,83 @@ async function replayDefault(zs, snapshot, filter = FILTER) {
 }
 const sameResponses = (a, b) => { for (const k of ['page', 'map', 'places']) assert.deepEqual(strip(b[k]), strip(a[k]), 'RESPONSE_CHANGED:' + k); };
 
+// ---------------------------------------------------------------- load measurement (old bodies vs MATCH-V1, same data)
+// Synthetic SQL rows, labelled: 300 ACTIVE workers around Novi Sad (10 kinds of work, radius 10-50 km, half "Mogu odmah",
+// two thirds with a weekly schedule) and 100 open tasks (FLEXIBLE, TODAY_FLEXIBLE, a future FIXED_WINDOW). Written with
+// triggers off because no product writer creates bulk rows; the matcher only reads them. Disposable database only.
+const LOAD_WORKERS = 300, LOAD_TASKS = 100;
+const POOL = "array['fizicki poslovi','selidba','ciscenje stana','montaza namestaja','sitne popravke','molerski radovi','dostava','uredjenje baste','mv1-load-a','mv1-load-b']";
+function seedLoad() {
+  timedSql(`begin; set local session_replication_role=replica;
+  create temporary table mv1_load on commit drop as select gen_random_uuid() as account_id, gen_random_uuid() as profile_id, g as i from generate_series(1,${LOAD_WORKERS}) g;
+  insert into public.app_accounts(id,email) select account_id,'mv1-load-'||i||'@proof.invalid' from mv1_load;
+  insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,radius_km,available_now)
+   select profile_id,account_id,'WORKER','MV1 load '||i,'Novi Sad','ACTIVE',array[(${POOL})[1+(i%10)]],(array[10,15,25,50])[1+(i%4)],i%2=0 from mv1_load;
+  insert into public.worker_match_preferences(worker_profile_id,worker_account_id,approximate_lat,approximate_lng)
+   select profile_id,account_id,round((45.27+((i*37)%80-40)/100.0)::numeric,2),round((19.83+((i*53)%80-40)/100.0)::numeric,2) from mv1_load;
+  insert into public.profile_availability_rules(profile_id,weekdays,start_time,end_time,starts_on,label)
+   select profile_id,array[0,1,2,3,4,5,6],'08:00','20:00','2026-01-01','MV1 load' from mv1_load where i%3<>0;
+  insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,required_tools,required_vehicles,
+    required_licenses,minimum_experience_years,verified_identity_required,approximate_city,approximate_area,approximate_lat,approximate_lng,mode,required_slots,
+    schedule_kind,starts_at,ends_at,execution_location_mode,task_country_code,task_timezone,response_deadline,published_at)
+   select gen_random_uuid(),${q(R.id)}::uuid,${q(R.profileId)}::uuid,'PUBLISHED','MV1 opterecenje '||g,'Sinteticki zadatak za merenje brzine.','MV1 load',
+    array[(${POOL})[1+(g%10)]],'{}','{}','{}',0,false,'Novi Sad','',
+    round((45.27+((g*29)%60-30)/100.0)::numeric,2),round((19.83+((g*41)%60-30)/100.0)::numeric,2),'OFFERS',1,
+    (array['FLEXIBLE','FLEXIBLE','TODAY_FLEXIBLE','FIXED_WINDOW','FLEXIBLE'])[1+(g%5)],
+    case when g%5=3 then date_trunc('hour',statement_timestamp())+interval '2 days 10 hours' end,
+    case when g%5=3 then date_trunc('hour',statement_timestamp())+interval '2 days 12 hours' end,
+    'STATIONARY','RS','Europe/Belgrade',statement_timestamp()+interval '2 days',statement_timestamp()
+   from generate_series(1,${LOAD_TASKS}) g;
+  commit;`);
+}
+const MS_FN = `create function pg_temp.mv1_ms(q text) returns jsonb language plpgsql as $f$
+declare t timestamptz:=clock_timestamp(); n bigint;
+begin execute q into n; return jsonb_build_object('ms',round((extract(epoch from clock_timestamp()-t)*1000)::numeric,1),'rows',n); end $f$;`;
+const TASKS20 = `(select id from public.needs where category='MV1 load' order by id limit 20)`;
+const LOADW = `(select id from public.app_profiles where display_name like 'MV1 load %')`;
+function measureLoad(newCode) {
+  const sizes = JSON.parse(timedSql(`select jsonb_build_object('workerProfiles',(select count(*) from public.app_profiles where kind='WORKER'),
+    'activeWorkers',(select count(*) from public.app_profiles where kind='WORKER' and profile_status='ACTIVE'),
+    'workersWithPoint',(select count(*) from public.worker_match_preferences where approximate_geog is not null),
+    'openTasks',(select count(*) from public.needs where status in ('PUBLISHED','SELECTION')),'loadTasks',(select count(*) from public.needs where category='MV1 load'))`).output);
+  const read = JSON.parse(timedSql(`${MS_FN}
+  select jsonb_build_object(
+   'candidateRetrievalAllLoadTasks',pg_temp.mv1_ms($q$select count(*) from public.needs n cross join lateral private.candidate_profile_ids(n.id,40) c where n.category='MV1 load'$q$),
+   'prefilter20x300',pg_temp.mv1_ms($q$select count(*) filter (where private.dispatch_cheap_candidate_admitted(n.id,p.id)) from ${TASKS20} n cross join ${LOADW} p$q$),
+   'detailedMatcher20x300',pg_temp.mv1_ms($q$select count(*) filter (where (private.match_detail(n.id,p.id)->>'dispatchEligible')::boolean) from ${TASKS20} n cross join ${LOADW} p$q$)
+   ${newCode ? `,'rule20x300',pg_temp.mv1_ms($q$select count(*) filter (where private.worker_need_match_v1(n.id,p.id)) from ${TASKS20} n cross join ${LOADW} p$q$)
+   ,'draftProfiles',(select count(*) from public.app_profiles where kind='WORKER' and profile_status<>'ACTIVE')
+   ,'fullRuleOnEveryDraftProfileOneTask',pg_temp.mv1_ms($q$select count(*) filter (where (private.worker_need_fit_v1(t.id,p.id,false)->>'matches')::boolean) from (select id from public.needs where category='MV1 load' order by id limit 1) t cross join public.app_profiles p where p.kind='WORKER' and p.profile_status<>'ACTIVE'$q$)
+   ,'prefilterOnEveryDraftProfileOneTask',pg_temp.mv1_ms($q$select count(*) filter (where private.dispatch_cheap_candidate_admitted(t.id,p.id)) from (select id from public.needs where category='MV1 load' order by id limit 1) t cross join public.app_profiles p where p.kind='WORKER' and p.profile_status<>'ACTIVE'$q$)` : ''});`).output.split('\n').at(-1));
+  const waves = JSON.parse(timedSql(`begin;
+  ${MS_FN}
+  select pg_temp.mv1_ms($q$select count(*) from (select private.dispatch_next_wave(id) as r from public.needs where category='MV1 load') x where x.r->>'status'='SENT'$q$);
+  rollback;`).output.split('\n').filter(Boolean).at(-1));
+  const result = {sizes, ...read, wavesAllLoadTasksRolledBack: waves};
+  if (newCode) {
+    result.profileRequeue50ChangedWorkers = JSON.parse(timedSql(`begin;
+    ${MS_FN}
+    set local session_replication_role=replica;
+    update public.app_profiles set updated_at=statement_timestamp()-interval '40 seconds' where id in (select id from ${LOADW} x order by id limit 50);
+    update private.marketplace_config set value=jsonb_set(value,'{after}',to_jsonb(statement_timestamp()-interval '10 minutes')) where key='match_v1_profile_requeue';
+    set local session_replication_role=origin;
+    select pg_temp.mv1_ms($q$select (private.requeue_changed_worker_profiles_v1(statement_timestamp())->>'queued')::bigint$q$);
+    rollback;`).output.split('\n').filter(Boolean).at(-1));
+  }
+  const perTask = (entry, n) => entry ? Math.round(entry.ms / n * 10) / 10 : null;
+  result.perLoadTaskMs = {candidateRetrieval: perTask(result.candidateRetrievalAllLoadTasks, sizes.loadTasks), wave: perTask(waves, sizes.loadTasks)};
+  result.perPairMs = {prefilter: perTask(read.prefilter20x300, 20 * LOAD_WORKERS), detailedMatcher: perTask(read.detailedMatcher20x300, 20 * LOAD_WORKERS),
+    ...(read.rule20x300 ? {rule: perTask(read.rule20x300, 20 * LOAD_WORKERS)} : {})};
+  return result;
+}
+// The prefilter plan for a DRAFT profile: a parameter-only rule call is a One-Time Filter (runs before the status filter);
+// MATCH-V1 passes the row columns, so the rule becomes a Join Filter that a DRAFT row never reaches.
+function prefilterPlan(body, needId, profileId) {
+  const query = body.replace(/--[^\n]*/g, '').replace(/\bnid\b/g, q(needId) + '::uuid').replace(/\bpid\b/g, q(profileId) + '::uuid');
+  const plan = timedSql(`explain (analyze, costs off, timing off, summary off) ${query}`).output;
+  return plan.split('\n').filter(line => /One-Time Filter|Join Filter|Filter:|Index Scan|Result/.test(line)).map(line => line.trim()).slice(0, 12);
+}
+
 try {
   const paused = fx.pauseSchedulers();
   report.observations.schedulers = paused;
@@ -327,11 +415,53 @@ try {
   pass('MATCH_V1_AND_DISCOVERY_ZAMENE_EXACT_REVERT_CATALOG_AND_CERTIFICATE_RESTORED');
   await fx.reloadSchema();
   expectOld(await matchingCases('reverted'), 'REVERTED');
+
+  // ---------------------------------------------------------------- load: old bodies vs MATCH-V1 (+ DISCOVERY-ZAMENE), same data
+  seedLoad();
+  const cheapSig = 'private.dispatch_cheap_candidate_admitted(uuid,uuid)';
+  const cheapBody = () => sql(`select prosrc from pg_proc where oid=to_regprocedure(${q(cheapSig)})`);
+  const loadTask = sql(`select id from public.needs where category='MV1 load' order by id limit 1`);
+  const draftProfile = sql(`select id from public.app_profiles where kind='WORKER' and profile_status<>'ACTIVE' order by id limit 1`);
+  const load = {old: measureLoad(false)};
+  load.old.prefilterPlanForDraftProfile = prefilterPlan(cheapBody(), loadTask, draftProfile);
+  report.observations.load = load; write();
+  psqlFile(M + 'candidate.sql'); psqlFile(D + 'candidate.sql');
+  await fx.reloadSchema();
+  load.new = measureLoad(true);
+  load.new.prefilterPlanForDraftProfile = prefilterPlan(cheapBody(), loadTask, draftProfile);
+  report.observations.load = load; write();
+  const viewer = await fx.createWorker({label: 'mv1-load-viewer', skills: ['fizicki poslovi'], radiusKm: 25, location: {city: 'Novi Sad'},
+    availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: []}});
+  async function timedDiscovery(request) {
+    const runs = [];
+    for (let i = 0; i < 3; i++) {
+      const started = Date.now(), response = await ok(disc(viewer, request));
+      runs.push({ms: Date.now() - started, mapped: Number(response.counts?.mapped ?? response.counts?.everywhere ?? -1)});
+    }
+    return {medianMs: runs.map(r => r.ms).sort((a, b) => a - b)[1], mapped: runs.at(-1).mapped};
+  }
+  load.new.discoveryHttp = {
+    pageAll: await timedDiscovery({mode: 'PAGE', filter: FILTER, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null}),
+    pageForMe: await timedDiscovery({mode: 'PAGE', filter: {...FILTER, forMe: true}, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null}),
+    mapAll: await timedDiscovery({mode: 'MAP', filter: FILTER, anchor: null, bounds: BOUNDS, grid: 12}),
+    mapForMe: await timedDiscovery({mode: 'MAP', filter: {...FILTER, forMe: true}, anchor: null, bounds: BOUNDS, grid: 12}),
+  };
+  report.observations.load = load; write();
+  psqlFile(D + 'revert.sql'); psqlFile(M + 'revert.sql');
+  assert.equal(catalog(), baseCatalog); assert.deepEqual(closure(), baseClosure); assert.equal(watermarkRows(), 0);
+  assert.ok(!load.new.prefilterPlanForDraftProfile.some(line => /One-Time Filter: .*worker_need_match_v1/.test(line)), 'RULE_IS_A_ONE_TIME_FILTER');
+  assert.ok(load.new.perLoadTaskMs.wave < 2000 && load.new.perLoadTaskMs.candidateRetrieval < 2000, 'WAVE_TOO_SLOW');
+  assert.ok(load.new.discoveryHttp.pageForMe.medianMs < 5000, 'FOR_ME_TOO_SLOW');
+  pass('MATCH_V1_LOAD_TIMINGS_OLD_AND_NEW_ON_THE_SAME_DATA', {sizes: load.new.sizes, oldPerTask: load.old.perLoadTaskMs, newPerTask: load.new.perLoadTaskMs,
+    oldPerPair: load.old.perPairMs, newPerPair: load.new.perPairMs, discoveryHttp: load.new.discoveryHttp, requeue: load.new.profileRequeue50ChangedWorkers});
   report.observations.auth = fx.authStats();
   report.result = 'PASS'; write();
   console.log('PASS MATCH_V1_DISCOVERY_ZAMENE_RUNTIME');
 } catch (error) {
-  report.result = 'FAIL'; report.failure = String(error?.stack ?? error).slice(0, 2500); write();
+  report.result = 'FAIL'; report.failure = String(error?.stack ?? error).slice(0, 2500);
+  // Which statements were still running or waiting (disposable database only; never terminated here).
+  try { report.observations.backendsAtFailure = fx.diagnoseActiveBackends({terminate: false}); } catch { /* diagnostics are best effort */ }
+  write();
   console.error('FAIL MATCH_V1 ' + report.failure);
   process.exitCode = 1;
 }
