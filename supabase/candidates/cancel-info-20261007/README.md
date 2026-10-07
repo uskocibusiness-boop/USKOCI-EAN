@@ -71,6 +71,8 @@ Only the two parties; the reason is the canceller's own chat message that both a
 
 ## Evidence
 
+**Latest run [37677943291](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37677943291) (commit `194b4fb0`, candidate SQL byte-identical to `4b4c7585`): job `behavior` success (43 of 43), job `order` success (6 of 6, including state D: DEV as it is now, ZONE-PERF alone). The first attempt of `order` failed in the shared live79 environment step before any proof code ran (the same step passed in `behavior`); attempt 2 of the same commit passed.**
+
 **Proof run [37675024181](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37675024181) (commit `4b4c7585`): job `behavior` success (43 of 43 checks), job `order` success (5 of 5).** Disposable database only (loopback guard), real Auth and PostgREST, no DEV access, no provider, no push. The first run [37673616896](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37673616896) (`3c68ad8d`): `order` success; `behavior` stopped after 7 green checks on a defect of the PROOF (an Auth client serialised into the report, circular JSON), fixed in `4b4c7585` without touching any candidate file.
 
 Fidelity (bounded, relevant bodies only, not global DEV equivalence): the chain of `supabase/proofs/match-v1/chain.mjs` (source147 → PKG-027…050 → P0 → PKG-045b P0 → P6 v3 → EX-04d → EX-06a/b → WPP01 → EX-06e R2/R3) with its 23 pinned bodies equal to DEV; all three CANCEL-INFO dependencies were byte-identical to DEV on the chain (`surface.mjs`: `EXACT`). Of the writers the proof drives, 8 of 10 equal DEV; `rpc_set_account_block` and `rpc_list_my_agreements_page` differ (B24 / EX-04 S3 are not replayed) and only create fixture rows or are not called by this package.
