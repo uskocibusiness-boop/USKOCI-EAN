@@ -1,0 +1,170 @@
+name: CANCEL-INFO and PROFILE-TRUST disposable proof
+
+# Disposable-only proof of two SOURCE-ONLY server candidates (2026-10-07). It replays the established historical chain of the
+# MATCH-V1 proof in canonical DEV order (supabase/proofs/match-v1/chain.mjs + fidelity.mjs), installs the DEV bodies these packages
+# depend on and the D12 read surface (supabase/proofs/profile-trust/surface.mjs), then proves FAIL before / PASS after / exact
+# revert with real Auth and PostgREST (job behavior) and both apply orders with ZONE-PERF -> MATCH-V1 -> DISCOVERY-ZAMENE (job order).
+# Never touches DEV.
+on:
+  workflow_dispatch:
+  push:
+    branches: [candidate/profile-trust-20261007]
+    paths:
+      - '.github/workflows/profile-trust-cancel-info-proof.yml'
+      - 'supabase/candidates/cancel-info-20261007/**'
+      - 'supabase/candidates/profile-trust-20261007/**'
+      - 'supabase/proofs/profile-trust/**'
+permissions:
+  contents: read
+concurrency:
+  group: profile-trust-cancel-info-proof-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  disposable-proof:
+    # Two independent jobs, each from its own fresh chain, so an order problem can never mask a behaviour verdict.
+    name: ${{ matrix.part }}
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [behavior, order]
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: '1'
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      PRE_V3_ARTIFACT_DIR: /tmp/trust-private
+      WPP01_ARTIFACT_DIR: /tmp/trust-private/wpp01
+      EX06E_R2_DIR: /tmp/trust-private/ex06e-r2
+      EX06E_R3_DIR: /tmp/trust-private/ex06e-r3
+      MATCH_V1_ARTIFACT_DIR: /tmp/trust-artifacts
+      TRUST_ARTIFACT_DIR: /tmp/trust-artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Bind exact source and check every generated SQL file offline
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$WPP01_ARTIFACT_DIR" "$EX06E_R2_DIR" "$EX06E_R3_DIR" "$TRUST_ARTIFACT_DIR"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          git rev-parse HEAD 'HEAD^{tree}' > "$TRUST_ARTIFACT_DIR/source-binding.txt"
+          python3 -m pip install --quiet pglast==8.4
+          python3 supabase/proofs/profile-trust/check_source.py | tee "$TRUST_ARTIFACT_DIR/source-check.txt"
+          # the three candidates the order job applies must be the committed, generator-exact files
+          python3 supabase/proofs/match-v1/check_source.py > "$TRUST_ARTIFACT_DIR/match-v1-source-check.txt"
+          python3 supabase/candidates/worker-personal-profile-20261003/check-source.py > "$PRE_V3_ARTIFACT_DIR/wpp01-source-check.txt"
+          for f in supabase/proofs/profile-trust/*.mjs; do node --check "$f"; done
+          find supabase/candidates/cancel-info-20261007 supabase/candidates/profile-trust-20261007 supabase/proofs/profile-trust -type f -print0 | sort -z | xargs -0 sha256sum > "$TRUST_ARTIFACT_DIR/source-manifest-sha256.txt"
+          sha256sum .github/workflows/profile-trust-cancel-info-proof.yml >> "$TRUST_ARTIFACT_DIR/source-manifest-sha256.txt"
+          npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/npm.log" 2>&1
+          git diff --exit-code
+      - name: Reconstruct the established disposable historical live79
+        run: |
+          set -euo pipefail
+          umask 077
+          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/live79.log" 2>&1
+      - name: Guard loopback targets, replay the predecessor chain in DEV order, install the DEV dependency bodies and the D12 read surface
+        run: |
+          set -euo pipefail
+          umask 077
+          node --input-type=module - <<'NODE'
+          import {assertLocalDeviceProofTargets} from './supabase/proofs/ru5_device_ui_local_guard.mjs';
+          try {
+            assertLocalDeviceProofTargets(process.env.RU5_DEVICE_SUPABASE_URL, process.env.RU5_DEVICE_DB_URL);
+            if (process.env.DB_URL !== process.env.RU5_DEVICE_DB_URL) throw new Error();
+          } catch { console.error('FAIL PROFILE_TRUST_LOCAL_TARGET_ADMISSION'); process.exit(1); }
+          NODE
+          node supabase/proofs/match-v1/chain.mjs
+          node supabase/proofs/match-v1/fidelity.mjs
+          node supabase/proofs/profile-trust/surface.mjs
+      - name: Behaviour proof with real Auth and PostgREST, truth tables, privacy matrix, refusals and exact reverts
+        if: matrix.part == 'behavior'
+        run: |
+          set -euo pipefail
+          umask 077
+          status=0
+          node supabase/proofs/profile-trust/runtime.proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/runtime.log" || status=${PIPESTATUS[0]}
+          grep -E '^(PASS|FAIL) ' "$PRE_V3_ARTIFACT_DIR/runtime.log" > "$TRUST_ARTIFACT_DIR/runtime-checks.txt" || true
+          if [ -f "$TRUST_ARTIFACT_DIR/summary.md" ]; then cat "$TRUST_ARTIFACT_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          test "$status" -eq 0
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const dir = process.env.TRUST_ARTIFACT_DIR;
+          const report = JSON.parse(readFileSync(dir + '/report.json', 'utf8'));
+          const chain = JSON.parse(readFileSync(dir + '/chain-fidelity.json', 'utf8'));
+          const surface = JSON.parse(readFileSync(dir + '/surface-report.json', 'utf8'));
+          assert.equal(report.sourceSha, process.env.GITHUB_SHA);
+          assert.equal(report.result, 'PASS');
+          assert.equal(report.failures.length, 0);
+          assert.equal(chain.result, 'PASS');
+          assert.equal(surface.result, 'PASS');
+          assert.equal(surface.certificateUnchanged, true);
+          assert.equal(report.liveAccess, false);
+          assert.equal(report.providerCalls, 0);
+          assert.equal(report.pushSends, 0);
+          assert.ok(report.checks.length >= 40);
+          assert.ok(report.checks.every(c => c.result === 'PASS'));
+          NODE
+      - name: Order proof against ZONE-PERF, MATCH-V1 and DISCOVERY-ZAMENE, both orders, exact reverts
+        if: matrix.part == 'order'
+        run: |
+          set -euo pipefail
+          umask 077
+          status=0
+          node supabase/proofs/profile-trust/order.proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/order.log" || status=${PIPESTATUS[0]}
+          grep -E '^(PASS|FAIL) ' "$PRE_V3_ARTIFACT_DIR/order.log" > "$TRUST_ARTIFACT_DIR/order-checks.txt" || true
+          if [ -f "$TRUST_ARTIFACT_DIR/order-summary.md" ]; then cat "$TRUST_ARTIFACT_DIR/order-summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          test "$status" -eq 0
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const dir = process.env.TRUST_ARTIFACT_DIR;
+          const report = JSON.parse(readFileSync(dir + '/order-report.json', 'utf8'));
+          const chain = JSON.parse(readFileSync(dir + '/chain-fidelity.json', 'utf8'));
+          assert.equal(report.sourceSha, process.env.GITHUB_SHA);
+          assert.equal(report.result, 'PASS');
+          assert.equal(report.failures.length, 0);
+          assert.equal(chain.result, 'PASS');
+          assert.equal(chain.relevantLiveBodyPins, 23);
+          assert.equal(report.liveAccess, false);
+          assert.ok(report.checks.length >= 5);
+          assert.ok(report.checks.every(c => c.result === 'PASS'));
+          NODE
+      - name: Always discard the disposable database
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$TRUST_ARTIFACT_DIR"
+          code=0
+          if [[ -d /tmp/uskoci-ru5-device-ui ]]; then
+            cd /tmp/uskoci-ru5-device-ui
+            supabase stop --no-backup > "$PRE_V3_ARTIFACT_DIR/teardown.log" 2>&1 || code=$?
+          fi
+          printf 'teardown exit=%s\n' "$code" >> "$TRUST_ARTIFACT_DIR/chain-stages.txt"
+          exit "$code"
+      - name: Upload only bounded source and result summaries
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: profile-trust-${{ matrix.part }}-${{ github.sha }}-${{ github.run_id }}
+          path: /tmp/trust-artifacts/
+          if-no-files-found: error
+          retention-days: 30

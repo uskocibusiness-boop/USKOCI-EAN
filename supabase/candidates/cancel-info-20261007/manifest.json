@@ -1,0 +1,76 @@
+{
+  "id": "CANCEL-INFO",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI CANCEL-INFO",
+  "devStateReadAt": "2026-10-07",
+  "devLedger": 227,
+  "devLatestVersion": "20261005101102",
+  "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+  "certificateMoves": false,
+  "closureRoster": "closure_source_digest_v5 hashes a fixed list of 99 function signatures plus the schema digest (tables, columns, constraints, triggers of public/private) and the erasure program digest (those functions, the trigger functions of the redaction relations, table owner/ACL/RLS, trigger state). Neither new function is in the list, neither is a trigger function, and no table changes; the apply and the revert assert both digests unchanged.",
+  "functions": [],
+  "newFunctions": [
+    {
+      "signature": "private.agreement_cancellation_facts_v1(uuid)",
+      "body_md5": "65eec38f58d81667f14a046f3596a243",
+      "acl": "{postgres=X/postgres}",
+      "language": "sql",
+      "volatility": "STABLE",
+      "securityDefiner": true,
+      "config": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "signature": "public.rpc_agreement_cancellation_v1(uuid[])",
+      "body_md5": "f54af14827bdd1c0906f512ee8aa9043",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "language": "plpgsql",
+      "volatility": "STABLE",
+      "securityDefiner": true,
+      "config": [
+        "search_path=pg_catalog"
+      ]
+    }
+  ],
+  "dependencyPins": [
+    {
+      "signature": "public.rpc_cancel_agreement(uuid,text)",
+      "body_md5": "e59b8f7d3e14ebbf6f9ddd8dd63b0af7",
+      "role": "WRITER: the only function that sets an Agreement CANCELLED; it writes the three facts this package reads in ONE statement"
+    },
+    {
+      "signature": "private.emit_event(uuid,text,text,text,uuid,integer,text,text,text,text,jsonb,timestamp with time zone)",
+      "body_md5": "67413effbbb3fa227397d355e0d4edfb",
+      "role": "WRITER: stores the durable event once per dedupe key (on conflict do nothing); the cancellation event is read by its dedupe key"
+    },
+    {
+      "signature": "private.set_updated_at()",
+      "body_md5": "d2ba7342ae061b491b5ec4bb74fb81c4",
+      "role": "TRIGGER: agreements_set_updated_at sets updated_at := statement_timestamp() on every ordinary update (a closure redaction keeps it)"
+    }
+  ],
+  "dataRows": [],
+  "reasonPrefix": "Otkazujem Dogovor. Razlog: ",
+  "readsFacts": [
+    "public.agreements (status, updated_at, parties)",
+    "public.user_activity_events (AGREEMENT_CANCELLED, dedupe key agreement-cancelled:<id>)",
+    "public.agreement_messages (the canceller's reason message at the cancellation instant)"
+  ],
+  "dependents": [
+    {
+      "package": "PROFILE-TRUST",
+      "reads": "private.agreement_cancellation_facts_v1(uuid)",
+      "revertRefusedWhilePresent": "private.work_trust_counts_v1(uuid)"
+    }
+  ],
+  "artifact_sha256": {
+    "candidate.sql": "e5eae20f70949dc601f09e51618dce386e161db86447dcffe3f572679c998525",
+    "candidate.in-transaction.sql": "23fb7c17351d101dbfc7b26c1eaf48ddabe045a016a988db6f28b419a21ecd88",
+    "revert.sql": "3a469ec4542f20afbc4676034a5f7a3e280044f42d629e39fe62071d7c10b929",
+    "preflight.readonly.sql": "d1351b3393fdc4bcd468c325a44dd1832d954900f78a4237d7df63067aacb8a0",
+    "postflight.readonly.sql": "358216926f754a8c11fce6c5e7ceac1b95d2075dd07d6db6db7d40f0188cde96"
+  }
+}
