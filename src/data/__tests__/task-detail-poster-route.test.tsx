@@ -3,6 +3,8 @@ jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', Pro
 // The safety entry is the hook's own business (PKG-047); here it is a value the test moves, to see what the route shows.
 let mockSafety: { onPress: () => void; busy: boolean; error: string | null } | undefined;
 jest.mock('../../ui/safety/useSafetyEntry', () => ({ useSafetyEntry: () => mockSafety }));
+// The questions of the task have their own reader and their own suite (owner, 2026-10-07); this suite is about the poster.
+jest.mock('../../ui/qa/useTaskQaInline', () => ({ useTaskQaInline: () => ({ state: { phase: 'idle' }, retry: () => undefined }) }));
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { taskRelationIndex } from '../taskRelation';

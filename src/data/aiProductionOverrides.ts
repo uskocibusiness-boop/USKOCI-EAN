@@ -76,7 +76,7 @@ function mapFact(raw: any): Cinjenica | null {
 export const aiProductionOverrides: AiOverrides = {
   async otvoriRazgovor() {
     return { ok: false, kod: 'OWNED_CONVERSATION_REQUIRED',
-      poruka: 'Otvori Novi Zadatak da započneš razgovor.' };
+      poruka: 'Otvori novi zadatak da započneš razgovor.' };
   },
 
   async razgovor(razgovorId) {
@@ -125,7 +125,7 @@ export const aiProductionOverrides: AiOverrides = {
 
     let bezbednost: OdlukaBezbednosti = 'REVIEW';
     let bezbednostPoruka: string | null =
-      'Nacrt je sačuvan. Objava još nije otvorena — probaj ponovo kasnije.';
+      'Nacrt je sačuvan. Objava još nije otvorena — pokušaj ponovo kasnije.';
 
     for (let i = (messagesResult.data?.length ?? 0) - 1; i >= 0; i -= 1) {
       const row: any = messagesResult.data?.[i];

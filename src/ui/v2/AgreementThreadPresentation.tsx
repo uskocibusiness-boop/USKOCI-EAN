@@ -1,6 +1,5 @@
 import { useState, type ComponentProps } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import { ArrowLeft, CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { AgreementChat } from '../AgreementChat';
@@ -11,7 +10,7 @@ import { ChromeIconButton } from '../system/ScreenChrome';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { AgreementHero, agreementRole } from './AgreementPresentation';
+import { AgreementHero, AgreementTabs, agreementRole } from './AgreementPresentation';
 
 type Props = {
   agreement: DogovorProjekcija;
@@ -19,6 +18,12 @@ type Props = {
   onOverview: () => void;
   /** Inbox entry returns to the inbox; the task identity still opens accepted terms. */
   onBack?: () => void;
+  /**
+   * The Dogovor's "···" menu, the same one the overview's bar opens (change terms, share the number, report a problem, cancel,
+   * and "Prijavi ili blokiraj osobu"). Absent when the Dogovor offers none. Drawn in the full bar only: with the keyboard up the
+   * bar keeps Back and "Uslovi", and the menu is one dismissal of the keyboard away.
+   */
+  onMore?: () => void;
   waiting?: string | null;
   chat: ComponentProps<typeof AgreementChat>;
 };
@@ -28,8 +33,10 @@ type Props = {
  * context can yield before it crowds the transcript or the writing controls. At large text the person's full name,
  * role and accepted terms join the history scroll; the short bar always retains Back and the accepted overview.
  * The chat itself never remounts when that composition changes: its draft, selected message and photo tray survive.
+ * With room, the bar is the person, the task and "···", and the same Pregled | Poruke tabs as the overview stand under it
+ * (proposal R1), so the two halves of a Dogovor are one tap apart from either side.
  */
-export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, waiting = null, chat }: Props) {
+export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, onMore, waiting = null, chat }: Props) {
   const { height } = useWindowDimensions();
   const scale = useTextScale();
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
@@ -53,7 +60,7 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
     if (next > 0) setAvailableHeight(current => current === next ? current : next);
   }}>
     {compact ? <View testID="agreement-thread-compact-bar" style={s.bar}>
-      <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onBack} />
+      <ChromeIconButton label="Nazad" glyph="back" onPress={onBack} />
       <View style={s.barTitle}>
         <T accessibilityRole="header" accessibilityLabel={person ? `Poruke: ${person.ime}` : 'Poruke'} variant="bodyStrong" numberOfLines={1}>
           {person && scale < 1.6 ? person.ime : 'Poruke'}
@@ -67,10 +74,10 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
       </Press>
     </View> : <>
       <View testID="agreement-thread-full-bar" style={s.bar}>
-        <ChromeIconButton label="Nazad" icon={ArrowLeft} onPress={onBack} />
+        <ChromeIconButton label="Nazad" glyph="back" onPress={onBack} />
         {person ? person.profilId ? <ProfilePhoto profileId={person.profilId} size={40} fallback={initials} /> : initials : null}
         {/* The person alone cannot identify a conversation when we share several jobs. Keep this exact task
-            beside the person, with one explicit way back to its accepted terms, not a second generic icon. */}
+            beside the person, with one explicit way back to its accepted terms (the Pregled tab says the same below). */}
         <Press accessibilityRole="button" accessibilityLabel={`Dogovor: ${title}${person ? `. ${person.ime}` : ''}`}
           accessibilityHint="Otvara pregled prihvaćenih uslova i narednih koraka."
           onPress={onOverview} haptic="select" hitSlop={0} style={s.threadIdentity}>
@@ -78,9 +85,11 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
             <T accessibilityRole="header" variant="bodyStrong" numberOfLines={1}>{person?.ime || 'Poruke'}</T>
             <T variant="note" tone="muted" numberOfLines={2}>{title}</T>
           </View>
-          <CaretRight size={20} color={sys.color.green} />
         </Press>
+        {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema, otkazivanje, prijava ili blokiranje osobe"
+          onPress={onMore} /> : null}
       </View>
+      <View testID="agreement-thread-tabs" style={s.tabs}><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
     <AgreementChat {...chat} compact={compact} context={context} />
@@ -91,6 +100,7 @@ const s = StyleSheet.create({
   frame: { flex: 1, minHeight: 0 },
   bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: sys.conversation.ground },
   barTitle: { flex: 1, minWidth: 0 },
+  tabs: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm, backgroundColor: sys.conversation.ground },
   threadIdentity: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
   overview: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },

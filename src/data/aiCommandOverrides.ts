@@ -12,7 +12,7 @@ async function edgeFailure(_error: unknown) {
   // This historical adapter has no bounded trusted envelope decoder. Do not
   // consume an unbounded provider/auth error body merely to display its text.
   return { ok: false as const, kod: 'AI_EDGE_FAILED',
-    poruka: 'Obrada nije potvrđena. Otvori Novi Zadatak i proveri stanje razgovora.' };
+    poruka: 'Obrada nije potvrđena. Otvori novi zadatak i proveri stanje razgovora.' };
 }
 
 export const aiCommandOverrides: AiCommandOverrides = {

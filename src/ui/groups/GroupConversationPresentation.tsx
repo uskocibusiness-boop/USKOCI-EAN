@@ -1,11 +1,13 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users } from 'phosphor-react-native';
 import type { GroupMessage } from '../../data/groupConversationService';
 import { inicijali } from '../../lib/inicijali';
-import { vreme } from '../../lib/vreme';
-import { Press } from '../Press';
+import { serbianToday } from '../calendar/serbianDays';
+import { TextBubble } from '../messages/MessageBubbles';
+import { MessageMark } from '../messages/MessageMark';
+import { MARK_WORDS, buildThread, messageSpoken, type ThreadMessage } from '../messages/threadModel';
 import { T } from '../Text';
 import { Appear, useAppear } from '../system/Appear';
 import { Avatar } from '../system/Avatar';
@@ -18,7 +20,8 @@ import type { GroupState } from './GroupConversationController';
 
 type Group = NonNullable<NonNullable<GroupState['context']>['group']>;
 type Member = Group['members'][number];
-const time = (value: string) => vreme(value, { danas: true });
+/** The one sentence a finished group conversation says where the pill would be (the same as a closed Dogovor's, in the group's word). */
+export const GROUP_CLOSED_SENTENCE = 'Razgovor je završen. Poruke možeš samo da čitaš.';
 // The management block is the requester's alone, so a finish that waits on the requester waits on the person reading it.
 const status = (value: string) => ({ CONFIRMED: 'Važeći Dogovor', AWAITING_REQUESTER: 'Čeka tvoju potvrdu završetka', COMPLETED: 'Završen', CANCELLED: 'Otkazan' }[value] ?? 'Dogovor');
 /** The counter appears only near the limit, as in Poruke. */
@@ -64,12 +67,18 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   const length = p.draftLength;
   const composer = (ready && group?.canSend) || retry;
   const name = (message: GroupMessage) => message.mine ? 'Ti' : group?.members.find(member => member.accountId === message.senderAccountId)?.displayName ?? 'Učesnik';
-  const header = <View style={[s.stack, s.gutter]}>
+  // The same runs, Serbian day lines and tails as the Dogovor's conversation (proposal R): the group only adds the sender's
+  // name at the start of another person's run. The thread is text only (decision A07).
+  const today = serbianToday();
+  const thread = useMemo(() => buildThread(state.messages.map((message): ThreadMessage => ({ id: message.messageId, moja: message.mine,
+    posiljalacAccountId: message.senderAccountId, posiljalacIme: name(message), telo: message.body, vremeTekst: '', procitano: null,
+    createdAt: message.createdAt }))), [state.messages, group, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const header =<View style={[s.stack, s.gutter]}>
     {first ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: p.onRefresh }} /> : null}
     {group ? <>
-      <T variant="copy" tone="muted">Zajedničke poruke za koordinaciju Zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
+      <T variant="copy" tone="muted">Zajedničke poruke za koordinaciju zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
       {/* A finished conversation says so once, where the pill would be. */}
       {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
       {p.showPeople ? <View style={s.people}>
@@ -94,7 +103,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         </View> : null}
       </View> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
-      body="Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
+      body="Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
     {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={p.onOlder} /> : null}
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
@@ -115,29 +124,29 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         ListHeaderComponent={header}
         renderItem={({ item }) => {
           // The position is read from the page itself, so the run is right whatever index the list hands in.
-          const index = state.messages.indexOf(item), before = index > 0 ? state.messages[index - 1] : undefined;
-          // Messages of one person in a row sit close, and only the first of another person's turn carries the name.
-          const run = !!before && before.senderAccountId === item.senderAccountId;
+          const index = state.messages.indexOf(item), entry = thread[index];
+          if (!entry) return null;
+          // Mine carries the one small mark: sent, because the group's read holds it. A group has no single reader, so it is never "seen".
+          const mark = item.mine ? 'sent' as const : null;
           return <Appear index={index} animate={appear.isNew(item.messageId)}>
+            {entry.separator ? <T accessibilityRole="header" variant="label" tone="muted" style={s.day}>{entry.separator}</T> : null}
             {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood
                 under every message is one step away, never behind a gesture alone (review r6). Without support the
                 bubble is text, not a button. */}
-            <Press accessibilityRole={p.support ? 'button' : 'text'} accessibilityLabel={`${name(item)}: ${item.body}, ${time(item.createdAt)}`}
-              accessibilityHint={p.support ? 'Dodir nudi prijavu podršci.' : undefined} haptic={p.support ? 'select' : 'none'} scaleTo={1}
-              disabled={!p.support} onPress={p.support ? () => toggle(item.messageId) : undefined}
-              onLongPress={p.support ? () => toggle(item.messageId) : undefined}
-              accessibilityActions={p.support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined}
-              onAccessibilityAction={p.support ? () => toggle(item.messageId) : undefined}
-              style={[s.bubble, item.mine ? s.mine : s.theirs, run ? s.run : s.turn]}>
-              {!item.mine && !run ? <T variant="meta" style={s.sender}>{name(item)}</T> : null}
-              <T variant="body">{item.body}</T>
-              <T variant="meta" tone="muted" style={s.time}>{time(item.createdAt)}</T>
-            </Press>
+            <TextBubble lines={[item.body]} mine={item.mine} first={entry.first} last={entry.last} afterSeparator={entry.separator !== null}
+              sender={!item.mine && entry.first ? name(item) : null} mark={mark ? <MessageMark kind={mark} /> : null}
+              summary={{ accessibilityRole: p.support ? 'button' : 'text',
+                accessibilityLabel: messageSpoken({ moja: item.mine, posiljalacIme: name(item), telo: item.body }, entry.moment, mark ? MARK_WORDS[mark].toLowerCase() : undefined),
+                accessibilityHint: p.support ? 'Dodir nudi prijavu podršci.' : undefined, haptic: p.support ? 'select' : 'none', scaleTo: 1,
+                disabled: !p.support, onPress: p.support ? () => toggle(item.messageId) : undefined,
+                onLongPress: p.support ? () => toggle(item.messageId) : undefined,
+                accessibilityActions: p.support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined,
+                onAccessibilityAction: p.support ? () => toggle(item.messageId) : undefined }} />
             {p.support && chosen === item.messageId ? <View style={[s.support, item.mine ? s.supportMine : s.supportTheirs]}>{p.support(item)}</View> : null}
           </Appear>;
         }}
         ListFooterComponent={<View style={[s.stack, s.gutter]}>
-          {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekam potvrdu slanja…</T> : null}
+          {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekamo potvrdu slanja…</T> : null}
           {state.phase === 'UNKNOWN' ? <V2Action label="Proveri prvobitno slanje" style={brandAction} onPress={p.onRefresh} /> : null}
           {state.phase === 'CONFIRMED' ? <V2Action label="Prikaži razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
         </View>} />
@@ -149,7 +158,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
           {retry ? <PillNote>Prvobitna poruka</PillNote> : null}
           {length > NEAR ? <PillNote tone={length > LIMIT ? 'danger' : 'muted'}>{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova</PillNote> : null}
         </>} />
-        : group?.terminal ? <T variant="meta" tone="muted" style={s.closed}>Razgovor je završen · poruke su samo za čitanje.</T> : null}
+        : group?.terminal ? <T variant="note" tone="muted" style={s.closed}>{GROUP_CLOSED_SENTENCE}</T> : null}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
@@ -169,14 +178,9 @@ const s = StyleSheet.create({
   member: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
   parted: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine, paddingTop: sys.space.md },
   managed: { gap: sys.space.xs },
-  // The bubbles of Poruke: the card corner, the tail side drawn tighter, 82 % of the width at most.
-  bubble: { maxWidth: '82%', borderRadius: sys.radius.card, paddingHorizontal: 14, paddingTop: 10, paddingBottom: sys.space.sm, gap: sys.space.xs },
-  turn: { marginTop: sys.space.md }, run: { marginTop: sys.space.xs },
-  mine: { alignSelf: 'flex-end', backgroundColor: sys.color.greenSoft, borderBottomRightRadius: sys.space.sm },
-  theirs: { alignSelf: 'flex-start', backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderBottomLeftRadius: sys.space.sm },
-  sender: { color: sys.color.green },
-  time: { alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
-  support: { maxWidth: '82%', marginTop: sys.space.xs },
+  // The bubbles are the Dogovor conversation's (../messages/bubbleShape): one shape, runs with one tail. A day or a pause is a quiet word.
+  day: { alignSelf: 'center', marginTop: sys.space.base, marginBottom: sys.space.sm, letterSpacing: 0, fontVariant: ['tabular-nums'] },
+  support: { maxWidth: '78%', marginTop: sys.space.xs },
   supportMine: { alignSelf: 'flex-end' }, supportTheirs: { alignSelf: 'flex-start' },
   closed: { textAlign: 'center', paddingHorizontal: sys.space.base, paddingVertical: sys.space.md },
 });

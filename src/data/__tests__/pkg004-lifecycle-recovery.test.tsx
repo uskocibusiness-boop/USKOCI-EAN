@@ -115,7 +115,7 @@ describe('PKG-004 lifecycle recovery without the Need row', () => {
     expect(serviceMocks.cancelNeed).not.toHaveBeenCalled();
     expect(mojePotrebe).not.toHaveBeenCalled();
     expect(text()).toContain('Radnja nije potvrđena');
-    const retry = actions().find(node => node.props.label === 'Ponovi isti zahtev');
+    const retry = actions().find(node => node.props.label === 'Pošalji ponovo');
     expect(retry).toBeDefined();
     expect(retry?.props.disabled).toBe(false);
   });

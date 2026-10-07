@@ -1,5 +1,6 @@
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import type { NeedTaskGeography, NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
+import { locationSlots } from '../../lib/location';
 
 /**
  * The words for a place: what each slot is called, the conversation's own search seed and the short line a confirmed
@@ -21,6 +22,51 @@ export const toSerbianLatin = (value: string): string => value.replace(/[Ѐ-ӿ]/
 
 export const normalizedPlaceText = (value: string): string => value.normalize('NFKD').replace(/[̀-ͯ]/g, '')
   .toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, ' ').trim();
+
+const CASE_LOCALE = 'sr-Latn-RS';
+// A letter is upper case when lowering it changes it, lower case when raising it does; this reads Serbian Latin and Cyrillic alike
+// and needs no Unicode property escapes.
+const isUpperLetter = (char: string): boolean => char.toLocaleLowerCase(CASE_LOCALE) !== char;
+const isLowerLetter = (char: string): boolean => char.toLocaleUpperCase(CASE_LOCALE) !== char;
+/** The small words of a name that stay small after its first word: "Beograd na vodi", "Kovilj kod Novog Sada". */
+const SMALL_WORDS: ReadonlySet<string> = new Set(['na', 'kod', 'pod', 'od', 'uz', 'pri', 'iza', 'ispod', 'iznad', 'pored', 'do', 'za', 'sa', 'iz']);
+
+type WordCase = 'NONE' | 'ACRONYM' | 'SHOUT' | 'LOWER' | 'TITLE' | 'ODD';
+/** No letters; capitals of one or two letters ("MZ"); capitals of three or more ("NOVI"); lower case; one capital then lower case; any other mix ("NovI"). */
+function wordCase(word: string): WordCase {
+  const letters = [...word].filter(char => isUpperLetter(char) || isLowerLetter(char));
+  if (!letters.length) return 'NONE';
+  const uppers = letters.filter(isUpperLetter).length, lowers = letters.length - uppers;
+  if (lowers === 0) return uppers <= 2 ? 'ACRONYM' : 'SHOUT';
+  if (uppers === 0) return 'LOWER';
+  return uppers === 1 && isUpperLetter(letters[0]) ? 'TITLE' : 'ODD';
+}
+
+/**
+ * A place or city label as it is SHOWN, with its case tidied when it was typed carelessly: "NovI SAD", "NOVI SAD" and "novi sad" all read
+ * "Novi Sad". A label that is already well formed comes back as it is, byte for byte ("Novi Sad", "Sremska Kamenica", "Beograd - Zemun", and
+ * also "Stari grad" or "Žitni trg", whose lower-case word is the name's own: only the person who typed it knows that "Novi sad" is a slip). Only a
+ * label with a word in mixed case or in capitals of three letters or more ("MZ" and "NS" are abbreviations), or one that is entirely lower case,
+ * is changed. Then every word takes a capital first letter and a lower-case rest, Serbian letters, Cyrillic and hyphens included, the
+ * separators exactly as typed; the small words of a name after its first word stay small ("Beograd na vodi"), and abbreviations stay as they are.
+ * DISPLAY ONLY: what is stored, sent or searched is never passed through here.
+ */
+export function tidyPlaceLabel(label: string): string {
+  const parts = label.split(/([\s\-‐–—\/,.;:()]+)/);        // words at the even places, separators (kept as typed) at the odd ones
+  const kinds = parts.map((part, index): WordCase => index % 2 === 0 ? wordCase(part) : 'NONE');
+  const careless = kinds.some(kind => kind === 'SHOUT' || kind === 'ODD')
+    || (kinds.includes('LOWER') && !kinds.includes('TITLE') && !kinds.includes('ACRONYM'));
+  if (!careless) return label;
+  let named = false;
+  return parts.map((part, index) => {
+    if (kinds[index] === 'NONE') return part;
+    const first = !named; named = true;
+    if (!first && SMALL_WORDS.has(part.toLocaleLowerCase(CASE_LOCALE))) return part.toLocaleLowerCase(CASE_LOCALE);
+    if (kinds[index] === 'ACRONYM') return part;
+    const chars = [...part], at = chars.findIndex(char => isUpperLetter(char) || isLowerLetter(char));
+    return chars.map((char, i) => i === at ? char.toLocaleUpperCase(CASE_LOCALE) : char.toLocaleLowerCase(CASE_LOCALE)).join('');
+  }).join('');
+}
 
 type PlaceValue = Readonly<{ geography: NeedTaskGeography | null; exactAddress: string | null }>;
 
@@ -106,6 +152,71 @@ export function shortPlaceLabel(label: string, localities: readonly (string | nu
   return { main, locality: repeats ? null : locality };
 }
 
+/** Where the words of an owner's place line come from. */
+export type OwnerPlaceSource =
+  /** The confirmed point's own address (or, for a provider point without one, the conversation's place): what the person confirmed. */
+  | 'POINT'
+  /** A hand-placed pin with no address: the pin is the place, and no other text is put in its mouth. */
+  | 'MAP'
+  /** No confirmed point for this slot yet: the task's own words (label, city, area), the only text there is. */
+  | 'GEOGRAPHY';
+
+export type OwnerPlace = Readonly<{
+  slot: LocationSlot;
+  source: OwnerPlaceSource;
+  /** Street and number, or the place: the bold part of a line. */
+  main: string;
+  /** The city (the part of the label that names the slot's city), never a guess; null when the main part already says it. */
+  locality: string | null;
+  /** The whole line: "Pavla Ivića 6, Novi Sad". */
+  text: string;
+  /** What a screen reader hears: the whole label when there is one. */
+  spoken: string;
+}>;
+
+/** What an owner's place line is made of: the task's words for its places and, when they exist, its confirmed points. */
+export type OwnerPlaceInput = PlaceValue & Readonly<{ points?: readonly ConfirmedLocationPoint[] | null }>;
+
+const present = (value: string | undefined): value is string => typeof value === 'string' && value.trim().length > 0;
+
+/**
+ * THE place line of one slot of the OWNER's own task (owner, 2026-10-07: he typed "Lenke Dunđerski 11, Novi Sad", moved the pin
+ * elsewhere, the conversation said the new place, and after publishing the task still said "Lenke Dunđerski").
+ *
+ * A slot has two sources of words and they stop agreeing the moment a pin moves. The task's geography (label, city, area) was written
+ * from the first text and is PUBLIC: it travels as one value that `normalizeResolvedLocation` binds to every confirmed point, so
+ * nothing rewrites it when a point is confirmed somewhere else. The confirmed point's own address is what the person actually
+ * confirmed. For the owner's own reading the point wins, in the short form the conversation already uses ("Pavla Ivića 6, Novi
+ * Sad", `shortPlaceLabel`), and the geography's words are used only for a slot that has no confirmed point at all. A hand-placed
+ * pin without an address says "Tačka na mapi" and nothing else: its slot's geography text is exactly what such a pin outdates.
+ *
+ * THIS IS FOR THE OWNER ONLY. It reads a private address; a public surface (a task card, the detail a stranger reads, discovery)
+ * takes its words from the public topology and the approximate area and never calls this (`place-line-privacy.test.ts` holds that).
+ */
+export function ownerPlace(slot: LocationSlot, input: OwnerPlaceInput): OwnerPlace | null {
+  const place = slotPlace(slot, input.geography);
+  const point = input.points?.find(item => item.slot === slot);
+  if (point) {
+    const own = confirmedPointText(point, input);
+    if (!own) return { slot, source: 'MAP', main: 'tačka na mapi', locality: null, text: 'Tačka na mapi', spoken: 'tačka na mapi' };
+    const short = shortPlaceLabel(own, [place?.city]);
+    return { slot, source: 'POINT', main: short.main, locality: short.locality,
+      text: short.locality ? `${short.main}, ${short.locality}` : short.main, spoken: toSerbianLatin(own) };
+  }
+  const words = [place?.label, place?.city, place?.area].filter(present);
+  if (!words.length) return null;
+  const text = words.join(' · ');
+  return { slot, source: 'GEOGRAPHY', main: text, locality: null, text, spoken: text };
+}
+
+/** The same line as plain text, or null when the slot has neither a confirmed point nor a place of its own. */
+export const ownerPlaceLine = (slot: LocationSlot, input: OwnerPlaceInput): string | null => ownerPlace(slot, input)?.text ?? null;
+
+/** One place per slot of the geography, in route order (start, the stops, the end, a service area). */
+export function ownerPlaces(input: OwnerPlaceInput): OwnerPlace[] {
+  return input.geography ? locationSlots(input.geography).flatMap(slot => ownerPlace(slot, input) ?? []) : [];
+}
+
 export type ConfirmedPlaceEntry = Readonly<{
   slot: LocationSlot;
   /** "Potvrđeno mesto", "Potvrđeno polazište", "Potvrđena stanica 1". */
@@ -137,13 +248,12 @@ export function confirmedPlaceEntries(points: readonly ConfirmedLocationPoint[],
   acknowledged: ReadonlySet<LocationSlot> = new Set()): ConfirmedPlaceEntry[] {
   const geography = value.geography;
   return [...points].sort((a, b) => slotOrder(a.slot) - slotOrder(b.slot)).map(point => {
-    const own = confirmedPointText(point, value);
-    const short = own ? shortPlaceLabel(own, [slotPlace(point.slot, geography)?.city]) : { main: 'tačka na mapi', locality: null };
+    // The words are the shared owner place line's (a point always has some); this adds only what the sentence around them needs.
+    const place = ownerPlace(point.slot, { ...value, points: [point] }) as OwnerPlace;
     const noun = slotTitle(point.slot, geography).toLocaleLowerCase('sr-Latn-RS');
     const ack = acknowledged.has(point.slot);
-    const full = own ? toSerbianLatin(own) : 'tačka na mapi';
     const entryLead = lead(point.slot, geography);
-    return { slot: point.slot, lead: entryLead, noun, main: short.main, locality: short.locality, exact: !!own, ack,
-      spoken: ack ? `U redu, ${noun} je sada: ${full}` : `${entryLead}: ${full}` };
+    return { slot: point.slot, lead: entryLead, noun, main: place.main, locality: place.locality, exact: place.source === 'POINT', ack,
+      spoken: ack ? `U redu, ${noun} je sada: ${place.spoken}` : `${entryLead}: ${place.spoken}` };
   });
 }

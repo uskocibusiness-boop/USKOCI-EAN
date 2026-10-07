@@ -23,6 +23,7 @@ jest.mock('../workerAvailabilityClientService', () => { throw new Error('the gal
 
 import DizajnKalendar from '../../app/dizajn-kalendar';
 import { sys } from '../../ui/system/tokens';
+import { STATUS_CHIPS, STATUS_TONES } from '../../ui/system/StatusChip';
 
 let tree: ReactTestRenderer;
 const pressHost = async (label: string) => {
@@ -49,14 +50,16 @@ it('draws both sides, a finished Dogovor and the row of Dogovori without an exac
   await act(async () => { tree = create(<DizajnKalendar />); });
   await pressHost('Kalendar · dan sa Dogovorima');
   expect(text()).toContain('Uskačeš · Ana'); expect(text()).toContain('Tvoj zadatak · Marko');
-  expect(text()).toContain('Završeno'); expect(text()).toContain('Čeka se potvrda završetka');
-  expect(text()).toContain('Svi Dogovori'); expect(text()).toContain('bez tačnog termina');
+  // The agenda draws the system status words (T3b, 2026-10-07): "Završen" for a finished Dogovor, "Čeka potvrdu" while a completion waits,
+  // and the Dogovori without an exact time sit in their own section "Bez tačnog termina" (the former "Svi Dogovori" row is gone).
+  expect(text()).toContain('Završen'); expect(text()).toContain('Čeka potvrdu');
+  expect(text()).toContain('Bez tačnog termina');
   // My own work, marked done, waits for the other side's confirmation (review of step 10).
   expect(text()).toContain('Uskačeš · Nikola');
-  // Round-5c: a finished row's dot is the muted grey, as in the week strip (the hairline grey was about 1.4:1).
-  const dots = tree.root.findAll(node => node.type === ('View' as React.ElementType) && Array.isArray(node.props.style)
-    && node.props.style[0]?.width === 6 && node.props.style[1]?.backgroundColor).map(node => node.props.style[1].backgroundColor);
-  expect(dots).toContain(sys.color.muted); expect(dots).not.toContain(sys.color.lineStrong);
+  // Round-5c: a finished row's mark is the muted grey (the hairline grey was about 1.4:1). Since T3b the mark is the system StatusMark of the
+  // `task.completed` chip (an SVG, not a 6 dp View), so the one status table is what pins the colour.
+  expect(STATUS_CHIPS['task.completed'].tone).toBe('grey');
+  expect(STATUS_TONES.grey.mark).toBe(sys.color.muted); expect(STATUS_TONES.grey.mark).not.toBe(sys.color.lineStrong);
 });
 
 it('draws what a list read without the exact window leaves: only my work, and a line that says so', async () => {

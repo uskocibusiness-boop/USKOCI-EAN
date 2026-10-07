@@ -24,5 +24,5 @@ export function GroupConversationEntry({agreementId}:{agreementId:string}){
  return entry?<V2Action label={`Grupni razgovor${entry.unread>0?` · ${neprocitanih(entry.unread)}`:''}`} onPress={()=>{
   if(renderedOwner!==null&&owner.current===renderedOwner&&!['inactive','background'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===revision)
    router.push({pathname:'/dogovor/[id]/grupa',params:{id:agreementId}});
- }}/>:available===false?<T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.</T>:null;
+ }}/>:available===false?<T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika.</T>:null;
 }

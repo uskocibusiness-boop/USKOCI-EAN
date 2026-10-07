@@ -65,6 +65,12 @@ export type AiConversationShellProps = {
   sentMessage?: string | null;
   /** Only real server text deltas belong here. No typewriter animation. */
   streamingText?: string;
+  /**
+   * One question at a time (the worker-profile conversation, M1): the assistant's latest message is THE question and is
+   * drawn large, while it waits for an answer; earlier assistant turns are quieter. Default off: a thread of the task
+   * conversation keeps one size for every turn.
+   */
+  questionFocus?: boolean;
 };
 
 /**
@@ -315,6 +321,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting. */}
         {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [<Turn key={message.id} {...message}
           showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
+          emphasis={!p.questionFocus || !message.fromAi ? 'plain' : index === p.messages.length - 1 && !p.sentMessage && !p.streamingText ? 'question' : 'earlier'}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
           reduced={reduced || !arrival.shouldEnter(message.id)} />,
@@ -326,7 +333,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           <T selectable style={s.personText}>{p.sentMessage}</T>
         </View> : null}
         {p.streamingText ? <View accessibilityLabel={`USKOČI: ${p.streamingText}`} accessibilityLiveRegion="none" style={s.assistant}>
-          {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={s.answer}>{p.streamingText}</T></View> : null}
+          {p.sentMessage || !last?.fromAi ? <Mark /> : null}<T selectable style={p.questionFocus ? s.question : s.answer}>{p.streamingText}</T></View> : null}
         {/* Three dots are what a person waiting for an answer already understands; they stop under reduced motion. */}
         {p.busy && !p.streamingText ? <View accessibilityLiveRegion="polite" accessibilityLabel="USKOČI piše odgovor" style={s.assistant}>
           <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
@@ -389,7 +396,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />
           <View testID="ai-composer-tools" style={[s.composerTools, stackedComposer && s.toolsBelow]}>
             {p.voice ? <VoiceComposer {...p.voice} size={52} onTooShort={() => setHoldHint(true)} /> : null}
-          {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Ponovi istu poruku' : 'Pošalji poruku'}
+          {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
             <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
@@ -449,11 +456,13 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
  * Persisted turns do not rerender for each keystroke or incoming chunk. Side, colour and shape say who is speaking; the
  * labels are for a screen reader.
  */
-const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker }: ConversationMessage & { reduced: boolean; showSpeaker: boolean }) {
+const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis = 'plain' }: ConversationMessage & {
+  reduced: boolean; showSpeaker: boolean; emphasis?: 'plain' | 'question' | 'earlier';
+}) {
   const entering = reduced ? undefined : FadeInDown.duration(sys.motion.enter).withInitialValues({ transform: [{ translateY: 8 }] });
   return fromAi
     ? <Animated.View entering={entering} accessibilityLabel={`USKOČI: ${body}`} style={s.assistant}>
-      {showSpeaker ? <Mark /> : null}<T selectable style={s.answer}>{body}</T></Animated.View>
+      {showSpeaker ? <Mark /> : null}<T selectable style={emphasis === 'question' ? s.question : emphasis === 'earlier' ? s.earlier : s.answer}>{body}</T></Animated.View>
     : <Animated.View entering={entering} accessibilityLabel={`Ti: ${body}`} style={s.person}>
       <T selectable style={s.personText}>{body}</T></Animated.View>;
 });
@@ -483,6 +492,9 @@ const s = StyleSheet.create({
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
   answer: { ...sys.type.speech, color: sys.color.ink },
+  // One question at a time (`questionFocus`): the latest question in the larger speech of voice mode, what came before it quieter.
+  question: { ...sys.type.speechLarge, color: sys.color.ink },
+  earlier: { ...sys.type.copy, color: sys.color.muted },
   // Own words have a distinct alignment and high-contrast ink fill.
   person: { alignSelf: 'flex-end', maxWidth: '90%', marginLeft: 24, paddingVertical: 12, paddingHorizontal: 16,
     borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.color.ink },

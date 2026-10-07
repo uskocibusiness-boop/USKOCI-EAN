@@ -21,7 +21,7 @@ export const accountClosingCopy = {
   closedBody: 'Pristup nalogu je ugašen. Podaci za prijavu su uklonjeni i sesije su završene.',
   steps: (done: number, total: number) => `Provereni koraci: ${done} od ${total}.`,
   closedAt: (at: string) => `Završeno: ${vreme(at)}`,
-  unavailable: 'Zadaci, Prijave i Dogovori nisu dostupni dok traje zatvaranje.',
+  unavailable: 'Zadaci, prijave i Dogovori nisu dostupni dok traje zatvaranje.',
   check: 'Proveri stanje',
   support: 'Otvori privatnu podršku',
   signOut: 'Odjavi se sa ovog uređaja',

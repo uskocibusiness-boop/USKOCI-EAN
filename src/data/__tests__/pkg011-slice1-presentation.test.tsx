@@ -60,17 +60,16 @@ test('loading shows placeholder geometry and a spoken status, never a stale card
   expect(texts()).toContain('Učitavamo zadatke…');
   expect(tree.root.findAllByProps({ importantForAccessibility: 'no-hide-descendants' }).length).toBeGreaterThan(0);
 });
-test('an owner draft continues its editing and never draws an application count; the draft word stands where the section does not say it', async () => {
+test('an owner draft continues its editing and never draws an application count; the draft word stands in every tab', async () => {
   await act(async () => { tree = create(<Marketplace rows={[row('d', { stanje: 'NACRT', brojPrijava: 0 })]} />); });
   await act(async () => roleOf('Nacrti').onPress());
-  // One task card (step 5a, 2026-09-24): the own-task status words are Nacrt / Delimično popunjen / Popunjen / Zatvoren;
-  // a draft still draws no places and no application count.
+  // One task card (step 5a, 2026-09-24): a draft draws no places and no application count; its one next step is to continue it.
   const copy = texts(); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 ?\/ ?2/);
-  // Review r3 item 10 (was: "Nacrt" on the card under Nacrti): every card under Nacrti is a draft, so the section says it
-  // and the card does not repeat it. The whole word, not the "Nacrti" tab that contains it.
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(false);
-  expect(roleOf('Otvori Zadatak Pomoć d')).toBeTruthy();
-  // Where the section does not name the state, the card still says it, quietly.
+  // Plan 2.2 (owner 2026-10-07; was, review r3 item 10: "Nacrt" not repeated under Nacrti): every row wears its state as the chip, in every
+  // tab, because the tab no longer stands in for it. The whole word, not the "Nacrti" tab that contains it.
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
+  expect(roleOf('Otvori zadatak Pomoć d')).toBeTruthy();
+  // Where the section does not name the state, the card says it just the same.
   await act(async () => roleOf('Aktivni').onPress());
   await act(async () => tree.root.findAll(node => node.props.label === 'Prikaži sve moje zadatke')[0].props.onPress());
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
@@ -95,13 +94,15 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   // A card no longer says "1 osoba" beside the one person it already shows (round-1 critique A13, owner step 8).
   expect(copy).not.toContain('Tvoje saradnje'); expect(copy).not.toMatch(/Ja mogu|Meni treba/); expect(copy).toContain('2.500 RSD'); expect(copy).not.toContain('1 osoba');
   expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Dogovori')).length).toBeGreaterThan(0);
-  expect(copy).not.toContain('Dogovoreno'); expect(copy).toContain('Čeka se potvrda završetka'); expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
+  // Each card wears one state chip (plan 2.2): "Dogovoren" for the agreed one, "Čeka potvrdu" for the one that waits for the confirmation.
+  expect(copy).toContain('Dogovoren'); expect(copy).toContain('Čeka potvrdu'); expect(copy).not.toContain('Čeka se potvrda završetka');
+  expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
   // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.
   expect(copy).toContain('Mila'); expect(copy).toContain('Uskače'); expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio');
-  expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Kalendar obaveza');
+  expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Raspored'); expect(labels()).not.toContain('Kalendar obaveza');
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Agreements rows={rows} />); });
-  expect(texts()).not.toContain('Tvoje saradnje'); expect(labels()).toContain('Kalendar obaveza');
+  expect(texts()).not.toContain('Tvoje saradnje'); expect(labels()).toContain('Raspored');
 });
 test('agreements loading shows placeholders and a spoken status without private rows', async () => {
   await act(async () => { tree = create(<Agreements rows={[agreement('a', 'CONFIRMED')]} loading />); });

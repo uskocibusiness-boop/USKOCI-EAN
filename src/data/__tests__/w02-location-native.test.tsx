@@ -46,7 +46,7 @@ async function openChoice(label: string) { await act(async () => tree.root.findB
 async function chooseMode(label: string) {
   if (!tree.root.findAllByProps({ accessibilityLabel: label }).length) {
     const country = ['Srbija', 'Bosna i Hercegovina', 'Hrvatska'].includes(label);
-    const field = country ? tree.root.findAllByProps({ accessibilityLabel: 'Država rada' }).length ? 'Država rada' : 'Država Zadatka' : 'Način rada';
+    const field = country ? tree.root.findAllByProps({ accessibilityLabel: 'Država rada' }).length ? 'Država rada' : 'Država zadatka' : 'Način rada';
     // The task form folds country and mode into "Država i način rada" once a country is set (2026-09-23).
     if (!tree.root.findAllByProps({ accessibilityLabel: field }).length && tree.root.findAllByProps({ accessibilityLabel: 'Država i način rada' }).length) await openChoice('Država i način rada');
     await openChoice(field);
@@ -65,9 +65,9 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Tačna adresa (privatno, opciono)' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesto rada — deo grada (opciono)' })).toHaveLength(0);
-    await openChoice('Privatni detalji Zadatka');
+    await openChoice('Privatni detalji zadatka');
     await edit('Tačna adresa (privatno, opciono)', 'Sačuvana privatna ispravka');
-    await openChoice('Privatni detalji Zadatka'); await openChoice('Privatni detalji Zadatka');
+    await openChoice('Privatni detalji zadatka'); await openChoice('Privatni detalji zadatka');
     expect(tree.root.findByProps({ accessibilityLabel: 'Tačna adresa (privatno, opciono)' }).props.value).toBe('Sačuvana privatna ispravka');
     await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exactAddress: 'Sačuvana privatna ispravka' }));
@@ -159,7 +159,7 @@ describe('actual native Need location form', () => {
     const onSave = jest.fn();
     const historical = review();
     await act(async () => { tree = create(<NeedLocationForm review={{ ...historical, value: { ...historical.value, taskCountryCode: null } }} busy={false} uncertain={false} onSave={onSave} />); });
-    expect(tree.root.findByProps({ accessibilityLabel: 'Država Zadatka' }).props.accessibilityValue.text).toBe('Nije izabrano');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Država zadatka' }).props.accessibilityValue.text).toBe('Nije izabrano');
     await save(); expect(onSave).not.toHaveBeenCalled();
     expect(saveButton().props.reason).toContain('Izaberi državu u „Država i način rada"');
     await chooseMode('Srbija'); await save();
@@ -192,7 +192,7 @@ describe('actual native Need location form', () => {
   it('saving after a private edit confirms the current value without a checkbox', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
-    await openChoice('Privatni detalji Zadatka');
+    await openChoice('Privatni detalji zadatka');
     await edit('Tačna adresa (privatno, opciono)', 'Nova privatna adresa 2');
     await save(); expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exactAddress: 'Nova privatna adresa 2' }));
   });

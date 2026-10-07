@@ -163,15 +163,24 @@ export function slotLabel(slot: LocationSlot, stationary = false): string {
   return slot === 'start' ? stationary ? 'Mesto' : 'Polazište' : slot === 'end' ? 'Odredište'
     : slot === 'serviceArea' ? 'Područje' : `Stanica ${Number(slot.split('/')[1]) + 1}`;
 }
-function geographyReview(geography: NeedTaskGeography): string {
-  const point = (value: NeedTaskGeographyPoint) => [value.label, value.city, value.area].filter(value => value !== undefined).join(' · ');
-  const lines = [GEOGRAPHY_LABELS[geography.mode]];
-  for (const slot of locationSlots(geography)) {
+/**
+ * Each place of a task's geography as the review reads it, "Polazište: Lenke Dunđerski · Novi Sad": the STORED words of the public
+ * topology (label, city, area), exactly, which is also what the published task will say. This is the reading of that fact and it
+ * stays so, even when a pin was moved after the words were written. The owner's reading of a place he has CONFIRMED is
+ * `ownerPlace` (ui/location/placeText), which prefers the point's own address; a public surface never uses that one.
+ */
+export function geographyPlaceLines(geography: NeedTaskGeography): { slot: LocationSlot; parts: string[]; line: string }[] {
+  const words = (value: NeedTaskGeographyPoint) => [value.label, value.city, value.area].filter((part): part is string => part !== undefined);
+  return locationSlots(geography).flatMap(slot => {
     const place = slot === 'start' ? geography.start : slot === 'end' ? geography.end
       : slot === 'serviceArea' ? geography.serviceArea : geography.waypoints?.[Number(slot.split('/')[1])];
-    if (place) lines.push(`${slotLabel(slot, geography.mode === 'STATIONARY')}: ${point(place)}`);
-  }
-  return lines.join('\n');
+    if (!place) return [];
+    const parts = words(place);
+    return [{ slot, parts, line: `${slotLabel(slot, geography.mode === 'STATIONARY')}: ${parts.join(' · ')}` }];
+  });
+}
+function geographyReview(geography: NeedTaskGeography): string {
+  return [GEOGRAPHY_LABELS[geography.mode], ...geographyPlaceLines(geography).map(place => place.line)].join('\n');
 }
 
 /** Human review always reads the typed value, never model-supplied displayValue.

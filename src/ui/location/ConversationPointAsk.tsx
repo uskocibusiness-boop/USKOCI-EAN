@@ -385,7 +385,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
         </Press>;
       })}
     </View> : null}
-    {state.kind === 'SAVING' ? <T accessibilityLiveRegion="polite" tone="muted">Čuvam mesto…</T> : null}
+    {state.kind === 'SAVING' ? <T accessibilityLiveRegion="polite" tone="muted">Čuvamo mesto…</T> : null}
     {activeSlot ? <LocationPointEditor key={`${editorEpoch}:${activeSlot}`} slot={activeSlot} title={title(activeSlot, geography)}
       point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
       countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate={!inactive} resolver={resolver}

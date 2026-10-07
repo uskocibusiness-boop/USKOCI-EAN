@@ -21,7 +21,7 @@ export const urgentReasonText = (codes: readonly string[]) => {
     URGENT_CATEGORY_NOT_ADMITTED: 'HITNO nije dostupan za ovu vrstu zadatka.',
     URGENT_POLICY_BOUNDS_INVALID: 'Uslovi za HITNO trenutno nisu dostupni.',
     NEED_NOT_OPEN: 'HITNO je dostupan samo za otvoren zadatak.',
-    URGENT_PHYSICAL_TASK_REQUIRED: 'HITNO je namenjen poslu koji se obavlja na lokaciji.',
+    URGENT_PHYSICAL_TASK_REQUIRED: 'HITNO je namenjen zadatku koji se obavlja na lokaciji.',
     NEED_RESPONSE_WINDOW_EXPIRED: 'Rok za prijave je istekao.',
     NEED_ALREADY_FILLED: 'Sva mesta su već dogovorena.',
     URGENT_START_ALREADY_PASSED: 'Termin početka je prošao.',

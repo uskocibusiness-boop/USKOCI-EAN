@@ -32,6 +32,7 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsText: 'T', SettingsAction: 'Action' }));
 import { SafetyScreen } from '../SafetyScreen';
+import { poruka } from '../../system/Poruka';
 
 let tree: ReactTestRenderer;
 type Props = { targetAccountId: string; needId: string | null; agreementId: string | null; profileId?: string };
@@ -63,14 +64,14 @@ beforeEach(() => {
   mockSafety.readReportCommand.mockResolvedValue({ ok: true, podatak: { found: false, receipt: null } });
   mockSafety.readTarget.mockResolvedValue(resolved());
 });
-afterEach(async () => { await act(async () => tree?.unmount()); delete process.env[NAME]; jest.restoreAllMocks(); });
+afterEach(async () => { await act(async () => tree?.unmount()); delete process.env[NAME]; jest.restoreAllMocks(); poruka.hide(); });
 
 describe('the name comes from the server result for the profile the person came from', () => {
   it('asks the server once for that profile and draws the name it returns above the explanation, beside the unchanged generic copy', async () => {
     await render();
     expect(mockSafety.readTarget.mock.calls).toEqual([[P]]);
     expect(nameLines()).toEqual([PERSON]);
-    expect(copy()).toContain('Korisnik nije blokiran.');
+    expect(copy()).toContain('Osoba nije blokirana.');
     // the name is the first thing on the screen, before the sentence that explains the two roles
     const viewport = tree.toJSON() as { type: string; children: Array<{ type: string; children: Array<{ props: { testID?: string; accessibilityRole?: string } }> }> };
     expect(viewport.type).toBe('View');
@@ -118,15 +119,15 @@ describe('the name comes from the server result for the profile the person came 
     await render();
     expect(nameLines()).toEqual([]);
     expect(tree.root.findAll(n => n.props?.accessibilityRole === 'alert')).toHaveLength(0);
-    expect(action('Blokiraj korisnika').disabled).toBe(false);
-    expect(copy()).toContain('Korisnik nije blokiran.');
+    expect(action('Blokiraj osobu').disabled).toBe(false);
+    expect(copy()).toContain('Osoba nije blokirana.');
   });
 
   it('while the name is still being read the screen is already usable and shows no placeholder', async () => {
     const pending = deferred(); mockSafety.readTarget.mockReturnValue(pending.promise);
     await render();
     expect(nameLines()).toEqual([]);
-    expect(action('Blokiraj korisnika').disabled).toBe(false);
+    expect(action('Blokiraj osobu').disabled).toBe(false);
     await act(async () => { pending.resolve(resolved()); });
     expect(nameLines()).toEqual([PERSON]);
   });
@@ -196,7 +197,7 @@ describe('the name is only drawn', () => {
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uznemiravanje' }).props.onPress());
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' }).props.onChangeText('Privatan razlog'));
     await act(async () => action('Pošalji privatnu prijavu').onPress());
-    await act(async () => action('Blokiraj korisnika').onPress());
+    await act(async () => action('Blokiraj osobu').onPress());
     const confirm = tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-confirm')[0];
     await act(async () => confirm.props.onPress());
     expect(mockSafety.report).toHaveBeenCalledTimes(1);
@@ -209,20 +210,35 @@ describe('the name is only drawn', () => {
     expect(JSON.stringify(mockStorage.setItem.mock.calls)).not.toContain(P);
   });
 
-  it('leaves the block question and its wording as they were', async () => {
+  it('names the person in the block question, and leaves the wording of what follows as it was', async () => {
     await render();
-    await act(async () => action('Blokiraj korisnika').onPress());
-    expect(copy()).toContain('Blokirati korisnika?');
+    await act(async () => action('Blokiraj osobu').onPress());
+    expect(copy()).toContain(`Blokirati ${PERSON}?`);
     expect(copy()).toContain('Blokiranje zaustavlja običan kontakt i nova povezivanja.');
     expect(mockSafety.readBlock.mock.calls).toEqual([[B]]);
   });
 
+  it('with no name the question is the generic one: "Blokirati osobu?"', async () => {
+    mockSafety.readTarget.mockResolvedValue(resolved({ displayName: null }));
+    await render();
+    await act(async () => action('Blokiraj osobu').onPress());
+    expect(copy()).toContain('Blokirati osobu?'); expect(copy()).not.toContain(PERSON);
+  });
+
+  it('names the person in the unblock question too', async () => {
+    mockSafety.readBlock.mockResolvedValue({ ok: true, podatak: { accountId: A, targetAccountId: B, blocked: true, revision: 3, authoritative: true } });
+    await render();
+    await act(async () => action('Odblokiraj osobu').onPress());
+    expect(copy()).toContain(`Odblokirati ${PERSON}?`);
+    expect(mockSafety.setBlock).not.toHaveBeenCalled();
+  });
+
   it('keeps the name on the screen after the person has been blocked from it', async () => {
     await render();
-    await act(async () => action('Blokiraj korisnika').onPress());
+    await act(async () => action('Blokiraj osobu').onPress());
     const confirm = tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-confirm')[0];
     await act(async () => confirm.props.onPress());
-    expect(copy()).toContain('Korisnik je blokiran.');
+    expect(copy()).toContain('Osoba je blokirana.');
     expect(nameLines()).toEqual([PERSON]);
     expect(mockSafety.readTarget).toHaveBeenCalledTimes(1);
   });

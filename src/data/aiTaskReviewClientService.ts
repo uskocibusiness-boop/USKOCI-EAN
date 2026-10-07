@@ -60,12 +60,12 @@ const COPY: Readonly<Record<string, string>> = {
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
   ...REVIEW_FACT_COPY,
   // Refusals a person causes on the accept path (deep read 7.21); unmapped they read "Ishod radnje nije potvrđen".
-  NO_MATERIAL_CHANGE: 'Nijedan podatak nije promenjen. Izmeni nešto ili se vrati na Zadatak.',
+  NO_MATERIAL_CHANGE: 'Nijedan podatak nije promenjen. Izmeni nešto ili se vrati na zadatak.',
   PUBLICATION_DECISION_NOT_ALLOW: 'Zadatak još nije odobren za objavu.',
   NEED_REVISION_STALE: 'Zadatak je promenjen. Pregledaj novu verziju.',
   STALE_REVIEW_REQUIRED: 'Zadatak je promenjen. Ponovo otvori uređivanje.',
   NEED_NOT_EDITABLE_PUBLIC_STATE: 'Ovaj zadatak trenutno ne može da se menja.',
-  NEED_EDIT_LOCKED_AFTER_FIRST_DOGOVOR: 'Uslovi zadatka su već deo dogovora i ne mogu ovde da se menjaju.',
+  NEED_EDIT_LOCKED_AFTER_FIRST_DOGOVOR: 'Uslovi zadatka su već deo Dogovora i ne mogu ovde da se menjaju.',
   EVALUATOR_UNAVAILABLE: 'Provera objave trenutno nije dostupna. Nacrt je sačuvan.',
   RATE_LIMITED: 'Sačekaj pre sledeće provere. Nacrt je sačuvan.',
 };
@@ -172,9 +172,9 @@ function notReadyCopy(code: string, missing?: readonly string[], stationary = fa
       return 'Fotografije još nisu proverene. Sačekaj proveru ili ih ukloni, pa objavi.';
     case 'POLICY_NOT_READY':
     case 'POLICY_CONTENT_NOT_READY':
-      return 'Objava trenutno nije moguća. Nije do tebe — nacrt je sačuvan, probaj kasnije.';
+      return 'Objava trenutno nije moguća. Nije do tebe — nacrt je sačuvan, pokušaj kasnije.';
     case 'EVALUATOR_UNAVAILABLE':
-      return 'Provera objave trenutno nije dostupna. Nacrt je sačuvan, probaj ponovo za koji minut.';
+      return 'Provera objave trenutno nije dostupna. Nacrt je sačuvan, pokušaj ponovo za koji minut.';
     default:
       return 'Objava još nije moguća' + slots + '. Nacrt je sačuvan; učitaj pregled ponovo.';
   }

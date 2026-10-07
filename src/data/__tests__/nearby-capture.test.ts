@@ -86,3 +86,25 @@ test('ownership loss fences a callback even before lifecycle cleanup runs', asyn
   capture.start(); await flush(); current = false; receive(fix());
   expect(remove).toHaveBeenCalledTimes(1); expect(onPoint).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
 });
+describe('the app\'s own question before the system location window (T4b2 + lead, 2026-10-07)', () => {
+  test('"Ne sada" reads no position, asks the system nothing and says nothing: the status returns to idle', async () => {
+    const before = jest.fn().mockResolvedValue('later');
+    capture.cancel(); capture = createNearbyCapture({ load, owns: () => current, onPoint, onStatus, beforePermission: before });
+    capture.start(); await flush();
+    expect(before).toHaveBeenCalledTimes(1); expect(request).not.toHaveBeenCalled(); expect(watch).not.toHaveBeenCalled();
+    expect(onPoint).not.toHaveBeenCalled(); expect(onStatus.mock.calls).toEqual([['locating'], ['idle']]); expect(jest.getTimerCount()).toBe(0);
+  });
+  test('"Dozvoli" goes on to the system window and the watch exactly as without the question', async () => {
+    const before = jest.fn().mockResolvedValue('allow');
+    capture.cancel(); capture = createNearbyCapture({ load, owns: () => current, onPoint, onStatus, beforePermission: before });
+    capture.start(); await flush(); receive(fix());
+    expect(before).toHaveBeenCalledTimes(1); expect(request).toHaveBeenCalledTimes(1); expect(watch).toHaveBeenCalledTimes(1);
+    expect(onPoint).toHaveBeenCalledTimes(1); expect(onStatus.mock.calls).toEqual([['locating'], ['idle']]);
+  });
+  test('an answer that arrives after the screen lost the capture is ignored', async () => {
+    const answer = deferred<'allow' | 'later'>(); const before = jest.fn().mockReturnValue(answer.promise);
+    capture.cancel(); capture = createNearbyCapture({ load, owns: () => current, onPoint, onStatus, beforePermission: before });
+    capture.start(); await flush(); capture.cancel(); current = false; answer.resolve('allow'); await flush();
+    expect(request).not.toHaveBeenCalled(); expect(watch).not.toHaveBeenCalled(); expect(onPoint).not.toHaveBeenCalled();
+  });
+});

@@ -5,8 +5,14 @@ jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', Pro
 // PKG-047: the screen resolves a safety target through the production client; this suite is about the task detail,
 // so the entry stays absent here and the client module is never loaded.
 jest.mock('../../ui/safety/useSafetyEntry', () => ({ useSafetyEntry: () => undefined }));
+// The questions of the task have their own reader (owner, 2026-10-07: they are drawn on the task now). This suite is about the
+// task detail, so the reader is a value the test moves and the transport behind it is never loaded; the reader has its own suite.
+const mockQuestionsFor = jest.fn();
+let mockQuestions: { state: unknown; retry: () => void } = { state: { phase: 'idle' }, retry: () => undefined };
+jest.mock('../../ui/qa/useTaskQaInline', () => ({ useTaskQaInline: (...args: unknown[]) => { mockQuestionsFor(...args); return mockQuestions; } }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { PrilikaProjekcija } from '../../contracts/projections';
+import { buildQaInline } from '../../ui/qa/taskQaInlineModel';
 
 let mockId: string | string[] | undefined = 'task-a';
 let mockAccountId: string | undefined = 'account-a';
@@ -72,6 +78,7 @@ const back = () => tree!.root.findByProps({ accessibilityLabel: 'Nazad' }).props
 
 beforeEach(() => {
   jest.clearAllMocks(); mockLoad.mockReset(); mockAppListeners.clear();
+  mockQuestions = { state: { phase: 'idle' }, retry: () => undefined };
   mockRelations.mockReset().mockImplementation(relatesAs());
   mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockAccountRevision = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
@@ -354,5 +361,108 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(text()).toContain('Zadatak task-b');
     await act(async () => a.resolve(detail()));
     expect(text()).not.toContain('Zadatak task-a'); expect(mockLoad.mock.calls).toEqual([['task-a'], ['task-b']]);
+  });
+});
+
+// Owner, 2026-10-07: "u pregledu zadatka treba da se vidi pitanja koja je neko postavio, a na koja je odgovorio vlasnik zadatka".
+// The questions were a link to another screen; they are drawn on the task now, after the work and before the poster, and the
+// whole thread (asking, answering, the rest) is still the screen it always was, opened by the same route.
+describe('the questions of the task, drawn on it', () => {
+  const Q = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
+  const answered = (n: number) => ({ questionId: Q(n), needRevision: 2, questionText: `Pitanje ${n}?`, answerVersion: 1, answerText: `Odgovor ${n}.`,
+    edited: false, answeredAt: `2026-10-0${n}T09:00:00Z` });
+  const waiting = (n: number) => ({ questionId: Q(n), needRevision: 2, questionText: `Pitanje ${n}?`, status: 'PENDING_ANSWER', createdAt: '2026-10-04T08:00:00Z',
+    answerVersion: null, answerText: null, edited: false });
+  const strangerSees = (rows: unknown[], canAsk = true, retry = jest.fn()) => ({ retry,
+    state: { phase: 'ready', ...buildQaInline({ mode: 'PUBLIC', needRevision: 2, canAsk, canComposeAnswer: false }, rows as never[]) } });
+  const ownerSees = (rows: unknown[], retry = jest.fn()) => ({ retry,
+    state: { phase: 'ready', ...buildQaInline({ mode: 'OWNER', needRevision: 2, canAsk: false, canComposeAnswer: true }, rows as never[]) } });
+  const press = (accessibilityLabel: string) => tree!.root.findAll(node => node.props.accessibilityLabel === accessibilityLabel);
+
+  it('is asked about the task it shows once there is one, and never about a task that is not there', async () => {
+    mockLoad.mockResolvedValue(detail()); await render();
+    expect(mockQuestionsFor.mock.calls[0]).toEqual([null]);
+    expect(mockQuestionsFor).toHaveBeenLastCalledWith('task-a');
+    await act(async () => { tree?.unmount(); }); mockQuestionsFor.mockClear();
+    mockLoad.mockResolvedValue(null); await render();
+    expect(mockQuestionsFor.mock.calls.every(call => call[0] === null)).toBe(true);
+  });
+
+  it('draws no section while the reader has nothing, and the task is complete without it', async () => {
+    mockLoad.mockResolvedValue(detail()); await render();
+    expect(text()).not.toContain('Pitanja i odgovori'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('reads the questions and the owner’s answers after the work and before the poster', async () => {
+    mockQuestions = strangerSees([answered(1), answered(2)]);
+    mockLoad.mockResolvedValue({ ...detail(), opis: 'Dva sprata bez lifta.', narucilacIme: 'Ana Anić' }); await render();
+    const all = text();
+    expect(all).toContain('2 pitanja · sva odgovorena'); expect(all).toContain('Pitanje 2?'); expect(all).toContain('Odgovor 2.');
+    expect(all).toContain('Odgovorio vlasnik zadatka');
+    expect(all.indexOf('Dva sprata bez lifta.')).toBeLessThan(all.indexOf('Pitanja i odgovori'));
+    expect(all.indexOf('Pitanja i odgovori')).toBeLessThan(all.indexOf('Ana Anić'));
+    // The one green action is still the application; the section adds none.
+    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('"Postavi pitanje" opens the whole thread once, through the screen’s own fence, for a stranger’s task', async () => {
+    mockQuestions = strangerSees([answered(1)]);
+    mockLoad.mockResolvedValue(detail()); await render();
+    const ask = press('Postavi pitanje')[0].props.onPress;
+    await act(async () => { ask(); ask(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: 'task-a', own: '0' } }]]);
+    expect(mockRouter.navigate).not.toHaveBeenCalledWith({ pathname: '/prilike/[id]/prijava', params: { id: 'task-a' } });
+  });
+
+  it('offers no question to a stranger the server does not allow to ask, and the notice stays in the whole thread', async () => {
+    mockQuestions = strangerSees([answered(1)], false);
+    mockLoad.mockResolvedValue(detail()); await render();
+    expect(press('Postavi pitanje')).toHaveLength(0); expect(text()).not.toContain('Radni profil');
+  });
+
+  it('"Prikaži sva pitanja" appears with more than three questions and opens the same thread', async () => {
+    mockQuestions = strangerSees([1, 2, 3, 4].map(answered), false);
+    mockLoad.mockResolvedValue(detail()); await render();
+    await act(async () => press('Prikaži sva pitanja (4)')[0].props.onPress());
+    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: 'task-a', own: '0' } }]]);
+  });
+
+  it('a press kept from before the task was read again opens nothing, and the section waits with the task', async () => {
+    const again = deferred<PrilikaProjekcija>();
+    mockQuestions = strangerSees([answered(1)]);
+    mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(again.promise); await render();
+    const kept = press('Postavi pitanje')[0].props.onPress;
+    await act(async () => mockAppListeners.forEach(listener => listener('active')));
+    expect(press('Postavi pitanje')).toHaveLength(0); expect(text()).not.toContain('Pitanje 1?');
+    await act(async () => kept());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    await act(async () => again.resolve(detail()));
+    expect(text()).toContain('Pitanje 1?'); expect(press('Postavi pitanje')).toHaveLength(1);
+  });
+
+  it('a press is refused after the account changed', async () => {
+    mockQuestions = strangerSees([answered(1)]);
+    mockLoad.mockResolvedValue(detail()); await render();
+    const kept = press('Postavi pitanje')[0].props.onPress;
+    mockAccountId = 'account-b'; mockEpoch++; mockAccountRevision++;
+    await act(async () => kept());
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+
+  it('a questions read that failed says so on the section, reads again on request, and leaves the task working', async () => {
+    const retry = jest.fn();
+    mockQuestions = { retry, state: { phase: 'error', message: 'Pitanja trenutno nisu učitana. Proveri vezu i pokušaj ponovo.' } };
+    mockLoad.mockResolvedValue(detail()); await render();
+    expect(text()).toContain('Pitanja trenutno nisu učitana.'); expect(text()).not.toContain('Još nema pitanja');
+    await act(async () => buttons('Učitaj pitanja ponovo')[0].props.onPress());
+    expect(retry).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockLoad).toHaveBeenCalledTimes(1);
+    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+  });
+
+  it('the owner looking at his own task as others see it is sent to his side of the thread', async () => {
+    mockQuestions = ownerSees([waiting(1)]);
+    mockRelations.mockImplementation(relatesAs(owner('task-a'))); mockLoad.mockResolvedValue(detail()); await render();
+    await act(async () => press('Odgovori na pitanje: Pitanje 1?')[0].props.onPress());
+    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: 'task-a', own: '1' } }]]);
   });
 });

@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import type { ConversationInboxItem } from '../../contracts/conversationInbox';
+import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { inicijali } from '../../lib/inicijali';
 import { trenutak, type Trenutak } from '../../lib/trenutak';
 import { Press } from '../Press';
@@ -9,13 +10,17 @@ import { Avatar } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
 import { ConversationArt } from '../system/ConversationArt';
 import { StateView } from '../system/StateView';
-import { neprocitanih } from '../system/plural';
+import { neprocitanih, osoba } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 
-/** Alias only: the admitted reader's contract owns these facts. */
-export type ConversationInboxRow = ConversationInboxItem;
+/**
+ * The admitted reader's contract owns these facts (`MY_CONVERSATIONS_PAGE_V1`). Two things the Poruke design draws are NOT in that
+ * projection today, so nothing supplies them yet and nothing is invented: that the Dogovor is closed (a lock before the task), and
+ * how many people a group has ("Grupa · 3 osobe"). A reader that learns them fills these optional fields and the row draws them.
+ */
+export type ConversationInboxRow = ConversationInboxItem & Readonly<{ closed?: boolean; memberCount?: number }>;
 export const conversationRowKey = (row: ConversationInboxRow): string => `${row.kind}:${row.id}`;
 
 export type ConversationInboxPresentationProps = {
@@ -38,22 +43,27 @@ export type ConversationInboxPresentationProps = {
   bottomInset?: number; zona?: string; sada?: Date;
 };
 
-type ListRow = { type: 'day'; key: string; label: string; first: boolean }
-  | { type: 'conversation'; key: string; item: ConversationInboxRow; moment: Trenutak | null };
+type ListRow = { key: string; item: ConversationInboxRow; moment: Trenutak | null };
 
-/** Do not sort/group by counterpart or event time. Multiple tasks with one person are distinct conversations. */
+/**
+ * One row per conversation, in the server's order. Do not sort/group by counterpart or event time: multiple tasks with one
+ * person are distinct conversations. The moment of the last message is read in SERBIAN time unless the caller names a zone.
+ */
 export function conversationInboxRows(items: readonly ConversationInboxRow[], options: { zona?: string; sada?: Date } = {}): ListRow[] {
-  const rows: ListRow[] = [];
-  let day: string | null = null;
-  for (const item of items) {
-    const moment = trenutak(item.lastMessage.createdAt, options);
-    if (moment && moment.kljuc !== day) {
-      day = moment.kljuc;
-      rows.push({ type: 'day', key: `day:${day}:${conversationRowKey(item)}`, label: moment.dan, first: rows.length === 0 });
-    }
-    rows.push({ type: 'conversation', key: conversationRowKey(item), item, moment });
-  }
-  return rows;
+  const zone = { ...options, zona: options.zona ?? DOGOVORENA_ZONA };
+  return items.map(item => ({ key: conversationRowKey(item), item, moment: trenutak(item.lastMessage.createdAt, zone) }));
+}
+
+/**
+ * What stands at the right of a row (proposal J2): the clock for a message of today, otherwise the day as the app says it
+ * ("Juče", "3. okt"). Never both: the list has no day headings, so the stamp carries the day.
+ */
+export const conversationStamp = (moment: Trenutak | null): string | null => moment ? moment.dan === 'Danas' ? moment.sat : moment.dan : null;
+
+/** The row's first line: the other person, or the group (with its size when the reader knows it). */
+export function conversationTitle(item: ConversationInboxRow): string {
+  if (item.kind === 'GROUP') return item.memberCount && item.memberCount > 0 ? `Grupa · ${osoba(item.memberCount)}` : 'Grupa';
+  return item.counterpart?.displayName?.trim() || 'Razgovor';
 }
 
 /** Preserve a media caption as well as kind. No invented duration, sender identity or delivery/read status. */
@@ -80,11 +90,9 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   const openDisabled = disabled || openingDisabled || openingKey !== null;
   // Keep RefreshControl mounted while reading; the caller still owns async single-flight admission.
   const refresh = useCallback(() => { if (!readDisabled) onRefresh(); }, [readDisabled, onRefresh]);
-  const renderItem = useCallback(({ item: row }: ListRenderItemInfo<ListRow>) => row.type === 'day'
-    ? <T variant="meta" tone="muted" accessibilityRole="header" style={[s.day, row.first && s.firstDay]}>{row.label}</T>
-    : <ConversationRow item={row.item} moment={row.moment} stacked={stacked}
-        unavailable={unavailableKeys.has(row.key)} failed={openErrorKey === row.key} opening={openingKey === row.key}
-        disabled={openDisabled || unavailableKeys.has(row.key)} onOpen={onOpen} photo={renderAvatar?.(row.item)} />,
+  const renderItem = useCallback(({ item: row }: ListRenderItemInfo<ListRow>) => <ConversationRow item={row.item} moment={row.moment} stacked={stacked}
+    unavailable={unavailableKeys.has(row.key)} failed={openErrorKey === row.key} opening={openingKey === row.key}
+    disabled={openDisabled || unavailableKeys.has(row.key)} onOpen={onOpen} photo={renderAvatar?.(row.item)} />,
   [stacked, unavailableKeys, openErrorKey, openingKey, openDisabled, onOpen, renderAvatar]);
 
   const listHeader = titleInHeader && !(items !== null && error) ? null : <View style={s.heading}>
@@ -126,27 +134,33 @@ type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; stacked: 
   disabled: boolean; opening: boolean; unavailable: boolean; failed: boolean; photo?: ReactNode;
   onOpen: (row: ConversationInboxRow) => void };
 const ConversationRow = memo(function ConversationRow({ item, moment, stacked, disabled, opening, unavailable, failed, photo, onOpen }: RowProps) {
-  const title = item.kind === 'GROUP' ? 'Grupni razgovor' : item.counterpart?.displayName?.trim() || 'Razgovor';
+  const title = conversationTitle(item);
   const preview = conversationPreview(item.lastMessage);
   // Private unread is explicitly unknown in V1, even if an upstream caller accidentally supplies a number.
   const unread = item.kind === 'GROUP' && item.unreadMessageCount !== null && Number.isSafeInteger(item.unreadMessageCount)
     && item.unreadMessageCount > 0 ? item.unreadMessageCount : null;
   const status = unavailable ? 'Razgovor trenutno nije dostupan.' : failed ? 'Razgovor nije otvoren. Pokušaj ponovo.' : null;
+  const stamp = conversationStamp(moment);
   const time = moment ? `${moment.dan}, ${moment.sat}` : null;
-  const label = [title, item.task.title, preview, time, unread === null ? null : neprocitanih(unread), status].filter(Boolean).join('. ');
+  const closed = item.closed === true;
+  const label = [title, item.task.title, closed ? 'Dogovor je zatvoren' : null, preview, time, unread === null ? null : neprocitanih(unread), status].filter(Boolean).join('. ');
   return <Press accessibilityRole="button" accessibilityLabel={label}
     accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}
     accessibilityState={{ disabled, busy: opening }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={1}
     onPress={() => onOpen(item)} style={s.row}>
     <View style={s.avatar} accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={40} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={40} />)}
+      {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={40} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={56} />)}
     </View>
     <View style={s.copy}>
       <View style={[s.rowHeading, stacked && s.rowHeadingStacked]}>
-        <T variant="bodyStrong" style={s.name}>{title}</T>
-        {moment ? <T variant="meta" tone="muted" style={s.time}>{moment.sat}</T> : null}
+        <T variant="bodyStrong" numberOfLines={stacked ? undefined : 1} style={s.name}>{title}</T>
+        {stamp ? <T variant="meta" tone="muted" style={s.time}>{stamp}</T> : null}
       </View>
-      <T variant="note" tone="muted" numberOfLines={stacked ? 3 : 2}>{item.task.title}</T>
+      {/* A closed Dogovor has a lock before its task, so the row says it can only be read. */}
+      <View style={s.taskLine}>
+        {closed ? <View testID="conversation-lock" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="lock" size={16} muted /></View> : null}
+        <T variant="note" tone="muted" numberOfLines={stacked ? 3 : 2} style={s.taskTitle}>{item.task.title}</T>
+      </View>
       <View style={s.previewRow}>
         <T variant="note" tone="ink" numberOfLines={stacked ? undefined : 2} style={s.preview}>{preview}</T>
         {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}
@@ -163,12 +177,13 @@ const s = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: 640, alignSelf: 'center', paddingHorizontal: sys.space.lg },
   heading: { paddingTop: sys.space.sm, paddingBottom: sys.space.sm, gap: sys.space.md },
   notice: { gap: sys.space.xs, paddingVertical: sys.space.sm },
-  day: { paddingTop: sys.space.lg, paddingBottom: sys.space.xs, fontWeight: '500' },
-  firstDay: { paddingTop: sys.space.sm },
+  // The whole row is one 72+ target: the face (56), the person or group, the task, the last words and the stamp.
   row: { minHeight: 72, paddingVertical: sys.space.base, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
-  avatar: { width: 40, height: 40, flexShrink: 0 },
+  avatar: { width: 56, height: 56, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  taskLine: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.xs },
+  taskTitle: { flexShrink: 1, minWidth: 0 },
   rowHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
   rowHeadingStacked: { flexDirection: 'column', gap: sys.space.xs },
   name: { flexShrink: 1, flexGrow: 1, minWidth: 0, color: sys.color.ink },

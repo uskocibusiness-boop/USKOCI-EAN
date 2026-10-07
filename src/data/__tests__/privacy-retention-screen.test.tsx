@@ -101,7 +101,10 @@ it('does not carry expanded legal content across a newly read policy version', a
   expect(texts()).toContain('fixture duration');
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
   await act(async () => button('Osveži stanje').onPress());
-  expect(texts()).toContain('fixture-v2'); expect(texts()).not.toContain('fixture duration');
+  // The version itself is no longer drawn on this screen (only the legal documents carry one): the proof that the new read
+  // replaced the old one is that its rule is closed again and none of the old rule's text is on screen.
+  expect(tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.accessibilityState.expanded).toBe(false);
+  expect(texts()).not.toContain('fixture duration');
 });
 it('does not combine different policy versions into an admission', async () => {
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2'))); mockExecution.mockResolvedValue(ok(execution('fixture-v1'))); await render();
@@ -167,15 +170,15 @@ it.each(['account', 'incarnation', 'blur'])('retires a retained closure entry af
 });
 it('keeps the unpublished and failed retention states off the green confirmation tint', async () => {
   mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
-  expect(texts()).toContain('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
+  expect(texts()).toContain('Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.');
   const alert = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'alert');
-  expect(alert.map(node => node.props.children)).toContain('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
+  expect(alert.map(node => node.props.children)).toContain('Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.');
 });
 // Round 5 review: the retry of a failed retention read stands right under its note, and there is one refresh on screen.
 it('a failed retention read has its retry right under its own note', async () => {
   mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
   const note = tree.root.findAllByType(InlineNote).find(node => node.props.tone === 'danger')!;
-  expect(note.props.children).toBe('Rokovi čuvanja trenutno nisu dostupni. Probaj ponovo.');
+  expect(note.props.children).toBe('Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.');
   const section = note.parent!;
   expect(section.findAllByProps({ label: 'Osveži stanje' }).length).toBeGreaterThan(0);
   expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje')).toHaveLength(1);
@@ -219,4 +222,41 @@ it('refocus enables new callbacks while retiring old ones without relying on res
   await act(async () => { currentExport(); currentExport(); });
   expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
   expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
+});
+// UI/UX pass 2026-10-07 (team T4c): plain groups, a re-read that leaves the published rules on screen, no stills of the old set.
+it('names its groups in plain words: who sees what, your data, how long it is kept', async () => {
+  mockPolicy.mockResolvedValue(ok(policy())); await render();
+  expect(texts()).toContain('Ko šta vidi'); expect(texts()).toContain('Tvoji podaci'); expect(texts()).toContain('Rokovi čuvanja');
+  expect(texts()).not.toContain('Vidljivost');
+  expect(texts()).not.toMatch(/\bVerzija\b/);
+});
+it('a re-read the person asks for leaves the published rules on screen under the refresh at work; only the first read is a skeleton', async () => {
+  mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
+  expect(texts()).toContain('AI razgovori i izdvojeni podaci');
+  const policyAgain = deferred(), executionAgain = deferred(); mockPolicy.mockReturnValueOnce(policyAgain.promise); mockExecution.mockReturnValueOnce(executionAgain.promise);
+  await act(async () => { button('Osveži stanje').onPress(); });
+  expect(texts()).toContain('AI razgovori i izdvojeni podaci'); expect(texts()).not.toContain('Učitavamo rokove čuvanja');
+  expect(button('Osveži stanje')).toMatchObject({ disabled: true, loading: true });
+  await act(async () => { button('Osveži stanje').onPress(); }); expect(mockPolicy).toHaveBeenCalledTimes(2);
+  await act(async () => { policyAgain.resolve(ok(policy('fixture-v2'))); executionAgain.resolve(ok(execution('fixture-v2'))); });
+  expect(button('Osveži stanje')).toMatchObject({ disabled: false, loading: false });
+});
+it('a re-read that fails keeps the last published rules and says they could not be renewed, with the refresh as the retry', async () => {
+  mockPolicy.mockResolvedValue(ok(policy())); await render();
+  mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic'));
+  await act(async () => button('Osveži stanje').onPress());
+  expect(texts()).toContain('AI razgovori i izdvojeni podaci'); expect(texts()).toContain('Rokovi čuvanja nisu osveženi. Prikazano je ono što je poslednji put učitano.');
+  expect(texts()).not.toContain('private transport');
+  expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje')).toHaveLength(1);
+  mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
+  await act(async () => button('Osveži stanje').onPress());
+  expect(texts()).not.toContain('nisu osveženi');
+});
+it('a re-read of the automatic deletion that fails is said as not confirmed, never as the old yes', async () => {
+  mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
+  expect(texts()).toContain('Automatsko brisanje je omogućeno samo za napuštene AI razgovore');
+  mockExecution.mockRejectedValueOnce(new Error('private transport diagnostic'));
+  await act(async () => button('Osveži stanje').onPress());
+  expect(texts()).toContain('Dostupnost automatskog brisanja nije potvrđena'); expect(texts()).not.toContain('brisanje je omogućeno');
+  expect(texts()).not.toContain('private transport');
 });

@@ -31,7 +31,7 @@ export function SupportRecoveryPanel({ model, caseId, receipt = true }: {
         <T variant="bodyStrong">{`Potvrđen zahtev #${state.receipt.caseNumber}`}</T>
         <T variant="note" tone="muted">{`Primljeno: ${supportTime(state.receipt.createdAt)}`}</T>
       </InlineNote>
-      <SettingsAction label="Otvori potvrđeni predmet" kind="quiet" disabled={busy}
+      <SettingsAction label="Otvori zahtev" kind="quiet" disabled={busy}
         onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: state.receipt!.caseId } }))} />
     </View> : null}
   </>;

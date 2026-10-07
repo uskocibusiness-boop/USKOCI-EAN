@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { X } from 'phosphor-react-native';
 import { CivilField } from '../calendar/CalendarControls';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { Glyph } from '../system/Glyph';
 import { field, sys } from '../system/tokens';
 
 /**
@@ -40,7 +40,7 @@ export function FactListEditor({ label, items, disabled, onChange }: {
       <T style={s.itemText}>{item}</T>
       <Press accessibilityRole="button" accessibilityLabel={`Ukloni: ${item}`} disabled={disabled} style={s.remove}
         onPress={() => onChange(items.filter(other => other !== item), typed)}>
-        <X size={18} color={sys.color.muted} />
+        <Glyph name="close" tone="muted" />
       </Press>
     </View>)}</View> : <T style={s.note}>Još nema stavki.</T>}
     <View style={s.addRow}>

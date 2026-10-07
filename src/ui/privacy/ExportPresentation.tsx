@@ -1,18 +1,19 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Check, X } from 'phosphor-react-native';
 import type { DataExportPreparation, DataExportStatus } from '../../contracts/dataExport';
 import { vreme } from '../../lib/vreme';
-import { SettingsAction, SettingsIntro, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
+import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
+import { Glyph } from '../system/Glyph';
 import { SkeletonList } from '../system/Skeleton';
 import { StateView } from '../system/StateView';
+import { STATUS_TONES, StatusMark, type StatusShape, type StatusTone } from '../system/StatusChip';
 import { sys } from '../system/tokens';
 import { InlineNote, QuietLine } from './InlineNote';
 
 export const exportPreparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
   POLICY_NOT_READY: 'Priprema kopije trenutno nije dostupna. Tvoj zahtev ostaje zabeležen.',
   BUSY: 'Kopija se priprema. Proveri stanje kasnije.',
-  RETRY_REQUIRED: 'Priprema nije završena. Proveri stanje pa probaj ponovo.',
+  RETRY_REQUIRED: 'Priprema nije završena. Proveri stanje pa pokušaj ponovo.',
   NOT_AVAILABLE: 'Ova kopija se ne može sačuvati.',
 };
 
@@ -48,6 +49,30 @@ export function exportPhase(status: DataExportStatus | null | undefined, now: nu
   }
 }
 
+/**
+ * The phase as the app's one kind of chip (plan 2.2: a mark and a word, never colour alone). The shared `StatusChip` has no key
+ * for a data export (its table is for tasks and applications), so this draws the same chip from the same mark and tones, with
+ * the export's own words. "Spremno" is said only for a copy that can be saved right now: a copy that was never verified, one
+ * whose availability has run out and one that failed are each said as what they are, never as something waiting to be saved.
+ */
+export const EXPORT_CHIPS: Readonly<Record<ExportPhase, { word: string; shape: StatusShape; tone: StatusTone }>> = {
+  NONE: { word: 'Nije traženo', shape: 'ring', tone: 'neutral' },
+  REQUESTED: { word: 'Zahtev poslat', shape: 'ring', tone: 'neutral' },
+  PROCESSING: { word: 'U pripremi', shape: 'dot', tone: 'green' },
+  READY_AVAILABLE: { word: 'Spremno', shape: 'check', tone: 'green' },
+  READY_UNAVAILABLE: { word: 'Nije dostupno', shape: 'dash', tone: 'grey' },
+  EXPIRED: { word: 'Isteklo', shape: 'dash', tone: 'grey' },
+  FAILED: { word: 'Nije uspelo', shape: 'dash', tone: 'grey' },
+  CANCELLED: { word: 'Otkazano', shape: 'dash', tone: 'grey' },
+};
+export function ExportStatusChip({ phase }: { phase: ExportPhase }) {
+  const { word, shape, tone } = EXPORT_CHIPS[phase], palette = STATUS_TONES[tone];
+  return <View testID="status-chip" accessible accessibilityRole="text" accessibilityLabel={word} style={[s.chip, { backgroundColor: palette.ground }]}>
+    <StatusMark shape={shape} tone={tone} />
+    <T variant="label" style={[s.chipWord, { color: palette.word }]}>{word}</T>
+  </View>;
+}
+
 type StepState = 'done' | 'current' | 'pending' | 'stopped';
 type Step = { label: string; state: StepState; copy: string; meta?: string[] };
 // "na redu", not "u toku": the current step is also a preparation not started yet ("Priprema još nije pokrenuta.") and a
@@ -59,7 +84,7 @@ export function exportSteps(phase: ExportPhase, status: DataExportStatus | null 
   const request = status?.request, artifact = status?.fulfillment;
   const requested: Step = { label: 'Zahtev', state: 'done', copy: 'Zahtev je zabeležen na tvom nalogu.',
     meta: request ? [vreme(request.requestedAt)].filter(Boolean) : undefined };
-  const waiting: Step = { label: 'Preuzimanje', state: 'pending', copy: 'Dostupno kada stvarna kopija bude spremna.' };
+  const waiting: Step = { label: 'Preuzimanje', state: 'pending', copy: 'Dostupno kada kopija bude spremna.' };
   const prepared: Step = { label: 'Priprema kopije', state: 'done', copy: 'Obrada je završena.' };
   switch (phase) {
     case 'REQUESTED': return [requested, { label: 'Priprema kopije', state: 'current', copy: 'Priprema još nije pokrenuta.' }, waiting];
@@ -104,8 +129,8 @@ export function ExportStepper({ steps }: { steps: Step[] }) {
 }
 
 function Marker({ state }: { state: StepState }) {
-  if (state === 'done') return <View style={[s.marker, s.markerDone]}><Check size={14} weight="bold" color={sys.color.onGreen} /></View>;
-  if (state === 'stopped') return <View style={[s.marker, s.markerStopped]}><X size={14} weight="bold" color={sys.color.muted} /></View>;
+  if (state === 'done') return <View style={[s.marker, s.markerDone]}><Glyph name="check" size={16} tone="onGreen" /></View>;
+  if (state === 'stopped') return <View style={[s.marker, s.markerStopped]}><Glyph name="close" size={16} tone="muted" /></View>;
   if (state === 'current') return <View style={[s.marker, s.markerCurrent]}><View style={s.dot} /></View>;
   return <View style={[s.marker, s.markerPending]} />;
 }
@@ -135,26 +160,35 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
   const noticeLine = notice ? <ExportNoticeLine text={notice.text} tone={notice.tone} /> : null;
   const phase = exportPhase(status, now);
   return <SettingsScreen title="Izvoz podataka" onBack={onBack} footer={primary ? <>{noticeLine}{primary}</> : null}>
-    <SettingsIntro>Zatraži kopiju podataka vezanih za svoj nalog.</SettingsIntro>
     {notice && !primary ? noticeLine : null}
-    {loading ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
+    {/* The skeleton is for the first read. A re-read keeps the card on screen: the refresh at the end shows it works. */}
+    {loading && !status ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
       : failure ? <StateView kind="error" art="download" title={failure.title} body={failure.body}
         primary={{ label: 'Osveži stanje', onPress: onRefresh, disabled: refreshDisabled }} />
       : <>
-        <SettingsPanel style={s.card}><ExportStepper steps={exportSteps(phase, status)} /></SettingsPanel>
+        <SettingsPanel style={s.card}>
+          <ExportStatusChip phase={phase} />
+          <ExportStepper steps={exportSteps(phase, status)} />
+        </SettingsPanel>
         {preparation?.kind === 'NOT_READY' ? <InlineNote tone="warn" alert>{exportPreparationCopy[preparation.code ?? 'NOT_AVAILABLE']}</InlineNote> : null}
-        <QuietLine art="shield">Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</QuietLine>
+        {/* About keeping a copy: said only when there is a copy to keep. */}
+        {phase === 'READY_AVAILABLE' ? <QuietLine art="shield">Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</QuietLine> : null}
         <View style={s.actions}>
           {request?.status === 'REQUESTED' ? <SettingsAction label="Otkaži zahtev" kind="destructive" disabled={busy} onPress={onCancel} /> : null}
-          {request?.status === 'READY' && status?.fulfillment ? <SettingsAction label="Opozovi kopiju" kind="destructive" disabled={busy} onPress={onRevoke} /> : null}
-          <SettingsAction label="Osveži stanje" kind="quiet" disabled={busy} onPress={onRefresh} />
+          {/* A copy whose availability has run out is not there to withdraw: no command is offered over a file that does not exist. */}
+          {request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED' ? <SettingsAction label="Opozovi kopiju" kind="destructive" disabled={busy} onPress={onRevoke} /> : null}
+          <SettingsAction label="Osveži stanje" kind="quiet" disabled={busy} loading={loading} onPress={onRefresh} />
         </View>
       </>}
   </SettingsScreen>;
 }
 
 const s = StyleSheet.create({
-  card: { marginBottom: 0 },
+  card: { marginBottom: 0, gap: sys.space.base },
+  // The shared chip's measure (StatusChip): the mark, then the word, on the tone's soft ground; never a touch target.
+  chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingVertical: sys.space.xs,
+    paddingLeft: sys.space.sm, paddingRight: sys.space.md, borderRadius: sys.radius.pill },
+  chipWord: { letterSpacing: 0 },
   step: { flexDirection: 'row', gap: sys.space.md },
   rail: { width: 24, alignItems: 'center' },
   connector: { width: 2, flex: 1, minHeight: 16, marginVertical: 2, backgroundColor: sys.color.line, borderRadius: sys.radius.pill },

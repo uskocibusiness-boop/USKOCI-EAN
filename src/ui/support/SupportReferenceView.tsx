@@ -10,7 +10,7 @@ import { SupportNotice, supportStyles as styles, supportTime } from './SupportPr
 
 export const supportReferenceNames: Record<SupportSnapshot['kind'], string> = { TASK: 'Zadatak', AGREEMENT: 'Dogovor',
   AGREEMENT_MESSAGE: 'Izabrana poruka iz Dogovora', GROUP_MESSAGE: 'Izabrana grupna poruka',
-  TASK_REVIEW: 'Pregled odluke o Zadatku', SAFETY_REPORT: 'Privatna bezbednosna prijava' };
+  TASK_REVIEW: 'Pregled odluke o zadatku', SAFETY_REPORT: 'Privatna bezbednosna prijava' };
 const outcomes: Record<string, string> = { ALLOW: 'Provera je odobrila sadržaj', CLARIFY: 'Zatražena je dopuna',
   REVIEW: 'Zatražen je dodatni pregled', BLOCK: 'Sadržaj nije odobren' };
 export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot; caseId: string }) {

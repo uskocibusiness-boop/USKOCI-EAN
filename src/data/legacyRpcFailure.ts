@@ -5,7 +5,7 @@ import type { Ishod } from './ports';
 const COPY: Readonly<Record<string, string>> = Object.freeze({
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
   NOT_OWNER: 'Ova radnja nije dostupna na ovom nalogu.',
-  NOT_WORKER: 'Ovu radnju može da izvrši samo onaj ko je uskočio u ovaj Dogovor.',
+  NOT_WORKER: 'Ovu radnju može da izvrši samo radnik iz ovog Dogovora.',
   NOT_PARTY: 'Ova radnja je dostupna samo učesnicima Dogovora.',
   FORBIDDEN: 'Ova radnja nije dostupna na ovom nalogu.',
   AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.',
@@ -17,7 +17,7 @@ const COPY: Readonly<Record<string, string>> = Object.freeze({
   NEED_VERSION_MISMATCH: 'Zadatak je izmenjen. Pregledaj važeće uslove.',
   RESPONSE_VERSION_MISMATCH: 'Prijava je izmenjena. Učitaj njenu novu verziju.',
   STALE_REVIEW_REQUIRED: 'Zadatak je izmenjen. Pregledaj važeće uslove.',
-  RESPONSE_NOT_OWNED: 'Ova Prijava nije dostupna na ovom nalogu.',
+  RESPONSE_NOT_OWNED: 'Ova prijava nije dostupna na ovom nalogu.',
   RESPONSE_NOT_WITHDRAWABLE: 'Prijavu sada nije moguće povući. Proveri aktuelno stanje.',
   RESPONSE_NOT_AWAITING_REVIEW: 'Prijava više ne čeka ovu proveru. Učitaj aktuelno stanje.',
   RESPONSE_ALREADY_CURRENT: 'Prijava je već usklađena. Učitaj aktuelno stanje.',
@@ -43,7 +43,7 @@ const COPY: Readonly<Record<string, string>> = Object.freeze({
   AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj predloženog termina.',
   NEED_FIXED_INTERVAL_INVALID: 'Termin zadatka nije potpun. Ponovo otvori zadatak.',
   IDEMPOTENCY_KEY_REUSED: 'Ovaj zahtev je već vezan za drugu ponudu. Proveri sačuvano stanje.',
-  INVALID_COVERED_SLOTS: 'Proveri broj ljudi u Prijavi.',
+  INVALID_COVERED_SLOTS: 'Proveri broj ljudi u prijavi.',
   INVALID_PROPOSED_WINDOW: 'Proveri početak i kraj ponuđenog termina.',
   SCOPE_NOTE_TOO_LONG: 'Napomena je predugačka. Skrati je pre slanja.',
   // Deep read 8.4: no screen can add a number yet, so the sentence must not send the person looking for one.

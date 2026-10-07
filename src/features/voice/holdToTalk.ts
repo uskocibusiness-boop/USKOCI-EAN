@@ -30,9 +30,9 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   SPEECH_CONNECTION_FAILED: 'Veza za govorni unos je prekinuta. Pokušaj ponovo ili nastavi kucanjem.',
   CAPTURE_TIMEOUT: 'Govorni unos je zaustavljen zbog ograničenja trajanja. Sačuvani tekst možeš da dopuniš.',
   AUDIO_INTERRUPTED: 'Zvuk je prekinut. Proveri sačuvani tekst ili pokreni novi unos.',
-  FINALIZATION_FAILED: 'Završni transkript nije potvrđen. Proveri i izmeni sačuvani tekst.',
+  FINALIZATION_FAILED: 'Tekst govora nije potvrđen. Proveri i izmeni sačuvani tekst.',
   FINALIZATION_TIMEOUT: 'Završavanje govora je trajalo predugo. Proveri sačuvani tekst.',
-  FINAL_TRANSCRIPT_MISSING: 'Nije stigao završni transkript. Sačuvani deo možeš da izmeniš i pošalješ kucanjem.',
+  FINAL_TRANSCRIPT_MISSING: 'Nije stigao ceo tekst govora. Sačuvani deo možeš da izmeniš i pošalješ kucanjem.',
   TRANSCRIPT_INVALID: 'Govorni unos nije mogao bezbedno da se pročita. Proveri sačuvani tekst.',
   TRANSCRIPT_TOO_LONG: 'Govorni unos prelazi 4.000 znakova. Sačuvan je prethodni deo; skrati ili podeli poruku.',
   AI_SPEAKING: 'Sačekaj da se čitanje odgovora završi pre govornog unosa.',
@@ -60,7 +60,11 @@ export interface NativeSpeechCapture {
 }
 
 export interface NativeSpeechAdapter {
-  requestPermission(signal: AbortSignal): Promise<'granted' | 'denied' | 'unavailable'>;
+  /**
+   * `later`: the person answered "Ne sada" to the question that comes before the system's window (ui/permissions). The system
+   * was not asked and nothing went wrong, so it is not an error and ends the gesture without a word.
+   */
+  requestPermission(signal: AbortSignal): Promise<'granted' | 'denied' | 'unavailable' | 'later'>;
   /** Creates an inert, cancellable handle. No microphone or provider I/O until start(). */
   createCapture(input: {
     session: VoiceSession;
@@ -213,6 +217,8 @@ export class HoldToTalkController {
     try {
       const permission = await adapter.requestPermission(session.abort.signal);
       if (!this.current(session) || !session.held) { this.contextChanged(); return; }
+      // "Ne sada" to the question before the system's window: no microphone, no error, the composer is as it was.
+      if (permission === 'later') { this.cancel('gesture'); return; }
       if (permission !== 'granted') {
         this.fail(session, permission === 'denied' ? 'MIC_PERMISSION_DENIED' : 'MIC_UNAVAILABLE'); return;
       }

@@ -2,7 +2,6 @@ import type { ReactElement, ReactNode, Ref } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type RefreshControlProps,
   type ScrollView as ScrollViewType } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight, Check, PaperPlaneTilt } from 'phosphor-react-native';
 import type { SupportChannel, SupportStatus } from '../../data/supportCaseTypes';
 import { vreme } from '../../lib/vreme';
 import { InlineNote, QuietLine } from '../privacy/InlineNote';
@@ -10,14 +9,18 @@ import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { SettingsAction, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { TurningCaret } from '../system/Disclosure';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
+import { STATUS_TONES, StatusMark, type StatusShape, type StatusTone } from '../system/StatusChip';
 import { cardCompact, field, inset, sys } from '../system/tokens';
 
 const supportLabels = {
-  RECEIVED: 'Zahtev je primljen', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
-  DECIDED: 'Odgovor sa odlukom', CLOSED: 'Predmet je zatvoren',
+  // The five states of a request, in the words of its chip (the same on the list and on the request). A request nobody has taken
+  // up yet "čeka pregled": it says no more than is true, and it does not say that somebody is already working on it.
+  RECEIVED: 'Čeka pregled', IN_REVIEW: 'U obradi', WAITING_FOR_AUTHOR: 'Čeka tvoju dopunu',
+  DECIDED: 'Odgovoreno', CLOSED: 'Zatvoren',
   SERVICE: 'USKOČI podrška', TASK: 'Pomoć oko zadatka', LEGAL_PRIVACY: 'Sadržaj i privatnost', SAFETY: 'Privatna bezbednosna prijava',
   TECHNICAL: 'Tehnička pomoć', SERVICE_COMPLAINT: 'Reklamacija na USKOČI uslugu', OTHER: 'Drugo',
   COLLABORATION: 'Pomoć oko saradnje', NO_SHOW: 'Prijava nedolaska', PUBLICATION_REVIEW: 'Pregled odluke o objavi',
@@ -110,26 +113,31 @@ export function SupportRecovery({ busy, absent, working = null, onRead, onCancel
     <View style={supportStyles.recoveryActions}>
       <SettingsAction kind="secondary" label="Proveri ishod" disabled={busy} loading={working === 'read'} onPress={onRead} />
       <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} loading={working === 'cancel'} onPress={onCancel} />
-      {onReplay || working === 'replay' ? <SettingsAction label="Ponovi isto slanje" kind="quiet" disabled={busy || !onReplay}
+      {onReplay || working === 'replay' ? <SettingsAction label="Pošalji ponovo" kind="quiet" disabled={busy || !onReplay}
         loading={working === 'replay'} onPress={onReplay ?? (() => {})} /> : null}
     </View>
   </View>;
 }
 
 /**
- * The state of a case as a small chip: the words, on a tint that matches them. Waiting for the person is the one orange
- * tint (it asks something of them). Progress and a recorded decision use neutral ink: DECIDED does not say whether
- * the request was accepted or rejected. Received and closed remain quiet.
+ * The state of a request as the app's one kind of chip (plan 2.2: a mark and a word, never colour alone): the shape says
+ * the phase, the tone says whose move it is. Waiting for the person is the one orange tone (it asks something of them);
+ * a request that is being looked at goes green; a received one waits for someone else and a closed one is grey. DECIDED
+ * does not say whether the request was accepted or rejected, so it is a settled mark in the neutral tone. The shared
+ * `StatusChip` has no key for a support request (its table is for tasks and applications), so this draws the same chip
+ * from the same mark and the same tones, with the request's own five words.
  */
-const chipTone: Record<SupportStatus, { ground: string; ink: string }> = {
-  RECEIVED: { ground: sys.color.wash, ink: sys.color.muted }, IN_REVIEW: { ground: sys.color.wash, ink: sys.color.ink },
-  WAITING_FOR_AUTHOR: { ground: sys.color.orangeSoft, ink: sys.color.waitingInk }, DECIDED: { ground: sys.color.wash, ink: sys.color.ink },
-  CLOSED: { ground: sys.color.wash, ink: sys.color.muted },
+const chipLook: Record<SupportStatus, { shape: StatusShape; tone: StatusTone }> = {
+  RECEIVED: { shape: 'ring', tone: 'neutral' }, IN_REVIEW: { shape: 'dot', tone: 'green' },
+  WAITING_FOR_AUTHOR: { shape: 'dot', tone: 'attention' }, DECIDED: { shape: 'check', tone: 'neutral' },
+  CLOSED: { shape: 'dash', tone: 'grey' },
 };
 export function SupportStatusChip({ status }: { status: SupportStatus }) {
-  const tone = chipTone[status] ?? chipTone.RECEIVED;
-  return <View style={[supportStyles.chip, { backgroundColor: tone.ground }]}>
-    <T variant="meta" style={[supportStyles.chipText, { color: tone.ink }]}>{supportLabel(status)}</T>
+  const look = chipLook[status] ?? chipLook.RECEIVED, palette = STATUS_TONES[look.tone], word = supportLabel(chipLook[status] ? status : 'RECEIVED');
+  return <View testID="status-chip" accessible accessibilityRole="text" accessibilityLabel={word}
+    style={[supportStyles.chip, { backgroundColor: palette.ground }]}>
+    <StatusMark shape={look.shape} tone={look.tone} />
+    <T variant="label" style={[supportStyles.chipText, { color: palette.word }]}>{word}</T>
   </View>;
 }
 
@@ -146,10 +154,11 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={`${topic}, ${supportLabel(status)}${unread ? ', novo' : ''}, ${time}, zahtev #${caseNumber}`}
     accessibilityState={{ disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99} onPress={onPress}
-    style={[supportStyles.caseRow, !last && supportStyles.rowLine, disabled && supportStyles.faded]}>
+    style={[supportStyles.caseRow, !last && supportStyles.rowLine]}>
     <View style={supportStyles.caseArt}><FactArt kind={channelArt[channel] ?? 'support'} size={24} cut="art" muted={disabled} /></View>
     <View style={supportStyles.caseCopy}>
-      <T variant="bodyStrong" numberOfLines={2}>{topic}</T>
+      {/* A row that cannot be opened now (a read is running) draws its words in the muted ink, readable at 5:1, never as a faded ghost. */}
+      <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} numberOfLines={2}>{topic}</T>
       <View style={supportStyles.caseMeta}>
         <SupportStatusChip status={status} />
         {/* The number first: the time already holds a " · " of its own, so "#71 · 24. sep · 12:00" reads as two parts. */}
@@ -158,7 +167,7 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
     </View>
     <View style={supportStyles.caseEnd}>
       {unread ? <View style={supportStyles.unread} /> : null}
-      <CaretRight size={18} color={sys.color.muted} />
+      <Glyph name="caret-right" tone="muted" />
     </View>
   </Press>;
 }
@@ -172,8 +181,8 @@ export function SupportTopicDisclosure({ selectedLabel, expanded, disabled, onTo
       accessibilityHint={expanded ? 'Zatvori izbor teme.' : 'Prikaži teme zahteva.'}
       accessibilityState={{ expanded, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row}
       onPress={() => { if (!disabled) onToggle(); }}
-      style={[supportStyles.topicToggle, expanded && supportStyles.rowLine, disabled && supportStyles.faded]}>
-      <T variant="bodyStrong" style={supportStyles.grow}>{selectedLabel}</T>
+      style={[supportStyles.topicToggle, expanded && supportStyles.rowLine]}>
+      <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={supportStyles.grow}>{selectedLabel}</T>
       <TurningCaret open={expanded} />
     </Press>
     {expanded ? children : null}
@@ -190,12 +199,12 @@ export function SupportChoiceRow({ kind, label, detail, selected, disabled = fal
   const radio = kind === 'radio';
   return <Press accessibilityRole={radio ? 'radio' : 'checkbox'} accessibilityLabel={label} accessibilityHint={detail}
     accessibilityState={{ checked: selected, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
-    onPress={onPress} style={[supportStyles.choice, !last && supportStyles.rowLine, disabled && supportStyles.faded]}>
+    onPress={onPress} style={[supportStyles.choice, !last && supportStyles.rowLine]}>
     <View style={[radio ? supportStyles.radio : supportStyles.check, selected && (radio ? supportStyles.radioOn : supportStyles.checkOn)]}>
-      {selected ? radio ? <View style={supportStyles.radioDot} /> : <Check size={14} weight="bold" color={sys.color.onGreen} /> : null}
+      {selected ? radio ? <View style={supportStyles.radioDot} /> : <Glyph name="check" size={16} tone="onGreen" /> : null}
     </View>
     <View style={supportStyles.choiceCopy}>
-      <T variant={selected ? 'bodyStrong' : 'body'}>{label}</T>
+      <T variant={selected ? 'bodyStrong' : 'body'} tone={disabled ? 'muted' : 'ink'}>{label}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
     </View>
   </Press>;
@@ -233,7 +242,7 @@ export function SupportDecisionBlock({ reconsideration, outcome, explanation, ti
     <T selectable>{explanation}</T>
     <T variant="note" tone="muted">{time}</T>
     {reconsideration ? <T variant="note" tone="muted">Ponovni pregled u okviru podrške. Originalna odluka ostaje u istoriji.</T> : null}
-    <T variant="note" tone="muted">Ova odluka o zahtevu sama ne menja Zadatak, Dogovor, novčani iznos ili ocenu.</T>
+    <T variant="note" tone="muted">Ova odluka o zahtevu sama ne menja zadatak, Dogovor, novčani iznos ili ocenu.</T>
     {children}
   </View>;
 }
@@ -259,7 +268,7 @@ export function SupportComposer({ value, onChange, placeholder, editable, canSen
       onPress={onSend} style={supportStyles.sendArea}>
       <View style={[supportStyles.send, canSend || sending ? supportStyles.sendOn : supportStyles.sendOff]}>
         {sending ? <ActivityIndicator size="small" color={sys.color.onGreen} />
-          : <PaperPlaneTilt size={20} weight="fill" color={canSend ? sys.color.onGreen : sys.color.muted} />}
+          : <Glyph name="send" on tone={canSend ? 'onGreen' : 'muted'} />}
       </View>
     </Press>
   </View>;
@@ -278,12 +287,13 @@ export const supportStyles = StyleSheet.create({
   multiline: { minHeight: 144 }, invalid: { borderColor: sys.color.danger },
   recovery: { gap: 8 },
   recoveryActions: { gap: 4 },
-  chip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: sys.radius.pill },
-  chipText: { fontWeight: '600' },
+  // The shared chip's measure (StatusChip): the mark, then the word, on the tone's soft ground; never a touch target.
+  chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingVertical: sys.space.xs,
+    paddingLeft: sys.space.sm, paddingRight: sys.space.md, borderRadius: sys.radius.pill },
+  chipText: { letterSpacing: 0 },
   tabular: { fontVariant: ['tabular-nums'] },
   caseRow: { minHeight: 72, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   rowLine: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  faded: { opacity: 0.45 },
   caseArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   caseCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
   // Topic, current state, then reference/time: each has a stable reading line instead of an accidental wrap.

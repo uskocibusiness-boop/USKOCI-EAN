@@ -13,6 +13,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { SettingsAction, SettingsFooter, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsPersonRow, SettingsRow, SettingsScreen,
   SettingsSwitchRow, SettingsText } from '../../ui/settings/SettingsPresentation';
+import { Glyph } from '../../ui/system/Glyph';
 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -123,9 +124,9 @@ test('the action of a person row stands under the name at the usual text size, n
   expect(flat(row.props.style).flexDirection).toBeUndefined();
   const lines = row.children as unknown as { type: unknown }[];
   expect(lines[0]).toBe(person); expect(lines[1].type).toBe('View');
-  // The chevron is the last thing on the person's line.
-  const line = person.children as unknown as { type: unknown }[];
-  expect(line[line.length - 1].type).toBe('CaretRight');
+  // The chevron is the last thing on the person's line: the system's one glyph, asked for by its name (UI/UX pass 2026-10-07).
+  const line = person.children as unknown as { type: unknown; props: { name?: string; tone?: string } }[];
+  expect(line[line.length - 1].type).toBe(Glyph); expect(line[line.length - 1].props).toMatchObject({ name: 'caret-right', tone: 'muted' });
 });
 test('the footer band is reusable and keeps its test id; a screen can name where its arrow goes', async () => {
   const back = jest.fn();

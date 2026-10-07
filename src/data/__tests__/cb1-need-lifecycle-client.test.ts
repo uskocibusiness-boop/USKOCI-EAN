@@ -67,7 +67,7 @@ describe('CB1 — deleteDraftNeed', () => {
       ['NEED_NOT_DELETABLE_DRAFT', 'nacrt'],
       ['DRAFT_MEDIA_CLEANUP_REQUIRED', 'fotografije'],
       ['DRAFT_HAS_AUTHORITATIVE_HISTORY', 'otkazati'],
-      ['FORBIDDEN', 'tvoj Zadatak'],
+      ['FORBIDDEN', 'tvoj zadatak'],
     ] as const) {
       resetRpc({ data: null, error: { code: 'P0001', message: name } });
       const result = await needLifecycleClientService.deleteDraftNeed(NEED, 1);

@@ -11,6 +11,7 @@ import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { pendingRoute } from '../store/pendingRoute';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
+import { PermissionAskHost } from '../ui/permissions/PermissionAskHost';
 import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
@@ -161,6 +162,9 @@ export default function RootLayout() {
           onCheck={closing.check} onSignOut={closing.signOut} onSupport={() => router.push('/podrska')} /> : null}
         {/* A closing account is refused every push registration read, so the runtime waits until the account is open. */}
         <PushRuntime ready={routeResolved && !naAuth && !naOporavku && !closing.closing} />
+        {/* The one question before the system's window for the microphone, photos and location (design proposal N, T4b2): it only shows
+            when a feature asks for a permission it has not been given yet, and it idles as nothing. */}
+        <PermissionAskHost />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

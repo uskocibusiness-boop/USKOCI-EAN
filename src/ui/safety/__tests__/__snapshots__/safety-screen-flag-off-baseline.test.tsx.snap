@@ -12,16 +12,6 @@ exports[`draws the screen as before for a blocked person 1`] = `
    },
    "children": [
     {
-     "type": "T",
-     "props": {
-      "variant": "note",
-      "tone": "muted"
-     },
-     "children": [
-      "Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno."
-     ]
-    },
-    {
      "type": "View",
      "props": {},
      "children": [
@@ -32,7 +22,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Kontakt sa korisnikom"
+        "Kontakt sa osobom"
        ]
       },
       {
@@ -60,15 +50,17 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "accessibilityLiveRegion": "polite"
        },
        "children": [
-        "Korisnik je blokiran."
+        "Osoba je blokirana."
        ]
       },
       {
        "type": "Action",
        "props": {
-        "label": "Odblokiraj korisnika",
+        "label": "Odblokiraj osobu",
+        "loading": false,
         "kind": "secondary",
-        "disabled": false
+        "disabled": false,
+        "reason": null
        },
        "children": null
       }
@@ -85,7 +77,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Privatna prijava"
+        "Bezbednosna prijava podršci"
        ]
       },
       {
@@ -95,7 +87,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "tone": "muted"
        },
        "children": [
-        "Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
+        "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
        ]
       },
       {
@@ -319,19 +311,11 @@ exports[`draws the screen as before for a blocked person 1`] = `
        "type": "Action",
        "props": {
         "label": "Pošalji privatnu prijavu",
+        "loading": false,
+        "reason": "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.",
         "disabled": true
        },
        "children": null
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "meta",
-        "tone": "muted"
-       },
-       "children": [
-        "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno."
-       ]
       }
      ]
     },
@@ -346,7 +330,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Treba ti operater?"
+        "Imaš drugo pitanje?"
        ]
       },
       {
@@ -356,7 +340,7 @@ exports[`draws the screen as before for a blocked person 1`] = `
         "tone": "muted"
        },
        "children": [
-        "Privatnu prijavu prima podrška, i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
+        "Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
        ]
       },
       {
@@ -387,16 +371,6 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
    },
    "children": [
     {
-     "type": "T",
-     "props": {
-      "variant": "note",
-      "tone": "muted"
-     },
-     "children": [
-      "Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno."
-     ]
-    },
-    {
      "type": "View",
      "props": {},
      "children": [
@@ -407,7 +381,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Kontakt sa korisnikom"
+        "Kontakt sa osobom"
        ]
       },
       {
@@ -435,15 +409,17 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "accessibilityLiveRegion": "polite"
        },
        "children": [
-        "Korisnik nije blokiran."
+        "Osoba nije blokirana."
        ]
       },
       {
        "type": "Action",
        "props": {
-        "label": "Blokiraj korisnika",
+        "label": "Blokiraj osobu",
+        "loading": false,
         "kind": "destructive",
-        "disabled": false
+        "disabled": false,
+        "reason": null
        },
        "children": null
       }
@@ -460,7 +436,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Privatna prijava"
+        "Bezbednosna prijava podršci"
        ]
       },
       {
@@ -470,7 +446,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "tone": "muted"
        },
        "children": [
-        "Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
+        "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
        ]
       },
       {
@@ -694,19 +670,11 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
        "type": "Action",
        "props": {
         "label": "Pošalji privatnu prijavu",
+        "loading": false,
+        "reason": "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.",
         "disabled": true
        },
        "children": null
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "meta",
-        "tone": "muted"
-       },
-       "children": [
-        "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno."
-       ]
       }
      ]
     },
@@ -721,7 +689,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Treba ti operater?"
+        "Imaš drugo pitanje?"
        ]
       },
       {
@@ -731,7 +699,7 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
         "tone": "muted"
        },
        "children": [
-        "Privatnu prijavu prima podrška, i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
+        "Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
        ]
       },
       {
@@ -762,16 +730,6 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
    },
    "children": [
     {
-     "type": "T",
-     "props": {
-      "variant": "note",
-      "tone": "muted"
-     },
-     "children": [
-      "Privatna prijava i blokiranje imaju odvojene uloge. Odaberi ono što ti je potrebno."
-     ]
-    },
-    {
      "type": "View",
      "props": {},
      "children": [
@@ -782,7 +740,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Kontakt sa korisnikom"
+        "Kontakt sa osobom"
        ]
       },
       {
@@ -836,7 +794,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Privatna prijava"
+        "Bezbednosna prijava podršci"
        ]
       },
       {
@@ -846,7 +804,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "tone": "muted"
        },
        "children": [
-        "Prijavu prima podrška. Drugi korisnik ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
+        "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
        ]
       },
       {
@@ -1070,19 +1028,11 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
        "type": "Action",
        "props": {
         "label": "Pošalji privatnu prijavu",
+        "loading": false,
+        "reason": "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.",
         "disabled": true
        },
        "children": null
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "meta",
-        "tone": "muted"
-       },
-       "children": [
-        "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno."
-       ]
       }
      ]
     },
@@ -1097,7 +1047,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "accessibilityRole": "header"
        },
        "children": [
-        "Treba ti operater?"
+        "Imaš drugo pitanje?"
        ]
       },
       {
@@ -1107,7 +1057,7 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
         "tone": "muted"
        },
        "children": [
-        "Privatnu prijavu prima podrška, i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
+        "Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
        ]
       },
       {

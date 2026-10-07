@@ -61,7 +61,10 @@ export class LegalReviewController {
   async refresh() {
     if (!this.current() || this.state.busy) return;
     const generation = ++this.generation;
-    this.patch({ loading: true, bundle: null, processors: null, error: null, processorError: null });
+    // What was read stays while it is read again (the screen shows it under the refresh at work, never a skeleton over it).
+    // Nothing can be accepted meanwhile: `accept` and `readOutcome` refuse while `loading`. When the read lands, or fails, the
+    // answer replaces it: a failed read leaves no stale bundle behind (it sets `bundle: null` below).
+    this.patch({ loading: true, error: null, processorError: null });
     const [bundle, processors] = await Promise.allSettled([
       boundedLegalRead(this.deps.readBundle), boundedLegalRead(this.deps.readProcessors),
     ]);

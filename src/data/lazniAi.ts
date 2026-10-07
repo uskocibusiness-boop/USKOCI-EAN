@@ -180,8 +180,8 @@ function projektuj(r: Razgovor): NacrtPotrebeProjekcija {
 /** Ciljano pitanje umesto izmišljanja. */
 function pitanjeZa(k: KljucCinjenice): string {
   return {
-    naslov: 'Kako biste ukratko nazvali ovaj posao?',
-    opis: 'Ima li još nešto što bi trebalo da zna onaj ko uskoči?',
+    naslov: 'Kako biste ukratko nazvali ovaj zadatak?',
+    opis: 'Ima li još nešto što radnik treba da zna?',
     kategorija: 'O kakvoj vrsti pomoći je reč?',
     datum: 'Kog dana ti treba?',
     vreme: 'U koliko sati?',

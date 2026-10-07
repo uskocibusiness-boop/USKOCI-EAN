@@ -117,7 +117,7 @@ export default function DizajnAi() {
     { key: 'kept', title: 'Govor prekinut, sačuvan tekst', render: () => intake({ conversation: running,
       voice: voice(snapshot({ error: 'CAPTURE_FAILED', fallbackText: 'Moja cena je pet hiljada' })) }) },
     { key: 'done', title: 'Završen razgovor (samo čitanje)', render: () => intake({ conversation: conversation({ status: 'COMPLETED', messages: THREAD, facts: FACTS }),
-      canEdit: false, voice: undefined, statusCopy: 'Razgovor je završen. Sačuvani Zadatak možeš otvoriti iz pregleda.', onNewTask: noop }) },
+      canEdit: false, voice: undefined, statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop }) },
     { key: 'block', title: 'Zaustavljen zahtev (bezbednost)', render: () => intake({ conversation: conversation({ safety: 'BLOCK', messages: THREAD.slice(0, 1) }),
       canEdit: false, voice: undefined, showAbandon: true }) },
     { key: 'voice-idle', title: 'Glasovni režim · početak', render: () => <VoiceMode voice={voice()} prompt="Reci šta ti treba." answer={null} said={null}

@@ -15,7 +15,7 @@ describe('PKG-004 owner lifecycle wiring invariants', () => {
   });
 
   it('keeps lifecycle recovery visible while the Need read is loading or unavailable', () => {
-    const loading = presentation.indexOf('Učitavamo Zadatak…');
+    const loading = presentation.indexOf('Učitavamo zadatak…');
     const unavailable = presentation.indexOf('Zadatak nije dostupan');
     const firstRecovery = presentation.indexOf('{props.lifecycleActions}', loading);
     const secondRecovery = presentation.indexOf('{props.lifecycleActions}', unavailable);
