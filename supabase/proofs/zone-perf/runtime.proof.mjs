@@ -93,6 +93,24 @@ const READERS = [
   {key: 'tasks', label: 'rpc_list_my_tasks', call: 'public.rpc_list_my_tasks()'},
   {key: 'agreements', label: "rpc_list_my_agreements_page('ALL', 30)", call: "public.rpc_list_my_agreements_page('ALL', 30, null, null)", control: true},
 ];
+// DEV md5 of every function on the reader path (read-only readback of canonical DEV, 2026-10-07).
+const NEEDS_PAGE_SIG = 'public.rpc_list_my_needs_page(text,integer,timestamp with time zone,uuid)', OWN_COUNTS_SIG = 'private.own_task_counts(uuid)';
+const READER_PINS = {
+  'public.rpc_home_attention()': '1703b04e248759a19cbcc539621ed906',
+  [NEEDS_PAGE_SIG]: '509d6c345c84cc6a597bde46d9ae6b75',
+  'public.rpc_list_my_tasks()': '2a8ff0fa8a1211414e5e1fc69c6fb4f7',
+  'public.rpc_list_my_agreements_page(text,integer,timestamp with time zone,uuid)': '5017f90ff8d9e5cd29ead0f88a6b0106',
+  'public.rpc_read_task(uuid)': '1e01db5140248f27ab374187f01fded3',
+  'public.selectable_application_count(needs)': 'fe53442f8b661d6f33d22a54e2a468a8',
+  'private.need_candidate_states_v5(uuid)': '112ed258e838b2cae22b248ac94ebe7c',
+  'private.need_candidate_states_v5(uuid,uuid[])': '20092ecb2a781776ddb0ce9c46ba8aa5',
+  [OWN_COUNTS_SIG]: '01d695467d5fa39dec180086cb07de40',
+};
+const MEASURED_SIGS = ['public.rpc_home_attention()', NEEDS_PAGE_SIG, 'public.rpc_list_my_tasks()', 'public.rpc_list_my_agreements_page(text,integer,timestamp with time zone,uuid)', OWN_COUNTS_SIG];
+const readerFidelity = () => Object.fromEntries(Object.entries(READER_PINS).map(([sig, dev]) => {
+  const chain = sql(`select coalesce(md5(prosrc),'') from pg_proc where oid=to_regprocedure(${q(sig)})`);
+  return [sig, {dev, chain: chain || null, equal: chain === dev}];
+}));
 const CALLS = 3;   // one cold call in a fresh backend, then two warm ones (the slow state costs seconds per call)
 function readerRun(accountId, reader) {
   const claims = JSON.stringify({sub: accountId, role: 'authenticated'});
@@ -233,6 +251,19 @@ try {
   assert.ok(account.shape.needs === 44 && account.shape.agreements === 10 && account.shape.relative >= 20 && account.shape.selectable_applications >= 16, 'SEEDED_ACCOUNT_NOT_REALISTIC:' + JSON.stringify(account.shape));
   pass('ZONE_PERF_SEEDED_A_REALISTIC_ACCOUNT_44_TASKS_ALL_SCHEDULE_KINDS_APPLICATIONS_10_AGREEMENTS', account.shape);
   const viewer = account.requester;
+
+  // The readers are measured as they run on canonical DEV. The historical chain does not replay EX-04 S1 (it carries an older rpc_list_my_needs_page
+  // that never reaches the matcher), so the two functions of that package are installed from the captured DEV text (md5 verified against DEV) when
+  // the chain body differs. Everything else on the reader path is compared with the DEV md5 and reported.
+  const readerFidelityBefore = readerFidelity();
+  if (!readerFidelityBefore[NEEDS_PAGE_SIG].equal || !readerFidelityBefore[OWN_COUNTS_SIG].equal) psqlFile('supabase/proofs/zone-perf/dev-readers.sql');
+  await fx.reloadSchema();
+  const readerFidelityNow = readerFidelity();
+  assert.deepEqual(closure(), baseClosure);
+  baseCatalog = catalog();   // the baseline of every later revert: the chain plus the DEV reader bodies
+  report.observations.readerFidelity = {chainBefore: readerFidelityBefore, measured: readerFidelityNow, differsFromDev: Object.entries(readerFidelityNow).filter(([, v]) => !v.equal).map(([k]) => k)}; write();
+  gate('ZONE_PERF_THE_MEASURED_READERS_CARRY_THE_DEV_BODIES', MEASURED_SIGS.every(sig => readerFidelityNow[sig].equal),
+    {installedFromDevReadback: [NEEDS_PAGE_SIG, OWN_COUNTS_SIG].filter(sig => !readerFidelityBefore[sig].equal), differsFromDev: report.observations.readerFidelity.differsFromDev});
 
   // ------------------------------------------------------------ BEFORE
   const helperBefore = timedHelper(30);
