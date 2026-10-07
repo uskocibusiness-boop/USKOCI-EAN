@@ -2,6 +2,16 @@
 
 **Status: NACRT.** Ovo je opis kako radnik prolazi kroz aplikaciju, napisan običnim rečima, da ga vlasnik pročita, ispravi i odobri pre nego što se menja kod. Opisuje (A) **šta postoji sada** u kodu i na DEV-u i (B) **šta predlažemo** tamo gde još nije odlučeno. Ništa ovde nije novo odobrenje za server, plaćanje ili obaveštenja. Tehnička osnova: `WORKER_PERSONAL_PROFILE_20261003.md` (lični profil, primenjen na DEV 3.10.), `WORKER_V2_CONTRACT_20261003.md` (predlog „v2“, nije primenjen), prompt `supabase/functions/uskoci-worker-interview/index.ts`. Mesta označena **[P02]** potvrđuju se proverom na pravom serveru u fazi P02 plana R2.
 
+## ODLUČENO — vlasnik 7.10.2026 („Nećemo da pravimo previše ograničenja u sistemu“)
+
+1. **Mapa i lista uvek pokazuju SVE zadatke** svakom korisniku; profil ništa ne sakriva. Ručna prijava je moguća na sve, osim retkih izuzetaka (sopstveni zadatak, blokirana osoba, nalog u zatvaranju, postojeća tvrda isključenja).
+2. **Prekidač „Za mene“** na mapi i listi prikazuje samo zadatke koji odgovaraju profilu; isključen = opet sve. Ostali filteri ostaju.
+3. **Profil služi pre svega za obaveštenja:** „novi zadatak za tebe“ stiže samo za zadatke koji odgovaraju profilu, po **istom pravilu** kao „Za mene“.
+4. **„Odgovara mi“ = vrsta posla + područje + kad sam slobodan.** Samo ta tri.
+5. **Alat i vozilo NISU uslov** ni za obaveštenje ni za prijavu — samo informacija koju naručilac vidi kad bira. Radnik bez vozila dobija obaveštenje i za zadatak koji traži vozilo (odgovor vlasnika na pitanje „a“: da).
+
+Posledica za kod: server za automatske ponude danas traži i alat/vozilo kada ih zadatak navodi; to se uklanja serverskim paketom (primena tek na vlasnikovo „PRIMENI <ime>“). Prekidač „Za mene“ je posao na ekranu. Da li mapa danas već prikazuje sve zadatke proverava se u P02. Odluke iz sekcije 7 ispod koje još nisu odgovorene ostaju otvorene.
+
 ---
 
 ## 1. Šta je radni profil
@@ -49,7 +59,7 @@
 | Stavka profila | Šta radi | Vrsta |
 |---|---|---|
 | **Veštine / vrste posla** | Automatski ti se nude samo zadaci iz vrsta posla koje radiš. | uslov za ponude **[P02]** |
-| **Alat i vozilo** | Ako zadatak traži alat ili vozilo koje nemaš, ne nudi ti se. | uslov **[P02]** |
+| **Alat i vozilo** | ~~Ako zadatak traži alat ili vozilo koje nemaš, ne nudi ti se.~~ **Odlučeno 7.10.: nije uslov** — samo informacija za naručioca. | samo informacija |
 | **Područje i udaljenost** | Nude ti se zadaci u tvom krugu. | uslov |
 | **Raspored / „mogu odmah“** | Automatske ponude prate kad si slobodan; zauzet termin (drugi Dogovor) se ne nudi. | uslov za automatske ponude **[P02]** |
 | **Opis (biografija)** | Vidi ga naručilac kad gleda tvoju prijavu. Ne utiče na to šta ti se nudi. | samo informacija |
