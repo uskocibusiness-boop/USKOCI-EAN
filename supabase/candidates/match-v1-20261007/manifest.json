@@ -64,7 +64,7 @@
     },
     {
       "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
-      "body_md5": "a09463f0ddc62b28c3876daffb9e1adb",
+      "body_md5": "19c14627c95b280b0b5a4abddc8bef2c",
       "acl": "{postgres=X/postgres}"
     }
   ],
@@ -138,11 +138,11 @@
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "c8275b56af7e2ce3e35394f93244e9bb769a379b8265e7ec26a1b7911dd71a29",
-    "candidate.in-transaction.sql": "5e3f8971188e2fcfa3e00a997f623f72141512e81100bd8b3d61bba7acb57b58",
-    "revert.sql": "76ba603a00219d49062a39c36c96df4cef65b89bfe0d2de2b316259cab939fa8",
+    "candidate.sql": "43b0274b5ee4157a64e7232c37a29d09730cddf86ec175e1113e15339542cbb8",
+    "candidate.in-transaction.sql": "b4cfb844afa9578312f0c943831099c5d5c24cde8e9b1ef0567966e120f4b247",
+    "revert.sql": "d24a479ef7d81c7a11c4e70699059418fb4b29b7006f23a32d63e6a026cca494",
     "preflight.readonly.sql": "ca8d03291938b209ec6c465c9d24172be43e40f61a2c5f6f0b012fdafc919a99",
-    "postflight.readonly.sql": "a076e8f7415d108379dcca6596afadcb3b62b99b4315b706548413ca747123cd",
+    "postflight.readonly.sql": "2d074c52c82c4cadb98edd12d5d50dfb1b15dc235c7ff97ea24e9c94900584d1",
     "body.diff": "9902a62b4ee200c1025263602505a9734e3d404494fd91598c19f59bd9123c85",
     "patches.json": "8006ab0cb9d5d65afbff4b1a67d1dcba762d0fec0051a2d9e767bdceb7acd1ee"
   }

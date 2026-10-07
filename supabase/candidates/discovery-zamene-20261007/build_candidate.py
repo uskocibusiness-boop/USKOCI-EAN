@@ -41,7 +41,7 @@ def change(old, new):
 
 
 change(" filter_key text; scope_key text; need_id uuid; people integer; page_limit integer;\n",
-       " filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_state text;\n")
+       " filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_doc jsonb; fm_lat numeric; fm_lng numeric; fm_radius numeric;\n")
 change(" if jsonb_typeof(f) is distinct from 'object' or f-array['text','price','where','places','when','dates','place']<>'{}'\n"
        "   or not(f?&array['text','price','where','places','when','dates','place'])\n",
        " if jsonb_typeof(f) is distinct from 'object' or f-array['text','price','where','places','when','dates','place','forMe']<>'{}'\n"
@@ -53,30 +53,44 @@ change(" query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catal
  -- notifications. Absent or false keeps the request, its filterKey and the response exactly as before.
  for_me:=coalesce((f->>'forMe')::boolean,false);
  if for_me then
-  for_me_state:=public.discovery_for_me_state_v1();
-  if for_me_state is distinct from 'ACTIVE' then
-   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_state,'MISSING');
+  for_me_doc:=public.discovery_for_me_state_v1();
+  if for_me_doc->>'state' is distinct from 'ACTIVE' then
+   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_doc->>'state','MISSING');
   end if;
+  -- The caller's circle is read ONCE per request; it feeds a conservative distance pre-test below (the exact rule stays the only authority).
+  fm_lat:=(for_me_doc->>'lat')::numeric; fm_lng:=(for_me_doc->>'lng')::numeric; fm_radius:=(for_me_doc->>'radiusKm')::numeric;
  end if;
  query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catalog."sr-Latn-RS-x-icu");
 """)
 change("   'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);\n",
        "   'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);\n"
        " if for_me then f:=f||'{\"forMe\":true}'::jsonb; end if;\n")
-# The rule is the most expensive condition: it goes LAST in each WHERE list, so every cheap filter has already thinned the rows.
+def pretest(a):
+    """A task far outside the caller's circle is turned away with plain arithmetic. CONSERVATIVE: it never turns away a task the rule accepts
+    (the rule accepts when round(distance, 2) <= radius; a task without a point, a remote task and a caller without a point all go to the rule)."""
+    return (f"    and (not for_me or fm_lat is null or fm_lng is null or {a}.execution_location_mode='REMOTE' or {a}.approximate_lat is null or {a}.approximate_lng is null\n"
+            f"      or 6371.0*2*asin(least(1,sqrt(power(sin(radians(({a}.approximate_lat-fm_lat)::double precision)/2),2)\n"
+            f"        +cos(radians({a}.approximate_lat::double precision))*cos(radians(fm_lat::double precision))\n"
+            f"        *power(sin(radians(({a}.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)\n")
+
+
+# The rule is the most expensive condition: it goes LAST in each WHERE list, after every cheap filter and the distance pre-test.
 change(",0))>=people)\n  ), place_wanted as materialized (",
-       ",0))>=people)\n    and (not for_me or public.discovery_for_me_v1(n.id))\n  ), place_wanted as materialized (")
+       ",0))>=people)\n" + pretest("n") + "    and (not for_me or public.discovery_for_me_v1(n.id))\n  ), place_wanted as materialized (")
 change("),query_text)>0)\n ), qualified as materialized (",
-       "),query_text)>0)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n ), qualified as materialized (")
+       "),query_text)>0)\n" + pretest("b").replace("    and (not for_me", "   and (not for_me") + "   and (not for_me or public.discovery_for_me_v1(b.id))\n ), qualified as materialized (")
 assert "40001" not in after[DISCOVERY]
 
 STATE_SIG = "public.discovery_for_me_state_v1()"
 FORME_SIG = "public.discovery_for_me_v1(uuid)"
 STATE_BODY = """
-  -- DISCOVERY-ZAMENE (owner 2026-10-07): may "Za mene" run for the caller? ACTIVE, NOT_ACTIVE, MISSING or AUTH_REQUIRED.
-  select case when auth.uid() is null then 'AUTH_REQUIRED'
-    else coalesce((select case when p.profile_status='ACTIVE' then 'ACTIVE' else 'NOT_ACTIVE' end
-      from public.app_profiles p where p.account_id=auth.uid() and p.kind='WORKER'),'MISSING') end;
+  -- DISCOVERY-ZAMENE (owner 2026-10-07): may "Za mene" run for the caller, and where is the caller's circle? One jsonb document:
+  -- state ACTIVE, NOT_ACTIVE, MISSING or AUTH_REQUIRED, and (when the worker has an approximate point) lat, lng and radiusKm.
+  select case when auth.uid() is null then jsonb_build_object('state','AUTH_REQUIRED')
+    else coalesce((select jsonb_build_object('state',case when p.profile_status='ACTIVE' then 'ACTIVE' else 'NOT_ACTIVE' end,
+        'lat',pref.approximate_lat,'lng',pref.approximate_lng,'radiusKm',private.effective_radius_km(p.radius_km))
+      from public.app_profiles p left join public.worker_match_preferences pref on pref.worker_profile_id=p.id
+      where p.account_id=auth.uid() and p.kind='WORKER'),jsonb_build_object('state','MISSING')) end;
 """
 FORME_BODY = """
   -- DISCOVERY-ZAMENE (owner 2026-10-07): does this OPEN public task match the CALLER's own worker profile? The profile is
@@ -88,7 +102,7 @@ FORME_BODY = """
      and n.remaining_search_closed_at is null),false);
 """
 NEW = [
-    (STATE_SIG, "create function public.discovery_for_me_state_v1()\n returns text\n language sql\n stable security definer\n set search_path to 'pg_catalog'\nas ", STATE_BODY),
+    (STATE_SIG, "create function public.discovery_for_me_state_v1()\n returns jsonb\n language sql\n stable security definer\n set search_path to 'pg_catalog'\nas ", STATE_BODY),
     (FORME_SIG, "create function public.discovery_for_me_v1(p_need_id uuid)\n returns boolean\n language sql\n stable security definer\n set search_path to 'pg_catalog'\nas ", FORME_BODY),
 ]
 NEW_ACL = "{postgres=X/postgres,authenticated=X/postgres}"

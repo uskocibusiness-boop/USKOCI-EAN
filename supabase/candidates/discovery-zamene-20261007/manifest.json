@@ -9,13 +9,13 @@
     {
       "signature": "public.rpc_discovery_v1(jsonb)",
       "before_md5": "1c60224483697732c496df5b9207f08f",
-      "after_md5": "6c76df5d8d1ab692055ecec49f1a0373"
+      "after_md5": "dc69802e3ba209232a8be095f60e9c9f"
     }
   ],
   "newFunctions": [
     {
       "signature": "public.discovery_for_me_state_v1()",
-      "body_md5": "4f7a3f43e5b957ade18d4729a6583e7c",
+      "body_md5": "bd4dcf16863e7564a5d82ac22aca1418",
       "acl": "{postgres=X/postgres,authenticated=X/postgres}"
     },
     {
@@ -39,11 +39,11 @@
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "44f0b2bd99930fd81b4a8fbb24e753606445ac019f606fbbca16f78251ea2d06",
-    "revert.sql": "d1de7c8aebe0c8d200891e4f7d4d068f6d575cae95ee1465df270acdf30f7ee1",
+    "candidate.sql": "554faa74f2149d8624e0f867464e19e9be55bd4778ff1169f7909f969f7fbbb1",
+    "revert.sql": "60d57988df1ffdf9b92943fc9bf4a3ed9ab641c17172d4e559130e1039849e9a",
     "preflight.readonly.sql": "a26e85a713364ae6de9dae270cb9ffc4d9fb57d30a0365229b711bed4c5e3606",
-    "postflight.readonly.sql": "0606c21ee74357647b2ce69fcd71e4efb96a60a2cdd1c34389ebd2e8e1567ea0",
-    "body.diff": "b75d6a66eb44b986b797d09a82c4f381e149e838b4579ad8b7e3c21fc2b7b8fc",
-    "patches.json": "590c6b0706977addccac05d480be8202dc2fea4c140c8821ef1af569e83dfe02"
+    "postflight.readonly.sql": "f11d46a89219dad0c5bbadc9fc84c13b8a62daeebef35dedacfd401cd1fa7cce",
+    "body.diff": "7b5a788be376c553a75e1afc12f42dab26da9525fca2d1bb39470054458bd052",
+    "patches.json": "cacab79aa36b18a973b98c524570d9c8cd8d7f7b485771d7cba0cb57b99cee72"
   }
 }

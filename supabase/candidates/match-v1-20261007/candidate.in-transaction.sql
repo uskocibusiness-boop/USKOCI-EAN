@@ -266,18 +266,25 @@ begin
      limit 100
   loop
     profiles:=profiles+1; last_at:=w.changed_at; last_acc:=w.account_id;
+    -- The world check (three nested function calls, about 0.15 ms) runs only for the tasks that survive every cheap condition:
+    -- the OFFSET 0 fence keeps it out of the scan, so a profile whose open tasks are all queued already costs one pass over the tasks.
     for v_need in
-      select n.id from public.needs n
-        left join private.dispatch_schedule s on s.need_id=n.id
-       where n.status in ('PUBLISHED','SELECTION')
-         and n.published_at is not null
-         and n.remaining_search_closed_at is null
-         and n.requester_account_id<>w.account_id
-         and (n.response_deadline is null or n.response_deadline>statement_timestamp())
-         and private.accounts_same_world(n.requester_account_id,w.account_id)
-         and (s.need_id is null or (coalesce(s.updated_at,'-infinity'::timestamptz)<w.changed_at
-              and not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at)))
-       order by n.published_at desc, n.id desc
+      select c.id from (
+        select n.id, n.published_at, n.requester_account_id
+          from public.needs n
+          left join private.dispatch_schedule s on s.need_id=n.id
+         where n.status in ('PUBLISHED','SELECTION')
+           and n.published_at is not null
+           and n.remaining_search_closed_at is null
+           and n.requester_account_id<>w.account_id
+           and (n.response_deadline is null or n.response_deadline>statement_timestamp())
+           and (s.need_id is null or (coalesce(s.updated_at,'-infinity'::timestamptz)<w.changed_at
+                and not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at)))
+         order by n.published_at desc, n.id desc
+         offset 0
+      ) c
+       where private.accounts_same_world(c.requester_account_id,w.account_id)
+       order by c.published_at desc, c.id desc
        limit 200
     loop
       perform private.enqueue_dispatch(v_need,statement_timestamp());
@@ -795,7 +802,7 @@ begin
   ('private.worker_need_time_tier_v1(uuid,uuid)','753027749309ccc110f486cbfb4866e4','s'),
   ('private.worker_need_fit_v1(uuid,uuid,boolean)','ab221f0091d78856bb42f702ddecd016','s'),
   ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41','s'),
-  ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','a09463f0ddc62b28c3876daffb9e1adb','v')) made(signature,body_md5,volatility) loop
+  ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','19c14627c95b280b0b5a4abddc8bef2c','v')) made(signature,body_md5,volatility) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile=r.volatility and p.proowner='postgres'::regrole
       and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres}')<>1

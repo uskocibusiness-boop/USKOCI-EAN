@@ -134,12 +134,17 @@ cand_ids = m_after["private.candidate_profile_ids(uuid,integer)"]
 assert cand_ids.count("p.profile_status = 'ACTIVE'") == 2 and cand_ids.count("where p.kind = 'WORKER'") == 2
 rq = code(requeue)
 assert "limit 100" in rq and "afterAccount" in rq and "(p.updated_at,p.account_id)>(after_at,after_acc)" in rq
+assert rq.index("offset 0") < rq.index("private.accounts_same_world"), "the world check must run only after the cheap conditions (OFFSET 0 fence)"
 
 d_after = bodies_after(D)["public.rpc_discovery_v1(jsonb)"]
 assert d_after.count("public.discovery_for_me_v1(") == 2 and "P6_FOR_ME_PROFILE_REQUIRED" in d_after
-# the rule is the last condition of each WHERE list it joins
-assert d_after.index(",0))>=people)\n    and (not for_me or public.discovery_for_me_v1(n.id))\n  ), place_wanted") > 0
-assert d_after.index("),query_text)>0)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n ), qualified") > 0
+# the rule is the LAST condition of each WHERE list it joins, behind the conservative distance pre-test
+for alias, closing in (("n", "\n  ), place_wanted"), ("b", "\n ), qualified")):
+    pre = "fm_lat is null or fm_lng is null or " + alias + ".execution_location_mode='REMOTE' or " + alias + ".approximate_lat is null or " + alias + ".approximate_lng is null"
+    rule = "and (not for_me or public.discovery_for_me_v1(" + alias + ".id))"
+    assert d_after.index(pre) < d_after.index(rule) < d_after.index(closing, d_after.index(rule)), ("RULE_NOT_LAST", alias)
+assert "fm_radius+0.01" in d_after and "for_me_doc->>'state'" in d_after
+assert "returns jsonb" in (D / "candidate.sql").read_text(encoding="utf-8").split("create function public.discovery_for_me_state_v1()")[1].split("as $dz_body$")[0]
 
 for text in (cand, (D / "candidate.sql").read_text(encoding="utf-8")):
     low = text.lower()

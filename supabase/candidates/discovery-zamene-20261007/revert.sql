@@ -17,7 +17,7 @@ begin
   or private.retention_ai_source_ready() is distinct from true
  then raise exception 'DISCOVERY_ZAMENE_REVERT_CERTIFICATE_NOT_READY' using errcode='55000'; end if;
  for r in select * from (values
-  ('public.discovery_for_me_state_v1()','4f7a3f43e5b957ade18d4729a6583e7c'),
+  ('public.discovery_for_me_state_v1()','bd4dcf16863e7564a5d82ac22aca1418'),
   ('public.discovery_for_me_v1(uuid)','60c104139cebbccfa16a570fc3386c0c')) made(signature,body_md5) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile='s' and p.proowner='postgres'::regrole
@@ -34,7 +34,7 @@ begin
  o:=to_regprocedure('public.rpc_discovery_v1(jsonb)');
  if o is null then raise exception 'DISCOVERY_ZAMENE_REVERT_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
- if md5(body) is distinct from '6c76df5d8d1ab692055ecec49f1a0373' then raise exception 'DISCOVERY_ZAMENE_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
+ if md5(body) is distinct from 'dc69802e3ba209232a8be095f60e9c9f' then raise exception 'DISCOVERY_ZAMENE_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'DISCOVERY_ZAMENE_REVERT_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
  execute replace(def,body,$dz_body$

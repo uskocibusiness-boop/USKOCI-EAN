@@ -11,7 +11,7 @@ select jsonb_build_object(
   ('private.worker_need_time_tier_v1(uuid,uuid)','753027749309ccc110f486cbfb4866e4'),
   ('private.worker_need_fit_v1(uuid,uuid,boolean)','ab221f0091d78856bb42f702ddecd016'),
   ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41'),
-  ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','a09463f0ddc62b28c3876daffb9e1adb')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
+  ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','19c14627c95b280b0b5a4abddc8bef2c')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
  'dependenciesUnchanged',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values
   ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)','3a1aee763e9fe3d0f06d6ba04ef21aac'),
   ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)','5107af3020a3beb7bb45e6e90e7a203b'),

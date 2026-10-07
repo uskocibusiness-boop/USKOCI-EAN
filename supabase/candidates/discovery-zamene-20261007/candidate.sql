@@ -35,15 +35,18 @@ $dz_pre$;
 create temporary table dz_certificate on commit drop as
  select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;
 create function public.discovery_for_me_state_v1()
- returns text
+ returns jsonb
  language sql
  stable security definer
  set search_path to 'pg_catalog'
 as $dz_body$
-  -- DISCOVERY-ZAMENE (owner 2026-10-07): may "Za mene" run for the caller? ACTIVE, NOT_ACTIVE, MISSING or AUTH_REQUIRED.
-  select case when auth.uid() is null then 'AUTH_REQUIRED'
-    else coalesce((select case when p.profile_status='ACTIVE' then 'ACTIVE' else 'NOT_ACTIVE' end
-      from public.app_profiles p where p.account_id=auth.uid() and p.kind='WORKER'),'MISSING') end;
+  -- DISCOVERY-ZAMENE (owner 2026-10-07): may "Za mene" run for the caller, and where is the caller's circle? One jsonb document:
+  -- state ACTIVE, NOT_ACTIVE, MISSING or AUTH_REQUIRED, and (when the worker has an approximate point) lat, lng and radiusKm.
+  select case when auth.uid() is null then jsonb_build_object('state','AUTH_REQUIRED')
+    else coalesce((select jsonb_build_object('state',case when p.profile_status='ACTIVE' then 'ACTIVE' else 'NOT_ACTIVE' end,
+        'lat',pref.approximate_lat,'lng',pref.approximate_lng,'radiusKm',private.effective_radius_km(p.radius_km))
+      from public.app_profiles p left join public.worker_match_preferences pref on pref.worker_profile_id=p.id
+      where p.account_id=auth.uid() and p.kind='WORKER'),jsonb_build_object('state','MISSING')) end;
 $dz_body$;
 revoke all on function public.discovery_for_me_state_v1() from public, anon, authenticated, service_role;
 grant execute on function public.discovery_for_me_state_v1() to authenticated;
@@ -76,7 +79,7 @@ begin
 declare
  r jsonb:=p_request; f jsonb; a jsonb; scope jsonb; cursor_doc jsonb; result jsonb;
  query_text text; locality text; price text; location_mode text; when_mode text; scope_mode text; request_mode text;
- filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_state text;
+ filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_doc jsonb; fm_lat numeric; fm_lng numeric; fm_radius numeric;
  now_at timestamptz:=statement_timestamp(); time_at timestamptz; through_at timestamptz; expires_at timestamptz;
  before_at timestamptz; before_id uuid; before_section integer;
  west numeric; south numeric; east numeric; north numeric; point_lat numeric; point_lng numeric;
@@ -126,10 +129,12 @@ begin
  -- notifications. Absent or false keeps the request, its filterKey and the response exactly as before.
  for_me:=coalesce((f->>'forMe')::boolean,false);
  if for_me then
-  for_me_state:=public.discovery_for_me_state_v1();
-  if for_me_state is distinct from 'ACTIVE' then
-   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_state,'MISSING');
+  for_me_doc:=public.discovery_for_me_state_v1();
+  if for_me_doc->>'state' is distinct from 'ACTIVE' then
+   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_doc->>'state','MISSING');
   end if;
+  -- The caller's circle is read ONCE per request; it feeds a conservative distance pre-test below (the exact rule stays the only authority).
+  fm_lat:=(for_me_doc->>'lat')::numeric; fm_lng:=(for_me_doc->>'lng')::numeric; fm_radius:=(for_me_doc->>'radiusKm')::numeric;
  end if;
  query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catalog."sr-Latn-RS-x-icu");
  price:=f->>'price'; location_mode:=f->>'where'; people:=(f->>'places')::integer; when_mode:=f->>'when';
@@ -239,6 +244,10 @@ begin
       or location_mode='onsite' and n.execution_location_mode is not null and n.execution_location_mode<>'REMOTE')
     and (people=1 or greatest(0,coalesce(nullif(n.required_slots,0),1)
       -coalesce(public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))),0))>=people)
+    and (not for_me or fm_lat is null or fm_lng is null or n.execution_location_mode='REMOTE' or n.approximate_lat is null or n.approximate_lng is null
+      or 6371.0*2*asin(least(1,sqrt(power(sin(radians((n.approximate_lat-fm_lat)::double precision)/2),2)
+        +cos(radians(n.approximate_lat::double precision))*cos(radians(fm_lat::double precision))
+        *power(sin(radians((n.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)
     and (not for_me or public.discovery_for_me_v1(n.id))
   ), place_wanted as materialized (
    select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
@@ -349,6 +358,10 @@ begin
      and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))
    and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0
     or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0)
+   and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null
+      or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)
+        +cos(radians(b.approximate_lat::double precision))*cos(radians(fm_lat::double precision))
+        *power(sin(radians((b.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)
    and (not for_me or public.discovery_for_me_v1(b.id))
  ), qualified as materialized (
   select s.*,(wanted is null or days[1]<=wanted[2] and days[2]>=wanted[1]) is true as time_ok,
@@ -454,7 +467,7 @@ begin
 exception when invalid_text_representation or datetime_field_overflow or invalid_datetime_format or numeric_value_out_of_range then
  raise exception 'P6_INVALID_REQUEST' using errcode='22023';
 end $dz_body$);
- if (select md5(p.prosrc) from pg_proc p where p.oid=o) is distinct from '6c76df5d8d1ab692055ecec49f1a0373'
+ if (select md5(p.prosrc) from pg_proc p where p.oid=o) is distinct from 'dc69802e3ba209232a8be095f60e9c9f'
   or (select to_jsonb(p)-'prosrc' from pg_proc p where p.oid=o) is distinct from meta
   or obj_description(o,'pg_proc') is distinct from comment_before
  then raise exception 'DISCOVERY_ZAMENE_POSTIMAGE_OR_METADATA_DRIFT' using errcode='55000'; end if;
@@ -464,7 +477,7 @@ do $dz_post$
 declare r record;
 begin
  for r in select * from (values
-  ('public.discovery_for_me_state_v1()','4f7a3f43e5b957ade18d4729a6583e7c'),
+  ('public.discovery_for_me_state_v1()','bd4dcf16863e7564a5d82ac22aca1418'),
   ('public.discovery_for_me_v1(uuid)','60c104139cebbccfa16a570fc3386c0c')) made(signature,body_md5) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile='s' and p.proowner='postgres'::regrole

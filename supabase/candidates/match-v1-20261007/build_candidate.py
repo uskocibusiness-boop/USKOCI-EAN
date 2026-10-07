@@ -366,18 +366,25 @@ begin
      limit 100
   loop
     profiles:=profiles+1; last_at:=w.changed_at; last_acc:=w.account_id;
+    -- The world check (three nested function calls, about 0.15 ms) runs only for the tasks that survive every cheap condition:
+    -- the OFFSET 0 fence keeps it out of the scan, so a profile whose open tasks are all queued already costs one pass over the tasks.
     for v_need in
-      select n.id from public.needs n
-        left join private.dispatch_schedule s on s.need_id=n.id
-       where n.status in ('PUBLISHED','SELECTION')
-         and n.published_at is not null
-         and n.remaining_search_closed_at is null
-         and n.requester_account_id<>w.account_id
-         and (n.response_deadline is null or n.response_deadline>statement_timestamp())
-         and private.accounts_same_world(n.requester_account_id,w.account_id)
-         and (s.need_id is null or (coalesce(s.updated_at,'-infinity'::timestamptz)<w.changed_at
-              and not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at)))
-       order by n.published_at desc, n.id desc
+      select c.id from (
+        select n.id, n.published_at, n.requester_account_id
+          from public.needs n
+          left join private.dispatch_schedule s on s.need_id=n.id
+         where n.status in ('PUBLISHED','SELECTION')
+           and n.published_at is not null
+           and n.remaining_search_closed_at is null
+           and n.requester_account_id<>w.account_id
+           and (n.response_deadline is null or n.response_deadline>statement_timestamp())
+           and (s.need_id is null or (coalesce(s.updated_at,'-infinity'::timestamptz)<w.changed_at
+                and not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at)))
+         order by n.published_at desc, n.id desc
+         offset 0
+      ) c
+       where private.accounts_same_world(c.requester_account_id,w.account_id)
+       order by c.published_at desc, c.id desc
        limit 200
     loop
       perform private.enqueue_dispatch(v_need,statement_timestamp());

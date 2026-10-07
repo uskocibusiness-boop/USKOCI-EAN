@@ -116,6 +116,8 @@ function needsInsert(R, category, count, spread) {
 function seed(R) {
   const r = run(`begin; set local session_replication_role=replica;
   create temporary table mv1_w on commit drop as select gen_random_uuid() as account_id, gen_random_uuid() as profile_id, g as i from generate_series(1,${WORKERS}) g;
+  -- a delivery, its event and its notification reference auth.users: the workers that can be notified need a minimal Auth row (id is the only mandatory column)
+  insert into auth.users(id,aud,role,email) select account_id,'authenticated','authenticated','mv1-load-'||i||'@proof.invalid' from mv1_w;
   insert into public.app_accounts(id,email) select account_id,'mv1-load-'||i||'@proof.invalid' from mv1_w;
   insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,radius_km,available_now)
    select profile_id,account_id,'WORKER','MV1 load '||i,'Novi Sad','ACTIVE',array[(${POOL})[1+(i%10)]],(array[10,15,25,50])[1+(i%4)],i%2=0 from mv1_w;
@@ -162,19 +164,32 @@ function measureState(key, tasks, {workersPerChunk, taskCount, detailedTasks, ru
   report.load[key] = {...(report.load[key] ?? {}), ...set}; write();
   return set;
 }
-/** Function-level profile (track_functions) of one workload: where the time goes, by self time, and how often the named functions ran. */
+/**
+ * Function-level profile (track_functions) of one workload: where the time goes (self time) and how often the named functions ran.
+ * The function counters of the database accumulate over every session (pg_stat_reset does not zero them reliably), so the profile is
+ * the DIFFERENCE between a snapshot before and a snapshot after the workload; each backend flushes its counters when it exits.
+ */
+const NAMED = ['dispatch_cheap_candidate_admitted', 'worker_dispatch_time_admitted', 'availability_timezone_valid', 'work_kinds_v5', 'worker_need_fit_v1', 'worker_need_time_tier_v1',
+  'worker_need_match_v1', 'match_detail', 'match_detail_without_calendar', 'lower_arr', 'accounts_same_world', 'worker_available_periods', 'candidate_profile_ids', 'account_lineage'];
+function funcStats() {
+  const r = run(`select coalesce(jsonb_object_agg(k, jsonb_build_object('calls', c, 'total', t, 'self', s)),'{}'::jsonb) from
+    (select funcname as k, sum(calls) as c, sum(total_time) as t, sum(self_time) as s from pg_stat_user_functions group by funcname) x;`);
+  return r.ok ? JSON.parse(lastLine(r.output)) : {};
+}
 function profile(label, inner) {
-  run('select pg_stat_reset();');
+  sleepSync(1500);
+  const before = funcStats();
   const r = run(`set track_functions='all';
 ${timedBlock(inner)}`);
-  sleepSync(1500);   // the backend flushes its function statistics when it exits
-  const top = run(`select coalesce(jsonb_agg(x),'[]'::jsonb) from (select funcname, calls, round(total_time::numeric,1) as total_ms, round(self_time::numeric,1) as self_ms
-    from pg_stat_user_functions order by self_time desc limit 12) x;`);
-  const named = run(`select coalesce(jsonb_object_agg(funcname, jsonb_build_object('calls', calls, 'total_ms', round(total_time::numeric,1), 'self_ms', round(self_time::numeric,1))),'{}'::jsonb)
-    from pg_stat_user_functions where funcname in ('dispatch_cheap_candidate_admitted','worker_dispatch_time_admitted','availability_timezone_valid','work_kinds_v5',
-      'worker_need_fit_v1','worker_need_time_tier_v1','worker_need_match_v1','match_detail','match_detail_without_calendar','lower_arr','accounts_same_world');`);
-  return {label, workload: r.ok ? JSON.parse(lastLine(r.output)) : {error: r.error}, top: top.ok ? JSON.parse(lastLine(top.output)) : {error: top.error},
-    named: named.ok ? JSON.parse(lastLine(named.output)) : {error: named.error}};
+  sleepSync(1500);
+  const after = funcStats();
+  const rd = v => Math.round(v * 10) / 10;
+  const delta = Object.entries(after).map(([funcname, a]) => {
+    const b = before[funcname] ?? {calls: 0, total: 0, self: 0};
+    return {funcname, calls: a.calls - b.calls, total_ms: rd(a.total - b.total), self_ms: rd(a.self - b.self)};
+  }).filter(x => x.calls > 0).sort((x, y) => y.self_ms - x.self_ms);
+  return {label, workload: r.ok ? JSON.parse(lastLine(r.output)) : {error: r.error}, top: delta.slice(0, 12),
+    named: Object.fromEntries(delta.filter(x => NAMED.includes(x.funcname)).map(x => [x.funcname, {calls: x.calls, total_ms: x.total_ms, self_ms: x.self_ms}]))};
 }
 const callsOf = (prof, name) => prof?.named?.[name]?.calls ?? 0;
 const microZone = calls => brief(chunked('zone helper', 'call', [1], () =>
@@ -206,7 +221,7 @@ function discoveryMs(viewerId, request) {
 }
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
 const BOUNDS = [18, 42, 23, 47];
-function discoveryAt(viewerId, label) {
+function discoveryAt(viewerId, viewerProfileId, label) {
   const median = request => {
     const runs = [0, 1, 2].map(() => discoveryMs(viewerId, request));
     if (runs.some(r => r.error)) return runs.find(r => r.error);
@@ -215,6 +230,9 @@ function discoveryAt(viewerId, label) {
   };
   const result = {
     openTasks: Number(sql(`select count(*) from public.needs where status in ('PUBLISHED','SELECTION') and published_at is not null`)),
+    // the EXACT rule over every open task, computed without the reader: "Za mene" (with its distance pre-test) must list precisely this many
+    ruleCount: Number(sql(`select count(*) from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null
+      and private.worker_need_match_v1(n.id, ${q(viewerProfileId)}::uuid)`)),
     pageDefault: median({mode: 'PAGE', filter: FILTER, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null}),
     pageForMe: median({mode: 'PAGE', filter: {...FILTER, forMe: true}, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null}),
     mapDefault: median({mode: 'MAP', filter: FILTER, anchor: null, bounds: BOUNDS, grid: 12}),
@@ -254,6 +272,9 @@ try {
   // ---- OLD: the live bodies. Small sample; every statement is bounded and chunked by 25 workers.
   section('OLD', () => {
     report.load.OLD = {zoneHelper: microZone(5)};
+    // the statement inside the live helper that costs the time: one scan of every zone file of the server
+    const scan = run(`explain (analyze, costs off, timing off, summary on) select exists(select 1 from pg_catalog.pg_timezone_names z where z.name='Europe/Belgrade');`);
+    report.load.OLD.zoneCatalogScanPlan = scan.ok ? scan.output.split(/\r?\n/).map(line => line.trim()) : scan.error;
     measureState('OLD', tasks, {workersPerChunk: 25, taskCount: 1, detailedTasks: 1, slowTask});
     report.load.OLD.prefilterPlanForDraftProfile = prefilterPlan(tasks[0], draftProfile);
     report.load.OLD.profileRetrievalSlowTask = profile('OLD retrieval of one task', retrievalOf(slowTask));
@@ -311,23 +332,30 @@ try {
     applyFile(D + 'candidate.sql'); state = 'NEW_DZ';
     assert.deepEqual(closure(), baseClosure);
     setDiscStatus('DRAFT');
-    discoveryAt(viewer.id, 'open100');
+    discoveryAt(viewer.id, viewer.profileId, 'open100');
     setDiscStatus('PUBLISHED');
-    discoveryAt(viewer.id, 'open1000');
+    discoveryAt(viewer.id, viewer.profileId, 'open1000');
   });
-  // the same requests end to end through PostgREST (Auth + HTTP), as the app sends them
+  // the same requests end to end through PostgREST (Auth + HTTP), as the app sends them. A transport sample, not a gate: retried (an idle
+  // keep-alive connection may have been closed by the gateway), and a failure is recorded, not hidden.
   if (state === 'NEW_DZ') {
-    try {
-      report.load.discovery = {...(report.load.discovery ?? {}), http: {}};
-      const http = async (label, request) => {
-        const runs = [];
-        for (let i = 0; i < 3; i++) { const started = Date.now(); await ok(viewer.client.rpc('rpc_discovery_v1', {p_request: request})); runs.push(Date.now() - started); }
-        report.load.discovery.http[label] = runs.sort((a, b) => a - b)[1];
-      };
-      await http('pageDefault@1000', {mode: 'PAGE', filter: FILTER, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null});
-      await http('pageForMe@1000', {mode: 'PAGE', filter: {...FILTER, forMe: true}, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null});
-      write();
-    } catch (error) { fail('DISCOVERY_HTTP', String(error).slice(0, 400)); }
+    report.load.discovery = {...(report.load.discovery ?? {}), http: {}};
+    await fx.reloadSchema();
+    const http = async (label, request) => {
+      const runs = [];
+      for (let i = 0; i < 3; i++) {
+        let lastError = null;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          try { const started = Date.now(); await ok(viewer.client.rpc('rpc_discovery_v1', {p_request: request})); runs.push(Date.now() - started); lastError = null; break; }
+          catch (error) { lastError = String(error).slice(0, 300); await new Promise(resolve => setTimeout(resolve, 2000)); }
+        }
+        if (lastError) { report.load.discovery.http[label] = {error: lastError}; return; }
+      }
+      report.load.discovery.http[label] = runs.sort((a, b) => a - b)[1];
+    };
+    await http('pageDefault@1000', {mode: 'PAGE', filter: FILTER, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null});
+    await http('pageForMe@1000', {mode: 'PAGE', filter: {...FILTER, forMe: true}, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null});
+    write();
   }
 } catch (error) {
   fail('LOAD_SETUP', String(error?.stack ?? error).slice(0, 1000));
@@ -371,8 +399,14 @@ if (L.NEW) {
 }
 if (L.discovery?.open1000) {
   const d = L.discovery.open1000;
-  gate('LOAD_FOR_ME_READ_AT_1000_OPEN_TASKS', !d.pageForMe?.error && d.pageForMe.medianMs < 5000 && !d.mapForMe?.error && d.mapForMe.medianMs < 5000,
+  gate('LOAD_FOR_ME_READ_AT_1000_OPEN_TASKS', !d.pageForMe?.error && d.pageForMe.medianMs < 1500 && !d.mapForMe?.error && d.mapForMe.medianMs < 1500,
     {pageDefault: d.pageDefault?.medianMs, pageForMe: d.pageForMe?.medianMs, mapDefault: d.mapDefault?.medianMs, mapForMe: d.mapForMe?.medianMs, at100: L.discovery.open100, http: L.discovery.http});
+  for (const [label, at] of [['open100', L.discovery.open100], ['open1000', d]]) {
+    if (!at) continue;
+    gate('LOAD_FOR_ME_LISTS_EXACTLY_THE_TASKS_THE_RULE_ACCEPTS_' + label.toUpperCase(),
+      at.pageForMe?.counted === at.ruleCount && at.mapForMe?.counted === at.ruleCount && at.ruleCount > 0,
+      {openTasks: at.openTasks, ruleCount: at.ruleCount, pageForMeCounted: at.pageForMe?.counted, mapForMeCounted: at.mapForMe?.counted});
+  }
 }
 report.result = report.failures.length === 0 ? 'PASS' : 'FAIL';
 write();
@@ -383,6 +417,7 @@ const cell = (key, name) => {
   const r = L[key]?.[name];
   return r ? `${f1(r.msPerUnit)}${r.complete ? '' : ` (partial ${r.chunks}${r.timedOut ? ', statement timeout' : ''}${r.budgetExhausted ? ', budget' : ''})`}` : 'n/a';
 };
+const http = key => { const v = L.discovery?.http?.[key]; return (v && typeof v === 'object') ? 'transport error' : v; };
 const disc = k => { const d = L.discovery?.[k]; return d ? `| ${f1(d.openTasks)} open tasks | ${f1(d.pageDefault?.medianMs)} ms | ${f1(d.pageForMe?.medianMs)} ms (${f1(d.pageForMe?.counted)} match) | ${f1(d.mapDefault?.medianMs)} ms | ${f1(d.mapForMe?.medianMs)} ms |` : `| ${k} | n/a | n/a | n/a | n/a |`; };
 const lines = [
   '### MATCH-V1 load proof (disposable database, synthetic rows)', '',
@@ -400,7 +435,7 @@ const lines = [
   `| dispatch tick, empty queue | ${f1(L.NEW?.tickEmptyQueue?.ms)} for 5 ticks |`,
   '', '| "Za mene" read (SQL, authenticated role, median of 3) | PAGE default | PAGE forMe | MAP default | MAP forMe |', '|---|---|---|---|---|',
   disc('open100'), disc('open1000'),
-  '', `Through PostgREST at 1000 open tasks (median of 3): PAGE default ${f1(L.discovery?.http?.['pageDefault@1000'])} ms, PAGE forMe ${f1(L.discovery?.http?.['pageForMe@1000'])} ms.`,
+  '', `Through PostgREST at 1000 open tasks (median of 3, includes Auth, HTTP and JSON): PAGE default ${f1(http('pageDefault@1000'))} ms, PAGE forMe ${f1(http('pageForMe@1000'))} ms.`,
   '', `Result: ${report.result}${report.failures.length ? ' — failures: ' + report.failures.map(x => x.name).join(', ') : ''}`,
 ];
 fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');

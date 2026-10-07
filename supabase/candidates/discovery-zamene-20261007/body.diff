@@ -5,11 +5,11 @@
   r jsonb:=p_request; f jsonb; a jsonb; scope jsonb; cursor_doc jsonb; result jsonb;
   query_text text; locality text; price text; location_mode text; when_mode text; scope_mode text; request_mode text;
 - filter_key text; scope_key text; need_id uuid; people integer; page_limit integer;
-+ filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_state text;
++ filter_key text; scope_key text; need_id uuid; people integer; page_limit integer; for_me boolean:=false; for_me_doc jsonb; fm_lat numeric; fm_lng numeric; fm_radius numeric;
   now_at timestamptz:=statement_timestamp(); time_at timestamptz; through_at timestamptz; expires_at timestamptz;
   before_at timestamptz; before_id uuid; before_section integer;
   west numeric; south numeric; east numeric; north numeric; point_lat numeric; point_lng numeric;
-@@ -39,13 +39,24 @@
+@@ -39,13 +39,26 @@
    facet_area:=r->'facetArea';
    scope:=case when facet_area='null'::jsonb then '{"kind":"ALL"}'::jsonb else jsonb_build_object('kind','AREA','bounds',facet_area) end;
   else raise exception 'P6_MODE_NOT_IMPLEMENTED' using errcode='22023'; end if;
@@ -27,15 +27,17 @@
 + -- notifications. Absent or false keeps the request, its filterKey and the response exactly as before.
 + for_me:=coalesce((f->>'forMe')::boolean,false);
 + if for_me then
-+  for_me_state:=public.discovery_for_me_state_v1();
-+  if for_me_state is distinct from 'ACTIVE' then
-+   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_state,'MISSING');
++  for_me_doc:=public.discovery_for_me_state_v1();
++  if for_me_doc->>'state' is distinct from 'ACTIVE' then
++   raise exception 'P6_FOR_ME_PROFILE_REQUIRED' using errcode='22023',detail=coalesce(for_me_doc->>'state','MISSING');
 +  end if;
++  -- The caller's circle is read ONCE per request; it feeds a conservative distance pre-test below (the exact rule stays the only authority).
++  fm_lat:=(for_me_doc->>'lat')::numeric; fm_lng:=(for_me_doc->>'lng')::numeric; fm_radius:=(for_me_doc->>'radiusKm')::numeric;
 + end if;
   query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catalog."sr-Latn-RS-x-icu");
   price:=f->>'price'; location_mode:=f->>'where'; people:=(f->>'places')::integer; when_mode:=f->>'when';
   if f->'dates'<>'null'::jsonb then
-@@ -65,6 +76,7 @@
+@@ -65,6 +78,7 @@
   end if;
   f:=jsonb_build_object('text',query_text,'price',price,'where',location_mode,'places',people,'when',when_mode,
     'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);
@@ -43,18 +45,26 @@
   -- PLACES binds its prefix/area too; the documented count/text/key cursor
   -- cannot be reused under another facet context without a fresh anchor.
   filter_key:=md5(case when request_mode='PLACES' then jsonb_build_object('filter',f,'prefix',prefix_text,'facetArea',facet_area)::text else f::text end);
-@@ -153,6 +165,7 @@
+@@ -153,6 +167,11 @@
        or location_mode='onsite' and n.execution_location_mode is not null and n.execution_location_mode<>'REMOTE')
      and (people=1 or greatest(0,coalesce(nullif(n.required_slots,0),1)
        -coalesce(public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))),0))>=people)
++    and (not for_me or fm_lat is null or fm_lng is null or n.execution_location_mode='REMOTE' or n.approximate_lat is null or n.approximate_lng is null
++      or 6371.0*2*asin(least(1,sqrt(power(sin(radians((n.approximate_lat-fm_lat)::double precision)/2),2)
++        +cos(radians(n.approximate_lat::double precision))*cos(radians(fm_lat::double precision))
++        *power(sin(radians((n.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)
 +    and (not for_me or public.discovery_for_me_v1(n.id))
    ), place_wanted as materialized (
     select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
      when 'today' then array[today::text,today::text]
-@@ -262,6 +275,7 @@
+@@ -262,6 +281,11 @@
       and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))
     and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0
      or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0)
++   and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null
++      or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)
++        +cos(radians(b.approximate_lat::double precision))*cos(radians(fm_lat::double precision))
++        *power(sin(radians((b.approximate_lng-fm_lng)::double precision)/2),2))))<=fm_radius+0.01)
 +   and (not for_me or public.discovery_for_me_v1(b.id))
   ), qualified as materialized (
    select s.*,(wanted is null or days[1]<=wanted[2] and days[2]>=wanted[1]) is true as time_ok,
