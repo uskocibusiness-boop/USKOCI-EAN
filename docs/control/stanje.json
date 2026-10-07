@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-07T10:14:33Z",
+  "osvezeno": "2026-10-07T10:24:20Z",
   "grana": "integration/spoj-20261006",
-  "head": "62650aef",
-  "head_poruka": "feat(v1): hide HITNO behind one build flag; worker review names new and open tasks; final system audit; DEV snapshot refresh [skip ci]",
+  "head": "42a2a5fa",
+  "head_poruka": "feat(review): price mode, basis and kind of time as chips, amount as RSD digits; owner answers 1-3; stale push deliveries retired on DEV [skip ci]",
   "server": {
    "snimljeno": "2026-10-07T09:53:20Z",
    "migracije": 227,
@@ -91,6 +91,7 @@
   "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
+  "owner_decision_20261007_push_after_app": "7.10. (kasnije): VLASNIK: push ostaje u V1, ali se podešava NA KRAJU, kad su svi tokovi i izgled aplikacije završeni — tada se push obaveštenja prilagođavaju potpuno i konkretno (tekst, odredište dodira, izgled). Do tada: Firebase rs.uskoci, FCM ključ, APK sa push-om i paket za jedan uređaj se ne rade; baza i događaji (zadaci, prijave, poruke, otkazivanja, izmene, termini, završetak, ocene) ostaju i dopunjuju se kao osnova za push.",
   "owner_decision_20261007_time_rule": "7.10.: VLASNIK „da“ na predlog: zadatak „bilo kad“ ide svima kojima odgovaraju vrsta posla i područje; „danas“ prvo radnicima sa „Mogu odmah“, zatim onima čiji raspored pokriva danas; „odmah“ prvo radnicima sa „Mogu odmah“. Danas server šalje „bilo kad“/„danas“ SAMO radnicima sa „Mogu odmah“ (G3). Serverski paket MATCH-V1 u pripremi (grana candidate/match-v1-20261007), primena tek na „PRIMENI MATCH-V1“.",
   "owner_decision_20261007_point_to_point_on_map": "7.10.: VLASNIK „da“: zadaci „od tačke do tačke“ se prikazuju na mapi na početnoj tački, približno kao i ostali (danas 4 od 9 otvorenih zadataka nisu na mapi). Ide u serverski paket uz „Za mene“.",
   "stale_push_retired_20261007": "7.10.: na vlasnikovo „da“ (pitanje 3) 8 nikad započetih PUSH isporuka jednog naloga (30.9.–5.10.) označeno EXPIRED na DEV-u, sistemskim prelazom CREATED→EXPIRED u jednoj zaštićenoj naredbi (tačno 8 id-jeva). Posle: 0 isporuka čeka slanje, pokušaj od 26.9. netaknut, sertifikat i ledger 227 nepromenjeni. Potvrda: supabase/operations/dev-alpha/ledger/20261007_stale_push_deliveries_retired.receipt.json.",
