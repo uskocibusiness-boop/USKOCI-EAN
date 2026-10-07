@@ -1,0 +1,235 @@
+{
+  "id": "DISCOVERY-GRAD",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI DISCOVERY-GRAD",
+  "requiresApplied": "DISCOVERY-ZAMENE (and through it MATCH-V1)",
+  "devStateReadAt": "2026-10-08",
+  "devLedger": 232,
+  "devLatestVersion": "20261007204555",
+  "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+  "certificateMoves": false,
+  "closureRoster": "closure_source_digest_v5 hashes a fixed list of 99 function signatures plus the schema digest and the erasure program digest; rpc_discovery_v1 is not in it (DISCOVERY-ZAMENE replaced the same body with the certificate unchanged) and a new non-trigger function is not hashed. The apply and the revert assert both digests unchanged.",
+  "functions": [
+    {
+      "signature": "public.rpc_discovery_v1(jsonb)",
+      "before_md5": "dc69802e3ba209232a8be095f60e9c9f",
+      "after_md5": "f40c31e7dd38103a228c0740dd76f86f",
+      "language": "plpgsql",
+      "volatility": "STABLE",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    }
+  ],
+  "newFunctions": [
+    {
+      "signature": "public.discovery_fold_v1(text)",
+      "body_md5": "aa277f2f17898a8493912082e015a2d7",
+      "language": "sql",
+      "volatility": "IMMUTABLE",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    }
+  ],
+  "dependencyPins": [
+    {
+      "signature": "public.p6_discovery_key(text)",
+      "body_md5": "ebfe1252f1798d89bbffb35b6eef6167"
+    },
+    {
+      "signature": "public.p6_discovery_trim(text)",
+      "body_md5": "40109e93b620146aa8d536907d28c91b"
+    },
+    {
+      "signature": "public.p6_discovery_unquote(text)",
+      "body_md5": "35706ddc2125e8cacf74ee370f82ff2f"
+    },
+    {
+      "signature": "public.p6_discovery_area(text,text,boolean)",
+      "body_md5": "041441c14c18230a8da05a97c53ab350"
+    },
+    {
+      "signature": "public.discovery_for_me_state_v1()",
+      "body_md5": "bd4dcf16863e7564a5d82ac22aca1418"
+    },
+    {
+      "signature": "public.discovery_for_me_v1(uuid)",
+      "body_md5": "60c104139cebbccfa16a570fc3386c0c"
+    }
+  ],
+  "collation": "sr-Latn-RS-x-icu",
+  "fold": {
+    "name": "SR_FOLD_V1",
+    "lower": "lower(value collate \"sr-Latn-RS-x-icu\")",
+    "twoLetters": {
+      "U+0111": "dj",
+      "U+0452": "dj",
+      "U+0459": "lj",
+      "U+045A": "nj",
+      "U+045F": "dz"
+    },
+    "oneLetter": {
+      "U+010D": "c",
+      "U+0107": "c",
+      "U+0161": "s",
+      "U+017E": "z",
+      "U+0430": "a",
+      "U+0431": "b",
+      "U+0432": "v",
+      "U+0433": "g",
+      "U+0434": "d",
+      "U+0435": "e",
+      "U+0436": "z",
+      "U+0437": "z",
+      "U+0438": "i",
+      "U+0458": "j",
+      "U+043A": "k",
+      "U+043B": "l",
+      "U+043C": "m",
+      "U+043D": "n",
+      "U+043E": "o",
+      "U+043F": "p",
+      "U+0440": "r",
+      "U+0441": "s",
+      "U+0442": "t",
+      "U+045B": "c",
+      "U+0443": "u",
+      "U+0444": "f",
+      "U+0445": "h",
+      "U+0446": "c",
+      "U+0447": "c",
+      "U+0448": "s"
+    }
+  },
+  "foldTruthTable": [
+    {
+      "input": "Čačak",
+      "expected": "cacak"
+    },
+    {
+      "input": "ČAČAK",
+      "expected": "cacak"
+    },
+    {
+      "input": "Đorđe",
+      "expected": "djordje"
+    },
+    {
+      "input": "Djordje",
+      "expected": "djordje"
+    },
+    {
+      "input": "Ђорђе",
+      "expected": "djordje"
+    },
+    {
+      "input": "čistim",
+      "expected": "cistim"
+    },
+    {
+      "input": "Novi Sad",
+      "expected": "novi sad"
+    },
+    {
+      "input": "Нови Сад",
+      "expected": "novi sad"
+    },
+    {
+      "input": "Šabac",
+      "expected": "sabac"
+    },
+    {
+      "input": "Žabalj",
+      "expected": "zabalj"
+    },
+    {
+      "input": "Ćuprija",
+      "expected": "cuprija"
+    },
+    {
+      "input": "Ћуприја",
+      "expected": "cuprija"
+    },
+    {
+      "input": "Љубовија",
+      "expected": "ljubovija"
+    },
+    {
+      "input": "Његош",
+      "expected": "njegos"
+    },
+    {
+      "input": "Џеп",
+      "expected": "dzep"
+    },
+    {
+      "input": "Džep",
+      "expected": "dzep"
+    },
+    {
+      "input": "  X  ",
+      "expected": "  x  "
+    },
+    {
+      "input": "ABC-123",
+      "expected": "abc-123"
+    },
+    {
+      "input": "абвгдђежзијклљмнњопрстћуфхцчџш",
+      "expected": "abvgddjezzijklljmnnjoprstcufhccdzs"
+    },
+    {
+      "input": "АБВГДЂЕЖЗИЈКЛЉМНЊОПРСТЋУФХЦЧЏШ",
+      "expected": "abvgddjezzijklljmnnjoprstcufhccdzs"
+    },
+    {
+      "input": "abcčćddžđefghijklljmnnjoprsštuvzž",
+      "expected": "abcccddzdjefghijklljmnnjoprsstuvzz"
+    },
+    {
+      "input": "",
+      "expected": ""
+    },
+    {
+      "input": null,
+      "expected": null
+    },
+    {
+      "input": "Niš",
+      "expected": "nis"
+    },
+    {
+      "input": "Inđija",
+      "expected": "indjija"
+    },
+    {
+      "input": "ššš",
+      "expected": "sss"
+    }
+  ],
+  "request": {
+    "newKeys": {
+      "PLACES.groupBy": [
+        "AREA",
+        "CITY"
+      ]
+    },
+    "filterKeyChangesOnlyFor": "PLACES with groupBy CITY"
+  },
+  "artifact_sha256": {
+    "candidate.sql": "7bd9b7cff690ac91aef2dd6d5db21a4984169a9c34c0afc184dc8298055e4e65",
+    "candidate.in-transaction.sql": "b54f0dd6c09ee61ca5f859c8681f9c0abb2598f9aa2b560657f9641d92cc8ce0",
+    "revert.sql": "bb658daa32bf26d43d3706f843e25b9af064a1c02433e9475bfede0380bbb5ac",
+    "preflight.readonly.sql": "9fae060a85b62579148aab84be4145d698c2472985e7c928c6e3e77f6e73f5e9",
+    "postflight.readonly.sql": "051f2243b8d5d952c308f5ef62980d30a3b2c1ae3f006a1b8a7cf09b8d03495d",
+    "body.diff": "031260b9b7122dca80d81c0954caddd3e7eae32ea641106a72e50500abb3ab76",
+    "patches.json": "55879ef29725e582dbb5d1508aa7602f4bd6a0764b7ad287875b23502934a552"
+  }
+}
