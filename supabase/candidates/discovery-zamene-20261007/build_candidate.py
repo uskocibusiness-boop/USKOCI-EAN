@@ -63,11 +63,11 @@ change(" query_text:=lower(public.p6_discovery_trim(f->>'text') collate pg_catal
 change("   'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);\n",
        "   'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);\n"
        " if for_me then f:=f||'{\"forMe\":true}'::jsonb; end if;\n")
-change("    and n.remaining_search_closed_at is null and n.published_at<=through_at\n    and (price='all' or n.mode=price)\n",
-       "    and n.remaining_search_closed_at is null and n.published_at<=through_at\n    and (price='all' or n.mode=price)\n"
-       "    and (not for_me or public.discovery_for_me_v1(n.id))\n")
-change("  from base b where (price='all' or b.mode=price)\n",
-       "  from base b where (price='all' or b.mode=price)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n")
+# The rule is the most expensive condition: it goes LAST in each WHERE list, so every cheap filter has already thinned the rows.
+change(",0))>=people)\n  ), place_wanted as materialized (",
+       ",0))>=people)\n    and (not for_me or public.discovery_for_me_v1(n.id))\n  ), place_wanted as materialized (")
+change("),query_text)>0)\n ), qualified as materialized (",
+       "),query_text)>0)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n ), qualified as materialized (")
 assert "40001" not in after[DISCOVERY]
 
 STATE_SIG = "public.discovery_for_me_state_v1()"

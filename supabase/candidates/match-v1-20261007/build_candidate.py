@@ -31,9 +31,12 @@ CHEAP = "private.dispatch_cheap_candidate_admitted(uuid,uuid)"
 TIME = "private.worker_dispatch_time_admitted(uuid,uuid)"
 WAVE = "private.dispatch_next_wave(uuid)"
 TICK = "private.dispatch_tick(integer,timestamp with time zone)"
-CHANGED = [MATCH, CHEAP, TIME, WAVE, TICK]
+TZ = "private.availability_timezone_valid(text)"
+CAND = "private.candidate_profile_ids(uuid,integer)"
+CHANGED = [MATCH, CHEAP, TIME, WAVE, TICK, TZ, CAND]
 DEPENDENCIES = [s for s in live if s not in CHANGED]
-assert len(DEPENDENCIES) == 17, DEPENDENCIES
+assert len(DEPENDENCIES) == 15, DEPENDENCIES
+TZ_FAST_NAMES = ("Europe/Belgrade", "UTC")
 
 after = {s: live[s] for s in CHANGED}
 edits = []
@@ -84,6 +87,11 @@ change_span(MATCH, "  if not coalesce(p.available_now,false)\n",
             "  -- MATCH-V1: the time rule, \"Mogu odmah\" included, lives only in private.worker_need_time_tier_v1\n"
             "  -- (OUTSIDE_AVAILABILITY below); live intent is no longer a separate gate.\n")
 change(MATCH, "  if not feeok then disp := array_append(disp,'BELOW_MINIMUM_FEE'); end if;\n", "")
+# An empty exclusion list can exclude nothing: do not read the kind registry for it (about 0.3 ms per pair).
+change(MATCH, "  if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     -- PKG-031b",
+       "  if coalesce(cardinality(p.exclusions),0) > 0 and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     -- PKG-031b")
+change(MATCH, "     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;",
+       "     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;")
 change(MATCH, "  -- Bodovanje: donorove tezine 30/25/15/15/10/5.\n",
        "  -- Bodovanje: donorove tezine 30/25/15/10/5. MATCH-V1 drops the 15 resource points (RESOURCES_MATCH);\n"
        "  -- 'resources' stays 0 in scoreComponents for wire compatibility.\n")
@@ -136,6 +144,35 @@ change(TICK, "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));",
        "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n"
        "                            'profileRequeue',profile_requeue);")
 
+# ---------------------------------------------------------------- private.availability_timezone_valid (shared helper)
+# Root cause of the stalled load proof of 2026-10-07 (run 37616332729): pg_timezone_names reads every zone file of the
+# server (1,196 zones, about 110 ms per call measured on canonical DEV) and the helper ran for every worker x task pair.
+after[TZ] = """
+  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about
+  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,
+  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the
+  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.
+  select case
+    when value is null or length(value)>100 then false
+    when value in ('Europe/Belgrade','UTC') then true
+    else (value='UTC' or position('/' in value)>0)
+      and value not like 'posix/%' and value not like 'right/%'
+      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
+  end;
+"""
+edits.append({"signature": TZ, "before": live[TZ], "after": after[TZ]})
+
+# ---------------------------------------------------------------- private.candidate_profile_ids
+# The two fallback loops visited EVERY worker profile without a preference point, drafts included (every requester-only
+# account has one). dispatch_cheap_candidate_admitted refuses a profile that is not ACTIVE in the old and the new body, so
+# filtering here returns exactly the same workers in the same order and visits none of the drafts.
+change(CAND, "        where p.kind = 'WORKER'\n          and (pref.worker_profile_id is null or pref.approximate_geog is null)\n",
+       "        where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it\n"
+       "          and (pref.worker_profile_id is null or pref.approximate_geog is null)\n")
+change(CAND, "    where p.kind = 'WORKER'\n    order by case when p.id >= n.id then 0 else 1 end, p.id\n",
+       "    where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it\n"
+       "    order by case when p.id >= n.id then 0 else 1 end, p.id\n")
+
 # ---------------------------------------------------------------- new functions
 TIER_SIG = "private.worker_need_time_tier_v1(uuid,uuid)"
 FIT_SIG = "private.worker_need_fit_v1(uuid,uuid,boolean)"
@@ -157,21 +194,16 @@ begin
   if not found then return null; end if;
   select * into p from public.app_profiles where id=pid and kind='WORKER' and profile_status='ACTIVE';
   if not found then return null; end if;
-  select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
-  tz:=coalesce(tz,'Europe/Belgrade');
-  if not private.availability_timezone_valid(tz) then return null; end if;
   if n.ends_at is not null and n.ends_at<=at_now then return null; end if;
-  -- "Mogu odmah" counts only while nothing blocks this moment (an unavailable window or a Dogovor).
-  live:=coalesce(p.available_now,false)
-    and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
-      and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
-    and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
-      and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
-  -- "bilo kad": FLEXIBLE / REMOTE_ANYTIME without a complete future window. The time does not matter.
+  -- "bilo kad": FLEXIBLE / REMOTE_ANYTIME without a complete future window. The time does not matter: no zone, no
+  -- schedule and no calendar is read for it.
   if n.schedule_kind in ('FLEXIBLE','REMOTE_ANYTIME')
      and not private.availability_is_future(n.schedule_kind,n.starts_at,n.ends_at,at_now) then
     return 1;
   end if;
+  select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
+  tz:=coalesce(tz,'Europe/Belgrade');
+  if not private.availability_timezone_valid(tz) then return null; end if;
   -- "danas": the publication day in the task's zone (Europe/Belgrade when it has none), a stored bound narrows it.
   -- First "Mogu odmah", then a schedule with real available time left in that day.
   if n.schedule_kind='TODAY_FLEXIBLE' then
@@ -182,6 +214,12 @@ begin
     ws:=coalesce(n.starts_at,anchor_day::timestamp at time zone wtz);
     we:=coalesce(n.ends_at,(anchor_day+1)::timestamp at time zone wtz);
     if not isfinite(ws) or not isfinite(we) or ws>=we or we<=at_now then return null; end if;
+    -- "Mogu odmah" counts only while nothing blocks this moment (an unavailable window or a Dogovor).
+    live:=coalesce(p.available_now,false)
+      and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+        and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+      and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+        and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
     if live then return 1; end if;
     if private.worker_available_periods(pid,greatest(ws,at_now),we,tz)<>'{}'::tstzmultirange then return 2; end if;
     return null;
@@ -211,6 +249,11 @@ begin
   if n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') then return null; end if;
   -- "odmah": the task's own time has begun. First "Mogu odmah" (a fixed window must still fit as before),
   -- then a schedule that covers now and the rest of a fixed window.
+  live:=coalesce(p.available_now,false)
+    and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+      and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+    and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+      and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
   if live then
     if n.schedule_kind='FIXED_WINDOW' and not private.schedule_fit(pid,n.starts_at,n.ends_at,tz) then return null; end if;
     return 1;
@@ -248,20 +291,21 @@ begin
   if p.profile_status<>'ACTIVE' then hard:=array_append(hard,'ACCOUNT_OR_PROFILE_RESTRICTED'); end if;
   if n.requester_account_id=p.account_id then hard:=array_append(hard,'OWN_NEED'); end if;
   if p_first_refusal and cardinality(hard)>0 then return jsonb_build_object('matches',false,'hard',to_jsonb(hard)); end if;
-  -- Kind of work, first the same words: the task names none, or worker and task share a word.
-  svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0
-       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);
-  -- Area: the worker's circle around the task's public point (a route's START point), the same city when a point is missing.
-  select * into pref from public.worker_match_preferences where worker_profile_id=pid;
+  -- Area first (the cheapest and the most selective): the worker's circle around the task's public point (a route's START
+  -- point), the same city when a point is missing. A task far from the worker costs three index reads and one distance.
   radius:=private.effective_radius_km(p.radius_km);
   if n.execution_location_mode='REMOTE' then
     dist:=null; area:=true;
   else
+    select * into pref from public.worker_match_preferences where worker_profile_id=pid;
     dist:=private.haversine_km(n.approximate_lat,n.approximate_lng,pref.approximate_lat,pref.approximate_lng);
     area:=coalesce(case when dist is not null then dist<=radius
       else btrim(coalesce(n.approximate_city,''))<>'' and lower(coalesce(n.approximate_city,''))=lower(coalesce(p.city,'')) end,false);
   end if;
   if p_first_refusal and not area then return jsonb_build_object('matches',false,'area',false); end if;
+  -- Kind of work, first the same words: the task names none, or worker and task share a word.
+  svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0
+       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);
   if not private.accounts_same_world(n.requester_account_id,p.account_id) then hard:=array_append(hard,'OTHER_WORLD'); end if;
   if n.verified_identity_required and not private.identity_admitted(p.account_id)
     then hard:=array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
@@ -296,24 +340,32 @@ REQUEUE_BODY = """
 -- a write still committing is never skipped. A task that was already reconsidered after the change, or sits inside a
 -- running wave window (whose next wave sees the worker anyway), is left as it is, so no wave is pulled forward.
 -- The watermark is one row of private.marketplace_config (data, not schema): no trigger and no new table.
+-- Bounded: at most 100 profiles per tick, in (updated_at, account_id) order, with a keyset cursor (so profiles that share one
+-- updated_at, e.g. one bulk UPDATE, are neither skipped nor repeated); the rest follows on the next ticks. The 30 second
+-- cutoff assumes a profile write commits within 30 seconds of its updated_at (that is the transaction start time).
+-- Cost when nothing changed: one config row and one pass over app_profiles.
 declare
-  cfg jsonb; after_at timestamptz; cutoff timestamptz; w record; v_need uuid; profiles integer:=0; queued integer:=0;
+  cfg jsonb; after_at timestamptz; after_acc uuid; cutoff timestamptz; w record; v_need uuid;
+  profiles integer:=0; queued integer:=0; last_at timestamptz; last_acc uuid;
 begin
   if p_at is null or not isfinite(p_at) then return jsonb_build_object('status','SKIPPED','reason','INVALID_TIME'); end if;
   select value into cfg from private.marketplace_config where key='match_v1_profile_requeue' for update skip locked;
   if not found then return jsonb_build_object('status','SKIPPED','reason','NOT_CONFIGURED_OR_BUSY'); end if;
   after_at:=(cfg->>'after')::timestamptz;
+  after_acc:=coalesce((cfg->>'afterAccount')::uuid,'00000000-0000-0000-0000-000000000000'::uuid);
   cutoff:=least(p_at,statement_timestamp())-interval '30 seconds';
   if after_at is null or not isfinite(after_at) then
     return jsonb_build_object('status','SKIPPED','reason','WATERMARK_INVALID');
   end if;
-  if cutoff<=after_at then return jsonb_build_object('status','IDLE','profiles',0,'queued',0); end if;
+  if cutoff<after_at then return jsonb_build_object('status','IDLE','profiles',0,'queued',0); end if;
   for w in
-    select p.account_id, max(p.updated_at) as changed_at from public.app_profiles p
-     where p.kind='WORKER' and p.profile_status='ACTIVE' and p.updated_at>after_at and p.updated_at<=cutoff
-     group by p.account_id order by 2, 1
+    select p.account_id, p.updated_at as changed_at from public.app_profiles p
+     where p.kind='WORKER' and p.profile_status='ACTIVE'
+       and (p.updated_at,p.account_id)>(after_at,after_acc) and p.updated_at<=cutoff
+     order by p.updated_at, p.account_id
+     limit 100
   loop
-    profiles:=profiles+1;
+    profiles:=profiles+1; last_at:=w.changed_at; last_acc:=w.account_id;
     for v_need in
       select n.id from public.needs n
         left join private.dispatch_schedule s on s.need_id=n.id
@@ -332,9 +384,14 @@ begin
       queued:=queued+1;
     end loop;
   end loop;
-  update private.marketplace_config set value=jsonb_set(value,'{after}',to_jsonb(cutoff)),updated_at=statement_timestamp()
+  -- A full batch moves the cursor to its last profile (the rest follows on the next tick); a short batch was everything up to the cutoff.
+  update private.marketplace_config
+     set value=case when profiles>=100
+       then jsonb_set(jsonb_set(value,'{after}',to_jsonb(last_at)),'{afterAccount}',to_jsonb(last_acc))
+       else jsonb_set(jsonb_set(value,'{after}',to_jsonb(cutoff)),'{afterAccount}',to_jsonb('00000000-0000-0000-0000-000000000000'::uuid)) end,
+         updated_at=statement_timestamp()
    where key='match_v1_profile_requeue';
-  return jsonb_build_object('status','DONE','profiles',profiles,'queued',queued,'after',cutoff);
+  return jsonb_build_object('status','DONE','profiles',profiles,'queued',queued,'more',profiles>=100);
 end;
 """
 
@@ -433,9 +490,17 @@ def candidate(transaction=True):
           " then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;\n")
     s += pins_block("MATCH_V1_DEPENDENCY_DRIFT", [(d, md5(live[d])) for d in DEPENDENCIES])
     s += pins_block("MATCH_V1_PREDECESSOR_DRIFT", [(c, md5(live[c])) for c in CHANGED])
+    # The helper's fast path names must exist in the server's zone catalog, or the fast path would accept a zone the old helper refuses.
+    s += (" if (select count(*) from pg_catalog.pg_timezone_names where name in (" + ",".join(quote(z) for z in TZ_FAST_NAMES) + "))<>" + str(len(TZ_FAST_NAMES)) + "\n"
+          " then raise exception 'MATCH_V1_TIMEZONE_CATALOG_LACKS_FAST_PATH_NAMES' using errcode='55000'; end if;\n")
     s += "end\n$match_v1_pre$;\n"
     s += ("create temporary table match_v1_certificate on commit drop as\n"
           " select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;\n")
+    # Truth table of the zone helper BEFORE the replacement (the old helper scans the catalog: about 0.1 s per probe that has a slash).
+    s += ("create temporary table match_v1_tz_probe on commit drop as\n"
+          " select v as value, private.availability_timezone_valid(v) as old_result\n"
+          " from unnest(array[null,'','UTC','Europe/Belgrade','Europe/Zagreb','Etc/GMT+1','posix/Europe/Belgrade','right/UTC','europe/belgrade',\n"
+          "   'Mars/Base','EST5EDT','Europe/Belgrade ','America/New_York','Asia/Kolkata',repeat('x',101)]::text[]) v;\n")
     for sig, head, body, _ in NEW:
         s += head + dollar(body) + ";\n"
         s += f"revoke all on function {sig} from public, anon, authenticated, service_role;\n"
@@ -443,8 +508,10 @@ def candidate(transaction=True):
     s += replace_block(live, after, "MATCH_V1")
     s += "end\n$match_v1_replace$;\n"
     s += ("insert into private.marketplace_config(key,value,updated_at)\n"
-          " values(" + quote(CONFIG_KEY) + ",jsonb_build_object('after',statement_timestamp(),'owner','MATCH-V1 2026-10-07'),statement_timestamp());\n")
+          " values(" + quote(CONFIG_KEY) + ",jsonb_build_object('after',statement_timestamp(),'afterAccount','00000000-0000-0000-0000-000000000000','owner','MATCH-V1 2026-10-07'),statement_timestamp());\n")
     s += "do $match_v1_post$\ndeclare r record;\nbegin\n"
+    s += (" if exists(select 1 from match_v1_tz_probe t where private.availability_timezone_valid(t.value) is distinct from t.old_result)\n"
+          " then raise exception 'MATCH_V1_TIMEZONE_HELPER_TRUTH_TABLE_CHANGED' using errcode='55000'; end if;\n")
     s += new_function_checks("MATCH_V1_NEW_FUNCTION_DRIFT")
     s += pins_block("MATCH_V1_POSTIMAGE_DRIFT", [(c, md5(after[c])) for c in CHANGED])
     s += (" if (select count(*) from private.marketplace_config where key=" + quote(CONFIG_KEY) + " and (value->>'after')::timestamptz is not null)<>1\n"
@@ -461,7 +528,7 @@ def candidate(transaction=True):
 
 def revert():
     s = header("EXACT REVERT")
-    s += "-- Restores the five predecessor bodies, drops the four new functions and the watermark row. Code rollback only:\n"
+    s += "-- Restores the seven predecessor bodies, drops the four new functions and the watermark row. Code rollback only:\n"
     s += "-- deliveries, applications and queue rows created under MATCH-V1 stay. Refuses while DISCOVERY-ZAMENE is applied.\n"
     s += "begin;\nset local lock_timeout='5s';\nset local statement_timeout='180s';\nset local search_path=pg_catalog;\n"
     s += "do $match_v1_revert_pre$\ndeclare r record;\nbegin\n" + CERT_READY % "MATCH_V1_REVERT_CERTIFICATE_NOT_READY"
@@ -518,6 +585,7 @@ PREFLIGHT = ("-- MATCH-V1 read-only preflight for canonical DEV leqcwgzvjsxugfgz
              "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1')),\n"
              " 'watermarkAbsent',not exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + "),\n"
              " 'closureNotExecuting',not exists(select 1 from private.closure_executions_v5 where state='EXECUTING'),\n"
+             " 'tzCatalogHasFastPathNames',(select count(*) from pg_catalog.pg_timezone_names where name in (" + ",".join(quote(z) for z in TZ_FAST_NAMES) + "))=" + str(len(TZ_FAST_NAMES)) + ",\n"
              " 'activeWorkerProfiles',(select count(*) from public.app_profiles where kind='WORKER' and profile_status='ACTIVE'),\n"
              " 'openTasks',(select count(*) from public.needs where status in ('PUBLISHED','SELECTION') and published_at is not null)\n"
              ") as match_v1_preflight;\n")
@@ -573,5 +641,5 @@ for name, content in files.items():
         assert path.read_bytes() == content.encode("utf-8"), ("GENERATED_FILE_DRIFT", name)
     else:
         path.write_bytes(content.encode("utf-8"))
-print("PASS MATCH-V1 5 body replacements, 4 new functions, 17 pinned dependencies; "
+print(f"PASS MATCH-V1 {len(CHANGED)} body replacements, {len(NEW)} new functions, {len(DEPENDENCIES)} pinned dependencies; "
       + ("generated files checked" if args.check else "files generated"))

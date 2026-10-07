@@ -19,9 +19,16 @@ concurrency:
   cancel-in-progress: true
 jobs:
   disposable-proof:
+    # Two independent jobs, each from its own fresh chain: the behaviour proof (FAIL before / PASS after / exact revert) and the load proof
+    # (old vs new milliseconds on many workers and tasks, hard timeouts). A slow measurement can never mask the behaviour verdict.
+    name: ${{ matrix.part }}
     if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [behavior, load]
     defaults:
       run:
         shell: bash
@@ -82,7 +89,8 @@ jobs:
           NODE
           node supabase/proofs/match-v1/chain.mjs
           node supabase/proofs/match-v1/fidelity.mjs
-      - name: Real runtime proof, refusals and exact reverts
+      - name: Behaviour proof with real Auth and PostgREST, refusals and exact reverts
+        if: matrix.part == 'behavior'
         run: |
           set -euo pipefail
           umask 077
@@ -110,8 +118,33 @@ jobs:
           assert.equal(report.liveAccess, false);
           assert.equal(report.providerCalls, 0);
           assert.equal(report.pushSends, 0);
-          assert.ok(report.checks.length >= 25);
+          assert.ok(report.checks.length >= 30);
           assert.ok(report.checks.every(c => c.result === 'PASS'));
+          NODE
+      - name: Load proof of old against new on many workers and tasks with hard timeouts
+        if: matrix.part == 'load'
+        run: |
+          set -euo pipefail
+          umask 077
+          status=0
+          node supabase/proofs/match-v1/load.proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/load.log" || status=${PIPESTATUS[0]}
+          grep -E '^(PASS|FAIL) ' "$PRE_V3_ARTIFACT_DIR/load.log" > "$MATCH_V1_ARTIFACT_DIR/load-checks.txt" || true
+          if [ -f "$MATCH_V1_ARTIFACT_DIR/load-summary.md" ]; then cat "$MATCH_V1_ARTIFACT_DIR/load-summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          test "$status" -eq 0
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const dir = process.env.MATCH_V1_ARTIFACT_DIR;
+          const report = JSON.parse(readFileSync(dir + '/load-report.json', 'utf8'));
+          const chain = JSON.parse(readFileSync(dir + '/chain-fidelity.json', 'utf8'));
+          assert.equal(report.sourceSha, process.env.GITHUB_SHA);
+          assert.equal(report.result, 'PASS');
+          assert.equal(report.failures.length, 0);
+          assert.equal(chain.result, 'PASS');
+          assert.equal(report.liveAccess, false);
+          assert.equal(report.providerCalls, 0);
+          assert.equal(report.pushSends, 0);
+          assert.ok(report.checks.length >= 8);
           NODE
       - name: Always discard the disposable database
         if: always()
@@ -129,7 +162,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: match-v1-discovery-zamene-${{ github.sha }}-${{ github.run_id }}
+          name: match-v1-${{ matrix.part }}-${{ github.sha }}-${{ github.run_id }}
           path: /tmp/match-v1-artifacts/
           if-no-files-found: error
           retention-days: 30

@@ -13,7 +13,7 @@
    effective_radius numeric; exposure integer;
    cap numeric := 0; ss numeric := 0; ds numeric := 0; rs numeric := 0;
    rels numeric := 0; fair numeric := 0;
-@@ -24,42 +24,23 @@
+@@ -24,56 +24,32 @@
    tz := coalesce(nullif(pref.timezone,''), 'Europe/Belgrade');
    local_day := case when n.starts_at is not null then (n.starts_at at time zone tz)::date end;
  
@@ -63,11 +63,13 @@
 -  if not toolsok then hard := array_append(hard,'MISSING_REQUIRED_TOOL'); end if;
 -  if not vehok  then hard := array_append(hard,'MISSING_REQUIRED_VEHICLE'); end if;
 -  if not expok  then hard := array_append(hard,'INSUFFICIENT_EXPERIENCE'); end if;
+-  if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))
 +  -- MATCH-V1: missing tools, vehicles or experience no longer refuse an application.
-   if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))
++  if coalesce(cardinality(p.exclusions),0) > 0 and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))
       -- PKG-031b (deep read 9.2/9.3): an exclusion holds for the same kind of work in any spelling
       -- ("selidbe" also keeps out "transport_selidbe").
-@@ -67,13 +48,8 @@
+-     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills))
++     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))
      then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;
  
    -- MEKE kapije: blokiraju samo automatsku isporuku. Rucno pretrazivanje ostaje otvoreno.
@@ -239,3 +241,42 @@
 +                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),
 +                            'profileRequeue',profile_requeue);
  end;
+--- private.availability_timezone_valid(text) BEFORE (DEV)
++++ private.availability_timezone_valid(text) AFTER (MATCH-V1)
+@@ -1,5 +1,12 @@
+ 
+-  select value is not null and length(value)<=100
+-    and (value='UTC' or position('/' in value)>0)
+-    and value not like 'posix/%' and value not like 'right/%'
+-    and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value);
++  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about
++  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,
++  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the
++  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.
++  select case
++    when value is null or length(value)>100 then false
++    when value in ('Europe/Belgrade','UTC') then true
++    else (value='UTC' or position('/' in value)>0)
++      and value not like 'posix/%' and value not like 'right/%'
++      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
++  end;
+--- private.candidate_profile_ids(uuid,integer) BEFORE (DEV)
++++ private.candidate_profile_ids(uuid,integer) AFTER (MATCH-V1)
+@@ -28,7 +28,7 @@
+         select p.id as pid
+         from public.app_profiles p
+         left join public.worker_match_preferences pref on pref.worker_profile_id = p.id
+-        where p.kind = 'WORKER'
++        where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it
+           and (pref.worker_profile_id is null or pref.approximate_geog is null)
+         order by p.id
+       loop
+@@ -46,7 +46,7 @@
+   -- da isti radnici ne budu uvek prvi.
+   for c in
+     select p.id as pid from public.app_profiles p
+-    where p.kind = 'WORKER'
++    where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it
+     order by case when p.id >= n.id then 0 else 1 end, p.id
+   loop
+     if private.dispatch_cheap_candidate_admitted(n.id, c.pid) then

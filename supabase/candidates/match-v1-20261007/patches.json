@@ -26,6 +26,16 @@
   },
   {
     "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "  if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     -- PKG-031b",
+    "after": "  if coalesce(cardinality(p.exclusions),0) > 0 and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))\n     -- PKG-031b"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
+    "before": "     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;",
+    "after": "     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))\n    then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;"
+  },
+  {
+    "signature": "private.match_detail_without_calendar(uuid,uuid)",
     "before": "  -- Bodovanje: donorove tezine 30/25/15/15/10/5.\n",
     "after": "  -- Bodovanje: donorove tezine 30/25/15/10/5. MATCH-V1 drops the 15 resource points (RESOURCES_MATCH);\n  -- 'resources' stays 0 in scoreComponents for wire compatibility.\n"
   },
@@ -68,5 +78,20 @@
     "signature": "private.dispatch_tick(integer,timestamp with time zone)",
     "before": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));",
     "after": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n                            'profileRequeue',profile_requeue);"
+  },
+  {
+    "signature": "private.availability_timezone_valid(text)",
+    "before": "\n  select value is not null and length(value)<=100\n    and (value='UTC' or position('/' in value)>0)\n    and value not like 'posix/%' and value not like 'right/%'\n    and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value);\n",
+    "after": "\n  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about\n  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,\n  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the\n  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.\n  select case\n    when value is null or length(value)>100 then false\n    when value in ('Europe/Belgrade','UTC') then true\n    else (value='UTC' or position('/' in value)>0)\n      and value not like 'posix/%' and value not like 'right/%'\n      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)\n  end;\n"
+  },
+  {
+    "signature": "private.candidate_profile_ids(uuid,integer)",
+    "before": "        where p.kind = 'WORKER'\n          and (pref.worker_profile_id is null or pref.approximate_geog is null)\n",
+    "after": "        where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it\n          and (pref.worker_profile_id is null or pref.approximate_geog is null)\n"
+  },
+  {
+    "signature": "private.candidate_profile_ids(uuid,integer)",
+    "before": "    where p.kind = 'WORKER'\n    order by case when p.id >= n.id then 0 else 1 end, p.id\n",
+    "after": "    where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it\n    order by case when p.id >= n.id then 0 else 1 end, p.id\n"
   }
 ]

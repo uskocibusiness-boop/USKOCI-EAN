@@ -25,7 +25,6 @@ begin
   ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)','5107af3020a3beb7bb45e6e90e7a203b'),
   ('private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)','e29a7bade1437e3f2067924b5179ddfd'),
   ('private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)','417c9db16bbe70ed9ad652380790900c'),
-  ('private.availability_timezone_valid(text)','013f884ca649cb5246f39eaf9f2e0ec9'),
   ('private.effective_radius_km(integer)','fa9b8c7fcafd65ebb4d98f538fff5223'),
   ('private.haversine_km(numeric,numeric,numeric,numeric)','027cf272c3616d952c7f241353ffd5a2'),
   ('private.accounts_same_world(uuid,uuid)','16f541f952d4e1e2dbb4fc87e594d572'),
@@ -33,7 +32,6 @@ begin
   ('private.lower_arr(text[])','07f449cf589196cc8ca349b4f5ca460c'),
   ('private.work_kinds_v5(text[])','78fca96231ddc713cf18990f5a2a34ef'),
   ('private.enqueue_dispatch(uuid,timestamp with time zone)','470ed6ab6501c69bf9ebbfe057ccd0fb'),
-  ('private.candidate_profile_ids(uuid,integer)','dca4ddc8080a52c8af83c33689c5568e'),
   ('private.match_detail(uuid,uuid)','38c7894a8cf43a8f32bd5a30bc2cbd09'),
   ('private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)','781956cab666befab216b3ce2334ca1d'),
   ('private.need_search_time_admitted_v1(uuid,timestamp with time zone)','b830cd07c2a5db101a3a28096256a75b'),
@@ -46,14 +44,22 @@ begin
   ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','e51de37e0883fcd3cd4e6e3c42fb6ee1'),
   ('private.worker_dispatch_time_admitted(uuid,uuid)','4f0beb65922d2b3d947d69e68a56a956'),
   ('private.dispatch_next_wave(uuid)','2b58d69640ac802a5dd3fa3cef6c56d0'),
-  ('private.dispatch_tick(integer,timestamp with time zone)','8798cb6b6f004ecd5d88dd472cd6de0b')) pins(signature,body_md5) loop
+  ('private.dispatch_tick(integer,timestamp with time zone)','8798cb6b6f004ecd5d88dd472cd6de0b'),
+  ('private.availability_timezone_valid(text)','013f884ca649cb5246f39eaf9f2e0ec9'),
+  ('private.candidate_profile_ids(uuid,integer)','dca4ddc8080a52c8af83c33689c5568e')) pins(signature,body_md5) loop
   if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
   then raise exception 'MATCH_V1_PREDECESSOR_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
+ if (select count(*) from pg_catalog.pg_timezone_names where name in ('Europe/Belgrade','UTC'))<>2
+ then raise exception 'MATCH_V1_TIMEZONE_CATALOG_LACKS_FAST_PATH_NAMES' using errcode='55000'; end if;
 end
 $match_v1_pre$;
 create temporary table match_v1_certificate on commit drop as
  select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;
+create temporary table match_v1_tz_probe on commit drop as
+ select v as value, private.availability_timezone_valid(v) as old_result
+ from unnest(array[null,'','UTC','Europe/Belgrade','Europe/Zagreb','Etc/GMT+1','posix/Europe/Belgrade','right/UTC','europe/belgrade',
+   'Mars/Base','EST5EDT','Europe/Belgrade ','America/New_York','Asia/Kolkata',repeat('x',101)]::text[]) v;
 create function private.worker_need_time_tier_v1(nid uuid, pid uuid)
  returns integer
  language plpgsql
@@ -74,21 +80,16 @@ begin
   if not found then return null; end if;
   select * into p from public.app_profiles where id=pid and kind='WORKER' and profile_status='ACTIVE';
   if not found then return null; end if;
-  select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
-  tz:=coalesce(tz,'Europe/Belgrade');
-  if not private.availability_timezone_valid(tz) then return null; end if;
   if n.ends_at is not null and n.ends_at<=at_now then return null; end if;
-  -- "Mogu odmah" counts only while nothing blocks this moment (an unavailable window or a Dogovor).
-  live:=coalesce(p.available_now,false)
-    and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
-      and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
-    and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
-      and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
-  -- "bilo kad": FLEXIBLE / REMOTE_ANYTIME without a complete future window. The time does not matter.
+  -- "bilo kad": FLEXIBLE / REMOTE_ANYTIME without a complete future window. The time does not matter: no zone, no
+  -- schedule and no calendar is read for it.
   if n.schedule_kind in ('FLEXIBLE','REMOTE_ANYTIME')
      and not private.availability_is_future(n.schedule_kind,n.starts_at,n.ends_at,at_now) then
     return 1;
   end if;
+  select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
+  tz:=coalesce(tz,'Europe/Belgrade');
+  if not private.availability_timezone_valid(tz) then return null; end if;
   -- "danas": the publication day in the task's zone (Europe/Belgrade when it has none), a stored bound narrows it.
   -- First "Mogu odmah", then a schedule with real available time left in that day.
   if n.schedule_kind='TODAY_FLEXIBLE' then
@@ -99,6 +100,12 @@ begin
     ws:=coalesce(n.starts_at,anchor_day::timestamp at time zone wtz);
     we:=coalesce(n.ends_at,(anchor_day+1)::timestamp at time zone wtz);
     if not isfinite(ws) or not isfinite(we) or ws>=we or we<=at_now then return null; end if;
+    -- "Mogu odmah" counts only while nothing blocks this moment (an unavailable window or a Dogovor).
+    live:=coalesce(p.available_now,false)
+      and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+        and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+      and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+        and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
     if live then return 1; end if;
     if private.worker_available_periods(pid,greatest(ws,at_now),we,tz)<>'{}'::tstzmultirange then return 2; end if;
     return null;
@@ -128,6 +135,11 @@ begin
   if n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') then return null; end if;
   -- "odmah": the task's own time has begun. First "Mogu odmah" (a fixed window must still fit as before),
   -- then a schedule that covers now and the rest of a fixed window.
+  live:=coalesce(p.available_now,false)
+    and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+      and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+    and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+      and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
   if live then
     if n.schedule_kind='FIXED_WINDOW' and not private.schedule_fit(pid,n.starts_at,n.ends_at,tz) then return null; end if;
     return 1;
@@ -170,20 +182,21 @@ begin
   if p.profile_status<>'ACTIVE' then hard:=array_append(hard,'ACCOUNT_OR_PROFILE_RESTRICTED'); end if;
   if n.requester_account_id=p.account_id then hard:=array_append(hard,'OWN_NEED'); end if;
   if p_first_refusal and cardinality(hard)>0 then return jsonb_build_object('matches',false,'hard',to_jsonb(hard)); end if;
-  -- Kind of work, first the same words: the task names none, or worker and task share a word.
-  svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0
-       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);
-  -- Area: the worker's circle around the task's public point (a route's START point), the same city when a point is missing.
-  select * into pref from public.worker_match_preferences where worker_profile_id=pid;
+  -- Area first (the cheapest and the most selective): the worker's circle around the task's public point (a route's START
+  -- point), the same city when a point is missing. A task far from the worker costs three index reads and one distance.
   radius:=private.effective_radius_km(p.radius_km);
   if n.execution_location_mode='REMOTE' then
     dist:=null; area:=true;
   else
+    select * into pref from public.worker_match_preferences where worker_profile_id=pid;
     dist:=private.haversine_km(n.approximate_lat,n.approximate_lng,pref.approximate_lat,pref.approximate_lng);
     area:=coalesce(case when dist is not null then dist<=radius
       else btrim(coalesce(n.approximate_city,''))<>'' and lower(coalesce(n.approximate_city,''))=lower(coalesce(p.city,'')) end,false);
   end if;
   if p_first_refusal and not area then return jsonb_build_object('matches',false,'area',false); end if;
+  -- Kind of work, first the same words: the task names none, or worker and task share a word.
+  svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0
+       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);
   if not private.accounts_same_world(n.requester_account_id,p.account_id) then hard:=array_append(hard,'OTHER_WORLD'); end if;
   if n.verified_identity_required and not private.identity_admitted(p.account_id)
     then hard:=array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
@@ -228,24 +241,32 @@ as $mv1_body$
 -- a write still committing is never skipped. A task that was already reconsidered after the change, or sits inside a
 -- running wave window (whose next wave sees the worker anyway), is left as it is, so no wave is pulled forward.
 -- The watermark is one row of private.marketplace_config (data, not schema): no trigger and no new table.
+-- Bounded: at most 100 profiles per tick, in (updated_at, account_id) order, with a keyset cursor (so profiles that share one
+-- updated_at, e.g. one bulk UPDATE, are neither skipped nor repeated); the rest follows on the next ticks. The 30 second
+-- cutoff assumes a profile write commits within 30 seconds of its updated_at (that is the transaction start time).
+-- Cost when nothing changed: one config row and one pass over app_profiles.
 declare
-  cfg jsonb; after_at timestamptz; cutoff timestamptz; w record; v_need uuid; profiles integer:=0; queued integer:=0;
+  cfg jsonb; after_at timestamptz; after_acc uuid; cutoff timestamptz; w record; v_need uuid;
+  profiles integer:=0; queued integer:=0; last_at timestamptz; last_acc uuid;
 begin
   if p_at is null or not isfinite(p_at) then return jsonb_build_object('status','SKIPPED','reason','INVALID_TIME'); end if;
   select value into cfg from private.marketplace_config where key='match_v1_profile_requeue' for update skip locked;
   if not found then return jsonb_build_object('status','SKIPPED','reason','NOT_CONFIGURED_OR_BUSY'); end if;
   after_at:=(cfg->>'after')::timestamptz;
+  after_acc:=coalesce((cfg->>'afterAccount')::uuid,'00000000-0000-0000-0000-000000000000'::uuid);
   cutoff:=least(p_at,statement_timestamp())-interval '30 seconds';
   if after_at is null or not isfinite(after_at) then
     return jsonb_build_object('status','SKIPPED','reason','WATERMARK_INVALID');
   end if;
-  if cutoff<=after_at then return jsonb_build_object('status','IDLE','profiles',0,'queued',0); end if;
+  if cutoff<after_at then return jsonb_build_object('status','IDLE','profiles',0,'queued',0); end if;
   for w in
-    select p.account_id, max(p.updated_at) as changed_at from public.app_profiles p
-     where p.kind='WORKER' and p.profile_status='ACTIVE' and p.updated_at>after_at and p.updated_at<=cutoff
-     group by p.account_id order by 2, 1
+    select p.account_id, p.updated_at as changed_at from public.app_profiles p
+     where p.kind='WORKER' and p.profile_status='ACTIVE'
+       and (p.updated_at,p.account_id)>(after_at,after_acc) and p.updated_at<=cutoff
+     order by p.updated_at, p.account_id
+     limit 100
   loop
-    profiles:=profiles+1;
+    profiles:=profiles+1; last_at:=w.changed_at; last_acc:=w.account_id;
     for v_need in
       select n.id from public.needs n
         left join private.dispatch_schedule s on s.need_id=n.id
@@ -264,9 +285,14 @@ begin
       queued:=queued+1;
     end loop;
   end loop;
-  update private.marketplace_config set value=jsonb_set(value,'{after}',to_jsonb(cutoff)),updated_at=statement_timestamp()
+  -- A full batch moves the cursor to its last profile (the rest follows on the next tick); a short batch was everything up to the cutoff.
+  update private.marketplace_config
+     set value=case when profiles>=100
+       then jsonb_set(jsonb_set(value,'{after}',to_jsonb(last_at)),'{afterAccount}',to_jsonb(last_acc))
+       else jsonb_set(jsonb_set(value,'{after}',to_jsonb(cutoff)),'{afterAccount}',to_jsonb('00000000-0000-0000-0000-000000000000'::uuid)) end,
+         updated_at=statement_timestamp()
    where key='match_v1_profile_requeue';
-  return jsonb_build_object('status','DONE','profiles',profiles,'queued',queued,'after',cutoff);
+  return jsonb_build_object('status','DONE','profiles',profiles,'queued',queued,'more',profiles>=100);
 end;
 $mv1_body$;
 revoke all on function private.requeue_changed_worker_profiles_v1(timestamp with time zone) from public, anon, authenticated, service_role;
@@ -274,7 +300,7 @@ do $match_v1_replace$
 declare r record; o oid; body text; def text; meta jsonb; comment_before text;
 begin
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','ef5de901069c1a8cfa729cfb6bbadde9','d1eb6dcd817af8d09b9f4a2a7d4fbf2f',$mv1_body$
+  ('private.match_detail_without_calendar(uuid,uuid)','ef5de901069c1a8cfa729cfb6bbadde9','efd50886ff898f45129d33231761d189',$mv1_body$
 declare
   n public.needs; p public.app_profiles; pref public.worker_match_preferences;
   hard text[] := '{}'; disp text[] := '{}'; reasons text[] := '{}';
@@ -317,10 +343,10 @@ begin
   if n.verified_identity_required and not private.identity_admitted(p.account_id)
     then hard := array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
   -- MATCH-V1: missing tools, vehicles or experience no longer refuse an application.
-  if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))
+  if coalesce(cardinality(p.exclusions),0) > 0 and (private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))
      -- PKG-031b (deep read 9.2/9.3): an exclusion holds for the same kind of work in any spelling
      -- ("selidbe" also keeps out "transport_selidbe").
-     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills))
+     or private.work_kinds_v5(p.exclusions) && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))
     then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;
 
   -- MEKE kapije: blokiraju samo automatsku isporuku. Rucno pretrazivanje ostaje otvoreno.
@@ -671,6 +697,78 @@ begin
                             'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),
                             'profileRequeue',profile_requeue);
 end;
+$mv1_body$),
+  ('private.availability_timezone_valid(text)','013f884ca649cb5246f39eaf9f2e0ec9','07883c6475c5b206a0e00aa43c23ce44',$mv1_body$
+  -- MATCH-V1 (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about
+  -- 110 ms per call measured on canonical DEV) and this helper ran for every worker x task pair of every dispatch wave,
+  -- for every manual application and for every candidate row. The two names below are known to be in the catalog (the
+  -- candidate refuses to apply otherwise) and need no scan; every other value is judged exactly as before.
+  select case
+    when value is null or length(value)>100 then false
+    when value in ('Europe/Belgrade','UTC') then true
+    else (value='UTC' or position('/' in value)>0)
+      and value not like 'posix/%' and value not like 'right/%'
+      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
+  end;
+$mv1_body$),
+  ('private.candidate_profile_ids(uuid,integer)','dca4ddc8080a52c8af83c33689c5568e','5414fa5a122e2055c71dd37993a6ad83',$mv1_body$
+declare
+  n public.needs; admitted integer := 0; c record; task_geog extensions.geography;
+begin
+  select * into n from public.needs where id = nid;
+  if not found or p_limit is null or p_limit < 1 then return; end if;
+
+  if n.execution_location_mode in ('STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED')
+     and n.approx_geog is not null then
+    task_geog := n.approx_geog;
+
+    for c in
+      select pref.worker_profile_id as pid
+      from public.worker_match_preferences pref
+      where pref.approximate_geog is not null
+        and extensions.ST_DWithin(pref.approximate_geog, task_geog, 300000.0)
+      order by pref.approximate_geog OPERATOR(extensions.<->) task_geog, pref.worker_profile_id
+    loop
+      if private.dispatch_cheap_candidate_admitted(n.id, c.pid) then
+        worker_profile_id := c.pid; return next;
+        admitted := admitted + 1;
+        exit when admitted >= p_limit;
+      end if;
+    end loop;
+
+    if admitted < p_limit then
+      for c in
+        select p.id as pid
+        from public.app_profiles p
+        left join public.worker_match_preferences pref on pref.worker_profile_id = p.id
+        where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it
+          and (pref.worker_profile_id is null or pref.approximate_geog is null)
+        order by p.id
+      loop
+        if private.dispatch_cheap_candidate_admitted(n.id, c.pid) then
+          worker_profile_id := c.pid; return next;
+          admitted := admitted + 1;
+          exit when admitted >= p_limit;
+        end if;
+      end loop;
+    end if;
+    return;
+  end if;
+
+  -- Nefizicka Potreba ili bez koordinata: rotacija zasejana ID-jem Potrebe,
+  -- da isti radnici ne budu uvek prvi.
+  for c in
+    select p.id as pid from public.app_profiles p
+    where p.kind = 'WORKER' and p.profile_status = 'ACTIVE' -- MATCH-V1: a draft or suspended profile is never admitted, never visit it
+    order by case when p.id >= n.id then 0 else 1 end, p.id
+  loop
+    if private.dispatch_cheap_candidate_admitted(n.id, c.pid) then
+      worker_profile_id := c.pid; return next;
+      admitted := admitted + 1;
+      exit when admitted >= p_limit;
+    end if;
+  end loop;
+end;
 $mv1_body$)) patches(signature,before_md5,after_md5,new_body) loop
   o:=to_regprocedure(r.signature);
   if o is null then raise exception 'MATCH_V1_MISSING_FUNCTION: %',r.signature using errcode='55000'; end if;
@@ -688,26 +786,30 @@ $mv1_body$)) patches(signature,before_md5,after_md5,new_body) loop
 end
 $match_v1_replace$;
 insert into private.marketplace_config(key,value,updated_at)
- values('match_v1_profile_requeue',jsonb_build_object('after',statement_timestamp(),'owner','MATCH-V1 2026-10-07'),statement_timestamp());
+ values('match_v1_profile_requeue',jsonb_build_object('after',statement_timestamp(),'afterAccount','00000000-0000-0000-0000-000000000000','owner','MATCH-V1 2026-10-07'),statement_timestamp());
 do $match_v1_post$
 declare r record;
 begin
+ if exists(select 1 from match_v1_tz_probe t where private.availability_timezone_valid(t.value) is distinct from t.old_result)
+ then raise exception 'MATCH_V1_TIMEZONE_HELPER_TRUTH_TABLE_CHANGED' using errcode='55000'; end if;
  for r in select * from (values
-  ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c','s'),
-  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd','s'),
+  ('private.worker_need_time_tier_v1(uuid,uuid)','753027749309ccc110f486cbfb4866e4','s'),
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','ab221f0091d78856bb42f702ddecd016','s'),
   ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41','s'),
-  ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','b608188b561dce987b4cc9bbc74eac56','v')) made(signature,body_md5,volatility) loop
+  ('private.requeue_changed_worker_profiles_v1(timestamp with time zone)','a09463f0ddc62b28c3876daffb9e1adb','v')) made(signature,body_md5,volatility) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile=r.volatility and p.proowner='postgres'::regrole
       and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres}')<>1
   then raise exception 'MATCH_V1_NEW_FUNCTION_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  for r in select * from (values
-  ('private.match_detail_without_calendar(uuid,uuid)','d1eb6dcd817af8d09b9f4a2a7d4fbf2f'),
+  ('private.match_detail_without_calendar(uuid,uuid)','efd50886ff898f45129d33231761d189'),
   ('private.dispatch_cheap_candidate_admitted(uuid,uuid)','cec5c0a2c13af6718af53b7a80245f28'),
   ('private.worker_dispatch_time_admitted(uuid,uuid)','a58f1d1a2d21fa057867c153ae62ba4e'),
   ('private.dispatch_next_wave(uuid)','cafdef0ff95b5dc6467f4fa1db3dafc0'),
-  ('private.dispatch_tick(integer,timestamp with time zone)','947783612b6bea3170cdbc6dd657e6fd')) pins(signature,body_md5) loop
+  ('private.dispatch_tick(integer,timestamp with time zone)','947783612b6bea3170cdbc6dd657e6fd'),
+  ('private.availability_timezone_valid(text)','07883c6475c5b206a0e00aa43c23ce44'),
+  ('private.candidate_profile_ids(uuid,integer)','5414fa5a122e2055c71dd37993a6ad83')) pins(signature,body_md5) loop
   if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
   then raise exception 'MATCH_V1_POSTIMAGE_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;

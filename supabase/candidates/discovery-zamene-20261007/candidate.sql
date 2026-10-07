@@ -19,8 +19,8 @@ begin
   or exists(select 1 from pg_proc p where p.pronamespace='public'::regnamespace and p.proname in ('discovery_for_me_v1','discovery_for_me_state_v1'))
  then raise exception 'DISCOVERY_ZAMENE_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
-  ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c'),
-  ('private.worker_need_fit_v1(uuid,uuid,boolean)','e6b4cb1dd3c6bddbd2eefd81ee9705dd'),
+  ('private.worker_need_time_tier_v1(uuid,uuid)','753027749309ccc110f486cbfb4866e4'),
+  ('private.worker_need_fit_v1(uuid,uuid,boolean)','ab221f0091d78856bb42f702ddecd016'),
   ('private.worker_need_match_v1(uuid,uuid)','ef94ef7de07a347824ace68789f08c41')) pins(signature,body_md5) loop
   if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
   then raise exception 'DISCOVERY_ZAMENE_REQUIRES_MATCH_V1: %',r.signature using errcode='55000'; end if;
@@ -235,11 +235,11 @@ begin
    where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null
     and n.remaining_search_closed_at is null and n.published_at<=through_at
     and (price='all' or n.mode=price)
-    and (not for_me or public.discovery_for_me_v1(n.id))
     and (location_mode='any' or location_mode='remote' and n.execution_location_mode='REMOTE'
       or location_mode='onsite' and n.execution_location_mode is not null and n.execution_location_mode<>'REMOTE')
     and (people=1 or greatest(0,coalesce(nullif(n.required_slots,0),1)
       -coalesce(public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))),0))>=people)
+    and (not for_me or public.discovery_for_me_v1(n.id))
   ), place_wanted as materialized (
    select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
     when 'today' then array[today::text,today::text]
@@ -342,7 +342,6 @@ begin
    when 'next7' then array[today::text,(today+6)::text]
    when 'weekend' then array[(today+greatest(0,6-extract(isodow from today)::integer))::text,(today+7-extract(isodow from today)::integer)::text] else null end end as wanted
   from base b where (price='all' or b.mode=price)
-   and (not for_me or public.discovery_for_me_v1(b.id))
    and (location_mode='any' or location_mode='remote' and b.execution_location_mode='REMOTE'
      or location_mode='onsite' and b.execution_location_mode is not null and b.execution_location_mode<>'REMOTE')
    and (people=1 or greatest(0,coalesce(nullif(b.required_slots,0),1)-coalesce(b.covered_now,0))>=people)
@@ -350,6 +349,7 @@ begin
      and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))
    and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0
     or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0)
+   and (not for_me or public.discovery_for_me_v1(b.id))
  ), qualified as materialized (
   select s.*,(wanted is null or days[1]<=wanted[2] and days[2]>=wanted[1]) is true as time_ok,
    case when scope_mode='ALL' then true when not has_point then false when scope_mode='AREA' then
@@ -454,7 +454,7 @@ begin
 exception when invalid_text_representation or datetime_field_overflow or invalid_datetime_format or numeric_value_out_of_range then
  raise exception 'P6_INVALID_REQUEST' using errcode='22023';
 end $dz_body$);
- if (select md5(p.prosrc) from pg_proc p where p.oid=o) is distinct from '0415f81dd6861e418dab1918fab29e48'
+ if (select md5(p.prosrc) from pg_proc p where p.oid=o) is distinct from '6c76df5d8d1ab692055ecec49f1a0373'
   or (select to_jsonb(p)-'prosrc' from pg_proc p where p.oid=o) is distinct from meta
   or obj_description(o,'pg_proc') is distinct from comment_before
  then raise exception 'DISCOVERY_ZAMENE_POSTIMAGE_OR_METADATA_DRIFT' using errcode='55000'; end if;

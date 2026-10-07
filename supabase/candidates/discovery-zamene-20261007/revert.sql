@@ -34,7 +34,7 @@ begin
  o:=to_regprocedure('public.rpc_discovery_v1(jsonb)');
  if o is null then raise exception 'DISCOVERY_ZAMENE_REVERT_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
- if md5(body) is distinct from '0415f81dd6861e418dab1918fab29e48' then raise exception 'DISCOVERY_ZAMENE_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
+ if md5(body) is distinct from '6c76df5d8d1ab692055ecec49f1a0373' then raise exception 'DISCOVERY_ZAMENE_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'DISCOVERY_ZAMENE_REVERT_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
  execute replace(def,body,$dz_body$

@@ -21,12 +21,12 @@
   },
   {
     "signature": "public.rpc_discovery_v1(jsonb)",
-    "before": "    and n.remaining_search_closed_at is null and n.published_at<=through_at\n    and (price='all' or n.mode=price)\n",
-    "after": "    and n.remaining_search_closed_at is null and n.published_at<=through_at\n    and (price='all' or n.mode=price)\n    and (not for_me or public.discovery_for_me_v1(n.id))\n"
+    "before": ",0))>=people)\n  ), place_wanted as materialized (",
+    "after": ",0))>=people)\n    and (not for_me or public.discovery_for_me_v1(n.id))\n  ), place_wanted as materialized ("
   },
   {
     "signature": "public.rpc_discovery_v1(jsonb)",
-    "before": "  from base b where (price='all' or b.mode=price)\n",
-    "after": "  from base b where (price='all' or b.mode=price)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n"
+    "before": "),query_text)>0)\n ), qualified as materialized (",
+    "after": "),query_text)>0)\n   and (not for_me or public.discovery_for_me_v1(b.id))\n ), qualified as materialized ("
   }
 ]

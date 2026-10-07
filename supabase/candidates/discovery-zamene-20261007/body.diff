@@ -43,19 +43,19 @@
   -- PLACES binds its prefix/area too; the documented count/text/key cursor
   -- cannot be reused under another facet context without a fresh anchor.
   filter_key:=md5(case when request_mode='PLACES' then jsonb_build_object('filter',f,'prefix',prefix_text,'facetArea',facet_area)::text else f::text end);
-@@ -149,6 +161,7 @@
-    where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null
-     and n.remaining_search_closed_at is null and n.published_at<=through_at
-     and (price='all' or n.mode=price)
-+    and (not for_me or public.discovery_for_me_v1(n.id))
-     and (location_mode='any' or location_mode='remote' and n.execution_location_mode='REMOTE'
+@@ -153,6 +165,7 @@
        or location_mode='onsite' and n.execution_location_mode is not null and n.execution_location_mode<>'REMOTE')
      and (people=1 or greatest(0,coalesce(nullif(n.required_slots,0),1)
-@@ -255,6 +268,7 @@
-    when 'next7' then array[today::text,(today+6)::text]
-    when 'weekend' then array[(today+greatest(0,6-extract(isodow from today)::integer))::text,(today+7-extract(isodow from today)::integer)::text] else null end end as wanted
-   from base b where (price='all' or b.mode=price)
+       -coalesce(public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))),0))>=people)
++    and (not for_me or public.discovery_for_me_v1(n.id))
+   ), place_wanted as materialized (
+    select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
+     when 'today' then array[today::text,today::text]
+@@ -262,6 +275,7 @@
+      and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))
+    and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0
+     or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0)
 +   and (not for_me or public.discovery_for_me_v1(b.id))
-    and (location_mode='any' or location_mode='remote' and b.execution_location_mode='REMOTE'
-      or location_mode='onsite' and b.execution_location_mode is not null and b.execution_location_mode<>'REMOTE')
-    and (people=1 or greatest(0,coalesce(nullif(b.required_slots,0),1)-coalesce(b.covered_now,0))>=people)
+  ), qualified as materialized (
+   select s.*,(wanted is null or days[1]<=wanted[2] and days[2]>=wanted[1]) is true as time_ok,
+    case when scope_mode='ALL' then true when not has_point then false when scope_mode='AREA' then

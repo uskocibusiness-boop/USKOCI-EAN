@@ -21,7 +21,7 @@ const report = {unit: 'MATCH-V1 + DISCOVERY-ZAMENE', result: 'RUNNING', sourceSh
 const write = () => fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
 const pass = (name, detail) => { report.checks.push({name, result: 'PASS', ...(detail === undefined ? {} : {detail})}); write(); console.log('PASS ' + name); };
 const psqlFile = file => execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', file], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
-// Long statements (ticks, load measurements) get their own bound and their wall time is recorded.
+// Long statements (ticks) get their own bound and their wall time is recorded.
 function timedSql(text, timeout = 600000) {
   const started = Date.now();
   const output = execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-At'], {input: text, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout}).trim();
@@ -46,6 +46,10 @@ const closure = () => rows(`select private.closure_source_digest_v5() as digest,
 const conflicts40001 = () => Number(sql(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prosrc like '%40001%'`));
 const watermarkRows = () => Number(sql(`select count(*) from private.marketplace_config where key='match_v1_profile_requeue'`));
 const bodyMd5 = signature => sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(signature)})`);
+// Truth table of the shared zone helper (the candidate replaces its body; every answer must stay the same).
+const TZ_PROBES = [null, '', 'UTC', 'Europe/Belgrade', 'Europe/Zagreb', 'Europe/Sarajevo', 'Etc/GMT+1', 'posix/Europe/Belgrade', 'right/UTC', 'europe/belgrade',
+  'Mars/Base', 'EST5EDT', 'Europe/Belgrade ', 'UTC ', 'America/New_York', 'Asia/Kolkata', 'Asia/Tokyo', 'x'.repeat(101)];
+const tzTruth = () => rows(`select v as value, private.availability_timezone_valid(v) as result from unnest(array[${TZ_PROBES.map(v => v === null ? 'null' : q(v)).join(',')}]::text[]) with ordinality t(v, i) order by i`);
 
 const fx = createFixtures(rt, {needPath: 'direct'});
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
@@ -239,83 +243,6 @@ async function replayDefault(zs, snapshot, filter = FILTER) {
 }
 const sameResponses = (a, b) => { for (const k of ['page', 'map', 'places']) assert.deepEqual(strip(b[k]), strip(a[k]), 'RESPONSE_CHANGED:' + k); };
 
-// ---------------------------------------------------------------- load measurement (old bodies vs MATCH-V1, same data)
-// Synthetic SQL rows, labelled: 300 ACTIVE workers around Novi Sad (10 kinds of work, radius 10-50 km, half "Mogu odmah",
-// two thirds with a weekly schedule) and 100 open tasks (FLEXIBLE, TODAY_FLEXIBLE, a future FIXED_WINDOW). Written with
-// triggers off because no product writer creates bulk rows; the matcher only reads them. Disposable database only.
-const LOAD_WORKERS = 300, LOAD_TASKS = 100;
-const POOL = "array['fizicki poslovi','selidba','ciscenje stana','montaza namestaja','sitne popravke','molerski radovi','dostava','uredjenje baste','mv1-load-a','mv1-load-b']";
-function seedLoad() {
-  timedSql(`begin; set local session_replication_role=replica;
-  create temporary table mv1_load on commit drop as select gen_random_uuid() as account_id, gen_random_uuid() as profile_id, g as i from generate_series(1,${LOAD_WORKERS}) g;
-  insert into public.app_accounts(id,email) select account_id,'mv1-load-'||i||'@proof.invalid' from mv1_load;
-  insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,radius_km,available_now)
-   select profile_id,account_id,'WORKER','MV1 load '||i,'Novi Sad','ACTIVE',array[(${POOL})[1+(i%10)]],(array[10,15,25,50])[1+(i%4)],i%2=0 from mv1_load;
-  insert into public.worker_match_preferences(worker_profile_id,worker_account_id,approximate_lat,approximate_lng)
-   select profile_id,account_id,round((45.27+((i*37)%80-40)/100.0)::numeric,2),round((19.83+((i*53)%80-40)/100.0)::numeric,2) from mv1_load;
-  insert into public.profile_availability_rules(profile_id,weekdays,start_time,end_time,starts_on,label)
-   select profile_id,array[0,1,2,3,4,5,6],'08:00','20:00','2026-01-01','MV1 load' from mv1_load where i%3<>0;
-  insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,required_tools,required_vehicles,
-    required_licenses,minimum_experience_years,verified_identity_required,approximate_city,approximate_area,approximate_lat,approximate_lng,mode,required_slots,
-    schedule_kind,starts_at,ends_at,execution_location_mode,task_country_code,task_timezone,response_deadline,published_at)
-   select gen_random_uuid(),${q(R.id)}::uuid,${q(R.profileId)}::uuid,'PUBLISHED','MV1 opterecenje '||g,'Sinteticki zadatak za merenje brzine.','MV1 load',
-    array[(${POOL})[1+(g%10)]],'{}','{}','{}',0,false,'Novi Sad','',
-    round((45.27+((g*29)%60-30)/100.0)::numeric,2),round((19.83+((g*41)%60-30)/100.0)::numeric,2),'OFFERS',1,
-    (array['FLEXIBLE','FLEXIBLE','TODAY_FLEXIBLE','FIXED_WINDOW','FLEXIBLE'])[1+(g%5)],
-    case when g%5=3 then date_trunc('hour',statement_timestamp())+interval '2 days 10 hours' end,
-    case when g%5=3 then date_trunc('hour',statement_timestamp())+interval '2 days 12 hours' end,
-    'STATIONARY','RS','Europe/Belgrade',statement_timestamp()+interval '2 days',statement_timestamp()
-   from generate_series(1,${LOAD_TASKS}) g;
-  commit;`);
-}
-const MS_FN = `create function pg_temp.mv1_ms(q text) returns jsonb language plpgsql as $f$
-declare t timestamptz:=clock_timestamp(); n bigint;
-begin execute q into n; return jsonb_build_object('ms',round((extract(epoch from clock_timestamp()-t)*1000)::numeric,1),'rows',n); end $f$;`;
-const TASKS20 = `(select id from public.needs where category='MV1 load' order by id limit 20)`;
-const LOADW = `(select id from public.app_profiles where display_name like 'MV1 load %')`;
-function measureLoad(newCode) {
-  const sizes = JSON.parse(timedSql(`select jsonb_build_object('workerProfiles',(select count(*) from public.app_profiles where kind='WORKER'),
-    'activeWorkers',(select count(*) from public.app_profiles where kind='WORKER' and profile_status='ACTIVE'),
-    'workersWithPoint',(select count(*) from public.worker_match_preferences where approximate_geog is not null),
-    'openTasks',(select count(*) from public.needs where status in ('PUBLISHED','SELECTION')),'loadTasks',(select count(*) from public.needs where category='MV1 load'))`).output);
-  const read = JSON.parse(timedSql(`${MS_FN}
-  select jsonb_build_object(
-   'candidateRetrievalAllLoadTasks',pg_temp.mv1_ms($q$select count(*) from public.needs n cross join lateral private.candidate_profile_ids(n.id,40) c where n.category='MV1 load'$q$),
-   'prefilter20x300',pg_temp.mv1_ms($q$select count(*) filter (where private.dispatch_cheap_candidate_admitted(n.id,p.id)) from ${TASKS20} n cross join ${LOADW} p$q$),
-   'detailedMatcher20x300',pg_temp.mv1_ms($q$select count(*) filter (where (private.match_detail(n.id,p.id)->>'dispatchEligible')::boolean) from ${TASKS20} n cross join ${LOADW} p$q$)
-   ${newCode ? `,'rule20x300',pg_temp.mv1_ms($q$select count(*) filter (where private.worker_need_match_v1(n.id,p.id)) from ${TASKS20} n cross join ${LOADW} p$q$)
-   ,'draftProfiles',(select count(*) from public.app_profiles where kind='WORKER' and profile_status<>'ACTIVE')
-   ,'fullRuleOnEveryDraftProfileOneTask',pg_temp.mv1_ms($q$select count(*) filter (where (private.worker_need_fit_v1(t.id,p.id,false)->>'matches')::boolean) from (select id from public.needs where category='MV1 load' order by id limit 1) t cross join public.app_profiles p where p.kind='WORKER' and p.profile_status<>'ACTIVE'$q$)
-   ,'prefilterOnEveryDraftProfileOneTask',pg_temp.mv1_ms($q$select count(*) filter (where private.dispatch_cheap_candidate_admitted(t.id,p.id)) from (select id from public.needs where category='MV1 load' order by id limit 1) t cross join public.app_profiles p where p.kind='WORKER' and p.profile_status<>'ACTIVE'$q$)` : ''});`).output.split('\n').at(-1));
-  const waves = JSON.parse(timedSql(`begin;
-  ${MS_FN}
-  select pg_temp.mv1_ms($q$select count(*) from (select private.dispatch_next_wave(id) as r from public.needs where category='MV1 load') x where x.r->>'status'='SENT'$q$);
-  rollback;`).output.split('\n').filter(Boolean).at(-1));
-  const result = {sizes, ...read, wavesAllLoadTasksRolledBack: waves};
-  if (newCode) {
-    result.profileRequeue50ChangedWorkers = JSON.parse(timedSql(`begin;
-    ${MS_FN}
-    set local session_replication_role=replica;
-    update public.app_profiles set updated_at=statement_timestamp()-interval '40 seconds' where id in (select id from ${LOADW} x order by id limit 50);
-    update private.marketplace_config set value=jsonb_set(value,'{after}',to_jsonb(statement_timestamp()-interval '10 minutes')) where key='match_v1_profile_requeue';
-    set local session_replication_role=origin;
-    select pg_temp.mv1_ms($q$select (private.requeue_changed_worker_profiles_v1(statement_timestamp())->>'queued')::bigint$q$);
-    rollback;`).output.split('\n').filter(Boolean).at(-1));
-  }
-  const perTask = (entry, n) => entry ? Math.round(entry.ms / n * 10) / 10 : null;
-  result.perLoadTaskMs = {candidateRetrieval: perTask(result.candidateRetrievalAllLoadTasks, sizes.loadTasks), wave: perTask(waves, sizes.loadTasks)};
-  result.perPairMs = {prefilter: perTask(read.prefilter20x300, 20 * LOAD_WORKERS), detailedMatcher: perTask(read.detailedMatcher20x300, 20 * LOAD_WORKERS),
-    ...(read.rule20x300 ? {rule: perTask(read.rule20x300, 20 * LOAD_WORKERS)} : {})};
-  return result;
-}
-// The prefilter plan for a DRAFT profile: a parameter-only rule call is a One-Time Filter (runs before the status filter);
-// MATCH-V1 passes the row columns, so the rule becomes a Join Filter that a DRAFT row never reaches.
-function prefilterPlan(body, needId, profileId) {
-  const query = body.replace(/--[^\n]*/g, '').replace(/\bnid\b/g, q(needId) + '::uuid').replace(/\bpid\b/g, q(profileId) + '::uuid');
-  const plan = timedSql(`explain (analyze, costs off, timing off, summary off) ${query}`).output;
-  return plan.split('\n').filter(line => /One-Time Filter|Join Filter|Filter:|Index Scan|Result/.test(line)).map(line => line.trim()).slice(0, 12);
-}
-
 try {
   const paused = fx.pauseSchedulers();
   report.observations.schedulers = paused;
@@ -347,6 +274,9 @@ try {
   pass('MATCH_V1_DRIFT_AND_ORDER_REFUSALS_ARE_ATOMIC');
 
   // ---------------------------------------------------------------- MATCH-V1
+  // The zone helper before the change: its answers, and what one call costs (it scans the whole zone catalog).
+  const tzBefore = tzTruth();
+  const tzOldMs = timedSql(`select count(*) from generate_series(1,5) g where private.availability_timezone_valid(case when g>0 then 'Europe/Belgrade' end)`).ms;
   psqlFile(M + 'candidate.sql');
   for (const f of mManifest.functions) assert.equal(bodyMd5(f.signature), f.after_md5, 'POSTIMAGE:' + f.signature);
   for (const f of mManifest.newFunctions) assert.equal(bodyMd5(f.signature), f.body_md5, 'NEW:' + f.signature);
@@ -354,8 +284,48 @@ try {
   assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001); assert.equal(watermarkRows(), 1);
   pass('MATCH_V1_APPLIED_EXACT_BODIES_CERTIFICATE_UNCHANGED_NO_NEW_40001', {certificate: baseClosure.certificate});
   refused(candidate, 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED');
+  assert.deepEqual(tzTruth(), tzBefore, 'ZONE_HELPER_ANSWERS_CHANGED');
+  const tzNewMs = timedSql(`select count(*) from generate_series(1,200) g where private.availability_timezone_valid(case when g>0 then 'Europe/Belgrade' end)`).ms;
+  assert.ok(tzNewMs < 3000, 'ZONE_HELPER_STILL_SCANS_THE_CATALOG:' + tzNewMs);
+  pass('MATCH_V1_ZONE_HELPER_SAME_ANSWERS_AND_NO_CATALOG_SCAN_FOR_THE_PRODUCT_ZONE',
+    {probes: TZ_PROBES.length, oldWallMsFor5Calls: tzOldMs, newWallMsFor200Calls: tzNewMs, answers: tzBefore.map(r => r.result)});
   await fx.reloadSchema();
   expectNew(await matchingCases('after'));
+  // The first-refusal evaluation (prefilter, "Za mene") and the full one (detailed matcher) must agree on every pair on this chain.
+  const consistency = rows(`select count(*)::integer as pairs, count(*) filter (where (private.worker_need_fit_v1(n.id,p.id,true)->>'matches')
+      is distinct from (private.worker_need_fit_v1(n.id,p.id,false)->>'matches'))::integer as mismatches,
+    count(*) filter (where (private.worker_need_fit_v1(n.id,p.id,true)->>'matches')::boolean)::integer as matching
+    from public.needs n cross join public.app_profiles p where p.kind='WORKER' and n.status in ('PUBLISHED','SELECTION')`)[0];
+  assert.ok(consistency.pairs > 100 && consistency.matching > 0 && consistency.mismatches === 0, 'FIT_MODES_DISAGREE:' + JSON.stringify(consistency));
+  pass('MATCH_V1_FIRST_REFUSAL_AND_FULL_EVALUATION_AGREE_ON_EVERY_PAIR', consistency);
+  // The re-queue cursor: 250 profiles that share ONE updated_at (a bulk UPDATE) are handled 100 per tick, none skipped, none repeated.
+  const cursorRun = JSON.parse(timedSql(`begin;
+    set local session_replication_role=replica;
+    create temporary table mv1_cursor on commit drop as select gen_random_uuid() as account_id, gen_random_uuid() as profile_id, g as i from generate_series(1,250) g;
+    insert into public.app_accounts(id,email) select account_id,'mv1-cursor-'||i||'@proof.invalid' from mv1_cursor;
+    insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,radius_km,available_now,updated_at)
+     select profile_id,account_id,'WORKER','MV1 cursor '||i,'Novi Sad','ACTIVE',array['mv1-cursor'],15,false,statement_timestamp()-interval '5 minutes' from mv1_cursor;
+    set local session_replication_role=origin;
+    do $t$
+    declare r jsonb; seq jsonb:='[]'::jsonb; others bigint; after_at timestamptz:=statement_timestamp()-interval '10 minutes';
+    begin
+      select count(*) into others from public.app_profiles p where p.kind='WORKER' and p.profile_status='ACTIVE' and p.display_name not like 'MV1 cursor %'
+        and p.updated_at>after_at and p.updated_at<=statement_timestamp()-interval '30 seconds';
+      update private.marketplace_config set value=jsonb_build_object('after',after_at,'afterAccount','00000000-0000-0000-0000-000000000000') where key='match_v1_profile_requeue';
+      for i in 1..5 loop
+        r:=private.requeue_changed_worker_profiles_v1(statement_timestamp());
+        seq:=seq||jsonb_build_array(r->'profiles');
+      end loop;
+      perform set_config('mv1.cursor', jsonb_build_object('others',others,'seq',seq,
+        'afterAccount',(select value->>'afterAccount' from private.marketplace_config where key='match_v1_profile_requeue'))::text, false);
+    end $t$;
+    select current_setting('mv1.cursor');
+    rollback;`).output.split('\n').filter(Boolean).at(-1));
+  const cursorTotal = 250 + Number(cursorRun.others);
+  assert.deepEqual(cursorRun.seq, [Math.min(100, cursorTotal), Math.min(100, Math.max(0, cursorTotal - 100)), Math.max(0, Math.min(100, cursorTotal - 200)), Math.max(0, cursorTotal - 300), 0], 'REQUEUE_CURSOR_SEQUENCE');
+  assert.equal(cursorRun.afterAccount, '00000000-0000-0000-0000-000000000000');
+  assert.equal(watermarkRows(), 1);
+  pass('MATCH_V1_REQUEUE_CURSOR_100_PER_TICK_TIES_NEITHER_SKIPPED_NOR_REPEATED', cursorRun);
   await forMeRefusedAsUnknownKey(zs, 'AFTER_MATCH_V1');
   const ids = zIds(zs), Zp = zs.Z.profileId;
   const expected = {z1: true, z2: true, z3: false, z4: false, z5: false, z6: true, z7: true};
@@ -416,44 +386,6 @@ try {
   await fx.reloadSchema();
   expectOld(await matchingCases('reverted'), 'REVERTED');
 
-  // ---------------------------------------------------------------- load: old bodies vs MATCH-V1 (+ DISCOVERY-ZAMENE), same data
-  seedLoad();
-  const cheapSig = 'private.dispatch_cheap_candidate_admitted(uuid,uuid)';
-  const cheapBody = () => sql(`select prosrc from pg_proc where oid=to_regprocedure(${q(cheapSig)})`);
-  const loadTask = sql(`select id from public.needs where category='MV1 load' order by id limit 1`);
-  const draftProfile = sql(`select id from public.app_profiles where kind='WORKER' and profile_status<>'ACTIVE' order by id limit 1`);
-  const load = {old: measureLoad(false)};
-  load.old.prefilterPlanForDraftProfile = prefilterPlan(cheapBody(), loadTask, draftProfile);
-  report.observations.load = load; write();
-  psqlFile(M + 'candidate.sql'); psqlFile(D + 'candidate.sql');
-  await fx.reloadSchema();
-  load.new = measureLoad(true);
-  load.new.prefilterPlanForDraftProfile = prefilterPlan(cheapBody(), loadTask, draftProfile);
-  report.observations.load = load; write();
-  const viewer = await fx.createWorker({label: 'mv1-load-viewer', skills: ['fizicki poslovi'], radiusKm: 25, location: {city: 'Novi Sad'},
-    availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: []}});
-  async function timedDiscovery(request) {
-    const runs = [];
-    for (let i = 0; i < 3; i++) {
-      const started = Date.now(), response = await ok(disc(viewer, request));
-      runs.push({ms: Date.now() - started, mapped: Number(response.counts?.mapped ?? response.counts?.everywhere ?? -1)});
-    }
-    return {medianMs: runs.map(r => r.ms).sort((a, b) => a - b)[1], mapped: runs.at(-1).mapped};
-  }
-  load.new.discoveryHttp = {
-    pageAll: await timedDiscovery({mode: 'PAGE', filter: FILTER, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null}),
-    pageForMe: await timedDiscovery({mode: 'PAGE', filter: {...FILTER, forMe: true}, anchor: null, scope: {kind: 'ALL'}, limit: 100, after: null}),
-    mapAll: await timedDiscovery({mode: 'MAP', filter: FILTER, anchor: null, bounds: BOUNDS, grid: 12}),
-    mapForMe: await timedDiscovery({mode: 'MAP', filter: {...FILTER, forMe: true}, anchor: null, bounds: BOUNDS, grid: 12}),
-  };
-  report.observations.load = load; write();
-  psqlFile(D + 'revert.sql'); psqlFile(M + 'revert.sql');
-  assert.equal(catalog(), baseCatalog); assert.deepEqual(closure(), baseClosure); assert.equal(watermarkRows(), 0);
-  assert.ok(!load.new.prefilterPlanForDraftProfile.some(line => /One-Time Filter: .*worker_need_match_v1/.test(line)), 'RULE_IS_A_ONE_TIME_FILTER');
-  assert.ok(load.new.perLoadTaskMs.wave < 2000 && load.new.perLoadTaskMs.candidateRetrieval < 2000, 'WAVE_TOO_SLOW');
-  assert.ok(load.new.discoveryHttp.pageForMe.medianMs < 5000, 'FOR_ME_TOO_SLOW');
-  pass('MATCH_V1_LOAD_TIMINGS_OLD_AND_NEW_ON_THE_SAME_DATA', {sizes: load.new.sizes, oldPerTask: load.old.perLoadTaskMs, newPerTask: load.new.perLoadTaskMs,
-    oldPerPair: load.old.perPairMs, newPerPair: load.new.perPairMs, discoveryHttp: load.new.discoveryHttp, requeue: load.new.profileRequeue50ChangedWorkers});
   report.observations.auth = fx.authStats();
   report.result = 'PASS'; write();
   console.log('PASS MATCH_V1_DISCOVERY_ZAMENE_RUNTIME');
