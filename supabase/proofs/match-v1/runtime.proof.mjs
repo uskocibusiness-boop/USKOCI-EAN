@@ -59,7 +59,17 @@ const fx = createFixtures(rt, {needPath: 'direct'});
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
 const BOUNDS = [18, 42, 23, 47];
 const NOVI_SAD = {lat: 45.27, lng: 19.83}, BEOGRAD = {lat: 44.82, lng: 20.46};
-const disc = (actor, request) => actor.client.rpc('rpc_discovery_v1', {p_request: request});
+// A transport hiccup (an idle keep-alive connection closed by the gateway, a schema reload in progress) is retried; every call below is idempotent.
+async function withRetry(make) {
+  let last;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    last = await make();
+    if (!(last?.error && /fetch failed/i.test(String(last.error.message ?? last.error)))) return last;
+    await sleep(2500);
+  }
+  return last;
+}
+const disc = (actor, request) => withRetry(() => actor.client.rpc('rpc_discovery_v1', {p_request: request}));
 const strip = response => { const copy = structuredClone(response); delete copy.asOf; if (copy.counts) delete copy.counts.observedAt; return copy; };
 async function pageAll(actor, filter, scope = {kind: 'ALL'}) {
   let anchor = null, after = null, first = null;
@@ -137,7 +147,7 @@ async function matchingCases(phase) {
     const n = await make({skill: s}), n2 = await make({skill: s2});
     const t1 = tick();
     const first = fx.readSchedule(n.needId), firstN2 = fx.readSchedule(n2.needId);
-    await ok(w.client.from('app_profiles').update({skills: [other, s, s2]}).eq('id', w.profileId).eq('account_id', w.id).eq('kind', 'WORKER').select('id').single());
+    await ok(withRetry(() => w.client.from('app_profiles').update({skills: [other, s, s2]}).eq('id', w.profileId).eq('account_id', w.id).eq('kind', 'WORKER').select('id').single()));
     await sleep(32000);
     const second = tick();
     const d = delivered(n, w), dInsideWindow = delivered(n2, w);
