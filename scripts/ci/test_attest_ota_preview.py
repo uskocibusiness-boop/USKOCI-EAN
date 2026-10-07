@@ -87,5 +87,46 @@ class PreviewBoundary(unittest.TestCase):
             validate_manifest(xml, lambda _: RUNTIME)
 
 
+class SigningTool(unittest.TestCase):
+    """The signing fingerprint comes from the SDK's newest build-tools apksigner, read from stdout and stderr."""
+
+    def test_newest_build_tools_by_number_not_by_string(self):
+        import os, tempfile
+        from pathlib import Path
+        import attest_ota_preview as a
+        with tempfile.TemporaryDirectory() as sdk:
+            for version in ("9.0.0", "34.0.0", "36.0.0"):
+                tool = Path(sdk, "build-tools", version, "apksigner")
+                tool.parent.mkdir(parents=True)
+                tool.write_text("")
+            old = os.environ.get("ANDROID_HOME")
+            os.environ["ANDROID_HOME"] = sdk
+            try:
+                self.assertEqual(Path(a.sdk_tool("apksigner")).parent.name, "36.0.0")
+            finally:
+                if old is None:
+                    os.environ.pop("ANDROID_HOME", None)
+                else:
+                    os.environ["ANDROID_HOME"] = old
+
+    def test_fingerprint_read_from_stderr_and_missing_one_refused(self):
+        import subprocess
+        from pathlib import Path
+        from unittest import mock
+        import attest_ota_preview as a
+        digest = "ab" * 32
+        on_stderr = subprocess.CompletedProcess([], 0, stdout="Verifies\n", stderr=f"Signer #1 certificate SHA-256 digest: {digest}\n")
+        with mock.patch.object(a, "sdk_tool", return_value="apksigner"), mock.patch.object(a.subprocess, "run", return_value=on_stderr):
+            self.assertEqual(a.apk_signing_fingerprints(Path("x.apk")), [digest])
+        nothing = subprocess.CompletedProcess([], 0, stdout="Verifies\n", stderr="")
+        with mock.patch.object(a, "sdk_tool", return_value="apksigner"), mock.patch.object(a.subprocess, "run", return_value=nothing):
+            with self.assertRaisesRegex(ValueError, "APK_SIGNING_FINGERPRINT_MISSING"):
+                a.apk_signing_fingerprints(Path("x.apk"))
+        refused = subprocess.CompletedProcess([], 1, stdout="DOES NOT VERIFY\n", stderr="")
+        with mock.patch.object(a, "sdk_tool", return_value="apksigner"), mock.patch.object(a.subprocess, "run", return_value=refused):
+            with self.assertRaisesRegex(ValueError, "APK_SIGNATURE_DOES_NOT_VERIFY"):
+                a.apk_signing_fingerprints(Path("x.apk"))
+
+
 if __name__ == "__main__":
     unittest.main()

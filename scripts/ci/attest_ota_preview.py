@@ -120,14 +120,38 @@ def run(*args: str) -> str:
     return subprocess.check_output(args, text=True, stderr=subprocess.PIPE).strip()
 
 
+def _version_key(path: Path) -> tuple:
+    """Numeric order of an SDK directory such as build-tools/36.0.0 (a plain string sort puts 9.0.0 after 36.0.0)."""
+    return tuple(int(part) if part.isdigit() else -1 for part in re.split(r"[.\-]", path.parent.name))
+
+
 def sdk_tool(name: str) -> str:
+    sdk = Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or "/usr/local/lib/android/sdk")
+    build_tools = sorted(sdk.glob(f"build-tools/*/{name}"), key=_version_key)
+    if build_tools:
+        # The SDK's own newest build-tools copy wins over anything on PATH (a distribution package of the same
+        # name can print a different format or verify differently).
+        return str(build_tools[-1])
     found = shutil.which(name)
     if found:
         return found
-    sdk = Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or "/usr/local/lib/android/sdk")
-    candidates = list(sdk.glob(f"cmdline-tools/*/bin/{name}")) + list(sdk.glob(f"build-tools/*/{name}"))
+    candidates = list(sdk.glob(f"cmdline-tools/*/bin/{name}"))
     require(bool(candidates), f"ANDROID_SDK_TOOL_MISSING:{name}")
     return str(sorted(candidates)[-1])
+
+
+def apk_signing_fingerprints(apk: Path) -> list:
+    tool = sdk_tool("apksigner")
+    result = subprocess.run([tool, "verify", "--print-certs", "-v", str(apk)], capture_output=True, text=True)
+    combined = (result.stdout or "") + "\n" + (result.stderr or "")
+    fingerprints = re.findall(r"Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})", combined)
+    if not fingerprints:
+        # Diagnostic only: the tool path, its exit code and the first public lines (certificate digests are public, keys never appear).
+        head = " | ".join(line.strip() for line in combined.strip().splitlines()[:4])[:300]
+        print(f"apksigner diagnostic: tool={tool} exit={result.returncode} output={head}", file=sys.stderr)
+    require(result.returncode == 0, "APK_SIGNATURE_DOES_NOT_VERIFY")
+    require(bool(fingerprints), "APK_SIGNING_FINGERPRINT_MISSING")
+    return fingerprints
 
 
 def attest(apk: Path, target: str) -> dict:
@@ -141,9 +165,7 @@ def attest(apk: Path, target: str) -> dict:
         abis = sorted({name.split("/")[1] for name in names if name.startswith("lib/") and name.endswith(".so")})
         require(abis == [expected_abi], "APK_ABI_MISMATCH")
         require(any(b"expo/modules/updates/" in archive.read(name) for name in names if re.fullmatch(r"classes\d*\.dex", name)), "APK_UPDATES_NATIVE_CODE_MISSING")
-    signer = run(sdk_tool("apksigner"), "verify", "--print-certs", str(apk))
-    fingerprints = re.findall(r"Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})", signer)
-    require(bool(fingerprints), "APK_SIGNING_FINGERPRINT_MISSING")
+    fingerprints = apk_signing_fingerprints(apk)
     digest = hashlib.sha256(apk.read_bytes()).hexdigest()
     config = json.loads(Path("app.json").read_text(encoding="utf-8"))["expo"]
     require(identity["version"] == config["version"], "APK_VERSION_DRIFT")
