@@ -279,7 +279,7 @@ try {
   psqlFile(M + 'candidate.sql');
   for (const f of mManifest.functions) assert.equal(bodyMd5(f.signature), f.after_md5, 'POSTIMAGE:' + f.signature);
   for (const f of mManifest.newFunctions) assert.equal(bodyMd5(f.signature), f.body_md5, 'NEW:' + f.signature);
-  for (const f of mManifest.unchangedDependencies) assert.equal(bodyMd5(f.signature), f.body_md5, 'DEPENDENCY:' + f.signature);
+  for (const f of mManifest.unchangedDependencies) assert.ok([f.body_md5, f.alsoAcceptedAfterZonePerf].filter(Boolean).includes(bodyMd5(f.signature)), 'DEPENDENCY:' + f.signature);
   assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001); assert.equal(watermarkRows(), 1);
   pass('MATCH_V1_APPLIED_EXACT_BODIES_CERTIFICATE_UNCHANGED_NO_NEW_40001', {certificate: baseClosure.certificate});
   refused(candidate, 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED');

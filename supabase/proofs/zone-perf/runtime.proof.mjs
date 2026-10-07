@@ -76,13 +76,12 @@ const sampleNames = names.filter((_, i) => i % 24 === 0);
 const EXTENDED = [...new Set([...zManifest.truthTableProbes, ...sampleNames.flatMap(n => [n, n.toLowerCase(), n.toUpperCase(), ' ' + n, n + ' ', n + 'x'])])];
 /** The helper's answers against an independent oracle: the old expression written out and evaluated against the catalog directly (one hashed scan). */
 function truthTable(values) {
-  const r = run(`with probes as (select t.v, t.i from unnest(array[${values.map(v => v === null ? 'null' : q(v)).join(',')}]::text[]) with ordinality t(v,i)),
-    cat as (select array_agg(z.name) as names from pg_catalog.pg_timezone_names z)
+  const r = run(`with probes as (select t.v, t.i from unnest(array[${values.map(v => v === null ? 'null' : q(v)).join(',')}]::text[]) with ordinality t(v,i))
     select jsonb_build_object('probes', count(*), 'accepted', count(*) filter (where new_answer),
       'mismatches', coalesce(jsonb_agg(jsonb_build_object('value', v, 'oracle', oracle_answer, 'helper', new_answer) order by i) filter (where oracle_answer is distinct from new_answer), '[]'::jsonb),
       'answers', jsonb_agg(new_answer order by i))
     from (select v, i, (v is not null and length(v)<=100 and (v='UTC' or position('/' in v)>0) and v not like 'posix/%' and v not like 'right/%'
-        and v = any((select names from cat))) as oracle_answer, private.availability_timezone_valid(v) as new_answer from probes) x;`, {timeoutS: 170});
+        and v in (select z.name from pg_catalog.pg_timezone_names z)) as oracle_answer, private.availability_timezone_valid(v) as new_answer from probes) x;`, {timeoutS: 170});
   assert.ok(r.ok, 'TRUTH_TABLE_FAILED:' + r.error);
   return JSON.parse(lastLine(r.output));
 }
@@ -119,8 +118,9 @@ function readerRun(accountId, reader) {
   if (!r.ok) return {error: r.error, timedOut: r.timedOut};
   const v = JSON.parse(lastLine(r.output));
   const warm = v.ms.slice(1).sort((a, b) => a - b);
+  const median = warm.length % 2 ? warm[(warm.length - 1) / 2] : (warm[warm.length / 2 - 1] + warm[warm.length / 2]) / 2;
   const callsOf = name => v.functions.find(f => f.name === name)?.calls ?? 0;
-  return {coldMs: v.ms[0], warmMedianMs: warm[Math.floor(warm.length / 2)], warmMinMs: warm[0], allMs: v.ms, payload: v.payload, wallMs: r.wallMs,
+  return {coldMs: v.ms[0], warmMedianMs: Math.round(median * 100) / 100, warmMinMs: warm[0], allMs: v.ms, payload: v.payload, wallMs: r.wallMs,
     helperCalls: callsOf('private.availability_timezone_valid'), matcherCalls: callsOf('private.match_detail_without_calendar'),
     selectableCountCalls: callsOf('public.selectable_application_count'), top: v.functions.slice(0, 6)};
 }
