@@ -156,11 +156,12 @@ HEADER = ("-- DISCOVERY-ZAMENE {d}: SOURCE ONLY. NOT APPLIED. Canonical DEV only
 def candidate():
     s = HEADER.format(d="CANDIDATE") + "begin;\nset local lock_timeout='5s';\nset local statement_timeout='120s';\nset local search_path=pg_catalog;\n"
     s += "do $dz_pre$\ndeclare r record;\nbegin\n" + CERT_READY % "DISCOVERY_ZAMENE_CERTIFICATE_NOT_READY"
-    s += pins("DISCOVERY_ZAMENE_REQUIRES_MATCH_V1", MATCH_PINS)
-    s += pins("DISCOVERY_ZAMENE_PREDECESSOR_DRIFT", [(DISCOVERY, md5(live[DISCOVERY]))])
+    # A repeated or partial application is named first, before any predecessor pin can report drift.
     s += (" if to_regprocedure(" + quote(STATE_SIG) + ") is not null or to_regprocedure(" + quote(FORME_SIG) + ") is not null\n"
           "  or exists(select 1 from pg_proc p where p.pronamespace='public'::regnamespace and p.proname in ('discovery_for_me_v1','discovery_for_me_state_v1'))\n"
           " then raise exception 'DISCOVERY_ZAMENE_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;\n")
+    s += pins("DISCOVERY_ZAMENE_REQUIRES_MATCH_V1", MATCH_PINS)
+    s += pins("DISCOVERY_ZAMENE_PREDECESSOR_DRIFT", [(DISCOVERY, md5(live[DISCOVERY]))])
     s += "end\n$dz_pre$;\n"
     s += ("create temporary table dz_certificate on commit drop as\n"
           " select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;\n")

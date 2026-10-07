@@ -15,6 +15,9 @@ begin
   or private.closure_source_digest_v5() is distinct from (select sha256 from private.closure_erasure_source_v5 where singleton)
   or private.retention_ai_source_ready() is distinct from true
  then raise exception 'DISCOVERY_ZAMENE_CERTIFICATE_NOT_READY' using errcode='55000'; end if;
+ if to_regprocedure('public.discovery_for_me_state_v1()') is not null or to_regprocedure('public.discovery_for_me_v1(uuid)') is not null
+  or exists(select 1 from pg_proc p where p.pronamespace='public'::regnamespace and p.proname in ('discovery_for_me_v1','discovery_for_me_state_v1'))
+ then raise exception 'DISCOVERY_ZAMENE_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
   ('private.worker_need_time_tier_v1(uuid,uuid)','57c1d0b2fb78d652a555a3f76bd5bf4c'),
   ('private.worker_need_fit_v1(uuid,uuid)','db3b5846709cb63b5304d8d66f657842'),
@@ -27,9 +30,6 @@ begin
   if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
   then raise exception 'DISCOVERY_ZAMENE_PREDECESSOR_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
- if to_regprocedure('public.discovery_for_me_state_v1()') is not null or to_regprocedure('public.discovery_for_me_v1(uuid)') is not null
-  or exists(select 1 from pg_proc p where p.pronamespace='public'::regnamespace and p.proname in ('discovery_for_me_v1','discovery_for_me_state_v1'))
- then raise exception 'DISCOVERY_ZAMENE_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
 end
 $dz_pre$;
 create temporary table dz_certificate on commit drop as

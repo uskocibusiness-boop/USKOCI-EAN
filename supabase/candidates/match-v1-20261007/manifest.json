@@ -136,8 +136,8 @@
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "4091a0c0a69f2970248304e61cb75335a75f7e41bd4a18d9f6a451115a60c167",
-    "candidate.in-transaction.sql": "1c58dfe7eeb191990b2021aa6de0673c0a5c159c87f117aa793ef7c4fd737b4a",
+    "candidate.sql": "90bf2e4835a1ce04e95b389090c7986b9d09b79383dbb42689eb91d74ff4d3f3",
+    "candidate.in-transaction.sql": "c3c1fa3b87e02354b2145764510cc74274a553a8f0f3a57ebd9620bf73621a7b",
     "revert.sql": "dc2e236c732d98c754fb6717ce90a1a5962521d65aa9a2a73c0321ee70515fd3",
     "preflight.readonly.sql": "3c5238f026fb7d772197664697f8734919b46f1a18bea1f3347552d0f21c9f0d",
     "postflight.readonly.sql": "fd7d1e9e6fdcb6b908c613a18ec61f0ebc7c0f2396ac848b077d2b6e74d22a42",

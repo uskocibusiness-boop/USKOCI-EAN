@@ -411,12 +411,13 @@ def candidate(transaction=True):
         s += "begin;\n"
     s += "set local lock_timeout='5s';\nset local statement_timeout='180s';\nset local search_path=pg_catalog;\n"
     s += "do $match_v1_pre$\ndeclare r record;\nbegin\n" + CERT_READY % "MATCH_V1_CERTIFICATE_NOT_READY"
-    s += pins_block("MATCH_V1_DEPENDENCY_DRIFT", [(d, md5(live[d])) for d in DEPENDENCIES])
-    s += pins_block("MATCH_V1_PREDECESSOR_DRIFT", [(c, md5(live[c])) for c in CHANGED])
+    # A repeated or partial application is named first, before any predecessor pin can report drift.
     s += (" if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')\n"
           "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1'))\n"
           "  or exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + ")\n"
           " then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;\n")
+    s += pins_block("MATCH_V1_DEPENDENCY_DRIFT", [(d, md5(live[d])) for d in DEPENDENCIES])
+    s += pins_block("MATCH_V1_PREDECESSOR_DRIFT", [(c, md5(live[c])) for c in CHANGED])
     s += "end\n$match_v1_pre$;\n"
     s += ("create temporary table match_v1_certificate on commit drop as\n"
           " select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;\n")

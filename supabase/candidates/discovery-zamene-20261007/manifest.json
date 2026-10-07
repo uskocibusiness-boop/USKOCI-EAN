@@ -39,7 +39,7 @@
     }
   ],
   "artifact_sha256": {
-    "candidate.sql": "a0ecd0a5e79bc0975f9e320a9bd9333a25d48ed58a4205f39707fd6d69170fef",
+    "candidate.sql": "20c15cdf9f29198e331811f906ae98500693e6392a305f26a9bfb7f60592fa6d",
     "revert.sql": "617a6de8ed3811a9b64ae28028c40743429c7c5e2a7c3481337dace597b176dd",
     "preflight.readonly.sql": "ec616909214a6b0bc43df6ebe16a7ab5eee1b0a4f34026cfcf027ee9cdc8a301",
     "postflight.readonly.sql": "d7a2167573c45ed5b886776ba6d860e31b3d52eb452860236b1d955fc8493b05",

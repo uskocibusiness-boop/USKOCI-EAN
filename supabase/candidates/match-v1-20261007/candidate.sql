@@ -16,6 +16,10 @@ begin
   or private.closure_source_digest_v5() is distinct from (select sha256 from private.closure_erasure_source_v5 where singleton)
   or private.retention_ai_source_ready() is distinct from true
  then raise exception 'MATCH_V1_CERTIFICATE_NOT_READY' using errcode='55000'; end if;
+ if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')
+   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1'))
+  or exists(select 1 from private.marketplace_config where key='match_v1_profile_requeue')
+ then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
   ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)','3a1aee763e9fe3d0f06d6ba04ef21aac'),
   ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)','5107af3020a3beb7bb45e6e90e7a203b'),
@@ -46,10 +50,6 @@ begin
   if (select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure(r.signature)) is distinct from r.body_md5
   then raise exception 'MATCH_V1_PREDECESSOR_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
- if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')
-   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1'))
-  or exists(select 1 from private.marketplace_config where key='match_v1_profile_requeue')
- then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
 end
 $match_v1_pre$;
 create temporary table match_v1_certificate on commit drop as
