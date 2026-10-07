@@ -9,13 +9,14 @@ Owner decisions 2026-10-07 (via the coordinator):
     the cap is OFF by default (workerDailyCap 1000 = off);
   * every knob lives in the one row private.marketplace_config 'match_v1_dispatch'; the ladder stays untouched.
 
-Found by the load proof (CI run 37688530511): every notification row of a recipient takes ONE shared advisory lock for the whole transaction
-(private.closure_event_restricted, fired by the insert trigger pre_v3_closure_delivery of notification_deliveries), and the lock table of
-canonical DEV holds about 4,800 entries for the whole server (max_locks_per_transaction 64, max_connections 60). One transaction (one tick, one
-wave) can therefore notify only about 4,000 DISTINCT workers before "out of shared memory" rolls the whole wave back and the tick retries it
-for ever. This package adds a transaction budget, workerNotifyPerTransaction (default 1,200): a tick notifies at most that many workers in all,
-a task whose wave does not fit in what is left waits for the next tick (due at once), and a wave of a task with a place that is larger than the
-budget is sent in chunks of at most the budget, one chunk per tick. MATCH-V1 alone has no such protection.
+Found by the load proof (CI run 37688530511, locks read from pg_locks in run 37692412780): the insert trigger of notification_deliveries takes
+TWO shared advisory locks per notified recipient for the rest of the transaction (private.closure_event_restricted: the closure key of the
+recipient; private.safety_event_blocked: the safety pair key recipient/requester), and the lock table of canonical DEV holds about 4,800 entries
+for the whole server (max_locks_per_transaction 64, max_connections 60). One transaction (one tick, one wave) can therefore notify only about
+2,400 DISTINCT workers before "out of shared memory" rolls the whole wave back and the tick retries it for ever. This package adds a
+transaction budget, workerNotifyPerTransaction (default 1,000, valid 50..1,500): a tick notifies at most that many workers in all, a task whose
+wave does not fit in what is left waits for the next tick (due at once), and a wave of a task with a place that is larger than the budget is
+sent in chunks of at most the budget, one chunk per tick. MATCH-V1 alone has no such protection.
 
 The MATCH-V1 post-image of private.dispatch_next_wave is rebuilt from the MATCH-V1 package files (live-functions.json +
 patches.json, hash-checked against its manifest); nothing of MATCH-V1 is edited. Never connects to a database.
@@ -83,11 +84,11 @@ assert md5(WAVE_BEFORE) == mv1_changed[WAVE]
 # ---------------------------------------------------------------- the knobs of the one row (name, default, range)
 # Owner decisions 2026-10-07 (coordinator): first wave 300, later waves 1,000, every 30 minutes while the task is open and has fewer than 5
 # applications, at most 10,000 notified per task revision (the most the code accepts); the daily cap per worker is OFF by default (1000 = off).
-REMOTE_KNOBS = [("remoteWaveSize", 300, 1, 2000), ("remoteNextWaveSize", 1000, 1, 2000), ("remoteWaveMinutes", 30, 1, 1440),
+REMOTE_KNOBS = [("remoteWaveSize", 300, 1, 1500), ("remoteNextWaveSize", 1000, 1, 1500), ("remoteWaveMinutes", 30, 1, 1440),
                 ("remoteStopAfterResponses", 5, 1, 1000), ("remoteCeiling", 10000, 1, 10000)]
 DAILY_CAP = ("workerDailyCap", 1000, 1, 1000)
 # the lock table: at most this many workers are notified by ONE transaction (one tick); a wave is never larger than it (checked by the configuration)
-NOTIFY_BUDGET = ("workerNotifyPerTransaction", 1200, 50, 2000)
+NOTIFY_BUDGET = ("workerNotifyPerTransaction", 1000, 50, 1500)
 ROW_DEFAULTS = {"remoteWaves": True, **{k: d for k, d, _, _ in REMOTE_KNOBS}, DAILY_CAP[0]: DAILY_CAP[1], NOTIFY_BUDGET[0]: NOTIFY_BUDGET[1]}
 ROW_KEYS = list(ROW_DEFAULTS)
 assert len(ROW_KEYS) == 8
@@ -263,7 +264,7 @@ begin
     raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
   end if;
   num := (v #>> '{}')::numeric;
-  if num <> trunc(num) or num < 50 or num > 2000 then
+  if num <> trunc(num) or num < 50 or num > 1500 then
     raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
   end if;
   budget := num::integer;
@@ -277,7 +278,7 @@ begin
   end if;
   if flag then
     for knob in
-      select * from (values ('remoteWaveSize', 1, 2000), ('remoteNextWaveSize', 1, 2000), ('remoteWaveMinutes', 1, 1440),
+      select * from (values ('remoteWaveSize', 1, 1500), ('remoteNextWaveSize', 1, 1500), ('remoteWaveMinutes', 1, 1440),
                             ('remoteStopAfterResponses', 1, 1000), ('remoteCeiling', 1, 10000))
         as t(knob_key, lo, hi)
     loop
@@ -323,7 +324,7 @@ begin
   --     for good when the task is closed or agreed (the checks of private.dispatch_next_wave before this call);
   --   * at most remoteCeiling workers are notified for one revision of one task: the brake;
   --   * a check that finds nobody new is paced like the tick paces every task that found nobody (5 minutes, growing to 6 hours);
-  --   * one transaction (one tick) notifies at most workerNotifyPerTransaction workers in all (every notified recipient holds one lock of
+  --   * one transaction (one tick) notifies at most workerNotifyPerTransaction workers in all (every notified recipient holds two locks of
   --     the shared lock table until the transaction ends): a wave that does not fit in what is left of that budget is not started, the
   --     answer is "waiting" and due at once, so the next tick sends it.
   select * into n from public.needs where id = nid;
@@ -501,7 +502,7 @@ change("""    select count(*) into delivered from public.opportunity_deliveries 
     --   2. a worker who already got workerDailyCap proactive new-task notifications in the last 24 hours is skipped for this task,
     --      without using up a place of any ceiling; an urgent task ignores the cap;
     --   3. a task WITH a place keeps the one wave and the ceiling of MATCH-V1, but one database transaction (one tick) notifies at most
-    --      workerNotifyPerTransaction workers in all (every notified recipient holds one lock of the shared lock table until the end
+    --      workerNotifyPerTransaction workers in all (every notified recipient holds two locks of the shared lock table until the end
     --      of the transaction, about 4,800 entries on the whole server): a larger wave is sent in chunks, one per tick.
     -- The ladder (mode LADDER) never reaches this block.
     cfgb := private.dispatch_config_v1b(sw);
@@ -852,7 +853,7 @@ manifest = {
               **{k: {"default": d, "min": lo, "max": hi} for k, d, lo, hi in REMOTE_KNOBS},
               DAILY_CAP[0]: {"default": DAILY_CAP[1], "min": DAILY_CAP[2], "max": DAILY_CAP[3], "note": "1000 effectively switches the cap off"},
               NOTIFY_BUDGET[0]: {"default": NOTIFY_BUDGET[1], "min": NOTIFY_BUDGET[2], "max": NOTIFY_BUDGET[3],
-                                 "note": "workers one database transaction (one tick) may notify in all: every notified recipient holds one lock of the shared lock table until the end of the transaction"}},
+                                 "note": "workers one database transaction (one tick) may notify in all: every notified recipient holds two locks of the shared lock table until the end of the transaction"}},
     "switchScripts": {"off": "switch-remote-waves-off.sql", "on": "switch-remote-waves-on.sql"},
     "eventCounted": {"table": "public.user_activity_events", "event_type": "OPPORTUNITY_AVAILABLE", "urgency": "NORMAL", "recipient_role": "WORKER", "window": "24 hours",
                      "index": "activity_recipient_idx (recipient_user_id, recipient_role, created_at DESC); the planner may also use activity_inbox_page_idx (recipient_user_id, created_at DESC, id DESC)"},

@@ -1,13 +1,13 @@
 -- MATCH-V1B read-only postflight. No write. Expected: every flag true and the certificate equal to the preflight value.
 select jsonb_build_object(
- 'waveIsMatchV1B',(select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure('private.dispatch_next_wave(uuid)'))='f2649b4288e67be68b660da53c562cb3',
+ 'waveIsMatchV1B',(select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure('private.dispatch_next_wave(uuid)'))='d3cdfe2bdd6e5d40a74e6029793c89c5',
  'newFunctionsAndWave',(select bool_and(coalesce(md5(p.prosrc)=any(x.body_md5s),false)) from (values
-  ('private.dispatch_next_wave(uuid)',array['f2649b4288e67be68b660da53c562cb3']::text[]),
+  ('private.dispatch_next_wave(uuid)',array['d3cdfe2bdd6e5d40a74e6029793c89c5']::text[]),
   ('private.worker_notify_room_v1b(uuid,integer)',array['9aac9da0479327fdf82b2f9298e47719']::text[]),
   ('private.candidate_profile_ids_v1b(uuid,integer,integer)',array['9a2437fd9d6bed07c8338d12501e5cba']::text[]),
   ('private.remote_wave_candidates_v1b(uuid,integer,integer)',array['3bd12de1d220804a91a7b1b036fd7ce6']::text[]),
-  ('private.dispatch_config_v1b(jsonb)',array['dd6bae0781ba284d32d9bd45a6a9d0c6']::text[]),
-  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)',array['ef1942b1df07e40b7b8b31f7c7cb33ef']::text[])
+  ('private.dispatch_config_v1b(jsonb)',array['7aa34ff0b5f4a3637c433bec317c1c13']::text[]),
+  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)',array['2ba676d2f0fbd1456b48eb1ef36b468e']::text[])
 ) x(signature,body_md5s) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
  'dependenciesUnchanged',(select bool_and(coalesce(md5(p.prosrc)=any(x.body_md5s),false)) from (values
   ('private.candidate_profile_ids(uuid,integer)',array['5414fa5a122e2055c71dd37993a6ad83']::text[]),

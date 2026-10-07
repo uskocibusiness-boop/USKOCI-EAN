@@ -15,7 +15,7 @@ const {assert, sql, rows, q, rt, run, applyFile, bodyMd5, catalog, closure, conf
 const {KEY, WAVE, TZ, Z, M, B, zManifest, mManifest, bManifest, out} = C;
 const HARD_S = 90;
 const WORKERS = 40000, RARE_EVERY = 800, PLACE_WORKERS = 8000, DRAFTS = 3000, EVENTS_PER_WORKER = 10, TICK_TASKS = 25;
-const BUDGET = 1200;   // the default workerNotifyPerTransaction of the package
+const BUDGET = 1000;   // the default workerNotifyPerTransaction of the package
 const {report, write, pass, fail} = C.makeReport('MATCH-V1B load', 'v1b-load-report.json');
 report.statementTimeoutSeconds = HARD_S;
 report.load = {};
@@ -169,7 +169,7 @@ try {
   assert.equal(sample.firstA, 300); assert.equal(sample.rareB, Math.floor(WORKERS / RARE_EVERY));
   L.sizes.ruleSample = sample;
 
-  // ---- MV1 alone: the cliff. One wave = one transaction = one lock per notified worker; a ceiling that the lock table cannot hold fails with "out of shared memory"
+  // ---- MV1 alone: the cliff. One wave = one transaction = two locks per notified worker; a ceiling that the lock table cannot hold fails with "out of shared memory"
   section('MV1', () => {
     const cliff = (task, ceiling) => brief(probe(`t0 := clock_timestamp(); res := private.dispatch_next_wave(${q(task)}::uuid);
       out := out || jsonb_build_object('ms', ${ms('t0')}, 'status', res->>'status', 'inserted', (res->>'inserted')::integer, 'locks', ${LOCKS});`, {timeoutS: 150, config: {ceiling}}));
@@ -202,7 +202,7 @@ try {
       ${age1}
       res := private.dispatch_next_wave(${q(A)}::uuid);
       out := out || jsonb_build_object('inserted2', (res->>'inserted')::integer, 'afterWave2', ${LOCKS}, 'counter2', current_setting('v1b.notified', true));`,
-    {config: {workerNotifyPerTransaction: 2000}}));
+    {config: {workerNotifyPerTransaction: 1500}}));
     write();
 
     // (1) the series, every wave in its own transaction as the tick runs them: 300, then 1,000 every 30 minutes (time travelled), up to the ceiling of 10,000, then the refusal
@@ -241,11 +241,11 @@ try {
           'cheapCalls', ${calls('dispatch_cheap_candidate_admitted')} - c0, 'detailCalls', ${calls('match_detail')} - c1, 'roomCalls', ${calls('worker_notify_room_v1b')} - c2));
       end loop;
       out := out || jsonb_build_object('waves', w, 'counts', ${countsSql(ids)});`;
-    L.callsCapOff = brief(probe(callsWork, {track: true, config: {workerDailyCap: 1000, workerNotifyPerTransaction: 2000}}));
-    L.callsCap3 = brief(probe(callsWork, {track: true, config: {workerDailyCap: 3, workerNotifyPerTransaction: 2000}}));
+    L.callsCapOff = brief(probe(callsWork, {track: true, config: {workerDailyCap: 1000, workerNotifyPerTransaction: 1500}}));
+    L.callsCap3 = brief(probe(callsWork, {track: true, config: {workerDailyCap: 3, workerNotifyPerTransaction: 1500}}));
     L.callsCap1 = brief(probe(callsWork + `
       out := out || jsonb_build_object('deliveredToCappedWorkers', (select count(*) from public.opportunity_deliveries d join v1b_capped c on c.account_id = d.worker_account_id where d.need_id = ${q(A)}::uuid));`, {
-      track: true, config: {workerDailyCap: 1, workerNotifyPerTransaction: 2000},
+      track: true, config: {workerDailyCap: 1, workerNotifyPerTransaction: 1500},
       setup: `create temporary table v1b_capped on commit drop as select distinct recipient_user_id as account_id from public.user_activity_events
         where recipient_role = 'WORKER' and event_type = 'OPPORTUNITY_AVAILABLE' and urgency = 'NORMAL' and created_at > statement_timestamp() - interval '24 hours';`}));
     write();
@@ -427,25 +427,26 @@ if (L.series || L.tick || L.rareKind) {
       && t1.at(-1).tasksWithOneRound === TICK_TASKS && t2.at(-1).tasksWithTwoRounds === TICK_TASKS && tk.counts.deliveries === TICK_TASKS * 1300 && tk.counts.rounds === TICK_TASKS * 2,
     {phase1: {ticks: t1.length, perTickNewDeliveries: t1.map(x => x.newDeliveries), msPerTick: t1.map(x => x.ms), deferredTasks: t1.map(x => x.claimed - (x.processed - 0))},
       phase2: {ticks: t2.length, perTickNewDeliveries: t2.map(x => x.newDeliveries), maxMs: Math.max(...t2.map(x => num(x.ms, 0)))}, counts: tk?.counts});
+  const chunkList = pr?.chunks?.list ?? [], chunkSent = chunkList.filter(x => x.status === 'SENT');
   gate('LOAD_V1B_A_PLACE_BASED_WAVE_TO_THE_CEILING_OF_10000_IS_SENT_IN_CHUNKS_OF_AT_MOST_THE_BUDGET_AND_THEN_REFUSED',
-    okAll(pr?.retrieval, pr?.waveCapOff, pr?.waveCap3) && pr.chunks?.list?.length === 10 && pr.chunks.list.slice(0, 9).every(x => x.status === 'SENT' && x.inserted <= BUDGET)
-      && pr.chunks.list.slice(0, 8).every(x => x.inserted === BUDGET && x.chunk === true) && pr.chunks.list[8].inserted === 10000 - 8 * BUDGET && pr.chunks.list[9].reason === 'DELIVERY_CEILING_REACHED'
-      && pr.chunks.counts.deliveries === 10000 && pr.chunks.distinctAccounts === 10000 && pr.chunks.counts.rounds === 9,
-    {chunks: pr?.chunks?.list?.map(x => `${x.inserted}${x.chunk ? ' chunk' : ''}${x.reason ? ' ' + x.reason : ''} ${x.ms} ms`), counts: pr?.chunks?.counts});
+    okAll(pr?.retrieval, pr?.waveCapOff, pr?.waveCap3) && chunkList.length === chunkSent.length + 1 && chunkSent.every(x => x.inserted > 0 && x.inserted <= BUDGET)
+      && chunkSent.slice(0, -1).every(x => x.inserted === BUDGET && x.chunk === true) && sum(chunkSent.map(x => x.inserted)) === 10000
+      && chunkList.at(-1)?.reason === 'DELIVERY_CEILING_REACHED' && pr.chunks.counts.deliveries === 10000 && pr.chunks.distinctAccounts === 10000 && pr.chunks.counts.rounds === chunkSent.length,
+    {chunks: chunkList.map(x => `${x.inserted}${x.chunk ? ' chunk' : ''}${x.reason ? ' ' + x.reason : ''} ${x.ms} ms`), counts: pr?.chunks?.counts});
   gate('LOAD_V1B_A_TASK_WITH_A_PLACE_KEEPS_THE_NEAREST_FIRST_PATH_AND_THE_CAP_ADDS_LITTLE',
     okAll(pr?.retrieval, pr?.waveCapOff, pr?.waveCap3) && pr.retrieval.mv1Rows === 1000 && pr.retrieval.twinNullRows === 1000 && pr.retrieval.twinCap3Rows === 1000 && pr.retrieval.twinCap1Rows === 1000
       && num(pr.retrieval.twinNullMs) <= num(pr.retrieval.mv1Ms) * 1.2 + 300 && num(pr.retrieval.twinCap3Ms) <= num(pr.retrieval.mv1Ms) * 1.5 + 600
       && pr.waveCapOff.inserted === 1000 && pr.waveCap3.inserted === 1000 && pr.waveCapOff.remote === null && pr.waveCap3.remote === null && num(pr.waveCap3.ms) <= num(pr.waveCapOff.ms) * 1.3 + 800,
     {retrieval: pr?.retrieval, waveCapOffMs: pr?.waveCapOff?.ms, waveCap3Ms: pr?.waveCap3?.ms, matchV1AloneRetrieval1000Ms: L.mv1?.placeRetrieval1000?.ms});
-  // the mechanism behind the budget: one shared advisory lock per notified recipient, held to the end of the transaction
+  // the mechanism behind the budget: two shared advisory locks per notified recipient (closure key, safety pair key), held to the end of the transaction
   const ld = L.lockDiagnosis;
-  gate('LOAD_V1B_THE_LOCK_TABLE_PREMISE_HOLDS_ONE_ADVISORY_LOCK_PER_NOTIFIED_WORKER_HELD_TO_THE_END_OF_THE_TRANSACTION',
-    ld?.ok === true && ld.inserted1 === 300 && ld.inserted2 === 1000 && num(ld.afterWave1?.advisory, 0) >= 300 && num(ld.afterWave2?.advisory, 0) >= 1300 && Number(ld.counter2) === 1300,
+  gate('LOAD_V1B_THE_LOCK_TABLE_PREMISE_HOLDS_TWO_ADVISORY_LOCKS_PER_NOTIFIED_WORKER_HELD_TO_THE_END_OF_THE_TRANSACTION',
+    ld?.ok === true && ld.inserted1 === 300 && ld.inserted2 === 1000 && num(ld.afterWave1?.advisory, 0) >= 600 && num(ld.afterWave2?.advisory, 0) >= 2600 && Number(ld.counter2) === 1300,
     {afterWave1: ld?.afterWave1, afterWave2: ld?.afterWave2, notifiedCounter: ld?.counter2, server: L.server});
 }
 if (L.mv1) {
   const v = x => x?.ok ? `${x.inserted} workers in ${x.ms} ms` : (x?.lockTableFull ? 'FAILS: out of shared memory (the lock table)' : `FAILS: ${String(x?.error).slice(0, 120)}`);
-  pass('MATCH_V1_ALONE_THE_CLIFF_RECORDED_ONE_WAVE_ONE_TRANSACTION_ONE_LOCK_PER_NOTIFIED_WORKER', {placeAt2000: v(L.mv1.placeAt2000), placeAt5000: v(L.mv1.placeAt5000), placeAt10000: v(L.mv1.placeAt10000),
+  pass('MATCH_V1_ALONE_THE_CLIFF_RECORDED_ONE_WAVE_ONE_TRANSACTION_TWO_LOCKS_PER_NOTIFIED_WORKER', {placeAt2000: v(L.mv1.placeAt2000), placeAt5000: v(L.mv1.placeAt5000), placeAt10000: v(L.mv1.placeAt10000),
     remoteAt10000: v(L.mv1.remoteAt10000), lockTableEntries: L.server});
 }
 report.result = report.failures.length === 0 ? 'PASS' : 'FAIL';
@@ -459,7 +460,7 @@ lines.push('### MATCH-V1B load proof (disposable database, synthetic rows)', '',
   `Lock table of this disposable server: ${f1(L.server?.entriesByTheDocs)} entries by the documented formula, ${f1(L.server?.entriesBySource)} by the source formula (max_locks_per_transaction ${L.server?.settings?.max_locks_per_transaction}, max_connections ${L.server?.settings?.max_connections}). Canonical DEV (read-only pg_settings): 64 and 60, i.e. 3,840 / about 4,800.`, '');
 if (L.mv1) {
   const v = x => x?.ok ? `${f1(x.inserted)} workers in ${f1(x.ms)} ms` : (x?.lockTableFull ? '**fails: out of shared memory (lock table)**' : `fails: ${String(x?.error).slice(0, 100)}`);
-  lines.push('MATCH-V1 alone (what a task costs without this package: one wave = ONE transaction = one lock per notified worker):', '',
+  lines.push('MATCH-V1 alone (what a task costs without this package: one wave = ONE transaction = two locks per notified worker):', '',
     `- task with a place, ceiling 2,000: ${v(L.mv1.placeAt2000)}; ceiling 5,000: ${v(L.mv1.placeAt5000)}; ceiling 10,000: ${v(L.mv1.placeAt10000)}`, `- remote task, ceiling 10,000: ${v(L.mv1.remoteAt10000)}`, '');
 }
 lines.push('Remote task in waves (MATCH-V1B), every wave its own transaction, server time per wave:', '', '| wave | notified | total | ms | ms per worker |', '|---|---|---|---|---|');

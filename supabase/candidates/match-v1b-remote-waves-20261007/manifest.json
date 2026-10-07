@@ -33,7 +33,7 @@
     {
       "signature": "private.dispatch_next_wave(uuid)",
       "before_md5": "0bd8b64ae629f5a62960f5f45e65132b",
-      "after_md5": "f2649b4288e67be68b660da53c562cb3"
+      "after_md5": "d3cdfe2bdd6e5d40a74e6029793c89c5"
     }
   ],
   "newFunctions": [
@@ -57,13 +57,13 @@
     },
     {
       "signature": "private.dispatch_config_v1b(jsonb)",
-      "body_md5": "dd6bae0781ba284d32d9bd45a6a9d0c6",
+      "body_md5": "7aa34ff0b5f4a3637c433bec317c1c13",
       "acl": "{postgres=X/postgres}",
       "volatility": "s"
     },
     {
       "signature": "private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)",
-      "body_md5": "ef1942b1df07e40b7b8b31f7c7cb33ef",
+      "body_md5": "2ba676d2f0fbd1456b48eb1ef36b468e",
       "acl": "{postgres=X/postgres}",
       "volatility": "v"
     }
@@ -130,7 +130,7 @@
         "remoteStopAfterResponses": 5,
         "remoteCeiling": 10000,
         "workerDailyCap": 1000,
-        "workerNotifyPerTransaction": 1200
+        "workerNotifyPerTransaction": 1000
       },
       "note": "the eight keys are merged into the existing row; every existing value (e.g. the ceiling the owner set) is kept"
     }
@@ -143,12 +143,12 @@
     "remoteWaveSize": {
       "default": 300,
       "min": 1,
-      "max": 2000
+      "max": 1500
     },
     "remoteNextWaveSize": {
       "default": 1000,
       "min": 1,
-      "max": 2000
+      "max": 1500
     },
     "remoteWaveMinutes": {
       "default": 30,
@@ -172,10 +172,10 @@
       "note": "1000 effectively switches the cap off"
     },
     "workerNotifyPerTransaction": {
-      "default": 1200,
+      "default": 1000,
       "min": 50,
-      "max": 2000,
-      "note": "workers one database transaction (one tick) may notify in all: every notified recipient holds one lock of the shared lock table until the end of the transaction"
+      "max": 1500,
+      "note": "workers one database transaction (one tick) may notify in all: every notified recipient holds two locks of the shared lock table until the end of the transaction"
     }
   },
   "switchScripts": {
@@ -191,14 +191,14 @@
     "index": "activity_recipient_idx (recipient_user_id, recipient_role, created_at DESC); the planner may also use activity_inbox_page_idx (recipient_user_id, created_at DESC, id DESC)"
   },
   "artifact_sha256": {
-    "candidate.sql": "01238e6dd9f3ac2bf64cc5222a8bfaaefbed23cef5b4c616e02241ec49d7cf6d",
-    "candidate.in-transaction.sql": "c2bae8a7f25683aa98ae6ac1f9fe8fa86edfa34db82552ebc1588315fe01f194",
-    "revert.sql": "213c5786bb8570726123d209f4f34910e6a6d9f5f2cb295c14478420d0392fe7",
+    "candidate.sql": "18e329cc7e2c01d49f0c930222ca60a44927d2c262a2e9fee0d8be161d86e588",
+    "candidate.in-transaction.sql": "83aee233f70024b2fcce499370c6539111b025608e6fba1c339084af743d8c30",
+    "revert.sql": "decfeb58057a40ff76c33c827de1cfcc662eb34961c06d2527cdf22574558540",
     "switch-remote-waves-off.sql": "c835d235d6273b87ca4df7a98f052621b8564c6705b870a1d88fcb8f083e7b58",
     "switch-remote-waves-on.sql": "97e410e90f41fa2d48f8368e055423975513e888820641be6b8010c31455bee2",
     "preflight.readonly.sql": "0a09ccea3f7d573ca20f0ab74ef825557018d785943d7ac791ee06ad84e3da25",
-    "postflight.readonly.sql": "1fc4a5a3366d58aacb47624926e0ec9d390990a0949476c2a8cc349956b3cf57",
-    "body.diff": "26039dde7c9538baf653fba08d548ea250a54d2b0bda2e5768a46907d32bf52b",
-    "patches.json": "f10029b1cb3308f3fe55085b02de59436044e56995f477c642e6f7eac5533d4a"
+    "postflight.readonly.sql": "58d29e57a4a472b027b0a3d0fc53429b5b6fdb058aac76f527f1e14aca7650b1",
+    "body.diff": "8875726a43bcd3f31bd209f405134665c781dfc4e93a2d2907747e433b215c5a",
+    "patches.json": "0752351283e260a9d55a031d878861b80d0fc225bc4150bb6055aa6b4588c2c8"
   }
 }

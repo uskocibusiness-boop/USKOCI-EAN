@@ -21,7 +21,7 @@
 +    --   2. a worker who already got workerDailyCap proactive new-task notifications in the last 24 hours is skipped for this task,
 +    --      without using up a place of any ceiling; an urgent task ignores the cap;
 +    --   3. a task WITH a place keeps the one wave and the ceiling of MATCH-V1, but one database transaction (one tick) notifies at most
-+    --      workerNotifyPerTransaction workers in all (every notified recipient holds one lock of the shared lock table until the end
++    --      workerNotifyPerTransaction workers in all (every notified recipient holds two locks of the shared lock table until the end
 +    --      of the transaction, about 4,800 entries on the whole server): a larger wave is sent in chunks, one per tick.
 +    -- The ladder (mode LADDER) never reaches this block.
 +    cfgb := private.dispatch_config_v1b(sw);

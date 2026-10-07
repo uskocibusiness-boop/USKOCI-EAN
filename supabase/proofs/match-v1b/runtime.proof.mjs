@@ -107,7 +107,7 @@ const freeWorker = accountId => sql(`update public.user_activity_events set crea
 const hasRoom = (accountId, cap) => sql(`select private.worker_notify_room_v1b(${q(accountId)}::uuid, ${cap === null ? 'null' : Number(cap)})`) === 't';
 
 // The knobs every scenario starts from (the proof sizes: first wave 5, later waves 7; the real defaults are 300 and 1,000, measured by the load proof).
-const TEST = {remoteWaves: true, remoteWaveSize: 5, remoteNextWaveSize: 7, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000, workerNotifyPerTransaction: 1200};
+const TEST = {remoteWaves: true, remoteWaveSize: 5, remoteNextWaveSize: 7, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000, workerNotifyPerTransaction: 1000};
 const KNOWN = ['remoteWaves', 'remoteWaveSize', 'remoteNextWaveSize', 'remoteWaveMinutes', 'remoteStopAfterResponses', 'remoteCeiling', 'workerDailyCap', 'workerNotifyPerTransaction'];
 const normalise = () => {
   sql(`update private.marketplace_config set updated_at = statement_timestamp(), value = (
@@ -219,14 +219,14 @@ try {
   }
   for (const pin of bManifest.pinnedDependencies) assert.equal(bodyMd5(pin.signature), pin.body_md5, 'DEPENDENCY:' + pin.signature);
   const rowAfter = row();
-  assert.deepEqual(rowAfter, {...rowBefore, remoteWaves: true, remoteWaveSize: 300, remoteNextWaveSize: 1000, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000, workerNotifyPerTransaction: 1200});
+  assert.deepEqual(rowAfter, {...rowBefore, remoteWaves: true, remoteWaveSize: 300, remoteNextWaveSize: 1000, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000, workerNotifyPerTransaction: 1000});
   assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001);
   refused(candidate, 'MATCH_V1B_ALREADY_OR_PARTIALLY_APPLIED');
   refused(fs.readFileSync(M + 'revert.sql', 'utf8'), 'MATCH_V1_REVERT_PREIMAGE_DRIFT');
   const catAfterV1b = catalog();
   const post = flight(B + 'postflight.readonly.sql');
   assert.equal(post.waveIsMatchV1B, true); assert.equal(post.newFunctionsAndWave, true); assert.equal(post.dependenciesUnchanged, true); assert.equal(post.newFunctionAcl, true);
-  assert.deepEqual(post.knobsValid, {remoteWaves: true, workerDailyCap: null, notifyBudget: 1200}); assert.equal(post.certificateReady, true); assert.equal(post.closureDigest, baseClosure.digest);
+  assert.deepEqual(post.knobsValid, {remoteWaves: true, workerDailyCap: null, notifyBudget: 1000}); assert.equal(post.certificateReady, true); assert.equal(post.closureDigest, baseClosure.digest);
   assert.equal(post.erasureProgramDigest, baseClosure.program); assert.deepEqual(post.dispatchRow, rowAfter);
   pass('MATCH_V1B_POSTFLIGHT_RUNS_READ_ONLY_AND_EVERY_FLAG_IS_TRUE_AFTER_THE_APPLY');
   await fx.reloadSchema();
@@ -488,7 +488,7 @@ try {
   await scenario('MATCH_V1B_PLACE_BASED_TASKS_ARE_UNCHANGED', async () => {
     const t = await placeTask('MV1B mesto nepromenjeno', skillQ);
     const r = fx.runWave(t.needId);
-    assert.equal(r.inserted, 8); assert.equal(r.batchSize, 10000); assert.equal(r.mode, 'ALL'); assert.equal(r.remote, undefined);
+    assert.equal(r.inserted, 8); assert.equal(r.batchSize, 1000, 'THE_WAVE_IS_AT_MOST_THE_BUDGET_OF_THE_TRANSACTION'); assert.equal(r.mode, 'ALL'); assert.equal(r.remote, undefined); assert.equal(r.chunk, undefined);
     assert.deepEqual(shape(r), b2Shape, 'THE_RESULT_HAS_EXACTLY_THE_KEYS_OF_MATCH_V1');
     assert.equal(byRound(t.needId).length, 1); assert.equal(eventsOf(t.needId), 8);
     setCeiling(5);
@@ -578,7 +578,7 @@ try {
   });
 
   await scenario('MATCH_V1B_THE_NOTIFY_BUDGET_OF_ONE_TRANSACTION_DEFERS_THE_TASKS_THAT_DO_NOT_FIT_TO_THE_NEXT_TICK', async () => {
-    // The lock table of the database: every notified recipient holds one lock until the transaction ends, so one tick notifies at most
+    // The lock table of the database: every notified recipient holds two locks until the transaction ends, so one tick notifies at most
     // workerNotifyPerTransaction workers in all. Budget 50, waves of 30, three tasks, one tick each: 30 now, the others wait (due at once).
     setKnobs({workerNotifyPerTransaction: 50, remoteWaveSize: 30, remoteNextWaveSize: 30});
     const ts = [];
@@ -661,7 +661,7 @@ try {
     const po = seedPool({label: 'mv1b-co-' + tag, count: 3, skill});
     seedEvents(po[0].account_id, {count: 50, hoursAgo: 2});
     const offCfg = JSON.parse(sql(`select private.dispatch_config_v1b(value)::text from private.marketplace_config where key=${q(KEY)}`));
-    assert.deepEqual(offCfg, {remoteWaves: true, workerDailyCap: null, notifyBudget: 1200}, 'CAP_1000_IS_OFF');
+    assert.deepEqual(offCfg, {remoteWaves: true, workerDailyCap: null, notifyBudget: 1000}, 'CAP_1000_IS_OFF');
     const t = await remoteTask('MV1B kapa iskljucena', skill);
     assert.equal(fx.runWave(t.needId).inserted, 3, 'A_WORKER_WITH_50_EVENTS_IS_STILL_NOTIFIED_WHEN_THE_CAP_IS_OFF');
     // the cap is a knob of mode ALL: the ladder reaches a capped worker
@@ -681,7 +681,7 @@ try {
     refused(fs.readFileSync(B + 'switch-remote-waves-off.sql', 'utf8'), 'MATCH_V1B_SWITCH_EXPECTS_REMOTE_WAVES_ON');
     const t = await remoteTask('MV1B prekidac isključen', skillP);
     const r = fx.runWave(t.needId);
-    assert.equal(r.inserted, 30); assert.equal(r.batchSize, 10000); assert.deepEqual(shape(r), b1Shape, 'EXACTLY_THE_RESULT_OF_MATCH_V1_MODE_ALL');
+    assert.equal(r.inserted, 30); assert.equal(r.batchSize, 1000, 'THE_WAVE_IS_AT_MOST_THE_BUDGET_OF_THE_TRANSACTION'); assert.deepEqual(shape(r), b1Shape, 'THE_RESULT_KEYS_OF_MATCH_V1_MODE_ALL');
     assert.equal(byRound(t.needId).length, 1);
     setKnobs({remoteWaveSize: 0});
     refused(fs.readFileSync(B + 'switch-remote-waves-on.sql', 'utf8'), 'DISPATCH_CONFIG_INVALID');
@@ -713,11 +713,11 @@ try {
 
   await scenario('MATCH_V1B_BAD_KNOBS_ARE_THE_NAMED_CONFIGURATION_ERROR', async () => {
     const bad = [
-      ['remoteWaveSize 0', {remoteWaveSize: 0}], ['remoteWaveSize 2001', {remoteWaveSize: 2001}], ['remoteNextWaveSize text', {remoteNextWaveSize: 'x'}],
+      ['remoteWaveSize 0', {remoteWaveSize: 0}], ['remoteWaveSize 1501', {remoteWaveSize: 1501}], ['remoteNextWaveSize text', {remoteNextWaveSize: 'x'}],
       ['remoteNextWaveSize fraction', {remoteNextWaveSize: 1.5}], ['remoteWaveMinutes 1441', {remoteWaveMinutes: 1441}], ['remoteStopAfterResponses 0', {remoteStopAfterResponses: 0}],
       ['remoteCeiling 10001', {remoteCeiling: 10001}], ['remoteCeiling fraction', {remoteCeiling: 5.5}], ['remoteWaves text', {remoteWaves: 'yes'}],
       ['workerDailyCap 0', {workerDailyCap: 0}], ['workerDailyCap 1001', {workerDailyCap: 1001}], ['workerDailyCap text', {workerDailyCap: '10'}], ['workerDailyCap null', {workerDailyCap: null}],
-      ['workerNotifyPerTransaction 49', {workerNotifyPerTransaction: 49}], ['workerNotifyPerTransaction 2001', {workerNotifyPerTransaction: 2001}],
+      ['workerNotifyPerTransaction 49', {workerNotifyPerTransaction: 49}], ['workerNotifyPerTransaction 1501', {workerNotifyPerTransaction: 1501}],
       ['workerNotifyPerTransaction text', {workerNotifyPerTransaction: 'x'}], ['workerNotifyPerTransaction null', {workerNotifyPerTransaction: null}],
       ['a wave larger than the budget', {workerNotifyPerTransaction: 50, remoteNextWaveSize: 60}], ['the first wave larger than the budget', {workerNotifyPerTransaction: 50, remoteWaveSize: 51}],
       ['misspelt remote knob', {remoteWavesX: 1}], ['misspelt worker knob', {workerDailyCapp: 5}], ['misspelt budget knob', {workerNotifyPerTransactoin: 100}],

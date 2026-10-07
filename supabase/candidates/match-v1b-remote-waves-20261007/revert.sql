@@ -26,15 +26,15 @@ begin
   ('private.worker_notify_room_v1b(uuid,integer)','9aac9da0479327fdf82b2f9298e47719','s'),
   ('private.candidate_profile_ids_v1b(uuid,integer,integer)','9a2437fd9d6bed07c8338d12501e5cba','s'),
   ('private.remote_wave_candidates_v1b(uuid,integer,integer)','3bd12de1d220804a91a7b1b036fd7ce6','s'),
-  ('private.dispatch_config_v1b(jsonb)','dd6bae0781ba284d32d9bd45a6a9d0c6','s'),
-  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)','ef1942b1df07e40b7b8b31f7c7cb33ef','v')) made(signature,body_md5,volatility) loop
+  ('private.dispatch_config_v1b(jsonb)','7aa34ff0b5f4a3637c433bec317c1c13','s'),
+  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)','2ba676d2f0fbd1456b48eb1ef36b468e','v')) made(signature,body_md5,volatility) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile=r.volatility and p.proowner='postgres'::regrole
       and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres}')<>1
   then raise exception 'MATCH_V1B_REVERT_NEW_FUNCTION_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  for r in select * from (values
-  ('private.dispatch_next_wave(uuid)',array['f2649b4288e67be68b660da53c562cb3']::text[])) pins(signature,body_md5s) loop
+  ('private.dispatch_next_wave(uuid)',array['d3cdfe2bdd6e5d40a74e6029793c89c5']::text[])) pins(signature,body_md5s) loop
   if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
   then raise exception 'MATCH_V1B_REVERT_PREIMAGE_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
@@ -283,7 +283,7 @@ begin
  o:=to_regprocedure('private.dispatch_next_wave(uuid)');
  if o is null then raise exception 'MATCH_V1B_REVERT_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
- if md5(body) is distinct from 'f2649b4288e67be68b660da53c562cb3' then raise exception 'MATCH_V1B_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
+ if md5(body) is distinct from 'd3cdfe2bdd6e5d40a74e6029793c89c5' then raise exception 'MATCH_V1B_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
  if md5(new_body) is distinct from '0bd8b64ae629f5a62960f5f45e65132b' then raise exception 'MATCH_V1B_REVERT_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'MATCH_V1B_REVERT_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;

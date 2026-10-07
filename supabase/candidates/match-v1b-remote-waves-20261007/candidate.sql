@@ -252,7 +252,7 @@ begin
     raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
   end if;
   num := (v #>> '{}')::numeric;
-  if num <> trunc(num) or num < 50 or num > 2000 then
+  if num <> trunc(num) or num < 50 or num > 1500 then
     raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
   end if;
   budget := num::integer;
@@ -266,7 +266,7 @@ begin
   end if;
   if flag then
     for knob in
-      select * from (values ('remoteWaveSize', 1, 2000), ('remoteNextWaveSize', 1, 2000), ('remoteWaveMinutes', 1, 1440),
+      select * from (values ('remoteWaveSize', 1, 1500), ('remoteNextWaveSize', 1, 1500), ('remoteWaveMinutes', 1, 1440),
                             ('remoteStopAfterResponses', 1, 1000), ('remoteCeiling', 1, 10000))
         as t(knob_key, lo, hi)
     loop
@@ -317,7 +317,7 @@ begin
   --     for good when the task is closed or agreed (the checks of private.dispatch_next_wave before this call);
   --   * at most remoteCeiling workers are notified for one revision of one task: the brake;
   --   * a check that finds nobody new is paced like the tick paces every task that found nobody (5 minutes, growing to 6 hours);
-  --   * one transaction (one tick) notifies at most workerNotifyPerTransaction workers in all (every notified recipient holds one lock of
+  --   * one transaction (one tick) notifies at most workerNotifyPerTransaction workers in all (every notified recipient holds two locks of
   --     the shared lock table until the transaction ends): a wave that does not fit in what is left of that budget is not started, the
   --     answer is "waiting" and due at once, so the next tick sends it.
   select * into n from public.needs where id = nid;
@@ -540,7 +540,7 @@ begin
     --   2. a worker who already got workerDailyCap proactive new-task notifications in the last 24 hours is skipped for this task,
     --      without using up a place of any ceiling; an urgent task ignores the cap;
     --   3. a task WITH a place keeps the one wave and the ceiling of MATCH-V1, but one database transaction (one tick) notifies at most
-    --      workerNotifyPerTransaction workers in all (every notified recipient holds one lock of the shared lock table until the end
+    --      workerNotifyPerTransaction workers in all (every notified recipient holds two locks of the shared lock table until the end
     --      of the transaction, about 4,800 entries on the whole server): a larger wave is sent in chunks, one per tick.
     -- The ladder (mode LADDER) never reaches this block.
     cfgb := private.dispatch_config_v1b(sw);
@@ -707,7 +707,7 @@ begin
  if o is null then raise exception 'MATCH_V1B_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
  if md5(body) is distinct from '0bd8b64ae629f5a62960f5f45e65132b' then raise exception 'MATCH_V1B_PREIMAGE_DRIFT' using errcode='55000'; end if;
- if md5(new_body) is distinct from 'f2649b4288e67be68b660da53c562cb3' then raise exception 'MATCH_V1B_PAYLOAD_DRIFT' using errcode='55000'; end if;
+ if md5(new_body) is distinct from 'd3cdfe2bdd6e5d40a74e6029793c89c5' then raise exception 'MATCH_V1B_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'MATCH_V1B_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
  execute replace(def,body,new_body);
@@ -718,7 +718,7 @@ begin
 end
 $mv1b_replace$;
 update private.marketplace_config
- set value=jsonb_build_object('remoteWaves',true,'remoteWaveSize',300,'remoteNextWaveSize',1000,'remoteWaveMinutes',30,'remoteStopAfterResponses',5,'remoteCeiling',10000,'workerDailyCap',1000,'workerNotifyPerTransaction',1200) || value, updated_at=statement_timestamp()
+ set value=jsonb_build_object('remoteWaves',true,'remoteWaveSize',300,'remoteNextWaveSize',1000,'remoteWaveMinutes',30,'remoteStopAfterResponses',5,'remoteCeiling',10000,'workerDailyCap',1000,'workerNotifyPerTransaction',1000) || value, updated_at=statement_timestamp()
  where key='match_v1_dispatch';
 do $mv1b_post$
 declare r record;
@@ -727,15 +727,15 @@ begin
   ('private.worker_notify_room_v1b(uuid,integer)','9aac9da0479327fdf82b2f9298e47719','s'),
   ('private.candidate_profile_ids_v1b(uuid,integer,integer)','9a2437fd9d6bed07c8338d12501e5cba','s'),
   ('private.remote_wave_candidates_v1b(uuid,integer,integer)','3bd12de1d220804a91a7b1b036fd7ce6','s'),
-  ('private.dispatch_config_v1b(jsonb)','dd6bae0781ba284d32d9bd45a6a9d0c6','s'),
-  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)','ef1942b1df07e40b7b8b31f7c7cb33ef','v')) made(signature,body_md5,volatility) loop
+  ('private.dispatch_config_v1b(jsonb)','7aa34ff0b5f4a3637c433bec317c1c13','s'),
+  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)','2ba676d2f0fbd1456b48eb1ef36b468e','v')) made(signature,body_md5,volatility) loop
   if (select count(*) from pg_proc p where p.oid=to_regprocedure(r.signature) and md5(p.prosrc)=r.body_md5
       and p.prosecdef and p.provolatile=r.volatility and p.proowner='postgres'::regrole
       and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres}')<>1
   then raise exception 'MATCH_V1B_NEW_FUNCTION_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
  for r in select * from (values
-  ('private.dispatch_next_wave(uuid)',array['f2649b4288e67be68b660da53c562cb3']::text[])) pins(signature,body_md5s) loop
+  ('private.dispatch_next_wave(uuid)',array['d3cdfe2bdd6e5d40a74e6029793c89c5']::text[])) pins(signature,body_md5s) loop
   if not coalesce((select md5(p.prosrc)=any(r.body_md5s) from pg_proc p where p.oid=to_regprocedure(r.signature)),false)
   then raise exception 'MATCH_V1B_POSTIMAGE_DRIFT: %',r.signature using errcode='55000'; end if;
  end loop;
@@ -758,7 +758,7 @@ begin
  if (select value - 'remoteWaves' - 'remoteWaveSize' - 'remoteNextWaveSize' - 'remoteWaveMinutes' - 'remoteStopAfterResponses' - 'remoteCeiling' - 'workerDailyCap' - 'workerNotifyPerTransaction' from private.marketplace_config where key='match_v1_dispatch')
   is distinct from (select value from match_v1b_row)
  then raise exception 'MATCH_V1B_ROW_CHANGED_BEYOND_THE_NEW_KEYS' using errcode='55000'; end if;
- if not exists(select 1 from private.marketplace_config where key='match_v1_dispatch' and value @> jsonb_build_object('remoteWaves',true,'remoteWaveSize',300,'remoteNextWaveSize',1000,'remoteWaveMinutes',30,'remoteStopAfterResponses',5,'remoteCeiling',10000,'workerDailyCap',1000,'workerNotifyPerTransaction',1200))
+ if not exists(select 1 from private.marketplace_config where key='match_v1_dispatch' and value @> jsonb_build_object('remoteWaves',true,'remoteWaveSize',300,'remoteNextWaveSize',1000,'remoteWaveMinutes',30,'remoteStopAfterResponses',5,'remoteCeiling',10000,'workerDailyCap',1000,'workerNotifyPerTransaction',1000))
  then raise exception 'MATCH_V1B_DEFAULTS_MISSING' using errcode='55000'; end if;
  perform private.dispatch_config_v1b(value) from private.marketplace_config where key='match_v1_dispatch';
  if private.closure_source_digest_v5() is distinct from (select digest from match_v1b_certificate)

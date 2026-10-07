@@ -105,6 +105,9 @@ closure_sql = (ROOT / "supabase/migrations/20260912130000_clean_pre_v3_account_c
 assert "create trigger pre_v3_closure_delivery before insert on public.notification_deliveries for each row execute function private.closure_guard_delivery();" in closure_sql
 assert "if found and private.closure_event_restricted(e) then" in closure_sql
 assert "perform pg_advisory_xact_lock_shared(private.closure_account_key(e.recipient_user_id));" in closure_sql, "the lock per recipient the budget protects the lock table from"
+safety_sql = (ROOT / "supabase/migrations/20260912091000_clean_pre_v3_safety_authority.sql").read_text(encoding="utf-8")
+assert "create trigger pre_v3_safety_delivery before insert on public.notification_deliveries for each row execute function private.safety_guard_delivery();" in safety_sql
+assert "perform pg_advisory_xact_lock_shared(private.safety_pair_key(e.recipient_user_id,peer));" in safety_sql, "the second lock per recipient (safety pair key)"
 
 # ---- the event the cap counts is the one the live wave emits (names read from the MATCH-V1 wave, not invented)
 assert "p_event_type => 'OPPORTUNITY_AVAILABLE'" in wave_before and "case when urg = 'URGENT' then 'HITNO' else 'NORMAL' end" in wave_before
@@ -163,9 +166,9 @@ assert cf.count("DISPATCH_CONFIG_INVALID") == 9 and "k like 'remote%'" in cf and
 for knob in ("remoteWaves", "remoteWaveSize", "remoteNextWaveSize", "remoteWaveMinutes", "remoteStopAfterResponses", "remoteCeiling", "workerDailyCap", "workerNotifyPerTransaction"):
     assert "'" + knob + "'" in cf or knob in cf, ("KNOB_MISSING", knob)
 assert "num < 1 or num > 1000" in cf and "('remoteCeiling', 1, 10000)" in cf and "case when cap >= 1000 then null else cap end" in cf
-assert "num < 50 or num > 2000" in cf and "('remoteWaveSize', 1, 2000)" in cf and "('remoteNextWaveSize', 1, 2000)" in cf and "'notifyBudget', budget" in cf
+assert "num < 50 or num > 1500" in cf and "('remoteWaveSize', 1, 1500)" in cf and "('remoteNextWaveSize', 1, 1500)" in cf and "'notifyBudget', budget" in cf
 assert "(sw->>'remoteWaveSize')::integer > budget or (sw->>'remoteNextWaveSize')::integer > budget" in cf, "a wave larger than the budget could never be sent"
-assert manifest["knobs"]["workerNotifyPerTransaction"]["default"] == 1200 and manifest["knobs"]["remoteWaveSize"]["max"] == 2000
+assert manifest["knobs"]["workerNotifyPerTransaction"]["default"] == 1000 and manifest["knobs"]["remoteWaveSize"]["max"] == 1500
 assert manifest["knobs"]["workerDailyCap"]["default"] == 1000 and manifest["knobs"]["remoteCeiling"]["default"] == 10000
 assert (manifest["knobs"]["remoteWaveSize"]["default"], manifest["knobs"]["remoteNextWaveSize"]["default"], manifest["knobs"]["remoteWaveMinutes"]["default"],
         manifest["knobs"]["remoteStopAfterResponses"]["default"]) == (300, 1000, 30, 5)
