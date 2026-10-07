@@ -1,13 +1,13 @@
 -- MATCH-V1B read-only postflight. No write. Expected: every flag true and the certificate equal to the preflight value.
 select jsonb_build_object(
- 'waveIsMatchV1B',(select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure('private.dispatch_next_wave(uuid)'))='e70a2c38e03ed32175c568c7153f1fc8',
+ 'waveIsMatchV1B',(select md5(p.prosrc) from pg_proc p where p.oid=to_regprocedure('private.dispatch_next_wave(uuid)'))='f2649b4288e67be68b660da53c562cb3',
  'newFunctionsAndWave',(select bool_and(coalesce(md5(p.prosrc)=any(x.body_md5s),false)) from (values
-  ('private.dispatch_next_wave(uuid)',array['e70a2c38e03ed32175c568c7153f1fc8']::text[]),
+  ('private.dispatch_next_wave(uuid)',array['f2649b4288e67be68b660da53c562cb3']::text[]),
   ('private.worker_notify_room_v1b(uuid,integer)',array['9aac9da0479327fdf82b2f9298e47719']::text[]),
   ('private.candidate_profile_ids_v1b(uuid,integer,integer)',array['9a2437fd9d6bed07c8338d12501e5cba']::text[]),
   ('private.remote_wave_candidates_v1b(uuid,integer,integer)',array['3bd12de1d220804a91a7b1b036fd7ce6']::text[]),
-  ('private.dispatch_config_v1b(jsonb)',array['a2c0533ce7278ab568911a155e97b953']::text[]),
-  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer)',array['b416ff2c01056af38868e3fa4a1a76b5']::text[])
+  ('private.dispatch_config_v1b(jsonb)',array['dd6bae0781ba284d32d9bd45a6a9d0c6']::text[]),
+  ('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)',array['ef1942b1df07e40b7b8b31f7c7cb33ef']::text[])
 ) x(signature,body_md5s) left join pg_proc p on p.oid=to_regprocedure(x.signature)),
  'dependenciesUnchanged',(select bool_and(coalesce(md5(p.prosrc)=any(x.body_md5s),false)) from (values
   ('private.candidate_profile_ids(uuid,integer)',array['5414fa5a122e2055c71dd37993a6ad83']::text[]),
@@ -28,7 +28,7 @@ select jsonb_build_object(
   to_regprocedure('private.candidate_profile_ids_v1b(uuid,integer,integer)'),
   to_regprocedure('private.remote_wave_candidates_v1b(uuid,integer,integer)'),
   to_regprocedure('private.dispatch_config_v1b(jsonb)'),
-  to_regprocedure('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer)'))),
+  to_regprocedure('private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)'))),
  'dispatchRow',(select value from private.marketplace_config where key='match_v1_dispatch'),
  'knobsValid',(select private.dispatch_config_v1b(value) from private.marketplace_config where key='match_v1_dispatch'),
  'closureDigest',private.closure_source_digest_v5(),

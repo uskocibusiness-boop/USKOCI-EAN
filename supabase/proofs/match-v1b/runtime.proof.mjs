@@ -3,6 +3,7 @@
 // then reverted in the opposite order (catalog and certificate restored exactly).
 //   FAIL before : with MATCH-V1 alone a task without a place goes to every matching worker at once.
 //   PASS after  : waves (first 5, later 7 in the proof; 300 / 1,000 by default), pace, stop at N applications, ceiling, rotation, revision, back-off,
+//                 the notify budget of one transaction (the lock table: a tick defers what does not fit, a big place-based wave goes in chunks),
 //                 daily cap (place-based and remote, urgent exempt), switch off = MATCH-V1, ladder untouched, named configuration errors, exact revert.
 // Tasks are direct-insert fixtures (labelled); applications, selection, cancellation and the profile edit of the late worker go through the product.
 import fs from 'node:fs';
@@ -79,7 +80,8 @@ function insertNeed({title, skill, mode, lat = null, lng = null, schedule = 'REM
   return id;
 }
 
-/** Synthetic workers (triggers off, labelled): only the rows the matcher reads. coords: worker i sits 0.01 degrees (about 1.1 km) farther from the centre of Novi Sad than worker i-1. */
+/** Synthetic workers (triggers off, labelled): only the rows the matcher reads. coords true: worker i sits 0.01 degrees (about 1.1 km) farther from the centre of Novi Sad than
+ *  worker i-1 (a line, up to ~13 workers inside the 15 km circle); coords 'cluster': a 10 x 10 grid of points, every worker within about 12 km of the centre. */
 function seedPool({label, count: n, skill, coords = false}) {
   const result = run(`begin; set local session_replication_role=replica;
     create temporary table mv1b_w on commit drop as select gen_random_uuid() as account_id, gen_random_uuid() as profile_id, g as i from generate_series(1,${n}) g;
@@ -88,7 +90,7 @@ function seedPool({label, count: n, skill, coords = false}) {
     insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,radius_km,available_now)
       select profile_id,account_id,'WORKER',${q(label)}||' '||i,'Novi Sad','ACTIVE',array[${q(skill)}],15,true from mv1b_w;
     ${coords ? `insert into public.worker_match_preferences(worker_profile_id,worker_account_id,approximate_lat,approximate_lng)
-      select profile_id,account_id,round((45.27+i*0.01)::numeric,2),19.83 from mv1b_w;` : ''}
+      select profile_id,account_id,${coords === 'cluster' ? 'round((45.27+(i%10)*0.01)::numeric,2),round((19.83+((i/10)%10)*0.01)::numeric,2)' : 'round((45.27+i*0.01)::numeric,2),19.83'} from mv1b_w;` : ''}
     commit;`, {timeoutS: 120});
   assert.ok(result.ok, 'SEED_FAILED:' + result.error);
   return rows(`select p.id as profile_id, p.account_id, (split_part(p.display_name,' ',2))::integer as i from public.app_profiles p
@@ -105,8 +107,8 @@ const freeWorker = accountId => sql(`update public.user_activity_events set crea
 const hasRoom = (accountId, cap) => sql(`select private.worker_notify_room_v1b(${q(accountId)}::uuid, ${cap === null ? 'null' : Number(cap)})`) === 't';
 
 // The knobs every scenario starts from (the proof sizes: first wave 5, later waves 7; the real defaults are 300 and 1,000, measured by the load proof).
-const TEST = {remoteWaves: true, remoteWaveSize: 5, remoteNextWaveSize: 7, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000};
-const KNOWN = ['remoteWaves', 'remoteWaveSize', 'remoteNextWaveSize', 'remoteWaveMinutes', 'remoteStopAfterResponses', 'remoteCeiling', 'workerDailyCap'];
+const TEST = {remoteWaves: true, remoteWaveSize: 5, remoteNextWaveSize: 7, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000, workerNotifyPerTransaction: 1200};
+const KNOWN = ['remoteWaves', 'remoteWaveSize', 'remoteNextWaveSize', 'remoteWaveMinutes', 'remoteStopAfterResponses', 'remoteCeiling', 'workerDailyCap', 'workerNotifyPerTransaction'];
 const normalise = () => {
   sql(`update private.marketplace_config set updated_at = statement_timestamp(), value = (
       select coalesce(jsonb_object_agg(e.k, e.v), '{}'::jsonb) from jsonb_each(value) as e(k, v)
@@ -204,6 +206,11 @@ try {
   assert.equal(catalog(), catBefore); assert.deepEqual(row(), rowBefore); assert.deepEqual(closure(), baseClosure);
   pass('MATCH_V1B_DRIFT_REPEAT_AND_REVERT_BEFORE_APPLY_REFUSALS_ARE_ATOMIC');
 
+  const flight = file => { const r = run(fs.readFileSync(file, 'utf8')); assert.ok(r.ok, 'FLIGHT_FAILED:' + file + ':' + r.error); return JSON.parse(C.lastLine(r.output)); };
+  const pre = flight(B + 'preflight.readonly.sql');
+  assert.equal(pre.certificateReady, true); assert.equal(pre.matchV1Applied, true); assert.equal(pre.waveIsMatchV1, true); assert.equal(pre.pinsMatch, true); assert.deepEqual(pre.pinMismatches, []);
+  assert.equal(pre.newFunctionsAbsent, true); assert.equal(pre.dispatchRowHasNoNewKeys, true); assert.equal(pre.closureNotExecuting, true); assert.equal(pre.closureDigest, baseClosure.digest);
+  pass('MATCH_V1B_PREFLIGHT_RUNS_READ_ONLY_AND_EVERY_FLAG_IS_TRUE_BEFORE_THE_APPLY', {openTasksWithoutAPlace: pre.openTasksWithoutAPlace, activeWorkerProfiles: pre.activeWorkerProfiles});
   applyFile(B + 'candidate.sql');
   assert.equal(bodyMd5(WAVE), bManifest.functions[0].after_md5, 'POSTIMAGE');
   for (const f of bManifest.newFunctions) {
@@ -212,11 +219,16 @@ try {
   }
   for (const pin of bManifest.pinnedDependencies) assert.equal(bodyMd5(pin.signature), pin.body_md5, 'DEPENDENCY:' + pin.signature);
   const rowAfter = row();
-  assert.deepEqual(rowAfter, {...rowBefore, remoteWaves: true, remoteWaveSize: 300, remoteNextWaveSize: 1000, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000});
+  assert.deepEqual(rowAfter, {...rowBefore, remoteWaves: true, remoteWaveSize: 300, remoteNextWaveSize: 1000, remoteWaveMinutes: 30, remoteStopAfterResponses: 5, remoteCeiling: 10000, workerDailyCap: 1000, workerNotifyPerTransaction: 1200});
   assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001);
   refused(candidate, 'MATCH_V1B_ALREADY_OR_PARTIALLY_APPLIED');
   refused(fs.readFileSync(M + 'revert.sql', 'utf8'), 'MATCH_V1_REVERT_PREIMAGE_DRIFT');
   const catAfterV1b = catalog();
+  const post = flight(B + 'postflight.readonly.sql');
+  assert.equal(post.waveIsMatchV1B, true); assert.equal(post.newFunctionsAndWave, true); assert.equal(post.dependenciesUnchanged, true); assert.equal(post.newFunctionAcl, true);
+  assert.deepEqual(post.knobsValid, {remoteWaves: true, workerDailyCap: null, notifyBudget: 1200}); assert.equal(post.certificateReady, true); assert.equal(post.closureDigest, baseClosure.digest);
+  assert.equal(post.erasureProgramDigest, baseClosure.program); assert.deepEqual(post.dispatchRow, rowAfter);
+  pass('MATCH_V1B_POSTFLIGHT_RUNS_READ_ONLY_AND_EVERY_FLAG_IS_TRUE_AFTER_THE_APPLY');
   await fx.reloadSchema();
   pass('MATCH_V1B_APPLIED_EXACT_BODIES_ACL_DEFAULT_KNOBS_MERGED_INTO_THE_ROW_CERTIFICATE_UNCHANGED_NO_NEW_40001', {row: rowAfter, certificate: baseClosure.certificate});
 
@@ -565,6 +577,67 @@ try {
     pass('MATCH_V1B_DAILY_CAP_HOLDS_ACROSS_TASKS_IN_ONE_TICK_THE_THIRD_TASK_WAITS_AND_REACHES_A_WORKER_WHEN_HE_HAS_ROOM_AGAIN', {deliveriesPerTask: per, eventsPerWorker: 2});
   });
 
+  await scenario('MATCH_V1B_THE_NOTIFY_BUDGET_OF_ONE_TRANSACTION_DEFERS_THE_TASKS_THAT_DO_NOT_FIT_TO_THE_NEXT_TICK', async () => {
+    // The lock table of the database: every notified recipient holds one lock until the transaction ends, so one tick notifies at most
+    // workerNotifyPerTransaction workers in all. Budget 50, waves of 30, three tasks, one tick each: 30 now, the others wait (due at once).
+    setKnobs({workerNotifyPerTransaction: 50, remoteWaveSize: 30, remoteNextWaveSize: 30});
+    const ts = [];
+    for (let i = 0; i < 3; i++) ts.push(await remoteTask('MV1B budzet ' + i, skillP));
+    isolate(ts.map(t => t.needId));
+    const waitingOf = () => ts.filter(t => deliveriesOf(t.needId) === 0);
+    const t1 = tick();
+    assert.equal(t1.claimed, 3); assert.equal(t1.processed, 3); assert.equal(t1.failed, 0);
+    assert.deepEqual(ts.map(t => deliveriesOf(t.needId)).sort((a, b) => a - b), [0, 0, 30], 'ONE_TASK_FITS_THE_BUDGET_OF_ONE_TICK');
+    for (const t of waitingOf()) {
+      const s = fx.readSchedule(t.needId);
+      assert.ok(s.queued && s.attempts === 0 && s.lastStatus === 'SENT' && Math.abs(minutesFromNow(s.nextRunAt)) < 1, 'DEFERRED_TASK_IS_DUE_AT_ONCE:' + JSON.stringify(s));
+      assert.equal(byRound(t.needId).length, 0, 'A_DEFERRED_WAVE_WRITES_NO_ROUND');
+    }
+    const t2 = tick();
+    assert.equal(t2.claimed, 2); assert.equal(t2.failed, 0);
+    assert.deepEqual(ts.map(t => deliveriesOf(t.needId)).sort((a, b) => a - b), [0, 30, 30]);
+    const t3 = tick();
+    assert.equal(t3.claimed, 1); assert.equal(t3.failed, 0);
+    assert.deepEqual(ts.map(t => deliveriesOf(t.needId)), [30, 30, 30]);
+    for (const t of ts) assert.equal(byRound(t.needId).length, 1);
+    // the budget is per transaction: a direct call is a transaction of its own
+    const solo = await remoteTask('MV1B budzet jedan poziv', skillP);
+    assert.equal(fx.runWave(solo.needId).inserted, 30);
+    pass('MATCH_V1B_THE_NOTIFY_BUDGET_OF_ONE_TICK_DEFERS_THE_TASKS_THAT_DO_NOT_FIT_AND_THE_NEXT_TICKS_SEND_THEM', {budget: 50, wave: 30, deliveriesPerTick: [30, 30, 30], ticks: 3});
+  });
+
+  await scenario('MATCH_V1B_A_PLACE_BASED_WAVE_LARGER_THAN_THE_BUDGET_IS_SENT_IN_CHUNKS_ONE_PER_TICK', async () => {
+    // Sixty workers around the task, budget 50: the single wave of MATCH-V1 mode ALL becomes a chunk of the 50 nearest, due again at once, then the rest.
+    setKnobs({workerNotifyPerTransaction: 50});
+    const skill = 'mv1b-ch-' + tag;
+    seedPool({label: 'mv1b-ch-' + tag, count: 60, skill, coords: 'cluster'});
+    const t = await placeTask('MV1B komadi', skill);
+    isolate([t.needId]);
+    const expected = rows(`select worker_profile_id from private.candidate_profile_ids(${q(t.needId)}::uuid, 100) with ordinality as x(worker_profile_id, n) order by n`).map(r => r.worker_profile_id);
+    assert.equal(expected.length, 60);
+    const k1 = tick();
+    assert.equal(k1.sent, 1); assert.equal(k1.failed, 0);
+    const chunk1 = profilesOfNeed(t.needId);
+    assert.equal(chunk1.length, 50, 'THE_FIRST_CHUNK_IS_THE_BUDGET');
+    const rs1 = byRound(t.needId);
+    assert.equal(rs1.length, 1); assert.equal(rs1[0].batch_size, 50); assert.equal(rs1[0].candidate_limit_used, 50);
+    const s1 = fx.readSchedule(t.needId);
+    assert.ok(s1.queued && s1.attempts === 0 && s1.lastStatus === 'SENT' && Math.abs(minutesFromNow(s1.nextRunAt)) < 1, 'THE_NEXT_CHUNK_IS_DUE_AT_ONCE:' + JSON.stringify(s1));
+    const k2 = tick();
+    assert.equal(k2.sent, 1); assert.equal(k2.failed, 0);
+    const all = profilesOfNeed(t.needId);
+    assert.equal(all.length, 60); assert.equal(new Set(all).size, 60);
+    const chunk2 = all.filter(id => !chunk1.includes(id));
+    assert.equal(chunk2.length, 10);
+    // nearest first, by the order MATCH-V1's own function gives (read before the first tick): the first chunk is its first 50, the second its last 10
+    assert.deepEqual(sorted(chunk1), sorted(expected.slice(0, 50)), 'THE_FIRST_CHUNK_IS_THE_50_NEAREST');
+    assert.deepEqual(sorted(chunk2), sorted(expected.slice(50)), 'THE_SECOND_CHUNK_IS_THE_REST');
+    const s2 = fx.readSchedule(t.needId);
+    assert.ok(minutesFromNow(s2.nextRunAt) > 12 && minutesFromNow(s2.nextRunAt) < 16, 'A_CHUNK_THAT_IS_NOT_FULL_FOLLOWS_THE_NORMAL_WINDOW:' + JSON.stringify(s2));
+    assert.equal(byRound(t.needId).length, 2);
+    pass('MATCH_V1B_A_PLACE_BASED_WAVE_LARGER_THAN_THE_BUDGET_GOES_IN_CHUNKS_NEAREST_FIRST_ONE_PER_TICK', {budget: 50, workers: 60, chunks: [chunk1.length, chunk2.length]});
+  });
+
   await scenario('MATCH_V1B_DAILY_CAP_IGNORES_URGENT_TASKS_AND_URGENT_EVENTS_ARE_NOT_COUNTED', async () => {
     setKnobs({workerDailyCap: 3});
     const skill = 'mv1b-cu-' + tag;
@@ -588,7 +661,7 @@ try {
     const po = seedPool({label: 'mv1b-co-' + tag, count: 3, skill});
     seedEvents(po[0].account_id, {count: 50, hoursAgo: 2});
     const offCfg = JSON.parse(sql(`select private.dispatch_config_v1b(value)::text from private.marketplace_config where key=${q(KEY)}`));
-    assert.deepEqual(offCfg, {remoteWaves: true, workerDailyCap: null}, 'CAP_1000_IS_OFF');
+    assert.deepEqual(offCfg, {remoteWaves: true, workerDailyCap: null, notifyBudget: 1200}, 'CAP_1000_IS_OFF');
     const t = await remoteTask('MV1B kapa iskljucena', skill);
     assert.equal(fx.runWave(t.needId).inserted, 3, 'A_WORKER_WITH_50_EVENTS_IS_STILL_NOTIFIED_WHEN_THE_CAP_IS_OFF');
     // the cap is a knob of mode ALL: the ladder reaches a capped worker
@@ -640,11 +713,14 @@ try {
 
   await scenario('MATCH_V1B_BAD_KNOBS_ARE_THE_NAMED_CONFIGURATION_ERROR', async () => {
     const bad = [
-      ['remoteWaveSize 0', {remoteWaveSize: 0}], ['remoteWaveSize 10001', {remoteWaveSize: 10001}], ['remoteNextWaveSize text', {remoteNextWaveSize: 'x'}],
+      ['remoteWaveSize 0', {remoteWaveSize: 0}], ['remoteWaveSize 2001', {remoteWaveSize: 2001}], ['remoteNextWaveSize text', {remoteNextWaveSize: 'x'}],
       ['remoteNextWaveSize fraction', {remoteNextWaveSize: 1.5}], ['remoteWaveMinutes 1441', {remoteWaveMinutes: 1441}], ['remoteStopAfterResponses 0', {remoteStopAfterResponses: 0}],
       ['remoteCeiling 10001', {remoteCeiling: 10001}], ['remoteCeiling fraction', {remoteCeiling: 5.5}], ['remoteWaves text', {remoteWaves: 'yes'}],
       ['workerDailyCap 0', {workerDailyCap: 0}], ['workerDailyCap 1001', {workerDailyCap: 1001}], ['workerDailyCap text', {workerDailyCap: '10'}], ['workerDailyCap null', {workerDailyCap: null}],
-      ['misspelt remote knob', {remoteWavesX: 1}], ['misspelt worker knob', {workerDailyCapp: 5}],
+      ['workerNotifyPerTransaction 49', {workerNotifyPerTransaction: 49}], ['workerNotifyPerTransaction 2001', {workerNotifyPerTransaction: 2001}],
+      ['workerNotifyPerTransaction text', {workerNotifyPerTransaction: 'x'}], ['workerNotifyPerTransaction null', {workerNotifyPerTransaction: null}],
+      ['a wave larger than the budget', {workerNotifyPerTransaction: 50, remoteNextWaveSize: 60}], ['the first wave larger than the budget', {workerNotifyPerTransaction: 50, remoteWaveSize: 51}],
+      ['misspelt remote knob', {remoteWavesX: 1}], ['misspelt worker knob', {workerDailyCapp: 5}], ['misspelt budget knob', {workerNotifyPerTransactoin: 100}],
     ];
     const results = {};
     for (const [name, patch] of bad) {
@@ -661,10 +737,17 @@ try {
     dropKnobs('workerDailyCap');
     assert.ok(waveError(t.needId)?.includes('DISPATCH_CONFIG_INVALID'));
     normalise();
+    dropKnobs('workerNotifyPerTransaction');
+    assert.ok(waveError(t.needId)?.includes('DISPATCH_CONFIG_INVALID'), 'A_MISSING_BUDGET_IS_THE_NAMED_ERROR');
+    normalise();
+    // a wave exactly as large as the budget is fine
+    setKnobs({workerNotifyPerTransaction: 50, remoteWaveSize: 50, remoteNextWaveSize: 50});
+    assert.equal(JSON.parse(sql(`select private.dispatch_config_v1b(value)::text from private.marketplace_config where key=${q(KEY)}`)).notifyBudget, 50);
+    normalise();
     setKnobs({remoteWaves: false, remoteWaveSize: 0});
     const u = await remoteTask('MV1B iskljuceno ignorise', skillP);
     assert.equal(fx.runWave(u.needId).inserted, 30);
-    pass('MATCH_V1B_EVERY_BAD_OR_MISSPELT_KNOB_IS_DISPATCH_CONFIG_INVALID_AND_NOTHING_IS_DELIVERED', {cases: Object.keys(results).length + 1});
+    pass('MATCH_V1B_EVERY_BAD_OR_MISSPELT_KNOB_IS_DISPATCH_CONFIG_INVALID_AND_NOTHING_IS_DELIVERED', {cases: Object.keys(results).length + 2});
   });
 
   await scenario('MATCH_V1B_DISCOVERY_ZAMENE_APPLIES_AFTER_AND_REVERTS_BEFORE', async () => {
@@ -703,6 +786,15 @@ try {
     applyFile(B + 'revert.sql');
     assert.equal(catalog(), catAfterMv1); assert.deepEqual(row(), rowBefore); assert.deepEqual(closure(), baseClosure);
     pass('MATCH_V1B_IN_TRANSACTION_ARTIFACT_APPLIES_TO_THE_SAME_CATALOG_AND_REVERTS_EXACTLY');
+    // the other order of the two packages that both need MATCH-V1: DISCOVERY-ZAMENE first, then MATCH-V1B; each reverted by its own script
+    applyFile(D + 'candidate.sql');
+    applyFile(B + 'candidate.sql');
+    assert.equal(bodyMd5(WAVE), bManifest.functions[0].after_md5); assert.equal(bodyMd5(dManifest.functions[0].signature), dManifest.functions[0].after_md5);
+    assert.deepEqual(row(), rowAfter); assert.deepEqual(closure(), baseClosure);
+    applyFile(B + 'revert.sql');
+    applyFile(D + 'revert.sql');
+    assert.equal(catalog(), catAfterMv1, 'CATALOG_EXACTLY_AS_BEFORE_THE_TWO_PACKAGES'); assert.deepEqual(row(), rowBefore); assert.deepEqual(closure(), baseClosure);
+    pass('MATCH_V1B_AND_DISCOVERY_ZAMENE_APPLY_IN_EITHER_ORDER_AND_REVERT_EXACTLY');
     applyFile(M + 'revert.sql');
     assert.equal(catalog(), catAfterZone, 'CATALOG_EXACTLY_AS_BEFORE_MATCH_V1');
     assert.equal(Number(sql(`select count(*) from private.marketplace_config where key in ('match_v1_profile_requeue','match_v1_dispatch')`)), 0);

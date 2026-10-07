@@ -73,7 +73,7 @@ for name in ("candidate.sql", "candidate.in-transaction.sql", "revert.sql", "swi
             pglast.parse_sql(body)
         checked += 1
 patches = json.loads((B / "patches.json").read_text(encoding="utf-8"))
-assert len(patches) == 4
+assert len(patches) == 7
 mv1_live = {r["signature"]: r["body"] for r in json.loads((M / "live-functions.json").read_text(encoding="utf-8"))}
 mv1_after = dict(mv1_live)
 for patch in json.loads((M / "patches.json").read_text(encoding="utf-8")):
@@ -100,6 +100,12 @@ def new_body(name):
 room, twin, walk, config, remote = (new_body(n) for n in ("worker_notify_room_v1b", "candidate_profile_ids_v1b", "remote_wave_candidates_v1b",
                                                             "dispatch_config_v1b", "dispatch_remote_wave_v1b"))
 
+# ---- the premise of the notify budget (read from the chain, not guessed): every notification_deliveries insert takes a shared advisory lock per recipient until the end of the transaction
+closure_sql = (ROOT / "supabase/migrations/20260912130000_clean_pre_v3_account_closure_preparation.sql").read_text(encoding="utf-8")
+assert "create trigger pre_v3_closure_delivery before insert on public.notification_deliveries for each row execute function private.closure_guard_delivery();" in closure_sql
+assert "if found and private.closure_event_restricted(e) then" in closure_sql
+assert "perform pg_advisory_xact_lock_shared(private.closure_account_key(e.recipient_user_id));" in closure_sql, "the lock per recipient the budget protects the lock table from"
+
 # ---- the event the cap counts is the one the live wave emits (names read from the MATCH-V1 wave, not invented)
 assert "p_event_type => 'OPPORTUNITY_AVAILABLE'" in wave_before and "case when urg = 'URGENT' then 'HITNO' else 'NORMAL' end" in wave_before
 room_code = code(room)
@@ -119,6 +125,15 @@ w = code(wave)
 assert w.index("if all_mode then\n    begin") < w.index("cfgb := private.dispatch_config_v1b(sw);") < w.index("if remote_on then\n    return private.dispatch_remote_wave_v1b(")
 assert w.count("private.dispatch_config_v1b(") == 1 and "daily_cap := case when urg = 'URGENT' then null" in w, "an urgent task ignores the cap"
 assert "if delivered >= sw_ceiling and not remote_on then" in w and "from private.candidate_profile_ids_v1b(n.id, candidate_limit, daily_cap)" in w
+# the notify budget of one transaction: read once from the checked configuration, a task without a place gets what is left, a task with a place is cut into chunks
+for part in ("tx_budget := (cfgb->>'notifyBudget')::integer;", "tx_used := coalesce(nullif(current_setting('v1b.notified', true), '')::integer, 0);",
+             "delivered, tx_budget - tx_used);", "if tx_budget - tx_used < 1 then", "'deferred','TRANSACTION_NOTIFY_BUDGET'", "if candidate_limit > tx_budget - tx_used then",
+             "candidate_limit := tx_budget - tx_used;", "chunked := true;", "perform set_config('v1b.notified', (tx_used + inserted)::text, true);",
+             "if chunked and inserted >= batch then deadline := statement_timestamp(); end if;", "jsonb_build_object('chunk',true,'txNotifyBudget',tx_budget)"):
+    assert part in w, ("BUDGET_PART_MISSING", part)
+assert w.index("if remote_on then\n    return private.dispatch_remote_wave_v1b(") < w.index("if tx_budget - tx_used < 1 then") < w.index("candidate_limit := tx_budget - tx_used;") \
+    < w.index("insert into public.dispatch_rounds"), "the budget is checked before a round is written"
+assert wave.index("if all_mode then\n    -- MATCH-V1: every admitted") < wave.index("if tx_budget - tx_used < 1 then"), "the budget only applies in mode ALL: the ladder never reaches it"
 assert "private.candidate_profile_ids(" not in w, "the wave reaches MATCH-V1's function only through the twin"
 # a task without a place: the same test as the branch of private.candidate_profile_ids
 cp = mv1_after["private.candidate_profile_ids(uuid,integer)"]
@@ -144,10 +159,13 @@ assert "order by case" not in wk and wk.count("for phase in 1..2 loop") == 1, "n
 
 # ---- the config checker: seven knobs, ranges, named error, strict spelling of the two new families
 cf = code(config)
-assert cf.count("DISPATCH_CONFIG_INVALID") == 6 and "k like 'remote%'" in cf and "k like 'worker%'" in cf
-for knob in ("remoteWaves", "remoteWaveSize", "remoteNextWaveSize", "remoteWaveMinutes", "remoteStopAfterResponses", "remoteCeiling", "workerDailyCap"):
+assert cf.count("DISPATCH_CONFIG_INVALID") == 9 and "k like 'remote%'" in cf and "k like 'worker%'" in cf
+for knob in ("remoteWaves", "remoteWaveSize", "remoteNextWaveSize", "remoteWaveMinutes", "remoteStopAfterResponses", "remoteCeiling", "workerDailyCap", "workerNotifyPerTransaction"):
     assert "'" + knob + "'" in cf or knob in cf, ("KNOB_MISSING", knob)
 assert "num < 1 or num > 1000" in cf and "('remoteCeiling', 1, 10000)" in cf and "case when cap >= 1000 then null else cap end" in cf
+assert "num < 50 or num > 2000" in cf and "('remoteWaveSize', 1, 2000)" in cf and "('remoteNextWaveSize', 1, 2000)" in cf and "'notifyBudget', budget" in cf
+assert "(sw->>'remoteWaveSize')::integer > budget or (sw->>'remoteNextWaveSize')::integer > budget" in cf, "a wave larger than the budget could never be sent"
+assert manifest["knobs"]["workerNotifyPerTransaction"]["default"] == 1200 and manifest["knobs"]["remoteWaveSize"]["max"] == 2000
 assert manifest["knobs"]["workerDailyCap"]["default"] == 1000 and manifest["knobs"]["remoteCeiling"]["default"] == 10000
 assert (manifest["knobs"]["remoteWaveSize"]["default"], manifest["knobs"]["remoteNextWaveSize"]["default"], manifest["knobs"]["remoteWaveMinutes"]["default"],
         manifest["knobs"]["remoteStopAfterResponses"]["default"]) == (300, 1000, 30, 5)
@@ -160,8 +178,10 @@ for part in ("'DELIVERY_CEILING_REACHED'", "'REMOTE_RESPONSE_TARGET_REACHED'", "
              "(2 ^ least(streak - 1, 9))::integer", "(2 ^ least(streak, 9))::integer", "'waiting',true", "private.remote_wave_candidates_v1b(n.id, batch, daily_cap)",
              "'NO_ELIGIBLE_CANDIDATES'", "on conflict do nothing", "p_event_type => 'OPPORTUNITY_AVAILABLE'", "valid_until := least(valid_until, n.urgent_expires_at)"):
     assert part in r, ("REMOTE_WAVE_PART_MISSING", part)
-assert r.index("if delivered >= rem_ceiling then") < r.index("if active >= stop_after") < r.index("select r.round_no, r.created_at") < r.index("insert into public.dispatch_rounds"), \
-    "ceiling, then stop, then pace, and no round is written for a refused or waiting call"
+assert r.index("if delivered >= rem_ceiling then") < r.index("if active >= stop_after") < r.index("select r.round_no, r.created_at") < r.index("if tx_left < batch then") \
+    < r.index("insert into public.dispatch_rounds"), "ceiling, then stop, then pace, then the budget of the transaction, and no round is written for a refused, waiting or deferred call"
+for part in ("'TRANSACTION_NOTIFY_BUDGET'", "'deadlineAt',statement_timestamp()", "perform set_config('v1b.notified', (coalesce(nullif(current_setting('v1b.notified', true), '')::integer, 0) + inserted)::text, true);"):
+    assert part in r, ("REMOTE_BUDGET_PART_MISSING", part)
 # the delivery and the event are the same statements as the MATCH-V1 wave writes (the remote wave must not change the shape of a notification)
 for statement in ("insert into public.opportunity_deliveries(worker_account_id,worker_profile_id,need_id,", "p_title => 'Nova prilika koja može da Vam odgovara',",
                   "p_dedupe_key => 'opp:'||n.id::text||':'||n.revision::text||':'||c.uid::text,"):
@@ -175,7 +195,7 @@ for name, expect, target in (("switch-remote-waves-off.sql", "true", "false"), (
 assert "perform private.dispatch_config_v1b(value || jsonb_build_object('remoteWaves', true))" in texts["switch-remote-waves-on.sql"], "a bad knob can never be switched on"
 rv = texts["revert.sql"]
 assert rv.count("drop function private.") == 5
-for knob in ("remoteWaves", "remoteWaveSize", "remoteNextWaveSize", "remoteWaveMinutes", "remoteStopAfterResponses", "remoteCeiling", "workerDailyCap"):
+for knob in ("remoteWaves", "remoteWaveSize", "remoteNextWaveSize", "remoteWaveMinutes", "remoteStopAfterResponses", "remoteCeiling", "workerDailyCap", "workerNotifyPerTransaction"):
     assert f"- '{knob}'" in rv, ("REVERT_DOES_NOT_REMOVE", knob)
 
 # ---- certificate-neutral shape

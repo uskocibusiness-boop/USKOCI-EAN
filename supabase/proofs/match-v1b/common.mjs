@@ -43,7 +43,7 @@ export function run(text, {timeoutS = 90, lockS = 5} = {}) {
   } catch (error) {
     const stderr = String(error.stderr ?? '');
     const detail = stderr + String(error.message ?? '');
-    return {ok: false, timedOut: /statement timeout|canceling statement|ETIMEDOUT/i.test(detail), stderr, error: detail.slice(-1500), wallMs: Date.now() - started};
+    return {ok: false, timedOut: /statement timeout|canceling statement|ETIMEDOUT/i.test(detail), stderr, lockTableFull: /out of shared memory/i.test(detail), error: detail.length > 1500 ? detail.slice(0, 700) + '\n ... \n' + detail.slice(-800) : detail, wallMs: Date.now() - started};
   }
 }
 export function applyFile(file, timeoutS = 180) {

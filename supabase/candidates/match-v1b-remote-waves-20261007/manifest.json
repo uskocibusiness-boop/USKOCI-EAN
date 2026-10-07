@@ -33,7 +33,7 @@
     {
       "signature": "private.dispatch_next_wave(uuid)",
       "before_md5": "0bd8b64ae629f5a62960f5f45e65132b",
-      "after_md5": "e70a2c38e03ed32175c568c7153f1fc8"
+      "after_md5": "f2649b4288e67be68b660da53c562cb3"
     }
   ],
   "newFunctions": [
@@ -57,13 +57,13 @@
     },
     {
       "signature": "private.dispatch_config_v1b(jsonb)",
-      "body_md5": "a2c0533ce7278ab568911a155e97b953",
+      "body_md5": "dd6bae0781ba284d32d9bd45a6a9d0c6",
       "acl": "{postgres=X/postgres}",
       "volatility": "s"
     },
     {
-      "signature": "private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer)",
-      "body_md5": "b416ff2c01056af38868e3fa4a1a76b5",
+      "signature": "private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer,integer)",
+      "body_md5": "ef1942b1df07e40b7b8b31f7c7cb33ef",
       "acl": "{postgres=X/postgres}",
       "volatility": "v"
     }
@@ -129,9 +129,10 @@
         "remoteWaveMinutes": 30,
         "remoteStopAfterResponses": 5,
         "remoteCeiling": 10000,
-        "workerDailyCap": 1000
+        "workerDailyCap": 1000,
+        "workerNotifyPerTransaction": 1200
       },
-      "note": "the seven keys are merged into the existing row; every existing value (e.g. the ceiling the owner set) is kept"
+      "note": "the eight keys are merged into the existing row; every existing value (e.g. the ceiling the owner set) is kept"
     }
   ],
   "knobs": {
@@ -142,12 +143,12 @@
     "remoteWaveSize": {
       "default": 300,
       "min": 1,
-      "max": 10000
+      "max": 2000
     },
     "remoteNextWaveSize": {
       "default": 1000,
       "min": 1,
-      "max": 10000
+      "max": 2000
     },
     "remoteWaveMinutes": {
       "default": 30,
@@ -169,6 +170,12 @@
       "min": 1,
       "max": 1000,
       "note": "1000 effectively switches the cap off"
+    },
+    "workerNotifyPerTransaction": {
+      "default": 1200,
+      "min": 50,
+      "max": 2000,
+      "note": "workers one database transaction (one tick) may notify in all: every notified recipient holds one lock of the shared lock table until the end of the transaction"
     }
   },
   "switchScripts": {
@@ -184,14 +191,14 @@
     "index": "activity_recipient_idx (recipient_user_id, recipient_role, created_at DESC); the planner may also use activity_inbox_page_idx (recipient_user_id, created_at DESC, id DESC)"
   },
   "artifact_sha256": {
-    "candidate.sql": "cda25e6c3be0c3a387b2988b3a7f8daa1b45af48628a15430aede13bab2bab10",
-    "candidate.in-transaction.sql": "10632644ffa5b0f966c482c7fc30e293b049fc04b16c0d76269ddafbf8bd5891",
-    "revert.sql": "a6fa63b431eb02afed229d727edd5037fe00120caad8a56c3084753c5189ec89",
+    "candidate.sql": "01238e6dd9f3ac2bf64cc5222a8bfaaefbed23cef5b4c616e02241ec49d7cf6d",
+    "candidate.in-transaction.sql": "c2bae8a7f25683aa98ae6ac1f9fe8fa86edfa34db82552ebc1588315fe01f194",
+    "revert.sql": "213c5786bb8570726123d209f4f34910e6a6d9f5f2cb295c14478420d0392fe7",
     "switch-remote-waves-off.sql": "c835d235d6273b87ca4df7a98f052621b8564c6705b870a1d88fcb8f083e7b58",
     "switch-remote-waves-on.sql": "97e410e90f41fa2d48f8368e055423975513e888820641be6b8010c31455bee2",
     "preflight.readonly.sql": "0a09ccea3f7d573ca20f0ab74ef825557018d785943d7ac791ee06ad84e3da25",
-    "postflight.readonly.sql": "5303cb8b364bb54d6257012bd4ffc08af78e850764429cab0db8c42ac76cc314",
-    "body.diff": "fc15813c66ff7e8ddb4ab9a46eb5fc9bc0245fbc166a02dd58e5d4342b9c22eb",
-    "patches.json": "f65d41180a7d61d3e52cfcffe4e2a0b995a23c29564c474f745df6974eb84931"
+    "postflight.readonly.sql": "1fc4a5a3366d58aacb47624926e0ec9d390990a0949476c2a8cc349956b3cf57",
+    "body.diff": "26039dde7c9538baf653fba08d548ea250a54d2b0bda2e5768a46907d32bf52b",
+    "patches.json": "f10029b1cb3308f3fe55085b02de59436044e56995f477c642e6f7eac5533d4a"
   }
 }
