@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { act, create, type ReactTestRenderer, type ReactTestInstance } from 'react-test-renderer';
 import { Press, PRESS_DELAY, pressDelayFor, type HapticKind } from '../Press';
 import { Segmented } from '../system/Segmented';
+import { forgetTicks } from '../system/haptics';
 import { useReducedMotionRoot } from '../system/motion';
 import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
@@ -100,6 +101,9 @@ beforeEach(() => {
   // An implementation given by one test must not reach the next.
   mockHaptic.mockReset(); onPress.mockReset(); onLongPress.mockReset(); change.mockReset();
   jest.useFakeTimers();
+  // The ticks go through the haptics wrapper, which holds two ticks closer than `sys.motion.tickGap` to one. Each test starts a
+  // fake clock of its own, so the last tick of the test before must not hold back the first tick of this one.
+  forgetTicks();
 });
 afterEach(() => { act(() => { tree?.unmount(); tree = undefined; }); jest.useRealTimers(); });
 

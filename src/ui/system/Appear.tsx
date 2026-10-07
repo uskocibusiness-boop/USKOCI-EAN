@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from 'react';
 import { View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { sys } from './tokens';
 import { useReducedMotion } from './motion';
 
@@ -78,8 +78,24 @@ export function useAppear(): AppearList {
   return api.current;
 }
 
-/** The one entrance a row can have: it settles up from a few dp below while it fades in. */
-const arrival = (index: number) => FadeInDown.duration(sys.motion.enter).delay(Math.min(index, ROWS_THAT_ARRIVE) * sys.motion.stagger);
+/**
+ * How far below its place a row starts: 8 dp, the rise of the outcome bar (`Poruka`). Reanimated's own `FadeInDown` starts
+ * 25 dp low, a long slide for a whole card to cover in 240 ms, which reads as a shove and not as an arrival.
+ */
+const ARRIVAL_RISE = sys.space.sm;
+
+/**
+ * The one entrance a row can have: it settles up from `ARRIVAL_RISE` below while it fades in, and it decelerates (rule R2:
+ * every entrance is passed `easeOut` explicitly). Without `.easing(...)` Reanimated falls back to ease-in-out on a quadratic,
+ * which has covered only 2 % of the way after the first tenth of the time and so starts late.
+ *
+ * The curve is built when a row arrives, not when this file loads, so a suite that stands in for Reanimated without an
+ * `Easing` still loads every screen that draws rows.
+ */
+const arrival = (index: number) => FadeInDown.duration(sys.motion.enter)
+  .delay(Math.min(index, ROWS_THAT_ARRIVE) * sys.motion.stagger)
+  .easing(Easing.bezier(...sys.motion.easeOut))
+  .withInitialValues({ translateY: ARRIVAL_RISE });
 
 /**
  * The stagger step (`sys.motion.stagger`) is per row, and stops at `ROWS_THAT_ARRIVE`.

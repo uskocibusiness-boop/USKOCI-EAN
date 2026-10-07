@@ -9,22 +9,26 @@ import { sys } from '../tokens';
 
 let mockReduced = false;
 jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
-// The shared Reanimated stand-in, except that the entrance every row asks for is RECORDED (its duration and its delay), so the
-// stagger a row gets can be read back. Rows are recorded in the order they mount.
-const mockEntrances: { duration: number; delay: number }[] = [];
+// The shared Reanimated stand-in, except that the entrance every row asks for is RECORDED (its duration and its delay, the curve
+// it was given and the position it starts from), so the stagger and the feel a row gets can be read back. Rows are recorded in
+// the order they mount. `Easing.bezier` hands back its own four numbers, so the curve that was asked for can be compared.
+type Entrance = { duration: number; delay: number; easing?: unknown; initial?: Record<string, unknown> };
+const mockEntrances: Entrance[] = [];
 jest.mock('react-native-reanimated', () => {
   const base = jest.requireActual('../../../../__mocks__/react-native-reanimated.js');
   const recording = {
     duration(duration: number) {
-      const record = { duration, delay: 0 };
+      const record: { duration: number; delay: number; easing?: unknown; initial?: Record<string, unknown> } = { duration, delay: 0 };
       mockEntrances.push(record);
       const chain: Record<string, unknown> = {};
-      for (const method of ['springify', 'easing', 'withCallback', 'reduceMotion', 'build']) chain[method] = () => chain;
+      for (const method of ['springify', 'withCallback', 'reduceMotion', 'build']) chain[method] = () => chain;
       chain.delay = (delay: number) => { record.delay = delay; return chain; };
+      chain.easing = (easing: unknown) => { record.easing = easing; return chain; };
+      chain.withInitialValues = (initial: Record<string, unknown>) => { record.initial = initial; return chain; };
       return chain;
     },
   };
-  return { ...base, FadeInDown: recording };
+  return { ...base, Easing: { ...base.Easing, bezier: (...points: number[]) => ({ bezier: points }) }, FadeInDown: recording };
 });
 
 /**
@@ -175,6 +179,47 @@ describe('a row arriving in a list', () => {
       expect(far.delay).toBe(sixth);
       expect(far.delay).toBe(ROWS_THAT_ARRIVE * sys.motion.stagger);
       expect(far.duration).toBe(sys.motion.enter);
+    });
+  });
+
+  // Motion pass, M-01b (spec N1): the entrance every row has. Reanimated's preset, left alone, runs on a quadratic ease-in-out (2 %
+  // of the way after the first tenth of the time, so it starts late) and starts 25 dp low (a shove for a whole card). Rule R2
+  // wants an entrance to decelerate, and the rise is the outcome bar's own 8 dp.
+  describe('the entrance of one row decelerates and rises 8 dp (R2)', () => {
+    /** Where the row starts, in dp below its place, whichever of the two equivalent ways Reanimated is told (flat, or a `transform` list). */
+    const rise = (entrance: Entrance) => {
+      const initial = entrance.initial ?? {};
+      return (initial.translateY ?? (initial.transform as { translateY?: number }[] | undefined)?.[0]?.translateY) as number | undefined;
+    };
+
+    it('is given easeOut explicitly, the one curve of every entrance', async () => {
+      await act(async () => { tree = create(<Appear index={2}><View /></Appear>); });
+      expect(mockEntrances).toHaveLength(1);
+      expect(mockEntrances[0].easing).toEqual({ bezier: [...sys.motion.easeOut] });
+    });
+
+    it('starts 8 dp below its place, the rise of the outcome bar, not the 25 dp of the preset', async () => {
+      await act(async () => { tree = create(<Appear><View /></Appear>); });
+      expect(rise(mockEntrances[0])).toBe(8);
+      expect(sys.space.sm).toBe(8);
+    });
+
+    it('gives every row of a list the same curve and the same rise, whatever its position', async () => {
+      await draw(['a']);
+      await redraw(['a', ...Array.from({ length: 8 }, (_, at) => `n${at}`)]);
+      expect(mockEntrances).toHaveLength(8);
+      for (const entrance of mockEntrances) {
+        expect(entrance.easing).toEqual({ bezier: [...sys.motion.easeOut] });
+        expect(rise(entrance)).toBe(8);
+        expect(entrance.duration).toBe(sys.motion.enter);
+      }
+    });
+
+    it('asks for no entrance at all under reduced motion: nothing moves, so there is nothing to shape', async () => {
+      mockReduced = true;
+      await draw(['a']);
+      await redraw(['a', 'b', 'c']);
+      expect(mockEntrances).toHaveLength(0);
     });
   });
 

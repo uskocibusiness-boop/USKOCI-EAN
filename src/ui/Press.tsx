@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Pressable, type GestureResponderEvent, type PressableProps, type ViewStyle, type StyleProp } from 'react-native';
 import Animated from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { tick as playTick } from './system/haptics';
 import { sys } from './system/tokens';
 import { usePressLift } from './system/usePressLift';
 
@@ -35,24 +35,13 @@ export function pressDelayFor(scaleTo: number | undefined): number {
   return scaleTo !== undefined && scaleTo >= ROW_FROM ? PRESS_DELAY : 0;
 }
 
+/**
+ * The kinds of tick a Press asks for are five of the wrapper's: `select`, `light`, `medium`, `success` and `error` keep their
+ * names. What each one feels like on each platform, how close two ticks may be, and that a refusal is silence and never a
+ * crash or a rejected promise, is `system/haptics`; this file only says when (rule R5).
+ */
 function fire(kind: HapticKind) {
-  switch (kind) {
-    case 'select':
-      Haptics.selectionAsync();
-      break;
-    case 'light':
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      break;
-    case 'medium':
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      break;
-    case 'success':
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      break;
-    case 'error':
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      break;
-  }
+  if (kind !== 'none') playTick(kind);
 }
 
 type Props = Omit<PressableProps, 'style'> & {

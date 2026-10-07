@@ -209,9 +209,9 @@ export const sys = {
    *
    *   R1 Only transform and opacity move: never height, width, top or an SVG prop (the locked V4.9 entry scene is the one
    *      exception). An SVG draw pass is what the B22 Reanimated flood replays.
-   *   R2 Enter decelerates and is longer than exit: `easeOut` is passed explicitly to every React Navigation or
-   *      Animated.timing spec. enter 240, exit 160, push 240 (the token is still 280 until the screen-transition item moves
-   *      it), tab 150, toggle 180, press 120 in and the `spring` out.
+   *   R2 Enter decelerates and is longer than exit: `easeOut` is passed explicitly to every React Navigation, Reanimated
+   *      entrance or Animated.timing spec (a spec without a curve runs on the library's own ease-in-out, which spends the
+   *      first tenth of the time at 3 % of the way). enter 240, exit 160, push 240, toggle 180, press 120 in and the `spring` out.
    *   R3 Sheets and anything the finger carries settle on ONE critically damped spring, `sheetSpring`. Nothing that carries
    *      text overshoots.
    *   R4 B22 (a flood of dead Reanimated native views): mounted-forever views; no `exiting` or layout animation anywhere; a
@@ -220,7 +220,9 @@ export const sys = {
    *      typing dots, the glow) run only on the focused screen, stop in the background and under reduced motion, and never
    *      more than four at once. New motion is RN Animated on the native driver, not Reanimated.
    *   R5 Haptics are outcomes, not touches: a tick belongs to a toggle or a confirmed result, never to a finger that has
-   *      only gone down on navigation (which may be the start of a scroll).
+   *      only gone down on navigation (which may be the start of a scroll). Every tick is made by `ui/system/haptics`: the
+   *      system's own constants on Android, the generators on iOS, never closer than `tickGap`, and it stays under reduced
+   *      motion (a tick is not movement).
    *   R6 Warm is still; cold after a skeleton arrives once (`arrive`); photos cross-dissolve (`toggle`, 180 ms); a spinner
    *      lives only inside a button.
    *   R7 One reduced-motion source, `ui/system/motion`: movement off, state changes instant, Lottie on its first frame,
@@ -236,30 +238,29 @@ export const sys = {
     enter: 240,
     exit: 160,
     /**
-     * A screen pushed onto the stack. Rule R2 targets 240; it stays 280 here because the stack's transition (the layout
-     * that reads it, and the test that pins it) is the screen-transition item's, and nothing existing is restyled by the
-     * item that added the other tiers.
+     * A screen pushed onto the stack: it enters, so it is as long as `enter` and decelerates. `(app)/_layout.tsx` passes
+     * this duration AND `easeOut` to the navigator's transition spec; with only a duration React Native falls back to its
+     * own ease-in-out, a slow start that reads as lag (rule R2).
      */
-    push: 280,
+    push: 240,
     /** The map camera flying to a place. */
     camera: 360,
     /** The step between rows arriving together; stops after six rows. */
     stagger: 40,
-    /** The scene change when a tab is switched: quicker than a push, because a tab is not a place you went to. */
-    tab: 150,
-    /** A content cross-fade that is not a state change: a skeleton giving way to what it stood for. */
-    fade: 160,
+    /** Decelerating: fast at the start, settling at the end. The one curve for everything that enters. */
     easeOut: [0.23, 1, 0.32, 1] as const,
-    easeInOut: [0.77, 0, 0.175, 1] as const,
-    sheet: [0.32, 0.72, 0, 1] as const,
+    /**
+     * The least time between two ticks of the same weight or a lighter one (`ui/system/haptics.ts`, rule R5): "less is
+     * more" on a phone, and two taps of the vibrator a hair apart feel like one buzz. A heavier tick (an outcome after a
+     * touch) is never held back by a lighter one.
+     */
+    tickGap: 120,
     /** How far a pressed surface gives under the finger. Legacy name: the button rung of `scale`, read by Press. */
     pressScale: PRESS_LADDER.button,
     /** The press-scale ladder (rule R8): `button`, `row` (a row or a card), `none` (a big surface). */
     scale: PRESS_LADDER,
     /** Everything under a finger settles on a spring, not a timing curve. */
     spring: { duration: 400, dampingRatio: 0.85 },
-    /** Legacy: the map's cover reads it, in Reanimated's duration form. Moves onto `sheetSpring` with that file (rule R3). */
-    springSheet: { duration: 300, dampingRatio: 0.8 },
     /**
      * The one settle for every sheet (rule R3): critically damped, no bounce, in the form Gorhom's `animationConfigs` takes.
      * Reduced motion replaces it with `{ duration: 0 }`.

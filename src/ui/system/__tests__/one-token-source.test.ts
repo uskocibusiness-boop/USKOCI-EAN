@@ -81,7 +81,7 @@ it('the one store never imports Reanimated, so every screen suite can load it', 
 it('the motion scale is the agreed one, and it lives in sys only', () => {
   expect({ press: sys.motion.press, toggle: sys.motion.toggle, enter: sys.motion.enter, exit: sys.motion.exit,
     push: sys.motion.push, camera: sys.motion.camera, stagger: sys.motion.stagger })
-    .toEqual({ press: 120, toggle: 180, enter: 240, exit: 160, push: 280, camera: 360, stagger: 40 });
+    .toEqual({ press: 120, toggle: 180, enter: 240, exit: 160, push: 240, camera: 360, stagger: 40 });
   expect(sys.motion.easeOut).toEqual([0.23, 1, 0.32, 1]);
   // Exit is shorter than entry.
   expect(sys.motion.exit).toBeLessThan(sys.motion.enter);
@@ -89,11 +89,11 @@ it('the motion scale is the agreed one, and it lives in sys only', () => {
 });
 
 // UI/UX pass, item 1.2: the values that screens used to spell for themselves now have a name, in sys only (rules R2, R3,
-// R6 and R8 in `tokens.ts`). Nothing that existed changed: `push` stays 280 until the transition item moves it to its 240
-// target, `springSheet` stays for the map's cover until that file moves onto `sheetSpring`, and `pressScale` stays the
-// number the Press component reads until it moves onto the `scale` ladder.
+// R6 and R8 in `tokens.ts`). `pressScale` stays the number the Press component reads until it moves onto the `scale` ladder.
+// Motion pass, 2026-10-08 (M-01, M-07b): `push` moved to its 240 target together with the transition spec that reads it
+// (`push-transition.test.ts`); the tokens nothing read (`easeInOut`, `sheet`, `springSheet`, `tab`, `fade`) are gone, and
+// `loop` and `arrive` are now read by `system/Arrive`.
 it('the motion tiers of the UI/UX pass exist, with the agreed values', () => {
-  expect({ tab: sys.motion.tab, fade: sys.motion.fade }).toEqual({ tab: 150, fade: 160 });
   expect(sys.motion.loop).toEqual({ breath: 700, typing: 520, glow: 1600 });
   expect(sys.motion.arrive).toEqual({ duration: 800, easing: [0.22, 0.8, 0.25, 1] });
   // R3: one critically damped spring for every sheet; it never overshoots, because a sheet carries text.
@@ -101,16 +101,22 @@ it('the motion tiers of the UI/UX pass exist, with the agreed values', () => {
   // R8: the press-scale ladder, and the old single number is the button rung.
   expect(sys.motion.scale).toEqual({ button: 0.97, row: 0.985, none: 1 });
   expect(sys.motion.pressScale).toBe(sys.motion.scale.button);
-  // Nothing existing moved.
-  expect({ push: sys.motion.push, press: sys.motion.press, spring: sys.motion.spring, springSheet: sys.motion.springSheet })
-    .toEqual({ push: 280, press: 120, spring: { duration: 400, dampingRatio: 0.85 }, springSheet: { duration: 300, dampingRatio: 0.8 } });
-  // R2: a tab or a fade is quicker than something arriving, and a quiet loop is slower than any response.
-  expect(sys.motion.tab).toBeLessThan(sys.motion.enter);
-  expect(sys.motion.fade).toBeLessThanOrEqual(sys.motion.exit);
+  // R5: the least time between two haptic ticks (`system/haptics`).
+  expect(sys.motion.tickGap).toBe(120);
+  expect({ push: sys.motion.push, press: sys.motion.press, spring: sys.motion.spring })
+    .toEqual({ push: 240, press: 120, spring: { duration: 400, dampingRatio: 0.85 } });
+  // R2: a screen that is pushed ENTERS, so it is no longer than something arriving; a quiet loop is slower than any response.
+  expect(sys.motion.push).toBeLessThanOrEqual(sys.motion.enter);
   expect(Math.min(...Object.values(sys.motion.loop))).toBeGreaterThan(sys.motion.toggle);
   // Ladder order: a bigger surface gives less.
   expect(sys.motion.scale.button).toBeLessThan(sys.motion.scale.row);
   expect(sys.motion.scale.row).toBeLessThan(sys.motion.scale.none);
+});
+
+// Motion pass (M-07b): a token nothing reads is a second place to look and a second value to keep in step. These five had no
+// reader anywhere under `src`; one that is needed again is added WITH the code that reads it, and this list loses its name.
+it('the five motion tokens that nothing read are gone', () => {
+  for (const dead of ['easeInOut', 'sheet', 'springSheet', 'tab', 'fade']) expect(sys.motion).not.toHaveProperty(dead);
 });
 
 it('the one sheet spring lives in sys, and ProductSheet only re-exports it', () => {
@@ -464,9 +470,10 @@ const motionLiterals = (source: string): Partial<Record<MotionFamily, number>> =
     .filter(([, count]) => count > 0));
 
 /**
- * TODAY'S offenders (29 files; the wave-1 review deleted Segmented, which item 1.4 moved onto the ladder, and moved PickerTile
- * onto it): how many literals of each family a file spells, EXACTLY. Press, Appear and Segmented (item 1.4) are clean; the
- * sheets, Arrive, SuccessMark, the AI shell and the voice composer move onto `sys.motion` in their own items and then lose
+ * TODAY'S offenders (the wave-1 review deleted Segmented, which item 1.4 moved onto the ladder, and moved PickerTile
+ * onto it; the motion pass of 2026-10-08, M-07b, deleted Arrive, which now reads `sys.motion.arrive` and `sys.motion.loop`):
+ * how many literals of each family a file spells, EXACTLY. Press, Appear, Arrive and Segmented (item 1.4) are clean; the
+ * sheets, SuccessMark, the AI shell and the voice composer move onto `sys.motion` in their own items and then lose
  * their entry.
  * LOCKED: `entryV49Math.ts` carries the V4.9 entry's own `ENTRY_V49.duration` (760); the entry is never restyled here.
  * The map camera needs no entry: it spells `duration: 0` (a jump) or `sys.motion.camera`.
@@ -487,7 +494,6 @@ const MOTION_LITERALS_ALLOWED: Record<string, Partial<Record<MotionFamily, numbe
   'src/ui/reviews/AccountReputation.tsx': { scale: 1 },
   'src/ui/settings/SettingsPresentation.tsx': { scale: 2 },
   'src/ui/support/SupportPresentation.tsx': { scale: 2 },
-  'src/ui/system/Arrive.tsx': { duration: 3 }, // arrive 800, breath 700 twice
   'src/ui/system/Disclosure.tsx': { scale: 1 },
   'src/ui/system/PublicProfileSheet.tsx': { scale: 1 },
   'src/ui/system/SuccessMark.tsx': { spring: 2 }, // damping 13, stiffness 240
@@ -554,12 +560,13 @@ describe('the colour meaning and the eight motion rules are written down', () =>
     expect(flat).toMatch(/not owner decisions/);
   });
 
-  // Wave-1 review, minor (k): the plan deviations that were explained in code and tracked nowhere.
+  // Wave-1 review, minor (k): the plan deviations that were explained in code and tracked nowhere. Two of the open items are
+  // closed by the motion pass of 2026-10-08 and are no longer pinned here (M-01: `push` is 240 and the layout passes it with
+  // `easeOut`; M-07b: `springSheet` is deleted, nothing read it), so their bullets in the document may go without this test
+  // failing; the ones that are still open stay pinned.
   it('DESIGN_SKILLS.md records the wave-1 plan deviations as open items, each with the item that removes it', () => {
     const open = skills.slice(skills.indexOf('### Open items carried by wave 1')).replace(/\s+/g, ' ');
     expect(open.length).toBeGreaterThan(200);
-    expect(open).toMatch(/`sys\.motion\.push` stays 280 ms/);
-    expect(open).toMatch(/`sys\.motion\.springSheet` is not deleted/);
     expect(open).toMatch(/`PRESS_DELAY` \(60 ms\) lives in `Press\.tsx`/);
     expect(open).toMatch(/`SHEET_SPRING` in `ProductSheet\.tsx` is an alias/);
     expect(open).toMatch(/EntryWelcome/);

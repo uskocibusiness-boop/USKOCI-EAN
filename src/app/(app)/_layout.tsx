@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { Easing, useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../../ui/system/TabBarItem';
@@ -27,9 +27,14 @@ import { conversationInboxBuilt } from '../../data/conversationInboxGate';
  * navigator's `animation: 'none'` not one of them moved: the screen was simply replaced, which is
  * why walking through the app felt like redrawing rather than going somewhere. Switching between
  * the root tabs stays instant, which is what the tab contract records and what a tab bar is for.
+ *
+ * A screen that is pushed ENTERS, so the spec gives it `sys.motion.push` AND the curve every entrance has, `easeOut`
+ * (rule R2). A `transitionSpec` replaces the preset's whole config, and a timing with only a duration runs on React Native's
+ * own ease-in-out: 3 % of the way after the first tenth of the time, a slow start that reads as lag on the finger.
  */
 const PUSH_TRANSITION = { animation: 'shift' as const,
-  transitionSpec: { animation: 'timing' as const, config: { duration: sys.motion.push } } };
+  transitionSpec: { animation: 'timing' as const,
+    config: { duration: sys.motion.push, easing: Easing.bezier(...sys.motion.easeOut) } } };
 
 // The bar's own parts (the always-mounted selection marker, consistent mark icons that cross-fade
 // and respond once, the `tab` label, the height that follows them) live in `ui/system/TabBarItem`, and the motion
