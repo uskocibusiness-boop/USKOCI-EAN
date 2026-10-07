@@ -46,7 +46,7 @@ def change(old, new):
 # ---------------------------------------------------------------- the reader
 change(" prefix_text text; facet_area jsonb; before_count bigint; before_text text; before_key text;\n",
        " prefix_text text; facet_area jsonb; before_count bigint; before_text text; before_key text;\n"
-       " fold_text text; fold_place text; fold_prefix text; place_level text:='AREA';\n")
+       " fold_text text; fold_place text; fold_prefix text; place_level text:='AREA'; place_keys text[];\n")
 change("  if r-array['mode','filter','anchor','prefix','facetArea','limit','after']<>'{}'\n"
        "    or not(r?&array['mode','filter','anchor','prefix','facetArea','limit','after'])\n",
        "  if r-array['mode','filter','anchor','prefix','facetArea','limit','after','groupBy']<>'{}'\n"
@@ -97,37 +97,41 @@ change("  ), facet_keys as materialized (\n"
        "  ), facets as materialized (\n"
        "   select r.key,r.text,c.count from facet_counts c join facet_representatives r using(fold_key)\n"
        "  ), facet_page as materialized (\n")
-# PAGE, MAP, EXACT_PUBLIC. The place text of a task (area_text) is now computed per row only for words whose title does not hold them;
-# the place filter is decided once per distinct (area, city) text in place_pairs below.
-change("   case when request_mode='PLACES' or locality is not null\n"
-       "     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)=0\n",
-       "   case when request_mode='PLACES'\n"
-       "     or query_text<>'' and strpos(public.discovery_fold_v1(coalesce(n.title,'')),fold_text)=0\n")
-change(" ), shared as materialized (\n",
-       " ), place_pairs as materialized (\n"
-       "  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that\n"
-       "  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per\n"
-       "  -- distinct (area, city) text of the open tasks, never per task (both columns are NOT NULL, default ''; coalesce only guards,\n"
-       "  -- and p6_discovery_area reads NULL as ''). A remote task and a task without a place text never match a place; a task without\n"
-       "  -- a point but with a city does.\n"
-       "  select p.place_area,p.place_city from (\n"
-       "    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b\n"
-       "    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2) p\n"
+# PAGE, MAP, EXACT_PUBLIC. The place text of a task (area_text) is computed per row only for words (one fold per task over title,
+# place text and needs: the fold costs more than the place text, so no title-first pass); the place filter is decided ONCE per
+# request for the distinct (area, city) texts of the open tasks (place_keys).
+change("  return result;\n end if;\n with base as materialized (\n",
+       "  return result;\n end if;\n"
+       " -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that names\n"
+       " -- no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per request\n"
+       " -- for the distinct (area, city) texts of the open tasks, never once per task; a task then only needs its own key in this short\n"
+       " -- list (length-prefixed, so no two texts share a key). A remote task and a task without a place text never match a place; a task\n"
+       " -- without a point but with a city does. Both columns are NOT NULL (default ''); coalesce only guards, p6_discovery_area reads NULL as ''.\n"
+       " if locality is not null then\n"
+       "  select coalesce(array_agg(length(p.place_area)::text||':'||p.place_area||p.place_city),'{}'::text[]) into place_keys\n"
+       "  from (select coalesce(n.approximate_area,'') as place_area,coalesce(n.approximate_city,'') as place_city\n"
+       "    from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null\n"
+       "     and n.execution_location_mode is distinct from 'REMOTE' group by 1,2) p\n"
        "   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label) l\n"
        "  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')\n"
        "   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place\n"
        "    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),\n"
-       "      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)\n"
-       " ), shared as materialized (\n")
+       "      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place);\n"
+       " end if;\n"
+       " with base as materialized (\n")
+change("   case when request_mode='PLACES' or locality is not null\n"
+       "     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)=0\n",
+       "   case when request_mode='PLACES'\n"
+       "     or query_text<>''\n")
 change("   and (locality is null or b.execution_location_mode is distinct from 'REMOTE' and public.p6_discovery_key(b.area_text)=locality\n"
        "     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))\n"
        "   and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)>0\n"
        "    or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)>0)\n",
-       "   -- DISCOVERY-GRAD: the place (decided per text in place_pairs) and the words, found in the title, the place text and the\n"
-       "   -- needed skills, tools and vehicles through discovery_fold_v1 (a title that holds the words left area_text null in base).\n"
+       "   -- DISCOVERY-GRAD: the place (its key among place_keys) and the words, found in the title, the place text and the needed\n"
+       "   -- skills, tools and vehicles through discovery_fold_v1, one fold per task (the title is the start of that text).\n"
        "   and (locality is null or b.execution_location_mode is distinct from 'REMOTE'\n"
-       "     and (coalesce(b.approximate_area,''),coalesce(b.approximate_city,'')) in (select place_area,place_city from place_pairs))\n"
-       "   and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||coalesce(b.area_text,'')||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)\n")
+       "     and length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'')=any(place_keys))\n"
+       "   and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)\n")
 NEW_READER = after[READER]
 assert "40001" not in NEW_READER and NEW_READER.isascii() and "$dg_body$" not in NEW_READER and "$function$" not in NEW_READER
 # the unreachable PLACES arm of the general statement (below the dedicated PLACES block that returns first) keeps its old text

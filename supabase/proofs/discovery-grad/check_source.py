@@ -108,27 +108,34 @@ assert oracle("Ödön, Zürich") == "ödön, zürich" and oracle("  a  ") == "  
 assert all(len(v) >= 1 for v in list(one.values()) + list(two.values()))
 
 # --- the reader boundaries
-assert "public.discovery_fold_v1(coalesce(n.title,''))" in after and "fold_text)=0" in after
+# the fold: the request's words, place and PLACES prefix (3), the PLACES rows (2), the place keys (2), the one fold per task (1)
+assert after.count("public.discovery_fold_v1(") == 8
 assert after.count("public.discovery_for_me_v1(") == 2, "DISCOVERY-ZAMENE kept"
 assert "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in after, "remote and no-place never match a place"
 assert "b.execution_location_mode is distinct from 'REMOTE'" in after
-pairs = after[after.index(" ), place_pairs as materialized ("):after.index(" ), shared as materialized (")]
+keys_block = after[after.index(" if locality is not null then\n  select coalesce(array_agg("):after.index(" with base as materialized (")]
 shared = after[after.index(" ), shared as materialized ("):after.index(" ), qualified as materialized (")]
-assert "fold_place" in pairs and "where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2" in pairs
-assert "public.p6_discovery_area(p.place_area,p.place_city,false)" in pairs and "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in pairs
-assert "(coalesce(b.approximate_area,''),coalesce(b.approximate_city,'')) in (select place_area,place_city from place_pairs)" in shared
-assert "fold_text" in shared and "lower(" not in code(shared) and "lower(" not in code(pairs), "the place and word checks go through the fold only"
-# base computes the place text per row only for words whose title does not hold them (the place filter reads place_pairs)
-assert "   case when request_mode='PLACES'\n     or query_text<>'' and strpos(public.discovery_fold_v1(coalesce(n.title,'')),fold_text)=0\n" in after
+assert "fold_place" in keys_block and "into place_keys" in keys_block and "n.execution_location_mode is distinct from 'REMOTE' group by 1,2" in keys_block
+assert "n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null" in keys_block, "the open tasks base reads, or more"
+assert "public.p6_discovery_area(p.place_area,p.place_city,false)" in keys_block and "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in keys_block
+key_expr = "length(p.place_area)::text||':'||p.place_area||p.place_city"
+row_expr = "length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'')=any(place_keys)"
+assert key_expr in keys_block and row_expr in shared, "the same length-prefixed key on both sides"
+assert "fold_text" in shared and "lower(" not in code(shared) and "lower(" not in code(keys_block), "the place and word checks go through the fold only"
+# base computes the place text per row only for words whose title does not hold them (the place filter reads place_keys)
+assert "   case when request_mode='PLACES'\n     or query_text<>''\n    then public.p6_discovery_area(n.approximate_area,n.approximate_city,n.execution_location_mode='REMOTE')\n" in after
+# one fold per task over title + place text + needs (the haystack of before, in the same order)
+assert "strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0" in shared
+assert "(coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' '))" in live[READER]
 places_block = after[after.index("  ), facet_keys as materialized ("):after.index("  ), facet_page as materialized (")]
 assert "distinct on(fold_key)" in places_block and "group by fold_key" in places_block and "public.p6_discovery_key(p.shown) as key" in places_block
 assert "place_level='CITY'" in places_block and "public.p6_discovery_unquote(approximate_city)" in places_block
 # the city of a task is computed by the SAME expression in PLACES (grouping) and in PAGE/MAP (the filter): a city row lists what the filter finds
 city_places = "coalesce(public.p6_discovery_unquote(approximate_city),\n     nullif(public.p6_discovery_trim(substring(area_text from '[^,]*$')),''),area_text)"
 city_filter = "coalesce(public.p6_discovery_unquote(p.place_city),\n      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)"
-assert city_places in places_block and city_filter in pairs
+assert city_places in places_block and city_filter in keys_block
 assert re.sub(r"\s+", " ", city_places) == re.sub(r"\s+", " ", city_filter.replace("p.place_city", "approximate_city").replace("l.label", "area_text"))
-# PLACES groups the raw (area, city) pairs of facet_raw with label p6_discovery_area(area, city, false): the same label place_pairs uses
+# PLACES groups the raw (area, city) pairs of facet_raw with label p6_discovery_area(area, city, false): the same label place_keys uses
 assert "public.p6_discovery_area(c.approximate_area,c.approximate_city,false) as area_text" in after
 # filterKey: f is built exactly as before; only PLACES with groupBy CITY adds to the key
 f_before = live[READER][live[READER].index(" f:=jsonb_build_object('text',query_text"):live[READER].index(" -- PLACES binds its prefix/area too")]
