@@ -303,7 +303,7 @@ class ScreenTests(unittest.TestCase):
     def test_classification_of_every_auth_surface(self):
         t = LABELS.text
         self.assertEqual(self._screen(field(t('login.field.email')), field(t('login.field.password')), node(text=t('login.forgot'))), 'LOGIN_FORM')
-        self.assertEqual(self._screen(field('Ime'), field('Prezime'), field('Grad'), field('Email'), field('Lozinka'), field(t('signup.field.confirm'))), 'SIGNUP_FORM')
+        self.assertEqual(self._screen(field('Ime'), field('Prezime'), field('Grad'), field('Email'), field('Lozinka')), 'SIGNUP_FORM')
         self.assertEqual(self._screen(node(text='Proveri email'), button(t('confirm.back')), node(text=t('confirm.resend'))), 'CONFIRMATION_STAGE')
         self.assertEqual(self._screen(node(text='Proveri email'), button(t('recovery.sent.again'))), 'RECOVERY_SENT')
         self.assertEqual(self._screen(field('Email'), button(t('recovery.request.submit'))), 'RECOVERY_REQUEST')
@@ -316,7 +316,7 @@ class ScreenTests(unittest.TestCase):
         self.assertEqual(self._screen(), 'OTHER')
 
     def test_a_signup_form_is_not_mistaken_for_login(self):
-        nodes = [field('Ime'), field('Email'), field('Lozinka'), field('Potvrdi lozinku')]
+        nodes = [field('Ime'), field('Prezime'), field('Email'), field('Lozinka')]
         self.assertEqual(core.classify_screen(nodes, LABELS), 'SIGNUP_FORM')
 
     def test_leak_scan_of_visible_text(self):

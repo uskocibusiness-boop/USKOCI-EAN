@@ -162,7 +162,7 @@ def s_g1a_signup_ui(ctx: AndroidCtx) -> None:
     if scr.state != 'SIGNUP_FORM':
         raise UiTimeout('SIGNUP_FORM_NOT_REACHED state=' + scr.state)
     for label_id, value in (('signup.field.first', 'Test'), ('signup.field.last', 'Proof'), ('signup.field.city', 'Beograd'),
-                            ('login.field.email', a.email), ('login.field.password', a.password), ('signup.field.confirm', a.password)):
+                            ('login.field.email', a.email), ('login.field.password', a.password)):
         dev.set_field(label_id, value)
     dev.shot('02-signup-form')
     t_signup = ctx.clock.now()
