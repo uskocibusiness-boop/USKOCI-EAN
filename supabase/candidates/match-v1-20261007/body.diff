@@ -1,0 +1,239 @@
+--- private.match_detail_without_calendar(uuid,uuid) BEFORE (DEV)
++++ private.match_detail_without_calendar(uuid,uuid) AFTER (MATCH-V1)
+@@ -2,9 +2,9 @@
+ declare
+   n public.needs; p public.app_profiles; pref public.worker_match_preferences;
+   hard text[] := '{}'; disp text[] := '{}'; reasons text[] := '{}';
+-  tz text; local_day date;
+-  svc boolean; toolsok boolean; vehok boolean; expok boolean;
+-  sched boolean; dist numeric; radiusok boolean; feeok boolean;
++  tz text; local_day date; fit jsonb; tier integer;
++  svc boolean;
++  sched boolean; dist numeric; radiusok boolean;
+   effective_radius numeric; exposure integer;
+   cap numeric := 0; ss numeric := 0; ds numeric := 0; rs numeric := 0;
+   rels numeric := 0; fair numeric := 0;
+@@ -24,42 +24,23 @@
+   tz := coalesce(nullif(pref.timezone,''), 'Europe/Belgrade');
+   local_day := case when n.starts_at is not null then (n.starts_at at time zone tz)::date end;
+ 
+-  svc := cardinality(n.required_skills) = 0
+-         or private.lower_arr(p.skills) && private.lower_arr(n.required_skills)
+-         -- PKG-031b (deep read 9.3): the same kind of work in other words ("Ciscenje stana" / "čišćenje stana").
+-         or private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills);
+-  toolsok := private.lower_arr(p.tools) @> private.lower_arr(n.required_tools);
+-  -- WPP01: licenses no longer participate in admission or resource ranking.
+-  vehok := private.lower_arr(p.vehicles) @> private.lower_arr(n.required_vehicles);
+-  expok := coalesce(n.minimum_experience_years,0) = 0
+-           or coalesce(p.years_experience,0) >= n.minimum_experience_years;
+-  sched := private.worker_dispatch_time_admitted(nid,pid);
+-  effective_radius := private.effective_radius_km(p.radius_km);
+-
+-  if n.execution_location_mode = 'REMOTE' then
+-    dist := null; radiusok := true;
+-  else
+-    dist := private.haversine_km(n.approximate_lat, n.approximate_lng,
+-                                 pref.approximate_lat, pref.approximate_lng);
+-    radiusok := case
+-      when dist is not null then dist <= effective_radius
+-      else btrim(coalesce(n.approximate_city,'')) <> ''
+-           and lower(coalesce(n.approximate_city,'')) = lower(coalesce(p.city,''))
+-    end;
+-  end if;
+-
+-  feeok := n.mode = 'OFFERS'
+-           or coalesce(p.minimum_fee_rsd,0) = 0
+-           or (n.requester_price_rsd is not null and n.requester_price_rsd >= p.minimum_fee_rsd);
++  -- MATCH-V1 (owner 2026-10-07): "Odgovara mi" = kind of work + area + time, read from the ONE shared rule
++  -- private.worker_need_fit_v1 (the dispatch prefilter and "Za mene" use the same rule). Tools, vehicles,
++  -- experience and the minimum fee are information for the requester: never a gate and never a score.
++  fit := private.worker_need_fit_v1(nid,pid);
++  svc := (fit->>'service')::boolean;
++  tier := (fit->>'timeTier')::integer;
++  sched := tier is not null;
++  effective_radius := (fit->>'effectiveRadiusKm')::numeric;
++  dist := (fit->>'distanceKm')::numeric;
++  radiusok := (fit->>'area')::boolean;
+ 
+   -- TVRDE kapije: blokiraju i rucni odgovor, ne samo automatski dispatch.
+   if p.profile_status <> 'ACTIVE' then hard := array_append(hard,'ACCOUNT_OR_PROFILE_RESTRICTED'); end if;
+   if n.requester_account_id = p.account_id then hard := array_append(hard,'OWN_NEED'); end if;
+   if n.verified_identity_required and not private.identity_admitted(p.account_id)
+     then hard := array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
+-  if not toolsok then hard := array_append(hard,'MISSING_REQUIRED_TOOL'); end if;
+-  if not vehok  then hard := array_append(hard,'MISSING_REQUIRED_VEHICLE'); end if;
+-  if not expok  then hard := array_append(hard,'INSUFFICIENT_EXPERIENCE'); end if;
++  -- MATCH-V1: missing tools, vehicles or experience no longer refuse an application.
+   if private.lower_arr(p.exclusions) && private.lower_arr(array_prepend(n.category, n.required_skills))
+      -- PKG-031b (deep read 9.2/9.3): an exclusion holds for the same kind of work in any spelling
+      -- ("selidbe" also keeps out "transport_selidbe").
+@@ -67,13 +48,8 @@
+     then hard := array_append(hard,'PROFILE_EXCLUSION'); end if;
+ 
+   -- MEKE kapije: blokiraju samo automatsku isporuku. Rucno pretrazivanje ostaje otvoreno.
+-  if not coalesce(p.available_now,false)
+-    -- EX-06 ex06a: a TOMORROW_FLEXIBLE / WEEK_FLEXIBLE task stored without a window and published is matched against the window private.worker_dispatch_time_admitted derives for it,
+-    -- so it is future availability here too (W02: live intent off but a real weekly schedule is not paused for a future task). Live intent alone is still no availability.
+-    and not (private.availability_is_future(n.schedule_kind,n.starts_at,n.ends_at,statement_timestamp())
+-             or (n.starts_at is null and n.ends_at is null and n.published_at is not null
+-                 and n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE')))
+-    then disp := array_append(disp,'CURRENT_AVAILABILITY_PAUSED'); end if;
++  -- MATCH-V1: the time rule, "Mogu odmah" included, lives only in private.worker_need_time_tier_v1
++  -- (OUTSIDE_AVAILABILITY below); live intent is no longer a separate gate.
+   if not coalesce(pref.proactive_notifications,true) then disp := array_append(disp,'PROACTIVE_NOTIFICATIONS_PAUSED'); end if;
+   if n.urgent
+      and (n.schedule_kind = 'TODAY_FLEXIBLE'
+@@ -83,9 +59,9 @@
+   if not svc then disp := array_append(disp,'SERVICE_NOT_IN_WORK_PROFILE'); end if;
+   if not sched then disp := array_append(disp,'OUTSIDE_AVAILABILITY'); end if;
+   if not radiusok then disp := array_append(disp,'OUTSIDE_PREFERRED_RADIUS'); end if;
+-  if not feeok then disp := array_append(disp,'BELOW_MINIMUM_FEE'); end if;
+ 
+-  -- Bodovanje: donorove tezine 30/25/15/15/10/5.
++  -- Bodovanje: donorove tezine 30/25/15/10/5. MATCH-V1 drops the 15 resource points (RESOURCES_MATCH);
++  -- 'resources' stays 0 in scoreComponents for wire compatibility.
+   if svc then reasons := array_append(reasons,'SERVICE_MATCH'); cap := 30; end if;
+   if sched then reasons := array_append(reasons,'SCHEDULE_MATCH'); ss := 25; end if;
+   if radiusok then
+@@ -97,7 +73,6 @@
+       else round(15 * (1 - 0.55 * least(1, greatest(0, dist/effective_radius))), 1)
+     end;
+   end if;
+-  if toolsok and vehok then reasons := array_append(reasons,'RESOURCES_MATCH'); rs := 15; end if;
+ 
+   rels := round(greatest(0, least(100, coalesce(p.rating_worker*20, 50)))/10, 1);
+   select count(*) into exposure from public.opportunity_deliveries d
+@@ -120,6 +95,7 @@
+     'distanceSource', case when dist is null then null else 'GEODESIC' end,
+     'routingProvider', null,
+     'liveStateDate', local_day,
++    'timeTier', tier,
+     'score', round(least(100, cap+ss+ds+rs+rels+fair), 1),
+     'scoreComponents', jsonb_build_object(
+       'capability', cap, 'schedule', ss, 'distanceToStart', ds,
+--- private.dispatch_cheap_candidate_admitted(uuid,uuid) BEFORE (DEV)
++++ private.dispatch_cheap_candidate_admitted(uuid,uuid) AFTER (MATCH-V1)
+@@ -7,25 +7,11 @@
+     where n.id = nid
+       and p.kind = 'WORKER'
+       and p.profile_status = 'ACTIVE'
+-      and private.worker_dispatch_time_admitted(nid,pid)
+-      and p.account_id <> n.requester_account_id
+-      and private.accounts_same_world(n.requester_account_id, p.account_id)
+       and coalesce(pref.proactive_notifications, true) = true
+-      and (not n.verified_identity_required or private.identity_admitted(p.account_id))
+-      and (cardinality(n.required_skills) = 0
+-           or private.lower_arr(p.skills) && private.lower_arr(n.required_skills)
+-           or private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills))
+-      -- WPP01: licenses are retired from task eligibility; historical arrays remain stored.
+-      and private.lower_arr(p.tools) @> private.lower_arr(n.required_tools)
+-      and private.lower_arr(p.vehicles) @> private.lower_arr(n.required_vehicles)
+-      and (coalesce(n.minimum_experience_years,0) = 0
+-           or coalesce(p.years_experience,0) >= n.minimum_experience_years)
+-      and not (private.lower_arr(p.exclusions)
+-               && private.lower_arr(array_prepend(n.category, n.required_skills))
+-               or private.work_kinds_v5(p.exclusions)
+-               && private.work_kinds_v5(array_prepend(n.category, n.required_skills)))
+-      and (n.mode = 'OFFERS' or coalesce(p.minimum_fee_rsd,0) = 0
+-           or (n.requester_price_rsd is not null and n.requester_price_rsd >= p.minimum_fee_rsd))
++      -- MATCH-V1 (owner 2026-10-07): the ONE shared "Odgovara mi" rule: kind of work + area + time and the existing
++      -- hard exceptions (own task, other world, identity, exclusions). Tools, vehicles, experience and the
++      -- minimum fee are no longer conditions; licenses were retired by WPP01.
++      and private.worker_need_match_v1(nid, pid)
+       and not exists (
+         select 1 from public.opportunity_deliveries od
+         where od.worker_account_id = p.account_id
+--- private.worker_dispatch_time_admitted(uuid,uuid) BEFORE (DEV)
++++ private.worker_dispatch_time_admitted(uuid,uuid) AFTER (MATCH-V1)
+@@ -1,45 +1,6 @@
+ 
+-declare n public.needs; p public.app_profiles; tz text; wtz text; at_now timestamptz:=statement_timestamp(); periods tstzmultirange;
+-  ws timestamptz; we timestamptz; anchor_day date;
+ begin
+-  select * into n from public.needs where id=nid;
+-  if not found then return false; end if;
+-  select * into p from public.app_profiles where id=pid and kind='WORKER' and profile_status='ACTIVE';
+-  if not found then return false; end if;
+-  select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
+-  tz:=coalesce(tz,'Europe/Belgrade');
+-  if not private.availability_timezone_valid(tz) then return false; end if;
+-  -- EX-06 ex06a (S03 finding F1). A TOMORROW_FLEXIBLE or WEEK_FLEXIBLE task stored WITHOUT a window used to be refused for every worker (availability_is_future is false without one).
+-  -- It is now matched against the window its own words mean, derived in the task's timezone (Europe/Belgrade when the task has none or an invalid one, never the worker's):
+-  -- sutra = the local calendar day after the publication day; ove nedelje = the publication day to the end of that local Monday-Sunday week (the existing rule below clips the start to now,
+-  -- so it is the remaining part of the week). The anchor is published_at (as private.relative_schedule_end_v5 does), so a later wave does not move "tomorrow"; a task without published_at
+-  -- keeps the refusal. The rule that follows is the existing one: some real available time inside the window, never the whole day or week. A stored window (or one endpoint) and every other
+-  -- schedule kind are exactly as before.
+-  ws:=n.starts_at; we:=n.ends_at;
+-  if n.starts_at is null and n.ends_at is null and n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') then
+-    if n.published_at is null then return false; end if;
+-    wtz:=case when n.task_timezone is not null and private.availability_timezone_valid(n.task_timezone) then n.task_timezone else 'Europe/Belgrade' end;
+-    anchor_day:=(n.published_at at time zone wtz)::date;
+-    if n.schedule_kind='TOMORROW_FLEXIBLE' then
+-      ws:=(anchor_day+1)::timestamp at time zone wtz; we:=(anchor_day+2)::timestamp at time zone wtz;
+-    else
+-      ws:=anchor_day::timestamp at time zone wtz; we:=(anchor_day+(8-extract(isodow from anchor_day)::integer))::timestamp at time zone wtz;
+-    end if;
+-  end if;
+-  if private.availability_is_future(n.schedule_kind,ws,we,at_now) then
+-    periods:=private.worker_available_periods(pid,greatest(ws,at_now),we,tz);
+-    if n.schedule_kind='FIXED_WINDOW' then return periods @> tstzrange(ws,we,'[)'); end if;
+-    -- A flexible search window needs some real available time, not the whole
+-    -- day/week. It never reserves this window or invents an estimated duration.
+-    return periods<>'{}'::tstzmultirange;
+-  end if;
+-  if n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') or
+-    (n.ends_at is not null and n.ends_at<=at_now) then return false; end if;
+-  if not p.available_now then return false; end if;
+-  if exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+-    and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+-    or exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+-      and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now) then return false; end if;
+-  if n.schedule_kind='FIXED_WINDOW' then return private.schedule_fit(pid,n.starts_at,n.ends_at,tz); end if;
+-  return true;
++  -- MATCH-V1 (owner 2026-10-07): the time part of "Odgovara mi" and its order live in
++  -- private.worker_need_time_tier_v1; this wrapper keeps its signature for existing readers.
++  return private.worker_need_time_tier_v1(nid,pid) is not null;
+ end;
+--- private.dispatch_next_wave(uuid) BEFORE (DEV)
++++ private.dispatch_next_wave(uuid) AFTER (MATCH-V1)
+@@ -109,7 +109,8 @@
+     )
+     select s.pid, s.uid, s.detail from scored s
+     where coalesce((s.detail->>'dispatchEligible')::boolean, false)
+-    order by (s.detail->>'score')::numeric desc, s.pid
++    -- MATCH-V1: "Mogu odmah" first for a task danas/odmah (timeTier 1), then the schedule (2); score within a tier.
++    order by coalesce((s.detail->>'timeTier')::integer, 9), (s.detail->>'score')::numeric desc, s.pid
+   loop
+     exit when inserted >= batch;
+     d := c.detail;
+--- private.dispatch_tick(integer,timestamp with time zone) BEFORE (DEV)
++++ private.dispatch_tick(integer,timestamp with time zone) AFTER (MATCH-V1)
+@@ -1,10 +1,19 @@
+ 
+ declare
+-  claimed uuid[]; r record; candidate record; res jsonb;
++  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;
+   processed integer := 0; sent integer := 0; stopped integer := 0; failed integer := 0;
+   reason text; next_at timestamptz;
+ begin
+   if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;
++
++  -- MATCH-V1 (owner 2026-10-07): a direct profile write (the manual profile editor) brings the open tasks back
++  -- to the queue as the RPC saves do: once per change, before this tick claims anything. A failure here is
++  -- reported in the result and never stops the dispatch.
++  begin
++    profile_requeue := private.requeue_changed_worker_profiles_v1(p_at);
++  exception when others then
++    profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));
++  end;
+ 
+   -- Claim each free Need and queue in a bounded successful-claim batch.
+   -- locked_until je zastita od procesa koji padne usred obrade.
+@@ -86,5 +95,6 @@
+   end loop;
+ 
+   return jsonb_build_object('processed',processed,'sent',sent,'stopped',stopped,
+-                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));
++                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),
++                            'profileRequeue',profile_requeue);
+ end;

@@ -1,0 +1,135 @@
+name: MATCH-V1 and DISCOVERY-ZAMENE disposable proof
+
+# Disposable-only proof of two SOURCE-ONLY server candidates (owner decisions 2026-10-07). It replays the
+# established historical chain in canonical DEV order, admits only the exact relevant DEV bodies (fidelity.mjs),
+# then proves FAIL before / PASS after / exact revert with real Auth and PostgREST. Never touches DEV.
+on:
+  workflow_dispatch:
+  push:
+    branches: [candidate/match-v1-20261007]
+    paths:
+      - '.github/workflows/match-v1-discovery-zamene-proof.yml'
+      - 'supabase/candidates/match-v1-20261007/**'
+      - 'supabase/candidates/discovery-zamene-20261007/**'
+      - 'supabase/proofs/match-v1/**'
+permissions:
+  contents: read
+concurrency:
+  group: match-v1-discovery-zamene-proof-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  disposable-proof:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: '1'
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      PRE_V3_ARTIFACT_DIR: /tmp/match-v1-private
+      WPP01_ARTIFACT_DIR: /tmp/match-v1-private/wpp01
+      EX06E_R2_DIR: /tmp/match-v1-private/ex06e-r2
+      EX06E_R3_DIR: /tmp/match-v1-private/ex06e-r3
+      MATCH_V1_ARTIFACT_DIR: /tmp/match-v1-artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Bind exact source and check every generated SQL file offline
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$WPP01_ARTIFACT_DIR" "$EX06E_R2_DIR" "$EX06E_R3_DIR" "$MATCH_V1_ARTIFACT_DIR"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          git rev-parse HEAD 'HEAD^{tree}' > "$MATCH_V1_ARTIFACT_DIR/source-binding.txt"
+          python3 -m pip install --quiet pglast==8.4
+          python3 supabase/proofs/match-v1/check_source.py | tee "$MATCH_V1_ARTIFACT_DIR/source-check.txt"
+          python3 supabase/candidates/worker-personal-profile-20261003/check-source.py > "$PRE_V3_ARTIFACT_DIR/wpp01-source-check.txt"
+          for f in supabase/proofs/match-v1/*.mjs; do node --check "$f"; done
+          find supabase/candidates/match-v1-20261007 supabase/candidates/discovery-zamene-20261007 supabase/proofs/match-v1 -type f -print0 | sort -z | xargs -0 sha256sum > "$MATCH_V1_ARTIFACT_DIR/source-manifest-sha256.txt"
+          sha256sum .github/workflows/match-v1-discovery-zamene-proof.yml >> "$MATCH_V1_ARTIFACT_DIR/source-manifest-sha256.txt"
+          npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/npm.log" 2>&1
+          git diff --exit-code
+      - name: Reconstruct the established disposable historical live79
+        run: |
+          set -euo pipefail
+          umask 077
+          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/live79.log" 2>&1
+      - name: Guard loopback targets and replay the predecessor chain in DEV order
+        run: |
+          set -euo pipefail
+          umask 077
+          node --input-type=module - <<'NODE'
+          import {assertLocalDeviceProofTargets} from './supabase/proofs/ru5_device_ui_local_guard.mjs';
+          try {
+            assertLocalDeviceProofTargets(process.env.RU5_DEVICE_SUPABASE_URL, process.env.RU5_DEVICE_DB_URL);
+            if (process.env.DB_URL !== process.env.RU5_DEVICE_DB_URL) throw new Error();
+          } catch { console.error('FAIL MATCH_V1_LOCAL_TARGET_ADMISSION'); process.exit(1); }
+          NODE
+          node supabase/proofs/match-v1/chain.mjs
+          node supabase/proofs/match-v1/fidelity.mjs
+      - name: Real runtime proof, refusals and exact reverts
+        run: |
+          set -euo pipefail
+          umask 077
+          status=0
+          node supabase/proofs/match-v1/runtime.proof.mjs 2>&1 | tee "$PRE_V3_ARTIFACT_DIR/runtime.log" || status=${PIPESTATUS[0]}
+          grep -E '^(PASS|FAIL) ' "$PRE_V3_ARTIFACT_DIR/runtime.log" > "$MATCH_V1_ARTIFACT_DIR/runtime-summary.txt" || true
+          {
+            echo '### MATCH-V1 + DISCOVERY-ZAMENE disposable proof'
+            echo 'Exact relevant DEV bodies on the historical chain; not global DEV equivalence. No DEV access.'
+            echo '```'
+            cat "$MATCH_V1_ARTIFACT_DIR/runtime-summary.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$status" -eq 0
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const dir = process.env.MATCH_V1_ARTIFACT_DIR;
+          const report = JSON.parse(readFileSync(dir + '/report.json', 'utf8'));
+          const chain = JSON.parse(readFileSync(dir + '/chain-fidelity.json', 'utf8'));
+          assert.equal(report.sourceSha, process.env.GITHUB_SHA);
+          assert.equal(report.result, 'PASS');
+          assert.equal(chain.result, 'PASS');
+          assert.equal(chain.relevantLiveBodyPins, 23);
+          assert.equal(report.liveAccess, false);
+          assert.equal(report.providerCalls, 0);
+          assert.equal(report.pushSends, 0);
+          assert.ok(report.checks.length >= 25);
+          assert.ok(report.checks.every(c => c.result === 'PASS'));
+          NODE
+      - name: Always discard the disposable database
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$MATCH_V1_ARTIFACT_DIR"
+          code=0
+          if [[ -d /tmp/uskoci-ru5-device-ui ]]; then
+            cd /tmp/uskoci-ru5-device-ui
+            supabase stop --no-backup > "$PRE_V3_ARTIFACT_DIR/teardown.log" 2>&1 || code=$?
+          fi
+          printf 'teardown exit=%s\n' "$code" >> "$MATCH_V1_ARTIFACT_DIR/chain-stages.txt"
+          exit "$code"
+      - name: Upload only bounded source and result summaries
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: match-v1-discovery-zamene-${{ github.sha }}-${{ github.run_id }}
+          path: /tmp/match-v1-artifacts/
+          if-no-files-found: error
+          retention-days: 30
