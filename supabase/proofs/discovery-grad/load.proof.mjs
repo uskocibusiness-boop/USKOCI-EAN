@@ -200,7 +200,8 @@ try {
     placesCity: await httpMs(viewer.client, NEW_ONLY.placesCity)};
   report.load.NEW_HTTP = newHttp; write();
   assert.ok(Object.values(now).every(x => !x.error), 'NEW_MEASUREMENT_FAILED:' + JSON.stringify(now));
-  report.load.profile.NEW = {pagePlaceCity: profile(viewer.id, REQUESTS.pagePlaceCity), pageTextCiscenje: profile(viewer.id, REQUESTS.pageTextCiscenje)}; write();
+  report.load.profile.NEW = {pagePlaceCity: profile(viewer.id, REQUESTS.pagePlaceCity), pageTextCiscenje: profile(viewer.id, REQUESTS.pageTextCiscenje),
+    pageDefault: profile(viewer.id, REQUESTS.pageDefault)}; write();
   // what the change buys: the city filter lists the whole city, the fold finds the other spellings (counts, not milliseconds)
   report.load.found = {placeCity: {old: old.pagePlaceCity.counted, new: now.pagePlaceCity.counted}, textCiscenje: {old: old.pageTextCiscenje.counted, new: now.pageTextCiscenje.counted},
     placesRows: {old: old.placesDefault.rows, new: now.placesDefault.rows, city: now.placesCity.rows}};
@@ -212,6 +213,18 @@ try {
   for (const key of ['pageDefault', 'mapDefault']) assert.ok(now[key].medianMs <= old[key].medianMs * 1.5 + 15, 'DEFAULT_READ_SLOWER:' + key + ' ' + JSON.stringify({old: old[key], now: now[key]}));
   pass('DISCOVERY_GRAD_LOAD_NEW_MEASURED_DEFAULT_READS_UNCHANGED', {old, now});
 
+  // the optional part S3 on the same rows: the days only for a time filter
+  execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', G + 's3-candidate.sql'], {stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
+  assert.equal(sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(manifest.functions[0].signature)})`), manifest.optionalParts[0].functions[0].after_md5);
+  const s3 = measureAll(viewer.id, 'NEW_S3', {...REQUESTS, ...NEW_ONLY});
+  assert.ok(Object.values(s3).every(x => !x.error), 'S3_MEASUREMENT_FAILED:' + JSON.stringify(s3));
+  for (const key of Object.keys(REQUESTS)) assert.equal(s3[key].counted, now[key].counted, 'S3_CHANGED_WHAT_IS_FOUND:' + key);
+  report.load.profile.NEW_S3 = {pageDefault: profile(viewer.id, REQUESTS.pageDefault)};
+  write();
+  execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', G + 's3-revert.sql'], {stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
+  assert.equal(sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(manifest.functions[0].signature)})`), manifest.functions[0].after_md5);
+  pass('DISCOVERY_GRAD_LOAD_S3_MEASURED_SAME_RESULTS_REVERTED', s3);
+
   // revert under load: the reader is back to the DEV body; the same reads once more give the noise of this runner (OLD again)
   execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', G + 'revert.sql'], {stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
   assert.equal(sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(manifest.functions[0].signature)})`), manifest.functions[0].before_md5);
@@ -222,9 +235,9 @@ try {
 
   const f1 = v => (v === undefined || v === null) ? 'n/a' : (typeof v === 'object' ? (v.error ? 'error' : String(v.medianMs)) : String(v));
   const lines = ['### DISCOVERY-GRAD load (disposable database, ' + open + ' open tasks; server time of one call as the signed-in viewer, median of 5 warm calls, ms)', '',
-    '| request | OLD (DEV body) | NEW (DISCOVERY-GRAD) | OLD again (after the revert: runner noise) | listed / mapped / rows OLD -> NEW |', '|---|---|---|---|---|'];
+    '| request | OLD (DEV body) | NEW (DISCOVERY-GRAD) | NEW + S3 (optional part) | OLD again (after the revert: runner noise) | listed / mapped / rows OLD -> NEW |', '|---|---|---|---|---|---|'];
   for (const key of [...Object.keys(REQUESTS), ...Object.keys(NEW_ONLY)]) {
-    lines.push(`| ${key} | ${f1(old[key])} | ${f1(now[key])} | ${f1(again[key])} | ${old[key]?.counted ?? old[key]?.rows ?? '-'} -> ${now[key]?.counted ?? now[key]?.rows ?? '-'} |`);
+    lines.push(`| ${key} | ${f1(old[key])} | ${f1(now[key])} | ${f1(s3[key])} | ${f1(again[key])} | ${old[key]?.counted ?? old[key]?.rows ?? '-'} -> ${now[key]?.counted ?? now[key]?.rows ?? '-'} |`);
   }
   lines.push('', '| PostgREST call (as the app, median of 3, ms) | OLD | NEW |', '|---|---|---|');
   for (const key of Object.keys(newHttp)) lines.push(`| ${key} | ${f1(oldHttp[key])} | ${f1(newHttp[key])} |`);
@@ -234,7 +247,8 @@ try {
   const prof = (state, key) => (Array.isArray(report.load.profile?.[state]?.[key]) ? report.load.profile[state][key] : []).slice(0, 5).map(x => `${x.name} ${x.calls}x ${x.selfMs} ms`).join(', ');
   lines.push('', 'Function profile of ONE call (calls and self time, track_functions):', '',
     `- place "Novi Sad", OLD: ${prof('OLD', 'pagePlaceCity')}`, `- place "Novi Sad", NEW: ${prof('NEW', 'pagePlaceCity')}`,
-    `- words "ciscenje", OLD: ${prof('OLD', 'pageTextCiscenje')}`, `- words "ciscenje", NEW: ${prof('NEW', 'pageTextCiscenje')}`);
+    `- words "ciscenje", OLD: ${prof('OLD', 'pageTextCiscenje')}`, `- words "ciscenje", NEW: ${prof('NEW', 'pageTextCiscenje')}`,
+    `- default page, NEW: ${prof('NEW', 'pageDefault')}`, `- default page, NEW + S3: ${prof('NEW_S3', 'pageDefault')}`);
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
   report.result = 'PASS'; write();
   console.log('PASS DISCOVERY_GRAD_LOAD');

@@ -1,0 +1,22 @@
+--- public.rpc_discovery_v1(jsonb) DISCOVERY-GRAD
++++ public.rpc_discovery_v1(jsonb) DISCOVERY-GRAD + S3 (optional)
+@@ -270,7 +270,8 @@
+    n.required_slots,n.required_skills,n.required_tools,n.required_vehicles,n.required_licenses,n.minimum_experience_years,n.mode,
+    n.requester_price_rsd,n.price_basis,n.requester_profile_id,n.response_deadline,
+    case when people>1 then public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))) else null::integer end as covered_now,
+-   case when request_mode in ('MAP','PLACES') and when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,
++   -- DISCOVERY-GRAD S3 (optional): the days only for a time filter, in every mode; availability asks for them lazily below.
++   case when when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,
+    case when request_mode='PLACES'
+      or query_text<>''
+     then public.p6_discovery_area(n.approximate_area,n.approximate_city,n.execution_location_mode='REMOTE')
+@@ -409,7 +410,8 @@
+    'withoutPoint',(select count(*) from scoped where time_ok and section=1),
+    'undated',(select count(*) from scoped where wanted is not null and days is null)),
+   'availability',jsonb_build_object('hasKnownWorkMode',exists(select 1 from base where execution_location_mode is not null),
+-   'hasKnownSchedule',exists(select 1 from base where days is not null),'priceModes',(select coalesce(jsonb_agg(mode order by mode),'[]') from (select distinct mode from base) modes))) end into result;
++   'hasKnownSchedule',exists(select 1 from base b where coalesce(b.days,case when when_mode='any' and range_from is null
++     then public.p6_discovery_days(b.schedule_kind,b.starts_at,b.ends_at,b.task_timezone,time_at) end) is not null),'priceModes',(select coalesce(jsonb_agg(mode order by mode),'[]') from (select distinct mode from base) modes))) end into result;
+  if request_mode='EXACT_PUBLIC' then return result-array['anchor','filterKey','counts','availability']; end if;
+  if request_mode='MAP' and jsonb_array_length(result->'buckets')>256 then raise exception 'P6_MAP_BOUND_FAILED'; end if;
+  if request_mode='PLACES' and exists(select 1 from jsonb_array_elements(result->'items') x

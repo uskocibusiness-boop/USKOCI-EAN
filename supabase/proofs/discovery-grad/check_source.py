@@ -39,10 +39,27 @@ for p in json.loads((G / "patches.json").read_text(encoding="utf-8")):
     after = after.replace(p["before"], p["after"], 1)
 assert md5(after) == manifest["functions"][0]["after_md5"]
 
+# the optional part S3: two edits on top of DISCOVERY-GRAD, nothing else
+s3 = after
+s3_patches = json.loads((G / "s3-patches.json").read_text(encoding="utf-8"))
+assert len(s3_patches) == 2
+for p in s3_patches:
+    assert s3.count(p["before"]) == 1, ("S3_PATCH_NOT_REPLAYABLE", p["before"][:60])
+    s3 = s3.replace(p["before"], p["after"], 1)
+opt = manifest["optionalParts"][0]
+assert opt["id"] == "DISCOVERY-GRAD-S3" and opt["functions"][0]["before_md5"] == md5(after) and opt["functions"][0]["after_md5"] == md5(s3)
+# without a time filter the days feed nothing but availability: time_ok and the undated count read them only when a time is wanted
+assert "(wanted is null or days[1]<=wanted[2] and days[2]>=wanted[1]) is true as time_ok" in s3
+assert "'undated',(select count(*) from scoped where wanted is not null and days is null)" in s3
+assert "case when when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(" in s3
+assert "'hasKnownSchedule',exists(select 1 from base b where coalesce(b.days,case when when_mode='any' and range_from is null" in s3
+
 checked = 0
-parse_plpgsql_json("create function f(p_request jsonb) returns jsonb language plpgsql as $syntax$" + after + "$syntax$")
-checked += 1
-for name in ("candidate.sql", "candidate.in-transaction.sql", "revert.sql", "preflight.readonly.sql", "postflight.readonly.sql"):
+for body in (after, s3):
+    parse_plpgsql_json("create function f(p_request jsonb) returns jsonb language plpgsql as $syntax$" + body + "$syntax$")
+    checked += 1
+for name in ("candidate.sql", "candidate.in-transaction.sql", "revert.sql", "preflight.readonly.sql", "postflight.readonly.sql",
+             "s3-candidate.sql", "s3-candidate.in-transaction.sql", "s3-revert.sql", "s3-postflight.readonly.sql"):
     text = (G / name).read_text(encoding="utf-8")
     assert "\r" not in text and text.isascii(), ("ASCII_LF", name)
     assert text.replace("p.prosrc like '%40001%'", "").count("40001") == 0, ("B24_PT409_RULE", name)
@@ -67,6 +84,12 @@ assert "\nbegin;\n" not in in_tx and "commit;" not in in_tx and in_tx.replace("-
 assert cand.count("create function") == 1 and "drop function" not in cand
 rev = (G / "revert.sql").read_text(encoding="utf-8")
 assert rev.count("drop function public.discovery_fold_v1(text);") == 1 and "create function" not in rev
+assert rev.index("DISCOVERY_GRAD_REVERT_REQUIRES_S3_REVERT_FIRST") < rev.index("DISCOVERY_GRAD_REVERT_PREIMAGE_DRIFT")
+for name in ("s3-candidate.sql", "s3-revert.sql"):
+    text = code((G / name).read_text(encoding="utf-8"))
+    assert "create function" not in text and "drop function" not in text and "grant " not in text and "revoke " not in text, name
+s3c = (G / "s3-candidate.sql").read_text(encoding="utf-8")
+assert s3c.index("DISCOVERY_GRAD_S3_ALREADY_APPLIED") < s3c.index("DISCOVERY_GRAD_S3_REQUIRES_DISCOVERY_GRAD") < s3c.index("DISCOVERY_GRAD_S3_CERTIFICATE_MOVED")
 # order of the guards: a repeated application is named before any pin; the certificate is checked first and last
 assert cand.index("DISCOVERY_GRAD_CERTIFICATE_NOT_READY'") < cand.index("DISCOVERY_GRAD_ALREADY_OR_PARTIALLY_APPLIED") < cand.index("DISCOVERY_GRAD_PREDECESSOR_DRIFT") \
     < cand.index("DISCOVERY_GRAD_DEPENDENCY_DRIFT") < cand.index("create function") < cand.index("DISCOVERY_GRAD_FOLD_TRUTH_TABLE") < cand.index("DISCOVERY_GRAD_CERTIFICATE_MOVED")

@@ -223,13 +223,45 @@
     },
     "filterKeyChangesOnlyFor": "PLACES with groupBy CITY"
   },
+  "optionalParts": [
+    {
+      "id": "DISCOVERY-GRAD-S3",
+      "requiresOwnerWord": "PRIMENI DISCOVERY-GRAD S3",
+      "requiresApplied": "DISCOVERY-GRAD",
+      "what": "days of a task only for a time filter; availability.hasKnownSchedule by an EXISTS that stops at the first dated task",
+      "functions": [
+        {
+          "signature": "public.rpc_discovery_v1(jsonb)",
+          "before_md5": "a9b0985991f4ebfe4e95143e5cf57222",
+          "after_md5": "225edbb8e090395db004b256e7447269"
+        }
+      ],
+      "newFunctions": [],
+      "certificateMoves": false,
+      "files": [
+        "s3-candidate.sql",
+        "s3-candidate.in-transaction.sql",
+        "s3-revert.sql",
+        "s3-postflight.readonly.sql",
+        "s3-body.diff",
+        "s3-patches.json"
+      ],
+      "revertOrder": "s3-revert.sql before revert.sql (revert.sql refuses with DISCOVERY_GRAD_REVERT_REQUIRES_S3_REVERT_FIRST)"
+    }
+  ],
   "artifact_sha256": {
     "candidate.sql": "7a2b646c8ca2665d7a6b384c4beeaa0b6823b145ab014381a95b19a606cecff8",
     "candidate.in-transaction.sql": "805c67e012ad8319b4d28f68f8aafef66a5498d77627acae480c8c8d8bf51ab6",
-    "revert.sql": "9500e73237f695d3e230bc58c503f9009846cfbfe128375d96ff7c781aff0140",
+    "revert.sql": "155b421e8f0c78585b9c49083a6485779ec74d96de7c374f19180e894d741ad2",
     "preflight.readonly.sql": "9fae060a85b62579148aab84be4145d698c2472985e7c928c6e3e77f6e73f5e9",
     "postflight.readonly.sql": "efa9acda01fdff853bda1dcbce572b082f9e76d64d1bb22de2d39481c837c2b2",
     "body.diff": "4f16aa233e993ac7e74eb731e73feccdd9ddd9b492c6770941277f5739e932ab",
-    "patches.json": "3ab1077ebe48ff5e216e172c6c69401dbcd6673abdcdf0c77470542e6d4a1245"
+    "patches.json": "3ab1077ebe48ff5e216e172c6c69401dbcd6673abdcdf0c77470542e6d4a1245",
+    "s3-candidate.sql": "db99e874f2d6c926064a79381730ae0a8de6ddc14baa2a403370dbda3b8820a1",
+    "s3-candidate.in-transaction.sql": "9cb0c82debcb51d3a5278c62e682a55a1fcf7ff06491e32eac79b8e33137fcd4",
+    "s3-revert.sql": "84eb543179f156ebf90638aa312a9460d246967f62b2534b0a322211340b60ca",
+    "s3-postflight.readonly.sql": "c30cc1991c1ccffacd5903885e3f4bb05e98dabb4c75dde5f4a189ae1b345029",
+    "s3-body.diff": "4f51b5f49e221461430fd105b80b00eef77abb53cac9b0fd0bce2576a6a8e5d0",
+    "s3-patches.json": "9d8ade8f8fffc5fffae629463cb4f1402f2ba25d5cc363d719c614a9c5ba17c0"
   }
 }

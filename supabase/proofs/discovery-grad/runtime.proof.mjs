@@ -71,14 +71,14 @@ const textList = list => `array[${list.map(item => q(item)).join(',')}]::text[]`
 // The labelled direct insert of supabase/proofs/ex06/lib/fixtures.mjs directPath (both lifecycle tokens), with the place columns written as given:
 // any area / city text (also empty, quoted or Cyrillic) and a coarse point or none. No public.need_geography row (Discovery reads it only for
 // the publicTopology field, which is then null for these rows before and after).
-function task(key, {title, city = '', area = '', point = null, mode = 'STATIONARY', skills = [], kind = 'FLEXIBLE'}) {
+function task(key, {title, city = '', area = '', point = null, mode = 'STATIONARY', skills = [], kind = 'FLEXIBLE', slots = SLOTS}) {
   const id = randomUUID();
   sql(`begin; select set_config('uskoci.need_lifecycle','PUBLISH',true); select set_config('uskoci.need_region','CONFIRMED_REVIEW',true);
     insert into public.needs(id, requester_account_id, requester_profile_id, status, title, description, category, required_skills, required_tools, required_vehicles,
       required_licenses, minimum_experience_years, verified_identity_required, approximate_city, approximate_area, approximate_lat, approximate_lng, mode, required_slots,
       schedule_kind, execution_location_mode, task_country_code, task_timezone, response_deadline, published_at)
     values (${q(id)}::uuid, ${q(R.id)}::uuid, ${q(R.profileId)}::uuid, 'PUBLISHED', ${q(`DG ${tag} ${title}`)}, 'Sinteticki zadatak DISCOVERY-GRAD dokaza.', 'DG dokaz',
-      ${textList(skills)}, '{}', '{}', '{}', 0, false, ${city === null ? 'null' : q(city)}, ${area === null ? 'null' : q(area)}, ${point ? point.lat : 'null'}, ${point ? point.lng : 'null'}, 'OFFERS', ${SLOTS},
+      ${textList(skills)}, '{}', '{}', '{}', 0, false, ${city === null ? 'null' : q(city)}, ${area === null ? 'null' : q(area)}, ${point ? point.lat : 'null'}, ${point ? point.lng : 'null'}, 'OFFERS', ${Number(slots)},
       ${q(kind)}, ${q(mode)}, 'RS', 'Europe/Belgrade', statement_timestamp() + interval '2 days', clock_timestamp());
     commit;`);
   T[key] = id;
@@ -261,6 +261,8 @@ try {
   refused(replaceFirst(candidate, ",'cacak'),", ",'xacak'),"), 'DISCOVERY_GRAD_FOLD_TRUTH_TABLE');
   // a payload that is not the generated body is refused before anything is replaced
   refused(replaceFirst(candidate, ' fold_text text; fold_place text;', ' fold_text text;  fold_place text;'), 'DISCOVERY_GRAD_PAYLOAD_DRIFT');
+  // the optional part S3 never applies without DISCOVERY-GRAD
+  refused(fs.readFileSync(G + 's3-candidate.sql', 'utf8'), 'DISCOVERY_GRAD_S3_REQUIRES_DISCOVERY_GRAD');
   assert.equal(catalog(), baseCatalog); assert.deepEqual(closure(), baseClosure); assert.equal(sql(`select to_regprocedure(${q(FOLD)}) is null`), 't');
   pass('DISCOVERY_GRAD_DRIFT_ORDER_TRUTH_TABLE_AND_PAYLOAD_REFUSALS_ARE_ATOMIC');
   // the wrapper variant (no begin/commit of its own) inside a transaction that is rolled back: it applies, checks itself, and leaves nothing
@@ -409,6 +411,47 @@ try {
   const anon = await withRetry(() => rt.anon.rpc('discovery_fold_v1', {value: 'x'}));
   assert.ok(anon.error, 'ANON_MUST_NOT_EXECUTE_THE_HELPER');
   pass('DISCOVERY_GRAD_HELPER_EXECUTE_AUTHENTICATED_ONLY', {anon: anon.error?.code ?? anon.error?.message});
+
+  // ---------------------------------------------------------------- the optional part S3: the days of a task only for a time filter, every answer the same
+  const S3 = manifest.optionalParts[0];
+  // a fixed window without times has no days: with a time filter it is "undated"; 7 places keeps it out of the 8-place cases
+  task('undated', {title: 'Popravka bez dana', city: 'Novi Sad', area: 'Telep', point: P.NS2, kind: 'FIXED_WINDOW', slots: 7});
+  fx.retireFixtures({needs: [T.undated]});
+  const S7 = {...FILTER, places: 7};
+  const civil = days => sql(`select to_char((statement_timestamp() at time zone 'Europe/Belgrade')::date + ${Number(days)},'YYYY-MM-DD')`);
+  const s3Requests = {
+    pageDefault: page(FILTER), page7: page(S7), pageToday: page({...S7, when: 'today'}), pageTomorrow: page({...S7, when: 'tomorrow'}),
+    pageWeek: page({...S7, when: 'week'}), pageWeekend: page({...S7, when: 'weekend'}), pageNext7: page({...S7, when: 'next7'}),
+    pageDates: page({...S7, dates: {from: civil(0), to: civil(3)}}), pageForMe: page({...FILTER, forMe: true}),
+    pageArea: page(S7, {kind: 'AREA', bounds: [19.7, 45.2, 19.95, 45.32]}), pagePoint: page(S7, {kind: 'POINT_MEMBERS', point: P.NS}),
+    pageText: page({...S7, text: 'cistim'}), pagePlace: page({...S7, place: 'Novi Sad'}), pageTodayPlace: page({...S7, when: 'today', place: 'Novi Sad'}),
+    mapDefault: map(FILTER), mapToday: map({...S7, when: 'today'}), placesDefault: places(S7), placesToday: places({...S7, when: 'today'}),
+    placesCity: places(S7, '', {groupBy: 'CITY'}),
+  };
+  const s3Before = {};
+  for (const [k, request] of Object.entries(s3Requests)) s3Before[k] = await ok(disc(request));
+  const exactUndated = await ok(disc({mode: 'EXACT_PUBLIC', needId: T.undated}));
+  assert.equal(Number(s3Before.pageToday.counts.undated), 1, 'THE_TASK_WITHOUT_DAYS_IS_UNDATED_UNDER_A_TIME_FILTER');
+  assert.equal(s3Before.pageDefault.availability.hasKnownSchedule, true);
+  refused(fs.readFileSync(G + 's3-revert.sql', 'utf8'), 'DISCOVERY_GRAD_S3_REVERT_PREIMAGE_DRIFT');
+  psqlFile(G + 's3-candidate.sql');
+  assert.equal(bodyMd5(READER), S3.functions[0].after_md5);
+  assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001);
+  refused(fs.readFileSync(G + 's3-candidate.sql', 'utf8'), 'DISCOVERY_GRAD_S3_ALREADY_APPLIED');
+  refused(fs.readFileSync(G + 'revert.sql', 'utf8'), 'DISCOVERY_GRAD_REVERT_REQUIRES_S3_REVERT_FIRST');
+  const s3post = JSON.parse(psqlText(fs.readFileSync(G + 's3-postflight.readonly.sql', 'utf8')).split('\n').filter(Boolean).at(-1));
+  assert.equal(s3post.readerS3, true); assert.equal(s3post.helper, true); assert.equal(s3post.certificateReady, true); assert.equal(s3post.closureDigest, baseClosure.digest);
+  const s3Compare = async label => {
+    for (const [k, request] of Object.entries(s3Requests)) assert.deepEqual(strip(await ok(disc({...request, anchor: s3Before[k].anchor}))), strip(s3Before[k]), label + ':' + k);
+    assert.deepEqual(strip(await ok(disc({mode: 'EXACT_PUBLIC', needId: T.undated}))), strip(exactUndated), label + ':exact');
+  };
+  await s3Compare('S3_CHANGED');
+  pass('DISCOVERY_GRAD_S3_APPLIED_EVERY_ANSWER_BYTE_IDENTICAL_INCLUDING_AVAILABILITY_AND_UNDATED', {requests: Object.keys(s3Requests).length + 1, md5: S3.functions[0].after_md5});
+  psqlFile(G + 's3-revert.sql');
+  assert.equal(bodyMd5(READER), manifest.functions[0].after_md5);
+  assert.deepEqual(closure(), baseClosure);
+  await s3Compare('S3_REVERT_CHANGED');
+  pass('DISCOVERY_GRAD_S3_EXACT_REVERT_BACK_TO_DISCOVERY_GRAD_SAME_ANSWERS');
 
   // ---------------------------------------------------------------- exact revert
   sql(`create function public.dg_probe_uses_fold() returns text language sql as $p$ select public.discovery_fold_v1('x') $p$`);
