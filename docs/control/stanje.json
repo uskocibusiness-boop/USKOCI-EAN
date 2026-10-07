@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-07T09:11:50Z",
+  "osvezeno": "2026-10-07T09:41:16Z",
   "grana": "integration/spoj-20261006",
-  "head": "e1495212",
-  "head_poruka": "feat(map): warmer, more colourful map palette with readable streets (owner 2026-10-07) [skip ci]",
+  "head": "040f8b6e",
+  "head_poruka": "feat(chat): calm sending state, confirmed place as one thread line, map expand, worker review explains notifications [skip ci]",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -91,6 +91,9 @@
   "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
+  "owner_decision_20261007_banned_account_message": "7.10.: VLASNIK prihvata predlog: prijava zabranjenog/blokiranog naloga dobija SVOJU posebnu, jasnu poruku (ne opštu grešku prijave). Posao na ekranu prijave; tekst bez izmišljenih rokova i razloga.",
+  "owner_confirms_20261007_three_dev_packages": "7.10.: VLASNIK potvrđuje da je odobrio tri DEV paketa primenjena 3.10. (MESSAGES-INBOX-01 čitač prepiski, EX06b rečnik sinonima vrsta posla, WPP01 lični radni profil): „ne bi to išlo da ja to nisam odobrio“. Potvrda važi za ta tri; svaki budući paket i dalje traži njegovo „PRIMENI <ime>“.",
+  "owner_decision_20261007_worker_review_note": "7.10.: rečenica na kraju intervjua radnika (pregled profila, pre „Sačuvaj“), crni tekst sa zvonom, ne sivi: „Podaci iz tvog radnog profila koriste se za obaveštenja o zadacima koji odgovaraju tvojim veštinama, području i vremenu.“ Vlasnik je tražio opušteno ali profesionalno, bez „da ti javimo“. Reč „postojećim i novim“ dodaje se tek kad se na serveru dokaže da i već otvoreni zadaci stižu.",
   "owner_decision_20261007_solo_developer": "7.10.: VLASNIK: za sada NIJE firma — objavljuje kao fizičko lice (solo developer, lični Google Play nalog). Operater u pravnim tekstovima i na Play-u je on lično; za lični Play nalog važi zatvoreni test (12 testera, 14 dana). Firebase projekat za push već postoji: uskoci-ed59b (paket rs.uskoci.preview, config/firebase/google-services.json); za rs.uskoci se dodaje aplikacija u isti projekat. HITNO: predlog „bez posebnog HITNO u V1“ čeka njegovu potvrdu (A21 važi).",
   "p00_ota_20261007": {
    "state": "BUILD PASS + PHONE OTA UPDATE PASS (first half of P00.04) / OFFLINE, FAILED-DOWNLOAD, PLAY AAB AND SIGNING KEY NOT PROVEN",
