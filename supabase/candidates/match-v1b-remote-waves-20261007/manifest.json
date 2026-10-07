@@ -1,0 +1,197 @@
+{
+  "id": "MATCH-V1B",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI MATCH-V1B",
+  "requires": [
+    "MATCH-V1 applied"
+  ],
+  "applyOrder": [
+    "ZONE-PERF (applied)",
+    "MATCH-V1",
+    "MATCH-V1B",
+    "DISCOVERY-ZAMENE (any order with MATCH-V1B, both need MATCH-V1)"
+  ],
+  "revertOrder": [
+    "DISCOVERY-ZAMENE",
+    "MATCH-V1B",
+    "MATCH-V1",
+    "ZONE-PERF"
+  ],
+  "certificateMoves": false,
+  "builtAgainst": {
+    "matchV1PackageFiles": {
+      "candidate.sql": "e850897851f7609f1283f56e36ff6f11263a7f4c697c84c150a5018cf2dbb4e0",
+      "revert.sql": "f8f416b34cb0b19da4492d0c589f7114eba5454a663102939c60bcba8cd035c7",
+      "manifest.json": "337ea3892506e919511632bc9eb0053736172276168fb23fe5775dfe0990325c",
+      "patches.json": "993ffe503b2bf7a0853c7a65bd6fe4b9966fab0787b25261367f9baf57d99246",
+      "live-functions.json": "4263978ace0378bbf7a5266f5ba7e650339b4335ae83ec0cce28b8df04709eb5"
+    },
+    "matchV1WaveAfterMd5": "0bd8b64ae629f5a62960f5f45e65132b"
+  },
+  "functions": [
+    {
+      "signature": "private.dispatch_next_wave(uuid)",
+      "before_md5": "0bd8b64ae629f5a62960f5f45e65132b",
+      "after_md5": "e70a2c38e03ed32175c568c7153f1fc8"
+    }
+  ],
+  "newFunctions": [
+    {
+      "signature": "private.worker_notify_room_v1b(uuid,integer)",
+      "body_md5": "9aac9da0479327fdf82b2f9298e47719",
+      "acl": "{postgres=X/postgres}",
+      "volatility": "s"
+    },
+    {
+      "signature": "private.candidate_profile_ids_v1b(uuid,integer,integer)",
+      "body_md5": "9a2437fd9d6bed07c8338d12501e5cba",
+      "acl": "{postgres=X/postgres}",
+      "volatility": "s"
+    },
+    {
+      "signature": "private.remote_wave_candidates_v1b(uuid,integer,integer)",
+      "body_md5": "3bd12de1d220804a91a7b1b036fd7ce6",
+      "acl": "{postgres=X/postgres}",
+      "volatility": "s"
+    },
+    {
+      "signature": "private.dispatch_config_v1b(jsonb)",
+      "body_md5": "a2c0533ce7278ab568911a155e97b953",
+      "acl": "{postgres=X/postgres}",
+      "volatility": "s"
+    },
+    {
+      "signature": "private.dispatch_remote_wave_v1b(uuid,jsonb,jsonb,text,integer,integer,integer,integer,integer,integer,integer)",
+      "body_md5": "b416ff2c01056af38868e3fa4a1a76b5",
+      "acl": "{postgres=X/postgres}",
+      "volatility": "v"
+    }
+  ],
+  "pinnedDependencies": [
+    {
+      "signature": "private.candidate_profile_ids(uuid,integer)",
+      "body_md5": "5414fa5a122e2055c71dd37993a6ad83"
+    },
+    {
+      "signature": "private.dispatch_cheap_candidate_admitted(uuid,uuid)",
+      "body_md5": "cec5c0a2c13af6718af53b7a80245f28"
+    },
+    {
+      "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+      "body_md5": "76280b0ad653d2fc10199bca2c3971a8"
+    },
+    {
+      "signature": "private.match_detail_without_calendar(uuid,uuid)",
+      "body_md5": "efd50886ff898f45129d33231761d189"
+    },
+    {
+      "signature": "private.worker_dispatch_time_admitted(uuid,uuid)",
+      "body_md5": "a58f1d1a2d21fa057867c153ae62ba4e"
+    },
+    {
+      "signature": "private.worker_need_time_tier_v1(uuid,uuid)",
+      "body_md5": "753027749309ccc110f486cbfb4866e4"
+    },
+    {
+      "signature": "private.worker_need_fit_v1(uuid,uuid,boolean)",
+      "body_md5": "ab221f0091d78856bb42f702ddecd016"
+    },
+    {
+      "signature": "private.worker_need_match_v1(uuid,uuid)",
+      "body_md5": "ef94ef7de07a347824ace68789f08c41"
+    },
+    {
+      "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
+      "body_md5": "9104edac66d52ba630b91fac58c7fcbc"
+    },
+    {
+      "signature": "private.match_detail(uuid,uuid)",
+      "body_md5": "38c7894a8cf43a8f32bd5a30bc2cbd09"
+    },
+    {
+      "signature": "private.need_search_time_admitted_v1(uuid,timestamp with time zone)",
+      "body_md5": "b830cd07c2a5db101a3a28096256a75b"
+    },
+    {
+      "signature": "private.enqueue_dispatch(uuid,timestamp with time zone)",
+      "body_md5": "470ed6ab6501c69bf9ebbfe057ccd0fb"
+    }
+  ],
+  "dataRows": [
+    {
+      "table": "private.marketplace_config",
+      "key": "match_v1_dispatch",
+      "addedKeys": {
+        "remoteWaves": true,
+        "remoteWaveSize": 300,
+        "remoteNextWaveSize": 1000,
+        "remoteWaveMinutes": 30,
+        "remoteStopAfterResponses": 5,
+        "remoteCeiling": 10000,
+        "workerDailyCap": 1000
+      },
+      "note": "the seven keys are merged into the existing row; every existing value (e.g. the ceiling the owner set) is kept"
+    }
+  ],
+  "knobs": {
+    "remoteWaves": {
+      "default": true,
+      "meaning": "task without a place: waves (true) or MATCH-V1 mode ALL (false)"
+    },
+    "remoteWaveSize": {
+      "default": 300,
+      "min": 1,
+      "max": 10000
+    },
+    "remoteNextWaveSize": {
+      "default": 1000,
+      "min": 1,
+      "max": 10000
+    },
+    "remoteWaveMinutes": {
+      "default": 30,
+      "min": 1,
+      "max": 1440
+    },
+    "remoteStopAfterResponses": {
+      "default": 5,
+      "min": 1,
+      "max": 1000
+    },
+    "remoteCeiling": {
+      "default": 10000,
+      "min": 1,
+      "max": 10000
+    },
+    "workerDailyCap": {
+      "default": 1000,
+      "min": 1,
+      "max": 1000,
+      "note": "1000 effectively switches the cap off"
+    }
+  },
+  "switchScripts": {
+    "off": "switch-remote-waves-off.sql",
+    "on": "switch-remote-waves-on.sql"
+  },
+  "eventCounted": {
+    "table": "public.user_activity_events",
+    "event_type": "OPPORTUNITY_AVAILABLE",
+    "urgency": "NORMAL",
+    "recipient_role": "WORKER",
+    "window": "24 hours",
+    "index": "activity_recipient_idx (recipient_user_id, recipient_role, created_at DESC); the planner may also use activity_inbox_page_idx (recipient_user_id, created_at DESC, id DESC)"
+  },
+  "artifact_sha256": {
+    "candidate.sql": "cda25e6c3be0c3a387b2988b3a7f8daa1b45af48628a15430aede13bab2bab10",
+    "candidate.in-transaction.sql": "10632644ffa5b0f966c482c7fc30e293b049fc04b16c0d76269ddafbf8bd5891",
+    "revert.sql": "a6fa63b431eb02afed229d727edd5037fe00120caad8a56c3084753c5189ec89",
+    "switch-remote-waves-off.sql": "c835d235d6273b87ca4df7a98f052621b8564c6705b870a1d88fcb8f083e7b58",
+    "switch-remote-waves-on.sql": "97e410e90f41fa2d48f8368e055423975513e888820641be6b8010c31455bee2",
+    "preflight.readonly.sql": "0a09ccea3f7d573ca20f0ab74ef825557018d785943d7ac791ee06ad84e3da25",
+    "postflight.readonly.sql": "5303cb8b364bb54d6257012bd4ffc08af78e850764429cab0db8c42ac76cc314",
+    "body.diff": "fc15813c66ff7e8ddb4ab9a46eb5fc9bc0245fbc166a02dd58e5d4342b9c22eb",
+    "patches.json": "f65d41180a7d61d3e52cfcffe4e2a0b995a23c29564c474f745df6974eb84931"
+  }
+}
