@@ -10,6 +10,11 @@
 4. **„Odgovara mi“ = vrsta posla + područje + kad sam slobodan.** Samo ta tri.
 5. **Alat i vozilo NISU uslov** ni za obaveštenje ni za prijavu — samo informacija koju naručilac vidi kad bira. Radnik bez vozila dobija obaveštenje i za zadatak koji traži vozilo (odgovor vlasnika na pitanje „a“: da).
 
+6. **Nema liste „ne nudi mi ove poslove“** (odgovor na pitanje 1 iz sekcije 7: ne).
+7. **AI ne pita da li da javljamo nove zadatke** (pitanje 4: ne). Umesto toga, **na kraju razgovora** jasno se kaže: *ovaj razgovor (radni profil) koristimo da ti javimo nove zadatke, i obaveštenja dobijaš za zadatke koji odgovaraju tvom radnom profilu.* Predlog izvedbe: stalna rečenica na pregledu profila pre „Sačuvaj“ (bez dodatnog AI poziva i bez promene servera).
+8. **Bez posebnog HITNO u prvom izdanju** (potvrđeno 7.10.): zadatak „treba mi odmah“ je običan zadatak sa tim vremenom i prvo stiže radnicima sa uključenim „Dostupan sam“. Pitanja 3 iz sekcije 7 i HITNO pravila zato otpadaju.
+9. Pitanje 5 (objašnjenje „Na šta ovo utiče“ na profilu) nije posebno odgovoreno; ostaje predlog „da“, osim ako vlasnik kaže drugačije.
+
 Posledica za kod: server za automatske ponude danas traži i alat/vozilo kada ih zadatak navodi; to se uklanja serverskim paketom (primena tek na vlasnikovo „PRIMENI <ime>“). Prekidač „Za mene“ je posao na ekranu. Da li mapa danas već prikazuje sve zadatke proverava se u P02. Odluke iz sekcije 7 ispod koje još nisu odgovorene ostaju otvorene.
 
 ---
