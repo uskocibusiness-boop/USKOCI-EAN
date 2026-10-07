@@ -78,6 +78,10 @@ const WPP02_PREFS = ['candidate.sql', 'canonical.sql', 'compatible-rollback.sql'
 const MV1 = (name: string) => `supabase/candidates/match-v1-20261007/${name}`;
 const MV1_BODIES = ['candidate.in-transaction.sql', 'candidate.sql', 'revert.sql'].map(MV1);
 const MV1_ALL = [...MV1_BODIES, MV1('postflight.readonly.sql'), MV1('preflight.readonly.sql')];
+// MATCH-V1B (2026-10-08, applied to DEV as ledger 233) replaces private.dispatch_next_wave and adds the remote-wave functions on top of MATCH-V1; its files read the same shared rule.
+const MV1B = (name: string) => `supabase/candidates/match-v1b-remote-waves-20261007/${name}`;
+const MV1B_BODIES = ['candidate.in-transaction.sql', 'candidate.sql', 'revert.sql'].map(MV1B);
+const MV1B_ALL = [...MV1B_BODIES, MV1B('postflight.readonly.sql'), MV1B('preflight.readonly.sql')];
 const R15 = 'supabase/operations/dev-alpha/ledger/20260917181212_dev_alpha_pkg015b_gap0042_world_boundary.sql';
 const GW = 'supabase/migrations/20260910121926_clean_w02_regional_country_authority.sql';
 const G173 = 'supabase/migrations/20260830173000_clean_authoritative_mutation_boundary.sql';
@@ -178,9 +182,9 @@ describe('EX-06 S05 field-to-consumer map: effective matcher chain and gate clas
       'supabase/candidates/pkg035a_selectable_application_counts.sql', // md5 pin and reader only
       X6, X6R, // EX-06 ex06a: ONE anchored edit of the match_detail_without_calendar body (a window-less TOMORROW/WEEK task counts as future availability for CURRENT_AVAILABILITY_PAUSED), NOT APPLIED to DEV, and its exact inverse
       X7, X7R, // EX-06 ex06b: only pins the callers match_detail_without_calendar and dispatch_cheap_candidate_admitted by md5 (it changes private.work_kinds_v5 and adds configuration rows), NOT APPLIED to DEV, and its exact inverse
-      W2C, W2I, W2A, ...WPP01, WPP01_POSTFLIGHT, ...WPP02_CHAIN, ...MV1_ALL].sort());
+      W2C, W2I, W2A, ...WPP01, WPP01_POSTFLIGHT, ...WPP02_CHAIN, ...MV1_ALL, ...MV1B_ALL].sort());
     // ex06a also pins the pre-image of dispatch_cheap_candidate_admitted (md5 row only; it changes neither this function nor the prefilter)
-    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R, X7, X7R, X8, X8R, ...WPP01, WPP01_POSTFLIGHT, ...WPP02_CHAIN, ...MV1_ALL].sort());
+    expect(mentioning(allSql(), /dispatch_cheap_candidate_admitted/)).toEqual([DE, K31, R15, W2A, X6, X6R, X7, X7R, X8, X8R, ...WPP01, WPP01_POSTFLIGHT, ...WPP02_CHAIN, ...MV1_ALL, ...MV1B_ALL].sort());
     const wrappers = mentioning(migrationSql(), /create or replace function private\.match_detail\(/);
     expect(wrappers[wrappers.length - 1]).toBe(W2F);
     const waves = mentioning(migrationSql(), /create or replace function private\.dispatch_next_wave\(/);
