@@ -53,11 +53,10 @@
     "No remote wave, no chunk and no budget deferral has run on DEV data yet (no open task without a place; 5 active worker profiles).",
     "Whether the push provider delivers thousands of pushes in time is not measured and V1B does not touch the push transport: the existing sender sends about one push per minute (rpc_claim_push_transport claims one attempt per call), so a wave of 1,000 needs about 17 hours to leave the push queue and a notification expires after 24 hours; the in-app notification is immediate. A batch claim, a fair order between tasks and a queue-age metric are a separate package (PUSH-KAPACITET) that must precede any push.",
     "The 40,000-worker load numbers (a wave of 1,000 in about 1.3 s, flat from the first to the last wave) come from a disposable server; CI hardware varies by about 1.5x.",
-    "The notification title still says 'Vam' (formal) in MATCH-V1's function body; the wording rule 'ti' is a separate, tiny text package."
+    "The stored notification title is MATCH-V1's legacy formal literal 'Nova prilika koja može da Vam odgovara'. The person never reads it: private.notification_copy_v5 maps it to 'Nova prilika koja ti može odgovarati' when the inbox is read (the same layer maps the other legacy formal strings), so no text package is needed for the 'ti' rule."
   ],
   "followUps": [
     "PUSH-KAPACITET (batch claim in rpc_claim_push_transport, fair order between tasks, queue-age metric) before any push is switched on.",
-    "A text-only package: the notification title 'Nova prilika koja može da Vam odgovara' -> 'ti' voice (private.dispatch_next_wave and private.dispatch_remote_wave_v1b both carry it; pins must be regenerated).",
     "workerDailyCap stays 1000 (off) until the owner chooses a number; the switch scripts switch-remote-waves-off.sql / -on.sql are in the folder and each is one guarded update.",
     "The production Supabase project (a NEW project, decision R04) needs MATCH-V1, MATCH-V1B and the B24 candidates applied before its first real user."
   ],
