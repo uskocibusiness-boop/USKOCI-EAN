@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-07T10:24:20Z",
+  "osvezeno": "2026-10-07T11:36:50Z",
   "grana": "integration/spoj-20261006",
-  "head": "42a2a5fa",
-  "head_poruka": "feat(review): price mode, basis and kind of time as chips, amount as RSD digits; owner answers 1-3; stale push deliveries retired on DEV [skip ci]",
+  "head": "75886f80",
+  "head_poruka": "docs(ux): design team's screen-by-screen plan, systems, waves and 14 owner decisions (2026-10-07) [skip ci]",
   "server": {
    "snimljeno": "2026-10-07T09:53:20Z",
    "migracije": 227,
@@ -91,6 +91,10 @@
   "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
+  "owner_decision_20261007_poruke_fourth_tab": "7.10.: VLASNIK: Poruke su ČETVRTI tab dole i to je obavezno (\"tu je klikne i odvede ga na taj dogovor ... bez obzira da je to grupni chat ili nije\"). Plan po ekranima (d06) je predlagao suprotno — ispravljeno. Prekidač EXPO_PUBLIC_CONVERSATION_INBOX=1 mora u sve profile, i u production. AGENTS.md 3.6.6.",
+  "owner_decision_20261007_word_zadatak": "7.10.: VLASNIK: reč „posao/poslovi“ se ne koristi nigde u aplikaciji; „zadatak“ je jedini izraz za ono što se radi. Danas 46 tekstova sa „posao“ (npr. „Posao je gotov“, „Nađi posao blizu“, „završenih poslova“) — menjaju se u talasu 0 (rečnik). AGENTS.md 3.6.8.",
+  "owner_decision_20261007_center_dialogs": "7.10.: VLASNIK „može dijalog“: kratke potvrde (obriši, otkaži, odjavi se) kao dijalog na sredini ekrana; prozor odozdo ostaje za menije i izbor (plan 2.20, d13).",
+  "ux_plan_20261007": "7.10.: plan dizajn tima po ekranima (docs/implementation/ui-ux-pass-20261002/UX_PLAN_PO_EKRANIMA_20261007.md; strana sa odlukama https://claude.ai/artifact/6qBE5y8fAR9FUe2wAVrAJj, odgovori u bazi strane, kolekcija odluke): 17 glavnih izmena, 20 sistema, svi ekrani, talasi 0–4. Ispravke vlasnika: Poruke četvrti tab; bez reči „posao“. Ništa iz plana još nije urađeno osim ranijih celina (slike, pinovi, cena, prijava naloga).",
   "owner_decision_20261007_push_after_app": "7.10. (kasnije): VLASNIK: push ostaje u V1, ali se podešava NA KRAJU, kad su svi tokovi i izgled aplikacije završeni — tada se push obaveštenja prilagođavaju potpuno i konkretno (tekst, odredište dodira, izgled). Do tada: Firebase rs.uskoci, FCM ključ, APK sa push-om i paket za jedan uređaj se ne rade; baza i događaji (zadaci, prijave, poruke, otkazivanja, izmene, termini, završetak, ocene) ostaju i dopunjuju se kao osnova za push.",
   "owner_decision_20261007_time_rule": "7.10.: VLASNIK „da“ na predlog: zadatak „bilo kad“ ide svima kojima odgovaraju vrsta posla i područje; „danas“ prvo radnicima sa „Mogu odmah“, zatim onima čiji raspored pokriva danas; „odmah“ prvo radnicima sa „Mogu odmah“. Danas server šalje „bilo kad“/„danas“ SAMO radnicima sa „Mogu odmah“ (G3). Serverski paket MATCH-V1 u pripremi (grana candidate/match-v1-20261007), primena tek na „PRIMENI MATCH-V1“.",
   "owner_decision_20261007_point_to_point_on_map": "7.10.: VLASNIK „da“: zadaci „od tačke do tačke“ se prikazuju na mapi na početnoj tački, približno kao i ostali (danas 4 od 9 otvorenih zadataka nisu na mapi). Ide u serverski paket uz „Za mene“.",
@@ -2500,7 +2504,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Audit 24.09: RC-02: moguće uzajamno čekanje pri paralelnom otkazivanju READY slike i uklanjanju/završavanju; red zaključavanja je obrnut. Dokazano iz koda, još ne konkurentnim izvršavanjem.",
@@ -4310,7 +4314,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "36 test fajl(ova)"
+    "test": "35 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "P6 čitač (rpc_discovery_v1) je na kanonskom DEV-u (ledger 212) i uključen u DEV APK; P6 je zatvoren sa granicama L1–L10 (P6_CLOSURE_RECEIPT.md). Na telefonu (Round 74) su feedback i sporih frejmova ispunjeni, a pin→kartica (p95 1503 ms, uključuje tačno čitanje) i povratak (p95 822 ms) su iznad cilja; produkcioni backend, iOS, scale (jit=off L4) i lične liste bez straničenja (EX-04) nisu dokazani.",
@@ -4778,7 +4782,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "29 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filteri i pretraga rade preko P6 čitača na DEV-u (serverski brojevi, facet-i, PLACES); na telefonu (Round 74) provereni: filter „Na daljinu“ (0) i „Na licu mesta“ (7) sa vraćanjem na 7, pretraga mesta (broj u predlogu = broj u listi, stanje vraćeno). Straničenje nije proverljivo na 7 zadataka (CI journey pokriva 100 redova); scale i produkcija nisu dokazani.",
@@ -7777,7 +7781,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json: postojeća prijava na tvom telefonu radi posle hladnog pokretanja.",
    "problem": "",
@@ -7866,7 +7870,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Eksplicitan signup emailRedirectTo i ponovno slanje potvrde su sada implementirani i regresiono zeleni. Još nije dokazano da kanonski Supabase allowlist prihvata callback, da email stvarno stiže i da current APK otvara login posle potvrde.",
@@ -8119,7 +8123,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane. 03.10/759c327e, run37077513388: fizički HONOR/font1.15, Početna i profil vizuelno pregledani, tačan APK otisak i UID potvrđeni. Ograničen prikaz, ne ceo tok. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
    "problem": "Postojeći JPEG avatar se prikazuje na emulatoru. Potvrda odustajanja od avatara sada mora da odgovara očekivanom profilu, nalogu i slici; nepoznat ishod čuva zahtev. Novi upload, nepotvrđen upload posle izlaska i fizički telefon nisu zatvoreni. 28.09: uređivanje ličnih podataka podržava samo prikazno ime. Grad unet na registraciji nema uređivanje; radno područje je odvojeno i nije zamena za lično mesto.",
@@ -8724,7 +8728,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
@@ -8927,7 +8931,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "147 test fajl(ova)"
+    "test": "148 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -9016,7 +9020,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",

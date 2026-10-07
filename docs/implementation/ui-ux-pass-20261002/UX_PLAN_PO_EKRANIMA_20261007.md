@@ -1,5 +1,7 @@
 # USKOČI — UX plan po ekranima (dizajn tim, 7.10.2026)
 
+> **Ispravke vlasnika (7.10., posle plana) — imaju prednost nad tekstom ispod:** (1) **Poruke su četvrti tab** dole i obavezne su; dodir na poruku vodi pravo u taj Dogovor ili grupni razgovor (plan predlaže suprotno u 2.4/2.8 i odluci 6 — ne važi). (2) **Reč „posao/poslovi“ se ne koristi nigde**, samo „zadatak“ (npr. „Posao je gotov“ u 2.6 postaje izraz sa „zadatak“). (3) Kratke potvrde idu u dijalog na sredini ekrana (odluka 13: da).
+
 ## Šta je ovo
 
 Ovo je glavni plan dizajn tima za završni vizuelni i upotrebni nivo cele aplikacije. Napravljen je samo čitanjem koda u `USKOCI-CLEAN-spoj-20261006` (glava `825c8e16`). Na DEV-u i u repozitorijumu ništa nije menjano. Plan je predlog, a ne novo odobrenje. Serverski delovi traže tvoje „PRIMENI <ime>“, a novi paketi tvoje posebno „da“.
