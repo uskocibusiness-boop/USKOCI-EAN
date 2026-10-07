@@ -74,13 +74,29 @@ export const bodyMd5 = signature => sql(`select coalesce(md5(prosrc),'') from pg
 export const applied = manifest => manifest.newFunctions.every(f => bodyMd5(f.signature) === f.body_md5);
 export const absent = manifest => manifest.newFunctions.every(f => bodyMd5(f.signature) === '');
 
+/** A plain copy for reports: an Auth client (an account object carries its client), a function and a true cycle are never serialised. */
+export function sanitize(value, ancestors = []) {
+  if (typeof value === 'function') return undefined;
+  if (!value || typeof value !== 'object') return value;
+  if (ancestors.includes(value)) return '[circular]';
+  const next = [...ancestors, value];
+  if (Array.isArray(value)) return value.map(v => { const s = sanitize(v, next); return s === undefined ? null : s; });
+  const copy = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (k === 'client') continue;
+    const s = sanitize(v, next);
+    if (s !== undefined) copy[k] = s;
+  }
+  return copy;
+}
+export const safeJson = (value, space = 2) => JSON.stringify(sanitize(value), null, space);
 /** A report with PASS / FAIL checks; a failed check is recorded and the run continues where that is meaningful. */
 export function makeReport(unit, file) {
   const report = {unit, result: 'RUNNING', sourceSha: env.GITHUB_SHA, disposableOnly: true, actualAuth: true, actualPostgrest: true, actualDatabase: true,
     liveAccess: false, providerCalls: 0, pushSends: 0, checks: [], failures: [], bypasses: [], observations: {}};
-  const write = () => fs.writeFileSync(path.join(out, file), JSON.stringify(report, null, 2) + '\n');
+  const write = () => fs.writeFileSync(path.join(out, file), safeJson(report) + '\n');
   const pass = (name, detail) => { report.checks.push({name, result: 'PASS', ...(detail === undefined ? {} : {detail})}); write(); console.log('PASS ' + name); };
-  const fail = (name, detail) => { report.checks.push({name, result: 'FAIL', detail}); report.failures.push({name, detail}); write(); console.error('FAIL ' + name + ' ' + JSON.stringify(detail).slice(0, 900)); };
+  const fail = (name, detail) => { report.checks.push({name, result: 'FAIL', detail}); report.failures.push({name, detail}); write(); console.error('FAIL ' + name + ' ' + String(safeJson(detail, 0)).slice(0, 900)); };
   const check = (name, good, detail) => (good ? pass(name, detail) : fail(name, detail));
   const bypass = (what, why) => { report.bypasses.push({what, why}); write(); };
   return {report, write, pass, fail, check, bypass};

@@ -287,8 +287,10 @@ try {
     const good = a && b && a.agreementId === c.id && a.cancelled === true && a.cancelledBy === c.by && a.cancelledByMe === c.byMe
       && b.cancelledByMe === (c.byMe === null ? null : !c.byMe) && a.reason === c.reason && b.reason === c.reason && a.reasonState === c.state
       && h.sideSource === c.source && isoToUtcMicro(a.cancelledAt) === updatedAt(c.id) && JSON.stringify(stripVolatile(a)) === JSON.stringify({...stripVolatile(b), cancelledByMe: a.cancelledByMe});
-    truth.push({case: c.name, good, seen: a, sideSource: h.sideSource});
-    check('CI_' + c.name, good, {expected: c, party: a, other: b, sideSource: h.sideSource});
+    const expected = {id: c.id, partyRole: c.party.role, by: c.by, byMe: c.byMe, reason: c.reason === null ? null : c.reason.length > 60 ? c.reason.slice(0, 60) + '...(' + c.reason.length + ')' : c.reason,
+      state: c.state, source: c.source};
+    truth.push({case: c.name, good, expected, seen: a, sideSource: h.sideSource});
+    check('CI_' + c.name, good, {expected, party: a, other: b, sideSource: h.sideSource, updatedAt: updatedAt(c.id)});
   }
   report.observations.cancellationTruthTable = truth; write();
   check('CI_C9_REASON_LENGTH_IS_2000_MINUS_THE_27_CHARACTER_PREFIX', (await one(W.w12, ids.c9)).reason.length === 1973, {length: (await one(W.w12, ids.c9)).reason.length});
