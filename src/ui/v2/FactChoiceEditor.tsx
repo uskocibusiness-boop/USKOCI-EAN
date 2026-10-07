@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Check } from 'phosphor-react-native';
+import { Glyph } from '../system/Glyph';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { sys } from '../system/tokens';
@@ -24,7 +24,7 @@ export function FactChoiceEditor({ label, options, value, disabled, onChange }: 
         haptic={checked ? 'none' : 'select'} scaleTo={sys.motion.scale.button}
         onPress={() => { if (!disabled && !checked) onChange(option.value); }}
         style={[s.chip, checked && s.chipOn, disabled && !checked && s.chipResting]}>
-        {checked ? <Check size={16} weight="bold" color={sys.color.ink} /> : null}
+        {checked ? <Glyph name="check" size={16} /> : null}
         <T variant="copy" style={[s.chipText, checked && s.chipTextOn, disabled && !checked && s.chipTextResting]}>{option.label}</T>
       </Press>;
     })}
