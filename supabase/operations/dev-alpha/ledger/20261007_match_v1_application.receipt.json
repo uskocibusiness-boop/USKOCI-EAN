@@ -91,7 +91,13 @@
       "updated_at": "2026-10-07 20:39:59.605291+00"
     },
     "why": "the owner named a ceiling up to 10,000 notified workers per task revision; 10000 is the largest value the code accepts. The ceiling is a safety valve (four rows per notified worker), not a business rule.",
-    "note": "mode stays ALL; the ladder is not switched on. MATCH-V1B (remote tasks in waves) is the follow-up that makes a very large audience cheap; until it is applied a task with thousands of matching workers would be notified in one wave. DEV has 5 active worker profiles, so the ceiling cannot bind today."
+    "note": "mode stays ALL; the ladder is not switched on. MATCH-V1B (remote tasks in waves) is the follow-up that makes a very large audience cheap; until it is applied a task with thousands of matching workers would be notified in one wave. DEV has 5 active worker profiles, so the ceiling cannot bind today.",
+    "laterChange": {
+      "at": "2026-10-07 21:47:30 UTC",
+      "statement": "one guarded UPDATE of the same row, only where the value still equalled the 10000 row exactly: ceiling 10000 -> 1000 (read back)",
+      "why": "The MATCH-V1B load proof (CI run 37688530511, found by the server agent) showed that ONE transaction can notify only about 4,000 DISTINCT workers on DEV: every notification_deliveries insert fires pre_v3_closure_delivery -> private.closure_event_restricted(), which takes pg_advisory_xact_lock_shared per recipient until the transaction ends (DEV max_locks_per_transaction 64, max_connections 60, about 3,840-4,700 lock entries for the whole server). A wave with ceiling 10000 can therefore fail with out of shared memory, roll back and retry every 10 minutes. DEV has 5 active worker profiles, so nothing was affected.",
+      "plan": "MATCH-V1B (proven in CI, not applied) adds a per-transaction notify budget and chunks the waves; the ceiling is raised again toward the owner's wish (up to 10,000) only after V1B is applied and read back."
+    }
   },
   "orderWithOtherPackages": "Applied after ZONE-PERF (ledger 228), CANCEL-INFO (229) and PROFILE-TRUST (230) of the same day; none of them touches a function of this package, and the zone helper pin accepts ZONE-PERF's body. DISCOVERY-ZAMENE (reads the shared rule) is applied after this, never before."
 }
