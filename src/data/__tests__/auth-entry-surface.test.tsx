@@ -9,7 +9,9 @@ const mockPrepare = jest.fn();
 let mockParams: { form?: string } = {};
 const mockAuth = { signInWithPassword: jest.fn(), signUp: jest.fn(), resendSignupConfirmation: jest.fn(), sendPhoneOtp: jest.fn(),
   verifyPhoneOtp: jest.fn(), requestPasswordRecovery: jest.fn() };
-let mockSession = { user: null as null | { id: string }, accountRevision: 0 };
+let mockSession: { user: null | { id: string }; accountRevision: number; signOutReason?: null | { kind: 'RESTRICTED_ACCOUNT'; revision: number } } =
+  { user: null, accountRevision: 0, signOutReason: null };
+const mockConfirmReason = jest.fn();
 let mockForeground: (state: string) => void;
 let mockFocus: () => void | (() => void);
 let mockBlur: undefined | (() => void);
@@ -27,7 +29,8 @@ jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View:
   Easing: { bezier: () => undefined }, interpolate: () => 0, useAnimatedStyle: () => ({}),
   useSharedValue: () => ({ value: 0 }), withTiming: (value: unknown) => value }));
 jest.mock('react-native-svg', () => ({ __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient',
-  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path', ClipPath: 'ClipPath', Image: 'SvgImage', Use: 'Use' }));
+  RadialGradient: 'RadialGradient', Rect: 'Rect', Stop: 'Stop', G: 'G', Path: 'Path', ClipPath: 'ClipPath', Image: 'SvgImage', Use: 'Use',
+  Circle: 'Circle', Ellipse: 'Ellipse' }));
 jest.mock('expo-router', () => ({ useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void | (() => void)) => {
     const React = jest.requireActual('react');
@@ -41,7 +44,8 @@ jest.mock('../entryIntentClientService', () => ({ entryIntentClientService: { pr
 jest.mock('expo-status-bar', () => ({ StatusBar: 'StatusBar' }));
 jest.mock('../../ui/entry/EntryWelcome', () => ({ EntryWelcome: 'Hero' }));
 jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: () => ({ onLayout: jest.fn() }) }));
-jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession, useSesija: () => mockSession,
+  potvrdiRazlogOdjave: (...args: unknown[]) => mockConfirmReason(...args) }));
 jest.mock('../authAvailabilityClientService', () => ({ authAvailabilityClientService: { read: (...args: unknown[]) => mockRead(...args) } }));
 jest.mock('../authClientService', () => ({ authClientService: {
   signInWithPassword: (...args: unknown[]) => mockAuth.signInWithPassword(...args),
@@ -54,6 +58,8 @@ jest.mock('../authClientService', () => ({ authClientService: {
 
 import AuthScreen from '../../app/auth';
 import { SIGN_IN_FAILURE_COPY, SignInFailureError, type SignInFailureClass } from '../authFailureClasses';
+import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
+import { restrictedAccountCopy } from '../../ui/auth/RestrictedAccountPanel';
 
 const emailOnly = { emailPassword: true, emailSignup: true, phoneOtp: false,
   emailConfirmationRequired: true, passwordRecovery: false };
@@ -75,7 +81,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 beforeEach(() => {
-  jest.clearAllMocks(); mockPrepare.mockResolvedValue(undefined); mockParams = {}; mockRead.mockResolvedValue(emailOnly); mockSession = { user: null, accountRevision: 0 };
+  jest.clearAllMocks(); mockPrepare.mockResolvedValue(undefined); mockParams = {}; mockRead.mockResolvedValue(emailOnly); mockSession = { user: null, accountRevision: 0, signOutReason: null };
   for (const method of Object.values(mockAuth)) method.mockResolvedValue(undefined);
   mockAuth.signUp.mockResolvedValue({ hasSession: false });
 });
@@ -140,7 +146,8 @@ it('keeps an empty password submission local and immediately editable', async ()
 // EX-07 S02: the screen shows whatever message the Auth boundary chose, with no wiring of its own; the recovery that
 // the message names (retry, the existing "Zaboravljena lozinka?") is already on the form, the email is kept, and the
 // next attempt is allowed.
-it.each(Object.keys(SIGN_IN_FAILURE_COPY) as SignInFailureClass[])('a %s sign-in failure shows its own message and leaves the form retryable', async failureClass => {
+// A restricted account is not a retryable form error any more: it has its own panel (owner decision 2026-10-07, below).
+it.each((Object.keys(SIGN_IN_FAILURE_COPY) as SignInFailureClass[]).filter(item => item !== 'RESTRICTED_ACCOUNT'))('a %s sign-in failure shows its own message and leaves the form retryable', async failureClass => {
   await render(); await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'password');
   mockAuth.signInWithPassword.mockRejectedValueOnce(new SignInFailureError(failureClass));
   await press('Prijavi se');
@@ -434,4 +441,81 @@ it('prevents duplicate recovery sends and keeps a failed request editable', asyn
   await act(async () => waiting.reject(new Error('Proveri email pre ponovnog pokušaja.')));
   expect(text()).toContain('Proveri email pre ponovnog pokušaja.');
   expect(input('ime@primer.rs').props.editable).toBe(true);
+});
+
+// Owner decision 2026-10-07: signing in to a banned, blocked or closed account gets its own separate, clear message, not
+// the generic sign-in error; the same on the phone way in, on the recovery request, and when the provider ended a session.
+describe('a restricted account has its own panel on the sign-in sheet', () => {
+  const panel = () => tree.root.findAll(node => node.props.testID === 'restricted-account-panel' && typeof node.type === 'string');
+  const header = (value: string) => host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === value);
+  function expectPanel(body: string) {
+    expect(panel()).toHaveLength(1);
+    expect(header(restrictedAccountCopy.title)).toBeDefined();
+    expect(text()).toContain(body);
+    // Calm, not an error line: nothing on the sheet is announced as an alert, and the form is gone.
+    expect(host('Text').filter(node => node.props.accessibilityRole === 'alert')).toHaveLength(0);
+    expect(host('TextInput')).toHaveLength(0);
+    expect(button('Prijavi se')).toBeUndefined();
+    expect(button('Zaboravljena lozinka?')).toBeUndefined();
+    expect(text()).not.toContain('Zdravo.');
+  }
+
+  it('after an email sign-in the provider refused as restricted, with the password cleared and one way back to the same email', async () => {
+    await render(); await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'password');
+    mockAuth.signInWithPassword.mockRejectedValueOnce(new SignInFailureError('RESTRICTED_ACCOUNT'));
+    await press('Prijavi se');
+    expectPanel(restrictedAccountCopy.body.SIGN_IN);
+    expect(text()).not.toContain(SIGN_IN_FAILURE_COPY.BAD_CREDENTIALS);
+    await press('Nazad na prijavu');
+    expect(panel()).toHaveLength(0);
+    expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+    expect(input('Unesi lozinku').props.value).toBe('');
+    await fill('Unesi lozinku', 'password'); await press('Prijavi se');
+    expect(mockAuth.signInWithPassword).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['send', 'verify'] as const)('after a phone %s the provider refused as restricted', async step => {
+    mockRead.mockResolvedValue({ ...emailOnly, phoneOtp: true }); await render(); await press('Telefon');
+    await fill('+381 6x xxx xxxx', '+381601234567');
+    if (step === 'send') mockAuth.sendPhoneOtp.mockRejectedValueOnce(new SignInFailureError('RESTRICTED_ACCOUNT'));
+    await press('Pošalji kod');
+    if (step === 'verify') {
+      await fill('123456', '012345');
+      mockAuth.verifyPhoneOtp.mockRejectedValueOnce(new SignInFailureError('RESTRICTED_ACCOUNT'));
+      await press('Potvrdi kod');
+    }
+    expectPanel(restrictedAccountCopy.body.PHONE);
+    await press('Nazad na prijavu');
+    expect(button('Prijavi se')).toBeDefined();
+  });
+
+  it('after a password-recovery request the provider refused as restricted', async () => {
+    mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
+    await render(); await fill('ime@primer.rs', 'ana@example.test'); await press('Zaboravljena lozinka?');
+    mockAuth.requestPasswordRecovery.mockRejectedValueOnce(new PasswordRecoveryError('RESTRICTED_ACCOUNT'));
+    await press('Pošalji link');
+    expectPanel(restrictedAccountCopy.body.RECOVERY);
+    expect(text()).not.toContain('Ako nalog sa ovim emailom postoji');
+  });
+
+  it('opens on its own, once, when the provider ended the session because the account is restricted', async () => {
+    mockSession = { ...mockSession, signOutReason: { kind: 'RESTRICTED_ACCOUNT', revision: 3 } };
+    await act(async () => { tree = create(<AuthScreen />); });
+    expectPanel(restrictedAccountCopy.body.SESSION);
+    expect(mockConfirmReason.mock.calls).toEqual([[3]]);
+    // The V4.9 entry stays the backdrop behind the sheet.
+    expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
+    mockSession = { ...mockSession, signOutReason: null };
+    await press('Nazad na prijavu');
+    expect(button('Prijavi se')).toBeDefined();
+    expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('every panel sentence is plain Serbian in the "ti" voice, without gender, invented contact, reason or duration', () => {
+    for (const sentence of [restrictedAccountCopy.title, ...Object.values(restrictedAccountCopy.body)]) {
+      expect(sentence).not.toMatch(/server|podršk|@|https?:|\d/i);
+      expect(sentence).not.toMatch(/\b(si|sam|ste|bio|bila|uneo|unela|odjavljena)\b/i);
+      expect(sentence).not.toMatch(/zbog|kršen|prekrš|dana|sati|nedelj|zauvek|trajno/i);
+    }
+  });
 });

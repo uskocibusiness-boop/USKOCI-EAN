@@ -2,7 +2,14 @@
 import { useSyncExternalStore } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabaseKlijent } from '../data/supabaseClient';
+import { isRestrictedAccountSignal, restrictedRefreshRefusal } from '../data/authFailureClasses';
 import { povratniCilj } from './povratniCilj';
+
+/**
+ * Why this device is signed out, when the provider said so (owner decision 2026-10-07). Only a restricted account is told
+ * apart; every other sign-out stays silent. `revision` lets the sign-in screen show one reason exactly once.
+ */
+export type SignOutReason = { kind: 'RESTRICTED_ACCOUNT'; revision: number };
 
 type SesijaStanje = {
   isLoaded: boolean;
@@ -11,6 +18,7 @@ type SesijaStanje = {
   sessionEpoch: number;
   accountRevision: number;
   returnTargetRevision: number;
+  signOutReason: SignOutReason | null;
 };
 
 let trenutna: SesijaStanje = {
@@ -20,6 +28,7 @@ let trenutna: SesijaStanje = {
   sessionEpoch: 0,
   accountRevision: 0,
   returnTargetRevision: 0,
+  signOutReason: null,
 };
 
 const pretplatnici = new Set<() => void>();
@@ -42,6 +51,7 @@ export function inicijalizujSesiju() {
   // synchronous; storage work must not hold up Supabase's event dispatch.
   supabase.auth.onAuthStateChange((event, session) => {
     acceptSession(session, event === 'SIGNED_OUT');
+    if (event === 'SIGNED_OUT') explainSignOut(supabase.auth);
   });
 
   const finishRestore = (session: Session | null) => {
@@ -57,12 +67,57 @@ export function inicijalizujSesiju() {
   const settle = (session: Session | null) => { clearTimeout(bound); finishRestore(session); };
   try {
     void supabase.auth.getSession().then(
-      ({ data, error }) => settle(error ? null : data.session),
+      ({ data, error }) => {
+        settle(error ? null : data.session);
+        // A restore whose own refresh the provider refused as restricted says so here, with no SIGNED_OUT of its own.
+        if (error && isRestrictedAccountSignal(error)) noteRestrictedSignOut(error);
+      },
       () => settle(null),
     );
   } catch {
     settle(null);
   }
+}
+
+/** The one refusal already shown, so a repeated SIGNED_OUT for the same refusal does not show it again. */
+let explainedRefusal: unknown = null;
+let reasonRevision = 0;
+
+function noteRestrictedSignOut(source: unknown, accountRevision = trenutna.accountRevision) {
+  // Only while still signed out and no other account has come and gone in between.
+  if (trenutna.user || trenutna.accountRevision !== accountRevision || source === explainedRefusal) return;
+  explainedRefusal = source;
+  trenutna = { ...trenutna, signOutReason: { kind: 'RESTRICTED_ACCOUNT', revision: ++reasonRevision } };
+  obavesti();
+}
+
+/**
+ * auth-js reports a refused refresh as a bare SIGNED_OUT and records the refusal only after the event has been dispatched
+ * (authFailureClasses.restrictedRefreshRefusal). Asking for the session again queues behind the client's own lock when the
+ * refresh holds it, so it resolves once that refresh has finished; it reads storage only and sends nothing. The read itself
+ * then waits one more task, because the record is written in the microtasks that follow the event. A sign-out this app
+ * asked for clears the record first, so it never reads as restricted.
+ */
+function explainSignOut(auth: unknown) {
+  const accountRevision = trenutna.accountRevision;
+  const read = () => {
+    const refusal = restrictedRefreshRefusal(auth);
+    if (refusal) noteRestrictedSignOut(refusal, accountRevision);
+  };
+  const later = () => { setTimeout(read, 0); };
+  try {
+    const pending = (auth as { getSession?: () => unknown }).getSession?.();
+    void Promise.resolve(pending).then(later, later);
+  } catch {
+    later();
+  }
+}
+
+/** The sign-in screen has shown this reason; it is not shown again. */
+export function potvrdiRazlogOdjave(revision: number) {
+  if (trenutna.signOutReason?.revision !== revision) return;
+  trenutna = { ...trenutna, signOutReason: null };
+  obavesti();
 }
 
 function acceptSession(session: Session | null, signedOut = false) {
@@ -78,6 +133,8 @@ function acceptSession(session: Session | null, signedOut = false) {
     // Unlike an Auth-event epoch, identity ownership survives token refresh.
     // Every A→B→A transition remains visible even when React batches renders.
     accountRevision: trenutna.accountRevision + (identityChanged ? 1 : 0),
+    // A session that arrives ends whatever the last sign-out said.
+    signOutReason: session?.user ? null : trenutna.signOutReason,
   };
   const epoch = trenutna.sessionEpoch;
   // A session used to wait here, for up to 1.5 s, until a per-account UI mode had been restored from

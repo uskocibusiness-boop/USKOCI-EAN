@@ -27,17 +27,19 @@ import {
 } from 'phosphor-react-native';
 
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
+import { RestrictedAccountPanel, type RestrictedAccountContext } from '../ui/auth/RestrictedAccountPanel';
 
 import { authClientService } from '../data/authClientService';
+import { isRestrictedAccountFailure } from '../data/authFailureClasses';
 import { useAuthAvailability } from '../hooks/useAuthAvailability';
 import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
 import { EntryWelcome, type EntryIntentSelection } from '../ui/entry/EntryWelcome';
 import { entryIntentClientService } from '../data/entryIntentClientService';
-import { sesijaSada } from '../store/sesija';
+import { potvrdiRazlogOdjave, sesijaSada, useSesija } from '../store/sesija';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
-type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT';
+type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT' | 'RESTRICTED';
 
 /** Only ways in that work are drawn, so there is no unavailable state left to draw. */
 function MethodButton({ title, icon, onPress, disabled }: {
@@ -111,6 +113,21 @@ export default function AuthScreen() {
   const methods = availability.status === 'ready' ? availability.data : null;
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);
+  // Owner decision 2026-10-07: a restricted account is its own state, not a line of red text under the form.
+  const [ograniceno, setOgraniceno] = useState<RestrictedAccountContext>('SIGN_IN');
+  const signOutReason = useSesija().signOutReason;
+
+  // A session the provider ended because the account is restricted opens the sign-in sheet on that panel, once.
+  useEffect(() => {
+    if (signOutReason?.kind !== 'RESTRICTED_ACCOUNT') return;
+    const shown = commands.changeForm(() => {
+      setPreparedIntent(null); setRezim('LOGIN'); setOgraniceno('SESSION'); setFaza('RESTRICTED');
+      setLozinka(''); setPotvrda(''); setOtp(''); setGreska(null); setPoruka(null);
+      setOtvoren(true);
+    });
+    // While an Auth command runs the form cannot change; `radi` re-runs this once it has settled.
+    if (shown) potvrdiRazlogOdjave(signOutReason.revision);
+  }, [signOutReason?.kind, signOutReason?.revision, commands.changeForm, radi]);
 
   const handledRouteForm = useRef(params.form);
   useEffect(() => {
@@ -163,6 +180,13 @@ export default function AuthScreen() {
   }
 
   function prijaviGresku(error: unknown) {
+    if (isRestrictedAccountFailure(error)) {
+      // Nothing typed was wrong, and typing it again changes nothing: the secrets are cleared, the email stays.
+      setOgraniceno(faza === 'PHONE' || faza === 'OTP' ? 'PHONE' : faza === 'RECOVERY' ? 'RECOVERY' : 'SIGN_IN');
+      setLozinka(''); setPotvrda(''); setOtp(''); setGreska(null); setPoruka(null);
+      setFaza('RESTRICTED');
+      return;
+    }
     setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušaj ponovo.');
   }
 
@@ -298,12 +322,18 @@ export default function AuthScreen() {
       <View style={{ flex: 1, minHeight: 0 }}>
         <ScrollView key={`${rezim}:${faza}`} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
-            <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Zdravo.' : naslov}
+            {faza === 'RESTRICTED' ? (
+              // The panel is the whole answer: no greeting above it and no form under it, one way back.
+              <View style={styles.form}>
+                <RestrictedAccountPanel context={ograniceno} />
+                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
+              </View>
+            ) : <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Zdravo.' : naslov}
               copy={faza === 'EMAIL' && rezim === 'LOGIN' ? selectedIntent === 'WORKER' ? 'Nastavi do Prijava, Zadataka i Dogovora.' : 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
-              eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? `${intentLabel.toUpperCase()} · ISTI NALOG` : undefined} />
+              eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? `${intentLabel.toUpperCase()} · ISTI NALOG` : undefined} />}
             {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
 
-            {availability.status === 'loading' ? (
+            {faza === 'RESTRICTED' ? null : availability.status === 'loading' ? (
               <View accessibilityRole="progressbar" style={formStyle}>
                 <ActivityIndicator color={authColors.muted} />
                 <Text style={styles.stateCopy}>Proveravamo dostupne načine prijave…</Text>

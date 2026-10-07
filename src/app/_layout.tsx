@@ -14,6 +14,7 @@ import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { BrandMark } from '../ui/entry/BrandAssets';
 import { T } from '../ui/Text';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
+import { AccountClosingScreen, useAccountClosing } from '../ui/auth/AccountClosingState';
 
 // A screen that throws while rendering shows a way out instead of a white page (release, 2026-09-23). The
 // screen-level boundary catches it at the screen, so "Pokušaj ponovo" redraws that screen and the back stack stays;
@@ -40,6 +41,13 @@ export default function RootLayout() {
   const { onLayout: onRouteLayout } = useEntrySplashReady({
     enabled: isLoaded && routeResolved && (naOporavku || (!!session && !naAuth)),
   });
+  // An account in its closing stage is refused every ordinary read, so Početna could only say it did not load. Once per
+  // account incarnation the root asks whether it is closing and, only on a confirmed answer, shows that instead. Private
+  // support is the one place the closing account may still open, so the closing state steps aside there.
+  const closing = useAccountClosing(isLoaded && routeResolved && session && !naOporavku
+    ? { accountId: session.user.id, accountRevision } : null);
+  const naPodrsci = pathname === '/podrska' || pathname.startsWith('/podrska/');
+  const closingShown = closing.closing && !naPodrsci;
 
   // Protected-route authority: unauthenticated users never remain inside the
   // marketplace shell. Auth is one screen in the same app, not a second app.
@@ -122,29 +130,37 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <GestureHandlerRootView onLayout={onRouteLayout} style={{ flex: 1, backgroundColor: sys.color.surface }}>
         <StatusBar style="dark" />
-        <Stack
-          key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
-          initialRouteName={session ? '(app)' : 'auth'}
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: sys.color.surface },
-            animation: reduced ? 'none' : 'slide_from_right',
-          }}
-        >
-          <Stack.Protected guard={!session}>
-            <Stack.Screen name="auth" options={{ animation: 'none' }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!session}>
-            <Stack.Screen name="(app)" options={{ contentStyle: { backgroundColor: sys.color.ground } }} />
-            <Stack.Screen name="dogovor/[id]" />
-            <Stack.Screen name="obavestenja" />
-            <Stack.Screen name="prijave" />
-          </Stack.Protected>
-          {/* Recovery remains a public link destination, never the cold-start
-              fallback when Protected removes the private index route. */}
-          <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
-        </Stack>
-        <PushRuntime ready={routeResolved && !naAuth && !naOporavku} />
+        {/* The navigator stays mounted under the closing state, so leaving it (support, sign-out) keeps the stack; while it
+            is covered, a screen reader does not reach it either. */}
+        <View style={{ flex: 1 }} importantForAccessibility={closingShown ? 'no-hide-descendants' : 'auto'}
+          accessibilityElementsHidden={closingShown}>
+          <Stack
+            key={`${session?.user.id ?? 'signed-out'}:${accountRevision}`}
+            initialRouteName={session ? '(app)' : 'auth'}
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: sys.color.surface },
+              animation: reduced ? 'none' : 'slide_from_right',
+            }}
+          >
+            <Stack.Protected guard={!session}>
+              <Stack.Screen name="auth" options={{ animation: 'none' }} />
+            </Stack.Protected>
+            <Stack.Protected guard={!!session}>
+              <Stack.Screen name="(app)" options={{ contentStyle: { backgroundColor: sys.color.ground } }} />
+              <Stack.Screen name="dogovor/[id]" />
+              <Stack.Screen name="obavestenja" />
+              <Stack.Screen name="prijave" />
+            </Stack.Protected>
+            {/* Recovery remains a public link destination, never the cold-start
+                fallback when Protected removes the private index route. */}
+            <Stack.Screen name="oporavak" options={{ animation: 'none' }} />
+          </Stack>
+        </View>
+        {closingShown ? <AccountClosingScreen execution={closing.execution} working={closing.working} message={closing.message}
+          onCheck={closing.check} onSignOut={closing.signOut} onSupport={() => router.push('/podrska')} /> : null}
+        {/* A closing account is refused every push registration read, so the runtime waits until the account is open. */}
+        <PushRuntime ready={routeResolved && !naAuth && !naOporavku && !closing.closing} />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

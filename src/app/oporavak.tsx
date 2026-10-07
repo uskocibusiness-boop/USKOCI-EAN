@@ -10,6 +10,7 @@ import { ArrowLeft } from 'phosphor-react-native';
 import { usePasswordRecovery } from '../hooks/usePasswordRecovery';
 import { useSesija } from '../store/sesija';
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
+import { RestrictedAccountPanel } from '../ui/auth/RestrictedAccountPanel';
 import { BuildIdentity } from '../ui/BuildIdentity';
 import { radius, space, type } from '../theme/tokens';
 
@@ -89,7 +90,12 @@ export default function PasswordRecoveryScreen() {
               <Text style={styles.copy}>Možeš da nastaviš. Za ulazak koristiš novu lozinku.</Text>
               <PrimaryButton title="Prijavi se" onPress={back} />
             </> : null}
-            {state.status === 'error' ? <>
+            {state.status === 'error' && state.error.code === 'RESTRICTED_ACCOUNT' ? <>
+              {/* Owner decision 2026-10-07: a restricted account's link is not "expired", and a new link would change
+                  nothing, so none is offered; the one way on is back. */}
+              <RestrictedAccountPanel context="RECOVERY" />
+              <PrimaryButton title={user ? 'Nazad u aplikaciju' : 'Nazad na prijavu'} onPress={back} />
+            </> : state.status === 'error' ? <>
               <Text accessibilityRole="alert" style={styles.error}>{state.error.message}</Text>
               {state.error.code === 'VERIFY_UNAVAILABLE' ? <PrimaryButton title="Pokušaj ponovo" onPress={recovery.retry} /> : null}
               {!user ? <PrimaryButton title="Zatraži novi link" onPress={() => router.replace({ pathname: '/auth', params: { form: 'recovery' } })} /> : null}

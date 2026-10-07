@@ -165,3 +165,26 @@ it('revalidates a repeated OS callback instead of displaying the preceding succe
   expect(hosts('TextInput')).toHaveLength(0);
   expect(mockSave).toHaveBeenCalledTimes(1);
 });
+
+// Owner decision 2026-10-07: the recovery link of a restricted account shows the restricted panel; a new link would change
+// nothing, so none is offered, and the one way on is back.
+it.each([false, true])('a restricted account is its own panel, not an expired link (failed while saving: %s)', async whileSaving => {
+  if (!whileSaving) mockVerify.mockRejectedValue(new PasswordRecoveryError('RESTRICTED_ACCOUNT'));
+  else mockSave.mockRejectedValue(new PasswordRecoveryError('RESTRICTED_ACCOUNT'));
+  await render();
+  if (whileSaving) {
+    await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password');
+    await press('Sačuvaj novu lozinku');
+  }
+  const panels = tree.root.findAll(node => node.props.testID === 'restricted-account-panel' && typeof node.type === 'string');
+  expect(panels).toHaveLength(1);
+  expect(text()).toContain('Pristup nalogu je ograničen');
+  expect(text()).toContain('Oporavak lozinke za ovaj nalog trenutno nije moguć. Novi link za oporavak to neće promeniti.');
+  expect(text()).not.toContain('Link je nevažeći ili je istekao');
+  expect(hosts('Text').filter(node => node.props.accessibilityRole === 'alert')).toHaveLength(0);
+  expect(button('Zatraži novi link')).toBeUndefined();
+  expect(button('Pokušaj ponovo')).toBeUndefined();
+  expect(hosts('TextInput')).toHaveLength(0);
+  await press('Nazad na prijavu');
+  expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
+});

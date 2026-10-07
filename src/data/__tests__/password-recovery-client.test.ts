@@ -130,3 +130,33 @@ it('never exposes raw provider error text or credential URLs', () => {
     expect(recoveryError(new Error(message), stage).message).not.toContain(message);
   }
 });
+
+// Owner decision 2026-10-07: a restricted account's recovery is told so, not that its link expired. Real expiry and every
+// other refusal keep "Link je nevažeći ili je istekao.".
+describe('a restricted account is not an expired link', () => {
+  const banned = { status: 403, code: 'user_banned', message: 'User is banned' };
+  it.each(['request', 'verify', 'update'] as const)('the restricted code decides before any status at %s', stage => {
+    expect(recoveryError(banned, stage)).toMatchObject({ code: 'RESTRICTED_ACCOUNT' });
+    expect(recoveryError({ ...banned, status: 400, code: 'USER_BANNED' }, stage)).toMatchObject({ code: 'RESTRICTED_ACCOUNT' });
+    expect(recoveryError(banned, stage).message).toBe('Pristup ovom nalogu je ograničen, pa oporavak lozinke trenutno nije moguć.');
+    expect(recoveryError(banned, stage).message).not.toMatch(/istekao|User is banned|user_banned/);
+  });
+  it.each([
+    [{ status: 403, code: 'otp_expired' }], [{ status: 401, code: 'session_expired' }], [{ status: 400, code: 'user_banned_x' }], [{ status: 404 }],
+  ])('a real expiry or any other 4xx is still the invalid link: %j', error => {
+    expect(recoveryError(error, 'verify')).toMatchObject({ code: 'INVALID_LINK', message: 'Link je nevažeći ili je istekao. Zatraži novi link.' });
+  });
+  it.each(['setSession', 'getUser'] as const)('a %s the provider refused as restricted ends the lease as restricted', async step => {
+    if (step === 'setSession') auth.setSession.mockResolvedValue({ data: { session: null }, error: banned });
+    else auth.getUser.mockResolvedValue({ data: { user: null }, error: banned });
+    await expect(createRecoverySession(deps).verify(link)).rejects.toMatchObject({ code: 'RESTRICTED_ACCOUNT' });
+    expect(dispose).toHaveBeenCalledTimes(1); expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+  it('a password write the provider refused as restricted closes the lease instead of keeping the form', async () => {
+    const session = createRecoverySession(deps); await session.verify(link);
+    auth.updateUser.mockResolvedValueOnce({ data: { user: null }, error: banned });
+    await expect(session.updatePassword('new-password')).rejects.toMatchObject({ code: 'RESTRICTED_ACCOUNT' });
+    expect(dispose).toHaveBeenCalledTimes(1);
+    await expect(session.updatePassword('another-password')).rejects.toMatchObject({ code: 'INVALID_LINK' });
+  });
+});

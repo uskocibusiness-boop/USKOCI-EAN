@@ -22,8 +22,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: (key: string) => mockRemoveItem(key),
 }));
 jest.mock('../../data', () => ({ izvor: {} }));
+// One auth object for the whole store, so a test can leave a refused refresh on it the way auth-js does.
+const mockAuthClient: { getSession: (...args: unknown[]) => unknown; onAuthStateChange: (...args: unknown[]) => unknown;
+  lastRefreshFailure?: unknown } = {
+  getSession: (...args) => mockGetSession(...args), onAuthStateChange: (...args) => mockOnAuthStateChange(...args),
+};
 jest.mock('../../data/supabaseClient', () => ({
-  supabaseKlijent: () => ({ auth: { getSession: mockGetSession, onAuthStateChange: mockOnAuthStateChange } }),
+  supabaseKlijent: () => ({ auth: mockAuthClient }),
 }));
 
 let store: typeof import('../sesija');
@@ -244,4 +249,82 @@ it('an explicit choice before signing in is carried as a destination and leaves 
   expect(store.sesijaSada().returnTargetRevision).toBe(1);
   expect(await targets.povratniCilj.consumeCompleted('account-a')).toMatchObject({ completedByUserId: 'account-a', intent: { intent: 'REQUESTER' } });
   expect(mockRecords['uskoci:account-intent:v1:account-a']).toBe(stored);
+});
+
+// Owner decision 2026-10-07: a session the provider ended because the account is restricted carries that reason to the
+// sign-in screen, once; every other sign-out stays silent. auth-js reports the refusal only as SIGNED_OUT and records it on
+// the client afterwards (authFailureClasses.restrictedRefreshRefusal, proven on the real client in auth-failure-classes).
+describe('a sign-out the provider made because the account is restricted', () => {
+  const banned = Object.assign(new Error('PROVIDER_TEXT'), { status: 400, code: 'user_banned' });
+  const refused = (error: unknown) => {
+    mockAuthClient.lastRefreshFailure = { refreshToken: 'refresh-account-a', result: { data: null, error }, expiresAt: Date.now() + 60_000 };
+  };
+  beforeEach(() => { delete mockAuthClient.lastRefreshFailure; });
+  async function settle() { await flush(); await runDeferredWork(); }
+
+  it('carries the reason once the refusal is recorded, shows one refusal once, and is ended by the screen or a new session', async () => {
+    store.inicijalizujSesiju();
+    emit('SIGNED_IN', session('account-a'));
+    expect(store.sesijaSada().signOutReason).toBeNull();
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+    emit('SIGNED_OUT', null);
+    // At the event itself auth-js has not recorded the refusal yet.
+    expect(store.sesijaSada().signOutReason).toBeNull();
+    refused(banned);
+    await settle();
+    expect(store.sesijaSada()).toMatchObject({ user: null, signOutReason: { kind: 'RESTRICTED_ACCOUNT', revision: 1 } });
+    // The same refusal reported again is the same reason, not a new one.
+    emit('SIGNED_OUT', null); await settle();
+    expect(store.sesijaSada().signOutReason).toEqual({ kind: 'RESTRICTED_ACCOUNT', revision: 1 });
+    store.potvrdiRazlogOdjave(2);
+    expect(store.sesijaSada().signOutReason?.revision).toBe(1);
+    store.potvrdiRazlogOdjave(1);
+    expect(store.sesijaSada().signOutReason).toBeNull();
+    emit('SIGNED_OUT', null); await settle();
+    expect(store.sesijaSada().signOutReason).toBeNull();
+    // A new refusal is a new reason, and a session that arrives ends it.
+    refused(Object.assign(new Error('again'), { code: 'user_banned' }));
+    emit('SIGNED_OUT', null); await settle();
+    expect(store.sesijaSada().signOutReason).toEqual({ kind: 'RESTRICTED_ACCOUNT', revision: 2 });
+    emit('SIGNED_IN', session('account-b'));
+    expect(store.sesijaSada().signOutReason).toBeNull();
+  });
+
+  it.each([
+    ['no refusal at all (a sign-out this app asked for clears it first)', undefined],
+    ['a refusal for another reason', { refreshToken: 'r', result: { data: null, error: { status: 400, code: 'refresh_token_not_found' } }, expiresAt: Number.MAX_SAFE_INTEGER }],
+    ['a restricted refusal whose cooldown is over', { refreshToken: 'r', result: { data: null, error: banned }, expiresAt: 0 }],
+  ])('stays silent for %s', async (_label, failure) => {
+    store.inicijalizujSesiju(); emit('SIGNED_IN', session('account-a'));
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+    mockAuthClient.lastRefreshFailure = failure;
+    emit('SIGNED_OUT', null); await settle();
+    expect(store.sesijaSada()).toMatchObject({ user: null, signOutReason: null });
+  });
+
+  it('a session that arrives before the refusal is read takes precedence', async () => {
+    store.inicijalizujSesiju(); emit('SIGNED_IN', session('account-a'));
+    mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+    emit('SIGNED_OUT', null);
+    emit('SIGNED_IN', session('account-b'));
+    refused(banned); await settle();
+    expect(store.sesijaSada()).toMatchObject({ user: { id: 'account-b' }, signOutReason: null });
+  });
+
+  it('a restore whose own refresh the provider refused as restricted says so, and its later SIGNED_OUT adds nothing', async () => {
+    store.inicijalizujSesiju();
+    restore.resolve({ data: { session: null }, error: banned });
+    await settle();
+    expect(store.sesijaSada()).toMatchObject({ isLoaded: true, user: null, signOutReason: { kind: 'RESTRICTED_ACCOUNT', revision: 1 } });
+    refused(banned);
+    emit('SIGNED_OUT', null); await settle();
+    expect(store.sesijaSada().signOutReason).toEqual({ kind: 'RESTRICTED_ACCOUNT', revision: 1 });
+  });
+
+  it('a restore that failed for any other reason stays silent', async () => {
+    store.inicijalizujSesiju();
+    restore.resolve({ data: { session: null }, error: Object.assign(new Error('offline'), { status: 0 }) });
+    await settle();
+    expect(store.sesijaSada()).toMatchObject({ isLoaded: true, user: null, signOutReason: null });
+  });
 });

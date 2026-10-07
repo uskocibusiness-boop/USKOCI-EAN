@@ -22,7 +22,9 @@
  *    to anyone who asks it and adds nothing. If that disclosure is not wanted, answer 'user_banned' with BAD_CREDENTIALS
  *    in classifySignInFailure; nothing else changes.
  *
- * Only sign-in is told apart. Sign-up, resend and phone keep their one message each (authClientService.safeAuthFailure).
+ * Only sign-in is told apart. Sign-up and resend keep their one message each (authClientService.safeAuthFailure); phone sign-in
+ * keeps its one message too, except that a restricted account is told apart there as well (owner decision 2026-10-07: signing in
+ * to a banned, blocked or closed account gets its own clear message, not the generic sign-in error).
  */
 export type SignInFailureClass =
   | 'BAD_CREDENTIALS' | 'CONNECTION' | 'EMAIL_NOT_CONFIRMED' | 'RESTRICTED_ACCOUNT' | 'RATE_LIMITED' | 'UNAVAILABLE';
@@ -86,4 +88,43 @@ export class SignInFailureError extends Error {
     super(SIGN_IN_FAILURE_COPY[failureClass]);
     this.name = 'SignInFailureError';
   }
+}
+
+/** The provider's own word for a restricted (banned) account, compared whole like every code here. */
+const RESTRICTED_ACCOUNT_CODE = 'user_banned';
+
+/** Whether an Auth answer says the account is restricted. Only the code is read. */
+export function isRestrictedAccountSignal(error: unknown): boolean {
+  return authFailureSignals(error).code === RESTRICTED_ACCOUNT_CODE;
+}
+
+/**
+ * Whether a failure the screens receive is to be drawn as the restricted-account panel rather than as an error line: a sign-in
+ * (email or phone) the provider refused as restricted, or a password recovery it refused the same way. Duck-typed on the two
+ * typed errors' own fields so that a screen test may throw either without the module that made it.
+ */
+export function isRestrictedAccountFailure(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const value = error as { name?: unknown; failureClass?: unknown; code?: unknown };
+  return (value.name === 'SignInFailureError' && value.failureClass === 'RESTRICTED_ACCOUNT') ||
+    (value.name === 'PasswordRecoveryError' && value.code === 'RESTRICTED_ACCOUNT');
+}
+
+/**
+ * Signed out because the account is restricted. When the provider refuses a session refresh, the installed auth-js (2.112.4,
+ * GoTrueClient._callRefreshToken) drops the session and reports only SIGNED_OUT, with no error. The refusal itself stays on the
+ * client for the retry cooldown, as `lastRefreshFailure = { refreshToken, result: { error }, expiresAt }`, and every later sign-out
+ * or successful refresh clears it. It is read here by exactly that shape, and nothing else of it: not the token, not the text,
+ * not the status. A library that keeps it differently gives "no reason", which is the silent sign-out the app had before.
+ * Returns the refusal itself (the same object a getSession that ran that refresh returned, so a caller can tell one refusal
+ * from the next), or null.
+ */
+export function restrictedRefreshRefusal(auth: unknown, now = Date.now()): object | null {
+  if (!auth || typeof auth !== 'object') return null;
+  const failure = (auth as { lastRefreshFailure?: unknown }).lastRefreshFailure;
+  if (!failure || typeof failure !== 'object') return null;
+  const { result, expiresAt } = failure as { result?: unknown; expiresAt?: unknown };
+  if (typeof expiresAt !== 'number' || !(expiresAt > now) || !result || typeof result !== 'object') return null;
+  const error = (result as { error?: unknown }).error;
+  return error && typeof error === 'object' && isRestrictedAccountSignal(error) ? error : null;
 }

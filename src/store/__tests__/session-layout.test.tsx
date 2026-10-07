@@ -1,8 +1,11 @@
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { Session } from '@supabase/supabase-js';
 
-const mockRouter = { replace: jest.fn() };
+const mockRouter = { replace: jest.fn(), push: jest.fn() };
+const mockClosingRead = jest.fn();
+const mockJournalLoad = jest.fn();
+const mockSignOut = jest.fn();
 let mockPath = '/';
 const mockSegments = ['(app)'];
 const mockConsume = jest.fn();
@@ -74,7 +77,12 @@ jest.mock('../../data/pushDeviceClientService', () => ({
   revokePushBeforeLogout: jest.fn(),
 }));
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: 'GestureHandlerRootView' }));
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaProvider' }));
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: 'SafeAreaProvider',
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }) }));
+// The closing check is required lazily by the root; these stand in for its data modules (tested on their own).
+jest.mock('../../data/accountClosingStanding', () => ({ readAccountClosingStanding: (...args: unknown[]) => mockClosingRead(...args) }));
+jest.mock('../../ui/closure/closureIntent', () => ({ closureIntentJournal: { load: (...args: unknown[]) => mockJournalLoad(...args) } }));
+jest.mock('../../data/authClientService', () => ({ authClientService: { signOutLocal: (...args: unknown[]) => mockSignOut(...args) } }));
 jest.mock('../sesija', () => ({ useSesija: () => mockRendered, sesijaSada: () => mockCurrent }));
 jest.mock('../povratniCilj', () => ({ povratniCilj: { consumeCompleted: (...args: unknown[]) => mockConsume(...args) } }));
 // Owner decision 1 (2026-09-19): the app has no global mode. The spy stays so that a root layout which
@@ -94,6 +102,8 @@ beforeEach(() => {
   mockRendered = { isLoaded: true, session: mockSession, user: mockSession.user, sessionEpoch: 1, accountRevision: 1, returnTargetRevision: 0 };
   mockCurrent = mockRendered;
   mockConsume.mockResolvedValue(null);
+  mockClosingRead.mockResolvedValue({ ok: true, podatak: { closing: false } }); mockJournalLoad.mockResolvedValue(null);
+  mockSignOut.mockResolvedValue(undefined);
 });
 afterEach(async () => { await act(async () => { tree?.unmount(); }); });
 async function render() { await act(async () => { tree = create(<RootLayout />); }); }
@@ -324,4 +334,125 @@ it('consumes the completed intention after a signed-in native app destination re
   expect(mockConsume).toHaveBeenCalledTimes(1);
   expect(mockRouter.replace).toHaveBeenCalledWith('/zadaci');
   expect(mockRole).not.toHaveBeenCalled();
+});
+
+// Audit 2026-10-07: an account in its closing stage signed in to a Početna whose every read the guard refuses, and saw only
+// "Pregled trenutno nije učitan.". The root now asks once per account incarnation and, only on a confirmed answer, shows
+// "Nalog se zatvara" over the still-mounted navigator.
+describe('an account in its closing stage', () => {
+  const closingScreen = () => tree.root.findAll(node => node.props.testID === 'account-closing-screen' && typeof node.type === 'string');
+  const textOf = (node: ReactTestInstance): string => node.children.map(child => typeof child === 'string' ? child : textOf(child)).join(' ');
+  const text = () => textOf(tree.root);
+  const button = (label: string) => tree.root.findAll(node => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label
+    && typeof node.props.onPress === 'function')[0];
+  // The host View the root wraps the navigator in; only its two accessibility props are compared, never its children.
+  const stackCover = () => tree.root.findAll(node => node.type === ('View' as unknown) && node.props.importantForAccessibility !== undefined
+    && node.findAll(inner => inner.type === ('Stack' as unknown)).length > 0)[0];
+  const executing = { accountId: 'account-a', requestId: 'r', generation: 'g', state: 'EXECUTING', policySha256: 'a'.repeat(64),
+    completedSteps: 3, totalSteps: 8, authoritative: true };
+  const closing = (execution: unknown = null) => ({ ok: true, podatak: { closing: true, execution } });
+
+  it('an open account shows nothing, is asked once per incarnation, and not again on a token refresh', async () => {
+    await render();
+    expect(mockClosingRead.mock.calls.map(call => call[0])).toEqual([{ accountId: 'account-a', accountRevision: 1 }]);
+    expect(closingScreen()).toHaveLength(0);
+    expect(stackCover().props.importantForAccessibility).toBe('auto');
+    mockRendered = { ...mockRendered, sessionEpoch: 2, session: { ...mockSession, access_token: 'refreshed' } }; mockCurrent = mockRendered;
+    await act(async () => tree.update(<RootLayout />));
+    expect(mockClosingRead).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([['signed out', { session: null, user: null }], ['on the public recovery link', {}]])('is not asked %s', async (label, patch) => {
+    if (label !== 'signed out') { mockSegments.splice(0, mockSegments.length, 'oporavak'); mockPath = '/oporavak'; }
+    mockRendered = { ...mockRendered, ...patch }; mockCurrent = mockRendered;
+    await render();
+    expect(mockClosingRead).not.toHaveBeenCalled();
+  });
+
+  it('a failed or unclear read shows nothing and blocks nothing', async () => {
+    mockClosingRead.mockResolvedValueOnce({ ok: false, kod: 'CLOSURE_READ_UNAVAILABLE', poruka: 'x' });
+    await render();
+    expect(closingScreen()).toHaveLength(0);
+    expect(tree.root.findByType('Stack' as React.ElementType)).toBeDefined();
+  });
+
+  it('a confirmed closing stage covers the navigator, hides it from screen readers, and holds push back', async () => {
+    mockClosingRead.mockResolvedValueOnce(closing());
+    await render();
+    expect(closingScreen()).toHaveLength(1);
+    expect(text()).toContain('Nalog se zatvara.');
+    expect(text()).toContain('Zatvaranje ovog naloga je pokrenuto. Pristup je ograničen dok se zatvaranje proverava i završava.');
+    expect(text()).toContain('Zadaci, Prijave i Dogovori nisu dostupni dok traje zatvaranje.');
+    expect(text()).not.toContain('Provereni koraci');
+    expect(text()).not.toMatch(/server|Pregled trenutno nije učitan/i);
+    expect([stackCover().props.importantForAccessibility, stackCover().props.accessibilityElementsHidden]).toEqual(['no-hide-descendants', true]);
+    // The navigator stays mounted underneath: leaving the closing state keeps the stack.
+    expect(tree.root.findAllByType('Stack' as React.ElementType)).toHaveLength(1);
+    expect(mockNotificationHandler).toHaveBeenLastCalledWith(null);
+  });
+
+  it('shows the progress this device can read, and a closed account as closed', async () => {
+    mockClosingRead.mockResolvedValueOnce(closing(executing));
+    await render();
+    expect(text()).toContain('Provereni koraci: 3 od 8.');
+    await act(async () => tree.unmount());
+    mockClosingRead.mockResolvedValueOnce(closing({ ...executing, state: 'CLOSED', closedAt: '2026-10-07T09:30:00Z' }));
+    await render();
+    expect(text()).toContain('Nalog je zatvoren.');
+    expect(text()).toContain('Pristup nalogu je ugašen. Podaci za prijavu su uklonjeni i sesije su završene.');
+    expect(text()).toMatch(/Završeno: 7\. okt/);
+    expect(text()).not.toContain('Zadaci, Prijave i Dogovori nisu dostupni');
+    expect(button('Proveri stanje')).toBeUndefined();
+    expect(button('Otvori privatnu podršku')).toBeUndefined();
+    expect(button('Odjavi se sa ovog uređaja')).toBeDefined();
+  });
+
+  it('"Proveri stanje" asks again: a failure says so, an open answer lifts the state', async () => {
+    mockClosingRead.mockResolvedValueOnce(closing());
+    await render();
+    mockClosingRead.mockResolvedValueOnce({ ok: false, kod: 'CLOSURE_READ_UNAVAILABLE', poruka: 'x' });
+    await act(async () => button('Proveri stanje').props.onPress());
+    expect(mockClosingRead).toHaveBeenCalledTimes(2);
+    expect(closingScreen()).toHaveLength(1);
+    expect(text()).toContain('Stanje trenutno nije provereno. Pokušaj ponovo.');
+    mockClosingRead.mockResolvedValueOnce({ ok: true, podatak: { closing: false } });
+    await act(async () => button('Proveri stanje').props.onPress());
+    expect(closingScreen()).toHaveLength(0);
+  });
+
+  it('private support, which the guard still admits, opens with the closing state out of its way', async () => {
+    mockClosingRead.mockResolvedValueOnce(closing());
+    await render();
+    await act(async () => button('Otvori privatnu podršku').props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith('/podrska');
+    mockPath = '/podrska/novi';
+    await act(async () => tree.update(<RootLayout />));
+    expect(closingScreen()).toHaveLength(0);
+    mockPath = '/';
+    await act(async () => tree.update(<RootLayout />));
+    expect(closingScreen()).toHaveLength(1);
+    expect(mockClosingRead).toHaveBeenCalledTimes(1);
+  });
+
+  it('signs this device out of the same account incarnation, and says so when it could not', async () => {
+    mockClosingRead.mockResolvedValueOnce(closing());
+    await render();
+    mockSignOut.mockRejectedValueOnce(new Error('AUTH_ACCOUNT_CHANGED'));
+    await act(async () => button('Odjavi se sa ovog uređaja').props.onPress());
+    expect(mockSignOut).toHaveBeenCalledWith({ accountId: 'account-a', accountRevision: 1 });
+    expect(text()).toContain('Odjava trenutno nije uspela. Pokušaj ponovo.');
+    await act(async () => button('Odjavi se sa ovog uređaja').props.onPress());
+    expect(mockSignOut).toHaveBeenCalledTimes(2);
+  });
+
+  it('reads this device\'s saved closure start, and only a START', async () => {
+    mockClosingRead.mockResolvedValueOnce(closing());
+    await render();
+    const savedStart = mockClosingRead.mock.calls[0][1] as () => Promise<string | null>;
+    mockJournalLoad.mockResolvedValueOnce({ kind: 'START', accountId: 'account-a', clientRequestId: 'k', requestId: 'r', expectedRevision: 1, policySha256: 'a' });
+    expect(await savedStart()).toBe('k');
+    mockJournalLoad.mockResolvedValueOnce({ kind: 'PREPARE', accountId: 'account-a', clientRequestId: 'p', expectedRevision: 0 });
+    expect(await savedStart()).toBeNull();
+    expect(mockJournalLoad).toHaveBeenCalledWith('account-a');
+  });
 });

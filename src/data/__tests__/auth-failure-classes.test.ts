@@ -24,7 +24,11 @@ jest.mock('../pushDeviceClientService', () => ({ revokePushBeforeLogout: jest.fn
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockCurrent }));
 
 import { authClientService } from '../authClientService';
-import { classifySignInFailure, SIGN_IN_FAILURE_COPY, SignInFailureError, type SignInFailureClass } from '../authFailureClasses';
+import {
+  classifySignInFailure, isRestrictedAccountFailure, isRestrictedAccountSignal, restrictedRefreshRefusal, SIGN_IN_FAILURE_COPY,
+  SignInFailureError, type SignInFailureClass,
+} from '../authFailureClasses';
+import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
 
 const EMAIL = 'ana@example.test';
 const PASSWORD = 'tajna-lozinka-123';
@@ -198,25 +202,46 @@ describe('every other Auth operation keeps its copy exactly (sign-up, resend and
     ['PHONE_SEND', 'signInWithOtp', () => authClientService.sendPhoneOtp({ phone: '+381601234567' }), 'Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.'],
     ['PHONE_VERIFY', 'verifyOtp', () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' }), 'Kod nije potvrđen. Proveri kod i pokušaj ponovo.'],
   ] as const;
-  const signals: [string, unknown, 'DEFAULT' | 'RATE' | 'UNAVAILABLE'][] = [
+  const signals: [string, unknown, 'DEFAULT' | 'RATE' | 'UNAVAILABLE' | 'BANNED'][] = [
     ['no answer at all (status 0)', new AuthRetryableFetchError(SENTINEL, 0), 'DEFAULT'],
     ['invalid_credentials', new AuthApiError(SENTINEL, 400, 'invalid_credentials'), 'DEFAULT'],
     ['email_not_confirmed', new AuthApiError(SENTINEL, 400, 'email_not_confirmed'), 'DEFAULT'],
-    ['user_banned', new AuthApiError(SENTINEL, 400, 'user_banned'), 'DEFAULT'],
+    ['user_banned', new AuthApiError(SENTINEL, 400, 'user_banned'), 'BANNED'],
+    ['user_banned (403)', new AuthApiError(SENTINEL, 403, 'user_banned'), 'BANNED'],
+    ['a longer code that only contains user_banned', new AuthApiError(SENTINEL, 400, 'user_banned_forever'), 'DEFAULT'],
     ['an unknown code', new AuthApiError(SENTINEL, 400, 'provider_internal'), 'DEFAULT'],
     ['429', new AuthApiError(SENTINEL, 429, 'over_request_rate_limit'), 'RATE'],
     ['over_email_send_rate_limit', new AuthApiError(SENTINEL, 429, 'over_email_send_rate_limit'), 'RATE'],
     ['503', new AuthRetryableFetchError(SENTINEL, 503), 'UNAVAILABLE'],
     ['unexpected_failure', new AuthApiError(SENTINEL, 500, 'unexpected_failure'), 'UNAVAILABLE'],
   ];
-  describe.each(operations)('%s', (_operation, method, run, fallback) => {
+  // Owner decision 2026-10-07: the phone way in tells a restricted account apart too; sign-up and resend do not.
+  const PHONE = new Set<string>(['PHONE_SEND', 'PHONE_VERIFY']);
+  describe.each(operations)('%s', (operation, method, run, fallback) => {
     it.each(signals)('%s', async (_label, error, expected) => {
       mockAuth[method].mockResolvedValue({ data: null, error });
       const thrown = await run().then(() => null, (caught: unknown) => caught as Error);
       expect(thrown).toBeInstanceOf(Error);
+      if (expected === 'BANNED' && PHONE.has(operation)) {
+        expect(thrown).toBeInstanceOf(SignInFailureError);
+        expect(thrown).toMatchObject({ failureClass: 'RESTRICTED_ACCOUNT', message: COPY.RESTRICTED_ACCOUNT });
+        return;
+      }
       expect(thrown).not.toBeInstanceOf(SignInFailureError);
       expect(thrown!.message).toBe(expected === 'RATE' ? RATE : expected === 'UNAVAILABLE' ? UNAVAILABLE : fallback);
     });
+  });
+
+  it('a restricted phone answer carries nothing of the provider either', async () => {
+    mockAuth.signInWithOtp.mockResolvedValue({ data: null, error: new AuthApiError(SENTINEL, 403, 'user_banned') });
+    mockAuth.verifyOtp.mockResolvedValue({ data: null, error: new AuthApiError(SENTINEL, 403, 'user_banned') });
+    for (const run of [() => authClientService.sendPhoneOtp({ phone: '+381601234567' }),
+      () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' })]) {
+      const thrown: Error = await run().then(() => { throw new Error('expected a refusal'); }, (caught: Error) => caught);
+      const everything = Object.getOwnPropertyNames(thrown).map(name => String((thrown as unknown as Record<string, unknown>)[name])).join('\n');
+      for (const needle of [SENTINEL, 'user_banned', 'AuthApiError', '+381601234567']) expect(everything).not.toContain(needle);
+      expect('cause' in thrown).toBe(false);
+    }
   });
 
   it('the resend and recovery refusals, which the task keeps unchanged, say what they said', async () => {
@@ -338,6 +363,119 @@ describe('through the real auth-js client, from the wire to the screen', () => {
     it('relays the restricted answer, which the provider gives before it looks at the password', async () => {
       expect(await attempt('bojan@example.test', 'wrong')).toMatchObject({ failureClass: 'RESTRICTED_ACCOUNT', message: COPY.RESTRICTED_ACCOUNT });
       expect(await attempt('bojan@example.test', 'right')).toMatchObject({ failureClass: 'RESTRICTED_ACCOUNT' });
+    });
+  });
+});
+
+/**
+ * Owner decision 2026-10-07: a banned, blocked or closed account gets its own message on every way in (email, phone, the
+ * recovery link) and when the provider ends a session because of it. These are the boundary's own predicates.
+ */
+describe('the restricted account is told apart wherever the provider says so', () => {
+  it('reads only the whole provider code', () => {
+    expect(isRestrictedAccountSignal(new AuthApiError(SENTINEL, 400, 'user_banned'))).toBe(true);
+    expect(isRestrictedAccountSignal(new AuthApiError(SENTINEL, 403, 'USER_BANNED'))).toBe(true);
+    for (const other of [new AuthApiError('User is banned', 400, 'invalid_credentials'), new AuthApiError(SENTINEL, 400, 'user_banned_x'),
+      new AuthRetryableFetchError(SENTINEL, 0), new Error('user_banned'), 'user_banned', null, undefined, { code: 7 }]) {
+      expect(isRestrictedAccountSignal(other)).toBe(false);
+    }
+  });
+
+  it('draws the restricted panel for a restricted sign-in or recovery, and for nothing else', () => {
+    expect(isRestrictedAccountFailure(new SignInFailureError('RESTRICTED_ACCOUNT'))).toBe(true);
+    expect(isRestrictedAccountFailure(new PasswordRecoveryError('RESTRICTED_ACCOUNT'))).toBe(true);
+    for (const failureClass of CLASSES.filter(item => item !== 'RESTRICTED_ACCOUNT')) {
+      expect(isRestrictedAccountFailure(new SignInFailureError(failureClass))).toBe(false);
+    }
+    for (const other of [new PasswordRecoveryError('INVALID_LINK'), new AuthApiError(SENTINEL, 400, 'user_banned'),
+      new Error(COPY.RESTRICTED_ACCOUNT), { failureClass: 'RESTRICTED_ACCOUNT' }, null, 'RESTRICTED_ACCOUNT']) {
+      expect(isRestrictedAccountFailure(other)).toBe(false);
+    }
+  });
+
+  describe('a refused refresh, read from the auth client the way the installed auth-js keeps it', () => {
+    const now = 1_000_000;
+    const refusal = (error: unknown, expiresAt = now + 1) => ({ lastRefreshFailure: { refreshToken: 'r', result: { data: null, error }, expiresAt } });
+    it('returns the refusal itself only while its cooldown lasts and only for the restricted code', () => {
+      const banned = new AuthApiError(SENTINEL, 400, 'user_banned');
+      expect(restrictedRefreshRefusal(refusal(banned), now)).toBe(banned);
+      expect(restrictedRefreshRefusal(refusal(banned, now), now)).toBeNull();
+      expect(restrictedRefreshRefusal(refusal(new AuthApiError(SENTINEL, 400, 'refresh_token_not_found')), now)).toBeNull();
+      expect(restrictedRefreshRefusal(refusal(new AuthRetryableFetchError(SENTINEL, 0)), now)).toBeNull();
+      for (const shape of [null, undefined, {}, { lastRefreshFailure: null }, { lastRefreshFailure: { result: { error: banned } } },
+        { lastRefreshFailure: { result: null, expiresAt: now + 1 } }, { lastRefreshFailure: { result: { error: 'user_banned' }, expiresAt: now + 1 } },
+        { lastRefreshFailure: { result: { error: banned }, expiresAt: String(now + 1) } }]) {
+        expect(restrictedRefreshRefusal(shape, now)).toBeNull();
+      }
+    });
+  });
+
+  /**
+   * SOURCE evidence on the INSTALLED auth-js 2.112.4: the real GoTrueClient in front of a stand-in transport that refuses the
+   * refresh as user_banned. It proves the three facts the session store relies on: the provider's refusal reaches the app
+   * only as a bare SIGNED_OUT; at that moment the refusal is not yet recorded; and asking for the session afterwards resolves
+   * only once it is, without another request. The hosted DEV provider's refresh answer for a banned account was NOT probed.
+   */
+  describe('through the real auth-js client, when the provider refuses the refresh', () => {
+    const V2024 = { 'x-supabase-api-version': '2024-01-01' };
+    type Observed = { events: string[]; atDispatch: unknown[]; afterSession: unknown[]; requests: string[] };
+    async function observe(code: string, autoRefreshToken: boolean): Promise<Observed & { stored: boolean }> {
+      const storageKey = `restricted-refresh-${++clients}`;
+      const memory = new Map<string, string>([[storageKey, JSON.stringify({ access_token: 'expired-access', refresh_token: 'refresh-1',
+        token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) - 60, user: { id: 'user-1', aud: 'authenticated' } })]]);
+      const observed: Observed = { events: [], atDispatch: [], afterSession: [], requests: [] };
+      const client = new GoTrueClient({
+        url: 'https://provider.test/auth/v1', headers: {}, storageKey, persistSession: true, autoRefreshToken, detectSessionInUrl: false,
+        storage: { getItem: async (key: string) => memory.get(key) ?? null, setItem: async (key: string, value: string) => { memory.set(key, value); },
+          removeItem: async (key: string) => { memory.delete(key); } },
+        fetch: (async (url: unknown) => {
+          observed.requests.push(String(url));
+          return answer(400, { code, message: 'Invalid Refresh Token' }, V2024);
+        }) as unknown as typeof fetch,
+      });
+      const settled = new Promise<void>(done => {
+        // The same steps as store/sesija: subscribe at once, and on SIGNED_OUT ask for the session before reading the refusal.
+        client.onAuthStateChange(event => {
+          observed.events.push(event);
+          if (event !== 'SIGNED_OUT') return;
+          observed.atDispatch.push(restrictedRefreshRefusal(client));
+          void client.getSession().then(() => setTimeout(() => { observed.afterSession.push(restrictedRefreshRefusal(client)); done(); }, 0));
+        });
+      });
+      const silence = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const quiet = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      let bound: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([settled, new Promise(done => { bound = setTimeout(done, 3000); })]);
+      } finally {
+        if (bound !== undefined) clearTimeout(bound);
+        await client.stopAutoRefresh();
+        silence.mockRestore(); quiet.mockRestore();
+      }
+      return { ...observed, stored: memory.has(storageKey) };
+    }
+
+    // autoRefreshToken=true is the app's own configuration: the restore refreshes during initialize, and auth-js holds that
+    // SIGNED_OUT back until initialize has finished, so the refusal is already recorded when it arrives. autoRefreshToken=false
+    // makes the session read itself refresh, which dispatches SIGNED_OUT BEFORE the refusal is recorded: the reason the store
+    // waits instead of reading at the event.
+    it.each([true, false])('the restricted refusal is readable once the session has been asked for again (autoRefreshToken=%s)', async autoRefreshToken => {
+      const seen = await observe('user_banned', autoRefreshToken);
+      expect(seen.events).toContain('SIGNED_OUT');
+      expect(seen.stored).toBe(false);
+      if (!autoRefreshToken) expect(seen.atDispatch).toEqual([null]);
+      expect(seen.afterSession).toHaveLength(1);
+      expect(seen.afterSession[0]).toBeInstanceOf(AuthApiError);
+      expect(seen.afterSession[0]).toMatchObject({ code: 'user_banned' });
+      // Asking for the session afterwards sent nothing: one refresh request, and only that one.
+      expect(seen.requests).toHaveLength(1);
+      expect(seen.requests[0]).toContain('/token?grant_type=refresh_token');
+    });
+
+    it('a refresh refused for any other reason is a plain sign-out with no reason', async () => {
+      const seen = await observe('refresh_token_not_found', true);
+      expect(seen.events).toContain('SIGNED_OUT');
+      expect(seen.afterSession).toEqual([null]);
     });
   });
 });

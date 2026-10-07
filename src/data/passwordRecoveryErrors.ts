@@ -1,7 +1,10 @@
 import { PasswordRecoveryError } from '../contracts/passwordRecovery';
+import { isRestrictedAccountSignal } from './authFailureClasses';
 
 export function recoveryError(error: unknown, stage: 'request' | 'verify' | 'update'): PasswordRecoveryError {
   if (error instanceof PasswordRecoveryError) return error;
+  // The provider's restricted-account code decides before any status: a banned account's link is not "expired".
+  if (isRestrictedAccountSignal(error)) return new PasswordRecoveryError('RESTRICTED_ACCOUNT');
   const raw = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   if (raw.status === 429 || raw.code === 'over_email_send_rate_limit' || raw.code === 'over_request_rate_limit') {
     return new PasswordRecoveryError('RATE_LIMITED');

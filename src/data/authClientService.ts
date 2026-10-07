@@ -10,7 +10,7 @@ import { voiceMessagesBuilt } from './voiceMessagesGate';
 import { signupConfirmationRedirect } from './authSignupRedirect';
 import {
   PROVIDER_UNAVAILABLE_COPY, RATE_LIMITED_COPY, SignInFailureError, authFailureSignals, classifySignInFailure,
-  isProviderUnavailable, isRateLimited,
+  isProviderUnavailable, isRateLimited, isRestrictedAccountSignal,
 } from './authFailureClasses';
 
 function assertCurrentAccount(expected: AuthAccountScope) {
@@ -25,6 +25,11 @@ type UserAuthOperation = 'SIGN_IN' | 'SIGN_UP' | 'SIGNUP_RESEND' | 'PHONE_SEND' 
 function safeAuthFailure(error: unknown, operation: UserAuthOperation): Error {
   // EX-07 S02: a failed sign-in is one of six classes (authFailureClasses), each with its own message and recovery.
   if (operation === 'SIGN_IN') return new SignInFailureError(classifySignInFailure(error));
+  // Owner decision 2026-10-07: a restricted account gets its own message on the phone way in too. The provider's code decides
+  // first, as it does for email sign-in, so a banned answer is never shown as a wrong number or code.
+  if ((operation === 'PHONE_SEND' || operation === 'PHONE_VERIFY') && isRestrictedAccountSignal(error)) {
+    return new SignInFailureError('RESTRICTED_ACCOUNT');
+  }
   // Every other operation keeps its copy exactly: sign-up, resend and phone are outside that slice.
   const signals = authFailureSignals(error);
   if (isRateLimited(signals)) return new Error(RATE_LIMITED_COPY);

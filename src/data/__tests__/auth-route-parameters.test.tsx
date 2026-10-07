@@ -30,7 +30,7 @@ jest.mock('../../ui/legal/LegalDocuments', () => ({ PublicLegalModal: 'LegalModa
 jest.mock('../../hooks/useEntrySplashReady', () => ({ useEntrySplashReady: (options: unknown) => {
   mockSplashOptions(options); return { onLayout: mockFormLayout };
 } }));
-jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession, useSesija: () => mockSession, potvrdiRazlogOdjave: jest.fn() }));
 jest.mock('../authAvailabilityClientService', () => ({ authAvailabilityClientService: { read: (...args: unknown[]) => mockRead(...args) } }));
 jest.mock('../authClientService', () => ({ authClientService: {
   signInWithPassword: (...args: unknown[]) => mockAuth.signInWithPassword(...args),
