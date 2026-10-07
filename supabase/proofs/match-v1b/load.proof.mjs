@@ -267,7 +267,7 @@ try {
       t0 := clock_timestamp(); res2 := private.dispatch_next_wave(${q(Bt)}::uuid);
       out := out || jsonb_build_object('ms2', ${ms('t0')}, 'status2', res2->>'status', 'reason2', res2->>'reason', 'inserted2', (res2->>'inserted')::integer);
       t0 := clock_timestamp(); res3 := private.dispatch_next_wave(${q(Bt)}::uuid);
-      out := out || jsonb_build_object('ms3', ${ms('t0')}, 'waiting3', res3->'waiting', 'inserted3', (res3->>'inserted')::integer, 'counts', ${countsSql([Bt])});`));
+      out := out || jsonb_build_object('ms3', ${ms('t0')}, 'waiting3', res3->'waiting', 'inserted3', (res3->>'inserted')::integer, 'counts', ${countsSql([Bt])});`, {config: {workerNotifyPerTransaction: 1500}}));   // three checks in ONE transaction: the budget must not be what makes the later ones wait
     write();
 
     // (5) the tick: 25 tasks, each with 40,000 matching workers, every tick its own transaction. Phase 1 = first waves of 300 (the budget lets 4 tasks through per tick, the others
