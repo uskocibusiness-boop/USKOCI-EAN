@@ -1,5 +1,6 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
-import { correctionFromText, factCorrectionValue, factReviewValue } from '../aiNeedV2Ui';
+import { AMOUNT_NOT_ENTERED, AMOUNT_WITH_OFFERS, amountDigits, choiceCorrectionText, correctionFromText, editorCorrection, factChoiceValue,
+  factChoices, factCorrectionValue, factEditorKind, factReviewValue, priceAmountRowValue } from '../aiNeedV2Ui';
 import { AI_PROPOSABLE_NEED_FACT_V2_KEYS, NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
 
 const priceModeFact: AiNeedV2Fact = {
@@ -230,5 +231,78 @@ describe('corrections read Serbian numbers and say the server limits first', () 
   it('refuses text over the server limit for that field', () => {
     expect(correctionFromText(typedFact({ key: 'need.title', valueType: 'TEXT', value: '' }), 'n'.repeat(141)))
       .toEqual({ ok: false, message: 'Najviše 140 znakova.' });
+  });
+});
+
+// The enum facts were corrected by typing a word the parser knew ("Moja cena"), the amount in a free text box. They are
+// now chosen from their exact values and typed as digits; these pin that the controls write what the box wrote.
+describe('choices for the enum facts and a digits-only amount, saving what the text box saved', () => {
+  const enumFact = (key: AiNeedV2Fact['key'], value: unknown) => typedFact({ key, valueType: 'ENUM', value });
+  const ACCEPTED: Record<string, string[]> = {
+    'need.price_mode': ['MY_PRICE', 'OFFERS'],
+    'need.price_basis': ['TOTAL', 'PER_PERSON'],
+    'need.schedule_kind': ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'],
+  };
+
+  it('opens a choice for the three enum facts and the amount field for the price only', () => {
+    for (const key of Object.keys(ACCEPTED)) expect([key, factEditorKind(enumFact(key as AiNeedV2Fact['key'], null))]).toEqual([key, 'choice']);
+    expect(factEditorKind(typedFact({ key: 'need.price_rsd', valueType: 'INTEGER', value: 500 }))).toBe('amount');
+    // Other numbers and texts keep the field they had.
+    expect(factEditorKind(typedFact({ key: 'need.people_needed', valueType: 'INTEGER', value: 2 }))).toBe('text');
+    expect(factEditorKind(typedFact({ key: 'need.description', valueType: 'TEXT', value: 'x' }))).toBe('text');
+  });
+
+  it.each(Object.entries(ACCEPTED))('%s offers exactly the values the parser accepts, in their review words', (key, values) => {
+    const options = factChoices({ key: key as AiNeedV2Fact['key'] });
+    expect(options.map(option => option.value).sort()).toEqual([...values].sort());
+    for (const option of options) {
+      const fact = enumFact(key as AiNeedV2Fact['key'], option.value);
+      // The chip's words are the row's words.
+      expect(option.label).toBe(factReviewValue(fact));
+      // Choosing it saves exactly what saving the old seeded box saved: the value, and its label as display text.
+      expect(correctionFromText(fact, choiceCorrectionText(fact, option.value)))
+        .toEqual({ ok: true, value: option.value, displayValue: option.label });
+      expect(correctionFromText(fact, choiceCorrectionText(fact, option.value))).toEqual(correctionFromText(fact, factCorrectionValue(fact)));
+    }
+  });
+
+  it('offers no retired price mode and no urgency, and starts a retired value on no choice', () => {
+    const labels = Object.keys(ACCEPTED).flatMap(key => factChoices({ key: key as AiNeedV2Fact['key'] }).map(option => `${option.value} ${option.label}`));
+    expect(labels.join(' ')).not.toMatch(/FASTEST|Najbrže|HITNO|hitno|URGENT/);
+    expect(factChoiceValue(enumFact('need.price_mode', 'FASTEST'))).toBeNull();
+    expect(factChoiceValue(enumFact('need.price_mode', 'OFFERS'))).toBe('OFFERS');
+    expect(choiceCorrectionText(enumFact('need.price_mode', 'FASTEST'), null)).toBe('');
+  });
+
+  it('says what an untouched choice or an empty amount needs, and passes everything else to the parser unchanged', () => {
+    expect(editorCorrection(enumFact('need.price_mode', 'FASTEST'), '')).toEqual({ ok: false, message: 'Izaberi jednu od ponuđenih mogućnosti.' });
+    const amount = typedFact({ key: 'need.price_rsd', valueType: 'INTEGER', value: null });
+    expect(editorCorrection(amount, '')).toEqual({ ok: false, message: 'Upiši iznos u dinarima.' });
+    expect(editorCorrection(amount, '25000')).toEqual({ ok: true, value: 25000, displayValue: '25000' });
+    expect(editorCorrection(amount, '0')).toEqual(correctionFromText(amount, '0'));
+    const title = typedFact({ key: 'need.title', valueType: 'TEXT', value: '' });
+    expect(editorCorrection(title, '  ')).toEqual(correctionFromText(title, '  '));
+  });
+
+  it.each([['1500', '1500'], ['1.500', '1500'], ['1.500 RSD', '1500'], ['1 500', '1500'], ['0', '0'], ['007', '7'], ['', ''],
+    ['100.000.000', '100000000']])('reads the amount text %j as the digits %j', (typed, digits) => {
+    expect(amountDigits(typed)).toBe(digits);
+  });
+
+  it.each(['5,5', '1.500,00', '1234567890'])('does not guess at %j: the field keeps what it had', typed => {
+    expect(amountDigits(typed)).toBeNull();
+  });
+
+  it('never shows an amount beside "Ponude", and says a missing "Moja cena" amount in words', () => {
+    const amount = (value: unknown) => typedFact({ key: 'need.price_rsd', valueType: 'INTEGER', value });
+    expect(priceAmountRowValue('OFFERS', amount(1500))).toBe(AMOUNT_WITH_OFFERS);
+    expect(priceAmountRowValue('OFFERS', amount(null))).toBe(AMOUNT_WITH_OFFERS);
+    expect(priceAmountRowValue('MY_PRICE', amount(null))).toBe(AMOUNT_NOT_ENTERED);
+    expect(priceAmountRowValue('MY_PRICE', amount(0))).toBe(AMOUNT_NOT_ENTERED);
+    for (const text of [AMOUNT_WITH_OFFERS, AMOUNT_NOT_ENTERED]) expect(text).not.toMatch(/\d/);
+    // An amount that is there reads as it always did; other rows are not touched.
+    expect(priceAmountRowValue('MY_PRICE', amount(1500))).toBeNull();
+    expect(priceAmountRowValue(undefined, amount(1500))).toBeNull();
+    expect(priceAmountRowValue('OFFERS', typedFact({ key: 'need.people_needed', valueType: 'INTEGER', value: 2 }))).toBeNull();
   });
 });

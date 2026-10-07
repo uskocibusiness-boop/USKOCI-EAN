@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-07T10:03:08Z",
+  "osvezeno": "2026-10-07T10:14:33Z",
   "grana": "integration/spoj-20261006",
-  "head": "1f7904fc",
-  "head_poruka": "docs(owner): banned account gets its own sign-in message; owner confirms the three 2026-10-03 DEV packages; final worker review sentence [skip ci]",
+  "head": "62650aef",
+  "head_poruka": "feat(v1): hide HITNO behind one build flag; worker review names new and open tasks; final system audit; DEV snapshot refresh [skip ci]",
   "server": {
    "snimljeno": "2026-10-07T09:53:20Z",
    "migracije": 227,
@@ -91,6 +91,10 @@
   "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
+  "owner_decision_20261007_time_rule": "7.10.: VLASNIK „da“ na predlog: zadatak „bilo kad“ ide svima kojima odgovaraju vrsta posla i područje; „danas“ prvo radnicima sa „Mogu odmah“, zatim onima čiji raspored pokriva danas; „odmah“ prvo radnicima sa „Mogu odmah“. Danas server šalje „bilo kad“/„danas“ SAMO radnicima sa „Mogu odmah“ (G3). Serverski paket MATCH-V1 u pripremi (grana candidate/match-v1-20261007), primena tek na „PRIMENI MATCH-V1“.",
+  "owner_decision_20261007_point_to_point_on_map": "7.10.: VLASNIK „da“: zadaci „od tačke do tačke“ se prikazuju na mapi na početnoj tački, približno kao i ostali (danas 4 od 9 otvorenih zadataka nisu na mapi). Ide u serverski paket uz „Za mene“.",
+  "stale_push_retired_20261007": "7.10.: na vlasnikovo „da“ (pitanje 3) 8 nikad započetih PUSH isporuka jednog naloga (30.9.–5.10.) označeno EXPIRED na DEV-u, sistemskim prelazom CREATED→EXPIRED u jednoj zaštićenoj naredbi (tačno 8 id-jeva). Posle: 0 isporuka čeka slanje, pokušaj od 26.9. netaknut, sertifikat i ledger 227 nepromenjeni. Potvrda: supabase/operations/dev-alpha/ledger/20261007_stale_push_deliveries_retired.receipt.json.",
+  "review_price_choices_20261007": "7.10.: pregled zadatka — način cene, osnova cene i vrsta termina biraju se dugmićima (čipovi), iznos se upisuje samo ciframa u RSD; pod „Ponude“ iznos se nigde ne prikazuje. Ista izmena (patch) kao ranije. Testovi 312/312 + 217/217, tsc 0; nije još viđeno na uređaju.",
   "audit_20261007_zavrsna_provera": "7.10.: četiri provere samo čitanjem (radni profil/uparivanje, mapa/pinovi/filteri/opterećenje, push, tokovi/čet), DEV bez upisa; nalaz i redosled u docs/implementation/ui-ux-pass-20261002/ZAVRSNA_PROVERA_20261007.md. Snimak DEV-a osvežen (ledger 227, sertifikat 3a785d42 živ=overen, 254 rpc); ranije „aplikacija zove, server nema: 3“ je bio zastareo snimak od 3.10. Otvoreno za vlasnika: G3 (bilo kad/danas/odmah), Firebase rs.uskoci, FCM ključ, 8 starih push isporuka, prozor za telefon.",
   "hitno_hidden_v1_20261007": "7.10.: HITNO sakriven u klijentu po odluci vlasnika (bez posebnog HITNO u V1): urgentBuilt() u src/lib/needUrgency.ts traži EXPO_PUBLIC_URGENT=1, koji nijedan build ne postavlja; značka, pin, ulaz za aktivaciju, izuzetak tihih sati i tekst u Mogu odmah sakriveni. Kod za HITNO ostaje za kasnije i testira se (jest.urgent-env.cjs). Server: urgent_activation_policy.enabled=false.",
   "owner_decision_20261007_banned_account_message": "7.10.: VLASNIK prihvata predlog: prijava zabranjenog/blokiranog naloga dobija SVOJU posebnu, jasnu poruku (ne opštu grešku prijave). Posao na ekranu prijave; tekst bez izmišljenih rokova i razloga.",
@@ -2786,7 +2790,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "4 test fajl(ova)"
+    "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objavljen pa zatvoren zadatak prikazan sa istorijskim brojem prijava. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 2026-09-23: novi raspored detalja mog zadatka viđen na telefonu (build 165ab4fa, docs/implementation/design-system/g3-task-detail/G3_RECEIPT.json), samo čitanje. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",
@@ -2893,7 +2897,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "2 test fajl(ova)"
+    "test": "3 test fajl(ova)"
    },
    "telefon_dokaz": "EX-04 S1 (ROUND_77, 2026-10-01, APK 93e48799 / izvor bf48a5db, fizički HONOR, podaci i sesija sačuvani): Moji zadaci imaju isti skup i redosled kao stari build (Aktivni 2/2, Istorija 17/17, Nacrti prazno stanje), filter daje podskup bez duplikata, Back čuva stanje, 10/10 ciklusa otvori-nazad bez pada i ANR; druga strana i granica strane NISU dokazani (premalo podataka), stanje DELIMIČNO.",
    "problem": "Čitanje po delovima postoji, ali njegov prikaz nema osnovu cene i broj prijava koje stvarno mogu da se izaberu. Prosta zamena sadašnjeg čitanja pokvarila bi karticu.",
@@ -4305,7 +4309,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "35 test fajl(ova)"
+    "test": "36 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "P6 čitač (rpc_discovery_v1) je na kanonskom DEV-u (ledger 212) i uključen u DEV APK; P6 je zatvoren sa granicama L1–L10 (P6_CLOSURE_RECEIPT.md). Na telefonu (Round 74) su feedback i sporih frejmova ispunjeni, a pin→kartica (p95 1503 ms, uključuje tačno čitanje) i povratak (p95 822 ms) su iznad cilja; produkcioni backend, iOS, scale (jit=off L4) i lične liste bez straničenja (EX-04) nisu dokazani.",
@@ -4773,7 +4777,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filteri i pretraga rade preko P6 čitača na DEV-u (serverski brojevi, facet-i, PLACES); na telefonu (Round 74) provereni: filter „Na daljinu“ (0) i „Na licu mesta“ (7) sa vraćanjem na 7, pretraga mesta (broj u predlogu = broj u listi, stanje vraćeno). Straničenje nije proverljivo na 7 zadataka (CI journey pokriva 100 redova); scale i produkcija nisu dokazani.",
@@ -5181,7 +5185,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "R17 25.09, 8500bf29 / APK 36172923719: javni detalj iz pina otvoren na VKP-NX9; naslov, činjenice, uslovi, opis, osoba i donja komanda vidljivi. Prijava nije poslata. Povratak na isto mesto na mapi je pregledan. docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Stvarni javni detalj i donji deo sa približnom mapom/pitanjima viđeni. Prijava i ostale poslovne radnje nisu izvršene. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: detalj zadatka (naslov u traci pri pomeranju, osoba sa inicijalima, razlog kad prijava nije moguća, retke radnje iza „···“) viđen na emulatoru, build 09dc6877, samo čitanje (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: 2026-09-23: novi raspored detalja tuđeg zadatka viđen na telefonu (build 165ab4fa, g3-task-detail/G3_RECEIPT.json), samo čitanje; prijava nije poslata. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "",

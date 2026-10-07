@@ -1,0 +1,30 @@
+{
+  "operation": "STALE_PUSH_DELIVERIES_RETIRED",
+  "level": "DEV DATA WRITE (no migration, no function, no Edge change)",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "ownerAuthorization": "Owner 2026-10-07, answering question 3 (\"8 starih neposlatih push obaveštenja na DEV-u ... da ih povučem pre uključivanja?\"): \"Za sva 3 pitanja odgovor je da\". Supersedes the 'stay untouched' part of decision A24 for these 8 deliveries only; the 2026-09-26 TICKET_PENDING attempt stays untouched.",
+  "why": "With push transport switched on, these never-started PUSH deliveries of one account (2026-09-30 .. 2026-10-05) would all be sent at once to the first active device.",
+  "preflight": {
+    "at": "2026-10-07T10:09Z",
+    "pushPendingRows": 8,
+    "allState": "CREATED",
+    "pushStartedAt": "null for all",
+    "queuedAt": "null for all",
+    "attemptsReferencingThem": 0,
+    "recipients": 1,
+    "events": ["RESPONSE_VIEWED x2 (WORKER)", "RESPONSE_SELECTED (WORKER)", "OPPORTUNITY_AVAILABLE (WORKER, already past expires_at)", "RESPONSE_RECEIVED x2 (REQUESTER)", "AGREEMENT_CANCELLED x2 (REQUESTER)"]
+  },
+  "mechanism": "The system's own retirement transition (same as private.expire_lifecycle and rpc_cancel_need): state CREATED -> EXPIRED. One guarded DO block: exact 8 ids, channel PUSH, state CREATED, push_started_at and queued_at null, no attempt row; raises unless exactly 8 rows change.",
+  "ids": ["9fa67493-b8fd-493d-b0a3-26f33bf5f9d0", "141fa793-5722-4432-a527-5f9a30223eef", "05e5218d-edd6-4607-8836-46a2c823fbaa", "b511bf21-fbe0-410b-aff3-99767d7c1258", "0d8e5445-ed6b-4e89-b5bc-7abaf7a993b4", "84334507-ad17-4f26-b00e-5c4304082117", "5f3107ad-f244-4004-b153-0f60f2994080", "70e1d14d-a93e-45cd-88c8-5a2ac4e4e36e"],
+  "postflight": {
+    "at": "2026-10-07T10:11:22Z",
+    "retiredRowsNowExpired": 8,
+    "pushPendingLeft": 0,
+    "pushByState": {"EXPIRED": 8, "SENT": 1, "SUPPRESSED": 57},
+    "attemptsTotal": 1,
+    "certificateUnchanged": true,
+    "ledger": 227
+  },
+  "revert": "Not planned. If ever needed: set state back to CREATED for exactly these 8 ids while push transport is still disabled.",
+  "limits": ["IN_APP deliveries untouched.", "The 2026-09-26 attempt (TICKET_PENDING) untouched.", "No device, flag, Edge secret or transport setting changed."]
+}

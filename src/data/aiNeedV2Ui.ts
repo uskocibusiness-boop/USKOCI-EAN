@@ -67,17 +67,95 @@ export function sortFacts(facts: AiNeedV2Fact[]): AiNeedV2Fact[] {
  * the review without a word. They keep their exact shapes — a comma inside an item and the
  * precision of an instant still survive the round trip — and get a picker and a list field that
  * write those shapes for the person. A structured place stays with the location editor.
+ *
+ * The three enum facts (how the price works, what it is for, what kind of time) were corrected by
+ * typing a word the parser happened to know ("Moja cena", "po osobi"); they are now chosen from
+ * their exact allowed values (`choice`). The amount was a free text box; it is now a field that
+ * takes digits only and shows them grouped (`amount`). Both still write the text below, so what
+ * reaches `correctionFromText`, and so the saved value and its display text, is what it always was.
  */
-export type FactEditorKind = 'text' | 'timestamp' | 'list' | 'none';
+export type FactEditorKind = 'text' | 'timestamp' | 'list' | 'choice' | 'amount' | 'none';
 export function factEditorKind(fact: AiNeedV2Fact): FactEditorKind {
   return fact.valueType === 'OBJECT' ? 'none' : fact.valueType === 'TIMESTAMPTZ' ? 'timestamp'
-    : fact.valueType === 'TEXT_ARRAY' ? 'list' : 'text';
+    : fact.valueType === 'TEXT_ARRAY' ? 'list' : fact.valueType === 'ENUM' && FACT_CHOICES[fact.key] ? 'choice'
+      : fact.key === 'need.price_rsd' && fact.valueType === 'INTEGER' ? 'amount' : 'text';
 }
 
 const PRICE_LABELS: Record<string, string> = { MY_PRICE: 'Moja cena', OFFERS: 'Ponude', FASTEST: 'Najbrže (raniji način)' };
 const PRICE_BASIS_LABELS: Record<string, string> = { TOTAL: 'Ukupno za ceo zadatak', PER_PERSON: 'Po osobi' };
 const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Daljinski bilo kada',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
+
+export type FactChoice = { value: string; label: string };
+/**
+ * The values a person may choose for an enum fact, in the words the review already reads them in. Exactly the values
+ * `correctionFromText` accepts and nothing else: the retired FASTEST is not offered (a task that still carries it shows
+ * no choice selected until one is made), and there is no separate urgency choice (owner, 2026-10-07: no HITNO in V1).
+ * Ordered as a person thinks about them: for the time, the nearest first, the open ones after.
+ */
+const FACT_CHOICES: Partial<Record<NeedFactV2Key, readonly FactChoice[]>> = {
+  'need.price_mode': ['MY_PRICE', 'OFFERS'].map(value => ({ value, label: PRICE_LABELS[value] })),
+  'need.price_basis': ['TOTAL', 'PER_PERSON'].map(value => ({ value, label: PRICE_BASIS_LABELS[value] })),
+  'need.schedule_kind': ['TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE', 'FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME']
+    .map(value => ({ value, label: SCHEDULE_LABELS[value] })),
+};
+export function factChoices(fact: Pick<AiNeedV2Fact, 'key'>): readonly FactChoice[] {
+  return FACT_CHOICES[fact.key] ?? [];
+}
+/** The stored value when it is one of the choices; anything else (a retired or unknown value) is no choice at all. */
+export function factChoiceValue(fact: Pick<AiNeedV2Fact, 'key' | 'value'>): string | null {
+  return factChoices(fact).find(choice => choice.value === fact.value)?.value ?? null;
+}
+/**
+ * What a chosen value hands to `correctionFromText`: its own label, which the parser maps back to the value. That is the
+ * text the old box was seeded with, so saving a choice sends the same value and display text that saving the box did.
+ */
+export function choiceCorrectionText(fact: Pick<AiNeedV2Fact, 'key'>, value: string | null): string {
+  return factChoices(fact).find(choice => choice.value === value)?.label ?? '';
+}
+
+/**
+ * What the text of an amount field becomes: its digits, without a leading zero before another digit. The field shows them
+ * grouped with a dot (Serbian: 1.500), so a dot or a space between groups is part of the number and "1.500 RSD" is 1500.
+ * Null when the text is not a whole amount the field can take, and the field then keeps what it had instead of guessing:
+ * a comma (the Serbian decimal mark; an amount is whole dinars) or more than nine digits (the server's ceiling is
+ * 100.000.000 RSD; a tenth digit is not cut off silently).
+ */
+export const AMOUNT_MAX_DIGITS = 9;
+export function amountDigits(typed: string): string | null {
+  if (typed.includes(',')) return null;
+  const digits = typed.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return digits.length > AMOUNT_MAX_DIGITS ? null : digits;
+}
+
+/** What an amount row reads under "Ponude": the task carries no amount, so none is shown, not even a stale one. */
+export const AMOUNT_WITH_OFFERS = 'Bez iznosa: tražiš ponude';
+/** An amount "Moja cena" still needs, said in words where the number would stand; never "0 RSD". */
+export const AMOUNT_NOT_ENTERED = 'Iznos još nije unet';
+/**
+ * The amount row beside its price mode. Under "Ponude" there is no amount to read, so even an amount left from before is
+ * not shown as one; under "Moja cena" an amount that is missing says so in words. Null: the row reads its value as usual.
+ */
+export function priceAmountRowValue(priceMode: unknown, fact: Pick<AiNeedV2Fact, 'key' | 'value'>): string | null {
+  if (fact.key !== 'need.price_rsd') return null;
+  if (priceMode === 'OFFERS') return AMOUNT_WITH_OFFERS;
+  const amount = fact.value;
+  if (priceMode === 'MY_PRICE' && !(typeof amount === 'number' && Number.isSafeInteger(amount) && amount >= 1)) return AMOUNT_NOT_ENTERED;
+  return null;
+}
+
+/**
+ * The correction an open editor saves. A choice nobody made and an amount nobody typed say what to do in the words of
+ * their control; everything else, and every value they write, goes through `correctionFromText` unchanged.
+ */
+export function editorCorrection(fact: AiNeedV2Fact, text: string): FactCorrection {
+  if (!text.trim()) {
+    const kind = factEditorKind(fact);
+    if (kind === 'choice') return { ok: false, message: 'Izaberi jednu od ponuđenih mogućnosti.' };
+    if (kind === 'amount') return { ok: false, message: 'Upiši iznos u dinarima.' };
+  }
+  return correctionFromText(fact, text);
+}
 const GEOGRAPHY_LABELS: Record<NeedTaskGeography['mode'], string> = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta',
   MULTI_STOP: 'Više stanica', AREA_BASED: 'Na području', REMOTE: 'Na daljinu' };
 const REVIEW_TIMEZONE = 'Europe/Belgrade';

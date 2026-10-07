@@ -9,8 +9,8 @@ import { reviewFactProblem } from '../../data/reviewFactProblem';
 import { rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { aiNeedV2Izvor, izvor } from '../../data';
-import { correctionFromText, factCorrectionValue, factEditorKind, factLabel, factListItems, factReviewValue,
-  factTimestampFields, listCorrectionText, timestampCorrectionText } from '../../data/aiNeedV2Ui';
+import { choiceCorrectionText, editorCorrection, factChoiceValue, factChoices, factCorrectionValue, factEditorKind, factLabel,
+  factListItems, factReviewValue, factTimestampFields, listCorrectionText, priceAmountRowValue, timestampCorrectionText } from '../../data/aiNeedV2Ui';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { IDENTITY_VERIFICATION_UNAVAILABLE_COPY, NEED_FACT_V2_DEFINITIONS } from '../../contracts/needFactsV2';
@@ -33,6 +33,8 @@ import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
 import { FactListEditor, FactTimestampEditor } from '../../ui/aiFirst/FactValueEditors';
+import { FactChoiceEditor } from '../../ui/v2/FactChoiceEditor';
+import { AmountField, AmountWithOffers } from '../../ui/v2/AmountField';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 import { publicSummary } from '../../ui/v2/draftSummary';
@@ -42,8 +44,8 @@ import { PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFa
   ReviewSection, ReviewStatus, ReviewTodoList, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
 
 type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean };
-/** `text` is always what `correctionFromText` reads; a picker or a list field only writes it. */
-type Edit = { fact: AiNeedV2Fact; text: string; error: string | null; date?: string; time?: string; items?: string[] };
+/** `text` is always what `correctionFromText` reads; a picker, a list field, a choice or the amount field only writes it. */
+type Edit = { fact: AiNeedV2Fact; text: string; error: string | null; date?: string; time?: string; items?: string[]; choice?: string | null };
 const changed = (): Ishod<never> => ({ ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled za trenutni nalog.' });
 function displayFact(fact: AiTaskReviewFact): AiNeedV2Fact {
   const definition = NEED_FACT_V2_DEFINITIONS[fact.key];
@@ -157,6 +159,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   });
   const refresh = () => { if (current() && !editor.busy && !editor.loading && !navigating.current) void editor.refresh(); };
   const unavailableIdentityFact = review?.publicProjection.find(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
+  // How the price works, read as the preview reads it: under "Ponude" the amount row and its editor show no amount.
+  const priceModeFact = review?.publicProjection.find(fact => fact.key === 'need.price_mode' && fact.status !== 'UNKNOWN');
+  const priceMode = priceModeFact?.value;
   // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
@@ -192,7 +197,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
   const saveEdit = async () => {
     if (!canAct() || !edit || command) return;
-    const parsed = correctionFromText(edit.fact, edit.text);
+    // Under "Ponude" the amount editor offers no save: a number left from before must not be sent as the price.
+    if (factEditorKind(edit.fact) === 'amount' && priceMode === 'OFFERS') return;
+    const parsed = editorCorrection(edit.fact, edit.text);
     if (!parsed.ok) { setEdit({ ...edit, error: parsed.message }); return; }
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.correctFact(edit.fact.id, parsed.value, parsed.displayValue);
@@ -346,13 +353,17 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closePlaceNow.current(); return true; });
     return () => subscription.remove();
   }, [placeOpen]));
-  const startEdit = (fact: AiTaskReviewFact) => {
-    if (!canAct() || edit || locationEditor || deadlineEditor || command) return;
+  /** `replacing`: the amount's "Izaberi način cene" hands its open editor over to the price mode's, nothing saved. */
+  const startEdit = (fact: AiTaskReviewFact, replacing = false) => {
+    if (!canAct() || (edit && !replacing) || locationEditor || deadlineEditor || command) return;
     // A place is structured and has its own editor; every other fact is corrected right here.
     const shown = displayFact(fact), kind = factEditorKind(shown);
     if (kind === 'none' || PLACE_KEYS.includes(fact.key)) { void openLocation(); return; }
-    setEdit({ fact: shown, text: factCorrectionValue(shown), error: null,
-      ...(kind === 'timestamp' ? factTimestampFields(shown) : {}), ...(kind === 'list' ? { items: factListItems(shown) } : {}) });
+    // A choice starts on the stored value when it is one of the choices, and on none otherwise (a retired value).
+    const choice = kind === 'choice' ? factChoiceValue(shown) : undefined;
+    setEdit({ fact: shown, text: kind === 'choice' ? choiceCorrectionText(shown, choice ?? null) : factCorrectionValue(shown), error: null,
+      ...(kind === 'timestamp' ? factTimestampFields(shown) : {}), ...(kind === 'list' ? { items: factListItems(shown) } : {}),
+      ...(kind === 'choice' ? { choice } : {}) });
   };
   // People never see or choose a category (owner decision 2026-09-21, deep read 9.2). The AI still
   // writes it for the server, which reads a kind of work from it only to match; it is not a row here.
@@ -369,23 +380,33 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
   const row = (fact: AiTaskReviewFact) => {
     const shown = displayFact(fact), editing = edit?.fact.id === shown.id;
-    return <ReviewFactRow key={fact.key} label={factLabel(fact.key)} value={reviewRowValue(shown)} large={large}
+    const kind = editing ? factEditorKind(edit.fact) : null;
+    // Under "Ponude" the task carries no amount: its editor shows none and saves none, it only leads to the price mode.
+    const amountWithOffers = kind === 'amount' && priceMode === 'OFFERS';
+    return <ReviewFactRow key={fact.key} label={factLabel(fact.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)} large={large}
       system={fact.source === 'SYSTEM'} editDisabled={disabled || !!edit || !!locationEditor || deadlineEditor}
       edit={!command && fact.id ? () => startEdit(fact) : undefined}
       rowRef={node => { if (node) rowRefs.current.set(fact.key, node); else rowRefs.current.delete(fact.key); }}>
       {editing ? <>
-        {factEditorKind(edit.fact) === 'timestamp' ? <FactTimestampEditor label={factLabel(fact.key)} date={edit.date ?? ''} time={edit.time ?? ''}
+        {kind === 'timestamp' ? <FactTimestampEditor label={factLabel(fact.key)} date={edit.date ?? ''} time={edit.time ?? ''}
           disabled={disabled} onChange={(date, time) => { if (canAct()) setEdit({ ...edit, date, time, error: null,
             text: timestampCorrectionText(edit.fact, date, time) }); }} />
-        : factEditorKind(edit.fact) === 'list' ? <FactListEditor label={factLabel(fact.key)} items={edit.items ?? []} disabled={disabled}
+        : kind === 'list' ? <FactListEditor label={factLabel(fact.key)} items={edit.items ?? []} disabled={disabled}
           onChange={(items, typed) => { if (!canAct()) return;
             const pending = typed.trim();
             setEdit({ ...edit, items, error: null,
               text: listCorrectionText(pending && !items.includes(pending) ? [...items, pending] : items) }); }} />
+        : kind === 'choice' ? <FactChoiceEditor label={factLabel(fact.key)} options={factChoices(edit.fact)} value={edit.choice ?? null}
+          disabled={disabled} onChange={choice => { if (canAct()) setEdit({ ...edit, choice, error: null,
+            text: choiceCorrectionText(edit.fact, choice) }); }} />
+        : amountWithOffers ? <AmountWithOffers disabled={disabled}
+          onChooseMode={priceModeFact?.id ? () => startEdit(priceModeFact, true) : undefined} />
+        : kind === 'amount' ? <AmountField label={factLabel(fact.key)} digits={edit.text} disabled={disabled}
+          onChange={digits => { if (canAct()) setEdit({ ...edit, text: digits, error: null }); }} />
         : <TextInput accessibilityLabel={`Nova vrednost: ${factLabel(fact.key)}`} value={edit.text} multiline
           onChangeText={text => { if (canAct()) setEdit({ ...edit, text, error: null }); }} editable={!disabled} style={s.input} />}
         {edit.error ? <T accessibilityRole="alert" style={s.error}>{edit.error}</T> : null}
-        <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />
+        {amountWithOffers ? null : <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />}
         <V2Action label="Odustani od ispravke" kind="quiet" disabled={disabled} onPress={() => setEdit(null)} />
       </> : undefined}
     </ReviewFactRow>;
