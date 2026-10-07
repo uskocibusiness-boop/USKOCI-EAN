@@ -192,9 +192,9 @@ const SAVE_FIRST = 'Prvo sačuvaj izmene kategorija i tihih sati.';
 const CHECK_FIRST = 'Prvo proveri stanje.';
 /** Said once a save has been read back, in place of the reason the grey button otherwise gives. */
 const SAVED = 'Podešavanja su sačuvana.';
-/** Each set by the name its underlined tab shows, in the form that follows "za" ("za Moje zadatke"), so a sentence about
- *  sending says which set it means. */
-const FOR_SET: Record<NotificationRole, string> = { REQUESTER: 'Moje zadatke', WORKER: 'poslove' };
+/** Each set by the name its underlined tab shows ("Zadaci", "Moje prijave"), in the form that follows "za" ("za Moje zadatke",
+ *  "za Moje prijave"), so a sentence about sending says which set it means. */
+const FOR_SET: Record<NotificationRole, string> = { REQUESTER: 'Moje zadatke', WORKER: 'Moje prijave' };
 
 export type PushPreferencesViewProps = {
  role: NotificationRole; signedIn: boolean;
@@ -316,7 +316,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
     <SettingsGroup title="Dogovori">
      <SettingsSwitchRow label="Dogovor i poruke" help="Dogovor, poruke, pristup i ocene."
       value={settings.dogovor_enabled} disabled={locked} onChange={value => onEdit('dogovor_enabled', value)} />
-     <SettingsSwitchRow label="Izvršenje i završetak" help="Tok posla i potvrda završetka."
+     <SettingsSwitchRow label="Izvršenje i završetak" help="Tok zadatka i potvrda završetka."
       value={settings.execution_enabled} disabled={locked} onChange={value => onEdit('execution_enabled', value)} last />
     </SettingsGroup>
     <SettingsGroup title="Ostalo">

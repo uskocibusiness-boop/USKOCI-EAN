@@ -147,7 +147,7 @@ export const applicationClientService: ApplicationLifecycleService = {
     const version: unknown = data?.version;
     if (String(data?.status ?? '') !== 'WITHDRAWN'
       || typeof version !== 'number' || !Number.isSafeInteger(version) || version < 1) {
-      return { ok: false, kod: 'WITHDRAW_RESPONSE_INVALID_RESULT', poruka: 'Povlačenje Prijave nije potvrđeno.' };
+      return { ok: false, kod: 'WITHDRAW_RESPONSE_INVALID_RESULT', poruka: 'Povlačenje prijave nije potvrđeno.' };
     }
     return { ok: true, podatak: { stanje: 'WITHDRAWN', verzija: version } };
   },

@@ -12,6 +12,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { inset, sys } from '../system/tokens';
+import { CancelReasons, TASK_CANCEL_REASONS } from './CancelReasons';
 
 type Action = NeedLifecycleCommand['action'];
 type Controller = ReturnType<typeof createNeedLifecycleController>;
@@ -19,22 +20,26 @@ type ViewState = { loading: boolean; review: Action | null; command: NeedLifecyc
   state: NeedLifecycleState | null; error: string | null };
 const initial: ViewState = { loading: true, review: null, command: null, state: null, error: null };
 const label = (action: Action) => action === 'DELETE_DRAFT' ? 'Obriši nacrt' : 'Otkaži zadatak';
+// One sentence of consequence (plan 2.3): what happens, and where the person finds it afterwards. A cancellation can only be asked for a
+// task with no agreed place (`eligible`), so the sentence about an existing Dogovor is not needed here: those go through the Dogovor.
 const consequence = (action: Action) => action === 'DELETE_DRAFT'
-  ? 'Brišeš ovaj neobjavljeni nacrt. Radnja se ne može poništiti. Fotografije prvo ukloni iz nacrta.'
-  : 'Zadatak prestaje da prima prijave, a postojeće prijave se zatvaraju. Ako već postoji Dogovor, otkazivanje ide kroz taj Dogovor.';
+  ? 'Nacrt se briše zauvek i ne može da se vrati. Ako ima fotografije, prvo ih ukloni iz nacrta.'
+  : 'Zadatak više ne prima prijave, a poslate prijave se zatvaraju. Ostaje u istoriji.';
 /** How long the check of a retained command may run before the screen says so; it usually ends within a frame. */
 export const LIFECYCLE_CHECK_NOTICE_MS = 400;
 
 /**
  * Which ways into the lifecycle a Need offers right now: the rule for the screen's "···". `request` does not call it;
  * it checks the same conditions in its own `eligible` (nothing agreed yet, not closed, and a draft for "Obriši nacrt").
- * Places already agreed are cancelled through their Dogovori; a closed task offers nothing; a draft can also be deleted.
+ * Places already agreed are cancelled through their Dogovori; a closed task offers nothing. A draft offers ONLY "Obriši nacrt":
+ * it was never published, so there is nobody to cancel it for, and the two entries side by side asked a person to choose between
+ * a deletion and a cancellation of the same unpublished thing (plan 2.3).
  */
 export function needLifecycleEntries(need: PotrebaProjekcija | null): { deleteDraft: boolean; cancel: boolean; agreements: boolean } {
   if (!need) return { deleteDraft: false, cancel: false, agreements: false };
   if (need.pokrivenost.popunjeno > 0) return { deleteDraft: false, cancel: false, agreements: true };
   if (need.stanje === 'ZATVORENA') return { deleteDraft: false, cancel: false, agreements: false };
-  return { deleteDraft: need.stanje === 'NACRT', cancel: true, agreements: false };
+  return { deleteDraft: need.stanje === 'NACRT', cancel: need.stanje !== 'NACRT', agreements: false };
 }
 
 /** What a screen's "···" calls. Each call passes every guard of the lifecycle before anything is asked or sent. */
@@ -63,6 +68,8 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
   const latestView = useRef(view); latestView.current = view;
   const scope = useRef<object | null>(null), controller = useRef<Controller | null>(null);
   const latch = useRef(false), latest = useRef(p); latest.current = p;
+  // The chip the person chose in the cancellation question ('' = none): it is read once, when the command is built.
+  const reasonChosen = useRef('');
   // The confirmation of the "···" way in. The screen retires it wherever it retires the review itself.
   const confirmation = useConfirmSheet(), closeConfirmation = confirmation.close;
   const foreground = () => !['background', 'inactive'].includes(AppState.currentState);
@@ -92,8 +99,10 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         if (retired || !current(owner)) return;
         if (raw === null) { setView({ ...initial, loading: false }); return; }
         const command: NeedLifecycleCommand = JSON.parse(raw);
+        // A command this app stored carries no reason, or (for a cancellation only) one of the chips it offered; nothing else is restored.
         if (!command || !uuid(command.needId) || command.needId !== needId || !positiveInteger(command.expectedRevision)
-          || !['CANCEL', 'DELETE_DRAFT'].includes(command.action) || command.reason !== '') throw new Error('INVALID_RESTORE');
+          || !['CANCEL', 'DELETE_DRAFT'].includes(command.action)
+          || (command.reason !== '' && !(command.action === 'CANCEL' && (TASK_CANCEL_REASONS as readonly string[]).includes(command.reason)))) throw new Error('INVALID_RESTORE');
         const engine = install(owner, Object.freeze(command), true);
         await engine.reconcile();
       } catch { if (!retired && current(owner)) setView({ ...initial, loading: false,
@@ -117,14 +126,16 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
     const need = latest.current.need;
     return current(owner) && !!need && need.id === needId && !latest.current.disabled && !latch.current
       && need.pokrivenost.popunjeno === 0 && need.stanje !== 'ZATVORENA'
-      && (action !== 'DELETE_DRAFT' || need.stanje === 'NACRT');
+      // A draft is deleted, never cancelled (see `needLifecycleEntries`); a published task is cancelled, never "deleted".
+      && (action === 'DELETE_DRAFT' ? need.stanje === 'NACRT' : need.stanje !== 'NACRT');
   };
   const submit = async () => {
     const action = view.review, need = p.need, currentNeed = latest.current.need;
     if (latestView.current !== view || !action || view.command || !need || !currentNeed || !eligible(action)
       || currentNeed.revizija !== need.revizija || !owner) return;
     latch.current = true;
-    const command = Object.freeze({ action, needId, expectedRevision: need.revizija, reason: '' });
+    // The reason is the chip the person chose in the question, for a cancellation only; none is required.
+    const command = Object.freeze({ action, needId, expectedRevision: need.revizija, reason: action === 'CANCEL' ? reasonChosen.current : '' });
     try {
       // Persist before sending. A storage failure never licenses an untracked write.
       await AsyncStorage.setItem(storageKey, JSON.stringify(command));
@@ -147,7 +158,10 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
     // question is not what they confirmed, so that confirm sends nothing; `submit` checks the same fence once more.
     const seen = latest.current.need?.revizija;
     setView({ ...view, review: action, error: null });
+    reasonChosen.current = '';
+    // The server keeps the reason of a cancellation, so only that question offers one (and it is a sheet, because chips want room).
     confirmation.ask({ title: `${label(action)}?`, message: consequence(action), confirmLabel: label(action), tone: 'danger',
+      extra: action === 'CANCEL' ? <CancelReasons onChange={reason => { reasonChosen.current = reason; }} /> : undefined,
       onConfirm: () => {
         if (latest.current.need?.revizija !== seen) { commands.current.dismissReview(); return; }
         return commands.current.submit().finally(() => commands.current.dismissReview());
@@ -187,12 +201,12 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
       {/* The outcome in plain words, first under the task's name: what happened, not which system said so. */}
       <T accessibilityLiveRegion="polite" style={s.copy}>{phase === 'CONFIRMED'
         ? view.command?.action === 'DELETE_DRAFT' ? 'Nacrt je obrisan.' : 'Zadatak je otkazan.'
-        : phase === 'SUBMITTING' ? 'Šaljem pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
+        : phase === 'SUBMITTING' ? 'Šaljemo pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
           : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
       {phase === 'UNKNOWN_OUTCOME' ? <>
         <V2Action label="Proveri ishod" kind="quiet" style={s.quiet} onPress={() => run('reconcile')} />
-        <V2Action label="Ponovi isti zahtev" kind="quiet" style={s.quiet} disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
-        <T style={s.copy}>Ponavljanje je dostupno tek posle uspešne provere. Zadržava istu radnju i verziju zadatka.</T>
+        <V2Action label="Pošalji ponovo" kind="quiet" style={s.quiet} disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
+        <T style={s.copy}>Ponovno slanje je dostupno tek posle uspešne provere.</T>
       </> : phase === 'CONFIRMED' ? <>
         {view.state.collectionRefreshRequired ? <V2Action label="Osveži moje zadatke" kind="quiet" style={s.quiet} onPress={() => run('refreshCollection')} /> : null}
         <V2Action label="Moji zadaci" onPress={() => { void finish(true); }} />

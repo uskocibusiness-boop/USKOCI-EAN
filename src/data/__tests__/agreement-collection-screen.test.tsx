@@ -2,12 +2,14 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockRead = jest.fn(), mockNavigate = jest.fn();
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
+let mockParams: { odeljak?: string } = {};
 const mockSource = { mojiDogovori: () => mockRead() };
 const mockListeners = new Set<(state: string) => void>();
 const mockApp = { currentState: 'active', addEventListener: (_: string, fn: (state: string) => void) => {
   mockListeners.add(fn); return { remove: () => mockListeners.delete(fn) };
 } };
 jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args) },
+  useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, {
   get(target, key) { return key === 'AppState' ? mockApp : Reflect.get(target, key); },
@@ -27,10 +29,18 @@ const deferred = () => { let resolve!: (rows: any[]) => void; const promise = ne
 beforeEach(() => {
   jest.useFakeTimers(); jest.spyOn(console, 'error').mockImplementation(() => {});
   mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockApp.currentState = 'active';
+  mockParams = {};
   mockRead.mockReset().mockImplementation(async () => [{ id: 'owned', verzija: 1 }]); mockNavigate.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
+test('the profile link `odeljak=istorija` opens the section of finished Dogovori, also when the tab is already mounted', async () => {
+  await render(); expect(props().section).toBe('active');
+  mockParams = { odeljak: 'istorija' }; await update(); expect(props().section).toBe('history');
+});
+test('opens on the history section when it is mounted with `odeljak=istorija`', async () => {
+  mockParams = { odeljak: 'istorija' }; await render(); expect(props().section).toBe('history');
+});
 test('uses the existing owned read and opens the actual Agreement once', async () => {
   await render(); const shown = props(); await act(async () => { shown.onOpen(shown.items[0]); shown.onOpen(shown.items[0]); });
   expect(mockRead).toHaveBeenCalledTimes(1); expect(mockNavigate).toHaveBeenCalledTimes(1);
@@ -161,4 +171,30 @@ test('there is no mode to change: what used to reset the list on a switch now le
   await render(); const old = props(); await act(async () => old.onSection('history')); mockIntent = 'uskocer'; await update();
   expect(props().section).toBe('history'); expect('requester' in props()).toBe(false); expect('intent' in props()).toBe(false);
   await act(async () => props().onHome()); expect(mockNavigate).toHaveBeenCalledWith('/');
+});
+// Plan 2.6: Istorija has its chips ("Sve · Završeni · Otkazani"). The choice is a display choice, kept like the section and the
+// confirmation filter: through the foreground gate, retired with the account, and refused to a retained callback.
+test('the Istorija chip is kept through the foreground gate, retired with the account, and refused to a retained callback', async () => {
+  await render();
+  expect(props().historyFilter).toBe('all');
+  await act(async () => { props().onSection('history'); props().onHistoryFilter('cancelled'); });
+  expect(props()).toMatchObject({ section: 'history', historyFilter: 'cancelled' });
+  await act(async () => { mockApp.currentState = 'background'; mockListeners.forEach(listener => listener('background')); });
+  expect(tree.root.findAllByType('Agreements' as React.ElementType)).toHaveLength(0);
+  await act(async () => { mockApp.currentState = 'active'; mockListeners.forEach(listener => listener('active')); });
+  expect(props()).toMatchObject({ section: 'history', historyFilter: 'cancelled' });
+  const old = props();
+  mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
+  expect(props()).toMatchObject({ section: 'active', historyFilter: 'all' });
+  await act(async () => old.onHistoryFilter('completed'));
+  expect(props().historyFilter).toBe('all');
+  await act(async () => props().onHistoryFilter('completed'));
+  expect(props().historyFilter).toBe('completed');
+});
+test('a blurred list refuses a chip press', async () => {
+  await render(); const old = props();
+  mockFocused = false; await update();
+  await act(async () => old.onHistoryFilter('cancelled'));
+  mockFocused = true; await update();
+  expect(props().historyFilter).toBe('all');
 });

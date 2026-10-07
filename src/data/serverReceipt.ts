@@ -52,9 +52,9 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   const accountRevision = options.account?.accountRevision ?? owner.accountRevision;
   if (!accountId) return failure('AUTH_REQUIRED', 'Prijavi se da nastaviš.');
   const current = () => sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
-  const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori Zadatak.');
+  const changed = () => failure('AUTH_ACCOUNT_CHANGED', 'Nalog je promenjen. Ponovo otvori zadatak.');
   const unconfirmed = () => failure(options.fallback, options.write
-    ? 'Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja; za ponavljanje koristiš isti zahtev.'
+    ? 'Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja.'
     : 'Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo.');
   if (!current()) return changed();
   const localTimeout = new Error('RPC_RECEIPT_TIMEOUT');

@@ -51,9 +51,13 @@ it('retains the development-runtime boundary used by the other galleries', async
 });
 
 it.each([
-  ['upcoming', '26. sep · 17:00–19:00', 'Jelena Nikolić'],
-  ['flexible', 'Fleksibilno · tokom sledeće nedelje', 'Aleksandra Konstantinović-Radovanović'],
-  ['untimed', 'Prevod uputstva na engleski', 'Druga strana'],
+  // 2026-10-07 (Raspored): the scenes that drew an "Aktivni Dogovor" card are replaced. `long` is the longest the card may meet,
+  // `loose` an active Dogovor with no day to show it on (no confirmed term, or a term that passed unfinished: one quiet line, no
+  // card), `quiet` a working account with nothing waiting and nothing scheduled, `empty` a brand-new account.
+  ['upcoming', 'Danas · 14:00–16:00', 'Jelena Nikolić'],
+  ['long', 'Četvrtak, 15. okt · 22:00 – petak, 16. okt 06:00', 'Aleksandra Konstantinović-Radovanović'],
+  ['loose', '2 Dogovora bez tačnog termina · 1 Dogovor čeka završetak', '2 aktivna · 1 nacrt'],
+  ['quiet', 'Ništa ne čeka tvoju odluku.', '2 aktivna · 1 nacrt'],
   ['empty', 'Još nemaš Zadatak', 'Još nemaš prijavu'],
   ['unavailable', 'Dogovori trenutno nisu učitani.', 'Podaci o obavezama trenutno nisu učitani.'],
 ])('renders the real Home for %s without a gallery wrapper or live action', async (scene, first, second) => {
@@ -64,7 +68,22 @@ it.each([
   expect(tree.root.findAllByType('SafeAreaView' as React.ElementType)).toHaveLength(1);
   expect(tree.root.findAllByType('ScrollView' as React.ElementType)).toHaveLength(1);
   expect(text()).toContain(first); expect(text()).toContain(second);
-  if (scene === 'untimed') expect(presentation.props.home.agreements.value.rows[0].appointment.timeText).toBe('');
+  // The block exists where an appointment lies ahead (a card), where an active Dogovor has no confirmed term (one quiet line)
+  // and where the read failed (its own words); the others draw none and no placeholder for it.
+  expect(text().includes('Raspored')).toBe(['upcoming', 'long', 'loose', 'unavailable'].includes(scene));
+  // Only an appointment ahead is a card; the quiet line of `loose` never shows the Dogovor's own title or its display sentence.
+  expect(text().includes('Montaža police u hodniku') || text().includes('Prenos troseda')).toBe(scene === 'upcoming' || scene === 'long');
+  if (scene === 'loose') {
+    expect(text()).not.toContain('Krečenje stana u belo'); expect(text()).not.toContain('Termin nije potvrđen');
+    expect(presentation.props.home.agreements.value.rows[0]).not.toHaveProperty('raspored');
+  }
+  // The brand-new account's one quiet row (N4: "Kako radi", three steps, "Sakrij") stands in the empty scene and nowhere else.
+  expect(text().includes('Kako radi')).toBe(scene === 'empty');
+  if (scene === 'empty') for (const step of ['Objavi ili nađi', 'Dogovorite se', 'Oceni']) expect(text()).toContain(step);
+  // What is counted is Dogovori, in every scene: never "zadatak" for an agreement.
+  expect(text()).not.toMatch(/zadatak bez|zadatka bez|zadataka bez/);
+  if (scene === 'upcoming') expect(text()).toContain('Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina');
+  if (scene === 'long') expect(text()).toContain('Ove nedelje još 12 Dogovora · 21 Dogovor bez tačnog termina · 3 Dogovora čekaju završetak');
   await act(async () => {
     for (const control of tree.root.findAll(node => ['Press', 'Action'].includes(String(node.type)))) control.props.onPress?.();
     tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.onRefresh();
@@ -77,5 +96,5 @@ it.each([undefined, 'not-a-scene', ['flexible'], ['empty', 'upcoming']])('falls 
   mockParams = { scene };
   await render();
   expect(text()).toContain('Montaža police u hodniku');
-  expect(text()).toContain('26. sep · 17:00–19:00');
+  expect(text()).toContain('Danas · 14:00–16:00');
 });

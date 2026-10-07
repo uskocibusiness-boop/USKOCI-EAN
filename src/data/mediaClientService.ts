@@ -26,7 +26,7 @@ const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v
 const integer=(v:unknown,max:number):v is number=>typeof v==='number'&&Number.isInteger(v)&&v>=1&&v<=max;
 const errors={ AUTH_REQUIRED:'Prijavi se da nastaviš.',MEDIA_NOT_FOUND:'Fotografija nije dostupna.',
   MEDIA_INPUT_INVALID:'Fotografija mora biti JPEG, PNG ili WebP do 10 MB.',MEDIA_FORMAT_UNSUPPORTED:'Izaberi JPEG, PNG ili WebP fotografiju.',
-  MEDIA_DIMENSIONS_TOO_LARGE:'Smanji fotografiju pre slanja.',MEDIA_LIMIT_REACHED:'Jedan Zadatak može imati najviše šest fotografija.',
+  MEDIA_DIMENSIONS_TOO_LARGE:'Smanji fotografiju pre slanja.',MEDIA_LIMIT_REACHED:'Jedan zadatak može imati najviše šest fotografija.',
   // Deep read 11.3: the media worker serialises every upload on an isolate, so this refusal is usually
   // about someone else's photo; it must not claim the person's own upload is unconfirmed.
   MEDIA_UPLOAD_PENDING:'Slanje fotografije je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.',MEDIA_BUSY:'Slanje fotografije je trenutno zauzeto. Sačekaj nekoliko sekundi pa pokušaj ponovo.',MEDIA_TURN_PENDING:'Sačekaj završetak AI poruke.',

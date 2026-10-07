@@ -59,9 +59,10 @@ const deviceZone = (): string | undefined => {
 /**
  * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24). A detail screen: the
  * arrow back and the name, then readable capsule tabs (Sve · Čeka te · Aktivne · Završene,
- * with their counts; "Čeka te" keeps its orange count), then one card per application (`ApplicationFace`). No card edge
- * carries a state: the status line says it. Empty, loading and error go through the one StateView. Presentation only:
- * every callback is the route's existing guarded command.
+ * with their counts; "Čeka te" keeps its orange count), then one card per application (`ApplicationFace`, the worker's side of
+ * the shared `PrijavaCard`). No card edge carries a state: the card's chip says it, in the owner's five words (Poslata, Viđena,
+ * Izabrana, Nije izabrana, Povučena). Empty, loading and error go through the one StateView. Presentation only: every callback
+ * is the route's existing guarded command.
  */
 export function MyApplicationsPresentation(props: Props) {
   const filtered = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
@@ -83,10 +84,10 @@ export function MyApplicationsPresentation(props: Props) {
     return <View style={s.review}>
       <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Aktuelni uslovi</T>
       <T variant="body" style={s.ink}>{p.opis || 'Dodatni opis nije naveden.'}</T>
-      <T variant="note" tone="muted">Tvoja prijava je poslata na verziju {p.prijavaRevizija}, a zadatak je sada u verziji {p.potrebaRevizija}. Zadržavanje čuva ponuđenu cenu, obim, termin i napomenu.</T>
+      <T variant="note" tone="muted">Tvoja prijava je poslata pre promene zadatka. Zadržavanje čuva ponuđenu cenu, obim, termin i napomenu.</T>
       {props.editingLoading ? <ActivityIndicator accessibilityLabel="Učitavanje sačuvanog termina" color={sys.color.green} /> : null}
       {draft ? <View style={s.fields}>
-        <T accessibilityRole="header" variant="heading" style={s.ink}>Izmeni svoju ponudu</T><T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
+        <T accessibilityRole="header" variant="heading" style={s.ink}>Izmeni svoju prijavu</T><T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
           : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
           : draft.pricing.osnovaCene === 'TOTAL' ? 'Ukupna cena važi za ceo zadatak. Prijava pokriva sva mesta.' : 'Cena je određena u zadatku.'}</T>
         <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T><TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
@@ -128,7 +129,7 @@ export function MyApplicationsPresentation(props: Props) {
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
         : hasAny && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."
           primary={{ label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
-          : <StateView art="offers" title="Još nemaš prijavu" body="Kada se prijaviš na zadatak, ovde pratiš svoju ponudu i svaki sledeći korak."
+          : <StateView art="offers" title="Još nemaš prijavu" body="Kada se prijaviš na zadatak, ovde pratiš svoju prijavu i svaki sledeći korak."
             primary={{ label: 'Istraži zadatke', onPress: props.onExplore }} />}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
@@ -160,9 +161,9 @@ export function MyApplicationsPresentation(props: Props) {
             <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></View> : null}
           {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
           {/* A command waits for its readback: a flat tint above the list, never a card among the cards. */}
-          {props.pending ? <View style={[inset, s.pending]}><T variant="body" style={s.ink}>{props.busy ? 'Čekamo potvrdu radnje…' : 'Pre nove odluke proveri sačuvano stanje. Ponavljanje koristi istu ponudu i isti zahtev.'}</T>
+          {props.pending ? <View style={[inset, s.pending]}><T variant="body" style={s.ink}>{props.busy ? 'Čekamo potvrdu radnje…' : 'Pre nove odluke proveri sačuvano stanje. Ponovno slanje koristi istu ponudu.'}</T>
             <V2Action label="Proveri sačuvano stanje" onPress={props.onRefresh} disabled={props.busy} />
-            {props.canRetry ? <V2Action label="Ponovi isti zahtev" onPress={props.onRetry} disabled={props.busy} /> : null}
+            {props.canRetry ? <V2Action label="Pošalji ponovo" onPress={props.onRetry} disabled={props.busy} /> : null}
             {props.canReset ? <V2Action label="Pregledaj aktuelnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</View> : null}
         </View> : null}
         renderItem={renderItem} />

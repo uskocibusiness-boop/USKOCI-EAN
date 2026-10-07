@@ -18,18 +18,18 @@ import { failure as fail, positiveInteger, readOwnedResult, readReceipt, record,
 const NEED_EDIT_COPY: Record<string, string> = {
   NEED_EDIT_LOCKED_AFTER_FIRST_DOGOVOR:
     'Zadatak više ne može da se menja jer je već sklopljen Dogovor. Promene idu kroz izmenu Dogovora.',
-  NEED_NOT_EDITABLE_PUBLIC_STATE: 'Ovaj Zadatak trenutno nije u stanju u kom može da se menja.',
-  NEED_EDIT_GEOGRAPHY_NOT_READY: 'Lokacija Zadatka još nije spremna za izmenu.',
-  NEED_NOT_OWNED: 'Samo vlasnik Zadatka može da ga menja.',
-  NOT_OWNER: 'Samo vlasnik Zadatka može da ga menja.',
+  NEED_NOT_EDITABLE_PUBLIC_STATE: 'Ovaj zadatak trenutno nije u stanju u kom može da se menja.',
+  NEED_EDIT_GEOGRAPHY_NOT_READY: 'Lokacija zadatka još nije spremna za izmenu.',
+  NEED_NOT_OWNED: 'Samo vlasnik zadatka može da ga menja.',
+  NOT_OWNER: 'Samo vlasnik zadatka može da ga menja.',
   NEED_NOT_FOUND: 'Zadatak nije pronađen.',
   STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Otvori ga ponovo i proveri podatke.',
   NEED_EDIT_CONFLICT: 'Zadatak je u međuvremenu promenjen. Otvori ga ponovo i proveri podatke.',
   EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION: 'Potvrdi sve podatke pre čuvanja izmena.',
   REQUIRED_CONFIRMED_FACTS_MISSING: 'Nedostaju obavezni podaci. Dopuni ih pre čuvanja.',
   NO_MATERIAL_CHANGE: 'Nijedan podatak nije promenjen.',
-  EDIT_CONVERSATION_NOT_CONFIRMABLE: 'Ova izmena više nije otvorena. Pokreni izmenu ponovo iz Zadatka.',
-  EDIT_CONVERSATION_NEED_MISMATCH: 'Ova izmena ne pripada ovom Zadatku.',
+  EDIT_CONVERSATION_NOT_CONFIRMABLE: 'Ova izmena više nije otvorena. Pokreni izmenu ponovo iz zadatka.',
+  EDIT_CONVERSATION_NEED_MISMATCH: 'Ova izmena ne pripada ovom zadatku.',
   MY_PRICE_AMOUNT_REQUIRED: 'Unesi cenu ili izaberi prikupljanje ponuda.',
   FIXED_WINDOW_BOUNDS_REQUIRED: 'Termin mora imati početak i kraj.',
 };
@@ -42,7 +42,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori razgovor.',
   CONVERSATION_NOT_FOUND: 'Razgovor nije pronađen.',
   CONVERSATION_NOT_OPEN: 'Ovaj razgovor više nije otvoren.',
-  CONVERSATION_PURPOSE_MISMATCH: 'Ovaj razgovor ne pripada unosu Zadatka.',
+  CONVERSATION_PURPOSE_MISMATCH: 'Ovaj razgovor ne pripada unosu zadatka.',
   CONVERSATION_SCHEMA_MISMATCH: 'Ovaj razgovor nije spreman za ovaj unos.',
   REQUESTER_PROFILE_NOT_READY: 'Profil za objavu zadataka nije spreman.',
   NEED_REVISION_STALE: 'Zadatak je u međuvremenu promenjen. Ponovo proveri podatke.',
@@ -61,7 +61,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   // an answer "no, because…", not a lost reply, so it must not read "Ishod radnje nije potvrđen".
   SUPERSEDED: 'Podatak je u međuvremenu promenjen. Osveži pregled.',
   AI_NEED_DRAFT_BLOCKED: 'Proveri zahtev pre čuvanja nacrta.',
-  CONVERSATION_CLOSED: 'Ovaj razgovor je zatvoren. Otvori Zadatak ponovo.',
+  CONVERSATION_CLOSED: 'Ovaj razgovor je zatvoren. Otvori zadatak ponovo.',
   CONVERSATION_NOT_EDITABLE: 'Ovaj razgovor više ne može da se menja.',
   FACT_SCOPE_NOT_EDITABLE: 'Ovaj podatak ne može da se menja ovde.',
   LOCATION_EDITOR_REQUIRED: 'Mesto izmeni na mapi, u delu za lokaciju.',
@@ -77,7 +77,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   V2_PEOPLE_INVALID: 'Broj ljudi mora biti između 1 i 50.',
   V2_EXPERIENCE_INVALID: 'Iskustvo može biti od 0 do 60 godina.',
   V2_TITLE_INVALID: 'Naslov može imati najviše 140 znakova.',
-  V2_CATEGORY_INVALID: 'Kategorija može imati najviše 120 znakova.',
+  V2_CATEGORY_INVALID: 'Tekst nije ispravan ili je predugačak.',
   V2_DESCRIPTION_INVALID: 'Opis može imati najviše 6.000 znakova.',
   V2_EXACT_ADDRESS_INVALID: 'Adresa može imati najviše 1.000 znakova.',
   V2_ACCESS_NOTES_INVALID: 'Napomena o pristupu može imati najviše 2.000 znakova.',
@@ -91,7 +91,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   V2_TASK_GEOGRAPHY_MODE_INVALID: 'Lokaciju izmeni kroz razgovor.',
   V2_TASK_GEOGRAPHY_LOCATION_INVALID: 'Lokaciju izmeni kroz razgovor.',
   V2_TASK_GEOGRAPHY_WAYPOINTS_INVALID: 'Lokaciju izmeni kroz razgovor.',
-  V2_REMOTE_MUST_HAVE_NO_PHYSICAL_GEOGRAPHY: 'Posao na daljinu nema mesto izvođenja. Lokaciju izmeni kroz razgovor.',
+  V2_REMOTE_MUST_HAVE_NO_PHYSICAL_GEOGRAPHY: 'Zadatak na daljinu nema mesto izvođenja. Lokaciju izmeni kroz razgovor.',
 };
 const SAFETY = ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] as const;
 const STATUS = ['OPEN', 'COMPLETED', 'ABANDONED'] as const;
@@ -449,7 +449,7 @@ export const aiNeedV2Production = {
   },
 
   async openEditConversation(needId: string): Promise<Ishod<AiNeedEditOpened>> {
-    if (!uuid(needId)) return fail('NEED_REQUIRED', 'Učitaj Zadatak pre izmene.');
+    if (!uuid(needId)) return fail('NEED_REQUIRED', 'Učitaj zadatak pre izmene.');
     return readReceipt({ rpc: 'rpc_ai_open_need_edit_conversation_v2', args: { p_need_id: needId }, errors: ERRORS,
       write: true, fallback: 'NEED_EDIT_OPEN_FAILED', invalid: 'NEED_EDIT_INVALID_RESPONSE', decode(raw) {
         const r = exact(raw, ['conversationId', 'needId', 'revision', 'status', 'authoritative']);

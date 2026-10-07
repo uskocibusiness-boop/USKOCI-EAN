@@ -18,6 +18,7 @@ jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoCompos
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
+import { CLOSED_SENTENCE } from '../../ui/AgreementChat';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
 
 const agreement = {
@@ -192,10 +193,43 @@ it('leaves a closed thread read-only while retaining exact unknown-outcome retry
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
   expect(tree.root.findAllByType('AgreementPhotoComposer' as any)).toHaveLength(0);
   expect(text(history())).toContain('Slanje nije potvrđeno');
-  expect(text(history())).toContain('Dogovor je zatvoren · poruke su samo za čitanje.');
+  // The closed sentence stands under the thread, where the field was (proposal R2), not inside the scroll.
+  expect(text()).toContain(CLOSED_SENTENCE); expect(text(history())).not.toContain(CLOSED_SENTENCE);
+  expect(tree.root.findByProps({ testID: 'agreement-chat-closed' })).toBeTruthy();
   await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
   expect(props.chat.outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   expect(props.chat.photos!.refresh).toHaveBeenCalledTimes(1);
   await act(async () => button(`Uslovi Dogovora: ${agreement.naslov}`).props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(1);
+});
+
+// Proposal R1: the conversation has the same Pregled | Poruke tabs as the overview, and the same "···" menu, so the other half of
+// the Dogovor and "Prijavi ili blokiraj osobu" are one tap away while Poruke is shown.
+it('draws the Pregled | Poruke tabs under the full bar, with Poruke chosen, and Pregled opens the overview', async () => {
+  await render();
+  const tabs = tree.root.findByProps({ testID: 'agreement-thread-tabs' });
+  expect(tabs.findAllByProps({ accessibilityRole: 'tab' }).filter(node => String(node.type) === 'Press').map(node => [node.props.accessibilityLabel, node.props.accessibilityState.selected]))
+    .toEqual([['Pregled', false], ['Poruke', true]]);
+  await act(async () => tabs.findByProps({ accessibilityLabel: 'Pregled' }).props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(1);
+  // The chosen tab does nothing.
+  await act(async () => tabs.findByProps({ accessibilityLabel: 'Poruke' }).props.onPress());
+  expect(props.onOverview).toHaveBeenCalledTimes(1);
+  // With the keyboard up the bar keeps Back and "Uslovi" only: no tabs, no menu.
+  await measure(410);
+  expect(tree.root.findAllByProps({ testID: 'agreement-thread-tabs' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Više radnji' })).toHaveLength(0);
+});
+
+it('offers the Dogovor\'s "···" in the conversation bar only when the route has a menu, and it opens that menu', async () => {
+  await render();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Više radnji' })).toHaveLength(0);
+  await act(async () => tree?.unmount());
+  props.onMore = jest.fn();
+  await render();
+  const more = button('Više radnji');
+  expect(more.props.accessibilityHint).toContain('blokiranje osobe');
+  await act(async () => more.props.onPress());
+  expect(props.onMore).toHaveBeenCalledTimes(1);
+  expect(props.onOverview).not.toHaveBeenCalled();
 });

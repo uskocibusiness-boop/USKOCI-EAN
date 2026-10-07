@@ -9,7 +9,7 @@ import { BrandMark } from '../../entry/BrandAssets';
 export type PillContent = PinLabel | { text: string; tone: 'count'; spoken: string };
 /** A positive answer from the current account's separate relation read, never inferred from public task data. */
 export type PinRelation = 'OWNED' | 'APPLIED';
-export const pinRelationWords = (relation?: PinRelation) => relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Već si se prijavio' : '';
+export const pinRelationWords = (relation?: PinRelation) => relation === 'OWNED' ? 'Tvoj zadatak' : relation === 'APPLIED' ? 'Prijava je već poslata' : '';
 
 // Measure the selected shape at this size, rather than scaling beyond the native snapshot's bounds.
 const SELECTED_SCALE = 1.06;

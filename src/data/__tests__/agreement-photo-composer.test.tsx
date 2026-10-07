@@ -9,11 +9,12 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../../ui/system/PermissionRecovery', () => ({ PermissionRecovery: 'PermissionRecovery' }));
 jest.mock('../../ui/media/PhotoAttachSheet', () => ({ PhotoAttachSheet: 'PhotoAttachSheet' }));
-jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
+let mockReduced = false;
+jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('expo-image', () => ({ Image: 'NativeImage' }));
-const mockAsk = jest.fn();
-jest.mock('../../ui/system/ConfirmSheet', () => ({ useConfirmSheet: () => ({ ask: (...a: unknown[]) => mockAsk(...a), close: jest.fn(), open: false, sheet: null }) }));
+const mockAsk = jest.fn(), mockConfirmOptions = jest.fn();
+jest.mock('../../ui/system/ConfirmSheet', () => ({ useConfirmSheet: (options: unknown) => { mockConfirmOptions(options); return { ask: (...a: unknown[]) => mockAsk(...a), close: jest.fn(), open: false, sheet: null }; } }));
 import { AgreementPhotoComposer, AgreementPhotoSheet, agreementPhotoReason } from '../../ui/media/AgreementPhotoComposer';
 import { PhotoViewer } from '../../ui/media/PhotoViewer';
 import { PHOTO_PERMISSION_MESSAGE } from '../../features/media/nativePhotoPicker';
@@ -29,7 +30,7 @@ const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(no
 const draw = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
 const tray = (extra: Partial<React.ComponentProps<typeof AgreementPhotoComposer>> = {}) =>
   <AgreementPhotoComposer photos={photos} capturing={false} {...extra} />;
-beforeEach(() => { mockAsk.mockReset(); photos = { agreementId: gid, loaded: true, busy: false, items: [], saved: [], message: null, available: true,
+beforeEach(() => { mockAsk.mockReset(); mockConfirmOptions.mockReset(); mockReduced = false; photos = { agreementId: gid, loaded: true, busy: false, items: [], saved: [], message: null, available: true,
   hasSelection: false, selected: [], versionConflict: false, ready: false, capture: jest.fn(() => null), canSubmit: () => true,
   reserved: () => false, canRetry: () => false, refresh: jest.fn().mockResolvedValue(undefined), pick: jest.fn().mockResolvedValue(undefined),
   retry: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(undefined), restore: jest.fn().mockResolvedValue(undefined) }; });
@@ -118,4 +119,14 @@ it('earlier prepared photos come back only when asked for, without loading their
   expect(button('Vrati sačuvanu fotografiju 1').props.disabled).toBe(true);
   expect(button('Vrati sačuvanu fotografiju 1').props.accessibilityHint).toBe('Već je izabrano 6 fotografija.');
   expect(photos.pick).not.toHaveBeenCalled();
+});
+
+// Reduced motion (owner rule, 2026-10-07): the sheet that opens from the "+" and the question before a photo is removed take the
+// system setting from the one store, so a phone set to reduce motion gets no slide from either.
+it.each([false, true])('the sheet and the removal question follow the reduced-motion setting of the system (%s)', async reduced => {
+  mockReduced = reduced;
+  await draw(<AgreementPhotoSheet photos={photos} capturing={false} onClose={jest.fn()} onShowSaved={jest.fn()} />);
+  expect(tree.root.findByType('PhotoAttachSheet' as React.ElementType).props.reduced).toBe(reduced);
+  await act(async () => tree.update(tray()));
+  expect(mockConfirmOptions).toHaveBeenLastCalledWith({ reduced });
 });

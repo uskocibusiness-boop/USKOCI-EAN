@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView, type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
-import { SHEET_SPRING } from '../product/ProductSheet';
+import { SHEET_SPRING, sheetCloseConfig } from '../product/ProductSheet';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sheetLift, sys } from './tokens';
 
@@ -50,8 +50,9 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   const dismiss = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
-    if (sheet.current) sheet.current.close(); else onClose();
-  }, [onClose]);
+    // Closed by a command (the card's own ×, Android Back): the same short timing as every sheet, or at once when motion is off.
+    if (sheet.current) sheet.current.close(sheetCloseConfig(reduced)); else onClose();
+  }, [onClose, reduced]);
   useEffect(() => {
     if (!active) return;
     // Once the card is on its way out, Back is the screen's again: it never swallows a second press.

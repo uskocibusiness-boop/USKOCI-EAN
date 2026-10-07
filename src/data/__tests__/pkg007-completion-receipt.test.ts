@@ -62,7 +62,7 @@ describe('PKG-007 — requester confirmation receipt', () => {
   it.each([
     ['AGREEMENT_CHANGE_PENDING', 'Najpre odgovori na postojeći predlog izmene.'],
     ['COMPLETION_NOT_CONFIRMABLE', 'Dogovor trenutno nije u stanju za potvrdu završetka. Osveži njegov status.'],
-    ['ONLY_REQUESTER_CAN_CONFIRM_COMPLETION', 'Završetak potvrđuje onaj ko je objavio zadatak.'],
+    ['ONLY_REQUESTER_CAN_CONFIRM_COMPLETION', 'Završetak potvrđuje osoba koja je objavila zadatak.'],
     ['AGREEMENT_CANCELLED', 'Dogovor je otkazan. Završetak više nije moguć.'],
     ['EXECUTION_VERSION_MISMATCH', 'Dogovor je promenjen. Osveži važeće uslove pre završetka.'],
   ])('maps the known server denial %s to its own copy without leaking details', async (name, copy) => {

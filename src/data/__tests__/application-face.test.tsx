@@ -5,10 +5,11 @@ import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/p
 import { sys } from '../../ui/system/tokens';
 
 /**
- * The face of my application (owner's step 5c, 2026-09-24): the task card's system with its own purpose, my offer. A
- * status line with a dot and never a coloured card edge; title; where and when; "Tvoja ponuda · ukupno" with the amount
- * in the money colour or a quiet word; the people; my message; and at most ONE foot action, the one the state allows, as a
- * quiet row link beside the body and never a button inside it.
+ * The face of my application (owner's step 5c, 2026-09-24; one object for both people since 2026-10-07): the shared
+ * `PrijavaCard`. The state as the app's one StatusChip in the owner's five words and never a coloured card edge; the title
+ * of the task; then the term, the price ("ukupno" under the amount, or "Iznos nije sačuvan"), the people and my message, in
+ * that fixed order; and at most ONE foot action, the one the state allows, as a quiet row link beside the body and never a
+ * button inside it.
  */
 let mockScale = 1;
 jest.mock('react-native', () => {
@@ -22,7 +23,9 @@ jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 // The face asks the one layout class (`useLayoutClass`); this suite varies the text scale on a roomy 411 dp window, so only the scale decides.
 jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual('../../ui/system/textScale');
   return { ...actual, useTextScale: () => mockScale, useLayoutClass: () => actual.layoutClassFor(411, mockScale) }; });
-import { ApplicationCard, applicationFoot, applicationStatus, applicationValue, offerPeople, offerSettled } from '../../ui/v2/ApplicationFace';
+import { ApplicationCard, applicationFoot, applicationSpoken, applicationStatus, applicationValue, workerPrijava } from '../../ui/v2/ApplicationFace';
+import { PrijavaPriceText } from '../../ui/v2/PrijavaCard';
+import { STATUS_CHIPS } from '../../ui/system/StatusChip';
 import { faceStyles } from '../../ui/v2/TaskFace';
 
 const row = (patch: Partial<MojaPrijavaProjekcija> = {}): MojaPrijavaProjekcija => ({ prijavaId: 'a1', potrebaId: 'n1', potrebaRevizija: 3,
@@ -45,33 +48,59 @@ const frame = () => tree.root.findAll(node => node.type === ('View' as React.Ele
 beforeEach(() => { mockScale = 1; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-describe('the status line', () => {
-  const WORDS: [StanjeMojePrijave, string][] = [['SUBMITTED', 'Poslata'], ['VIEWED', 'Pregledana'], ['SHORTLISTED', 'U užem izboru'],
-    ['SELECTED', 'Izabrana'], ['STALE_REVIEW_REQUIRED', 'Potrebna nova provera'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena']];
-  it.each(WORDS)('%s says "%s" first, with a dot, and the raised card retains a neutral edge', async (state, word) => {
+describe('the state: the app\'s one chip, in the owner\'s five words', () => {
+  const chips = () => tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.testID === 'status-chip');
+  const WORDS: [StanjeMojePrijave, string][] = [['SUBMITTED', 'Poslata'], ['VIEWED', 'Viđena'], ['SHORTLISTED', 'Viđena'],
+    ['SELECTED', 'Izabrana'], ['STALE_REVIEW_REQUIRED', 'Poslata'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Nije izabrana']];
+  it.each(WORDS)('%s says "%s" first, as a chip, and the raised card retains a neutral edge', async (state, word) => {
     await render(<ApplicationCard row={inState(state)} {...handlers()} />);
     expect(texts()[0]).toBe(word);
-    expect(tree.root.findAllByProps({ testID: 'card-status-dot' })).toHaveLength(1);
-    // The selected (or waiting) state is said by the line, never by a green or orange card edge.
+    // Every card has a state, and exactly one.
+    expect(chips()).toHaveLength(1);
+    expect(chips()[0].props.accessibilityLabel).toBe(word);
+    // The state is said by the chip, never by a green or orange card edge.
     expect(style(frame())).toMatchObject({ borderColor: sys.color.line, borderWidth: 1 });
     expect(style(frame())).not.toHaveProperty('borderLeftColor');
   });
 
-  it('never says "Odbijena" or names the task as closed: CLOSED merges not chosen, expired and a closed task', () => {
-    expect(applicationStatus('CLOSED').text).toBe('Zatvorena');
-    for (const [state] of WORDS) expect(applicationStatus(state).text).not.toMatch(/Odbijena|Zadatak/);
+  it('no application is left without a state: every state of the read has a chip, and the words are exactly the owner\'s five', () => {
+    const every: StanjeMojePrijave[] = ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED', 'WITHDRAWN', 'SELECTED', 'CLOSED'];
+    for (const state of every) {
+      const { key, text } = applicationStatus(state);
+      expect(STATUS_CHIPS[key].word).toBe(text);
+      expect(workerPrijava(inState(state)).status).toBe(key);
+    }
+    expect(new Set(every.map(state => applicationStatus(state).text))).toEqual(new Set(['Poslata', 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena']));
   });
 
-  it('a chosen application reads green and a waiting one warns once, with the one orange dot in its foot; one that is over is quiet', async () => {
-    await render(<ApplicationCard row={inState('SELECTED')} {...handlers()} />);
-    expect(style(textNode('Izabrana')).color).toBe(sys.color.green);
+  it('never says "Odbijena" or "Zatvorena": CLOSED merges not chosen, expired and a closed task, and is "Nije izabrana"', () => {
+    expect(applicationStatus('CLOSED').text).toBe('Nije izabrana');
+    for (const [state] of WORDS) expect(applicationStatus(state).text).not.toMatch(/Odbijena|Zatvorena|Zadatak/);
+  });
+
+  it('a changed task is still the application that was sent: the chip says "Poslata" and one line under it says the task changed; a closed one says what is true of all its causes', async () => {
     await render(<ApplicationCard row={inState('STALE_REVIEW_REQUIRED')} {...handlers()} />);
-    // Review r4 item 6 (was: the status line in warn with an orange dot, and the foot the same again). The status is
-    // said once in ink; the foot carries the card's one orange dot and the warn words (R1 A13, B1).
-    expect(style(textNode('Potrebna nova provera')).color).toBe(sys.color.ink);
-    expect(style(tree.root.findByProps({ testID: 'card-status-dot' })).backgroundColor).toBe(sys.color.ink);
+    expect(texts().slice(0, 2)).toEqual(['Poslata', 'Zadatak je izmenjen.']);
+    expect(style(textNode('Zadatak je izmenjen.')).color).toBe(sys.color.warn);
+    await render(<ApplicationCard row={inState('CLOSED')} {...handlers()} />);
+    expect(texts().slice(0, 2)).toEqual(['Nije izabrana', 'Zadatak više ne prima prijave.']);
+    expect(style(textNode('Zadatak više ne prima prijave.')).color).toBe(sys.color.muted);
+    // An open, chosen or withdrawn one needs no line: the chip is all there is to say.
+    for (const state of ['SUBMITTED', 'VIEWED', 'SELECTED', 'WITHDRAWN'] as const) {
+      await render(<ApplicationCard row={inState(state)} {...handlers()} />);
+      expect(texts()[1]).toBe('Unos ormara');
+    }
+  });
+
+  it('a waiting application carries the card\'s one orange dot, in its foot; the chip itself never turns orange', async () => {
+    await render(<ApplicationCard row={inState('STALE_REVIEW_REQUIRED')} {...handlers()} />);
+    // Review r4 item 6 (was: the status line in warn with an orange dot, and the foot the same again). The foot carries the one
+    // orange dot of the card and the warn words (R1 A13, B1); the chip is the neutral "Poslata".
     expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && style(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(style(textNode('Pregledaj izmene zadatka')).color).toBe(sys.color.warn);
+    expect(style(chips()[0]).backgroundColor).toBe(sys.color.wash);
+    await render(<ApplicationCard row={inState('SELECTED')} {...handlers()} />);
+    expect(style(chips()[0]).backgroundColor).toBe(sys.color.greenSoft);
     await render(<ApplicationCard row={inState('WITHDRAWN')} {...handlers()} />);
     expect(style(textNode('Povučena')).color).toBe(sys.color.muted);
   });
@@ -149,77 +178,87 @@ describe('the one foot action', () => {
   });
 });
 
-describe('my offer', () => {
-  it('says "Tvoja ponuda" and the amount in the money colour, weight and tabular figures, its currency kept, "ukupno" under it as a word', async () => {
+describe('the facts, in one fixed order', () => {
+  it('says the task, then the term, the price, the people and my message, and nothing else', async () => {
     await render(<ApplicationCard row={row()} {...handlers()} />);
-    expect(texts()).toContain('Tvoja ponuda');
-    expect(style(textNode('4.500 RSD'))).toMatchObject({ color: sys.color.money, fontWeight: '700', fontVariant: ['tabular-nums'] });
-    // What the amount buys is a word: it never wears the money colour or weight.
-    expect(style(textNode('ukupno'))).toMatchObject({ color: sys.color.muted, fontWeight: '500' });
-    expect(textNode('ukupno').parent).toBe(textNode('4.500 RSD').parent);
-    expect(texts()).toContain('Dolaze 2 osobe');
+    // The same order on every card of the list and on the requester's card of the same application (PrijavaCard); the foot, when the
+    // state allows one, is the last thing on the card.
+    expect(texts()).toEqual(['Poslata', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '2 osobe', '„Donosim trake.“', 'Povuci prijavu']);
+    await render(<ApplicationCard row={inState('CLOSED')} {...handlers()} />);
+    expect(texts()).toEqual(['Nije izabrana', 'Zadatak više ne prima prijave.', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '2 osobe', '„Donosim trake.“']);
   });
 
-  it('a missing amount is a quiet word, never drawn as money, and no amount on the card wears the money colour', async () => {
+  it('says the amount in ink, bold, with tabular figures and its currency kept, and "ukupno" beside it as a quiet word', async () => {
+    await render(<ApplicationCard row={row()} {...handlers()} />);
+    expect(style(textNode('4.500 RSD'))).toMatchObject({ color: sys.color.money, fontWeight: '600', fontVariant: ['tabular-nums'], textAlign: 'left' });
+    // What the amount buys is a word: it never wears the amount's weight.
+    expect(style(textNode('ukupno'))).toMatchObject({ color: sys.color.muted, fontWeight: '500' });
+    expect(textNode('ukupno').parent).toBe(textNode('4.500 RSD').parent);
+  });
+
+  it('a missing amount says "Iznos nije sačuvan" as a quiet word, never drawn as money', async () => {
     for (const cena of [{ iznos: 0, valuta: 'RSD', prikaz: '' }, { iznos: Number.NaN, valuta: 'RSD', prikaz: 'NaN RSD' }, { iznos: 3000, valuta: 'RSD', prikaz: ' ' }]) {
       await render(<ApplicationCard row={row({ cena })} {...handlers()} />);
       expect(applicationValue({ cena })).toEqual({ kind: 'unpriced' });
-      expect(texts()).toContain('Tvoja ponuda'); expect(texts()).not.toContain('ukupno');
-      const word = style(textNode('Cena nije navedena'));
+      expect(texts()).not.toContain('ukupno');
+      const word = style(textNode('Iznos nije sačuvan'));
       expect(word.color).toBe(sys.color.muted); expect(word.color).not.toBe(sys.color.money); expect(word.fontWeight).not.toBe('700');
-      expect(texts().some(text => /RSD|NaN/.test(text))).toBe(false);
+      // No figure, no currency, and never "0 RSD".
+      expect(texts().some(text => /RSD|NaN|^0/.test(text))).toBe(false);
+      expect(texts()).not.toContain('Cena nije navedena');
     }
   });
 
   it('the people follow Serbian counts, and a short message stays complete in quotes', async () => {
-    expect(offerPeople(1)).toBe('Dolazi 1 osoba'); expect(offerPeople(3)).toBe('Dolaze 3 osobe'); expect(offerPeople(12)).toBe('Dolazi 12 osoba');
+    for (const [places, said] of [[1, '1 osoba'], [2, '2 osobe'], [5, '5 osoba'], [12, '12 osoba']] as const) {
+      await render(<ApplicationCard row={row({ pokrivaMesta: places })} {...handlers()} />);
+      expect(texts()).toContain(said);
+    }
     await render(<ApplicationCard row={row({ napomena: '  Donosim trake.  ' })} {...handlers()} />);
     expect(textNode('„Donosim trake.“').props.numberOfLines).toBeUndefined();
     await render(<ApplicationCard row={row({ napomena: '   ' })} {...handlers()} />);
     expect(texts().some(text => text.startsWith('„'))).toBe(false);
   });
 
-  // Review r4 item 2: nobody comes for an application that is over, so it says how many it offered, not "Dolaze".
-  // Verify r4b item A adds SELECTED: the read carries no Dogovor state, so a chosen offer whose Dogovor is finished
-  // cannot say that someone is coming (seen on the emulator); "Otvori Dogovor" holds the live facts.
-  it.each([['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena'], ['SELECTED', 'Izabrana']] as const)('%s says the people it offered, never that they are coming', async (state, word) => {
-    expect(offerPeople(2, true)).toBe('2 osobe'); expect(offerPeople(1, true)).toBe('1 osoba');
-    expect(offerSettled(state)).toBe(true);
+  // The people are a count of what the application offered, in every state: nobody "comes" for one that is over, and the read carries no
+  // Dogovor state for a chosen one (verify r4b item A), so the card never promises that anyone is coming.
+  it.each([['SUBMITTED', 'Poslata'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Nije izabrana'], ['SELECTED', 'Izabrana']] as const)('%s says how many people it offered, never that they are coming', async (state, word) => {
     await render(<ApplicationCard row={inState(state)} {...handlers()} />);
     expect(texts()).toContain('2 osobe');
-    expect(texts().some(text => /^Dolaz/.test(text))).toBe(false);
-    expect(presses()[0].props.accessibilityValue.text).toBe(`${word}, Liman, Novi Sad, 20. sep · 10:00–11:00, Tvoja ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.`);
+    expect(texts().some(text => /^Dolaz/i.test(text))).toBe(false);
+    const reason = state === 'CLOSED' ? ', Zadatak više ne prima prijave' : '';
+    expect(presses()[0].props.accessibilityValue.text).toBe(`${word}${reason}, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.`);
   });
 
-  it('every open state still says the people are coming', async () => {
-    for (const state of ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED'] as const) {
-      expect(offerSettled(state)).toBe(false);
-      await render(<ApplicationCard row={inState(state)} {...handlers()} />);
-      expect(texts()).toContain('Dolaze 2 osobe');
-    }
-  });
-
-  it('the offer stays on its text column, wraps a long amount and keeps the complete title at large text', async () => {
+  it('the price stays on its text column, wraps a long amount and keeps the complete title at large text', async () => {
     mockScale = 1.3;
     await render(<ApplicationCard row={row()} {...handlers()} />);
     const amount = textNode('4.500 RSD');
     expect(style(amount).textAlign).toBe('left');
-    expect(style(amount.parent!)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+    expect(style(amount.parent!)).toMatchObject({ flexDirection: 'column', flexWrap: 'wrap' });
     expect(style(amount)).toMatchObject({ flexShrink: 1, maxWidth: '100%' });
-    expect(style(amount.parent!.parent!).flexDirection).not.toBe('row');
     expect(textNode('Unos ormara').props.numberOfLines).toBeUndefined();
     mockScale = 1;
     await render(<ApplicationCard row={row()} {...handlers()} />);
-    expect(style(textNode('4.500 RSD')).textAlign).toBe('left');
+    expect(style(tree.root.findByType(PrijavaPriceText).findAllByType('View' as React.ElementType)[0]).flexDirection).toBe('row');
     expect(textNode('4.500 RSD').parent).toBe(textNode('ukupno').parent);
+  });
+
+  it('the people and the message are fact pictures of their own, and the amount is the only thing drawn as money', async () => {
+    await render(<ApplicationCard row={row()} {...handlers()} />);
+    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['users', 'chat']);
   });
 });
 
-it('is heard once: the command name, then status, place, time, the offer, the people and my message', async () => {
+it('is heard once: the command name, then the state, the term, the offer, the people and my message', async () => {
   await render(<ApplicationCard row={inState('SELECTED')} {...handlers()} />);
-  expect(presses()[0].props.accessibilityValue).toEqual({ text:
-    // Verify r4b item A: a chosen offer says the people it offered ("2 osobe"), not "Dolaze 2 osobe".
-    'Izabrana, Liman, Novi Sad, 20. sep · 10:00–11:00, Tvoja ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.' });
+  expect(presses()[0].props.accessibilityValue).toEqual({ text: 'Izabrana, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.' });
+  expect(applicationSpoken(inState('SELECTED'))).toBe('Izabrana, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.');
+  // The chip is not a stop of its own: it sits inside the one press and is hidden from a screen reader.
+  let node: ReactTestInstance | null = tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.testID === 'status-chip')[0];
+  let hidden = false;
+  while (node) { if (node.props.importantForAccessibility === 'no-hide-descendants') hidden = true; node = node.parent; }
+  expect(hidden).toBe(true);
 });
 
 
@@ -270,13 +309,12 @@ describe('reading my complete application message', () => {
   });
 });
 
-// The execution mode is a server fact. Identical visible words must never be parsed to choose geography art.
-it.each(['REMOTE', 'STATIONARY', undefined] as const)('uses authoritative application geography for %s', async mode => {
+// The place is the task's, not the application's: whatever the read says about the execution mode (a server fact, never parsed from words),
+// the card draws no place row.
+it.each(['REMOTE', 'STATIONARY', undefined] as const)('draws no place for an application of a task with execution mode %s', async mode => {
   const taskFacts = mode ? { raspored: { kind: 'REMOTE_ANYTIME' as const, startsAt: null, endsAt: null },
     rezimLokacije: mode, vremenskaZona: null, rezimCene: 'OFFERS' as const, osnovaCene: null, potrebnoMesta: 1 } : undefined;
   await render(<ApplicationCard row={row({ zadatak: taskFacts, podrucjeTekst: 'Na daljinu' })} {...handlers()} />);
-  const geography = tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)
-    && ['pin', 'remote'].includes(node.props.kind));
-  expect(geography.map(node => node.props.kind)).toEqual([mode === 'REMOTE' ? 'remote' : 'pin']);
-  expect(texts()).toContain('Na daljinu');
+  expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType) && ['pin', 'remote'].includes(node.props.kind))).toHaveLength(0);
+  expect(texts()).not.toContain('Na daljinu');
 });

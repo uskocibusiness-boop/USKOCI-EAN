@@ -122,7 +122,7 @@ it('entry hides unsupported group and discards late availability after account t
  // blank. What this test is about is unchanged: the late answer for the old account is discarded,
  // no entry appears, and nothing navigates.
  await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});
- expect(text()).toBe('Grupni razgovor se otvara kada su u ovom Zadatku izabrana najmanje dva nezavisna učesnika.');
+ expect(text()).toBe('Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika.');
  expect(mockPush).not.toHaveBeenCalled();
 });
 it('selects only an actually visible group message and preserves the read-only support exit',async()=>{

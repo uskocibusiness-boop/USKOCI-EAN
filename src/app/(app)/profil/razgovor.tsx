@@ -15,7 +15,8 @@ import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiReviewDetails, type WorkerAiManualDraft } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiReviewDetails, type WorkerAiManualDraft, type WorkerAiManualPart } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WORKER_PART_TITLE, type WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { CalendarScreen } from '../../../ui/calendar/CalendarControls';
 import { T } from '../../../ui/Text';
@@ -41,10 +42,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
   const panelScope=useRef<object>({}),renderedPanel=panelScope.current,panelWrite=useRef(false);
   const manualEdits=useRef({dirty:false,revision:0,sourceRevision:null as number|null,value:null as WorkerAiManualDraft|null}),manualQuestion=useRef<object|null>(null);
-  const showPanel=(next:Panel)=>{manualEdits.current={dirty:false,revision:manualEdits.current.revision+1,sourceRevision:null,value:null};manualQuestion.current=null;
+  // A focused editor opens one part (`part`); where it was opened from (`origin`: the conversation, or the review) is where Back and a
+  // confirmed discard return. The whole manual form and the week open with no part and return to the conversation.
+  const [part,setPart]=useState<WorkerAiManualPart|null>(null),origin=useRef<'chat'|'review'>('chat');
+  const showPanel=(next:Panel,opening?:{part?:WorkerAiManualPart;from?:'chat'|'review'})=>{
+    manualEdits.current={dirty:false,revision:manualEdits.current.revision+1,sourceRevision:null,value:null};manualQuestion.current=null;
+    origin.current=opening?.from??'chat';setPart(opening?.part??null);
     panelScope.current={};setPanel(next);};
   const [leaving,setLeaving]=useState(false);
-  const [menu,setMenu]=useState(false);
+  const [menu,setMenu]=useState(false),[adding,setAdding]=useState(false);
   const draftText=useRef(input);draftText.current=input;
   const draftRevision=useRef(0);
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
@@ -175,9 +181,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(!current()||panelScope.current!==renderedPanel)return;
     // Retire immediately, before navigation emits blur. Aborting the local stream is not a
     // server cancellation: the journal stays owned by this turn for readback on return.
-    focus.current=null;setLeaving(true);setMenu(false);retireConfirmation();
+    focus.current=null;setLeaving(true);setMenu(false);setAdding(false);retireConfirmation();
     voice.controller.cancel('navigation');abort.current?.abort();abort.current=null;setStream('');navigate();
   };
+  // Where an editor returns to: the review it was opened from (the same proposal, nothing changed), otherwise the conversation.
+  const closeEditor=()=>showPanel(origin.current==='review'&&data?.review&&!data.saved?'review':'chat');
   const back=()=>{
     if(!current()||panelScope.current!==renderedPanel)return;
     if(panel==='manual'){
@@ -193,13 +201,13 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
           onConfirm:()=>{
             if(!current()||panelScope.current!==renderedPanel||manualQuestion.current!==token||manualBackBlocked.current
               ||panelWrite.current||!manualEdits.current.dirty||manualEdits.current.revision!==revision)return;
-            showPanel('chat');
+            closeEditor();
           }});
         return;
       }
-      showPanel('chat');return;
+      closeEditor();return;
     }
-    if(panel!=='chat'){if(!editor.busy&&!panelWrite.current)showPanel('chat');return;}
+    if(panel!=='chat'){if(!editor.busy&&!panelWrite.current){if(panel==='availability')closeEditor();else showPanel('chat');}return;}
     leave(()=>router.canGoBack()?router.back():router.replace('/profil/radnik'));
   };
   const manualBack=useRef({panel,back});manualBack.current={panel,back};
@@ -231,10 +239,19 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       const next=await read();if(next.ok&&current())showPanel('review');return next;
     });
   };
-  const patch=async(value:WorkerAiPatch)=>{
+  // `thenReview`: the change was made from the review. Its frozen content belongs to the old revision, so the change is
+  // followed by a fresh review of the new proposal (the same prepare, in the same single flight), and the person lands on it.
+  const patch=async(value:WorkerAiPatch,thenReview=false)=>{
     if(!canAct()||!enabled||!writable||!data)return;
+    const activate=data.review?.activate??data.profileStatus==='DRAFT';
     await savePanel(async()=>{const result=await api.patch(data.conversationId,data.revision,value);
-      if(current()&&result.ok){showPanel('chat');saveKey.current=null;}return current()?result:unavailable();});
+      if(!current())return unavailable();
+      if(!result.ok)return result;
+      saveKey.current=null;
+      if(!thenReview){showPanel('chat');return result;}
+      const prepared=await api.prepare(result.podatak.conversationId,result.podatak.revision,activate);
+      if(!current())return unavailable();if(!prepared.ok)return prepared;
+      const next=await read();if(next.ok&&current())showPanel('review');return next;});
   };
   const save=async()=>{
     const reviewed=data?.review;if(!canAct()||!enabled||!writable||reviewNeedsRestart||!data||!reviewed||!reviewed.canAccept||reviewed.revision!==data.revision||Date.parse(reviewed.expiresAt)<=Date.now())return;
@@ -263,7 +280,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
       'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
-      recovery?.cancelled&&recovery.providerDispatched?'Odgovor je otkazan i podaci su ostali nepromenjeni. Pokušaj se ipak računa, jer je obrada već bila počela.':null;
+      recovery?.cancelled&&recovery.providerDispatched?'Odgovor je otkazan i podaci su ostali nepromenjeni. Poruka se ipak računa kao poslata, jer je obrada već bila počela.':null;
   if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back}><WorkerProfileStatus loading={leaving||editor.loading||!foreground||resuming}
     error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
   const busyPanelCopy=editor.busy?<T accessibilityRole="alert" variant="meta" tone="muted">Sačekaj potvrdu pre povratka u razgovor.</T>
@@ -274,24 +291,30 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     footer={<>{busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
       <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></>}>
     <AvailabilityForm availability={data.candidate.availability} busy={editor.busy} uncertain={editor.uncertain} refreshing={editor.loading} candidateMode
-      onSave={value=>{if(canAct()&&enabled)void patch(workerAvailabilityPatch(data.candidate.availability,value));}}/>
+      onSave={value=>{if(canAct()&&enabled)void patch(workerAvailabilityPatch(data.candidate.availability,value),origin.current==='review');}}/>
   </CalendarScreen>;
-  if(panel==='manual')return <WorkerProfileFrame back={back}>
+  if(panel==='manual')return <WorkerProfileFrame back={back} title={part?WORKER_PART_TITLE[part]:undefined}>
     {manualDraftConflict?<T accessibilityRole="alert">Predlog profila je promenjen. Tvoj unos je zadržan, ali ove izmene više ne mogu da se primene.</T>:null}
-    <WorkerAiManual key={data.revision} profile={data.candidate} disabled={!enabled||manualDraftConflict}
+    <WorkerAiManual key={`${data.revision}:${part??''}`} profile={data.candidate} only={part??undefined} disabled={!enabled||manualDraftConflict}
       initialDraft={manualEdits.current.dirty?manualEdits.current.value??undefined:undefined}
-      apply={value=>{if(!manualDraftConflict)void patch(value);}} onDraftChange={manualChanged}/>
+      apply={value=>{if(!manualDraftConflict)void patch(value,origin.current==='review');}} onDraftChange={manualChanged}/>
     {manualDraftConflict?<V2Action tone="neutral" label="Odbaci izmene i nastavi" kind="quiet" disabled={manualBackBlocked.current||panelWrite.current} onPress={back}/>:null}
     {busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
     <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
   if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
-    return <WorkerProfileFrame back={back} footer={data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:<>
-      <V2Action tone="neutral" label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
+    // "Izmeni" at a part opens that part's editor and comes back to a fresh review (see `patch`).
+    const editPart=(next:WorkerAiPart)=>{
+      if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;
+      if(next==='time')showPanel('availability',{from:'review'});else showPanel('manual',{part:next,from:'review'});
+    };
+    return <WorkerProfileFrame back={back} title="Tvoj radni profil" footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:<>
+      <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
         disabled={!enabled||!writable||reviewNeedsRestart||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
+      <V2Action tone="neutral" label="Nazad na razgovor" disabled={editor.busy} onPress={back}/>
       {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
-      <WorkerAiReviewDetails review={frozen}/>
+      <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}/>
       {/* Owner 2026-10-07: the interview ends by saying what it is for, as a fixed line (no extra AI call, no server change). */}
       {!data.saved?<WorkerAiNotificationsNote/>:null}
       {busyPanelCopy}
@@ -304,9 +327,6 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         <T variant="note" tone="muted">{editor.uncertain?'Proveri stanje, pa otvori nov razgovor.':'Ovaj predlog više ne može da se sačuva. Novi razgovor kreće od tvog sačuvanog profila.'}</T>
         <V2Action tone="neutral" label="Novi razgovor" disabled={!enabled} onPress={restart}/>
       </>:null}
-      {!data.saved?<><V2Action tone="neutral" label="Ručno uredi podatke" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('manual');}}/>
-        <V2Action tone="neutral" label="Uredi nedelju i posebne datume" kind="quiet" disabled={!enabled} onPress={()=>{if(canAct()&&enabled)showPanel('availability');}}/>
-        <V2Action tone="neutral" label="Nastavi razgovor" kind="quiet" disabled={editor.busy} onPress={back}/></>:null}
       {confirmSheet.sheet}
     </WorkerProfileFrame>;
   }
@@ -325,11 +345,19 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const hasProfileContent = data.messages.some(message => message.role === 'USER')
     || data.candidate.skills.length > 0 || data.candidate.tools.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
-  return <><AiConversationShell conversationKey={data.conversationId} title="Tvoj radni profil"
+  // The "+" of the composer (M1): the parts of the profile, each opening its own editor, for a person who would rather give a
+  // part directly than say it. It changes nothing by itself; "Primeni na pregled profila" in the editor does (one patch).
+  const openPart=(next:WorkerAiPart)=>{
+    if(!canAct()||!enabled||!writable)return;
+    if(next==='time')showPanel('availability');else if(next!=='identity')showPanel('manual',{part:next});
+  };
+  return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
+    attach={writable?{label:'Dodaj podatke',hint:'Veštine, područje, vreme, alat i vozilo.',disabled:!enabled,
+      onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
-    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Koje poslove želiš da radiš?'}
+    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Koje zadatke želiš da preuzimaš?'}
     welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci čime se baviš i šta umeš. Zajedno ćemo složiti tvoj radni profil.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
@@ -350,12 +378,12 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
       {(pending.current||awaiting||editor.uncertain||editor.error)&&!data.saved?<V2Action tone="neutral" label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
       {pending.current&&recovery?.canCancel?<>
-        <T variant="meta" tone="muted">Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, taj pokušaj se ipak računa.</T>
+        <T variant="meta" tone="muted">Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, poruka se ipak računa kao poslata.</T>
         <V2Action tone="neutral" label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}
-      {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Ponovi isto slanje" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
-      {data.saved?<V2Action tone="neutral" label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))}/>:null}
+      {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Pošalji ponovo" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
+      {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
       {(pending.current||data.stale||reviewNeedsRestart||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action tone="neutral" label="Novi razgovor" kind="quiet" disabled={!canAct()||voiceBusy} onPress={restart}/>:null}
     </>}/>{confirmSheet.sheet}
     {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
@@ -363,5 +391,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         onPress:()=>{if(canAct()&&enabled&&writable)showPanel('manual');}},
       {key:'week',label:'Uredi nedelju i posebne datume',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
         onPress:()=>{if(canAct()&&enabled&&writable)showPanel('availability');}},
-    ]}/>:null}</>;
+    ]}/>:null}
+    {adding?<ActionSheet label="Dodaj podatke" onClose={()=>setAdding(false)} actions={([
+      ['skills','tasks'],['area','pin'],['time','clock'],['tools','tool'],
+    ] as const).map(([key,icon])=>({key,icon,label:key==='area'?'Područje rada':WORKER_PART_TITLE[key],disabled:!enabled||!writable,subtitle:unavailableNow,
+      onPress:()=>openPart(key)}))}/>:null}</>;
 }

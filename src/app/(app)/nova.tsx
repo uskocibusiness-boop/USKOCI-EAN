@@ -382,7 +382,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const sending = radi && sendFlight.current !== null;
   const statusCopy = sending && stanje.status === 'OPEN' ? null : stanje.status !== 'OPEN'
     ? stanje.status === 'ABANDONED' ? 'Razgovor je napušten.'
-      : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani Zadatak možeš otvoriti iz pregleda.'
+      : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.'
         : 'Nastavak ovog razgovora nije dostupan.'
     : abandoning.current ? 'Napuštanje razgovora još nije potvrđeno. Proveri stanje pre ponovnog pokušaja.'
       // A dispatched attempt that can already be cancelled is one whose lease the server has let
@@ -394,11 +394,11 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
         ? editor.data?.recovery?.canCancel && editor.data.recovery.providerDispatched
           ? 'AI još nije odgovorio na ovu poruku. Ako ne stigne, otkaži slanje pa pošalji ponovo.'
           : 'AI još obrađuje poruku. Proveri ishod.'
-        : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Ponovi isti zahtev.'
+        : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Pošalji ponovo.'
           : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkaži ga da ponovo uneseš poruku.'
           : 'Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.'
         : editor.data?.recovery?.cancelled && editor.data.recovery.providerDispatched
-          ? 'Odgovor je otkazan i podaci su ostali nepromenjeni. Pokušaj se ipak računa, jer je obrada već bila počela.'
+          ? 'Odgovor je otkazan i podaci su ostali nepromenjeni. Poruka se ipak računa kao poslata, jer je obrada već bila počela.'
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
           ? 'AI nije primenio prethodnu poruku. Možeš je izmeniti i poslati ponovo.' : null;
 

@@ -21,13 +21,13 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
       <ProductHeader title="Pregled završetka" backLabel="Nazad na Dogovor" back={back} />
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.intro}>
-          <T accessibilityRole="header" variant="title" style={s.title}>{worker ? 'Javi da je posao gotov' : 'Potvrdi obavljen posao'}</T>
+          <T accessibilityRole="header" variant="title" style={s.title}>{worker ? 'Zadatak je gotov?' : 'Potvrdi završetak'}</T>
           <T variant="body" tone="muted">{worker
             ? 'Druga strana će dobiti zahtev da potvrdi završetak ili prijavi problem. Dogovor zatim čeka potvrdu.'
-            : 'Potvrđuješ da je posao obavljen po prihvaćenim uslovima. Kada završetak bude potvrđen, možeš da oceniš saradnju.'}</T>
+            : 'Potvrđuješ da je zadatak obavljen po prihvaćenim uslovima. Kada završetak bude potvrđen, možeš da oceniš saradnju.'}</T>
         </View>
         <View style={s.terms}>
-          <T variant="meta" tone="muted">Prihvaćeni uslovi</T>
+          {/* No eyebrow over the title ("Prihvaćeni uslovi"): the facts under it are the accepted terms, and say so in their own labels. */}
           <T variant="heading" style={s.ink}>{readableTitle(agreement.naslov)}</T>
           {other ? <T variant="body" tone="muted">{other.ime}</T> : null}
           <ProductFacts>
@@ -46,7 +46,7 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
         </View> : null}
       </ScrollView>
       <View style={s.footer}>
-        <V2Action label={worker ? 'Da, posao je gotov' : 'Da, potvrdi završetak'} onPress={confirm} style={brandAction} />
+        <V2Action label={worker ? 'Da, zadatak je gotov' : 'Da, potvrdi završetak'} onPress={confirm} style={brandAction} />
       </View>
     </SafeAreaView>
   </Modal>;

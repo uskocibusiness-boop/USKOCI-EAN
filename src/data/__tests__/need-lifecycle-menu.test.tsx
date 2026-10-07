@@ -74,8 +74,13 @@ it('draws nothing of its own at rest: its entries live in the screen\'s "···"
 it('asks in a ConfirmSheet with its own words, persists before sending, sends once, and shows the outcome on the screen', async () => {
   await render(); await request('CANCEL');
   expect(sheets()).toHaveLength(1);
+  // One sentence of consequence (what happens, and where it is found afterwards), and the reasons the server keeps with a cancellation as chips,
+  // which is why this question is a bottom sheet (it carries content) and none of them is required.
   expect(sheets()[0].props).toMatchObject({ title: 'Otkaži zadatak?', confirmLabel: 'Otkaži zadatak', tone: 'danger',
-    message: 'Zadatak prestaje da prima prijave, a postojeće prijave se zatvaraju. Ako već postoji Dogovor, otkazivanje ide kroz taj Dogovor.' });
+    message: 'Zadatak više ne prima prijave, a poslate prijave se zatvaraju. Ostaje u istoriji.' });
+  expect(sheets()[0].props.extra).toBeDefined();
+  expect(sheets()[0].findAllByProps({ accessibilityRole: 'radio' }).map(node => node.props.accessibilityLabel))
+    .toEqual(['Više mi ne treba', 'Rešeno je drugačije', 'Promenio se termin', 'Drugo']);
   expect(mockService.cancelNeed).not.toHaveBeenCalled(); expect(mockActive).toHaveBeenLastCalledWith(true);
   const stored = deferred<void>(); mockStorage.setItem.mockReturnValueOnce(stored.promise);
   await pressIn('confirm-sheet-confirm');
@@ -94,11 +99,52 @@ it('asks in a ConfirmSheet with its own words, persists before sending, sends on
 it('a draft is deleted with its own words; an action the Task does not allow opens nothing', async () => {
   await render(); await request('DELETE_DRAFT'); expect(sheets()).toHaveLength(0);
   need = { ...need, stanje: 'NACRT' }; await refresh();
+  // A draft is deleted, never cancelled: it was never published, so there is nobody to cancel it for.
+  await request('CANCEL'); expect(sheets()).toHaveLength(0); expect(mockActive).toHaveBeenLastCalledWith(false);
   await request('DELETE_DRAFT');
-  expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger' });
+  // A short question stays a centred dialog: its sentence is the consequence, and it asks for no reason, because a deletion takes none.
+  expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger',
+    message: 'Nacrt se briše zauvek i ne može da se vrati. Ako ima fotografije, prvo ih ukloni iz nacrta.' });
+  expect(sheets()[0].props.extra).toBeUndefined();
   await pressIn('confirm-sheet-confirm');
   expect(mockService.deleteDraftNeed.mock.calls).toEqual([[N, 3, '']]); expect(mockService.cancelNeed).not.toHaveBeenCalled();
   expect(texts()).toContain('Nacrt je obrisan.'); expect(texts()).not.toMatch(/server/i);
+});
+
+it('a cancellation takes the reason the person chose, keeps it in the retained command, and sends exactly that; a chosen chip is chosen again to take it back', async () => {
+  await render(); await request('CANCEL');
+  const chip = (label: string) => sheets()[0].findByProps({ accessibilityLabel: label });
+  await act(async () => { chip('Promenio se termin').props.onPress(); });
+  expect(chip('Promenio se termin').props.accessibilityState).toEqual({ checked: true });
+  await act(async () => { chip('Promenio se termin').props.onPress(); });
+  expect(chip('Promenio se termin').props.accessibilityState).toEqual({ checked: false });
+  await act(async () => { chip('Rešeno je drugačije').props.onPress(); });
+  await pressIn('confirm-sheet-confirm');
+  expect(JSON.parse(mockStorage.setItem.mock.calls[0][1])).toEqual({ ...command, reason: 'Rešeno je drugačije' });
+  expect(mockService.cancelNeed.mock.calls).toEqual([[N, 3, 'Rešeno je drugačije']]);
+});
+
+it('a reason chosen in a question that was cancelled does not travel into the next one: it starts with none', async () => {
+  await render(); await request('CANCEL');
+  await act(async () => { sheets()[0].findByProps({ accessibilityLabel: 'Više mi ne treba' }).props.onPress(); });
+  await pressIn('confirm-sheet-cancel'); expect(sheets()).toHaveLength(0);
+  await request('CANCEL');
+  expect(sheets()[0].findByProps({ accessibilityLabel: 'Više mi ne treba' }).props.accessibilityState).toEqual({ checked: false });
+  await pressIn('confirm-sheet-confirm');
+  expect(JSON.parse(mockStorage.setItem.mock.calls[0][1])).toEqual(command);
+  expect(mockService.cancelNeed.mock.calls).toEqual([[N, 3, '']]);
+});
+
+it('restores only the command it stored: no reason, or one of the chips of a cancellation', async () => {
+  const stored = (patch: object) => JSON.stringify({ ...command, ...patch });
+  for (const [patch, restored] of [[{}, true], [{ reason: 'Promenio se termin' }, true], [{ reason: 'Drugo' }, true], [{ reason: 'nešto sasvim treće' }, false],
+    [{ action: 'DELETE_DRAFT', reason: 'Promenio se termin' }, false]] as const) {
+    mockStorage.getItem.mockReset(); mockStorage.getItem.mockResolvedValue(stored(patch)); mockService.readCommandReceipt.mockReset();
+    mockService.readCommandReceipt.mockResolvedValue({ ok: true, podatak: { state: 'NOT_CONFIRMED' } });
+    await render();
+    expect([patch, mockService.readCommandReceipt.mock.calls.length > 0]).toEqual([patch, restored]);
+    await act(async () => tree.unmount());
+  }
 });
 
 it('cancelling the question sends nothing, frees the screen, and the question can be asked again', async () => {
@@ -112,8 +158,8 @@ it('keeps an uncertain outcome and its recovery on the screen, never inside a sh
   mockService.cancelNeed.mockResolvedValue({ ok: false, kod: 'UNKNOWN_OUTCOME', poruka: 'Ishod nije potvrđen.' });
   await render(); await request('CANCEL'); await pressIn('confirm-sheet-confirm');
   expect(sheets()).toHaveLength(0);
-  expect(actions()).toEqual(expect.arrayContaining(['Proveri ishod', 'Ponovi isti zahtev']));
-  expect(tree.root.findByProps({ label: 'Ponovi isti zahtev' }).props.disabled).toBe(true);
+  expect(actions()).toEqual(expect.arrayContaining(['Proveri ishod', 'Pošalji ponovo']));
+  expect(tree.root.findByProps({ label: 'Pošalji ponovo' }).props.disabled).toBe(true);
   await act(async () => { tree.root.findByProps({ label: 'Proveri ishod' }).props.onPress(); });
   expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command); expect(mockService.cancelNeed).toHaveBeenCalledTimes(1);
 });
@@ -172,7 +218,8 @@ it('opens the Dogovori for a task with agreed places, and the handle goes with t
 it('offers the "···" the entries the Task allows: agreed places go through the Dogovori, a closed task offers nothing', () => {
   const base = { id: N, revizija: 3, naslov: 'x', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2 } } as PotrebaProjekcija;
   expect(needLifecycleEntries(null)).toEqual({ deleteDraft: false, cancel: false, agreements: false });
-  expect(needLifecycleEntries({ ...base, stanje: 'NACRT' })).toEqual({ deleteDraft: true, cancel: true, agreements: false });
+  // A draft offers ONLY the deletion: the two side by side asked a person to choose between ending the same unpublished thing two ways.
+  expect(needLifecycleEntries({ ...base, stanje: 'NACRT' })).toEqual({ deleteDraft: true, cancel: false, agreements: false });
   expect(needLifecycleEntries({ ...base, stanje: 'OBJAVLJENA' })).toEqual({ deleteDraft: false, cancel: true, agreements: false });
   expect(needLifecycleEntries({ ...base, stanje: 'ZATVORENA' })).toEqual({ deleteDraft: false, cancel: false, agreements: false });
   expect(needLifecycleEntries({ ...base, stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1 } } as PotrebaProjekcija))

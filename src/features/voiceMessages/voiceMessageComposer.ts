@@ -167,6 +167,8 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     let answer;
     try { answer = await options.recorder.requestPermission(); } catch { answer = 'unavailable' as const; }
     if (!alive(g) || phase !== 'requesting') return;
+    // "Ne sada" to the question before the system's window: nothing was asked and nothing went wrong, so the composer is as it was.
+    if (answer === 'later') { phase = 'idle'; publish(); return; }
     if (answer !== 'granted') {
       phase = 'idle'; fail(error(answer === 'blocked' ? 'MIC_PERMISSION_BLOCKED' : answer === 'unavailable' ? 'MIC_UNAVAILABLE' : 'MIC_PERMISSION_DENIED')); publish(); return;
     }

@@ -32,6 +32,17 @@ export function publicationIsCurrent(handoff: PublicationHandoff): boolean {
     && session.accountRevision === handoff.accountRevision;
 }
 
+/**
+ * Where a confirmed publication lands: the task's OWN overview (owner, 2026-10-07: the whole life of a task "vidno i lako
+ * razumljivo"), not the Zadaci map. The pin was a stranger's view of the task and the map a place to look for work; the overview
+ * is where the owner sees what the task is doing and what comes next. The review route asks for it only through a hand-off it
+ * just made (`rememberPublication` has proved account, revision and the read-back), so the id here is the proved one. The Zadaci
+ * landing that read the same hand-off from the URL stays in `zadaci.tsx` for an old link; nothing in the app sends it there now.
+ */
+export function publishedTaskRoute(handoff: PublicationHandoff) {
+  return { pathname: '/potrebe/[id]/pregled', params: { id: handoff.needId } } as const;
+}
+
 /** An external/old route is not proof of ownership or of a publication performed in this app session. */
 export function readPublicationHandoff(params: {
   publishedHandoff?: unknown; publishedNeedId?: unknown; publishedRevision?: unknown;

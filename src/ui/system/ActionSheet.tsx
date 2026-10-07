@@ -14,7 +14,16 @@ export type SheetAction = {
   onPress: () => void;
   /** Ends, removes or reports something. Always drawn last and in the danger colour, whatever order it was given in. */
   destructive?: boolean;
+  /**
+   * Cannot be used now. The row is drawn on the grey wash in muted ink, never faded (plan 2.18: unavailable is grey, with
+   * a reason, not a ghost of the live row). Give it a `reason`.
+   */
   disabled?: boolean;
+  /**
+   * Why a disabled row cannot be used now, in the caller's words: the one quiet line under its label (in place of
+   * `subtitle`), spoken as the hint. A grey row that says nothing is a row the screen has not finished.
+   */
+  reason?: string;
   /** Said by a screen reader after the label, when the label alone does not say what happens. */
   hint?: string;
   /**
@@ -52,21 +61,29 @@ export function ActionSheet({ title, label = 'Radnje', actions, onClose, reduced
   // titled one does not repeat it: the visible heading is read right before the menu, and saying it twice is noise.
   return <ProductSheet title={title} label={label} reduced={reduced} onClose={closed} backdropHint="Zatvara meni bez izbora.">
     {dismiss => <View accessibilityRole="menu" accessibilityLabel={title ? undefined : label} style={s.list}>
-      {ordered.map((action, index) => <View key={action.key}>
-        {index > 0 && index === firstDestructive ? <View style={s.rule} /> : null}
-        <Press accessibilityRole="menuitem" accessibilityLabel={action.label} accessibilityHint={[action.subtitle, action.hint].filter(Boolean).join(' ') || undefined}
-          accessibilityState={{ disabled: !!action.disabled }} disabled={action.disabled}
-          haptic={action.disabled ? 'none' : action.destructive ? 'medium' : 'select'}
-          onPress={() => { if (action.disabled || chosen.current) return; chosen.current = action; dismiss(); }}
-          style={[s.row, action.disabled && s.disabled]}>
-          <View style={[pictureWell, action.destructive && s.dangerWell]}>
-            <FactArt kind={action.icon} size={28} muted={action.destructive || action.disabled} /></View>
-          {action.subtitle ? <View style={s.copy}>
-            <T variant="bodyStrong" style={[s.ink, action.destructive && s.danger]}>{action.label}</T>
-            <T variant="note" tone="muted">{action.subtitle}</T>
-          </View> : <T variant="bodyStrong" style={[s.label, action.destructive && s.danger]}>{action.label}</T>}
-        </Press>
-      </View>)}
+      {ordered.map((action, index) => {
+        const off = !!action.disabled;
+        // A disabled row says why in the line a subtitle would take; a live row keeps its subtitle. Either way what is on
+        // screen is what a screen reader hears, before the row's own hint.
+        const line = off && action.reason ? action.reason : action.subtitle;
+        // Unavailable is grey, never faded: the wash under the row and muted ink, whatever the row would otherwise be.
+        const ink = off ? s.muted : action.destructive ? s.danger : s.ink;
+        return <View key={action.key}>
+          {index > 0 && index === firstDestructive ? <View style={s.rule} /> : null}
+          <Press accessibilityRole="menuitem" accessibilityLabel={action.label} accessibilityHint={[line, action.hint].filter(Boolean).join(' ') || undefined}
+            accessibilityState={{ disabled: off }} disabled={action.disabled}
+            haptic={off ? 'none' : action.destructive ? 'medium' : 'select'}
+            onPress={() => { if (off || chosen.current) return; chosen.current = action; dismiss(); }}
+            style={[s.row, off && s.off]}>
+            <View style={[pictureWell, action.destructive && !off && s.dangerWell, off && s.offWell]}>
+              <FactArt kind={action.icon} size={28} muted={action.destructive || off} /></View>
+            {line ? <View style={s.copy}>
+              <T variant="bodyStrong" style={ink}>{action.label}</T>
+              <T variant="note" tone="muted">{line}</T>
+            </View> : <T variant="bodyStrong" style={[s.label, ink]}>{action.label}</T>}
+          </Press>
+        </View>;
+      })}
     </View>}
   </ProductSheet>;
 }
@@ -83,7 +100,10 @@ const s = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: 2 },
   ink: { color: sys.color.ink },
   danger: { color: sys.color.danger },
-  disabled: { opacity: 0.45 },
+  muted: { color: sys.color.muted },
+  // A row that cannot be used: the grey wash, a white well for its picture, muted ink. Nothing is faded.
+  off: { backgroundColor: sys.color.wash },
+  offWell: { backgroundColor: sys.color.surface },
   rule: { height: 1, backgroundColor: sys.color.line, marginVertical: sys.space.sm,
     marginLeft: ROW_INSET + (pictureWell.width as number) + ROW_GAP },
 });

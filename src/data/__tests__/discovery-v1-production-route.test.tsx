@@ -26,19 +26,6 @@ jest.mock('../../ui/v2/DiscoveryPresentation', () => ({ DiscoveryPresentation: '
 jest.mock('../../ui/v2/discovery/DiscoveryV1Route', () => ({ DiscoveryV1Route: 'P6Route' }));
 
 import Zadaci from '../../app/(app)/zadaci';
-import { rememberPublication } from '../publicationHandoff';
-import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskReviewClientService';
-
-function authenticPublicationParams() {
-  const reviewId = '33333333-3333-4333-8333-333333333333';
-  const handoff = rememberPublication({
-    review: { accountId: ACCOUNT, reviewId } as AiTaskReviewEnvelope,
-    command: { authoritative: true, state: 'PUBLISHED', reviewId, needId: NEED, needRevision: 1 } as AiTaskPublicationCommand,
-    publishedReadback: true,
-  }, { accountId: ACCOUNT, accountRevision: 1 });
-  if (!handoff) throw new Error('Expected an owned publication handoff');
-  return { publishedNeedId: NEED, publishedRevision: '1', publishedHandoff: handoff.token };
-}
 
 const original = process.env.EXPO_PUBLIC_P6_DISCOVERY_READER;
 let tree: ReactTestRenderer | undefined;
@@ -66,17 +53,11 @@ test('the production flag mounts the P6 reader with no proof parameter and no pr
   expect(mounted('LegacyDiscovery')).toBe(0);
 });
 
-test('this session\'s own confirmed publication keeps its separately proved landing reader', async () => {
+// A confirmed publication lands on the task's own overview since 2026-10-07, so the Zadaci route reads no publication hand-off:
+// parameters that still arrive from an old link pin nothing and the production flag alone decides.
+test('old publication parameters are ignored: the production flag still mounts the P6 reader', async () => {
   process.env.EXPO_PUBLIC_P6_DISCOVERY_READER = '1';
-  mockParams = authenticPublicationParams();
-  await render();
-  expect(mounted('LegacyDiscovery')).toBe(1);
-  expect(mounted('P6Route')).toBe(0);
-});
-
-test('publication parameters without this session\'s handoff prove nothing and do not pin the legacy reader', async () => {
-  process.env.EXPO_PUBLIC_P6_DISCOVERY_READER = '1';
-  mockParams = { publishedNeedId: NEED, publishedRevision: '1', publishedHandoff: 'publication-forged' };
+  mockParams = { publishedNeedId: NEED, publishedRevision: '1', publishedHandoff: 'publication-1' };
   await render();
   expect(mounted('P6Route')).toBe(1);
   expect(mounted('LegacyDiscovery')).toBe(0);

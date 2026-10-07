@@ -21,7 +21,7 @@ type Loaded = { need: PotrebaProjekcija; candidates: KandidatProjekcija[]; recei
 type Viewed = { state: 'PENDING' | 'CONFIRMED' | 'UNCONFIRMED' };
 const NO_ROWS: KandidatProjekcija[] = [];
 /** One sentence for the one refusal: the task changed between two reads, so the applications read before it are not the applications of what it is now. */
-const STALE_REVIEW_MESSAGE = 'Zadatak se upravo promenio. Učitaj Prijave ponovo.';
+const STALE_REVIEW_MESSAGE = 'Zadatak se upravo promenio. Učitaj prijave ponovo.';
 
 /**
  * EX-04 S4 (A11): the same applications a page at a time, in the whole-list order. The screen's editor keeps owning the read of the task, the revision check, the offer sheet and the
@@ -64,6 +64,11 @@ export default function Kandidati() {
   // letters the candidate read already carries. One function for the life of the screen, so the memoised rows keep.
   const photo = useCallback((k: KandidatProjekcija, size: AvatarSize) => <ProfilePhoto profileId={k.radnikProfilId} size={size} initial={null}
     fallback={<Avatar size={size} initials={k.inicijali || null} />} />, []);
+  // The applications the server confirmed as seen on this phone: their chip says "Viđena". The candidate read carries no viewed flag, so the
+  // confirmed marks written by `openOffer` are all there is to say it with; an application not in the set reads "Poslata", which is still true.
+  // One Set per distinct content, so the memoised rows do not redraw on every render.
+  const seen = Array.from(session.viewed, ([key, view]) => view.state === 'CONFIRMED' ? key : '').filter(Boolean).sort().join('|');
+  const viewed = useMemo(() => new Set(seen ? seen.split('|') : []), [seen]);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -171,9 +176,9 @@ export default function Kandidati() {
   // offer already chosen was read again on each, e.g. when the viewed mark came back). Every check stays inside it.
   const needId = data?.need.id, chosenId = candidate?.prijavaId;
   const readAgreement = useCallback(async (): Promise<Ishod<{ dogovorId: string | null }>> => {
-    if (!needId || !chosenId || !current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
+    if (!needId || !chosenId || !current()) return { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori prijavu.' };
     const result = await readSelectedAgreement(needId, chosenId);
-    return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori Prijavu.' };
+    return current() ? result : { ok: false, kod: 'STALE_READ', poruka: 'Ponovo otvori prijavu.' };
     // `current` reads the render's focus token and read revision and the account; those are the dependencies.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needId, chosenId, focusToken, readRevision, user?.id, accountRevision, session]);
@@ -187,11 +192,11 @@ export default function Kandidati() {
   const list = <CandidateListPresentation need={data.need} candidates={shownRows} back={back} refresh={refresh} paging={paged?.paging}
     open={openOffer} openTask={openTask} sort={sort}
     onSort={sort => { if (current()) setSorted({ scope: sortScope, sort }); }}
-    comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} />;
+    comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} viewed={viewed} />;
   if (!candidate) return list;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <>{list}<CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
-    photo={photo(candidate, 56)} safety={safety}
+    photo={photo(candidate, 56)} safety={safety} viewed={viewed.has(candidate.prijavaId)}
     // The profile sheet's 96 px portrait, as the task's poster sheet draws it: the photo or its own large stand-in.
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />}
     readAgreement={readAgreement} openLinkedAgreement={agreementId => {
@@ -204,9 +209,9 @@ export default function Kandidati() {
       return current() ? profile : null;
     }}
     choose={choose} busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} refresh={refresh}
-    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovi isti zahtev.'
+    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora pošalji ponovo.'
       : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
-        ? 'Ponuda je otvorena, ali oznaka viđenosti nije potvrđena. Zatvori ponudu i otvori je ponovo da pokušaš još jednom.' : null)}
+        ? 'Ponuda je otvorena, ali nije označena kao viđena. Zatvori je i otvori ponovo.' : null)}
     confirmed={!!data.receipt} openAgreement={() => {
       if (!current() || !data.receipt || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });

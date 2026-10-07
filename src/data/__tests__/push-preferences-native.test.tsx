@@ -335,8 +335,8 @@ it('a connected phone names the set its choice belongs to', async () => {
  const titles = tree.root.findAllByType('Text' as never).map(node => node.props.children);
  expect(titles).toContain('Obaveštenja su uključena');
  await toggleDetails();
- expect(screenText()).toContain('Važi za poslove. Ovaj telefon je povezan sa tvojim nalogom.');
- expect(button('Isključi za poslove')).toBeDefined(); expect(button('Poveži ovaj telefon')).toBeUndefined();
+ expect(screenText()).toContain('Važi za Moje prijave. Ovaj telefon je povezan sa tvojim nalogom.');
+ expect(button('Isključi za moje prijave')).toBeDefined(); expect(button('Poveži ovaj telefon')).toBeUndefined();
 });
 it('on a device without notifications there is still nothing to press, and a set that sends elsewhere says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'UNSUPPORTED' }); await mount();

@@ -511,7 +511,7 @@ def classify_screen(nodes: list[Node], labels: Labels) -> str:
         return 'OPORAVAK_INVALID'
     if has('oporavak.verifying'):
         return 'OPORAVAK_VERIFYING'
-    if has('signup.field.first') and has('signup.field.confirm'):
+    if has('signup.field.first') and has('signup.field.last'):
         return 'SIGNUP_FORM'
     if has('recovery.sent.again'):
         return 'RECOVERY_SENT'

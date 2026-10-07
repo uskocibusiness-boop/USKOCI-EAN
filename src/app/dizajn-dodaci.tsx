@@ -135,7 +135,7 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
     case 'qa-recovery': return <TaskQaPresentation {...qa({ onBack: back, composer: null, text: draft, onText: setDraft,
       // A checked text that is not yet published (READY): the screen offers the retry and the cancel together, and says so plainly.
       recovery: { kind: 'TEXT', absent: true, canCancel: true }, messageTone: 'info',
-      message: 'Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa ponovi isti zahtev.' })} />;
+      message: 'Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa pošalji ponovo.' })} />;
     case 'ch-hub': return <AgreementActionsPresentation {...changes({ onBack: back, snapshot: snapshot({ proposals: [proposal(ME)] }, { canWithdrawChange: true, canProposeChange: false }) })} />;
     case 'ch-other': return <AgreementActionsPresentation {...changes({ onBack: back, snapshot: snapshot({ proposals: [proposal(OTHER)] }, { canRespondChange: true }) })} />;
     case 'ch-form': return <AgreementActionsPresentation {...changes({ onBack: back, onCloseForm: back,

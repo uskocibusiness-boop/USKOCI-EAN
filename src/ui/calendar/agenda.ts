@@ -3,13 +3,15 @@ import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { raspon, vreme } from '../../lib/vreme';
-import { localDayRange, overlapsInterval, zonedParts } from './calendarPresentation';
+import { overlapsInterval } from './calendarPresentation';
+import { serbianClock, serbianDayOf, serbianDayRange } from './serbianDays';
 
 /**
- * The calendar's day plan, built from two reads (round-1 critique A15): the worker schedule, which is the one authority
- * for the work I confirmed, and my Dogovori, which add my own tasks and every finished or waiting Dogovor that has an
- * exact accepted window. Pure and dependency-free on purpose: the calendar screen must not reach the Dogovor
- * presentation, whose photos pull the media service and the Supabase client into the screen's suites.
+ * The Dogovori of the planner ("Raspored"), built from two reads (round-1 critique A15): the worker schedule, which is the
+ * one authority for the work I confirmed, and my Dogovori, which add my own tasks and every finished or waiting Dogovor that
+ * has an exact accepted window. A day is a day of Serbian time (owner, 2026-10-07), the same as the clocks written on it.
+ * Pure and dependency-free on purpose: the calendar screen must not reach the Dogovor presentation, whose photos pull the
+ * media service and the Supabase client into the screen's suites. `planner.ts` puts my tasks and applications beside them.
  */
 
 /**
@@ -23,10 +25,6 @@ export type AgendaState = 'CONFIRMED' | 'AWAITING_REQUESTER' | 'COMPLETED';
 
 export const ROLE_WORKER = 'Uskačeš';
 export const ROLE_REQUESTER = 'Tvoj zadatak';
-/** Equal to AgreementPresentation's agreementStateText; that module cannot be imported here (see above). */
-export const STATUS_WORDS: Readonly<Record<AgendaState, string | null>> = {
-  CONFIRMED: null, AWAITING_REQUESTER: 'Čeka se potvrda završetka', COMPLETED: 'Završeno',
-};
 /** A schedule row whose Dogovor the list did not confirm at the same version is still a confirmed term, never a guess. */
 export const SCHEDULE_FALLBACK_TITLE = 'Potvrđen Dogovor';
 export const LIST_FALLBACK_TITLE = 'Dogovor';
@@ -48,6 +46,10 @@ export type AgendaItem = Readonly<{
   person: string | null;
   /** Where, or '' when the Dogovor does not say. */
   place: string;
+  /** A finished Dogovor that waits for my rating (the server's own flag, as the Dogovori list reads it). */
+  ratingDue: boolean;
+  /** A problem is open on an active Dogovor. */
+  problem: boolean;
 }>;
 
 const PLACED: readonly AgendaState[] = ['CONFIRMED', 'AWAITING_REQUESTER', 'COMPLETED'];
@@ -59,7 +61,13 @@ function mySide(agreement: AgendaAgreement): 'narucilac' | 'uskocer' | null {
   const me = agreement.ucesnici?.find(person => person.viSte);
   return me?.uloga === 'narucilac' || me?.uloga === 'uskocer' ? me.uloga : null;
 }
-function facts(agreement: AgendaAgreement) {
+/** Which side I am on, in the words the rows use ("Tvoj zadatak", "Uskačeš"); null when the Dogovor does not say. */
+export function agendaRole(agreement: AgendaAgreement): string | null {
+  const side = mySide(agreement);
+  return side === 'narucilac' ? ROLE_REQUESTER : side === 'uskocer' ? ROLE_WORKER : null;
+}
+/** What the planner says about a Dogovor, the same wherever it draws one (the day, the loose list and the archive). */
+export function agendaFacts(agreement: AgendaAgreement) {
   const other = agreement.ucesnici?.find(person => !person.viSte);
   const title = typeof agreement.naslov === 'string' ? agreement.naslov.trim().replace(/\s+/g, ' ') : '';
   const place = agreement.rezim === 'DALJINSKI' ? 'Na daljinu' : agreement.putanjaTekst ?? '';
@@ -89,21 +97,24 @@ export function agendaItems({ events, agreements, from, to }: {
   const items: AgendaItem[] = events.map(event => {
     const match = agreements?.find(item => same(item.id, event.agreementId) && item.verzija === event.agreementVersion
       && (ACTIVE as readonly string[]).includes(item.stanje));
-    const known = match ? facts(match) : null;
+    const known = match ? agendaFacts(match) : null;
     return { key: `event:${event.eventId}`, agreementId: event.agreementId, startsAt: event.startsAt, endsAt: event.endsAt,
       state: match ? match.stanje as AgendaState : 'CONFIRMED', role: ROLE_WORKER, title: known?.title ?? null,
       // A waiting row without a title is not called confirmed (round-5c): only a confirmed term takes that name.
-      fallbackTitle: match && match.stanje !== 'CONFIRMED' ? LIST_FALLBACK_TITLE : SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '' };
+      fallbackTitle: match && match.stanje !== 'CONFIRMED' ? LIST_FALLBACK_TITLE : SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '',
+      ratingDue: false, problem: match?.problemOtvoren === true };
   });
   if (agreements) {
     const schedule = new Set(events.map(event => event.agreementId.toLowerCase()));
     for (const agreement of agreements) {
       const window = agreement.tacanTermin;
       if (!window || !candidate(agreement, schedule) || !overlapsInterval(window.pocetak, window.kraj, from, to)) continue;
-      const side = mySide(agreement), known = facts(agreement);
+      const known = agendaFacts(agreement);
       items.push({ key: `agreement:${agreement.id}`, agreementId: agreement.id, startsAt: window.pocetak, endsAt: window.kraj,
-        state: agreement.stanje as AgendaState, role: side === 'narucilac' ? ROLE_REQUESTER : side === 'uskocer' ? ROLE_WORKER : null,
-        title: known.title, fallbackTitle: LIST_FALLBACK_TITLE, amount: known.amount, person: known.person, place: known.place });
+        state: agreement.stanje as AgendaState, role: agendaRole(agreement),
+        title: known.title, fallbackTitle: LIST_FALLBACK_TITLE, amount: known.amount, person: known.person, place: known.place,
+        ratingDue: agreement.stanje === 'COMPLETED' && agreement.ocenaMoguca === true,
+        problem: (ACTIVE as readonly string[]).includes(agreement.stanje) && agreement.problemOtvoren === true });
     }
   }
   return items.sort((a, b) => {
@@ -123,35 +134,30 @@ export function agendaCoverage(agreements: readonly AgendaAgreement[], events: r
 
 /**
  * Active Dogovori (agreed, or waiting for the completion to be confirmed) that have no exact accepted window, and so no
- * place on any day. Those the list does not say about are not counted: nothing is counted that is not known.
+ * place on any day, in the order the list gave them. Those the list does not say about are left out: nothing is listed
+ * that is not known.
  */
-export function withoutExactTerm(agreements: readonly AgendaAgreement[], events: readonly WorkerCalendarEvent[]): number {
+export function agreementsWithoutExactTerm(agreements: readonly AgendaAgreement[], events: readonly WorkerCalendarEvent[]): AgendaAgreement[] {
   const schedule = new Set(events.map(event => event.agreementId.toLowerCase()));
   return agreements.filter(item => (ACTIVE as readonly string[]).includes(item.stanje) && item.tacanTermin === null
-    && !schedule.has(item.id.toLowerCase())).length;
+    && !schedule.has(item.id.toLowerCase()));
+}
+/** How many there are: the number behind Početna's "bez tačnog termina" and behind the planner's own section. */
+export function withoutExactTerm(agreements: readonly AgendaAgreement[], events: readonly WorkerCalendarEvent[]): number {
+  return agreementsWithoutExactTerm(agreements, events).length;
 }
 
-/** The items of one day of the phone's calendar. */
+/** The items of one day of Serbian time (23, 24 or 25 hours long, as the calendar says); the phone's own zone has no say. */
 export function itemsOnDay(items: readonly AgendaItem[], day: string): AgendaItem[] {
-  const range = localDayRange(day);
+  const range = serbianDayRange(day);
   return items.filter(item => overlapsInterval(item.startsAt, item.endsAt, range.from, range.to));
-}
-/** The day's mark in the week strip: green when something active is on it, grey when only finished work is. */
-export function dayMark(items: readonly AgendaItem[], day: string): 'active' | 'finished' | null {
-  const on = itemsOnDay(items, day);
-  return on.some(item => item.state !== 'COMPLETED') ? 'active' : on.length ? 'finished' : null;
 }
 
 /** A clock of an agreed term, in Serbian time (owner rule 8.27): "09:15". */
-export function agendaClock(instant: string): string {
-  const date = new Date(instant);
-  return Number.isNaN(date.getTime()) ? '' : zonedParts(date, DOGOVORENA_ZONA).time.slice(0, 5);
-}
+export const agendaClock = serbianClock;
 /** Whether the whole window lies on the day being read, in Serbian time (the rail's clocks then say everything). */
 export function withinDay(item: Pick<AgendaItem, 'startsAt' | 'endsAt'>, day: string): boolean {
-  const start = new Date(item.startsAt), end = new Date(item.endsAt);
-  return !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())
-    && zonedParts(start, DOGOVORENA_ZONA).date === day && zonedParts(end, DOGOVORENA_ZONA).date === day;
+  return serbianDayOf(item.startsAt) === day && serbianDayOf(item.endsAt) === day;
 }
 /**
  * An item's window in Serbian time: its clocks alone ("09:15–10:45") when the whole window lies on the day being read,

@@ -10,7 +10,7 @@ import { ArrowLeft } from 'phosphor-react-native';
 import { usePasswordRecovery } from '../hooks/usePasswordRecovery';
 import { useSesija } from '../store/sesija';
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
-import { RestrictedAccountPanel } from '../ui/auth/RestrictedAccountPanel';
+import { RestrictedAccountScreen } from '../ui/auth/RestrictedAccountPanel';
 import { BuildIdentity } from '../ui/BuildIdentity';
 import { radius, space, type } from '../theme/tokens';
 
@@ -57,6 +57,12 @@ export default function PasswordRecoveryScreen() {
   }
 
   const state = recovery.state;
+  // Owner decision 2026-10-07, design proposal N3: the link of a restricted account is not "expired", and a new link would
+  // change nothing, so none is offered. The screen is the restricted-account screen with its one way back, not a state under
+  // the greeting of a form that can no longer be used.
+  if (state.status === 'error' && state.error.code === 'RESTRICTED_ACCOUNT') {
+    return <RestrictedAccountScreen exitLabel={user ? 'Nazad u aplikaciju' : 'Nazad na prijavu'} onExit={back} />;
+  }
   return <View style={[styles.screen, { paddingTop: insets.top }]}>
     <StatusBar style="dark" />
     <View style={styles.header}>
@@ -69,7 +75,7 @@ export default function PasswordRecoveryScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(32, insets.bottom + 24) }]}>
         <View style={styles.column}>
           <AuthIntro composition="stage" title={state.status === 'success' ? 'Lozinka je promenjena.' : 'Postavi novu lozinku.'}
-            copy={state.status === 'success' ? 'Isti nalog. Tvoji Zadaci i Dogovori.' : 'Bezbedan povratak u isti USKOČI nalog.'} eyebrow="BEZBEDAN POVRATAK" />
+            copy={state.status === 'success' ? 'Isti nalog. Tvoji zadaci i Dogovori.' : 'Bezbedan povratak u isti USKOČI nalog.'} />
           <View accessibilityLiveRegion="polite" style={[styles.content, authStageForm]}>
             {state.status === 'verifying' ? <>
               <ActivityIndicator accessibilityLabel="Provera linka" color={c.muted} />
@@ -82,7 +88,7 @@ export default function PasswordRecoveryScreen() {
                 placeholder="Unesi novu lozinku" secure newPassword editable={!busy} />
               <AuthField label="Potvrdi novu lozinku" value={confirmation} onChangeText={value => { setConfirmation(value); setValidation(null); }}
                 placeholder="Ponovi novu lozinku" secure newPassword editable={!busy} />
-              <Text style={styles.note}>Ne menjaju se tvoji Zadaci, Prijave ni Dogovori. Posle promene prijavi se novom lozinkom.</Text>
+              <Text style={styles.note}>Ne menjaju se tvoji zadaci, prijave ni Dogovori. Posle promene prijavi se novom lozinkom.</Text>
               {validation || state.error ? <Text accessibilityRole="alert" style={styles.error}>{validation ?? state.error?.message}</Text> : null}
               <PrimaryButton title="Sačuvaj novu lozinku" onPress={() => void save()} busy={busy} />
             </> : null}
@@ -90,12 +96,7 @@ export default function PasswordRecoveryScreen() {
               <Text style={styles.copy}>Možeš da nastaviš. Za ulazak koristiš novu lozinku.</Text>
               <PrimaryButton title="Prijavi se" onPress={back} />
             </> : null}
-            {state.status === 'error' && state.error.code === 'RESTRICTED_ACCOUNT' ? <>
-              {/* Owner decision 2026-10-07: a restricted account's link is not "expired", and a new link would change
-                  nothing, so none is offered; the one way on is back. */}
-              <RestrictedAccountPanel context="RECOVERY" />
-              <PrimaryButton title={user ? 'Nazad u aplikaciju' : 'Nazad na prijavu'} onPress={back} />
-            </> : state.status === 'error' ? <>
+            {state.status === 'error' ? <>
               <Text accessibilityRole="alert" style={styles.error}>{state.error.message}</Text>
               {state.error.code === 'VERIFY_UNAVAILABLE' ? <PrimaryButton title="Pokušaj ponovo" onPress={recovery.retry} /> : null}
               {!user ? <PrimaryButton title="Zatraži novi link" onPress={() => router.replace({ pathname: '/auth', params: { form: 'recovery' } })} /> : null}

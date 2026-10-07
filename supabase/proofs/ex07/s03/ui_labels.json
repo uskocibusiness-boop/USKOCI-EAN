@@ -10,7 +10,6 @@
     { "id": "signup.field.first", "text": "Ime", "match": "exact", "kind": "field", "sources": ["src/app/auth.tsx"] },
     { "id": "signup.field.last", "text": "Prezime", "match": "exact", "kind": "field", "sources": ["src/app/auth.tsx"] },
     { "id": "signup.field.city", "text": "Grad", "match": "exact", "kind": "field", "sources": ["src/app/auth.tsx"] },
-    { "id": "signup.field.confirm", "text": "Potvrdi lozinku", "match": "exact", "kind": "field", "sources": ["src/app/auth.tsx"] },
     { "id": "signup.submit", "text": "Napravi nalog", "match": "exact", "kind": "button", "sources": ["src/app/auth.tsx"] },
     { "id": "confirm.title", "text": "Proveri email", "match": "exact", "kind": "text", "sources": ["src/app/auth.tsx"] },
     { "id": "confirm.back", "text": "Nazad na prijavu", "match": "exact", "kind": "button", "sources": ["src/app/auth.tsx"] },

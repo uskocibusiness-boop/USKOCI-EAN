@@ -149,7 +149,7 @@ const GROUPS: Group[] = [
     { key: 'hub-long', label: 'Profil: dugo ime', draw: () => <Hub identity={ready('Aleksandra Stefanović-Radosavljević', 'Sremska Kamenica, Novi Sad', rating('error'))}
       capabilityDetail="Profil je nacrt — dok je nacrt, zadaci ti se ne nude." workArea="Sremska Kamenica" /> },
     { key: 'hub-photo', label: 'Profil: sa fotografijom', draw: () => <Hub identity={ready('Marko Marić', 'Novi Sad', rating('loading'),
-      <Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.face} />)} capabilityDetail="Profil je obustavljen. Piši podršci."
+      <Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.face} />)} capabilityDetail="Profil je suspendovan. Piši podršci."
       workArea="Nije podešeno" /> },
     { key: 'hub-stacked', label: 'Profil: uzan ekran (složeno)', draw: () => <Hub stacked identity={ready('Aleksandra Stefanović-Radosavljević', 'Novi Sad', rating(RATED))}
       capabilityDetail="Profil je aktivan." workArea="Novi Sad" /> },
@@ -160,7 +160,7 @@ const GROUPS: Group[] = [
     { key: 'worker-loading', label: 'Radni profil: učitavanje', draw: () => <WorkerProfileFrame back={toList.current}>
       <WorkerProfileStatus loading retry={noop} /></WorkerProfileFrame> },
     { key: 'worker-error', label: 'Radni profil: greška', draw: () => <WorkerProfileFrame back={toList.current}>
-      <WorkerProfileStatus loading={false} error="Profil nije učitan. Proveri vezu pa probaj ponovo." retry={noop} /></WorkerProfileFrame> },
+      <WorkerProfileStatus loading={false} error="Profil nije učitan. Proveri vezu pa pokušaj ponovo." retry={noop} /></WorkerProfileFrame> },
     { key: 'worker-first', label: 'Radni profil: prvi put', draw: () => <Worker initial={workerDraft(null)} status={null}
       checks={{ basics: false, area: false }} footer={<WorkerProfileFooter>{primary('Uredi kroz razgovor')}</WorkerProfileFooter>} /> },
     { key: 'worker-missing', label: 'Radni profil: nacrt, nedostaje', draw: () => <Worker initial={draft({ vestine: [], capacity: '' })} status="DRAFT"
@@ -176,10 +176,10 @@ const GROUPS: Group[] = [
     { key: 'worker-saving', label: 'Radni profil: čuva se', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY} disabled
       footer={<WorkerProfileFooter>{primary('Čuvamo profil…', { loading: true })}</WorkerProfileFooter>} /> },
     { key: 'worker-unknown', label: 'Radni profil: ishod nepoznat', draw: () => <Worker initial={draft({ ime: 'Ana P.' })} status="ACTIVE" checks={READY} disabled
-      footer={<WorkerProfileFooter error="Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što probaš ponovo." held>
+      footer={<WorkerProfileFooter error="Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što pokušaš ponovo." held>
         {primary('Pogledaj sačuvani profil')}</WorkerProfileFooter>} /> },
     { key: 'worker-retry', label: 'Radni profil: ponovi čuvanje', draw: () => <Worker initial={draft({ ime: 'Ana P.' })} status="ACTIVE" checks={READY} disabled
-      footer={<WorkerProfileFooter held>{primary('Ponovi isto čuvanje')}{quiet('Uredi unos posle provere')}</WorkerProfileFooter>} /> },
+      footer={<WorkerProfileFooter held>{primary('Sačuvaj ponovo')}{quiet('Uredi unos posle provere')}</WorkerProfileFooter>} /> },
     { key: 'worker-suspended', label: 'Radni profil: suspendovan', draw: () => <Worker initial={draft()} status="SUSPENDED" checks={READY}
       footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
     { key: 'worker-full', label: 'Radni profil: puna lista vozila', draw: () => <Worker initial={draft({ vozila: Array.from({ length: 50 }, (_, i) => `Vozilo ${i + 1}`) })}

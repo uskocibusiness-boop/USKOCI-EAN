@@ -19,6 +19,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { useIzvor } from '../../store/uloga';
 import { MyApplicationsPresentation, type ApplicationsPaging, type ApplicationsTab, type OfferEdit } from '../../ui/v2/MyApplicationsPresentation';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { poruka } from '../../ui/system/Poruka';
 
 type Intent = { kind: 'withdraw'; command: PovuciPrijavuKomanda } | { kind: 'resolve'; command: Ru4RazresiPrijavuInput };
 type Pending = { intent: Intent; row: MojaPrijavaProjekcija; inFlight: boolean; reconciled: boolean;
@@ -143,7 +144,9 @@ export default function MojePrijave() {
         pending.reconciled = named.ok;
         if (!named.ok) notice = 'Sačuvano stanje ove prijave nije potvrđeno. Proveri ponovo pre nove radnje.';
         else if (observed(pending, named.podatak)) {
-          notice = withdrawal(pending) ? 'Sačuvano stanje: Prijava je povučena.' : 'Prijava je usklađena sa pregledanom verzijom Zadatka.';
+          // What happened is said once, in the app's one bar, and only after the readback confirmed it (a tick belongs to an outcome).
+          // Neither command has an undo, so the bar carries no "Vrati".
+          poruka.show({ text: withdrawal(pending) ? 'Prijava je povučena.' : 'Prijava je usklađena sa izmenjenim zadatkom.', confirmed: true });
           session.pending = null;
         } else if (pending.result === 'receipt') notice = 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.';
       }
@@ -234,7 +237,10 @@ export default function MojePrijave() {
     if (!rowCurrent(p) || !idle()) return;
     const review = session.editRevision;
     // The card shows the title without its stored wrapping quotes; the dialog names the same task the same way.
-    confirmation.ask({ title: 'Povući prijavu?', message: `Prijava za „${readableTitle(p.naslov)}” više neće biti aktivna.`,
+    // The question names the task and says what follows for the other person and for the worker (plan 2.3): no reason is asked, because
+    // the withdrawal command takes none.
+    confirmation.ask({ title: 'Povući prijavu?',
+      message: `Osoba koja je objavila zadatak više ne vidi tvoju ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možeš da pošalješ novu.`,
       cancelLabel: 'Odustani', confirmLabel: 'Povuci', tone: 'danger', onConfirm: () => {
         if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
       } });

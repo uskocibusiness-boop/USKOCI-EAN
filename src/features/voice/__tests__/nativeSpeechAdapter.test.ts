@@ -7,12 +7,15 @@ const mockNative = { start: jest.fn(), stop: jest.fn(), addListener: jest.fn((na
 }) };
 const mockPermission = { check: jest.fn(async () => true), request: jest.fn(async () => 'granted'),
   PERMISSIONS: { RECORD_AUDIO: 'android.permission.RECORD_AUDIO' }, RESULTS: { GRANTED: 'granted' } };
-jest.mock('react-native', () => ({ Platform: { OS: 'android' }, PermissionsAndroid: mockPermission,
+// `PermissionsAndroid` is read when a permission is asked, not when the module is first required (the constant below is assigned
+// after the imports run), so it is a getter: the tests that ask for the permission need the real double, not `undefined`.
+jest.mock('react-native', () => ({ Platform: { OS: 'android' }, get PermissionsAndroid() { return mockPermission; },
   // Expo's lazy fetch initialization can load its optional JS logger when Jest
   // inspects globals. This test has no native logger, but the registry exists.
   TurboModuleRegistry: { get: () => null } }));
 jest.mock('expo', () => ({ requireOptionalNativeModule: () => mockNative }));
 import { createNativeSpeechAdapter } from '../nativeSpeechAdapter';
+import { answeringHost, holdingHost } from '../../../ui/permissions/testing/answeringHost';
 
 const session: VoiceSession = { accountId: 'a', accountRevision: 3, conversationId: 'owned', generation: 5,
   gestureId: 'press', mode: 'hold', startedAt: 100 };
@@ -102,5 +105,58 @@ describe('actual native PCM / first-party speech adapter with synthetic I/O', ()
     mockListeners.get('interrupted')?.({ sessionId: 'op-1', code: 'AUDIO_INTERRUPTED' });
     expect(h.events.at(-1)).toEqual({ kind: 'error', code: 'AUDIO_INTERRUPTED' });
     expect(mockNative.stop).toHaveBeenCalledTimes(1); expect(ws.close).toHaveBeenCalledTimes(1);
+  });
+
+  // Design proposal N (owner, 2026-10-07): the first press of a microphone is met by one question before the system's window.
+  describe('the question before the microphone window', () => {
+    let host: { stop(): void } | undefined;
+    afterEach(() => { host?.stop(); host = undefined; mockPermission.check.mockImplementation(async () => true); });
+    const notYet = () => mockPermission.check.mockImplementation(async () => false);
+
+    it('is not asked when the microphone is already allowed', async () => {
+      const asking = answeringHost('later'); host = asking;
+      const h = fixture();
+      expect(await h.adapter.requestPermission(h.controller.signal)).toBe('granted');
+      expect(asking.asked).toEqual([]); expect(mockPermission.request).not.toHaveBeenCalled();
+    });
+
+    it('"Dozvoli": the system\'s own window follows, and its answer is the result', async () => {
+      notYet(); const asking = answeringHost('allow'); host = asking;
+      const h = fixture();
+      expect(await h.adapter.requestPermission(h.controller.signal)).toBe('granted');
+      expect(asking.asked).toEqual(['microphone']);
+      expect(mockPermission.request).toHaveBeenCalledWith('android.permission.RECORD_AUDIO');
+      mockPermission.request.mockResolvedValueOnce('denied');
+      expect(await h.adapter.requestPermission(h.controller.signal)).toBe('denied');
+    });
+
+    it('"Ne sada": the system is not asked, nothing is recorded, and it is not a refusal', async () => {
+      notYet(); const asking = answeringHost('later'); host = asking;
+      const h = fixture();
+      expect(await h.adapter.requestPermission(h.controller.signal)).toBe('later');
+      expect(asking.asked).toEqual(['microphone']);
+      expect(mockPermission.request).not.toHaveBeenCalled(); expect(mockNative.start).not.toHaveBeenCalled();
+    });
+
+    it('lets the hold go while the question is read: the gesture ends, but "Dozvoli" still reaches the system, for the next hold', async () => {
+      notYet(); const held = holdingHost(); host = held;
+      const h = fixture();
+      const result = h.adapter.requestPermission(h.controller.signal);
+      await flush();
+      expect(held.open()?.kind).toBe('microphone');
+      h.controller.abort();
+      held.answer('allow');
+      // The attempt is over, so the answer to it is not "granted" ...
+      expect(await result).toBe('denied');
+      // ... but the person said yes, so the system was asked, and the next hold finds the permission given.
+      expect(mockPermission.request).toHaveBeenCalledTimes(1);
+    });
+
+    it('goes straight to the system when no host can draw the question', async () => {
+      notYet();
+      const h = fixture();
+      expect(await h.adapter.requestPermission(h.controller.signal)).toBe('granted');
+      expect(mockPermission.request).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -23,7 +23,13 @@ jest.mock('react-native',()=>{const native=jest.requireActual('react-native'),Re
   if(key==='FlatList')return FlatList;
   return Reflect.get(target,key);
 }});});
-jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
+jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView',useSafeAreaInsets:()=>({top:0,bottom:24,left:0,right:0})}));
+// This screen lies above the tab navigator that mounts the Poruka host, so it mounts its own; here the store is a spy and the host a named element.
+const mockPoruka=jest.fn();
+jest.mock('../../ui/system/Poruka',()=>({PorukaHost:'PorukaHost',poruka:{show:(...args:unknown[])=>mockPoruka(...args),hide:jest.fn()}}));
+// Reading one row without opening it (the swipe) uses the call a tapped row uses; the model has no command for it.
+const mockReadOne=jest.fn();
+jest.mock('../../data/inboxClientService',()=>({inboxClientService:{read:(...args:unknown[])=>mockReadOne(...args)}}));
 jest.mock('react-native-svg',()=>({__esModule:true,default:'Svg',SvgXml:'NativeSvgXml',Path:'Path',Circle:'Circle',Rect:'Rect',Ellipse:'Ellipse',Defs:'Defs',LinearGradient:'LinearGradient',Stop:'Stop'}));
 jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>false}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},Stack:{Screen:'StackScreen'},useFocusEffect:(effect:()=>void)=>require('react').useEffect(effect,[effect])}));
@@ -64,7 +70,7 @@ test('the gear of a filtered list opens the settings on that set; "Sve" names no
 });
 test('a filtered empty list names what it is empty of, without the settings shortcut',async()=>{
   await render();
-  await act(async()=>press('Moji zadaci').props.onPress());
+  await act(async()=>press('Zadaci').props.onPress());
   expect(text()).toContain('Još nema obaveštenja o tvojim zadacima');expect(text()).not.toContain('Nove Prijave, poruke');
   expect(presses().filter(node=>node.props.accessibilityLabel==='Podesi obaveštenja')).toHaveLength(1);
   await act(async()=>press('Moje prijave').props.onPress());
@@ -114,7 +120,7 @@ test('only an event newer than the list moves; an older page and a new filter\'s
   expect(moving()).toEqual([]);
   // Another filter is another list: its first page, even with an event newer than anything shown before, is not news.
   mockState={...mockState,page:{...mockState.page,items:[{...item,id:'requester',occurredAt:minutesAgo(0)},{...item,id:'r2',occurredAt:minutesAgo(30)}]}};
-  await act(async()=>press('Moji zadaci').props.onPress());
+  await act(async()=>press('Zadaci').props.onPress());
   expect(moving()).toEqual([]);
 });
 // Round 5c (2026-09-24): the list stays mounted across a filter switch. Keying it by the filter threw away the tab a
@@ -302,4 +308,166 @@ test('a task change, a cancellation and a question are drawn as what they are, n
   expect(inboxEventArt('RESPONSE_SELECTED','responses')).toBe('offers');
   expect(inboxEventArt('SOMETHING_NEW','recovery')).toBe('shield');
   expect(inboxEventArt('SOMETHING_NEW','account')).toBe('bell');
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// T4a (2026-10-07): the owner's words for the tabs, where a tap goes, and settling one row without opening it (the swipe).
+// ---------------------------------------------------------------------------------------------------------------------
+test('the three tabs carry the owner\'s words, exactly, and the old names are nowhere on the screen',async()=>{
+  const {INBOX_FILTERS}=require('../../ui/notifications/InboxPresentation');
+  expect(INBOX_FILTERS.map((filter:{label:string})=>filter.label)).toEqual(['Sve','Zadaci','Moje prijave']);
+  mockState.page.items=[item];mockState.page.unreadCount=1;await render();
+  const tabs=presses().filter(node=>node.props.accessibilityRole==='tab');
+  expect(tabs.map(node=>node.props.accessibilityLabel)).toEqual(['Sve','Zadaci','Moje prijave']);
+  expect(text()).not.toMatch(/Moji zadaci|Poslovi|poslov|posao/);
+});
+test('under every row, with the clock, the screen says where a tap goes; a screen reader hears it as the row\'s hint',async()=>{
+  const ago=(minutes:number)=>new Date(Date.parse(at)-minutes*60_000).toISOString();
+  mockState.page.items=[
+    {...item,id:'m',eventType:'MESSAGE_RECEIVED',family:'dogovor',title:'Nova poruka',body:'Imaš novu poruku u Dogovoru.',occurredAt:ago(1)},
+    {...item,id:'c',eventType:'COMPLETION_REQUIRED',family:'execution',role:'REQUESTER',title:'Završetak čeka tvoju potvrdu',body:'Dogovor je označen kao završen.',occurredAt:ago(2)},
+    {...item,id:'o',eventType:'OPPORTUNITY_AVAILABLE',family:'opportunities',title:'Nova prilika koja ti može odgovarati',body:'Prenos ormana',occurredAt:ago(3)},
+    {...item,id:'x',eventType:'SOMETHING_NEW',family:'account',title:'Nešto novo',body:'Nešto se desilo.',occurredAt:ago(4)},
+  ];mockState.page.unreadCount=4;await render();
+  const clock=(minutes:number)=>trenutak(ago(minutes))!.sat;
+  expect(text()).toContain(`${clock(1)} · Otvara poruku u Dogovoru`);
+  expect(text()).toContain(`${clock(2)} · Otvara Dogovor`);
+  expect(text()).toContain(`${clock(3)} · Otvara zadatak`);
+  // An event the table does not know says only its clock: a destination is never made up.
+  expect(text()).toContain(clock(4));expect(text()).not.toContain(`${clock(4)} ·`);
+  expect(row('Nepročitano. Nešto novo.').props.accessibilityHint).toBeUndefined();
+  expect(row('Nepročitano. Nova prilika koja ti može odgovarati.').props.accessibilityHint).toBe('Otvara zadatak.');
+  expect(row('Nepročitano. Nova poruka.').props.accessibilityHint).toBe('Otvara poruku u Dogovoru.');
+});
+test('an unread row is heavier in its title and its words than a read one',async()=>{
+  mockState.page.items=[{...item,id:'u',title:'Nepročitan',body:'Telo'},{...item,id:'r',title:'Pročitan',body:'Telo',readAt:at}];mockState.page.unreadCount=1;await render();
+  const variants=(prefix:string)=>row(prefix).findAllByType('T' as React.ElementType).slice(0,2).map(node=>[node.props.variant,node.props.tone]);
+  // The title is always ink (the default tone, none passed); the line under it is ink while unread and grey once read.
+  expect(variants('Nepročitano. Nepročitan.')).toEqual([['bodyStrong',undefined],['note','ink']]);
+  expect(variants('Pročitano. Pročitan.')).toEqual([['body',undefined],['note','muted']]);
+});
+
+const stamp='2026-09-10T12:05:00Z';
+const unreadItems=()=>[{...item,id:'a',title:'Prva',body:'Telo prve.'},{...item,id:'b',title:'Druga',body:'Telo druge.'},{...item,id:'r',title:'Pročitana',body:'Telo.',readAt:at}];
+const swipeActions=()=>presses().filter(node=>node.props.accessibilityLabel==='Pročitano');
+const settle=async()=>act(async()=>{await Promise.resolve();await Promise.resolve();});
+describe('settling one row without opening it',()=>{
+  beforeEach(()=>{mockReadOne.mockReset().mockResolvedValue(stamp);mockState.page.items=unreadItems();mockState.page.unreadCount=2;});
+  test('only an unread row has the command under it, and it is the very call a tapped row makes',async()=>{
+    await render();
+    expect(swipeActions()).toHaveLength(2);
+    await act(async()=>swipeActions()[0].props.onPress());await settle();
+    expect(mockReadOne.mock.calls).toEqual([['a']]);
+    // Nothing was opened: no resolver, no navigation, the model's own commands untouched.
+    expect(mockModel.open).not.toHaveBeenCalled();expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(swipeActions()).toHaveLength(1);
+  });
+  test('the row reads as read, the count above the list goes down by one, and the outcome is said once after the server answered',async()=>{
+    await render();expect(text()).toContain('2 nepročitana');
+    await act(async()=>swipeActions()[0].props.onPress());await settle();
+    expect(row('Pročitano. Prva.')).toBeDefined();expect(unreadRow('Prva','Telo prve.')).toBeUndefined();
+    expect(text()).toContain('1 nepročitano');
+    expect(mockPoruka.mock.calls).toEqual([[{text:'Označeno kao pročitano.',confirmed:true}]]);
+    expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(1);
+  });
+  test('the last unread row read this way takes the count row and the dots away, and says so to a screen reader',async()=>{
+    mockState.page.items=[{...item,id:'a',title:'Prva',body:'Telo prve.'}];mockState.page.unreadCount=1;await render();
+    await act(async()=>swipeActions()[0].props.onPress());await settle();
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Nema nepročitanih obaveštenja.');
+    expect(presses().filter(node=>node.props.accessibilityLabel==='Označi sve kao pročitano')).toHaveLength(0);
+  });
+  test('nothing shows as read before the server answered, and the row at work is the only one that spins',async()=>{
+    let answer!:(value:string)=>void;mockReadOne.mockReturnValueOnce(new Promise<string>(resolve=>{answer=resolve;}));
+    await render();
+    await act(async()=>swipeActions()[0].props.onPress());
+    expect(unreadRow('Prva','Telo prve.')).toBeDefined();expect(mockPoruka).not.toHaveBeenCalled();
+    expect(unreadRow('Prva','Telo prve.').findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(1);
+    // The others wait with their command, as with any running command.
+    expect(unreadRow('Druga','Telo druge.').props.disabled).toBe(true);
+    await act(async()=>{answer(stamp);});await settle();
+    expect(unreadRow('Druga','Telo druge.').props.disabled).toBe(false);expect(row('Pročitano. Prva.')).toBeDefined();
+  });
+  test('one command at a time: a second press while the first is running sends nothing',async()=>{
+    let answer!:(value:string)=>void;mockReadOne.mockReturnValueOnce(new Promise<string>(resolve=>{answer=resolve;}));
+    await render();
+    const [first,second]=swipeActions();
+    await act(async()=>{first.props.onPress();second.props.onPress();});
+    expect(mockReadOne).toHaveBeenCalledTimes(1);
+    await act(async()=>{answer(stamp);});await settle();
+  });
+  test('a failure changes nothing, says so in the one notice an unconfirmed action uses, and the notice reads the list again',async()=>{
+    mockReadOne.mockRejectedValue(new Error('INBOX_REQUEST_FAILED'));
+    await render();
+    await act(async()=>swipeActions()[0].props.onPress());await settle();
+    expect(unreadRow('Prva','Telo prve.')).toBeDefined();expect(mockPoruka).not.toHaveBeenCalled();
+    expect(text()).toContain('Radnja nije potvrđena.');expect(text()).toContain('2 nepročitana');
+    await act(async()=>press('Osveži obaveštenja').props.onPress());
+    expect(mockModel.refresh).toHaveBeenCalledTimes(1);expect(text()).not.toContain('Radnja nije potvrđena.');
+  });
+  test('a screen that is no longer the person\'s sends nothing',async()=>{
+    await render();mockModel.canNavigate.mockReturnValue(false);
+    await act(async()=>swipeActions()[0].props.onPress());await settle();
+    expect(mockReadOne).not.toHaveBeenCalled();expect(mockPoruka).not.toHaveBeenCalled();
+  });
+  test('an answer that arrives after the screen was left is not shown or said',async()=>{
+    let answer!:(value:string)=>void;mockReadOne.mockReturnValueOnce(new Promise<string>(resolve=>{answer=resolve;}));
+    await render();
+    await act(async()=>swipeActions()[0].props.onPress());
+    mockModel.canNavigate.mockReturnValue(false);
+    await act(async()=>{answer(stamp);});await settle();
+    expect(mockPoruka).not.toHaveBeenCalled();expect(unreadRow('Prva','Telo prve.')).toBeDefined();
+  });
+  test('a message notification can be settled too: it is the person\'s explicit command, not the opening of the conversation',async()=>{
+    mockState.page.items=[{...item,id:'m',eventType:'MESSAGE_RECEIVED',family:'dogovor',title:'Nova poruka',body:'Imaš novu poruku u Dogovoru.'}];mockState.page.unreadCount=1;
+    await render();
+    await act(async()=>swipeActions()[0].props.onPress());await settle();
+    expect(mockReadOne.mock.calls).toEqual([['m']]);expect(mockModel.open).not.toHaveBeenCalled();
+  });
+  test('a screen reader gets the same command in the row\'s actions menu, only for an unread row',async()=>{
+    await render();
+    const unread=unreadRow('Prva','Telo prve.'),read=row('Pročitano. Pročitana.');
+    expect(unread.props.accessibilityActions).toEqual([{name:'markRead',label:'Označi kao pročitano'}]);
+    expect(read.props.accessibilityActions).toBeUndefined();
+    // Another action name does nothing; the named one does the same as the swipe.
+    await act(async()=>unread.props.onAccessibilityAction({nativeEvent:{actionName:'activate'}}));await settle();
+    expect(mockReadOne).not.toHaveBeenCalled();
+    await act(async()=>unread.props.onAccessibilityAction({nativeEvent:{actionName:'markRead'}}));await settle();
+    expect(mockReadOne.mock.calls).toEqual([['a']]);
+  });
+  test('tapping a row still opens what it is about and reads it by the model, never by this command',async()=>{
+    await render();
+    await act(async()=>unreadRow('Prva','Telo prve.').props.onPress());
+    expect(mockModel.open).toHaveBeenCalledTimes(1);expect(mockReadOne).not.toHaveBeenCalled();
+  });
+  test('this screen mounts its own Poruka host, clear of the system gesture area',async()=>{
+    await render();
+    const hosts=tree.root.findAllByType('PorukaHost' as React.ElementType);
+    expect(hosts).toHaveLength(1);expect(hosts[0].props.clearance).toBe(24);
+  });
+});
+
+// A civil day in Serbia ends at its own midnight, not at the one of the device or of UTC (the list groups on `trenutak`).
+describe('the day groups follow the Serbian civil day',()=>{
+  const {inboxRows}=require('../../ui/notifications/InboxPresentation');
+  const BELGRADE='Europe/Belgrade';
+  const labels=(items:{id:string;occurredAt:string}[],sada:string)=>inboxRows(items.map(({id,occurredAt})=>({...item,id,occurredAt})),{zona:BELGRADE,sada:new Date(sada)})
+    .map((row:{kind:string;label?:string;id:string})=>row.kind==='day'?`# ${row.label}`:row.id);
+  test('half past midnight in Serbia is already today, though UTC still says yesterday',()=>{
+    // 22:30 UTC on 6 October is 00:30 on 7 October in Belgrade (UTC+2); 21:30 UTC is 23:30 on the 6th.
+    expect(labels([{id:'after',occurredAt:'2026-10-06T22:30:00Z'},{id:'before',occurredAt:'2026-10-06T21:30:00Z'}],'2026-10-07T10:00:00Z'))
+      .toEqual(['# Danas','after','# Juče','before']);
+  });
+  test('the same two moments are one day when "now" is late the same evening',()=>{
+    expect(labels([{id:'a',occurredAt:'2026-10-06T21:30:00Z'},{id:'b',occurredAt:'2026-10-06T10:00:00Z'}],'2026-10-06T21:45:00Z'))
+      .toEqual(['# Danas','a','b']);
+  });
+  test('the change from summer to winter time moves the midnight an hour, and the groups follow it',()=>{
+    // Clocks go back on Sunday 25 October 2026: 23:30 UTC on the 24th is 00:30 CET on the 25th.
+    expect(labels([{id:'late',occurredAt:'2026-10-24T23:30:00Z'},{id:'early',occurredAt:'2026-10-24T21:30:00Z'}],'2026-10-25T12:00:00Z'))
+      .toEqual(['# Danas','late','# Juče','early']);
+  });
+  test('an older day is dated, the year only when it is not this one, and a moment that cannot be read gets no day of its own',()=>{
+    expect(labels([{id:'now',occurredAt:'2026-10-07T08:00:00Z'},{id:'old',occurredAt:'2026-03-02T09:00:00Z'},{id:'bad',occurredAt:'not a date'},{id:'last',occurredAt:'2025-12-31T09:00:00Z'}],'2026-10-07T10:00:00Z'))
+      .toEqual(['# Danas','now','# 2. mar','old','bad','# 31. dec 2025','last']);
+  });
 });

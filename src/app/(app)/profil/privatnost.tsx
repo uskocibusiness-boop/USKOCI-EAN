@@ -31,7 +31,9 @@ function OwnedPrivacy() {
     if (!result.ok) throw new Error('RETENTION_EXECUTION_UNAVAILABLE');
     return result.podatak;
   }, []);
-  const policy = useFocusedResource(readPolicy), execution = useFocusedResource(readExecution);
+  // A re-read the person asks for ("Osveži stanje") keeps the published rules on screen under the refresh at work, and says so
+  // if it fails; the skeleton is only for the first read.
+  const policy = useFocusedResource(readPolicy, { retainOnRefresh: true }), execution = useFocusedResource(readExecution, { retainOnRefresh: true });
   const admitted = policy.data?.ready === true && execution.data?.executionAdmitted === true
     && execution.data.policyVersion === policy.data.policyVersion;
   // A focus event must render its own callbacks even if both reads have settled
@@ -39,7 +41,7 @@ function OwnedPrivacy() {
   const current = () => visit !== null && focus.current === visit && !navigating.current && !!accountId
     && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
   const navigate = (action: () => void) => { if (!current()) return; navigating.current = true; action(); };
-  const refresh = () => { if (!current() || policy.loading || execution.loading) return;
+  const refresh = () => { if (!current() || policy.loading || execution.loading || policy.refreshing || execution.refreshing) return;
     void policy.refresh(); void execution.refresh(); };
   return <SettingsScreen title="Privatnost i podaci"
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}>

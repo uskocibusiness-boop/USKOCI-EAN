@@ -346,7 +346,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
 
   it('G04-6: the client ships PROFILE_EXCLUSION (and INSUFFICIENT_EXPERIENCE) copy although no screen can create either input', () => {
     const client = lf(AS);
-    expect(client).toMatch(/PROFILE_EXCLUSION: 'Ovaj posao je m[^']*radnom profilu\.'/);
+    expect(client).toMatch(/PROFILE_EXCLUSION: 'Ovaj zadatak je m[^']*radnom profilu\.'/);
     expect(client).toMatch(/INSUFFICIENT_EXPERIENCE: 'Navedeno iskustvo[^']*'/);
     expect(client).toMatch(/'INSUFFICIENT_EXPERIENCE', 'PROFILE_EXCLUSION', 'CALENDAR_CONFLICT'/);
     expect(client).toMatch(/profileBlockers = new Set<ApplicationEligibilityBlocker>\(\[[^\]]*'PROFILE_EXCLUSION'/);
@@ -409,7 +409,7 @@ describe('EX-06 S05 field-to-consumer map: collected-without-consumer and dead r
   });
 
   it('X-07: the experience gate reads years_experience while the editor offers only a free-text bio labelled "O tvom iskustvu"', () => {
-    expect(lf('src/ui/workerProfile/WorkerProfilePresentation.tsx')).toContain('label="O tvom iskustvu"');
+    expect(lf('src/ui/workerProfile/WorkerProfilePresentation.tsx')).toContain('label="O meni"');
     expect(lf(DE)).toMatch(/coalesce\(p\.years_experience,0\) >= n\.minimum_experience_years/);
   });
 

@@ -54,10 +54,15 @@ export function ClosureFrame({ onClose, closeDisabled = false, footer, children 
 /**
  * The irreversible command: outlined in the danger colour on white, 54 high like the primary. It is never green (green
  * is the safe way forward) and never a filled red block (that would shout before the consequences are read).
+ *
+ * When it cannot be used now it is grey with its reason beside it (`unavailable`, the owner's rule: a grey button always
+ * says why), never missing without a word: the outline goes to the quiet line and the words to the muted ink.
  */
-export function DangerAction({ label, onPress, busy, loading = false }: { label: string; onPress: () => void; busy: boolean; loading?: boolean }) {
-  return <V2Action label={label} kind="destructive" disabled={busy} loading={loading} onPress={onPress}
-    style={[s.danger, { borderColor: busy && !loading ? sys.color.line : sys.color.danger }]} />;
+export function DangerAction({ label, onPress, busy, loading = false, unavailable = null }: {
+  label: string; onPress: () => void; busy: boolean; loading?: boolean; unavailable?: string | null;
+}) {
+  return <V2Action label={label} kind="destructive" disabled={busy || unavailable !== null} loading={loading} onPress={onPress} reason={unavailable ?? undefined}
+    style={[s.danger, { borderColor: (busy || unavailable !== null) && !loading ? sys.color.line : sys.color.danger }]} />;
 }
 
 export type ClosureModel = {
@@ -83,13 +88,16 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   const erasure = (state?.adapterVersion ?? review?.adapterVersion) === erasureAdapter;
   const pendingExceptions = state?.exceptions ?? review?.exceptions ?? [];
   const retained = (terminal ? state?.retainedDatasets : review?.retainedDatasets) ?? [];
-  const check = (kind: 'primary' | 'secondary' | 'quiet') => <SettingsAction key="check" label="Proveri stanje zahteva" kind={kind}
+  // The words of the check follow what it checks: a request already made is checked ("Proveri stanje zahteva"); before anything is
+  // started there is no request, only the review, which is read again ("Osveži pregled") or looked at again once the
+  // obligations are met ("Proveri ponovo").
+  const check = (kind: 'primary' | 'secondary' | 'quiet', label = 'Proveri stanje zahteva') => <SettingsAction key="check" label={label} kind={kind}
     disabled={busy} loading={working === 'refresh'} onPress={commands.onRefresh} />;
 
   if (!review && !state && !intent) {
     if (!busy && message) return <ClosureFrame onClose={commands.onClose}>
       <StateView kind="error" art="lock" title="Stanje zatvaranja nije učitano" body={message}
-        primary={{ label: 'Proveri stanje zahteva', onPress: commands.onRefresh, disabled: busy }} />
+        primary={{ label: 'Pokušaj ponovo', onPress: commands.onRefresh, disabled: busy }} />
     </ClosureFrame>;
     return <ClosureFrame onClose={commands.onClose}>
       <StateView kind="loading" title="Proveravamo stanje…" skeleton={{ count: 2, rows: 2 }} />
@@ -97,12 +105,13 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   }
 
   const art: FactArtKind = terminal ? 'check' : state ? 'clock' : 'lock';
+  // Before anything is started the first words under the title are what happens (the consequence), so the header says no
+  // sentence of its own there: an orientation line above the consequence only delays it.
   const header = <View style={s.header}>
     <View style={s.well}><FactArt kind={art} size={56} muted={terminal} /></View>
     <T variant="title" accessibilityRole="header">{terminal ? 'Nalog je zatvoren.' : state ? 'Zahtev je pokrenut.' : 'Pregled pre zatvaranja.'}</T>
-    <T variant="copy" tone="muted">{terminal ? 'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.'
-      : state ? 'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.'
-        : 'Pre pokretanja proveri obaveze i šta se događa sa tvojim podacima.'}</T>
+    {terminal || state ? <T variant="copy" tone="muted">{terminal ? 'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.'
+      : 'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.'}</T> : null}
   </View>;
   // One look for "failed" (round 5 review): the "not confirmed yet" messages wait for the person (the caught one only
   // while a saved start or preparation waits for its check); every other message here is a read or a command that failed.
@@ -157,8 +166,8 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   if (intent) {
     // An unconfirmed command: the same key waits for a read, and a replay is offered only once the read finds it absent.
     const replay = absent ? intent.kind === 'START'
-      ? <DangerAction label="Ponovi isti zahtev za zatvaranje" busy={busy} loading={working === 'retry'} onPress={commands.onRetry} />
-      : <SettingsAction label="Ponovi istu pripremu" kind="secondary" disabled={busy} loading={working === 'retry'} onPress={commands.onRetry} /> : null;
+      ? <DangerAction label="Pošalji zahtev za zatvaranje ponovo" busy={busy} loading={working === 'retry'} onPress={commands.onRetry} />
+      : <SettingsAction label="Pripremi ponovo" kind="secondary" disabled={busy} loading={working === 'retry'} onPress={commands.onRetry} /> : null;
     return <ClosureFrame onClose={commands.onClose} footer={replay ? <>{replay}{check('quiet')}</> : check('primary')}>
       {header}{note}{exceptions}{retention}
     </ClosureFrame>;
@@ -167,12 +176,13 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   const ready = review!;
   if (!ready.ready) {
     const preparation = ready.code === 'CLOSURE_PREPARATION_REQUIRED';
+    const policyMissing = ready.code === 'CLOSURE_POLICY_NOT_READY';
     return <ClosureFrame onClose={commands.onClose} footer={preparation ? <>
       <SettingsAction label="Pripremi pregled" disabled={busy} loading={working === 'prepare'} onPress={commands.onPrepare} />
-      {check('quiet')}
-    </> : check('secondary')}>
+      {check('quiet', 'Proveri ponovo')}
+    </> : check('secondary', 'Proveri ponovo')}>
       {header}{note}
-      <T variant="copy">{ready.code === 'CLOSURE_POLICY_NOT_READY' ? (erasure ? 'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.'
+      <T variant="copy">{policyMissing ? (erasure ? 'Provereni postupak zatvaranja trenutno nije dostupan. Sačuvani podaci nisu označeni kao obrisani.'
         : 'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.')
         : preparation ? 'Pripremi pregled trenutnih obaveza pre zatvaranja.' : 'Najpre reši obaveze navedene ispod.'}</T>
       {ready.blockers.length ? <SettingsGroup title="Obaveze">{ready.blockers.map((code, index) => {
@@ -182,11 +192,15 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
           : <PlainRow key={code} label={closureBlockerLabels[code]} last={last} />;
       })}</SettingsGroup> : null}
       {exceptions}{retention}
+      {/* The irreversible command is always the last thing on the screen: when it cannot be used it stands here grey, with the reason beside it. */}
+      <DangerAction label="Pokreni zatvaranje naloga" busy={busy} onPress={commands.onAskStart}
+        unavailable={policyMissing ? 'Zatvaranje trenutno nije dostupno.' : preparation ? 'Najpre pripremi pregled.' : 'Najpre reši obaveze navedene iznad.'} />
     </ClosureFrame>;
   }
 
   return <ClosureFrame onClose={commands.onClose}>
     {header}{note}
+    {/* The consequence comes first, in the owner's words; everything that can be done instead (keep a copy) and the command itself follow it. */}
     <View style={s.block}>
       <T variant="heading" accessibilityRole="header">Posle pokretanja</T>
       <T variant="copy">{erasure ? 'Pristup običnim funkcijama se ograničava. Uklanjaju se nezaštićene datoteke, obični lični i privatni podaci, pa podaci za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.'
@@ -197,10 +211,11 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       <SettingsRow compact last label="Izvoz podataka" detail="Pogledaj zahtev, pripremu i dostupnost svoje kopije." disabled={busy}
         onPress={commands.onExport} />
     </SettingsGroup>
-    {/* At the end of the scroll, not pinned: the consequences above are passed on the way to it. */}
+    {/* At the end of the scroll, not pinned: the consequences above are passed on the way to it. The command is the very last
+        thing; the quiet refresh stands above it, so nothing follows the irreversible step. */}
     <View style={s.end}>
+      {check('quiet', 'Osveži pregled')}
       <DangerAction label="Pokreni zatvaranje naloga" busy={busy} loading={working === 'start'} onPress={commands.onAskStart} />
-      {check('quiet')}
     </View>
   </ClosureFrame>;
 }

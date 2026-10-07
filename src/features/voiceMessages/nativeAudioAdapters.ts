@@ -3,6 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import type { AudioPlayer, AudioRecorder, AudioStatus, RecordingOptions } from 'expo-audio';
 import type { InterruptReason, PlayerStatus, VoicePlayerPort, VoiceRecorderPort } from './ports';
 import { VOICE_CACHE_DIRECTORY, VOICE_FILE_MAX_BYTES, isExpoVoiceRecordingUri, registerVoiceNativeCleanup } from './nativeVoiceFiles';
+import { permissionAsk } from '../../ui/permissions/permissionAsk';
 
 // Importing a flag-off screen must not initialize ExpoAudio. Factories are called only by the enabled native seam.
 type ExpoAudio = typeof import('expo-audio');
@@ -209,6 +210,14 @@ export function createNativeVoiceRecorder(): VoiceRecorderPort {
         if (own !== epoch || !foreground()) return 'unavailable';
         if (permission.granted) return 'granted';
         if (!permission.canAskAgain) return 'blocked';
+        // The system is about to ask: say why first (design proposal N). "Ne sada" asks it nothing. The person may let go of the
+        // button while reading the question, which retires this attempt (`epoch`) but not their answer, so "Dozvoli" still
+        // reaches the system's window and the next hold finds the permission given; only the app being left stops it.
+        // With nothing to draw the question, nothing changes at all.
+        if (permissionAsk.hasHost()) {
+          if (await permissionAsk.ask('microphone') === 'later') return 'later';
+          if (!foreground()) return 'unavailable';
+        }
         const answer = await audio.requestRecordingPermissionsAsync();
         if (own !== epoch || !foreground()) return 'unavailable';
         return answer.granted ? 'granted' : answer.canAskAgain ? 'denied' : 'blocked';

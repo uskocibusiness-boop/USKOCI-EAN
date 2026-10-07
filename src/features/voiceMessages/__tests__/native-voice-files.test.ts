@@ -99,6 +99,7 @@ jest.mock('expo-audio', () => ({
   requestRecordingPermissionsAsync: () => mockAudioPermissionRequest(),
 }));
 import { createNativeVoiceRecorder } from '../nativeAudioAdapters';
+import { answeringHost, holdingHost } from '../../../ui/permissions/testing/answeringHost';
 
 describe('native recorder permission admission', () => {
   beforeEach(() => {
@@ -157,5 +158,65 @@ describe('native recorder permission admission', () => {
     mockAudioPermissionRead.mockRejectedValue(new Error('permission read failed'));
     expect(await createNativeVoiceRecorder().requestPermission()).toBe('unavailable');
     expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+  });
+
+  // Design proposal N (owner, 2026-10-07): the first press of the microphone in a Dogovor is met by one question before the
+  // system's window. It comes only when the system is about to ask, and what is asked of the system does not change.
+  describe('the question before the microphone window', () => {
+    let host: { stop(): void } | undefined;
+    afterEach(() => { host?.stop(); host = undefined; });
+    beforeEach(() => { mockAudioPermissionRead.mockResolvedValue({ granted: false, canAskAgain: true }); });
+
+    it('"Dozvoli": the system\'s own window follows, and its actual answer is the result', async () => {
+      const asking = answeringHost('allow'); host = asking;
+      mockAudioPermissionRequest.mockResolvedValue({ granted: false, canAskAgain: true });
+      expect(await createNativeVoiceRecorder().requestPermission()).toBe('denied');
+      expect(asking.asked).toEqual(['microphone']); expect(mockAudioPermissionRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('"Ne sada": the system is not asked and it is not a refusal', async () => {
+      const asking = answeringHost('later'); host = asking;
+      expect(await createNativeVoiceRecorder().requestPermission()).toBe('later');
+      expect(asking.asked).toEqual(['microphone']); expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['already allowed', { granted: true, canAskAgain: true }, 'granted'],
+      ['refused for good, so the system will not open a window', { granted: false, canAskAgain: false }, 'blocked'],
+    ])('is not asked when the microphone is %s', async (_name, state, expected) => {
+      mockAudioPermissionRead.mockResolvedValue(state);
+      const asking = answeringHost('later'); host = asking;
+      expect(await createNativeVoiceRecorder().requestPermission()).toBe(expected);
+      expect(asking.asked).toEqual([]); expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+    });
+
+    it('lets the press go while the question is read: the attempt ends, but "Dozvoli" still reaches the system, for the next press', async () => {
+      const held = holdingHost(); host = held;
+      mockAudioPermissionRequest.mockResolvedValue({ granted: true, canAskAgain: true });
+      const recorder = createNativeVoiceRecorder();
+      const permission = recorder.requestPermission();
+      for (let n = 0; n < 8; n++) await Promise.resolve();
+      expect(held.open()?.kind).toBe('microphone');
+      await recorder.cancel();
+      held.answer('allow');
+      // The cancelled attempt is told "unavailable" (it never gets a recording), but the person said yes and the system was asked.
+      expect(await permission).toBe('unavailable');
+      expect(mockAudioPermissionRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not open the system\'s window for an app that was left while the question was read', async () => {
+      const held = holdingHost(); host = held;
+      const permission = createNativeVoiceRecorder().requestPermission();
+      for (let n = 0; n < 8; n++) await Promise.resolve();
+      mockAudioAppState.currentState = 'background';
+      held.answer('allow');
+      expect(await permission).toBe('unavailable');
+      expect(mockAudioPermissionRequest).not.toHaveBeenCalled();
+    });
+
+    it('goes straight to the system when no host can draw the question', async () => {
+      expect(await createNativeVoiceRecorder().requestPermission()).toBe('granted');
+      expect(mockAudioPermissionRequest).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -179,7 +179,7 @@ export default function DizajnObjava() {
   const placeStep = (value: NeedLocationReview, options: { saved?: boolean; loading?: boolean } = {}) =>
     <LocationScreen title="Mesto zadatka" onBack={toList} loading={!!options.loading} onRetry={noop} scroll={false}>
       {options.saved ? <View style={s.saved}>
-        <T accessibilityRole="alert" variant="body">Lokacija je sačuvana u pregledu Zadatka.</T>
+        <T accessibilityRole="alert" variant="body">Lokacija je sačuvana u pregledu zadatka.</T>
         <V2Action label="Nazad na pregled" kind="secondary" onPress={toList} />
       </View> : null}
       <NeedLocationForm layout="screen" reviewOnly={!options.saved} review={value} busy={false} uncertain={false} onSave={noop}
@@ -246,7 +246,7 @@ export default function DizajnObjava() {
     : scene === 'mesto-ucitavanje' ? placeStep(place(), { loading: true })
     : scene === 'foto-mreza' ? photos([...READY(2), { kind: 'PROCESSING', assetId: 'p' }, { kind: 'FAILED', assetId: 'f' }],
       { status: { text: 'Fotografija je dodata privatnom nacrtu.', tone: 'success' } })
-    : scene === 'foto-salje' ? photos([...READY(2), { kind: 'SENDING' }], { status: { text: 'Šaljem fotografiju…', tone: 'progress' }, working: true })
+    : scene === 'foto-salje' ? photos([...READY(2), { kind: 'SENDING' }], { status: { text: 'Šaljemo fotografiju…', tone: 'progress' }, working: true })
     : scene === 'foto-nepotvrdjeno' ? photos([...READY(2), { kind: 'UNCONFIRMED' }], { unconfirmed: true,
       status: { text: 'Slanje nije primljeno. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.', tone: 'error' },
       reason: 'Prvo završi ili otkaži nepotvrđeno slanje.' })

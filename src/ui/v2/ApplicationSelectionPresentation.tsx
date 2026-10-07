@@ -16,13 +16,14 @@ import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
 import { MoneyArt } from '../system/MoneyArt';
-import { dolaziOsoba, osobuAkuz, prijava } from '../system/plural';
+import { osoba, osobuAkuz, prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
 import { useTextScale } from '../system/textScale';
 import { brandAction, cardCompact, sys, inset } from '../system/tokens';
 import { T } from '../Text';
-import { CandidateCard, CandidateCompareCard, CandidatePerson, CandidateStatusLine, UNPRICED, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
+import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
+import { PrijavaState } from './PrijavaCard';
 import { ACTION_MIN_HEIGHT, V2Action } from './V2Action';
 import { splitFirstSentence } from './ApplicationComposerPresentation';
 
@@ -82,17 +83,20 @@ const CandidateSeparator = () => <View style={s.separator} />;
  * and primitives so a re-render of the screen touches only the rows whose offer changed; the
  * closure over `candidate` is made here, from the list's one stable `open`.
  */
-const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo }: {
+const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo, viewed }: {
   candidate: KandidatProjekcija; need: PotrebaProjekcija; index: number; animate: boolean; compare: boolean;
-  /** The width of one of two comparison columns; null in one column. A lone last offer keeps it instead of the whole row. */
+  /** The width of one of two comparison columns; null in one column. A lone last application keeps it instead of the whole row. */
   columnWidth: number | null; large: boolean; narrow: boolean; open: (candidate: KandidatProjekcija) => void; photo?: CandidatePhoto;
+  /** The server confirmed that this application was seen (opened on this phone): its chip says "Viđena". */
+  viewed: boolean;
 }) {
   const openThis = useCallback(() => open(candidate), [open, candidate]);
   const face = photo?.(candidate, compare ? 40 : 56);
   return <Appear index={index} animate={animate} style={columnWidth ? { width: columnWidth } : undefined}>
-    {compare ? <CandidateCompareCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} onOpen={openThis}
+    {compare ? <CandidateCompareCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} viewed={viewed} onOpen={openThis}
       photo={face} aligned={columnWidth !== null} />
-      : <CandidateCard candidate={candidate} timezone={need.taskTimezone} onOpen={openThis} photo={face} large={large} narrow={narrow} />}
+      : <CandidateCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} viewed={viewed} onOpen={openThis}
+        photo={face} large={large} narrow={narrow} />}
   </Appear>;
 });
 
@@ -142,10 +146,15 @@ export type CandidatesPaging = { total: number | null; hasMore: boolean; loading
  * identity and terms their own width. An offer opens as a sheet over this list, so the list is still where the person
  * left it when they close it.
  */
-export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging }: {
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging, viewed }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
   /** Present only when the list is read a page at a time (EX-04 S4); `candidates` are then the ones loaded so far. */
   paging?: CandidatesPaging;
+  /**
+   * The ids of the applications the server confirmed as seen on this phone (opened by the requester): their chip says "Viđena". The
+   * candidate read carries no viewed flag, so nothing else can say it; an id that is not here is "Poslata", which is still true.
+   */
+  viewed?: ReadonlySet<string>;
   /** The row at the top opens the Task these offers answer. */
   openTask?: () => void;
   /** The order the route keeps, so it survives opening an offer and coming back. Held here when absent. */
@@ -184,8 +193,8 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const openCandidate = useCallback((k: KandidatProjekcija) => openRef.current(k), []);
   const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
     <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columnWidth={columnWidth}
-      large={large} narrow={narrow} open={openCandidate} photo={photo} />,
-  [need, compare, columnWidth, large, narrow, openCandidate, photo]);
+      large={large} narrow={narrow} open={openCandidate} photo={photo} viewed={viewed?.has(candidateKey(k)) ?? false} />,
+  [need, compare, columnWidth, large, narrow, openCandidate, photo, viewed]);
   // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
   const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
   const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
@@ -198,7 +207,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // An offer that can be read but not chosen says why on its own card; this says once what that means.
   const unavailable = candidates.some(k => k.stanje !== 'SELECTABLE' && k.stanje !== 'SELECTED');
   return <SelectionFrame title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back} scroll={false}
-    right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži ponude' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(!compare)} /> : undefined}>
+    right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži listu' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(!compare)} /> : undefined}>
     <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
       contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
       ListHeaderComponent={<View style={s.listHeader}><TaskBrief need={need} open={openTask} />
@@ -211,7 +220,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
         {!known && (sort === 'PRICE' || compare) ? <View accessibilityLiveRegion="polite" style={{ gap: sys.space.xs }}>
           <T variant="note" tone="muted">{sort === 'PRICE'
             ? 'Redosled po ceni važi samo za učitane prijave.'
-            : 'Porediš učitane prijave. Još nisu prikazane sve ponude.'}</T>
+            : 'Porediš učitane prijave. Još nisu prikazane sve prijave.'}</T>
           {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
             : paging?.loadingMore ? <T variant="meta" tone="muted">Učitavamo preostale…</T> : null}
         </View> : null}
@@ -222,9 +231,9 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           </Press>)}</View> : null}
       </View>}
       // What happens next, without promising that anyone will apply.
-      // Comparing needs two offers, so the first one promises nothing about it (review r4 rk item 8).
+      // Comparing needs two applications, so the first one promises nothing about it (review r4 rk item 8).
       ListEmptyComponent={<StateView kind="empty" art="offers" title="Još nema prijava"
-        body="Kad neko pošalje ponudu za ovaj zadatak, videćeš je ovde."
+        body="Kad neko pošalje prijavu za ovaj zadatak, videćeš je ovde."
         quiet={{ label: 'Osveži prijave', onPress: refresh }} />}
       renderItem={renderItem}
       onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
@@ -254,25 +263,31 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
   };
   useEffect(() => { void read(); return () => { request.current++; }; }, [load]);
   if (state.id) return <BrandAction label="Otvori Dogovor" onPress={() => { if (state.id) open(state.id); }} />;
-  return <><T variant="meta" tone="muted" style={s.center}>{state.loading ? 'Proveravamo Dogovor uz ovu Prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
+  return <><T variant="meta" tone="muted" style={s.center}>{state.loading ? 'Proveravamo Dogovor uz ovu prijavu…' : 'Veza sa Dogovorom trenutno nije dostupna.'}</T>
     <V2Action label="Proveri Dogovor" onPress={() => { if (!state.loading) void read(); }} loading={state.loading} /></>;
 }
 
-/** The words that stand before the one choice that forms the Agreement; the same in the question and while it is retried. */
+/** The words that stand before the one choice that forms the Dogovor, while it is retried; the question itself is `CHOICE_QUESTION`. */
 const CHOICE_TITLE = 'Jedan izbor sklapa Dogovor.';
-const choiceTerms = (candidate: KandidatProjekcija) =>
-  `Izborom prihvataš ovu ponudu: ${candidate.cena.prikaz} ukupno, ${dolaziOsoba(candidate.pokrivaMesta)}. Dogovor odmah važi za obe strane.`;
-const CHOICE_NOTE = 'Tvoji paralelni zadaci ostaju odvojeni. Termin izabrane osobe ponovo se proverava pri izboru.';
-/** The one name of the choice: the offer's green button and the confirm of the question it asks. */
-const CHOOSE_LABEL = 'Izaberi ovu ponudu';
+/** The question the dialog asks: a verb with a question mark, and under it what is accepted and what follows (plan 2.3). */
+const CHOICE_QUESTION = 'Izabrati ovu prijavu?';
+/** What is accepted: the price, the people and the term that applies (the person's proposal, or else the task's own), then what follows. */
+const choiceTerms = (candidate: KandidatProjekcija, term: string) => {
+  const price = candidateValue(candidate);
+  return `Prihvataš: ${price.kind === 'amount' ? `${price.amount} ${price.basis}` : UNPRICED} · ${osoba(candidate.pokrivaMesta)} · ${term}. Dogovor odmah važi za obe strane.`;
+};
+const CHOICE_NOTE = 'Termin izabrane osobe ponovo se proverava pri izboru.';
+/** The one name of the choice: the green button of the application and the confirm of the question it asks. */
+const CHOOSE_LABEL = 'Izaberi ovu prijavu';
 
 /**
- * One offer in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
+ * One application in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
  * behind it). The person leads — their name as the sheet's title, then their picture and rating, which open their public
- * profile — then the offer: the total and whom it is for, the time, their whole message and what they declared with it.
+ * profile — then the state (the same chip as the card), then the offer: the total and whom it is for, the time, their whole
+ * message and what they declared with it.
  *
- * The sheet's pinned footer holds the ONE green action. "Izaberi ovu ponudu" asks first, in an in-app confirmation with
- * the words that always stood before this choice; only its confirm runs the route's `choose`, which keeps every guard it
+ * The sheet's pinned footer holds the ONE green action. "Izaberi ovu prijavu" asks first, in a centred dialog that says what
+ * is accepted (price, people, term) and what follows; only its confirm runs the route's `choose`, which keeps every guard it
  * had (the read revision and account, the offer's own version and hash, the selectable classifier, one idempotent
  * command). A retained confirmation is retired the moment the offer it asked about changes. After a choice the footer
  * carries its outcome: the Dogovor, a check of an unknown outcome, or the same command again.
@@ -280,8 +295,10 @@ const CHOOSE_LABEL = 'Izaberi ovu ponudu';
  * Closing the sheet is the screen's Back: it returns to the list, or, once a choice was made, leaves as Back always did.
  * Nothing closes it while the choice runs.
  */
-export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo }: {
+export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, viewed = false }: {
   need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>;
+  /** The server confirmed that this application was seen (it was opened on this phone): the chip says "Viđena" instead of "Poslata". */
+  viewed?: boolean;
   /** The route's one choice. A returned promise keeps the confirmation busy until the command settles. */
   choose: () => void | Promise<unknown>;
   busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void; error: string | null; confirmed: boolean;
@@ -311,13 +328,15 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   // A question asked about one exact offer is not an answer about a changed one.
   const offerKey = [need.id, need.revizija, candidate.prijavaId, candidate.verzija, candidate.hash, candidate.stanje, candidate.mozeIzabrati].join(':');
   useEffect(() => { retireConfirmation(); }, [offerKey, retireConfirmation]);
+  const value = candidateValue(candidate), time = candidateTime(candidate, need.taskTimezone), reason = candidateStatus(candidate);
+  // The term that applies if this application is chosen: the person's own proposal, or else the task's.
+  const term = time ?? need.vremeTekst;
   const askToChoose = () => {
     if (!candidate.mozeIzabrati || busy || pending || confirmed) return;
     // The confirm says the words of the button that asked (review r4 rk item 5): one command, one name.
-    confirmation.ask({ title: CHOICE_TITLE, message: `${choiceTerms(candidate)} ${CHOICE_NOTE}`, confirmLabel: CHOOSE_LABEL,
+    confirmation.ask({ title: CHOICE_QUESTION, message: `${choiceTerms(candidate, term)} ${CHOICE_NOTE}`, confirmLabel: CHOOSE_LABEL,
       onConfirm: () => choose() });
   };
-  const value = candidateValue(candidate), time = candidateTime(candidate, need.taskTimezone), status = candidateStatus(candidate);
   const message = candidate.napomena?.trim() ?? '';
   const selected = candidate.stanje === 'SELECTED' && !pending;
   // An offer that cannot be chosen has no green action; the band says so and carries the one thing to do about it.
@@ -326,15 +345,15 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     : selected ? <SelectedAgreementAction load={readAgreement} open={openLinkedAgreement} />
     : busy ? <BrandAction label="Povezivanje…" onPress={() => { void choose(); }} disabled loading />
     : uncertain ? <BrandAction label="Proveri ishod" onPress={refresh} disabled={busy} />
-    : pending ? <BrandAction label="Ponovi isti izbor" onPress={() => { void choose(); }} />
+    : pending ? <BrandAction label="Pošalji izbor ponovo" onPress={() => { void choose(); }} />
     : candidate.mozeIzabrati ? <BrandAction label={CHOOSE_LABEL} onPress={askToChoose} />
     : null;
   const quiet = reset ? <V2Action label="Pregledaj aktuelne prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
   // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
   // visible × beside it, which a sighted person on iOS had no way to find before (only the handle, a tap outside and
   // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.
-  return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori ponudu'}
-    backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara ponudu i vraća na prijave.'} dismissible={!busy} onClose={back}
+  return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori prijavu'}
+    backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara prijavu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <View style={s.sheetFooter}>
       {/* Fresh only when the choice was confirmed while this sheet was open: reopened on an outcome that was already
           confirmed (back from the profile's safety screen), the mark stands still and no haptic plays (review r4 rk
@@ -345,12 +364,14 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     </View> : undefined}>
     {() => <View style={s.offerContent}>
       <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
-      {status || blocked ? <View style={[s.band, status?.tone === 'warn' ? s.bandWarn : status?.tone === 'green' ? s.bandGreen : null]}>
-        {status ? <CandidateStatusLine status={status} /> : null}
+      {/* The same state as the card, always: the chip (the sheet is where a person decides, so it says where the application stands),
+          the reason under it when it is not simply open, and the one thing to do when it cannot be chosen now. */}
+      <View style={s.band}>
+        <PrijavaState status={candidateChip(candidate, viewed)} reason={reason ? { text: reason.text, tone: reason.tone } : null} />
         {blocked ? <><T variant="note" style={s.ink}>Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš aktuelno stanje.</T>
           <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.bandAction} /></> : null}
-      </View> : null}
-      <View style={[s.offerTerms, (status || blocked) && s.afterStatus]}>
+      </View>
+      <View style={[s.offerTerms, s.afterStatus]}>
         <View accessible accessibilityLabel={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}: ${value.kind === 'amount' ? value.amount : UNPRICED}`} style={s.offerPrice}>
           <View style={s.offerPriceLabel}>{value.kind === 'amount' ? <MoneyArt size={24} /> : <FactArt kind="money" size={24} cut="art" tone="quiet" />}
             <T variant="note" tone="muted" style={s.grow}>Ukupno za {osobuAkuz(candidate.pokrivaMesta)}</T></View>
@@ -370,7 +391,7 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
       {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
           owner as labels; what the applicant wants to say is in the message above. */}
       {pending && !confirmed ? <View style={s.warnCard}><T accessibilityRole="alert" variant="heading" style={s.ink}>{CHOICE_TITLE}</T>
-        <T variant="body" style={s.ink}>{choiceTerms(candidate)}</T><T variant="meta" tone="muted">{CHOICE_NOTE}</T></View> : null}
+        <T variant="body" style={s.ink}>{choiceTerms(candidate, term)}</T><T variant="meta" tone="muted">{CHOICE_NOTE}</T></View> : null}
       <ErrorMessage error={error} />
       {confirmation.sheet}
       <PublicProfileSheet state={profile} onClose={closeProfile} onRetry={() => { void openProfile(); }} photo={publicPhoto} safety={safety} />
@@ -419,8 +440,6 @@ const s = StyleSheet.create({
   offerMessage: { gap: sys.space.sm },
   band: { backgroundColor: sys.color.surface, gap: sys.space.sm, paddingVertical: sys.space.md,
     borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
-  bandWarn: { borderLeftWidth: 3, borderLeftColor: sys.color.warn, paddingLeft: sys.space.md },
-  bandGreen: { borderLeftWidth: 3, borderLeftColor: sys.color.green, paddingLeft: sys.space.md },
   bandAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
   done: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
 });

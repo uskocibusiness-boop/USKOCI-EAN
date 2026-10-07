@@ -582,7 +582,7 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     const p = props(); p.pending = true; p.canSend = false; p.voice = voice({ disabled: true });
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     const send = tree.root.findByProps({ testID: 'ai-send' });
-    expect(send.props).toMatchObject({ accessibilityLabel: 'Ponovi istu poruku', disabled: true, accessibilityState: { disabled: true },
+    expect(send.props).toMatchObject({ accessibilityLabel: 'Pošalji ponovo', disabled: true, accessibilityState: { disabled: true },
       accessibilityHint: 'Prethodna poruka čeka ishod. Proveri ga u razgovoru.' });
     expect(tree.root.findByProps({ testID: 'ai-send-reason' }).props.children).toBe('Prethodna poruka čeka ishod. Proveri ga u razgovoru.');
     const busy = { ...p, busy: true };

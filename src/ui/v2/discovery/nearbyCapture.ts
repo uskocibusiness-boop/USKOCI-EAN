@@ -17,6 +17,9 @@ type Attempt = { subscription: Subscription | null; timer: ReturnType<typeof set
 export function createNearbyCapture(options: {
   load: () => Promise<NearbyLocationAdapter>; owns: () => boolean;
   onStatus: (status: NearbyStatus) => void; onPoint: (point: NearbyPoint) => void;
+  /** The app's own question before the system's location window (ui/permissions/locationPermission.askForLocation). `later` means: do not
+   *  read the position now and say nothing. Absent (or a permission already held) it changes nothing. */
+  beforePermission?: () => Promise<'allow' | 'later'>;
 }) {
   let active: Attempt | null = null;
   const remove = (subscription: Subscription | null) => {
@@ -45,6 +48,8 @@ export function createNearbyCapture(options: {
       try {
         // Called only from an explicit tap, never while the map or hook is mounting.
         const location = await options.load();
+        if (!current(attempt)) return;
+        if (options.beforePermission && (await options.beforePermission()) === 'later') { finish(attempt, 'idle'); return; }
         if (!current(attempt)) return;
         const permission = await location.requestForegroundPermissionsAsync();
         if (!current(attempt)) return;

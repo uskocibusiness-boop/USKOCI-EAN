@@ -5,6 +5,8 @@ import { createConfiguredLocationResolver, type ConfiguredLocationResolution } f
 import AiLocationGallery from '../../app/dizajn-ai-mesto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { answeringHost } from '../../ui/permissions/testing/answeringHost';
 
 let mockFocused = true;
 let mockGalleryPackage = 'rs.uskoci.dev', mockGalleryParams: { scene?: unknown } = {};
@@ -582,8 +584,64 @@ describe('use where I am', () => {
     capture.mockResolvedValue({ kind: 'UNAVAILABLE' });
     await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
     await press('Koristi gde sam');
-    expect(text()).toContain('Ne mogu da očitam gde si');
+    expect(text()).toContain('Ne možemo da očitamo gde si');
     expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
+  // Design proposal N (owner, 2026-10-07): right before the system's location window the person is told why, in one question.
+  // The question comes only when the window is about to open: nothing is asked of a phone that has already said yes.
+  describe('the question before the system\'s window', () => {
+    const point = { kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } };
+    let host: ReturnType<typeof answeringHost> | undefined;
+    const holds = (fine: boolean, coarse: boolean) => jest.spyOn(PermissionsAndroid, 'check').mockImplementation(async (permission: string) =>
+      permission === PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION ? fine : coarse);
+    beforeEach(() => { jest.replaceProperty(Platform, 'OS', 'android'); capture.mockResolvedValue(point); });
+    afterEach(() => { host?.stop(); host = undefined; jest.restoreAllMocks(); });
+
+    it('"Dozvoli": the position is then read, and a pin is proposed as before', async () => {
+      holds(false, false); host = answeringHost('allow');
+      await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+      await press('Koristi gde sam');
+      expect(host.asked).toEqual(['location']);
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(map().props.position).toEqual({ latitude: 45.2551, longitude: 19.8451 });
+    });
+
+    it('"Ne sada": nothing is read and nothing is said; the button is as it was and the other ways stay open', async () => {
+      holds(false, false); host = answeringHost('later');
+      await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+      await press('Koristi gde sam');
+      expect(host.asked).toEqual(['location']);
+      expect(capture).not.toHaveBeenCalled();
+      expect(button('Koristi gde sam')).toBeDefined(); expect(button('Koristi gde sam').props.disabled).toBe(false);
+      expect(text()).not.toContain('Pristup lokaciji nije dozvoljen'); expect(text()).not.toContain('Ne možemo da očitamo gde si');
+      expect(props.onConfirm).not.toHaveBeenCalled();
+      expect(buttons().some(node => node.props.label === 'Pronađi na mapi')).toBe(true);
+      // And the person can still ask again.
+      host.stop(); host = answeringHost('allow');
+      await press('Koristi gde sam');
+      expect(capture).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([[true, false], [false, true], [true, true]])('is not asked when the phone already allows it (fine=%s, coarse=%s)', async (fine, coarse) => {
+      holds(fine, coarse); host = answeringHost('later');
+      await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+      await press('Koristi gde sam');
+      expect(host.asked).toEqual([]); expect(capture).toHaveBeenCalledTimes(1);
+    });
+
+    it('is not asked on opening, only on the press', async () => {
+      holds(false, false); host = answeringHost('later');
+      await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+      expect(host.asked).toEqual([]);
+    });
+
+    it('with no host to draw the question the position is read directly, as before', async () => {
+      holds(false, false);
+      await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
+      await press('Koristi gde sam');
+      expect(capture).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

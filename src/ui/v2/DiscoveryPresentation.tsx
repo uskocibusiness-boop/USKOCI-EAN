@@ -1,6 +1,6 @@
 import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
@@ -9,12 +9,13 @@ import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedSty
 import { State as GestureState } from 'react-native-gesture-handler';
 import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, useBottomSheetInternal, useScrollEventsHandlersDefault,
   type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
-import { MapTrifold, X } from 'phosphor-react-native';
+import { Crosshair } from 'phosphor-react-native';
 import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryMapScope, discoveryShown, discoveryStartSnap, initialMarketplaceView, openPlaces,
   pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, workMode, type DiscoveryShown,
   type DiscoverySnap, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { Glyph } from '../system/Glyph';
 import { Appear, useAppear } from '../system/Appear';
 import { ActionSheet } from '../system/ActionSheet';
 import { useReducedMotion } from '../system/motion';
@@ -26,10 +27,15 @@ import type { DiscoveryV1ServerMapSeam } from './DiscoveryMap.types';
 import type { DiscoveryV1Availability, DiscoveryV1Counts } from '../../data/discoveryV1Contract';
 import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
-import { DiscoverySearchBar, type QuickChip } from './discovery/DiscoverySearchBar';
+import { BAR_TOP, DiscoverySearchBar, NearbyNotice } from './discovery/DiscoverySearchBar';
+import { DiscoveryChipRow, type QuickChip, type ScopeKey } from './discovery/DiscoveryChipRow';
+import { CONTROL_SIZE, fullSheetTop } from './discovery/mapClearBand';
+import { useCoverValue, useRidingStyle } from './discovery/mapControls';
+import { handleHint, listViewport, nextSheetIndex, snapHeights } from './discovery/sheetSnaps';
+import { TaskAgeContext, taskAgeOf, type PublishedAt } from './discovery/taskAge';
 import { useNearbyMap } from './discovery/useNearbyMap';
-import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type SearchDraft, type SearchReadiness, type SearchStep } from './discovery/DiscoverySearchPanel';
-import { CLEAR_ALL, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, datesWords, placesWords, quoted, removeWords, said,
+import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type SearchApplyOptions, type SearchDraft, type SearchReadiness, type SearchStep } from './discovery/DiscoverySearchPanel';
+import { CLEAR_ALL, NEWEST_FIRST, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, countWords, datesWords, placesWords, quoted, removeWords, said,
   undatedWords, whereWords } from './discovery/discoveryWords';
 import { TaskCard } from './TaskCard';
 import type { TaskCardRelation } from './TaskFace';
@@ -39,7 +45,7 @@ import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 /** Internal DEV diagnosis. Route owns the exact package/query gate, numeric validation and 120-event limit. */
 export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
   | 'preopen' | 'write-offset' | 'seed' | 'ready' | 'geometry' | 'index' | 'content' | 'layout' | 'restore-check'
-  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'fold' | 'drag' | 'refresh' | 'kick' | 'stall' | 'want' | 'fit',
+  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'drag' | 'refresh' | 'kick' | 'stall' | 'want' | 'fit',
   ...values: (number | boolean)[]) => void;
 
 export type DiscoveryV1PresentationSeam = {
@@ -54,6 +60,11 @@ export type DiscoveryV1PresentationSeam = {
    * The quick chips are offered from it, so they do not come and go as the map moves. Null until a page has been read.
    */
   availability?: DiscoveryV1Availability | null;
+  /**
+   * When each task of the loaded page was published, by id (the page rows' own `publishedAt`). The list is ordered by it, newest first, and a card
+   * may ask how old its task is (`useTaskAge`); a task not in it has no age.
+   */
+  published?: PublishedAt;
   /** Server-owned draft count/locality facets. Loaded PAGE rows are never used as its fallback. */
   search?: DiscoveryV1SearchPanelSeam;
   pageHasMore: boolean;
@@ -88,13 +99,26 @@ export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; lo
   relationsPending?: boolean; relationsError?: boolean;
   /** P6-only presentation seam. No production route supplies this until rollout/native gates explicitly close. */
   p6Seam?: DiscoveryV1PresentationSeam;
+  /**
+   * "Za mene" (the tasks that match the person's own work profile) is BUILT but not drawn: it needs a server filter key that does not
+   * exist yet, and a control that does nothing is not shown. The one switch that brings "Svi zadaci | Za mene" in once that package
+   * ships; `scope` and `onScope` are then the route's.
+   */
+  forMeAvailable?: boolean; scope?: ScopeKey; onScope?: (scope: ScopeKey) => void;
   trace?: DiscoveryTrace };
 
 const GAP = sys.space.md;
-/** The tools' lower edge before it has been measured: the search pill's row and one row of chips under it. */
-const TOOLS_ESTIMATE = sys.space.md + 56 + sys.space.sm + 48;
-/** The room the row of quick chips takes before the bar has measured it: one row of chips and the gap above it. */
+/** The search pill's lower edge before it has been measured: its distance from the top and its one row. */
+const TOOLS_ESTIMATE = BAR_TOP + 56;
+/** The room the row of chips takes over the map (list lowered) before it is measured: one row of chips and the gap above it. */
 const CHIPS_ROOM_ESTIMATE = sys.space.sm + 48;
+/** The row of chips as the list sheet's sticky header, before it is measured: a 48 chip with the air it needs above and below. */
+const CHIP_BAR_ESTIMATE = 58;
+/**
+ * How far the list has to rise from its lowest stop before the chips over the map are gone and only the ones in the sheet's header
+ * are left: on the UI thread, from the sheet's own position, so the two rows never show together for long.
+ */
+const CHIPS_HANDOFF = 48;
 /** The sheet's top line before it has been measured: the grab bar and one line of count. */
 const PEEK_ESTIMATE = 68;
 /**
@@ -104,18 +128,15 @@ const PEEK_ESTIMATE = 68;
 export const HIDDEN = 1;
 /** The pin card's gap above the bottom of the screen, which ends where the tab bar begins: it sits just above the bar. */
 const CARD_BOTTOM = sys.space.md;
-/** The list scrolled at least this far is scrolled: at its full height the quick chips may then fold away. */
+/** The list scrolled at least this far is scrolled (said in the diagnosis only: the chips never fold away, they are the sheet's sticky header). */
 const SCROLLED = 8;
-/**
- * The quick chips fold away only when the list stays longer than its window by at least this much more than their own
- * room: otherwise the list, taking their room, would fit, fall back to its top and bring them back, over and over.
- */
-const FOLD_MARGIN = sys.space.sm;
 /** How long after the list stops moving its offset is written into the route's view, to be found again on return. */
 export const OFFSET_SETTLE_MS = 250;
 /** How long the list's area stays still before iOS VoiceOver hears the new count (Android hears it by the live region). */
 export const AREA_ANNOUNCE_MS = 1000;
 const Separator = () => <View style={s.separator} />;
+/** What the list says while the next page is read (UX plan 2.16: a list of a thousand tasks is read page by page). */
+export const PAGING_WORDS = 'Učitavamo još zadataka…';
 const keyOf = (item: MarketplaceItem) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
@@ -586,21 +607,27 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (!sameBounds(bounds, current.area) || current.pinPlace) change({ area: bounds, pinPlace: null });
   };
 
-  // Layout: the body under the chrome, the tools' lower edge, the sheet's measured top line.
+  // Layout: the body under the chrome, the search pill's lower edge, the sheet's measured top line and its row of chips.
   const [bodyHeight, setBodyHeight] = useState(0), [toolsBottom, setToolsBottom] = useState(TOOLS_ESTIMATE), [peek, setPeek] = useState(PEEK_ESTIMATE);
   const [toolsMeasured, setToolsMeasured] = useState(false);
   const [creditsHeight, setCreditsHeight] = useState(Platform.OS === 'web' ? 0 : 48);
   const creditsRoom = mapShown && creditsHeight ? creditsHeight + GAP : 0;
   const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
-  // At the full stop the map is covered, so the list uses all the room below search. Lower stops and pin previews
-  // keep the fixed source strip below search clear. A tall count/filter header joins the list scroll instead of pinning it.
-  const listTop = toolsBottom;
+  const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE), [chipBarHeight, setChipBarHeight] = useState(CHIP_BAR_ESTIMATE);
+  // The list at its full height leaves a thin STRIP of map between the search pill and itself (UX plan section P, B3): the map's
+  // credits stand in it on the left, the zoom buttons and "U blizini" on the right, one row high. With neither a map nor "U blizini"
+  // there is no strip, and the list stands one gap under the pill. Lower stops and pin previews keep that row clear above them.
+  // A tall count header joins the list scroll instead of pinning it.
+  const canLocate = where !== 'remote';
+  const footerRow = Math.max(creditsHeight, CONTROL_SIZE);
+  const listTop = fullSheetTop(toolsBottom, GAP, footerRow, mapShown || canLocate);
   const availableSheet = bodyHeight ? Math.max(3, bodyHeight - listTop) : 0;
-  const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - creditsRoom - GAP) : 0;
+  const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - GAP) : 0;
   const scrollHeader = !!mapClearSheet && peek + 2 > mapClearSheet;
-  // A chosen pin's card: the list's top line steps out of sight behind it; fixed map controls never follow the card.
+  // A chosen pin's card: the list's top line steps out of sight behind it; the row of map controls stands above the card.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && search === null;
   const [cardHeight, setCardHeight] = useState(0);
+  const coverBottom = cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0;
   // Android: Reanimated writes a view's opacity and transform by a synchronous update that is lost when Fabric has not mounted the view yet, and nothing
   // writes it again: a freshly mounted Gorhom body then stays at its hidden mount props (opacity 0 / off-screen) while the shared index and position already
   // report the requested stop (found on the CI emulator after returns from a task: a dimmed empty screen with only the "Mapa" pill). The P6 screen is rebuilt
@@ -611,12 +638,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const interacted = useRef(false);
   // The list's top line as it stands with no card over it. With a card it steps out of sight (HIDDEN) and only that one line changes.
   const collapsedSnap = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
-  const snapPoints = useMemo(() => {
-    const low = cardShown ? HIDDEN : collapsedSnap;
-    if (!bodyHeight) return [low, '50%', '88%'];
-    const full = availableSheet;
-    return [low, Math.min(full - 1, Math.max(collapsedSnap + 1, Math.min(mapClearSheet, Math.round(bodyHeight / 2)))), full];
-  }, [bodyHeight, availableSheet, mapClearSheet, collapsedSnap, cardShown]);
+  const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP }),
+    [bodyHeight, listTop, collapsedSnap, cardShown]);
   const sheetSnapPoints = useMemo(() => kick % 2 === 1
     ? snapPoints.map((value, at) => at === sheetIndex && typeof value === 'number' ? value - SHEET_KICK_PX : value) : snapPoints, [snapPoints, kick, sheetIndex]);
   // Empty results use the same full-height recovery surface, with a secondary map return.
@@ -624,14 +647,20 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Match the native sheet's initial off-screen position; zero before its first layout would mean falsely covered.
   const position = useSharedValue(windowHeight);
   const expanded = sheetIndex === SNAP.full;
-  // Hide the covered native map only when the sheet physically reaches its full stop; keep it mounted, with its
-  // exact camera, while the list is up. The white search backing closes the remaining top edge of the list surface.
-  const mapVisibility = useAnimatedStyle(() => ({ opacity: bodyHeight > 0 && position.value <= listTop + 0.5 ? 0 : 1 }), [bodyHeight, listTop]);
-  const searchBacking = useAnimatedStyle(() => {
-    if (!bodyHeight) return { opacity: 0 };
-    const halfTop = bodyHeight - Number(snapPoints[1]);
-    return { opacity: Math.max(0, Math.min(1, (halfTop - position.value) / Math.max(1, halfTop - listTop))) };
-  }, [bodyHeight, listTop, snapPoints]);
+  const lowered = sheetIndex === SNAP.peek;
+  // The row of chips over the map (list lowered) gives way to the one in the sheet's header as the sheet rises: from the sheet's own
+  // position on the UI thread, over the first `CHIPS_HANDOFF` of its travel, so the two rows are never on show together for long.
+  // Gone is out of reach as well: a hidden chip takes no touch (an instant removal, never a travelling control).
+  const lowTop = bodyHeight - (typeof snapPoints[0] === 'number' ? snapPoints[0] : 0);
+  const chipsOverMap = useAnimatedStyle(() => {
+    if (!bodyHeight) return { opacity: 1 };
+    const gone = Math.max(0, Math.min(1, (lowTop - position.value) / CHIPS_HANDOFF));
+    return { opacity: 1 - gone, transform: [{ translateY: gone >= 1 ? -2 * bodyHeight : 0 }] };
+  }, [bodyHeight, lowTop, position]);
+  // "U blizini" stands at the right end of the map's row of controls, directly above the list, and moves with it: the same arithmetic as
+  // the zoom buttons (`mapControls`), drawn here because it must also be there while no map is mounted.
+  const locateCover = useCoverValue(coverBottom, reduced);
+  const locateRide = useRidingStyle({ sheetTop: position, cover: locateCover, height: bodyHeight, rowHeight: footerRow, gap: GAP, minTop: toolsBottom + GAP });
   // Requested index is not physical coverage: a button's spring can return to its old stop without onChange.
   // Only crossing the actual full-height boundary reaches JS. New scope/focus owners reject already queued work.
   const coverageSequence = useRef(0);
@@ -649,7 +678,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const rowMountSignature = useMemo(() => JSON.stringify(listed.map(item => [item, relation(item)])), [listed, relation]);
   const snapSignature = (points: ReadonlyArray<number | string>) => points.map(value => typeof value === 'number' ? Math.round(value * 10) / 10 : value);
   const layoutMountSignature = [
-    windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight, cardShown,
+    windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight, chipBarHeight, cardShown,
     undated, sectionsSignature,
     ...snapSignature(snapPoints),
   ].join(':');
@@ -657,7 +686,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // the rows keep their size and place, and the viewport is the full stop. Keyed by the signature above, every card that opened or closed re-created every row, a burst of native views
   // and Reanimated tags that died at once (measured on the HONOR). The signature above still guards a native sheet that comes back after a departure.
   const rowGeometrySignature = [
-    windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight,
+    windowWidth, windowHeight, fontScale, bodyHeight, toolsBottom, peek, scrollHeader, headerLeadHeight, chipBarHeight,
     undated, sectionsSignature,
     ...snapSignature([collapsedSnap, ...snapPoints.slice(1)]),
   ].join(':');
@@ -727,7 +756,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
   // Attribution occupies camera headroom now, so it must not also inflate the bottom padding.
-  const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP;
+  const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP + footerRow;
+  // The map's own top edge for its clear band, fits and credits: the pill, and under it the chips while they stand over the map.
+  const mapToolsBottom = toolsBottom + (lowered ? chipsRoom : 0);
   const previewMaxHeight = bodyHeight ? Math.max(48, bodyHeight - toolsBottom - creditsRoom - CARD_BOTTOM - 2 * GAP - HIDDEN) : undefined;
   // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
   useEffect(() => {
@@ -745,10 +776,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     userIntent?.(); Keyboard.dismiss(); clearSelection(); setFit(null); setSheetIndex(SNAP.peek);
   };
   const fits = useRef(0);
-  const apply = (draft: SearchDraft) => {
+  const apply = (draft: SearchDraft, options?: SearchApplyOptions) => {
     const before = latestView.current.place;
     userIntent?.(); retireCameraIntent(); retireListFocus();
     change({ ...draft, selectedId: null, selectedPlace: null });
+    // "U blizini" chosen in the panel is the same command as its chip: the map goes to the person once, and no filter is set by it.
+    if (options?.nearby) { findNearby(); return; }
     if (!draft.place || (before && placeKey(before) === placeKey(draft.place))) return;
     const bounds = publicInitialBounds(discoveryShown(items, latestView.current, undefined, now).mapped);
     trace('fit', sheetIndex, bounds ? 1 : 0, sheetIndex === SNAP.peek ? peek : halfSheet);
@@ -774,11 +807,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const roomSaid = p6 ? roomSeen.current === props.scopeKey : loadedRoom;
   const toggle = (patch: Partial<MarketplaceView>) => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
-  // The first slot of the rail is kept for a personal switch ("Za mene": the tasks that match the person's work profile). It needs a server
-  // filter key the P6 contract does not have yet, so nothing is offered there today; it goes in `leading`, ahead of the work-mode chips.
-  const leading: QuickChip[] = [];
   const chips: QuickChip[] = [
-    ...leading,
     // Remote work remains a direct way in, ahead of the optional date/price rail. It has no stale map scope.
     ...(['remote', 'onsite'] as const).filter(key => workModes || view.where === key).map(key => ({ key: `where:${key}`, label: said(WHERE, key),
       selected: view.where === key, onPress: () => toggle({ where: view.where === key ? 'any' : key }) })),
@@ -791,18 +820,22 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       onPress: () => toggle({ places: atLeast(freePlaces) > 1 ? 1 : 2 }) }] : []),
   ];
 
+  // The one row of chips: over the map under the search pill while the list is lowered, and the list sheet's sticky header from half
+  // height up (UX plan section P, variant B). "Svi zadaci | Za mene" is not in it until `forMeAvailable`; "Filteri · N" opens the
+  // search at its conditions; the quick chips write into the same state as the panel.
+  const chipRow = (surface: 'map' | 'sheet') => <DiscoveryChipRow surface={surface} forMeAvailable={props.forMeAvailable} scope={props.scope}
+    onScope={props.onScope} filtersCount={conditionCount} onFilters={() => openSearch('kada')} chips={chips} />;
+
   // The list's scroll offset: remembered in the route's view a moment after the list stops, found again when the list
   // is read anew (a return after a while, or after the app was away), and back at the top when the search changes. A
-  // restore still waiting for the rows is dropped the moment the person takes hold of the list or refreshes it. At the
-  // full height a list scrolled well past the chips folds them away and takes their room; they come back at its top.
+  // restore still waiting for the rows is dropped the moment the person takes hold of the list or refreshes it.
   const listRef = useRef<BottomSheetFlatListMethods | null>(null);
-  const [scrolled, setScrolled] = useState(() => (view.listOffset ?? 0) > SCROLLED);
-  const scrolledRef = useRef(scrolled);
+  const scrolledRef = useRef((view.listOffset ?? 0) > SCROLLED);
   // Gorhom's BottomSheetContent sizes its mask from the highest detent at every stop.
   // Give the native list that exact viewport, less our pinned header (a scrolling header
   // is inside the list). Otherwise Android's refresh wrapper can leave FlatList content-
   // sized on remount; EXTENDED then arrives without another bounded list onLayout.
-  const listWindow = typeof snapPoints[2] === 'number' ? snapPoints[2] - (scrollHeader ? 0 : peek) : 0;
+  const listWindow = typeof snapPoints[2] === 'number' ? listViewport(snapPoints[2], scrollHeader ? 0 : peek, chipBarHeight) : 0;
   const restoreAck = useRef<number | null>(null);
   // The last scroll position the native list reported (a pending restore ignores events that are not its target), for a restore that has to settle.
   const observedY = useRef(0), stalls = useRef(0), stallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -835,7 +868,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       && (contentHeight.current <= listWindow || Math.abs(contentHeight.current - end) <= 1);
   }, [extent, endPadding, listWindow]);
   const restoreVisit = useRef<number | null>(null), restoreMount = useRef<number | null>(null), restoreHadRows = useRef(hasRows);
-  traceState.current = { scrolled, index: sheetIndex };
+  traceState.current = { scrolled: scrolledRef.current, index: sheetIndex };
   const tracedScroll = useRef<number | null>(null);
   const tracedRejectedScroll = useRef<string | null>(null);
   const tracedZero = useRef<string | null>(null);
@@ -847,7 +880,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (restoreMount.current !== nativeMountKey || !hasRows) { listHeight.current = 0; contentHeight.current = 0; }
     restoreVisit.current = coverageOwner.sequence; restoreMount.current = nativeMountKey;
     const at = latestView.current.listOffset ?? 0;
-    trace('seed', coverageOwner.sequence, at, offset.current, hasRows, scrolled, sheetIndex);
+    trace('seed', coverageOwner.sequence, at, offset.current, hasRows, scrolledRef.current, sheetIndex);
     offset.current = at; restore.current = at > 0 ? at : null;
     restoreTarget.current = null; restoreAck.current = null; restoreAttempted.current = false; stalls.current = 0;
   }
@@ -860,7 +893,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (!currentList() || at === null) return;
     if (!hasRows && !loading && !error) {
       restore.current = null; restoreTarget.current = null; offset.current = 0;
-      scrolledRef.current = false; setScrolled(false); writeOffset();
+      scrolledRef.current = false; writeOffset();
       return;
     }
     if (!hasRows || !listReady.current || !listRestoreReady.current || nativeSettledIndex.current !== sheetIndex || !listRef.current
@@ -874,7 +907,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       trace('clamp0', at, contentHeight.current, listWindow, latestView.current.listOffset ?? 0);
       // The measured current list fits in its window: there can be no offset event to acknowledge.
       restore.current = null; restoreTarget.current = null; offset.current = 0;
-      scrolledRef.current = false; setScrolled(false); writeOffset();
+      scrolledRef.current = false; writeOffset();
       return;
     }
     // A provisional scroll may have arrived before the last cell's layout. Once its
@@ -959,8 +992,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       } else tryRestore();
     }
   }, [currentSheet, currentList, tryRestore, trace, position, focused, coverageOwner, listWindow, highest, writeOffset, acceptSheetIndex, userIntent]);
-  const [chipsRoom, setChipsRoom] = useState(CHIPS_ROOM_ESTIMATE);
-  const fold = useRef({ listWindow, chipsRoom }); fold.current = { listWindow, chipsRoom };
   const onScroll = useCallback((event: { nativeEvent: NativeScrollEvent }) => {
     const y = Math.max(0, event?.nativeEvent?.contentOffset?.y ?? 0);
     observedY.current = y;
@@ -995,10 +1026,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (y > 0 && (tracedScroll.current === null || Math.abs(y - tracedScroll.current) >= 64)) {
       trace('scroll', y, latestView.current.listOffset ?? 0, scrolledRef.current); tracedScroll.current = y;
     }
-    if (!scrolledRef.current) {
-      const { listWindow: frame, chipsRoom: room } = fold.current;
-      if (y > SCROLLED && frame > 0 && contentHeight.current - frame >= room + FOLD_MARGIN) { trace('fold', true, y, frame, contentHeight.current, room); scrolledRef.current = true; setScrolled(true); }
-    } else if (y <= 0) { trace('fold', false, y); scrolledRef.current = false; setScrolled(false); }
+    scrolledRef.current = y > SCROLLED;
     if (offsetTimer.current) clearTimeout(offsetTimer.current);
     // An accepted user scroll still belongs to this visit if folding the chips changes the viewport before saving.
     offsetTimer.current = setTimeout(() => { if (currentSheet()) writeOffset(); }, OFFSET_SETTLE_MS);
@@ -1020,8 +1048,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     } else tryRestore();
   }, [hasRows, focused, tryRestore, trace]);
   useEffect(() => {
-    trace('geometry', bodyHeight, toolsBottom, listTop, peek, chipsRoom, scrolled, sheetIndex, listHeight.current, contentHeight.current);
-  }, [bodyHeight, toolsBottom, listTop, peek, chipsRoom, scrolled, sheetIndex, trace]);
+    trace('geometry', bodyHeight, toolsBottom, listTop, peek, chipsRoom, scrolledRef.current, sheetIndex, listHeight.current, contentHeight.current);
+  }, [bodyHeight, toolsBottom, listTop, peek, chipsRoom, sheetIndex, trace]);
   const onContentSizeChange = (_width: number, height: number) => {
     trace('content', currentSheet(), height, contentHeight.current, listHeight.current, restore.current ?? -1);
     if (!currentList()) return;
@@ -1036,12 +1064,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (lastSearch.current === searchKey) return;
     trace('search-change', latestView.current.listOffset ?? 0, offset.current, restore.current ?? -1);
     lastSearch.current = searchKey;
-    restore.current = null; offset.current = 0; scrolledRef.current = false; setScrolled(false);
+    restore.current = null; offset.current = 0; scrolledRef.current = false;
     listRef.current?.scrollToOffset?.({ offset: 0, animated: false });
     if ((latestView.current.listOffset ?? 0) !== 0) change({ listOffset: 0 });
   }, [searchKey, change, trace]);
-  const folded = expanded && scrolled;
 
+  // How old the tasks are, as of this read of the list: the moment is fixed with the page, so a card does not change its words while it is on screen.
+  const published = props.p6Seam?.published;
+  const ageOf = useMemo(() => taskAgeOf(published, new Date()), [published]);
   const appear = useAppear();
   appear.settle(listed.map(keyOf), searchKey);
   const appearRef = useRef(appear); appearRef.current = appear;
@@ -1119,8 +1149,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="note" style={s.count}>
-    {collectionWords ?? (loading || error ? line.words : exactListed ? zadataka(exactListed) : 'Nema zadataka')}
+    {collectionWords ?? (loading || error ? line.words : exactListed ? countWords(exactListed) : 'Nema zadataka')}
   </T>;
+  // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
+  const sorted = !!props.p6Seam && !loading && !error && !collectionWords && exactListed > 1;
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
   const spokenRef = useRef(spoken); spokenRef.current = spoken;
   const whereKey = JSON.stringify([area ?? null, pinPlace ?? null]), lastWhere = useRef(whereKey);
@@ -1131,9 +1163,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const timer = setTimeout(() => { AccessibilityInfo.announceForAccessibility?.(spokenRef.current); }, AREA_ANNOUNCE_MS);
     return () => clearTimeout(timer);
   }, [whereKey, focused]);
-  // One deliberate tap opens the whole list. The half stop remains available by dragging.
-  const canRise = sheetIndex < highest;
-  const openList = () => { userIntent?.(); Keyboard.dismiss(); clearSelection(); setSheetIndex(SNAP.full); };
+  // The top line is the sheet's handle: a tap goes to the next height (lowered, half, full, and round again); a drag of it, of the header
+  // or of the list moves the same sheet, and the sheet never overshoots.
+  // Another page of the server's list is being read, and the person is looking at the list (not at the map under a lowered sheet).
+  const paging = !!props.p6Seam?.loadingMore && !loading && !error && hasRows && sheetIndex > SNAP.peek;
+  const cycleSheet = () => { userIntent?.(); Keyboard.dismiss(); clearSelection(); setSheetIndex(nextSheetIndex(sheetIndex)); };
   const header = <View testID="discovery-list-header" style={s.header}
     onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
     <View testID="discovery-list-header-lead" onLayout={event => {
@@ -1142,10 +1176,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }}>
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
-    {canRise ? <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityState={{ expanded: sheetIndex > SNAP.peek }}
-      accessibilityHint="Otvara celu listu." accessibilityLiveRegion="polite"
-      haptic="select" scaleTo={0.99} onPress={openList} style={s.countRow}>{count}</Press>
-      : <View testID="list-count-words" accessible accessibilityLabel={spoken} accessibilityLiveRegion="polite" style={s.countRow}>{count}</View>}
+    <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityValue={sorted ? { text: NEWEST_FIRST } : undefined}
+      accessibilityState={{ expanded: sheetIndex > SNAP.peek }} accessibilityHint={handleHint(sheetIndex)} accessibilityLiveRegion="polite"
+      haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
+      {count}{sorted ? <T variant="note" tone="muted" style={s.sortedBy}>{NEWEST_FIRST}</T> : null}
+    </Press>
     </View>
     {props.collectionStatus === 'error' ? <View style={s.relationsRecovery}>
       <T variant="note" style={s.relationsMessage}>Tvoj zadatak je objavljen. Osveži spisak da vidiš i ostale.</T>
@@ -1166,16 +1201,16 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     {appliedChips.length ? <View style={s.applied}>{appliedChips.map(chip => <Press key={chip.key} accessibilityRole="button"
       accessibilityLabel={removeWords(chip.label)} haptic="select" hitSlop={{ top: sys.space.xs, bottom: sys.space.xs }}
       onPress={() => toggle(chip.clear)} style={s.appliedChip}>
-      <T variant="meta" style={s.appliedText} numberOfLines={1}>{chip.label}</T><X size={14} weight="bold" color={sys.color.green} />
+      <T variant="meta" style={s.appliedText} numberOfLines={1}>{chip.label}</T><Glyph name="close" size={16} tone="green" />
     </Press>)}</View> : null}
   </View>;
 
-  return <SafeAreaView edges={['top']} style={s.screen}>
+  return <TaskAgeContext.Provider value={ageOf}><SafeAreaView edges={['top']} style={s.screen}>
     {/* Search is this screen's header. Identity belongs to Home; the existing account/publication entries stay in Još. */}
     <BlurTargetView ref={searchBlurTarget} testID="discovery-body" style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
-      <Animated.View testID="discovery-map-layer" style={[StyleSheet.absoluteFill, mapShown && mapVisibility]}
-        pointerEvents={mapCovered ? 'none' : 'auto'} accessibilityElementsHidden={mapCovered}
-        importantForAccessibility={mapCovered ? 'no-hide-descendants' : 'auto'}>
+      {/* The map stays on show at every height of the list (at the full one it is a strip above the sheet); the map itself locks and a
+          tap on the strip lowers the list to half. */}
+      <View testID="discovery-map-layer" style={StyleSheet.absoluteFill}>
         {mapShown ? <DiscoveryMap canRetainMap={props.canRetainMap} items={mapped} selectedId={props.p6Seam ? null : chosen?.id ?? null}
           selectedPlace={props.p6Seam ? null : placeTasks.length > 1 ? place!.key : null}
           p6Server={props.p6Seam ? { ...props.p6Seam.map, onSelect: selectServerMarker, onClear: props.p6Seam.onClearPeek } : undefined}
@@ -1187,23 +1222,36 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
-          onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={mapToolsBottom} fitBottom={fitBottom}
+          controlsMinTop={toolsBottom + GAP} locked={mapCovered} locateShown={canLocate}
+          onStripPress={() => { userIntent?.(); setSheetIndex(SNAP.half); }}
           cameraLayoutReady={bodyHeight > 0 && toolsMeasured}
           onCreditsHeight={next => setCreditsHeight(current => current === next ? current : next)}
-          coverBottom={cardShown && cardHeight ? cardHeight + CARD_BOTTOM + GAP : 0}
+          coverBottom={coverBottom}
           focusBottom={CARD_BOTTOM + GAP + Math.min(360, Math.round(windowHeight / 2))} />
           : <View style={s.ground} />}
-      </Animated.View>
-      <Animated.View testID="discovery-search-backing" pointerEvents="none" accessible={false} importantForAccessibility="no"
-        style={[s.searchBacking, { height: listTop + sys.radius.sheet }, searchBacking]} />
-      <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)} conditionCount={conditionCount}
-        layoutRoom={{ width: windowWidth, scale: fontScale }}
-        nearby={where === 'remote' ? undefined : { onPress: findNearby, busy: nearby.busy, message: nearby.message, onSettings: nearby.settings }}
-        chips={chips} chipsShown={!folded} onSearch={() => openSearch('gde')} onConditions={() => openSearch('kada')}
-        onMore={() => { Keyboard.dismiss(); setMore(true); }}
+      </View>
+      {/* "U blizini": the right end of the map's row of controls, directly above the list sheet, riding it like the zoom buttons. */}
+      {canLocate && bodyHeight ? <Animated.View testID="discovery-locate-layer" pointerEvents="box-none" style={[s.locateLayer, { height: footerRow }, locateRide]}>
+        <Press testID="locate" accessibilityRole="button" accessibilityLabel="U blizini"
+          accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
+          accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
+          haptic="select" scaleTo={sys.motion.scale.button} hitSlop={2} onPress={findNearby}
+          style={[s.locate, { top: Math.round((footerRow - CONTROL_SIZE) / 2) }]}>
+          {nearby.busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <Crosshair size={22} color={sys.color.ink} />}
+        </Press>
+      </Animated.View> : null}
+      <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)}
+        onSearch={() => openSearch('gde')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
-        onChipsHeight={room => setChipsRoom(current => current === room ? current : room)} />
+        below={<>
+          {lowered ? <Animated.View testID="discovery-chips-over-map" style={chipsOverMap} onLayout={event => {
+            const next = Math.ceil(event.nativeEvent.layout.height) + sys.space.sm;
+            if (next > sys.space.sm) setChipsRoom(current => current === next ? current : next);
+          }}>{chipRow('map')}</Animated.View> : null}
+          {canLocate && nearby.message ? <NearbyNotice message={nearby.message} onSettings={nearby.settings} /> : null}
+        </>} />
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={sheetSnapPoints} position={position} reduced={reduced}
         // Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not FINISHED (an interrupted one never
         // sets `didAnimateOnMount`), and nothing re-runs it: a later request for another detent is lost, React says FULL and the native sheet stays
@@ -1211,7 +1259,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         // The P6 screen is rebuilt on every return and started while the map is still initialising, so it never depends on that animation.
         animateOnMount={nativeMountKey === 1 && !props.p6Seam}
         onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
-        sunk={cardShown} mapVisible={mapShown} topInset={listTop}>
+        sticky={<View testID="discovery-sheet-chips" accessibilityElementsHidden={lowered}
+          importantForAccessibility={lowered ? 'no-hide-descendants' : 'auto'} onLayout={event => {
+            const next = Math.ceil(event.nativeEvent.layout.height);
+            if (next > 0) setChipBarHeight(current => current === next ? current : next);
+          }}>{chipRow('sheet')}</View>}
+        sunk={cardShown}>
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
           requestedIndex={sheetIndex} pendingRequest={sheetCommand.current.pending} onReady={receiveListReady}>
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
@@ -1250,12 +1303,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           It fades in and out only when motion is allowed; under reduced motion it is simply there. */}
       {pillShown ? <Animated.View pointerEvents="box-none" style={s.mapPillRow}
         entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} exiting={reduced ? undefined : FadeOut.duration(sys.motion.exit)}>
-        <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={0.97}
+        <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
           onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={[s.mapPill, emptyOverMap && s.mapPillQuiet]}>
-          <MapTrifold size={20} weight="fill" color={emptyOverMap ? sys.color.green : sys.color.onGreen} />
+          <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
           <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
         </Press>
       </Animated.View> : null}
+      {/* The next page of a long list is on its way. It is said over the list's end and not inside it, so the end the list measures (and the
+          place a return restores to) never moves; a quiet line, since a spinner lives only inside a button. */}
+      {paging ? <View pointerEvents="none" accessible accessibilityLabel={PAGING_WORDS} accessibilityLiveRegion="polite"
+        style={[s.pagingRow, pillShown && s.pagingAbovePill]}>
+        <View style={s.paging}><T variant="note" style={s.pagingText}>{PAGING_WORDS}</T></View>
+      </View> : null}
       {cardShown ? <DiscoveryPeek key={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
         item={chosen} place={placeTasks} relation={relation} active={focused} bottomInset={CARD_BOTTOM} reduced={reduced}
         maxHeight={previewMaxHeight}
@@ -1263,14 +1322,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
     </BlurTargetView>
     {search ? <DiscoverySearchPanel blurTarget={searchBlurTarget} items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
-      start={search} reduced={reduced} readiness={readiness} p6Search={props.p6Seam?.search}
+      start={search} reduced={reduced} readiness={readiness} p6Search={props.p6Seam?.search} canNearby={Platform.OS !== 'web'}
       onApply={apply} onClose={() => setSearch(null)} /> : null}
     {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
       ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),
       { key: 'profile', label: 'Moj profil', icon: 'person', onPress: props.onProfile },
       ...(props.onNotifications ? [{ key: 'notifications', label: 'Obaveštenja', icon: 'bell' as const, onPress: props.onNotifications }] : []),
     ]} /> : null}
-  </SafeAreaView>;
+  </SafeAreaView></TaskAgeContext.Provider>;
 }
 
 const s = StyleSheet.create({
@@ -1282,14 +1341,19 @@ const s = StyleSheet.create({
   body: { flex: 1 },
   separator: { height: sys.space.md },
   ground: { flex: 1, backgroundColor: sys.color.ground },
-  searchBacking: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: sys.color.surface },
+  // The layer of "U blizini": as wide as the map and as tall as the row of controls; the UI thread moves it with the sheet.
+  locateLayer: { position: 'absolute', left: 0, right: 0, top: 0 },
+  locate: { position: 'absolute', right: sys.space.base, width: CONTROL_SIZE, height: CONTROL_SIZE, borderRadius: sys.radius.pill,
+    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },
   grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: 0, backgroundColor: sys.color.lineStrong },
-  // The honest count, centred on the sheet's top line: a button while the list can still go higher.
-  countRow: { minHeight: 48, paddingVertical: sys.space.sm, justifyContent: 'center', borderRadius: sys.radius.control },
-  count: { color: sys.color.ink, textAlign: 'center', fontWeight: '600' },
+  // The honest count on the sheet's top line, and how the list is ordered beside it: the whole line is the handle's button.
+  countRow: { minHeight: 48, paddingVertical: sys.space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: sys.space.md, borderRadius: sys.radius.control },
+  count: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 },
+  sortedBy: { textAlign: 'right' },
   applied: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: sys.space.sm, paddingBottom: sys.space.xs },
   // 40 high and 4 more above and under it: 48 to a finger, and two rows of chips 8 apart never share a touch.
   appliedChip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, maxWidth: '100%', paddingHorizontal: sys.space.md,
@@ -1306,6 +1370,12 @@ const s = StyleSheet.create({
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
   // Bottom-centre, just above the tab bar (the screen ends where the bar begins).
   mapPillRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
+  // The quiet note while the next page is read: where the "Mapa" pill stands, or just above it when that is on show.
+  pagingRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
+  pagingAbovePill: { bottom: sys.space.base + 48 + sys.space.sm },
+  paging: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line, ...floating },
+  pagingText: { color: sys.color.ink },
   mapPill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48, paddingHorizontal: sys.space.lg, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.green, ...floating },
   mapPillText: { color: sys.color.onGreen },

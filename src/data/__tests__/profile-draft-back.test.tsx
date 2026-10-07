@@ -1,6 +1,8 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
+// The first test pays for loading both editors and their presentation; on a loaded machine that is more than Jest's 5 s default.
+jest.setTimeout(30_000);
 const mockBack = { handlers: [] as (() => boolean)[] };
 let mockFocused = true;
 let mockSession = { user: { id: 'owner-a' }, accountRevision: 1 };
@@ -22,7 +24,13 @@ jest.mock('react-native', () => {
     return ['View', 'TextInput', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'SettingsScreen', SettingsText: 'T', SettingsAction: 'Button' }));
+jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'SettingsScreen', SettingsText: 'T', SettingsAction: 'Button',
+  // "Izmeni profil" (T4a, 2026-10-07) also draws the rows of "O meni" and the city under the name.
+  SettingsGroup: 'SettingsGroup', SettingsRow: 'SettingsRow' }));
+jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
+// One data source for the life of the test, as in the app: a source that is new on every render would restart the work-profile read on every render.
+const mockIzvor = { mojRadnikProfil: async () => null };
+jest.mock('../../store/uloga', () => ({ useIzvor: () => mockIzvor }));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({ WorkerProfileFrame: 'WorkerProfileFrame' }));
 jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', locationStyles: { section: {} } }));
 jest.mock('../../ui/location/CountryField', () => ({ CountryField: 'CountryField', useCountryOptions: () => ({ countries: ['RS'] }),

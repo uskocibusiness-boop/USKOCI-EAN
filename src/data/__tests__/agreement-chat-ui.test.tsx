@@ -14,11 +14,15 @@ jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 
 jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer', AgreementPhotoSheet: 'AgreementPhotoSheet' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
-import { AgreementChat, messageSpoken } from '../../ui/AgreementChat';
+import { AgreementChat, CLOSED_SENTENCE, messageSpoken } from '../../ui/AgreementChat';
+import { forgetAutoResendForTests, takeAutoResend } from '../../ui/messages/threadModel';
 
 const account = '10000000-0000-4000-8000-000000000001';
 const agreement = '20000000-0000-4000-8000-000000000001';
 const command = { accountId: account, agreementId: agreement, clientMessageId: 'poruka_retry_123', body: 'Stižem uskoro.' };
+// The mark by my message, found by its spoken word (the small mark draws no text).
+const marks = (word: string) => tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === word && node.props.accessibilityRole === 'image');
+const localBubbles = () => tree.root.findAll(node => String(node.type) === 'View' && String(node.props.testID ?? '').startsWith('agreement-local-message-'));
 const outbox = { setDraft: jest.fn(), sendDraft: jest.fn().mockResolvedValue(undefined),
   retry: jest.fn().mockResolvedValue(undefined), start: jest.fn().mockResolvedValue(undefined) } as any;
 let state: OutboxSnapshot;
@@ -47,6 +51,10 @@ async function render(overrides: Partial<typeof props> = {}) {
 }
 beforeEach(() => {
   jest.clearAllMocks();
+  // These cases are about the person's own retry. The automatic retry (once per message, on opening the thread, on the return
+  // to the foreground or when a failing read works again) has its own suite, so the fixture message is spent here.
+  forgetAutoResendForTests();
+  takeAutoResend([{ command, state: 'unknown', persisted: true, attempt: 1 }]);
   frames.clear(); frameId = 0;
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.set(++frameId, callback); return frameId; });
   jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (id != null) frames.delete(id); });
@@ -85,13 +93,15 @@ describe('D03 actual message component', () => {
     await act(async () => tree.unmount());
     await render(); // A new command can transition directly to confirmed in one batched render.
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, entries: [confirmed] }} />));
-    expect(texts()).toContain('Stižem uskoro.'); expect(texts()).toContain('Poslato');
+    // The newly confirmed send stands in its own bubble with the one check, until the read returns it.
+    expect(texts()).toContain('Stižem uskoro.'); expect(localBubbles()).toHaveLength(1); expect(marks('Poslato')).toHaveLength(1);
     const canonical = { id: messageId, telo: command.body, moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
       posiljalacAccountId: account, clientMessageId: command.clientMessageId };
     await act(async () => tree.update(<AgreementChat {...props} messages={[canonical]} state={{ ...state, entries: [confirmed] }} />));
-    expect(texts()).not.toContain('Poslato');
+    // The read's own row replaces it: one bubble with the text, no local copy.
+    expect(localBubbles()).toHaveLength(0); expect(texts().split('Stižem uskoro.')).toHaveLength(2);
     await act(async () => tree.update(<AgreementChat {...props} messages={[]} hasNewer state={{ ...state, entries: [confirmed] }} />));
-    expect(texts()).not.toContain('Stižem uskoro.'); expect(texts()).not.toContain('Poslato');
+    expect(texts()).not.toContain('Stižem uskoro.'); expect(localBubbles()).toHaveLength(0); expect(marks('Poslato')).toHaveLength(0);
     const unknown = { command: { ...command, clientMessageId: 'another_send_attempt' }, state: 'unknown' as const, persisted: true, attempt: 1 };
     await act(async () => tree.update(<AgreementChat {...props} messages={[]} hasNewer state={{ ...state, entries: [confirmed, unknown] }} />));
     expect(texts()).toContain('Slanje nije potvrđeno');
@@ -382,11 +392,14 @@ describe('D03 actual message component', () => {
       fotografije: [{ assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const }] };
     const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, canSubmit: () => false } as any;
     await render({ messages: [read], photos, support: { canAct: () => true, navigate: jest.fn() } });
-    // A photo-only message is heard as its photos, with its day and clock.
-    expect(held('Ti').props.accessibilityLabel).toBe('Ti: 1 fotografija, Danas, 12:00');
-    // Retry belongs to AuthorizedPhoto; no accessible message button may swallow that separate action.
+    // A photo-only message is heard as its photos, with its day, its clock and, for mine, its state.
+    expect(held('Ti').props.accessibilityLabel).toBe('Ti: 1 fotografija, Danas, 12:00, poslato');
+    // Retry belongs to AuthorizedPhoto; no accessible message button may swallow that separate action. The photo is held
+    // (long press) through a wrapper that is itself no stop, so sighted people can offer the message to support from the photo.
     expect(held('Ti').findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
-    expect(tree.root.findByType('AuthorizedPhoto' as React.ElementType).parent?.type).toBe('View');
+    const photoHold = tree.root.findByType('AuthorizedPhoto' as React.ElementType).parent!;
+    expect(photoHold.props.accessible).toBe(false); expect(photoHold.props.accessibilityLabel).toBeUndefined();
+    expect(photoHold.props.onLongPress).toBe(held('Ti').props.onLongPress);
     // The support entry no longer stands under every message; it belongs to the one being held.
     await act(async () => held('Ti').props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
@@ -546,7 +559,7 @@ describe('D03 actual message component', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(0);
-    expect(texts()).toContain('samo za čitanje');
+    expect(texts()).toContain(CLOSED_SENTENCE);
     await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   });
@@ -611,28 +624,28 @@ describe('D03 actual message component', () => {
       expect(messageMoment('14:05')).toEqual({ day: 'Danas', clock: '14:05' });
       expect(messageMoment('sada')).toEqual({ day: null, clock: 'sada' });
     });
-    it('names each day once above its messages and puts only the clock in a bubble', async () => {
+    it('names each day once above its messages, today with the clock of its first message, and draws no clock in a bubble', async () => {
       await render({ messages: [message('1', false, 'Stižem u 10.', '23. sep · 09:40'), message('2', true, 'Važi.', '23. sep · 09:41'),
         message('3', false, 'Evo me.', '10:02'), message('4', false, 'Kod ulaza sam.', '10:03')] });
       const days = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
-      expect(days).toEqual(['23. sep', 'Danas']);
-      expect(lines()).toEqual(expect.arrayContaining(['09:40', '09:41', '10:02', '10:03']));
+      expect(days).toEqual(['23. sep', 'Danas · 10:02']);
+      // The proposal's bubble holds its words and the one small mark, never a clock: the lines above say when.
+      for (const clock of ['09:40', '09:41', '10:03']) expect(lines()).not.toContain(clock);
       expect(lines().some(line => line.includes('23. sep ·'))).toBe(false);
+      expect(lines()).toEqual(expect.arrayContaining(['Stižem u 10.', 'Važi.', 'Evo me.', 'Kod ulaza sam.']));
     });
-    it('distinguishes speakers with readable white and forest surfaces while keeping names and times in the spoken message', async () => {
+    it('distinguishes speakers with readable white and charcoal surfaces while keeping names, times and the state in the spoken message', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00'), message('2', true, 'Ćao', '10:01')] });
       expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.conversation.surface,
         borderWidth: 1, borderColor: sys.conversation.edge });
       expect(flat(bubble('Ti')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.conversation.user });
       // The name is heard with the bubble, not drawn in it: the bar above already names the person. Review r4 rd item 2:
-      // what the bubble says and when is heard with it too.
+      // what the bubble says and when is heard with it too, and for my message how far it has got.
       expect(bubble('Marko')[0].props.accessibilityLabel).toBe('Marko: Zdravo, Danas, 10:00');
-      expect(bubble('Ti')[0].props.accessibilityLabel).toBe('Ti: Ćao, Danas, 10:01');
+      expect(bubble('Ti')[0].props.accessibilityLabel).toBe('Ti: Ćao, Danas, 10:01, poslato');
       expect(lines()).not.toContain('Marko');
-      const clock = tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('10:00'))[0];
-      expect(flat(clock.props.style)).toMatchObject({ fontSize: 12, color: sys.color.muted });
       const mine = bubble('Ti')[0].findAll(node => String(node.type) === 'T');
-      expect(mine.map(node => flat(node.props.style).color)).toEqual([sys.conversation.onUser, sys.conversation.onUser]);
+      expect(mine.map(node => flat(node.props.style).color)).toEqual([sys.conversation.onUser]);
       expect(texts()).not.toContain('Povuci naniže');
     });
     it('keeps the multiline draft and reserved send target in one stable writing row', async () => {
@@ -640,13 +653,14 @@ describe('D03 actual message component', () => {
       const send = button('Pošalji poruku');
       expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
       const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
-      expect(circle(send).backgroundColor).toBe(sys.color.ink); expect(flat(send.props.style).opacity).toBeUndefined();
+      // The send is the one green primary of the screen (white glyph); grey while nothing can go.
+      expect(circle(send).backgroundColor).toBe(sys.color.green); expect(flat(send.props.style).opacity).toBeUndefined();
       const commandSlot = send.parent!;
       const writingRow = commandSlot.parent!;
       const pill = writingRow.parent!;
       expect(flat(commandSlot.props.style)).toMatchObject({ width: 48, height: 48, flexShrink: 0 });
       expect(flat(writingRow.props.style)).toMatchObject({ flexDirection: 'row' });
-      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.control });
+      expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.sheet });
       const input = pill.findByProps({ accessibilityLabel: 'Napiši poruku' });
       expect(input.props.multiline).toBe(true);
       expect(input.parent).toBe(writingRow);
@@ -741,7 +755,7 @@ describe('D03 actual message component', () => {
     });
     it('says a closed Dogovor is closed, true of a finished and of a cancelled one', async () => {
       await render({ terminal: true, writable: false });
-      expect(texts()).toContain('Dogovor je zatvoren · poruke su samo za čitanje.'); expect(texts()).not.toContain('završen');
+      expect(texts()).toContain(CLOSED_SENTENCE); expect(texts()).not.toContain('završen');
     });
   });
   it('does not select an unconfirmed local outbox item, failed read, or missing message version', async () => {

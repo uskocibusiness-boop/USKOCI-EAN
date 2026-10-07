@@ -9,6 +9,7 @@ import { supabaseKlijent } from './supabaseClient';
 import { readNeedUrgencies } from './needUrgencyClientService';
 import { novac } from '../lib/novac';
 import { decodeOwnTasksPage } from './ownTasksPage';
+import { endingOfStatus, type WithEnding } from './needEnding';
 import { readOwnedResult } from './serverReceipt';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -75,8 +76,14 @@ export function readPublicNeedDetail(raw: Record<string, any>): { detail: NeedDe
       iskustvoGodina: raw.minimum_experience_years, potvrdjenIdentitet: raw.verified_identity_required } } };
 }
 
-function mapNeed(raw: any): PotrebaProjekcija {
+/**
+ * `stanje` folds COMPLETED, CANCELLED, EXPIRED and ARCHIVED into the one ZATVORENA (kept as it was: the Istorija tab, the filters and the
+ * lifecycle menu read it). How the task ended is a different fact the screens need ("Završen", "Otkazan", "Istekao"), so it rides beside it
+ * as `kraj`, present only on a task that ended (`needEnding.ts`).
+ */
+function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
   const { detail: detalji, schedule } = readPublicNeedDetail(raw);
+  const kraj = endingOfStatus(raw.status);
   const ukupno = Math.max(1, Number(raw.required_slots ?? 1));
   const popunjeno = Math.max(0, Math.min(ukupno, Number(raw.covered_slots ?? 0)));
   const brojPrijava = Array.isArray(raw.marketplace_responses)
@@ -95,6 +102,7 @@ function mapNeed(raw: any): PotrebaProjekcija {
     naslov: raw.title ?? '',
     opis: raw.description ?? '',
     stanje: stanje(String(raw.status), popunjeno, ukupno, brojPrijavaZaIzbor),
+    ...(kraj ? { kraj } : {}),
     pokrivenost: {
       ukupno,
       popunjeno,

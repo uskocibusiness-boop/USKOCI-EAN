@@ -1,7 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, ArrowRight, CaretRight } from 'phosphor-react-native';
+import type { MojaPrijavaProjekcija, PotrebaProjekcija } from '../../contracts/projections';
+import type { WorkerAvailability } from '../../contracts/workerAvailability';
 import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { zonaTelefona } from '../../lib/vreme';
@@ -10,39 +11,78 @@ import { T } from '../Text';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
-import { dogovora } from '../system/plural';
+import { Glyph } from '../system/Glyph';
 import { ChromeIconButton } from '../system/ScreenChrome';
+import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import { AgendaRow } from './AgendaRow';
-import { agendaCoverage, agendaItems, dayMark, itemsOnDay, withoutExactTerm, type AgendaAgreement } from './agenda';
-import { civilDay, dayHeading, localDayRange, shiftDate, weekDates, weekLabel, weekdayOf } from './calendarPresentation';
+import { agendaCoverage, type AgendaAgreement } from './agenda';
+import { dayAvailability } from './availabilityShade';
+import { dayHeading, shiftDate, weekDates, weekLabel } from './calendarPresentation';
+import { MonthSheet } from './MonthSheet';
+import { monthCells } from './months';
+import { EMPTY_DAY, PLANNER_FILTERS, buildPlanner, countsText, dayMarks, entriesOnDay, filterEntries, looseOnWeek, overlapNotes,
+  type PlannerEntry, type PlannerFilter } from './planner';
+import { inWindow, plannerWindow, serbianSpan, type PlannerWindow } from './serbianDays';
+import { WeekStrip } from './WeekStrip';
+import { useWeekSwipe } from './weekSwipe';
 
 export type AgendaSchedule = { state: 'loading' } | { state: 'error'; message: string | null }
   | { state: 'ready'; events: readonly WorkerCalendarEvent[] };
 export type AgendaList = { state: 'loading' } | { state: 'error' } | { state: 'ready'; agreements: readonly AgendaAgreement[] };
+/** My own tasks and my applications, read for the planner the way Početna reads them. Left out, the screen shows neither. */
+export type AgendaNeeds = { state: 'loading' } | { state: 'error' } | { state: 'ready'; needs: readonly PotrebaProjekcija[] };
+export type AgendaApplications = { state: 'loading' } | { state: 'error' } | { state: 'ready'; applications: readonly MojaPrijavaProjekcija[] };
+/**
+ * What the worker has said they can work, for the shade under the days. `none` draws no shade: the person is not a worker, the read
+ * has not come, or it failed. It is never an error of the screen, since the shade is a hint and nothing on the screen depends on it.
+ */
+export type AgendaAvailability = { state: 'none' } | { state: 'ready'; value: Pick<WorkerAvailability, 'timezone' | 'rules' | 'windows'> };
 
 const NO_EVENTS: readonly WorkerCalendarEvent[] = [];
+const NO_NEEDS: AgendaNeeds = { state: 'ready', needs: [] };
+const NO_APPLICATIONS: AgendaApplications = { state: 'ready', applications: [] };
+const NO_AVAILABILITY: AgendaAvailability = { state: 'none' };
+/** How many rows a section under the day shows before "Prikaži još". */
+const SECTION_LIMIT = 3;
+/** The least the day's block is tall, so choosing another day moves the rows under it (the foot) as little as one line of text can. */
+const DAY_FLOOR = sys.space.huge * 4;
 
 /**
- * Kalendar obaveza: every Dogovor with an exact agreed time, day by day, on both sides (work I do and my own tasks,
- * finished ones included), and the way into Dostupnost. A view: it has no primary command.
+ * Raspored (until 2026-10-07 "Kalendar obaveza"; the owner named the planner): everything of mine that has a time, in one place.
+ * The Dogovori of both sides, with an exact agreed time (finished ones included), my own published tasks and my open
+ * applications, day by day in Serbian time (`planner.ts`); what has no exact time stands in sections under the day; the way into
+ * Dostupnost and into the Arhiva. A view: it has no primary command.
  *
- * The week and its arrows in one row, the seven days under it, then the day: its heading, its Dogovori, and two quiet
- * rows at the foot (the Dogovori without an exact time, and my availability). An empty day is one quiet line, never a
- * box (critique B18). Presentation only: the route owns both reads and every command.
+ * The week and its arrows in one row (its name opens the month), the seven days under it with a mark each (swipe sideways to change
+ * the week), the chips "Sve · Dogovori · Moji zadaci · Moje prijave", then the day: its heading and its rows by the hour, each with
+ * its chip. An empty day is one quiet line, never a box (critique B18). A read that failed is said, never drawn as an empty day.
+ * Presentation only: the route owns the reads and every command.
  */
-export function AgendaScreen({ selected, today, schedule, list, refreshing, retrying = false, onSelect, onBack, onRefresh,
-  onRetry, onRetryList, onOpen, onWithoutTerm, onAvailability, phoneZone = zonaTelefona(), now }: {
+export function AgendaScreen({ selected, today, schedule, list, needs = NO_NEEDS, applications = NO_APPLICATIONS, availability = NO_AVAILABILITY, readWindow,
+  refreshing, retrying = false, onSelect, onBack, onRefresh, onRetry, onRetryList, onOpen, onOpenTask, onOpenApplication, onAvailability, onArchive,
+  phoneZone = zonaTelefona(), now }: {
   selected: string; today: string; schedule: AgendaSchedule; list: AgendaList;
-  /** A pull re-reads both while what is on screen stays. */ refreshing: boolean;
+  needs?: AgendaNeeds; applications?: AgendaApplications; availability?: AgendaAvailability;
+  /** The window of weeks the schedule was read for (`plannerWindow`); the month of the chosen day when left out. Everything outside it is unknown, not empty. */
+  readWindow?: PlannerWindow;
+  /** A pull re-reads every source while what is on screen stays. */ refreshing: boolean;
   /** The schedule is being read again after an error. */ retrying?: boolean;
   onSelect: (day: string) => void; onBack: () => void; onRefresh: () => void;
-  /** Read both again after the schedule failed. */ onRetry: () => void;
-  /** Read only the Dogovori again after that read failed. */ onRetryList: () => void;
-  onOpen: (agreementId: string) => void; onWithoutTerm: () => void; onAvailability: () => void;
+  /** Read everything again after the schedule failed. */ onRetry: () => void;
+  /** Read again what failed besides the schedule: the Dogovori, my tasks, my applications. */ onRetryList: () => void;
+  onOpen: (agreementId: string) => void;
+  /** A task of mine; `choosing` is how many applications wait for a choice (then the candidates are what it opens). */
+  onOpenTask?: (needId: string, choosing: number) => void;
+  onOpenApplication?: (applicationId: string) => void;
+  onAvailability: () => void;
+  /** The way into the Arhiva; the row is not drawn without it (the design gallery has no archive). */
+  onArchive?: () => void;
+  /** No longer drawn: the Dogovori without an exact term are listed under the day now. Kept only so the design gallery still compiles. */
+  onWithoutTerm?: () => void;
   phoneZone?: string; now?: Date;
 }) {
   const scale = useTextScale();
@@ -50,88 +90,134 @@ export function AgendaScreen({ selected, today, schedule, list, refreshing, retr
   // At 320 dp or a large text size the week label shares its row with only the two arrows; "Danas" gets its own line
   // under it (review of owner step 10: "28. dec 2026 – 3. jan 2027" was cut off beside "Danas" and the arrows).
   const narrow = width < 360 || scale >= 1.3;
+  const [filter, setFilter] = useState<PlannerFilter>('all');
+  const [monthOpen, setMonthOpen] = useState(false);
+  const [expanded, setExpanded] = useState({ loose: false, pending: false });
+  const swipe = useWeekSwipe(step => onSelect(shiftDate(selected, step * 7)));
   const days = useMemo(() => weekDates(selected), [selected]);
-  const from = localDayRange(days[0]).from, to = localDayRange(days[6]).to;
+  // The planner draws what the schedule was read for: by default the month the chosen day is in, as whole weeks.
+  const month = selected.slice(0, 7);
+  const reach = useMemo(() => readWindow ?? plannerWindow(`${month}-01`), [readWindow, month]);
   const events = schedule.state === 'ready' ? schedule.events : NO_EVENTS;
   const agreements = list.state === 'ready' ? list.agreements : null;
-  // The whole week once, over both reads; the day and the dots are cut from it (the list pages up to 2,000 rows).
-  const items = useMemo(() => agendaItems({ events, agreements, from, to }), [events, agreements, from, to]);
+  const needRows = needs.state === 'ready' ? needs.needs : null;
+  const applicationRows = applications.state === 'ready' ? applications.applications : null;
+  // "U toku" is judged at the minute, so the planner is not rebuilt on every render.
+  const minute = Math.floor((now ?? new Date()).getTime() / 60_000);
+  const clock = useMemo(() => now ?? new Date(minute * 60_000), [now, minute]);
+  const planner = useMemo(() => buildPlanner({ events, agreements, needs: needRows, applications: applicationRows, from: reach.from, to: reach.to, now: clock }),
+    [events, agreements, needRows, applicationRows, reach.from, reach.to, clock]);
   const ready = schedule.state === 'ready';
   const coverage = agreements ? agendaCoverage(agreements, events) : 'full';
-  const withoutTerm = agreements && coverage === 'full' ? withoutExactTerm(agreements, events) : 0;
   const zoneNote = phoneZone !== DOGOVORENA_ZONA;
-  const day = ready ? itemsOnDay(items, selected) : [];
-  // Only the schedule's work is shown: the Dogovori did not load (it can be retried), or they came without saying
-  // whether they have an exact time (retrying would not change that).
-  const partial = !ready ? null : list.state === 'error' ? 'retry' : agreements && coverage === 'unknown' ? 'scope' : null;
-  const partialLine = (text: string) => <View style={s.partial}>
-    <T variant="note" tone="muted" style={s.partialText}>{text}</T>
-    {partial === 'retry' ? <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRetryList} /> : null}
-  </View>;
+  // Everything on the day decides the overlaps; the chip decides what is drawn.
+  const everything = useMemo(() => ready ? entriesOnDay(planner.placed, selected) : [], [ready, planner, selected]);
+  const day = useMemo(() => filterEntries(everything, filter), [everything, filter]);
+  const overlaps = useMemo(() => overlapNotes(everything), [everything]);
+  const loose = ready ? looseOnWeek(planner, serbianSpan(days[0], days[6]), filter) : [];
+  const pending = ready && (filter === 'all' || filter === 'prijava') ? planner.pending : [];
+  const marks = useMemo(() => ready ? dayMarks(planner.placed, days, filter) : null, [ready, planner, days, filter]);
+  const shades = useMemo(() => Object.fromEntries(days.map(date => [date,
+    availability.state === 'ready' && date >= today ? dayAvailability(availability.value, date) : null])), [days, availability, today]);
+  // What failed, for the chip that is on. A source that failed is said, and a day it could have filled is never called empty.
+  const [wantsDogovori, wantsTasks, wantsApplications] = [filter === 'all' || filter === 'dogovor', filter === 'all' || filter === 'zadatak', filter === 'all' || filter === 'prijava'];
+  const dogovoriFailed = wantsDogovori && list.state === 'error', dogovoriSilent = wantsDogovori && !!agreements && coverage === 'unknown';
+  const tasksFailed = wantsTasks && needs.state === 'error', applicationsFailed = wantsApplications && applications.state === 'error';
+  const loading = (wantsDogovori && list.state === 'loading') || (wantsTasks && needs.state === 'loading') || (wantsApplications && applications.state === 'loading');
+  const empty = day.length === 0;
+  // Only the schedule's work is shown while the Dogovori did not load (it can be retried) or came without saying whether they have
+  // an exact time (retrying would not change that).
+  const notes = !ready ? [] : [
+    ...(dogovoriFailed || dogovoriSilent ? [empty ? 'Nema termina u kojima uskačeš.' : 'Učitani su samo termini u kojima uskačeš.'] : []),
+    ...(tasksFailed ? ['Moji zadaci nisu učitani.'] : []), ...(applicationsFailed ? ['Moje prijave nisu učitane.'] : []),
+  ];
+  const notesView = notes.length ? <View style={s.partial}>
+    <View style={s.partialLines}>{notes.map(text => <T key={text} variant="note" tone="muted">{text}</T>)}</View>
+    {ready && (dogovoriFailed || tasksFailed || applicationsFailed) ? <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRetryList} /> : null}
+  </View> : null;
+  const openEntry = (entry: PlannerEntry) => {
+    if (entry.kind === 'dogovor') onOpen(entry.id);
+    else if (entry.kind === 'zadatak') onOpenTask?.(entry.id, entry.choosing);
+    else onOpenApplication?.(entry.id);
+  };
+  const row = (entry: PlannerEntry) => <AgendaRow key={entry.key} entry={entry} day={selected} onOpen={openEntry} overlap={overlaps.get(entry.key) ?? null} zoneNote={zoneNote} />;
   let content: ReactNode;
   if (schedule.state === 'loading') content = <StateView kind="loading" title="Učitavamo raspored…" skeleton={{ count: 2, rows: 2 }} />;
   else if (schedule.state === 'error') content = <StateView kind="error" art="calendar" title="Raspored nije učitan."
     body={schedule.message ?? 'Proveri vezu pa probaj ponovo.'} primary={{ label: 'Pokušaj ponovo', onPress: onRetry, disabled: retrying }} />;
-  // Never say a day is empty before both reads have settled.
-  else if (!day.length && list.state === 'loading') content = <StateView kind="loading" title="Učitavamo raspored…" skeleton={{ count: 1, rows: 2 }} />;
-  else if (!day.length) content = partial ? partialLine('Nema termina u kojima uskačeš.')
-    : <T variant="note" tone="muted">Nema zakazanih Dogovora.</T>;
-  else content = <View style={s.list}>
-    {partial ? partialLine('Učitani su samo termini u kojima uskačeš.') : null}
-    {day.map(item => <AgendaRow key={item.key} item={item} day={selected} onOpen={onOpen} zoneNote={zoneNote} />)}
-  </View>;
+  // Never say a day is empty before every read it depends on has settled.
+  else if (empty && loading) content = <StateView kind="loading" title="Učitavamo raspored…" skeleton={{ count: 1, rows: 2 }} />;
+  else if (empty) content = notesView ?? <T variant="note" tone="muted">{EMPTY_DAY[filter]}</T>;
+  else content = <View style={s.list}>{notesView}{day.map(row)}</View>;
+  // The things under the day that have no exact time: the first few, and the rest on a press.
+  const section = (key: 'loose' | 'pending', title: string, entries: readonly PlannerEntry[]) => {
+    if (!entries.length) return null;
+    const all = expanded[key];
+    return <View key={key} style={s.section}>
+      <View style={s.sectionHead}>
+        <T variant="bodyStrong" accessibilityRole="header">{title}</T>
+        <T variant="note" tone="muted">{countsText(entries)}</T>
+      </View>
+      <View style={s.list}>{(all ? entries : entries.slice(0, SECTION_LIMIT)).map(row)}</View>
+      {entries.length > SECTION_LIMIT ? <View style={s.moreLine}>
+        <V2Action label={all ? 'Prikaži manje' : `Prikaži još ${entries.length - SECTION_LIMIT}`} kind="quiet" compact
+          onPress={() => setExpanded(current => ({ ...current, [key]: !current[key] }))} />
+      </View> : null}
+    </View>;
+  };
+  // The month shows the same marks as the week, for the month the planner has read; any other month is plain numbers.
+  const marksFor = (target: string) => {
+    const cells = monthCells(target).filter((cell): cell is string => cell !== null);
+    return ready && cells.every(cell => inWindow(cell, reach)) ? dayMarks(planner.placed, cells, filter) : null;
+  };
   const toToday = days.includes(today) ? null : <V2Action label="Danas" kind="quiet" compact onPress={() => onSelect(today)} />;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar title="Kalendar obaveza" onBack={onBack} />
+    <DetailTopBar title="Raspored" onBack={onBack} />
     <ScrollView contentContainerStyle={s.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-      {/* The week names itself; "Danas" only when today is in another week; the two arrows stay together. The label is
-          never cut: it wraps, and on a narrow row "Danas" moves under it. */}
+      {/* The week names itself, and its name opens the month; "Danas" only when today is in another week; the two arrows stay
+          together. The label is never cut: it wraps, and on a narrow row "Danas" moves under it. */}
       <View style={s.weekRow}>
-        <T variant="bodyStrong" accessibilityRole="header" style={s.weekLabel}>{weekLabel(days, now)}</T>
+        <Press accessibilityRole="button" accessibilityLabel={weekLabel(days, now)} accessibilityHint="Otvara mesec" haptic="select"
+          scaleTo={sys.motion.scale.row} onPress={() => setMonthOpen(true)} style={s.weekTitle}>
+          <T variant="bodyStrong" style={s.weekLabel}>{weekLabel(days, now)}</T>
+          <Glyph name="caret-down" size={16} tone="muted" />
+        </Press>
         {narrow ? null : toToday}
         <View style={s.arrows}>
-          <ChromeIconButton label="Prethodna nedelja" icon={ArrowLeft} onPress={() => onSelect(shiftDate(selected, -7))} />
-          <ChromeIconButton label="Sledeća nedelja" icon={ArrowRight} onPress={() => onSelect(shiftDate(selected, 7))} />
+          <ChromeIconButton label="Prethodna nedelja" glyph="caret-left" haptic="select" onPress={() => onSelect(shiftDate(selected, -7))} />
+          <ChromeIconButton label="Sledeća nedelja" glyph="caret-right" haptic="select" onPress={() => onSelect(shiftDate(selected, 7))} />
         </View>
       </View>
       {narrow && toToday ? <View style={s.todayLine}>{toToday}</View> : null}
-      {/* Seven equal columns that always fit (the seventh day was cut off by a sideways scroll on the phone): about 36 dp
-          wide at 320 and 56 tall, an accepted exception to the 48 rule with the full name spoken. At a very large text
-          the weekday shrinks to its letter. Unselected days are not filled (B18); today wears a green ring. */}
-      <View style={s.strip}>{days.map(date => {
-        const mark = ready ? dayMark(items, date) : null;
-        const chosen = selected === date, isToday = date === today;
-        const weekday = weekdayOf(date);
-        return <Press key={date} accessibilityRole="button" haptic="select"
-          accessibilityLabel={`${weekday.name}, ${civilDay(date, now)}${isToday ? ', danas' : ''}${mark ? ', ima Dogovor' : ''}`}
-          accessibilityState={{ selected: chosen }} onPress={() => onSelect(date)} style={{ flex: 1, minWidth: 0, minHeight: 56,
-            paddingVertical: sys.space.sm, gap: sys.space.xs, alignItems: 'center', borderRadius: sys.radius.control, borderWidth: 1,
-            backgroundColor: chosen ? sys.color.green : 'transparent', borderColor: isToday && !chosen ? sys.color.green : 'transparent' }}>
-          <T variant="meta" tone={chosen ? 'onDark' : 'muted'} numberOfLines={1}>{scale >= 1.5 ? weekday.short.charAt(0) : weekday.short}</T>
-          <T variant="heading" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
-            style={{ color: chosen ? sys.color.onDark : isToday ? sys.color.green : sys.color.ink }}>{Number(date.slice(-2))}</T>
-          <View testID="day-dot" style={{ width: 6, height: 6, borderRadius: sys.radius.pill,
-            // A day with only finished work: the muted grey, which reads on white (the hairline grey was about 1.4:1).
-            backgroundColor: !mark ? 'transparent' : chosen ? sys.color.onDark : mark === 'active' ? sys.color.green : sys.color.muted }} />
-        </Press>;
-      })}</View>
-      <View style={s.heading}>
-        {/* A screen reader reaches the same read as the pull as an action of the day's heading (round-5c: an action on the
-            ScrollView was never offered, since Android's scroll view keeps its own accessibility delegate and VoiceOver does
-            not focus a scroll view). A named action, not "activate", so the heading does not become a button. */}
-        <T variant="heading" accessibilityRole="header" accessibilityActions={[{ name: 'refresh', label: 'Osveži raspored' }]}
-          onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'refresh') onRefresh(); }}>{dayHeading(selected, now)}</T>
-        {zoneNote ? <T variant="note" tone="muted">Po vremenu u Srbiji</T> : null}
+      {/* A finger moving sideways over the week or the day changes the week; the arrows do the same. The view that holds the
+          week reaches past the gutters by a little, so each day has the room of a thumb and every touch lands inside its bounds. */}
+      <View {...swipe} style={s.stripSwipe}>
+        <WeekStrip days={days} selected={selected} today={today} now={now} marks={marks} shades={shades} onSelect={onSelect} />
       </View>
-      <View style={s.day}>{content}</View>
+      <View style={s.chips}>
+        <Segmented contentSized scroll value={filter} onChange={setFilter} options={PLANNER_FILTERS.map(({ key, label }) => ({ key, label }))} />
+      </View>
+      <View {...swipe}>
+        <View style={s.heading}>
+          {/* A screen reader reaches the same read as the pull as an action of the day's heading (round-5c: an action on the
+              ScrollView was never offered, since Android's scroll view keeps its own accessibility delegate and VoiceOver does
+              not focus a scroll view). A named action, not "activate", so the heading does not become a button. */}
+          <T variant="heading" accessibilityRole="header" accessibilityActions={[{ name: 'refresh', label: 'Osveži raspored' }]}
+            onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'refresh') onRefresh(); }}>{dayHeading(selected, now)}</T>
+          {zoneNote ? <T variant="note" tone="muted">Po vremenu u Srbiji</T> : null}
+        </View>
+        <View testID="day-block" style={s.day}>{content}</View>
+        {section('loose', 'Bez tačnog termina', loose)}
+        {section('pending', 'Čekaju odgovor', pending)}
+      </View>
       {/* Set once in a while, read every time: the quiet rows stand under the day, not before it. */}
       <View style={s.foot}>
-        {list.state === 'ready' && withoutTerm > 0 ? <LinkRow art="agreements" label="Svi Dogovori" detail={`${dogovora(withoutTerm)} bez tačnog termina`}
-          onPress={onWithoutTerm} /> : null}
         <LinkRow art="clock" label="Moja dostupnost za rad" onPress={onAvailability} />
+        {onArchive ? <LinkRow art="document" label="Arhiva" onPress={onArchive} /> : null}
       </View>
     </ScrollView>
+    {monthOpen ? <MonthSheet selected={selected} today={today} now={now} marksFor={marksFor} onPick={onSelect} onClose={() => setMonthOpen(false)} /> : null}
   </SafeAreaView>;
 }
 
@@ -147,7 +233,7 @@ function LinkRow({ art, label, detail, onPress }: { art: FactArtKind; label: str
       <T variant="bodyStrong">{label}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
     </View>
-    <CaretRight size={18} color={sys.color.muted} />
+    <Glyph name="caret-right" size={20} tone="muted" />
   </Press>;
 }
 
@@ -155,18 +241,22 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xxl },
   weekRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  weekLabel: { flex: 1, minWidth: 0 },
+  // The week's name is the press that opens the month: it takes the row's room, 48 dp high.
+  weekTitle: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  weekLabel: { flexShrink: 1, minWidth: 0 },
   arrows: { flexDirection: 'row', gap: sys.space.xs },
   // A quiet action's own inset is pulled back, so "Danas" lines up with the week label above it (as dayActions does).
   todayLine: { flexDirection: 'row', marginLeft: -sys.space.base },
-  // The smallest step of the scale (theme/tokens: no value off the 4/8 rhythm). Seven columns still fit at 320 dp, each
-  // about 36 dp wide, with the weekday at 13 px and the date shrinking to fit.
-  strip: { flexDirection: 'row', gap: sys.space.xs, marginTop: sys.space.md },
+  moreLine: { flexDirection: 'row', marginLeft: -sys.space.base },
+  stripSwipe: { marginHorizontal: -sys.space.sm },
+  chips: { marginTop: sys.space.md },
   heading: { marginTop: sys.space.xl, gap: sys.space.xs },
-  day: { marginTop: sys.space.sm },
+  day: { marginTop: sys.space.sm, minHeight: DAY_FLOOR },
   list: { gap: sys.space.md },
   partial: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
-  partialText: { flexShrink: 1 },
+  partialLines: { flexShrink: 1, gap: sys.space.xs },
+  section: { marginTop: sys.space.xl, gap: sys.space.md },
+  sectionHead: { gap: sys.space.xs },
   foot: { marginTop: sys.space.xxl },
   link: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.md,
     borderTopWidth: 1, borderTopColor: sys.color.line },

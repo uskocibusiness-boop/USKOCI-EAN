@@ -39,7 +39,8 @@ jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown: 'CaretDown', Lightning: 'Lightning' }));
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { CardDecision } from '../../ui/v2/TaskFace';
-import { ApplicationCard, OfferRow } from '../../ui/v2/ApplicationFace';
+import { ApplicationCard } from '../../ui/v2/ApplicationFace';
+import { PrijavaPriceText } from '../../ui/v2/PrijavaCard';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -70,7 +71,7 @@ const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) 
 const presses = () => tree.root.findAll(node => node.type === PRESS);
 const spoken = () => presses().map(node => [node.props.accessibilityLabel, node.props.accessibilityValue?.text ?? null, node.props.accessibilityHint ?? null]);
 const decision = () => tree.root.findByType(CardDecision).findAllByType(VIEW)[0];
-const offerRow = () => tree.root.findByType(OfferRow).findAllByType(VIEW)[0];
+const offerRow = () => tree.root.findByType(PrijavaPriceText).findAllByType(VIEW)[0];
 beforeEach(() => { mockScale = 1; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
@@ -163,16 +164,16 @@ describe('my application\'s face stacks its offer only in the resilience cases',
 describe('what a screen reader hears does not depend on the layout', () => {
   const HEARD_TASK = 'HITNO, 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena';
   const HEARD_MINE = '2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno, 3 prijave čekaju izbor';
-  const HEARD_APPLICATION = 'Poslata, Liman, Novi Sad, 20. sep · 10:00–11:00, Tvoja ponuda 4.500 RSD ukupno, Dolaze 2 osobe, tvoja poruka: Donosim trake.';
+  const HEARD_APPLICATION = 'Poslata, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.';
 
   it.each(WINDOWS)('width %s dp, text scale %s: the command name and every word are the same sentence', async (width, scale) => {
     mockWidth = width; mockScale = scale;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
     expect(spoken()).toEqual([['Otvori priliku Farbanje dnevne sobe', HEARD_TASK, null]]);
     await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} />));
-    expect(spoken()).toEqual([['Otvori Zadatak Montaža dve police', HEARD_MINE, null]]);
+    expect(spoken()).toEqual([['Otvori zadatak Montaža dve police', HEARD_MINE, null]]);
     await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} onApplications={jest.fn()} />));
-    expect(spoken()).toEqual([['Otvori Zadatak Montaža dve police', HEARD_MINE.replace(', 3 prijave čekaju izbor', ''), null],
+    expect(spoken()).toEqual([['Otvori zadatak Montaža dve police', HEARD_MINE.replace(', 3 prijave čekaju izbor', ''), null],
       ['3 prijave čekaju izbor, Montaža dve police', null, 'Otvara prijave za izbor.']]);
     await act(async () => tree.update(<ApplicationCard row={application()} {...handlers()} />));
     expect(spoken()).toEqual([['Otvori zadatak: Unos ormara', HEARD_APPLICATION, null], ['Povuci prijavu: Unos ormara', null, 'Pre povlačenja te pitamo da potvrdiš.']]);

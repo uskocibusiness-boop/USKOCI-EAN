@@ -85,7 +85,7 @@ export function reviewTodos(review: { safety: string; missingRequired: readonly 
   if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Sadržaj ne može da se objavi u ovom obliku.', target: 'conversation' });
   const missing = review.missingRequired.filter(key => key !== 'need.category');
   if (missing.length) todos.push({ key: 'missing', text: `Nedostaje: ${missing.map(factLabel).join(', ')}.`, target: 'conversation' });
-  else if (review.missingRequired.length) todos.push({ key: 'missing', text: 'Treba još malo o samom poslu.', target: 'conversation' });
+  else if (review.missingRequired.length) todos.push({ key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' });
   if (!review.location) todos.push({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' });
   if (factProblem) todos.push({ key: 'fact', text: factProblem, target: factProblem === REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED
     ? 'need.price_rsd' : factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED || factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED
@@ -94,4 +94,18 @@ export function reviewTodos(review: { safety: string; missingRequired: readonly 
   if (review.canAccept === false && !todos.length && !identityBlock)
     todos.push({ key: 'other', text: 'Zadatku je potrebna dopuna u razgovoru.', target: 'conversation' });
   return todos;
+}
+
+/**
+ * Whether support has an operator on duty to take a task held for a manual check (deep read 8.7: it has none yet). Owner decision
+ * d07, 2026-10-07: while it has none, the review offers ONLY "Izmeni zadatak" for that situation. "Zatraži pregled podrške" stood
+ * right under the sentence that says nobody is on duty, and a request nobody reads is a promise the app cannot keep. The day an
+ * operator exists this is the one line to change; the entry and the sentence below follow it.
+ */
+export const SUPPORT_HAS_DUTY_OPERATOR = false;
+
+/** What the review says when the check ended in "REVIEW": the fact, and, while nobody is on duty, the way that works. */
+export function manualCheckCopy(operatorOnDuty: boolean = SUPPORT_HAS_DUTY_OPERATOR): string {
+  const held = 'Zadatak zahteva ručnu proveru i još nije objavljen.';
+  return operatorOnDuty ? held : `${held} Podrška još nema dežurnog operatera, pa je najbrže da ga izmeniš i ponovo pošalješ.`;
 }

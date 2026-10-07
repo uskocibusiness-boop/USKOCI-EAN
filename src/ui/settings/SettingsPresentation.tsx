@@ -1,11 +1,11 @@
 import { cloneElement, isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretRight } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { ProductHeader } from '../product/ProductDetails';
 import { Avatar } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { brandAction, card, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -94,7 +94,7 @@ export function SettingsRow({ label, detail, icon, onPress, disabled = false, la
     {drawn && !compact ? <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>{drawn}</View> : null}
     <View style={styles.rowCopy}><SettingsText variant="bodyStrong" style={{ color: ink }}>{label}</SettingsText>
       {detail ? <SettingsText variant="note" tone="muted">{detail}</SettingsText> : null}</View>
-    {accessory ?? <CaretRight size={18} color={sys.color.muted} />}
+    {accessory ?? <Glyph name="caret-right" tone="muted" />}
   </Press>;
 }
 
@@ -142,7 +142,7 @@ export function SettingsPersonRow({ name, initials, onOpen, openHint, action, la
       onPress={onOpen} style={styles.personOpen}>
       <Avatar initials={initials} size={40} />
       <SettingsText variant="bodyStrong" numberOfLines={2} style={styles.personName}>{name}</SettingsText>
-      <CaretRight size={18} color={sys.color.muted} />
+      <Glyph name="caret-right" tone="muted" />
     </Press>
     <View style={styles.personAction}>
       <V2Action label={action.label} accessibilityLabel={action.accessibilityLabel} onPress={action.onPress}

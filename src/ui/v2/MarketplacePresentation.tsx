@@ -2,9 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode
 import { FlatList, Keyboard, Platform, ScrollView, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, MagnifyingGlass, SlidersHorizontal, X } from 'phosphor-react-native';
-import type { StanjePotrebe } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView, OwnedTaskCounts } from '../../data/marketplaceView';
-import { initialMarketplaceView, marketplaceItems, ownedTaskCounts } from '../../data/marketplaceView';
+import { initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { useReducedMotion } from '../system/motion';
@@ -18,8 +17,8 @@ import { useWindowRoom } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
+import { OwnTaskCard } from './OwnTaskCard';
 import { SCREEN_SIDE, TAB_GAP, ownTaskTabs } from './ownTaskTabs';
-import { TaskCard } from './TaskCard';
 import { V2Action } from './V2Action';
 
 /**
@@ -40,8 +39,6 @@ export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; 
   /** Set when the screen was pushed rather than being a tab: my own tasks are reached from Početna. */
   onBack?: () => void };
 
-/** The state a section is named for: every card under Nacrti is a draft and every card under Istorija is closed. */
-const SECTION_SAYS: Partial<Record<MarketplaceView['section'], StanjePotrebe>> = { drafts: 'NACRT', history: 'ZATVORENA' };
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
 const Separator = () => <View style={{ height: 12 }} />;
 /** How many tasks the set the person is looking at holds, by the server's counts. */
@@ -58,13 +55,14 @@ const CLIP_OFFSCREEN = Platform.OS === 'android';
  * search field or an open filter sheet re-renders the screen and not every card under it; the
  * `onOpen` it receives is the list's one stable function, and the closure over `item` is made here.
  */
-const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, sectionSays, onOpen, onApplications }: {
-  item: MarketplaceItem; index: number; animate: boolean; sectionSays?: StanjePotrebe; onOpen: (item: MarketplaceItem) => void;
+const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, onOpen, onApplications }: {
+  item: MarketplaceItem; index: number; animate: boolean; onOpen: (item: MarketplaceItem) => void;
   onApplications?: (item: MarketplaceItem) => void;
 }) {
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   const applications = useMemo(() => onApplications ? () => onApplications(item) : undefined, [onApplications, item]);
-  return <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} onApplications={applications} sectionSays={sectionSays} /></Appear>;
+  // This list is made of my own tasks only (`marketplaceItems(…, owned = true)`); a task of someone else has no row here.
+  return isOwnedNeed(item) ? <Appear index={index} animate={animate}><OwnTaskCard item={item} onOpen={open} onApplications={applications} /></Appear> : null;
 });
 
 /**
@@ -116,7 +114,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // Whether the counts fit beside the labels is decided from the room the row has (`ownTaskTabs`); a label is never cut for one.
   const room = useWindowRoom();
   const sections = useMemo(() => ownTaskTabs(counts, room), [counts, room]);
-  const hasFilter = !!view.query || view.price !== 'all' || view.attention || view.section !== 'active';
+  // What the person chose to narrow the list with. A tab is not a refinement: an empty Nacrti or Istorija says what that tab is, and has
+  // nothing to "clear" (plan 2.2).
+  const hasFilter = !!view.query || view.price !== 'all' || view.attention;
   const filterActive = view.price !== 'all' || view.attention;
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
   const toggleSearch = () => { Keyboard.dismiss(); if (searchOpen && view.query) change({ query: '', selectedId: null }); setSearchOpen(open => !open); };
@@ -126,7 +126,6 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // under the tab "Nacrti" said it twice, and wrapped in the toolbar's narrower room); only the view that has no tab, all of
   // my tasks (reached from an empty state), says which set it is.
   const countNote = view.section === 'all' ? ' · svi zadaci' : '';
-  const sectionSays = SECTION_SAYS[view.section];
   // Paged: an exact number only when it is the server's count of an unrefined set, or the refined set was read to its end; otherwise none (never a partial number).
   const refined = !!view.query.trim() || view.price !== 'all', paging = props.paging;
   const count = loading || error ? null : !paging ? visible.length
@@ -143,8 +142,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // `renderItem` keeps its identity and the list does not re-render every cell on every render.
   const appearRef = useRef(appear); appearRef.current = appear;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
-    <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} sectionSays={sectionSays} onOpen={openItem}
-      onApplications={hasApplications ? openApplications : undefined} />, [sectionSays, openItem, hasApplications, openApplications]);
+    <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} onOpen={openItem}
+      onApplications={hasApplications ? openApplications : undefined} />, [openItem, hasApplications, openApplications]);
 
   // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
@@ -153,9 +152,11 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili poništi filtere."
           primary={{ label: 'Obriši uslove', onPress: () => props.onView(initialMarketplaceView()) }} />
-          : <StateView art="tasks" title={items.length ? 'Nema aktivnih zadataka' : 'Još nemaš Zadatak'}
+          : view.section === 'drafts' ? <StateView art="tasks" title="Nemaš nacrt" body="Nacrt pregledaš pre objave." />
+          : view.section === 'history' ? <StateView art="tasks" title="Istorija je prazna" body="Ovde su završeni, otkazani i istekli zadaci." />
+          : <StateView art="tasks" title={items.length ? 'Nema aktivnih zadataka' : 'Još nemaš zadatak'}
             body={items.length ? 'Nacrti i završeni zadaci su u svojim prikazima.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}
-            primary={props.onNew ? { label: items.length ? 'Napravi novi Zadatak' : 'Napravi prvi Zadatak', onPress: props.onNew } : undefined}
+            primary={props.onNew ? { label: items.length ? 'Napravi novi zadatak' : 'Napravi prvi zadatak', onPress: props.onNew } : undefined}
             quiet={items.length ? { label: 'Prikaži sve moje zadatke', onPress: () => change({ section: 'all' }) } : undefined} />}
   </View>;
 

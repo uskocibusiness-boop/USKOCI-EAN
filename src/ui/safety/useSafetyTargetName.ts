@@ -10,14 +10,15 @@ import { useSesija } from '../../store/sesija';
  * missing, blank, refused or late is simply `null`, and the screen keeps its generic copy. A result that lands after the account, the profile or the target changed,
  * or after the screen is gone, is dropped.
  */
-export function useSafetyTargetName(profileId: string, targetAccountId: string): string | null {
+export function useSafetyTargetName(profileId: string | null, targetAccountId: string): string | null {
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const [name, setName] = useState<string | null>(null);
   useEffect(() => {
     let current = true;
     setName(null);
-    if (accountId) {
+    // No profile to ask about (a screen reached from a Dogovor, from the blocked list, or built without the flag): nothing is read.
+    if (accountId && profileId) {
       void safetyClientService.readTarget(profileId).then(result => {
         if (!current || !result.ok) return;
         const state = result.podatak;

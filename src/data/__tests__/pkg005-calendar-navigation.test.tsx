@@ -34,7 +34,9 @@ describe('PKG-005 calendar navigation from Dogovori', () => {
   it('offers the calendar to every account, names no app mode, and uses the existing callback', async () => {
     await render();
     expect(tree!.root.findAllByProps({ accessibilityLabel: 'Radni raspored (JA MOGU)' })).toHaveLength(0);
-    const button = tree!.root.findByProps({ accessibilityLabel: 'Kalendar obaveza' });
+    // Plan 2.6: the entry is the pill "Raspored" (the planner's own name), with its word beside the glyph.
+    expect(tree!.root.findAllByProps({ accessibilityLabel: 'Kalendar obaveza' })).toHaveLength(0);
+    const button = tree!.root.findByProps({ accessibilityLabel: 'Raspored' });
     await act(async () => button.props.onPress());
     expect(calendar).toHaveBeenCalledTimes(1);
   });

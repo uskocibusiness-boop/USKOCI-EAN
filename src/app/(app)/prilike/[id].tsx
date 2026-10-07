@@ -1,7 +1,8 @@
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
 import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { LocationMapPreview } from '../../../ui/location/LocationMapPreview';
-import { TaskQaEntry } from '../../../ui/qa/TaskQaEntry';
+import { TaskQaInline } from '../../../ui/qa/TaskQaInline';
+import { useTaskQaInline } from '../../../ui/qa/useTaskQaInline';
 import type { PublicProfileState } from '../../../ui/system/PublicProfileSheet';
 import { Avatar } from '../../../ui/system/Avatar';
 import { useSafetyEntry } from '../../../ui/safety/useSafetyEntry';
@@ -72,6 +73,10 @@ export default function PrilikaDetaljiEkran() {
   }, [cache, fresh, resource.loading, resource.error]);
   const prilika = fresh ?? ((resource.loading || resource.error) ? cache.data : null);
   const relation: TaskRelation = fresh && resource.data ? resource.data.relation : { kind: 'UNKNOWN' };
+  // What people asked about this task and what its owner answered is read here, beside the task, and not where it is drawn:
+  // the section is hidden while the task reads again, and what was read must survive that. It reads once there is a task
+  // to ask about, and a failed read stays on the section; it never takes the task with it.
+  const questions = useTaskQaInline(prilika ? prilika.id : null);
   const scopeRef = useRef<ActionScope | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -112,6 +117,15 @@ export default function PrilikaDetaljiEkran() {
     navigate(() => router.navigate({ pathname: '/prilike/[id]/prijava', params: { id: fresh.id } }));
   }
 
+  // Asking, answering and the whole thread are one screen with its own journal and recovery. The section opens it by the
+  // same route the link it replaced used, once, and never from a press kept from before this screen read its task again.
+  // Whose task it is comes with the link: the server's own answer (the owner's thread or the public one), never a mode.
+  function openQuestions() {
+    if (!fresh || resource.data?.request !== readRequest.current || !currentScope()) return;
+    const own = questions.state.phase === 'ready' && questions.state.viewer === 'OWNER' ? '1' : '0';
+    navigate(() => router.navigate({ pathname: '/pitanja-zadatka', params: { needId: fresh.id, own } }));
+  }
+
   // Owner decision 3 (2026-09-16): the requester's public profile is a sheet over the
   // existing `javniProfil` read; opened only by an explicit press, retired with the scope.
   const [requesterProfile, setRequesterProfile] = useState<PublicProfileState>(null);
@@ -148,10 +162,8 @@ export default function PrilikaDetaljiEkran() {
   function closeRequesterProfile() { profileRequest.current++; setRequesterProfile(null); setSafetyError(null); }
 
   return <PublicNeedPresentation key={`${accountId}:${accountRevision}:${id}`}
-    qa={fresh && !resource.loading && !resource.error ? <TaskQaEntry disabled={busy} onPress={() => {
-      if (resource.data?.request !== readRequest.current || !currentScope()) return;
-      navigate(() => router.navigate({ pathname: '/pitanja-zadatka', params: { needId: fresh.id, own: '0' } }));
-    }} /> : undefined}
+    qa={fresh && !resource.loading && !resource.error && questions.state.phase !== 'idle' ? <TaskQaInline key={`${accountId}:${accountRevision}:${fresh.id}`} state={questions.state}
+      disabled={busy} onRetry={questions.retry} onAsk={openQuestions} onAnswer={openQuestions} onOpenAll={openQuestions} /> : undefined}
     photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
     map={fresh && fresh.priblizno && !resource.loading && !resource.error
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }]} coarse height={184}

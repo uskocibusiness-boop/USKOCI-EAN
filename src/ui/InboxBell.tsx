@@ -28,8 +28,15 @@ const s = StyleSheet.create({
 export const BELL_SWING_MS = 620;
 
 export function InboxBell() {
-  const { state } = useInbox(null);
-  const count = state.error ? null : state.page?.unreadCount;
+  const { state, model } = useInbox(null);
+  // The count is held until a new one arrives (T4a, 2026-10-07). The inbox model forgets its page every time the screen loses
+  // focus, so the number vanished at each return until the next read finished. The bell answers from the last count it was
+  // given by THIS model (one account, one set) while that read is on its way. A read that failed is not a count, and another
+  // account starts with nothing: the held number belongs to the model it came from.
+  const held = useRef<{ model: unknown; count: number } | null>(null);
+  const live = state.error ? null : state.page?.unreadCount;
+  if (live != null) held.current = { model, count: live };
+  const count = live ?? (!state.error && held.current !== null && held.current.model === model ? held.current.count : null);
   const spoken = count == null ? 'Obaveštenja, broj nepročitanih nije dostupan' : `Obaveštenja, ${neprocitanih(count)}`;
   // V41's bell notice: when the unread count grows while the screen is open, the bell swings once. The first count
   // the screen reads is not news, and reduced motion keeps it still.

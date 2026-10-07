@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import { CaretRight, X } from 'phosphor-react-native';
 import { pinLabel, type MarketplaceItem } from '../../../data/marketplaceView';
 import { needScheduleText, readableTitle } from '../../../data/needDetailPresentation';
 import { displaysUrgent } from '../../../lib/needUrgency';
@@ -9,6 +8,7 @@ import { T } from '../../Text';
 import { PEEK_MAX_SHARE, PeekSheet } from '../../system/PeekSheet';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { FactArt } from '../../system/FactArt';
+import { Glyph } from '../../system/Glyph';
 import { CalendarArt } from '../../system/CalendarArt';
 import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
@@ -69,7 +69,7 @@ function PinTask({ item, relation, onOpen, onLayout }: {
   const head = status || urgent;
   return <View style={s.pin} onLayout={onLayout}>
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: spoken }}
-      haptic="select" scaleTo={0.99} onPress={onOpen} style={s.pinBody}>
+      haptic="select" scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.pinBody}>
       {head ? <View style={[s.clearOfClose, s.closeClearance]}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
       <View style={s.summary}>
         <View style={!head ? [s.clearOfClose, s.closeClearance] : undefined}><CardTitle title={title} lines={0} /></View>
@@ -133,21 +133,21 @@ export function DiscoveryPeek({ item, place, relation, active, bottomInset, redu
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced}
     handle={false} maxShare={share} onClose={onClose} scrollable
     overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvori pregled zadatka' : 'Zatvori pregled zadataka'}
-      icon={X} onPress={dismiss} /></View>}>
+      glyph="close" onPress={dismiss} /></View>}>
     {() => item ? <PinTask item={item} relation={relation(item)} onOpen={() => onOpen(item)} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
         <View style={[s.head, s.clearOfClose]}>
           <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(place.length)} na ovom mestu`}</T>
         </View>
         {place.slice(0, PLACE_ROWS).map(task => <Press key={task.id} accessibilityRole="button" accessibilityLabel={`Pogledaj zadatak ${readableTitle(task.naslov)}`}
-          haptic="select" scaleTo={0.98} onPress={() => onOpen(task)} style={s.row}>
+          haptic="select" scaleTo={sys.motion.scale.row} onPress={() => onOpen(task)} style={s.row}>
           <View style={s.grow}>
             <T variant="cardTitleCompact" style={s.rowTitle} numberOfLines={2}>{readableTitle(task.naslov)}</T>
             {taskStatus(task, relation(task)) ? <T variant="note" tone="muted">{taskStatus(task, relation(task))!.text}</T> : null}
             <T variant="note" tone="muted" numberOfLines={1}>{task.schedule ? needScheduleText(task.schedule, task.taskTimezone) : task.vremeTekst}</T>
           </View>
           <PriceWords item={task} />
-          <CaretRight size={18} color={sys.color.muted} />
+          <Glyph name="caret-right" size={20} tone="muted" />
         </Press>)}
         {place.length > PLACE_ROWS ? <V2Action label="Prikaži sve u listi" kind="quiet" onPress={onShowPlace} /> : null}
       </View>}

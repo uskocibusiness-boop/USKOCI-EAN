@@ -127,7 +127,7 @@ test('positive account relations label individual pins without putting private o
   const labels = annotations().flatMap(node => node.findAll(child => String(child.type) === 'View' && child.props.accessibilityLabel)
     .map(child => child.props.accessibilityLabel));
   expect(labels.some(label => label.includes('Tvoj zadatak'))).toBe(true);
-  expect(labels.some(label => label.includes('Već si se prijavio'))).toBe(true);
+  expect(labels.some(label => label.includes('Prijava je već poslata'))).toBe(true);
   expect(source().props.data).not.toMatch(/OWNED|OWNER|APPLIED|private-application|relation/);
   // Retiring the account overlay removes both badges; UNKNOWN never becomes a guess about ownership/application.
   extra = { relations: noTaskRelations }; await update();
@@ -416,40 +416,95 @@ test('only the latest explicit selection survives a wait for measured layout', a
   expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.41, 44.83], zoom: 12 }));
 });
 
-// Owner, 2026-10-03: sources used to travel with every selected card. They now stay below search.
-test.each([false, true])('sources and zoom keep fixed positions across card and sheet changes (reduced motion: %s)', async reduced => {
+// UX plan section P (2026-10-07): the zoom buttons stand directly ABOVE the list sheet and move with it, lift above a pin's card, end in the
+// strip under the search at the full stop, and are never hidden. The sources keep their one place under the search.
+test.each([false, true])('the zoom row rides the sheet and the card and is never hidden; the sources keep their place (reduced motion: %s)', async reduced => {
   mockReduced = reduced;
-  extra = { sheetTop: { value: 600 }, toolsBottom: 60 };
+  const sheetTop = { value: 600 };
+  // The row is one credit line high (48) and one gap (12) above the sheet; its highest place is the strip under the pill (72).
+  extra = { sheetTop, toolsBottom: 60, controlsMinTop: 72 };
   await render();
   const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
   await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
   await ready();
   const zoomLayer = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom-layer' }));
+  const rideAt = () => (zoomLayer().transform as { translateY: number }[])[0].translateY;
   const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
   // The card's height reaches a shared value after the render (on a phone the UI thread follows it); here the style is
   // worked out on a render, so one more render reads it.
   const settle = async () => { await update(); await update(); };
-  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  expect(zoomLayer()).toMatchObject({ height: 48, position: 'absolute' });
+  expect(rideAt()).toBe(600 - 12 - 48);
   const fixedCreditTop = 60 + sys.space.md;
   expect(flat(credits())).toMatchObject({ top: fixedCreditTop, left: sys.space.base, right: sys.space.base });
   expect(tree.root.findAllByProps({ testID: 'discovery-map-credits-ride' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Uvećaj mapu' })).not.toHaveLength(0);
+  // A card 250 high lifts the row above it; a card 460 high (the sheet is sunk behind it) lifts it further. It is never hidden.
   extra = { ...extra, coverBottom: 250 }; await settle();
-  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  expect(rideAt()).toBe(800 - 250 - 12 - 48);
   expect(flat(credits()).top).toBe(fixedCreditTop);
-  // Only 80 dp remain under the tools: the attribution still fits, while the zoom capsule does not.
   extra = { ...extra, coverBottom: 460 }; await settle();
-  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: -1600 }], opacity: 0 });
+  expect(rideAt()).toBe(800 - 460 - 12 - 48);
+  expect(zoomLayer().opacity).toBeUndefined();
   expect(flat(credits()).top).toBe(fixedCreditTop);
   expect(flat(credits()).transform).toBeUndefined();
   expect(credits().findAll(node => node.props.accessibilityRole === 'button')).toHaveLength(1);
   expect(credits().findByType('T' as React.ElementType).props.children).toBe('© OpenStreetMap · © OpenMapTiles');
   extra = { ...extra, coverBottom: 0 }; await settle();
-  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
-  extra = { ...extra, sheetTop: { value: 280 } }; await settle();
+  expect(rideAt()).toBe(600 - 12 - 48);
+  // The sheet rises, and the row goes up with it, pixel for pixel, until it reaches the strip.
+  sheetTop.value = 280; await settle();
+  expect(rideAt()).toBe(280 - 12 - 48);
   expect(flat(credits()).top).toBe(fixedCreditTop);
-  expect(zoomLayer()).toMatchObject({ transform: [{ translateY: 0 }], opacity: 1 });
+  sheetTop.value = 132; await settle(); // the full stop: one strip (12 + 48 + 12) under the pill's edge at 60
+  expect(rideAt()).toBe(72);
+  sheetTop.value = 90; await settle(); // never above the strip, never behind the list
+  expect(rideAt()).toBe(72);
+  expect(zoomLayer().opacity).toBeUndefined();
   expect(select).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
+});
+
+test('the zoom capsule is two 44 halves side by side, with "U blizini" one control further right', async () => {
+  extra = { sheetTop: { value: 600 }, toolsBottom: 60, controlsMinTop: 72 };
+  await render();
+  await measureFrame(800); await ready();
+  const capsule = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom' }));
+  expect(capsule()).toMatchObject({ width: 89, height: 44, flexDirection: 'row', right: sys.space.base });
+  expect(capsule().top).toBe(2); // centred in the 48 high row
+  const plus = tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }), minus = tree.root.findByProps({ accessibilityLabel: 'Umanji mapu' });
+  for (const half of [plus, minus]) expect(flat(half)).toMatchObject({ width: 43, height: 42 });
+  expect(plus.props.hitSlop).toEqual({ left: 2, top: 2, bottom: 2 }); expect(minus.props.hitSlop).toEqual({ right: 2, top: 2, bottom: 2 });
+  extra = { ...extra, locateShown: true }; await update();
+  expect(capsule().right).toBe(sys.space.base + 44 + 8);
+});
+
+test('with the list full the map is a strip: no gesture, hidden from a screen reader, a tap asks for the half height, and the controls still work', async () => {
+  const stripPress = jest.fn();
+  extra = { sheetTop: { value: 132 }, toolsBottom: 60, controlsMinTop: 72, locked: false, onStripPress: stripPress };
+  await render(); await measureFrame(800); await ready();
+  const box = () => tree.root.findByProps({ testID: 'discovery-map-box' });
+  expect(box().props).toMatchObject({ pointerEvents: 'auto', accessibilityElementsHidden: false, importantForAccessibility: 'auto' });
+  expect(tree.root.findAllByProps({ testID: 'discovery-map-strip' })).toHaveLength(0);
+  extra = { ...extra, locked: true }; await update();
+  expect(box().props).toMatchObject({ pointerEvents: 'none', accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
+  const strip = tree.root.findByProps({ testID: 'discovery-map-strip' });
+  expect(strip.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži više mape', accessibilityHint: 'Spušta listu do pola.' });
+  await act(async () => strip.props.onPress());
+  expect(stripPress).toHaveBeenCalledTimes(1);
+  // the strip lies under the controls and the credits in the tree, so they keep their own touches
+  const order = (testID: string) => tree.root.findAll(node => node.props.testID === testID && typeof node.type === 'string')
+    .map(node => tree.root.findAll(other => typeof other.type === 'string').indexOf(node))[0];
+  expect(order('discovery-map-strip')).toBeLessThan(order('discovery-map-zoom-layer'));
+  expect(order('discovery-map-strip')).toBeLessThan(order('discovery-map-credits'));
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
+  expect(stripPress).toHaveBeenCalledTimes(1);
+  // the credits stop short of the buttons so the two share the strip's row
+  expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base + 89 + sys.space.md);
+  extra = { ...extra, locateShown: true }; await update();
+  expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base + 89 + 8 + 44 + sys.space.md);
+  extra = { ...extra, locked: false }; await update();
+  expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base);
+  expect(tree.root.findAllByProps({ testID: 'discovery-map-strip' })).toHaveLength(0);
 });
 
 test('credit height follows native content measurement and reaches the screen without changing the map query', async () => {

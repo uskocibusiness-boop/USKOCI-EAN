@@ -86,7 +86,7 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
       return 'TERMINAL';
     }
     if(s.state==='PROCESSING'){say('Prethodno slanje se još proverava. Sačekaj ishod ili odustani od ovog slanja.','info');return 'UNKNOWN';}
-    if(s.state==='READY')say('Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa ponovi isti zahtev.','info');
+    if(s.state==='READY')say('Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa pošalji ponovo.','info');
     return 'ABSENT';
   }
   async function readIntent(i:QaIntent,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {

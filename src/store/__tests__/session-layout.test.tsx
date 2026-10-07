@@ -382,7 +382,7 @@ describe('an account in its closing stage', () => {
     expect(closingScreen()).toHaveLength(1);
     expect(text()).toContain('Nalog se zatvara.');
     expect(text()).toContain('Zatvaranje ovog naloga je pokrenuto. Pristup je ograničen dok se zatvaranje proverava i završava.');
-    expect(text()).toContain('Zadaci, Prijave i Dogovori nisu dostupni dok traje zatvaranje.');
+    expect(text()).toContain('Zadaci, prijave i Dogovori nisu dostupni dok traje zatvaranje.');
     expect(text()).not.toContain('Provereni koraci');
     expect(text()).not.toMatch(/server|Pregled trenutno nije učitan/i);
     expect([stackCover().props.importantForAccessibility, stackCover().props.accessibilityElementsHidden]).toEqual(['no-hide-descendants', true]);
@@ -401,7 +401,7 @@ describe('an account in its closing stage', () => {
     expect(text()).toContain('Nalog je zatvoren.');
     expect(text()).toContain('Pristup nalogu je ugašen. Podaci za prijavu su uklonjeni i sesije su završene.');
     expect(text()).toMatch(/Završeno: 7\. okt/);
-    expect(text()).not.toContain('Zadaci, Prijave i Dogovori nisu dostupni');
+    expect(text()).not.toContain('Zadaci, prijave i Dogovori nisu dostupni');
     expect(button('Proveri stanje')).toBeUndefined();
     expect(button('Otvori privatnu podršku')).toBeUndefined();
     expect(button('Odjavi se sa ovog uređaja')).toBeDefined();

@@ -256,7 +256,7 @@ describe('my own task\'s next step', () => {
     expect(presses()).toHaveLength(2);
     const [body, next] = [presses()[0], foot('3 prijave čekaju izbor')!];
     expect(next.props.accessibilityLabel).toBe('3 prijave čekaju izbor, Montaža dve police');
-    expect(body.props.accessibilityLabel).toBe('Otvori Zadatak Montaža dve police');
+    expect(body.props.accessibilityLabel).toBe('Otvori zadatak Montaža dve police');
     expect(body.findAll(node => node === next)).toHaveLength(0);
     expect(style(next)).toMatchObject({ minHeight: 48, backgroundColor: sys.color.wash, borderTopWidth: 1, borderTopColor: sys.color.line });
     const dots = next.findAll(node => node.type === ('View' as React.ElementType) && style(node).backgroundColor === sys.color.orange);

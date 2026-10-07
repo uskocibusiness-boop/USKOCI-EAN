@@ -35,18 +35,16 @@ export function ReviewStatus({ published, fresh, text }: { published: boolean; f
 /**
  * The task as others will see it: the task card's own parts (title with the value slot, where, when, how many people),
  * bare on one compact card. Not a target; it is heard once as a whole. The description and the photos are not repeated
- * here: photos appear only inside a task's detail (owner decision 10, 2026-09-24).
+ * here: photos appear only inside a task's detail (owner decision 10, 2026-09-24). The card leads the review with no caption
+ * above it ("Ovako će drugi videti zadatak" was a sentence about where the person is, plan 2.17): the card is the task as it
+ * will look, and the bar already says "Pregled zadatka".
  */
 export function ReviewPreview({ summary, unpriced, large, action }: { summary: Summary; unpriced: boolean; large: boolean;
-  /** One quiet correction beside the caption ("Izmeni naslov"). */ action?: ReactNode }) {
+  /** One quiet correction under the card ("Izmeni naslov"). */ action?: ReactNode }) {
   const value: TaskValue | null = summary.value ?? (unpriced ? { kind: 'unpriced' } : null);
   const spoken = [summary.title, value ? valueSpoken(value) : null, summary.zone || null, summary.schedule ?? null, summary.people]
     .filter(Boolean).join(', ');
   return <View style={s.section}>
-    <View style={s.sectionHead}>
-      <T variant="meta" tone="muted" style={s.grow}>Ovako će drugi videti zadatak</T>
-      {action}
-    </View>
     <View style={s.card} accessible accessibilityLabel={spoken || 'Zadatak još nema javnih podataka'}>
       {summary.title || value ? <View style={large ? s.headStacked : s.head}>
         {summary.title ? <CardTitle title={summary.title} lines={3} style={!large && s.titleSide} /> : null}
@@ -56,6 +54,7 @@ export function ReviewPreview({ summary, unpriced, large, action }: { summary: S
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={16} />} text={summary.schedule} lines={2} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={16} />} text={summary.people} /> : null}
     </View>
+    {action ? <View style={s.previewAction}>{action}</View> : null}
   </View>;
 }
 
@@ -217,6 +216,7 @@ const s = StyleSheet.create({
   statusDone: { backgroundColor: sys.color.greenSoft },
   statusQuiet: { backgroundColor: sys.color.wash },
   card: { ...cardCompact, gap: sys.space.sm },
+  previewAction: { alignItems: 'flex-end' },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   headStacked: { gap: sys.space.xs },
   titleSide: { flex: 1, minWidth: 0 },

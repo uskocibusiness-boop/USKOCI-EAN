@@ -45,7 +45,7 @@ it('with a real other account opens the safety screen bound to that target', asy
 it('without a usable target, offers the one way forward: the people you block', async () => {
   mockParams = {}; await render();
   expect(text()).toContain('Nije izabrana osoba');
-  await act(async () => press('Blokirani korisnici').props.onPress());
+  await act(async () => press('Blokirane osobe').props.onPress());
   expect(mockRouter.replace).toHaveBeenCalledWith('/profil/blokirani');
   expect(mockRouter.back).not.toHaveBeenCalled();
 });
@@ -55,5 +55,5 @@ it('opened with your own account, says that it is yours instead of "Nije izabran
   expect(tree.root.findAllByType('Safety' as React.ElementType)).toHaveLength(0);
   expect(text()).toContain('Ovo je tvoj nalog');
   expect(text()).not.toContain('Nije izabrana osoba');
-  expect(press('Blokirani korisnici')).toBeDefined();
+  expect(press('Blokirane osobe')).toBeDefined();
 });

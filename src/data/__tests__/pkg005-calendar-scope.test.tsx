@@ -18,6 +18,10 @@ jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => tr
 jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent }));
 jest.mock('../workerCalendarClientService', () => ({ workerCalendarClientService: { readRange: (...args: [string, string]) => mockReadRange(...args) } }));
 jest.mock('../agreementClientService', () => ({ agreementClientService: { mojiDogovori: () => mockAgreements() } }));
+// Raspored also reads my tasks, my applications and the availability a worker keeps (Početna's and Dostupnost's own reads).
+jest.mock('../needClientService', () => ({ needClientService: { mojePotrebe: () => [] } }));
+jest.mock('../applicationClientService', () => ({ applicationClientService: { mojePrijave: () => [] } }));
+jest.mock('../workerAvailabilityClientService', () => ({ workerAvailabilityClientService: { read: () => ({ ok: false }) } }));
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: (read: () => unknown) => ({ data: read(), loading: false, error: false, refresh: jest.fn() }) }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 // The top bar is the shared one and draws with the real T; render it as the same host node the
@@ -53,7 +57,8 @@ describe('PKG-005 calendar scope', () => {
     mockIntent = last;
     await render();
     expect(mockReadRange).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('Kalendar obaveza');
+    // The planner is called "Raspored" (owner, 2026-10-07), here and on Početna.
+    expect(text()).toContain('Raspored'); expect(text()).not.toContain('Kalendar obaveza');
     // Updated deliberately (plan step 0, 2026-09-23): the subtitle under the week ("… u koje si uskočio", gendered) and
     // the standing disclaimer under the calendar pinned copy that explained the screen; both are gone by the owner's
     // rule. The scope itself is unchanged: one calendar read, the availability editor, no app mode.
@@ -61,12 +66,14 @@ describe('PKG-005 calendar scope', () => {
     expect(text()).not.toContain('oni te ovde ne blokiraju');
     // Updated deliberately (owner step 10, 2026-09-24, critique A15/B18): the calendar places the Dogovori about my own
     // tasks and finished ones too, from the exact window the Dogovori list carries (`tacanTermin`, wired in the review
-    // of step 10), so a day with none of them is simply empty, in one quiet line, for either side.
-    expect(text()).toContain('Nema zakazanih Dogovora.');
+    // of step 10), so a day with none of them is simply empty, in one quiet line, for either side. Since Raspored (2026-10-07)
+    // the planner holds my tasks and applications too, so that line no longer says "Dogovori".
+    expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
     expect(text()).not.toContain('Dogovori za tvoje zadatke');
     expect(text()).toContain('Moja dostupnost za rad');
     expect(text()).not.toMatch(/JA MOGU|MENI TREBA/);
-    // The availability row is spoken by its visible words since the review of step 10.
+    // The availability row is spoken by its visible words since the review of step 10, and the Arhiva stands beside it.
     expect(tree.root.findByProps({ accessibilityLabel: 'Moja dostupnost za rad' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Arhiva' })).toBeTruthy();
   });
 });

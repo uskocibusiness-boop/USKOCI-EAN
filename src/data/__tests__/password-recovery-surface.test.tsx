@@ -166,9 +166,10 @@ it('revalidates a repeated OS callback instead of displaying the preceding succe
   expect(mockSave).toHaveBeenCalledTimes(1);
 });
 
-// Owner decision 2026-10-07: the recovery link of a restricted account shows the restricted panel; a new link would change
-// nothing, so none is offered, and the one way on is back.
-it.each([false, true])('a restricted account is its own panel, not an expired link (failed while saving: %s)', async whileSaving => {
+// Owner decision 2026-10-07, design proposal N3: the recovery link of a restricted account shows the restricted-account SCREEN
+// (one sentence, one way out, nothing of the recovery form around it); a new link would change nothing, so none is offered,
+// and the one way on is back.
+it.each([false, true])('a restricted account is its own screen, not an expired link (failed while saving: %s)', async whileSaving => {
   if (!whileSaving) mockVerify.mockRejectedValue(new PasswordRecoveryError('RESTRICTED_ACCOUNT'));
   else mockSave.mockRejectedValue(new PasswordRecoveryError('RESTRICTED_ACCOUNT'));
   await render();
@@ -176,10 +177,14 @@ it.each([false, true])('a restricted account is its own panel, not an expired li
     await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password');
     await press('Sačuvaj novu lozinku');
   }
-  const panels = tree.root.findAll(node => node.props.testID === 'restricted-account-panel' && typeof node.type === 'string');
-  expect(panels).toHaveLength(1);
+  const screens = tree.root.findAll(node => node.props.testID === 'restricted-account-screen' && typeof node.type === 'string');
+  expect(screens).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.testID === 'restricted-account-panel' && typeof node.type === 'string')).toHaveLength(1);
   expect(text()).toContain('Pristup nalogu je ograničen');
-  expect(text()).toContain('Oporavak lozinke za ovaj nalog trenutno nije moguć. Novi link za oporavak to neće promeniti.');
+  expect(text()).toContain('Trenutno ne možeš da koristiš obične funkcije aplikacije.');
+  // Nothing of the recovery form is left around it, and no support is promised: nobody is signed in and no address is given.
+  expect(text()).not.toContain('Postavi novu lozinku'); expect(text()).not.toContain('Bezbedan povratak');
+  expect(text()).not.toContain('javi nam se'); expect(button('Piši podršci')).toBeUndefined();
   expect(text()).not.toContain('Link je nevažeći ili je istekao');
   expect(hosts('Text').filter(node => node.props.accessibilityRole === 'alert')).toHaveLength(0);
   expect(button('Zatraži novi link')).toBeUndefined();

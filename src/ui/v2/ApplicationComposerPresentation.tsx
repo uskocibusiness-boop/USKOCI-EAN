@@ -15,6 +15,7 @@ import { FactArt } from '../system/FactArt';
 import { dolaziOsoba, osoba, plural } from '../system/plural';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
+import { StatusChip } from '../system/StatusChip';
 import { SuccessMark } from '../system/SuccessMark';
 import { useTextScale } from '../system/textScale';
 import { brandAction, fieldBox, inset, sys } from '../system/tokens';
@@ -83,13 +84,13 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
   const locked = fixedApplicationPeople(need) !== null;
   // The reason under the grey button is an instruction in the one wording the field beside it uses (r6: the price field
   // and the button said the same error in two sentences; the stepper's count line and the button said the same count).
-  const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži Zadatak.'
+  const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži zadatak.'
     : price === 'empty' ? 'Upiši svoju cenu da pregledaš ponudu.'
     : price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.'
     : people === 'invalid' ? 'Upiši koliko ljudi dolazi.'
     // A price for the whole task covers every place, so fewer free places cannot be fixed here, only by a fresh read.
-    : people === 'over' ? locked ? 'Zadatak više nema sva mesta slobodna. Osveži Zadatak.'
-      : need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš ponudu.` : 'Sva mesta su popunjena. Osveži Zadatak.'
+    : people === 'over' ? locked ? 'Zadatak više nema sva mesta slobodna. Osveži zadatak.'
+      : need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš ponudu.` : 'Sva mesta su popunjena. Osveži zadatak.'
     : tooMuch ? 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
     : null;
   return { reason, price, people };
@@ -311,7 +312,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
     : uncertain ? <V2Action label="Proveri ishod" onPress={refresh} disabled={busy} style={brandAction} />
     // A known refusal cannot be undone by repeating the same command: the one way on is a new offer on fresh terms.
     : reset ? <V2Action label="Sastavi novu ponudu" onPress={reset} disabled={busy} style={brandAction} />
-    : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Ponovi istu Prijavu'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
+    : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošalji ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
     : <V2Action label="Pregledaj ponudu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason}
       reason={reviewAction ? reviewReason : null} style={brandAction} />;
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
@@ -325,7 +326,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const footer = <>
     {error ? <View style={s.notice}>
       <T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T>
-      {!pending && refreshHelps ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noticeAction} /> : null}
+      {!pending && refreshHelps ? <V2Action label="Osveži zadatak" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noticeAction} /> : null}
     </View> : null}
     {!locked && !busy && !keyboard ? <View accessible accessibilityLabel={`${summary}, ${count !== null ? dolaziOsoba(count) : 'broj ljudi nije upisan'}`} style={s.summaryRow}>
       <T style={s.summary}>{summary}</T>
@@ -338,7 +339,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         onPress={action.onPress} disabled={busy} />)}
     </View> : null}
     {/* A task read without its price (or its places) is fixed by a fresh read, so the way to it stands under the grey button. */}
-    {reviewAction && !shownBlock && !error && refreshFixes ? <V2Action label="Osveži Zadatak" kind="quiet" compact onPress={refresh} /> : null}
+    {reviewAction && !shownBlock && !error && refreshFixes ? <V2Action label="Osveži zadatak" kind="quiet" compact onPress={refresh} /> : null}
     {/* A grey button with nothing beside it is a dead end; the reason stands under it, with the way out. On the review
         button the reason is the button's own line (and its spoken hint); beside the other actions it stands here. */}
     {shownBlock && (!reviewAction || !!(shownBlock.actionLabel && shownBlock.onAction)) ? <View style={s.blocked}>
@@ -356,6 +357,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         <SuccessMark fresh={!confirmedAtMount} size={72} />
         {/* Announced when it has just happened; reopened on a send already confirmed it is the screen's heading. */}
         <T accessibilityRole={confirmedAtMount ? 'header' : 'alert'} style={s.resultTitle}>Prijava je poslata.</T>
+        {/* The state the application will wear in "Moje prijave" from now on: the same chip, so the receipt and the list say one word. */}
+        <StatusChip status="application.sent" />
         <T variant="copy" tone="muted">Ako tvoja ponuda bude izabrana, odmah nastaje Dogovor. Prijavu pratiš u Mojim prijavama.</T>
       </View>
       <TaskHead opportunity={opportunity} />
@@ -399,7 +402,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
           </View>
         </View>
         {/* A whole-task price fixes the count; show that count as a fact, never an editable control. */}
-        {peopleLocked ? <View accessible accessibilityLabel={`Koliko ljudi dolazi: ${capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}, cena važi za ceo Zadatak`} style={[s.lockedPeople, stackPeople && s.unflex]}>
+        {peopleLocked ? <View accessible accessibilityLabel={`Koliko ljudi dolazi: ${capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}, cena važi za ceo zadatak`} style={[s.lockedPeople, stackPeople && s.unflex]}>
           <View style={s.grow}>
             <T variant="bodyStrong" style={s.ink}>{capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}</T>
           </View>
@@ -413,7 +416,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
               onPress={() => { const next = count === null ? 1 : count + 1; if (!disabled && next <= left) step(next); }} />
           </View>}
       </View>
-        <Press accessibilityRole="button" accessibilityLabel="Termin Prijave" accessibilityHint="Otvara izbor tačnog termina"
+        <Press accessibilityRole="button" accessibilityLabel="Termin prijave" accessibilityHint="Otvara izbor tačnog termina"
           accessibilityValue={{ text: proposedTaskTime ? `${time}, termin zadatka: ${proposedTaskTime}` : time }} disabled={disabled} accessibilityState={{ disabled }} haptic="select" scaleTo={0.99}
           onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} style={s.term}>
           <FactArt kind="calendar" size={24} cut="art" tone="quiet" />
@@ -440,7 +443,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
     {reviewing ? <ProductSheet title="Ovo šalješ" closeLabel="Nazad na izmenu ponude" backdropHint="Vraća na izmenu ponude." onClose={closeReview}
       footer={() => <>
-        <V2Action label="Pošalji ovu Prijavu" onPress={confirmReview} style={brandAction} />
+        <V2Action label="Pošalji ovu prijavu" onPress={confirmReview} style={brandAction} />
         <V2Action label="Izmeni ponudu" kind="quiet" onPress={closeReview} />
       </>}>
       {() => <>

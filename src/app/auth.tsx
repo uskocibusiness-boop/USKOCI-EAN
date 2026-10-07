@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   BackHandler,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -27,7 +28,10 @@ import {
 } from 'phosphor-react-native';
 
 import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
-import { RestrictedAccountPanel, type RestrictedAccountContext } from '../ui/auth/RestrictedAccountPanel';
+import { AuthIntentLine } from '../ui/auth/AuthIntentLine';
+import { RestrictedAccountScreen } from '../ui/auth/RestrictedAccountPanel';
+import { publicSupportMailto } from '../ui/auth/supportContact';
+import { Segmented, type SegmentedOption } from '../ui/system/Segmented';
 
 import { authClientService } from '../data/authClientService';
 import { isRestrictedAccountFailure } from '../data/authFailureClasses';
@@ -40,6 +44,11 @@ import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT' | 'RESTRICTED';
+
+/** The two ways in on one screen, in the order of the design proposal (N2): creating an account leads, because the entry's choice opens it. */
+const WAYS: readonly SegmentedOption<Rezim>[] = [{ key: 'SIGNUP', label: 'Napravi nalog' }, { key: 'LOGIN', label: 'Prijava' }];
+/** Said instead of a tick that recorded nothing (owner rule PKG-031) while the legal documents are not published. */
+const LEGAL_LINE = 'Uslovi korišćenja i pravila privatnosti još nisu objavljeni.';
 
 /** Only ways in that work are drawn, so there is no unavailable state left to draw. */
 function MethodButton({ title, icon, onPress, disabled }: {
@@ -90,14 +99,14 @@ export default function AuthScreen() {
   const [preparedIntent, setPreparedIntent] = useState<{ intent: 'REQUESTER' | 'WORKER'; accountRevision: number } | null>(null);
   const session = sesijaSada();
   const selectedIntent = !session.user && preparedIntent?.accountRevision === session.accountRevision ? preparedIntent.intent : null;
-  const intentLabel = selectedIntent === 'REQUESTER' ? 'Objavi zadatak' : selectedIntent === 'WORKER' ? 'Uskoči i zaradi' : null;
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');
   const [grad, setGrad] = useState('');
   const [email, setEmail] = useState('');
+  // Signing up asks for the password once (design proposal N2): the eye on the field shows it, so a typo can be seen and
+  // fixed there, and a second field that had to match the first is gone.
   const [lozinka, setLozinka] = useState('');
-  const [potvrda, setPotvrda] = useState('');
   const [telefon, setTelefon] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationRequired, setConfirmationRequired] = useState(true);
@@ -113,16 +122,17 @@ export default function AuthScreen() {
   const methods = availability.status === 'ready' ? availability.data : null;
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);
-  // Owner decision 2026-10-07: a restricted account is its own state, not a line of red text under the form.
-  const [ograniceno, setOgraniceno] = useState<RestrictedAccountContext>('SIGN_IN');
   const signOutReason = useSesija().signOutReason;
+  // Owner decision 2026-10-07: a restricted account is its own screen, not a line of red text under the form. Nobody is signed
+  // in then, so there is no private support to open; "Piši podršci" is drawn only when the owner has given a public address.
+  const supportUrl = publicSupportMailto();
 
-  // A session the provider ended because the account is restricted opens the sign-in sheet on that panel, once.
+  // A session the provider ended because the account is restricted shows that screen, once.
   useEffect(() => {
     if (signOutReason?.kind !== 'RESTRICTED_ACCOUNT') return;
     const shown = commands.changeForm(() => {
-      setPreparedIntent(null); setRezim('LOGIN'); setOgraniceno('SESSION'); setFaza('RESTRICTED');
-      setLozinka(''); setPotvrda(''); setOtp(''); setGreska(null); setPoruka(null);
+      setPreparedIntent(null); setRezim('LOGIN'); setFaza('RESTRICTED');
+      setLozinka(''); setOtp(''); setGreska(null); setPoruka(null);
       setOtvoren(true);
     });
     // While an Auth command runs the form cannot change; `radi` re-runs this once it has settled.
@@ -141,23 +151,28 @@ export default function AuthScreen() {
       setPreparedIntent(null);
       setRezim('LOGIN');
       setFaza(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
-      setLozinka(''); setPotvrda(''); setGreska(null); setPoruka(null);
+      setLozinka(''); setGreska(null); setPoruka(null);
       setOtvoren(true);
     });
   }, [params.form, commands.changeForm]);
 
+  // One step back, for the arrow and for the phone's Back: any step after the form returns to the sign-in form, and the form
+  // itself, in either mode (they are two sides of one screen), closes the sheet and shows the entry again.
+  const retreat = () => commands.changeForm(() => {
+    if (faza !== 'EMAIL') { setFaza('EMAIL'); setRezim('LOGIN'); }
+    else setOtvoren(false);
+    setGreska(null); setPoruka(null);
+  });
   useEffect(() => {
     if (!otvoren) return;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      commands.changeForm(() => {
-        if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
-        else setOtvoren(false);
-        setGreska(null); setPoruka(null);
-      });
+      retreat();
       return true;
     });
     return () => subscription.remove();
-  }, [commands.changeForm, otvoren, faza, rezim]);
+    // `retreat` closes over exactly the values listed; the subscription is renewed whenever one of them changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commands.changeForm, otvoren, faza]);
 
   function otvori(mode: Rezim = 'LOGIN') {
     commands.changeForm(() => {
@@ -182,22 +197,28 @@ export default function AuthScreen() {
   function prijaviGresku(error: unknown) {
     if (isRestrictedAccountFailure(error)) {
       // Nothing typed was wrong, and typing it again changes nothing: the secrets are cleared, the email stays.
-      setOgraniceno(faza === 'PHONE' || faza === 'OTP' ? 'PHONE' : faza === 'RECOVERY' ? 'RECOVERY' : 'SIGN_IN');
-      setLozinka(''); setPotvrda(''); setOtp(''); setGreska(null); setPoruka(null);
+      setLozinka(''); setOtp(''); setGreska(null); setPoruka(null);
       setFaza('RESTRICTED');
       return;
     }
     setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušaj ponovo.');
   }
 
-  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER', selection?: EntryIntentSelection) {
+  /**
+   * The entry's two halves choose what the person has come to do. A person who has chosen is a person who has no account yet
+   * more often than not, so the form opens on creating one (design proposal N2) with the choice kept as one sentence; the
+   * switch on the form is one touch away from signing in. `changing` is that sentence's own "Promeni": the same write of the
+   * same choice, but it must not move the form, clear what was typed or close anything.
+   */
+  async function izaberiNameru(intent: 'REQUESTER' | 'WORKER', selection?: EntryIntentSelection, changing = false) {
     const current = () => entryScope.current.focused && entryScope.current.revision === entryRevision &&
       (selection?.isCurrent() ?? true);
     if (!current()) return;
     await commands.run(() => entryIntentClientService.prepare(intent, current), () => {
       if (!current()) return;
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
-      setRezim('LOGIN'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
+      if (changing) return;
+      setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
     }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušaj ponovo.'); });
   }
 
@@ -214,7 +235,6 @@ export default function AuthScreen() {
       }
       if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesi ime, prezime i grad.');
       if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
-      if (lozinka !== potvrda) throw new Error('Lozinke se ne poklapaju.');
       const result = await authClientService.signUp({
         email: email.trim(), password: lozinka,
         firstName: ime.trim(), lastName: prezime.trim(), city: grad.trim(),
@@ -223,7 +243,6 @@ export default function AuthScreen() {
     }, hasSession => {
       if (!hasSession) {
         setLozinka('');
-        setPotvrda('');
         setConfirmationRequired(ready.emailConfirmationRequired);
         setFaza('SIGNUP_NEXT_STEP');
       }
@@ -264,10 +283,12 @@ export default function AuthScreen() {
       setGreska(null); setPoruka(null);
       await authClientService.requestPasswordRecovery(email);
     }, () => {
-      setLozinka(''); setPotvrda(''); setFaza('RECOVERY_SENT');
+      setLozinka(''); setFaza('RECOVERY_SENT');
     }, prijaviGresku);
   }
 
+  // The form step is one calm screen for both ways in (N2): one greeting, the switch under it, nothing else named twice. The
+  // other steps keep their own title and one sentence.
   const naslov =
     faza === 'PHONE'
       ? rezim === 'SIGNUP' ? 'Napravi nalog telefonom' : 'Prijavi se telefonom'
@@ -278,9 +299,7 @@ export default function AuthScreen() {
           : faza === 'RECOVERY_SENT' ? 'Proveri email'
           : faza === 'SIGNUP_NEXT_STEP'
             ? confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'
-            : rezim === 'SIGNUP'
-              ? 'Napravi nalog'
-              : 'Prijavi se emailom';
+            : 'Zdravo.';
 
   const podnaslov =
     faza === 'PHONE'
@@ -292,45 +311,54 @@ export default function AuthScreen() {
           : faza === 'RECOVERY_SENT' ? 'Zahtev za oporavak je prihvaćen.'
           : faza === 'SIGNUP_NEXT_STEP'
             ? confirmationRequired ? 'Prati uputstvo za potvrdu registracije.' : 'Vrati se na prijavu.'
-            : rezim === 'SIGNUP'
-              ? 'Unesi osnovne podatke za nalog.'
-              : 'Unesi email i lozinku.';
+            : undefined;
 
   const recoveryStage = faza === 'RECOVERY' || faza === 'RECOVERY_SENT';
-  const stageComposition = recoveryStage || (rezim === 'SIGNUP' && (faza === 'EMAIL' || faza === 'SIGNUP_NEXT_STEP'));
+  const stageComposition = recoveryStage || faza === 'SIGNUP_NEXT_STEP';
   const formStyle = [styles.form, stageComposition && authStageForm];
+  // Each way in starts at its own top: the switch scrolls the form back up, so the fields of the longer one are never hidden
+  // above where the shorter one had been scrolled to (the form is one surface, so it is the same ScrollView that rewinds).
+  const scroller = useRef<ScrollView>(null);
+  const switchWay = (next: Rezim) => commands.changeForm(() => {
+    setRezim(next); setGreska(null); setPoruka(null);
+    scroller.current?.scrollTo?.({ y: 0, animated: false });
+  });
+  const headerTitle = recoveryStage ? 'Oporavak pristupa' : faza === 'EMAIL' ? null : rezim === 'SIGNUP' ? 'Registracija' : 'Prijava';
+  const signUpOffered = faza === 'EMAIL' && !!methods?.emailPassword && !!methods.emailSignup;
 
   return (
     <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-    <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP'} backdrop={entrySeen ? <EntryWelcome
+    {/* While the restricted-account screen stands over it, what lies beneath is neither read aloud nor reachable. */}
+    <View style={{ flex: 1 }} importantForAccessibility={faza === 'RESTRICTED' ? 'no-hide-descendants' : 'auto'}
+      accessibilityElementsHidden={faza === 'RESTRICTED'}>
+    {/* The sheet keeps one height while both ways are (or are about to be) offered, so switching between them never moves its edge. */}
+    <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP' || (faza === 'EMAIL' && (!methods || (methods.emailPassword && methods.emailSignup)))}
+      backdrop={entrySeen ? <EntryWelcome
       onRequester={selection => izaberiNameru('REQUESTER', selection)} onWorker={selection => izaberiNameru('WORKER', selection)}
       onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
     <View onLayout={onFormLayout} style={styles.screen}>
       <StatusBar style="dark" />
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
-          onPress={() => commands.changeForm(() => {
-            if (faza !== 'EMAIL' || rezim !== 'LOGIN') { setFaza('EMAIL'); setRezim('LOGIN'); }
-            else setOtvoren(false);
-            setGreska(null); setPoruka(null);
-          })} style={({ pressed }) => [styles.backButton, pressed && styles.methodPressed]}><ArrowLeft size={22} color={authColors.ink} /></Pressable>
-        <View style={styles.headerTitles}>
-          {faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? <Text style={styles.headerEyeline}>{intentLabel}</Text> : null}
-          <Text style={styles.headerTitle}>{recoveryStage ? 'Oporavak pristupa' : rezim === 'SIGNUP' ? 'Registracija' : 'Prijava'}</Text>
-        </View>
+          onPress={() => { retreat(); }} style={({ pressed }) => [styles.backButton, pressed && styles.methodPressed]}><ArrowLeft size={22} color={authColors.ink} /></Pressable>
+        {headerTitle ? <View style={styles.headerTitles}>
+          <Text style={styles.headerTitle}>{headerTitle}</Text>
+        </View> : null}
       </View>
       <View style={{ flex: 1, minHeight: 0 }}>
-        <ScrollView key={`${rezim}:${faza}`} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
+        <ScrollView ref={scroller} key={faza} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
           <View style={styles.formColumn}>
-            {faza === 'RESTRICTED' ? (
-              // The panel is the whole answer: no greeting above it and no form under it, one way back.
-              <View style={styles.form}>
-                <RestrictedAccountPanel context={ograniceno} />
-                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
-              </View>
-            ) : <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={faza === 'EMAIL' && rezim === 'LOGIN' ? 'Zdravo.' : naslov}
-              copy={faza === 'EMAIL' && rezim === 'LOGIN' ? selectedIntent === 'WORKER' ? 'Nastavi do Prijava, Zadataka i Dogovora.' : 'Nastavi do svojih Zadataka i Dogovora.' : podnaslov}
-              eyebrow={faza === 'RECOVERY' || faza === 'RECOVERY_SENT' ? 'BEZBEDAN POVRATAK' : faza === 'EMAIL' && rezim === 'LOGIN' && intentLabel ? `${intentLabel.toUpperCase()} · ISTI NALOG` : undefined} />}
+            <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={naslov} copy={podnaslov} />
+            {signUpOffered ? <View style={styles.way}>
+              <Segmented options={WAYS} value={rezim} onChange={switchWay} />
+            </View> : null}
+            {/* What the person came to do stays as one sentence with its one command (N2). It is kept for either way in:
+                after signing in they land where they were going. */}
+            {faza === 'EMAIL' && selectedIntent ? <View style={styles.way}>
+              <AuthIntentLine intent={selectedIntent} disabled={radi} onChange={next => { void izaberiNameru(next, undefined, true); }} />
+            </View> : null}
+            {faza === 'EMAIL' && rezim === 'SIGNUP' && signUpOffered
+              ? <Text style={styles.oneAccount}>Jedan nalog. Možeš i da tražiš pomoć i da uskočiš drugima.</Text> : null}
             {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
 
             {faza === 'RESTRICTED' ? null : availability.status === 'loading' ? (
@@ -397,37 +425,16 @@ export default function AuthScreen() {
                     editable={!radi}
                     placeholder="Unesi lozinku"
                     secure
+                    newPassword={rezim === 'SIGNUP'}
                     icon={<LockKey size={21} color={authColors.muted} />}
                   />
-
-                  {rezim === 'SIGNUP' && methods.emailSignup ? (
-                    <>
-                      <AuthField
-                        label="Potvrdi lozinku"
-                        value={potvrda}
-                        onChangeText={(value) => commands.changeForm(() => setPotvrda(value))}
-                        editable={!radi}
-                        placeholder="Ponovi lozinku"
-                        secure
-                        icon={<LockKey size={21} color={authColors.muted} />}
-                      />
-                      {/* Deep read 8.2, owner decision 2026-09-21: the tick asked to accept two documents that
-                          are not published yet and recorded nothing. While testing, the screen says so
-                          instead; the recorded acceptance (profil/pravna) takes over once they are published. */}
-                      <View style={styles.consent}>
-                        <Text style={styles.consentText}>
-                          Ovo je test verzija. Uslovi korišćenja i Politika privatnosti biće objavljeni pre javnog pokretanja.
-                        </Text>
-                      </View>
-                    </>
-                  ) : null}
 
                   <View style={styles.feedback} accessibilityLiveRegion="polite">
                     {greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
                   </View>
 
                   {rezim === 'LOGIN' ? (
-                    <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); setPotvrda(''); setGreska(null); setPoruka(null); })} style={styles.forgot}>
+                    <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); setGreska(null); setPoruka(null); })} style={styles.forgot}>
                       <Text style={styles.forgotText}>Zaboravljena lozinka?</Text>
                     </Pressable>
                   ) : null}
@@ -458,9 +465,10 @@ export default function AuthScreen() {
                       onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
                     />
                   </View>
-                ) : (
+                ) : rezim === 'LOGIN' ? (
+                  // Said where the other ways in would stand; on the form that makes an account it would only be a second note.
                   <Text style={styles.smallNote}>Za sada se ulazi email adresom i lozinkom.</Text>
-                )}
+                ) : null}
 
 
               </>
@@ -524,7 +532,7 @@ export default function AuthScreen() {
                 {methods.passwordRecovery ? <>
                   <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
                     editable={!radi} keyboardType="email-address" placeholder="ime@primer.rs" />
-                  <Text style={styles.stateCopy}>Otvorićeš link iz emaila i izabrati novu lozinku. Tvoji Zadaci i Dogovori ostaju na istom nalogu.</Text>
+                  <Text style={styles.stateCopy}>Otvorićeš link iz emaila i izabrati novu lozinku. Tvoji zadaci i Dogovori ostaju na istom nalogu.</Text>
                   <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} />
                 </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možeš se vratiti na prijavu.</Text>}
                 <Pressable accessibilityRole="button" disabled={radi} style={styles.linkButton} onPress={nazadNaEmail}>
@@ -563,10 +571,6 @@ export default function AuthScreen() {
               </View>
             ) : null}
             {faza !== 'EMAIL' && greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
-            {faza === 'EMAIL' && rezim === 'LOGIN' ? <View style={styles.notice}>
-              <Text style={styles.noticeTitle}>Jedan nalog.</Text>
-              <Text style={styles.noticeCopy}>Možeš i da tražiš pomoć i da uskočiš drugima.</Text>
-            </View> : null}
           </View>
         </ScrollView>
         {faza === 'EMAIL' && methods?.emailPassword ? <View style={[styles.authFooter, { paddingBottom: Math.max(16, insets.bottom) }]}>
@@ -577,34 +581,37 @@ export default function AuthScreen() {
               onPress={() => void emailAkcija()}
               busy={radi}
             />
-            {methods.emailSignup ? <Pressable accessibilityRole="button"
-              accessibilityState={{ disabled: radi }} disabled={radi}
-              onPress={() => commands.changeForm(() => { setRezim(rezim === 'LOGIN' ? 'SIGNUP' : 'LOGIN'); setGreska(null); setPoruka(null); })}
-              style={styles.alternateAction}>
-              <Text style={styles.alternateLabel}>{rezim === 'LOGIN' ? 'Napravi nalog' : 'Već imaš nalog? Prijavi se'}</Text>
-            </Pressable> : null}
+            {/* Deep read 8.2, owner decision 2026-09-21 (PKG-031): the tick asked to accept two documents that are not
+                published yet and recorded nothing. The screen says so instead, once, under the command that creates the
+                account; the recorded acceptance (profil/pravna) takes over once they are published. */}
+            {rezim === 'SIGNUP' && methods.emailSignup ? <Text style={styles.legal}>{LEGAL_LINE}</Text> : null}
           </View>
         </View> : null}
       </View>
     </View>
     </AuthSheet>
+    </View>
+    {/* N3: a restricted account has a screen of its own, not a window over the entry. There is no bottom bar on /auth, and the
+        one way out goes back to the sign-in form (nobody is signed in, so there is nothing to sign out of). */}
+    {faza === 'RESTRICTED' ? <RestrictedAccountScreen exitLabel="Nazad na prijavu" onExit={nazadNaEmail} busy={radi}
+      onSupport={supportUrl ? () => Linking.openURL(supportUrl) : undefined} /> : null}
     </KeyboardAvoidingView></>
   );
 }
 
 const styles = StyleSheet.create({
   authFooter: { borderTopWidth: 1, borderTopColor: authColors.divider, backgroundColor: authColors.surface, paddingTop: 12, paddingHorizontal: 22 },
-  footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center' },
+  footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center', gap: 8 },
+  legal: { ...type.note, fontWeight: '400', color: authColors.muted, textAlign: 'center' },
   screen: { flex: 1, backgroundColor: 'transparent' },
   header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
   backButton: { width: 48, height: 48, borderRadius: radius.control, borderWidth: 1, borderColor: authColors.line, backgroundColor: authColors.input, alignItems: 'center', justifyContent: 'center' },
   headerTitles: { flex: 1 },
-  headerEyeline: { ...type.label, fontWeight: '600', letterSpacing: 0.4, color: authColors.accentLight, marginBottom: 3 },
   headerTitle: { ...type.heading, textAlign: 'left', fontWeight: '600', color: authColors.ink },
   sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 22, paddingTop: 4 },
   formColumn: { width: '100%', maxWidth: 412 },
-  alternateAction: { minHeight: 48, paddingVertical: 10, paddingHorizontal: 2, justifyContent: 'center', alignSelf: 'center' },
-  alternateLabel: { ...type.tab, color: authColors.accentLight, textAlign: 'center' },
+  way: { marginBottom: 14 },
+  oneAccount: { ...type.note, fontWeight: '400', color: authColors.muted, marginBottom: 14 },
   form: { gap: 14, backgroundColor: 'transparent', borderWidth: 0, padding: 0, marginTop: 0 },
   feedback: { marginTop: -6 },
   banner: { marginBottom: 12, borderRadius: radius.control, padding: 12 },
@@ -620,8 +627,6 @@ const styles = StyleSheet.create({
   methodIcon: { width: 24, height: 24, flexShrink: 0 },
   methodCopy: { flex: 1, minWidth: 0, gap: 3 },
   methodText: { ...type.bodyStrong, color: authColors.methodInk },
-  consent: { flexDirection: 'row', gap: 12, minHeight: 48, paddingVertical: 12, paddingHorizontal: 12, borderRadius: radius.control, backgroundColor: authColors.input },
-  consentText: { ...type.meta, flex: 1, color: authColors.muted },
   backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
   backText: { ...type.tab, color: authColors.accentLight },
   smallNote: { ...type.meta, color: authColors.muted, marginVertical: 12 },
@@ -630,7 +635,4 @@ const styles = StyleSheet.create({
   stateCopy: { ...type.copy, color: authColors.muted },
   linkButton: { minHeight: 48, justifyContent: 'center' },
   linkText: { ...type.tab, color: authColors.accentLight },
-  notice: { backgroundColor: authColors.soft, padding: 16, borderRadius: radius.control, marginTop: 16, gap: 6 },
-  noticeTitle: { ...type.tab, color: authColors.ink },
-  noticeCopy: { ...type.meta, color: authColors.muted },
 });

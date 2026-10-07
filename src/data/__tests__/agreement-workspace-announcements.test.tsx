@@ -142,3 +142,37 @@ test('remeasures new text and enlarged narrow text instead of retaining a stale 
   expect(messageHeight()).toBe(80); expect(recoveryScroll().props.scrollEnabled).toBe(false);
   expect(spoken()).toEqual(['Osveži status Dogovora.', 'Dogovor nije osvežen.']);
 });
+
+// Plan 2.6: when nothing waits for the person there is NO green button - the footer says the state in one grey sentence - and a
+// footer with nothing to say draws no padded bar at all.
+test('with no action to offer the footer says the state in one grey sentence, and keeps the quiet line above it', async () => {
+  await render(<WorkspaceFooter brand={null} quiet="Čeka da Marko potvrdi završetak." statusText="Osvežavamo…" />);
+  expect(tree!.root.findAll(node => String(node.type) === 'V2Action')).toHaveLength(0);
+  const sentence = tree!.root.findByProps({ testID: 'agreement-quiet-line' });
+  expect(sentence.props.children).toBe('Čeka da Marko potvrdi završetak.');
+  expect(sentence.props).toMatchObject({ variant: 'note', tone: 'muted' });
+  expect(tree!.root.findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual(['Osvežavamo…', 'Čeka da Marko potvrdi završetak.']);
+});
+
+test('a recovery notice keeps its refresh when there is no action, and the sentence stands below it', async () => {
+  await render(<WorkspaceFooter brand={null} quiet="Dogovor je otkazan." notice={notice('Radnja nije potvrđena.')} />);
+  expect(tree!.root.findAll(node => String(node.type) === 'V2Action').map(node => node.props.label)).toEqual(['Osveži status Dogovora']);
+  expect(tree!.root.findByProps({ testID: 'agreement-quiet-line' }).props.children).toBe('Dogovor je otkazan.');
+});
+
+test('a footer with nothing to say draws nothing', async () => {
+  await render(<WorkspaceFooter brand={null} quiet={null} />);
+  expect(tree!.root.findAllByProps({ testID: 'agreement-action-footer' })).toHaveLength(0);
+  await update(<WorkspaceFooter brand={null} />);
+  expect(tree!.root.findAllByProps({ testID: 'agreement-action-footer' })).toHaveLength(0);
+  await update(<WorkspaceFooter brand={brand} />);
+  expect(tree!.root.findAllByProps({ testID: 'agreement-action-footer' })).toHaveLength(1);
+});
+
+test('the footer reports its height, so the outcome bar can float above it', async () => {
+  const measured = jest.fn();
+  await render(<WorkspaceFooter brand={brand} onLayout={measured} />);
+  const event = { nativeEvent: { layout: { x: 0, y: 700, width: 411, height: 88 } } };
+  await act(async () => tree!.root.findByProps({ testID: 'agreement-action-footer' }).props.onLayout(event));
+  expect(measured).toHaveBeenCalledWith(event);
+});

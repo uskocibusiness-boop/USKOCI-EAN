@@ -127,12 +127,12 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
     countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) });
 
   const body = <>
-    {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na Zadatak.</T> : null}
+    {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na zadatak.</T> : null}
     {/* The country and the working mode are chosen once and rarely changed, so they fold into one row that says what is
         chosen (owner's rule of place, 2026-09-23) — open from the start only while the country is unset. */}
     <LocationDetails label="Država i način rada" disabled={disabled} initiallyOpen={!country || !selectableCountry(countryOptions.countries, country)}
       summary={`${countryName(country) ?? 'Država nije izabrana'} · ${MODES.find(([value]) => value === mode)?.[1] ?? ''}`}>
-      <CountryField label="Država Zadatka" value={country} disabled={disabled} options={countryOptions}
+      <CountryField label="Država zadatka" value={country} disabled={disabled} options={countryOptions}
         onChange={code => change(() => setCountry(code))} />
       <LocationChoice label="Način rada" value={mode} options={MODES.map(([value, label]) => ({ value, label }))}
         disabled={disabled} onChange={value => change(() => setMode(value as NeedTaskGeography['mode']))} />
@@ -188,7 +188,7 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
             onConfirm={point => change(() => { setPoints(old => [...old.filter(item => item.slot !== selectedSlot), point]); setPendingPoint(false); }, false)} /> : null}
           {confirmedPoints.length < slots.length ? <T variant="meta" tone="muted">Mesto je potpuno potvrđeno tek kada potvrdiš sve tačke.</T> : null}
         </>}
-        <LocationDetails label="Privatni detalji Zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
+        <LocationDetails label="Privatni detalji zadatka" disabled={disabled} summary={address || notes ? 'Adresa ili napomene su unete. Otvori za pregled.' : 'Tačna adresa i pristup, opciono'}>
         <LocationField label="Tačna adresa (privatno, opciono)" value={address} maxLength={1000}
           editable={!disabled} onChangeText={text => change(() => setAddress(text))} />
         <LocationField label="Napomene za pristup (privatno, opciono)" value={notes} maxLength={2000} multiline

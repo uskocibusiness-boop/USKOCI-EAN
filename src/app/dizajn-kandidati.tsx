@@ -36,7 +36,7 @@ const candidate = (patch: Partial<KandidatProjekcija>): KandidatProjekcija => ({
   napomena: 'Dolazimo nas dvojica sa trakama. Kombi može da stane ispred ulaza, ormar nosimo rasklopljen.', stanje: 'SELECTABLE', mozeIzabrati: true,
   predlozeniPocetak: '2026-09-26T08:00:00Z', predlozeniKraj: '2026-09-26T10:00:00Z', dokazPrijave: evidence(), razlogPreporuke: null, ...patch });
 const NORMAL: KandidatProjekcija[] = [candidate({}),
-  candidate({ prijavaId: 'galerija-2', radnikProfilId: 'galerija-profil-2', ime: 'Ana Jovanović', inicijali: 'AJ', ocenaTekst: '—', recenzijeTekst: '3 završena posla',
+  candidate({ prijavaId: 'galerija-2', radnikProfilId: 'galerija-profil-2', ime: 'Ana Jovanović', inicijali: 'AJ', ocenaTekst: '—', recenzijeTekst: '3 završena zadatka',
     cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' }, pokrivaMesta: 1, napomena: '', predlozeniPocetak: null, predlozeniKraj: null,
     dokazPrijave: evidence({ vozila: [], alati: [] }) }),
   candidate({ prijavaId: 'galerija-3', radnikProfilId: 'galerija-profil-3', ime: 'Nikola Ilić', inicijali: 'NI', ocenaTekst: '5', recenzijeTekst: '2 recenzije',
@@ -47,7 +47,7 @@ const LONG: KandidatProjekcija[] = [
     napomena: 'Imamo iskustva sa selidbama stanova i kancelarija, donosimo sav alat, ćebad za zaštitu nameštaja i folije za pod.' }),
   candidate({ prijavaId: 'galerija-5', radnikProfilId: 'galerija-profil-5', ime: 'Konstantin Dimitrijević Mladenović', inicijali: 'KD', ocenaTekst: '—', recenzijeTekst: '',
     cena: { iznos: 18500, valuta: 'RSD', prikaz: '18.500 RSD' }, pokrivaMesta: 1, predlozeniPocetak: '2026-09-26T20:00:00Z', predlozeniKraj: '2026-09-27T06:30:00Z' }),
-  candidate({ prijavaId: 'galerija-6', radnikProfilId: 'galerija-profil-6', ime: 'Ime nije dostupno', inicijali: '', ocenaTekst: '—', recenzijeTekst: '0 završenih poslova',
+  candidate({ prijavaId: 'galerija-6', radnikProfilId: 'galerija-profil-6', ime: 'Ime nije dostupno', inicijali: '', ocenaTekst: '—', recenzijeTekst: '0 završenih zadataka',
     stanje: 'OVERFILL', mozeIzabrati: false, dokazPrijave: { sema: 'LEGACY_UNPROVEN', kapacitetTima: null, vestine: null, alati: null, vozila: null, licence: null } })];
 const PROFILE = { profilId: 'galerija-profil-1', uloga: 'radnik', ime: 'Milan Petrović', avatarPutanja: null, grad: 'Novi Sad',
   naslov: 'Selidbe i nošenje tereta', biografija: 'Radim sa bratom, imamo kombi i trake. Dolazimo tačno.',
@@ -69,7 +69,7 @@ export default function DizajnKandidati() {
   const toList = () => show('lista');
   const choose = () => new Promise<void>(resolve => { setBusy(true); later(900, () => { setBusy(false); setChosen(true); resolve(); }); });
   const safetyEntry = { ...safety, onPress: () => { setSafety({ busy: true, error: null });
-    later(700, () => setSafety({ busy: false, error: 'Korisnik trenutno nije dostupan.' })); } };
+    later(700, () => setSafety({ busy: false, error: 'Osoba trenutno nije dostupna.' })); } };
   const publicProfile = () => new Promise<JavniProfilProjekcija | null>(resolve => later(500, () => resolve(PROFILE)));
   const offer = (k: KandidatProjekcija, state: { pending?: boolean; uncertain?: boolean; error?: string | null; reset?: boolean; confirmed?: boolean } = {}) =>
     <CandidateSelectionPresentation need={NEED} candidate={k} back={toList} publicProfile={publicProfile} choose={choose} busy={busy}
@@ -88,7 +88,7 @@ export default function DizajnKandidati() {
     : scene === 'ne-moze' ? offer(NORMAL[2])
     : scene === 'izabrana' ? offer({ ...NORMAL[0], stanje: 'SELECTED', mozeIzabrati: false })
     : scene === 'ishod' ? offer(NORMAL[0], { pending: true, uncertain: true, error: 'Ishod izbora nije potvrđen. Proveri stanje.' })
-    : scene === 'ponovi' ? offer(NORMAL[0], { pending: true, reset: true, error: 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora ponovi isti zahtev.' })
+    : scene === 'ponovi' ? offer(NORMAL[0], { pending: true, reset: true, error: 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora pošalji ponovo.' })
     : scene === 'sklopljen' ? offer(NORMAL[0], { pending: true, confirmed: true })
     : scene === 'profil' ? <PublicProfileSheet state={{ loading: false, data: PROFILE }} onClose={toList} onRetry={() => {}} safety={safetyEntry} />
     : scene === 'profil-ucitavanje' ? <PublicProfileSheet state={{ loading: true, data: null }} onClose={toList} onRetry={() => {}} />

@@ -45,7 +45,7 @@ async function type(value:string,label='Tekst pitanja'){await act(async()=>tree.
 beforeEach(()=>{jest.clearAllMocks();mockOwner={user:{id:A},accountRevision:1};mockContext.mockResolvedValue(ok(context()));mockRead.mockResolvedValue(ok({found:false,command:null}));mockPublicFeed.mockResolvedValue(ok([]));mockOwnerFeed.mockResolvedValue(ok([]));mockLoad.mockResolvedValue(null);mockSave.mockResolvedValue(undefined);mockClear.mockResolvedValue(undefined);mockAiSubmit.mockResolvedValue({ok:false,kod:'QA_CLASSIFICATION_UNCONFIRMED',poruka:'Ishod nije potvrđen.'});mockAiRecover.mockResolvedValue(ok(absent()));mockAiCancel.mockResolvedValue(ok(status({state:'CANCELLED',canCancel:false})));});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
 it('shows honest unavailable gate and never sends on entry',async()=>{await render();expect(allText()).toContain('Slanje novih pitanja trenutno nije dostupno');expect(button('Pošalji pitanje')).toBeUndefined();expect(mockAiSubmit).not.toHaveBeenCalled();});
-it('restores key read first and absent does not automatically replay',async()=>{mockLoad.mockResolvedValue(pending());await render();expect(mockRead).toHaveBeenCalledWith(N,mockKey,{accountId:A,accountRevision:1});expect(mockAiSubmit).not.toHaveBeenCalled();await act(async()=>button('Ponovi isti zahtev')!.props.onPress());expect(mockAiSubmit).not.toHaveBeenCalled();expect(allText()).toContain('potpuno isti tekst');await type('Da li ima lift?','Isti tekst kao ranije');await act(async()=>button('Ponovi isti zahtev')!.props.onPress());expect(mockAiSubmit).toHaveBeenCalledWith({type:'ASK',needId:N,needRevision:2,text:'Da li ima lift?',clientRequestId:mockKey},{accountId:A,accountRevision:1});});
+it('restores key read first and absent does not automatically replay',async()=>{mockLoad.mockResolvedValue(pending());await render();expect(mockRead).toHaveBeenCalledWith(N,mockKey,{accountId:A,accountRevision:1});expect(mockAiSubmit).not.toHaveBeenCalled();await act(async()=>button('Pošalji ponovo')!.props.onPress());expect(mockAiSubmit).not.toHaveBeenCalled();expect(allText()).toContain('potpuno isti tekst');await type('Da li ima lift?','Isti tekst kao ranije');await act(async()=>button('Pošalji ponovo')!.props.onPress());expect(mockAiSubmit).toHaveBeenCalledWith({type:'ASK',needId:N,needRevision:2,text:'Da li ima lift?',clientRequestId:mockKey},{accountId:A,accountRevision:1});});
 it('persists opaque command before one explicit double-tap dispatch',async()=>{mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();await type('Da li ima lift?');mockSave.mockImplementation(async()=>{expect(mockAiSubmit).not.toHaveBeenCalled();});const press=button('Pošalji pitanje')!.props.onPress;await act(async()=>{press();press();});expect(mockAiSubmit).toHaveBeenCalledTimes(1);expect(mockSave).toHaveBeenCalledWith(pending());});
 it('durable storage failure and account ABA each prevent dispatch',async()=>{mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();await type('Da li ima lift?');let done!:()=>void;mockSave.mockReturnValue(new Promise<void>(r=>{done=r;}));await act(async()=>button('Pošalji pitanje')!.props.onPress());mockOwner={user:{id:A},accountRevision:3};await act(async()=>{done();});expect(mockAiSubmit).not.toHaveBeenCalled();});
 it('background during persistence prevents any late send; resume only reads',async()=>{mockContext.mockResolvedValue(ok(context({canAsk:true,ratePolicyState:'READY',questionMaxChars:500})));await render();await type('Da li ima lift?');let done!:()=>void;mockSave.mockReturnValue(new Promise<void>(r=>{done=r;}));await act(async()=>button('Pošalji pitanje')!.props.onPress());await act(async()=>{mockApp('background');done();});expect(mockAiSubmit).not.toHaveBeenCalled();mockLoad.mockResolvedValue(pending());await act(async()=>mockApp('active'));expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockRead).toHaveBeenCalled();});
@@ -56,7 +56,7 @@ it('saved submit closure is retired after refresh',async()=>{mockContext.mockRes
 it('restored provider processing never offers replay and cancellation is explicit',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status()));await render();
  expect(allText()).toContain('Konačan ishod prethodnog slanja još nije potvrđen');expect(allText()).not.toContain('potvrdu da je prethodno slanje stiglo');
- expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockAiCancel).not.toHaveBeenCalled();expect(button('Ponovi isti zahtev')).toBeUndefined();
+ expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockAiCancel).not.toHaveBeenCalled();expect(button('Pošalji ponovo')).toBeUndefined();
  await act(async()=>button('Odustani od ovog slanja')!.props.onPress());
  expect(mockAiCancel).toHaveBeenCalledWith({type:'ASK',needId:N,needRevision:2,clientRequestId:mockKey,textSha256:pending().textSha256},{accountId:A,accountRevision:1});
  expect(mockClear).toHaveBeenCalledWith(A,N,mockKey);expect(allText()).toContain('Slanje je otkazano');
@@ -75,12 +75,12 @@ it('unknown cancellation keeps persisted intent and reads again without a new su
 it('ready classification only continues the same key with explicitly re-entered matching text',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status({state:'READY',outcome:'ALLOW'})));await render();
  expect(allText()).toContain('Tekst je proveren, ali još nije objavljen');expect(allText()).not.toContain('potvrdu da je prethodno slanje stiglo');
- expect(mockAiSubmit).not.toHaveBeenCalled();await type('Da li ima lift?','Isti tekst kao ranije');await act(async()=>button('Ponovi isti zahtev')!.props.onPress());
+ expect(mockAiSubmit).not.toHaveBeenCalled();await type('Da li ima lift?','Isti tekst kao ranije');await act(async()=>button('Pošalji ponovo')!.props.onPress());
  expect(mockAiSubmit).toHaveBeenCalledTimes(1);expect(mockAsk).not.toHaveBeenCalled();
 });
 it('a mismatched classifier hash cannot clear the intent or offer retry/cancel',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status({textSha256:'f'.repeat(64)})));await render();
- expect(mockClear).not.toHaveBeenCalled();expect(button('Ponovi isti zahtev')).toBeUndefined();expect(button('Odustani od ovog slanja')).toBeUndefined();
+ expect(mockClear).not.toHaveBeenCalled();expect(button('Pošalji ponovo')).toBeUndefined();expect(button('Odustani od ovog slanja')).toBeUndefined();
 });
 it('material answer rejection directs the owner back to canonical Task edit without publishing',async()=>{
  const intent={...pending(),type:'ANSWER',questionId:N};mockLoad.mockResolvedValue(intent);
@@ -133,21 +133,21 @@ it('the presentation alone reads nothing and draws the thread with the answer be
 // a missing Radni profil has a way forward, the row being answered says so, and only a real problem is red.
 it('the retry is grey with its reason until the same text is written, and the panel speaks without jargon',async()=>{
  mockLoad.mockResolvedValue(pending());await render();
- expect(button('Ponovi isti zahtev')!.props.disabled).toBe(true);expect(button('Ponovi isti zahtev')!.props.reason).toBe('Upiši isti tekst pre ponavljanja.');
+ expect(button('Pošalji ponovo')!.props.disabled).toBe(true);expect(button('Pošalji ponovo')!.props.reason).toBe('Upiši isti tekst pre ponavljanja.');
  const field=tree.root.findByProps({accessibilityLabel:'Isti tekst kao ranije'});expect(field.props.placeholder).toBe('Napiši isti tekst…');
  expect(allText()).toContain('Isti tekst kao ranije');expect(allText()).toContain('Provera prethodnog slanja');
  expect(allText()).not.toContain('identifikator');expect(allText()).not.toContain('radnju');expect(allText()).not.toContain('obrađuje');
  await type('Da li ima lift?','Isti tekst kao ranije');
- expect(button('Ponovi isti zahtev')!.props.disabled).toBe(false);expect(button('Ponovi isti zahtev')!.props.reason).toBeNull();
+ expect(button('Pošalji ponovo')!.props.disabled).toBe(false);expect(button('Pošalji ponovo')!.props.reason).toBeNull();
  expect(mockAiSubmit).not.toHaveBeenCalled();
 });
 it('a text checked but not yet published is said plainly with the retry, never as a red alert',async()=>{
  mockLoad.mockResolvedValue(pending());mockAiRecover.mockResolvedValue(ok(status({state:'READY',outcome:'ALLOW'})));await render();
- const line=tree.root.findAll(n=>n.props.children==='Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa ponovi isti zahtev.')[0];
+ const line=tree.root.findAll(n=>n.props.children==='Tekst je proveren, ali još nije objavljen. Upiši isti tekst pa pošalji ponovo.')[0];
  expect(line).toBeDefined();expect(line.props.tone).not.toBe('danger');expect(line.props.accessibilityRole).toBeUndefined();
- expect(button('Ponovi isti zahtev')).toBeDefined();expect(button('Odustani od ovog slanja')).toBeDefined();
+ expect(button('Pošalji ponovo')).toBeDefined();expect(button('Odustani od ovog slanja')).toBeDefined();
  // The same text written wrongly is a real problem and stays red.
- await type('Nešto drugo','Isti tekst kao ranije');await act(async()=>button('Ponovi isti zahtev')!.props.onPress());
+ await type('Nešto drugo','Isti tekst kao ranije');await act(async()=>button('Pošalji ponovo')!.props.onPress());
  const wrong=tree.root.findAll(n=>typeof n.props.children==='string'&&n.props.children.includes('potpuno isti tekst'))[0];
  expect(wrong.props.tone).toBe('danger');expect(wrong.props.accessibilityRole).toBe('alert');expect(mockAiSubmit).not.toHaveBeenCalled();
 });

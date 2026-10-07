@@ -217,7 +217,7 @@ class FakeApp(Device):
             text('Registracija'); text('Napravi nalog')
             for label in ('Ime', 'Prezime', 'Grad', 'Email'):
                 field(label)
-            field('Lozinka', True); field('Potvrdi lozinku', True)
+            field('Lozinka', True)
             if self.validation:
                 text(self.validation)
             button('Napravi nalog'); text('Već imaš nalog? Prijavi se')
@@ -291,7 +291,6 @@ class FakeApp(Device):
                 if resp.status == 200 and 'access_token' not in resp.json():
                     self.where = 'CONFIRM'
                     self.fields.pop('Lozinka', None)
-                    self.fields.pop('Potvrdi lozinku', None)
                     self.message = self.validation = None
                 else:
                     self.validation = 'Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.'

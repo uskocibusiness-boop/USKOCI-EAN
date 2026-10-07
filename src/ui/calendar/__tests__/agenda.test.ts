@@ -1,10 +1,9 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import type { WorkerCalendarEvent } from '../../../contracts/workerCalendar';
-import { agendaCoverage, agendaItems, agendaWindow, dayMark, itemsOnDay, withinDay, withoutExactTerm, type AgendaAgreement } from '../agenda';
+import { agendaClock, agendaCoverage, agendaItems, agendaRole, agendaWindow, agreementsWithoutExactTerm, itemsOnDay, withinDay, withoutExactTerm,
+  type AgendaAgreement } from '../agenda';
 
-// Owner step 10 (critique A15): the calendar places the Dogovori of both sides. Jest runs in UTC, so a day here is a UTC
-// day and Serbian time is two hours ahead in September.
+// Owner step 10 (critique A15): the calendar places the Dogovori of both sides. Jest runs in UTC and Serbian time is two hours
+// ahead in September, and since 2026-10-07 a day is a day of SERBIAN time: the phone's own midnight has no say in it.
 const from = '2026-09-21T00:00:00.000Z', to = '2026-09-28T00:00:00.000Z';
 const event = (id: string, agreementId: string, version: number, startsAt: string, endsAt: string): WorkerCalendarEvent =>
   ({ eventId: id, agreementId, agreementVersion: version, startsAt, endsAt, agreementStatus: 'CONFIRMED', source: 'AGREEMENT' });
@@ -125,12 +124,10 @@ describe('the day', () => {
     agreement('done', { stanje: 'COMPLETED', tacanTermin: window('2026-09-24T10:00:00Z', '2026-09-24T17:00:00Z') }),
     agreement('night', { tacanTermin: window('2026-09-25T20:00:00Z', '2026-09-26T04:00:00Z') }),
   ] });
-  it('cuts the week into days and marks them', () => {
+  it('cuts the week into days of Serbian time', () => {
     expect(itemsOnDay(items, '2026-09-24').map(item => item.agreementId)).toEqual(['done']);
     expect(itemsOnDay(items, '2026-09-26').map(item => item.agreementId)).toEqual(['night']);
-    expect(dayMark(items, '2026-09-24')).toBe('finished');
-    expect(dayMark(items, '2026-09-25')).toBe('active');
-    expect(dayMark(items, '2026-09-23')).toBeNull();
+    expect(itemsOnDay(items, '2026-09-23')).toEqual([]);
   });
   it('writes the window in Serbian time: its clocks on its own day, its days otherwise', () => {
     expect(agendaWindow(items[0], '2026-09-24')).toBe('12:00–19:00');
@@ -140,9 +137,93 @@ describe('the day', () => {
   });
 });
 
-it('keeps its status words equal to the Dogovor presentation\'s', () => {
-  // AgreementPresentation cannot be imported by the calendar (its photos pull the Supabase client), so the words are
-  // written twice; this keeps the two copies one.
-  const source = readFileSync(join(__dirname, '../../v2/AgreementPresentation.tsx'), 'utf8');
-  expect(source).toContain("AWAITING_REQUESTER: 'Čeka se potvrda završetka', COMPLETED: 'Završeno'");
+// ONE zone for days and hours (owner, 2026-10-07). Before it, the days were cut at the phone's midnight while the clocks were
+// written in Serbian time, so a Dogovor at 00:30 Serbian time stood on the day before and said "00:30".
+describe('one zone for the days and the hours', () => {
+  const only = (agreementWindow: { pocetak: string; kraj: string }) => agendaItems({ from, to, events: [],
+    agreements: [agreement('x', { tacanTermin: agreementWindow })] });
+  it('puts a Dogovor on the day its Serbian clock says, the clock its row writes', () => {
+    const items = only(window('2026-09-24T22:30:00Z', '2026-09-24T23:30:00Z'));
+    expect(itemsOnDay(items, '2026-09-24')).toEqual([]);
+    expect(itemsOnDay(items, '2026-09-25').map(item => item.agreementId)).toEqual(['x']);
+    expect(agendaClock(items[0].startsAt)).toBe('00:30');
+    expect(withinDay(items[0], '2026-09-25')).toBe(true);
+    expect(withinDay(items[0], '2026-09-24')).toBe(false);
+  });
+  it('splits at Serbian midnight in winter, UTC+1, as well', () => {
+    const winter = { from: '2026-12-06T00:00:00Z', to: '2026-12-14T00:00:00Z' };
+    const items = agendaItems({ ...winter, events: [], agreements: [agreement('w', { tacanTermin: window('2026-12-10T23:00:00Z', '2026-12-10T23:30:00Z') })] });
+    expect(itemsOnDay(items, '2026-12-10')).toEqual([]);
+    expect(itemsOnDay(items, '2026-12-11').map(item => item.agreementId)).toEqual(['w']);
+  });
+  it('counts a window that ends exactly at Serbian midnight on the day it ends, not the next', () => {
+    const items = only(window('2026-09-24T20:00:00Z', '2026-09-24T22:00:00Z'));
+    expect(itemsOnDay(items, '2026-09-24').map(item => item.agreementId)).toEqual(['x']);
+    expect(itemsOnDay(items, '2026-09-25')).toEqual([]);
+  });
+  it('keeps the 23-hour day of 2026-03-29 and the 25-hour day of 2026-10-25 whole', () => {
+    const spring = { from: '2026-03-22T00:00:00Z', to: '2026-04-05T00:00:00Z' };
+    const forward = agendaItems({ ...spring, events: [], agreements: [
+      agreement('first', { tacanTermin: window('2026-03-28T23:00:00Z', '2026-03-28T23:30:00Z') }),
+      agreement('last', { tacanTermin: window('2026-03-29T21:30:00Z', '2026-03-29T22:00:00Z') }),
+      agreement('next', { tacanTermin: window('2026-03-29T22:00:00Z', '2026-03-29T22:30:00Z') })] });
+    expect(itemsOnDay(forward, '2026-03-29').map(item => item.agreementId)).toEqual(['first', 'last']);
+    expect(itemsOnDay(forward, '2026-03-30').map(item => item.agreementId)).toEqual(['next']);
+    const autumn = { from: '2026-10-18T00:00:00Z', to: '2026-11-01T00:00:00Z' };
+    const back = agendaItems({ ...autumn, events: [], agreements: [
+      agreement('first', { tacanTermin: window('2026-10-24T22:00:00Z', '2026-10-24T22:30:00Z') }),
+      agreement('repeat', { tacanTermin: window('2026-10-25T00:30:00Z', '2026-10-25T01:30:00Z') }),
+      agreement('last', { tacanTermin: window('2026-10-25T22:30:00Z', '2026-10-25T23:00:00Z') }),
+      agreement('next', { tacanTermin: window('2026-10-25T23:00:00Z', '2026-10-25T23:30:00Z') })] });
+    expect(itemsOnDay(back, '2026-10-25').map(item => item.agreementId)).toEqual(['first', 'repeat', 'last']);
+    expect(itemsOnDay(back, '2026-10-26').map(item => item.agreementId)).toEqual(['next']);
+  });
+  it('writes a window that holds a clock change with both offsets, and one that does not with the clocks alone', () => {
+    // 2026-03-29 02:00 CET becomes 03:00 CEST: 01:30 CET to 03:30 CEST is one hour of real time.
+    const items = agendaItems({ from: '2026-03-22T00:00:00Z', to: '2026-04-05T00:00:00Z', events: [],
+      agreements: [agreement('shift', { tacanTermin: window('2026-03-29T00:30:00Z', '2026-03-29T01:30:00Z') })] });
+    expect(agendaClock(items[0].startsAt)).toBe('01:30');
+    expect(agendaClock(items[0].endsAt)).toBe('03:30');
+    expect(agendaWindow(items[0], '2026-03-29')).toContain('UTC+01:00');
+    expect(agendaWindow(items[0], '2026-03-29')).toContain('UTC+02:00');
+  });
+});
+
+describe('the Dogovor items and the flags the planner reads', () => {
+  it('say which finished Dogovor waits for my rating, and which active one has a problem open', () => {
+    const items = agendaItems({ from, to, events: [], agreements: [
+      agreement('rate', { stanje: 'COMPLETED', ocenaMoguca: true, tacanTermin: window('2026-09-22T10:00:00Z', '2026-09-22T11:00:00Z') }),
+      agreement('rated', { stanje: 'COMPLETED', ocenaMoguca: false, tacanTermin: window('2026-09-22T12:00:00Z', '2026-09-22T13:00:00Z') }),
+      agreement('trouble', { problemOtvoren: true, tacanTermin: window('2026-09-23T12:00:00Z', '2026-09-23T13:00:00Z') }),
+      agreement('old trouble', { stanje: 'COMPLETED', problemOtvoren: true, tacanTermin: window('2026-09-23T14:00:00Z', '2026-09-23T15:00:00Z') }),
+    ] });
+    expect(items.map(item => [item.agreementId, item.ratingDue, item.problem])).toEqual([
+      ['rate', true, false], ['rated', false, false], ['trouble', false, true], ['old trouble', false, false]]);
+  });
+  it('carry the problem of the Dogovor the schedule row stands for, at the same version', () => {
+    const events = [event('e1', 'w', 1, '2026-09-24T10:00:00Z', '2026-09-24T12:00:00Z')];
+    expect(agendaItems({ events, from, to, agreements: [worker('w', { problemOtvoren: true })] })[0].problem).toBe(true);
+    expect(agendaItems({ events, from, to, agreements: [worker('w', { verzija: 2, problemOtvoren: true })] })[0].problem).toBe(false);
+    expect(agendaItems({ events, from, to, agreements: null })[0].problem).toBe(false);
+  });
+  it('name my side in the rows\' words', () => {
+    expect(agendaRole(agreement('a'))).toBe('Tvoj zadatak');
+    expect(agendaRole(worker('a'))).toBe('Uskačeš');
+    expect(agendaRole(agreement('a', { ucesnici: [] }))).toBeNull();
+  });
+});
+
+describe('the Dogovori without an exact term', () => {
+  it('are listed in the order the list gave them, and counted by the same rule', () => {
+    const list = [agreement('a', { tacanTermin: null }), agreement('b', { stanje: 'AWAITING_REQUESTER', tacanTermin: null }),
+      agreement('c', { stanje: 'COMPLETED', tacanTermin: null }), agreement('d', { stanje: 'CANCELLED', tacanTermin: null }),
+      agreement('e', { tacanTermin: undefined }), agreement('f', { tacanTermin: window('2026-09-24T08:00:00Z', '2026-09-24T09:00:00Z') })];
+    expect(agreementsWithoutExactTerm(list, []).map(item => item.id)).toEqual(['a', 'b']);
+    expect(withoutExactTerm(list, [])).toBe(2);
+  });
+  it('leave out the ones the schedule already places, whatever the case of the id', () => {
+    const list = [worker('ABC-1', { tacanTermin: null }), agreement('b', { tacanTermin: null })];
+    const events = [event('e', 'abc-1', 1, '2026-09-24T10:00:00Z', '2026-09-24T12:00:00Z')];
+    expect(agreementsWithoutExactTerm(list, events).map(item => item.id)).toEqual(['b']);
+  });
 });

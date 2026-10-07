@@ -81,7 +81,7 @@ it('keeps the first request\'s own words with a spinner while it runs, never tha
   const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise); await render();
   await act(async () => { void button('Zatraži izvoz').props.onPress(); });
   expect(button('Zatraži izvoz').props).toMatchObject({ loading: true, disabled: true });
-  expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Pošalji ponovo' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ label: 'Slanje zahteva…' })).toHaveLength(0);
   const key = mockRequest.mock.calls[0][0]; mockStatus.mockResolvedValue(ok(status('REQUESTED', null, key)));
   await act(async () => pending.resolve(ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED' })));
@@ -90,8 +90,8 @@ it('keeps the first request\'s own words with a spinner while it runs, never tha
 it('a repeated request keeps "Ponovi isti zahtev" with its spinner while it runs', async () => {
   mockRequest.mockRejectedValueOnce(new Error('lost')); await render(); await tap('Zatraži izvoz'); await tap('Osveži stanje');
   const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise);
-  await act(async () => { void button('Ponovi isti zahtev').props.onPress(); });
-  expect(button('Ponovi isti zahtev').props).toMatchObject({ loading: true, disabled: true });
+  await act(async () => { void button('Pošalji ponovo').props.onPress(); });
+  expect(button('Pošalji ponovo').props).toMatchObject({ loading: true, disabled: true });
   const key = mockRequest.mock.calls[1][0]; mockStatus.mockResolvedValue(ok(status('REQUESTED', null, key)));
   await act(async () => pending.resolve(ok({ receiptId: ID, clientRequestId: key, status: 'REQUESTED' })));
 });
@@ -112,8 +112,8 @@ it('preparing and saving keep their words with a spinner while they run', async 
 });
 it('retains the same request key after unknown outcome and requires readback', async () => {
   mockRequest.mockRejectedValueOnce(new Error('private SQL detail')); await render(); await tap('Zatraži izvoz'); const key = mockRequest.mock.calls[0][0];
-  expect(texts()).not.toContain('private SQL'); expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(0);
-  await tap('Osveži stanje'); await tap('Ponovi isti zahtev'); expect(mockRequest).toHaveBeenLastCalledWith(key);
+  expect(texts()).not.toContain('private SQL'); expect(tree.root.findAllByProps({ label: 'Pošalji ponovo' })).toHaveLength(0);
+  await tap('Osveži stanje'); await tap('Pošalji ponovo'); expect(mockRequest).toHaveBeenLastCalledWith(key);
 });
 it('presents POLICY_NOT_READY without a fabricated READY or download', async () => {
   mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Pripremi kopiju');
@@ -253,4 +253,46 @@ it('the step that waits for the person is spoken as next, never as running', asy
     .map(node => node.props.accessibilityLabel as string);
   expect(labels).toEqual(['Priprema kopije, na redu. Priprema još nije pokrenuta.']);
   expect(labels.join(' ')).not.toContain('u toku');
+});
+// UI/UX pass 2026-10-07 (team T4c): the state of the export is one chip word, and nothing implies a file where there is none.
+const chip = () => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel as string);
+it.each([
+  ['no request yet', null, null, 'Nije traženo'], ['requested', 'REQUESTED', null, 'Zahtev poslat'], ['preparing', 'PROCESSING', null, 'U pripremi'],
+  ['ready and saveable', 'READY', descriptor(), 'Spremno'], ['ready but never verified', 'READY', null, 'Nije dostupno'],
+  ['expired', 'EXPIRED', null, 'Isteklo'], ['failed', 'FAILED', null, 'Nije uspelo'], ['cancelled', 'CANCELLED', null, 'Otkazano'],
+] as const)('the export that is %s is one chip word: %s', async (_name, state, fulfillment, word) => {
+  mockStatus.mockResolvedValue(ok(status(state, fulfillment))); await render();
+  expect(chip()).toEqual([word]);
+  // The chip is a mark and its word, never colour alone.
+  expect(tree.root.findAll(node => node.props.testID === 'status-mark').length).toBeGreaterThan(0);
+});
+it('a copy whose availability has run out says "Isteklo" before the server does, and offers no withdrawal of a file that is gone', async () => {
+  mockStatus.mockResolvedValue(ok(status('READY', { ...descriptor(), artifactExpiresAt: '2000-01-01T00:00:00Z' }))); await render();
+  expect(chip()).toEqual(['Isteklo']);
+  expect(tree.root.findAllByProps({ label: 'Opozovi kopiju' })).toHaveLength(0); expect(tree.root.findAllByProps({ label: 'Preuzmi i sačuvaj' })).toHaveLength(0);
+  expect(button('Zatraži novu kopiju')).toBeTruthy();
+});
+it('the sentence about keeping a copy is said only when there is a copy to keep', async () => {
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render();
+  expect(texts()).not.toContain('Čuvaj kopiju na mestu');
+  await act(async () => tree.unmount());
+  mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render();
+  expect(texts()).toContain('Čuvaj kopiju na mestu'); expect(texts()).not.toContain('stvarna kopija');
+});
+it('a re-read keeps the card and the footer on screen: the action waits grey and says why, and only the first read is a skeleton', async () => {
+  mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render();
+  const again = deferred(); mockStatus.mockReturnValueOnce(again.promise);
+  await act(async () => { void button('Osveži stanje').props.onPress(); });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavanje stanja izvoza' })).toHaveLength(0);
+  expect(chip()).toEqual(['Spremno']);
+  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: true, reason: 'Učitavamo stanje…' });
+  expect(button('Osveži stanje').props.loading).toBe(true);
+  await act(async () => button('Preuzmi i sačuvaj').props.onPress()); expect(mockDownload).not.toHaveBeenCalled();
+  await act(async () => again.resolve(ok(status('READY', descriptor()))));
+  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: false, reason: null }); expect(button('Osveži stanje').props.loading).toBe(false);
+});
+it('a read that fails says what happened with one retry, and offers no chip over a state that is not known', async () => {
+  mockStatus.mockResolvedValue({ ok: false, kod: 'X', poruka: 'Stanje trenutno nije dostupno.' }); await render();
+  expect(texts()).toContain('Stanje izvoza nije učitano'); expect(texts()).toContain('Stanje trenutno nije dostupno.');
+  expect(chip()).toEqual([]); expect(tree.root.findAllByProps({ label: 'Osveži stanje' })).toHaveLength(1);
 });

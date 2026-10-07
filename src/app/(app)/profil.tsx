@@ -5,7 +5,6 @@ import { authClientService } from '../../data/authClientService';
 import { ownProfileClientService } from '../../data/ownProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
-import type { ReviewCommentPhoto } from '../../ui/reviews/ReviewCommentsSection';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { ProfileWorkSummary } from '../../ui/profile/ProfileWorkSummary';
 import { Avatar } from '../../ui/system/Avatar';
@@ -13,8 +12,6 @@ import { inicijali } from '../../lib/inicijali';
 import { PROFILE_AVATAR, ProfileHub, type ProfileHubIdentity, type ProfileHubPath } from '../../ui/profile/ProfileHubPresentation';
 
 type ActionScope = { accountId: string; accountRevision: number; busy: boolean };
-/** A reviewer's photo under "Komentari" (D12, only in a build with the flag): the same profile photo as everywhere, at 40. */
-const commentPhoto: ReviewCommentPhoto = (profileId, size, fallback) => <ProfilePhoto profileId={profileId} size={size} fallback={fallback} />;
 
 export default function Profil() {
   const { user, accountRevision } = useSesija();
@@ -85,13 +82,17 @@ export default function Profil() {
     // No grammatical gender (one voice, 2026-09-23): "nisi podesio" spoke to a man only.
     : !capability ? 'Radni profil još nije podešen. Bez njega ne možeš da se prijaviš na zadatak.'
       : capability.stanje === 'DRAFT' ? 'Profil je nacrt — dok je nacrt, zadaci ti se ne nude.'
-        : capability.stanje === 'SUSPENDED' ? 'Profil je obustavljen. Piši podršci.'
+        : capability.stanje === 'SUSPENDED' ? 'Profil je suspendovan. Piši podršci.'
           // Only a state the read really returned is said: a status the app does not know (a closed profile, a new value)
           // reads as nothing rather than as "active" (review of step 9, 2026-09-24).
           : capability.stanje === 'ACTIVE' ? 'Profil je aktivan.' : undefined;
   const photoReady = !!identity?.profileId && !profile.loading && !profile.error;
   const openPhoto = () => { const id = identity?.profileId; if (!id || profile.loading || profile.error) return;
     navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); };
+  // Sentences that mean something lead to the place (T4a, 2026-10-07): the rating line to "Ocene", "Završeni Dogovori" to the
+  // Dogovori, on the section that holds the finished ones ("istorija"; the Dogovori screen takes it as `odeljak`).
+  const openRatings = () => navigate(() => router.navigate('/profil/ocene'));
+  const openFinished = () => navigate(() => router.navigate({ pathname: '/dogovori', params: { odeljak: 'istorija' } }));
   // The one Avatar at its header size, with the one way to take letters from a name; no name draws a person.
   const avatar = <Avatar initials={inicijali(identity?.ime)} size={PROFILE_AVATAR} />;
   const hubIdentity: ProfileHubIdentity = profile.loading ? { state: 'loading' }
@@ -101,15 +102,16 @@ export default function Profil() {
         // Nothing in the app sets the requester's city, so "Grad još nije unet" invited an action that did not exist.
         place: identity?.grad?.trim() || capability?.grad?.trim() || null,
         photo: identity?.profileId ? <ProfilePhoto profileId={identity.profileId} size={PROFILE_AVATAR} fallback={avatar} /> : avatar,
+        // The rating line is a way in: it opens "Ocene" (what the person received and gave, and with D12 the comments about them).
         photoReady, openPhoto, reputation: accountId
-          ? <AccountReputation accountId={accountId} centered commentsProfileId={identity?.profileId ?? null} commentPhoto={commentPhoto} /> : null };
+          ? <AccountReputation accountId={accountId} centered onOpen={openRatings} /> : null };
 
   // A work profile without an area says so, as the worker screen does; without a work profile the row has nothing to say.
   const workArea = capability?.grad?.trim() || (capability ? 'Nije podešeno' : undefined);
   return <ProfileHub identity={hubIdentity} capabilityDetail={capabilityDetail} workArea={workArea} busy={busy}
     workSummary={hubIdentity.state === 'ready' ? <ProfileWorkSummary
       requesterProfileId={identity?.kind === 'REQUESTER' ? identity.profileId : null}
-      workerProfileId={capability?.profileId ?? null} /> : undefined}
+      workerProfileId={capability?.profileId ?? null} onOpen={openFinished} /> : undefined}
     open={(path: ProfileHubPath) => navigate(() => router.navigate(path))}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/'))}
     onLogout={() => { void logout(); }} logoutError={logoutError} />;
