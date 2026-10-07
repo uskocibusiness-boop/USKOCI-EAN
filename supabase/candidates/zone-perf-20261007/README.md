@@ -64,4 +64,17 @@ Exact revert: `revert.sql` (restores the live body; code rollback only, nothing 
 
 ## Evidence
 
-The `zone` job of the proof workflow writes `zone-summary.md` (also in the job page) and `zone-report.json`: the four readers' server-side milliseconds cold and warm before / after / reverted on a seeded requester with 44 tasks of every schedule kind, 32 applications and 10 agreements, helper calls per request, payload identity, truth-table results, the two orders with MATCH-V1, and the exact revert.
+The `zone` job of the proof workflow writes `zone-summary.md` (also in the job page) and `zone-report.json`: the four readers' server-side milliseconds cold and warm before / after / reverted on a seeded requester with 44 tasks of every schedule kind, 32 applications and 10 agreements (22 selectable), helper calls per request, payload identity, truth-table results, the two orders with MATCH-V1, and the exact revert.
+
+Measured on the disposable server (run 37655605752, server execution time, one cold call in a fresh backend then warm calls; CI hardware varies from run to run, the ratio does not):
+
+| reader | BEFORE cold / warm | AFTER cold / warm | helper calls per call |
+| --- | --- | --- | --- |
+| `rpc_home_attention` | 1,662 / 1,592 ms | 31 / 12 ms | 44 |
+| `rpc_list_my_needs_page('ALL', 30)` | 3,006 / 2,911 ms | 57 / 22 ms | 81 |
+| `rpc_list_my_tasks` | 1,631 / 1,568 ms | 49 / 15 ms | 44 |
+| `rpc_list_my_agreements_page('ALL', 30)` (control) | 5 / 1.3 ms | 5 / 1.4 ms | 0 |
+
+Through PostgREST as the app calls it (Auth + HTTP + JSON, median of 3): Home 1,591 ms -> 17 ms, "Moji zadaci" page 2,929 ms -> 28 ms. The helper itself: 38 ms per call -> 0.006 ms. The payloads are identical before and after (only `asOf` differs), the truth table is identical over 323 probes, and reverting makes the readers slow again. The cost is **two helper calls per selectable application, each 25-70 ms on a server, per request**: an account without selectable applications never pays it, an account with 22 pays it on every Home open. On canonical DEV one call measured 73 ms.
+
+Fidelity of the readers on the disposable chain: the historical chain does not replay EX-04 S1, so `rpc_list_my_needs_page` and `private.own_task_counts` are installed from the captured DEV text (`supabase/proofs/zone-perf/dev-readers.sql`, md5 verified against DEV). `rpc_read_task`, `selectable_application_count`, `need_candidate_states_v5` (both) and `rpc_list_my_tasks` are the DEV bodies on the chain (md5 equal). The outer shells of `rpc_home_attention` and `rpc_list_my_agreements_page` are older than DEV's on the chain (EX-04 S3, "rating due"); the report names them; they reach the helper through the same `selectable_application_count`.

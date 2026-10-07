@@ -106,7 +106,12 @@ const READER_PINS = {
   'private.need_candidate_states_v5(uuid,uuid[])': '20092ecb2a781776ddb0ce9c46ba8aa5',
   [OWN_COUNTS_SIG]: '01d695467d5fa39dec180086cb07de40',
 };
-const MEASURED_SIGS = ['public.rpc_home_attention()', NEEDS_PAGE_SIG, 'public.rpc_list_my_tasks()', 'public.rpc_list_my_agreements_page(text,integer,timestamp with time zone,uuid)', OWN_COUNTS_SIG];
+// The path from the readers to the helper, which the proof stands on, must be the DEV text. rpc_home_attention and rpc_list_my_agreements_page are the
+// outer shells of two readers: the historical chain carries their older bodies (EX-04 S3, the "rating due" part, is not replayed); they are measured as the
+// chain has them, reach the helper through the very same selectable_application_count, and the report names them.
+const MEASURED_SIGS = [NEEDS_PAGE_SIG, OWN_COUNTS_SIG, 'public.rpc_list_my_tasks()', 'public.rpc_read_task(uuid)', 'public.selectable_application_count(needs)',
+  'private.need_candidate_states_v5(uuid)', 'private.need_candidate_states_v5(uuid,uuid[])'];
+const SHELLS = ['public.rpc_home_attention()', 'public.rpc_list_my_agreements_page(text,integer,timestamp with time zone,uuid)'];
 const readerFidelity = () => Object.fromEntries(Object.entries(READER_PINS).map(([sig, dev]) => {
   const chain = sql(`select coalesce(md5(prosrc),'') from pg_proc where oid=to_regprocedure(${q(sig)})`);
   return [sig, {dev, chain: chain || null, equal: chain === dev}];
@@ -262,8 +267,9 @@ try {
   assert.deepEqual(closure(), baseClosure);
   baseCatalog = catalog();   // the baseline of every later revert: the chain plus the DEV reader bodies
   report.observations.readerFidelity = {chainBefore: readerFidelityBefore, measured: readerFidelityNow, differsFromDev: Object.entries(readerFidelityNow).filter(([, v]) => !v.equal).map(([k]) => k)}; write();
-  gate('ZONE_PERF_THE_MEASURED_READERS_CARRY_THE_DEV_BODIES', MEASURED_SIGS.every(sig => readerFidelityNow[sig].equal),
-    {installedFromDevReadback: [NEEDS_PAGE_SIG, OWN_COUNTS_SIG].filter(sig => !readerFidelityBefore[sig].equal), differsFromDev: report.observations.readerFidelity.differsFromDev});
+  gate('ZONE_PERF_THE_PATH_FROM_THE_READERS_TO_THE_HELPER_AND_THE_PAGE_READER_CARRY_THE_DEV_BODIES', MEASURED_SIGS.every(sig => readerFidelityNow[sig].equal),
+    {installedFromDevReadback: [NEEDS_PAGE_SIG, OWN_COUNTS_SIG].filter(sig => !readerFidelityBefore[sig].equal), shellsOlderThanDev: SHELLS.filter(sig => !readerFidelityNow[sig].equal),
+      differsFromDev: report.observations.readerFidelity.differsFromDev});
 
   // ------------------------------------------------------------ BEFORE
   const helperBefore = timedHelper(30);

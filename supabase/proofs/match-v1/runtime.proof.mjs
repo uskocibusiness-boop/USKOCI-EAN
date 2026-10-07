@@ -264,9 +264,9 @@ async function allModeCases() {
     const d = fx.readDeliveries(n.needId), rounds = fx.readRounds(n.needId), sched = fx.readSchedule(n.needId);
     const valid = deliveryMinutes(n.needId), notificationValid = notificationMinutes(n.needId);
     const roundMinutes = countOf(`select round(extract(epoch from (deadline_at-statement_timestamp()))/60) from public.dispatch_rounds where need_id=${q(n.needId)}::uuid`);
-    const again = fx.runWave(n.needId);
+    const again = fx.runWave(n.needId), lastRound = fx.readRounds(n.needId).at(-1);
     o.oneTick = {deliveries: d.length, rounds: rounds.map(r => ({status: r.status, batch: Number(r.batch_size), limit: Number(r.candidate_limit_used), source: r.budget_source})),
-      events: eventCount(n.needId), notifications: notificationCount(n.needId), valid, notificationValid, roundMinutes, schedule: sched, again: {status: again.status, reason: again.reason, inserted: again.inserted},
+      events: eventCount(n.needId), notifications: notificationCount(n.needId), valid, notificationValid, roundMinutes, schedule: sched, again: {status: again.status, inserted: again.inserted, roundStopReason: lastRound.stop_reason},
       tickDeferred: t.deferred};
     assert.deepEqual(deliveredIndexes(n.needId), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 'ONE_TICK_MUST_REACH_ALL_THIRTEEN');
     assert.equal(rounds.length, 1); assert.equal(rounds[0].status, 'SENT'); assert.equal(Number(rounds[0].batch_size), 500); assert.equal(Number(rounds[0].candidate_limit_used), 500);
@@ -276,7 +276,7 @@ async function allModeCases() {
     assert.ok(notificationValid.min >= 1438 && notificationValid.max <= 1441, 'NOTIFICATIONS_VALID_24_HOURS:' + JSON.stringify(notificationValid));
     assert.ok(roundMinutes >= 13 && roundMinutes <= 15, 'ROUND_WINDOW_IS_THE_CHECK_TIME:' + roundMinutes);
     assert.equal(sched.lastStatus, 'SENT'); const nextIn = minutesFromNow(sched.nextRunAt); assert.ok(nextIn > 12 && nextIn < 16, 'NEXT_CHECK:' + nextIn);
-    assert.deepEqual(o.oneTick.again, {status: 'STOPPED', reason: 'NO_ELIGIBLE_CANDIDATES', inserted: 0}); assert.equal(fx.readDeliveries(n.needId).length, 13);
+    assert.deepEqual(o.oneTick.again, {status: 'STOPPED', inserted: 0, roundStopReason: 'NO_ELIGIBLE_CANDIDATES'}); assert.equal(fx.readDeliveries(n.needId).length, 13);
     pass('MATCH_V1_ALL_ONE_TICK_REACHES_EVERY_ADMITTED_WORKER_IN_ONE_ROUND_EVENTS_AND_NOTIFICATIONS_VALID_24H', o.oneTick);
     o.needAll = n; }
   // ALL-2: the safety ceiling per task revision; above it nobody more is notified, the reason is recorded, raising it continues with the rest
