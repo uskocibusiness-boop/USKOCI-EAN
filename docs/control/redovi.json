@@ -5718,6 +5718,7 @@
     }
   },
   "finalization": {
+    "owner_decision_20261007_prod_free_plan": "7.10.: VLASNIK: produkcioni Supabase kreće na BESPLATNOM planu dok ne dođe veći broj korisnika, zatim se isti projekat podiže na plaćeni (zamenjuje „plaćeni plan“ iz R04). Posledice: rezervne kopije pravimo sami (zakazana noćna kopija van Supabase-a), paziti na uspavljivanje bez aktivnosti u periodu testiranja, besplatno su 2 projekta (DEV + PROD). Ništa nije napravljeno ni primenjeno.",
     "owner_decision_20261007_push_v1": "7.10.: VLASNIK: PUSH OBAVEŠTENJA ULAZE U V1 („push obaveštenja su ključ da na vreme bude obavešteno šta gde ima, ko ima, kad ima novi zadatak, stigla poruka ... to mora biti“); zamenjuje R02 od 2.10. HITNO NIJE odlučeno („možda“): A21 važi dok ne potvrdi sa pravilima. Ništa nije primenjeno; uključivanje transporta i svaki push paket traže tačno „PRIMENI <ime>“. Zapis: docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISION_20261007_PUSH_IN_V1.md",
     "handoff_codex_20261002": {
       "ordered_by_owner": "2026-10-02 ~12:00: „Ajde polako završavaj ono što radiš, zapamti sve, evidentiraj, daj živi presek stanja i daj komandu i pripremu da Codex nastavi dalji rad od tačke gde si stao.“",
