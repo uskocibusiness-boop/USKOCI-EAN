@@ -1,6 +1,6 @@
 # USKOČI — UX plan po ekranima (dizajn tim, 7.10.2026)
 
-> **Ispravke vlasnika (7.10., posle plana) — imaju prednost nad tekstom ispod:** (1) **Poruke su četvrti tab** dole i obavezne su; dodir na poruku vodi pravo u taj Dogovor ili grupni razgovor (plan predlaže suprotno u 2.4/2.8 i odluci 6 — ne važi). (2) **Reč „posao/poslovi“ se ne koristi nigde**, samo „zadatak“ (npr. „Posao je gotov“ u 2.6 postaje izraz sa „zadatak“). (3) Kratke potvrde idu u dijalog na sredini ekrana (odluka 13: da).
+> **Ispravke vlasnika (7.10., posle plana) — imaju prednost nad tekstom ispod:** (1) **Poruke su četvrti tab** dole i obavezne su; dodir na poruku vodi pravo u taj Dogovor ili grupni razgovor (plan predlaže suprotno u 2.4/2.8 i odluci 6 — ne važi). (2) **Reč „posao/poslovi“ se ne koristi nigde**, samo „zadatak“ (npr. „Posao je gotov“ u 2.6 postaje izraz sa „zadatak“). (3) Kratke potvrde idu u dijalog na sredini ekrana (odluka 13: da). (4) **Planer se zove „Raspored“** (ne „Moj plan“; odluka 3). (5) **Dva velika dugmeta na Početnoj su oko 88 dp** (odluka 2: smanji). (6) Odgovori na 14 od 15 pitanja su na strani sa odlukama; otvoreno je samo pitanje 1 („Termin je sada“ ili „U toku“).
 
 ## Šta je ovo
 
