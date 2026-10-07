@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type Context, type ReactNode } from 'react';
 import { Modal, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import * as SafeArea from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter, BottomSheetScrollView, type BottomSheetBackdropProps,
   type BottomSheetBackgroundProps, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { X } from 'phosphor-react-native';
@@ -40,11 +40,26 @@ export const FOOTER_ESTIMATE = (brandAction.minHeight as number) + sys.space.xs 
  * reader lost its place on the button just pressed.
  */
 const FooterSlot = createContext<{ content: ReactNode; measure: (height: number) => void }>({ content: null, measure: () => undefined });
+
+/**
+ * The window's bottom inset, read from the provider's context — never a native SafeAreaView inside the sheet. A
+ * SafeAreaView pads by where it sits on screen at that moment; inside a sheet that slides and sizes itself to its content,
+ * every move changed that padding, the new height moved the sheet again, and the sheet shook without end (owner
+ * 2026-10-07: "trese se sve vreme"). The context consumer answers null without a provider (the `useSafeAreaInsets` hook
+ * throws there), and a test double that leaves the context out reads 0. The context either exists for the whole life of
+ * the process or never does, so the hook order of this function never changes.
+ */
+const InsetsContext = (SafeArea as { SafeAreaInsetsContext?: Context<{ bottom: number } | null> }).SafeAreaInsetsContext;
+const useBottomInset: () => number = InsetsContext
+  ? () => useContext(InsetsContext)?.bottom ?? 0
+  : () => 0;
+
 function PinnedFooter(props: BottomSheetFooterProps) {
   const { content, measure } = useContext(FooterSlot);
+  const bottom = useBottomInset();
   return <BottomSheetFooter {...props}>
-    <SafeAreaView edges={['bottom']} testID="product-sheet-footer" style={s.footer}
-      onLayout={event => measure(Math.ceil(event.nativeEvent.layout.height))}>{content}</SafeAreaView>
+    <View testID="product-sheet-footer" style={[s.footer, { paddingBottom: sys.space.md + bottom }]}
+      onLayout={event => measure(Math.ceil(event.nativeEvent.layout.height))}>{content}</View>
   </BottomSheetFooter>;
 }
 
@@ -87,6 +102,10 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
   const { height } = useWindowDimensions();
   const [asking, setAsking] = useState(false);
   const [footerHeight, setFooterHeight] = useState(FOOTER_ESTIMATE);
+  const bottom = useBottomInset();
+  // A re-measure within one pixel (the rounding up of a sub-pixel layout) is not a new height: settling on it would size
+  // the sheet again for nothing, and two such heights alternating is a loop.
+  const measureFooter = useCallback((next: number) => setFooterHeight(now => Math.abs(now - next) <= 1 ? now : next), []);
   // The guard reads the newest values: Back and the backdrop call it from outside this render.
   const state = useRef({ dirty, dismissible, asking }); state.current = { dirty, dismissible, asking };
   useEffect(() => { if (!dirty) setAsking(false); }, [dirty]);
@@ -126,7 +145,7 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
       <T variant="action" style={s.quiet}>Nastavi uređivanje</T></Press>
   </View> : footer ? footer(dismiss) : null;
   // A new value on every render on purpose: the footer re-renders with the newest actions; only its component is stable.
-  const slot = { content: pinned, measure: setFooterHeight };
+  const slot = { content: pinned, measure: measureFooter };
   return <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={requestClose}>
     <GestureHandlerRootView style={s.root}>
       <FooterSlot.Provider value={slot}>
@@ -154,9 +173,9 @@ export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHin
                 disabled={!dismissible} onPress={requestClose} haptic="select" style={s.close}>
                 <X size={22} color={sys.color.ink} /></Press> : null}
             </View></View> : null}
-            <SafeAreaView edges={pinned ? [] : ['bottom']} style={s.stack}>
+            <View style={[s.stack, pinned ? null : { paddingBottom: bottom }]}>
               {children(dismiss)}
-            </SafeAreaView>
+            </View>
           </BottomSheetScrollView>
         </BottomSheet>
       </FooterSlot.Provider>
