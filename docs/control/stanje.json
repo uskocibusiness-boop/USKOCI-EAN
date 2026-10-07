@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-07T07:02:09Z",
+  "osvezeno": "2026-10-07T08:18:01Z",
   "grana": "integration/spoj-20261006",
-  "head": "66228a4e",
-  "head_poruka": "docs(worker): Put radnika draft for the owner's approval - first entry, AI interview order, profile screen, what each field affects, applications and cancellation, five decisions with proposals [skip ci]",
+  "head": "85e19f48",
+  "head_poruka": "fix(ota): say whether the app runs the embedded bundle or an OTA update on the About screen [skip ci]",
   "server": {
    "snimljeno": "2026-10-03T18:07:31Z",
    "migracije": 226,
@@ -91,6 +91,12 @@
   "NA TELEFONU NIJE PROVERENO": 21
  },
  "finalization": {
+  "p00_ota_20261007": {
+   "state": "BUILD PASS + PHONE OTA UPDATE PASS (first half of P00.04) / OFFLINE, FAILED-DOWNLOAD, PLAY AAB AND SIGNING KEY NOT PROVEN",
+   "build": "run 37586092243 (131d9f84) SUCCESS; APK sha256 6ed36228...; rs.uskoci.preview v35, runtime uskoci-v1-preview-r1, channel preview; debug signing certificate (not the Play key)",
+   "ota": "update group 486e60e3, Android update 01a1156e, commit 85e19f48; phone About screen showed 'OTA ažuriranje · 01a1156e' after restart",
+   "record": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ota/P00_OTA_PHONE_PROOF_20261007.md"
+  },
   "owner_decision_20261007_worker_matching": "7.10.: VLASNIK (radni profil i poklapanje, „nećemo da pravimo previše ograničenja u sistemu“): mapa i lista uvek pokazuju SVE zadatke; prekidač „Za mene“ sužava na zadatke po profilu; profil pre svega odlučuje koja obaveštenja o novim zadacima stižu, po istom pravilu; „odgovara“ = vrsta posla + područje + raspoloživost; alat i vozilo nisu uslov, samo informacija. Uklanjanje serverskog uslova za alat/vozilo je serverski paket (PRIMENI). Zapis: docs/implementation/ui-ux-pass-20261002/PUT_RADNIKA_NACRT_20261007.md",
   "owner_decision_20261007_prod_free_plan": "7.10.: VLASNIK: produkcioni Supabase kreće na BESPLATNOM planu dok ne dođe veći broj korisnika, zatim se isti projekat podiže na plaćeni (zamenjuje „plaćeni plan“ iz R04). Posledice: rezervne kopije pravimo sami (zakazana noćna kopija van Supabase-a), paziti na uspavljivanje bez aktivnosti u periodu testiranja, besplatno su 2 projekta (DEV + PROD). Ništa nije napravljeno ni primenjeno.",
   "owner_decision_20261007_push_v1": "7.10.: VLASNIK: PUSH OBAVEŠTENJA ULAZE U V1 („push obaveštenja su ključ da na vreme bude obavešteno šta gde ima, ko ima, kad ima novi zadatak, stigla poruka ... to mora biti“); zamenjuje R02 od 2.10. HITNO NIJE odlučeno („možda“): A21 važi dok ne potvrdi sa pravilima. Ništa nije primenjeno; uključivanje transporta i svaki push paket traže tačno „PRIMENI <ime>“. Zapis: docs/implementation/product-v1-closure-20260926/finalization-20260927/OWNER_DECISION_20261007_PUSH_IN_V1.md",
