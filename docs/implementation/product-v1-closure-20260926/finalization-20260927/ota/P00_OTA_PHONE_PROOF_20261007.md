@@ -18,3 +18,9 @@ Plan R2 phase P00 ("OTA baza i pouzdana isporuka"), steps P00.01 and the first h
 - An incompatible native base refusing an update; production channel separation exercised (P00.05).
 - Play-installed AAB (P00.06) and the permanent package / signing key decision (P00.07, owner).
 - Sign-in, core flows and backend behaviour on this build: not part of this proof.
+
+## Second OTA update, P01 location fix (same day)
+- Phone 10:20: 'Bulevar oslobođenja 65, Novi Sad' showed 'Tačna tačka nije pronađena' and a city-level map. Cause: Serbian provider labels in Cyrillic did not match the Latin seed; a building and a shop at one number counted as ambiguous.
+- Fix 6cbb9d02 (client only, test-first, 90 location suites 2793/2793, tsc clean) published as OTA update 01a1157a-7ba4-7cfd-aac3-afd83852d5cc, commit 6cbb9d02, channel preview, runtime uskoci-v1-preview-r1 (no new APK).
+- Phone 10:31 (owner screenshot, not committed): the chat map is zoomed to street level with the pin on Bulevar oslobođenja near Rotkvarija. Owner: 'Konačno'.
+- Still to check for P01: explicit confirmation and reentry keeps the pin; a moved pin is not reverted; requester exact vs worker approximate visibility needs two accounts (P04).
