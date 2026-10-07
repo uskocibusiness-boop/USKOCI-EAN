@@ -124,6 +124,35 @@ async function httpMs(client, request, runs = 3) {
   }
   return median(times);
 }
+/**
+ * Where one call spends its time: track_functions profile (calls and self time per function) of ONE reader call as the viewer.
+ * The function counters accumulate per database and each backend flushes its own when it exits, so the profile is the DIFFERENCE
+ * of two snapshots around a separate psql session that makes the call.
+ */
+function funcStats() {
+  const r = run(`select coalesce(jsonb_object_agg(k, jsonb_build_object('calls', c, 'self', s)),'{}'::jsonb) from
+    (select funcname as k, sum(calls) as c, sum(self_time) as s from pg_stat_user_functions group by funcname) x;`);
+  return r.ok ? JSON.parse(lastLine(r.output)) : {};
+}
+const sleepSync = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function profile(viewerId, request) {
+  sleepSync(1200);
+  const before = funcStats();
+  const claims = JSON.stringify({sub: viewerId, role: 'authenticated'});
+  const r = run(`set track_functions='all';
+    begin;
+    select set_config('request.jwt.claims', ${q(claims)}, true);
+    select set_config('request.jwt.claim.sub', ${q(viewerId)}, true);
+    set local role authenticated;
+    select length(public.rpc_discovery_v1(${q(JSON.stringify(request))}::jsonb)::text);
+    rollback;`);
+  sleepSync(1200);
+  const after = funcStats();
+  const rd = v => Math.round(v * 10) / 10;
+  const top = Object.entries(after).map(([name, a]) => ({name, calls: a.calls - (before[name]?.calls ?? 0), selfMs: rd(a.self - (before[name]?.self ?? 0))}))
+    .filter(x => x.calls > 0).sort((x, y) => y.selfMs - x.selfMs).slice(0, 8);
+  return r.ok ? top : {error: r.error};
+}
 function micro(label, inner, calls) {
   const r = run(`do $t$ declare t0 timestamptz:=clock_timestamp(); n bigint; begin ${inner}
     perform set_config('dg.micro', jsonb_build_object('ms', round((extract(epoch from clock_timestamp()-t0)*1000)::numeric,1), 'n', n)::text, false); end $t$;
@@ -155,6 +184,7 @@ try {
     pagePlaceCity: await httpMs(viewer.client, REQUESTS.pagePlaceCity), placesDefault: await httpMs(viewer.client, REQUESTS.placesDefault)};
   report.load.OLD_HTTP = oldHttp; write();
   assert.ok(Object.values(old).every(x => !x.error), 'OLD_MEASUREMENT_FAILED:' + JSON.stringify(old));
+  report.load.profile = {OLD: {pagePlaceCity: profile(viewer.id, REQUESTS.pagePlaceCity), pageTextCiscenje: profile(viewer.id, REQUESTS.pageTextCiscenje)}}; write();
   pass('DISCOVERY_GRAD_LOAD_OLD_MEASURED', old);
 
   execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', G + 'candidate.sql'], {stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
@@ -170,6 +200,7 @@ try {
     placesCity: await httpMs(viewer.client, NEW_ONLY.placesCity)};
   report.load.NEW_HTTP = newHttp; write();
   assert.ok(Object.values(now).every(x => !x.error), 'NEW_MEASUREMENT_FAILED:' + JSON.stringify(now));
+  report.load.profile.NEW = {pagePlaceCity: profile(viewer.id, REQUESTS.pagePlaceCity), pageTextCiscenje: profile(viewer.id, REQUESTS.pageTextCiscenje)}; write();
   // what the change buys: the city filter lists the whole city, the fold finds the other spellings (counts, not milliseconds)
   report.load.found = {placeCity: {old: old.pagePlaceCity.counted, new: now.pagePlaceCity.counted}, textCiscenje: {old: old.pageTextCiscenje.counted, new: now.pageTextCiscenje.counted},
     placesRows: {old: old.placesDefault.rows, new: now.placesDefault.rows, city: now.placesCity.rows}};
@@ -200,6 +231,10 @@ try {
   const m = report.load.micro;
   lines.push('', `Per call: discovery_fold_v1 ${m.foldPerCall?.usPerCall} us, fold(p6_discovery_key) ${m.placeKeyFoldPerCall?.usPerCall} us, p6_discovery_key ${m.keyPerCall?.usPerCall} us; `
     + `p6_discovery_days ${m.daysPerOpenTask?.usPerCall} us per open task (${m.daysPerOpenTask?.ms} ms for all ${open}: what every PAGE pays today without a time filter, the S3 proposal).`);
+  const prof = (state, key) => (Array.isArray(report.load.profile?.[state]?.[key]) ? report.load.profile[state][key] : []).slice(0, 5).map(x => `${x.name} ${x.calls}x ${x.selfMs} ms`).join(', ');
+  lines.push('', 'Function profile of ONE call (calls and self time, track_functions):', '',
+    `- place "Novi Sad", OLD: ${prof('OLD', 'pagePlaceCity')}`, `- place "Novi Sad", NEW: ${prof('NEW', 'pagePlaceCity')}`,
+    `- words "ciscenje", OLD: ${prof('OLD', 'pageTextCiscenje')}`, `- words "ciscenje", NEW: ${prof('NEW', 'pageTextCiscenje')}`);
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
   report.result = 'PASS'; write();
   console.log('PASS DISCOVERY_GRAD_LOAD');

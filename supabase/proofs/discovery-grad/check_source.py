@@ -113,13 +113,14 @@ assert after.count("public.discovery_fold_v1(") == 8
 assert after.count("public.discovery_for_me_v1(") == 2, "DISCOVERY-ZAMENE kept"
 assert "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in after, "remote and no-place never match a place"
 assert "b.execution_location_mode is distinct from 'REMOTE'" in after
-keys_block = after[after.index(" if locality is not null then\n  select coalesce(array_agg("):after.index(" with base as materialized (")]
+keys_block = after[after.index(" ), place_keys as materialized ("):after.index(" ), shared as materialized (")]
 shared = after[after.index(" ), shared as materialized ("):after.index(" ), qualified as materialized (")]
-assert "fold_place" in keys_block and "into place_keys" in keys_block and "n.execution_location_mode is distinct from 'REMOTE' group by 1,2" in keys_block
-assert "n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null" in keys_block, "the open tasks base reads, or more"
-assert "public.p6_discovery_area(p.place_area,p.place_city,false)" in keys_block and "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in keys_block
-key_expr = "length(p.place_area)::text||':'||p.place_area||p.place_city"
-row_expr = "length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'')=any(place_keys)"
+assert "fold_place" in keys_block and "from base b\n    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2 offset 0) p" in keys_block
+assert "as label offset 0) l" in keys_block, "the place test runs once per distinct text: fences against pushdown below the GROUP BY and against repeating the label"
+assert "public.needs" not in keys_block, "no second read of the tasks (their row security is paid once, in base)"
+assert "public.p6_discovery_area(p.place_area,p.place_city,false) as label" in keys_block and "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in keys_block
+key_expr = "length(p.place_area)::text||':'||p.place_area||p.place_city as place_key"
+row_expr = "length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'') in (select place_key from place_keys)"
 assert key_expr in keys_block and row_expr in shared, "the same length-prefixed key on both sides"
 assert "fold_text" in shared and "lower(" not in code(shared) and "lower(" not in code(keys_block), "the place and word checks go through the fold only"
 # base computes the place text per row only for words whose title does not hold them (the place filter reads place_keys)

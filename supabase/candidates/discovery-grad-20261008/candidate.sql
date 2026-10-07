@@ -18,7 +18,7 @@ begin
  then raise exception 'DISCOVERY_GRAD_CERTIFICATE_NOT_READY' using errcode='55000'; end if;
  if to_regprocedure('public.discovery_fold_v1(text)') is not null
   or exists(select 1 from pg_proc p where p.pronamespace in ('public'::regnamespace,'private'::regnamespace) and p.proname='discovery_fold_v1')
-  or (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='58b501af1e6f5c5b2f3cc0675567394c'
+  or (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='a9b0985991f4ebfe4e95143e5cf57222'
  then raise exception 'DISCOVERY_GRAD_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
   ('public.rpc_discovery_v1(jsonb)','dc69802e3ba209232a8be095f60e9c9f')) pins(signature,body_md5) loop
@@ -72,7 +72,7 @@ declare
  west numeric; south numeric; east numeric; north numeric; point_lat numeric; point_lng numeric;
  grid integer; grid_cells numeric; grid_w numeric; grid_e numeric; grid_s numeric; grid_n numeric; grid_width numeric;
  prefix_text text; facet_area jsonb; before_count bigint; before_text text; before_key text;
- fold_text text; fold_place text; fold_prefix text; place_level text:='AREA'; place_keys text[];
+ fold_text text; fold_place text; fold_prefix text; place_level text:='AREA';
  range_from text; range_to text; iso_pattern text:='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$';
 begin
  if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
@@ -328,22 +328,6 @@ begin
    then raise exception 'P6_PLACE_LABEL_TOO_LONG' using errcode='22023'; end if;
   return result;
  end if;
- -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that names
- -- no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per request
- -- for the distinct (area, city) texts of the open tasks, never once per task; a task then only needs its own key in this short
- -- list (length-prefixed, so no two texts share a key). A remote task and a task without a place text never match a place; a task
- -- without a point but with a city does. Both columns are NOT NULL (default ''); coalesce only guards, p6_discovery_area reads NULL as ''.
- if locality is not null then
-  select coalesce(array_agg(length(p.place_area)::text||':'||p.place_area||p.place_city),'{}'::text[]) into place_keys
-  from (select coalesce(n.approximate_area,'') as place_area,coalesce(n.approximate_city,'') as place_city
-    from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null
-     and n.execution_location_mode is distinct from 'REMOTE' group by 1,2) p
-   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label) l
-  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')
-   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place
-    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),
-      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place);
- end if;
  with base as materialized (
   select n.id,n.revision,n.published_at,n.title,n.category,n.status,n.urgent,n.schedule_kind,n.starts_at,n.ends_at,n.execution_location_mode,
    n.task_country_code,n.task_timezone,n.verified_identity_required,n.approximate_city,n.approximate_area,n.approximate_lat,n.approximate_lng,
@@ -359,6 +343,21 @@ begin
    (time_at at time zone coalesce(n.task_timezone,'UTC'))::date as today
   from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null
    and (request_mode='EXACT_PUBLIC' and n.id=need_id or request_mode in ('PAGE','MAP','PLACES') and n.published_at<=through_at)
+ ), place_keys as materialized (
+  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that
+  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per
+  -- distinct (area, city) text of the rows base read (never once per task, never a second read of the tasks); a task then only
+  -- looks up its key (length-prefixed, so no two texts share one). OFFSET 0 fences: the test would otherwise be pushed below the
+  -- GROUP BY (it reads only grouping columns) and the place text repeated per use. A remote task and a task without a place text
+  -- never match a place; a task without a point but with a city does. Both columns are NOT NULL (default ''); coalesce only guards.
+  select length(p.place_area)::text||':'||p.place_area||p.place_city as place_key from (
+    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b
+    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2 offset 0) p
+   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label offset 0) l
+  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')
+   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place
+    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),
+      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)
  ), shared as materialized (
   select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
    when 'today' then array[today::text,today::text] when 'tomorrow' then array[(today+1)::text,(today+1)::text]
@@ -372,7 +371,7 @@ begin
    -- DISCOVERY-GRAD: the place (its key among place_keys) and the words, found in the title, the place text and the needed
    -- skills, tools and vehicles through discovery_fold_v1, one fold per task (the title is the start of that text).
    and (locality is null or b.execution_location_mode is distinct from 'REMOTE'
-     and length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'')=any(place_keys))
+     and length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'') in (select place_key from place_keys))
    and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)
    and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null
       or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)
@@ -488,7 +487,7 @@ begin
  if o is null then raise exception 'DISCOVERY_GRAD_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
  if md5(body) is distinct from 'dc69802e3ba209232a8be095f60e9c9f' then raise exception 'DISCOVERY_GRAD_PREIMAGE_DRIFT' using errcode='55000'; end if;
- if md5(new_body) is distinct from '58b501af1e6f5c5b2f3cc0675567394c' then raise exception 'DISCOVERY_GRAD_PAYLOAD_DRIFT' using errcode='55000'; end if;
+ if md5(new_body) is distinct from 'a9b0985991f4ebfe4e95143e5cf57222' then raise exception 'DISCOVERY_GRAD_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'DISCOVERY_GRAD_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
  execute replace(def,body,new_body);
@@ -534,7 +533,7 @@ begin
   ((chr(353)||chr(353)||chr(353)),'sss')) t(input,expected)
   where public.discovery_fold_v1(t.input) is distinct from t.expected)<>0
  then raise exception 'DISCOVERY_GRAD_FOLD_TRUTH_TABLE' using errcode='55000'; end if;
- if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from '58b501af1e6f5c5b2f3cc0675567394c'
+ if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from 'a9b0985991f4ebfe4e95143e5cf57222'
   or (select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from '{postgres=X/postgres,authenticated=X/postgres}'
  then raise exception 'DISCOVERY_GRAD_READER_DRIFT' using errcode='55000'; end if;
  if private.closure_source_digest_v5() is distinct from (select digest from dg_certificate)

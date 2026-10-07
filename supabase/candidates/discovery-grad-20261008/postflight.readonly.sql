@@ -1,6 +1,6 @@
 -- DISCOVERY-GRAD read-only postflight. No write. Expected: every flag true, foldTruthTableMismatches 0, the certificate equal to the preflight.
 select jsonb_build_object(
- 'readerAfter',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='58b501af1e6f5c5b2f3cc0675567394c',
+ 'readerAfter',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='a9b0985991f4ebfe4e95143e5cf57222',
  'readerAcl',(select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')),
  'helper',(select md5(p.prosrc)='41353abe05d434d513495ae5974b9802' and p.provolatile='i' and not p.prosecdef and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}'
    and p.proconfig=array['search_path=pg_catalog'] from pg_proc p where p.oid=to_regprocedure('public.discovery_fold_v1(text)')),
