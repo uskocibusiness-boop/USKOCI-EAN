@@ -1,0 +1,33 @@
+{
+  "operation": "D15_OLD_TEST_TASKS_CLOSED",
+  "level": "DEV DATA WRITE through the product's own function (no migration, no function, no Edge change)",
+  "projectId": "leqcwgzvjsxugfgzdmth",
+  "ownerAuthorization": "Owner 2026-10-07, answer d15 on the plan decision page: \"Zatvori ih na DEV-u\" (the four old test tasks from 2026-08-30 without any place that can never reach the map).",
+  "why": "Four open POINT_TO_POINT test tasks (\"Hitno prenošenje troseda\", created 2026-08-30, revision 1) have no geography, no place and no city, so no public map point can ever exist for them; they only add noise to the open-task list and to matching.",
+  "mechanism": "One guarded transaction. Precondition block: exactly these 4 ids, status PUBLISHED, revision 1, approx_geog null, one requester account, no Agreement (raises unless all hold). Then, with the requester's identity set in request.jwt.claims for the transaction only, public.rpc_cancel_need(need_id, 1, 'Zadatak je zatvoren.') once per task — the same function the app calls, so responses expire, pending deliveries are stopped, dispatch rounds and schedules are cleared and the terminal NEED_CANCELLED event is emitted by the product's own rules.",
+  "ids": ["9c254286-3ee0-48e2-b9b2-3147462b9802", "de21c3ee-a2ac-4258-bbec-06c37c0cbc0c", "5977ca30-1a4c-464d-bd2c-3c3e092775cc", "5e175f3f-50d1-43fb-977d-9f0fe5c3cb2b"],
+  "preflight": {
+    "at": "2026-10-07T16:20Z",
+    "openTasksBefore": 11,
+    "responsesOnTheFour": "2 / 0 / 1 / 1 (none SELECTED)",
+    "agreementsOnTheFour": 0,
+    "requesterAccounts": 1
+  },
+  "postflight": {
+    "at": "2026-10-07T16:22Z",
+    "theFourNow": "CANCELLED (revision 1 each)",
+    "openTasksNow": 7,
+    "cancelledTotal": 9,
+    "eventsCreated": "NEED_CANCELLED x4",
+    "theirResponsesNow": "EXPIRED x4",
+    "thatAccountsOtherNeeds": "2 unchanged (ACTIVE)",
+    "certificateUnchanged": true,
+    "ledger": 227
+  },
+  "revert": "None: a cancelled task is a terminal state of the product (the requester can re-publish). Not planned.",
+  "limits": [
+    "The cancellation created 4 IN_APP deliveries and 1 PUSH delivery in state CREATED (3 PUSH SUPPRESSED by PUSH_OFF) for the NEED_CANCELLED events. Push transport is still disabled; the one CREATED PUSH row must be retired like the 8 older ones before transport is ever enabled (decision A24 / push last).",
+    "The 2026-09-26 TICKET_PENDING attempt and every other delivery were not touched.",
+    "No flag, device, Edge secret or transport setting changed."
+  ]
+}
