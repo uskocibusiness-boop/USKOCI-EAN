@@ -1,6 +1,8 @@
 import React from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { brandAction } from '../../ui/system/tokens';
+import { StyleSheet } from 'react-native';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+import { poruka } from '../../ui/system/Poruka';
+import { brandAction, sys } from '../../ui/system/tokens';
 // The one primary action is the Press whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -84,16 +86,22 @@ beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams =
   mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } }); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-test('a confirmed Agreement without server permission leads with the conversation as the one brand action and names the next step', async () => {
+const quietLine = () => tree.root.findAllByProps({ testID: 'agreement-quiet-line' }).map(node => node.props.children);
+test('a confirmed Agreement with nothing to do shows no green action - one grey sentence of the state - and names the next step', async () => {
   await render(base());
-  expect(brand()).toEqual(['Otvori poruke']); expect(labels().filter(label => label === 'Otvori poruke')).toHaveLength(1);
+  // Plan 2.6: when nothing waits for the person there is no button, and the conversation is not offered a second time: it is the Poruke tab.
+  expect(brand()).toEqual([]); expect(labels()).not.toContain('Otvori poruke');
+  expect(quietLine()).toEqual(['Završetak trenutno nije dostupan.']);
   const copy = texts();
   // Recomposed (2026-09-23): the step is one line with a dot in the state's colour; no "Sledeći korak" eyebrow over it.
   // Round-1 critique A13 (owner step 8): the state is the step's title and the next step its sentence; the title
   // used to be the step, which the sentence under it then said again.
-  expect(copy).toContain('Dogovoreno'); expect(copy).not.toContain('Sledeći korak'); expect(copy).not.toContain('Potvrdi završetak kada je posao obavljen');
-  expect(copy).toContain('Završetak potvrđuješ kada je posao obavljen.');
-  expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Bezbednost i privatna prijava', 'Kontakt', 'Tok Dogovora', 'Prijavi problem']));
+  expect(copy).toContain('Dogovoreno'); expect(copy).not.toContain('Sledeći korak'); expect(copy).not.toContain('Potvrdi završetak kada je zadatak obavljen');
+  expect(copy).toContain('Završetak potvrđuješ kada je zadatak obavljen.');
+  expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Bezbednost i privatna prijava', 'Tok Dogovora', 'Prijavi problem']));
+  // The number and the place are ONE open section, not a closed "Kontakt" row and a closed "Lokacija i pristup" row.
+  expect(copy).toContain('Kontakt i mesto'); expect(labels()).not.toContain('Kontakt'); expect(labels()).not.toContain('Lokacija i pristup');
+  expect(copy).toContain('Broj druge strane:'); expect(copy).toContain('još nije podeljen');
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tok Dogovora' }).props.onPress());
@@ -126,9 +134,9 @@ test.each([false, true])('completion review uses the accepted facts, sends nothi
 });
 test('native Back dismisses a worker completion review without marking the work done', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: true, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null } }, 'uskocer'));
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Posao je gotov' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Zadatak je gotov' }).props.onPress());
   expect(texts()).toContain('Druga strana će dobiti zahtev da potvrdi završetak ili prijavi problem.');
-  expect(labels()).toContain('Da, posao je gotov');
+  expect(labels()).toContain('Da, zadatak je gotov');
   await act(async () => tree.root.findByType('Modal' as any).props.onRequestClose());
   expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
@@ -140,7 +148,9 @@ test('a worker awaiting the requester sees the wait and the deadline; no complet
   // repeating it as "Čeka se potvrda završetka".
   expect(copy).toContain('Čeka se potvrda druge strane'); expect(copy).toContain('Bez odgovora se Dogovor zatvara sam.'); expect(copy).not.toContain('Čeka se potvrda završetka');
   expect(copy).toContain('Traži pomoć');
-  expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Posao je gotov');
+  // No button: the footer says in one grey sentence who the Dogovor waits for.
+  expect(brand()).toEqual([]); expect(labels()).not.toContain('Zadatak je gotov'); expect(labels()).not.toContain('Otvori poruke');
+  expect(quietLine()).toEqual(['Čeka da Marko potvrdi završetak.']);
 });
 test('after the worker says done the requester confirms or reports a problem; changes and cancelling are not offered (owner decision 2026-09-21)', async () => {
   await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z',
@@ -153,7 +163,7 @@ test('after the worker says done the requester confirms or reports a problem; ch
   await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer'));
   expect(labels()).toContain('Izmene i otkazivanje Dogovora');
 });
-test('a completed Agreement leads with the review; a cancelled one offers only the conversation', async () => {
+test('a completed Agreement leads with the review; a cancelled one offers no action and says so', async () => {
   await render(base({ stanje: 'COMPLETED' }));
   expect(brand()).toEqual(['Oceni saradnju']); expect(texts()).toContain('Dogovor je završen'); expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi'); expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
   // Nothing is left to change or cancel on a finished Dogovor, so no row leads to a screen without an action.
@@ -162,7 +172,8 @@ test('a completed Agreement leads with the review; a cancelled one offers only t
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: mockAgreementId } });
   await act(async () => tree.unmount());
   await render(base({ stanje: 'CANCELLED' }));
-  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Dogovor je otkazan.'); expect(labels()).not.toContain('Prijavi problem'); expect(labels()).not.toContain('Izmene i otkazivanje Dogovora');
+  expect(brand()).toEqual([]); expect(quietLine()).toEqual(['Dogovor je otkazan.']); expect(texts()).toContain('Dogovor je otkazan.');
+  expect(labels()).not.toContain('Prijavi problem'); expect(labels()).not.toContain('Izmene i otkazivanje Dogovora'); expect(labels()).not.toContain('Otvori poruke');
 });
 // "Oceni saradnju" stayed on the footer after the rating was saved (phone, 2026-09-23). The route now asks the existing
 // own-review read, inside its guarded workspace read, and offers the rating only while it can still be given.
@@ -170,20 +181,22 @@ describe('the rating is offered only while it is not given', () => {
   const ownReview = { reviewId: '50000000-0000-4000-8000-000000000001', agreementId: mockAgreementId, reviewerAccountId: mockAccount,
     targetAccountId: mockOther, rating: 5, tags: [], clientRequestId: '60000000-0000-4000-8000-000000000001', createdAt: '2026-09-23T10:00:00Z',
     idempotentReplay: false, authoritative: true };
-  test('a saved rating turns the footer back into the conversation and says the rating is kept', async () => {
+  test('a saved rating takes the green action away, says the rating is kept, and finishes the step bar', async () => {
     mockReviewContext.mockResolvedValue({ ok: true, podatak: { accountId: mockAccount, agreementId: mockAgreementId, targetAccountId: mockOther,
       eligible: false, review: ownReview, authoritative: true } });
     await render(base({ stanje: 'COMPLETED' }));
     expect(mockReviewContext).toHaveBeenCalledWith(mockAgreementId, { accountId: mockAccount, accountRevision: 0 });
-    expect(brand()).toEqual(['Otvori poruke']); expect(labels()).not.toContain('Oceni saradnju');
+    expect(brand()).toEqual([]); expect(labels()).not.toContain('Oceni saradnju'); expect(labels()).not.toContain('Otvori poruke');
+    expect(quietLine()).toEqual(['Dogovor je završen.']);
     expect(texts()).toContain('Tvoja ocena je sačuvana.');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori poruke' }).props.onPress());
+    expect(tree.root.findByProps({ accessibilityRole: 'progressbar' }).props.accessibilityValue.text)
+      .toBe('Dogovoreno: urađeno. Zadatak je gotov: urađeno. Potvrđeno: urađeno. Ocena: urađeno.');
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
   test('a rating that can no longer be given is not offered either', async () => {
     mockReviewContext.mockResolvedValue({ ok: true, podatak: { eligible: false, review: null } });
     await render(base({ stanje: 'COMPLETED' }));
-    expect(brand()).toEqual(['Otvori poruke']); expect(texts()).not.toContain('Ocena pomaže drugima da izaberu.');
+    expect(brand()).toEqual([]); expect(quietLine()).toEqual(['Dogovor je završen.']); expect(texts()).not.toContain('Ocena pomaže drugima da izaberu.');
   });
   test('a due rating is the one brand action', async () => {
     await render(base({ stanje: 'COMPLETED' }));
@@ -298,7 +311,9 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
 });
 test('unconfirmed permissions keep completion closed and explain how to refresh, inside the next-step card', async () => {
   await render(base({ radnje: null }));
-  expect(brand()).toEqual(['Otvori poruke']); expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.');
+  // Nothing is offered and nothing is claimed: the footer stays silent, since the card above already says how to read the permissions again.
+  expect(brand()).toEqual([]); expect(quietLine()).toEqual([]);
+  expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.');
   expect(labels()).toContain('Osveži dozvole za završetak');
 });
 
@@ -320,11 +335,13 @@ test('my own pending proposal is shown as mine and does not take the brand actio
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true,
     predlogIzmene: proposal({ moj: true, mozeOdgovoriti: false, mozePovuci: true }) } }));
   expect(texts()).toContain('Tvoj predlog izmene čeka odgovor'); expect(texts()).toContain('4.500 RSD');
-  expect(brand()).toEqual(['Otvori poruke']); expect(labels()).toContain('Pogledaj predlog');
+  expect(brand()).toEqual([]); expect(labels()).toContain('Pogledaj predlog');
+  expect(quietLine()).toEqual(['Čeka da Marko odgovori na tvoj predlog izmene.']);
 });
 test('a pending change whose content cannot be read still says it exists and leads to Izmene, inventing nothing', async () => {
   await render(base({ radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: null } }));
-  expect(texts()).toContain('Predlog izmene čeka odgovor'); expect(labels()).toContain('Pogledaj predlog'); expect(brand()).toEqual(['Otvori poruke']);
+  expect(texts()).toContain('Predlog izmene čeka odgovor'); expect(labels()).toContain('Pogledaj predlog'); expect(brand()).toEqual([]);
+  expect(quietLine()).toEqual(['Predlog izmene čeka odgovor.']);
 });
 
 // PKG-048 (F12 / D02): a Dogovor is the end of one lived flow, so it says where it came from. Each side
@@ -410,7 +427,8 @@ test('the top bar keeps the other person on both views, then Back returns to the
   expect(headers()).toContain('Marko'); expect(headers()).not.toContain('Dogovor'); expect(texts()).toContain('Dogovoreno');
   expect(bar().props.subtitle).toBe('Uskače na tvoj zadatak');
   // Match the state text itself, not the accepted-price label "Dogovoreno ukupno".
-  expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.join('') === 'Dogovoreno')).toHaveLength(1);
+  // (The step bar draws "Dogovoreno" as its first step; the state is said in words once, by the step card's title.)
+  expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.children.join('') === 'Dogovoreno')).toHaveLength(1);
   // No rating is invented for a person the Dogovor carries none for.
   expect(texts()).not.toContain('Još nema ocena');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruke' }).props.onPress());
@@ -529,6 +547,204 @@ test.each(['narucilac', 'uskocer'] as const)('retired current-location sharing i
   await render(base({ kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true } }, role));
   expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi');
   expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
-  expect(labels()).toContain('Lokacija i pristup');
-  expect(labels()).toContain('Kontakt');
+  // The place is part of the one open section "Kontakt i mesto": its private location is read and drawn there, never in a row of its own.
+  expect(texts()).toContain('Kontakt i mesto');
+  expect(labels()).not.toContain('Lokacija i pristup'); expect(labels()).not.toContain('Kontakt');
+  expect(labels()).toContain('Osveži dozvolu za lokaciju');
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Plan 2.6, the Dogovor: a step bar from the STATE, the "···" menu, a grey sentence where no button belongs, one open section
+// for the number and the place, and one outcome bar after the number is shared.
+// ---------------------------------------------------------------------------------------------------------------------
+const stepsBar = () => tree.root.findByProps({ accessibilityRole: 'progressbar' });
+const menuRows = () => presses().filter(node => node.props.accessibilityRole === 'menuitem');
+const menuLabels = () => menuRows().map(node => node.props.accessibilityLabel);
+const openMenu = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Više radnji' }).props.onPress()); };
+const chooseRow = async (label: string) => { await openMenu(); await act(async () => menuRows().find(row => row.props.accessibilityLabel === label)!.props.onPress()); };
+const physical = { kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true } };
+
+describe('the step bar under the tabs, from the state of the Dogovor', () => {
+  test('stands first on the overview, ahead of the task and everything else, at the step the Dogovor is at', async () => {
+    await render(base({}, 'uskocer'));
+    const overview = tree.root.findByType('ScrollView' as any);
+    expect((overview.children[0] as ReactTestInstance).findByProps({ testID: 'agreement-steps' })).toBeTruthy();
+    expect(stepsBar().props.accessibilityLabel).toBe('Koraci Dogovora');
+    expect(stepsBar().props.accessibilityValue).toEqual({ min: 1, max: 4, now: 2,
+      text: 'Dogovoreno: urađeno. Zadatak je gotov: trenutni korak. Potvrđeno: na redu. Ocena: na redu.' });
+    // The bar is not the history: the history holds one event, and the bar still says where the Dogovor stands.
+    expect(base().hronologija).toHaveLength(1);
+  });
+
+  test('stands at the confirmation once the work is reported done, and puts the REAL deadline under the second step', async () => {
+    await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z' }, 'uskocer'));
+    expect(stepsBar().props.accessibilityValue.now).toBe(3);
+    expect(tree.root.findByProps({ testID: 'agreement-steps-note' }).props.children).toMatch(/^Potvrda do 18\. sep( 2026)? · 12:00/);
+    expect(texts()).not.toMatch(/48\s?h/);
+    // Before the work is reported done there is no deadline to name, and the sentence never promised hours.
+    await act(async () => tree.unmount());
+    await render(base({}, 'uskocer'));
+    expect(tree.root.findAllByProps({ testID: 'agreement-steps-note' })).toHaveLength(0);
+    expect(texts()).toContain('Kada završiš, izaberi „Zadatak je gotov“. Druga strana tada potvrđuje završetak ili prijavljuje problem.');
+    expect(texts()).not.toMatch(/48\s?h/);
+  });
+
+  test('says that the automatic completion is stopped while a problem is open, instead of a deadline', async () => {
+    const { agreementProblemService } = require('../agreementClientService');
+    agreementProblemService.read.mockResolvedValue({ ok: true, podatak: { agreementId: mockAgreementId, agreementVersion: 1, state: 'ABSENT', report: null } });
+    await render(base({ stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z', problemOtvoren: true }, 'uskocer'));
+    expect(tree.root.findByProps({ testID: 'agreement-steps-note' }).props.children).toBe('Automatski završetak je zaustavljen zbog prijavljenog problema.');
+  });
+
+  test('stands at the rating when it is due', async () => {
+    await render(base({ stanje: 'COMPLETED' }));
+    expect(stepsBar().props.accessibilityValue.now).toBe(4);
+    expect(stepsBar().props.accessibilityValue.text).toBe('Dogovoreno: urađeno. Zadatak je gotov: urađeno. Potvrđeno: urađeno. Ocena: trenutni korak.');
+  });
+
+  test('is grey as a whole when cancelled, with one line that says so', async () => {
+    await render(base({ stanje: 'CANCELLED' }));
+    expect(stepsBar().props.accessibilityValue).toEqual({ text: 'Dogovor je otkazan.' });
+    expect(tree.root.findByProps({ testID: 'agreement-steps-cancelled' }).props.children).toBe('Otkazano');
+    const greens = tree.root.findByProps({ testID: 'agreement-steps' }).findAll(node => typeof node.type === 'string'
+      && [StyleSheet.flatten(node.props.style)?.backgroundColor, StyleSheet.flatten(node.props.style)?.borderColor].includes(sys.color.green));
+    expect(greens).toHaveLength(0);
+  });
+});
+
+describe('the "···" menu in the top bar', () => {
+  afterEach(async () => { await act(async () => poruka.hide()); });
+
+  test('lists the rare actions in the plan\'s order, the two that end something last and in the danger colour', async () => {
+    await render(base(physical));
+    await openMenu();
+    expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+    const ink = (row: ReactTestInstance) => (StyleSheet.flatten(row.findByType('T' as any).props.style) as { color?: string } | undefined)?.color;
+    expect(menuRows().map(ink)).toEqual([sys.color.ink, sys.color.ink, sys.color.ink, sys.color.ink, sys.color.danger, sys.color.danger]);
+  });
+
+  test('is shorter where less can be done: no location for the worker, no change or cancel for the requester once the work is reported done', async () => {
+    await render(base(physical, 'uskocer'));
+    await openMenu();
+    expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli svoj broj', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+    await act(async () => tree.unmount());
+    await render(base({ ...physical, stanje: 'AWAITING_REQUESTER' }));
+    await openMenu();
+    expect(menuLabels()).toEqual(['Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Prijavi ili blokiraj osobu']);
+  });
+
+  test('is only the safety entry on a finished Dogovor, and the number entry reads for what it will do', async () => {
+    await render(base({ stanje: 'COMPLETED' }));
+    await openMenu();
+    expect(menuLabels()).toEqual(['Prijavi ili blokiraj osobu']);
+    await act(async () => tree.unmount());
+    await render(base({ kontakt: { mojTelefonPodeljen: true, njihovTelefon: null, lokacijaPostoji: false } }));
+    await openMenu();
+    expect(menuLabels()).toContain('Opozovi deljenje broja'); expect(menuLabels()).not.toContain('Podeli svoj broj');
+  });
+
+  test('has no menu at all for a Dogovor that does not name the other side and offers nothing', async () => {
+    const lone = base({ stanje: 'COMPLETED' }) as { ucesnici: { viSte: boolean }[] };
+    await render({ ...lone, ucesnici: lone.ucesnici.filter(person => person.viSte) });
+    expect(labels()).not.toContain('Više radnji');
+  });
+
+  test('"Izmeni uslove" and "Otkaži Dogovor" open the form they name; the page\'s own row still opens the hub', async () => {
+    await render(base());
+    await chooseRow('Izmeni uslove');
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId, start: 'propose' } });
+    await chooseRow('Otkaži Dogovor');
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId, start: 'cancel' } });
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Izmene i otkazivanje Dogovora' }).props.onPress());
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId } });
+  });
+
+  test('"Prijavi ili blokiraj osobu" goes where the page\'s own safety row goes', async () => {
+    await render(base());
+    await chooseRow('Prijavi ili blokiraj osobu');
+    expect(mockRouter.navigate).toHaveBeenLastCalledWith({ pathname: '/bezbednost', params: { targetAccountId: mockOther, agreementId: mockAgreementId } });
+  });
+
+  test('"Prijavi problem" opens the form for it on the page and sends nothing; an open problem takes the entry away', async () => {
+    const { agreementProblemService } = require('../agreementClientService');
+    await render(base());
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Opiši problem' })).toHaveLength(0);
+    await chooseRow('Prijavi problem');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Opiši problem' })).toBeTruthy();
+    expect(agreementProblemService.submit).not.toHaveBeenCalled();
+    await act(async () => tree.unmount());
+    agreementProblemService.read.mockResolvedValue({ ok: true, podatak: { agreementId: mockAgreementId, agreementVersion: 1, state: 'ABSENT', report: null } });
+    await render(base({ problemOtvoren: true }));
+    await openMenu();
+    expect(menuLabels()).not.toContain('Prijavi problem');
+  });
+
+  test('"Podeli lokaciju" takes the requester to the section where the share state is read, and sends nothing', async () => {
+    await render(base(physical));
+    await chooseRow('Podeli lokaciju');
+    expect(labels()).toContain('Osveži dozvolu za lokaciju');
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('sharing the number asks nothing and says what happened once the server has confirmed it', () => {
+  afterEach(async () => { await act(async () => poruka.hide()); });
+  const shared = (flag: boolean) => base({ kontakt: { mojTelefonPodeljen: flag, njihovTelefon: null, lokacijaPostoji: false } });
+
+  test('the menu shares it, the bar says so with "Vrati", and "Vrati" withdraws it and says that, without another "Vrati"', async () => {
+    mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null }); mockSource.opoziviTelefon.mockResolvedValue({ ok: true, podatak: null });
+    await render(base());
+    mockRead.mockResolvedValue(shared(true));
+    await chooseRow('Podeli svoj broj');
+    expect(mockSource.podeliTelefon).toHaveBeenCalledWith(mockAgreementId);
+    expect(poruka.current()).toMatchObject({ text: 'Broj je podeljen. Marko ga sada vidi.', confirmed: true, action: { label: 'Vrati' } });
+    expect(labels()).toContain('Opozovi deljenje broja');
+    mockRead.mockResolvedValue(shared(false));
+    await act(async () => tree.root.findByProps({ testID: 'poruka-action' }).props.onPress());
+    expect(mockSource.opoziviTelefon).toHaveBeenCalledWith(mockAgreementId);
+    expect(poruka.current()).toMatchObject({ text: 'Deljenje broja je opozvano.', confirmed: true });
+    expect(poruka.current()?.action).toBeUndefined();
+    expect(labels()).toContain('Podeli svoj broj');
+  });
+
+  test('the section\'s own button does the same thing, and withdrawing says it and offers "Vrati" too', async () => {
+    mockSource.opoziviTelefon.mockResolvedValue({ ok: true, podatak: null }); mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null });
+    await render(shared(true));
+    mockRead.mockResolvedValue(shared(false));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opozovi deljenje broja' }).props.onPress());
+    expect(mockSource.opoziviTelefon).toHaveBeenCalledTimes(1);
+    expect(poruka.current()).toMatchObject({ text: 'Deljenje broja je opozvano.', action: { label: 'Vrati' } });
+    mockRead.mockResolvedValue(shared(true));
+    await act(async () => tree.root.findByProps({ testID: 'poruka-action' }).props.onPress());
+    expect(mockSource.podeliTelefon).toHaveBeenCalledWith(mockAgreementId);
+  });
+
+  test('a refused command shows no success bar, and says the refusal in the app\'s own words', async () => {
+    mockSource.podeliTelefon.mockResolvedValue({ ok: false, kod: 'NOPE', poruka: 'adapter text' });
+    await render(base());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.onPress());
+    expect(poruka.current()).toBeNull();
+    expect(texts()).toContain('Promena nije potvrđena');
+    expect(texts()).not.toContain('adapter text');
+  });
+
+  test('the outcome bar is drawn by this screen\'s own host, since the screen covers the navigator that has the other one', async () => {
+    mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null });
+    await render(base());
+    mockRead.mockResolvedValue(shared(true));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.onPress());
+    expect(tree.root.findAllByProps({ testID: 'poruka-action' }).length).toBeGreaterThan(0);
+  });
+});
+
+describe('nothing but the action that waits is green', () => {
+  const waits = { radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } };
+  const workerWaits = { radnje: { mozeOznacitiZavrsetak: true, mozePotvrditiZavrsetak: false, izmenaNaCekanju: false, predlogIzmene: null } };
+  test.each([
+    ['agreed, nothing allowed', base(), 0], ['the requester may confirm', base(waits), 1],
+    ['the worker may report done', base(workerWaits, 'uskocer'), 1], ['a rating is due', base({ stanje: 'COMPLETED' }), 1], ['cancelled', base({ stanje: 'CANCELLED' }), 0],
+  ] as const)('%s: %i green action(s)', async (_name, workspace, green) => {
+    await render(workspace as never);
+    expect(brand()).toHaveLength(green);
+  });
 });

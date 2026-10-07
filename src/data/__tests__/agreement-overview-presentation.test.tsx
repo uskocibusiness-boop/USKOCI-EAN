@@ -37,7 +37,7 @@ test('accepted terms retain their values and covered people, separate from sourc
   await render(<AgreementTerms agreement={agreement} />);
   expect(facts()).toEqual(['Dogovoreno ukupno: 5.500 RSD', 'Dogovoreni broj osoba: 2 osobe',
     'Termin: 26. sep · 17:00–19:00, Po vremenu u Srbiji']);
-  expect(text()).toContain('Verzija uslova: 2');
+  expect(text()).toContain('Uslovi su izmenjeni.');
   expect(text()).not.toContain('Liman');
   expect(text()).not.toContain('4 osobe');
   const open = jest.fn();
@@ -70,7 +70,7 @@ test('the chat context keeps its compact location, time, amount and covered-peop
 test('short accepted scope is fully visible and spoken within accepted terms', async () => {
   const scope = 'Prenos troseda do drugog sprata, bez lifta.';
   await render(<AgreementTerms agreement={{ ...agreement, prihvacenObim: scope }} />);
-  expect(facts()).toContain(`Obim posla: ${scope}`);
+  expect(facts()).toContain(`Obim zadatka: ${scope}`);
   const body = tree!.root.findAllByType('T' as React.ElementType).find(node => node.props.children === scope)!;
   expect(body.props.selectable).toBe(true);
   expect(body.props.numberOfLines).toBeUndefined();
@@ -80,7 +80,7 @@ test('short accepted scope is fully visible and spoken within accepted terms', a
 test.each([false, true])('long accepted scope opens and closes in full with spoken state (compact=%s)', async compact => {
   const scope = `Prenos nameštaja: ${'bez sečenja ili rastavljanja; '.repeat(90)}\nDogovoreni kraj obima.`;
   await render(<AgreementTerms agreement={{ ...agreement, prihvacenObim: scope }} compact={compact} />);
-  const toggle = () => tree!.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === 'Obim posla')!;
+  const toggle = () => tree!.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === 'Obim zadatka')!;
   expect(toggle().props.accessibilityState).toEqual({ expanded: false });
   expect(text()).not.toContain('Dogovoreni kraj obima.');
   await act(async () => toggle().props.onPress());
@@ -95,13 +95,13 @@ test.each([false, true])('long accepted scope opens and closes in full with spok
 
 test('multiline scope is deliberate even when short; a later accepted version replaces its full content', async () => {
   await render(<AgreementTerms agreement={{ ...agreement, prihvacenObim: 'Prvi sprat\nBez lifta' }} />);
-  const toggle = tree!.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === 'Obim posla')!;
+  const toggle = tree!.root.findAllByType('Press' as React.ElementType).find(node => node.props.accessibilityLabel === 'Obim zadatka')!;
   await act(async () => toggle.props.onPress());
   expect(text()).toContain('Prvi sprat Bez lifta');
   await act(async () => tree!.update(<AgreementTerms agreement={{ ...agreement, verzija: 3, prihvacenObim: 'Drugi sprat\nLift je dostupan' }} />));
   expect(text()).toContain('Drugi sprat Lift je dostupan');
   expect(text()).not.toContain('Prvi sprat');
   await act(async () => tree!.update(<AgreementTerms agreement={{ ...agreement, prihvacenObim: null }} />));
-  expect(text()).not.toContain('Obim posla');
+  expect(text()).not.toContain('Obim zadatka');
   expect(tree!.root.findAllByProps({ accessibilityRole: 'button' })).toHaveLength(0);
 });

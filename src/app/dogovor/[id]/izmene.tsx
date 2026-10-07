@@ -3,7 +3,9 @@ import { AgreementActionsScreen } from '../../../ui/agreements/AgreementActionsS
 import { useSesija } from '../../../store/sesija';
 
 export default function AgreementChangesRoute() {
-  const params = useLocalSearchParams<{ id?: string | string[] }>(), session = useSesija();
+  const params = useLocalSearchParams<{ id?: string | string[]; start?: string | string[] }>(), session = useSesija();
   const id = typeof params.id === 'string' ? params.id : '';
-  return <AgreementActionsScreen key={`${session.user?.id ?? ''}:${session.accountRevision}:${id}`} agreementId={id} />;
+  // The Dogovor's "···" menu opens the form it names ("Izmeni uslove", "Otkaži Dogovor"); the plain row opens the hub.
+  const start = params.start === 'cancel' ? 'CANCEL' : params.start === 'propose' ? 'PROPOSE' : undefined;
+  return <AgreementActionsScreen key={`${session.user?.id ?? ''}:${session.accountRevision}:${id}`} agreementId={id} start={start} />;
 }

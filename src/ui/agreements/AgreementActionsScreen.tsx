@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
@@ -15,7 +15,11 @@ import { journalFor, normalizeAgreementCommand, validProposal, type AgreementAct
 
 type Form = AgreementActionForm;
 const initial: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
-export function AgreementActionsScreen({ agreementId }: { agreementId: string }) {
+export function AgreementActionsScreen({ agreementId, start }: {
+  agreementId: string;
+  /** The form to open as soon as the terms in force have been read (the Dogovor's "···" menu names one); without it the hub opens. */
+  start?: Form['kind'];
+}) {
   const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
   const [state, setState] = useState(initial), [form, setForm] = useState<Form | null>(null);
   const [review, setReview] = useState<AgreementActionCommand | null>(null), [error, setError] = useState<string | null>(null), [epoch, setEpoch] = useState(0);
@@ -56,6 +60,14 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
       startDate: start.date, startTime: start.time, endDate: end.date, endTime: end.time,
       priceChanged: false, scopeChanged: false, startChanged: false, endChanged: false }; formRef.current = next; setForm(next); setError(null);
   };
+  // Arriving from the menu's "Izmeni uslove" or "Otkaži Dogovor": the form it names opens once, when the terms have been read and
+  // the command is permitted. `openForm` keeps every one of its own guards, so a command that is not allowed leaves the hub.
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (!start || arrived.current || state.phase !== 'READY' || !snapshot || form || review) return;
+    arrived.current = true;
+    openForm(start);
+  });
   const edit = (patch: Partial<Form>) => { if (current() && !busy && form && formRef.current?.token === form.token && !reviewRef.current) setForm({ ...formRef.current, ...patch }); };
   const prepare = (command: AgreementActionCommand, fromForm = false) => {
     if (!actionCurrent() || busy || submitting.current || !snapshot || reviewRef.current || (!fromForm && formRef.current)) return;
@@ -98,7 +110,15 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     try { await controller.submit(review); if (current()) { setReview(null); reviewRef.current = null; } }
     finally { if (current()) submitting.current = false; }
   };
-  const run = (name: 'refresh' | 'retry' | 'acknowledge') => { if (actionCurrent() && !busy && !submitting.current && !formRef.current && !reviewRef.current) void controller?.[name](); };
+  const run = (name: 'refresh' | 'retry') => { if (actionCurrent() && !busy && !submitting.current && !formRef.current && !reviewRef.current) void controller?.[name](); };
+  // "Prikaži aktuelni Dogovor" shows the Dogovor (plan 3.6; it used to show this hub again): the outcome is acknowledged - the journal
+  // is retired and the terms are read once more - and the screen goes back to the Dogovor, which reads itself again on focus. If the
+  // read after the acknowledgement does not answer, the screen stays and says so, as before.
+  const showAgreement = async () => {
+    if (!actionCurrent() || busy || submitting.current || formRef.current || reviewRef.current) return;
+    await controller?.acknowledge();
+    if (current() && controller?.snapshot().phase === 'READY') back();
+  };
   let proposed: AgreementChangeTerms | null = null;
   if (review?.kind === 'PROPOSE' && snapshot?.terms) { const patch = review.value.izmena; proposed = { ...snapshot.terms,
     priceRsd: patch.cenaIznos ?? snapshot.terms.priceRsd, scopeNote: patch.obim ?? snapshot.terms.scopeNote,
@@ -136,5 +156,5 @@ export function AgreementActionsScreen({ agreementId }: { agreementId: string })
     onCloseForm={closeForm}
     onPrepare={command => prepare(command)} onSend={() => { void send(); }}
     onCloseReview={closeReview}
-    onRetry={() => run('retry')} onAcknowledge={() => run('acknowledge')} />;
+    onRetry={() => run('retry')} onAcknowledge={() => { void showAgreement(); }} />;
 }

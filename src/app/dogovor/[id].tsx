@@ -7,10 +7,18 @@ import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
 import { sys, field } from '../../ui/system/tokens';
 import { SkeletonCard } from '../../ui/system/Skeleton';
+import { ActionSheet } from '../../ui/system/ActionSheet';
+import { useReducedMotion } from '../../ui/system/motion';
+import { PorukaHost, poruka } from '../../ui/system/Poruka';
+import { ChromeIconButton } from '../../ui/system/ScreenChrome';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementTabs, AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
+import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementQuietLine, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
+import { AgreementContactPlace } from '../../ui/agreements/AgreementContactPlace';
+import { AgreementSteps } from '../../ui/agreements/AgreementSteps';
+import { agreementMenuActions } from '../../ui/agreements/agreementMenu';
+import type { OwnRating } from '../../ui/agreements/agreementStepsModel';
 import { ProductHeader } from '../../ui/product/ProductDetails';
 import { useIzvor } from '../../store/uloga';
 import { useAgreementHistory } from '../../hooks/useAgreementHistory';
@@ -22,7 +30,6 @@ import type { AgreementReadingPosition } from '../../ui/AgreementChat';
 import { agreementMessageHistoryService } from '../../data/agreementMessageHistoryService';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
-import { AgreementPrivateLocation } from '../../ui/AgreementPrivateLocation';
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';
@@ -35,9 +42,8 @@ import { vreme } from '../../lib/vreme';
 /**
  * My rating of a finished Dogovor, from the review read the rating screen itself uses. `DUE` and `UNKNOWN` both keep
  * "Oceni saradnju" on offer (a read that did not answer must not hide the only way to rate); `GIVEN` and `CLOSED` are
- * the review read saying there is nothing left to rate, and the footer falls back to the conversation.
+ * the review read saying there is nothing left to rate, and the footer says the state in words (the type lives with the step bar).
  */
-type OwnRating = 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE';
 type ProblemWorkspace = DogovorProjekcija & {
   problemReport: AgreementProblemSnapshot['report'];
   problemReportState: AgreementProblemSnapshot['state'] | 'UNAVAILABLE';
@@ -103,6 +109,17 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const problemAttemptRef = useRef<string | null>(null);
   const [completionReview, setCompletionReview] = useState<CompletionReview | null>(null);
   const [completing, setCompleting] = useState(false);
+  // The "···" menu, and where the page's own sections stand so a menu entry can take the person to them.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const scroller = useRef<ScrollView>(null);
+  const anchors = useRef<{ problem: number | null; place: number | null }>({ problem: null, place: null });
+  // A menu entry chosen in the conversation names a section of the overview: it waits here until the overview has been laid out.
+  const waitingAnchor = useRef<'problem' | 'place' | null>(null);
+  // The footer's height, so the outcome bar (Poruka) floats above it.
+  const [footerHeight, setFooterHeight] = useState(0);
+  const reducedMotion = useReducedMotion();
+  // The latest commands, for a bar whose "Vrati" is pressed after the render that showed it.
+  const later = useRef<{ sharePhone: (share: boolean, undoable?: boolean) => Promise<void> }>({ sharePhone: async () => {} });
   const completionDisplay = useRef<object | null>(null);
   const completionReviewRef = useRef<CompletionReview | null>(null), completionReadEpoch = useRef(0);
   const closeCompletionReview = useCallback(() => {
@@ -281,7 +298,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     });
     return () => { current = false; subscription.remove(); };
   }, [chatVisible, ownsAccount, fromInbox]));
-  if (!foreground || resumeRequired) return <AgreementStatus loading />;
+  // Back from the background the overview keeps its last content, read-only, with a quiet "Osvežavamo…" line, instead of a full
+  // skeleton (plan 2.6). Nothing private stays on it until the fresh read lands (the contact section waits, the place is gone),
+  // every command is fenced as before, and in the background itself nothing is drawn. The conversation, with its composer and
+  // its outbox, waits for the fresh read in a skeleton as it always did.
+  const keepsContent = foreground && resumeRequired && !!dogovor && tab === 'pregled';
+  if (!foreground || (resumeRequired && !keepsContent)) return <AgreementStatus loading />;
   if (!dogovor) return <AgreementStatus loading={workspace.loading} error={!!workspace.error} retry={() => void osvezi()} />;
 
   // Party identity comes from the Agreement, not the user's currently selected intent.
@@ -317,15 +339,45 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       return next;
     });
   };
-  const mutate = async (command: () => Promise<Ishod<unknown>>) => {
-    if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
+  /** Runs one command and reads the Dogovor back. True only when the command went through AND the readback confirmed it. */
+  const mutate = async (command: () => Promise<Ishod<unknown>>): Promise<boolean> => {
+    if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return false;
+    let confirmed = false;
     await workspace.save(async () => {
       const result = await bounded(command);
       // A known refusal keeps its own sentence (deep read 8.4: "Podeli svoj broj" said only "nije potvrđena").
       if (!result.ok) return knownLegacyRefusal(result.kod) ? { ok: false as const, kod: result.kod, poruka: result.poruka }
         : { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
-      return read();
+      const next = await read();
+      confirmed = next.ok;
+      return next;
     });
+    return confirmed;
+  };
+  /**
+   * Shares my number, or withdraws it. No question first (plan 2.3): the outcome bar says what happened, once the server has
+   * confirmed it, and offers "Vrati" - the opposite command - for a few seconds. Undoing is not undoable in turn.
+   */
+  const sharePhone = async (share: boolean, undoable = true) => {
+    const done = await mutate(() => share ? izvor.podeliTelefon(id) : izvor.opoziviTelefon(id));
+    if (!done) return;
+    // A name is never declined here ("sa Markom" cannot be written for every name): it stands as the subject of its sentence.
+    poruka.show({ text: share ? `Broj je podeljen. ${other?.ime?.trim() || 'Druga strana'} ga sada vidi.` : 'Deljenje broja je opozvano.', confirmed: true,
+      ...(undoable ? { action: { label: 'Vrati', onPress: () => { void later.current.sharePhone(!share, false); } } } : {}) });
+  };
+  later.current = { sharePhone };
+  /** Takes the person to a section of this page (the menu's way to the problem form and to the place). */
+  const scrollToAnchor = (name: 'problem' | 'place') => {
+    // Chosen from the conversation (its bar has the same "···"): the section lives in the overview, so go there first and
+    // scroll when that section reports its place.
+    if (tabRef.current !== 'pregled') { waitingAnchor.current = name; setTab('pregled'); return; }
+    const y = anchors.current[name];
+    if (y !== null) scroller.current?.scrollTo({ y: Math.max(0, y - sys.space.sm), animated: !reducedMotion });
+  };
+  const flushAnchor = (name: 'problem' | 'place') => {
+    if (waitingAnchor.current !== name) return;
+    waitingAnchor.current = null;
+    scrollToAnchor(name);
   };
   const complete = async () => {
     if (!canComplete || !enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return;
@@ -343,7 +395,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
       // Said as what did not get written, never as the normal wait for the other side ("čeka potvrdu"; review r3b).
       if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: worker
-        ? 'Oznaka da je posao gotov nije upisana. Osveži status Dogovora.' : 'Potvrda završetka nije upisana. Osveži status Dogovora.' };
+        ? 'Oznaka da je zadatak gotov nije upisana. Osveži status Dogovora.' : 'Potvrda završetka nije upisana. Osveži status Dogovora.' };
       return next;
     }); } finally {
       if (completionDisplay.current === display) { completionDisplay.current = null; setCompleting(false); }
@@ -372,26 +424,42 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const deadline = dogovor.rokPotvrdeIso ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: dogovor.rokPotvrdeIso }, 'Europe/Belgrade') : 'Rok trenutno nije dostupan';
 
   // ---- presentation (state above is untouched by PKG-011) ----
-  const openMessages = () => setTab('poruke');
-  const completeLabel = worker ? 'Posao je gotov' : 'Potvrdi završetak';
-  const footerStatus = workspace.loading ? 'Učitavamo Dogovor…'
+  // The words of the one action, and of the one that is its result: "Zadatak je gotov" is the worker's, "Potvrdi završetak" the
+  // requester's - on the button, in the review it opens and in the sentences around them.
+  const completeLabel = worker ? 'Zadatak je gotov' : 'Potvrdi završetak';
+  // A quiet line, never a skeleton: the page is being read again (back from the background, or "Osveži") or is saving.
+  const footerStatus = resumeRequired || workspace.loading ? 'Osvežavamo…'
     : workspace.busy && !completing ? 'Čuvamo promenu…' : null;
   const review = () => { if (formCurrent()) router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: id } }); };
-  // One brand action per state: completion when the server allows it, the review after
-  // completion, otherwise the conversation. The conversation is always one tap away: the Poruke tab.
+  // At most one brand action per state, and it is the only green thing on the screen: completion when the server allows it,
+  // answering a proposal, or the rating. When nothing waits for the person there is NO button - the footer says the state in
+  // one grey sentence. The conversation is not offered again: it is the Poruke tab at the top of the same screen.
   // A change proposal waiting for my answer blocks both completions, so answering it is the step.
   const pendingChange = active && me && radnje?.izmenaNaCekanju ? radnje.predlogIzmene : null;
   const changeWaits = active && me && !!radnje?.izmenaNaCekanju;
   const openChanges = () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); };
-  // The rating is offered only while it can still be given: once the review read says it is saved (or closed), the
-  // footer falls back to the conversation. A read that did not answer keeps the offer; the rating screen re-reads.
+  // The rating is offered only while it can still be given: once the review read says it is saved (or closed), nothing waits
+  // for the person and the footer says so. A read that did not answer keeps the offer; the rating screen re-reads.
   const ratingOpen = dogovor.ownRating === 'DUE' || dogovor.ownRating === 'UNKNOWN';
   const brand = canComplete ? { label: completeLabel, disabled: !enabled, onPress: openCompletionReview }
     : pendingChange?.mozeOdgovoriti ? { label: 'Odgovori na predlog', disabled: !enabled, onPress: openChanges }
       : dogovor.stanje === 'COMPLETED' && me && ratingOpen ? { label: 'Oceni saradnju', disabled: !enabled, onPress: review }
-        : { label: 'Otvori poruke', onPress: openMessages };
+        : null;
   // The one place the state is said (round-1 critique A13); the words live beside the step card.
   const stepChange = { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null };
+  const quiet = brand ? null : agreementQuietLine({ state: dogovor.stanje, party: !!me, worker, otherName: other?.ime, change: stepChange, permissionsKnown: !!radnje });
+  // The "···" menu: the rare actions, each under the condition of its row on the page below.
+  const canChange = active && !!me && !(requester && dogovor.stanje === 'AWAITING_REQUESTER');
+  const toChanges = (start: 'propose' | 'cancel') => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id, start } }); };
+  const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,
+    phoneShared: dogovor.kontakt.mojTelefonPodeljen, hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
+    problemFree: !dogovor.problemOtvoren && !report, enabled }, {
+    onChange: () => toChanges('propose'), onCancel: () => toChanges('cancel'),
+    onPhone: () => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); },
+    onLocation: () => scrollToAnchor('place'),
+    onProblem: () => { if (!formCurrent()) return; setProblemOpen(true); scrollToAnchor('problem'); },
+    onSafety: () => { if (other && formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); },
+  });
   const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: stepChange,
     ownRating: dogovor.ownRating, problemOpen: dogovor.problemOtvoren, deadline });
   // The same step, said at the head of Poruke only when it is mine (review r4 rd): words, never an action.
@@ -422,7 +490,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       <TextInput accessibilityLabel="Opiši problem" value={problemText}
         onChangeText={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }} multiline maxLength={4000}
         editable={enabled && !problemAttempt} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={sys.color.muted} style={s.input} />
-      <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Ponovi istu prijavu problema' : 'Pošalji prijavu problema'}
+      <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Pošalji ponovo' : 'Pošalji prijavu problema'}
         disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
       {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
         onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja osveži stanje Dogovora.</T>}
@@ -436,6 +504,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
         waiting={waitingForMe} onOverview={() => setTab('pregled')}
+        // The same "···" as the overview's bar, so "Prijavi ili blokiraj osobu" and the rest are reachable while Poruke is shown.
+        onMore={menuActions.length ? () => { if (ownsAccount()) setMenuOpen(true); } : undefined}
         onBack={fromInbox ? () => {
           if (renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount() && activeRef.current && freshRef.current) {
             if (router.canGoBack()) router.back(); else router.replace('/poruke');
@@ -451,10 +521,14 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           outbox, state: outboxState, photos,
           voiceScope: { accountId, accountRevision, agreementId: id, version: dogovor.verzija, isCurrent: chatCurrent },
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
-        {other ? <AgreementPersonBar person={other} back={backToAgreements} />
+        {other ? <AgreementPersonBar person={other} back={backToAgreements}
+          right={menuActions.length ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema i otkazivanje"
+            onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />
           : <ProductHeader back={backToAgreements} title="Dogovor" />}
         <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
+        <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
+          {/* Where the Dogovor stands, from its state: Dogovoreno, Zadatak je gotov, Potvrđeno, Ocena. */}
+          <AgreementSteps state={dogovor.stanje} ownRating={dogovor.ownRating} deadlineIso={dogovor.rokPotvrdeIso} problemOpen={dogovor.problemOtvoren} />
           <AgreementTaskLink agreement={dogovor} disabled={!enabled}
             onOpenTask={me && dogovor.izvor?.zadatakId ? () => {
               const needId = dogovor.izvor?.zadatakId;
@@ -482,20 +556,11 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
           {isGroupAgreement(dogovor) ? <AgreementPeople agreement={dogovor} /> : null}
           {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
-          <AgreementSection art="phone" label="Kontakt" summary={[dogovor.kontakt.njihovTelefon ? 'Broj druge strane je dostupan' : null,
-            dogovor.kontakt.mojTelefonPodeljen ? 'Tvoj broj je podeljen' : 'Tvoj broj nije podeljen'].filter(Boolean).join(' · ')}>
-            <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
-            <T variant="body" style={s.ink}>Broj druge strane: {dogovor.kontakt.njihovTelefon ?? 'još nije podeljen'}</T>
-            {active && me ? <V2Action label={dogovor.kontakt.mojTelefonPodeljen ? 'Opozovi deljenje broja' : 'Podeli svoj broj'} disabled={!enabled}
-              onPress={() => void mutate(() => dogovor.kontakt.mojTelefonPodeljen ? izvor.opoziviTelefon(id) : izvor.podeliTelefon(id))} /> : null}
-          </AgreementSection>
-          {/* The child renders nothing once the agreement is finished or cancelled, so this section
-              opened onto an empty card on exactly the agreements a person revisits. */}
-          {dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji ? <AgreementSection art="lock" label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
-            {dogovor.stanje === 'CONFIRMED' || dogovor.stanje === 'AWAITING_REQUESTER'
-              ? <AgreementPrivateLocation agreement={dogovor} enabled={enabled} />
-              : <T variant="note" tone="muted">Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.</T>}
-          </AgreementSection> : null}
+          {/* One open section for the number and the place (it was a closed "Kontakt" and a closed "Lokacija i pristup"). */}
+          <View onLayout={event => { anchors.current.place = event.nativeEvent.layout.y; flushAnchor('place'); }}>
+            <AgreementContactPlace agreement={dogovor} enabled={enabled} concealed={resumeRequired} canShare={!!me}
+              onTogglePhone={() => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); }} />
+          </View>
           {me ? <WorkspaceRows>
             {/* PKG-048 task source now belongs to the opening card; no duplicate destination row. */}
             {/* The requester has no screen that opens one Prijava by its id, so no "Prijava" row is drawn for them. */}
@@ -518,15 +583,20 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
               <View style={s.eventLine} /><View style={s.eventCopy}><T variant="body" style={s.ink}>{event.tekst}</T><T variant="meta" tone="muted">{event.vremeTekst}</T></View>
             </View>)}
           </AgreementSection> : null}
-          {problemPanel}
+          {problemPanel ? <View onLayout={event => { anchors.current.problem = event.nativeEvent.layout.y; flushAnchor('problem'); }}>{problemPanel}</View> : null}
         </ScrollView>
-        <WorkspaceFooter brand={brand} loading={canComplete && workspace.busy && completing} statusText={footerStatus}
+        <WorkspaceFooter brand={brand} quiet={quiet} loading={canComplete && workspace.busy && completing} statusText={footerStatus}
+          onLayout={event => setFooterHeight(Math.round(event.nativeEvent.layout.height))}
           notice={workspace.error || workspace.uncertain ? {
             message: workspace.error ?? 'Proveravamo ishod prethodne radnje.',
             refresh: () => void osvezi(), refreshing: workspace.busy || workspace.loading,
           } : null} />
       </>}
     </KeyboardAvoidingView>
+    {/* This screen covers the navigator that hosts the outcome bar, so it carries its own host, above its footer. Only the
+        overview: the conversation has a composer in that place. */}
+    {tab === 'pregled' ? <PorukaHost clearance={brand || quiet || footerStatus || workspace.error || workspace.uncertain ? footerHeight : 0} /> : null}
+    {menuOpen && menuActions.length ? <ActionSheet label="Radnje Dogovora" actions={menuActions} onClose={() => setMenuOpen(false)} /> : null}
   </SafeAreaView>;
 }
 

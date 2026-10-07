@@ -165,16 +165,16 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
   return <View style={s.terms}>
     <View style={s.termsHeading}>
       <T accessibilityRole="header" variant={compact ? 'bodyStrong' : 'heading'} style={s.ink}>Dogovoreni uslovi</T>
-      {a.verzija > 1 ? <T variant="meta" tone="muted">Verzija uslova: {a.verzija}</T> : null}
+      {a.verzija > 1 ? <T variant="meta" tone="muted">Uslovi su izmenjeni.</T> : null}
     </View>
     {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
     {compact ? <>{facts}{price}</> : <>{price}{facts}</>}
     {scope ? discloseScope
-      ? <Disclosure label="Obim posla" hint="Prihvaćeni opis posla" art="document" divider>
+      ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka" art="document" divider>
         <T selectable>{scope}</T>
       </Disclosure>
-      : <View accessible accessibilityLabel={`Obim posla: ${scope}`} style={s.acceptedScope}>
-        <T variant="meta" tone="muted">Obim posla</T>
+      : <View accessible accessibilityLabel={`Obim zadatka: ${scope}`} style={s.acceptedScope}>
+        <T variant="meta" tone="muted">Obim zadatka</T>
         <T selectable>{scope}</T>
       </View> : null}
   </View>;
