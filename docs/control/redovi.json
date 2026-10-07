@@ -5718,6 +5718,7 @@
     }
   },
   "finalization": {
+    "owner_decision_20261007_solo_developer": "7.10.: VLASNIK: za sada NIJE firma — objavljuje kao fizičko lice (solo developer, lični Google Play nalog). Operater u pravnim tekstovima i na Play-u je on lično; za lični Play nalog važi zatvoreni test (12 testera, 14 dana). Firebase projekat za push već postoji: uskoci-ed59b (paket rs.uskoci.preview, config/firebase/google-services.json); za rs.uskoci se dodaje aplikacija u isti projekat. HITNO: predlog „bez posebnog HITNO u V1“ čeka njegovu potvrdu (A21 važi).",
     "p00_ota_20261007": {
       "state": "BUILD PASS + PHONE OTA UPDATE PASS (first half of P00.04) / OFFLINE, FAILED-DOWNLOAD, PLAY AAB AND SIGNING KEY NOT PROVEN",
       "build": "run 37586092243 (131d9f84) SUCCESS; APK sha256 6ed36228...; rs.uskoci.preview v35, runtime uskoci-v1-preview-r1, channel preview; debug signing certificate (not the Play key)",
