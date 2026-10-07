@@ -68,10 +68,11 @@ function seed(R) {
 }
 
 // ---------------------------------------------------------------- reader calls as the signed-in viewer, timed on the server clock
-// One backend per request kind: the first call is cold (the reader is compiled and planned in that backend), the next five are warm,
-// as on a pooled PostgREST connection. medianMs = median of the five warm calls.
+// One backend per request kind: the first call is cold (the reader is compiled and planned in that backend), the next eleven are warm,
+// as on a pooled PostgREST connection. medianMs / minMs over the eleven warm calls (a shared CI runner is noisy; the minimum is the
+// least disturbed figure of CPU-bound work, the median the typical one).
 const median = values => { const s = [...values].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
-function measure(viewerId, request, runs = 5) {
+function measure(viewerId, request, runs = 11) {
   const claims = JSON.stringify({sub: viewerId, role: 'authenticated'});
   const r = run(`begin;
     select set_config('request.jwt.claims', ${q(claims)}, true);
@@ -89,7 +90,7 @@ function measure(viewerId, request, runs = 5) {
     rollback;`);
   if (!r.ok) return {error: r.error, timedOut: r.timedOut};
   const x = JSON.parse(lastLine(r.output)), times = x.times.map(Number), warm = times.slice(1);
-  return {coldMs: times[0], medianMs: median(warm), maxMs: Math.max(...warm), rows: x.rows, counted: x.counted};
+  return {coldMs: times[0], medianMs: median(warm), minMs: Math.min(...warm), maxMs: Math.max(...warm), rows: x.rows, counted: x.counted};
 }
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
 const WIDE = [18, 42, 23, 47];
@@ -233,8 +234,8 @@ try {
   for (const key of Object.keys(REQUESTS)) assert.equal(again[key].counted, old[key].counted, 'REVERT_CHANGED_WHAT_IS_FOUND:' + key);
   pass('DISCOVERY_GRAD_LOAD_REVERTED_SAME_RESULTS_AS_OLD', again);
 
-  const f1 = v => (v === undefined || v === null) ? 'n/a' : (typeof v === 'object' ? (v.error ? 'error' : String(v.medianMs)) : String(v));
-  const lines = ['### DISCOVERY-GRAD load (disposable database, ' + open + ' open tasks; server time of one call as the signed-in viewer, median of 5 warm calls, ms)', '',
+  const f1 = v => (v === undefined || v === null) ? 'n/a' : (typeof v === 'object' ? (v.error ? 'error' : (v.minMs === undefined ? String(v.medianMs) : `${v.medianMs} (${v.minMs})`)) : String(v));
+  const lines = ['### DISCOVERY-GRAD load (disposable database, ' + open + ' open tasks; server time of one call as the signed-in viewer, median (minimum) of 11 warm calls, ms)', '',
     '| request | OLD (DEV body) | NEW (DISCOVERY-GRAD) | NEW + S3 (optional part) | OLD again (after the revert: runner noise) | listed / mapped / rows OLD -> NEW |', '|---|---|---|---|---|---|'];
   for (const key of [...Object.keys(REQUESTS), ...Object.keys(NEW_ONLY)]) {
     lines.push(`| ${key} | ${f1(old[key])} | ${f1(now[key])} | ${f1(s3[key])} | ${f1(again[key])} | ${old[key]?.counted ?? old[key]?.rows ?? '-'} -> ${now[key]?.counted ?? now[key]?.rows ?? '-'} |`);
