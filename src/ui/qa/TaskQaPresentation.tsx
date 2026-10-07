@@ -87,7 +87,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
               <View style={s.fieldBlock}><T variant="label" tone="muted">Isti tekst kao ranije</T>
                 <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napiši isti tekst…" placeholderTextColor={sys.color.muted}
                   value={p.text} onChangeText={p.onText} editable={!p.busy} multiline style={s.field}/></View></>:null}
-            {p.recovery.absent?<V2Action label="Ponovi isti zahtev" style={brandAction} disabled={p.busy||sameTextMissing}
+            {p.recovery.absent?<V2Action label="Pošalji ponovo" style={brandAction} disabled={p.busy||sameTextMissing}
               reason={sameTextMissing?'Upiši isti tekst pre ponavljanja.':null} onPress={p.onRetry}/>:null}
             {p.recovery.canCancel?<V2Action label="Odustani od ovog slanja" kind="quiet" disabled={p.busy} onPress={p.onCancel}/>:null}
           </View>:null}
