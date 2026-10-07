@@ -4,7 +4,8 @@ Operativni zapis za onoga ko nastavlja (sesija, Codex, novi agent). Status stavk
 
 ## Stalna ovlašćenja vlasnika (7.10.)
 - „Rešavaj sve, ne zaustavljaj se, angažuj koliko ti treba, razumno“ i „pokreći sve talase kad dođe vreme za to“: svaki sledeći klijentski talas se pokreće SAM čim su mu ispunjeni preduslovi.
-- Ostaje na vlasniku: „PRIMENI <ime paketa>“ za svaki serverski paket (goli „PRIMENI“ ne važi), prodavnica/Play/Firebase/ključevi, novi paketi (dependencies), plaćeni resursi, push (poslednje), upisi na DEV bez njegove reči.
+- 7.10. oko 22:00 vlasnik je napisao doslovno: „DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000“. Znači: DOKAZAN serverski paket (jednokratna baza: PAD pre / PROLAZ posle, tačan povratak, sertifikat isti) primenjuje sesija sama, izveštaj posle. Tako je 7.10. primenjeno pet paketa (ZONE-PERF, CANCEL-INFO, PROFILE-TRUST, MATCH-V1, DISCOVERY-ZAMENE; dnevnik 232, priznanice u `supabase/operations/dev-alpha/ledger/20261007_*_application.receipt.json`). Prag obaveštenja po zadatku: rekao je 5000, pa „do 10.000“; postavljeno je 10000.
+- Ostaje na vlasniku (posebna reč): novac i cene, plaćeni ključevi i nalozi, pravni tekstovi, brisanje prave baze, prodavnica/Play/Firebase, novi paketi (dependencies), push (poslednje), paket koji pomera sertifikat, prekidači privatnosti (npr. procenat pouzdanosti vidljiv svima: `switch-public.sql`), upisi na DEV mimo gornje naredbe. Goli „PRIMENI“ i dalje ne ovlašćuje ništa.
 - Telefon samo u njegovom prozoru („sad“ = ~6 min): ažuriranje se primenjuje hladnim pokretanjem (2x), nikad se ne briše podatak/odjavljuje nalog.
 
 ## Timovi i vlasništvo fajlova (jedan pisac po fajlu; samo Edit na postojećim fajlovima)
