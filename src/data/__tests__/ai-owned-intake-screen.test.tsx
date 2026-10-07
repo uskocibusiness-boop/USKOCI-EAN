@@ -92,7 +92,18 @@ jest.mock('../../ui/location/ConversationPointAsk', () => {
 // --experimental-vm-modules). It is the only lazy part of this screen, so the harness hands lazy the stand-in above.
 jest.mock('react', () => ({ ...jest.requireActual('react'), lazy: () => require('../../ui/location/ConversationPointAsk').default }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+// The draft's photos (the "+" of the conversation): the task photo service and the picker stand in; the journal is the
+// AsyncStorage map above.
+const mockReadPhotos = jest.fn(), mockReadUpload = jest.fn(), mockUploadPhoto = jest.fn(), mockRemovePhoto = jest.fn(), mockPickPhotos = jest.fn();
+jest.mock('../mediaClientService', () => ({ mediaClientService: { readTaskPhotos: (...a: unknown[]) => mockReadPhotos(...a),
+  readUploadCommand: (...a: unknown[]) => mockReadUpload(...a), uploadTaskPhoto: (...a: unknown[]) => mockUploadPhoto(...a),
+  removeTaskPhoto: (...a: unknown[]) => mockRemovePhoto(...a), cancelUploadCommand: jest.fn() } }));
+jest.mock('../../features/media/nativePhotoPicker', () => ({ pickPreparedPhotos: (...a: unknown[]) => mockPickPhotos(...a),
+  photoSelectionMessage: () => 'Fotografija nije pripremljena.', photoSelectionSkipped: () => '' }));
+jest.mock('expo-image', () => ({ Image: 'NativeImage' }));
 import Intake from '../../app/(app)/nova';
+import { PhotoAttachSheet } from '../../ui/media/PhotoAttachSheet';
+import { PhotoViewer } from '../../ui/media/PhotoViewer';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import BottomSheet from '@gorhom/bottom-sheet';
@@ -173,7 +184,13 @@ beforeEach(async () => {
   });
   mockCancel.mockResolvedValue(unknown());
   mockAbandon.mockResolvedValue(ok({ conversationId: id, status: 'ABANDONED', authoritative: true }));
+  mockServerPhotos = [];
+  mockReadPhotos.mockReset().mockImplementation(async (cid: string) => ok({ conversationId: cid, accountId: mockSession.user.id,
+    photos: mockServerPhotos, ready: true, authoritative: true }));
+  mockReadUpload.mockReset().mockResolvedValue({ ok: false, kod: 'MEDIA_NOT_FOUND', poruka: 'Fotografija nije dostupna.' });
+  mockUploadPhoto.mockReset(); mockRemovePhoto.mockReset(); mockPickPhotos.mockReset();
 });
+let mockServerPhotos: unknown[] = [];
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 const voiceController = () => tree.root.findByType('VoiceComposer' as React.ElementType).props.controller;
@@ -806,28 +823,31 @@ it('keeps the complete safety note visible on the collapsed card during a pendin
   expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
-it('offers the owned photo route and options without automatic abandonment', async () => {
-  // Photos belong to a conversation, so before the first word there is nothing to attach them to
-  // and the entry is not offered.
-  // Before the first word there is no conversation, so there is no "···" either (2026-09-24): a menu of nothing to do.
+const plus = () => tree.root.findByProps({ accessibilityLabel: 'Dodaj fotografije' }).props;
+it('offers photos from the composer before and after the first word, inside the conversation, and options only with one', async () => {
+  // Owner, 2026-10-07: the "+" works before the first word too. There is still no "···" then (2026-09-24): a menu of nothing.
   await render();
   const optionLabels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string')
     .map(node => node.props.accessibilityLabel).join(' ');
-  expect(optionLabels()).not.toContain('Fotografije zadatka');
+  expect(plus().accessibilityState).toEqual({ disabled: false });
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Opcije' })).toHaveLength(0);
+  // Merely opening the sheet creates nothing.
+  await act(async () => plus().onPress());
+  expect(tree.root.findAllByType(PhotoAttachSheet)).toHaveLength(1); expect(mockOpen).not.toHaveBeenCalled();
 
   await act(async () => tree.unmount());
   await resume(); expect(menuItems('Napusti razgovor')).toHaveLength(0);
-  // Photos are the composer's "+" now (the attach entry of the owner's Gemini reference), still only with a conversation.
-  expect(optionLabels()).toContain('Fotografije zadatka');
   await options();
-  expect(menuItems('Fotografije zadatka')).toHaveLength(0);
+  expect(menuItems('Dodaj fotografije')).toHaveLength(0); expect(menuItems('Fotografije zadatka')).toHaveLength(0);
   expect(optionLabels()).not.toMatch(/mikrofon|prilo[gž]|glasovn/i);
   expect(text()).toContain('Povratak čuva razgovor.');
   await closeMenu(); expect(mockAbandon).not.toHaveBeenCalled(); expect(leaveSheets()).toHaveLength(0);
   expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Fotografije zadatka' }).props.onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
+  // Adding is a sheet of this conversation (Galerija, Kamera), never a trip to another screen.
+  await act(async () => plus().onPress());
+  const sheet = tree.root.findByType(PhotoAttachSheet).props;
+  expect(sheet).toMatchObject({ remaining: 6, disabledReason: null });
+  expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
 // Confirmed locations now remain in the same lazy surface as the incomplete ask.
@@ -872,7 +892,7 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
   mockLoad.mockResolvedValue(conversation({ facts: [geography], review: { ...conversation().review, canSaveDraft: true } }));
   await resume(); await type('Još jedna napomena');
   const send = submit().onPress;
-  const photos = tree.root.findByProps({ accessibilityLabel: 'Fotografije zadatka' }).props.onPress;
+  const photos = plus().onPress;
   const review = tree.root.findByProps({ testID: 'intake-draft-review' }).props.onPress;
   const point = tree.root.findByType('PointAsk' as React.ElementType).props;
   await act(async () => point.onEditingChange(true));
@@ -881,6 +901,7 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
   // Retained callbacks from before the manual editor opened cannot bypass the interlock.
   await act(async () => { send(); photos(); review(); });
   expect(mockSend).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType(PhotoAttachSheet)).toHaveLength(0);
   await act(async () => point.onEditingChange(false));
   expect(input().value).toBe('Još jedna napomena');
   expect(submit().accessibilityState.disabled).toBe(false);
@@ -1278,13 +1299,94 @@ describe('conversation and current facts have separate presentation', () => {
 });
 
 
-test('saved task photos are visible in the conversation through authorized asset references only', async () => {
+test('saved task photos stay visible from the facts through authorized asset references only when the photo read fails', async () => {
   const ref = `${id}/v5/${other}/${'a'.repeat(64)}.jpg`;
+  mockReadPhotos.mockResolvedValue({ ok: false, kod: 'MEDIA_UNAVAILABLE', poruka: 'Fotografije nisu učitane.' });
   mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.public_photo_paths', [ref, ref, 'https://example.test/private.jpg'])] }));
   await resume();
-  const photos = tree.root.findAllByType('AuthorizedPhoto' as React.ElementType);
+  const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
+  const photos = thread.findAllByType('AuthorizedPhoto' as React.ElementType);
   expect(photos.map(photo => photo.props.assetId)).toEqual([other]);
-  expect(text()).toContain('Fotografije zadatka');
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregledaj fotografije zadatka' }).props.onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: id } });
+  expect(text()).toContain('Dodata fotografija (1/6)'); expect(text()).toContain('Fotografije nisu učitane.');
+  // The read failed, so the way to check again is on screen; nothing navigates away.
+  mockReadPhotos.mockResolvedValue(ok({ conversationId: id, accountId: mockSession.user.id, photos: [], ready: true, authoritative: true }));
+  await act(async () => tree.root.findByProps({ label: 'Proveri fotografije' }).props.onPress());
+  expect(mockReadPhotos).toHaveBeenCalledTimes(2); expect(mockRouter.push).not.toHaveBeenCalled();
+});
+
+// Owner, 2026-10-07: "chat should use ready-made elements, e.g. adding photos must make sense". The "+" opens the shared sheet
+// in the conversation; a chosen photo goes up through the task photo path and becomes a line of the thread where it was added.
+describe('adding photos inside the conversation', () => {
+  const photo = { bytes: new Uint8Array([255, 216, 255]).buffer, contentType: 'image/jpeg', width: 4, height: 3 };
+  const message = (messageId: string, fromAi: boolean, body: string) => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
+  const isLine = (node: { type: unknown; props: { testID?: unknown } }) => typeof node.type === 'string' && node.props.testID === 'task-photo-line';
+  const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    .map(node => isLine(node) ? 'PHOTOS' : node.props.accessibilityLabel);
+  const flush = async () => { for (let i = 0; i < 6; i++) await act(async () => { await Promise.resolve(); }); };
+  const uploaded = (assetId: string) => mockUploadPhoto.mockImplementation(async (input: { clientRequestId: string; conversationId: string }) => {
+    const asset = { scope: 'TASK', conversationId: input.conversationId, clientRequestId: input.clientRequestId, assetId, state: 'READY', selected: true };
+    mockServerPhotos = [...mockServerPhotos, asset]; return ok(asset);
+  });
+
+  it('before the first word, choosing Galerija opens the conversation with the screen\'s key, sends no AI turn, and adds the photo', async () => {
+    const asset = 'dddddddd-dddd-4ddd-8ddd-000000000001';
+    mockLoad.mockImplementation(async () => conversation());
+    mockPickPhotos.mockResolvedValue({ photos: [photo], rejected: 0, firstError: null }); uploaded(asset);
+    await render();
+    await act(async () => plus().onPress());
+    await act(async () => tree.root.findByType(PhotoAttachSheet).props.onPick('LIBRARY'));
+    await flush();
+    expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockOpen.mock.calls[0][0]).toBe('aaaaaaaa-aaaa-4aaa-8aaa-000000000001');
+    expect(mockPickPhotos).toHaveBeenCalledTimes(1); expect(mockPickPhotos.mock.calls[0][2]).toMatchObject({ limit: 6 });
+    expect(mockUploadPhoto).toHaveBeenCalledTimes(1); expect(mockUploadPhoto.mock.calls[0][0]).toMatchObject({ conversationId: id, bytes: photo.bytes });
+    expect(mockSend).not.toHaveBeenCalled();
+    // Only the photo journal is written: no AI turn intent.
+    expect(jest.mocked(AsyncStorage.setItem).mock.calls.map(([key]) => key).every(key => String(key).startsWith('uskoci:media-upload:'))).toBe(true);
+    // The photo is in the thread, never docked above the composer, with one local caption and the shared viewer.
+    const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
+    expect(thread.findAllByType('AuthorizedPhoto' as React.ElementType).map(node => node.props.assetId)).toEqual([asset]);
+    expect(tree.root.findByProps({ testID: 'ai-composer-footer' }).findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
+    expect(text()).toContain('Dodata fotografija (1/6)');
+    await act(async () => thread.findByType('AuthorizedPhoto' as React.ElementType).props.open.onPress());
+    expect(tree.root.findByType(PhotoViewer).props).toMatchObject({ photos: [{ assetId: asset }], title: 'Fotografije zadatka' });
+  });
+
+  it('keeps the photos where they were added while the conversation goes on, and removes one only after a question', async () => {
+    const asset = 'dddddddd-dddd-4ddd-8ddd-000000000002';
+    const before = [message('pm1', true, 'Šta treba da se uradi?'), message('pm2', false, 'Popravka slavine.')];
+    mockLoad.mockResolvedValue(conversation({ messages: before }));
+    mockPickPhotos.mockResolvedValue({ photos: [photo], rejected: 0, firstError: null }); uploaded(asset);
+    // A request identity of its own: where a photo sits is remembered per identity for the life of the app.
+    mockCounter = 700;
+    await resume();
+    await act(async () => plus().onPress());
+    await act(async () => tree.root.findByType(PhotoAttachSheet).props.onPick('LIBRARY'));
+    await flush();
+    expect(order()).toEqual(['USKOČI: Šta treba da se uradi?', 'Ti: Popravka slavine.', 'PHOTOS']);
+    mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+    mockLoad.mockResolvedValue(conversation({ messages: [...before, message('pm3', false, 'Sutra posle podne.'), message('pm4', true, 'Zapisao sam.')] }));
+    await type('Sutra posle podne.'); await act(async () => submit().onPress());
+    expect(order()).toEqual(['USKOČI: Šta treba da se uradi?', 'Ti: Popravka slavine.', 'PHOTOS', 'Ti: Sutra posle podne.', 'USKOČI: Zapisao sam.']);
+    // The corner X asks first; only the answer removes the photo from the draft.
+    mockRemovePhoto.mockResolvedValue(ok({ conversationId: id, accountId: mockSession.user.id, photos: [], ready: true, authoritative: true }));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ukloni fotografiju 1' }).props.onPress());
+    expect(mockRemovePhoto).not.toHaveBeenCalled();
+    expect(leaveSheet().props).toMatchObject({ title: 'Ukloniti fotografiju?', confirmLabel: 'Ukloni', tone: 'danger' });
+    await act(async () => { await leaveSheet().props.onConfirm(); });
+    expect(mockRemovePhoto).toHaveBeenCalledWith({ conversationId: id, assetId: asset });
+    expect(order()).not.toContain('PHOTOS');
+  });
+
+  it('a denied camera keeps the gallery as the way forward, inside the conversation', async () => {
+    mockLoad.mockResolvedValue(conversation({ messages: [message('pm5', true, 'Kako izgleda?')] }));
+    mockPickPhotos.mockRejectedValue(Object.assign(new Error('PERMISSION'), { code: 'PERMISSION' }));
+    await resume();
+    await act(async () => plus().onPress());
+    await act(async () => tree.root.findByType(PhotoAttachSheet).props.onPick('CAMERA'));
+    await flush();
+    const recovery = tree.root.findByProps({ testID: 'ai-conversation-thread' }).findByType(require('../../ui/system/PermissionRecovery').PermissionRecovery);
+    expect(recovery.props.alternative).toBe('Galerija');
+  });
 });

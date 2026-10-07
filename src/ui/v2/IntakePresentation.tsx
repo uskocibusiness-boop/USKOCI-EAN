@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
@@ -26,6 +26,12 @@ import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
 import { confirmedPlaceEntries } from '../location/placeText';
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import { publicSummary, type Summary } from './draftSummary';
+import type { PhotoSource } from '../../features/media/nativePhotoPicker';
+import { useConfirmSheet } from '../system/ConfirmSheet';
+import { PhotoAttachSheet } from '../media/PhotoAttachSheet';
+import { TaskPhotoLine } from '../media/TaskPhotoLine';
+import type { TaskPhotoItem, TaskPhotosController } from '../media/useTaskPhotoUploads';
+import { PHOTO_WORDS, TASK_PHOTO_NOTICE, photoLimits } from '../media/photoWords';
 
 // The point sheet reaches the native map through the point editor, so it loads only when opened.
 const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk'));
@@ -59,6 +65,35 @@ function anchorPlace(conversationId: string, placeKey: string, points: readonly 
   return next;
 }
 
+/**
+ * Where the photos of one moment sit in the thread: after the message that was last when each was first seen (owner,
+ * 2026-10-07: nothing stays docked at the bottom), the same rule as the confirmed place. Kept per conversation for the life
+ * of the app; only request identities and message ids are held, never a picture. A photo added before the first word sits
+ * right after that first message, where the conversation it belongs to begins.
+ */
+const photoAnchors = new Map<string, Map<string, string | null>>();
+function anchorPhotos(conversationId: string, items: readonly TaskPhotoItem[], last: string | null): Map<string, string | null> {
+  let anchors = photoAnchors.get(conversationId);
+  if (!anchors) {
+    anchors = new Map(); photoAnchors.set(conversationId, anchors);
+    if (photoAnchors.size > 50) { const oldest = photoAnchors.keys().next().value; if (oldest !== undefined) photoAnchors.delete(oldest); }
+  }
+  for (const item of items) if (!anchors.has(item.requestId)) anchors.set(item.requestId, last);
+  return anchors;
+}
+/** Consecutive photos with one anchor are one line; the line of the newest moment also says what is happening now. */
+type PhotoGroup = { key: string; after: string | null; items: TaskPhotoItem[] };
+function groupPhotos(items: readonly TaskPhotoItem[], anchors: Map<string, string | null>, first: string | null): PhotoGroup[] {
+  const groups: PhotoGroup[] = [];
+  for (const item of items) {
+    const anchor = anchors.get(item.requestId) ?? null, after = anchor ?? first;
+    const previous = groups.at(-1);
+    if (previous && previous.after === after) previous.items.push(item);
+    else groups.push({ key: `photos:${anchor ?? 'start'}:${groups.length}`, after, items: [item] });
+  }
+  return groups;
+}
+
 type Props = {
   /** Stable through first-send server ID assignment; replaced only when the owned route changes. */
   conversationKey?: string;
@@ -77,6 +112,11 @@ type Props = {
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
   onNewTask?: () => void; newTaskDisabled?: boolean; voice?: VoiceInput; streamingText?: string;
   onPhotos?: () => void; photosDisabled?: boolean;
+  /** The draft's photos. With them the "+" opens the shared attach sheet inside the conversation (Galerija, Kamera), and
+   *  added photos are lines of the thread, where they were added; `onPhotos` stays the route for the design gallery only. */
+  photos?: TaskPhotosController;
+  /** The source the person chose; the screen opens the conversation first when there is none yet. */
+  onPhotoSource?: (source: PhotoSource) => void;
   onCancelPending?: () => void; cancelPendingDisabled?: boolean; cancelPendingDispatched?: boolean;
 };
 
@@ -187,7 +227,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
  */
 export function IntakePresentation(props: Props) {
   const { conversation, busy, value, pending } = props;
-  const [panel, setPanel] = useState<'options' | null>(null);
+  const [panel, setPanel] = useState<'options' | 'photos' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
   const [hiddenPlace, setHiddenPlace] = useState<string | null>(null);
   // A confirmed place reopens its editor only on an explicit tap of its line; this is the place that tap was for.
@@ -208,6 +248,7 @@ export function IntakePresentation(props: Props) {
   }, []);
   const outsidePlace = (action: () => void) => () => { if (!editingPlaceNow.current) action(); };
   const reduced = useReducedMotion();
+  const photoConfirm = useConfirmSheet({ reduced });
   const summary = publicSummary(conversation.facts);
   const safetyCopy = safetyMessage(conversation.safety);
   const open = conversation.status === 'OPEN';
@@ -283,12 +324,29 @@ export function IntakePresentation(props: Props) {
       if (editingPlaceNow.current || placeLocked.current) return;
       Keyboard.dismiss(); setSavedPlaceEdit(placeKey);
     } : undefined} /> : null;
+  // The photos: the controller's own list when it has one, otherwise what the conversation's facts already hold (read only).
+  const attach = props.photos && props.onPhotoSource ? props.photos : null;
+  const photoItems: TaskPhotoItem[] = attach && (attach.items.length || attach.loaded) ? [...attach.items]
+    : photoAssets.map((assetId): TaskPhotoItem => ({ key: assetId, requestId: assetId, assetId, state: { kind: 'READY', assetId }, exit: null, retry: null }));
+  const photosOff = !!props.photosDisabled || editingPlace;
+  const notes: { key: string; afterMessageId: string | null; node: ReactNode }[] = [];
+  if (placeLine && anchor) notes.push({ key: 'place', afterMessageId: anchor.after, node: placeLine });
+  if (attach) {
+    const last = messages.at(-1)?.id ?? null, first = messages[0]?.id ?? null;
+    const groups = groupPhotos(photoItems, anchorPhotos(conversation.conversationId || props.conversationKey || '', photoItems, last), first);
+    // What is happening now (a send, an error, a denied camera) belongs to the newest moment, even before its first photo.
+    const live = !!attach.message && attach.tone !== 'success';
+    if (!groups.length && live) groups.push({ key: 'photos:now', after: last, items: [] });
+    groups.forEach((group, index) => notes.push({ key: group.key, afterMessageId: group.after,
+      node: <TaskPhotoLine photos={attach} items={group.items} total={photoItems.length} latest={index === groups.length - 1} ask={photoConfirm.ask}
+        disabled={photosOff} onGallery={() => props.onPhotoSource?.('LIBRARY')} /> }));
+  }
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     cardPlacement={readyForReview ? 'end' : 'top'}
     interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
     revealInteractiveContext={editingSavedPlace}
-    threadNotes={placeLine && anchor ? [{ key: 'place', afterMessageId: anchor.after, node: placeLine }] : undefined}
+    threadNotes={notes.length ? notes : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
@@ -299,16 +357,20 @@ export function IntakePresentation(props: Props) {
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace && !contextualReply ? undefined : props.voice}
-    attach={props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
-      onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
+    // The "+" opens the photo sheet here, in the conversation, before the first word too: choosing a source is what opens
+    // the conversation then, as the first word or the held microphone does.
+    attach={attach ? { label: PHOTO_WORDS.add, hint: 'Galerija ili kamera.',
+      onPress: outsidePlace(() => { Keyboard.dismiss(); setPanel('photos'); }), disabled: photosOff }
+      : props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
+        onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
     // Nothing is pinned until the conversation has said or taken something: an empty card at the
     // top of a fresh screen states a draft that does not exist yet and buries the invitation.
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} />}
-    actions={photoAssets.length || (safetyCopy && conversation.safety === 'BLOCK') ? <>
-      {photoAssets.length ? <View testID="intake-photos" style={s.photos}>
+    actions={(!attach && photoAssets.length) || (safetyCopy && conversation.safety === 'BLOCK') ? <>
+      {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
           disabled={props.photosDisabled || editingPlace} accessibilityState={{ disabled: !!props.photosDisabled || editingPlace }} onPress={outsidePlace(props.onPhotos)}
           style={s.photoHeader}>
@@ -361,6 +423,10 @@ export function IntakePresentation(props: Props) {
       {props.showReadback ? <V2Action tone="neutral" label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel === 'options' ? <ActionSheet label="Opcije razgovora" actions={menu} reduced={reduced} onClose={() => setPanel(null)} /> : null}
+    {panel === 'photos' && attach ? <PhotoAttachSheet remaining={attach.remaining} disabledReason={attach.addReason}
+      limits={photoLimits('TASK')} notice={TASK_PHOTO_NOTICE} reduced={reduced}
+      onPick={source => { if (!editingPlaceNow.current) props.onPhotoSource?.(source); }} onClose={() => setPanel(null)} /> : null}
+    {photoConfirm.sheet}
   </AiConversationShell>;
 }
 

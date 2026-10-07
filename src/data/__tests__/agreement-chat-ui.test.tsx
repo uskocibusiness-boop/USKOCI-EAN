@@ -11,7 +11,7 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
-jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer' }));
+jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer', AgreementPhotoSheet: 'AgreementPhotoSheet' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 import { AgreementChat, messageSpoken } from '../../ui/AgreementChat';
@@ -517,8 +517,11 @@ describe('D03 actual message component', () => {
     } }));
     await act(async () => scroll.props.onScrollEndDrag(scrollEvent(400, 300)));
     scrollToEnd.mockClear();
-    await act(async () => button('Fotografije uz poruku').props.onPress());
-    expect(scroll.findByType('AgreementPhotoComposer' as any).props.photos).toBe(photos);
+    // The "+" opens the shared photo sheet (owner, 2026-10-07); asking there for the earlier prepared photos opens the tray.
+    await act(async () => button('Dodaj fotografije').props.onPress());
+    expect(tree.root.findByType('AgreementPhotoSheet' as any).props.photos).toBe(photos);
+    await act(async () => tree.root.findByType('AgreementPhotoSheet' as any).props.onShowSaved());
+    expect(scroll.findByType('AgreementPhotoComposer' as any).props).toMatchObject({ photos, showSaved: true });
     await act(async () => scroll.props.onContentSizeChange(300, 3600));
     expect(scrollToEnd).toHaveBeenCalledWith({ animated: false });
     expect(outbox.sendDraft).not.toHaveBeenCalled();
@@ -653,47 +656,51 @@ describe('D03 actual message component', () => {
       expect(button('Pošalji poruku').props.disabled).toBe(true);
       expect(circle(button('Pošalji poruku')).backgroundColor).toBe(sys.color.control);
     });
-    it('keeps the photo tools behind the pill\'s "+" and never hides a chosen photo', async () => {
+    // Owner, 2026-10-07: the "+" is the shared photo sheet (Galerija, Kamera), the same one the task conversation opens; the
+    // tray above writing shows only what is prepared, and a chosen photo is never hidden.
+    it('opens the shared photo sheet from the pill\'s "+" and never hides a chosen photo', async () => {
       const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, items: [], message: null,
         versionConflict: false, canSubmit: () => false, capture: () => null, refresh: jest.fn() } as any;
       await render({ photos });
+      const sheets = () => tree.root.findAllByType('AgreementPhotoSheet' as React.ElementType);
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
-      // Review r4 rd item 6: the state also says whether the control can fold the panel ("disabled" while a photo holds it).
-      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: false, disabled: false });
-      await act(async () => button('Fotografije uz poruku').props.onPress());
-      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
-      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: true, disabled: false });
-      await act(async () => button('Fotografije uz poruku').props.onPress());
+      expect(sheets()).toHaveLength(0);
+      expect(button('Dodaj fotografije').props.accessibilityState).toEqual({ disabled: false });
+      await act(async () => button('Dodaj fotografije').props.onPress());
+      expect(sheets()).toHaveLength(1);
+      expect(sheets()[0].props).toMatchObject({ photos, capturing: false });
+      // Nothing is prepared yet, so no tray is drawn behind the sheet.
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
+      await act(async () => sheets()[0].props.onClose());
+      expect(sheets()).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, hasSelection: true }} />));
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
+      // More can be added while photos wait: the "+" stays live and opens the same sheet.
+      expect(button('Dodaj fotografije').props.disabled).toBe(false);
       // A closed Dogovor draws no photo tools at all.
       await act(async () => tree.update(<AgreementChat {...props} terminal writable={false} photos={{ ...photos, hasSelection: true }} />));
       expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
-      expect(tree.root.findAllByProps({ accessibilityLabel: 'Fotografije uz poruku' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj fotografije' })).toHaveLength(0);
     });
-    // Review r4 rd item 6: while a photo is chosen the panel cannot fold away, so the control says so (a disabled X)
-    // instead of swapping its icon for nothing; after a send the tools fold back behind the "+".
-    it('never offers a "+" that does nothing, and folds the photo tools away after a send', async () => {
+    // The tray stands while something about the photos is to be read (a prepared photo, a notice, a changed Dogovor) or the
+    // earlier prepared photos were asked for; after a send that asked-for list folds away again.
+    it('draws the tray only for what is prepared or asked for, and folds the earlier photos away after a send', async () => {
       const photos = { loaded: true, busy: false, ready: true, hasSelection: false, agreementId: agreement, items: [], message: null,
-        versionConflict: false, canSubmit: () => true, capture: () => null, refresh: jest.fn().mockResolvedValue(undefined) } as any;
+        versionConflict: false, saved: [], canSubmit: () => true, capture: () => null, refresh: jest.fn().mockResolvedValue(undefined) } as any;
+      const trays = () => tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType);
       await render({ photos });
-      await act(async () => button('Fotografije uz poruku').props.onPress());
-      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: true, disabled: false });
+      await act(async () => button('Dodaj fotografije').props.onPress());
+      await act(async () => tree.root.findByType('AgreementPhotoSheet' as React.ElementType).props.onShowSaved());
+      expect(trays()).toHaveLength(1); expect(trays()[0].props.showSaved).toBe(true);
       await act(async () => button('Pošalji poruku').props.onPress());
-      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(0);
-      expect(button('Fotografije uz poruku').props.accessibilityState).toEqual({ expanded: false, disabled: false });
-      await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, hasSelection: true }} />));
-      expect(button('Fotografije uz poruku').props).toMatchObject({ disabled: true, accessibilityState: { expanded: true, disabled: true } });
-      expect(tree.root.findAllByType('AgreementPhotoComposer' as React.ElementType)).toHaveLength(1);
-      // Verify r4b rd item 6: the disabled X says what holds the panel open, by its real cause.
-      expect(button('Fotografije uz poruku').props.accessibilityHint).toBe('Ostaje otvoreno dok fotografije čekaju slanje.');
+      expect(trays()).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, message: 'Dozvoli pristup kameri.' }} />));
-      expect(button('Fotografije uz poruku').props.accessibilityHint).toBe('Ostaje otvoreno dok je prikazana poruka o fotografijama.');
+      expect(trays()).toHaveLength(1); expect(trays()[0].props.showSaved).toBe(false);
       await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, versionConflict: true, items: [{}] }} />));
-      expect(button('Fotografije uz poruku').props.accessibilityHint).toBe('Ostaje otvoreno dok ne ukloniš fotografije pripremljene za raniju verziju Dogovora.');
+      expect(trays()).toHaveLength(1);
       await act(async () => tree.update(<AgreementChat {...props} photos={photos} />));
-      expect(button('Fotografije uz poruku').props.accessibilityHint).toBeUndefined();
+      expect(trays()).toHaveLength(0);
+      expect(button('Dodaj fotografije').props.accessibilityHint).toBe('Galerija ili kamera.');
     });
     // Review r4 rd item 4: with no live update and a pull a screen reader cannot easily make, the refresh is an action.
     // Verify r4b rd item 4 (was: no action in the empty thread, and one on a closed Dogovor): the empty thread is where

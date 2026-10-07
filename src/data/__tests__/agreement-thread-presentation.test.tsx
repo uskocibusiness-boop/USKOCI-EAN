@@ -14,7 +14,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto', NeedPhotos: 'NeedPhotos' }));
-jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer' }));
+jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer', AgreementPhotoSheet: 'AgreementPhotoSheet' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
@@ -95,10 +95,11 @@ it('gives 320 dp / font scale 2 history the full identity and accepted terms whi
 });
 
 it('responds to the measured keyboard space without remounting the draft or losing an open photo tray', async () => {
+  // A prepared photo holds the tray open (the "+" itself opens the shared photo sheet since 2026-10-07).
+  props.chat.photos = { ...props.chat.photos!, hasSelection: true };
   await render();
   expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(1);
   const input = button('Napiši poruku');
-  await act(async () => button('Fotografije uz poruku').props.onPress());
   const tray = tree.root.findByType('AgreementPhotoComposer' as any);
   await measure(410);
   expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(0);
@@ -113,7 +114,8 @@ it('responds to the measured keyboard space without remounting the draft or losi
   await measure(790);
   expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(1);
   expect(button('Napiši poruku')).toBe(input);
-  expect(button('Fotografije uz poruku').props.accessibilityState.expanded).toBe(true);
+  expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
+  expect(button('Dodaj fotografije').props.disabled).toBe(false);
   expect(props.chat.outbox.sendDraft).not.toHaveBeenCalled();
   expect(props.chat.refresh).not.toHaveBeenCalled();
 });
@@ -147,10 +149,10 @@ it('identifies this job beside the person and opens its accepted overview from t
 });
 
 it('lets enlarged text use a full-width draft without recreating it or closing prepared photos', async () => {
+  props.chat.photos = { ...props.chat.photos!, hasSelection: true };
   await render();
   const input = button('Napiši poruku');
   expect(flat(input.props.style).flex).toBe(1);
-  await act(async () => button('Fotografije uz poruku').props.onPress());
   const tray = tree.root.findByType('AgreementPhotoComposer' as any);
   mockWindow = { ...mockWindow, fontScale: 1.5 };
   await act(async () => tree.update(<AgreementThreadPresentation {...props} />));
@@ -159,7 +161,7 @@ it('lets enlarged text use a full-width draft without recreating it or closing p
   expect(flat(input.props.style).flex).toBe(1);
   expect(input.props.value).toBe('Moj sačuvani nacrt');
   expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
-  expect(button('Fotografije uz poruku').props.accessibilityState.expanded).toBe(true);
+  expect(tree.root.findAllByType('AgreementPhotoSheet' as any)).toHaveLength(0);
   expect(props.chat.outbox.sendDraft).not.toHaveBeenCalled();
 });
 
@@ -169,7 +171,8 @@ it('keeps storage recovery and a forced pending-photo tray in the scroll, with t
   props.chat.photos = { ...props.chat.photos!, hasSelection: true, versionConflict: true };
   await render();
   expect(history().findByType('AgreementPhotoComposer' as any).props.photos).toBe(props.chat.photos);
-  expect(button('Fotografije uz poruku').props).toMatchObject({ disabled: true, accessibilityState: { expanded: true, disabled: true } });
+  // The tray stays in the scroll while photos wait; adding another still opens the shared sheet.
+  expect(button('Dodaj fotografije').props).toMatchObject({ disabled: false, accessibilityState: { disabled: false } });
   expect(text(history())).toContain('Poruka nije sačuvana na telefonu.');
   await act(async () => history().findByProps({ accessibilityLabel: 'Ponovo učitaj sačuvane poruke' }).props.onPress());
   expect(props.chat.outbox.start).toHaveBeenCalledTimes(1);

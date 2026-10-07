@@ -9,19 +9,9 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
-
 // Bounded in-memory representation; no signed URL or persistent image cache.
-function jpegDataUri(bytes: ArrayBuffer): string {
-  const data = new Uint8Array(bytes), alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const chunks: string[] = []; let part = '';
-  for (let i = 0; i < data.length; i += 3) {
-    const word = (data[i] << 16) | ((data[i + 1] ?? 0) << 8) | (data[i + 2] ?? 0);
-    part += alphabet[(word >>> 18) & 63] + alphabet[(word >>> 12) & 63]
-      + (i + 1 < data.length ? alphabet[(word >>> 6) & 63] : '=') + (i + 2 < data.length ? alphabet[word & 63] : '=');
-    if (part.length >= 16384) { chunks.push(part); part = ''; }
-  }
-  chunks.push(part); return 'data:image/jpeg;base64,' + chunks.join('');
-}
+import { jpegDataUri } from './jpegDataUri';
+
 type PhotoAttempt = { visit: object; binding: string; abort: AbortController; phase: 'loading' | 'image' | 'failed' };
 type PhotoState = { attempt: PhotoAttempt; uri: string | null } | null;
 

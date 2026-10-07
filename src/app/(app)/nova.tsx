@@ -19,6 +19,8 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
+import type { PhotoSource } from '../../features/media/nativePhotoPicker';
+import { useTaskPhotoUploads } from '../../ui/media/useTaskPhotoUploads';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
 type SubmittedDraft = { value: string; revision: number };
@@ -85,7 +87,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     retireIntakeReviewReturn(reviewReturn.current); reviewReturn.current = null;
     // Leaving retires an open question: its answer checks this focus and would do nothing any more.
     return () => { if (focus.current === scope) focus.current = null; retireLocation(); retireConfirmation();
-      streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); };
+      streamAbort.current?.abort(); streamAbort.current = null; setStreamingText(''); setPhotoSourceAfterOpen(null); };
   }, [accountId, accountRevision, retireConfirmation]));
   const read = useCallback(async (): Promise<Ishod<IntakeSnapshot>> => {
     const scope = focus.current;
@@ -157,6 +159,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const stanje = editor.data?.conversation ?? lastGood.current, turn = editor.data?.turn ?? null;
   const razgovorId = stanje?.conversationId ?? null;
   const radi = editor.busy, greska = editor.error;
+  // The draft's photos (the conversation's "+"): the task photo screen's own upload path and journal, bound to this conversation.
+  const photos = useTaskPhotoUploads(razgovorId || null);
+  // A source chosen before the conversation existed waits here until opening it is confirmed and its photos are read.
+  const [photoSourceAfterOpen, setPhotoSourceAfterOpen] = useState<PhotoSource | null>(null);
   const view = useMemo(() => ({}), [editor.data]), currentView = useRef(view);
   currentView.current = view;
   const renderedFocus = focus.current;
@@ -300,6 +306,35 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     return () => { unsubscribe(); speechPrompt.current?.lease?.cancel(); speechPrompt.current = null; };
   }, [voice.controller]);
   const voiceBusy = voice.state.phase !== 'IDLE';
+  const photosBlocked = () => !canAct() || !writable || !!request.current || voiceBusy;
+  /**
+   * A source chosen in the conversation's photo sheet. With a conversation it picks at once. Before the first word there is
+   * none, and choosing a source is the explicit gesture that opens it (owner, 2026-10-07: "+" works before the first word
+   * too), exactly as the first word or the held microphone does: the screen's one opening key, no AI turn and no draft
+   * journal. The picker opens once the opened conversation and its (empty) photos are read back.
+   */
+  const choosePhotoSource = (source: PhotoSource) => {
+    if (photosBlocked() || photoSourceAfterOpen) return;
+    if (razgovorId) { void photos.pick(source); return; }
+    if (!canSubmit) return;
+    setPhotoSourceAfterOpen(source);
+    void editor.save(async () => {
+      if (!conversation.current) {
+        const opened = await aiNeedV2Izvor.openConversation(openRequestId);
+        if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+        if (!opened.ok) return opened;
+        conversation.current = opened.podatak.conversationId;
+      }
+      return read();
+    }).finally(() => { if (!conversation.current) setPhotoSourceAfterOpen(null); });
+  };
+  useEffect(() => {
+    if (!photoSourceAfterOpen || !razgovorId) return;
+    if (photos.readError) { setPhotoSourceAfterOpen(null); return; }
+    if (!photos.loaded || photos.busy) return;
+    const source = photoSourceAfterOpen; setPhotoSourceAfterOpen(null);
+    if (!photosBlocked()) void photos.pick(source);
+  }, [photoSourceAfterOpen, razgovorId, photos.loaded, photos.busy, photos.readError]);
   const posalji = async () => {
     if (voice.controller.getSnapshot().phase !== 'IDLE') return;
     const prompt = dialogueEnabled && !request.current ? locationPrompt.current : null;
@@ -381,13 +416,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       || (!!request.current && !locationFlight.current) || (radi && !locationFlight.current) || !!greska : undefined}
     sentMessage={request.current?.body ?? null}
     streamingText={streamingText}
-    photosDisabled={!canAct() || !writable || !!request.current || voiceBusy}
-    // Photos and leaving both need a conversation to act on. Before the first word there is none,
-    // so offering either would be offering a control that does nothing.
-    onPhotos={writable && razgovorId ? () => {
-      if (!canAct() || !razgovorId || !writable || request.current || voiceBusy) return;
-      navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId: razgovorId } }));
-    } : undefined}
+    // The "+" opens the photo sheet inside the conversation (no separate screen for adding), before the first word too.
+    photosDisabled={photosBlocked() || !!photoSourceAfterOpen}
+    photos={writable ? photos : undefined} onPhotoSource={writable ? choosePhotoSource : undefined}
     // The shell draws the microphone, its notice and voice mode from this one controller; every transcript still comes
     // back through `onTranscript` above, so each guard on sending stays here.
     voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,

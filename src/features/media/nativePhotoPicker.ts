@@ -18,26 +18,35 @@ function removeCacheCopy(uri: string | undefined) {
   try { const file = new File(uri); if (file.exists) file.delete(); } catch { /* OS owns cache eviction if unavailable. */ }
 }
 
+type PickedAsset = ImagePicker.ImagePickerAsset;
+
+/** Opens the gallery or the camera; null when the person cancels or the caller is no longer current. */
+async function launch(source: PhotoSource, current: () => boolean, limit: number): Promise<PickedAsset[] | null> {
+  if (!current()) return null;
+  if (source === 'CAMERA') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!current()) return null;
+    if (!permission.granted) throw new PhotoSelectionError('PERMISSION');
+  }
+  // Several photos only from the gallery and only up to the slots still free; the camera always takes one.
+  const multiple = source === 'LIBRARY' && limit > 1;
+  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1,
+    allowsEditing: false, allowsMultipleSelection: multiple, exif: false, base64: false,
+    ...(multiple ? { selectionLimit: limit, orderedSelection: true } : {}) };
+  const picked = source === 'CAMERA' ? await ImagePicker.launchCameraAsync(options)
+    : await ImagePicker.launchImageLibraryAsync(options);
+  if (picked.canceled) return null;
+  return picked.assets ?? [];
+}
+
 /** Local preparation is a transport optimization. The server independently
  * decodes, orients, strips metadata and validates the immutable upload. */
-export async function pickPreparedPhoto(source: PhotoSource, current: () => boolean,
-  onProcessing: () => void = () => {}): Promise<PreparedPhoto | null> {
-  let selected: string | undefined, output: string | undefined;
+async function prepare(asset: PickedAsset | undefined, current: () => boolean, onProcessing: () => void): Promise<PreparedPhoto | null> {
+  const selected = asset?.uri;
+  let output: string | undefined;
   let context: ReturnType<typeof ImageManipulator.manipulate> | undefined;
   let rendered: Awaited<ReturnType<NonNullable<typeof context>['renderAsync']>> | undefined;
   try {
-    if (!current()) return null;
-    if (source === 'CAMERA') {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!current()) return null;
-      if (!permission.granted) throw new PhotoSelectionError('PERMISSION');
-    }
-    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1,
-      allowsEditing: false, allowsMultipleSelection: false, exif: false, base64: false };
-    const picked = source === 'CAMERA' ? await ImagePicker.launchCameraAsync(options)
-      : await ImagePicker.launchImageLibraryAsync(options);
-    if (picked.canceled) return null;
-    const asset = picked.assets[0]; selected = asset?.uri;
     if (!current()) return null;
     if (!asset || !selected || !Number.isFinite(asset.width) || !Number.isFinite(asset.height)
       || asset.width < 1 || asset.height < 1) throw new PhotoSelectionError('PROCESSING');
@@ -71,6 +80,58 @@ export async function pickPreparedPhoto(source: PhotoSource, current: () => bool
   }
 }
 
+/** One photo from the gallery or the camera, prepared in memory (the avatar and the Dogovor take one at a time). */
+export async function pickPreparedPhoto(source: PhotoSource, current: () => boolean,
+  onProcessing: () => void = () => {}): Promise<PreparedPhoto | null> {
+  let assets: PickedAsset[] | null = null;
+  try {
+    assets = await launch(source, current, 1);
+    if (!assets) return null;
+    const [first, ...extra] = assets;
+    for (const asset of extra) removeCacheCopy(asset?.uri);
+    return await prepare(first, current, onProcessing);
+  } catch (error) {
+    if (!current()) return null;
+    throw error instanceof PhotoSelectionError ? error : new PhotoSelectionError('PROCESSING');
+  }
+}
+
+/** What a multi-photo pick returned: the photos ready to send, in the order chosen, and the first reason one was left out. */
+export type PreparedSelection = { photos: PreparedPhoto[]; rejected: number; firstError: PhotoSelectionError | null };
+
+/**
+ * Several photos from the gallery (up to `limit`, the slots still free), or one from the camera. Each is prepared in
+ * turn, so only one decoded picture is held by the native side at a time; a photo that cannot be prepared (too large,
+ * unreadable) is left out and counted, and the others still go. Null when nothing was chosen or the caller left.
+ */
+export async function pickPreparedPhotos(source: PhotoSource, current: () => boolean,
+  { limit, onProcessing = () => {} }: { limit: number; onProcessing?: (index: number, total: number) => void }): Promise<PreparedSelection | null> {
+  if (!Number.isInteger(limit) || limit < 1) return null;
+  let assets: PickedAsset[] | null;
+  try { assets = await launch(source, current, limit); } catch (error) {
+    if (!current()) return null;
+    throw error instanceof PhotoSelectionError ? error : new PhotoSelectionError('PROCESSING');
+  }
+  if (!assets) return null;
+  // A picker that ignores the limit never takes more than the free slots; the extra cache copies are cleaned up.
+  const chosen = assets.slice(0, limit);
+  for (const asset of assets.slice(limit)) removeCacheCopy(asset?.uri);
+  const selection: PreparedSelection = { photos: [], rejected: 0, firstError: null };
+  for (let index = 0; index < chosen.length; index++) {
+    if (!current()) { for (const rest of chosen.slice(index)) removeCacheCopy(rest?.uri); return null; }
+    try {
+      const photo = await prepare(chosen[index], current, () => onProcessing(index + 1, chosen.length));
+      if (!photo) { for (const rest of chosen.slice(index + 1)) removeCacheCopy(rest?.uri); return null; }
+      selection.photos.push(photo);
+    } catch (error) {
+      selection.rejected += 1;
+      selection.firstError ??= error instanceof PhotoSelectionError ? error : new PhotoSelectionError('PROCESSING');
+    }
+  }
+  if (!selection.photos.length && selection.firstError) throw selection.firstError;
+  return selection.photos.length ? selection : null;
+}
+
 /** Exact copy shown when the camera permission is denied; presentation matches it to offer settings recovery. */
 export const PHOTO_PERMISSION_MESSAGE = 'Dozvoli pristup kameri u podešavanjima ili izaberi fotografiju iz galerije.';
 const isPhotoPermissionDenied = (error: unknown): boolean => error instanceof PhotoSelectionError && error.code === 'PERMISSION';
@@ -79,4 +140,9 @@ export function photoSelectionMessage(error: unknown): string {
     ? PHOTO_PERMISSION_MESSAGE
     : error instanceof PhotoSelectionError && error.code === 'SIZE' ? 'Izaberi fotografiju do 10 MB.'
       : 'Fotografija nije pripremljena. Pokušaj ponovo ili izaberi drugu.';
+}
+/** Said after a multi-photo pick when some were left out and the rest went on. */
+export function photoSelectionSkipped(rejected: number, firstError: PhotoSelectionError | null): string {
+  const what = rejected === 1 ? 'Jedna fotografija nije dodata' : rejected < 5 ? `${rejected} fotografije nisu dodate` : `${rejected} fotografija nije dodato`;
+  return firstError?.code === 'SIZE' ? `${what}. Dozvoljeno je do 10 MB po slici.` : `${what}. Pokušaj ponovo ili izaberi drugu.`;
 }

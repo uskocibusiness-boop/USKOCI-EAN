@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowClockwise, ArrowDown, ImageSquare, PaperPlaneTilt, X } from 'phosphor-react-native';
+import { ArrowClockwise, ArrowDown, PaperPlaneTilt } from 'phosphor-react-native';
 import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, sameMessageVoice, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
@@ -7,7 +7,9 @@ import { voiceMessagesBuilt } from '../data/voiceMessagesGate';
 import { useAgreementVoice, type AgreementVoiceScope, type AgreementVoiceController } from '../hooks/useAgreementVoice';
 import { AgreementVoiceMessage, AgreementVoiceMic, AgreementVoicePanel, AgreementVoicePreference, voiceTime } from './media/AgreementVoiceControls';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
-import { AgreementPhotoComposer } from './media/AgreementPhotoComposer';
+import { AgreementPhotoComposer, AgreementPhotoSheet } from './media/AgreementPhotoComposer';
+import { PHOTO_WORDS } from './media/photoWords';
+import { Glyph } from './system/Glyph';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { Press } from './Press';
 import { FactArt } from './system/FactArt';
@@ -165,8 +167,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   const { stacked: stackedComposer } = useLayoutClass();
   // Which message the person is holding, for the support path that used to stand under every one.
   const [chosen, setChosen] = useState<string | null>(null);
-  // The photo tools stay behind the pill's "+" until asked for, or while a photo is chosen, prepared or explained.
-  const [attachOpen, setAttachOpen] = useState(false);
+  // The "+" opens the shared photo sheet (Galerija, Kamera); the earlier prepared photos are shown when asked for from it.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const list = useRef<ScrollView>(null);
   // Native layout/keyboard scroll events describe geometry, not a decision to stop following.
@@ -335,7 +338,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
     && (!photos?.hasSelection || photos.ready);
   const settleSend = async (owner: Outbox, photoAgreementId?: string) => {
     if (!mounted.current || source.current.outbox !== owner) return;
-    setAttachOpen(false);
+    setSavedOpen(false);
     await source.current.refresh();
     if (!mounted.current || source.current.outbox !== owner) return;
     const currentPhotos = source.current.photos;
@@ -390,17 +393,10 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   const local = entries.filter(entry => !matchesCanonical(entry)
     && !(entry.state === 'confirmed' && (observed.historical.has(receiptKey(entry)) || observed.canonical.has(receiptKey(entry)))));
   const denied = entries.some(entry => entry.error === 'READ_ONLY' || entry.error === 'NOT_AVAILABLE');
-  // A chosen, prepared or explained photo is never hidden behind the "+": the panel opens by itself while one exists, and
-  // then the "+" (drawn as the close X) cannot fold it away, so it says so instead of swapping its icon for nothing
-  // (review r4 rd item 6).
+  // A chosen, prepared or explained photo is never hidden: the tray above writing is drawn while one exists (review r4 rd
+  // item 6), or while the earlier prepared photos were asked for. Nothing else opens it; the "+" opens the photo sheet.
   const forced = !!photos && (photos.hasSelection || !!photos.items?.length || !!photos.message || !!photos.versionConflict);
-  // Why the panel cannot fold, by what holds it open (verify r4b rd item 6: "fotografije čekaju slanje" was said also when
-  // only a notice about the photos, such as the camera permission, or a changed Dogovor held it).
-  const forcedWhy = !forced || !photos ? undefined
-    : photos.versionConflict ? 'Ostaje otvoreno dok ne ukloniš fotografije pripremljene za raniju verziju Dogovora.'
-      : photos.hasSelection || photos.items?.length ? 'Ostaje otvoreno dok fotografije čekaju slanje.'
-        : 'Ostaje otvoreno dok je prikazana poruka o fotografijama.';
-  const photoPanel = !!photos && !terminal && (attachOpen || forced);
+  const photoPanel = !!photos && !terminal && (forced || savedOpen);
   const shown = !error ? messages : [];
   const empty = !loading && !error && messages.length === 0 && local.length === 0;
   // The first read's spinner stands in the middle like every other state, not on the composer (review r4 rd item 8).
@@ -574,7 +570,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         {!terminal && !writable ? <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}
         {!terminal && (!writable || denied) ? <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} /> : null}
         {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
-        {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing} /> : null}
+        {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing}
+          showSaved={savedOpen} onHideSaved={() => setSavedOpen(false)} /> : null}
         {photos && terminal ? <TerminalPhotoRecovery photos={photos} capturing={state.capturing} /> : null}
       </View> : null}
       {voice ? <View style={s.details}>
@@ -615,13 +612,12 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             </View>
           </View>
         {photos || voice ? <View pointerEvents="box-none" style={[s.toolbar, inlineTools && s.toolbarInline]}>
-          {photos ? <Press accessibilityRole="button" accessibilityLabel="Fotografije uz poruku"
-            accessibilityHint={forcedWhy}
-            accessibilityState={{ expanded: photoPanel, disabled: forced || voiceBusy }} disabled={forced || voiceBusy}
-            onPress={() => { chooseLatest(); setAttachOpen(open => !open); }} haptic={forced ? 'none' : 'select'} hitSlop={0}
+          {photos ? <Press accessibilityRole="button" accessibilityLabel={PHOTO_WORDS.add} accessibilityHint="Galerija ili kamera."
+            accessibilityState={{ disabled: voiceBusy }} disabled={voiceBusy}
+            onPress={() => { chooseLatest(); setSheetOpen(true); }} haptic={voiceBusy ? 'none' : 'select'} hitSlop={0}
             style={[s.tool, inlineTools && s.toolInline]}>
-            {photoPanel ? <X size={24} color={forced ? sys.color.muted : sys.color.ink} /> : <ImageSquare size={24} color={sys.color.ink} />}
-            {!inlineTools ? <T variant="meta" style={[s.toolLabel,forced&&s.toolLabelDisabled]}>Fotografije</T> : null}
+            <Glyph name="plus" size={24} tone={voiceBusy ? 'muted' : 'ink'} />
+            {!inlineTools ? <T variant="meta" style={[s.toolLabel, voiceBusy && s.toolLabelDisabled]}>{PHOTO_WORDS.add}</T> : null}
           </Press> : null}
           {voice ? <View pointerEvents="box-none" style={[s.voiceTools, inlineTools && s.voiceToolsInline]}>
             <View pointerEvents={showMic ? 'auto' : 'none'} style={[s.micSlot, !inlineTools && !showMic && s.hidden]}
@@ -637,6 +633,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </View> : null}
         </View>
       </View> : null}
+      {photos && sheetOpen && !terminal ? <AgreementPhotoSheet photos={photos} capturing={state.capturing}
+        onClose={() => setSheetOpen(false)} onShowSaved={() => setSavedOpen(true)} /> : null}
     </View>
   );
 }

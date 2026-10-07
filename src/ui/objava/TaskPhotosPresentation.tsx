@@ -1,16 +1,18 @@
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { X } from 'phosphor-react-native';
 import { T } from '../Text';
-import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
 import { useTextScale } from '../system/textScale';
-import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
+import { PhotoAttachTile, type AttachTile, type AttachTileState } from '../media/PhotoAttachTiles';
+import type { PhotoReadContext } from '../media/PhotoViewer';
+import { TASK_PHOTO_NOTICE } from '../media/photoWords';
 
 /**
- * The parts of the task photo screen (/fotografije-zadatka), drawings only: the route owns the journal, the upload
- * identity, the retry, the cancel and the removal; the design gallery (/dizajn-objava) draws the same parts from fixtures.
+ * The parts of the task photo screen (/fotografije-zadatka), drawings only: the route's controller owns the journal, the
+ * upload identity, the retry, the cancel and the removal; the design gallery (/dizajn-objava) draws the same parts from
+ * fixtures. Since 2026-10-07 a tile is the shared photo tile both chats draw (`ui/media/PhotoAttachTiles`), so the screen
+ * and the conversations show one photo one way.
  */
 
 export type PhotoTone = 'progress' | 'success' | 'error' | 'info';
@@ -37,33 +39,23 @@ export function PhotoGrid({ children }: { children: (tile: number) => ReactNode 
 export type PhotoTileState =
   | { kind: 'READY'; assetId: string }
   | { kind: 'PROCESSING' | 'FAILED'; assetId: string }
-  | { kind: 'SENDING' | 'UNCONFIRMED' };
+  | { kind: 'SENDING' | 'UNCONFIRMED' | 'QUEUED' };
 
 /**
- * One tile. A photo in the draft carries its own small remove control in the corner (a 48 px target around a 36 px
- * white circle), never a full-width button under it; a greyed control stays readable, never faded. A photo being sent
- * or not yet confirmed has a tile of its own, drawn with a dashed edge.
+ * One tile of the grid: the shared photo tile at the grid's size. A photo in the draft carries its own small remove control
+ * in the corner, never a full-width button under it; a greyed control stays readable, never faded. A photo being sent or
+ * not yet confirmed is drawn with a dashed edge.
  */
-export function PhotoTile({ state, index, size, removeDisabled, onRemove, picture }: { state: PhotoTileState; index: number; size: number;
-  removeDisabled: boolean; onRemove?: () => void;
-  /** The design gallery's stand-in for the photo, so it reads nothing. */ picture?: ReactNode }) {
-  const frame = { width: size, height: size };
-  const remove = onRemove ? <Press accessibilityRole="button" accessibilityLabel={`Ukloni fotografiju ${index + 1}`}
-    accessibilityState={{ disabled: removeDisabled }} disabled={removeDisabled} haptic="select" onPress={onRemove} style={s.removeTarget}>
-    <View style={s.removeCircle}><X size={20} weight="bold" color={removeDisabled ? sys.color.muted : sys.color.ink} /></View>
-  </Press> : null;
-  if (state.kind === 'READY') return <View style={frame}>
-    {picture ?? <AuthorizedPhoto assetId={state.assetId} label={`Fotografija zadatka ${index + 1}`} contentFit="cover" style={s.fill} />}
-    {remove}
-  </View>;
-  const pending = state.kind === 'SENDING' || state.kind === 'UNCONFIRMED';
-  return <View style={[frame, s.placeholder, pending && s.pending]}>
-    {state.kind === 'PROCESSING' || state.kind === 'SENDING' ? <ActivityIndicator size="small" color={sys.color.green} />
-      : <FactArt kind={state.kind === 'FAILED' ? 'photo' : 'info'} size={28} muted />}
-    <T variant="note" tone="muted" numberOfLines={2} style={s.center}>{state.kind === 'PROCESSING' ? 'Fotografija se obrađuje.'
-      : state.kind === 'FAILED' ? 'Fotografija nije obrađena.' : state.kind === 'SENDING' ? 'Šalje se…' : 'Slanje nije potvrđeno'}</T>
-    {remove}
-  </View>;
+export function PhotoTile({ state, index, size, removeDisabled, onRemove, onOpen, onRetry, preview, picture, context }: {
+  state: PhotoTileState; index: number; size: number; removeDisabled: boolean; onRemove?: () => void;
+  /** A saved photo opens the shared full-screen viewer. */ onOpen?: () => void;
+  /** A photo that can be sent again from its bytes. */ onRetry?: () => void;
+  /** The prepared bytes of a photo picked in this visit. */ preview?: ArrayBuffer;
+  /** The design gallery's stand-in for the photo, so it reads nothing. */ picture?: ReactNode;
+  context?: PhotoReadContext }) {
+  const shared: AttachTileState = state.kind === 'READY' ? { kind: 'READY', assetId: state.assetId } : { kind: state.kind };
+  const tile: AttachTile = { key: String(index), state: shared, preview, onRemove, removeDisabled, onRetry, retryDisabled: removeDisabled };
+  return <PhotoAttachTile tile={tile} index={index} size={size} context={context} onOpen={onOpen} picture={picture} />;
 }
 
 /** While the first read runs: two quiet squares where the photos will stand, and one sentence. */
@@ -83,23 +75,16 @@ export function PhotosPrivacyNote({ limits }: { limits: string }) {
     <FactArt kind="lock" size={20} />
     <View style={s.privacyText}>
       <T variant="note" tone="muted">{limits}</T>
-      <T variant="note" tone="muted">Izabrane fotografije šaljemo Google Gemini servisu radi provere sadržaja pre objave. Obrada može biti van Evrope i uključuje privremene bezbednosne zapise kod Google-a.</T>
+      <T variant="note" tone="muted">{TASK_PHOTO_NOTICE}</T>
     </View>
   </View>;
 }
 
 const s = StyleSheet.create({
   grow: { flex: 1 },
-  center: { textAlign: 'center' },
   status: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 24 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
-  fill: { width: '100%', height: '100%', aspectRatio: undefined },
-  placeholder: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, alignItems: 'center', justifyContent: 'center',
-    gap: sys.space.sm, padding: sys.space.sm, overflow: 'hidden' },
-  pending: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: sys.color.lineStrong },
-  removeTarget: { position: 'absolute', top: 0, right: 0, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  removeCircle: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1,
-    borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center' },
+  placeholder: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
   loading: { gap: sys.space.md },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingTop: sys.space.sm },
   privacyText: { flex: 1, gap: sys.space.sm },
