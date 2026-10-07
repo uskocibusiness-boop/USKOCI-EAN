@@ -341,7 +341,7 @@ async function allModeCases() {
     pass('MATCH_V1_ALL_TICK_TIME_BUDGET_STARTS_NO_TASK_AFTER_IT_RELEASES_THE_REST_AND_THE_NEXT_TICK_FINISHES_THEM', o.tickBudget); }
   // ALL-5: an urgent task is valid only as long as its urgency, never the 24 hours
   { const n = await poolNeed('urgent');
-    sql(`begin; set local session_replication_role=replica; update public.needs set urgent=true, urgent_expires_at=statement_timestamp()+interval '20 minutes' where id=${q(n.needId)}::uuid; commit;`);
+    sql(`begin; set local session_replication_role=replica; update public.needs set urgent=true, urgent_activated_at=statement_timestamp(), urgent_expires_at=statement_timestamp()+interval '20 minutes' where id=${q(n.needId)}::uuid; commit;`);
     fx.runWave(n.needId);
     const valid = deliveryMinutes(n.needId), notificationValid = notificationMinutes(n.needId);
     const hitno = countOf(`select count(*) from public.user_activity_events where entity_id=${q(n.needId)}::uuid and event_type='OPPORTUNITY_AVAILABLE' and urgency='HITNO'`);
