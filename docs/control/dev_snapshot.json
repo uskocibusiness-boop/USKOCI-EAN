@@ -5,10 +5,10 @@
     "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
     "concurrencyAcceptance": false
   },
-  "generated_at": "2026-10-03T18:07:31Z",
-  "ledger_total": 226,
-  "ledger_dev_alpha": 77,
-  "ledger_last": "dev_alpha_wpp01_personal_worker_profile",
+  "generated_at": "2026-10-07T09:53:20Z",
+  "ledger_total": 227,
+  "ledger_dev_alpha": 78,
+  "ledger_last": "dev_alpha_ex06e_r3_lifecycle_recovery",
   "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "cron": [
     {
@@ -128,6 +128,7 @@
     "rpc_get_need_lifecycle_receipt",
     "rpc_get_need_location_review",
     "rpc_get_need_publication_context",
+    "rpc_get_need_search_state",
     "rpc_get_notification_preferences",
     "rpc_get_processor_map_status",
     "rpc_get_public_profile",
@@ -135,6 +136,7 @@
     "rpc_get_push_device_owned",
     "rpc_get_push_readiness",
     "rpc_get_push_session_device",
+    "rpc_get_reopen_remaining_search_receipt",
     "rpc_get_requester_profile_for_edit",
     "rpc_get_retention_execution_status",
     "rpc_get_retention_policy_status",
@@ -213,6 +215,7 @@
     "rpc_redact_account_closure_step_service",
     "rpc_remove_task_photo",
     "rpc_renew_data_export_lease",
+    "rpc_reopen_remaining_search",
     "rpc_report_problem",
     "rpc_request_data_export",
     "rpc_resolve_activity_event",
@@ -330,6 +333,7 @@
     "rpc_get_need_lifecycle_receipt",
     "rpc_get_need_location_review",
     "rpc_get_need_publication_context",
+    "rpc_get_need_search_state",
     "rpc_get_notification_preferences",
     "rpc_get_processor_map_status",
     "rpc_get_public_profile",
@@ -337,6 +341,7 @@
     "rpc_get_push_device_owned",
     "rpc_get_push_readiness",
     "rpc_get_push_session_device",
+    "rpc_get_reopen_remaining_search_receipt",
     "rpc_get_requester_profile_for_edit",
     "rpc_get_retention_execution_status",
     "rpc_get_retention_policy_status",
@@ -401,6 +406,7 @@
     "rpc_read_worker_ai",
     "rpc_read_worker_ai_turn_recovery",
     "rpc_remove_task_photo",
+    "rpc_reopen_remaining_search",
     "rpc_report_problem",
     "rpc_request_data_export",
     "rpc_resolve_activity_event",
@@ -464,7 +470,7 @@
   "edge": [
     {
       "slug": "uskoci-ai-interview",
-      "version": 52,
+      "version": 53,
       "verify_jwt": true
     },
     {
@@ -630,6 +636,11 @@
     "capturedAt": "2026-10-03T18:07:31Z",
     "scope": "Full metadata snapshot/Edge list plus exact eight WPP01 body pins, unchanged ready certificates. Earlier named package-specific observations retain their timestamps.",
     "receipt": "supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
+    "problems": []
+  },
+  "refresh_20261007": {
+    "capturedAt": "2026-10-07T09:53:20Z",
+    "scope": "Read-only refresh of the catalog (docs/control/dev_snapshot.sql) and the Edge list after EX06e r3 (ledger 227). Nothing written. The three RPCs the table called missing (rpc_get_need_search_state, rpc_get_reopen_remaining_search_receipt, rpc_reopen_remaining_search) exist on DEV; the warning came from the 2026-10-03 snapshot.",
     "problems": []
   }
 }

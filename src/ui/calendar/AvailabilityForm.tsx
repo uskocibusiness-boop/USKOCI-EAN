@@ -13,6 +13,7 @@ import { V2Action } from '../v2/V2Action';
 import { Disclosure, TurningCaret } from '../system/Disclosure';
 import { ProductSheet } from '../product/ProductSheet';
 import { useConfirmSheet } from '../system/ConfirmSheet';
+import { urgentBuilt } from '../../lib/needUrgency';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
 import { CalendarField, CivilField, calendarStyles } from './CalendarControls';
@@ -474,7 +475,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
         {/* A flat row, not a box (B19): the status, what it means, and the switch. While its own save runs, the line
             under it says so; the footer's Save does not appear for it. */}
         <SwitchRow label="Mogu odmah" hint={hint} strong value={draft.availableNow} disabled={blocked} change={changeStatus} />
-        <T variant="meta" tone="muted">Ne uključuje HITNO i ne potvrđuje novi Dogovor.</T>
+        <T variant="meta" tone="muted">{urgentBuilt() ? 'Ne uključuje HITNO i ne potvrđuje novi Dogovor.' : 'Ne potvrđuje novi Dogovor.'}</T>
         {statusSaving && busy ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Čuvamo status…</T> : null}
       </View>
       <View style={s.section}>

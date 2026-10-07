@@ -19,6 +19,7 @@ import { SystemSettingsAction } from '../system/SystemSettingsAction';
 import { useTextScale } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
+import { urgentBuilt } from '../../lib/needUrgency';
 
 type Snapshot = { preferences: NotificationPreferences; native: NativePushState; device: PushDevice | null; readiness: PushReadiness | null };
 type Scope = AuthAccountScope & { role: NotificationRole; alive: boolean; busy: boolean; generation: number };
@@ -325,7 +326,9 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       value={settings.account_enabled} disabled={locked} onChange={value => onEdit('account_enabled', value)} last />
     </SettingsGroup>
     <SettingsGroup title="Tihi sati">
-     <SettingsSwitchRow label="Uključi tihe sate" help="Bez obaveštenja na telefon u ovom periodu, osim posebno dozvoljenih hitnih događaja. Period može da prelazi preko ponoći."
+     <SettingsSwitchRow label="Uključi tihe sate" help={urgentBuilt()
+      ? 'Bez obaveštenja na telefon u ovom periodu, osim posebno dozvoljenih hitnih događaja. Period može da prelazi preko ponoći.'
+      : 'Bez obaveštenja na telefon u ovom periodu. Period može da prelazi preko ponoći.'}
       value={settings.quiet_hours_enabled} disabled={locked} onChange={value => onEdit('quiet_hours_enabled', value)}
       last={!settings.quiet_hours_enabled && !showZone} />
      {settings.quiet_hours_enabled ? <View style={[styles.times, stackTimes && styles.timesStacked]}>
@@ -341,7 +344,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       {zone ? <V2Action label={`Koristi zonu telefona (${zoneLabel(zone)})`} kind="quiet" compact disabled={locked}
        onPress={() => onEdit('quiet_timezone', zone)} style={styles.inline} /> : null}
      </View> : null}
-     {settings.quiet_hours_enabled ? <SettingsSwitchRow label="Hitno može i tokom tihih sati" help="Važi samo za hitne događaje i samo kada je ovo posebno uključeno."
+     {settings.quiet_hours_enabled && urgentBuilt() ? <SettingsSwitchRow label="Hitno može i tokom tihih sati" help="Važi samo za hitne događaje i samo kada je ovo posebno uključeno."
       value={settings.urgent_overrides_quiet_hours} disabled={locked} onChange={value => onEdit('urgent_overrides_quiet_hours', value)} last /> : null}
     </SettingsGroup>
    </View>

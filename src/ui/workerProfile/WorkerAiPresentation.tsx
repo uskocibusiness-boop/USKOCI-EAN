@@ -85,7 +85,8 @@ function ReviewSection({title,art,children}:{title:string;art:FactArtKind;childr
   </View>;
 }
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
-export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
+// "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
+export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
 export function WorkerAiNotificationsNote(){
   return <View style={s.previewFact}><FactArt kind="bell" size={24} cut="art"/>
     <T testID="worker-review-notifications-note" variant="body" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></View>;
@@ -115,7 +116,7 @@ export function WorkerAiReviewDetails({review}:{review:WorkerAiReview}){
       {point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
-      <T variant="note" tone="muted">{point?'Približan centar tvog područja rada.':'Približnu tačku možeš dodati u području rada.'}</T>
+      <T variant="note" tone="muted">{point?'Približan centar tvog područja rada.':'Približnu tačku na mapi dodaješ posle čuvanja, u delu Područje rada.'}</T>
     </ReviewSection>
     <ReviewSection title="Kada možeš da radiš" art="clock">
       <Row label="Dostupnost" value={p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Status „Mogu odmah“ je isključen'} />

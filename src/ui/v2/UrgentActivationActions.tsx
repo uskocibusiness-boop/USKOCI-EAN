@@ -7,6 +7,7 @@ import { urgentActivationClientService as api, urgentActivationRefused, urgentRe
 import type { UrgentPreview } from '../../data/urgentActivationPreviewClientService';
 import { positiveInteger, record, timestamp, uuid } from '../../data/serverReceipt';
 import { dogovorenoVreme } from '../../lib/dogovorenoVreme';
+import { urgentBuilt } from '../../lib/needUrgency';
 import { noviZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { useConfirmSheet } from '../system/ConfirmSheet';
@@ -268,7 +269,7 @@ export function useUrgentActivationActions(props: Props) {
     } catch { show(owner, { ...currentView.current, message: 'Potvrda je sačuvana. Pokušaj ponovo da nastaviš.' }); }
     finally { if (current(owner)) running.current = false; }
   };
-  const entry: SheetAction | null = eligible() ? { key: 'urgent', label: 'HITNO', icon: 'tasks',
+  const entry: SheetAction | null = urgentBuilt() && eligible() ? { key: 'urgent', label: 'HITNO', icon: 'tasks',
     subtitle: 'Pregledaj dostupnost i trajanje.', onPress: () => { void open(); } } : null;
   return { entry, sheet, view, check: () => { void check(); }, finish: () => { void finish(); } };
 }

@@ -22,7 +22,7 @@ if (extendedRules !== 1) {
 
 module.exports = {
   preset: 'jest-expo',
-  setupFiles: [...expoPreset.setupFiles, require.resolve('react-native-gesture-handler/jestSetup.js')],
+  setupFiles: [...expoPreset.setupFiles, require.resolve('react-native-gesture-handler/jestSetup.js'), require.resolve('./jest.urgent-env.cjs')],
   testMatch: ['**/__tests__/**/*.test.ts?(x)'],
   transformIgnorePatterns,
 };
