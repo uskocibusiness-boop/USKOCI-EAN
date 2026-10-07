@@ -52,7 +52,7 @@ it('binds a worker eligibility refusal to exact SQLSTATE and allowlisted hard bl
     hardBlockers: ['MISSING_REQUIRED_TOOL', 'CALENDAR_CONFLICT'] });
   expect(conclusiveApplicationRefusal(result)).toBe(true);
   expect(applicationRefusalGuidance(result)).toEqual({
-    messages: ['Radnom profilu nedostaje alat koji ovaj Zadatak zahteva.', 'Termin se preklapa sa već potvrđenim Dogovorom.'],
+    messages: ['Radnom profilu nedostaje alat koji ovaj zadatak zahteva.', 'Termin se preklapa sa već potvrđenim Dogovorom.'],
     profile: true, calendar: true,
   });
   expect(JSON.stringify(result)).not.toContain('private hint');
@@ -126,9 +126,9 @@ it('says no count the read did not carry, and the server’s own count when it d
   mockRpc.mockResolvedValue({ data: [candidate()], error: null });
   expect((await candidateClientService.prijaveZaPotrebu(need))[0]).toMatchObject({ ocenaTekst: '—', recenzijeTekst: '' });
   mockRpc.mockResolvedValue({ data: [{ ...candidate(), publicProfile: { displayName: 'Milan', trust: { completedCount: 0 } } }], error: null });
-  expect((await candidateClientService.prijaveZaPotrebu(need))[0].recenzijeTekst).toBe('0 završenih poslova');
+  expect((await candidateClientService.prijaveZaPotrebu(need))[0].recenzijeTekst).toBe('0 završenih zadataka');
   mockRpc.mockResolvedValue({ data: [{ ...candidate(), publicProfile: { displayName: 'Milan', trust: { ratingAverage: 4.8, reviewCount: 3, completedCount: 7 } } }], error: null });
-  expect((await candidateClientService.prijaveZaPotrebu(need))[0]).toMatchObject({ ocenaTekst: '4,8', recenzijeTekst: '3 recenzije' });
+  expect((await candidateClientService.prijaveZaPotrebu(need))[0]).toMatchObject({ ocenaTekst: '4,8', recenzijeTekst: '3 ocene' });
 });
 it('keeps canonical current Need revision on STALE snapshot and selectable rows together', async () => {
   mockRpc.mockResolvedValue({ data: [

@@ -1,4 +1,6 @@
-import { osoba } from '../system/plural';
+// ONE source for how many people a task still needs, with the verb that agrees with the number ("Nedostaju još 2 osobe."): the own-task page
+// says it too (plan 3.5), and the two must never say it two ways. It was "Nedostaje još 2 osobe" here.
+import { missingPeople } from '../v2/ownTaskOverview';
 import type { SearchRecoveryView } from './NeedSearchRecoveryController';
 
 export type SearchRecoveryAction = 'REOPEN' | 'CHECK' | 'RETRY' | 'ACK' | 'AGREEMENTS';
@@ -10,9 +12,6 @@ export type SearchRecoveryCopy = {
   primary: { label: string; action: SearchRecoveryAction; disabled?: boolean } | null;
   secondary?: { label: string; action: SearchRecoveryAction };
 };
-
-const missing = (count: number) =>
-  count === 1 ? 'Nedostaje još jedna osoba.' : 'Nedostaje još ' + osoba(count) + '.';
 
 export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecoveryCopy | null {
   if (view.phase === 'LOADING') return view.command
@@ -29,7 +28,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
     art: 'info',
     quiet: true,
     primary: { label: 'Proveri ishod', action: 'CHECK' },
-    ...(view.retryAllowed ? { secondary: { label: 'Ponovi isti zahtev', action: 'RETRY' as const } } : {}),
+    ...(view.retryAllowed ? { secondary: { label: 'Pošalji ponovo', action: 'RETRY' as const } } : {}),
   };
   if (view.phase === 'ERROR') return {
     title: 'Proveri stanje potrage',
@@ -53,7 +52,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
       && ['PUBLISHED', 'SELECTION'].includes(state.status) && state.missingSlots > 0;
     return {
       title: currentlyOpen ? 'Potraga je ponovo otvorena' : 'Stanje potrage je promenjeno',
-      detail: currentlyOpen ? missing(state.missingSlots)
+      detail: currentlyOpen ? missingPeople(state.missingSlots)
         : state.searchAuthority === 'CLOSED'
           ? 'Potraga je sada zatvorena. Raniji uspešan zahtev to ne menja.'
           : 'Pregledaj aktuelni zadatak i svoje Dogovore.',
@@ -72,7 +71,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
     primary: state.activeAgreementCount ? { label: 'Otvori moje Dogovore', action: 'AGREEMENTS' } : null,
   };
   if (state.awaitingConfirmationCount || state.openProblemCount) return {
-    title: state.openProblemCount ? 'Dogovor traži tvoju pažnju' : 'Potvrdi završetak posla',
+    title: state.openProblemCount ? 'Dogovor traži tvoju pažnju' : 'Potvrdi završetak zadatka',
     detail: state.openProblemCount ? 'Prvo proveri prijavljeni problem u Dogovoru.'
       : 'Završetak je označen. Proveri Dogovor pre sledećeg koraka.',
     art: 'users',
@@ -89,7 +88,7 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
   };
   if (state.searchAuthority === 'CLOSED' && state.missingSlots > 0) return {
     title: 'Potraga je zatvorena',
-    detail: missing(state.missingSlots) + ' Ti odlučuješ kada nastavljamo.',
+    detail: missingPeople(state.missingSlots) + ' Ti odlučuješ kada nastavljamo.',
     art: 'users',
     quiet: false,
     primary: state.canReopen ? { label: 'Ponovo traži ljude', action: 'REOPEN', disabled: view.phase === 'REVIEW' } : null,

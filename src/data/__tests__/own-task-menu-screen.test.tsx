@@ -44,6 +44,8 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+// The questions of the task have their own reader and suite (owner, 2026-10-07); this suite is about the "···" of the task.
+jest.mock('../../ui/qa/useTaskQaInline', () => ({ useTaskQaInline: () => ({ state: { phase: 'idle' }, retry: () => undefined }) }));
 import Review from '../../app/(app)/potrebe/[id]/pregled';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { sys } from '../../ui/system/tokens';
@@ -82,9 +84,9 @@ it('a published task: the edit reaches "Izmena Zadatka", the cancel its own revi
   await render();
   expect(texts()).not.toContain('Upravljanje zadatkom');
   await openMenu();
-  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni Zadatak', 'HITNO', 'Otkaži zadatak']);
+  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni zadatak', 'HITNO', 'Otkaži zadatak']);
   await act(async () => { rows()[0].props.onPress(); });
-  expect(sheets()[0].props).toMatchObject({ title: 'Izmena Zadatka', tone: 'default' });
+  expect(sheets()[0].props).toMatchObject({ title: 'Izmena zadatka', tone: 'default' });
   await inSheet('confirm-sheet-cancel'); expect(mockEdit).not.toHaveBeenCalled();
   await choose('Otkaži zadatak');
   expect(sheets()).toHaveLength(1);
@@ -106,8 +108,9 @@ it('a draft: the edit opens the conversation directly, delete asks with its own 
   mockEdit.mockResolvedValue({ ok: true, podatak: { needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true } });
   await render();
   await openMenu();
-  // Deleting and cancelling both end the draft, so both are last and drawn in the danger colour.
-  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni nacrt', 'Obriši nacrt', 'Otkaži zadatak']);
+  // A draft offers ONLY the deletion (plan 2.3): it was never published, so "Otkaži zadatak" beside "Obriši nacrt" asked a person to choose
+  // between ending the same unpublished thing two ways. The deletion is last and drawn in the danger colour.
+  expect(rows().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni nacrt', 'Obriši nacrt']);
   for (const row of rows().slice(1)) expect(StyleSheet.flatten(row.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.danger);
   await act(async () => { rows()[1].props.onPress(); });
   expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger' });
@@ -144,8 +147,8 @@ it('an uncertain cancel keeps its recovery on the screen under the title, with n
   await render(); await choose('Otkaži zadatak'); await inSheet('confirm-sheet-confirm');
   expect(sheets()).toHaveLength(0);
   expect(tree.root.findAllByProps({ label: 'Proveri ishod' })).toHaveLength(1);
-  expect(tree.root.findAllByProps({ label: 'Ponovi isti zahtev' })).toHaveLength(1);
+  expect(tree.root.findAllByProps({ label: 'Pošalji ponovo' })).toHaveLength(1);
   const all = texts();
-  expect(all.lastIndexOf('Pregledani Zadatak')).toBeLessThan(all.indexOf('Ponavljanje je dostupno tek posle uspešne provere.'));
-  expect(all.indexOf('Ponavljanje je dostupno tek posle uspešne provere.')).toBeLessThan(all.indexOf('Po dogovoru'));
+  expect(all.lastIndexOf('Pregledani Zadatak')).toBeLessThan(all.indexOf('Ponovno slanje je dostupno tek posle uspešne provere.'));
+  expect(all.indexOf('Ponovno slanje je dostupno tek posle uspešne provere.')).toBeLessThan(all.indexOf('Po dogovoru'));
 });

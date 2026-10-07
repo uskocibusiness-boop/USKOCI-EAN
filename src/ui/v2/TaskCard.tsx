@@ -90,7 +90,7 @@ function TaskCardBase({ item, onOpen, onApplications, compact = false, bare = fa
   const settle = () => { scale.set(reduced ? 1 : withSpring(1, { ...sys.motion.spring, reduceMotion: ReduceMotion.System })); };
 
   return <Animated.View style={[s.card, !bare && raisedItem, bare && s.bare, disabled && s.disabled, lift]}>
-    <Press accessibilityRole="button" accessibilityLabel={`${ownerView ? 'Otvori Zadatak' : 'Otvori priliku'} ${title}`} accessibilityValue={{ text: spoken }}
+    <Press accessibilityRole="button" accessibilityLabel={`${ownerView ? 'Otvori zadatak' : 'Otvori priliku'} ${title}`} accessibilityValue={{ text: spoken }}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
       style={[s.body, compact && s.bodyCompact, bare && s.bodyBare]}>
       {status || urgent ? <CardStatus status={status} urgency={item.urgency} now={urgencyNow} /> : null}

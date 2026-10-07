@@ -1,97 +1,82 @@
 import { memo, useRef, useState, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { FactArt } from '../system/FactArt';
-import { MoneyArt } from '../system/MoneyArt';
-import { CalendarArt } from '../system/CalendarArt';
 import { useReducedMotion } from '../system/motion';
-import { dolaziOsoba, osoba } from '../system/plural';
+import { osoba } from '../system/plural';
+import { STATUS_CHIPS, type StatusKey } from '../system/StatusChip';
 import { useLayoutClass } from '../system/textScale';
 import { cardCompact, raisedItem, sys } from '../system/tokens';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { PrijavaCard, prijavaSpoken, type PrijavaModel, type PrijavaPrice, type PrijavaStatus } from './PrijavaCard';
 import { CARD_PRESS_SCALE } from './TaskCard';
-import { CardFact, CardFootLine, CardStatusLine, CardTitle, VALUE_WORDS, faceStyles, valueStyles, type FootTone, type StatusTone } from './TaskFace';
+import { CardFootLine, faceStyles, type FootTone } from './TaskFace';
 
 /**
- * The face of MY application in a list (owner's step 5c, 2026-09-24). It belongs to the task card's system (the same
- * frame, the same fixed lines, the same fact drawings, the same foot) and has its own purpose: my offer. Every card is
- * the same lines in the same order, and a line either says something or is not drawn:
+ * MY application in a list (owner's step 5c, 2026-09-24; one object for both people since 2026-10-07, plan 2.12). The content
+ * is the shared `PrijavaCard` (the state as the app's one `StatusChip`, the TASK's title, then the term, the price, the people
+ * and my message in that fixed order); this file is the worker's side of it:
  *
- *   1. the status, with a dot: Poslata, Pregledana, U užem izboru, Izabrana, Potrebna nova provera, Povučena, Zatvorena.
- *      The state is said by the dot and the word, never by a coloured card edge;
- *   2. the title of the task;
- *   3. where (one line); 4. when (up to two lines);
- *   5. my offer: "Tvoja ponuda", and the amount in the money colour with "ukupno" under it (the task card's value slot),
- *      or the word when there is no amount;
- *   6. the people the offer brings ("Dolaze 2 osobe", the owner's words for a price read with its people, while the offer
- *      is open; only "2 osobe" once it is settled: chosen, withdrawn or closed);
- *   7. my message to the requester; a long note has a separate read-only control to open its complete text;
- *   8. the foot: at most ONE action, the one this state allows, as a quiet row link (never a button inside the card):
- *      Izabrana → "Otvori Dogovor", Poslata (and every open state the server lets me withdraw) → "Povuci prijavu" (a
- *      quiet ink link; the danger colour is kept for the question it opens), Potrebna nova provera → "Pregledaj izmene
- *      zadatka" (the one orange dot of the card); nothing for a state that is over.
+ *   - what each state of the read is called (the owner's five words: Poslata, Viđena, Izabrana, Nije izabrana, Povučena);
+ *   - the interactive shell: the body opens the task, a long note has a separate read-only control to open its complete text,
+ *     and the foot holds at most ONE action, the one this state allows, as a quiet row link (never a button inside the card, and
+ *     never green for a withdrawal): Izabrana → "Otvori Dogovor", an open one the server lets me withdraw → "Povuci prijavu" (a
+ *     quiet ink link; the danger colour is kept for the question it opens), a changed task → "Pregledaj izmene zadatka" (the one
+ *     orange dot of the card); nothing for a state that is over.
  *
  * The body opens the task the application belongs to, as it always did. The foot is its own press, a sibling of the body.
  *
- * "Odbijena" is not a word the card can say: the read has no such state. Its CLOSED merges an application that was not
- * chosen, one that expired and one whose task closed (private.my_application_state), so it says what is true of all
- * three, "Zatvorena", and never names a reason it does not know.
+ * Two of the read's states say more than the five words do, and the card says it in a line under the chip rather than in a sixth word:
+ * STALE_REVIEW_REQUIRED is still the application that was SENT, but the task changed under it ("Zadatak je izmenjen"); CLOSED merges an
+ * application that was not chosen, one that expired and one whose task closed (private.my_application_state), so it is "Nije izabrana"
+ * and the line says what is true of all three, "Zadatak više ne prima prijave", never a reason the read does not know.
  */
 
 const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 /* ------------------------------------------------------------------------------------------------ what it says */
 
-const STATUS: Record<StanjeMojePrijave, { text: string; tone: StatusTone }> = {
-  SUBMITTED: { text: 'Poslata', tone: 'ink' },
-  VIEWED: { text: 'Pregledana', tone: 'ink' },
-  SHORTLISTED: { text: 'U užem izboru', tone: 'green' },
-  SELECTED: { text: 'Izabrana', tone: 'green' },
-  // Said once, in ink: the foot under it carries the one orange dot of a waiting card (review r4 item 6; R1 A13, B1).
-  STALE_REVIEW_REQUIRED: { text: 'Potrebna nova provera', tone: 'ink' },
-  WITHDRAWN: { text: 'Povučena', tone: 'muted' },
-  CLOSED: { text: 'Zatvorena', tone: 'muted' },
+const STATUS: Record<StanjeMojePrijave, PrijavaStatus> = {
+  SUBMITTED: 'application.sent',
+  VIEWED: 'application.seen',
+  // The owner's five states have no "u užem izboru". A shortlisted application is one the requester has acted on, so it has been seen.
+  SHORTLISTED: 'application.seen',
+  // The task changed under it: it is still the application that was sent. What is new is the line under the chip and the foot.
+  STALE_REVIEW_REQUIRED: 'application.sent',
+  SELECTED: 'application.selected',
+  WITHDRAWN: 'application.withdrawn',
+  CLOSED: 'application.notSelected',
 };
-/** The status line of an application: the word and the tone its dot is drawn in. */
-export const applicationStatus = (state: StanjeMojePrijave) => STATUS[state];
+/** The state of an application as the chip says it: its key and its word. */
+export const applicationStatus = (state: StanjeMojePrijave): { key: StatusKey; text: string } => ({ key: STATUS[state], text: STATUS_CHIPS[STATUS[state]].word });
+const REASON: Partial<Record<StanjeMojePrijave, NonNullable<PrijavaModel['reason']>>> = {
+  STALE_REVIEW_REQUIRED: { text: 'Zadatak je izmenjen.', tone: 'warn' },
+  CLOSED: { text: 'Zadatak više ne prima prijave.', tone: 'muted' },
+};
 
 /**
  * My offer. The stored price of an application is its own total: a task priced per person is multiplied by the places
  * this application covers when it is sent (pkg025b), and the edit form asks for "Cena prijave ukupno". So the card says
  * "ukupno"; "po osobi" is drawn only for a value that is one, and the read hands none over today. An amount that is not a
- * positive number with its written form is not an amount, and the card says so in words.
+ * positive number with its written form is not an amount, and the card says so in words ("Iznos nije sačuvan").
  */
-export type ApplicationValue = { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' } | { kind: 'unpriced' };
+export type ApplicationValue = PrijavaPrice;
 export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena'>): ApplicationValue {
   const amount = row.cena?.prikaz?.trim();
   const number = row.cena?.iznos;
   if (!amount || typeof number !== 'number' || !Number.isFinite(number) || number <= 0) return { kind: 'unpriced' };
   return { kind: 'amount', amount, basis: 'ukupno' };
 }
-/** The words before the value. What the amount buys ("ukupno") stands under the amount, as on the task card. */
-export const OFFER_WORDS = 'Tvoja ponuda';
-/** The value as it is heard: "Tvoja ponuda 4.500 RSD ukupno", or the word. */
-export const offerSpoken = (value: ApplicationValue) => value.kind === 'amount'
-  ? `${OFFER_WORDS} ${value.amount} ${value.basis}` : `${OFFER_WORDS}: ${VALUE_WORDS.unpriced}`;
-/**
- * The people the offer brings, in the owner's words for a price read with its people (decision 2, 2026-09-19). "Dolaze
- * 2 osobe" is said only while the offer is open. A settled offer says only how many it offered ("2 osobe"): a withdrawn
- * or closed one brings nobody (review r4 item 2), and a chosen one may already be finished (verify r4b item A).
- */
-export const offerPeople = (places: number, settled = false) => {
-  const words = settled ? osoba(places) : dolaziOsoba(places);
-  return words.charAt(0).toUpperCase() + words.slice(1);
-};
-/**
- * An offer that is no longer open: withdrawn, closed for any of the reasons CLOSED merges, or chosen. A chosen offer
- * became a Dogovor, and the application's read carries no Dogovor state, so the card cannot tell a live Dogovor from a
- * finished one; "Otvori Dogovor" holds the live facts (verify r4b item A, seen on the emulator: "Izabrana" cards of
- * finished Dogovori said "Dolazi 1 osoba").
- */
-export const offerSettled = (state: StanjeMojePrijave) => state === 'WITHDRAWN' || state === 'CLOSED' || state === 'SELECTED';
+
+/** The shared card's model for MY application: nothing here that the read did not carry. */
+export function workerPrijava(row: MojaPrijavaProjekcija): PrijavaModel {
+  const note = row.napomena?.trim();
+  return { status: STATUS[row.stanje], reason: REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
+    term: row.vremeTekst, price: applicationValue(row), people: osoba(row.pokrivaMesta), message: note ? `„${note}“` : null,
+    quiet: row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED' };
+}
 
 /** The one action the foot holds, from the state alone. `null`: the state allows none, or it is already open. */
 export type ApplicationFootAction = 'agreement' | 'withdraw' | 'review';
@@ -116,57 +101,20 @@ export const applicationFootWords = (action: ApplicationFootAction) => FOOT[acti
 
 /** Everything the body shows, as one sentence after its command name, in the order it is drawn. Empty parts are left out. */
 export function applicationSpoken(row: MojaPrijavaProjekcija): string {
-  const value = applicationValue(row);
-  const note = row.napomena?.trim();
-  return [applicationStatus(row.stanje).text, row.podrucjeTekst, row.vremeTekst, offerSpoken(value),
-    offerPeople(row.pokrivaMesta, offerSettled(row.stanje)), note ? `tvoja poruka: ${note}` : null]
-    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join(', ');
+  // The message is my own words, said as such and without the quotation marks the card draws around them.
+  return prijavaSpoken(workerPrijava(row), { message: row.napomena?.trim(), messageLabel: 'tvoja poruka' });
 }
 
 /* ------------------------------------------------------------------------------------------------ the parts */
 
 /**
- * My offer is one group: a quiet label over the amount and its total basis, with the people beside it when there is
- * room. The people wrap below before squeezing a long amount. Large text gives each group its own full-width line.
- * A missing amount remains a quiet word; no price or basis is invented.
- */
-export function OfferRow({ value, places, large, settled = false }: { value: ApplicationValue; places: number; large: boolean;
-  /** The offer is settled (chosen, withdrawn or closed): the people are a count, not "Dolaze". */ settled?: boolean }) {
-  return <View style={[s.offer, large && s.offerStacked]}>
-    <View style={[s.offerValue, large && s.offerValueStacked]}>
-      {value.kind === 'amount' ? <MoneyArt size={24} /> : <FactArt kind="money" size={24} cut="art" />}
-      <View style={s.offerCopy}>
-        <T variant="meta" tone="muted">{OFFER_WORDS}</T>
-        {value.kind === 'amount' ? <View style={s.offerAmount}>
-          <T style={[valueStyles.amount, valueStyles.alignStart, s.amountWrap]}>{value.amount}</T>
-          <T style={[valueStyles.basis, valueStyles.alignStart]}>{value.basis}</T>
-        </View> : <T style={valueStyles.valueWord}>{VALUE_WORDS.unpriced}</T>}
-      </View>
-    </View>
-    <View style={s.offerPeople}><FactArt kind="users" size={20} cut="art" tone="quiet" />
-      <T variant="note" tone="muted" style={s.peopleText}>{offerPeople(places, settled)}</T></View>
-  </View>;
-}
-
-/**
  * What a person reads to recognise the application. Data to pixels only, memoised on the row and the text size alone, so
  * the screen's fresh per-render handlers (which the card must keep: a handle captured under one account revision must not
- * act under the next) re-render the thin interactive shell and not this text.
+ * act under the next) re-render the thin interactive shell and not this text. The message is the only place my words to the
+ * requester can be read again, so it is in quotes; a long one is clamped and has its own read-only control (`noteCollapsed`).
  */
 export const ApplicationSummary = memo(function ApplicationSummary({ row, large, noteCollapsed = false, disabled = false }: { row: MojaPrijavaProjekcija; large: boolean; noteCollapsed?: boolean; disabled?: boolean }) {
-  const status = applicationStatus(row.stanje);
-  const note = row.napomena?.trim();
-  return <>
-    <CardStatusLine text={status.text} tone={status.tone} />
-    <CardTitle title={readableTitle(row.naslov)} lines={0} style={s.title} />
-    <View style={s.facts}>
-      <CardFact art={<FactArt kind={row.zadatak?.rezimLokacije === 'REMOTE' ? 'remote' : 'pin'} size={24} cut="art" />} text={row.podrucjeTekst} lines={0} />
-      <CardFact art={<CalendarArt size={24} quiet={disabled || status.tone === 'muted'} />} text={row.vremeTekst} lines={0} />
-    </View>
-    <OfferRow value={applicationValue(row)} places={row.pokrivaMesta} large={large} settled={offerSettled(row.stanje)} />
-    {/* The only place my message to the requester can be read again; my words, so in quotes. */}
-    {note ? <CardFact art={<FactArt kind="chat" size={24} cut="art" tone="quiet" />} text={`„${note}“`} lines={noteCollapsed ? 2 : 0} /> : null}
-  </>;
+  return <PrijavaCard model={workerPrijava(row)} large={large} noteLines={noteCollapsed ? 2 : 0} disabled={disabled} />;
 });
 
 /**
@@ -241,18 +189,6 @@ export const ApplicationCard = memo(ApplicationCardBase);
 const s = StyleSheet.create({
   // Shared raised frame; body/footer keep their existing separate targets and exact internal geometry.
   card: { ...cardCompact, ...raisedItem, padding: 0 },
-  body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: 8, borderRadius: sys.radius.cardCompact },
-  facts: { gap: 4 },
+  body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: sys.space.md, borderRadius: sys.radius.cardCompact },
   noteToggle: { minHeight: 48, paddingHorizontal: 16, paddingVertical: sys.space.sm, justifyContent: 'center' },
-  // My offer sits a step apart from the task's facts: it is the part of the card that is mine.
-  title: { fontSize: 18, lineHeight: 24 },
-  offer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.md, marginVertical: sys.space.xs },
-  offerStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  offerValue: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  offerValueStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
-  offerCopy: { flex: 1, minWidth: 0, gap: 2 },
-  offerAmount: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: sys.space.xs },
-  amountWrap: { flexShrink: 1, maxWidth: '100%' },
-  offerPeople: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, flexShrink: 1, maxWidth: '100%' },
-  peopleText: { flexShrink: 1 },
 });

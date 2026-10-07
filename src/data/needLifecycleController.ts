@@ -10,7 +10,7 @@ export type NeedLifecycleState = Readonly<{
   collectionRefreshRequired: boolean;
 }>;
 const CHANGED: NeedLifecycleState = Object.freeze({ phase: 'ACCOUNT_CHANGED', confirmation: null,
-  error: { kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Zadatak.' }, collectionRefreshRequired: false });
+  error: { kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori zadatak.' }, collectionRefreshRequired: false });
 const UNCERTAIN = { kod: 'UNKNOWN_OUTCOME', poruka: 'Radnja nije potvrđena. Proveri ishod pre ponovnog pokušaja.' };
 
 /** Presentation-independent terminal command owner. No list inference, state-machine
@@ -37,7 +37,7 @@ export function createNeedLifecycleController(options: {
     confirmation: null, error: options.restoreUnknownOutcome ? UNCERTAIN : null, collectionRefreshRequired: false };
   if (!uuid(command.needId) || !positiveInteger(command.expectedRevision) ||
     !['CANCEL', 'DELETE_DRAFT'].includes(command.action) || typeof command.reason !== 'string' || Array.from(command.reason).length > 500) {
-    state = { ...state, phase: 'REJECTED', error: { kod: 'NEED_COMMAND_INVALID_INPUT', poruka: 'Ponovo otvori Zadatak i pregledaj aktuelne podatke.' } };
+    state = { ...state, phase: 'REJECTED', error: { kod: 'NEED_COMMAND_INVALID_INPUT', poruka: 'Ponovo otvori zadatak i pregledaj aktuelne podatke.' } };
   }
   const listeners = new Set<() => void>();
   const current = () => {

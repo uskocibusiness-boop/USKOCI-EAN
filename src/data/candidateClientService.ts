@@ -107,8 +107,9 @@ function mapCandidate(raw: any): KandidatProjekcija {
     // From the published name only: "Ime nije dostupno" is our sentence, not the person's name, so it gives no letters.
     inicijali: inicijali(typeof profile?.displayName === 'string' ? profile.displayName : null) ?? '',
     ocenaTekst: rating === null ? '—' : rating.toLocaleString('sr-Latn-RS', { maximumFractionDigits: 1 }),
-    recenzijeTekst: reviews !== null ? plural(reviews, 'recenzija', 'recenzije', 'recenzija')
-      : completed !== null ? plural(completed, 'završen posao', 'završena posla', 'završenih poslova') : '',
+    // "4,7 · 3 ocene": the count a rating stands on is said in the words of the rating (plan 2.11), not as a second noun.
+    recenzijeTekst: reviews !== null ? plural(reviews, 'ocena', 'ocene', 'ocena')
+      : completed !== null ? plural(completed, 'završen zadatak', 'završena zadatka', 'završenih zadataka') : '',
     cena: rsd(raw.priceRsd),
     pokrivaMesta: raw.coveredSlots,
     preostaloMesta: raw.remainingSlots,
