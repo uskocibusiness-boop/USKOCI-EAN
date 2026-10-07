@@ -88,15 +88,15 @@ const SCENES: Scene[] = [
   { key: 'push-emulator-on', label: 'Podešavanja · uključeno, slanje još nije uključeno', group: 'Podešavanja obaveštenja' },
   { key: 'push-loading', label: 'Podešavanja · učitavanje', group: 'Podešavanja obaveštenja' },
   { key: 'push-failed', label: 'Podešavanja · nisu učitana', group: 'Podešavanja obaveštenja' },
-  { key: 'blocked', label: 'Blokirani · spisak', group: 'Blokirani korisnici' },
-  { key: 'blocked-confirm', label: 'Blokirani · pitanje pre odblokiranja', group: 'Blokirani korisnici' },
-  { key: 'blocked-pending', label: 'Blokirani · odblokiranje u toku', group: 'Blokirani korisnici' },
-  { key: 'blocked-uncertain', label: 'Blokirani · ishod nije potvrđen', group: 'Blokirani korisnici' },
-  { key: 'blocked-stale', label: 'Blokirani · lista nije osvežena', group: 'Blokirani korisnici' },
-  { key: 'blocked-done', label: 'Blokirani · uklonjeno', group: 'Blokirani korisnici' },
-  { key: 'blocked-empty', label: 'Blokirani · prazno', group: 'Blokirani korisnici' },
-  { key: 'blocked-loading', label: 'Blokirani · učitavanje', group: 'Blokirani korisnici' },
-  { key: 'blocked-failed', label: 'Blokirani · nije učitano', group: 'Blokirani korisnici' },
+  { key: 'blocked', label: 'Blokirani · spisak', group: 'Blokirane osobe' },
+  { key: 'blocked-confirm', label: 'Blokirani · pitanje pre odblokiranja', group: 'Blokirane osobe' },
+  { key: 'blocked-pending', label: 'Blokirani · odblokiranje u toku', group: 'Blokirane osobe' },
+  { key: 'blocked-uncertain', label: 'Blokirani · ishod nije potvrđen', group: 'Blokirane osobe' },
+  { key: 'blocked-stale', label: 'Blokirani · lista nije osvežena', group: 'Blokirane osobe' },
+  { key: 'blocked-done', label: 'Blokirani · uklonjeno', group: 'Blokirane osobe' },
+  { key: 'blocked-empty', label: 'Blokirani · prazno', group: 'Blokirane osobe' },
+  { key: 'blocked-loading', label: 'Blokirani · učitavanje', group: 'Blokirane osobe' },
+  { key: 'blocked-failed', label: 'Blokirani · nije učitano', group: 'Blokirane osobe' },
   { key: 'rows', label: 'Delovi · redovi podešavanja', group: 'Delovi podešavanja' },
 ];
 
@@ -183,8 +183,8 @@ function PushScene({ scene, back }: { scene: string; back: () => void }) {
     <DetailTopBar title="Podešavanja obaveštenja" onBack={back} />
     <View style={s.sets}>
       <Segmented appearance="underline" value={role} onChange={setRole}
-        options={[{ key: 'REQUESTER', label: 'Moji zadaci' }, { key: 'WORKER', label: 'Moje prijave' }]} />
-      <T variant="note" tone="muted">{role === 'REQUESTER' ? 'Obaveštenja o zadacima koje objavljuješ.' : 'Obaveštenja o poslovima na koje se prijavljuješ.'}</T>
+        options={[{ key: 'REQUESTER', label: 'Zadaci' }, { key: 'WORKER', label: 'Moje prijave' }]} />
+      <T variant="note" tone="muted">{role === 'REQUESTER' ? 'Obaveštenja o zadacima koje objavljuješ.' : 'Novi zadaci, tvoje prijave i Dogovori.'}</T>
     </View>
     <PushPreferencesView {...props} />
   </SafeAreaView>;
@@ -194,7 +194,7 @@ function BlockedScene({ scene, back }: { scene: string; back: () => void }) {
   const [asking, setAsking] = useState(scene === 'blocked-confirm');
   const data = scene === 'blocked-loading' || scene === 'blocked-failed' ? null : scene === 'blocked-empty' ? NO_BLOCKS
     : scene === 'blocked-done' ? { ...BLOCKED, items: BLOCKED.items.slice(1) } : BLOCKED;
-  return <SettingsScreen title="Blokirani korisnici" onBack={back}>
+  return <SettingsScreen title="Blokirane osobe" onBack={back}>
     <BlockedAccountsList data={data} loading={scene === 'blocked-loading'} busy={false}
       error={scene === 'blocked-failed' || scene === 'blocked-stale' ? 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.'
         : scene === 'blocked-uncertain' ? 'Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja.' : null}
@@ -226,7 +226,7 @@ function RowsScene({ back }: { back: () => void }) {
       <SettingsInfo title="Obaveštenja na telefon su uključena" icon={<FactArt kind="phone" size={26} />}>Važi za Moje zadatke. Ovaj telefon je povezan sa tvojim nalogom.</SettingsInfo>
       <SettingsPersonRow name="Aleksandra Stojanović-Radovanović iz Novog Sada" initials="AS" onOpen={noop}
         action={{ label: 'Odblokiraj', onPress: noop }} />
-      <SettingsPersonRow name="USKOČI korisnik" initials={null} onOpen={noop} action={{ label: 'Odblokiraj', onPress: noop, loading: true }} last />
+      <SettingsPersonRow name="Ime nije dostupno" initials={null} onOpen={noop} action={{ label: 'Odblokiraj', onPress: noop, loading: true }} last />
     </SettingsGroup>
   </SettingsScreen>;
 }

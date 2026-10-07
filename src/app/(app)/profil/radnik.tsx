@@ -16,7 +16,7 @@ type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
 type Draft = { value: WorkerDraft; initial: WorkerDraft; profileId: string | null };
 type Attempt = { command: AzurirajProfilKomanda; expected: AzurirajProfilKomanda; profileId: string | null; afterRead: number };
 const failed = (): Ishod<Snapshot> => ({ ok: false, kod: 'PROFILE_UNCONFIRMED',
-  poruka: 'Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što probaš ponovo.' });
+  poruka: 'Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što pokušaš ponovo.' });
 async function bounded<T>(request: () => Promise<T>, milliseconds: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try { return await Promise.race([request(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('PROFILE_TIMEOUT')), milliseconds); })]); }
@@ -52,7 +52,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       const profile = await bounded(() => izvor.mojRadnikProfil(), 15_000);
       if (!owns()) return failed();
       return { ok: true, podatak: { profile, read: sequence } };
-    } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proveri vezu pa probaj ponovo.' }; }
+    } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proveri vezu pa pokušaj ponovo.' }; }
   }, [izvor, owns]);
   const editor = useOwnedEditor(read);
   const [draft, setDraft] = useState<Draft | null>(null), draftRef = useRef<Draft | null>(null), draftGeneration = useRef(0);
@@ -60,6 +60,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const [transportBusy, setTransportBusy] = useState(false), transportRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null), [validation, setValidation] = useState<string | null>(null);
   const [focusRequest, setFocusRequest] = useState<WorkerProfileFocusRequest | null>(null), focusRequestSequence = useRef(0);
+  // A finished profile is READ first (M3); "Izmeni ručno" is what turns it into the editor. Leaving the screen reads it again next time.
+  const [manual, setManual] = useState(false);
   const setLocal = (next: Draft) => { draftGeneration.current++; draftRef.current = next; setDraft(next); };
   useEffect(() => {
     if (!editor.data || transportBusy) return;
@@ -98,6 +100,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       setLocal({ ...local, value: local.initial });
       setMessage(null); setValidation(null); setFocusRequest(null);
     }
+    setManual(false);
     if (router.canGoBack()) router.back(); else router.replace('/profil');
   };
   const change = (value: WorkerDraft) => {
@@ -176,6 +179,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const status = profile?.stanje ?? null;
   const firstSave = profile === null;
   const localDirty = !!draft && JSON.stringify(draft.value) !== JSON.stringify(draft.initial);
+  // Read, not edited: a finished profile with nothing unsaved or in flight. Any edit in progress means the editor is already open.
+  const reading = profile !== null && (status === 'ACTIVE' || status === 'SUSPENDED') && !manual && !localDirty && !pending && !transportBusy;
   const leave = useUnsavedProfileBack({ dirty: localDirty, busy: transportBusy || editor.busy, uncertain: !!pending || editor.uncertain,
     revision: draftGeneration.current, onBack: goBack });
   const pendingBack = () => {
@@ -223,8 +228,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   return <WorkerProfileFrame back={back} scrollRef={scroll} onScroll={rememberReading} onScrollBeginDrag={beginReading}
     footer={visible && showFooter ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
-    {pending && (editor.uncertain || editor.error) ? <V2Action tone="neutral" label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
-      : <V2Action tone="neutral" label={transportBusy ? 'Čuvamo profil…' : pending ? 'Ponovi isto čuvanje' : primary.label}
+    {pending && (editor.uncertain || editor.error) ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
+      : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Sačuvaj ponovo' : primary.label}
         disabled={!enabled} loading={transportBusy} success={!!message} onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
     {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
@@ -233,7 +238,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
-        openConversation={openConversation} profileExists={profile !== null} /></View>}
+        openConversation={openConversation} profileExists={profile !== null}
+        reading={reading} onManual={() => { if (enabled && current()) setManual(true); }} primaryTaken={visible && showFooter} /></View>}
     {leave.sheet}
   </WorkerProfileFrame>;
 }

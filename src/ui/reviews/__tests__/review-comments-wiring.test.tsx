@@ -2,9 +2,10 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 /**
- * Where the "Komentari" section of a profile is wired (D12): under the rating line of `AccountReputation`, only in a build with the
- * flag and only with a profile to read; and what the profile screen hands it. The section itself is tested in
- * `review-comments-section.test.tsx`; here it is a named element, so what is judged is WHERE it is placed and with WHAT.
+ * Where the "Komentari" section of a profile is wired (D12). Until 2026-10-07 it stood under the rating line of `AccountReputation`
+ * on the profile; the rating line is now a way in to "Ocene" (T4a), and the comments live there, in "Primljene" (tested in
+ * `ratings-route.test.tsx`). What is judged here is that the profile no longer carries them, what it hands the rating line instead,
+ * and that the line itself still reads exactly as it did. The section itself is tested in `review-comments-section.test.tsx`.
  */
 jest.setTimeout(60_000);
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', PROFILE = '99999999-9999-4999-8999-999999999999';
@@ -53,7 +54,6 @@ const FLAG = 'EXPO_PUBLIC_D12_REVIEW_COMMENT';
 let tree: ReactTestRenderer;
 const hosts = (name: string) => tree.root.findAll(node => String(node.type) === name);
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
-const photo = jest.fn();
 beforeEach(() => {
   jest.clearAllMocks(); delete process.env[FLAG]; mockRealReputation = true;
   mockReputation.mockResolvedValue({ ok: true, podatak: { accountId: A, reviewCount: 12, averageRating: 4.8, state: 'RATED', authoritative: true } });
@@ -63,40 +63,38 @@ beforeEach(() => {
 });
 afterEach(async () => { delete process.env[FLAG]; await act(async () => tree?.unmount()); });
 
-describe('under the rating line of the account reputation', () => {
-  const draw = async (props: Record<string, unknown>) => { await act(async () => { tree = create(<AccountReputation accountId={A} {...props} />); }); };
+describe('the rating line of the account reputation', () => {
+  const draw = async (props: Record<string, unknown> = {}) => { await act(async () => { tree = create(<AccountReputation accountId={A} {...props} />); }); };
 
-  it('without the build flag it is the rating line alone, even with a profile to read', async () => {
-    await draw({ commentsProfileId: PROFILE, commentPhoto: photo });
+  it.each([[undefined], ['1']])('carries no comments under it, with the build flag %p: they moved to "Ocene"', async value => {
+    if (value) process.env[FLAG] = value;
+    await draw();
     expect(texts()).toContain('4,8 · 12 ocena');
     expect(hosts('ReviewCommentsSection')).toHaveLength(0);
   });
 
-  it('with the flag and a profile, the section follows the rating line and gets that profile and the photo drawer', async () => {
-    process.env[FLAG] = '1';
-    await draw({ commentsProfileId: PROFILE, commentPhoto: photo });
+  it('is only a line without a way in, and a button that says where it goes with one', async () => {
+    await draw();
+    expect(hosts('Press')).toHaveLength(0);
+    await act(async () => tree.unmount());
+    const open = jest.fn();
+    await draw({ onOpen: open });
+    const [press] = hosts('Press');
+    expect(press.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '4,8 · 12 ocena', accessibilityHint: 'Otvara ocene.' });
     expect(texts()).toContain('4,8 · 12 ocena');
-    const sections = hosts('ReviewCommentsSection');
-    expect(sections).toHaveLength(1);
-    expect(sections[0].props).toEqual({ profileId: PROFILE, photo });
-    // After the line, never before it: the siblings of the one fragment, in this order.
-    const siblings = (tree.toJSON() as { type: string }[]).map(node => node.type);
-    expect(siblings.indexOf('ReviewCommentsSection')).toBeGreaterThan(0);
+    await act(async () => press.props.onPress());
+    expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it.each([[undefined], [null], ['']])('with the flag but no profile (%p) there is no section and nothing is read for it', async value => {
-    process.env[FLAG] = '1';
-    await draw({ commentsProfileId: value });
-    expect(texts()).toContain('4,8 · 12 ocena');
-    expect(hosts('ReviewCommentsSection')).toHaveLength(0);
-  });
-
-  it('the section is independent of the rating read: an unavailable rating still lists the comments', async () => {
-    process.env[FLAG] = '1';
+  it('stays a refresh row when the rating cannot be read: the way in is for a line that has an answer', async () => {
     mockUseFocused.mockImplementation(() => ({ data: null, loading: false, error: true, refresh: jest.fn() }));
-    await draw({ commentsProfileId: PROFILE });
+    const open = jest.fn();
+    await draw({ onOpen: open });
     expect(texts()).toContain('Ocene trenutno nisu dostupne.');
-    expect(hosts('ReviewCommentsSection')).toHaveLength(1);
+    const [press] = hosts('Press');
+    expect(press.props.accessibilityLabel).toBe('Osveži ocene');
+    await act(async () => press.props.onPress());
+    expect(open).not.toHaveBeenCalled();
   });
 });
 
@@ -105,26 +103,21 @@ describe('what the profile screen hands the reputation', () => {
   beforeEach(() => { mockRealReputation = false; mockUseFocused.mockImplementation(() => mockResource); });
   const render = async () => { await act(async () => { tree = create(<Profil />); }); };
 
-  it('the profile of the identity row and a photo drawer; nothing else changes about how the reputation is placed', async () => {
+  it('the account, centred in the identity, and a way in to "Ocene"; the comments are no longer handed down', async () => {
     await render();
     const reputations = hosts('AccountReputation');
     expect(reputations).toHaveLength(1);
-    expect(reputations[0].props).toMatchObject({ accountId: A, commentsProfileId: PROFILE });
-    expect(typeof reputations[0].props.commentPhoto).toBe('function');
+    expect(reputations[0].props).toMatchObject({ accountId: A, centered: true });
+    expect(typeof reputations[0].props.onOpen).toBe('function');
+    expect(reputations[0].props.commentsProfileId).toBeUndefined(); expect(reputations[0].props.commentPhoto).toBeUndefined();
+    await act(async () => reputations[0].props.onOpen());
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/ocene']]);
   });
 
-  it('a profile that has not been read has no profile to hand over', async () => {
+  it('a profile that has not been read still has the way in: the ratings belong to the account, not to a profile row', async () => {
     mockResource = { data: { identity: { ime: 'Ana', grad: null }, capability: null }, loading: false, error: false, refresh: jest.fn() };
     mockUseFocused.mockImplementation(() => mockResource);
     await render();
-    expect(hosts('AccountReputation')[0].props.commentsProfileId).toBeNull();
-  });
-
-  it('the photo drawer draws the reviewer\'s profile photo at the size it is asked for, with the stand-in it is handed', async () => {
-    await render();
-    const draw = hosts('AccountReputation')[0].props.commentPhoto as (profileId: string, size: number, fallback: React.ReactNode) => React.ReactElement<Record<string, unknown>>;
-    const element = draw('88888888-8888-4888-8888-888888888888', 40, 'stand-in');
-    expect(element.type).toBe('ProfilePhoto');
-    expect(element.props).toEqual({ profileId: '88888888-8888-4888-8888-888888888888', size: 40, fallback: 'stand-in' });
+    expect(typeof hosts('AccountReputation')[0].props.onOpen).toBe('function');
   });
 });

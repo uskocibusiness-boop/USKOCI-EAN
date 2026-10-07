@@ -75,7 +75,7 @@ it('unknown outcome freezes selection, requires readback, and retries exactly th
  act(()=>{staleRating();staleSave();});expect(mockSubmit).toHaveBeenCalledTimes(1);
  expect(button('Ocena 3 od 5').props.accessibilityState.checked).toBe(true);
  click('Proveri sačuvanu ocenu');await settle();act(()=>staleSave());expect(mockSubmit).toHaveBeenCalledTimes(1);
- click('Ponovi istu ocenu');await settle();expect(mockSubmit).toHaveBeenCalledTimes(2);
+ click('Sačuvaj ocenu ponovo');await settle();expect(mockSubmit).toHaveBeenCalledTimes(2);
  expect(mockSubmit.mock.calls[1]).toEqual(mockSubmit.mock.calls[0]);
 });
 it('lost acknowledgement resolves from own stored review without another write',async()=>{

@@ -48,7 +48,8 @@ it('uses one empty label without legacy licence/team rows or an empty biography 
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null } })} />); });
   const copy = texts();
   expect(copy).not.toMatch(/Još nije navedeno/);
-  expect(copy.split('Nije navedeno').length - 1).toBe(4);
+  // Three parts have nothing in them: the skills, the area, and the tools and vehicles (one word for the two lists).
+  expect(copy.split('Nije navedeno').length - 1).toBe(3);
   expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
 });
 
@@ -70,14 +71,12 @@ it('shows a malformed rule day as it came instead of an invented date', async ()
 });
 
 
-it('explains which saved profile facts affect matching without claiming verification or a score', async () => {
+it('says what the name and "O meni" do, without claiming verification or a score', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review()} />); });
   const explanation = tree.root.findByProps({ testID: 'worker-matching-explanation' });
   const copy = explanation.children.filter(child => typeof child === 'string').join('');
-  expect(copy).toContain('veštine'); expect(copy).toContain('područje rada'); expect(copy).toContain('dostupnost');
-  expect(copy).toContain('Alat'); expect(copy).toContain('vozila');
-  expect(copy).not.toMatch(/licenc|kapacitet/); expect(copy).toContain('ne menjaju poklapanje');
-  expect(copy).not.toMatch(/verifikovan|%|skor/i);
+  expect(copy).toContain('vide osobe koje otvore tvoj profil'); expect(copy).toContain('ne menjaju koji ti zadaci stižu');
+  expect(copy).not.toMatch(/licenc|kapacitet/); expect(copy).not.toMatch(/verifikovan|%|skor/i);
 });
 
 it('summarizes only actual schedule rules and keeps paused rules and exceptions visible', async () => {

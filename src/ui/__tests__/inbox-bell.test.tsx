@@ -7,7 +7,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 // must not grow with the system text size (the spoken label carries the number), and a count above 99 is "99+".
 let mockState: { error: string | null; page: { unreadCount: number } | null } = { error: null, page: null };
 let mockReduced = true;
-jest.mock('../../hooks/useInbox', () => ({ useInbox: () => ({ state: mockState }) }));
+// The inbox model is one per account and set; the bell holds its last count for the model it came from (T4a, 2026-10-07).
+let mockModel: object = {};
+jest.mock('../../hooks/useInbox', () => ({ useInbox: () => ({ state: mockState, model: mockModel }) }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('../system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../Press', () => ({ Press: 'Press' }));
@@ -21,7 +23,7 @@ const spoken = () => tree.root.findByType('Press' as React.ElementType).props.ac
 const rotation = () => tree.root.findByProps({ testID: 'inbox-bell-drawing' }).props.style.transform[0].rotate.__getValue() as string;
 const update = async () => { await act(async () => { tree.update(<InboxBell />); }); };
 
-beforeEach(() => { mockReduced = true; });
+beforeEach(() => { mockReduced = true; mockModel = {}; });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 
 it('draws the count with digits that keep their size and line up', async () => {
@@ -79,3 +81,43 @@ it.each(['reduced motion', 'a lower count', 'an unavailable count'] as const)(
     expect(timing).toHaveBeenCalledTimes(1);
   },
 );
+
+// T4a (2026-10-07): the count is held until a new one arrives. The model forgets its page whenever the screen loses focus, so the
+// badge used to vanish at every return until the next read finished.
+describe('the count is held while the next read is on its way', () => {
+  it('keeps the last count of this model while the page is being read again, and takes the new one the moment it arrives', async () => {
+    mockState = { error: null, page: { unreadCount: 5 } }; await render();
+    expect(badge()[0].props.children).toBe(5);
+    mockState = { error: null, page: null }; await update();
+    expect(badge()[0].props.children).toBe(5);
+    expect(spoken()).toBe('Obaveštenja, 5 nepročitanih');
+    mockState = { error: null, page: { unreadCount: 2 } }; await update();
+    expect(badge()[0].props.children).toBe(2);
+  });
+
+  it('holds a zero as a count too: "nothing unread" is an answer, not a missing one', async () => {
+    mockState = { error: null, page: { unreadCount: 0 } }; await render();
+    mockState = { error: null, page: null }; await update();
+    expect(spoken()).toBe('Obaveštenja, 0 nepročitanih'); expect(badge()).toHaveLength(0);
+  });
+
+  it('does not hold a read that failed: a number nobody could confirm is not drawn', async () => {
+    mockState = { error: null, page: { unreadCount: 5 } }; await render();
+    mockState = { error: 'load', page: null }; await update();
+    expect(badge()).toHaveLength(0); expect(spoken()).toBe('Obaveštenja, broj nepročitanih nije dostupan');
+    // While the failure stands the bell says it cannot tell; when the next read is on its way it holds the last count again.
+    mockState = { error: null, page: null }; await update();
+    expect(badge()[0].props.children).toBe(5);
+  });
+
+  it('belongs to the model it came from: another account or set starts with nothing', async () => {
+    mockState = { error: null, page: { unreadCount: 5 } }; await render();
+    mockModel = {}; mockState = { error: null, page: null }; await update();
+    expect(badge()).toHaveLength(0); expect(spoken()).toBe('Obaveštenja, broj nepročitanih nije dostupan');
+  });
+
+  it('a bell that has never been given a count has nothing to hold', async () => {
+    mockState = { error: null, page: null }; await render();
+    expect(badge()).toHaveLength(0); expect(spoken()).toBe('Obaveštenja, broj nepročitanih nije dostupan');
+  });
+});

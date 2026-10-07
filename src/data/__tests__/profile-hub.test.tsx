@@ -67,12 +67,20 @@ describe('real profile hub', () => {
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  it.each([['Radni profil', '/profil/radnik'], ['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Kalendar obaveza', '/raspored']])
+  // T4a (2026-10-07): the planner is "Raspored" everywhere (the owner's answer to decision 3), also on the profile.
+  it.each([['Radni profil', '/profil/radnik'], ['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Raspored', '/raspored']])
     ('offers %s to every account, without entering any mode first', async (label, route) => {
       mockIntent = 'narucilac'; await render();
       await act(async () => tree.root.findByProps({ label }).props.onPress());
       expect(mockRouter.navigate.mock.calls).toEqual([[route]]);
     });
+
+  it('calls the planner "Raspored" with its sentence "Dogovoreni termini", and no longer "Kalendar obaveza"', async () => {
+    await render();
+    const row = tree.root.findByProps({ label: 'Raspored' });
+    expect(row.props.detail).toBe('Dogovoreni termini');
+    expect(visibleText()).not.toContain('Kalendar'); expect(tree.root.findAllByProps({ label: 'Kalendar obaveza' })).toHaveLength(0);
+  });
 
   it.each(['narucilac', 'uskocer'] as const)('opens privacy once, whatever the app last was (%s)', async intent => {
     mockIntent = intent;
@@ -168,7 +176,7 @@ describe('real profile hub', () => {
   it('says in every state whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
     // The not-set-up copy lost its grammatical gender ("nisi podesio", 2026-09-23); what it says is unchanged.
     await render(); expect(visibleText()).toContain('Radni profil još nije podešen.'); expect(visibleText()).not.toContain('podesio');
-    for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Profil je aktivan'], ['SUSPENDED', 'Profil je obustavljen']] as const) {
+    for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Profil je aktivan'], ['SUSPENDED', 'Profil je suspendovan']] as const) {
       mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje } } };
       await act(async () => tree.update(<Profil />)); expect(visibleText()).toContain(copy);
     }
@@ -205,7 +213,7 @@ describe('real profile hub', () => {
     mockSignOut.mockRejectedValueOnce(new Error('secret transport detail'));
     await render();
     await act(async () => logout());
-    expect(visibleText()).toContain('Odjava nije potvrđena. Probaj ponovo.');
+    expect(visibleText()).toContain('Odjava nije potvrđena. Pokušaj ponovo.');
     expect(visibleText()).not.toContain('secret transport detail');
     await act(async () => logout());
     expect(mockSignOut).toHaveBeenCalledTimes(2);
@@ -237,11 +245,40 @@ describe('real profile hub', () => {
   });
 
   // 2026-09-24: the "Uredi" pill opened the same screen as the "Ime na profilu" row; one control per job.
-  it('edits the name through its one row, with no second edit control beside it', async () => {
+  // T4a (2026-10-07): the one control is "Izmeni profil", because the screen it opens is more than the name.
+  it('edits the profile through its one control, with no second edit control beside it', async () => {
     await render();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi ime na profilu' })).toHaveLength(0);
-    await act(async () => tree.root.findByProps({ label: 'Izmeni ime' }).props.onPress());
+    expect(tree.root.findAllByProps({ label: 'Izmeni ime' })).toHaveLength(0);
+    const pencil = tree.root.findByProps({ label: 'Izmeni profil' });
+    expect(pencil.props.hint).toBe('Otvara izmenu fotografije, imena i opisa.');
+    await act(async () => pencil.props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podaci']]);
+  });
+
+  // T4a (2026-10-07): sentences that mean something lead to the place they speak of.
+  it('hands the rating line a way in that opens "Ocene" once, and no longer hands it the comments', async () => {
+    await render();
+    const line = tree.root.findAll(node => String(node.type) === 'AccountReputation')[0];
+    expect(line.props.accountId).toBe('account-a');
+    expect(line.props.commentsProfileId).toBeUndefined(); expect(line.props.commentPhoto).toBeUndefined();
+    await act(async () => { line.props.onOpen(); line.props.onOpen(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/ocene']]);
+  });
+
+  it('opens the finished Dogovori from "Završeni Dogovori", on the section that holds them, once', async () => {
+    await render();
+    const summary = tree.root.findAll(node => typeof node.props.onOpen === 'function' && node.props.requesterProfileId !== undefined)[0];
+    await act(async () => { summary.props.onOpen(); summary.props.onOpen(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/dogovori', params: { odeljak: 'istorija' } }]]);
+  });
+
+  it('one way onward at a time: while a row is opening, the rating line and the summary open nothing more', async () => {
+    await render();
+    const line = tree.root.findAll(node => String(node.type) === 'AccountReputation')[0];
+    const summary = tree.root.findAll(node => typeof node.props.onOpen === 'function' && node.props.requesterProfileId !== undefined)[0];
+    await act(async () => { tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress(); line.props.onOpen(); summary.props.onOpen(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
   });
 
   // Nothing in the app sets the requester city, so the place falls back to the work area and is never an invitation.
@@ -253,6 +290,19 @@ describe('real profile hub', () => {
     await act(async () => tree.update(<Profil />));
     expect(visibleText()).not.toContain('Novi Sad'); expect(visibleText()).not.toContain('Grad još nije unet');
     expect(placePins()).toHaveLength(0);
+  });
+
+  // The owner's phone (2026-10-07): his requester profile stores "NovI SAD" and the header showed it so. A city is SHOWN as a city is written;
+  // what the profile stores is not touched, and a city that is already well written is shown byte for byte.
+  it('shows a city typed with odd case tidied, in the header and in the work area, and a well-written one as it is', async () => {
+    mockResource.data = { identity: { ime: 'Ana', grad: 'NovI SAD' }, capability: { ime: 'Ana', grad: 'NOVI SAD', stanje: 'ACTIVE' } };
+    await render();
+    expect(visibleText()).toContain('Novi Sad'); expect(visibleText()).not.toContain('NovI'); expect(visibleText()).not.toContain('NOVI');
+    expect(tree.root.findByProps({ label: 'Područje rada' }).props.detail).toBe('Novi Sad');
+    mockResource = { ...mockResource, data: { identity: { ime: 'Ana', grad: 'Sremska Kamenica' }, capability: { ime: 'Ana', grad: 'Beograd - Zemun', stanje: 'ACTIVE' } } };
+    await act(async () => tree.update(<Profil />));
+    expect(visibleText()).toContain('Sremska Kamenica');
+    expect(tree.root.findByProps({ label: 'Područje rada' }).props.detail).toBe('Beograd - Zemun');
   });
 
   it.each([

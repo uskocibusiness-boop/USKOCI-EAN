@@ -1,13 +1,16 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { GearSix } from 'phosphor-react-native';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
 import { useInbox } from '../hooks/useInbox';
 import { useMessagePushIngress } from '../hooks/useMessagePushIngress';
+import { applyLocalReads } from '../ui/notifications/inboxCopy';
 import { InboxList } from '../ui/notifications/InboxPresentation';
+import { useInboxReads } from '../ui/notifications/useInboxReads';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
+import { PorukaHost, poruka } from '../ui/system/Poruka';
 import { ChromeIconButton } from '../ui/system/ScreenChrome';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
@@ -18,10 +21,16 @@ import { V2Action } from '../ui/v2/V2Action';
  * a row does: the model resolves it, and the landing below goes exactly where the event points. Message events are
  * acknowledged only by the measured conversation, never by this navigation. The
  * route literals stay in this file: the control table (scripts/control/osvezi.mjs) checks them here.
+ *
+ * T4a, 2026-10-07: a row can also be settled without being opened (the swipe on the row). That uses the very call a tapped
+ * row uses to read itself, kept beside the model (`useInboxReads`) because the model has no command for "read, do not open";
+ * its confirmed result is laid over the model's page, and the outcome is said once in a `Poruka`. This screen lies ABOVE the
+ * tab navigator that mounts the `Poruka` host, so it mounts its own.
  */
 export default function Obavestenja() {
   const [role,setRole] = useState<InboxRole|null>(null);
   const {state,model} = useInbox(role);
+  const insets = useSafeAreaInsets();
   const navigating = useRef(false);
   const focus = useRef<object | null>(null);
   const [renderedFocus,setRenderedFocus] = useState<object | null>(null);
@@ -76,6 +85,22 @@ export default function Obavestenja() {
   // The rows are memoised, so they get one stable handler that always runs the latest `open`.
   const latestOpen = useRef(open); latestOpen.current = open;
   const onOpen = useCallback((item: InboxItem) => { void latestOpen.current(item); }, []);
+  // Settling ONE row without opening it (the swipe). The check is the screen's own `current()` read at the moment of use, so a
+  // press that outlives its visit, its account or its set does nothing; the outcome is said once, after the server confirmed it.
+  const latestCurrent = useRef(current); latestCurrent.current = current;
+  const owns = useCallback(() => latestCurrent.current(), []);
+  const reads = useInboxReads(model, owns);
+  const latestMarkRead = useRef(reads.markRead); latestMarkRead.current = reads.markRead;
+  const onMarkRead = useCallback((item: InboxItem) => {
+    void latestMarkRead.current(item).then(done => { if (done) poruka.show({ text: 'Označeno kao pročitano.', confirmed: true }); });
+  }, []);
+  // The page as the person sees it: what the server confirmed as read one by one laid over the model's page, the row being
+  // settled shown as at work, and a failed command said in the same notice an unconfirmed action always uses.
+  const view = useMemo(() => {
+    const laid = applyLocalReads(state, reads.stamps);
+    const acting = laid.acting ?? reads.pending, error = laid.error ?? (reads.failed ? 'action' as const : null);
+    return acting === laid.acting && error === laid.error ? laid : { ...laid, acting, error };
+  }, [state, reads.stamps, reads.pending, reads.failed]);
   return <SafeAreaView style={styles.screen}>
     <Stack.Screen options={{headerShown:false}}/>
     <DetailTopBar title="Obaveštenja"
@@ -91,9 +116,11 @@ export default function Obavestenja() {
     </View> : null}
     {/* One list for every filter: it stays mounted, so the tab just pressed keeps a screen reader's focus; the list itself
         treats a filter's first page as what was there, not as arrivals. */}
-    <InboxList state={state} role={role} onRole={next=>{if(current()){ingress.cancel();setRole(next);}}} onOpen={onOpen}
-      onReadAll={()=>{if(current()){ingress.cancel();void model.readAll();}}} onRefresh={()=>{if(current()){ingress.cancel();void model.refresh();}}}
+    <InboxList state={view} role={role} onRole={next=>{if(current()){ingress.cancel();setRole(next);}}} onOpen={onOpen} onMarkRead={onMarkRead}
+      onReadAll={()=>{if(current()){ingress.cancel();reads.forgetFailure();void model.readAll();}}}
+      onRefresh={()=>{if(current()){ingress.cancel();reads.forgetFailure();void model.refresh();}}}
       onMore={()=>{if(current()){ingress.cancel();void model.more();}}} onSettings={settings} />
+    <PorukaHost clearance={insets.bottom} />
   </SafeAreaView>;
 }
 
