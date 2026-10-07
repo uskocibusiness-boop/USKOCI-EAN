@@ -3,6 +3,7 @@ import { AppState, Linking, Platform } from 'react-native';
 import { createNearbyCapture, type NearbyStatus } from './nearbyCapture';
 import type { NearbyCameraTarget } from '../DiscoveryMap.types';
 import { loadNearbyLocation } from './nearbyLocation';
+import { askForLocation } from '../../permissions/locationPermission';
 
 export const NEARBY_COPY: Partial<Record<NearbyStatus, string>> = {
   locating: 'Tražimo tvoju lokaciju…',
@@ -27,7 +28,7 @@ export function useNearbyMap(scopeKey: string, focused: boolean) {
     const owns = () => incarnation.current === owner && active && latest.current.focused && latest.current.scopeKey === scopeKey
       && AppState.currentState !== 'background';
     const controller = createNearbyCapture({
-      load: loadNearbyLocation, owns, onStatus: setStatus,
+      load: loadNearbyLocation, owns, onStatus: setStatus, beforePermission: askForLocation,
       onPoint: point => { if (owns()) setLocated({ scopeKey, owner, target: { key: ++sequence.current, center: [point.longitude, point.latitude] } }); },
     });
     capture.current = controller;

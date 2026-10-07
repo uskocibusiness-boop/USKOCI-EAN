@@ -6,17 +6,28 @@ import { plural, zadataka } from '../../system/plural';
  * The words of the Zadaci search (Discovery V47), in one place: the search pill, the quick chips, the steps of the search
  * panel and the chips under the list's count all say a choice the same way. Every set starts with its "everything"
  * choice, so the default always sits in the same place. The work-mode and price words are the ones the app already says
- * (review of V47): "Tražim ponude" and "Na daljinu" as a task itself says them, "Navedena cena" as the Moji zadaci price
- * filter says it, "Bilo gde" / "Na licu mesta" as the Zadaci filter sheet before V47 said them; never new names.
+ * (review of V47): "Na daljinu" as a task itself says it, "Navedena cena" as the Moji zadaci price filter says it, "Bilo gde" /
+ * "Na licu mesta" as the Zadaci filter sheet before V47 said them; never new names.
+ *
+ * One reader, one voice (UX plan 2.13, 2.17; the visual proposal 2026-10-07): the person who looks for work reads the WORKER's
+ * words. A task that waits for offers is "Prima ponude" here (the requester's own screens say "Tražim ponude": that is his voice),
+ * and "at least two places" is "Za 2 i više".
  */
 export const WHEN: readonly (readonly [WhenFilter, string])[] = [['any', 'Bilo kada'], ['today', 'Danas'], ['tomorrow', 'Sutra'],
   ['week', 'Ove nedelje'], ['weekend', 'Ovaj vikend'], ['next7', 'Narednih 7 dana']];
 /** The time choices a quick chip over the map toggles; the rest are in the panel's Kada step. */
 export const QUICK_WHEN: readonly WhenFilter[] = ['today', 'tomorrow', 'week'];
 export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Bilo gde'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
-export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Sve'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']];
+export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Sve'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Prima ponude']];
 /** The one reset of the search, on the panel and on the empty list alike. */
 export const CLEAR_ALL = 'Obriši uslove';
+/**
+ * The sections of the search panel, in the order the person is walked through them (UX plan 2.19: Gde, Kada, Šta, Cena,
+ * Broj ljudi, Način rada), and the one word each is called by. A person is spoken to as "ti": there is no "vas" here.
+ */
+export const SECTION_LABEL = { gde: 'Gde', kada: 'Kada', sta: 'Šta', cena: 'Cena', koliko: 'Broj ljudi', kako: 'Način rada' } as const;
+/** What the "Šta" row says while no word is typed. */
+export const ANY_WHAT = 'Bilo šta';
 /** What removes one condition that is on (a chip under the count). */
 export const removeWords = (label: string) => `Ukloni uslov: ${label}`;
 /** Where the list is narrowed to one public point (a place's "Prikaži sve u listi"). */
@@ -27,8 +38,16 @@ export function said<K extends string>(options: readonly (readonly [K, string])[
   return options.find(([value]) => value === key)?.[1] ?? '';
 }
 
-/** "Koliko vas dolazi": "2+ mesta" for at least two places, "Bilo koliko" for every open task. */
-export const placesWords = (places: number | undefined) => atLeast(places) > 1 ? `${atLeast(places)}+ mesta` : 'Bilo koliko';
+/** "Broj ljudi": "Za 2 i više" for a task with room for at least two, "Bilo koliko" for every open task. */
+export const placesWords = (places: number | undefined) => atLeast(places) > 1 ? `Za ${atLeast(places)} i više` : 'Bilo koliko';
+
+/** The word over the list for how it is ordered: the server reads the open tasks newest first (UX plan 2.14). */
+export const NEWEST_FIRST = 'Najnovije prvo';
+
+/** A count with the thousands set apart by a dot, as the app writes money and as the person reads it: 1.248. */
+export const groupDigits = (count: number) => String(Math.trunc(count)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+/** "1.248 zadataka": the plural of the tasks with the number grouped. */
+export const countWords = (count: number) => zadataka(count).replace(String(count), groupDigits(count));
 
 /** A chosen range of days: "26. sep" for one day, "26–28. sep" inside a month, "30. sep – 2. okt" across two. */
 export function datesWords(range: DateRange, now: Date = new Date()): string {
@@ -86,8 +105,8 @@ export function countLineWords({ status, listed, inArea, withoutPoint, pinless, 
 }): { words: string; extra: string } {
   if (status === 'loading') return { words: 'Učitavamo zadatke…', extra: '' };
   if (status === 'error') return { words: 'Zadaci nisu učitani', extra: '' };
-  const without = (count: number) => count ? ` · ${zadataka(count)} bez tačke na mapi` : '';
-  if (pinPlace) return { words: inArea ? `${zadataka(inArea)} na ovom mestu` : 'Na ovom mestu nema zadataka', extra: without(withoutPoint) };
-  if (area) return { words: inArea ? `${zadataka(inArea)} u oblasti` : 'U oblasti nema zadataka', extra: without(withoutPoint) };
-  return listed ? { words: zadataka(listed), extra: without(pinless) } : { words: 'Nema zadataka', extra: '' };
+  const without = (count: number) => count ? ` · ${countWords(count)} bez tačke na mapi` : '';
+  if (pinPlace) return { words: inArea ? `${countWords(inArea)} na ovom mestu` : 'Na ovom mestu nema zadataka', extra: without(withoutPoint) };
+  if (area) return { words: inArea ? `${countWords(inArea)} u oblasti` : 'U oblasti nema zadataka', extra: without(withoutPoint) };
+  return listed ? { words: countWords(listed), extra: without(pinless) } : { words: 'Nema zadataka', extra: '' };
 }

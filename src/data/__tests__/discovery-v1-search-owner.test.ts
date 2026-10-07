@@ -1,4 +1,4 @@
-import { createDiscoveryV1SearchOwner, discoveryV1SearchPreviewKey, SEARCH_PREVIEW_FRESH_MS } from '../discoveryV1SearchOwner';
+import { createDiscoveryV1SearchOwner, discoveryV1SearchPreviewKey, SEARCH_PREVIEW_FRESH_MS, type SearchPreviewView } from '../discoveryV1SearchOwner';
 import { initialMarketplaceView, type MarketplaceView } from '../marketplaceView';
 import type { DiscoveryV1OwnerRequest } from '../discoveryV1Owner';
 
@@ -33,6 +33,35 @@ it('uses PAGE exact counts and PLACES facets instead of loaded-row length',async
  expect(owner.snapshot()).toMatchObject({status:'ready',count:42,undated:7,everywhere:80,inMapArea:23,placeHasMore:true,facetError:false});
  expect(owner.snapshot().places).toEqual([{key:'novi sad, liman',text:'Novi Sad, Liman',count:9}]);
  expect(owner.snapshot().key).toBe(discoveryV1SearchPreviewKey(v,[19,44,21,46]));
+});
+
+// The letters typed in "Gde" to find a place are the PLACES prefix and nothing else: the tasks' own text filter is "Šta" (owner, 2026-10-07).
+it('the letters typed to find a place narrow the places only; the words searched narrow the count only',async()=>{
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v:SearchPreviewView={...view({query:'selidba'}),placeSearch:'  Vrač  '};
+ const read=owner.preview(v,[19,44,21,46],3);
+ expect(h.pending[0].request).toMatchObject({mode:'PAGE',filter:{text:'selidba',place:null}});
+ expect(h.pending[1].request).toMatchObject({mode:'PLACES',prefix:'vrač',filter:{text:''}});
+ h.pending[0].resolve(page(8));h.pending[1].resolve(places([{key:'beograd, vračar',text:'Beograd, Vračar',count:3}],true));await read;
+ expect(owner.snapshot().key).toBe(discoveryV1SearchPreviewKey(v,[19,44,21,46]));
+ // The continuation keeps the same prefix.
+ const next=owner.nextPlaces();expect(h.pending[2].request).toMatchObject({mode:'PLACES',prefix:'vrač'});
+ h.pending[2].resolve(places([{key:'beograd, vračar',text:'Beograd, Vračar',count:3},{key:'novi sad, vračar',text:'Novi Sad, Vračar',count:1}],false));await next;
+});
+
+it('another set of letters is another preview, and a draft that says no letters keeps the words out of the places',async()=>{
+ const base=view({query:'selidba'}),area:[number,number,number,number]=[19,44,21,46];
+ const key=(placeSearch?:string)=>discoveryV1SearchPreviewKey(placeSearch===undefined?base:{...base,placeSearch},area);
+ expect(key('a')).not.toBe(key('ab'));expect(key('')).not.toBe(key('a'));
+ // Equal letters in another spelling of the spaces are one question.
+ expect(key('  vrač ')).toBe(key('vrač'));
+ // A caller that does not say them gets the old behaviour: the words are the prefix.
+ expect(key()).toBe(discoveryV1SearchPreviewKey({...base,placeSearch:'selidba'},area));
+ expect(key()).not.toBe(key(''));
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport);
+ void owner.preview({...base,placeSearch:''},area,3);
+ expect(h.pending[1].request).toMatchObject({mode:'PLACES',prefix:''});
+ void owner.preview(base,area,3);
+ expect(h.pending[3].request).toMatchObject({mode:'PLACES',prefix:'selidba'});
 });
 
 it('a newer draft fences an older PAGE and PLACES pair even if abort is ignored',async()=>{

@@ -5,7 +5,7 @@ import type { DiscoveryTrace } from '../DiscoveryPresentation';
 /** The presentation's own trace points; anything else is dropped. */
 export const NATIVE_TRACE_EVENTS = new Set<Parameters<DiscoveryTrace>[0]>(['route-trace', 'route-focus', 'route-blur', 'route-open', 'route-view',
   'focus', 'blur', 'preopen', 'write-offset', 'seed', 'ready', 'geometry', 'index', 'content', 'layout',
-  'restore-check', 'clamp0', 'request', 'ack', 'scroll0', 'scroll', 'scroll-reject', 'search-change', 'fold', 'drag', 'refresh', 'kick', 'stall', 'want', 'fit']);
+  'restore-check', 'clamp0', 'request', 'ack', 'scroll0', 'scroll', 'scroll-reject', 'search-change', 'drag', 'refresh', 'kick', 'stall', 'want', 'fit']);
 /** High-rate events: a few samples each (each name has its own, per visit), so that a swipe cannot use the allowance reserved for the sheet's own moves. */
 export const NATIVE_TRACE_SAMPLES = new Set<Parameters<DiscoveryTrace>[0]>(['scroll', 'scroll0', 'scroll-reject', 'restore-check', 'content', 'layout', 'geometry', 'route-view']);
 /** The allowance of ONE visit: every `route-focus` starts a visit, so that a return is diagnosed like the first visit (the first version spent it all on scrolling). */

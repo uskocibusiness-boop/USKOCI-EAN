@@ -1,7 +1,8 @@
 import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryItems, discoveryShown, discoveryStartSnap, happensBetween, happensIn,
   initialMarketplaceView, marketplaceItems, openPlaces, pinLabel, pinPlaces, placeSuggestions, pointKey, publicArea, publicFeatures, saysWhen,
   saysWorkMode, serbianToday, undatedCount, workMode, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
-import { PRICE, WHERE, conditionsWords, countLineWords, datesWords, placesWords, removeWords, whenWords, whereWords } from '../../ui/v2/discovery/discoveryWords';
+import { NEWEST_FIRST, PRICE, WHERE, conditionsWords, countLineWords, countWords, datesWords, groupDigits, placesWords, removeWords, whenWords, whereWords }
+  from '../../ui/v2/discovery/discoveryWords';
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24): the pure rules under it. The four filter sections read only facts the
@@ -317,10 +318,10 @@ describe('Discovery V47: the words of the search', () => {
     expect(whereWords(view({ query: ' farbanje ' }))).toBe('„farbanje“');
     expect(whereWords(view({ place: 'Liman, Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe('Liman, Novi Sad · „selidba“');
     expect(conditionsWords(view(), NOW)).toBe('Bilo kada');
-    expect(conditionsWords(view({ when: 'weekend', places: 2 }), NOW)).toBe('Ovaj vikend · 2+ mesta');
-    expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Na daljinu · Tražim ponude');
+    expect(conditionsWords(view({ when: 'weekend', places: 2 }), NOW)).toBe('Ovaj vikend · Za 2 i više');
+    expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Na daljinu · Prima ponude');
     expect(conditionsWords(view({ where: 'onsite', price: 'MY_PRICE' }), NOW)).toBe('Bilo kada · Na licu mesta · Navedena cena');
-    expect(placesWords(1)).toBe('Bilo koliko'); expect(placesWords(4)).toBe('4+ mesta');
+    expect(placesWords(1)).toBe('Bilo koliko'); expect(placesWords(2)).toBe('Za 2 i više'); expect(placesWords(4)).toBe('Za 4 i više');
     // One point of the map (a place's whole set) is said as such, before any searched words.
     expect(whereWords(view({ pinPlace: '44.79,20.45', area: [19, 45, 20, 46] }))).toBe('Na ovom mestu');
     expect(whereWords(view({ pinPlace: '44.79,20.45', query: 'selidba' }))).toBe('Na ovom mestu · „selidba“');
@@ -328,7 +329,8 @@ describe('Discovery V47: the words of the search', () => {
   // Review of V47: the words are the app's own, and one reset and one "remove" are said the same way everywhere.
   it('the work-mode and price words are the app\'s own, and a condition is removed by name', () => {
     expect(WHERE.map(([, words]) => words)).toEqual(['Bilo gde', 'Na licu mesta', 'Na daljinu']);
-    expect(PRICE.map(([, words]) => words)).toEqual(['Sve', 'Navedena cena', 'Tražim ponude']);
+    // The person who looks for work reads the worker's words: a task that waits for offers is "Prima ponude" here ("Tražim ponude" is the requester's own voice).
+    expect(PRICE.map(([, words]) => words)).toEqual(['Sve', 'Navedena cena', 'Prima ponude']);
     expect(removeWords('Vračar, Beograd')).toBe('Ukloni uslov: Vračar, Beograd');
   });
   it('the top line is never blank and counts in one format, every count through the plural', () => {
@@ -345,6 +347,18 @@ describe('Discovery V47: the words of the search', () => {
     expect(countLineWords({ ...ready, pinPlace: true, area: true, listed: 4, inArea: 4 })).toEqual({ words: '4 zadatka na ovom mestu', extra: '' });
     expect(countLineWords({ ...ready, pinPlace: true, listed: 5, inArea: 4, withoutPoint: 1 })).toEqual({ words: '4 zadatka na ovom mestu', extra: ' · 1 zadatak bez tačke na mapi' });
     expect(countLineWords({ ...ready, pinPlace: true })).toEqual({ words: 'Na ovom mestu nema zadataka', extra: '' });
+  });
+  it('a count of many tasks sets its thousands apart by a dot, as the app writes money, and the plural follows the number', () => {
+    expect([0, 7, 999, 1000, 1248, 21000, 1000000].map(groupDigits)).toEqual(['0', '7', '999', '1.000', '1.248', '21.000', '1.000.000']);
+    expect([1, 2, 5, 11, 21, 999, 1001, 1248, 2000, 1111].map(countWords)).toEqual(
+      ['1 zadatak', '2 zadatka', '5 zadataka', '11 zadataka', '21 zadatak', '999 zadataka', '1.001 zadatak', '1.248 zadataka', '2.000 zadataka', '1.111 zadataka']);
+    const ready = { status: 'ready' as const, listed: 1248, inArea: 0, withoutPoint: 0, pinless: 0, area: false, pinPlace: false };
+    expect(countLineWords(ready)).toEqual({ words: '1.248 zadataka', extra: '' });
+    expect(countLineWords({ ...ready, pinless: 1003 })).toEqual({ words: '1.248 zadataka', extra: ' · 1.003 zadatka bez tačke na mapi' });
+    expect(countLineWords({ ...ready, area: true, inArea: 1100, withoutPoint: 148 })).toEqual({ words: '1.100 zadataka u oblasti', extra: ' · 148 zadataka bez tačke na mapi' });
+  });
+  it('says how the list is ordered in one word', () => {
+    expect(NEWEST_FIRST).toBe('Najnovije prvo');
   });
   it('a range of days is written once, the month once when it can be', () => {
     expect(datesWords({ from: '2026-09-26', to: '2026-09-26' }, NOW)).toBe('26. sep');

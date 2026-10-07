@@ -1,4 +1,4 @@
-import { discoveryV1PresentationBridgeModel } from '../discoveryV1PresentationBridge';
+import { discoveryV1Published, discoveryV1PresentationBridgeModel } from '../discoveryV1PresentationBridge';
 import type { DiscoveryV1ScreenSnapshot } from '../discoveryV1ScreenSession';
 import type { DiscoveryV1OverlaySnapshot } from '../discoveryV1OverlayOwner';
 import { taskRelationIndex } from '../taskRelation';
@@ -84,4 +84,17 @@ it('the same row with the same details is the same object across commits; a chan
  const other=overlay();other.profiles=new Map([[PROFILE,{...other.profiles.get(PROFILE)!,ime:'Ana M.'}]]);
  const third=discoveryV1PresentationBridgeModel(screen(),other,null,false,actions);
  expect(third.items[0]).not.toBe(first.items[0]);expect(third.items[0]).toMatchObject({narucilacIme:'Ana M.'});
+});
+
+it('says when each task of the page was published, from the page rows themselves, once per read of the page',()=>{
+ const model=discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,actions);
+ expect([...model.p6Seam.published!]).toEqual([[ID,AT]]);
+ // The same rows give the same map, so a parent that renders again does not ask the cards to draw again.
+ const snapshot=screen();
+ expect(discoveryV1PresentationBridgeModel(snapshot,overlay(),null,false,actions).p6Seam.published)
+  .toBe(discoveryV1PresentationBridgeModel(snapshot,overlay(),null,false,actions).p6Seam.published);
+ expect(discoveryV1Published(snapshot.wireItems)).toBe(discoveryV1Published(snapshot.wireItems));
+ // No rows, no ages: one shared empty answer.
+ expect(discoveryV1Published([])).toBe(discoveryV1Published([]));
+ expect(discoveryV1Published([]).size).toBe(0);
 });
