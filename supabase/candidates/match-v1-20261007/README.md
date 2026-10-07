@@ -54,7 +54,25 @@ update private.marketplace_config set value = jsonb_set(value,'{ceiling}','1000'
 
 A switch affects the waves that start after it; workers already notified stay notified. **The package revert** (`revert.sql`) restores the six predecessor bodies and deletes both configuration rows, i.e. the ladder of today (proven: after the revert the same thirteen workers come in groups 5, 5, 3 again).
 
-What to know before applying: (1) the volume is four rows per notified worker per task (delivery, event, in-app and push notification) — 1,200 rows for a task with 300 matching workers, 2,000 for the ceiling of 500 — and, once pushes are on, one push per matching worker per new task; the ladder reached at most 40 workers per task. (2) Right after the apply the next tick sends every open task that is due to **all** its matching workers: on canonical DEV (read 2026-10-07) that is 5 active worker profiles and 11 open tasks, 10 of them queued. (3) Timing per task: see the single-wave table of the `load` job (below in this README after the run).
+What to know before applying: (1) the volume is four rows per notified worker per task (delivery, event, in-app and push notification) — 1,200 rows for a task with 300 matching workers, 2,000 for the ceiling of 500 — and, once pushes are on, one push per matching worker per new task; the ladder reached at most 40 workers per task. (2) Right after the apply the next tick sends every open task that is due to **all** its matching workers: on canonical DEV (read 2026-10-07) that is 5 active worker profiles and 11 open tasks, 10 of them queued. (3) Timing per task, measured on the disposable server (run 37662617758, ZONE-PERF applied first): see "Measured cost" below.
+
+## Measured cost (disposable server, run 37662617758, job `load`; CI hardware varies by about 1.5x between runs)
+
+Single wave, mode ALL, one rolled-back transaction per row (server time): 1,000 workers fit the kind of work, 300 of them also fit task A.
+
+| one task | workers reached | events | notification rows | ms | ms per worker |
+| --- | --- | --- | --- | --- | --- |
+| 300 matching workers | 300 | 300 | 600 | 1,148 | 3.8 |
+| 1,000 matching, ceiling 500 (default) | 500 | 500 | 1,000 | 1,056 | 2.1 |
+| 1,000 matching, ceiling raised to 1,000 | 1,000 | 1,000 | 2,000 | 2,009 | 2.0 |
+| ladder (mode LADDER): first group | 5 | 5 | 10 | 180 | 36 |
+| ladder: first four groups (40 workers, 45 minutes of real time) | 40 | 40 | 80 | 558 | 14 |
+| tick of 5 tasks x 300 workers | 1,500 | 1,500 | 3,000 | 5,586 | 3.7 |
+| tick of 25 tasks x 500 workers (the tick batch, ceiling reached) | 12,500 | 12,500 | 25,000 | 23,821 | 1.9 |
+
+A task costs about **1.1 s** at 300 and 500 matching workers and about 2.0 s at 1,000 (if the ceiling is raised); a whole tick of 25 such tasks takes about 24 s, under the 40 s budget (`deferred` 0). Where the time goes (300-worker wave, self time): kind-of-work registry reads for the workers who do not fit (`work_kinds_v5`, 206 ms), world checks (`account_lineage`, `account_visibility_world`, 256 ms), `emit_event` (117 ms for 300 events), the rule (`worker_need_fit_v1`, 91 ms). Above the ceiling the second wave creates nothing.
+
+The same rows, per pair and per task, old against new (the ladder's wave, so the same work): zone helper 53 -> 0.01 ms per call; prefilter 57.6 -> 0.66 (ZONE-PERF only) -> 0.32 ms per pair; detailed matcher 57.5 -> 0.77 -> 0.94 ms; candidate retrieval of 40 workers 17.5 s -> 409 ms -> 132 ms per task; one ladder wave 19.1 s -> 422 ms -> 196 ms; the profile re-queue costs 0.34 ms per idle call and 301 ms for a full batch of 100 changed profiles; "Za mene" (DISCOVERY-ZAMENE) at 1,000 open tasks 137 ms against 63 ms for the default read.
 
 ## Exact boundaries
 
