@@ -1,0 +1,52 @@
+diff --git a/supabase/functions/_shared/pushNotificationCopy.mjs b/supabase/functions/_shared/pushNotificationCopy.mjs
+index 841cd25..61096a2 100644
+--- a/supabase/functions/_shared/pushNotificationCopy.mjs
++++ b/supabase/functions/_shared/pushNotificationCopy.mjs
+@@ -7,7 +7,7 @@ const COPY = Object.freeze({
+   RESPONSE_UPDATED: ['Prijava je izmenjena', 'Jedna prijava na tvoj zadatak je ažurirana.'],
+   RESPONSE_VIEWED: ['Prijava je pregledana', 'Tvoja prijava je pregledana.'],
+   RESPONSE_SHORTLISTED: ['U užem si izboru', 'Tvoja prijava je izdvojena za dalji izbor.'],
+-  RESPONSE_SELECTED: ['Izabran si', 'Tvoja prijava je prihvaćena. Otvori Dogovor.'],
++  RESPONSE_SELECTED: ['Tvoja prijava je izabrana', 'Otvori Dogovor.'],
+   RESPONSE_NOT_SELECTED: ['Prijava je završena', 'Za ovaj zadatak je izabrana druga osoba.'],
+   RESPONSE_STALE: ['Proveri prijavu', 'Zadatak je promenjen nakon tvoje prijave.'],
+   RESPONSE_WITHDRAWN: ['Prijava je povučena', 'Jedna prijava više nije aktivna.'],
+@@ -19,10 +19,10 @@ const COPY = Object.freeze({
+   AGREEMENT_CHANGE_REJECTED: ['Izmena nije prihvaćena', 'Predlog izmene Dogovora nije prihvaćen.'],
+   AGREEMENT_CANCELLED: ['Dogovor je otkazan', 'Otvori Dogovor da vidiš trenutno stanje.'],
+   EXECUTION_STATE_CHANGED: ['Status Dogovora je promenjen', 'Otvori Dogovor da vidiš sledeći korak.'],
+-  COMPLETION_REQUIRED: ['Potvrdi završetak', 'Druga strana je označila posao kao završen.'],
++  COMPLETION_REQUIRED: ['Potvrdi završetak', 'Zadatak je označen kao gotov.'],
+   MESSAGE_RECEIVED: ['Nova poruka u Dogovoru', 'Imaš novu poruku.'],
+   PRIVATE_ACCESS_GRANTED: ['Podaci Dogovora su dostupni', 'Otvori Dogovor da vidiš podatke kojima sada imaš pristup.'],
+-  RECOVERY_OPENED: ['Oporavak naloga', 'Otvoren je postupak oporavka naloga.'],
++  RECOVERY_OPENED: ['Prijavljen je problem u Dogovoru', 'Otvori Dogovor da vidiš prijavljeni problem.'],
+   REVIEW_RECEIVED: ['Stigla ti je nova ocena', 'Pogledaj novu ocenu saradnje.'],
+   CLARIFICATION_CREATED: ['Novo pitanje za zadatak', 'Stiglo je novo pitanje.'],
+   CLARIFICATION_ANSWERED: ['Stigao je odgovor', 'Na pitanje za zadatak je odgovoreno.'],
+diff --git a/supabase/proofs/notifications/n10_push_copy.test.mjs b/supabase/proofs/notifications/n10_push_copy.test.mjs
+index 196361e..527b3c4 100644
+--- a/supabase/proofs/notifications/n10_push_copy.test.mjs
++++ b/supabase/proofs/notifications/n10_push_copy.test.mjs
+@@ -8,7 +8,7 @@ const expected = {
+   RESPONSE_UPDATED: ['Prijava je izmenjena','Jedna prijava na tvoj zadatak je ažurirana.'],
+   RESPONSE_VIEWED: ['Prijava je pregledana','Tvoja prijava je pregledana.'],
+   RESPONSE_SHORTLISTED: ['U užem si izboru','Tvoja prijava je izdvojena za dalji izbor.'],
+-  RESPONSE_SELECTED: ['Izabran si','Tvoja prijava je prihvaćena. Otvori Dogovor.'],
++  RESPONSE_SELECTED: ['Tvoja prijava je izabrana','Otvori Dogovor.'],
+   RESPONSE_NOT_SELECTED: ['Prijava je završena','Za ovaj zadatak je izabrana druga osoba.'],
+   RESPONSE_STALE: ['Proveri prijavu','Zadatak je promenjen nakon tvoje prijave.'],
+   RESPONSE_WITHDRAWN: ['Prijava je povučena','Jedna prijava više nije aktivna.'],
+@@ -20,10 +20,10 @@ const expected = {
+   AGREEMENT_CHANGE_REJECTED: ['Izmena nije prihvaćena','Predlog izmene Dogovora nije prihvaćen.'],
+   AGREEMENT_CANCELLED: ['Dogovor je otkazan','Otvori Dogovor da vidiš trenutno stanje.'],
+   EXECUTION_STATE_CHANGED: ['Status Dogovora je promenjen','Otvori Dogovor da vidiš sledeći korak.'],
+-  COMPLETION_REQUIRED: ['Potvrdi završetak','Druga strana je označila posao kao završen.'],
++  COMPLETION_REQUIRED: ['Potvrdi završetak','Zadatak je označen kao gotov.'],
+   MESSAGE_RECEIVED: ['Nova poruka u Dogovoru','Imaš novu poruku.'],
+   PRIVATE_ACCESS_GRANTED: ['Podaci Dogovora su dostupni','Otvori Dogovor da vidiš podatke kojima sada imaš pristup.'],
+-  RECOVERY_OPENED: ['Oporavak naloga','Otvoren je postupak oporavka naloga.'],
++  RECOVERY_OPENED: ['Prijavljen je problem u Dogovoru','Otvori Dogovor da vidiš prijavljeni problem.'],
+   REVIEW_RECEIVED: ['Stigla ti je nova ocena','Pogledaj novu ocenu saradnje.'],
+   CLARIFICATION_CREATED: ['Novo pitanje za zadatak','Stiglo je novo pitanje.'],
+   CLARIFICATION_ANSWERED: ['Stigao je odgovor','Na pitanje za zadatak je odgovoreno.'],

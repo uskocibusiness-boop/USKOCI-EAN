@@ -1,6 +1,7 @@
 // CANCEL-INFO + PROFILE-TRUST order proof against the three still unapplied candidates ZONE-PERF -> MATCH-V1 -> DISCOVERY-ZAMENE.
 // Disposable only (loopback guard), real Auth for the seed, every read evaluated as an authenticated account in SQL. Never DEV.
-//   A  today's state (the chain with the DEV bodies + the D12 read surface): CANCEL-INFO, PROFILE-TRUST apply; exact revert.
+//   A  the chain with the DEV bodies + the D12 read surface (DEV before 2026-10-07 19:22): CANCEL-INFO, PROFILE-TRUST apply; exact revert.
+//   D  canonical DEV since 2026-10-07 19:22: ZONE-PERF applied alone; ours apply, answer the same, revert to exactly that state.
 //   B  the three first, then CANCEL-INFO + PROFILE-TRUST: the delta is exactly this package's; revert ours -> the three-applied catalog; revert the three -> base.
 //   C  CANCEL-INFO + PROFILE-TRUST first, then the three: revert the three -> our catalog; revert ours -> base.
 // In every state the four reads answer byte for byte the same (asOf aside), and the closure certificate never moves.
@@ -78,6 +79,19 @@ try {
     && sA.reviews.items.length === 1 && sA.reviews.items[0].comment === text && sA.cancel.items.length === 3 && sA.cancel.items[1].cancelledBy === 'WORKER', sA);
   revertOurs();
   check('ORDER_A_TODAY_REVERTS_EXACTLY', catalog() === base && JSON.stringify(closure()) === JSON.stringify(baseClosure), {});
+
+  // D: canonical DEV as it is since 2026-10-07 19:22 (migration 20261007192233): ZONE-PERF applied, MATCH-V1 and DISCOVERY-ZAMENE not
+  psqlFile(ZP + 'candidate.sql');
+  assert.ok(zApplied() && !mApplied() && !dApplied());
+  const zoneOnly = catalog();
+  applyOurs();
+  const sD = smoke();
+  assert.deepEqual(closure(), baseClosure);
+  revertOurs();
+  const afterOursD = catalog();
+  psqlFile(ZP + 'revert.sql');
+  check('ORDER_D_TODAYS_DEV_ZONE_PERF_ONLY_SAME_ANSWERS_OUR_REVERT_RESTORES_IT_EXACTLY',
+    same(sA, sD) && afterOursD === zoneOnly && catalog() === base && JSON.stringify(closure()) === JSON.stringify(baseClosure), {difference: firstDifference(sA, sD)});
 
   // B: the three first
   applyThree();

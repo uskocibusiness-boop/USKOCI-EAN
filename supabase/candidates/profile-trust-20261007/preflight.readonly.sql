@@ -9,7 +9,7 @@ select jsonb_build_object(
  'closureDigest',private.closure_source_digest_v5(),
  'erasureProgramDigest',private.closure_erasure_program_digest_v5(),
  'closureNotExecuting',not exists(select 1 from private.closure_executions_v5 where state='EXECUTING'),
- 'cancelInfoApplied',(select md5(prosrc) from pg_proc where oid=to_regprocedure('private.agreement_cancellation_facts_v1(uuid)'))='65eec38f58d81667f14a046f3596a243',
+ 'cancelInfoApplied',(select md5(prosrc) from pg_proc where oid=to_regprocedure('private.agreement_cancellation_facts_v1(uuid)')) is not distinct from '65eec38f58d81667f14a046f3596a243',
  'dependencyDrift',(select coalesce(jsonb_agg(x.signature order by x.signature),'[]'::jsonb) from (values
    ('public.rpc_get_public_profile(uuid)','9ecc0b69096f1167d02e0bb7b9656bc0'),
    ('private.safety_pair_blocked(uuid,uuid)','698fb21abb0379743bc7ab09d9f946ad'),

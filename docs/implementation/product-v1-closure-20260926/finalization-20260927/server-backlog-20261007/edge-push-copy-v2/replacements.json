@@ -1,0 +1,32 @@
+[
+  {
+    "file": "supabase/functions/_shared/pushNotificationCopy.mjs",
+    "before": "  RESPONSE_SELECTED: ['Izabran si', 'Tvoja prijava je prihvaćena. Otvori Dogovor.'],",
+    "after": "  RESPONSE_SELECTED: ['Tvoja prijava je izabrana', 'Otvori Dogovor.'],"
+  },
+  {
+    "file": "supabase/functions/_shared/pushNotificationCopy.mjs",
+    "before": "  COMPLETION_REQUIRED: ['Potvrdi završetak', 'Druga strana je označila posao kao završen.'],",
+    "after": "  COMPLETION_REQUIRED: ['Potvrdi završetak', 'Zadatak je označen kao gotov.'],"
+  },
+  {
+    "file": "supabase/functions/_shared/pushNotificationCopy.mjs",
+    "before": "  RECOVERY_OPENED: ['Oporavak naloga', 'Otvoren je postupak oporavka naloga.'],",
+    "after": "  RECOVERY_OPENED: ['Prijavljen je problem u Dogovoru', 'Otvori Dogovor da vidiš prijavljeni problem.'],"
+  },
+  {
+    "file": "supabase/proofs/notifications/n10_push_copy.test.mjs",
+    "before": "  RESPONSE_SELECTED: ['Izabran si','Tvoja prijava je prihvaćena. Otvori Dogovor.'],",
+    "after": "  RESPONSE_SELECTED: ['Tvoja prijava je izabrana','Otvori Dogovor.'],"
+  },
+  {
+    "file": "supabase/proofs/notifications/n10_push_copy.test.mjs",
+    "before": "  COMPLETION_REQUIRED: ['Potvrdi završetak','Druga strana je označila posao kao završen.'],",
+    "after": "  COMPLETION_REQUIRED: ['Potvrdi završetak','Zadatak je označen kao gotov.'],"
+  },
+  {
+    "file": "supabase/proofs/notifications/n10_push_copy.test.mjs",
+    "before": "  RECOVERY_OPENED: ['Oporavak naloga','Otvoren je postupak oporavka naloga.'],",
+    "after": "  RECOVERY_OPENED: ['Prijavljen je problem u Dogovoru','Otvori Dogovor da vidiš prijavljeni problem.'],"
+  }
+]

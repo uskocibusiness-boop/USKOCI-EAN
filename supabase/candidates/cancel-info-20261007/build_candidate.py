@@ -319,7 +319,9 @@ files = {
 manifest = {
     "id": "CANCEL-INFO", "status": "SOURCE_ONLY_NOT_APPLIED", "target": "leqcwgzvjsxugfgzdmth",
     "requiresOwnerWord": "PRIMENI CANCEL-INFO",
-    "devStateReadAt": "2026-10-07", "devLedger": 227, "devLatestVersion": "20261005101102",
+    "devStateReadAt": "2026-10-07", "devLedger": 228, "devLatestVersion": "20261007192233",
+    "devNote": "read-only readbacks 2026-10-07; ZONE-PERF was applied to DEV at 19:22:33 (migration 20261007192233) while this package was built: "
+               "no pin of this package changed (DEV preflight: dependencyDrift [], cancelWriterIsOnlyThePinnedWriter true, certificate 3a785d42 ready)",
     "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
     "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
     "certificateMoves": False,

@@ -508,7 +508,7 @@ PREFLIGHT = ("-- PROFILE-TRUST read-only preflight for canonical DEV leqcwgzvjsx
              " 'closureDigest',private.closure_source_digest_v5(),\n"
              " 'erasureProgramDigest',private.closure_erasure_program_digest_v5(),\n"
              " 'closureNotExecuting',not exists(select 1 from private.closure_executions_v5 where state='EXECUTING'),\n"
-             " 'cancelInfoApplied',(select md5(prosrc) from pg_proc where oid=to_regprocedure(" + quote(FACTS_SIG) + "))=" + quote(FACTS_MD5) + ",\n"
+             " 'cancelInfoApplied',(select md5(prosrc) from pg_proc where oid=to_regprocedure(" + quote(FACTS_SIG) + ")) is not distinct from " + quote(FACTS_MD5) + ",\n"
              " 'dependencyDrift'," + pin_rows(DEPENDENCY_PINS) + ",\n"
              " 'readShapesAsExpected'," + shape_rows() + ",\n"
              " 'newFunctionsAndRowsAbsent'," + ABSENT + ",\n"
@@ -557,7 +557,9 @@ for name, (key, expect, target, word) in SWITCHES.items():
 manifest = {
     "id": "PROFILE-TRUST", "status": "SOURCE_ONLY_NOT_APPLIED", "target": "leqcwgzvjsxugfgzdmth",
     "requiresOwnerWord": "PRIMENI PROFILE-TRUST", "requiresApplied": "CANCEL-INFO",
-    "devStateReadAt": "2026-10-07", "devLedger": 227, "devLatestVersion": "20261005101102",
+    "devStateReadAt": "2026-10-07", "devLedger": 228, "devLatestVersion": "20261007192233",
+    "devNote": "read-only readbacks 2026-10-07; ZONE-PERF was applied to DEV at 19:22:33 (migration 20261007192233) while this package was built: "
+               "no pin of this package changed (DEV preflight: dependencyDrift [], readShapesAsExpected true, certificate 3a785d42 ready)",
     "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
     "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
     "certificateMoves": False,

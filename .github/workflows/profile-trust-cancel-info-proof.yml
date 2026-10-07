@@ -145,7 +145,7 @@ jobs:
           assert.equal(chain.result, 'PASS');
           assert.equal(chain.relevantLiveBodyPins, 23);
           assert.equal(report.liveAccess, false);
-          assert.ok(report.checks.length >= 5);
+          assert.ok(report.checks.length >= 6);
           assert.ok(report.checks.every(c => c.result === 'PASS'));
           NODE
       - name: Always discard the disposable database
