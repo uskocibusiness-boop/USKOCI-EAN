@@ -200,7 +200,117 @@
  end;
 --- private.dispatch_next_wave(uuid) BEFORE (DEV)
 +++ private.dispatch_next_wave(uuid) AFTER (MATCH-V1)
-@@ -109,7 +109,8 @@
+@@ -9,6 +9,8 @@
+   roundid uuid := gen_random_uuid();
+   inserted integer := 0;
+   c record; d jsonb; deadline timestamptz; urg text;
++  -- MATCH-V1 (owner 2026-10-07): the switch row private.marketplace_config 'match_v1_dispatch' (see below).
++  sw jsonb; all_mode boolean := false; sw_ceiling integer; sw_valid integer; delivered integer := 0; valid_until timestamptz;
+ begin
+   select * into n from public.needs where id = nid for update;
+   if not found then raise exception using errcode='P0002', message='NEED_NOT_FOUND'; end if;
+@@ -54,17 +56,60 @@
+     raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
+   end if;
+ 
+-  if active >= target and active_coverage >= remaining then
++  -- MATCH-V1 (owner 2026-10-07): HOW does this server dispatch? One switch row decides; turning the ladder on needs no code change.
++  --   mode ALL (the default of this package): ONE wave to EVERY worker the shared rule admits, nearest first, in this tick. No group of
++  --     5 / 5 / 10 / 20, no waiting window between groups, no stop after N responses (a stop would starve later workers of their
++  --     notification). A worker who becomes eligible later (a new or a changed profile) is reached by the next wave of the same task
++  --     (the profile re-queue); a worker already notified for this revision is never notified twice. Safety ceiling: at most 'ceiling'
++  --     notified workers per task REVISION (default 500). Above it nobody more is notified for that revision: the task stays on the
++  --     map and the list for everyone and applying stays open; the wave answers DELIVERY_CEILING_REACHED (the tick records it in
++  --     dispatch_schedule.last_reason and keeps its normal back-off check); raising the ceiling continues with the workers not yet
++  --     notified, nearest first. Deliveries and their notifications stay valid for 'validMinutes' (default 24 h): the push transport
++  --     needs time to reach hundreds of workers and an expired notification would be a worker who never heard of the task.
++  --   mode LADDER (or no row): today's waves, unchanged (dispatch_normal / dispatch_urgent: waveSizes, windowMinutes, targetResponses,
++  --     candidate budget). "Mogu odmah" first (timeTier) orders the workers inside a wave in both modes.
++  select value into sw from private.marketplace_config where key = 'match_v1_dispatch';
++  if sw is not null then
++    if jsonb_typeof(sw) <> 'object' or coalesce(sw->>'mode','') not in ('ALL','LADDER') then
++      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
++    end if;
++    all_mode := sw->>'mode' = 'ALL';
++  end if;
++  if all_mode then
++    begin
++      sw_ceiling := (sw->>'ceiling')::integer;
++      sw_valid := (sw->>'validMinutes')::integer;
++    exception when others then
++      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
++    end;
++    if sw_ceiling is null or sw_ceiling < 1 or sw_ceiling > 10000 or sw_valid is null or sw_valid < 1 or sw_valid > 10080 then
++      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
++    end if;
++    select count(*) into delivered from public.opportunity_deliveries where need_id = nid and need_revision = n.revision;
++    if delivered >= sw_ceiling then
++      return jsonb_build_object('status','STOPPED','reason','DELIVERY_CEILING_REACHED','inserted',0,'mode','ALL','ceiling',sw_ceiling,
++        'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,
++        'selectedSlots',selected,'remainingSlots',remaining);
++    end if;
++  end if;
++
++  if not all_mode and active >= target and active_coverage >= remaining then
+     return jsonb_build_object('status','STOPPED','reason','RESPONSE_TARGET_AND_COVERAGE_REACHED',
+       'inserted',0,'activeResponses',active,'activeCoverage',active_coverage,
+       'selectedSlots',selected,'remainingSlots',remaining);
+   end if;
+ 
+-  budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);
+-  candidate_limit := (budget->>'limit')::integer;
+-  budget_source := budget->>'source';
+-  if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then
+-    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
++  if all_mode then
++    -- MATCH-V1: every admitted worker, up to what is left of the ceiling of this task revision ('FIXED' is the allowed budget source).
++    candidate_limit := sw_ceiling - delivered;
++    budget_source := 'FIXED';
++  else
++    budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);
++    candidate_limit := (budget->>'limit')::integer;
++    budget_source := budget->>'source';
++    if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then
++      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
++    end if;
+   end if;
+ 
+   select coalesce(max(round_no),0)+1 into roundno
+@@ -75,16 +120,16 @@
+      -- PKG-027a: a check that found nobody reached nobody, so it does not use up a wave.
+      and not (status = 'STOPPED' and stop_reason = 'NO_ELIGIBLE_CANDIDATES');
+ 
+-  if policy_wave_no > jsonb_array_length(sizes) then
++  if not all_mode and policy_wave_no > jsonb_array_length(sizes) then
+     return jsonb_build_object('status','STOPPED','reason','WAVES_EXHAUSTED','inserted',0,
+       'activeResponses',active,'activeCoverage',active_coverage,
+       'selectedSlots',selected,'remainingSlots',remaining,'candidateLimit',candidate_limit);
+   end if;
+ 
+-  batch := (sizes->>(policy_wave_no-1))::integer;
++  batch := case when all_mode then candidate_limit else (sizes->>(policy_wave_no-1))::integer end;
+ 
+   -- O-3: pod izbora za HITNO.
+-  if urg = 'URGENT' then
++  if urg = 'URGENT' and not all_mode then
+     select value into urgcfg from private.marketplace_config where key = 'urgent_activation_policy';
+     min_choice := coalesce(nullif(urgcfg->>'minChoice','')::integer, 2);
+     if min_choice < 2 or min_choice > 10 then min_choice := 2; end if;
+@@ -92,6 +137,13 @@
+   end if;
+ 
+   deadline := statement_timestamp() + make_interval(mins => windowm);
++  -- MATCH-V1: 'deadline' is when this wave's window ends (the tick checks the task again then). In mode ALL the deliveries and their
++  -- notifications outlive it: they stay valid for 'validMinutes', for an urgent task not beyond the end of its urgency.
++  valid_until := deadline;
++  if all_mode then
++    valid_until := statement_timestamp() + make_interval(mins => sw_valid);
++    if urg = 'URGENT' then valid_until := least(valid_until, n.urgent_expires_at); end if;
++  end if;
+ 
+   insert into public.dispatch_rounds(id,need_id,need_revision,round_no,urgency,batch_size,
+       target_responses,candidate_limit_used,budget_source,status,deadline_at)
+@@ -109,7 +161,8 @@
      )
      select s.pid, s.uid, s.detail from scored s
      where coalesce((s.detail->>'dispatchEligible')::boolean, false)
@@ -210,13 +320,41 @@
    loop
      exit when inserted >= batch;
      d := c.detail;
+@@ -121,7 +174,7 @@
+           'effectiveRadiusKm', d->'effectiveRadiusKm',
+           'distanceSource', d->'distanceSource',
+           'taskLocationMode', d->'taskLocationMode'),
+-        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', deadline)
++        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', valid_until)
+       on conflict do nothing;
+ 
+     if found then
+@@ -136,7 +189,7 @@
+         p_urgency => case when urg = 'URGENT' then 'HITNO' else 'NORMAL' end,
+         p_payload => jsonb_build_object('needRevision',n.revision,
+                        'reasonCodes',d->'reasonCodes','remainingSlots',remaining),
+-        p_expires_at => deadline);
++        p_expires_at => valid_until);
+     end if;
+   end loop;
+ 
+@@ -156,5 +209,7 @@
+     'candidateLimit', candidate_limit, 'budgetSource', budget_source,
+     'routingCallsUsed', 0, 'routingProvider', null,
+     'candidateRetrieval', 'CLEAN_STREAMING_BOUNDED_GEO_KNN',
+-    'authoritative', true);
++    'authoritative', true)
++    || case when all_mode then jsonb_build_object('mode','ALL','ceiling',sw_ceiling,'deliveredBefore',delivered,'validUntil',valid_until)
++            else '{}'::jsonb end;
+ end;
 --- private.dispatch_tick(integer,timestamp with time zone) BEFORE (DEV)
 +++ private.dispatch_tick(integer,timestamp with time zone) AFTER (MATCH-V1)
-@@ -1,10 +1,19 @@
+@@ -1,10 +1,32 @@
  
  declare
 -  claimed uuid[]; r record; candidate record; res jsonb;
 +  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;
++  tick_started timestamptz := clock_timestamp(); tick_budget numeric := 40; deferred integer := 0;
    processed integer := 0; sent integer := 0; stopped integer := 0; failed integer := 0;
    reason text; next_at timestamptz;
  begin
@@ -230,16 +368,40 @@
 +  exception when others then
 +    profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));
 +  end;
++
++  -- MATCH-V1: the time budget of this tick (private.marketplace_config 'match_v1_dispatch', tickBudgetSeconds, default 40 s). One wave
++  -- to hundreds of workers takes seconds. After the budget this tick starts no further task: the claimed tasks it did not start are
++  -- released and come first on the next tick, so one heavy minute can never run into the statement timeout, roll back and repeat
++  -- forever. At least one task is always handled. A bad setting never stops the dispatch (default 40 s).
++  begin
++    select coalesce((value->>'tickBudgetSeconds')::numeric, 40) into tick_budget
++      from private.marketplace_config where key = 'match_v1_dispatch';
++  exception when others then
++    tick_budget := 40;
++  end;
++  tick_budget := least(greatest(coalesce(tick_budget, 40), 0.001), 100);
  
    -- Claim each free Need and queue in a bounded successful-claim batch.
    -- locked_until je zastita od procesa koji padne usred obrade.
-@@ -86,5 +95,6 @@
+@@ -40,6 +62,11 @@
+   end loop;
+ 
+   for r in select unnest(claimed) as need_id loop
++    if processed > 0 and clock_timestamp() - tick_started > make_interval(secs => tick_budget) then
++      update private.dispatch_schedule set locked_until = null where need_id = r.need_id;
++      deferred := deferred + 1;
++      continue;
++    end if;
+     processed := processed + 1;
+     begin
+       res := private.dispatch_next_wave(r.need_id);
+@@ -86,5 +113,6 @@
    end loop;
  
    return jsonb_build_object('processed',processed,'sent',sent,'stopped',stopped,
 -                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));
 +                            'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),
-+                            'profileRequeue',profile_requeue);
++                            'deferred',deferred,'profileRequeue',profile_requeue);
  end;
 --- private.candidate_profile_ids(uuid,integer) BEFORE (DEV)
 +++ private.candidate_profile_ids(uuid,integer) AFTER (MATCH-V1)

@@ -73,7 +73,8 @@ for directory in (Z, M, D):
         else:
             plpgsql("create function f(" + SIGNATURE_HEAD.get(f["signature"], DEFAULT_HEAD) + " language plpgsql as $syntax$" + body + "$syntax$")
         checked += 1
-    for name in ("candidate.sql", "revert.sql", "preflight.readonly.sql", "postflight.readonly.sql") + (("candidate.in-transaction.sql",) if directory in (M, Z) else ()):
+    for name in ("candidate.sql", "revert.sql", "preflight.readonly.sql", "postflight.readonly.sql") + (("candidate.in-transaction.sql",) if directory in (M, Z) else ()) \
+            + (("switch-ladder-on.sql", "switch-ladder-off.sql") if directory == M else ()):
         text = (directory / name).read_text(encoding="utf-8")
         assert "\r" not in text
         pglast.parse_sql(text)
@@ -153,6 +154,40 @@ assert cand_ids.count("p.profile_status = 'ACTIVE'") == 2 and cand_ids.count("wh
 rq = code(requeue)
 assert "limit 100" in rq and "afterAccount" in rq and "(p.updated_at,p.account_id)>(after_at,after_acc)" in rq
 assert rq.index("offset 0") < rq.index("private.accounts_same_world"), "the world check must run only after the cheap conditions (OFFSET 0 fence)"
+
+# --- dispatch policy (owner 2026-10-07): ONE wave to every admitted worker by default, the ladder kept whole and switched by ONE row
+WAVE_SIG, TICK_SIG = "private.dispatch_next_wave(uuid)", "private.dispatch_tick(integer,timestamp with time zone)"
+wave = m_after[WAVE_SIG]
+wave_code = code(wave)
+# the ladder is still all there: every statement of the ladder path survives, only guarded or made conditional
+for ladder_part in ("sizes := cfg->'waveSizes';", "private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg)", "'WAVES_EXHAUSTED'",
+                    "'RESPONSE_TARGET_AND_COVERAGE_REACHED'", "(sizes->>(policy_wave_no-1))::integer", "greatest(batch, min_choice)", "make_interval(mins => windowm)"):
+    assert ladder_part in wave_code, ("LADDER_PART_MISSING", ladder_part)
+for guarded in ("if not all_mode and active >= target and active_coverage >= remaining then", "if not all_mode and policy_wave_no > jsonb_array_length(sizes) then",
+                "if urg = 'URGENT' and not all_mode then"):
+    assert guarded in wave_code, ("LADDER_STEP_NOT_GUARDED", guarded)
+# mode ALL: no 40-worker cap, no waiting windows between groups, no stop after N responses; a ceiling per revision; long validity
+assert "candidate_limit := sw_ceiling - delivered;" in wave_code and "batch := case when all_mode then candidate_limit else" in wave_code
+assert wave_code.index("DELIVERY_CEILING_REACHED") < wave_code.index("insert into public.dispatch_rounds"), "the ceiling must refuse before a round is written"
+assert "sw->>'mode' = 'ALL'" in wave_code and "not in ('ALL','LADDER')" in wave_code and "sw is not null" in wave_code, "no row means the ladder; a bad row is a configuration error"
+assert wave_code.count("'DISPATCH_CONFIG_INVALID'") >= 5 and "sw_ceiling > 10000" in wave_code and "sw_valid > 10080" in wave_code
+assert "valid_until := deadline;" in wave_code and "'READY', valid_until)" in wave_code and "p_expires_at => valid_until" in wave_code, "the ladder keeps its window as validity"
+assert "least(valid_until, n.urgent_expires_at)" in wave_code
+allowed_sources = {"FIXED", "ADAPTIVE_FLOOR", "ADAPTIVE_COMPUTED", "ADAPTIVE_CAPPED"}   # dispatch_rounds_budget_source_check on DEV
+assert set(re.findall(r"budget_source := '([A-Z_]+)'", wave_code)) <= allowed_sources and "budget_source := 'FIXED'" in wave_code
+assert "'authoritative', true)\n    || case when all_mode then" in wave and "40001" not in wave
+tick_code = code(m_after[TICK_SIG])
+assert "'deferred',deferred" in tick_code and "processed > 0 and clock_timestamp() - tick_started > make_interval(secs => tick_budget)" in tick_code and "locked_until = null" in tick_code
+assert "least(greatest(coalesce(tick_budget, 40), 0.001), 100)" in tick_code and tick_code.index("tick_budget := least") < tick_code.index("for r in select unnest(claimed)")
+assert "all_mode or not (coalesce(s.last_status,'')='SENT'" in rq and "key='match_v1_dispatch'" in rq, "mode ALL has no wave window to wait for"
+m_manifest_dispatch = m_manifest["dispatchSwitch"]
+assert m_manifest_dispatch["default"] == {"mode": "ALL", "ceiling": 500, "validMinutes": 1440, "tickBudgetSeconds": 40, "owner": "MATCH-V1 2026-10-07"}
+assert "values('match_v1_dispatch',jsonb_build_object('mode','ALL','ceiling',500,'validMinutes',1440,'tickBudgetSeconds',40" in cand
+assert "delete from private.marketplace_config where key in ('match_v1_profile_requeue','match_v1_dispatch');" in (M / "revert.sql").read_text(encoding="utf-8")
+for switch_name, expect, target in (("switch-ladder-on.sql", "ALL", "LADDER"), ("switch-ladder-off.sql", "LADDER", "ALL")):
+    switch_text = (M / switch_name).read_text(encoding="utf-8")
+    assert f"is distinct from '{expect}'" in switch_text and ("jsonb_set(value,'{mode}','\"" + target + "\"'::jsonb)") in switch_text, switch_name
+    assert "create function" not in switch_text.lower() and "match_v1_dispatch" in switch_text and switch_text.count("update private.marketplace_config") == 1, switch_name
 
 d_after = bodies_after(D)["public.rpc_discovery_v1(jsonb)"]
 assert d_after.count("public.discovery_for_me_v1(") == 2 and "P6_FOR_ME_PROFILE_REQUIRED" in d_after

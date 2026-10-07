@@ -61,23 +61,73 @@
   },
   {
     "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  c record; d jsonb; deadline timestamptz; urg text;\nbegin\n",
+    "after": "  c record; d jsonb; deadline timestamptz; urg text;\n  -- MATCH-V1 (owner 2026-10-07): the switch row private.marketplace_config 'match_v1_dispatch' (see below).\n  sw jsonb; all_mode boolean := false; sw_ceiling integer; sw_valid integer; delivered integer := 0; valid_until timestamptz;\nbegin\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  if active >= target and active_coverage >= remaining then\n",
+    "after": "  -- MATCH-V1 (owner 2026-10-07): HOW does this server dispatch? One switch row decides; turning the ladder on needs no code change.\n  --   mode ALL (the default of this package): ONE wave to EVERY worker the shared rule admits, nearest first, in this tick. No group of\n  --     5 / 5 / 10 / 20, no waiting window between groups, no stop after N responses (a stop would starve later workers of their\n  --     notification). A worker who becomes eligible later (a new or a changed profile) is reached by the next wave of the same task\n  --     (the profile re-queue); a worker already notified for this revision is never notified twice. Safety ceiling: at most 'ceiling'\n  --     notified workers per task REVISION (default 500). Above it nobody more is notified for that revision: the task stays on the\n  --     map and the list for everyone and applying stays open; the wave answers DELIVERY_CEILING_REACHED (the tick records it in\n  --     dispatch_schedule.last_reason and keeps its normal back-off check); raising the ceiling continues with the workers not yet\n  --     notified, nearest first. Deliveries and their notifications stay valid for 'validMinutes' (default 24 h): the push transport\n  --     needs time to reach hundreds of workers and an expired notification would be a worker who never heard of the task.\n  --   mode LADDER (or no row): today's waves, unchanged (dispatch_normal / dispatch_urgent: waveSizes, windowMinutes, targetResponses,\n  --     candidate budget). \"Mogu odmah\" first (timeTier) orders the workers inside a wave in both modes.\n  select value into sw from private.marketplace_config where key = 'match_v1_dispatch';\n  if sw is not null then\n    if jsonb_typeof(sw) <> 'object' or coalesce(sw->>'mode','') not in ('ALL','LADDER') then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n    all_mode := sw->>'mode' = 'ALL';\n  end if;\n  if all_mode then\n    begin\n      sw_ceiling := (sw->>'ceiling')::integer;\n      sw_valid := (sw->>'validMinutes')::integer;\n    exception when others then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end;\n    if sw_ceiling is null or sw_ceiling < 1 or sw_ceiling > 10000 or sw_valid is null or sw_valid < 1 or sw_valid > 10080 then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n    select count(*) into delivered from public.opportunity_deliveries where need_id = nid and need_revision = n.revision;\n    if delivered >= sw_ceiling then\n      return jsonb_build_object('status','STOPPED','reason','DELIVERY_CEILING_REACHED','inserted',0,'mode','ALL','ceiling',sw_ceiling,\n        'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,\n        'selectedSlots',selected,'remainingSlots',remaining);\n    end if;\n  end if;\n\n  if not all_mode and active >= target and active_coverage >= remaining then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);\n  candidate_limit := (budget->>'limit')::integer;\n  budget_source := budget->>'source';\n  if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then\n    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n  end if;\n",
+    "after": "  if all_mode then\n    -- MATCH-V1: every admitted worker, up to what is left of the ceiling of this task revision ('FIXED' is the allowed budget source).\n    candidate_limit := sw_ceiling - delivered;\n    budget_source := 'FIXED';\n  else\n    budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);\n    candidate_limit := (budget->>'limit')::integer;\n    budget_source := budget->>'source';\n    if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then\n      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';\n    end if;\n  end if;\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  if policy_wave_no > jsonb_array_length(sizes) then\n",
+    "after": "  if not all_mode and policy_wave_no > jsonb_array_length(sizes) then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  batch := (sizes->>(policy_wave_no-1))::integer;\n\n  -- O-3: pod izbora za HITNO.\n  if urg = 'URGENT' then\n",
+    "after": "  batch := case when all_mode then candidate_limit else (sizes->>(policy_wave_no-1))::integer end;\n\n  -- O-3: pod izbora za HITNO.\n  if urg = 'URGENT' and not all_mode then\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "  deadline := statement_timestamp() + make_interval(mins => windowm);\n",
+    "after": "  deadline := statement_timestamp() + make_interval(mins => windowm);\n  -- MATCH-V1: 'deadline' is when this wave's window ends (the tick checks the task again then). In mode ALL the deliveries and their\n  -- notifications outlive it: they stay valid for 'validMinutes', for an urgent task not beyond the end of its urgency.\n  valid_until := deadline;\n  if all_mode then\n    valid_until := statement_timestamp() + make_interval(mins => sw_valid);\n    if urg = 'URGENT' then valid_until := least(valid_until, n.urgent_expires_at); end if;\n  end if;\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', deadline)\n",
+    "after": "        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', valid_until)\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "        p_expires_at => deadline);\n",
+    "after": "        p_expires_at => valid_until);\n"
+  },
+  {
+    "signature": "private.dispatch_next_wave(uuid)",
     "before": "    order by (s.detail->>'score')::numeric desc, s.pid\n",
     "after": "    -- MATCH-V1: \"Mogu odmah\" first for a task danas/odmah (timeTier 1), then the schedule (2); score within a tier.\n    order by coalesce((s.detail->>'timeTier')::integer, 9), (s.detail->>'score')::numeric desc, s.pid\n"
   },
   {
+    "signature": "private.dispatch_next_wave(uuid)",
+    "before": "    'authoritative', true);\nend;",
+    "after": "    'authoritative', true)\n    || case when all_mode then jsonb_build_object('mode','ALL','ceiling',sw_ceiling,'deliveredBefore',delivered,'validUntil',valid_until)\n            else '{}'::jsonb end;\nend;"
+  },
+  {
     "signature": "private.dispatch_tick(integer,timestamp with time zone)",
     "before": "  claimed uuid[]; r record; candidate record; res jsonb;\n",
-    "after": "  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;\n"
+    "after": "  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;\n  tick_started timestamptz := clock_timestamp(); tick_budget numeric := 40; deferred integer := 0;\n"
   },
   {
     "signature": "private.dispatch_tick(integer,timestamp with time zone)",
     "before": "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n",
-    "after": "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n\n  -- MATCH-V1 (owner 2026-10-07): a direct profile write (the manual profile editor) brings the open tasks back\n  -- to the queue as the RPC saves do: once per change, before this tick claims anything. A failure here is\n  -- reported in the result and never stops the dispatch.\n  begin\n    profile_requeue := private.requeue_changed_worker_profiles_v1(p_at);\n  exception when others then\n    profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));\n  end;\n"
+    "after": "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n\n  -- MATCH-V1 (owner 2026-10-07): a direct profile write (the manual profile editor) brings the open tasks back\n  -- to the queue as the RPC saves do: once per change, before this tick claims anything. A failure here is\n  -- reported in the result and never stops the dispatch.\n  begin\n    profile_requeue := private.requeue_changed_worker_profiles_v1(p_at);\n  exception when others then\n    profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));\n  end;\n\n  -- MATCH-V1: the time budget of this tick (private.marketplace_config 'match_v1_dispatch', tickBudgetSeconds, default 40 s). One wave\n  -- to hundreds of workers takes seconds. After the budget this tick starts no further task: the claimed tasks it did not start are\n  -- released and come first on the next tick, so one heavy minute can never run into the statement timeout, roll back and repeat\n  -- forever. At least one task is always handled. A bad setting never stops the dispatch (default 40 s).\n  begin\n    select coalesce((value->>'tickBudgetSeconds')::numeric, 40) into tick_budget\n      from private.marketplace_config where key = 'match_v1_dispatch';\n  exception when others then\n    tick_budget := 40;\n  end;\n  tick_budget := least(greatest(coalesce(tick_budget, 40), 0.001), 100);\n"
+  },
+  {
+    "signature": "private.dispatch_tick(integer,timestamp with time zone)",
+    "before": "  for r in select unnest(claimed) as need_id loop\n    processed := processed + 1;\n",
+    "after": "  for r in select unnest(claimed) as need_id loop\n    if processed > 0 and clock_timestamp() - tick_started > make_interval(secs => tick_budget) then\n      update private.dispatch_schedule set locked_until = null where need_id = r.need_id;\n      deferred := deferred + 1;\n      continue;\n    end if;\n    processed := processed + 1;\n"
   },
   {
     "signature": "private.dispatch_tick(integer,timestamp with time zone)",
     "before": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));",
-    "after": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n                            'profileRequeue',profile_requeue);"
+    "after": "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n                            'deferred',deferred,'profileRequeue',profile_requeue);"
   },
   {
     "signature": "private.candidate_profile_ids(uuid,integer)",

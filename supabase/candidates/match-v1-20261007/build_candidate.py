@@ -131,13 +131,116 @@ end;
 edits.append({"signature": TIME, "before": live[TIME], "after": after[TIME]})
 
 # ---------------------------------------------------------------- private.dispatch_next_wave
+# Owner policy 2026-10-07 ("svi dobijaju priliku"; the 5-then-5 ladder is for later, when there are many workers): ONE switch row,
+# private.marketplace_config 'match_v1_dispatch'. mode ALL (the default this package writes) = one wave to every admitted worker;
+# mode LADDER (or no row) = today's waves, unchanged. Turning the ladder on needs no code change.
+change(WAVE, """  c record; d jsonb; deadline timestamptz; urg text;
+begin
+""", """  c record; d jsonb; deadline timestamptz; urg text;
+  -- MATCH-V1 (owner 2026-10-07): the switch row private.marketplace_config 'match_v1_dispatch' (see below).
+  sw jsonb; all_mode boolean := false; sw_ceiling integer; sw_valid integer; delivered integer := 0; valid_until timestamptz;
+begin
+""")
+change(WAVE, """  if active >= target and active_coverage >= remaining then
+""", """  -- MATCH-V1 (owner 2026-10-07): HOW does this server dispatch? One switch row decides; turning the ladder on needs no code change.
+  --   mode ALL (the default of this package): ONE wave to EVERY worker the shared rule admits, nearest first, in this tick. No group of
+  --     5 / 5 / 10 / 20, no waiting window between groups, no stop after N responses (a stop would starve later workers of their
+  --     notification). A worker who becomes eligible later (a new or a changed profile) is reached by the next wave of the same task
+  --     (the profile re-queue); a worker already notified for this revision is never notified twice. Safety ceiling: at most 'ceiling'
+  --     notified workers per task REVISION (default 500). Above it nobody more is notified for that revision: the task stays on the
+  --     map and the list for everyone and applying stays open; the wave answers DELIVERY_CEILING_REACHED (the tick records it in
+  --     dispatch_schedule.last_reason and keeps its normal back-off check); raising the ceiling continues with the workers not yet
+  --     notified, nearest first. Deliveries and their notifications stay valid for 'validMinutes' (default 24 h): the push transport
+  --     needs time to reach hundreds of workers and an expired notification would be a worker who never heard of the task.
+  --   mode LADDER (or no row): today's waves, unchanged (dispatch_normal / dispatch_urgent: waveSizes, windowMinutes, targetResponses,
+  --     candidate budget). "Mogu odmah" first (timeTier) orders the workers inside a wave in both modes.
+  select value into sw from private.marketplace_config where key = 'match_v1_dispatch';
+  if sw is not null then
+    if jsonb_typeof(sw) <> 'object' or coalesce(sw->>'mode','') not in ('ALL','LADDER') then
+      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
+    end if;
+    all_mode := sw->>'mode' = 'ALL';
+  end if;
+  if all_mode then
+    begin
+      sw_ceiling := (sw->>'ceiling')::integer;
+      sw_valid := (sw->>'validMinutes')::integer;
+    exception when others then
+      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
+    end;
+    if sw_ceiling is null or sw_ceiling < 1 or sw_ceiling > 10000 or sw_valid is null or sw_valid < 1 or sw_valid > 10080 then
+      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
+    end if;
+    select count(*) into delivered from public.opportunity_deliveries where need_id = nid and need_revision = n.revision;
+    if delivered >= sw_ceiling then
+      return jsonb_build_object('status','STOPPED','reason','DELIVERY_CEILING_REACHED','inserted',0,'mode','ALL','ceiling',sw_ceiling,
+        'deliveredBefore',delivered,'activeResponses',active,'activeCoverage',active_coverage,
+        'selectedSlots',selected,'remainingSlots',remaining);
+    end if;
+  end if;
+
+  if not all_mode and active >= target and active_coverage >= remaining then
+""")
+change(WAVE, """  budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);
+  candidate_limit := (budget->>'limit')::integer;
+  budget_source := budget->>'source';
+  if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then
+    raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
+  end if;
+""", """  if all_mode then
+    -- MATCH-V1: every admitted worker, up to what is left of the ceiling of this task revision ('FIXED' is the allowed budget source).
+    candidate_limit := sw_ceiling - delivered;
+    budget_source := 'FIXED';
+  else
+    budget := private.candidate_budget(urg = 'URGENT', greatest(0, remaining - active_coverage), cfg);
+    candidate_limit := (budget->>'limit')::integer;
+    budget_source := budget->>'source';
+    if candidate_limit is null or candidate_limit < 1 or candidate_limit > 10000 then
+      raise exception using errcode='55000', message='DISPATCH_CONFIG_INVALID';
+    end if;
+  end if;
+""")
+change(WAVE, """  if policy_wave_no > jsonb_array_length(sizes) then
+""", """  if not all_mode and policy_wave_no > jsonb_array_length(sizes) then
+""")
+change(WAVE, """  batch := (sizes->>(policy_wave_no-1))::integer;
+
+  -- O-3: pod izbora za HITNO.
+  if urg = 'URGENT' then
+""", """  batch := case when all_mode then candidate_limit else (sizes->>(policy_wave_no-1))::integer end;
+
+  -- O-3: pod izbora za HITNO.
+  if urg = 'URGENT' and not all_mode then
+""")
+change(WAVE, """  deadline := statement_timestamp() + make_interval(mins => windowm);
+""", """  deadline := statement_timestamp() + make_interval(mins => windowm);
+  -- MATCH-V1: 'deadline' is when this wave's window ends (the tick checks the task again then). In mode ALL the deliveries and their
+  -- notifications outlive it: they stay valid for 'validMinutes', for an urgent task not beyond the end of its urgency.
+  valid_until := deadline;
+  if all_mode then
+    valid_until := statement_timestamp() + make_interval(mins => sw_valid);
+    if urg = 'URGENT' then valid_until := least(valid_until, n.urgent_expires_at); end if;
+  end if;
+""")
+change(WAVE, """        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', deadline)
+""", """        array(select jsonb_array_elements_text(d->'reasonCodes')), 'READY', valid_until)
+""")
+change(WAVE, """        p_expires_at => deadline);
+""", """        p_expires_at => valid_until);
+""")
 change(WAVE, "    order by (s.detail->>'score')::numeric desc, s.pid\n",
        "    -- MATCH-V1: \"Mogu odmah\" first for a task danas/odmah (timeTier 1), then the schedule (2); score within a tier.\n"
        "    order by coalesce((s.detail->>'timeTier')::integer, 9), (s.detail->>'score')::numeric desc, s.pid\n")
+change(WAVE, """    'authoritative', true);
+end;""", """    'authoritative', true)
+    || case when all_mode then jsonb_build_object('mode','ALL','ceiling',sw_ceiling,'deliveredBefore',delivered,'validUntil',valid_until)
+            else '{}'::jsonb end;
+end;""")
 
 # ---------------------------------------------------------------- private.dispatch_tick
 change(TICK, "  claimed uuid[]; r record; candidate record; res jsonb;\n",
-       "  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;\n")
+       "  claimed uuid[]; r record; candidate record; res jsonb; profile_requeue jsonb;\n"
+       "  tick_started timestamptz := clock_timestamp(); tick_budget numeric := 40; deferred integer := 0;\n")
 change(TICK, "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;\n",
        """  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch := 25; end if;
 
@@ -149,10 +252,32 @@ change(TICK, "  if p_batch is null or p_batch < 1 or p_batch > 200 then p_batch 
   exception when others then
     profile_requeue := jsonb_build_object('status','ERROR','reason',left(sqlerrm,200));
   end;
+
+  -- MATCH-V1: the time budget of this tick (private.marketplace_config 'match_v1_dispatch', tickBudgetSeconds, default 40 s). One wave
+  -- to hundreds of workers takes seconds. After the budget this tick starts no further task: the claimed tasks it did not start are
+  -- released and come first on the next tick, so one heavy minute can never run into the statement timeout, roll back and repeat
+  -- forever. At least one task is always handled. A bad setting never stops the dispatch (default 40 s).
+  begin
+    select coalesce((value->>'tickBudgetSeconds')::numeric, 40) into tick_budget
+      from private.marketplace_config where key = 'match_v1_dispatch';
+  exception when others then
+    tick_budget := 40;
+  end;
+  tick_budget := least(greatest(coalesce(tick_budget, 40), 0.001), 100);
+""")
+change(TICK, """  for r in select unnest(claimed) as need_id loop
+    processed := processed + 1;
+""", """  for r in select unnest(claimed) as need_id loop
+    if processed > 0 and clock_timestamp() - tick_started > make_interval(secs => tick_budget) then
+      update private.dispatch_schedule set locked_until = null where need_id = r.need_id;
+      deferred := deferred + 1;
+      continue;
+    end if;
+    processed := processed + 1;
 """)
 change(TICK, "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed));",
        "'failed',failed,'batch',p_batch,'claimed',cardinality(claimed),\n"
-       "                            'profileRequeue',profile_requeue);")
+       "                            'deferred',deferred,'profileRequeue',profile_requeue);")
 
 # ---------------------------------------------------------------- private.availability_timezone_valid (shared helper)
 # NOT changed by this package. The stalled load proof of 2026-10-07 (run 37616332729) had one root cause: the helper reads the whole zone
@@ -334,20 +459,24 @@ REQUEUE_BODY = """
 -- the open tasks back to the queue as the RPC saves do (private.requeue_open_needs_for_worker_v5): the same open set,
 -- the worker's own world, never the worker's own tasks, at most 200 per worker. Exactly once per change: an ACTIVE
 -- worker profile whose updated_at lies in (watermark, cutoff] is handled; the cutoff trails this tick by 30 seconds so
--- a write still committing is never skipped. A task that was already reconsidered after the change, or sits inside a
--- running wave window (whose next wave sees the worker anyway), is left as it is, so no wave is pulled forward.
+-- a write still committing is never skipped. A task that was already reconsidered after the change is left as it is. In the
+-- LADDER mode a task that sits inside a running wave window (whose next wave sees the worker anyway) is left as it is too, so no
+-- wave is pulled forward; in mode ALL (the default, see dispatch_next_wave) there is no wave window to wait for, so a changed
+-- profile re-queues the task even right after its wave and the worker is reached at the next tick.
 -- The watermark is one row of private.marketplace_config (data, not schema): no trigger and no new table.
 -- Bounded: at most 100 profiles per tick, in (updated_at, account_id) order, with a keyset cursor (so profiles that share one
 -- updated_at, e.g. one bulk UPDATE, are neither skipped nor repeated); the rest follows on the next ticks. The 30 second
 -- cutoff assumes a profile write commits within 30 seconds of its updated_at (that is the transaction start time).
 -- Cost when nothing changed: one config row and one pass over app_profiles.
 declare
-  cfg jsonb; after_at timestamptz; after_acc uuid; cutoff timestamptz; w record; v_need uuid;
+  cfg jsonb; after_at timestamptz; after_acc uuid; cutoff timestamptz; w record; v_need uuid; all_mode boolean:=false;
   profiles integer:=0; queued integer:=0; last_at timestamptz; last_acc uuid;
 begin
   if p_at is null or not isfinite(p_at) then return jsonb_build_object('status','SKIPPED','reason','INVALID_TIME'); end if;
   select value into cfg from private.marketplace_config where key='match_v1_profile_requeue' for update skip locked;
   if not found then return jsonb_build_object('status','SKIPPED','reason','NOT_CONFIGURED_OR_BUSY'); end if;
+  select (value->>'mode')='ALL' into all_mode from private.marketplace_config where key='match_v1_dispatch';
+  all_mode:=coalesce(all_mode,false);
   after_at:=(cfg->>'after')::timestamptz;
   after_acc:=coalesce((cfg->>'afterAccount')::uuid,'00000000-0000-0000-0000-000000000000'::uuid);
   cutoff:=least(p_at,statement_timestamp())-interval '30 seconds';
@@ -376,7 +505,7 @@ begin
            and n.requester_account_id<>w.account_id
            and (n.response_deadline is null or n.response_deadline>statement_timestamp())
            and (s.need_id is null or (coalesce(s.updated_at,'-infinity'::timestamptz)<w.changed_at
-                and not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at)))
+                and (all_mode or not (coalesce(s.last_status,'')='SENT' and coalesce(s.next_run_at,'-infinity'::timestamptz)>p_at))))
          order by n.published_at desc, n.id desc
          offset 0
       ) c
@@ -408,6 +537,13 @@ NEW = [
 ]
 NEW_ACL = "{postgres=X/postgres}"
 CONFIG_KEY = "match_v1_profile_requeue"
+# The one switch of the dispatch policy (owner 2026-10-07). Inserted with this value by the candidate, deleted by the revert.
+#   mode ALL      one wave to every admitted worker (the default). ceiling = notified workers per task revision at most; validMinutes = how long a
+#                 delivery and its notification stay valid; tickBudgetSeconds = a tick starts no further task after that many seconds.
+#   mode LADDER   today's waves (5, 5, 10, 20 per dispatch_normal / dispatch_urgent). No row means LADDER too.
+DISPATCH_KEY = "match_v1_dispatch"
+DISPATCH_DEFAULT = {"mode": "ALL", "ceiling": 500, "validMinutes": 1440, "tickBudgetSeconds": 40, "owner": "MATCH-V1 2026-10-07"}
+CONFIG_KEYS = (CONFIG_KEY, DISPATCH_KEY)
 
 for sig in CHANGED:
     assert after[sig] != live[sig], sig
@@ -423,6 +559,13 @@ def quote(s):
 def dollar(s, tag="mv1_body"):
     assert "$" + tag + "$" not in s
     return "$" + tag + "$" + s + "$" + tag + "$"
+
+
+def json_object_sql(d):
+    return "jsonb_build_object(" + ",".join(quote(k) + "," + (quote(v) if isinstance(v, str) else str(v)) for k, v in d.items()) + ")"
+
+
+KEYS_SQL = "(" + ",".join(quote(k) for k in CONFIG_KEYS) + ")"
 
 
 CERT_READY = """ if private.closure_source_digest_v5() is null or private.closure_erasure_program_digest_v5() is null
@@ -496,7 +639,7 @@ def candidate(transaction=True):
     # A repeated or partial application is named first, before any predecessor pin can report drift.
     s += (" if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')\n"
           "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1'))\n"
-          "  or exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + ")\n"
+          "  or exists(select 1 from private.marketplace_config where key in " + KEYS_SQL + ")\n"
           " then raise exception 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;\n")
     # The shared zone helper is a pinned dependency that may be in either known state (live, or ZONE-PERF applied first).
     s += pins_block("MATCH_V1_DEPENDENCY_DRIFT", [(d, accepted(d)) for d in DEPENDENCIES])
@@ -512,6 +655,9 @@ def candidate(transaction=True):
     s += "end\n$match_v1_replace$;\n"
     s += ("insert into private.marketplace_config(key,value,updated_at)\n"
           " values(" + quote(CONFIG_KEY) + ",jsonb_build_object('after',statement_timestamp(),'afterAccount','00000000-0000-0000-0000-000000000000','owner','MATCH-V1 2026-10-07'),statement_timestamp());\n")
+    # The dispatch switch (owner policy 2026-10-07): one wave to every admitted worker; set 'mode' to LADDER for the waves of today.
+    s += ("insert into private.marketplace_config(key,value,updated_at)\n"
+          " values(" + quote(DISPATCH_KEY) + "," + json_object_sql(DISPATCH_DEFAULT) + ",statement_timestamp());\n")
     s += "do $match_v1_post$\ndeclare r record;\nbegin\n"
     s += new_function_checks("MATCH_V1_NEW_FUNCTION_DRIFT")
     s += pins_block("MATCH_V1_POSTIMAGE_DRIFT", [(c, md5(after[c])) for c in CHANGED])
@@ -519,6 +665,8 @@ def candidate(transaction=True):
     s += pins_block("MATCH_V1_DEPENDENCY_CHANGED", [(d, accepted(d)) for d in DEPENDENCIES])
     s += (" if (select count(*) from private.marketplace_config where key=" + quote(CONFIG_KEY) + " and (value->>'after')::timestamptz is not null)<>1\n"
           " then raise exception 'MATCH_V1_WATERMARK_MISSING' using errcode='55000'; end if;\n")
+    s += (" if (select value from private.marketplace_config where key=" + quote(DISPATCH_KEY) + ") is distinct from " + json_object_sql(DISPATCH_DEFAULT) + "\n"
+          " then raise exception 'MATCH_V1_DISPATCH_ROW_MISSING' using errcode='55000'; end if;\n")
     s += (" if private.closure_source_digest_v5() is distinct from (select digest from match_v1_certificate)\n"
           "  or private.closure_erasure_program_digest_v5() is distinct from (select program from match_v1_certificate)\n"
           " then raise exception 'MATCH_V1_CERTIFICATE_MOVED' using errcode='55000'; end if;\n")
@@ -531,8 +679,9 @@ def candidate(transaction=True):
 
 def revert():
     s = header("EXACT REVERT")
-    s += "-- Restores the seven predecessor bodies, drops the four new functions and the watermark row. Code rollback only:\n"
-    s += "-- deliveries, applications and queue rows created under MATCH-V1 stay. Refuses while DISCOVERY-ZAMENE is applied.\n"
+    s += "-- Restores the six predecessor bodies, drops the four new functions and the two configuration rows (watermark, dispatch switch).\n"
+    s += "-- Code rollback only: deliveries, applications and queue rows created under MATCH-V1 stay. After it the dispatch is the ladder of today.\n"
+    s += "-- Refuses while DISCOVERY-ZAMENE is applied.\n"
     s += "begin;\nset local lock_timeout='5s';\nset local statement_timeout='180s';\nset local search_path=pg_catalog;\n"
     s += "do $match_v1_revert_pre$\ndeclare r record;\nbegin\n" + CERT_READY % "MATCH_V1_REVERT_CERTIFICATE_NOT_READY"
     s += (" if to_regprocedure('public.discovery_for_me_v1(uuid)') is not null or to_regprocedure('public.discovery_for_me_state_v1()') is not null\n"
@@ -548,12 +697,12 @@ def revert():
     s += "end\n$match_v1_revert_replace$;\n"
     for sig in [MATCH_SIG, FIT_SIG, REQUEUE_SIG, TIER_SIG]:
         s += f"drop function {sig};\n"
-    s += "delete from private.marketplace_config where key=" + quote(CONFIG_KEY) + ";\n"
+    s += "delete from private.marketplace_config where key in " + KEYS_SQL + ";\n"
     s += "do $match_v1_revert_post$\ndeclare r record;\nbegin\n"
     s += pins_block("MATCH_V1_REVERT_POSTIMAGE_DRIFT", [(c, md5(live[c])) for c in CHANGED])
     s += (" if exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')\n"
           "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1'))\n"
-          "  or exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + ")\n"
+          "  or exists(select 1 from private.marketplace_config where key in " + KEYS_SQL + ")\n"
           " then raise exception 'MATCH_V1_REVERT_INCOMPLETE' using errcode='55000'; end if;\n")
     s += (" if private.closure_source_digest_v5() is distinct from (select digest from match_v1_certificate)\n"
           "  or private.closure_erasure_program_digest_v5() is distinct from (select program from match_v1_certificate)\n"
@@ -594,6 +743,8 @@ PREFLIGHT = ("-- MATCH-V1 read-only preflight for canonical DEV leqcwgzvjsxugfgz
              " 'newFunctionsAbsent',not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')\n"
              "   and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1')),\n"
              " 'watermarkAbsent',not exists(select 1 from private.marketplace_config where key=" + quote(CONFIG_KEY) + "),\n"
+             " 'dispatchRowAbsent',not exists(select 1 from private.marketplace_config where key=" + quote(DISPATCH_KEY) + "),\n"
+             " 'ladderRowsPresent',(select count(*) from private.marketplace_config where key in ('dispatch_normal','dispatch_urgent'))=2,\n"
              " 'closureNotExecuting',not exists(select 1 from private.closure_executions_v5 where state='EXECUTING'),\n"
              " 'activeWorkerProfiles',(select count(*) from public.app_profiles where kind='WORKER' and profile_status='ACTIVE'),\n"
              " 'openTasks',(select count(*) from public.needs where status in ('PUBLISHED','SELECTION') and published_at is not null)\n"
@@ -612,6 +763,9 @@ POSTFLIGHT = ("-- MATCH-V1 read-only postflight. No write. Expected: every flag 
               " 'newFunctionAcl',(select bool_and(p.proacl::text=" + quote(NEW_ACL) + " and p.prosecdef) from pg_proc p where p.oid in (\n  "
               + ",\n  ".join("to_regprocedure(" + quote(s) + ")" for s, _, _, _ in NEW) + ")),\n"
               " 'watermark',(select value->>'after' from private.marketplace_config where key=" + quote(CONFIG_KEY) + "),\n"
+              " 'dispatchRow',(select value from private.marketplace_config where key=" + quote(DISPATCH_KEY) + "),\n"
+              " 'dispatchRowIsTheDefault',(select value from private.marketplace_config where key=" + quote(DISPATCH_KEY) + ") is not distinct from " + json_object_sql(DISPATCH_DEFAULT) + ",\n"
+              " 'ladderRowsStillThere',(select count(*) from private.marketplace_config where key in ('dispatch_normal','dispatch_urgent'))=2,\n"
               " 'closureDigest',private.closure_source_digest_v5(),\n"
               " 'erasureProgramDigest',private.closure_erasure_program_digest_v5(),\n"
               " 'certificateReady',private.closure_source_digest_v5()=(select sha256 from private.closure_source_v5 where singleton)\n"
@@ -619,10 +773,34 @@ POSTFLIGHT = ("-- MATCH-V1 read-only postflight. No write. Expected: every flag 
               "   and private.retention_ai_source_ready()\n"
               ") as match_v1_postflight;\n")
 
+def switch(direction, expect, target, undo):
+    """The dispatch switch as a one-row data update with its own guard (applies only from the expected mode)."""
+    return (f"-- MATCH-V1 SWITCH {direction}: SOURCE ONLY. NOT APPLIED. A state-changing write on canonical DEV: only on the owner's exact word.\n"
+            + ("-- From the next wave on, the dispatch sends in GROUPS again: 5, 5, 10, 20 per dispatch_normal / dispatch_urgent, 15-minute windows,\n"
+               "-- stop after 3 responses. Workers already notified stay notified.\n" if target == "LADDER" else
+               "-- From the next wave on, the dispatch sends ONE wave to every admitted worker again (ceiling per task revision, see the row).\n")
+            + "-- One data row, no code change, no function replaced, closure certificate not involved. Undo: " + undo + ".\n"
+            "-- Generated by supabase/candidates/match-v1-20261007/build_candidate.py; do not edit.\n"
+            "begin;\nset local lock_timeout='5s';\n"
+            "do $match_v1_switch$\nbegin\n"
+            " if (select value->>'mode' from private.marketplace_config where key=" + quote(DISPATCH_KEY) + ") is distinct from " + quote(expect) + "\n"
+            " then raise exception 'MATCH_V1_SWITCH_EXPECTS_MODE_" + expect + "' using errcode='55000'; end if;\n"
+            "end\n$match_v1_switch$;\n"
+            "update private.marketplace_config set value=jsonb_set(value,'{mode}','\"" + target + "\"'::jsonb), updated_at=statement_timestamp()\n"
+            " where key=" + quote(DISPATCH_KEY) + ";\n"
+            "do $match_v1_switch_post$\nbegin\n"
+            " if (select value->>'mode' from private.marketplace_config where key=" + quote(DISPATCH_KEY) + ") is distinct from " + quote(target) + "\n"
+            " then raise exception 'MATCH_V1_SWITCH_NOT_APPLIED' using errcode='55000'; end if;\n"
+            "end\n$match_v1_switch_post$;\ncommit;\n")
+
+
+assert DISPATCH_DEFAULT["mode"] == "ALL"
 files = {
     "candidate.sql": candidate(),
     "candidate.in-transaction.sql": candidate(transaction=False),
     "revert.sql": revert(),
+    "switch-ladder-on.sql": switch("LADDER ON", "ALL", "LADDER", "switch-ladder-off.sql"),
+    "switch-ladder-off.sql": switch("LADDER OFF (everyone at once)", "LADDER", "ALL", "switch-ladder-on.sql"),
     "preflight.readonly.sql": PREFLIGHT,
     "postflight.readonly.sql": POSTFLIGHT,
     "body.diff": "".join("".join(difflib.unified_diff(live[s].splitlines(True), after[s].splitlines(True), fromfile=s + " BEFORE (DEV)", tofile=s + " AFTER (MATCH-V1)")) for s in CHANGED),
@@ -640,7 +818,10 @@ manifest = {
     "unchangedDependencies": [{"signature": s, "body_md5": md5(live[s]), **({"alsoAcceptedAfterZonePerf": ZONE_PERF_AFTER_MD5} if s == TZ else {})} for s in DEPENDENCIES],
     "zonePerf": {"candidate": "supabase/candidates/zone-perf-20261007/", "helper": TZ, "liveMd5": md5(live[TZ]), "zonePerfMd5": ZONE_PERF_AFTER_MD5,
                  "note": "independent: this package neither needs nor changes the helper; apply ZONE-PERF first for speed (either order is accepted and proven)"},
-    "dataRows": [{"table": "private.marketplace_config", "key": CONFIG_KEY, "value": "{after: apply time}"}],
+    "dataRows": [{"table": "private.marketplace_config", "key": CONFIG_KEY, "value": "{after: apply time}"},
+                 {"table": "private.marketplace_config", "key": DISPATCH_KEY, "value": DISPATCH_DEFAULT,
+                  "meaning": "mode ALL = one wave to every admitted worker (ceiling per task revision, validity of deliveries, tick time budget); mode LADDER = the waves of today; no row = LADDER"}],
+    "dispatchSwitch": {"key": DISPATCH_KEY, "default": DISPATCH_DEFAULT, "ladderOn": "switch-ladder-on.sql", "ladderOff": "switch-ladder-off.sql"},
     "artifact_sha256": {k: sha(v) for k, v in files.items()},
 }
 files["manifest.json"] = json.dumps(manifest, indent=2) + "\n"

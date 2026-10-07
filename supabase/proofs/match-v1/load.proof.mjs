@@ -231,6 +231,89 @@ function discoveryAt(viewerId, viewerProfileId, label) {
 }
 const setDiscStatus = status => assert.ok(run(`set session_replication_role=replica; update public.needs set status='${status}' where category='MV1 disc';`).ok, 'DISC_STATUS_FAILED');
 
+// ---------------------------------------------------------------- the single-wave dispatch (owner policy 2026-10-07): what ONE task costs when it is sent to every matching worker
+// 1,000 workers who all fit two kinds of task: 'mv1-wave-a' (300 of them) and 'mv1-wave-b' (all 1,000), in a circle of about 14 km, radius 50 km, so the rule admits all of them.
+const WAVE_WORKERS = 1000, WAVE_A = 300, TICK_A_TASKS = 5, TICK_B_TASKS = 25;
+function waveNeeds(R, category, skill, count) {
+  return `insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,required_tools,required_vehicles,
+    required_licenses,minimum_experience_years,verified_identity_required,approximate_city,approximate_area,approximate_lat,approximate_lng,mode,required_slots,
+    schedule_kind,starts_at,ends_at,execution_location_mode,task_country_code,task_timezone,response_deadline,published_at)
+   select gen_random_uuid(),${q(R.id)}::uuid,${q(R.profileId)}::uuid,'PUBLISHED','${category} '||g,'Sinteticki zadatak za merenje jednog talasa.','${category}',
+    array['${skill}'],'{}','{}','{}',0,false,'Novi Sad','',45.27,19.83,'OFFERS',1,'FLEXIBLE',null,null,'STATIONARY','RS','Europe/Belgrade',
+    statement_timestamp()+interval '2 days',statement_timestamp() from generate_series(1,${count}) g;`;
+}
+function seedWaveAll(R) {
+  const r = run(`begin; set local session_replication_role=replica;
+  create temporary table mv1_x on commit drop as select gen_random_uuid() as account_id, gen_random_uuid() as profile_id, g as i from generate_series(1,${WAVE_WORKERS}) g;
+  insert into auth.users(id,aud,role,email) select account_id,'authenticated','authenticated','mv1-wave-'||i||'@proof.invalid' from mv1_x;
+  insert into public.app_accounts(id,email) select account_id,'mv1-wave-'||i||'@proof.invalid' from mv1_x;
+  insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,radius_km,available_now)
+   select profile_id,account_id,'WORKER','MV1 wave '||i,'Novi Sad','ACTIVE',case when i<=${WAVE_A} then array['mv1-wave-a','mv1-wave-b'] else array['mv1-wave-b'] end,50,false from mv1_x;
+  insert into public.worker_match_preferences(worker_profile_id,worker_account_id,approximate_lat,approximate_lng)
+   select profile_id,account_id,round((45.27+((i*37)%20-10)/100.0)::numeric,2),round((19.83+((i*53)%20-10)/100.0)::numeric,2) from mv1_x;
+  ${waveNeeds(R, 'MV1 wave single a', 'mv1-wave-a', 1)}
+  ${waveNeeds(R, 'MV1 wave single b', 'mv1-wave-b', 1)}
+  ${waveNeeds(R, 'MV1 wave tick a', 'mv1-wave-a', TICK_A_TASKS)}
+  ${waveNeeds(R, 'MV1 wave tick b', 'mv1-wave-b', TICK_B_TASKS)}
+  commit;
+  analyze public.app_accounts; analyze public.app_profiles; analyze public.worker_match_preferences; analyze public.needs;`, {timeoutS: 180});
+  assert.ok(r.ok, 'WAVE_SEED_FAILED:' + r.error);
+}
+const waveIds = category => rows(`select id from public.needs where category=${q(category)} order by id`).map(x => x.id);
+/**
+ * One rolled-back transaction: the work (waves, or a tick), its server-side time, and what it created (deliveries, events, notification rows, rounds) counted before the rollback.
+ * config: a patch of the dispatch switch row for this transaction only.
+ */
+function waveProbe(work, needIds, {config = null, timeoutS = HARD_S, track = false} = {}) {
+  const ids = `array[${needIds.map(id => q(id) + '::uuid').join(',')}]`;
+  const r = run(`begin;
+    ${track ? "set local track_functions='all';" : ''}
+    ${config ? `update private.marketplace_config set value=value||${q(JSON.stringify(config))}::jsonb where key='match_v1_dispatch';` : ''}
+    do $t$ declare t0 timestamptz; tm timestamptz; t1 timestamptz; res jsonb; res2 jsonb; begin
+      t0:=clock_timestamp();
+      ${work}
+      t1:=clock_timestamp();
+      perform set_config('mv1.wave', jsonb_build_object('ms', round((extract(epoch from t1-t0)*1000)::numeric,1),
+        'msFirst', case when tm is null then null else round((extract(epoch from tm-t0)*1000)::numeric,1) end, 'res', res, 'res2', res2,
+        'deliveries', (select count(*) from public.opportunity_deliveries where need_id = any(${ids})),
+        'events', (select count(*) from public.user_activity_events where entity_id = any(${ids}) and event_type='OPPORTUNITY_AVAILABLE'),
+        'notifications', (select count(*) from public.notification_deliveries d join public.user_activity_events e on e.id=d.event_id where e.entity_id = any(${ids}) and e.event_type='OPPORTUNITY_AVAILABLE'),
+        'rounds', (select count(*) from public.dispatch_rounds where need_id = any(${ids})))::text, false);
+    end $t$;
+    select current_setting('mv1.wave')${track ? `, (select coalesce(jsonb_agg(jsonb_build_object('name', schemaname||'.'||funcname, 'calls', calls, 'selfMs', round(self_time::numeric,1)) order by self_time desc), '[]'::jsonb)
+      from (select * from pg_stat_xact_user_functions order by self_time desc limit 8) f)` : ''};
+    rollback;`, {timeoutS});
+  if (!r.ok) return {ok: false, timedOut: r.timedOut, error: r.error, wallMs: r.wallMs};
+  const line = lastLine(r.output);
+  const [doc, top] = track ? line.split('|') : [line, null];
+  return {ok: true, ...JSON.parse(doc), ...(top ? {top: JSON.parse(top)} : {}), wallMs: r.wallMs};
+}
+const enqueueAll = ids => ids.map(id => `perform private.enqueue_dispatch(${q(id)}::uuid, statement_timestamp());`).join('\n');
+function measureWaveAll(R) {
+  seedWaveAll(R);
+  const [needA] = waveIds('MV1 wave single a'), [needB] = waveIds('MV1 wave single b'), tickA = waveIds('MV1 wave tick a'), tickB = waveIds('MV1 wave tick b');
+  // the profile re-queue is not what this measures: put its watermark ahead of the freshly inserted profiles
+  assert.ok(run(`update private.marketplace_config set value=jsonb_build_object('after',statement_timestamp()+interval '1 hour','afterAccount','${NIL}') where key='match_v1_profile_requeue';
+    delete from private.dispatch_schedule;`).ok);
+  const expectedA = Number(sql(`select count(*) from public.app_profiles p where p.display_name like 'MV1 wave %' and private.worker_need_match_v1(${q(needA)}::uuid, p.id)`));
+  const expectedB = Number(sql(`select count(*) from public.app_profiles p where p.display_name like 'MV1 wave %' and private.worker_need_match_v1(${q(needB)}::uuid, p.id)`));
+  const wave = id => `res := private.dispatch_next_wave(${q(id)}::uuid);`;
+  const out = {expectedMatching: {a: expectedA, b: expectedB}, sizes: {workers: WAVE_WORKERS, tickATasks: TICK_A_TASKS, tickBTasks: TICK_B_TASKS}};
+  out.allMode300 = waveProbe(wave(needA), [needA]);
+  out.allMode1000Ceiling500 = waveProbe(`res := private.dispatch_next_wave(${q(needB)}::uuid); tm := clock_timestamp(); res2 := private.dispatch_next_wave(${q(needB)}::uuid);`, [needB]);
+  out.allMode1000Ceiling1000 = waveProbe(wave(needB), [needB], {config: {ceiling: 1000}});
+  out.ladderFirstWave = waveProbe(wave(needA), [needA], {config: {mode: 'LADDER'}});
+  out.ladderFourWaves = waveProbe(`res := private.dispatch_next_wave(${q(needA)}::uuid); res := private.dispatch_next_wave(${q(needA)}::uuid); res := private.dispatch_next_wave(${q(needA)}::uuid);
+    tm := clock_timestamp(); res := private.dispatch_next_wave(${q(needA)}::uuid);`, [needA], {config: {mode: 'LADDER'}});
+  out.profileAllMode300 = waveProbe(wave(needA), [needA], {track: true});
+  out.tick5x300 = waveProbe(`${enqueueAll(tickA)} res := private.dispatch_tick(25, statement_timestamp());`, tickA);
+  out.tick25x500 = waveProbe(`${enqueueAll(tickB)} res := private.dispatch_tick(25, statement_timestamp());`, tickB, {timeoutS: HARD_S});
+  // the measured tasks must not count among the open tasks of the "Za mene" measurement that follows
+  assert.ok(run(`set session_replication_role=replica; update public.needs set status='DRAFT' where category like 'MV1 wave %';`).ok);
+  report.load.waveAll = out; write();
+  return out;
+}
+
 // ---------------------------------------------------------------- the run
 const fx = createFixtures(rt, {needPath: 'direct'});
 let state = 'OLD';
@@ -290,6 +373,9 @@ try {
     for (const f of mManifest.functions) assert.equal(bodyMd5(f.signature), f.after_md5, 'POSTIMAGE:' + f.signature);
     assert.deepEqual(closure(), baseClosure);
     report.load.NEW = {zoneHelper: microZone(2000)};
+    // The default mode of MATCH-V1 sends ONE wave to every admitted worker. The columns OLD / OLD + ZONE-PERF / NEW below compare the same work, so the
+    // per-wave measurements of NEW run in mode LADDER (switched with the documented script), and the single-wave cost has its own table.
+    applyFile(M + 'switch-ladder-on.sql');
     measureState('NEW', tasks, {workersPerChunk: WORKERS, taskCount: LOAD_TASKS, detailedTasks: 20, ruleTasks: LOAD_TASKS, slowTask});
     measureState('NEW_SAME_SAMPLE', tasks, {workersPerChunk: WORKERS, ...sample});   // the very pairs and tasks OLD_TZ measured
     report.load.NEW.prefilterPlanForDraftProfile = prefilterPlan(tasks[0], draftProfile);
@@ -313,8 +399,12 @@ try {
 `}));
     report.load.NEW.tickEmptyQueue = brief(chunked('dispatch tick, empty queue', 'call', [1], () =>
       `for i in 1..5 loop perform private.dispatch_tick(25, statement_timestamp()); end loop; n:=5; m:=n;`));
+    applyFile(M + 'switch-ladder-off.sql');
     write();
   });
+
+  // ---- NEW: what ONE task costs when it is sent to every matching worker (the default mode), 300 and 1,000 matching workers.
+  section('NEW_WAVE_ALL', () => measureWaveAll(R));
 
   // ---- NEW_DZ: "Za mene" at 100 and at 1000 open tasks.
   section('NEW_DZ', () => {
@@ -386,6 +476,31 @@ if (L.NEW) {
     L.NEW.requeueIdle?.complete && L.NEW.requeueIdle.msPerUnit < 250 && L.NEW.requeueFullBatch?.complete && L.NEW.requeueFullBatch.ms < 3000,
     {idleMsPerCall: L.NEW.requeueIdle?.msPerUnit, fullBatchMs: L.NEW.requeueFullBatch?.ms, fullBatchQueued: L.NEW.requeueFullBatch?.n, fullBatchProfiles: L.NEW.requeueFullBatch?.matched, tickEmptyQueueMsFor5: L.NEW.tickEmptyQueue?.ms});
 }
+if (L.waveAll) {
+  const wa = L.waveAll, probes = {allMode300: wa.allMode300, allMode1000Ceiling500: wa.allMode1000Ceiling500, allMode1000Ceiling1000: wa.allMode1000Ceiling1000,
+    ladderFirstWave: wa.ladderFirstWave, ladderFourWaves: wa.ladderFourWaves, tick5x300: wa.tick5x300, tick25x500: wa.tick25x500};
+  gate('LOAD_ALL_MODE_EVERY_SINGLE_WAVE_MEASUREMENT_COMPLETED_WITHIN_THE_HARD_TIMEOUT', Object.values(probes).every(x => x?.ok === true),
+    Object.fromEntries(Object.entries(probes).map(([k, x]) => [k, x?.ok ? `${x.ms} ms` : (x?.timedOut ? 'STATEMENT TIMEOUT' : String(x?.error).slice(0, 200))])));
+  gate('LOAD_ALL_MODE_ONE_WAVE_REACHES_EVERY_MATCHING_WORKER_300_OF_300',
+    wa.expectedMatching.a === 300 && wa.allMode300?.res?.inserted === 300 && wa.allMode300.deliveries === 300 && wa.allMode300.events === 300 && wa.allMode300.notifications === 600 && wa.allMode300.rounds === 1,
+    {expected: wa.expectedMatching.a, inserted: wa.allMode300?.res?.inserted, deliveries: wa.allMode300?.deliveries, events: wa.allMode300?.events, notifications: wa.allMode300?.notifications, ms: wa.allMode300?.ms});
+  gate('LOAD_ALL_MODE_1000_MATCHING_WORKERS_STOP_AT_THE_CEILING_OF_500_AND_SAY_SO',
+    wa.expectedMatching.b === 1000 && wa.allMode1000Ceiling500?.res?.inserted === 500 && wa.allMode1000Ceiling500.deliveries === 500 && wa.allMode1000Ceiling500.res2?.reason === 'DELIVERY_CEILING_REACHED',
+    {expected: wa.expectedMatching.b, inserted: wa.allMode1000Ceiling500?.res?.inserted, second: wa.allMode1000Ceiling500?.res2?.reason, ms: wa.allMode1000Ceiling500?.ms});
+  gate('LOAD_ALL_MODE_WITH_THE_CEILING_RAISED_TO_1000_REACHES_ALL_1000',
+    wa.allMode1000Ceiling1000?.res?.inserted === 1000 && wa.allMode1000Ceiling1000.events === 1000 && wa.allMode1000Ceiling1000.notifications === 2000,
+    {inserted: wa.allMode1000Ceiling1000?.res?.inserted, ms: wa.allMode1000Ceiling1000?.ms});
+  gate('LOAD_LADDER_MODE_IS_TODAYS_LADDER_FIRST_GROUP_5_AND_40_AFTER_FOUR_WAVES',
+    wa.ladderFirstWave?.deliveries === 5 && wa.ladderFirstWave.res?.inserted === 5 && wa.ladderFourWaves?.deliveries === 40 && wa.ladderFourWaves.res?.inserted === 20,
+    {first: wa.ladderFirstWave?.deliveries, afterFour: wa.ladderFourWaves?.deliveries, fourthWave: wa.ladderFourWaves?.res?.inserted});
+  gate('LOAD_ALL_MODE_ONE_TASK_COSTS_SECONDS_NOT_MINUTES_300_AND_500_AND_1000_WORKERS',
+    (wa.allMode300?.ms ?? 1e9) < 8000 && (wa.allMode1000Ceiling500?.msFirst ?? 1e9) < 12000 && (wa.allMode1000Ceiling1000?.ms ?? 1e9) < 20000 && (wa.tick5x300?.ms ?? 1e9) < 40000,
+    {w300: wa.allMode300?.ms, w500: wa.allMode1000Ceiling500?.msFirst, w1000: wa.allMode1000Ceiling1000?.ms, tick5x300: wa.tick5x300?.ms});
+  const tk = wa.tick25x500;
+  gate('LOAD_ALL_MODE_A_TICK_OF_25_HEAVY_TASKS_STAYS_WITHIN_ITS_TIME_BUDGET_AND_DEFERS_THE_REST',
+    tk?.ok === true && tk.ms < 60000 && tk.res?.claimed === TICK_B_TASKS && tk.res.processed >= 1 && tk.res.processed + tk.res.deferred === tk.res.claimed,
+    {ms: tk?.ms, claimed: tk?.res?.claimed, processed: tk?.res?.processed, deferred: tk?.res?.deferred, deliveries: tk?.deliveries});
+}
 if (L.discovery?.open1000) {
   const d = L.discovery.open1000;
   gate('LOAD_FOR_ME_READ_AT_1000_OPEN_TASKS', !d.pageForMe?.error && d.pageForMe.medianMs < 1500 && !d.mapForMe?.error && d.mapForMe.medianMs < 1500,
@@ -408,6 +523,23 @@ const cell = (key, name) => {
 };
 const http = key => { const v = L.discovery?.http?.[key]; return (v && typeof v === 'object') ? 'transport error' : v; };
 const disc = k => { const d = L.discovery?.[k]; return d ? `| ${f1(d.openTasks)} open tasks | ${f1(d.pageDefault?.medianMs)} ms | ${f1(d.pageForMe?.medianMs)} ms (${f1(d.pageForMe?.counted)} match) | ${f1(d.mapDefault?.medianMs)} ms | ${f1(d.mapForMe?.medianMs)} ms |` : `| ${k} | n/a | n/a | n/a | n/a |`; };
+const waRow = (label, x) => x?.ok
+  ? `| ${label} | ${f1(x.deliveries)} | ${f1(x.events)} | ${f1(x.notifications)} | ${f1(x.rounds)} | ${f1(x.ms)} | ${f1(x.ms / Math.max(x.deliveries, 1))} |`
+  : `| ${label} | n/a (${x?.timedOut ? 'statement timeout' : 'not measured'}) | | | | | |`;
+const waveLines = () => {
+  const wa = L.waveAll;
+  if (!wa) return ['', '(single-wave dispatch not measured)'];
+  const tk = wa.tick25x500, top = wa.profileAllMode300?.top ?? [];
+  return ['', `Single wave, mode ALL (the default: one wave to every matching worker, ceiling 500 per task revision), ${f1(wa.sizes.workers)} workers fit the kind of work (300 of them fit task A, all 1,000 fit task B), each measurement in one rolled-back transaction (server time):`,
+    '', '| one task | workers reached | events | notification rows | rounds | ms | ms per worker |', '|---|---|---|---|---|---|---|',
+    waRow('300 matching workers (task A)', wa.allMode300), waRow('1,000 matching, ceiling 500 (task B, the default)', wa.allMode1000Ceiling500),
+    waRow('1,000 matching, ceiling raised to 1,000', wa.allMode1000Ceiling1000), waRow('LADDER mode (today): first group on task A', wa.ladderFirstWave),
+    waRow('LADDER mode: first four groups on task A (45 minutes later in real time)', wa.ladderFourWaves),
+    waRow(`tick of 5 tasks x 300 workers (tick: processed ${f1(wa.tick5x300?.res?.processed)}, sent ${f1(wa.tick5x300?.res?.sent)})`, wa.tick5x300),
+    waRow(`tick of ${TICK_B_TASKS} tasks x 500 workers (processed ${f1(tk?.res?.processed)}, deferred by the 40 s budget ${f1(tk?.res?.deferred)})`, tk),
+    '', `Above the ceiling: the second wave on task B answers ${wa.allMode1000Ceiling500?.res2?.reason ?? 'n/a'} and creates nothing. First wave of task B ${f1(wa.allMode1000Ceiling500?.msFirst)} ms.`,
+    `Where the time of the 300-worker wave goes (self time, ms): ${top.slice(0, 5).map(x => `${x.name} x${x.calls} ${x.selfMs}`).join('; ') || 'n/a'}.`];
+};
 const lines = [
   '### MATCH-V1 load proof (disposable database, synthetic rows)', '',
   `Rows: ${f1(L.sizes?.activeWorkers)} active workers, ${f1(L.sizes?.draftProfiles)} draft profiles, ${f1(L.sizes?.loadTasks)} dispatch tasks, ${f1(L.sizes?.openTasks)} open tasks in all. Hard statement timeout ${HARD_S} s per statement, budget ${BUDGET_S} s per measurement.`, '',
@@ -424,6 +556,7 @@ const lines = [
   `| dispatch tick, empty queue | ${f1(L.NEW?.tickEmptyQueue?.ms)} for 5 ticks |`,
   '', '| "Za mene" read (SQL, authenticated role, median of 3) | PAGE default | PAGE forMe | MAP default | MAP forMe |', '|---|---|---|---|---|',
   disc('open100'), disc('open1000'),
+  ...waveLines(),
   '', `Through PostgREST at 1000 open tasks (median of 3, includes Auth, HTTP and JSON): PAGE default ${f1(http('pageDefault@1000'))} ms, PAGE forMe ${f1(http('pageForMe@1000'))} ms.`,
   '', `Result: ${report.result}${report.failures.length ? ' — failures: ' + report.failures.map(x => x.name).join(', ') : ''}`,
 ];

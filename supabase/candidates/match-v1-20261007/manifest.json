@@ -28,12 +28,12 @@
     {
       "signature": "private.dispatch_next_wave(uuid)",
       "before_md5": "2b58d69640ac802a5dd3fa3cef6c56d0",
-      "after_md5": "cafdef0ff95b5dc6467f4fa1db3dafc0"
+      "after_md5": "0bd8b64ae629f5a62960f5f45e65132b"
     },
     {
       "signature": "private.dispatch_tick(integer,timestamp with time zone)",
       "before_md5": "8798cb6b6f004ecd5d88dd472cd6de0b",
-      "after_md5": "947783612b6bea3170cdbc6dd657e6fd"
+      "after_md5": "76280b0ad653d2fc10199bca2c3971a8"
     },
     {
       "signature": "private.candidate_profile_ids(uuid,integer)",
@@ -59,7 +59,7 @@
     },
     {
       "signature": "private.requeue_changed_worker_profiles_v1(timestamp with time zone)",
-      "body_md5": "19c14627c95b280b0b5a4abddc8bef2c",
+      "body_md5": "9104edac66d52ba630b91fac58c7fcbc",
       "acl": "{postgres=X/postgres}"
     }
   ],
@@ -142,15 +142,41 @@
       "table": "private.marketplace_config",
       "key": "match_v1_profile_requeue",
       "value": "{after: apply time}"
+    },
+    {
+      "table": "private.marketplace_config",
+      "key": "match_v1_dispatch",
+      "value": {
+        "mode": "ALL",
+        "ceiling": 500,
+        "validMinutes": 1440,
+        "tickBudgetSeconds": 40,
+        "owner": "MATCH-V1 2026-10-07"
+      },
+      "meaning": "mode ALL = one wave to every admitted worker (ceiling per task revision, validity of deliveries, tick time budget); mode LADDER = the waves of today; no row = LADDER"
     }
   ],
+  "dispatchSwitch": {
+    "key": "match_v1_dispatch",
+    "default": {
+      "mode": "ALL",
+      "ceiling": 500,
+      "validMinutes": 1440,
+      "tickBudgetSeconds": 40,
+      "owner": "MATCH-V1 2026-10-07"
+    },
+    "ladderOn": "switch-ladder-on.sql",
+    "ladderOff": "switch-ladder-off.sql"
+  },
   "artifact_sha256": {
-    "candidate.sql": "0823fd79a13fedad0d207320d8c621cfb6496ca5f155e45591a09db577160d2b",
-    "candidate.in-transaction.sql": "f473f1bab563341e1cfe7df86b10b7a730bef3b8f4c134418f8248485970f6ac",
-    "revert.sql": "6e913586330582ba80be57063a1acd2d4e3a6fc8ef246355d8a024ee4dddad37",
-    "preflight.readonly.sql": "3c1428e0a85cbc2f22189d8a3f732afe3926025973c43bc354e2db3192a66a0b",
-    "postflight.readonly.sql": "5ea116cb328fce97abf11ac71dbfccb46bbc98aff22d73876fbb4d8be2942100",
-    "body.diff": "da35cd4f5d36d09c83b4ed8224a1422bf39c22b19147bfc483e7c2169e7248a5",
-    "patches.json": "3e0da97a2496ae789ad092e65561879546efbef500927baf45df8f8df06b32b6"
+    "candidate.sql": "e850897851f7609f1283f56e36ff6f11263a7f4c697c84c150a5018cf2dbb4e0",
+    "candidate.in-transaction.sql": "0e093fb77a12f2f7ac7746d4ef821a1427ec381346d04bfbda6ce1d8afd51ea4",
+    "revert.sql": "f8f416b34cb0b19da4492d0c589f7114eba5454a663102939c60bcba8cd035c7",
+    "switch-ladder-on.sql": "ae1a50daab492e61ced6a2cc51ad1b82f61b06d9d4ff4d2109aa9625d38fb5d8",
+    "switch-ladder-off.sql": "140931a6e6bb2e0157f10eb92f9d1795c420cab506957a66e96261de64a37b95",
+    "preflight.readonly.sql": "61734067407df875371036fc22365920877c2b9cfa7942a7016a107200bf6e5d",
+    "postflight.readonly.sql": "476b96ec7697d5ffbf6d12de11591994673e5767cca81e69f4d77ef64476decb",
+    "body.diff": "1247993d251cf5bef572939a48dfb6af4a9f93a3f34a1c417518ebd1eec3c315",
+    "patches.json": "993ffe503b2bf7a0853c7a65bd6fe4b9966fab0787b25261367f9baf57d99246"
   }
 }

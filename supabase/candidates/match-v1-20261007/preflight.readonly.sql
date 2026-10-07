@@ -60,6 +60,8 @@ select jsonb_build_object(
  'newFunctionsAbsent',not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')
    and p.proname in ('worker_need_time_tier_v1','worker_need_fit_v1','worker_need_match_v1','requeue_changed_worker_profiles_v1')),
  'watermarkAbsent',not exists(select 1 from private.marketplace_config where key='match_v1_profile_requeue'),
+ 'dispatchRowAbsent',not exists(select 1 from private.marketplace_config where key='match_v1_dispatch'),
+ 'ladderRowsPresent',(select count(*) from private.marketplace_config where key in ('dispatch_normal','dispatch_urgent'))=2,
  'closureNotExecuting',not exists(select 1 from private.closure_executions_v5 where state='EXECUTING'),
  'activeWorkerProfiles',(select count(*) from public.app_profiles where kind='WORKER' and profile_status='ACTIVE'),
  'openTasks',(select count(*) from public.needs where status in ('PUBLISHED','SELECTION') and published_at is not null)

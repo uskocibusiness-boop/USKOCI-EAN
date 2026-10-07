@@ -48,6 +48,12 @@ const conflicts40001 = () => Number(sql(`select count(*) from pg_proc p join pg_
 const watermarkRows = () => Number(sql(`select count(*) from private.marketplace_config where key='match_v1_profile_requeue'`));
 const bodyMd5 = signature => sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(signature)})`);
 const TZ = 'private.availability_timezone_valid(text)';
+// The dispatch switch (owner policy 2026-10-07): one wave to every admitted worker (ALL, the default) or the ladder (LADDER); one row, no code change.
+const DISPATCH_DEFAULT = mManifest.dispatchSwitch.default;
+const dispatchRows = () => Number(sql(`select count(*) from private.marketplace_config where key='match_v1_dispatch'`));
+const dispatchRow = () => JSON.parse(sql(`select value::text from private.marketplace_config where key='match_v1_dispatch'`));
+const setDispatch = patch => sql(`update private.marketplace_config set value=value||${q(JSON.stringify(patch))}::jsonb, updated_at=statement_timestamp() where key='match_v1_dispatch'`);
+const resetDispatch = () => sql(`update private.marketplace_config set value=${q(JSON.stringify(DISPATCH_DEFAULT))}::jsonb, updated_at=statement_timestamp() where key='match_v1_dispatch'`);
 
 const fx = createFixtures(rt, {needPath: 'direct'});
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
@@ -124,19 +130,23 @@ async function matchingCases(phase) {
       waves.push({status: result.status, inserted: result.inserted, added});
     }
     o.today = {cheap: cheapOf, tiers, scores, waves}; }
-  // C5: a manual skill edit (the direct PostgREST UPDATE of workerProfileClientService) after the task found nobody.
-  { const s = `mv1-c5-${tag}`, other = `mv1-c5-other-${tag}`, w = await worker('c5', other), n = await make({skill: s});
+  // C5: a manual skill edit (the direct PostgREST UPDATE of workerProfileClientService) after the task found nobody (n), and after the wave of another
+  // task (n2) has just been sent to its own worker (w2): the edited worker now fits both. In mode ALL a changed profile re-queues even n2 (there is
+  // no wave window to wait for); in mode LADDER n2 sits inside a running wave window and is left alone (no wave is pulled forward).
+  { const s = `mv1-c5-${tag}`, s2 = `mv1-c5b-${tag}`, other = `mv1-c5-other-${tag}`, w = await worker('c5', other), w2 = await worker('c5b', s2);
+    const n = await make({skill: s}), n2 = await make({skill: s2});
     const t1 = tick();
-    const first = fx.readSchedule(n.needId);
-    await ok(w.client.from('app_profiles').update({skills: [other, s]}).eq('id', w.profileId).eq('account_id', w.id).eq('kind', 'WORKER').select('id').single());
+    const first = fx.readSchedule(n.needId), firstN2 = fx.readSchedule(n2.needId);
+    await ok(w.client.from('app_profiles').update({skills: [other, s, s2]}).eq('id', w.profileId).eq('account_id', w.id).eq('kind', 'WORKER').select('id').single());
     await sleep(32000);
     const second = tick();
-    const d = delivered(n, w);
+    const d = delivered(n, w), dInsideWindow = delivered(n2, w);
     const third = tick();
     const last = fx.readSchedule(n.needId);
-    o.manualEdit = {firstStatus: first.lastStatus, firstReason: first.lastReason, delivered: d, requeueAfterEdit: second.profileRequeue ?? null,
+    o.manualEdit = {firstStatus: first.lastStatus, firstReason: first.lastReason, firstN2Status: firstN2.lastStatus, n2OwnWorkerDelivered: delivered(n2, w2),
+      delivered: d, deliveredInsideRunningWindow: dInsideWindow, requeueAfterEdit: second.profileRequeue ?? null,
       requeueNextTick: third.profileRequeue ?? null, lastStatus: last.lastStatus, nextRunInFuture: last.nextRunAt ? Date.parse(last.nextRunAt) > Date.now() : null,
-      ticks: [t1, second, third].map(t => ({wallMs: t.wallMs, processed: t.processed, sent: t.sent, stopped: t.stopped, failed: t.failed}))}; }
+      ticks: [t1, second, third].map(t => ({wallMs: t.wallMs, processed: t.processed, sent: t.sent, stopped: t.stopped, failed: t.failed, deferred: t.deferred ?? null}))}; }
   report.observations[phase] = o; write();
   return o;
 }
@@ -155,31 +165,233 @@ function expectOld(o, phase) {
   assert.deepEqual(o.today.waves[0].added, ['live']);
   pass(`MATCH_V1_${phase}_TODAY_ONLY_MOGU_ODMAH_NO_SCHEDULE_WAVE`, o.today.waves);
   assert.equal(o.manualEdit.firstStatus, 'STOPPED'); assert.equal(o.manualEdit.delivered, false); assert.equal(o.manualEdit.requeueAfterEdit, null);
+  assert.equal(o.manualEdit.firstN2Status, 'SENT'); assert.equal(o.manualEdit.n2OwnWorkerDelivered, true); assert.equal(o.manualEdit.deliveredInsideRunningWindow, false);
   pass(`MATCH_V1_${phase}_MANUAL_SKILL_EDIT_DOES_NOT_REQUEUE`);
 }
 
-function expectNew(o) {
+// mode 'ALL' (the default of MATCH-V1: one wave to every admitted worker) or 'LADDER' (the waves of today: 5, 5, 10, 20)
+function expectNew(o, mode) {
+  const all = mode === 'ALL', after = all ? 'AFTER' : 'AFTER_LADDER';
   assert.equal(o.tools.responseAllowed, true); assert.deepEqual(o.tools.hard, []);
   assert.equal(o.tools.cheap, true); assert.equal(o.tools.delivered, true); assert.equal(o.tools.applied, true);
-  pass('MATCH_V1_AFTER_TOOLS_REQUIRED_TASK_REACHES_AND_ACCEPTS_A_WORKER_WITHOUT_THEM', {score: o.tools.score});
+  pass(`MATCH_V1_${after}_TOOLS_REQUIRED_TASK_REACHES_AND_ACCEPTS_A_WORKER_WITHOUT_THEM`, {score: o.tools.score});
   assert.equal(o.experience.responseAllowed, true); assert.deepEqual(o.experience.hard, []); assert.equal(o.experience.cheap, true);
   assert.equal(o.experience.delivered, true); assert.equal(o.experience.applied, true);
   assert.equal(o.fee.dispatchEligible, true); assert.ok(!o.fee.soft.includes('BELOW_MINIMUM_FEE')); assert.equal(o.fee.cheap, true); assert.equal(o.fee.delivered, true);
-  pass('MATCH_V1_AFTER_EXPERIENCE_AND_MINIMUM_FEE_NO_LONGER_BLOCK');
+  pass(`MATCH_V1_${after}_EXPERIENCE_AND_MINIMUM_FEE_NO_LONGER_BLOCK`);
   assert.equal(o.flexible.cheap, true); assert.equal(o.flexible.dispatchEligible, true); assert.equal(o.flexible.tier, 1); assert.equal(o.flexible.delivered, true);
-  pass('MATCH_V1_AFTER_FLEXIBLE_REACHES_A_WORKER_WITH_ONLY_WEEKLY_RULES');
+  pass(`MATCH_V1_${after}_FLEXIBLE_REACHES_A_WORKER_WITH_ONLY_WEEKLY_RULES`);
   assert.deepEqual(o.today.cheap, {live: true, s1: true, s2: true, s3: true, s4: true, s5: true, none: false});
   assert.deepEqual(o.today.tiers, {live: 1, s1: 2, s2: 2, s3: 2, s4: 2, s5: 2, none: null});
   assert.ok(Object.entries(o.today.scores).every(([k, v]) => k === 'live' || v > o.today.scores.live), 'LIVE_WORKER_MUST_HAVE_THE_LOWEST_SCORE');
-  assert.equal(o.today.waves[0].added.length, 5); assert.ok(o.today.waves[0].added.includes('live'));
-  assert.equal(o.today.waves[1].added.length, 1); assert.ok(/^s[1-5]$/.test(o.today.waves[1].added[0]));
   assert.ok(o.today.waves.every(w => !w.added.includes('none') && !w.added.includes('foreign')));
-  assert.equal(o.today.waves[2].inserted, 0);
-  pass('MATCH_V1_AFTER_TODAY_MOGU_ODMAH_FIRST_THEN_SCHEDULE_COVERING_TODAY', o.today);
+  if (all) {
+    // ONE wave to every worker the rule admits: the "Mogu odmah" worker (a little farther, lowest score) and the five schedule workers together; nothing is left for a second wave.
+    assert.deepEqual(o.today.waves[0].added, ['live', 's1', 's2', 's3', 's4', 's5']);
+    assert.equal(o.today.waves[1].inserted, 0); assert.equal(o.today.waves[2].inserted, 0);
+    pass('MATCH_V1_AFTER_TODAY_EVERY_ADMITTED_WORKER_IN_THE_SAME_WAVE_MOGU_ODMAH_AND_SCHEDULE_TOGETHER', o.today);
+  } else {
+    assert.equal(o.today.waves[0].added.length, 5); assert.ok(o.today.waves[0].added.includes('live'));
+    assert.equal(o.today.waves[1].added.length, 1); assert.ok(/^s[1-5]$/.test(o.today.waves[1].added[0]));
+    assert.equal(o.today.waves[2].inserted, 0);
+    pass('MATCH_V1_AFTER_LADDER_TODAY_MOGU_ODMAH_FIRST_THEN_SCHEDULE_COVERING_TODAY', o.today);
+  }
   assert.equal(o.manualEdit.firstStatus, 'STOPPED'); assert.equal(o.manualEdit.delivered, true);
+  assert.equal(o.manualEdit.firstN2Status, 'SENT'); assert.equal(o.manualEdit.n2OwnWorkerDelivered, true);
   assert.equal(o.manualEdit.requeueAfterEdit?.status, 'DONE'); assert.ok(o.manualEdit.requeueAfterEdit.queued >= 1);
   assert.equal(o.manualEdit.requeueNextTick?.queued ?? 0, 0); assert.equal(o.manualEdit.lastStatus, 'SENT'); assert.equal(o.manualEdit.nextRunInFuture, true);
-  pass('MATCH_V1_AFTER_MANUAL_SKILL_EDIT_REQUEUES_ONCE_WITHOUT_PULLING_THE_WAVE_FORWARD', o.manualEdit);
+  // a task whose wave has just been sent: re-queued by a changed profile in mode ALL (no wave window to wait for), left alone in the ladder (no wave is pulled forward)
+  assert.equal(o.manualEdit.deliveredInsideRunningWindow, all);
+  pass(`MATCH_V1_${after}_MANUAL_SKILL_EDIT_REQUEUES_ONCE_${all ? 'EVEN_RIGHT_AFTER_A_WAVE' : 'WITHOUT_PULLING_THE_WAVE_FORWARD'}`, o.manualEdit);
+}
+
+// ---------------------------------------------------------------- the dispatch policy (owner 2026-10-07): everyone at once by default, the ladder behind ONE row
+// Thirteen real workers in Novi Sad plus one "late" worker in Nis (outside every circle until he moves), all with one unique skill: a "bilo kad" task of that
+// skill is matched by the same thirteen workers in every state, so what the dispatch does with them is comparable between today's ladder and the new modes.
+const pool = {late: null, lateMoved: false};
+async function poolSetup() {
+  const tag = randomUUID().slice(0, 8), skill = `mv1-pool-${tag}`;
+  const spec = (label, city) => ({label: `mv1-pool-${label}-${tag}`, skills: [skill], radiusKm: 15, location: {city},
+    availability: {timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: []}});
+  const workers = [];
+  for (let i = 0; i < 13; i++) workers.push(await fx.createWorker(spec(String(i), 'Novi Sad')));
+  pool.late = await fx.createWorker(spec('late', 'Niš'));
+  Object.assign(pool, {tag, skill, workers, index: new Map(workers.map((w, i) => [w.profileId, i]))});
+  report.observations.pool = {workers: workers.length, late: 1}; write();
+}
+const poolNeed = label => fx.createNeedFromFacts(R, facts({phase: 'pool-' + label, skill: pool.skill}), {path: 'direct'});
+const poolIndex = profileId => pool.index.get(profileId) ?? 99;   // 99 = the late worker
+const countOf = text => Number(sql(text));
+const eventCount = needId => countOf(`select count(*) from public.user_activity_events where entity_id=${q(needId)}::uuid and event_type='OPPORTUNITY_AVAILABLE'`);
+const notificationCount = needId => countOf(`select count(*) from public.notification_deliveries d join public.user_activity_events e on e.id=d.event_id
+  where e.entity_id=${q(needId)}::uuid and e.event_type='OPPORTUNITY_AVAILABLE'`);
+/** Validity of the deliveries of a task, in minutes from their creation: {min, max, n}. */
+const deliveryMinutes = needId => rows(`select round(extract(epoch from min(expires_at-created_at))/60)::integer as min, round(extract(epoch from max(expires_at-created_at))/60)::integer as max,
+  count(*)::integer as n from public.opportunity_deliveries where need_id=${q(needId)}::uuid`)[0];
+const notificationMinutes = needId => rows(`select round(extract(epoch from min(d.expires_at-d.created_at))/60)::integer as min, round(extract(epoch from max(d.expires_at-d.created_at))/60)::integer as max
+  from public.notification_deliveries d join public.user_activity_events e on e.id=d.event_id where e.entity_id=${q(needId)}::uuid and e.event_type='OPPORTUNITY_AVAILABLE'`)[0];
+/** Runs waves one task at a time (what the tick calls) until one sends nothing: [{status, reason, inserted, added: [pool indexes]}]. */
+function waveSeries(needId, max = 6) {
+  const out = [];
+  for (let i = 0; i < max; i++) {
+    const before = new Set(fx.readDeliveries(needId).map(d => d.worker_profile_id));
+    const r = fx.runWave(needId);
+    const added = fx.readDeliveries(needId).map(d => d.worker_profile_id).filter(id => !before.has(id)).map(poolIndex).sort((a, b) => a - b);
+    out.push({status: r.status, reason: r.reason ?? null, inserted: r.inserted, added});
+    if (r.status !== 'SENT') break;
+  }
+  return out;
+}
+const deliveredIndexes = needId => fx.readDeliveries(needId).map(d => poolIndex(d.worker_profile_id)).sort((a, b) => a - b);
+const minutesFromNow = iso => (Date.parse(iso) - Date.now()) / 60000;
+
+/** Today's ladder on the pool, with the DEV bodies: 5, 5, 3 and nothing; one tick reaches five of thirteen workers. */
+async function ladderBaseline(phase) {
+  const n = await poolNeed(phase + '-series'), series = waveSeries(n.needId);
+  const nt = await poolNeed(phase + '-tick');
+  tick();
+  const afterTick = deliveredIndexes(nt.needId);
+  const expected = pool.lateMoved ? [5, 5, 4, 0] : [5, 5, 3, 0];
+  assert.deepEqual(series.map(w => w.added.length), expected, 'THE_LADDER_OF_TODAY_IS_NOT_5_5_REST');
+  assert.equal(afterTick.length, 5, 'ONE_TICK_OF_THE_LADDER_REACHES_FIVE');
+  return {series, afterTick};
+}
+
+async function allModeCases() {
+  const o = {};
+  // ALL-1: one tick, every admitted worker, one round, no window between groups; deliveries and notifications stay valid for 24 hours
+  { const n = await poolNeed('all'), t = tick();
+    const d = fx.readDeliveries(n.needId), rounds = fx.readRounds(n.needId), sched = fx.readSchedule(n.needId);
+    const valid = deliveryMinutes(n.needId), notificationValid = notificationMinutes(n.needId);
+    const roundMinutes = countOf(`select round(extract(epoch from (deadline_at-statement_timestamp()))/60) from public.dispatch_rounds where need_id=${q(n.needId)}::uuid`);
+    const again = fx.runWave(n.needId);
+    o.oneTick = {deliveries: d.length, rounds: rounds.map(r => ({status: r.status, batch: Number(r.batch_size), limit: Number(r.candidate_limit_used), source: r.budget_source})),
+      events: eventCount(n.needId), notifications: notificationCount(n.needId), valid, notificationValid, roundMinutes, schedule: sched, again: {status: again.status, reason: again.reason, inserted: again.inserted},
+      tickDeferred: t.deferred};
+    assert.deepEqual(deliveredIndexes(n.needId), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 'ONE_TICK_MUST_REACH_ALL_THIRTEEN');
+    assert.equal(rounds.length, 1); assert.equal(rounds[0].status, 'SENT'); assert.equal(Number(rounds[0].batch_size), 500); assert.equal(Number(rounds[0].candidate_limit_used), 500);
+    assert.equal(rounds[0].budget_source, 'FIXED');
+    assert.equal(o.oneTick.events, 13); assert.equal(o.oneTick.notifications, 26, 'IN_APP and PUSH per worker');
+    assert.ok(valid.n === 13 && valid.min >= 1438 && valid.max <= 1441, 'DELIVERIES_VALID_24_HOURS:' + JSON.stringify(valid));
+    assert.ok(notificationValid.min >= 1438 && notificationValid.max <= 1441, 'NOTIFICATIONS_VALID_24_HOURS:' + JSON.stringify(notificationValid));
+    assert.ok(roundMinutes >= 13 && roundMinutes <= 15, 'ROUND_WINDOW_IS_THE_CHECK_TIME:' + roundMinutes);
+    assert.equal(sched.lastStatus, 'SENT'); const nextIn = minutesFromNow(sched.nextRunAt); assert.ok(nextIn > 12 && nextIn < 16, 'NEXT_CHECK:' + nextIn);
+    assert.deepEqual(o.oneTick.again, {status: 'STOPPED', reason: 'NO_ELIGIBLE_CANDIDATES', inserted: 0}); assert.equal(fx.readDeliveries(n.needId).length, 13);
+    pass('MATCH_V1_ALL_ONE_TICK_REACHES_EVERY_ADMITTED_WORKER_IN_ONE_ROUND_EVENTS_AND_NOTIFICATIONS_VALID_24H', o.oneTick);
+    o.needAll = n; }
+  // ALL-2: the safety ceiling per task revision; above it nobody more is notified, the reason is recorded, raising it continues with the rest
+  { const n = await poolNeed('ceiling');
+    setDispatch({ceiling: 5});
+    tick();
+    const first = deliveredIndexes(n.needId), rounds1 = fx.readRounds(n.needId);
+    const atCeiling = fx.runWave(n.needId);
+    sql(`select private.enqueue_dispatch(${q(n.needId)}::uuid, statement_timestamp())`);
+    tick();
+    const sched = fx.readSchedule(n.needId), afterCheck = fx.readDeliveries(n.needId).length, rounds2 = fx.readRounds(n.needId).length;
+    setDispatch({ceiling: 20});
+    sql(`select private.enqueue_dispatch(${q(n.needId)}::uuid, statement_timestamp())`);
+    tick();
+    const rest = deliveredIndexes(n.needId), rounds3 = fx.readRounds(n.needId);
+    resetDispatch();
+    o.ceiling = {firstWave: first.length, round1: {batch: Number(rounds1[0].batch_size), limit: Number(rounds1[0].candidate_limit_used)}, atCeiling, scheduleReason: sched.lastReason, afterCheck,
+      roundsAfterCheck: rounds2, afterRaise: rest.length, roundsAfterRaise: rounds3.length, round2: {batch: Number(rounds3[1].batch_size)}};
+    assert.equal(first.length, 5); assert.equal(Number(rounds1[0].batch_size), 5); assert.equal(Number(rounds1[0].candidate_limit_used), 5);
+    assert.equal(atCeiling.status, 'STOPPED'); assert.equal(atCeiling.reason, 'DELIVERY_CEILING_REACHED'); assert.equal(atCeiling.inserted, 0);
+    assert.equal(atCeiling.ceiling, 5); assert.equal(atCeiling.deliveredBefore, 5);
+    assert.equal(sched.lastStatus, 'STOPPED'); assert.equal(sched.lastReason, 'DELIVERY_CEILING_REACHED');
+    assert.equal(afterCheck, 5); assert.equal(rounds2, 1, 'A_REFUSED_WAVE_WRITES_NO_ROUND');
+    assert.deepEqual(rest, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]); assert.equal(rounds3.length, 2); assert.equal(Number(rounds3[1].batch_size), 15, 'THE_ROOM_LEFT_UNDER_THE_NEW_CEILING');
+    assert.deepEqual(dispatchRow(), DISPATCH_DEFAULT);
+    pass('MATCH_V1_ALL_CEILING_PER_REVISION_REFUSES_ABOVE_IT_RECORDS_THE_REASON_AND_CONTINUES_WHEN_RAISED', o.ceiling); }
+  // ALL-3: configuration errors are named like the other dispatch settings; no row means the ladder of today
+  { const n = await poolNeed('config'), refusedWith = patchOrRaw => {
+      if (typeof patchOrRaw === 'string') sql(patchOrRaw); else setDispatch(patchOrRaw);
+      let message = null;
+      try { fx.runWave(n.needId); } catch (e) { message = String(e.message); }
+      resetDispatch();
+      return message; };
+    const bad = {mode: refusedWith({mode: 'NOPE'}), ceilingZero: refusedWith({ceiling: 0}), ceilingTooBig: refusedWith({ceiling: 10001}), ceilingText: refusedWith({ceiling: 'abc'}),
+      validZero: refusedWith({validMinutes: 0}), validTooBig: refusedWith({validMinutes: 10081}),
+      notAnObject: refusedWith(`update private.marketplace_config set value='"ALL"'::jsonb where key='match_v1_dispatch'`)};
+    for (const [k, v] of Object.entries(bad)) assert.ok(v && v.includes('DISPATCH_CONFIG_INVALID'), 'CONFIG_ERROR_NOT_NAMED:' + k + ':' + v);
+    assert.equal(fx.readDeliveries(n.needId).length, 0, 'A_CONFIGURATION_ERROR_DELIVERS_NOTHING'); assert.deepEqual(dispatchRow(), DISPATCH_DEFAULT);
+    sql(`delete from private.marketplace_config where key='match_v1_dispatch'`);
+    const noRow = waveSeries(n.needId).map(w => w.added.length);
+    sql(`insert into private.marketplace_config(key,value,updated_at) values('match_v1_dispatch',${q(JSON.stringify(DISPATCH_DEFAULT))}::jsonb,statement_timestamp())`);
+    assert.deepEqual(noRow.slice(0, 3), [5, 5, 3], 'NO_ROW_MEANS_THE_LADDER'); assert.deepEqual(dispatchRow(), DISPATCH_DEFAULT);
+    o.config = {errors: Object.fromEntries(Object.entries(bad).map(([k, v]) => [k, v.slice(-60)])), noRowWaves: noRow};
+    pass('MATCH_V1_ALL_BAD_SWITCH_ROW_IS_A_NAMED_CONFIGURATION_ERROR_AND_NO_ROW_MEANS_THE_LADDER', o.config); }
+  // ALL-4: the tick time budget; one heavy minute can never run into the statement timeout (the unstarted tasks are released and come first)
+  { for (let i = 0; i < 8; i++) if (tick().claimed === 0) break;
+    const ids = [];
+    for (let i = 0; i < 3; i++) ids.push((await poolNeed('budget-' + i)).needId);
+    setDispatch({tickBudgetSeconds: 0.001});
+    const t1 = tick();
+    const sched1 = ids.map(id => fx.readSchedule(id)), delivered1 = ids.map(id => fx.readDeliveries(id).length);
+    setDispatch({tickBudgetSeconds: 40});
+    const t2 = tick();
+    const delivered2 = ids.map(id => fx.readDeliveries(id).length);
+    resetDispatch();
+    o.tickBudget = {first: {claimed: t1.claimed, processed: t1.processed, deferred: t1.deferred, sent: t1.sent}, second: {claimed: t2.claimed, processed: t2.processed, deferred: t2.deferred},
+      deliveredAfterFirst: delivered1, deliveredAfterSecond: delivered2};
+    assert.equal(t1.claimed, 3); assert.equal(t1.processed, 1); assert.equal(t1.deferred, 2); assert.equal(t1.sent, 1);
+    assert.equal(delivered1.filter(n => n > 0).length, 1, 'ONLY_ONE_TASK_STARTED');
+    for (const [i, s] of sched1.entries()) if (delivered1[i] === 0) { assert.equal(s.queued, true); assert.equal(s.lockedUntil, null, 'DEFERRED_TASK_IS_RELEASED'); assert.ok(Date.parse(s.nextRunAt) <= Date.now() + 1000, 'AND_STILL_DUE'); }
+    assert.equal(t2.processed, 2); assert.equal(t2.deferred, 0); assert.deepEqual(delivered2, [13, 13, 13]);
+    pass('MATCH_V1_ALL_TICK_TIME_BUDGET_STARTS_NO_TASK_AFTER_IT_RELEASES_THE_REST_AND_THE_NEXT_TICK_FINISHES_THEM', o.tickBudget); }
+  // ALL-5: an urgent task is valid only as long as its urgency, never the 24 hours
+  { const n = await poolNeed('urgent');
+    sql(`begin; set local session_replication_role=replica; update public.needs set urgent=true, urgent_expires_at=statement_timestamp()+interval '20 minutes' where id=${q(n.needId)}::uuid; commit;`);
+    fx.runWave(n.needId);
+    const valid = deliveryMinutes(n.needId), notificationValid = notificationMinutes(n.needId);
+    const hitno = countOf(`select count(*) from public.user_activity_events where entity_id=${q(n.needId)}::uuid and event_type='OPPORTUNITY_AVAILABLE' and urgency='HITNO'`);
+    o.urgent = {deliveries: valid.n, valid, notificationValid, hitnoEvents: hitno};
+    assert.equal(valid.n, 13); assert.ok(valid.min >= 18 && valid.max <= 21, 'URGENT_VALID_UNTIL_THE_END_OF_THE_URGENCY:' + JSON.stringify(valid));
+    assert.ok(notificationValid.max <= 21); assert.equal(hitno, 13);
+    pass('MATCH_V1_ALL_URGENT_TASK_DELIVERIES_AND_NOTIFICATIONS_END_WITH_THE_URGENCY', o.urgent); }
+  report.observations.allMode = o; write();
+  return o;
+}
+
+/** A worker who becomes eligible after the wave (a profile moved into the area) is reached by the next wave of the same task, even when three applications already exist. */
+async function lateArrival(needAll) {
+  for (const w of pool.workers.slice(0, 3)) { const a = await fx.submitApplication(w, needAll); assert.ok(a.ok, 'APPLICATION_REFUSED:' + JSON.stringify(a.error)); }
+  await fx.setLocation(pool.late, {city: 'Novi Sad'}); pool.lateMoved = true;
+  const t = tick();
+  const d = deliveredIndexes(needAll.needId), rounds = fx.readRounds(needAll.needId), sched = fx.readSchedule(needAll.needId);
+  // rounds: the first wave (13), the check that found nobody new (STOPPED), and the wave for the late worker (SENT, the room left under the ceiling of 500)
+  const r = {deliveries: d.length, lateDelivered: d.includes(99), rounds: rounds.map(x => ({status: x.status, batch: Number(x.batch_size)})), scheduleStatus: sched.lastStatus, tickFailed: t.failed};
+  assert.equal(d.length, 14); assert.ok(d.includes(99), 'THE_LATE_WORKER_MUST_BE_REACHED'); assert.equal(rounds.length, 3);
+  assert.equal(rounds[1].status, 'STOPPED'); assert.equal(rounds[2].status, 'SENT'); assert.equal(Number(rounds[2].batch_size), 487, 'THE_ROOM_LEFT_UNDER_THE_CEILING');
+  assert.equal(sched.lastStatus, 'SENT');
+  report.observations.lateArrival = r; write();
+  pass('MATCH_V1_ALL_LATE_WORKER_IS_REACHED_BY_THE_NEXT_WAVE_EVEN_AFTER_THREE_APPLICATIONS_NO_STOP_AFTER_N_RESPONSES', r);
+}
+
+/** The ladder, switched on by the documented one-row update, is today's ladder: the same workers in the same groups, the throttle after three responses, the 15-minute window. */
+async function ladderModeCases(baseline) {
+  const o = {};
+  { const n = await poolNeed('ladder'), series = waveSeries(n.needId);
+    o.series = series.map(w => ({inserted: w.inserted, added: w.added, status: w.status, reason: w.reason}));
+    assert.deepEqual(series.map(w => w.added.length), [5, 5, 3, 0]);
+    assert.deepEqual(series.map(w => w.added), baseline.series.map(w => w.added), 'THE_LADDER_PICKS_OTHER_WORKERS_THAN_TODAYS_LADDER');
+    assert.deepEqual(series.slice(0, 3).map(w => w.status), ['SENT', 'SENT', 'SENT']);
+    const valid = deliveryMinutes(n.needId); o.validity = valid; assert.ok(valid.max <= 16 && valid.min >= 14, 'LADDER_DELIVERIES_LAST_ONE_WINDOW:' + JSON.stringify(valid));
+    pass('MATCH_V1_LADDER_ON_SAME_GROUPS_5_5_REST_SAME_WORKERS_AS_TODAYS_LADDER_15_MINUTE_VALIDITY', o); }
+  { const n = await poolNeed('ladder-stop'), w1 = fx.runWave(n.needId), w2 = fx.runWave(n.needId);
+    const notified = new Set(fx.readDeliveries(n.needId).map(d => d.worker_profile_id));
+    for (const w of pool.workers.filter(w => notified.has(w.profileId)).slice(0, 3)) { const a = await fx.submitApplication(w, n); assert.ok(a.ok, 'APPLICATION_REFUSED:' + JSON.stringify(a.error)); }
+    const w3 = fx.runWave(n.needId);
+    o.stopAfterThree = {w1: w1.inserted, w2: w2.inserted, w3: {status: w3.status, reason: w3.reason, inserted: w3.inserted}, deliveries: fx.readDeliveries(n.needId).length};
+    assert.equal(w1.inserted, 5); assert.equal(w2.inserted, 5); assert.equal(w3.status, 'STOPPED'); assert.equal(w3.reason, 'RESPONSE_TARGET_AND_COVERAGE_REACHED'); assert.equal(w3.inserted, 0);
+    assert.equal(o.stopAfterThree.deliveries, 10);
+    pass('MATCH_V1_LADDER_ON_STOPS_AFTER_THREE_RESPONSES_AS_TODAY', o.stopAfterThree); }
+  { const n = await poolNeed('ladder-tick'); tick();
+    const d = deliveredIndexes(n.needId), rounds = fx.readRounds(n.needId);
+    o.oneTick = {delivered: d.length, rounds: rounds.length, batch: Number(rounds[0].batch_size)};
+    assert.equal(d.length, 5); assert.equal(rounds.length, 1); assert.equal(Number(rounds[0].batch_size), 5);
+    pass('MATCH_V1_LADDER_ON_ONE_TICK_REACHES_THE_FIRST_GROUP_OF_FIVE_ONLY', o.oneTick); }
+  report.observations.ladderMode = o; write();
 }
 
 async function zaMeneSetup() {
@@ -258,9 +470,18 @@ try {
   report.observations.zaMeneTasks = zIds(zs);
   await p2pChecks(zs, 'BEFORE');
   await forMeRefusedAsUnknownKey(zs, 'BEFORE');
+  // Today's dispatch on thirteen matching workers: the ladder. FAIL before: one tick reaches five of them, the rest wait for later waves.
+  await poolSetup();
+  const ladderToday = await ladderBaseline('before');
+  report.observations.ladderToday = {series: ladderToday.series.map(w => ({inserted: w.inserted, added: w.added, status: w.status, reason: w.reason})), oneTick: ladderToday.afterTick};
+  pass('MATCH_V1_BEFORE_THE_LADDER_OF_TODAY_5_5_REST_AND_ONE_TICK_REACHES_FIVE_OF_THIRTEEN_WORKERS', report.observations.ladderToday);
 
   // ---------------------------------------------------------------- refusals leave nothing behind
   const candidate = fs.readFileSync(M + 'candidate.sql', 'utf8');
+  // a stray switch row is a partial application: named, atomic
+  sql(`insert into private.marketplace_config(key,value,updated_at) values('match_v1_dispatch','{"mode":"LADDER"}'::jsonb,statement_timestamp())`);
+  refused(candidate, 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED');
+  sql(`delete from private.marketplace_config where key='match_v1_dispatch'`);
   refused(candidate.replace(mManifest.functions.at(-1).before_md5, '0'.repeat(32)), 'MATCH_V1_PREDECESSOR_DRIFT');
   // The same pin inside the replacement loop: four bodies are already replaced when the last one refuses; all roll back.
   const lastPin = mManifest.functions.at(-1).before_md5, second = candidate.indexOf(lastPin, candidate.indexOf(lastPin) + 1);
@@ -281,11 +502,25 @@ try {
   for (const f of mManifest.newFunctions) assert.equal(bodyMd5(f.signature), f.body_md5, 'NEW:' + f.signature);
   for (const f of mManifest.unchangedDependencies) assert.ok([f.body_md5, f.alsoAcceptedAfterZonePerf].filter(Boolean).includes(bodyMd5(f.signature)), 'DEPENDENCY:' + f.signature);
   assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001); assert.equal(watermarkRows(), 1);
-  pass('MATCH_V1_APPLIED_EXACT_BODIES_CERTIFICATE_UNCHANGED_NO_NEW_40001', {certificate: baseClosure.certificate});
+  assert.deepEqual(dispatchRow(), DISPATCH_DEFAULT); assert.equal(dispatchRows(), 1);
+  pass('MATCH_V1_APPLIED_EXACT_BODIES_CERTIFICATE_UNCHANGED_NO_NEW_40001_DISPATCH_SWITCH_ROW_IS_THE_DEFAULT', {certificate: baseClosure.certificate, dispatch: dispatchRow()});
   refused(candidate, 'MATCH_V1_ALREADY_OR_PARTIALLY_APPLIED');
   assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5, 'MATCH_V1_TOUCHED_THE_ZONE_HELPER');
   await fx.reloadSchema();
-  expectNew(await matchingCases('after'));
+  // ---- mode ALL, the default of the owner policy 2026-10-07: one wave to every admitted worker
+  expectNew(await matchingCases('after'), 'ALL');
+  const allMode = await allModeCases();
+  // ---- the ladder, switched on by ONE row with the documented SQL (no code change), then off again
+  refused(fs.readFileSync(M + 'switch-ladder-off.sql', 'utf8'), 'MATCH_V1_SWITCH_EXPECTS_MODE_LADDER');
+  psqlFile(M + 'switch-ladder-on.sql');
+  assert.equal(dispatchRow().mode, 'LADDER'); assert.equal(dispatchRow().ceiling, 500);
+  refused(fs.readFileSync(M + 'switch-ladder-on.sql', 'utf8'), 'MATCH_V1_SWITCH_EXPECTS_MODE_ALL');
+  expectNew(await matchingCases('after-ladder'), 'LADDER');
+  await ladderModeCases(ladderToday);
+  psqlFile(M + 'switch-ladder-off.sql');
+  assert.deepEqual(dispatchRow(), DISPATCH_DEFAULT);
+  pass('MATCH_V1_LADDER_SWITCH_ON_AND_OFF_BY_ONE_ROW_THE_SWITCH_SCRIPTS_GUARD_THEIR_STARTING_MODE', {on: 'switch-ladder-on.sql', off: 'switch-ladder-off.sql'});
+  await lateArrival(allMode.needAll);
   // The first-refusal evaluation (prefilter, "Za mene") and the full one (detailed matcher) must agree on every pair on this chain.
   const consistency = rows(`select count(*)::integer as pairs, count(*) filter (where (private.worker_need_fit_v1(n.id,p.id,true)->>'matches')
       is distinct from (private.worker_need_fit_v1(n.id,p.id,false)->>'matches'))::integer as mismatches,
@@ -379,9 +614,14 @@ try {
   assert.equal(bodyMd5(TZ), zManifest.functions[0].after_md5, 'MATCH_V1_REVERT_TOUCHED_THE_ZONE_HELPER');
   psqlFile(Z + 'revert.sql');
   assert.equal(catalog(), baseCatalog); assert.deepEqual(closure(), baseClosure); assert.equal(conflicts40001(), base40001); assert.equal(watermarkRows(), 0);
+  assert.equal(dispatchRows(), 0, 'THE_REVERT_REMOVES_THE_SWITCH_ROW');
   pass('ZONE_PERF_MATCH_V1_AND_DISCOVERY_ZAMENE_EXACT_REVERT_CATALOG_AND_CERTIFICATE_RESTORED');
   await fx.reloadSchema();
   expectOld(await matchingCases('reverted'), 'REVERTED');
+  // the revert restores today's ladder: the same groups of the same thirteen (now fourteen) workers
+  const ladderReverted = await ladderBaseline('reverted');
+  report.observations.ladderReverted = {series: ladderReverted.series.map(w => ({inserted: w.inserted, added: w.added, status: w.status, reason: w.reason})), oneTick: ladderReverted.afterTick};
+  pass('MATCH_V1_REVERTED_RESTORES_TODAYS_LADDER_5_5_REST_AND_ONE_TICK_REACHES_FIVE', report.observations.ladderReverted);
 
   report.observations.auth = fx.authStats();
   report.result = 'PASS'; write();

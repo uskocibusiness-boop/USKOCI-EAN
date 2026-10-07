@@ -19,7 +19,7 @@ as $function$
   from public.needs n where n.requester_account_id = a
 $function$;
 revoke all on function private.own_task_counts(uuid) from public, anon, authenticated, service_role;
-create or replace function public.rpc_list_my_needs_page(p_scope text, p_limit integer, p_before_at timestamp with time zone, p_before_id uuid)
+create or replace function public.rpc_list_my_needs_page(p_scope text DEFAULT 'ALL'::text, p_limit integer DEFAULT 30, p_before_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_before_id uuid DEFAULT NULL::uuid)
  returns jsonb
  language plpgsql
  stable security definer
