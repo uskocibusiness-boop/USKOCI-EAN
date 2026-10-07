@@ -45,12 +45,16 @@ const pins = [
 ];
 const mismatched = pins.map(p => ({...p, chainMd5: md5Of(p.signature)})).filter(p => p.chainMd5 !== p.devMd5);
 // Informational: the other helpers the reader calls unchanged (DEV values of 2026-10-08), named so a difference is visible, never admitted silently.
+// covered_slots carries CRLF line ends on DEV (md5 ac09f84c...) and LF on the chain: the same text once '\r\n' is read as '\n' (cbeb8f2a...),
+// the normalisation P6 rollout v3 itself applies to this body.
+const lfMd5Of = signature => sql(`select md5(replace(prosrc,E'\\r\\n',E'\\n')) from pg_proc where oid=to_regprocedure(${q(signature)})`);
 const observed = Object.fromEntries([
-  ['public.p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)', 'e1c81ce573875504d60e025c07573ee6'],
-  ['public.p6_discovery_civil(text)', 'cee687f43419dfb2fa9cc9233e8bea34'],
-  ['public.covered_slots(public.needs)', 'ac09f84c85ff8ae237c8db463a43d547'],
-  ['private.worker_need_match_v1(uuid,uuid)', 'ef94ef7de07a347824ace68789f08c41'],
-].map(([signature, devMd5]) => [signature, {devMd5, chainMd5: md5Of(signature), equal: md5Of(signature) === devMd5}]));
+  ['public.p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)', 'e1c81ce573875504d60e025c07573ee6', 'e1c81ce573875504d60e025c07573ee6'],
+  ['public.p6_discovery_civil(text)', 'cee687f43419dfb2fa9cc9233e8bea34', 'cee687f43419dfb2fa9cc9233e8bea34'],
+  ['public.covered_slots(public.needs)', 'ac09f84c85ff8ae237c8db463a43d547', 'cbeb8f2a3da7d08965ef0386cfc437ba'],
+  ['private.worker_need_match_v1(uuid,uuid)', 'ef94ef7de07a347824ace68789f08c41', 'ef94ef7de07a347824ace68789f08c41'],
+].map(([signature, devMd5, devMd5Lf]) => [signature, {devMd5, chainMd5: md5Of(signature), equal: md5Of(signature) === devMd5, equalAfterLf: lfMd5Of(signature) === devMd5Lf}]));
+for (const [signature, o] of Object.entries(observed)) if (!o.equalAfterLf) mismatched.push({signature, devMd5: o.devMd5, chainMd5: o.chainMd5, role: 'CALLED UNCHANGED BY THE READER'});
 const after = closure();
 const report = {result: mismatched.length ? 'FAIL' : 'PASS', applied, pins: pins.length, mismatched, observed,
   certificateUnchanged: JSON.stringify(after) === JSON.stringify(before), certificate: after,
@@ -59,4 +63,4 @@ const report = {result: mismatched.length ? 'FAIL' : 'PASS', applied, pins: pins
 fs.writeFileSync(path.join(out, 'predecessor-fidelity.json'), JSON.stringify(report, null, 2) + '\n');
 assert.equal(report.certificateUnchanged, true);
 if (mismatched.length) { console.error('FAIL DISCOVERY_GRAD_PREDECESSOR_FIDELITY ' + JSON.stringify(mismatched)); process.exit(1); }
-console.log(`PASS DISCOVERY_GRAD_PREDECESSOR_FIDELITY reader + ${pins.length - 1} dependencies equal DEV; observed ${JSON.stringify(Object.fromEntries(Object.entries(observed).map(([k, v]) => [k, v.equal])))}`);
+console.log(`PASS DISCOVERY_GRAD_PREDECESSOR_FIDELITY reader + ${pins.length - 1} dependencies equal DEV; observed (equal / equal after CRLF->LF) ${JSON.stringify(Object.fromEntries(Object.entries(observed).map(([k, v]) => [k.split('(')[0], [v.equal, v.equalAfterLf]])))}`);

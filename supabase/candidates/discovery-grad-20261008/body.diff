@@ -74,16 +74,38 @@
    ), facet_page as materialized (
     select * from facets
     where before_count is null or count<before_count or count=before_count and
-@@ -260,7 +272,7 @@
+@@ -259,14 +271,28 @@
+    n.requester_price_rsd,n.price_basis,n.requester_profile_id,n.response_deadline,
     case when people>1 then public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))) else null::integer end as covered_now,
     case when request_mode in ('MAP','PLACES') and when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,
-    case when request_mode='PLACES' or locality is not null
+-   case when request_mode='PLACES' or locality is not null
 -     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)=0
++   case when request_mode='PLACES'
 +     or query_text<>'' and strpos(public.discovery_fold_v1(coalesce(n.title,'')),fold_text)=0
      then public.p6_discovery_area(n.approximate_area,n.approximate_city,n.execution_location_mode='REMOTE')
      else null::text end as area_text,
     case when n.execution_location_mode='REMOTE' or n.approximate_lat is null or n.approximate_lng is null then false else true end as has_point,
-@@ -277,10 +289,16 @@
+    (time_at at time zone coalesce(n.task_timezone,'UTC'))::date as today
+   from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null
+    and (request_mode='EXACT_PUBLIC' and n.id=need_id or request_mode in ('PAGE','MAP','PLACES') and n.published_at<=through_at)
++ ), place_pairs as materialized (
++  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that
++  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per
++  -- distinct (area, city) text of the open tasks, never per task (both columns are NOT NULL, default ''; coalesce only guards,
++  -- and p6_discovery_area reads NULL as ''). A remote task and a task without a place text never match a place; a task without
++  -- a point but with a city does.
++  select p.place_area,p.place_city from (
++    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b
++    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2) p
++   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label) l
++  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')
++   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place
++    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),
++      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)
+  ), shared as materialized (
+   select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
+    when 'today' then array[today::text,today::text] when 'tomorrow' then array[(today+1)::text,(today+1)::text]
+@@ -277,10 +303,11 @@
     and (location_mode='any' or location_mode='remote' and b.execution_location_mode='REMOTE'
       or location_mode='onsite' and b.execution_location_mode is not null and b.execution_location_mode<>'REMOTE')
     and (people=1 or greatest(0,coalesce(nullif(b.required_slots,0),1)-coalesce(b.covered_now,0))>=people)
@@ -91,15 +113,10 @@
 -     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))
 -   and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0
 -    or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0)
-+   -- DISCOVERY-GRAD: a place is the task's whole place text OR its city (approximate_city; for a task that names no city,
-+   -- the last part of its place text after a comma), both compared through discovery_fold_v1. A remote task and a task
-+   -- without a place never match a place; a task without a point but with a city does. Words are found the same way in
-+   -- the title, the place text and the needed skills, tools and vehicles (the title alone was folded in base).
++   -- DISCOVERY-GRAD: the place (decided per text in place_pairs) and the words, found in the title, the place text and the
++   -- needed skills, tools and vehicles through discovery_fold_v1 (a title that holds the words left area_text null in base).
 +   and (locality is null or b.execution_location_mode is distinct from 'REMOTE'
-+     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena')
-+     and (public.discovery_fold_v1(public.p6_discovery_key(b.area_text))=fold_place
-+      or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(b.approximate_city),
-+        nullif(public.p6_discovery_trim(substring(b.area_text from '[^,]*$')),''),b.area_text)))=fold_place))
++     and (coalesce(b.approximate_area,''),coalesce(b.approximate_city,'')) in (select place_area,place_city from place_pairs))
 +   and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||coalesce(b.area_text,'')||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)
     and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null
        or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)

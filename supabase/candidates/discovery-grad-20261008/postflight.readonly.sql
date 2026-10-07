@@ -1,8 +1,8 @@
 -- DISCOVERY-GRAD read-only postflight. No write. Expected: every flag true, foldTruthTableMismatches 0, the certificate equal to the preflight.
 select jsonb_build_object(
- 'readerAfter',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='f40c31e7dd38103a228c0740dd76f86f',
+ 'readerAfter',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='018d25cd87d096ddb696d9af45265ba7',
  'readerAcl',(select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')),
- 'helper',(select md5(p.prosrc)='aa277f2f17898a8493912082e015a2d7' and p.provolatile='i' and not p.prosecdef and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}'
+ 'helper',(select md5(p.prosrc)='41353abe05d434d513495ae5974b9802' and p.provolatile='i' and not p.prosecdef and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}'
    and p.proconfig=array['search_path=pg_catalog'] from pg_proc p where p.oid=to_regprocedure('public.discovery_fold_v1(text)')),
  'foldTruthTableMismatches',(select count(*) from (values
   ((chr(268)||'a'||chr(269)||'ak'),'cacak'),

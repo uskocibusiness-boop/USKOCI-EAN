@@ -181,16 +181,19 @@ try {
   for (const key of ['pageDefault', 'mapDefault']) assert.ok(now[key].medianMs <= old[key].medianMs * 1.5 + 15, 'DEFAULT_READ_SLOWER:' + key + ' ' + JSON.stringify({old: old[key], now: now[key]}));
   pass('DISCOVERY_GRAD_LOAD_NEW_MEASURED_DEFAULT_READS_UNCHANGED', {old, now});
 
-  // revert under load: the reader is back to the DEV body
+  // revert under load: the reader is back to the DEV body; the same reads once more give the noise of this runner (OLD again)
   execFileSync('psql', [DB, '-X', '-q', '-v', 'ON_ERROR_STOP=1', '-f', G + 'revert.sql'], {stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000});
   assert.equal(sql(`select md5(prosrc) from pg_proc where oid=to_regprocedure(${q(manifest.functions[0].signature)})`), manifest.functions[0].before_md5);
-  pass('DISCOVERY_GRAD_LOAD_REVERTED');
+  const again = measureAll(viewer.id, 'OLD_AGAIN', REQUESTS);
+  assert.ok(Object.values(again).every(x => !x.error), 'OLD_AGAIN_MEASUREMENT_FAILED:' + JSON.stringify(again));
+  for (const key of Object.keys(REQUESTS)) assert.equal(again[key].counted, old[key].counted, 'REVERT_CHANGED_WHAT_IS_FOUND:' + key);
+  pass('DISCOVERY_GRAD_LOAD_REVERTED_SAME_RESULTS_AS_OLD', again);
 
   const f1 = v => (v === undefined || v === null) ? 'n/a' : (typeof v === 'object' ? (v.error ? 'error' : String(v.medianMs)) : String(v));
-  const lines = ['### DISCOVERY-GRAD load (disposable database, ' + open + ' open tasks; server time of one call as the signed-in viewer, median of 5, ms)', '',
-    '| request | OLD (DEV body) | NEW (DISCOVERY-GRAD) | listed / mapped / rows OLD -> NEW |', '|---|---|---|---|'];
+  const lines = ['### DISCOVERY-GRAD load (disposable database, ' + open + ' open tasks; server time of one call as the signed-in viewer, median of 5 warm calls, ms)', '',
+    '| request | OLD (DEV body) | NEW (DISCOVERY-GRAD) | OLD again (after the revert: runner noise) | listed / mapped / rows OLD -> NEW |', '|---|---|---|---|---|'];
   for (const key of [...Object.keys(REQUESTS), ...Object.keys(NEW_ONLY)]) {
-    lines.push(`| ${key} | ${f1(old[key])} | ${f1(now[key])} | ${old[key]?.counted ?? old[key]?.rows ?? '-'} -> ${now[key]?.counted ?? now[key]?.rows ?? '-'} |`);
+    lines.push(`| ${key} | ${f1(old[key])} | ${f1(now[key])} | ${f1(again[key])} | ${old[key]?.counted ?? old[key]?.rows ?? '-'} -> ${now[key]?.counted ?? now[key]?.rows ?? '-'} |`);
   }
   lines.push('', '| PostgREST call (as the app, median of 3, ms) | OLD | NEW |', '|---|---|---|');
   for (const key of Object.keys(newHttp)) lines.push(`| ${key} | ${f1(oldHttp[key])} | ${f1(newHttp[key])} |`);

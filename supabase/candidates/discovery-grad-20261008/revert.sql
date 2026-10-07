@@ -16,11 +16,11 @@ begin
   or private.closure_source_digest_v5() is distinct from (select sha256 from private.closure_erasure_source_v5 where singleton)
   or private.retention_ai_source_ready() is distinct from true
  then raise exception 'DISCOVERY_GRAD_REVERT_CERTIFICATE_NOT_READY' using errcode='55000'; end if;
- if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from 'f40c31e7dd38103a228c0740dd76f86f'
+ if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from '018d25cd87d096ddb696d9af45265ba7'
  then raise exception 'DISCOVERY_GRAD_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
- if (select count(*) from pg_proc p where p.oid=to_regprocedure('public.discovery_fold_v1(text)') and md5(p.prosrc)='aa277f2f17898a8493912082e015a2d7'
+ if (select count(*) from pg_proc p where p.oid=to_regprocedure('public.discovery_fold_v1(text)') and md5(p.prosrc)='41353abe05d434d513495ae5974b9802'
      and not p.prosecdef and p.provolatile='i' and p.proowner='postgres'::regrole
-     and p.prolang=(select oid from pg_language where lanname='sql') and p.prorettype='text'::regtype
+     and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='text'::regtype
      and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}')<>1
  then raise exception 'DISCOVERY_GRAD_REVERT_HELPER_DRIFT' using errcode='55000'; end if;
  if exists(select 1 from pg_proc p where p.oid<>to_regprocedure('public.rpc_discovery_v1(jsonb)') and p.oid<>to_regprocedure('public.discovery_fold_v1(text)')
@@ -427,7 +427,7 @@ begin
  o:=to_regprocedure('public.rpc_discovery_v1(jsonb)');
  if o is null then raise exception 'DISCOVERY_GRAD_REVERT_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
- if md5(body) is distinct from 'f40c31e7dd38103a228c0740dd76f86f' then raise exception 'DISCOVERY_GRAD_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
+ if md5(body) is distinct from '018d25cd87d096ddb696d9af45265ba7' then raise exception 'DISCOVERY_GRAD_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
  if md5(new_body) is distinct from 'dc69802e3ba209232a8be095f60e9c9f' then raise exception 'DISCOVERY_GRAD_REVERT_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'DISCOVERY_GRAD_REVERT_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;

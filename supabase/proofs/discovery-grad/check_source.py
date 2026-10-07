@@ -53,7 +53,8 @@ for name in ("candidate.sql", "candidate.in-transaction.sql", "revert.sql", "pre
     for found in re.finditer(r"\n(create function .*?\nas (\$[a-z0-9_]+\$)(.*?)\2;)", text, re.S):
         statement, body = found.group(1), found.group(3)
         pglast.parse_sql(statement)
-        pglast.parse_sql(body)
+        assert "language plpgsql" in statement.split("\nas ")[0]
+        parse_plpgsql_json(statement)
         checked += 1
     low = text.lower()
     for forbidden in ("create trigger", "create table", "alter table", "create policy", "drop policy", "create index", "session_replication_role",
@@ -81,6 +82,8 @@ for code_point, latin in two.items():
 src = re.search(r"\n    ((?:chr\(\d+\)\|\|)*chr\(\d+\)),\n    '([a-z]+)'\);", fold_body)
 assert [int(x) for x in re.findall(r"chr\((\d+)\)", src.group(1))] == list(one) and src.group(2) == "".join(one.values())
 assert "lower(value collate pg_catalog.\"sr-Latn-RS-x-icu\")" in fold_body and "unaccent" not in fold_body and "regexp" not in fold_body
+# one RETURN of one expression: PL/pgSQL's simple-expression path, no query, no loop, no exception block
+assert code(fold_body).count("return ") == 1 and "select" not in code(fold_body) and "exception" not in code(fold_body).lower()
 
 
 def oracle(value):
@@ -107,18 +110,26 @@ assert all(len(v) >= 1 for v in list(one.values()) + list(two.values()))
 # --- the reader boundaries
 assert "public.discovery_fold_v1(coalesce(n.title,''))" in after and "fold_text)=0" in after
 assert after.count("public.discovery_for_me_v1(") == 2, "DISCOVERY-ZAMENE kept"
-assert "public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena')" in after, "remote and no-place never match a place"
+assert "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in after, "remote and no-place never match a place"
 assert "b.execution_location_mode is distinct from 'REMOTE'" in after
+pairs = after[after.index(" ), place_pairs as materialized ("):after.index(" ), shared as materialized (")]
 shared = after[after.index(" ), shared as materialized ("):after.index(" ), qualified as materialized (")]
-assert "fold_place" in shared and "fold_text" in shared and "lower(" not in code(shared), "the place and word checks go through the fold only"
+assert "fold_place" in pairs and "where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2" in pairs
+assert "public.p6_discovery_area(p.place_area,p.place_city,false)" in pairs and "public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')" in pairs
+assert "(coalesce(b.approximate_area,''),coalesce(b.approximate_city,'')) in (select place_area,place_city from place_pairs)" in shared
+assert "fold_text" in shared and "lower(" not in code(shared) and "lower(" not in code(pairs), "the place and word checks go through the fold only"
+# base computes the place text per row only for words whose title does not hold them (the place filter reads place_pairs)
+assert "   case when request_mode='PLACES'\n     or query_text<>'' and strpos(public.discovery_fold_v1(coalesce(n.title,'')),fold_text)=0\n" in after
 places_block = after[after.index("  ), facet_keys as materialized ("):after.index("  ), facet_page as materialized (")]
 assert "distinct on(fold_key)" in places_block and "group by fold_key" in places_block and "public.p6_discovery_key(p.shown) as key" in places_block
 assert "place_level='CITY'" in places_block and "public.p6_discovery_unquote(approximate_city)" in places_block
 # the city of a task is computed by the SAME expression in PLACES (grouping) and in PAGE/MAP (the filter): a city row lists what the filter finds
 city_places = "coalesce(public.p6_discovery_unquote(approximate_city),\n     nullif(public.p6_discovery_trim(substring(area_text from '[^,]*$')),''),area_text)"
-city_filter = "coalesce(public.p6_discovery_unquote(b.approximate_city),\n        nullif(public.p6_discovery_trim(substring(b.area_text from '[^,]*$')),''),b.area_text)"
-assert city_places in places_block and city_filter in shared
-assert re.sub(r"\s+", " ", city_places) == re.sub(r"\s+", " ", city_filter.replace("b.", ""))
+city_filter = "coalesce(public.p6_discovery_unquote(p.place_city),\n      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)"
+assert city_places in places_block and city_filter in pairs
+assert re.sub(r"\s+", " ", city_places) == re.sub(r"\s+", " ", city_filter.replace("p.place_city", "approximate_city").replace("l.label", "area_text"))
+# PLACES groups the raw (area, city) pairs of facet_raw with label p6_discovery_area(area, city, false): the same label place_pairs uses
+assert "public.p6_discovery_area(c.approximate_area,c.approximate_city,false) as area_text" in after
 # filterKey: f is built exactly as before; only PLACES with groupBy CITY adds to the key
 f_before = live[READER][live[READER].index(" f:=jsonb_build_object('text',query_text"):live[READER].index(" -- PLACES binds its prefix/area too")]
 f_after = after[after.index(" f:=jsonb_build_object('text',query_text"):after.index(" -- PLACES binds its prefix/area too")]

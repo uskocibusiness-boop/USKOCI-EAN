@@ -78,7 +78,7 @@ function task(key, {title, city = '', area = '', point = null, mode = 'STATIONAR
       required_licenses, minimum_experience_years, verified_identity_required, approximate_city, approximate_area, approximate_lat, approximate_lng, mode, required_slots,
       schedule_kind, execution_location_mode, task_country_code, task_timezone, response_deadline, published_at)
     values (${q(id)}::uuid, ${q(R.id)}::uuid, ${q(R.profileId)}::uuid, 'PUBLISHED', ${q(`DG ${tag} ${title}`)}, 'Sinteticki zadatak DISCOVERY-GRAD dokaza.', 'DG dokaz',
-      ${textList(skills)}, '{}', '{}', '{}', 0, false, ${q(city)}, ${q(area)}, ${point ? point.lat : 'null'}, ${point ? point.lng : 'null'}, 'OFFERS', ${SLOTS},
+      ${textList(skills)}, '{}', '{}', '{}', 0, false, ${city === null ? 'null' : q(city)}, ${area === null ? 'null' : q(area)}, ${point ? point.lat : 'null'}, ${point ? point.lng : 'null'}, 'OFFERS', ${SLOTS},
       ${q(kind)}, ${q(mode)}, 'RS', 'Europe/Belgrade', statement_timestamp() + interval '2 days', clock_timestamp());
     commit;`);
   T[key] = id;
@@ -100,7 +100,7 @@ const ours = async (filter, scope) => names((await pageAll(filter, scope)).ids);
 const set = (...keys) => keys.sort();
 
 // The text and place cases. Each entry: [label, filter patch, BEFORE set, AFTER set]. BEFORE = the DEV body; AFTER = DISCOVERY-GRAD.
-const NS_ALL = set('nsCistim', 'nsGaraza', 'nsLiman', 'nsPetro', 'nsNoPoint', 'nsCyr');
+const NS_ALL = set('nsCistim', 'nsGaraza', 'nsLiman', 'nsPetro', 'nsNoPoint', 'nsCyr', 'nsNullArea');
 const BG_ALL = set('bgDj', 'bgNoPt', 'bgQuoted');
 const CASES = [
   ['text cistim', {text: 'cistim'}, set('nsGaraza'), set('nsCistim', 'nsGaraza')],
@@ -116,11 +116,11 @@ const CASES = [
   ['text башти (Cyrillic)', {text: 'башти'}, set('nsCyr'), set('nsCyr')],
   ['text elektricne (a needed skill)', {text: 'elektricne'}, set(), set('elektro')],
   ['text Električne (a needed skill)', {text: 'Električne'}, set('elektro'), set('elektro')],
-  ['text novi sad (the place text)', {text: 'novi sad'}, set('nsCistim', 'nsGaraza', 'nsLiman', 'nsPetro', 'nsNoPoint'), NS_ALL],
+  ['text novi sad (the place text)', {text: 'novi sad'}, set('nsCistim', 'nsGaraza', 'nsLiman', 'nsPetro', 'nsNoPoint', 'nsNullArea'), NS_ALL],
   ['text beograd (title of a remote task too)', {text: 'beograd'}, set('bgDj', 'bgNoPt', 'bgQuoted', 'remote'), set('bgDj', 'bgNoPt', 'bgQuoted', 'remote')],
-  ['place Novi Sad', {place: 'Novi Sad'}, set('nsCistim', 'nsNoPoint'), NS_ALL],
-  ['place novi sad', {place: 'novi sad'}, set('nsCistim', 'nsNoPoint'), NS_ALL],
-  ['place NOVI  SAD (case, double space)', {place: 'NOVI  SAD'}, set('nsCistim', 'nsNoPoint'), NS_ALL],
+  ['place Novi Sad', {place: 'Novi Sad'}, set('nsCistim', 'nsNoPoint', 'nsNullArea'), NS_ALL],
+  ['place novi sad', {place: 'novi sad'}, set('nsCistim', 'nsNoPoint', 'nsNullArea'), NS_ALL],
+  ['place NOVI  SAD (case, double space)', {place: 'NOVI  SAD'}, set('nsCistim', 'nsNoPoint', 'nsNullArea'), NS_ALL],
   ['place Нови Сад (Cyrillic)', {place: 'Нови Сад'}, set('nsCyr'), NS_ALL],
   ['place Čačak', {place: 'Čačak'}, set('caDia'), set('caDia', 'caAscii')],
   ['place Cacak', {place: 'Cacak'}, set('caAscii'), set('caDia', 'caAscii')],
@@ -151,6 +151,12 @@ async function runCases(phase) {
 
 // ---------------------------------------------------------------- PLACES helpers
 const keyOf = text => sql(`select public.p6_discovery_key(${q(text)})`);
+// The fold of the manifest, in JS: used only to know whether rows of the CHAIN's own tasks (outside the DG fixtures) are spellings of one place,
+// in which case the PLACES list over every task is expected to merge them (the goal) instead of staying byte-identical.
+const FOLD_TWO = Object.entries(manifest.fold.twoLetters).map(([k, v]) => [String.fromCodePoint(parseInt(k.slice(2), 16)), v]);
+const FOLD_ONE = new Map(Object.entries(manifest.fold.oneLetter).map(([k, v]) => [String.fromCodePoint(parseInt(k.slice(2), 16)), v]));
+const foldJs = value => { let s = value.toLowerCase(); for (const [c, t] of FOLD_TWO) s = s.split(c).join(t); return [...s].map(ch => FOLD_ONE.get(ch) ?? ch).join(''); };
+const spellingsMerge = response => response.hasMore || new Set(response.items.map(i => foldJs(i.key))).size !== response.items.length;
 function decoderInvariants(response, label) {
   // the client decoder (src/data/discoveryV1SpatialContract.ts): exact item shape, key = placeKey(text), unique keys, order, sum <= everywhere
   const keys = new Set();
@@ -189,6 +195,7 @@ try {
   task('nsPetro', {title: 'Prozori', city: 'Novi Sad', area: 'Petrovaradin', point: P.PV});
   task('pvTown', {title: 'Ograda', city: 'Petrovaradin', area: 'Petrovaradin', point: P.PV});
   task('nsNoPoint', {title: 'Montaža police', city: 'Novi Sad'});
+  task('nsNullArea', {title: 'Pranje prozora', city: 'Novi Sad', area: '   ', point: P.NS3});   // an area of blanks: no area (the columns are NOT NULL, default '')
   task('caDia', {title: 'Košenje trave', city: 'Čačak', point: P.CA});
   task('bgDj', {title: 'Pomoć za Đorđa', city: 'Beograd', area: 'Centar', point: P.BG});
   task('bgNoPt', {title: 'Posao kod Djordja', city: 'Beograd'});
@@ -228,7 +235,7 @@ try {
   const placesBefore = await ok(disc(places(ISO)));
   decoderInvariants(placesBefore, 'BEFORE_PLACES');
   const rowsBefore = rowsOf(placesBefore);
-  assert.equal(rowsBefore['Čačak'], 1); assert.equal(rowsBefore['Cacak'], 1); assert.equal(rowsBefore['Novi Sad'], 2); assert.equal(rowsBefore['Нови Сад'], 1);
+  assert.equal(rowsBefore['Čačak'], 1); assert.equal(rowsBefore['Cacak'], 1); assert.equal(rowsBefore['Novi Sad'], 3); assert.equal(rowsBefore['Нови Сад'], 1);
   const prefixCacBefore = (await ok(disc(places(ISO, 'cac')))).items.map(i => i.text);
   const prefixCyrBefore = (await ok(disc(places(ISO, 'ЧАЧ')))).items.map(i => i.text);
   assert.deepEqual(prefixCacBefore, ['Cacak']); assert.deepEqual(prefixCyrBefore, []);
@@ -277,9 +284,21 @@ try {
   pass('DISCOVERY_GRAD_APPLIED_EXACT_BODIES_CERTIFICATE_UNCHANGED_NO_NEW_RETRIED_LITERAL_POSTFLIGHT_GREEN', {reader: manifest.functions[0].after_md5, helper: manifest.newFunctions[0].body_md5, postflight: post});
 
   // ---------------------------------------------------------------- AFTER
-  for (const [k, request] of Object.entries(s1Requests)) assert.deepEqual(strip(await ok(disc({...request, ...(request.mode === 'EXACT_PUBLIC' ? {} : {anchor: s1[k].anchor})}))), strip(s1[k]), 'S1_CHANGED:' + k);
+  const s1Skipped = [];
+  for (const [k, request] of Object.entries(s1Requests)) {
+    const replay = await ok(disc({...request, anchor: s1[k].anchor}));
+    // the chain's own tasks may hold two spellings of one place: then the list over EVERY task merges them (the goal), and only that is checked
+    if (request.mode === 'PLACES' && spellingsMerge(s1[k])) {
+      s1Skipped.push(k);
+      assert.ok(Number(replay.counts.everywhere) === Number(s1[k].counts.everywhere) && replay.filterKey === s1[k].filterKey, 'S1_PLACES_TOTALS_CHANGED:' + k);
+      continue;
+    }
+    assert.deepEqual(strip(replay), strip(s1[k]), 'S1_CHANGED:' + k);
+  }
+  assert.ok(!s1Skipped.includes('placesIso') && !s1Skipped.includes('placesIsoPrefixNov'), 'THE_DG_FIXTURES_OF_S1_HAVE_NO_TWO_SPELLINGS');
   assert.deepEqual(strip(await ok(disc({mode: 'EXACT_PUBLIC', needId: T.nsCistim}))), strip(exactBefore));
-  pass('DISCOVERY_GRAD_REQUESTS_WITHOUT_THE_NEW_KEY_BYTE_IDENTICAL_WITH_THEIR_ANCHORS', {requests: Object.keys(s1Requests).length + 1});
+  report.observations.byteIdentity = {requests: Object.keys(s1Requests).length + 1 - s1Skipped.length, mergedChainSpellings: s1Skipped};
+  pass('DISCOVERY_GRAD_REQUESTS_WITHOUT_THE_NEW_KEY_BYTE_IDENTICAL_WITH_THEIR_ANCHORS', report.observations.byteIdentity);
   for (const [k, request] of Object.entries(beforeRequests)) {
     const now = await ok(disc(request));
     assert.equal(now.filterKey, filterKeysBefore[k], 'FILTER_KEY_CHANGED:' + k);
@@ -301,7 +320,7 @@ try {
     {listed: 3, inArea: 2, withoutPoint: 1, mapped: 3});
   const mapNs = await ok(disc(map({...ISO, place: 'Novi Sad'})));
   const bucketTasks = mapNs.buckets.reduce((sum, b) => sum + (b.kind === 'TASK' ? 1 : Number(b.taskCount)), 0);
-  assert.equal(Number(mapNs.counts.mapped), 6); assert.equal(Number(mapNs.counts.withoutPoint), 1); assert.equal(bucketTasks, 5);
+  assert.equal(Number(mapNs.counts.mapped), 7); assert.equal(Number(mapNs.counts.withoutPoint), 1); assert.equal(bucketTasks, 6);
   assert.ok(mapNs.buckets.every(b => b.point.lat >= 45.2 && b.point.lat <= 45.3 && b.point.lng >= 19.8 && b.point.lng <= 19.9), 'MAP_SHOWS_A_POINT_OUTSIDE_NOVI_SAD');
   pass('DISCOVERY_GRAD_TASK_WITHOUT_A_POINT_FOUND_BY_ITS_CITY_IN_ITS_OWN_SECTION_REMOTE_NEVER_A_PLACE_MAP_FOLLOWS', {sections, mapCounts: mapNs.counts, buckets: mapNs.buckets.length});
 
@@ -310,7 +329,7 @@ try {
   decoderInvariants(placesArea, 'AFTER_PLACES_AREA');
   const rowsArea = rowsOf(placesArea);
   const caRow = placesArea.items.find(i => ['Čačak', 'Cacak'].includes(i.text)), nsRow = placesArea.items.find(i => ['Novi Sad', 'Нови Сад'].includes(i.text));
-  assert.equal(Number(caRow.count), 2); assert.equal(Number(nsRow.count), 3);
+  assert.equal(Number(caRow.count), 2); assert.equal(Number(nsRow.count), 4);
   assert.equal(placesArea.items.filter(i => ['Čačak', 'Cacak', 'Novi Sad', 'Нови Сад'].includes(i.text)).length, 2, 'SPELLINGS_NOT_MERGED');
   assert.equal(Object.keys(rowsArea).length, Object.keys(rowsBefore).length - 2);
   assert.equal(placesArea.filterKey, filterKeysBefore.placesIso);
@@ -319,7 +338,7 @@ try {
   assert.notEqual(placesCity.filterKey, placesArea.filterKey);
   const rowsCity = rowsOf(placesCity);
   const cityCounts = {NoviSad: rowsCity['Novi Sad'] ?? rowsCity['Нови Сад'], Beograd: rowsCity['Beograd'], Cacak: rowsCity['Čačak'] ?? rowsCity['Cacak'], Petrovaradin: rowsCity['Petrovaradin'], Nis: rowsCity['Niš']};
-  assert.deepEqual(cityCounts, {NoviSad: 6, Beograd: 3, Cacak: 2, Petrovaradin: 1, Nis: 1});
+  assert.deepEqual(cityCounts, {NoviSad: 7, Beograd: 3, Cacak: 2, Petrovaradin: 1, Nis: 1});
   assert.equal(placesCity.items.length, 5);
   const consistency = {};
   for (const item of placesCity.items) {
@@ -341,16 +360,23 @@ try {
   }
   assert.deepEqual(prefix['cac'], [`${caRow.text}:2`]); assert.deepEqual(prefix['ЧАЧ (Cyrillic)'], [`${caRow.text}:2`]);
   assert.deepEqual(prefix['vrac'], ['Vračar, Beograd:1']);
-  assert.equal(prefix['novi'].length, 4); assert.ok(prefix['novi'].includes(`${nsRow.text}:3`));
-  assert.deepEqual(prefix['nov CITY'].map(x => x.split(':')[1]), ['6']); assert.deepEqual(prefix['beo CITY'], ['Beograd:3']);
+  assert.equal(prefix['novi'].length, 4); assert.ok(prefix['novi'].includes(`${nsRow.text}:4`));
+  assert.deepEqual(prefix['nov CITY'].map(x => x.split(':')[1]), ['7']); assert.deepEqual(prefix['beo CITY'], ['Beograd:3']);
   report.observations.placesPrefix = prefix; write();
   pass('DISCOVERY_GRAD_PLACES_PREFIX_IGNORES_SERBIAN_LETTERS_CASE_AND_SCRIPT', prefix);
 
-  // "Za mene" (DISCOVERY-ZAMENE) still narrows by the rule; with words it is the rule set AND the folded words
-  const forMeAll = names((await ok(disc(page({...FILTER, forMe: true})))).items.map(i => i.id));
-  const forMeText = names((await ok(disc(page({...FILTER, forMe: true, text: 'cistim'})))).items.map(i => i.id));
-  assert.deepEqual(forMeAll, ['nsCistim', 'nsGaraza']); assert.deepEqual(forMeText, ['nsCistim', 'nsGaraza']);
-  pass('DISCOVERY_GRAD_FOR_ME_UNCHANGED_AND_COMBINES_WITH_FOLDED_WORDS', {forMeAll, forMeTextBefore, forMeText});
+  // "Za mene" (DISCOVERY-ZAMENE) still narrows by the rule (MATCH-V1: kind of work + area + time; a task that names no kind of work is
+  // open to every worker of the area); with words it is exactly the rule set AND the folded words
+  const ruleSet = Object.keys(T).filter(k => sql(`select private.worker_need_match_v1(${q(T[k])}::uuid,${q(V.profileId)}::uuid)`) === 't').sort();
+  const forMeRaw = (await ok(disc(page({...ISO, forMe: true})))).items.map(i => i.id);
+  const forMeAll = names(forMeRaw);
+  const forMeText = names((await ok(disc(page({...ISO, forMe: true, text: 'cistim'})))).items.map(i => i.id));
+  assert.equal(forMeRaw.length, forMeAll.length);
+  assert.deepEqual(forMeAll, ruleSet); assert.ok(ruleSet.includes('nsCistim') && ruleSet.includes('nsGaraza') && !ruleSet.includes('remote'));
+  assert.deepEqual(forMeText, ruleSet.filter(k => after['text cistim'].includes(k)));
+  assert.deepEqual(forMeText, ['nsCistim', 'nsGaraza']);
+  assert.deepEqual(forMeTextBefore, ruleSet.filter(k => before['text cistim'].includes(k)));
+  pass('DISCOVERY_GRAD_FOR_ME_IS_STILL_THE_RULE_SET_AND_COMBINES_WITH_FOLDED_WORDS', {ruleSet, forMeTextBefore, forMeText});
 
   // refusals of the new key
   for (const [label, request] of [['groupBy city (lower case)', places(ISO, '', {groupBy: 'city'})], ['groupBy 5', places(ISO, '', {groupBy: 5})],

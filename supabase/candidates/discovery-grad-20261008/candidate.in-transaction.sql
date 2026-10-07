@@ -17,7 +17,7 @@ begin
  then raise exception 'DISCOVERY_GRAD_CERTIFICATE_NOT_READY' using errcode='55000'; end if;
  if to_regprocedure('public.discovery_fold_v1(text)') is not null
   or exists(select 1 from pg_proc p where p.pronamespace in ('public'::regnamespace,'private'::regnamespace) and p.proname='discovery_fold_v1')
-  or (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='f40c31e7dd38103a228c0740dd76f86f'
+  or (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)'))='018d25cd87d096ddb696d9af45265ba7'
  then raise exception 'DISCOVERY_GRAD_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  for r in select * from (values
   ('public.rpc_discovery_v1(jsonb)','dc69802e3ba209232a8be095f60e9c9f')) pins(signature,body_md5) loop
@@ -42,19 +42,21 @@ create temporary table dg_certificate on commit drop as
  select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program;
 create function public.discovery_fold_v1(value text)
  returns text
- language sql
+ language plpgsql
  immutable
  set search_path to 'pg_catalog'
 as $dg_body$
+begin
   -- DISCOVERY-GRAD (owner 2026-10-07): the one fold that FINDING words and places uses, never what is shown or stored.
   -- Lower case (Serbian ICU), then Serbian Latin and Serbian Cyrillic letters to plain Latin, letter by letter: c with caron
   -- and c with acute -> c, s with caron -> s, z with caron -> z, d with stroke -> dj (so the dj spelling and the d-with-stroke
   -- spelling are one word), Cyrillic dje -> dj, lje -> lj, nje -> nj, dzhe -> dz, tshe -> c and every other Serbian Cyrillic
   -- letter to its Latin letter. Every other character stays as it is: the fold maps letters and never removes one, so a
   -- text that contained a word before still contains it afterwards.
-  select translate(replace(replace(replace(replace(replace(lower(value collate pg_catalog."sr-Latn-RS-x-icu"),chr(273),'dj'),chr(1106),'dj'),chr(1113),'lj'),chr(1114),'nj'),chr(1119),'dz'),
+  return translate(replace(replace(replace(replace(replace(lower(value collate pg_catalog."sr-Latn-RS-x-icu"),chr(273),'dj'),chr(1106),'dj'),chr(1113),'lj'),chr(1114),'nj'),chr(1119),'dz'),
     chr(269)||chr(263)||chr(353)||chr(382)||chr(1072)||chr(1073)||chr(1074)||chr(1075)||chr(1076)||chr(1077)||chr(1078)||chr(1079)||chr(1080)||chr(1112)||chr(1082)||chr(1083)||chr(1084)||chr(1085)||chr(1086)||chr(1087)||chr(1088)||chr(1089)||chr(1090)||chr(1115)||chr(1091)||chr(1092)||chr(1093)||chr(1094)||chr(1095)||chr(1096),
     'ccszabvgdezzijklmnoprstcufhccs');
+end
 $dg_body$;
 revoke all on function public.discovery_fold_v1(text) from public, anon, authenticated, service_role;
 grant execute on function public.discovery_fold_v1(text) to authenticated;
@@ -332,7 +334,7 @@ begin
    n.requester_price_rsd,n.price_basis,n.requester_profile_id,n.response_deadline,
    case when people>1 then public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))) else null::integer end as covered_now,
    case when request_mode in ('MAP','PLACES') and when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,
-   case when request_mode='PLACES' or locality is not null
+   case when request_mode='PLACES'
      or query_text<>'' and strpos(public.discovery_fold_v1(coalesce(n.title,'')),fold_text)=0
     then public.p6_discovery_area(n.approximate_area,n.approximate_city,n.execution_location_mode='REMOTE')
     else null::text end as area_text,
@@ -340,6 +342,20 @@ begin
    (time_at at time zone coalesce(n.task_timezone,'UTC'))::date as today
   from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null
    and (request_mode='EXACT_PUBLIC' and n.id=need_id or request_mode in ('PAGE','MAP','PLACES') and n.published_at<=through_at)
+ ), place_pairs as materialized (
+  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that
+  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per
+  -- distinct (area, city) text of the open tasks, never per task (both columns are NOT NULL, default ''; coalesce only guards,
+  -- and p6_discovery_area reads NULL as ''). A remote task and a task without a place text never match a place; a task without
+  -- a point but with a city does.
+  select p.place_area,p.place_city from (
+    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b
+    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2) p
+   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label) l
+  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')
+   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place
+    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),
+      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)
  ), shared as materialized (
   select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
    when 'today' then array[today::text,today::text] when 'tomorrow' then array[(today+1)::text,(today+1)::text]
@@ -350,15 +366,10 @@ begin
    and (location_mode='any' or location_mode='remote' and b.execution_location_mode='REMOTE'
      or location_mode='onsite' and b.execution_location_mode is not null and b.execution_location_mode<>'REMOTE')
    and (people=1 or greatest(0,coalesce(nullif(b.required_slots,0),1)-coalesce(b.covered_now,0))>=people)
-   -- DISCOVERY-GRAD: a place is the task's whole place text OR its city (approximate_city; for a task that names no city,
-   -- the last part of its place text after a comma), both compared through discovery_fold_v1. A remote task and a task
-   -- without a place never match a place; a task without a point but with a city does. Words are found the same way in
-   -- the title, the place text and the needed skills, tools and vehicles (the title alone was folded in base).
+   -- DISCOVERY-GRAD: the place (decided per text in place_pairs) and the words, found in the title, the place text and the
+   -- needed skills, tools and vehicles through discovery_fold_v1 (a title that holds the words left area_text null in base).
    and (locality is null or b.execution_location_mode is distinct from 'REMOTE'
-     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena')
-     and (public.discovery_fold_v1(public.p6_discovery_key(b.area_text))=fold_place
-      or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(b.approximate_city),
-        nullif(public.p6_discovery_trim(substring(b.area_text from '[^,]*$')),''),b.area_text)))=fold_place))
+     and (coalesce(b.approximate_area,''),coalesce(b.approximate_city,'')) in (select place_area,place_city from place_pairs))
    and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||coalesce(b.area_text,'')||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)
    and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null
       or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)
@@ -474,7 +485,7 @@ begin
  if o is null then raise exception 'DISCOVERY_GRAD_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
  if md5(body) is distinct from 'dc69802e3ba209232a8be095f60e9c9f' then raise exception 'DISCOVERY_GRAD_PREIMAGE_DRIFT' using errcode='55000'; end if;
- if md5(new_body) is distinct from 'f40c31e7dd38103a228c0740dd76f86f' then raise exception 'DISCOVERY_GRAD_PAYLOAD_DRIFT' using errcode='55000'; end if;
+ if md5(new_body) is distinct from '018d25cd87d096ddb696d9af45265ba7' then raise exception 'DISCOVERY_GRAD_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'DISCOVERY_GRAD_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
  execute replace(def,body,new_body);
@@ -486,9 +497,9 @@ end
 $dg_replace$;
 do $dg_post$
 begin
- if (select count(*) from pg_proc p where p.oid=to_regprocedure('public.discovery_fold_v1(text)') and md5(p.prosrc)='aa277f2f17898a8493912082e015a2d7'
+ if (select count(*) from pg_proc p where p.oid=to_regprocedure('public.discovery_fold_v1(text)') and md5(p.prosrc)='41353abe05d434d513495ae5974b9802'
      and not p.prosecdef and p.provolatile='i' and p.proowner='postgres'::regrole
-     and p.prolang=(select oid from pg_language where lanname='sql') and p.prorettype='text'::regtype
+     and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='text'::regtype
      and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}')<>1
  then raise exception 'DISCOVERY_GRAD_HELPER_DRIFT' using errcode='55000'; end if;
  if (select count(*) from (values
@@ -520,7 +531,7 @@ begin
   ((chr(353)||chr(353)||chr(353)),'sss')) t(input,expected)
   where public.discovery_fold_v1(t.input) is distinct from t.expected)<>0
  then raise exception 'DISCOVERY_GRAD_FOLD_TRUTH_TABLE' using errcode='55000'; end if;
- if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from 'f40c31e7dd38103a228c0740dd76f86f'
+ if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from '018d25cd87d096ddb696d9af45265ba7'
   or (select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_discovery_v1(jsonb)')) is distinct from '{postgres=X/postgres,authenticated=X/postgres}'
  then raise exception 'DISCOVERY_GRAD_READER_DRIFT' using errcode='55000'; end if;
  if private.closure_source_digest_v5() is distinct from (select digest from dg_certificate)

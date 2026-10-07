@@ -97,22 +97,36 @@ change("  ), facet_keys as materialized (\n"
        "  ), facets as materialized (\n"
        "   select r.key,r.text,c.count from facet_counts c join facet_representatives r using(fold_key)\n"
        "  ), facet_page as materialized (\n")
-# PAGE, MAP, EXACT_PUBLIC
-change("     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)=0\n",
+# PAGE, MAP, EXACT_PUBLIC. The place text of a task (area_text) is now computed per row only for words whose title does not hold them;
+# the place filter is decided once per distinct (area, city) text in place_pairs below.
+change("   case when request_mode='PLACES' or locality is not null\n"
+       "     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)=0\n",
+       "   case when request_mode='PLACES'\n"
        "     or query_text<>'' and strpos(public.discovery_fold_v1(coalesce(n.title,'')),fold_text)=0\n")
+change(" ), shared as materialized (\n",
+       " ), place_pairs as materialized (\n"
+       "  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that\n"
+       "  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per\n"
+       "  -- distinct (area, city) text of the open tasks, never per task (both columns are NOT NULL, default ''; coalesce only guards,\n"
+       "  -- and p6_discovery_area reads NULL as ''). A remote task and a task without a place text never match a place; a task without\n"
+       "  -- a point but with a city does.\n"
+       "  select p.place_area,p.place_city from (\n"
+       "    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b\n"
+       "    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2) p\n"
+       "   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label) l\n"
+       "  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')\n"
+       "   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place\n"
+       "    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),\n"
+       "      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)\n"
+       " ), shared as materialized (\n")
 change("   and (locality is null or b.execution_location_mode is distinct from 'REMOTE' and public.p6_discovery_key(b.area_text)=locality\n"
        "     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))\n"
        "   and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)>0\n"
        "    or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)>0)\n",
-       "   -- DISCOVERY-GRAD: a place is the task's whole place text OR its city (approximate_city; for a task that names no city,\n"
-       "   -- the last part of its place text after a comma), both compared through discovery_fold_v1. A remote task and a task\n"
-       "   -- without a place never match a place; a task without a point but with a city does. Words are found the same way in\n"
-       "   -- the title, the place text and the needed skills, tools and vehicles (the title alone was folded in base).\n"
+       "   -- DISCOVERY-GRAD: the place (decided per text in place_pairs) and the words, found in the title, the place text and the\n"
+       "   -- needed skills, tools and vehicles through discovery_fold_v1 (a title that holds the words left area_text null in base).\n"
        "   and (locality is null or b.execution_location_mode is distinct from 'REMOTE'\n"
-       "     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena')\n"
-       "     and (public.discovery_fold_v1(public.p6_discovery_key(b.area_text))=fold_place\n"
-       "      or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(b.approximate_city),\n"
-       "        nullif(public.p6_discovery_trim(substring(b.area_text from '[^,]*$')),''),b.area_text)))=fold_place))\n"
+       "     and (coalesce(b.approximate_area,''),coalesce(b.approximate_city,'')) in (select place_area,place_city from place_pairs))\n"
        "   and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||coalesce(b.area_text,'')||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)\n")
 NEW_READER = after[READER]
 assert "40001" not in NEW_READER and NEW_READER.isascii() and "$dg_body$" not in NEW_READER and "$function$" not in NEW_READER
@@ -157,18 +171,22 @@ FOLD_TO = "'" + "".join(t for _, t in FOLD_ONE) + "'"
 REPLACED = "lower(value collate pg_catalog.\"sr-Latn-RS-x-icu\")"
 for code, latin in FOLD_PAIRS:
     REPLACED = "replace(" + REPLACED + ",chr(%d),'%s')" % (code, latin)
+# PL/pgSQL on purpose: the body is ONE simple expression, which PL/pgSQL evaluates without starting the executor; a SQL function
+# that cannot be inlined (it has SET search_path) runs the executor on every call (measured in CI: about 8.5 us per call).
 FOLD_BODY = ("\n"
+             "begin\n"
              "  -- DISCOVERY-GRAD (owner 2026-10-07): the one fold that FINDING words and places uses, never what is shown or stored.\n"
              "  -- Lower case (Serbian ICU), then Serbian Latin and Serbian Cyrillic letters to plain Latin, letter by letter: c with caron\n"
              "  -- and c with acute -> c, s with caron -> s, z with caron -> z, d with stroke -> dj (so the dj spelling and the d-with-stroke\n"
              "  -- spelling are one word), Cyrillic dje -> dj, lje -> lj, nje -> nj, dzhe -> dz, tshe -> c and every other Serbian Cyrillic\n"
              "  -- letter to its Latin letter. Every other character stays as it is: the fold maps letters and never removes one, so a\n"
              "  -- text that contained a word before still contains it afterwards.\n"
-             "  select translate(" + REPLACED + ",\n"
+             "  return translate(" + REPLACED + ",\n"
              "    " + FOLD_FROM + ",\n"
-             "    " + FOLD_TO + ");\n")
+             "    " + FOLD_TO + ");\n"
+             "end\n")
 assert FOLD_BODY.isascii() and "40001" not in FOLD_BODY
-FOLD_HEAD = ("create function public.discovery_fold_v1(value text)\n returns text\n language sql\n immutable\n"
+FOLD_HEAD = ("create function public.discovery_fold_v1(value text)\n returns text\n language plpgsql\n immutable\n"
              " set search_path to 'pg_catalog'\nas ")
 ACL = "{postgres=X/postgres,authenticated=X/postgres}"
 
@@ -265,7 +283,7 @@ def replace(source, target, label):
 def fold_check(label):
     return (" if (select count(*) from pg_proc p where p.oid=to_regprocedure(" + quote(FOLD) + ") and md5(p.prosrc)=" + quote(md5(FOLD_BODY)) + "\n"
             "     and not p.prosecdef and p.provolatile='i' and p.proowner='postgres'::regrole\n"
-            "     and p.prolang=(select oid from pg_language where lanname='sql') and p.prorettype='text'::regtype\n"
+            "     and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='text'::regtype\n"
             "     and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text=" + quote(ACL) + ")<>1\n"
             " then raise exception '" + label + "' using errcode='55000'; end if;\n")
 
@@ -414,7 +432,7 @@ manifest = {
                      "The apply and the revert assert both digests unchanged.",
     "functions": [{"signature": READER, "before_md5": md5(live[READER]), "after_md5": md5(NEW_READER),
                    "language": "plpgsql", "volatility": "STABLE", "securityDefiner": False, "config": ["search_path=pg_catalog"], "acl": ACL}],
-    "newFunctions": [{"signature": FOLD, "body_md5": md5(FOLD_BODY), "language": "sql", "volatility": "IMMUTABLE", "securityDefiner": False,
+    "newFunctions": [{"signature": FOLD, "body_md5": md5(FOLD_BODY), "language": "plpgsql", "volatility": "IMMUTABLE", "securityDefiner": False,
                       "config": ["search_path=pg_catalog"], "acl": ACL}],
     "dependencyPins": [{"signature": s, "body_md5": m} for s, m in DEPENDENCIES],
     "collation": COLLATION,

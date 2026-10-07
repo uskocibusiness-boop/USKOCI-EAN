@@ -15,7 +15,7 @@
     {
       "signature": "public.rpc_discovery_v1(jsonb)",
       "before_md5": "dc69802e3ba209232a8be095f60e9c9f",
-      "after_md5": "f40c31e7dd38103a228c0740dd76f86f",
+      "after_md5": "018d25cd87d096ddb696d9af45265ba7",
       "language": "plpgsql",
       "volatility": "STABLE",
       "securityDefiner": false,
@@ -28,8 +28,8 @@
   "newFunctions": [
     {
       "signature": "public.discovery_fold_v1(text)",
-      "body_md5": "aa277f2f17898a8493912082e015a2d7",
-      "language": "sql",
+      "body_md5": "41353abe05d434d513495ae5974b9802",
+      "language": "plpgsql",
       "volatility": "IMMUTABLE",
       "securityDefiner": false,
       "config": [
@@ -224,12 +224,12 @@
     "filterKeyChangesOnlyFor": "PLACES with groupBy CITY"
   },
   "artifact_sha256": {
-    "candidate.sql": "7bd9b7cff690ac91aef2dd6d5db21a4984169a9c34c0afc184dc8298055e4e65",
-    "candidate.in-transaction.sql": "b54f0dd6c09ee61ca5f859c8681f9c0abb2598f9aa2b560657f9641d92cc8ce0",
-    "revert.sql": "bb658daa32bf26d43d3706f843e25b9af064a1c02433e9475bfede0380bbb5ac",
+    "candidate.sql": "1c151ce5378aa3d3735a66a311d2fad14dcd631e5ca7323dd7b5c0986018b4c0",
+    "candidate.in-transaction.sql": "20308fba0f1bcf316e3404665fd089f039c864bbfe1539992849e87c9971b685",
+    "revert.sql": "2d94e467b611d9dd11043ad3cb72e3a1d2712107fe3a15fa61778aed2c081722",
     "preflight.readonly.sql": "9fae060a85b62579148aab84be4145d698c2472985e7c928c6e3e77f6e73f5e9",
-    "postflight.readonly.sql": "051f2243b8d5d952c308f5ef62980d30a3b2c1ae3f006a1b8a7cf09b8d03495d",
-    "body.diff": "031260b9b7122dca80d81c0954caddd3e7eae32ea641106a72e50500abb3ab76",
-    "patches.json": "55879ef29725e582dbb5d1508aa7602f4bd6a0764b7ad287875b23502934a552"
+    "postflight.readonly.sql": "e12ab80130278a12e9f03d4d015adde7bf47582fb211661a5788cd1f2a7422db",
+    "body.diff": "accda945ed39a91dd62a6f1653d752f946bbb5cb5d4af109b2b21d74f09c0718",
+    "patches.json": "c7a3d876598922800eca162f87026b3ca61af64157c1faec3807254389e7085d"
   }
 }
