@@ -15,7 +15,9 @@ export function BuildIdentity() {
   const build = readBuildIdentity();
   const runtime = Updates.runtimeVersion ?? build.runtimeVersion;
   const channel = Updates.channel ?? build.updateChannel;
-  const update = Updates.updateId ? Updates.updateId.slice(0, 8) : Updates.isEmbeddedLaunch ? 'ugrađena verzija' : 'nije zabeležen';
+  // The embedded bundle also carries an update id, so the launch kind is said in words before the id.
+  const id = Updates.updateId ? Updates.updateId.slice(0, 8) : null;
+  const update = Updates.isEmbeddedLaunch ? `ugrađena verzija${id ? ` · ${id}` : ''}` : id ? `OTA ažuriranje · ${id}` : 'nije zabeležen';
   return <View style={styles.root}>
     <Pressable accessibilityRole="button" accessibilityLabel="Podaci o verziji"
       accessibilityState={{ expanded }} onPress={() => setExpanded(value => !value)} style={styles.button}>
