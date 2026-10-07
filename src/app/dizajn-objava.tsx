@@ -9,8 +9,8 @@ import type { createConfiguredLocationResolver } from '../data/configuredLocatio
 import { NeedLocationForm } from '../ui/location/NeedLocationForm';
 import { LocationMapPreview } from '../ui/location/LocationMapPreview';
 import { LocationScreen } from '../ui/location/LocationControls';
-import { PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFacts, ReviewFactRow, ReviewPhotos, ReviewPreview,
-  ReviewSection, ReviewStatus, ReviewTodoList, reviewStyles, type TodoRow } from '../ui/objava/ReviewPresentation';
+import { OwnerPlaces, PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFacts, ReviewExits, ReviewFactRow, ReviewPhotos,
+  ReviewPreview, ReviewSection, ReviewStatus, ReviewTodoList, reviewStyles, type TodoRow } from '../ui/objava/ReviewPresentation';
 import { PhotoGrid, PhotoStatus, PhotoTile, PhotosLoading, PhotosPrivacyNote, type PhotoTileState } from '../ui/objava/TaskPhotosPresentation';
 import { SettingsAction, SettingsScreen, SettingsText } from '../ui/settings/SettingsPresentation';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
@@ -132,6 +132,7 @@ export default function DizajnObjava() {
         <ReviewSection title="Mesto" action={options.command ? null : <V2Action label={options.todos?.length ? 'Dodaj mesto' : 'Uredi mesto'} kind="quiet" compact onPress={noop} />}>
           <PublicPlace zone={SUMMARY.zone} lines={[]} anchor={options.todos?.length ? null : ANCHOR} scopeKey="galerija:pregled" pointsConfirmed={!options.todos?.length} />
           <PrivatePlace>
+            <OwnerPlaces places={options.todos?.length ? [] : [{ slot: 'start', title: 'Mesto', text: 'Bulevar oslobođenja 12, Novi Sad' }]} />
             <ReviewFactRow label="Tačna adresa" value="Bulevar oslobođenja 12, stan 7" large={!!options.large} system={false}
               edit={options.command ? undefined : noop} editDisabled={false} />
             <ReviewFactRow label="Pristup" value="Interfon 7, treći sprat" large={!!options.large} system={false}
@@ -164,22 +165,25 @@ export default function DizajnObjava() {
           <PublishButton label="Objavi zadatak" blocked={blocked} working={!!options.working}
             reason={options.todos?.length ? 'Prvo reši ono što još treba.' : null} onPress={noop} />
           <T style={reviewStyles.caption}>{options.todos?.length ? 'Prvo reši ono što još treba.' : 'Ovim prihvataš prikazanu verziju i tražiš objavu.'}</T>
-          {options.todos?.length ? null : <V2Action label="Sačuvaj nacrt" kind="quiet" disabled={!!options.working} onPress={noop} />}
+          <ReviewExits large={!!options.large} disabled={!!options.working} onEdit={noop} onSave={options.todos?.length ? undefined : noop}
+            onDelete={() => confirm.ask({ title: 'Obrisati nacrt „Prenos ormara na treći sprat bez lifta“?', confirmLabel: 'Obriši nacrt', tone: 'danger',
+              message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možeš da nastaviš.', onConfirm: noop })} />
         </>}
       </View>}
+      {confirm.sheet}
     </SafeAreaView>;
   };
   const todos: TodoRow[] = [
-    { key: 'missing', text: 'Nedostaje: Broj ljudi.', onPress: noop },
-    { key: 'location', text: 'Mesto na mapi nije potvrđeno.', onPress: noop },
-    { key: 'fact', text: 'Unesi iznos ili izaberi prikupljanje ponuda.', onPress: noop },
+    { key: 'missing', text: 'Nedostaje: Broj ljudi.', onPress: noop, actionLabel: 'Dopuni u razgovoru' },
+    { key: 'location', text: 'Mesto na mapi nije potvrđeno.', onPress: noop, actionLabel: 'Dodaj mesto' },
+    { key: 'fact', text: 'Unesi iznos ili izaberi prikupljanje ponuda.', onPress: noop, actionLabel: 'Unesi iznos' },
   ];
 
   /* ------------------------------------------------------------------------------------------------ the place */
   const placeStep = (value: NeedLocationReview, options: { saved?: boolean; loading?: boolean } = {}) =>
     <LocationScreen title="Mesto zadatka" onBack={toList} loading={!!options.loading} onRetry={noop} scroll={false}>
       {options.saved ? <View style={s.saved}>
-        <T accessibilityRole="alert" variant="body">Lokacija je sačuvana u pregledu Zadatka.</T>
+        <T accessibilityRole="alert" variant="body">Lokacija je sačuvana u pregledu zadatka.</T>
         <V2Action label="Nazad na pregled" kind="secondary" onPress={toList} />
       </View> : null}
       <NeedLocationForm layout="screen" reviewOnly={!options.saved} review={value} busy={false} uncertain={false} onSave={noop}
@@ -246,7 +250,7 @@ export default function DizajnObjava() {
     : scene === 'mesto-ucitavanje' ? placeStep(place(), { loading: true })
     : scene === 'foto-mreza' ? photos([...READY(2), { kind: 'PROCESSING', assetId: 'p' }, { kind: 'FAILED', assetId: 'f' }],
       { status: { text: 'Fotografija je dodata privatnom nacrtu.', tone: 'success' } })
-    : scene === 'foto-salje' ? photos([...READY(2), { kind: 'SENDING' }], { status: { text: 'Šaljem fotografiju…', tone: 'progress' }, working: true })
+    : scene === 'foto-salje' ? photos([...READY(2), { kind: 'SENDING' }], { status: { text: 'Šaljemo fotografiju…', tone: 'progress' }, working: true })
     : scene === 'foto-nepotvrdjeno' ? photos([...READY(2), { kind: 'UNCONFIRMED' }], { unconfirmed: true,
       status: { text: 'Slanje nije primljeno. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.', tone: 'error' },
       reason: 'Prvo završi ili otkaži nepotvrđeno slanje.' })

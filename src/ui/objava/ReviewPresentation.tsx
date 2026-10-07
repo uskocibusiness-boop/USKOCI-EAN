@@ -8,6 +8,7 @@ import { SuccessMark } from '../system/SuccessMark';
 import { TurningCaret } from '../system/Disclosure';
 import { brandAction, cardCompact, field, inset, sys } from '../system/tokens';
 import { CardFact, CardTitle, CardValue, WaitingDot, valueSpoken, type TaskValue } from '../v2/TaskFace';
+import { V2Action } from '../v2/V2Action';
 import { LocationMapPreview } from '../location/LocationMapPreview';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import type { Summary } from '../v2/draftSummary';
@@ -35,33 +36,37 @@ export function ReviewStatus({ published, fresh, text }: { published: boolean; f
 /**
  * The task as others will see it: the task card's own parts (title with the value slot, where, when, how many people),
  * bare on one compact card. Not a target; it is heard once as a whole. The description and the photos are not repeated
- * here: photos appear only inside a task's detail (owner decision 10, 2026-09-24).
+ * here: photos appear only inside a task's detail (owner decision 10, 2026-09-24). The card leads the review with no caption
+ * above it ("Ovako će drugi videti zadatak" was a sentence about where the person is, plan 2.17): the card is the task as it
+ * will look, and the bar already says "Pregled zadatka". The title is whole, never cut with an ellipsis: this is the moment to read
+ * what is about to be published (owner's phone, 2026-10-07: "Prevoz od Petrovaradina do centra No…").
  */
 export function ReviewPreview({ summary, unpriced, large, action }: { summary: Summary; unpriced: boolean; large: boolean;
-  /** One quiet correction beside the caption ("Izmeni naslov"). */ action?: ReactNode }) {
+  /** One quiet correction under the card ("Izmeni naslov"). */ action?: ReactNode }) {
   const value: TaskValue | null = summary.value ?? (unpriced ? { kind: 'unpriced' } : null);
   const spoken = [summary.title, value ? valueSpoken(value) : null, summary.zone || null, summary.schedule ?? null, summary.people]
     .filter(Boolean).join(', ');
   return <View style={s.section}>
-    <View style={s.sectionHead}>
-      <T variant="meta" tone="muted" style={s.grow}>Ovako će drugi videti zadatak</T>
-      {action}
-    </View>
     <View style={s.card} accessible accessibilityLabel={spoken || 'Zadatak još nema javnih podataka'}>
       {summary.title || value ? <View style={large ? s.headStacked : s.head}>
-        {summary.title ? <CardTitle title={summary.title} lines={3} style={!large && s.titleSide} /> : null}
+        {summary.title ? <CardTitle title={summary.title} lines={0} style={!large && s.titleSide} /> : null}
         {value ? <CardValue value={value} large={large} /> : null}
       </View> : null}
       {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={16} />} text={summary.zone} /> : null}
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={16} />} text={summary.schedule} lines={2} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={16} />} text={summary.people} /> : null}
     </View>
+    {action ? <View style={s.previewAction}>{action}</View> : null}
   </View>;
 }
 
-export type TodoRow = { key: string; text: string; onPress?: () => void };
+/** `actionLabel` is the word of the way out ("Izmeni termin"), drawn under the sentence so the row reads as the button it is. */
+export type TodoRow = { key: string; text: string; onPress?: () => void; actionLabel?: string };
 
-/** "Još treba": each blocker as a white row with the orange dot, and a caret where a tap leads to the fix. */
+/**
+ * "Još treba": each blocker as a white row with the orange dot, its sentence and, where a tap leads to the fix, the word of that fix in
+ * the action's green with a caret (owner's phone, 2026-10-07: a sentence with a faint arrow beside a grey publish was not read as a button).
+ */
 export function ReviewTodoList({ items, disabled, children }: { items: readonly TodoRow[]; disabled: boolean; children?: ReactNode }) {
   return <View style={s.section}>
     <T variant="heading" accessibilityRole="header" style={s.ink}>Još treba</T>
@@ -69,10 +74,13 @@ export function ReviewTodoList({ items, disabled, children }: { items: readonly 
       {items.map(item => {
         const body = <>
           <WaitingDot />
-          <T variant="body" style={s.grow}>{item.text}</T>
+          <View style={s.todoCopy}>
+            <T variant="body">{item.text}</T>
+            {item.onPress && item.actionLabel ? <T variant="action" style={disabled ? s.todoActionResting : s.todoAction}>{item.actionLabel}</T> : null}
+          </View>
           {item.onPress ? <CaretRight size={18} weight="bold" color={disabled ? sys.color.muted : sys.color.green} /> : null}
         </>;
-        return item.onPress ? <Press key={item.key} accessibilityRole="button" accessibilityLabel={item.text}
+        return item.onPress ? <Press key={item.key} accessibilityRole="button" accessibilityLabel={item.text} accessibilityHint={item.actionLabel}
           accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99} onPress={item.onPress} style={s.todo}>{body}</Press>
           : <View key={item.key} style={s.todo}>{body}</View>;
       })}
@@ -124,6 +132,41 @@ export function PrivatePlace({ children }: { children: ReactNode }) {
     <T variant="note" tone="muted">Ovi podaci nisu deo javnog zadatka. Pristup ostaje prema pravilima Dogovora.</T>
     <View>{children}</View>
   </PlaceGroup>;
+}
+
+/**
+ * The places the owner CONFIRMED, as short lines at the top of the private half: street and number, then the place ("Pavla Ivića 6,
+ * Novi Sad"). Several places name their role. The words are the confirmed points' own (`ownerPlaceLines`), so a pin moved after the
+ * first text is what is read here; the long rows under them keep the whole address. Private: never drawn in the public half.
+ */
+export function OwnerPlaces({ places }: { places: readonly { slot: string; title: string; text: string }[] }) {
+  if (!places.length) return null;
+  const named = places.length > 1;
+  return <View style={s.ownerPlaces}>
+    {places.map(place => <View key={place.slot} accessible accessibilityLabel={named ? `${place.title}: ${place.text}` : place.text} style={s.ownerPlace}>
+      {named ? <T variant="meta" tone="muted">{place.title}</T> : null}
+      <T variant="bodyStrong" style={s.ink}>{place.text}</T>
+    </View>)}
+  </View>;
+}
+
+/**
+ * The ways out of a review that is not published yet, under the one green "Objavi zadatak" (owner, 2026-10-07: "when the user arrives
+ * at this review there is no easy way to delete it or edit it; to go back to the chat to edit it - at least I do not see that function
+ * easily"). "Izmeni zadatak" is white with a line, never green: it returns to the conversation, which keeps the draft. Under it, the
+ * quiet ones: keeping the draft ("Sačuvaj nacrt") and, last and in the danger colour, deleting it ("Obriši nacrt"). Side by side
+ * at an ordinary text size; one under the other at a large one, where a half of the width cannot hold a label.
+ */
+export function ReviewExits({ onEdit, onSave, onDelete, disabled, large }: { onEdit: () => void; onSave?: () => void; onDelete?: () => void;
+  disabled: boolean; large: boolean }) {
+  const beside = large ? undefined : s.exit;
+  return <>
+    <V2Action label="Izmeni zadatak" kind="secondary" tone="neutral" disabled={disabled} onPress={onEdit} />
+    {onSave || onDelete ? <View style={large ? s.exitsStacked : s.exitsRow}>
+      {onSave ? <V2Action label="Sačuvaj nacrt" kind="quiet" style={beside} disabled={disabled} onPress={onSave} /> : null}
+      {onDelete ? <V2Action label="Obriši nacrt" kind="destructive" style={beside} disabled={disabled} onPress={onDelete} /> : null}
+    </View> : null}
+  </>;
 }
 
 /** The photos as square tiles, three to a row, or one quiet line when there are none. */
@@ -217,6 +260,7 @@ const s = StyleSheet.create({
   statusDone: { backgroundColor: sys.color.greenSoft },
   statusQuiet: { backgroundColor: sys.color.wash },
   card: { ...cardCompact, gap: sys.space.sm },
+  previewAction: { alignItems: 'flex-end' },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   headStacked: { gap: sys.space.xs },
   titleSide: { flex: 1, minWidth: 0 },
@@ -225,6 +269,14 @@ const s = StyleSheet.create({
   group: { gap: sys.space.sm },
   groupDivided: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.base },
   groupHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  todoCopy: { flex: 1, gap: sys.space.xs },
+  todoAction: { color: sys.color.green },
+  todoActionResting: { color: sys.color.muted },
+  ownerPlaces: { gap: sys.space.sm },
+  ownerPlace: { gap: sys.space.xs },
+  exitsRow: { flexDirection: 'row', gap: sys.space.sm },
+  exitsStacked: { gap: sys.space.sm },
+  exit: { flex: 1 },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   photoMissing: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   meta: { ...sys.type.meta, color: sys.color.muted }, body: { ...sys.type.body, color: sys.color.ink },

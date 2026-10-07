@@ -43,8 +43,14 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+// The questions of the task have their own reader and suite (owner, 2026-10-07: they are drawn on the task now). Here the reader is
+// a value the test moves, to see what the screen does with it: which task it asks about, and where its presses go.
+const mockQuestionsFor = jest.fn();
+let mockQuestions: { state: unknown; retry: () => void } = { state: { phase: 'idle' }, retry: () => undefined };
+jest.mock('../../ui/qa/useTaskQaInline', () => ({ useTaskQaInline: (...args: unknown[]) => { mockQuestionsFor(...args); return mockQuestions; } }));
 import Review from '../../app/(app)/potrebe/[id]/pregled';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { buildQaInline } from '../../ui/qa/taskQaInlineModel';
 
 function need(revizija = 7, stanje = 'NACRT') {
   return { id: NEED, revizija, stanje, naslov: 'Pregledani Zadatak', opis: 'Opis', podrucjeTekst: 'Novi Sad',
@@ -66,10 +72,11 @@ const texts = () => tree.root.findAll(node => node.type === 'T' as React.Element
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
 // Owner step 5b (2026-09-24): changing the task (edit, closing the remaining search, cancel, delete) moved from buttons at
 // the end of the screen into the bar's "···". A person opens the menu and picks the row; the row runs once the menu has
-// gone and reaches the same guarded callback and the same confirmation the button did.
+// gone and reaches the same guarded callback and the same confirmation the button did. A draft ALSO draws "Izmeni nacrt" and "Obriši nacrt" as
+// visible rows (owner, 2026-10-07), so the row of the menu is the one that has the menu item's role.
 const fromMenu = async (label: string) => {
   await act(async () => { press('Više radnji').props.onPress(); });
-  await act(async () => { press(label).props.onPress(); });
+  await act(async () => { tree.root.findByProps({ accessibilityLabel: label, accessibilityRole: 'menuitem' }).props.onPress(); });
 };
 // The confirmations were Alert.alert and are an in-app ConfirmSheet now. `confirmation()` is its confirm button, pressed
 // the way a person presses it; `retainedAnswer()` is the screen's own answer as the sheet holds it (the closure the Alert
@@ -89,6 +96,7 @@ beforeEach(() => {
   mockSession = { user: { id: ACCOUNT }, accountRevision: 1 };
   mockNeed.mockResolvedValue(need()); mockSearch.mockResolvedValue({ closed: false, closedAt: null });
   mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true })); mockClose.mockResolvedValue(ok(null));
+  mockQuestions = { state: { phase: 'idle' }, retry: () => undefined };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
@@ -206,7 +214,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     expect(sheets()).toHaveLength(0); expect(mockNeed).toHaveBeenCalledTimes(2);
   });
   it.each([
-    ['NO_REMAINING_SEARCH', 'Sva mesta su već popunjena. Učitaj aktuelno stanje Zadatka.'],
+    ['NO_REMAINING_SEARCH', 'Sva mesta su već popunjena. Učitaj aktuelno stanje zadatka.'],
     ['STALE_REVIEW_REQUIRED', 'Zadatak je izmenjen. Pregledaj važeće uslove.'],
     ['ACCOUNT_CLOSING', 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.'],
   ])('shows the answered remaining-search refusal on the real screen: %s', async (kod, poruka) => {
@@ -237,7 +245,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
   it.each(['edit', 'remaining search'] as const)('retires retained published %s confirmation on blur', async action => {
     mockNeed.mockResolvedValue(action === 'edit' ? need(7, 'OBJAVLJENA')
       : { ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await fromMenu(action === 'edit' ? 'Izmeni Zadatak' : 'Ne traži više nikoga');
+    await render(); await fromMenu(action === 'edit' ? 'Izmeni zadatak' : 'Ne traži više nikoga');
     // Opening the edit can be walked back; closing the search cannot.
     expect(sheet().props.tone).toBe(action === 'edit' ? 'default' : 'danger');
     const retained = retainedAnswer(); mockFocused = false; await update(); expect(sheets()).toHaveLength(0);
@@ -281,8 +289,9 @@ describe('V2 saved Need presentation', () => {
     expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom']);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ label: 'Pregledaj prijave' })).toHaveLength(0);
-    expect(texts()).not.toContain('HITNO'); expect(texts()).toContain('Pitanja i odgovori');
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Otvori pitanja i odgovore')).not.toHaveLength(0);
+    expect(texts()).not.toContain('HITNO');
+    // A draft is private and nobody can have asked about it: no questions section, and nothing is read for it.
+    expect(texts()).not.toContain('Pitanja i odgovori'); expect(mockQuestionsFor).toHaveBeenLastCalledWith(null, 7);
   });
   it('does not display a raw transport secret attached outside the public projection', async () => {
     mockNeed.mockResolvedValue({ ...need(), need_sensitive: { exact_address: 'SECRET address', exact_lat: 45.123456 }, resolved_location: 'SECRET pin' });
@@ -294,22 +303,73 @@ describe('V2 saved Need presentation', () => {
   it('provides the real candidates route after publication and no duplicate publication action', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'OBJAVLJENA'), brojPrijava: 3 }); await render();
     expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
-    // The read carries no selectable count here, so the footer counts the total and says that it is the total.
-    expect(button('Pregledaj prijave').props.count).toBe(3);
-    expect(texts()).toContain('Pregledaj prijave · 3');
+    // The read carries no selectable count here, so the page counts the total and says that it is the total: "Pogledaj", never
+    // "Uporedi", and no number is drawn on the button.
+    expect(texts()).toContain('Imaš 3 prijave. Pogledaj ih.');
+    expect(button('Pogledaj prijave').props.count).toBeUndefined();
     expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType
-      && node.props.accessibilityLabel === 'Pregledaj prijave, ukupno 3 prijave')).toHaveLength(1);
-    await tap('Pregledaj prijave');
+      && node.props.accessibilityLabel === 'Pogledaj prijave, ukupno 3 prijave')).toHaveLength(1);
+    await tap('Pogledaj prijave');
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: NEED } });
   });
+  // Owner, 2026-10-07: "u pregledu zadatka treba da se vidi pitanja koja je neko postavio, a na koja je odgovorio vlasnik zadatka".
+  // The questions were a link at the end of the overview; they are drawn on it now, and the whole thread (answering, the rest) is
+  // still the screen it always was, opened by the same route with the same identity.
+  const question = (n: number, patch: Record<string, unknown> = {}) => ({ questionId: `00000000-0000-4000-8000-00000000000${n}`, needRevision: 7,
+    questionText: `Pitanje ${n}?`, status: 'PENDING_ANSWER', createdAt: '2026-10-04T08:00:00Z', answerVersion: null, answerText: null, edited: false, ...patch });
+  const ownerSees = (rows: unknown[]) => ({ retry: jest.fn(), state: { phase: 'ready',
+    ...buildQaInline({ mode: 'OWNER', needRevision: 7, canAsk: false, canComposeAnswer: true }, rows as never[]) } });
+  const pressHost = (accessibilityLabel: string) => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === accessibilityLabel);
+  it('reads the questions of a published task on the overview, for this task and this version, and none for a draft', async () => {
+    mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA'));
+    mockQuestions = ownerSees([question(1, { status: 'ANSWERED_PUBLIC', answerVersion: 1, answerText: 'Nema lifta.' }), question(2)]);
+    await render();
+    expect(mockQuestionsFor).toHaveBeenLastCalledWith(NEED, 7);
+    const all = texts();
+    expect(all).toContain('Pitanja i odgovori'); expect(all).toContain('2 pitanja · 1 odgovoreno');
+    expect(all).toContain('Pitanje 2?'); expect(all).toContain('Čeka odgovor'); expect(all).toContain('Tvoj odgovor'); expect(all).toContain('Nema lifta.');
+    // The waiting question comes first, and the section sits with the work, before the place.
+    expect(all.indexOf('Pitanje 2?')).toBeLessThan(all.indexOf('Pitanje 1?'));
+    expect(all.indexOf('Opis')).toBeLessThan(all.indexOf('Pitanja i odgovori'));
+  });
+  it('answering a waiting question opens the whole thread of this task once, with whose task it is', async () => {
+    mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA')); mockQuestions = ownerSees([question(1)]);
+    await render();
+    const answer = pressHost('Odgovori na pitanje: Pitanje 1?')[0].props.onPress;
+    await act(async () => { answer(); answer(); });
+    expect(mockRouter.push.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1' } }]]);
+    expect(mockPublish).not.toHaveBeenCalled();
+  });
   it('opens Task-scoped questions with the loaded identity and rejects a callback after blur', async () => {
-    await render(); const retained = press('Otvori pitanja i odgovore').props.onPress;
+    mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA')); mockQuestions = ownerSees([1, 2, 3, 4].map(n => question(n)));
+    await render(); const retained = press('Prikaži sva pitanja (4)').props.onPress;
     mockFocused = false; await update(); mockFocused = true; await update();
     await act(async () => retained()); expect(mockRouter.push).not.toHaveBeenCalled();
-    await act(async () => press('Otvori pitanja i odgovore').props.onPress());
+    await act(async () => press('Prikaži sva pitanja (4)').props.onPress());
     // The link says these are the questions of my own task, so the way back needs no app mode.
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1' } });
     expect(mockPublish).not.toHaveBeenCalled();
+  });
+  it('a questions read that failed is said on the section and reads again on request; the overview itself still works', async () => {
+    const retry = jest.fn();
+    mockNeed.mockResolvedValue(need(7, 'OBJAVLJENA')); mockQuestions = { retry, state: { phase: 'error', message: 'Pitanja trenutno nisu učitana.' } };
+    await render();
+    expect(texts()).toContain('Pitanja trenutno nisu učitana.'); expect(texts()).not.toContain('Još nema pitanja');
+    await tap('Učitaj pitanja ponovo');
+    expect(retry).toHaveBeenCalledTimes(1); expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockNeed).toHaveBeenCalledTimes(1);
+  });
+  it('while an action runs on the overview the section cannot open the thread, and can again once it has settled', async () => {
+    mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
+    mockQuestions = ownerSees([1, 2, 3, 4].map(n => question(n)));
+    const closing = deferred(); mockClose.mockReturnValueOnce(closing.promise);
+    await render();
+    expect(pressHost('Prikaži sva pitanja (4)')[0].props.disabled).toBe(false);
+    await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true }); await confirm();
+    expect(pressHost('Prikaži sva pitanja (4)')[0].props.disabled).toBe(true);
+    const kept = pressHost('Prikaži sva pitanja (4)')[0].props.onPress;
+    await act(async () => kept()); expect(mockRouter.push).not.toHaveBeenCalled();
+    await act(async () => closing.resolve(ok(null)));
+    expect(pressHost('Prikaži sva pitanja (4)')[0].props.disabled).toBe(false);
   });
   // Opened from a notification on a cold start, the arrow used to call back() into an empty stack and do nothing.
   it('the arrow with no screen behind it lands on the owner\'s tasks; with one, it goes back', async () => {

@@ -3,7 +3,7 @@ import type { NeedLocationInput } from '../../../contracts/location';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../../contracts/needFactsV2';
 import { factReviewValue } from '../../../data/aiNeedV2Ui';
 import { REVIEW_FACT_COPY } from '../../../data/reviewFactProblem';
-import { privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos } from '../reviewFacts';
+import { ownerPlaceLines, privateReviewMap, publicAnchorPoint, publicPlaceLines, reviewRowValue, reviewTodos, todoActionLabel } from '../reviewFacts';
 
 const fact = (key: NeedFactV2Key, value: unknown): AiNeedV2Fact => ({ id: key, key, value, displayValue: String(value),
   valueType: NEED_FACT_V2_DEFINITIONS[key].valueType, privacyClass: NEED_FACT_V2_DEFINITIONS[key].privacyClass,
@@ -77,7 +77,7 @@ describe('reviewTodos', () => {
   const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {} };
   it('never names the category', () => {
     expect(reviewTodos({ ...base, missingRequired: ['need.category'] }, null)).toEqual([
-      { key: 'missing', text: 'Treba još malo o samom poslu.', target: 'conversation' }]);
+      { key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' }]);
     const both = reviewTodos({ ...base, missingRequired: ['need.category', 'need.title'] }, null);
     expect(both[0].text).toBe('Nedostaje: Naslov.'); expect(both[0].text).not.toMatch(/ategorij/);
   });
@@ -90,5 +90,95 @@ describe('reviewTodos', () => {
   it('gives a refusal no row names its own row back to the conversation, unless the identity block explains it', () => {
     expect(reviewTodos({ ...base, canAccept: false }, null)).toEqual([{ key: 'other', text: 'Zadatku je potrebna dopuna u razgovoru.', target: 'conversation' }]);
     expect(reviewTodos({ ...base, canAccept: false }, null, true)).toEqual([]);
+  });
+});
+
+/**
+ * The place, said twice (owner, 2026-10-07: he moved the pin and the published task still named the street of the first text). The PRIVATE half
+ * reads the confirmed points (`ownerPlaceLines`); the PUBLIC half reads the stored words of the topology, which are what a stranger will read
+ * (`publicPlaceLines`), and never a point's address or a house number.
+ */
+describe('the place in the review', () => {
+  const ADDRESS = '6, Pavla Ivića, Jugovićevo, MZ Jugovićevo, Novi Sad, Grad Novi Sad, Južnobački upravni okrug, Vojvodina, 21137, Srbija';
+  const END_ADDRESS = '12, Dositejeva, Stari grad, Novi Sad, Grad Novi Sad, Južnobački upravni okrug, Vojvodina, 21101, Srbija';
+  const stationary: NeedLocationInput['geography'] = { mode: 'STATIONARY', start: { city: 'Novi Sad', label: 'Lenke Dunđerski' } };
+  const route: NeedLocationInput['geography'] = { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad', label: 'Lenke Dunđerski' }, end: { city: 'Novi Sad', label: 'Dositejeva' } };
+  const START = { slot: 'start', latitudeE6: 45261418, longitudeE6: 19800509, origin: { kind: 'MANUAL_PIN' }, address: ADDRESS };
+  const END = { slot: 'end', latitudeE6: 45251000, longitudeE6: 19845000, origin: { kind: 'PROVIDER_CANDIDATE', providerHint: 'locationiq', candidateHint: null }, address: END_ADDRESS };
+  const at = (geography: NeedLocationInput['geography'], points: unknown[], exactAddress: string | null = null): NeedLocationInput =>
+    ({ taskCountryCode: 'RS', geography, exactAddress, accessNotes: null,
+      resolvedLocation: points.length ? { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress }, points } : null } as NeedLocationInput);
+
+  describe('ownerPlaceLines', () => {
+    it('reads one place from its confirmed point, never from the first text’s words', () => {
+      expect(ownerPlaceLines(at(stationary, [START], ADDRESS))).toEqual([{ slot: 'start', title: 'Mesto', text: 'Pavla Ivića 6, Novi Sad' }]);
+    });
+    it('reads a route’s points in route order, each under its role, whatever order they were confirmed in', () => {
+      expect(ownerPlaceLines(at(route, [END, START]))).toEqual([
+        { slot: 'start', title: 'Polazište', text: 'Pavla Ivića 6, Novi Sad' },
+        { slot: 'end', title: 'Odredište', text: 'Dositejeva 12, Novi Sad' }]);
+    });
+    it('has no line for a place that is not confirmed yet, and none without a confirmed point at all', () => {
+      expect(ownerPlaceLines(at(route, [START])).map(line => line.slot)).toEqual(['start']);
+      expect(ownerPlaceLines(at(stationary, []))).toEqual([]);
+      expect(ownerPlaceLines(null)).toEqual([]); expect(ownerPlaceLines(undefined)).toEqual([]);
+    });
+    it('says "Tačka na mapi" for a hand-placed pin with no address, and nothing for remote work or a value that does not bind', () => {
+      expect(ownerPlaceLines(at(stationary, [{ ...START, address: undefined }]))).toEqual([{ slot: 'start', title: 'Mesto', text: 'Tačka na mapi' }]);
+      expect(ownerPlaceLines({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null })).toEqual([]);
+      const unbound = at(stationary, [START]); (unbound.resolvedLocation as { binding: { geography: unknown } }).binding.geography = { mode: 'STATIONARY', start: { city: 'Beograd' } };
+      expect(ownerPlaceLines(unbound)).toEqual([]);
+    });
+  });
+
+  describe('publicPlaceLines', () => {
+    it('names a route’s stops as they are stored, which is what a stranger will read', () => {
+      expect(publicPlaceLines(route, 'Novi Sad')).toEqual(['Polazište: Lenke Dunđerski · Novi Sad', 'Odredište: Dositejeva · Novi Sad']);
+    });
+    it('names one place only when its words say something the area line does not, as the published detail does', () => {
+      expect(publicPlaceLines(stationary, 'Novi Sad')).toEqual(['Mesto: Lenke Dunđerski · Novi Sad']);
+      expect(publicPlaceLines({ mode: 'STATIONARY', start: { city: 'Novi Sad' } }, 'Novi Sad')).toEqual([]);
+      expect(publicPlaceLines({ mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Liman 2' } }, 'Novi Sad · Liman 2')).toEqual([]);
+      expect(publicPlaceLines({ mode: 'STATIONARY', start: { city: 'Novi Sad' } }, null)).toEqual(['Mesto: Novi Sad']);
+    });
+    it('names both places of an area task, which is what the detail does when there are two', () => {
+      expect(publicPlaceLines({ mode: 'AREA_BASED', start: { city: 'Novi Sad' }, serviceArea: { city: 'Novi Sad' } }, 'Novi Sad'))
+        .toEqual(['Polazište: Novi Sad', 'Područje: Novi Sad']);
+    });
+    it('says nothing for remote work, an unknown value or no value', () => {
+      expect(publicPlaceLines({ mode: 'REMOTE' }, 'Na daljinu')).toEqual([]);
+      expect(publicPlaceLines({ mode: 'NOWHERE' }, 'Novi Sad')).toEqual([]);
+      expect(publicPlaceLines(undefined, 'Novi Sad')).toEqual([]); expect(publicPlaceLines(null, null)).toEqual([]);
+    });
+    it('can only ever say the topology’s words: a house number or the street of a point is not in what it is given', () => {
+      for (const geography of [stationary, route]) expect(publicPlaceLines(geography, 'Novi Sad').join(' ')).not.toMatch(/Pavla|\b6\b|\b12\b/);
+    });
+  });
+});
+
+/** The word of the way out of a "Još treba" row (owner's phone, 2026-10-07: a sentence with a faint arrow beside a grey publish was not read as a button). */
+describe('todoActionLabel', () => {
+  const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {} };
+  it('names the fix of each row: the time, the amount, the place, or the conversation', () => {
+    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED, target: 'need.starts_at' })).toBe('Izmeni termin');
+    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED, target: 'need.ends_at' })).toBe('Izmeni termin');
+    expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED, target: 'need.price_rsd' })).toBe('Unesi iznos');
+    expect(todoActionLabel({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' })).toBe('Dodaj mesto');
+    expect(todoActionLabel({ key: 'safety', text: 'x', target: 'conversation' })).toBe('Izmeni u razgovoru');
+    expect(todoActionLabel({ key: 'missing', text: 'x', target: 'conversation' })).toBe('Dopuni u razgovoru');
+    expect(todoActionLabel({ key: 'other', text: 'x', target: 'conversation' })).toBe('Dopuni u razgovoru');
+    expect(todoActionLabel({ key: 'fact', text: 'x', target: 'need.people_needed' })).toBe('Izmeni');
+  });
+  it('says the conversation for a row whose fact this screen has no row to edit, and nothing for a row with no way out', () => {
+    expect(todoActionLabel({ key: 'fact', text: 'x', target: 'need.starts_at' }, true)).toBe('Dopuni u razgovoru');
+    expect(todoActionLabel({ key: 'fact', text: 'x', target: null })).toBeUndefined();
+  });
+  it('gives every row the server can produce a word', () => {
+    const rows = [
+      ...reviewTodos({ ...base, safety: 'BLOCK', missingRequired: ['need.title'], location: null }, REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED),
+      ...reviewTodos({ ...base, canAccept: false }, null),
+    ];
+    expect(rows.length).toBeGreaterThan(3);
+    for (const todo of rows) expect(todoActionLabel(todo)).toEqual(expect.any(String));
   });
 });

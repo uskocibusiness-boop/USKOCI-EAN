@@ -12,6 +12,7 @@ import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } f
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
+import { missingPeople } from '../../../../ui/v2/ownTaskOverview';
 import { UrgentActivationActions, useUrgentActivationActions } from '../../../../ui/v2/UrgentActivationActions';
 import { LocationMapPreview } from '../../../../ui/location/LocationMapPreview';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
@@ -20,7 +21,8 @@ import { NeedSearchRecoveryController, initialSearchRecoveryView } from '../../.
 import { NeedSearchRecoverySection } from '../../../../ui/needs/NeedSearchRecoverySection';
 import { needSearchRecoveryCopy, type SearchRecoveryAction } from '../../../../ui/needs/needSearchRecoveryCopy';
 import type { SheetAction } from '../../../../ui/system/ActionSheet';
-import { TaskQaEntry } from '../../../../ui/qa/TaskQaEntry';
+import { TaskQaInline } from '../../../../ui/qa/TaskQaInline';
+import { useTaskQaInline } from '../../../../ui/qa/useTaskQaInline';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { plural } from '../../../../ui/system/plural';
 import { useConfirmSheet } from '../../../../ui/system/ConfirmSheet';
@@ -28,7 +30,7 @@ import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 
 type Snapshot = { need: PotrebaProjekcija; remainingClosed: boolean };
-const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori Zadatak i pregledaj trenutno stanje.');
+const changed = () => failure('REVIEW_CHANGED', 'Ponovo otvori zadatak i pregledaj trenutno stanje.');
 
 export default function PregledPotrebe() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
@@ -90,7 +92,7 @@ function OwnedNeed({ id }: { id: string }) {
       }
       const search = await ru4Production.remainingSearchState(id);
       if (!current()) return changed();
-      if (!search || typeof search.closed !== 'boolean') return failure('NEED_INVALID_RESPONSE', 'Pregled Zadatka nije potvrđen.');
+      if (!search || typeof search.closed !== 'boolean') return failure('NEED_INVALID_RESPONSE', 'Pregled zadatka nije potvrđen.');
       return { ok: true, podatak: { need, remainingClosed: search.closed } };
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -107,9 +109,17 @@ function OwnedNeed({ id }: { id: string }) {
   }, [id, identity, izvor, accountId, accountRevision, lifecycle]);
   const editor = useOwnedEditor(read);
   const potreba = editor.data?.need ?? null;
+  // What people asked about this task and what the owner answered is read here and drawn in the overview. It is read where
+  // the task is read, so that it survives the task reading again; a failed read stays on its own section. A draft is
+  // private and nobody can have asked about it, so it reads nothing.
+  const publicNeedId = potreba && potreba.stanje !== 'NACRT' ? potreba.id : null;
+  const questions = useTaskQaInline(publicNeedId, potreba?.revizija ?? null);
   // A draft is told why it cannot be published, by the gate that decides it rather than by a
   // guess. Read-only: it reports, and the server decides again when publishing is attempted.
   const [readiness, setReadiness] = useState<NeedPublicationReadiness | null>(null);
+  // "Osveži zadatak" asks the gate again: a draft held back for something that only waits (photos still being processed) is
+  // told to read again, and the same revision of the same task would otherwise never ask a second time.
+  const [readinessRun, setReadinessRun] = useState(0);
   const preostalaPotragaZatvorena = editor.data?.remainingClosed ?? false;
   const recoveryBusy = recoveryView.phase === 'SENDING' || (recoveryView.phase === 'LOADING' && !!recoveryView.command);
   const ucitava = editor.loading, greska = editor.error, akcijaUToku = editor.busy || editor.uncertain || recoveryBusy;
@@ -151,8 +161,10 @@ function OwnedNeed({ id }: { id: string }) {
     };
   }, [id, identity, accountId, accountRevision]);
 
+  // What the gate said belongs to one revision of one task: another one forgets it. A plain read again (below) keeps it until the
+  // new answer comes, so the page never shows the green review action for a moment in the middle of a wait.
+  useEffect(() => { setReadiness(null); }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity]);
   useEffect(() => {
-    setReadiness(null);
     // Gated on the app's mode, this once never ran for an owner standing in the other mode, so his own draft answered
     // with the old promise "Sledeće: pregled i objava jednim korakom" - for a draft the publish gate
     // would have refused. Ownership is the server's business and it checks it.
@@ -166,7 +178,7 @@ function OwnedNeed({ id }: { id: string }) {
       setReadiness(result.ok ? result.podatak : { kind: 'UNKNOWN' });
     }, () => {});
     return () => { alive = false; };
-  }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity, lifecycle]);
+  }, [potreba?.id, potreba?.revizija, potreba?.stanje, identity, lifecycle, readinessRun]);
   // This screen shows a Zadatak returned by the owner-only read, so whoever sees it owns it; the
   // server checks that again on every command. No app-wide mode stands in for that any more.
   const canAct = () => current() && !terminalActiveRef.current && !urgentActiveRef.current && !navigating.current
@@ -174,7 +186,7 @@ function OwnedNeed({ id }: { id: string }) {
   const navigate = (action: () => void) => { if (!current() || navigating.current) return;
     dialog.current = null; retireConfirmation(); navigating.current = true; action(); };
   const refresh = () => { if (!current() || editor.busy) return; dialog.current = null; retireConfirmation();
-    void editor.refresh(); void recoveryController.current?.check(); };
+    setReadinessRun(value => value + 1); void editor.refresh(); void recoveryController.current?.check(); };
   const urgent = useUrgentActivationActions({
     needId: id, need: potreba, disabled: akcijaUToku || ucitava || !!greska || terminalActive,
     onActiveChange: setUrgent, onRefresh: refresh,
@@ -194,7 +206,7 @@ function OwnedNeed({ id }: { id: string }) {
   const zatvoriPreostaluPotragu = () => {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
     // "za preostalih 1 mesta" counted the English way; the case follows the number.
-    ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i originalni uslovi Zadatka ostaju nepromenjeni.`,
+    ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i originalni uslovi zadatka ostaju nepromenjeni.`,
       'Zatvori potragu', 'danger', async () => { await editor.save(async () => {
         const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
         closeAttempt.current = attempt;
@@ -220,7 +232,7 @@ function OwnedNeed({ id }: { id: string }) {
       if (!result.ok) return result;
       if (!sameId(result.podatak.needId, potreba.id) || !uuid(result.podatak.conversationId) || !positiveInteger(result.podatak.revision)
         || result.podatak.authoritative !== true || !['DRAFT', 'PUBLISHED', 'SELECTION'].includes(result.podatak.needStatus)) {
-        return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitaj Zadatak ponovo.');
+        return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitaj zadatak ponovo.');
       }
       if (result.podatak.revision !== potreba.revizija || (potreba.stanje === 'NACRT' && result.podatak.needStatus !== 'DRAFT')) {
         return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitaj trenutno stanje pre otvaranja izmene.');
@@ -232,7 +244,7 @@ function OwnedNeed({ id }: { id: string }) {
   const otvoriIzmenu = () => {
     if (!canAct() || !potreba) return;
     if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
-    ask('Izmena Zadatka', 'Izmene pregledaš pre objave. Prihvatanje nove verzije ponovo pokreće proveru za objavu i postojeće Prijave tada moraju da se osveže.',
+    ask('Izmena zadatka', 'Izmene pregledaš pre objave. Prihvatanje izmena ponovo pokreće proveru za objavu i postojeće prijave tada moraju da se osveže.',
       'Nastavi', 'default', async () => openOwnedReview('/nova'));
   };
   const effectiveRecoveryView = recoveryView;
@@ -267,8 +279,8 @@ function OwnedNeed({ id }: { id: string }) {
     if (!command) return;
     const missing = controller.snapshot().snapshot?.missingSlots ?? potreba?.pokrivenost.preostalo ?? 0;
     ask('Ponovo traži ljude?', missing === 1
-      ? 'Nedostaje još jedna osoba. Ponovo ćemo otvoriti potragu za tim mestom; postojeći Dogovori ostaju nepromenjeni.'
-      : 'Nedostaje još ' + missing + ' ljudi. Ponovo ćemo otvoriti potragu samo za tim mestima; postojeći Dogovori ostaju nepromenjeni.',
+      ? `${missingPeople(missing)} Ponovo ćemo otvoriti potragu za tim mestom; postojeći Dogovori ostaju nepromenjeni.`
+      : `${missingPeople(missing)} Ponovo ćemo otvoriti potragu samo za tim mestima; postojeći Dogovori ostaju nepromenjeni.`,
       'Nastavi potragu', 'default', async () => {
         await controller.submit(command);
         if (current()) await editor.refresh();
@@ -279,17 +291,25 @@ function OwnedNeed({ id }: { id: string }) {
   // passes this screen's fence and then the lifecycle's own guards, and the lifecycle asks, sends, persists and recovers
   // exactly as it did inline.
   const entries = needLifecycleEntries(potreba);
+  // One way into deleting a draft, shared by the "···" row and the visible row of the draft's own screen (owner, 2026-10-07).
+  const deleteDraft = entries.deleteDraft ? () => { if (canAct()) lifecycleMenu.current?.request('DELETE_DRAFT'); } : undefined;
   const lifecycleMenuActions: SheetAction[] = [
     ...(urgent.entry ? [urgent.entry] : []),
     // A task with agreed places cannot be cancelled as a whole, and the menu says why where it is seen, not only to a
     // screen reader: the line under the row replaces the inline sentence the lifecycle used to draw.
     ...(entries.agreements ? [{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements' as const, subtitle: 'Postojeći Dogovori se otkazuju zasebno.',
       onPress: () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } }] : []),
-    ...(entries.deleteDraft ? [{ key: 'delete-draft', label: 'Obriši nacrt', icon: 'document' as const, destructive: true,
-      onPress: () => { if (canAct()) lifecycleMenu.current?.request('DELETE_DRAFT'); } }] : []),
+    ...(deleteDraft ? [{ key: 'delete-draft', label: 'Obriši nacrt', icon: 'document' as const, destructive: true, onPress: deleteDraft }] : []),
     ...(entries.cancel ? [{ key: 'cancel', label: 'Otkaži zadatak', icon: 'tasks' as const, destructive: true,
       onPress: () => { if (canAct()) lifecycleMenu.current?.request('CANCEL'); } }] : []),
   ];
+
+  // Answering and the whole thread of questions are one screen with its own journal and recovery; the section opens it by the
+  // same route the link it replaced used, through this screen's own fence like every other way out of it. `own` says whose
+  // task this is, so that the arrow with nothing behind it comes back here.
+  const openQuestions = () => {
+    if (potreba && canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } }));
+  };
 
   return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
     photos={potreba ? <NeedPhotos needId={potreba.id} owned /> : undefined}
@@ -297,8 +317,8 @@ function OwnedNeed({ id }: { id: string }) {
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }]} coarse height={184}
         scopeKey={`potreba:${potreba.id}:${potreba.revizija}:${potreba.priblizno.lat}:${potreba.priblizno.lng}`} />
       : undefined}
-    qaAction={potreba ? <TaskQaEntry disabled={!canAct()}
-      onPress={() => { if (canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } })); }} /> : undefined}
+    qaAction={potreba && publicNeedId && questions.state.phase !== 'idle' ? <TaskQaInline key={`${accountId}:${accountRevision}:${potreba.id}`} state={questions.state}
+      disabled={!canAct()} onRetry={questions.retry} onAsk={openQuestions} onAnswer={openQuestions} onOpenAll={openQuestions} /> : undefined}
     lifecycleActions={uuid(id) ? <>
       <UrgentActivationActions control={urgent} />
       <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}
@@ -306,7 +326,7 @@ function OwnedNeed({ id }: { id: string }) {
       {recoveryCopy && !routineClosed ? <NeedSearchRecoverySection copy={recoveryCopy}
         disabled={akcijaUToku || terminalActive || urgentActive} onAction={handleRecoveryAction} /> : null}
     </> : undefined}
-    lifecycleMenu={lifecycleMenuActions}
+    lifecycleMenu={lifecycleMenuActions} onDeleteDraft={deleteDraft}
     primaryOverride={recoveryCopy?.primary ? {
       label: recoveryCopy.primary.label,
       disabled: !!recoveryCopy.primary.disabled || !recoveryPrimaryReady || recoveryBusy,
@@ -315,6 +335,10 @@ function OwnedNeed({ id }: { id: string }) {
     } : undefined}
     error={greska} busy={akcijaUToku || terminalActive || urgentActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
+    // What the page may say about the search for the missing places comes only from what this screen already read (the R3 state):
+    // "Dogovor je otkazan" and "Tvoj zadatak opet prima prijave" never from a guess. `speaks` is true while the recovery section is
+    // drawn, and then the section says the search itself.
+    search={{ state: recoveryView.snapshot, speaks: !!recoveryCopy && !routineClosed }}
     onAgreements={entries.agreements ? () => { if (canAct()) lifecycleMenu.current?.openAgreements(); } : undefined}
     // Opened from a notification on a cold start there is nothing behind this screen; the arrow then
     // lands on the person's own tasks instead of doing nothing.
