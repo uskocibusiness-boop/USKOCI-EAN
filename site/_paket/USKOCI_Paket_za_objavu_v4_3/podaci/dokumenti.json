@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "uslovi-koriscenja",
+    "title": "Uslovi korišćenja",
+    "subtitle": "Uloga USKOČI-ja, Dogovor, cena i prava učesnika.",
+    "source": "izvor/javno/01_uslovi-koriscenja.md"
+  },
+  {
+    "slug": "privatnost",
+    "title": "Politika privatnosti",
+    "subtitle": "Podaci, AI, lokacija, rokovi i tvoja prava na jednom mestu.",
+    "source": "izvor/javno/02_privatnost.md"
+  },
+  {
+    "slug": "pravila-zajednice",
+    "title": "Pravila zajednice i bezbednost",
+    "subtitle": "Dozvoljen sadržaj, prijavljivanje, blokiranje i postupanje.",
+    "source": "izvor/javno/03_pravila-zajednice.md"
+  },
+  {
+    "slug": "brisanje-naloga",
+    "title": "Brisanje naloga i podataka",
+    "subtitle": "Zahtev iz aplikacije ili preko sajta, bez ponovne instalacije.",
+    "source": "izvor/javno/04_brisanje-naloga.md"
+  },
+  {
+    "slug": "kako-radi",
+    "title": "Kako USKOČI radi",
+    "subtitle": "Jedna aplikacija, dva izbora i jasan Dogovor.",
+    "source": "izvor/javno/05_kako-radi.md"
+  },
+  {
+    "slug": "podrska-i-reklamacije",
+    "title": "Podrška, reklamacije i žalbe",
+    "subtitle": "Jedan jasan kontakt i različiti postupci za različite probleme.",
+    "source": "izvor/javno/06_podrska-i-reklamacije.md"
+  },
+  {
+    "slug": "operater-i-kontakt",
+    "title": "Ko stoji iza USKOČI-ja",
+    "subtitle": "Odgovorna osoba, javni kontakt i obim usluge.",
+    "source": "izvor/javno/07_operater-i-kontakt.md"
+  }
+]

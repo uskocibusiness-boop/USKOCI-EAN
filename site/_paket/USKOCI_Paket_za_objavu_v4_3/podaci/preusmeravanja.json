@@ -1,0 +1,16 @@
+{
+  "status": "PREDLOG_ZA_UGRADNJU_NIJE_DEPLOYOVANO",
+  "old_to_new": {
+    "/cuvanje-podataka/": "/privatnost/#rokovi",
+    "/ai-lokacija-i-dozvole/": "/privatnost/#ai",
+    "/kolacici/": "/privatnost/#kolacici",
+    "/pruzaoci-obrade/": "/privatnost/#pruzaoci",
+    "/dogovor-i-placanje/": "/uslovi-koriscenja/#dogovor",
+    "/otkazivanje-i-ocene/": "/uslovi-koriscenja/#otkazivanje-i-ocene",
+    "/rangiranje-i-status/": "/uslovi-koriscenja/#rangiranje",
+    "/potrosacka-prava/": "/uslovi-koriscenja/#potrosacka-prava",
+    "/licence/": "/uslovi-koriscenja/#licence",
+    "/cenovnik/": "/uslovi-koriscenja/#cena",
+    "/dostupnost/": "/kako-radi/#dostupnost"
+  }
+}

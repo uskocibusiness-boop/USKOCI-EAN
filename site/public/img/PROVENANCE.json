@@ -1,0 +1,222 @@
+[
+ {
+  "out": "img/robot-task-face.webp",
+  "source": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/outputs/uskoci-visual-assets-v2/robots/task-face-base.png",
+  "sourceSha256": "26345b358b6ee83746d494673073d2f9d7ceaf2f5bfd7fca022e867a016343a0",
+  "size": [
+   720,
+   720
+  ],
+  "bytes": 46404
+ },
+ {
+  "out": "img/robot-worker-face.webp",
+  "source": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/outputs/uskoci-visual-assets-v2/robots/worker-face-base.png",
+  "sourceSha256": "455503d7dcdce95f70246a4e57f3f82685d4c06d436c1548d458bb1c14c94c99",
+  "size": [
+   720,
+   720
+  ],
+  "bytes": 55516
+ },
+ {
+  "out": "img/robot-task.webp",
+  "source": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/outputs/uskoci-visual-assets-v2/robots/task-static.png",
+  "sourceSha256": "b04bec024cc55b9f7c951cbc9de252e2df21f3b35619ad8e09a08d995b861cf5",
+  "size": [
+   720,
+   720
+  ],
+  "bytes": 53116
+ },
+ {
+  "out": "img/robot-worker.webp",
+  "source": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/outputs/uskoci-visual-assets-v2/robots/worker-static.png",
+  "sourceSha256": "59db355ba7a5cc15526366833bc49730831ab45ab436b356e6b86ab550babe31",
+  "size": [
+   720,
+   720
+  ],
+  "bytes": 64374
+ },
+ {
+  "out": "img/logo.webp",
+  "source": "C:/Users/user/Desktop/USKOCI_DESIGN_MASTER/assets/brand/USKOCI_LOGO_RGBA_MASTER.png",
+  "sourceSha256": "43155036211cf82604c2320e19ad0d1fc8a0f9d22ef20b1193d536a8594a5304",
+  "size": [
+   720,
+   248
+  ],
+  "bytes": 39004
+ },
+ {
+  "out": "img/symbol.webp",
+  "source": "C:/Users/user/Desktop/USKOCI_DESIGN_MASTER/assets/brand/USKOCI_SYMBOL_RGBA_MASTER.png",
+  "sourceSha256": "7cf024b221209f6c41e743394f4933b0c7535ec1446860c675b7957359fa17a7",
+  "size": [
+   395,
+   406
+  ],
+  "bytes": 20412
+ },
+ {
+  "out": "img/photo-requester.webp",
+  "source": "assets/brand/entry-v49/requester.webp",
+  "sourceSha256": "0b995b273406eac9ba85b722ceafe506a235783400047c1765a8317c063b5631",
+  "size": [
+   384,
+   576
+  ],
+  "bytes": 36610
+ },
+ {
+  "out": "img/photo-worker.webp",
+  "source": "assets/brand/entry-v49/worker.jpg",
+  "sourceSha256": "c25266122c8c47f96994c6cff05f9e5e5b7428de4a9d78521eb6f4084612d3d3",
+  "size": [
+   675,
+   900
+  ],
+  "bytes": 50456
+ },
+ {
+  "out": "img/ill-task-launch.webp",
+  "source": "assets/illustrations/uskoci-task-launch-v2.png",
+  "sourceSha256": "ebac6aec8979633961ab54ab576876c70beef3dbff2236c8ae77fb53b8a90671",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 22532
+ },
+ {
+  "out": "img/ill-discover.webp",
+  "source": "assets/illustrations/uskoci-discover-v3.png",
+  "sourceSha256": "c9637868157f86d3d33d57be986880f9fd5cf712d972b72df544f5dc489bc015",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 29200
+ },
+ {
+  "out": "img/ill-agreements.webp",
+  "source": "assets/illustrations/uskoci-agreements-v1.png",
+  "sourceSha256": "e8c498a9f3a27dc9dd633933689d3bd3f992972a2d0ebc01d4fe97de583269bf",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 25704
+ },
+ {
+  "out": "img/ill-messages.webp",
+  "source": "assets/illustrations/uskoci-messages-v2.png",
+  "sourceSha256": "b8d367e2111cdcf535fab12874a6942c37f58e446a01a88b872f934feada6d1c",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 17290
+ },
+ {
+  "out": "img/ill-people.webp",
+  "source": "assets/illustrations/uskoci-people-v2.png",
+  "sourceSha256": "358125798b07d5c1e95bb9fd26a41bd20b8df27a7aacb5103da25d6eef42e83c",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 20638
+ },
+ {
+  "out": "img/ill-pin.webp",
+  "source": "assets/illustrations/uskoci-pin-v1.png",
+  "sourceSha256": "fa2152dd2895e491e6fb2adbf32d11cc776465a7689e8a1cea4921ab3e317f25",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 23178
+ },
+ {
+  "out": "img/ill-support.webp",
+  "source": "assets/illustrations/uskoci-support-v1.png",
+  "sourceSha256": "2706368ecfb768a00fb76b6ea0f3e223e7afeb4674a513d9afb6d47c7f53e9db",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 38354
+ },
+ {
+  "out": "img/ill-remote.webp",
+  "source": "assets/illustrations/uskoci-remote-v1.png",
+  "sourceSha256": "d3022b189691dbe9aece4592ae35aaed1ca74f53ffe15e0274efd9586f7f5d32",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 22072
+ },
+ {
+  "out": "img/ill-calendar.webp",
+  "source": "assets/illustrations/uskoci-calendar-v1.png",
+  "sourceSha256": "5d9e5457490fb3edf96a6910ee83c5b2b438e94ff5547b2cd3899afc33c1f87b",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 21496
+ },
+ {
+  "out": "img/ill-document.webp",
+  "source": "assets/illustrations/uskoci-document-v1.png",
+  "sourceSha256": "ffb44b123d5adc4c967b873ba988e6228fccf1face84d550f30b4d93442df92d",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 21192
+ },
+ {
+  "out": "img/ill-tool.webp",
+  "source": "assets/illustrations/uskoci-tool-v1.png",
+  "sourceSha256": "021dc6d5ee1f88089a46d221fb015c87efe7cd49469ff0ad209bf65e3aaf10f8",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 34952
+ },
+ {
+  "out": "img/ill-offers.webp",
+  "source": "assets/illustrations/uskoci-offers-v1.png",
+  "sourceSha256": "96f497bffe6effc7f7359079f761cec96ebfa9597d214cfb00a8822e58729aa6",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 25956
+ },
+ {
+  "out": "img/ill-clock.webp",
+  "source": "assets/illustrations/uskoci-clock-v1.png",
+  "sourceSha256": "2220e8dad4c9a0c745de9d0ef0c136d59475cfba0af24db19910c8cad3124dec",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 19334
+ },
+ {
+  "out": "img/ill-notification-bell.webp",
+  "source": "assets/illustrations/uskoci-notification-bell-v1.png",
+  "sourceSha256": "0432c7365c785922fc69efaaed783f73837522fba78627ce03a7215594417744",
+  "size": [
+   480,
+   480
+  ],
+  "bytes": 22210
+ }
+]

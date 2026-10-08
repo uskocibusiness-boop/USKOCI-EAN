@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+Sitemap: https://uskoci.rs/sitemap.xml

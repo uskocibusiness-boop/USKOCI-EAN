@@ -1,0 +1,47 @@
+[
+  {
+    "slug": "vodic",
+    "title": "Šta je spremno i kako ide objava",
+    "source": "interno/01_vodic.md"
+  },
+  {
+    "slug": "google",
+    "title": "Google Play — materijal za prijavu",
+    "source": "interno/02_google.md"
+  },
+  {
+    "slug": "ugradnja",
+    "title": "Raspored i tekstovi u aplikaciji",
+    "source": "interno/03_ugradnja.md"
+  },
+  {
+    "slug": "predaja",
+    "title": "Predaja postojećoj aplikaciji i izdanju",
+    "source": "interno/05_predaja_i_izdanje.md"
+  },
+  {
+    "slug": "data-safety",
+    "title": "Data safety — konkretna radna mapa",
+    "source": "interno/06_data_safety_radna_mapa.md"
+  },
+  {
+    "slug": "slike",
+    "title": "Slike i opis za prodavnicu",
+    "source": "interno/07_slike_i_opis.md"
+  },
+  {
+    "slug": "slanje",
+    "title": "Odluka o slanju — šta je spremno i šta uneti",
+    "source": "interno/08_odluka_o_slanju.md"
+  },
+  {
+    "slug": "apple",
+    "title": "Apple — razlike koje ne treba preskočiti",
+    "source": "interno/09_apple_razlike.md"
+  },
+  {
+    "slug": "izvori",
+    "title": "Izvori, razlike i preostale potvrde",
+    "source": "interno/04_izvori.md"
+  }
+]

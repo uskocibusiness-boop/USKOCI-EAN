@@ -1,0 +1,253 @@
+{
+  "package": "USKOCI_Paket_za_objavu_v4_3",
+  "revision_date": "2026-10-08",
+  "status": "DOCUMENTATION_CANDIDATE_NOT_PUBLISHED",
+  "source_zip_sha256": "e12dbb2c786accf6bad23075e724f9976f26b223ea124df0488a5a3dc7407507",
+  "note": "Hashes identify local file bytes, not legal approval or deployed server hashes. Manifest excludes itself.",
+  "files": {
+    "IZMENE_v4_3.md": {
+      "bytes": 2033,
+      "sha256": "fb69ef06921c16aa5453d066624201e0e3c290f7d3ba4e20f8a7f1a02a5bfd92"
+    },
+    "PROCITAJ_PRVO.txt": {
+      "bytes": 1235,
+      "sha256": "afea847b82478ac9163bccfefffdce18993e21f2c4f349787af0a8ab3ab22e47"
+    },
+    "USKOCI_Dopuna_podataka_v4_3.html": {
+      "bytes": 19006,
+      "sha256": "2caaeee9bc7e20b4b20efb0f94d09997f0add5e895ed15eac762dc9fe5a61e2f"
+    },
+    "USKOCI_Kratko_uputstvo_v4_3.html": {
+      "bytes": 15468,
+      "sha256": "fb2ed8f4e6f64becc7b40a288527698fab5a93577197920206f6e47ad01f3995"
+    },
+    "USKOCI_Paket_za_objavu_v4_3_pregled.html": {
+      "bytes": 198946,
+      "sha256": "9d0c30bd71723a272e37a53b2ec67e46e02ff6af5cffb07355b8e1876a75efa3"
+    },
+    "alati/proveri_paket.py": {
+      "bytes": 1545,
+      "sha256": "27939f18382848be9dc27d862621ac61f2ffbd525fe4961e1c119104ea1d8445"
+    },
+    "alati/requirements.txt": {
+      "bytes": 55,
+      "sha256": "167675eeaf77cd287aab9f7db322b886ba82a7fb8131e2ff9b8e86a2bcf3b53d"
+    },
+    "alati/sastavi.py": {
+      "bytes": 26227,
+      "sha256": "85b7328885a307b79c6a38552eec19d4909fdd6bd733d1934336c81f418a4ef8"
+    },
+    "alati/test_dokumenti.py": {
+      "bytes": 7137,
+      "sha256": "48f27da52f8e20e81e5f80082130a4c08c64436743e1c61c9de1de41090688a3"
+    },
+    "interno/01_vodic.md": {
+      "bytes": 5039,
+      "sha256": "329011638ee08cb60972b21f24031a922691384108dd77bddabf06abd66b4778"
+    },
+    "interno/02_google.md": {
+      "bytes": 15784,
+      "sha256": "45df7d5f14e1a39fd9b793b17e1b636045d787cb40970f1c42a6bb24f6f31436"
+    },
+    "interno/03_ugradnja.md": {
+      "bytes": 17445,
+      "sha256": "23c93109d63103c9a81176ad14a778db1a906d0346f8febbb3736a8d988ee4a9"
+    },
+    "interno/04_izvori.md": {
+      "bytes": 21913,
+      "sha256": "92948f20a45e0b4e49bb18b7fd5082852a87bae8d34e8a314f4ac1019e7451ee"
+    },
+    "interno/05_predaja_i_izdanje.md": {
+      "bytes": 4418,
+      "sha256": "62c323f492bbcf973ae3573a653214611571da9ef36e99bcd4434bfc636c5729"
+    },
+    "interno/06_data_safety_radna_mapa.md": {
+      "bytes": 4756,
+      "sha256": "95579bd1f382dcb02dc19d6d3da0cb9af55dec4bf683a129e3134b30e479e599"
+    },
+    "interno/07_slike_i_opis.md": {
+      "bytes": 2380,
+      "sha256": "a60a402ce63e05bd6e56074e1b75adbea04906c280d225a843d877857cdacb3c"
+    },
+    "interno/08_odluka_o_slanju.md": {
+      "bytes": 4026,
+      "sha256": "f69c48f5f9bdd4f2402a862cb8f4651ecf5124e1a40b1937a27a4ad82e60c551"
+    },
+    "interno/09_apple_razlike.md": {
+      "bytes": 2621,
+      "sha256": "5a871d74d611db81fe7d65fe87c06e8b1bc004793c4cd4715c65fe7dd9107259"
+    },
+    "interno/PLAY_OPIS_ZA_KOPIRANJE.txt": {
+      "bytes": 1577,
+      "sha256": "9ff8dc6d22552e5628159c8d2f01535ee4368293aa8e947b132231845fd57e92"
+    },
+    "interno/PLAY_REVIEW_EN.txt": {
+      "bytes": 3380,
+      "sha256": "be7f0935216b39de289b606b25b90d44d951ef53ca4fc630f6475420a30c23ef"
+    },
+    "interno/ROKOVI_NASLEDJENI_NEOBJAVLJIVATI.md": {
+      "bytes": 3090,
+      "sha256": "570fee9f6fa938b88537f43f56db87b556937a5910200251dd7d1249efc59600"
+    },
+    "istorija/IZMENE_v4_1.md": {
+      "bytes": 2617,
+      "sha256": "1177c1a254e293fb96ea6e109d49f95bfa85e0a4022244d7a04e33883a4dae86"
+    },
+    "istorija/IZMENE_v4_2.md": {
+      "bytes": 1486,
+      "sha256": "49a8a36658d0ff6e389f38b528146ebdde4c107cf7e481ae43500c074f4ae917"
+    },
+    "izvor/javno/01_uslovi-koriscenja.md": {
+      "bytes": 17887,
+      "sha256": "adc970e2ddf23e060a5c2f85d3375ede03057cec2d7d2a7fe1d4134c62de3802"
+    },
+    "izvor/javno/02_privatnost.md": {
+      "bytes": 16678,
+      "sha256": "8b861d932710749694dfa6620ee126dfd3c5e46ba11cbc218e3c829c0fbd8e82"
+    },
+    "izvor/javno/03_pravila-zajednice.md": {
+      "bytes": 7895,
+      "sha256": "f1a3e5ed9329b01cc055852f623d4ca112a8f754c86e195bc6d85433b7c44ed8"
+    },
+    "izvor/javno/04_brisanje-naloga.md": {
+      "bytes": 4763,
+      "sha256": "01a7e0272a84faa591ef44cddbb50220eda5d6c7b836f3e80d2369aa457158a0"
+    },
+    "izvor/javno/05_kako-radi.md": {
+      "bytes": 6100,
+      "sha256": "1bd60e5e089f2dfc17b56a2eb160020f739fa439b78cacae6c934371edf71f07"
+    },
+    "izvor/javno/06_podrska-i-reklamacije.md": {
+      "bytes": 8577,
+      "sha256": "20b2230816393ea0b0d9f9271779060dc1e786498c3167d192afa09e815be123"
+    },
+    "izvor/javno/07_operater-i-kontakt.md": {
+      "bytes": 2714,
+      "sha256": "3211b1f87d824bd02661935f5ad53dd527530c1443f1a861dc02ca6b19f07f96"
+    },
+    "podaci/cinjenice.json": {
+      "bytes": 5820,
+      "sha256": "ab9648705790745b3600e01c8865639a8eacb3b4c08570b81107e119744e2374"
+    },
+    "podaci/dokumenti.json": {
+      "bytes": 1447,
+      "sha256": "12963abb203fa0f6d6ccacf505fa4d9ea9309bdeda6d4019e5f904b58b1db7fe"
+    },
+    "podaci/interno.json": {
+      "bytes": 1152,
+      "sha256": "97e1633a623819e7acacdc64482f72d41a6201e74e75bf16ad32aab5cc8eeda7"
+    },
+    "podaci/izdanje_za_prijavu.json": {
+      "bytes": 800,
+      "sha256": "bc39497deb0790f6bbb56b04542dc0f502515e3b0a52e3677b5dfe71bd0be672"
+    },
+    "podaci/izvorna_osnova.json": {
+      "bytes": 2342,
+      "sha256": "a51acef31eb0a981bd3a65fffe90e67c67eeafde6433c8744b0e8b01d212d846"
+    },
+    "podaci/oznake.json": {
+      "bytes": 1725,
+      "sha256": "20a8cad64b2b5ef594219351adeb1bd88bfccbbd0900240b268ca7edc205f35d"
+    },
+    "podaci/play_opis.json": {
+      "bytes": 1812,
+      "sha256": "eb443a396044158577b994637d1cf082b2a56e69135fea6d0ad825968ff09096"
+    },
+    "podaci/predaja_pravnog_registra.json": {
+      "bytes": 914,
+      "sha256": "f7931b73529a10d373e89cf54cde22daa3deea2a8f7f3f0f8fc5c968374e3f2f"
+    },
+    "podaci/preusmeravanja.json": {
+      "bytes": 669,
+      "sha256": "efe770f1b33c5763171eb816701113bdc056640930ba7363be582e2abc2051c1"
+    },
+    "podaci/rokovi.md": {
+      "bytes": 1600,
+      "sha256": "129087be035330507f7dc9b80dfcef75fdd027ab18b9543b16a0860564538106"
+    },
+    "pregled/sajt/brisanje-naloga/index.html": {
+      "bytes": 15388,
+      "sha256": "de7b24f9c4dd761b808e627bef8e1cdec853172d44730d3335500dac758a2f5b"
+    },
+    "pregled/sajt/index.html": {
+      "bytes": 8923,
+      "sha256": "2564482eac197a1841bce015a8c4bd055cae08027634b8a2b82d0b20e7826084"
+    },
+    "pregled/sajt/kako-radi/index.html": {
+      "bytes": 17296,
+      "sha256": "cd19fd933692b85ff8bad3e93c41accf2d4e176f45ead6e5e41831ce58d03bbc"
+    },
+    "pregled/sajt/operater-i-kontakt/index.html": {
+      "bytes": 13910,
+      "sha256": "b6f5ec572e4dd141818b1012933dbdbf519b046e630acbd6288c85d6e563b72f"
+    },
+    "pregled/sajt/podrska-i-reklamacije/index.html": {
+      "bytes": 20080,
+      "sha256": "64b4a097e372c86b53df190ea0132fbd5cfbdae8473081c4e20c7d08553cae30"
+    },
+    "pregled/sajt/pravila-zajednice/index.html": {
+      "bytes": 18721,
+      "sha256": "1895772783760f10225c0b52c0923cb5d81d5e6b16e2308af1992208d749d314"
+    },
+    "pregled/sajt/pravno/index.html": {
+      "bytes": 10356,
+      "sha256": "cb7cade7f49a28a8c7f558188e651468550005048edf64091b23e218550f576e"
+    },
+    "pregled/sajt/privatnost/index.html": {
+      "bytes": 30314,
+      "sha256": "f84727881e2bd1fc5f35ced6704baec4dd5b2e8903cc7938e08121996698fa9f"
+    },
+    "pregled/sajt/uslovi-koriscenja/index.html": {
+      "bytes": 30347,
+      "sha256": "6473c9aff41c927c8172c9645821541140c28224c2be9f9e41aed345e54d3eb8"
+    },
+    "provera/PROCITAJ_PROVERU.md": {
+      "bytes": 1578,
+      "sha256": "e9be6c2884e8afd0a4cba65fa337eefa1c4b92426310b764a4f701f87d433ead"
+    },
+    "provera/alati_v4_3.json": {
+      "bytes": 321,
+      "sha256": "f9716e941d623f2651697779aa7ca678e05ec94e6597b28babdd86facca5cb1b"
+    },
+    "provera/dopuna_1440.png": {
+      "bytes": 98214,
+      "sha256": "a1ce5899c68979cd9d1ac0d01fe8418c329c358188d7ffa3f0df2925ed9bb94a"
+    },
+    "provera/dopuna_390.png": {
+      "bytes": 70966,
+      "sha256": "e97e898e83b066bab878e95593b11ee9104ed5aa4f7c8c92ccd09ba547a56c63"
+    },
+    "provera/odustanak_1440.png": {
+      "bytes": 248725,
+      "sha256": "03190e287d5359a9287f2a61cd021574e2860783cf545acaeea302e9130aee6e"
+    },
+    "provera/odustanak_390.png": {
+      "bytes": 90773,
+      "sha256": "16cf356ff150daa48dee6f010f14a49761ed0b4c31e53ccaa4ccdbe0c3060597"
+    },
+    "provera/podaci_koji_nedostaju.txt": {
+      "bytes": 999,
+      "sha256": "7f9b8a40e9896d52e98fe9ebfb93ffc20d8449c36c33052aa134326b3c8a4e85"
+    },
+    "provera/pregled_1440.png": {
+      "bytes": 93409,
+      "sha256": "7eb7fa440e7b7e50d54b8d8418da2f950677f1f5b7f36618bef08bd0b6ab9209"
+    },
+    "provera/pregled_390.png": {
+      "bytes": 62734,
+      "sha256": "0fa9fa97e6e4c8afdfdf7658f6dd792726eaa5e07400f0f680b3ce6f078da7a7"
+    },
+    "provera/pregledac_v4_3.json": {
+      "bytes": 4518,
+      "sha256": "cb934bd916c8c9ed4a9a13103a4caaca5bd1ba63dc5d29f3fdd9535e81f0ce21"
+    },
+    "provera/promene_javnih_tekstova.diff": {
+      "bytes": 19386,
+      "sha256": "17c7b4d5d51fa843142a92c2bbc3b8f95606bc6a1d55454f2f5a320bf6439821"
+    },
+    "provera/veze.json": {
+      "bytes": 112,
+      "sha256": "36ce67371fac313606375229242d2e6f9961ff2d95532aa1d2bc8330fa071c1f"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+USKOČI — paket za objavu v4.3, 8. oktobar 2026.
+
+Ovo je nastavak v4.2, ne nova aplikacija i ne objavljeno javno izdanje.
+1. Otvori USKOCI_Paket_za_objavu_v4_3_pregled.html za sve tekstove.
+2. Otvori USKOCI_Dopuna_podataka_v4_3.html za lokalnu dopunu; sačuvaj cinjenice.json.
+3. Javni tekstovi: izvor/javno/. Interni materijal za prijavu: interno/.
+4. Potvrđeni rokovi su polje retention_schedule; stare brojke su očuvane interno i nisu automatska javna politika.
+
+Ne stavljaj ceo ZIP na sajt. U njega se ne unose lozinke, ID skenovi, JMBG ili privatni nalozi recenzenta. Nema potvrđene javne adrese ili kontakta dok ih vlasnik ne odobri.
+
+Sastavljanje lokalnog pregleda:
+  python -m pip install -r alati/requirements.txt
+  python alati/sastavi.py
+  python alati/proveri_paket.py
+  python alati/test_dokumenti.py
+
+Pregled preostalih dopuna:
+  python alati/sastavi.py --proveri-podatke
+
+Samo nakon stvarnih dopuna i odobrenja:
+  python alati/sastavi.py --javno
+
+Izvoz su statične stranice, ne brisanje naloga ili objava na internetu. Početna stranica postojećeg sajta ostaje netaknuta. Stari paket ostaje arhiva. Datoteke u provera/ odnose se samo na ovu lokalnu proveru, ne na telefon, pravno mišljenje ili Google odobrenje.

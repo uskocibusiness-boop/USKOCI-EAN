@@ -1,0 +1,26 @@
+{
+  "documentation_version": "4.3",
+  "revision_date": "2026-10-08",
+  "status": "DRAFT_NOT_SUBMITTED",
+  "android": {
+    "package_name": null,
+    "version_code": null,
+    "version_name": null,
+    "aab_sha256": null,
+    "production_access_confirmed": false,
+    "data_safety_submission_date": null,
+    "privacy_url_live_confirmed": false,
+    "deletion_url_live_confirmed": false,
+    "review_access_confirmed": false
+  },
+  "ios": {
+    "planned_later": true,
+    "build_identity": null,
+    "submission_created": false
+  },
+  "notes": [
+    "Record verified release identity only. Historic config is not the final AAB.",
+    "Do not put test passwords, OTPs, private data or developer tokens in this file.",
+    "This record is not an automatically submitted Play Console declaration."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "title": "USKOČI — pomoć oko zadataka",
+  "short_description": "Pronađi ili ponudi pomoć za konkretne zadatke. Dogovorite se jasno.",
+  "full_description": "USKOČI povezuje punoletne ljude kojima treba konkretna pomoć sa onima koji mogu da je ponude.\n\nJedan nalog, dva izbora:\nMENI TREBA — opiši šta treba uraditi, gde, kada i pod kojim uslovima.\nJA MOGU — pregledaj zadatke i prijavi se za ono što možeš zakonito i bezbedno da izvršiš.\n\nPregledaj prijave, razjasni detalje i potvrdi Dogovor sa drugom stranom. Pre potvrde proverite obim, termin, mesto, cenu i dodatne troškove. Ti biraš sa kim sarađuješ; platforma ne garantuje angažovanje ili zaradu.\n\nAI asistent može pomoći da opis bude jasniji. Njegov predlog proveravaš pre objave. Mapa pomaže da se odredi mesto zadatka, dok privatnu adresu ne treba unositi u javni opis.\n\nKorišćenje platforme u ovom izdanju je besplatno. Cena zadatka je odvojena i učesnici je zakonito plaćaju direktno. USKOČI ne čuva novac za zadatke i nema korisnički novčanik ili depozitni sistem.\n\nPrvo podržano područje izvršavanja je Srbija. Nisu sve kategorije usluga dozvoljene; regulisane i visokorizične aktivnosti imaju ograničenja. Aplikacija nije hitna služba i nije namenjena oglasima za zapošljavanje ili organizovanju smena.\n\nU aplikaciji su dostupni pravila, prijavljivanje problema, blokiranje korisnika i put za zahtev za brisanje naloga. Za podršku koristi kontakt naveden u aplikaciji i na sajtu.\n\nUSKOČI je namenjen osobama od 18 godina. Pre korišćenja pročitaj uslove, pravila zajednice i politiku privatnosti.",
+  "locale": "sr-Latn",
+  "status": "REDAKCIJA_ZAVRSENA_POTVRDITI_FUNKCIJE_U_IZDANJU",
+  "lengths": {
+    "title": 27,
+    "short_description": 67,
+    "full_description": 1402
+  }
+}

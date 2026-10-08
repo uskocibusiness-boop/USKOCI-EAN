@@ -1,0 +1,29 @@
+{
+  "status": "PREPARATION_ONLY",
+  "package_version": "4.3",
+  "target": "existing_legal_bundle",
+  "documents": [
+    {
+      "kind": "TERMS",
+      "slug": "uslovi-koriscenja",
+      "version": "4.3",
+      "url": null,
+      "server_sha256": null,
+      "effectiveAt": null
+    },
+    {
+      "kind": "PRIVACY",
+      "slug": "privatnost",
+      "version": "4.3",
+      "url": null,
+      "server_sha256": null,
+      "effectiveAt": null
+    }
+  ],
+  "notes": [
+    "Exactly two main records expected by the inspected client. Other public sections remain linked content.",
+    "Local file hashes are NOT auto-approved server hashes. Confirm the server hashing convention and deployed representation.",
+    "Never upload this file into the public website. No publication or acceptance has occurred.",
+    "4.3 is a documentation candidate version, not an app version or a published legal registry entry."
+  ]
+}

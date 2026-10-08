@@ -1,0 +1,6 @@
+preview/
+_paket/*/interno/
+_paket/*/provera/
+_paket/*/istorija/
+_paket/*/pregled/
+_paket/*/*.html

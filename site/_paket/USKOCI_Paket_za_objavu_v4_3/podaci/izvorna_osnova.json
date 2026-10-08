@@ -1,0 +1,59 @@
+{
+  "status": "SOURCE_READ_ONLY_NOT_RUNTIME_VERIFIED",
+  "date": "2026-10-07",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "commit": "2c41ff8c00219d4a0f7f35d8303458690a1a2c45",
+  "files": [
+    {
+      "reference": "R1",
+      "path": "app.config.js",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/app.config.js"
+    },
+    {
+      "reference": "R2",
+      "path": "eas.json",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/eas.json"
+    },
+    {
+      "reference": "R3",
+      "path": "src/data/legalClientService.ts",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/src/data/legalClientService.ts"
+    },
+    {
+      "reference": "R4",
+      "path": "src/features/voice/nativeSpeechAdapter.ts",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/src/features/voice/nativeSpeechAdapter.ts"
+    },
+    {
+      "reference": "R5",
+      "path": "src/data/agreementVoiceClientService.ts",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/src/data/agreementVoiceClientService.ts"
+    },
+    {
+      "reference": "R6",
+      "path": "src/data/processorMapClientService.ts",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/src/data/processorMapClientService.ts"
+    },
+    {
+      "reference": "R7",
+      "path": "src/ui/legal/legalReview.ts",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/2c41ff8c00219d4a0f7f35d8303458690a1a2c45/src/ui/legal/legalReview.ts"
+    }
+  ],
+  "production_config": {
+    "application_id": "rs.uskoci",
+    "eas_profile": "production",
+    "android_build_type": "app-bundle",
+    "ota_channel": "production"
+  },
+  "not_verified": [
+    "built_AAB",
+    "server_legal_bundle",
+    "runtime_processors",
+    "runtime_retention",
+    "actual_Play_submission",
+    "live_website"
+  ],
+  "note": "Source audit subset only. No keys, personal verifier data, deployed modifications or legal approval.",
+  "v4_3_scope_note": "Historical v4.2 source snapshot retained. No GitHub, backend or device re-verification in v4.3."
+}
