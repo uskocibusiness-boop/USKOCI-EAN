@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T20:08:10Z",
+  "osvezeno": "2026-10-08T20:31:02Z",
   "grana": "integration/spoj-20261006",
-  "head": "b7afc95d",
-  "head_poruka": "docs(design): audit current product and propose screen compositions [skip ci]",
+  "head": "e6a9713c",
+  "head_poruka": "fix(docs): isolate screen preview from browser globals [skip ci]",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2028,6 +2028,41 @@
     "change": "Isolate sketch code in a strict IIFE; add loading/noscript copy. Application source unchanged.",
     "evidence": "TEST: before fails with non-configurable window.top; after all 58 screens, initial Home and navigation controls pass in Node VM with inert DOM. Assets and links pass.",
     "limits": "No browser rendering or native/phone acceptance. Owner must refresh the open HTML; existing acceptance lights unchanged."
+   },
+   "revision2": {
+    "source_head": "e6a9713c",
+    "status": "DESIGN PROPOSAL — NOT IMPLEMENTED IN APP",
+    "owner_request": "HALF/FULL navigation, connected personal work, remote/off-map For me and filters, purposeful whole-app composition and onboarding.",
+    "source_findings": [
+     "HALF/FULL nav already implemented; missing HALF was a preview omission",
+     "Remote preserves For me; no new matching backend needed for that control",
+     "Off-map lens may auto-read all pages; bounded paging remains a separate implementation",
+     "Applications presentation changes grouping at hasMore=false; selected application is not a completed job"
+    ],
+    "preview": "docs/implementation/ui-ux-pass-20261002/PREDLOG_EKRANA_20261008.html",
+    "spec": "NACRT_PROIZVODA_20261008.md#revizija2-20261008",
+    "preview_states": 78,
+    "local_example_details": 8,
+    "owner_choices": [
+     "A shared personal workspace versus B connected existing lists; C next-action summary as comparison",
+     "Name if the existing Dogovori tab gains tasks/applications",
+     "Search B versus A",
+     "Optional 3-step welcome plus context help",
+     "Stepwise Android Back through sheet detents"
+    ],
+    "checks": [
+     "Node VM with non-configurable window.top: all 78 render functions",
+     "Local assets, fonts and navigation references",
+     "Fixture filter intersections, scoped search and personal-work scopes",
+     "Sheet navigation state and inert boundaries; not browser geometry"
+    ],
+    "limits": [
+     "No application code modified",
+     "No browser rendering, Android, PHONE or FPS proof",
+     "No DEV/Edge/dependency changes",
+     "HTML fixture interactions are not server acceptance"
+    ],
+    "acceptance_lights_changed": false
    }
   }
  },

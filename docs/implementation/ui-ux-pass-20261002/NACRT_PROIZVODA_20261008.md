@@ -1217,3 +1217,147 @@ Tri pretrage su zasebne kompozicije A/B/C. Prekidač3/4taba pokazuje oba ulaza u
 Svih 71 RPC imena iz direktnih source poziva pronađeno je u DEV katalogu. Širi inventar sadrži 170 doslovnih rpc_/fn_ simbola, uključujući pozive kroz wrappers: ni među njima nema imena odsutnog iz proveravanog kataloga. Inventarisani su i handler-i kontrola i gesture/Back/lifecycle reference. To nije dokaz aktivne dostupnosti svake funkcije u tačnom APK-u; feature flag-ovi, potpisi, grant/auth behavior i izvršenje ostaju odvojeni.
 
 Lokalne projekcije registra su obnovljene postojećim generatorima; LIVE provera doslednosti 62 reda prolazi. Prethodna stanja svih redova ostala su ista: 41 „PROBLEM“ i 21 „NA TELEFONU NIJE PROVERENO“. To su zbirne oznake registra, ne tvrdnja da postoje 41 nova greška. Nijedan novi telefonski dokaz nije dodat. Nema diff-a u `src/`, `supabase/`, paketima, workflow-ima ili `eas.json`. Promenjena je dokumentacija. Objavljena Claude tabla nije sinhronizovana ovim paketom; lokalna tabla jeste.
+
+
+<a id="revizija2-20261008"></a>
+## 15. Revizija 2 — kompozicija, orijentacija i uvođenje korisnika
+
+**Povod:** vlasnik je pregledao HTML i tražio navigaciju na HALF/FULL, jasnije lične liste i Dogovore, više smislenih kapsula, ravnopravan „Za mene“ i filtere van mape, kratka objašnjenja i motion. Traži slobodno osmišljavanje korisnijih ekrana celog proizvoda. **Ovo je revizija predloga; nema promene aplikacije, servera ni telefona.** Raniji §14 beleži prvu verziju; sada je u istoj galeriji 78 prikaza, uključujući osam povezanih ilustrativnih detalja — to nisu 78 novih produkcionih ekrana.
+
+### 15.1 Šta je ova provera stvarno utvrdila
+
+SOURCE baseline ove revizije: `e6a9713c` (prethodni docs fix), poslovni source ostao isti kao u prvom auditu. Obnovljeno ciljano čitanje Discovery i ličnih radnih lista, entry/onboarding i motion tokena, uz dva nezavisna read-only agentska pregleda. Nije ponovljena fizička provera svih 50 route entry fajlova ili svih 697 modula; kompletan prethodni inventar i 62 blueprint-a iznad ostaju ulaz.
+
+1. **HALF/FULL navigacija postoji u app kodu**, ali HALF nije bio prikazan u HTML-u. `src/ui/v2/DiscoveryPresentation.tsx:688–691`, `src/ui/v2/discovery/zadaciBar.ts`, `sheetSnaps.ts`. Nije potvrđen kvar navigacije u APK-u. Ispravlja se nepotpun dizajnerski primer.
+2. **Remote već zadržava „Za mene“ i negeografske uslove.** `src/data/marketplaceView.ts:293`, `src/data/discoveryV1MarketplaceAdapter.ts:33–47`. Prvi HTML je to loše predstavio. Ne izmišljati novo uparivanje samo da bi se nacrtala kapsula.
+3. **Off-map nije isto što i remote.** `DiscoveryPresentation.tsx:176–182,376–380,1188–1193`: lokalni lens + automatsko dočitavanje. Za skaliranje ostaje zaseban paged scope zahvat; nije zaključak da ceo Discovery backend ne radi.
+4. **Prijave menjaju organizaciju tokom paginacije.** `src/ui/v2/MyApplicationsPresentation.tsx:61,93–108`: dok postoji hasMore pokazuje čipove i ravnu listu; po završetku čitanja prelazi na grupe. `src/data/myApplicationsView.ts:10` svrstava SELECTED u finished ako nema attention, dok applicationGroup pravi posebnu selected grupu. To može biti namerna završena prijava, ali ne znači završen posao. UI mora razlikovati ta značenja i imati stabilne kontrole.
+5. **Lične liste već imaju vrednu semantiku.** `ownTaskPhases.ts`, `agreementListModel.ts`, `AgreementCollectionPresentation.tsx`: Čeka tvoj izbor, Objavljeno, Dogovoreno, danas/sutra/nedelja/bez termina. Sačuvati kapacitete i vremenske grupe; ne proglasiti sadašnje liste praznim placeholder-om.
+6. **Logo intro i preskakanje već postoje.** `src/ui/entry/EntryWelcome.tsx`, `src/hooks/useEntryIntro.ts`. Predložena edukacija je drugi sloj; ne ponovo graditi logo animaciju. Per-feature dismissed/seen pravilo nije dokazano kao gotov jedinstveni sistem.
+
+### 15.2 Discovery kao jedan prostor
+
+| Stanje | Navigacija | Pretraga i uslovi | Korisnikov sledeći korak |
+|---|---|---|---|
+| COMPACT | Sakrivena | Search i zaseban Filteri na vrhu mape; stabilan red kapsula | Pin ili podigni listu; „Nisu na mapi“ vidljiv u traci |
+| HALF | Vidljiva, poslednji red liste ne sme ispod nje | Vrh mape ostaje; isti primenjeni uslovi | Skrol liste ili povlačenje za FULL |
+| FULL | Vidljiva | Pretraga preuzima vrh lista, bez duplog polja ili mrtve trake mape | Čitaj rezultate, promeni uslove, vrati mapu |
+| PEEK | Sakrivena prema već postojećoj vlasnikovoj odluci | Jedna kartica izabranog pina na dnu | Detalj ili zatvori; bez dve konkurentne liste |
+| Remote / off-map | Vidljiva | Isti relevantni tekst, Za mene, termin, ponude/iznos, Filteri | Izbor zadatka; povratak na sačuvanu mapu |
+
+U galeriji se ručica povlači mišem/dodirom; dodir podiže za jedan nivo, strelica spušta. Nav prati nivo. Escape u HTML-u spušta jedan nivo. **Predlog za Android Back** je isti postepeni niz FULL→HALF→COMPACT→izlaz, uz prioritet tastature/panela/kartice; to je promena prema sadašnjem FULL→compact i HALF route back, zato zahteva potvrdu pre implementacije. Dugme „Mapa“ može direktno u COMPACT. Sheet i tabovi dele jedan progress; nema dva nezavisna tajmera. Povlačenje tokom kretanja preuzima postojeću poziciju. Native velocity/spring/gesture takeover nisu dokazani HTML kodom.
+
+Map state mora čuvati query, geografski scope, kameru, detent, scroll i selected task ID. Otvaranje detalja ne resetuje te podatke. Cluster zumira oblast, a ne otvara nasumičan task. Promena filtera uklanja selection samo ako stvarno izađe iz skupa. Stari snapshot može ostati dok stigne novi rezultat, uz jasan status osvežavanja. Broj nije broj samo trenutno učitanih kartica ako UI tvrdi globalni total.
+
+Kapsule nisu katalog kategorija. Predlog stabilnog reda: **Na daljinu · Za mene · Danas · Ovaj vikend · Sa iznosom**. Područje i dodatni aktivni uslovi dolaze zatim; Filteri ostaju jasno posebno dugme. Na daljinu je ulaz u scope, Za mene je personalizacija, Danas/vikend vremenski uslov, Sa iznosom isključuje nepoznatu cenu. Danas i vikend se međusobno isključuju. Kapsule mogu horizontalno da se pomeraju, ali ključni ulaz ne nestaje zbog umetanja aktivnih uslova ispred njega. Datum se računa u produktnoj zoni, ne nagađa po stringu kao u ilustrativnom HTML-u.
+
+Nema HITNO kapsule dok politika nije aktivna; nema „proveren“, „95% poklapanje“ ili „najbolje plaćeni“ bez podataka. Ako Za mene nema spreman radni profil, pokaži Dovrši profil / Prikaži sve, ne lažno praznu bazu. Prikaz Za mene na remote-u koristi postojeći server ugovor; off-map pagination popravka ima odvojeno odobrenje ako menja DEV.
+
+**Van mape:** podizbor Svi / Na daljinu / Bez pina. „Bez pina“ nije „nema adresu“ i ne dokazuje da lokacija ne postoji: znači da nema precizne javne tačke u ovom prikazu. Privatna adresa se ne izvlači da bi se popunila mapa. Remote ne prikazuje nebitnu geografsku etiketu Novi Sad, a povratak vraća ranije geografske uslove. Galerija pretražuje i filtrira samo osam eksplicitno izmišljenih primera; mapa i kartica istog primera dele ID.
+
+### 15.3 Lični rad: preporuka i alternative
+
+**A — preporuka: jedan radni prostor, tri stalna pogleda.** Za skicu postojeći glavni naziv **Dogovori**, sa podtabovima Dogovori / Moji zadaci / Moje prijave. Ispod: kratka pretraga, filteri specifični za taj pogled, diskretan redosled i Raspored. Jedan kompaktan red po zapisu, direktan ulaz u detalj, vidljiva akcija samo kada čeka korisnika. Isti zadatak može postojati kao objava i imati više Dogovora: ne sabirati ih kao isti posao, ne duplirati u jednoj ravnoj listi bez vrste zapisa.
+
+**Pitanje imena za odobrenje:** ako Dogovori sadrže i nacrte/prijave, naziv može biti preuzak. Alternativni naziv „Moje“ ili „Moj rad“ može biti jasniji, ali nije usvojen. Tri glavna taba su početni prikaz po poslednjem uvodu vlasnika; četvrti Poruke ostaje samo opcija poređenja u HTML-u. Ne menjati produkcionu navigaciju na osnovu skice.
+
+**B — najmanja promena navike:** Dogovori ostaju samo saradnje; tri postojeće liste dobijaju iste prelaze Moji zadaci / Moje prijave / Dogovori i ostaju dostupne iz Početne. U HTML-u „Alternativa · povezane postojeće liste“. Prednost je manja promena, mana više odvojenih odredišta i potreba da Back jasno vrati prethodni kontekst.
+
+**C — sve po sledećoj radnji:** jedan pregled Čeka tebe → Sledeći termin → Čekaš odgovor, uz vidljivu vrstu zapisa. U HTML-u „Alternativa · po sledećoj radnji“. Brzo za više poslova, ali slabije za nalaženje konkretnog nacrta/prijave i lako duplira Početnu. Preporuka: takav sažetak na Home, ne još jedan novi glavni tab. Podela samo po dve uloge razmatrana je i odbačena za glavni radni prostor jer razdvaja saradnje istog čoveka na dva mesta.
+
+| Pogled | Statusi/filtriranje | Red sadržaja | Izvor i ograničenje |
+|---|---|---|---|
+| Moji zadaci | Svi, čeka izbor/ima prijava, aktivni, nacrti, istorija | Naslov → prijave/pokrivenost → termin → sledeća radnja | ownTasksPage ima ALL/ACTIVE/DRAFTS/HISTORY/WAITING. Objavljen nije završen Dogovor. „Ima prijava“ nije automatski isto što i server WAITING. |
+| Moje prijave | Svi, čeka moju radnju, čeka odgovor, izabrane, završene prijave | Naslov → moja ponuda → ko čeka koga → Dogovor ako postoji | FILTER.SELECTED kao zaseban globalni skup prvo usaglasiti sa readerom; ne filtrirati samo prvu stranu |
+| Dogovori | Aktivni, čeka mene, istorija; tamo završeni/otkazani | Zadatak → osoba → potvrđen termin → iznos/status → konkretna akcija | agreementListModel i capabilities; završeno koje čeka ocenu ostaje u radu |
+| Raspored | Mesec/Nedelja/Dan; bez termina odvojeno | Vreme → zadatak/osoba → Dogovor | Koristiti prihvaćen termin Dogovora, ne zastareli termin prvobitne objave |
+| Poruke | Razgovori sa zadatkom i osobom, grupa jasno označena | Osoba/grupa → poslednja poruka → zadatak → vreme | Nepročitano samo iz pravog read-state; nikad iz broja Dogovora |
+
+**Redosled nije samo ukrasni dropdown.** Galerija prikazuje primere Prvo čeka mene / Najnovije / Naziv A–Š za poređenje. Pre aplikacije: reader mora dati isti globalni sort i cursor. PublishedAt koji još nije projektovan ne sme se zameniti createdAt uz etiketu „objavljeno“. Server term/cena/uloga filtriranje nije automatski postojeće. `ownTasksRefined` može učitati sve redove kod pretrage/cene: ne proširivati taj obrazac. Na izvoru i adapteru proveriti značenje, sigurnu granicu i false-empty scenario pre ugradnje.
+
+Status kod nije cela UX poruka. **Čeka tebe** nosi konkretnu radnju i mali narandžasti akcenat. **Čekaš odgovor** je neutralno čekanje. **Izabrana** vodi na tačan Dogovor. **Završena prijava** ne govori da je posao završen. **Završen Dogovor** može još čekati ocenu. **Otkazano** ima razumljiv razlog kada je dostupan, bez lažnog uspeha ili pune crvene kartice. Boja uvek ima tekstualno značenje.
+
+### 15.4 Prvi susret i objašnjenja
+
+Predlog je **opcionih 3 kratka koraka**, ne obavezna prepreka registraciji ili prvom zadatku:
+1. Pomoć počinje razgovorom — opiši, proveri, objavi.
+2. Imaš vremena da uskočiš — u blizini ili na daljinu.
+3. Dogovorite se, završite zajedno — poruke, termin, sledeća radnja.
+
+Svaki ima Preskoči. Na poslednjem Kreni, zatim Početna za prvi dan bez izmišljenih aktivnosti. Postojeći brand intro ne ponavlja se posle svakog ulaska. Korisnik koji dođe iz deep linka odmah ide na kontekst, ne kroz karusel. Ako je onboarding odbijen, isti sadržaj ostaje u Pomoći.
+
+Kontekstualno učenje je važnije od tri slajda:
+- prvi Discovery: mali poziv „Povuci listu da vidiš zadatke“, dostupan i ponovo iz Pomoći;
+- prvi radni prostor: jedna rečenica šta su objave, prijave i Dogovori;
+- prvi AI: kratko predstavljanje svrhe, bez pet sugestija i četiri stalne kartice;
+- prva lokacija: pokaži pin i postavi jedno pitanje; potvrđeno se sklapa u miran red;
+- prva prijava: stvarna potvrda vodi na sopstvenu prijavu i pokaže gde čeka odgovor;
+- prvi Dogovor: prikaži prihvaćene činjenice i sledeću radnju, bez generičnog tour-a preko njih;
+- dozvole: objašnjenje tek po zahtevu za mikrofon, fotografiju ili lokaciju, bez sva tri system prompt-a pri ulasku.
+
+Pravila budućeg seen/dismissed stanja: odvojiti „video poziv“, „zatvorio“ i „završio“ po verziji objašnjenja; ne prikazivati ponovo zato što je komponenta remountovana. Ne čuvati privatne podatke u tim zastavicama. Greška storage-a ne blokira rad. Ako korisnik zatvori pomoć, radnja/tok ostaju sačuvani. „Razumem“ u HTML-u samo otvara sledeći lokalni primer; nema trajnog upisa niti dokaza da to već radi u aplikaciji.
+
+### 15.5 Kako se unapređuje ceo proizvod — dopuna svih prethodnih blueprint-a
+
+Svaka porodica zadržava stvarne podatke i poslovne komande iz prethodnih 62 redova. Sledeće su odluke o prikazu za vlasnički pregled, ne implementirani novi feature-i.
+
+| Porodica | Šta korisnik mora odmah da razume | Novi ili precizniji raspored / korisnost | Ponašanje, stanje i izlaz |
+|---|---|---|---|
+| Ulaz / prijava / oporavak | Gde se prijavljuje i kako nastavlja | Brand završava na jasnim auth radnjama; forma bez dekorativnih KPI | Greška uz polje; sačuvan povratak deep linka; bez endless intro |
+| Početna, prvi dan | Mogu tražiti ili ponuditi pomoć | Dva velika ulaza, kratko objašnjenje, relevantan radni profil | Bez lažnih termina; preskočiva pomoć |
+| Početna, povratak | Šta sada traži mene | Jedna najvažnija obaveza, zatim termin, pa moje liste | Badge samo za poznatu radnju; promena posle readback-a |
+| Discovery | Šta mogu da radim gde gledam | Jedan map/list prostor sa nav HALF/FULL, kapsule relevantnih kriterijuma | Stale-safe rezultati, isti filteri, povratak na kameru |
+| Van mape | Remote i bez pina su različiti | Pretraga + isti uslovi + tri jasno označena skupa | Bez lažnog city scope-a i izmišljene lokacije |
+| Search i mesto | Šta tražim, gde tražim | Grad: Ceo grad / Izaberi deo; ulica samo kad postoji podatak | Draft odvojen, Apply pokreće jedan upit; B podiže listu samo po izboru |
+| Filteri | Koji uslovi su uključeni | Relevantne grupe, broj aktivnih, preview i čist reset | Greška preview-a ima Ponovi; Apply bez lažnog broja |
+| Task card | Zanima li me ovaj zadatak | Naslov, cena/ponude, mesto, termin; samo važan kapacitet/uslov | Dugi opis u detalju; odsustvo cene nije nula |
+| AI zadatak | Razgovaram i nastaje moj zadatak | Gemini-like tekst, jedan aktivan vizuelni podatak, mirna istorija potvrda | Ispravka činjenice revidira isti podatak, ne proizvodi nove kartice svuda |
+| AI radni profil | Otkrivamo šta mogu da ponudim | Kratak uvod, jedno pitanje, veštine/oprema/radijus u pravom trenutku | Završetak skriva composer i otvara pregled; ne pita drugo ime |
+| Lokacija / ruta | Da li je ovo pravo mesto | Mapa dominira; svaka tačka po ulozi; konačan pregled cele rute | Pin i adresa usklađeni; tačna lokacija samo uz dozvolu; linija nije lažna drumska ruta |
+| Fotografije / glas | Šta ću poslati i u kom stanju | Pregled priloga i jasan capture/send/retry u istom lifecycle-u | Dozvola odbijena ne blokira tekst; media greška ne briše nacrt |
+| Pregled / objava | Kako drugi vide moj zadatak | Ista javna task projekcija uz vlasnikovu privatnu adresu | Objavi tek iz prihvaćenog pregleda; zatim stvarni objavljeni task/map selection |
+| Moji zadaci | Koja objava traži moj izbor | Kompaktna lista s brojem prijava/pokrivenosti, nacrti jasno | Svaki red vodi na pravi zapis; status ne menja značenje nakon paging-a |
+| Kandidati / poređenje | Koga biram i pod kojim uslovima | Iste važne činjenice za 2 osobe, zatim druge; jedna potvrda izbora | Cena/termin/kapacitet jasni; conflict prikazuje promenu, ne lažan uspeh |
+| Moje prijave | Čekam odgovor ili sam na redu | Stabilni filteri i moja ponuda, jasno izabrana→Dogovor | Završena prijava odvojena od završenog posla |
+| Dogovor detalj | Sa kim, šta, kada, po kojoj ceni, sledeće | Kratak zaglavni sažetak, aktivna radnja, Pregled/Poruke isti kontekst | Izmene porede staro/novo; ostale radnje nisu skrivena glavna navigacija |
+| Poruke 1:1 / grupa | Ko govori o kom zadatku | Jedan razgovor, mali task context, mediji u istom toku | Draft pri pozadini, optimistic→receipt, incoming/read bez ručnog otključavanja |
+| Raspored | Šta imam danas i kada | Mesec/Nedelja/Dan, odabrani datum, čitljivi termini | Back/početna vraćaju odabrani datum; bez termina poseban red |
+| Završetak / ocena | Ko još potvrđuje | Jedna sledeća radnja i kratak završni pregled | Unknown nije success; slavlje tek posle potvrde, ocena ostaje dostupna |
+| Obaveštenja | Šta se promenilo i za koji posao | Naslov zadatka + kratak događaj, datum grupe i unread | Tačan deep link; telefonska dostava nije zaključena iz rendera |
+| Profil / radni profil | Ko sam i šta nudim | Identitet/reputacija, jedna radna površina, dostupnost; bez finansijske ploče | Uređivanje jednog imena; radno područje preko dozvoljenog ugovora |
+| Settings / account | Gde je konkretna postavka | Kratke grupe i neutralni redovi; objašnjenje samo posledice | Toggle ima pending/error; unknown nije isključeno; nema duplog privatnosnog huba |
+| Privacy / izvoz / brisanje | Posledice i moje opcije | Jasno status+radnja, duži detalji dostupni | Bez automatskog brisanja, lažnog procenta ili obećanja roka |
+| Podrška / prijava greške | Kako dobijam pomoć | Kontekst zadatka, ljudski tekst, pregled onoga što šaljem | Ne slati privatne logove bez znanja; error zadržava tekst |
+| Empty / offline / greška | Zašto nema sadržaja i kako dalje | Različiti uzroci imaju različitu radnju, ne univerzalno Osveži | Warm sadržaj ostaje; cold loading zaseban; pretraga/paginacija ne brišu poziciju |
+
+### 15.6 Vizuelni karakter i motion bez dodatnog tereta
+
+Bela je površina, crna vodi čitanje, siva objašnjava. Zelena je glavna radnja i odabir. Narandžasta je mala oznaka kada čeka korisnik ili izabran pin. Raznobojni originalni 2.5D predmeti označavaju mesto, termin, novac, ljude i veštinu; ne koriste se kao svaki chevron/close/back. Bez pet novih stilova ikona, mint pozadine i stalnog glow-a.
+
+Robot je isti identitet u oba AI toka; radni kontekst i tekst razlikuju nameru. Nije svaki bubble avatarski poster. Prvi susret može imati veliki artwork, tokom rada mali miran marker. Postojeća PNG glava nije rigovan robot: ne obećavati treptanje/ruke dok nema pripremljenih slojeva ili odobrenog asseta. Novi logo nije neophodan da bismo rešili hijerarhiju.
+
+Motion povezuje uzrok i posledicu: ručica/lista/tabovi zajedno; pin u karticu; potvrđena lokacija u kratak red; izbor kandidata u stvarni Dogovor; poruka u potvrđen send-state; završetak tek posle server ishoda. Bez ponovne ulazne animacije svakog zapisa pri refresh-u ili povratku. U HTML-u sheet/nav koriste transform 240ms sa postojećim easeOut (.23,1,.32,1); prvi onboarding jednokratni artwork enter 700ms samo za objašnjenje. Reduced-motion uklanja ornamentalno pomeranje. Nema novih biblioteka, blur filtera ili pozadinskog loop-a. Pokazani robot ostaje statičan original; animira se njegova ulazna kompozicija, ne lažna anatomija.
+
+### 15.7 Airbnb i granica inspiracije
+
+Pročitani primarni izvori:
+- [Airbnb — Search for listings](https://www.airbnb.com/help/article/252): mapa, pomeranje/zoom, destinacija/naselje/adresa i filteri predstavljaju različite ali povezane ulaze u pretragu. To podržava naš princip jednog prostora, ne dokazuje tačne HALF/FULL detente njihove aktuelne Android verzije.
+- [Airbnb — Summer Release 2025](https://news.airbnb.com/product-releases/airbnb-2025-summer-release): objedinjen kontekst rasporeda i poruka. Prevodi se u USKOČI Dogovor, ne kopiranje turističkih proizvoda.
+- [Airbnb istraživači — Learning to Rank for Maps](https://arxiv.org/abs/2407.00091): gustina i izbor informacija za mapu su poseban problem. USKOČI zadržava isti filter i tačan ID povezivanja kartice/pina. Ne kopirati rangiranje bez podataka.
+
+Nije tvrđeno da je izvršen Airbnb Android journey ili gledan njihov trenutni motion snimak. Zahtev HALF/FULL dolazi direktno od vlasnika i postojećeg USKOČI pravila; ne treba ga opravdavati izmišljenom konkurentskom proverom.
+
+### 15.8 Šta bira vlasnik, šta se radi posle izbora
+
+**Odmah ispravljeno u skici:** HALF sa navigacijom, povezane map/list visine, remote/off-map filteri i Za mene, pretraga lokalnih primera, jasnije radne liste i uvodne skice. **Nije implementirano u app.**
+
+Odluke koje imaju stvarnu cenu promene:
+1. Radni prostor A (tri pogleda) ili B (postojeće liste povezane); C prikazan radi poređenja, preporuka da ostane na Home.
+2. Ako A: naziv glavnog taba ostaje Dogovori ili postaje Moje/Moj rad. Nema tihog preimenovanja.
+3. Search B (potvrda podiže FULL) naspram A (polje tek na listi); prethodne alternativne skice ostaju.
+4. Jednom ponuđeni, preskočivi uvod od 3 koraka ili samo kontekstualna pomoć. Moja preporuka je kratak opcion uvod uz kontekstualnu pomoć.
+5. Postepeni Back kroz FULL/HALF/COMPACT ili direktan FULL→mapa; demonstracija nije automatsko odobrenje.
+
+Kasniji redosled ugradnje: (1) stabilne postojeće liste/statusi i odnos prijava→Dogovor, (2) Discovery HALF/remote/kapsule i zaštita paging-a, (3) prihvaćena radna arhitektura, (4) dva AI toka i lokacija/ruta, (5) onboarding/Home i duboke površine iz matrice, (6) artwork/motion završetak kroz iste komponente. Čitanje živog DEV stanja ponoviti pre svakog serverskog paketa. Svaka server promena ostaje izričito odobrenje; skica sortiranja nije takvo odobrenje.
+
+**URADIO:** ciljano produbljen source review i postojeća celovita specifikacija, revidirana lokalna galerija. **DOKAZAO:** 78 render funkcija u Node VM uz zaštićeni window.top; veze/slike/fontovi; programske kombinacije lokalnih filtera, podizanje/spuštanje nav stanja, tekst pretraga i uvodni linkovi. **NIJE DOKAZANO:** browser geometrija, pravi pointer/touch drag, scroll restore, FPS, Android/telefon i backend izvršenje. Browser file:// pristup ranije blokiran; nije zaobiđen drugim browserom/serverom. **SLEDEĆE:** vlasnik pregleda revidirane skice, zatim odvojena odobrena implementacija.
