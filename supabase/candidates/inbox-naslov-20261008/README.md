@@ -1,6 +1,6 @@
 # INBOX-NASLOV — ime zadatka u svakom obaveštenju (vlasnik, 8. 10. 2026)
 
-**Status: SAMO IZVORNI KOD, NIJE PRIMENJENO.** Kanonski DEV `leqcwgzvjsxugfgzdmth` primenjuje integrator po vlasnikovom stalnom nalogu za dokazane pakete. Dokaz: `.github/workflows/inbox-naslov-proof.yml` (jednokratna baza, nikad DEV); zeleno pokretanje **37782930670** (commit `f0e0d025`): ponašanje **14/14 PASS**, opterećenje **2/2 PASS**.
+**Status: SAMO IZVORNI KOD, NIJE PRIMENJENO.** Kanonski DEV `leqcwgzvjsxugfgzdmth` primenjuje integrator po vlasnikovom stalnom nalogu za dokazane pakete. Dokaz: `.github/workflows/inbox-naslov-proof.yml` (jednokratna baza, nikad DEV); zeleno pokretanje **37784417178** (commit `5ff3b86a`, ovo telo): ponašanje **14/14 PASS**, opterećenje **2/2 PASS**.
 
 ## Ukratko za vlasnika
 
@@ -8,7 +8,7 @@
 - **Ime vidi samo ko sme:** naručilac tog zadatka, radnik te prijave, obe strane Dogovora, radnik kome je zadatak ponuđen (ime je već u tekstu ponude) i radnik koji se na taj zadatak prijavio. Svi ostali, i svako obaveštenje o zadatku koji je obrisan ili izbrisan zatvaranjem naloga, dobijaju prazno (`null`) i red izgleda kao danas.
 - **Samo ime zadatka:** bez adrese, opisa, cene i imena osobe. Zaključan ekran (push) se ne menja (pravilo A20).
 - **Sve ostalo je isto, bajt po bajt:** tekst, redosled, stranice, broj nepročitanih i greške (dokazano na 174 stranice, 5 naloga, 3 filtera, 4 veličine stranice).
-- **Brzina:** stranica od 100 obaveštenja (čita se 101) kod radnika sa 10.000 obaveštenja: oko 8,2 → 9,6 ms; podrazumevana stranica od 30: 6,5 → 6,8 ms (CI, medijana od 11 poziva). Najgori veštački slučaj (100 otkazivanja tuđih zadataka sa po 200 prijava, na koje se nije prijavio): 3,3 → 10,5 ms.
+- **Brzina:** stranica od 100 obaveštenja (čita se 101) kod radnika sa 10.000 obaveštenja: oko 8,4 → 8,9 ms; podrazumevana stranica od 30: 6,6 → 7,2 ms (CI, medijana od 11 poziva). Najgori veštački slučaj (100 otkazivanja tuđih zadataka sa po 200 prijava, na koje se nije prijavio): 3,1 → 10,5 ms.
 - **Bezbednost:** menja se samo telo jedne funkcije čitanja; nema nove tabele, kolone, okidača, politike, indeksa ni prava. Sertifikat zatvaranja se ne pomera (proverava se u istoj transakciji). Tačan povratak: `revert.sql`.
 - **Tvoje odluke (nijedna ne blokira primenu):** (1) obaveštenja o pitanjima (CLARIFICATION) ostaju bez imena zadatka (ugovor ih ne navodi; na DEV-u ih danas nema); (2) prikazuje se današnje ime zadatka, i kad ga je naručilac posle izmenio.
 
@@ -32,7 +32,7 @@ Difference to row security, on purpose: the reader is `SECURITY DEFINER` (as bef
 
 - `candidate.sql` (one transaction) and `candidate.in-transaction.sql` (the same without `begin`/`commit`, for a wrapper that brings its own transaction). Order: a repeated application or any variant that already carries the key is named first (`INBOX_NASLOV_ALREADY_OR_PARTIALLY_APPLIED`) → predecessor: body md5, definition md5 and metadata (`INBOX_NASLOV_PREDECESSOR_DRIFT`) → dependency `private.category_of_event(text)` `85389285…` (`INBOX_NASLOV_DEPENDENCY_DRIFT`) → the 15 columns the lookups read, type and NOT NULL (`INBOX_NASLOV_SCHEMA_DRIFT`) → the erasure markers in `private.closure_redaction_patch_v5` (`INBOX_NASLOV_ERASURE_MARKER_DRIFT`) → certificate ready (`INBOX_NASLOV_CERTIFICATE_NOT_READY`) → body replaced with preimage, payload, definition, anchor, postimage and metadata checks (`…_PREIMAGE_DRIFT`, `…_PAYLOAD_DRIFT`, `…_DEFINITION_DRIFT`, `…_BODY_ANCHOR_DRIFT`, `…_POSTIMAGE_OR_METADATA_DRIFT`) → reader after (`INBOX_NASLOV_READER_DRIFT`) → certificate unchanged and ready (`INBOX_NASLOV_CERTIFICATE_MOVED`, `…_NOT_READY_AFTER`). Every refusal is errcode `55000`; nothing in the package carries errcode `40001` (B24).
 - `revert.sql`: refuses unless the reader is exactly the postimage (`INBOX_NASLOV_REVERT_PREIMAGE_DRIFT`), restores the DEV body `b7928c50…` (definition `4a9f079a…`) with the same checks, asserts the certificate unchanged. Code rollback only: the package writes no data.
-- `preflight.readonly.sql` / `postflight.readonly.sql`: one read-only `select` each. The preflight was run read-only on canonical DEV on 2026-10-08 (ledger 234, latest `20261008000839`): `readerIsDev`, `dependencies`, `columns`, `erasureMarkers`, `certificateReady` true, `alreadyApplied` false, `retriedLiteralFunctions` 0, 85 events (NEED 29, RESPONSE 30, AGREEMENT 26), at most 39 for one person, certificate `3a785d42…` / `2027655d…`.
+- `preflight.readonly.sql` / `postflight.readonly.sql`: one read-only `select` each. This preflight (the file of this commit) was run read-only on canonical DEV on 2026-10-08 after the last proof run (ledger 234, latest `20261008000839`, the reader still `b7928c50…`): `readerIsDev`, `dependencies`, `columns`, `erasureMarkers`, `certificateReady` true, `alreadyApplied` false, `retriedLiteralFunctions` 0, 85 events (NEED 29, RESPONSE 30, AGREEMENT 26), at most 39 for one person, certificate `3a785d42…` / `2027655d…`.
 - Every SQL file is pure ASCII: the one non-ASCII letter of the body (`š` of „Novo obaveštenje“) is `chr(353)` between dollar-quoted runs. Apply the bytes of the git blob (LF); a CRLF copy changes the payload and is refused (`…_PAYLOAD_DRIFT`), atomically.
 
 ## Certificate
@@ -52,7 +52,7 @@ Revert: `revert.sql`. A later package that replaces `rpc_list_inbox` must pin th
 
 Workflow `.github/workflows/inbox-naslov-proof.yml`, two jobs from their own fresh disposable chain each (the chain of the DISCOVERY-GRAD proof: live79 → source147 → … → EX06e R3, then ZONE-PERF, MATCH-V1 and DISCOVERY-ZAMENE with their DEV files; `supabase/proofs/match-v1/chain.mjs`, `fidelity.mjs` and `supabase/proofs/discovery-grad/predecessors.mjs` byte-identical to `candidate/discovery-grad-20261008`), then `supabase/proofs/inbox-naslov/predecessors.mjs` admits only the DEV body of the reader, its dependency, the 15 columns, the required indexes and the erasure markers. Real Auth and PostgREST, loopback only, no DEV access, no provider, no push.
 
-- **Green run 37782930670** (commit `f0e0d025`): `behavior` **14/14 PASS**, `load` **2/2 PASS**. Earlier run 37781816542 (commit `faecdfba`): load green, behaviour stopped at its first query (`operator is not unique: text || "char"` in the proof's own schema fingerprint, not in the package; fixed by a cast).
+- **Green run 37784417178** (commit `5ff3b86a`, the body of this package, postimage `bd46f06f…`): `behavior` **14/14 PASS**, `load` **2/2 PASS**. Earlier: run 37782930670 (commit `f0e0d025`, the same SQL with a less exact comment in the body, postimage `f1daee8c…`): 14/14 and 2/2; run 37781816542 (commit `faecdfba`): load green, behaviour stopped at its first query (`operator is not unique: text || "char"` in the proof's own schema fingerprint, not in the package; fixed by a cast).
 - Chain admission (`predecessor-fidelity.json`): reader `b7928c50…` / definition `4a9f079a…`, metadata, `category_of_event` `85389285…`, the 15 columns, all 15 DEV indexes of the five tables and the erasure markers equal DEV; `emit_event`, `notification_copy_v5`, `rpc_mark_activity_event_read` and `rpc_resolve_activity_event` equal DEV too (observed); `closure_redaction_patch_v5` differs from DEV on the chain (later DEV re-certifications), its two markers are present.
 - **FAIL before:** on the DEV body none of the 41 listed notifications of 5 real accounts carries `taskTitle`.
 - **PASS after:** every item carries `taskTitle`, equal to an independent oracle of the contract over the stored rows and to a hand-written table of 33 cases: each of the 11 (entity, event) pairs DEV holds shown with its title (incl. "Dogovor je otkazan" to both sides), the requester's own task, a worker who applied (`NEED_REVISED`, `NEED_CANCELLED`), an offer to a worker who never applied; `null` for no right (5 cases: cancellation, application and Dogovor of others; the Dogovor and the selected application of another worker on the task he applied to), an unknown row of each kind, a `CLARIFICATION`, a task erased by the certified `closure_redaction_patch_v5` (5 cases over NEED, RESPONSE and AGREEMENT) and a deleted task; a suppressed in-app delivery stays unlisted. The 9 notifications the product flows wrote themselves (`rpc_submit_response` x5, `rpc_select_response` x2, `rpc_withdraw_response`, `rpc_cancel_need`) agree with the oracle.
@@ -64,14 +64,14 @@ Workflow `.github/workflows/inbox-naslov-proof.yml`, two jobs from their own fre
 
 | request | items (with title) | DEV body | INBOX-NASLOV | after revert |
 |---|---|---|---|---|
-| worker, 30 (the app default) | 30 (28) | 6.45 (5.97) | 6.84 (6.09) | 12.38 (7.06) |
-| worker, 100 (101 rows read) | 100 (95) | 8.19 (7.81) | 9.64 (8.45) | 6.41 (6.35) |
-| worker, role WORKER, 100 | 100 (95) | 8.65 (8.40) | 10.01 (9.26) | 7.28 (6.88) |
-| worker, 100 from the middle (cursor) | 100 (95) | 9.14 (8.85) | 10.59 (9.82) | 13.51 (10.06) |
-| requester, 100 | 100 (100) | 3.27 (2.91) | 7.59 (3.60) | 5.13 (4.50) |
-| worst case: 100 cancellations of tasks with 200 applications each, never applied to | 100 (0) | 3.28 (2.99) | 10.54 (8.66) | 3.05 (2.90) |
+| worker, 30 (the app default) | 30 (28) | 6.58 (6.40) | 7.22 (6.76) | 7.33 (6.43) |
+| worker, 100 (101 rows read) | 100 (95) | 8.37 (7.81) | 8.91 (7.86) | 7.42 (6.89) |
+| worker, role WORKER, 100 | 100 (95) | 7.78 (7.43) | 9.87 (8.90) | 7.86 (7.51) |
+| worker, 100 from the middle (cursor) | 100 (95) | 8.59 (8.28) | 9.53 (8.76) | 8.26 (8.03) |
+| requester, 100 | 100 (100) | 3.05 (2.91) | 4.89 (3.58) | 3.59 (2.96) |
+| worst case: 100 cancellations of tasks with 200 applications each, never applied to | 100 (0) | 3.06 (2.95) | 10.49 (8.83) | 3.57 (2.94) |
 
-HTTP (PostgREST, worker, 100 items, median of 5): 14.2 → 16.3 ms. The title costs about 6–15 µs per listed item; the worst case pays the check "did he apply" over every application of a crowded task (`marketplace_responses_need_idx`), which the product never triggers (it sends task cancellations and revisions only to those who applied, where the check stops at their row). Every answer was byte-identical to the DEV body's without `taskTitle`. Medians on a shared runner are noisy (see "after revert"); the minima are the steadier figure.
+HTTP (PostgREST, worker, 100 items, median of 5): 13.2 → 14.8 ms (run 37782930670: 14.2 → 16.3 ms). The title costs about 5–20 µs per listed item; the worst case pays the check "did he apply" over every application of a crowded task (`marketplace_responses_need_idx`), which the product never triggers (it sends task cancellations and revisions only to those who applied, where the check stops at their row). Every answer was byte-identical to the DEV body's without `taskTitle`. Medians on a shared runner are noisy (run 37782930670 had 12.4 ms for the default page after the revert); the minima are the steadier figure.
 
 **Not proven:** DEV timings (only CI hardware); the app showing the second line on a phone (the client is ready, not part of this package); PostgREST at scale beyond 10,000 notifications of one person; an account closure run end to end (the erased task was written with the certified patch function, not by a full closure).
 
