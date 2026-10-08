@@ -161,7 +161,7 @@ describe('RU-5 P0C-03 — canonical My Applications client', () => {
     expect(invalid).toEqual({
       ok: false,
       kod: 'WITHDRAW_RESPONSE_INVALID_RESULT',
-      poruka: 'Povlačenje prijave nije potvrđeno.',
+      poruka: 'Ne znamo da li je prijava povučena. Osveži listu.',
     });
   });
 
@@ -178,7 +178,7 @@ describe('RU-5 P0C-03 — canonical My Applications client', () => {
       expect(result).toEqual({
         ok: false,
         kod: 'WITHDRAW_RESPONSE_INVALID_RESULT',
-        poruka: 'Povlačenje prijave nije potvrđeno.',
+        poruka: 'Ne znamo da li je prijava povučena. Osveži listu.',
       });
     }
   });

@@ -1,6 +1,6 @@
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import { STATUS_CHIPS } from '../../ui/system/StatusChip';
-import { applicationsWaitSentence, ownTaskStanding } from '../ownTaskStanding';
+import { APPLICATION_PROMISE, PUSH_SENDING_ON, applicationPromise, applicationsWaitSentence, ownTaskStanding } from '../ownTaskStanding';
 
 /**
  * Where one of MY tasks stands, in the owner's eight words (2026-10-07), and the one next step in grey words. Pure, so the list, the
@@ -13,13 +13,32 @@ const task = (patch: Partial<PotrebaProjekcija> & { kraj?: string } = {}): Potre
 const stands = (patch: Parameters<typeof task>[0] = {}) => ownTaskStanding(task(patch), NOW);
 const word = (patch: Parameters<typeof task>[0]) => { const chip = stands(patch).chip; return chip ? STATUS_CHIPS[chip.status].word + (chip.detail ? ` · ${chip.detail}` : '') : null; };
 
+/**
+ * What the app says it will do when an application arrives (R12, 2026-10-07). Push is the last item of the plan and every send is off, so
+ * the app says where the applications can be seen and does not promise a notification it cannot send. One switch turns the promise back on.
+ */
+describe('what the app promises when an application arrives', () => {
+  it('says where the applications are seen while nothing is sent, and never "Javićemo ti"', () => {
+    expect(PUSH_SENDING_ON).toBe(false);
+    expect(APPLICATION_PROMISE).toEqual({ waiting: 'Čekaš prijave. Vidiš ih ovde i u zvoncu.',
+      noneToChoose: 'Trenutno nema prijava za izbor. Nove vidiš ovde i u zvoncu.', published: 'Prijave vidiš ovde i u zvoncu.' });
+    expect(Object.values(APPLICATION_PROMISE).join(' ')).not.toContain('Javićemo');
+    expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 }).next).toBe(APPLICATION_PROMISE.waiting);
+  });
+
+  it('gets "Javićemo ti" back with the one switch', () => {
+    expect(applicationPromise(true)).toEqual({ waiting: 'Čekaš prijave. Javićemo ti.',
+      noneToChoose: 'Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.', published: 'Prijave stižu ovde. Javićemo ti.' });
+  });
+});
+
 describe('the eight words', () => {
   it('a draft is "Nacrt" and says what to do with it', () => {
     expect(stands({ stanje: 'NACRT' })).toEqual({ chip: { status: 'task.draft' }, next: 'Nacrt nije objavljen. Nastavi uređivanje.', toApplications: false });
   });
 
   it('a published task nobody has applied to is "Objavljen" and says it waits; an unknown count says nothing, never "none"', () => {
-    expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })).toEqual({ chip: { status: 'task.published' }, next: 'Čekaš prijave. Javićemo ti.', toApplications: false });
+    expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })).toEqual({ chip: { status: 'task.published' }, next: 'Čekaš prijave. Vidiš ih ovde i u zvoncu.', toApplications: false });
     expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: null })).toEqual({ chip: { status: 'task.published' }, next: null, toApplications: false });
     expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: undefined }).next).toBeNull();
   });

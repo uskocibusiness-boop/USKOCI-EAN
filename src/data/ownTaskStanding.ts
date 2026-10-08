@@ -28,6 +28,20 @@ export type OwnTaskStanding = {
   toApplications: boolean;
 };
 
+/**
+ * What the app says it will do when an application arrives (R12, 2026-10-07). Push is the last item of the plan and every send is off, so
+ * the app does not promise a notification it cannot send: it says where the applications can be seen ("ovde i u zvoncu"). The day sending
+ * is switched on, `PUSH_SENDING_ON` becomes true and the promise returns; nothing else changes. The words are built once, here, for every
+ * place that says them: the card in the list, the task page, and the moment after a task is published.
+ */
+export const PUSH_SENDING_ON = false;
+export function applicationPromise(pushOn: boolean) {
+  return pushOn
+    ? { waiting: 'Čekaš prijave. Javićemo ti.', noneToChoose: 'Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.', published: 'Prijave stižu ovde. Javićemo ti.' }
+    : { waiting: 'Čekaš prijave. Vidiš ih ovde i u zvoncu.', noneToChoose: 'Trenutno nema prijava za izbor. Nove vidiš ovde i u zvoncu.', published: 'Prijave vidiš ovde i u zvoncu.' };
+}
+export const APPLICATION_PROMISE = applicationPromise(PUSH_SENDING_ON);
+
 /** The agreed places of a task whose every place is agreed, and whose own fixed window has begun and not yet ended. */
 function agreedTimeHasCome(item: PotrebaProjekcija, now: Date): boolean {
   const schedule = item.schedule;
@@ -55,7 +69,7 @@ export function ownTaskStanding(item: PotrebaProjekcija, now: Date = new Date())
       return none({ status: 'task.draft' }, 'Nacrt nije objavljen. Nastavi uređivanje.');
     case 'OBJAVLJENA':
       // Not yet read as "no applications": an unknown count says nothing.
-      return none({ status: 'task.published' }, waiting === 0 ? 'Čekaš prijave. Javićemo ti.' : null);
+      return none({ status: 'task.published' }, waiting === 0 ? APPLICATION_PROMISE.waiting : null);
     case 'CEKA_PRIJAVE':
       return waiting !== null && waiting > 0
         ? { chip: { status: 'task.choosing', detail: String(waiting) }, next: applicationsWaitSentence(waiting), toApplications: true }

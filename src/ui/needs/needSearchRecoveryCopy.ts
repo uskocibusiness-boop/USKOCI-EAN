@@ -15,19 +15,19 @@ export type SearchRecoveryCopy = {
 
 export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecoveryCopy | null {
   if (view.phase === 'LOADING') return view.command
-    ? { title: 'Proveravamo ishod', detail: 'Čitamo potvrdu prethodnog zahteva bez ponovnog slanja.', art: 'info', quiet: true,
+    ? { title: 'Proveravamo da li je uspelo', detail: 'Ništa se ne šalje ponovo.', art: 'info', quiet: true,
       primary: { label: 'Proveravamo…', action: 'CHECK', disabled: true } }
     : null;
   if (view.phase === 'SENDING') return {
-    title: 'Otvaramo potragu', detail: 'Proveravamo potvrdu i aktuelno stanje zadatka.', art: 'users', quiet: false,
+    title: 'Otvaramo potragu', detail: 'Proveravamo potvrdu i trenutno stanje zadatka.', art: 'users', quiet: false,
     primary: { label: 'Proveravamo potvrdu…', action: 'CHECK', disabled: true },
   };
   if (view.phase === 'UNKNOWN') return {
     title: 'Da li je potraga otvorena?',
-    detail: 'Ishod još nije potvrđen. Provera neće ponovo poslati zahtev.',
+    detail: 'Ne znamo da li je potraga ponovo otvorena. Provera ništa ne šalje ponovo.',
     art: 'info',
     quiet: true,
-    primary: { label: 'Proveri ishod', action: 'CHECK' },
+    primary: { label: 'Proveri da li je uspelo', action: 'CHECK' },
     ...(view.retryAllowed ? { secondary: { label: 'Pošalji ponovo', action: 'RETRY' as const } } : {}),
   };
   if (view.phase === 'ERROR') return {
@@ -38,11 +38,11 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
     primary: { label: 'Pokušaj ponovo', action: 'CHECK' },
   };
   if (view.phase === 'RESOLVED' && view.result === 'REFUSED') return {
-    title: 'Zahtev nije prihvaćen',
-    detail: view.error ?? 'Pregledaj aktuelno stanje pre sledeće radnje.',
+    title: 'Potraga nije ponovo otvorena',
+    detail: view.error ?? 'Pregledaj trenutno stanje pre sledeće radnje.',
     art: 'info',
     quiet: true,
-    primary: { label: 'Prikaži aktuelno stanje', action: 'ACK' },
+    primary: { label: 'Prikaži trenutno stanje', action: 'ACK' },
   };
 
   const state = view.snapshot;
@@ -54,11 +54,11 @@ export function needSearchRecoveryCopy(view: SearchRecoveryView): SearchRecovery
       title: currentlyOpen ? 'Potraga je ponovo otvorena' : 'Stanje potrage je promenjeno',
       detail: currentlyOpen ? missingPeople(state.missingSlots)
         : state.searchAuthority === 'CLOSED'
-          ? 'Potraga je sada zatvorena. Raniji uspešan zahtev to ne menja.'
-          : 'Pregledaj aktuelni zadatak i svoje Dogovore.',
+          ? 'Potraga je sada zatvorena, iako je ranije bila ponovo otvorena.'
+          : 'Pregledaj trenutni zadatak i svoje Dogovore.',
       art: currentlyOpen ? 'check' : 'users',
       quiet: !currentlyOpen,
-      primary: { label: 'Prikaži aktuelno stanje', action: 'ACK' },
+      primary: { label: 'Prikaži trenutno stanje', action: 'ACK' },
     };
   }
 

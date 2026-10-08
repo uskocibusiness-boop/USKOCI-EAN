@@ -79,7 +79,7 @@ test('the foot offers the next page, says it is reading, or says it failed and o
   paging = makePaging({ loadingMore: true }); await act(async () => tree.update(<Screen />));
   expect(actions()).not.toContain('Prikaži još'); expect(texts()).toContain('Učitavamo još zadataka…');
   paging = makePaging({ moreError: true }); await act(async () => tree.update(<Screen />));
-  expect(texts()).toContain('Nije uspelo učitavanje još zadataka.'); expect(actions()).toContain('Pokušaj ponovo'); expect(actions()).not.toContain('Prikaži još');
+  expect(texts()).toContain('Ne možemo da učitamo ostale zadatke.'); expect(actions()).toContain('Pokušaj ponovo'); expect(actions()).not.toContain('Prikaži još');
   action('Pokušaj ponovo').props.onPress(); expect(loadMore).toHaveBeenCalledTimes(2);
   paging = makePaging({ hasMore: false }); await act(async () => tree.update(<Screen />));
   expect(actions()).not.toContain('Prikaži još'); expect(actions()).not.toContain('Pokušaj ponovo');

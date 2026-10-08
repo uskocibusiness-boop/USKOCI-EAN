@@ -5,9 +5,10 @@ import type { PotrebaProjekcija } from '../../contracts/projections';
 import { sys } from '../../ui/system/tokens';
 
 /**
- * One of MY tasks in "Moji zadaci" (plan 2.2 and 3.5, owner 2026-10-07): the app's one chip in the owner's eight words, the facts of
- * the task card in its order, and the ONE next step in grey words. When that step is the way to the applications waiting for my choice
- * it is the row's foot, its own press beside the body and never inside it.
+ * One of MY tasks in "Moji zadaci" (plan 2.2 and 3.5, owner 2026-10-07; composition spec 4.5, 2026-10-08): the app's one chip in the owner's
+ * eight words, the title, ONE line of what the task is worth ("2.000 RSD po osobi · 0/2 popunjeno"), the two facts of where and when as
+ * `FactRow`s, and the ONE next step in grey words. When that step is the way to the applications waiting for my choice it is the card's foot,
+ * its own press under a line and never inside the body; any other next step is a sentence of the body. The card is a `Surface record`.
  */
 let mockScale = 1;
 jest.mock('react-native', () => {
@@ -50,7 +51,8 @@ describe('the state and the one next step', () => {
     const [body, foot] = presses();
     expect(presses()).toHaveLength(2);
     expect(body.findAll(node => node.type === PRESS)).toHaveLength(1);
-    expect(foot.parent).toBe(body.parent);
+    // The foot stands beside the body under the record (its own component is one step in between), never inside it. Compared as booleans: a failed comparison of two test instances would try to print both trees.
+    expect(foot.parent!.parent === body.parent).toBe(true); expect(body.findAll(node => node === foot)).toHaveLength(0);
     expect(body.props.accessibilityLabel).toBe('Otvori zadatak Montaža dve police');
     expect(foot.props.accessibilityLabel).toBe('Imaš 3 prijave. Uporedi ih i izaberi. Zadatak: Montaža dve police');
     expect(foot.props.accessibilityHint).toBe('Otvara prijave za izbor.');
@@ -76,7 +78,7 @@ describe('the state and the one next step', () => {
 
   it.each([
     ['a draft', { stanje: 'NACRT', brojPrijavaZaIzbor: 0 }, 'Nacrt', 'Nacrt nije objavljen. Nastavi uređivanje.'],
-    ['a published task nobody applied to', { stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 }, 'Objavljen', 'Čekaš prijave. Javićemo ti.'],
+    ['a published task nobody applied to', { stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 }, 'Objavljen', 'Čekaš prijave. Vidiš ih ovde i u zvoncu.'],
     ['a task with one place of two agreed', { stanje: 'DELIMICNO_POPUNJENA', brojPrijavaZaIzbor: 0, pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } },
       'Dogovoren · 1 od 2', 'Dogovoreno 1 od 2. Čekaš prijave za ostala mesta.'],
     ['a task with every place agreed', { stanje: 'POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } }, 'Dogovoren',
@@ -107,9 +109,33 @@ describe('the state and the one next step', () => {
 });
 
 describe('the rest of the row', () => {
-  it('keeps the facts of the task card: the value and the places, where, when', async () => {
+  it('keeps the facts of the task: what it is worth on one line, then where and when', async () => {
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
     expect(texts()).toEqual(expect.arrayContaining(['Montaža dve police', '2.000 RSD', 'po osobi', '0/2 popunjeno', 'Grbavica, Novi Sad', '25. sep · 10:00']));
+    // The amount and what it buys and for whom stand on ONE line, and the amount is the one thing drawn as money.
+    const amount = tree.root.findAll(node => node.type === T_ && node.props.children === '2.000 RSD')[0];
+    expect(amount.props.variant).toBe('priceRow');
+    // (the amount, then what it buys, then a dot that goes with them, then the places filled)
+    const line = amount.parent!.parent!.parent!;
+    expect(line.findAll(node => node.type === T_).map(node => node.props.children)).toEqual(['2.000 RSD', 'po osobi', '·', '0/2 popunjeno']);
+    expect(style(line)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+    // Where and when are the two facts of the card, each with its one picture.
+    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['pin', 'calendar']);
+  });
+
+  it('a task done remotely says so with the remote picture, and a long title keeps to two lines for the eye and whole for the ear', async () => {
+    const long = 'Prenos starog trokrilnog ormara iz stana na petom spratu bez lifta do kombija parkiranog u dvorištu zgrade';
+    await render(<OwnTaskCard item={task({ naslov: long, detalji: { rezimLokacije: 'REMOTE', geografija: { mode: 'REMOTE' }, zahtevi: undefined } })} onOpen={jest.fn()} />);
+    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['remote', 'calendar']);
+    const title = tree.root.findAll(node => node.type === T_ && node.props.children === long)[0];
+    expect(title.props.numberOfLines).toBe(2); expect(title.props.variant).toBe('heading');
+    expect(presses()[0].props.accessibilityLabel).toBe(`Otvori zadatak ${long}`);
+  });
+
+  it('a task with no price says it in words, in the same line as the places, and never as an amount', async () => {
+    await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined, brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
+    expect(texts()).toEqual(expect.arrayContaining(['Tražim ponude', '0/2 popunjeno']));
+    expect(tree.root.findAll(node => node.type === T_ && node.props.variant === 'priceRow')).toHaveLength(0);
   });
 
   it('a draft has no places to fill and no applications: it counts neither, in words or aloud', async () => {
@@ -134,11 +160,20 @@ describe('the rest of the row', () => {
   it('while a command runs nothing on the row can be pressed, and the row stays readable', async () => {
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} disabled />);
     for (const node of presses()) { expect(node.props.disabled).toBe(true); expect(node.props.accessibilityState).toEqual({ disabled: true }); }
-    expect(style(tree.root.findAll(node => node.type === VIEW)[0])).not.toHaveProperty('opacity');
+    for (const node of tree.root.findAll(node => node.type === VIEW)) expect(style(node)).not.toHaveProperty('opacity');
   });
 
-  it('is a raised card with a neutral edge: the state is the chip, never the colour of the frame', async () => {
+  it('is a raised record with a neutral edge and 24 corners: the state is the chip, never the colour of the frame', async () => {
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} />);
-    expect(style(tree.root.findAll(node => node.type === VIEW)[0])).toMatchObject({ borderColor: sys.color.line, borderWidth: 1 });
+    const frame = tree.root.findAll(node => node.type === VIEW && style(node).borderColor !== undefined)[0];
+    expect(style(frame)).toMatchObject({ borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.card, padding: 0 });
+  });
+
+  it('only a task that waits for my decision has a foot, and the foot has one line above it and no other', async () => {
+    await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} />);
+    const lines = () => tree.root.findAll(node => node.type === VIEW && style(node).height === 1 && style(node).backgroundColor === sys.color.line);
+    expect(lines()).toHaveLength(1);
+    await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} onApplications={jest.fn()} />);
+    expect(lines()).toHaveLength(0); expect(presses()).toHaveLength(1);
   });
 });

@@ -145,17 +145,17 @@ test('the public Task leads with its title and four facts, offers the requester 
   // a fixed price of 9.000 RSD said the opposite of the price). Potrebno is heard as words, not as a slash.
   expect(copy).not.toContain('Traži ponude'); expect(copy).not.toContain('Prijave su otvorene');
   expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0/2');
-  for (const fact of ['Lokacija: Beograd, Vračar', 'Termin: Sutra ujutru', 'Budžet: 9.000 RSD']) {
+  // The facts are rows with one spoken sentence each (`FactRow`), in the order the page reads: the amount, where, when, how many.
+  for (const fact of ['Cena: 9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe, 0/2 popunjeno']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }
-  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Potrebno: 2 osobe, 0 od 2 mesta popunjeno')).not.toHaveLength(0);
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
-  expect(copy).toContain('Traži pomoć');
+  expect(copy).toContain('Objavio');
   expect(brand()).toEqual(['Sastavi prijavu']);
-  // Owner step 5b (2026-09-24): the poster row is heard as the person it is ("Ana, Traži pomoć, Ocena 4,8") and says
+  // Owner step 5b (2026-09-24): the poster row is heard as the person it is ("Ana, Ocena 4,8") and says
   // what a press does as its hint; it was heard as "Pogledaj javni profil" alone, without the name.
-  expect(byLabel('Ana, Traži pomoć, Ocena 4,8').props.accessibilityHint).toBe('Otvara javni profil');
-  await act(async () => byLabel('Ana, Traži pomoć, Ocena 4,8').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
+  expect(byLabel('Ana, Ocena 4,8').props.accessibilityHint).toBe('Otvara javni profil');
+  await act(async () => byLabel('Ana, Ocena 4,8').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
   // The place is said once in the facts and once as the map section; no disclosure repeats it a third time.
   expect(labels()).not.toContain('Mesto izvršenja'); expect(copy).not.toContain('Mesto izvršenja');
@@ -185,8 +185,9 @@ test('an open price is a word addressed to the person applying, never the amount
   await act(async () => { tree = create(<PublicNeedPresentation need={{ ...need, rezimCene: 'OFFERS', ponudjenaCena: undefined }} loading={false} error={false}
     missing={false} stale={false} busy={false} canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication}
     back={noop} retry={noop} apply={apply} />); });
-  const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
-  expect(price.props.children).toBe('Tražim ponude');
+  // The word is the worker's ("Prima ponude"), in the heading type and never in the amount's.
+  const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Prima ponude')[0];
+  expect(price.props.children).toBe('Prima ponude'); expect(price.props.variant).toBe('heading');
   expect(texts()).not.toContain('RSD');
   expect(texts()).not.toContain('NaN');
   expect(texts()).toContain('Ukupan iznos predlažeš u prijavi.');
@@ -199,11 +200,11 @@ test('closed applications remove the brand action and say so; the requester prof
     poverenje: { ocenaProsek: 4.8, brojRecenzija: 3, zavrseniBroj: 5, identitetVerifikovan: false, ocenaDostupna: true, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: false } } }} />));
   const copy = texts();
   // Step 7 (2026-09-24): the sheet wrote the raw number ("4.8"); a rating is written the Serbian way, as on every row.
-  // T4b1 (2026-10-07): the rating and the finished tasks are rows with one spoken sentence each ("4,8 · 3 ocene", "Završeno 5 zadataka").
+  // T4b1 (2026-10-07; `FactRow`s since 2026-10-08, F6): the rating and the finished tasks are rows with one spoken sentence each ("4,8 · 3 ocene", "Završeno 5 zadataka").
   const facts = tree.root.findByProps({ testID: 'public-profile-facts' }).findAll(node => typeof node.type === 'string' && node.props.accessible === true)
     .map(node => node.props.accessibilityLabel);
   expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('Volim red.');
-  expect(facts).toEqual(['Ocena: 4,8, 3 ocene', 'Završeno 5 zadataka']);
+  expect(facts).toEqual(['4,8 · 3 ocene', 'Završeno 5 zadataka']);
   expect(copy).not.toContain('Identitet je potvrđen');
   await act(async () => byLabel('Zatvori javni profil').props.onPress()); expect(close).toHaveBeenCalledTimes(1);
 });

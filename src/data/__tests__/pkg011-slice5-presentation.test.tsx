@@ -53,7 +53,7 @@ test('status follows the server state and availability is a read-only summary, n
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });
   expect(texts()).toContain('Profil je trenutno suspendovan');
-  await act(async () => byLabel('Piši podršci').props.onPress()); expect(navigate).toHaveBeenCalledWith('/podrska');
+  await act(async () => byLabel('Obrati se podršci').props.onPress()); expect(navigate).toHaveBeenCalledWith('/podrska');
 });
 test('status block: loading is spoken, an error keeps the one reload action', async () => {
   const retry = jest.fn();
@@ -114,7 +114,7 @@ test('while the keyboard is up the footer keeps its answer visible and hides onl
     expect(tree.root.findAllByProps({ testID: 'worker-profile-answer' })).toHaveLength(0);
     const footer = tree.root.findByProps({ testID: 'worker-profile-footer' });
     expect(StyleSheet.flatten(footer.props.style).paddingVertical).toBe(0);
-    expect(hidden(node('Sačuvaj izmene'))).toBe(true); expect(hidden(node('Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.'))).toBe(true);
+    expect(hidden(node('Sačuvaj izmene'))).toBe(true); expect(hidden(node('Tvoj tekst nije izgubljen. Ispod je prikazano samo ono što je sačuvano.'))).toBe(true);
     // A tap refuses while the keyboard stays up: its sentence is on screen and announced, the buttons still step aside.
     await act(async () => tree.update(screen(sentence)));
     expect(hidden(node(sentence))).toBe(false); expect(node(sentence).props.accessibilityRole).toBe('alert');

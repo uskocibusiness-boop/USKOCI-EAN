@@ -8,10 +8,13 @@ import { applicationSection, type ApplicationCounts, type ApplicationSection } f
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { layout, ruleWidth } from '../system/layout';
+import { ListRow } from '../system/ListRow';
 import { Segmented } from '../system/Segmented';
 import { prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
-import { brandAction, field, inset, sys } from '../system/tokens';
+import { Surface } from '../system/Surface';
+import { brandAction, field, sys } from '../system/tokens';
 import { T } from '../Text';
 import { ApplicationCard } from './ApplicationFace';
 import { V2Action } from './V2Action';
@@ -48,8 +51,9 @@ const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'all', 
 /** What an empty set says. "Čeka te" keeps its meaning: what waits for my decision (a changed task, a Dogovor to open). */
 const TAB_EMPTY: Record<ApplicationSection, string> = { attention: 'Ništa te ne čeka', active: 'Nema aktivnih prijava', finished: 'Nema završenih prijava' };
 const Separator = () => <View style={s.separator} />;
-function Note({ children, tone = 'muted' }: { children: ReactNode; tone?: 'muted' | 'warn' }) {
-  return <View style={[inset, s.notice, tone === 'warn' && s.noticeWarn]}><T accessibilityRole="alert" variant="body" style={s.ink}>{children}</T></View>;
+/** A sentence that has to stand out above the list: a flat tint, never a card among the cards. */
+function Note({ children, tone = 'wash' }: { children: ReactNode; tone?: 'wash' | 'warn' }) {
+  return <Surface kind="note" tone={tone}><T accessibilityRole="alert" variant="body">{children}</T></Surface>;
 }
 const keyOf = (p: MojaPrijavaProjekcija) => p.prijavaId;
 const deviceZone = (): string | undefined => {
@@ -57,12 +61,16 @@ const deviceZone = (): string | undefined => {
 };
 
 /**
- * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24). A detail screen: the
- * arrow back and the name, then readable capsule tabs (Sve · Čeka te · Aktivne · Završene,
- * with their counts; "Čeka te" keeps its orange count), then one card per application (`ApplicationFace`, the worker's side of
- * the shared `PrijavaCard`). No card edge carries a state: the card's chip says it, in the owner's five words (Poslata, Viđena,
- * Izabrana, Nije izabrana, Povučena). Empty, loading and error go through the one StateView. Presentation only: every callback
+ * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24; one control row and one record since
+ * 2026-10-08, composition spec 4.5 and 4.7). A detail screen: the arrow back and the name, then ONE control row (Sve · Čeka te · Aktivne ·
+ * Završene: four sets are chips, the one control that scrolls sideways, and "Čeka te" keeps its orange count), the count of what the
+ * set shows as the first line of the list ("3 prijave"), then one `Surface record` per application (`ApplicationFace`, the worker's side
+ * of the shared `PrijavaCard`), 12 apart. No card edge carries a state: the card's chip says it, in the owner's five words (Poslata,
+ * Viđena, Izabrana, Nije izabrana, Povučena). Empty, loading and error go through the one StateView. Presentation only: every callback
  * is the route's existing guarded command.
+ *
+ * What opens under a card whose task changed is a short list of what the person can do, each with what it means (keep it, change it,
+ * withdraw it) instead of four buttons of one look, and the form to change it when that is chosen.
  */
 export function MyApplicationsPresentation(props: Props) {
   const filtered = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
@@ -81,28 +89,36 @@ export function MyApplicationsPresentation(props: Props) {
   const expandedRow = props.expanded ? visible.find(p => p.prijavaId === props.expanded && p.stanje === 'STALE_REVIEW_REQUIRED') ?? null : null;
   function reviewOf(p: MojaPrijavaProjekcija) {
     const draft = props.draft;
-    return <View style={s.review}>
-      <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Aktuelni uslovi</T>
-      <T variant="body" style={s.ink}>{p.opis || 'Dodatni opis nije naveden.'}</T>
-      <T variant="note" tone="muted">Tvoja prijava je poslata pre promene zadatka. Zadržavanje čuva ponuđenu cenu, obim, termin i napomenu.</T>
-      {props.editingLoading ? <ActivityIndicator accessibilityLabel="Učitavanje sačuvanog termina" color={sys.color.green} /> : null}
-      {draft ? <View style={s.fields}>
-        <T accessibilityRole="header" variant="heading" style={s.ink}>Izmeni svoju prijavu</T><T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
-          : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
-          : draft.pricing.osnovaCene === 'TOTAL' ? 'Ukupna cena važi za ceo zadatak. Prijava pokriva sva mesta.' : 'Cena je određena u zadatku.'}</T>
-        <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T><TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
-        <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T><TextInput accessibilityLabel="Broj ljudi" value={draft.people} keyboardType="number-pad" editable={!disabled && !(draft.pricing.rezimCene === 'MY_PRICE' && draft.pricing.osnovaCene === 'TOTAL')} onChangeText={people => props.onChange({ ...draft, people })} style={s.input} />
-        <T variant="meta" tone="muted">Napomena</T><TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
-        <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
-          ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, deviceZone()) : 'Nije naveden u prijavi.'}</T>
-        <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled} style={brandAction} />
-        <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
-      </View> : <View style={s.decisions}>
-        <V2Action label="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} />
-        <V2Action label="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
-        <V2Action label="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} kind="destructive" style={s.quietLeft} />
-      </View>}
-      <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />
+    return <View testID="application-review">
+      <View pointerEvents="none" style={s.rule} />
+      <View style={s.review}>
+        <T accessibilityRole="header" variant="heading">Trenutni uslovi zadatka</T>
+        <T variant="body">{p.opis || 'Dodatni opis nije naveden.'}</T>
+        <T variant="note" tone="muted">Prijava je poslata pre nego što je zadatak izmenjen. Ako je zadržiš, ostaju ponuđena cena, obim, termin i napomena.</T>
+        {props.editingLoading ? <ActivityIndicator accessibilityLabel="Učitavanje sačuvanog termina" color={sys.color.green} /> : null}
+        {draft ? <View style={s.fields}>
+          <T accessibilityRole="header" variant="heading">Izmeni svoju prijavu</T>
+          <T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
+            : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
+            : draft.pricing.osnovaCene === 'TOTAL' ? 'Ukupna cena važi za ceo zadatak. Prijava pokriva sva mesta.' : 'Cena je određena u zadatku.'}</T>
+          <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T>
+          <TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
+          <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T>
+          <TextInput accessibilityLabel="Broj ljudi" value={draft.people} keyboardType="number-pad" editable={!disabled && !(draft.pricing.rezimCene === 'MY_PRICE' && draft.pricing.osnovaCene === 'TOTAL')} onChangeText={people => props.onChange({ ...draft, people })} style={s.input} />
+          <T variant="meta" tone="muted">Napomena</T>
+          <TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
+          <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
+            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, deviceZone()) : 'Nije naveden u prijavi.'}</T>
+          <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled} style={brandAction} />
+          <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
+        </View> : <View>
+          {/* What each choice means is its own second line: three buttons of one look said nothing about which one does what. */}
+          <ListRow title="Zadrži prijavu" subtitle="Ostaju tvoja cena, obim, termin i napomena." accessibilityLabel="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} />
+          <ListRow title="Izmeni prijavu" subtitle="Promeni cenu, broj ljudi ili poruku." accessibilityLabel="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
+          <ListRow title="Povuci izmenjenu prijavu" tone="danger" accessibilityLabel="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} />
+        </View>}
+        <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />
+      </View>
     </View>;
   }
   const review = expandedRow ? reviewOf(expandedRow) : null;
@@ -118,6 +134,7 @@ export function MyApplicationsPresentation(props: Props) {
     : tab === 'all' ? props.rows.length : props.rows.filter(p => applicationSection(p) === tab).length;
   // Whether there is any application at all: a tab of a paged set can be empty while the others are not.
   const hasAny = paging ? (serverCounts ? serverCounts.total > 0 : props.rows.length > 0) : props.rows.length > 0;
+  // A number is drawn only for what waits for the person ("Čeka te"); the others are spoken (`Segmented`).
   const tabs = TABS.map(option => ({ ...option, badge: count(option.key) || undefined, badgeLabel: prijava(count(option.key)),
     badgeTone: option.key === 'attention' ? 'attention' as const : undefined }));
   // The one state view (2026-09-24): reading, not read, nothing in this set, nothing yet — each in the same look.
@@ -132,12 +149,15 @@ export function MyApplicationsPresentation(props: Props) {
           : <StateView art="offers" title="Još nemaš prijavu" body="Kada se prijaviš na zadatak, ovde pratiš svoju prijavu i svaki sledeći korak."
             primary={{ label: 'Istraži zadatke', onPress: props.onExplore }} />}
   </View>;
+  const shown = count(props.tab);
+  const showsFeedback = !props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed);
+  const showsCount = !props.loading && !props.unavailable && shown > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
-    {/* Four complete labels/counts stay in one scrollable capsule rail, without fading text at its edge. With no
+    {/* ONE control row: four sets are chips, and chips are the one control that scrolls sideways (they run out to the edges). With no
         application there is nothing to switch, so the first-run state stands alone under the bar. */}
-    {!props.unavailable && (hasAny || props.loading) ? <View style={s.controls}>
-      <Segmented contentSized scroll value={props.tab} onChange={props.onTab} options={tabs} />
+    {!props.unavailable && (hasAny || props.loading) ? <View testID="applications-tabs" style={s.controls}>
+      <Segmented value={props.tab} onChange={props.onTab} options={tabs} />
     </View> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
       <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={keyOf}
@@ -150,41 +170,46 @@ export function MyApplicationsPresentation(props: Props) {
         onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
         ListFooterComponent={paging && !props.loading && !props.unavailable && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
           {paging.moreError ? <>
-            <T variant="note" tone="muted">Nije uspelo učitavanje još prijava.</T>
+            <T variant="note" tone="muted">Ne možemo da učitamo ostale prijave.</T>
             <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
           </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
             : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
         </View> : null}
-        ListHeaderComponent={!props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed) ? <View style={s.feedback}>
-          {missingNamed ? <View style={[inset, s.notice]}><T variant="body" accessibilityRole="alert" style={s.ink}>Ova prijava trenutno nije dostupna</T>
-            <T variant="note" tone="muted">Osveži spisak da proveriš njeno stanje.</T>
-            <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></View> : null}
-          {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
-          {/* A command waits for its readback: a flat tint above the list, never a card among the cards. */}
-          {props.pending ? <View style={[inset, s.pending]}><T variant="body" style={s.ink}>{props.busy ? 'Čekamo potvrdu radnje…' : 'Pre nove odluke proveri sačuvano stanje. Ponovno slanje koristi istu ponudu.'}</T>
-            <V2Action label="Proveri sačuvano stanje" onPress={props.onRefresh} disabled={props.busy} />
-            {props.canRetry ? <V2Action label="Pošalji ponovo" onPress={props.onRetry} disabled={props.busy} /> : null}
-            {props.canReset ? <V2Action label="Pregledaj aktuelnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</View> : null}
+        ListHeaderComponent={showsFeedback || showsCount ? <View style={s.head}>
+          {showsFeedback ? <View style={s.feedback}>
+            {missingNamed ? <Surface kind="note"><T variant="body" accessibilityRole="alert">Ova prijava trenutno nije dostupna</T>
+              <T variant="note" tone="muted">Osveži listu da proveriš njeno stanje.</T>
+              <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></Surface> : null}
+            {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
+            {/* A command waits for its readback: a flat tint above the list, never a card among the cards. */}
+            {props.pending ? <Surface kind="note"><T variant="body">{props.busy ? 'Čekamo potvrdu radnje…' : 'Pre nego što nastaviš, proveri da li je prijava stigla. Ako je pošalješ ponovo, šalje se ista ponuda.'}</T>
+              <V2Action label="Proveri da li je poslato" onPress={props.onRefresh} disabled={props.busy} />
+              {props.canRetry ? <V2Action label="Pošalji ponovo" onPress={props.onRetry} disabled={props.busy} /> : null}
+              {props.canReset ? <V2Action label="Pregledaj trenutnu prijavu" onPress={props.onReset} disabled={props.busy} /> : null}</Surface> : null}
+          </View> : null}
+          {/* How many applications the set shows: the list's first line, which scrolls away with it. */}
+          {showsCount ? <T testID="applications-count" variant="note" tone="muted">{prijava(shown)}</T> : null}
         </View> : null}
         renderItem={renderItem} />
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, ink: { color: sys.color.ink },
-  controls: { paddingHorizontal: 20, paddingTop: 4 },
-  list: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28 },
-  separator: { height: 12 },
-  empty: { flex: 1, paddingVertical: 8 },
-  // The review of a changed task opens under the card's body, below the one hairline that parts two targets.
-  review: { gap: 12, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, borderTopWidth: 1, borderTopColor: sys.color.line },
-  decisions: { gap: 8 },
-  fields: { gap: 8 },
+  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
+  // The control row under the bar: the screen's edge each side and 8 under the bar; the chips bleed to the edges by that same width.
+  controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
+  // The list: the edge, 12 under the control row, 32 under the last card; a card from the next 12 below it.
+  list: { flexGrow: 1, paddingHorizontal: layout.gutter, paddingTop: sys.space.md, paddingBottom: layout.zone },
+  separator: { height: layout.group },
+  empty: { flex: 1, paddingVertical: sys.space.sm },
+  head: { gap: sys.space.md, paddingBottom: sys.space.sm },
+  feedback: { gap: sys.space.md },
+  // The review of a changed task opens under the card's body, below the one line that parts two touch zones.
+  rule: { height: ruleWidth, backgroundColor: sys.color.line },
+  review: { gap: sys.space.md, padding: layout.card },
+  fields: { gap: sys.space.sm },
   input: { ...field },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
+  multiline: { minHeight: 96, textAlignVertical: 'top' },
   quietLeft: { alignSelf: 'flex-start', paddingHorizontal: 0 },
-  notice: { gap: 6, backgroundColor: sys.color.greenSoft }, noticeWarn: { backgroundColor: sys.color.warnSoft },
-  pending: { gap: 8, backgroundColor: sys.color.wash },
-  feedback: { gap: 10, marginBottom: 14 },
-  foot: { paddingTop: 16, alignItems: 'center', gap: 8 },
+  foot: { paddingTop: sys.space.base, alignItems: 'center', gap: sys.space.sm },
 });

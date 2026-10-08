@@ -1,16 +1,15 @@
-import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../contracts/projections';
 import { novac } from '../lib/novac';
 import { useConfirmSheet } from '../ui/system/ConfirmSheet';
-import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { Segmented } from '../ui/system/Segmented';
+import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
-import { ApplicationCard } from '../ui/v2/ApplicationFace';
 import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from '../ui/v2/MyApplicationsPresentation';
 
 /**
@@ -58,34 +57,35 @@ const DRAFT: OfferEdit = { price: '2000', people: '1', note: 'Donosim bušilicu 
   pricing: { rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 2000 }, pokrivenost: { ukupno: 2 } } };
 const noop = () => {};
 
+const isScene = (value: unknown): value is Scene => SCENES.some(({ key }) => key === value);
+
 export default function DizajnPrijave() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
-  const [scene, setScene] = useState<Scene>('lista');
-  const [tab, setTab] = useState<ApplicationsTab>('all');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [draft, setDraft] = useState<OfferEdit | null>(null);
+  // A scene can be opened by its address (`/dizajn-prijave?scene=dugi`); the lab moves between them without reloading the page.
+  const params = useLocalSearchParams<{ scene?: string | string[] }>();
+  const requested = typeof params.scene === 'string' && isScene(params.scene) ? params.scene : undefined;
+  const [scene, setScene] = useState<Scene>(requested ?? 'lista');
+  const [tab, setTab] = useState<ApplicationsTab>(requested === 'prazanSkup' ? 'attention' : 'all');
+  const [expanded, setExpanded] = useState<string | null>(requested === 'pregled' || requested === 'izmena' ? 'stale' : null);
+  const [draft, setDraft] = useState<OfferEdit | null>(requested === 'izmena' ? DRAFT : null);
   const confirmation = useConfirmSheet();
-  if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   const choose = (next: Scene) => {
     setScene(next); setTab(next === 'prazanSkup' ? 'attention' : 'all'); setDraft(next === 'izmena' ? DRAFT : null);
     setExpanded(next === 'pregled' || next === 'izmena' ? 'stale' : null);
   };
+  useEffect(() => { if (requested) choose(requested); }, [requested]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   // "Prazan prikaz": applications exist, but nothing waits for me, and "Čeka te" is the chosen tab.
-  const rows = scene === 'dugi' ? LONG : scene === 'prazno' || scene === 'ucitava' || scene === 'greska' ? []
+  const rows = scene === 'dugi' ? LONG : scene === 'veliki' ? [...LIST, ...LONG] : scene === 'prazno' || scene === 'ucitava' || scene === 'greska' ? []
     : scene === 'prazanSkup' ? LIST.filter(p => !p.traziPaznju) : LIST;
   // The withdrawal question is the real sheet; its answer does nothing here.
   const ask = (p: MojaPrijavaProjekcija) => confirmation.ask({ title: 'Povući prijavu?', message: `Prijava za „${p.naslov}” više neće biti aktivna.`,
     cancelLabel: 'Odustani', confirmLabel: 'Povuci', tone: 'danger', onConfirm: noop });
   return <SafeAreaView edges={['bottom']} style={s.screen}>
     <View style={s.stage}>
-      {scene === 'veliki' ? <SafeAreaView edges={['top']} style={s.screen}>
-        <DetailTopBar title="Kartice · veliki tekst" onBack={() => router.back()} />
-        {/* The layout the card takes at the owner's large font (text scale 1.3), drawn at this phone's own text size. */}
-        <ScrollView contentContainerStyle={s.cards}>
-          {[...LIST, ...LONG].map(p => <ApplicationCard key={p.prijavaId} row={p} large onTask={noop} onAgreement={noop} onReview={noop} onWithdraw={() => ask(p)} />)}
-        </ScrollView>
-      </SafeAreaView>
-        : <MyApplicationsPresentation rows={rows} loading={scene === 'ucitava'} unavailable={scene === 'greska'}
+      {/* The lab has no system font, so the layout the owner's large text takes (scale 1.3: the parts stand under each other) is forced. */}
+      <LayoutClassOverride.Provider value={scene === 'veliki' ? LARGE_LAYOUT : null}>
+        <MyApplicationsPresentation rows={rows} loading={scene === 'ucitava'} unavailable={scene === 'greska'}
           message={scene === 'greska' ? 'Pokušaj ponovo za trenutak.' : null}
           notice={scene === 'ceka' ? 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.' : null}
           tab={tab} onTab={setTab} expanded={expanded} draft={draft}
@@ -93,7 +93,8 @@ export default function DizajnPrijave() {
           onRefresh={noop} onExplore={noop} onProfile={noop} onBack={() => router.back()}
           onReview={p => setExpanded(p.prijavaId)} onClose={() => { setExpanded(null); setDraft(null); }} onEdit={() => setDraft(DRAFT)}
           onChange={setDraft} onCancelEdit={() => setDraft(null)} onKeep={noop} onUpdate={noop} onWithdraw={ask}
-          onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />}
+          onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />
+      </LayoutClassOverride.Provider>
     </View>
     <View style={s.strip}>
       <Segmented scroll value={scene} onChange={choose} options={SCENES} />
@@ -105,6 +106,5 @@ export default function DizajnPrijave() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   stage: { flex: 1 },
-  cards: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, gap: 12 },
   strip: { paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
 });

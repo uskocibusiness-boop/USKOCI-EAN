@@ -87,7 +87,7 @@ test('while a page is read the foot says so, offers no second request and the en
 
 test('a page that failed keeps the list, says so, and offers the same call again - the end of the list never retries it by itself', async () => {
   paging = makePaging({ moreError: true }); await render();
-  expect(texts()).toContain('Nije uspelo učitavanje još prijava.'); expect(actions()).toEqual(['Pokušaj ponovo', 'Osveži prijave']);
+  expect(texts()).toContain('Ne možemo da učitamo ostale prijave.'); expect(actions()).toEqual(['Pokušaj ponovo', 'Osveži prijave']);
   expect(list().props.onEndReached).toBeUndefined();
   await act(async () => action('Pokušaj ponovo').props.onPress()); expect(loadMore).toHaveBeenCalledTimes(1);
 });

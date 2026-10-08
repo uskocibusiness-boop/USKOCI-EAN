@@ -5,11 +5,11 @@ import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/p
 import { sys } from '../../ui/system/tokens';
 
 /**
- * The face of my application (owner's step 5c, 2026-09-24; one object for both people since 2026-10-07): the shared
- * `PrijavaCard`. The state as the app's one StatusChip in the owner's five words and never a coloured card edge; the title
- * of the task; then the term, the price ("ukupno" under the amount, or "Iznos nije sačuvan"), the people and my message, in
- * that fixed order; and at most ONE foot action, the one the state allows, as a quiet row link beside the body and never a
- * button inside it.
+ * The face of my application (owner's step 5c, 2026-09-24; one object for both people since 2026-10-07; one `Surface record` since
+ * 2026-10-08): the shared `PrijavaCard`. The state as the app's one StatusChip in the owner's five words and never a coloured card edge;
+ * the title of the task; then the term, the offer and the people on ONE line ("4.500 RSD ukupno · 2 osobe", or "Cena nije navedena"), and
+ * my message, in that fixed order; and at most ONE foot action, the one the state allows, as a quiet row link under a line, beside the body
+ * and never a button inside it.
  */
 let mockScale = 1;
 jest.mock('react-native', () => {
@@ -24,9 +24,9 @@ jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual('../../ui/system/textScale');
   return { ...actual, useTextScale: () => mockScale, useLayoutClass: () => actual.layoutClassFor(411, mockScale) }; });
 import { ApplicationCard, applicationFoot, applicationSpoken, applicationStatus, applicationValue, workerPrijava } from '../../ui/v2/ApplicationFace';
+import { MoneyLine } from '../../ui/v2/offer/RecordParts';
 import { PrijavaPriceText } from '../../ui/v2/PrijavaCard';
 import { STATUS_CHIPS } from '../../ui/system/StatusChip';
-import { faceStyles } from '../../ui/v2/TaskFace';
 
 const row = (patch: Partial<MojaPrijavaProjekcija> = {}): MojaPrijavaProjekcija => ({ prijavaId: 'a1', potrebaId: 'n1', potrebaRevizija: 3,
   prijavaRevizija: 3, prijavaVerzija: 1, stanje: 'SUBMITTED', naslov: 'Unos ormara', opis: '', cena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' },
@@ -44,7 +44,8 @@ const texts = () => tree.root.findAll(node => node.type === ('T' as React.Elemen
 const textNode = (value: string) => tree.root.find(node => node.type === ('T' as React.ElementType) && node.props.children === value);
 const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const presses = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType));
-const frame = () => tree.root.findAll(node => node.type === ('View' as React.ElementType))[0];
+/** The frame of the card: the record's own view, the one with the edge. */
+const frame = () => tree.root.findAll(node => node.type === ('View' as React.ElementType) && style(node).borderColor !== undefined)[0];
 beforeEach(() => { mockScale = 1; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
@@ -130,7 +131,9 @@ describe('the one foot action', () => {
     await render(<ApplicationCard row={inState('SUBMITTED')} {...each.sent} />);
     const [body, foot] = presses();
     expect(body.findAll(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
-    expect(foot.parent).toBe(body.parent);
+    // The foot stands beside the body under the record (its own component is one step in between), never inside it. Compared as booleans: a
+    // failed comparison of two test instances would try to print both trees.
+    expect(foot.parent!.parent === body.parent).toBe(true); expect(body.findAll(node => node === foot)).toHaveLength(0);
     await act(async () => foot.props.onPress());
     expect(each.sent.onWithdraw).toHaveBeenCalledTimes(1);
     expect(each.sent.onTask).not.toHaveBeenCalled(); expect(each.sent.onAgreement).not.toHaveBeenCalled();
@@ -145,11 +148,11 @@ describe('the one foot action', () => {
     expect(each.stale.onReview).toHaveBeenCalledTimes(1); expect(each.stale.onWithdraw).not.toHaveBeenCalled();
   });
 
-  it('is a quiet row link on the card\'s white (the waiting one on the wash strip), with 48 px of touch and no fill of its own', async () => {
+  it('is a quiet row link on the card\'s white, under the card\'s one line, with 48 px of touch and no fill of its own', async () => {
     await render(<ApplicationCard row={inState('SUBMITTED')} {...handlers()} />);
     const withdraw = presses()[1];
-    expect(withdraw.props.style).toBe(faceStyles.footLink);
     expect(style(withdraw)).not.toHaveProperty('backgroundColor');
+    expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && style(node).height === 1 && style(node).backgroundColor === sys.color.line)).toHaveLength(1);
     expect(style(withdraw).minHeight).toBeGreaterThanOrEqual(48);
     // Review r4 item 7 (was: danger red on every open card). Withdrawing is rare, so the link is quiet ink; the danger
     // colour stays in the question it opens (the screen's ConfirmSheet, tone "danger").
@@ -157,7 +160,6 @@ describe('the one foot action', () => {
     await render(<ApplicationCard row={inState('SELECTED')} {...handlers()} />);
     expect(style(textNode('Otvori Dogovor')).color).toBe(sys.color.green);
     await render(<ApplicationCard row={inState('STALE_REVIEW_REQUIRED')} {...handlers()} />);
-    expect(presses()[1].props.style).toBe(faceStyles.ownerFoot);
     expect(style(textNode('Pregledaj izmene zadatka')).color).toBe(sys.color.warn);
   });
 
@@ -179,33 +181,38 @@ describe('the one foot action', () => {
 });
 
 describe('the facts, in one fixed order', () => {
-  it('says the task, then the term, the price, the people and my message, and nothing else', async () => {
+  it('says the task, then the term, the offer and the people on one line, and my message, and nothing else', async () => {
     await render(<ApplicationCard row={row()} {...handlers()} />);
-    // The same order on every card of the list and on the requester's card of the same application (PrijavaCard); the foot, when the
+    // The same anatomy on every card of the list and on the requester's card of the same application (PrijavaCard); the foot, when the
     // state allows one, is the last thing on the card.
-    expect(texts()).toEqual(['Poslata', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '2 osobe', '„Donosim trake.“', 'Povuci prijavu']);
+    expect(texts()).toEqual(['Poslata', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '·', '2 osobe', '„Donosim trake.“', 'Povuci prijavu']);
     await render(<ApplicationCard row={inState('CLOSED')} {...handlers()} />);
-    expect(texts()).toEqual(['Nije izabrana', 'Zadatak više ne prima prijave.', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '2 osobe', '„Donosim trake.“']);
+    expect(texts()).toEqual(['Nije izabrana', 'Zadatak više ne prima prijave.', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '·', '2 osobe', '„Donosim trake.“']);
   });
 
-  it('says the amount in ink, bold, with tabular figures and its currency kept, and "ukupno" beside it as a quiet word', async () => {
+  it('says the amount as the money figure it is (ink, tabular, its currency kept), and "ukupno" beside it as a quiet word, on one line', async () => {
     await render(<ApplicationCard row={row()} {...handlers()} />);
-    expect(style(textNode('4.500 RSD'))).toMatchObject({ color: sys.color.money, fontWeight: '600', fontVariant: ['tabular-nums'], textAlign: 'left' });
+    // The weight and the figures are the `priceRow` type's; the colour and the room are the line's.
+    expect(textNode('4.500 RSD').props.variant).toBe('priceRow');
+    expect(style(textNode('4.500 RSD'))).toMatchObject({ color: sys.color.money, textAlign: 'left' });
     // What the amount buys is a word: it never wears the amount's weight.
-    expect(style(textNode('ukupno'))).toMatchObject({ color: sys.color.muted, fontWeight: '500' });
-    expect(textNode('ukupno').parent).toBe(textNode('4.500 RSD').parent);
+    expect(textNode('ukupno').props).toMatchObject({ variant: 'note', tone: 'muted' });
+    // The offer and the people are the parts of ONE line: the same money line holds both, and the dot between them goes with the part before it.
+    const line = tree.root.findByType(MoneyLine);
+    for (const part of ['4.500 RSD', 'ukupno', '·', '2 osobe']) expect(line.findAll(node => String(node.type) === 'T' && node.props.children === part)).toHaveLength(1);
+    expect(textNode('ukupno').parent === textNode('4.500 RSD').parent).toBe(true);
   });
 
-  it('a missing amount says "Iznos nije sačuvan" as a quiet word, never drawn as money', async () => {
+  it('a missing amount says "Cena nije navedena" as a quiet word, never drawn as money', async () => {
     for (const cena of [{ iznos: 0, valuta: 'RSD', prikaz: '' }, { iznos: Number.NaN, valuta: 'RSD', prikaz: 'NaN RSD' }, { iznos: 3000, valuta: 'RSD', prikaz: ' ' }]) {
       await render(<ApplicationCard row={row({ cena })} {...handlers()} />);
       expect(applicationValue({ cena })).toEqual({ kind: 'unpriced' });
       expect(texts()).not.toContain('ukupno');
-      const word = style(textNode('Iznos nije sačuvan'));
-      expect(word.color).toBe(sys.color.muted); expect(word.color).not.toBe(sys.color.money); expect(word.fontWeight).not.toBe('700');
+      const word = textNode('Cena nije navedena');
+      expect(word.props).toMatchObject({ variant: 'note', tone: 'muted' }); expect(word.props.variant).not.toBe('priceRow');
       // No figure, no currency, and never "0 RSD".
       expect(texts().some(text => /RSD|NaN|^0/.test(text))).toBe(false);
-      expect(texts()).not.toContain('Cena nije navedena');
+      expect(texts()).not.toContain('Iznos nije sačuvan');
     }
   });
 
@@ -230,23 +237,25 @@ describe('the facts, in one fixed order', () => {
     expect(presses()[0].props.accessibilityValue.text).toBe(`${word}${reason}, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.`);
   });
 
-  it('the price stays on its text column, wraps a long amount and keeps the complete title at large text', async () => {
+  it('the offer stays on its text column, wraps a long amount and keeps the complete title at large text, where its parts stand under each other', async () => {
     mockScale = 1.3;
     await render(<ApplicationCard row={row()} {...handlers()} />);
     const amount = textNode('4.500 RSD');
     expect(style(amount).textAlign).toBe('left');
-    expect(style(amount.parent!)).toMatchObject({ flexDirection: 'column', flexWrap: 'wrap' });
+    expect(style(amount.parent!)).toMatchObject({ flexDirection: 'column' });
     expect(style(amount)).toMatchObject({ flexShrink: 1, maxWidth: '100%' });
     expect(textNode('Unos ormara').props.numberOfLines).toBeUndefined();
+    // Under each other the parts need no dot: a dot that begins a line is a dot with nothing before it.
+    expect(texts()).toContain('2 osobe'); expect(texts()).not.toContain('·');
     mockScale = 1;
     await render(<ApplicationCard row={row()} {...handlers()} />);
     expect(style(tree.root.findByType(PrijavaPriceText).findAllByType('View' as React.ElementType)[0]).flexDirection).toBe('row');
-    expect(textNode('4.500 RSD').parent).toBe(textNode('ukupno').parent);
+    expect(textNode('4.500 RSD').parent === textNode('ukupno').parent).toBe(true); expect(texts()).toContain('·');
   });
 
-  it('the people and the message are fact pictures of their own, and the amount is the only thing drawn as money', async () => {
+  it('only the term has a fact picture: the offer, the people and the message are words, and the amount is the only thing drawn as money', async () => {
     await render(<ApplicationCard row={row()} {...handlers()} />);
-    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['users', 'chat']);
+    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['calendar']);
   });
 });
 
@@ -272,7 +281,7 @@ describe('reading my complete application message', () => {
     await render(<ApplicationCard row={row({ napomena: note })} {...callbacks} />);
     const body = presses()[0], control = toggle();
     expect(messageNode().props.numberOfLines).toBe(2);
-    expect(control.parent).toBe(body.parent);
+    expect(control.parent === body.parent).toBe(true);
     expect(body.findAll(node => node.type === ('Press' as React.ElementType))).toHaveLength(1);
     expect(style(control).minHeight).toBeGreaterThanOrEqual(48);
     await act(async () => control.props.onPress());

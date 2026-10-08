@@ -3,21 +3,21 @@ import type { Ishod } from './ports';
 import { failure, positiveInteger, readReceipt, record, sameId, uuid } from './serverReceipt';
 
 const LIFECYCLE_COPY: Readonly<Record<string, string>> = {
-  ACCOUNT_CLOSING: 'Radnja je zaustavljena zbog postupka zatvaranja naloga. Osveži prikaz.',
-  NEED_COMMAND_INVALID_INPUT: 'Ponovo otvori zadatak i pregledaj aktuelne podatke.',
-  NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW: 'Zadatak već ima Dogovor. Otkazivanje ide kroz Dogovor, ne kroz zadatak.',
+  ACCOUNT_CLOSING: 'Ovo ne možeš da uradiš dok se tvoj nalog zatvara.',
+  NEED_COMMAND_INVALID_INPUT: 'Ponovo otvori zadatak da vidiš najnovije podatke.',
+  NEED_CANCELLATION_REQUIRES_AGREEMENT_FLOW: 'Zadatak već ima Dogovor. Otkaži Dogovor, a ne zadatak.',
   NEED_NOT_CANCELLABLE: 'Ovaj zadatak više ne može da se otkaže.',
   NEED_NOT_DELETABLE_DRAFT: 'Samo neobjavljen nacrt može da se obriše.',
   DRAFT_MEDIA_CLEANUP_REQUIRED: 'Ukloni fotografije iz nacrta pre brisanja.',
-  DRAFT_HAS_AUTHORITATIVE_HISTORY: 'Ovaj nacrt ima istoriju i ne može da se obriše. Možeš ga otkazati.',
-  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Osveži prikaz pa pokušaj ponovo.',
-  NEED_NOT_FOUND: 'Zadatak nije pronađen.', FORBIDDEN: 'Ovo nije tvoj zadatak.',
+  DRAFT_HAS_AUTHORITATIVE_HISTORY: 'Ovaj nacrt ima istoriju i ne može da se obriše. Možeš da otkažeš zadatak.',
+  STALE_REVIEW_REQUIRED: 'Zadatak je u međuvremenu promenjen. Osveži ekran pa pokušaj ponovo.',
+  NEED_NOT_FOUND: 'Ovaj zadatak više ne postoji. Vrati se na zadatke.', FORBIDDEN: 'Ovo nije tvoj zadatak.',
   AUTH_REQUIRED: 'Prijavi se da nastaviš.',
 };
 export const knownNeedLifecycleRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(LIFECYCLE_COPY, kod);
 function invalidInput(needId: string, revision: number, reason: string): Ishod<never> | null {
   return uuid(needId) && positiveInteger(revision) && typeof reason === 'string' && Array.from(reason).length <= 500 ? null
-    : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori zadatak i pregledaj aktuelne podatke.');
+    : failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori zadatak da vidiš najnovije podatke.');
 }
 
 /** Revision-bound terminal commands. No defaults may manufacture a server outcome. */
@@ -28,7 +28,7 @@ export const needLifecycleClientService = {
     const invalid = invalidInput(command.needId, command.expectedRevision, command.reason);
     if (invalid) return invalid;
     if (command.action !== 'CANCEL' && command.action !== 'DELETE_DRAFT')
-      return failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori zadatak i pregledaj aktuelne podatke.');
+      return failure('NEED_COMMAND_INVALID_INPUT', 'Ponovo otvori zadatak da vidiš najnovije podatke.');
     return readReceipt({
       rpc: 'rpc_get_need_lifecycle_receipt',
       args: { p_need_id: command.needId, p_need_revision: command.expectedRevision, p_action: command.action },

@@ -67,7 +67,8 @@ const menuItems = () => presses().filter(node => node.props.accessibilityRole ==
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
 const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
-const words = (node: ReactTestInstance) => StyleSheet.flatten(node.findByType('T' as React.ElementType).props.style) as { color?: string };
+/** The tone of a row's title: the first words it draws. */
+const tone = (node: ReactTestInstance) => node.findAllByType('T' as React.ElementType)[0].props.tone as string;
 const sheets = () => tree.root.findAllByType(ConfirmSheet);
 const inSheet = (testID: string) => act(async () => { sheets()[0].findByProps({ testID }).props.onPress(); });
 beforeEach(() => {
@@ -82,19 +83,18 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('a draft draws "Izmeni nacrt" (white) and, last, "Obriši nacrt" (danger) in plain sight, under the footer\'s ONE green action', async () => {
+it('a draft draws "Izmeni nacrt" and, last, "Obriši nacrt" (danger) as two rows in plain sight, under the footer\'s ONE green action', async () => {
   await render();
   expect(row('Izmeni nacrt')).toHaveLength(1); expect(row('Obriši nacrt')).toHaveLength(1);
   const order = presses().map(node => node.props.accessibilityLabel);
   // The edit, then the deletion, both after the content and before the footer's action; the deletion is the last of the page's own commands.
   expect(order.indexOf('Izmeni nacrt')).toBeLessThan(order.indexOf('Obriši nacrt'));
   expect(order.indexOf('Obriši nacrt')).toBeLessThan(order.indexOf('Pregledaj za objavu'));
-  // White with a line, and ink words; the deletion has no fill and its words are the danger colour.
-  expect(surfaceOf(row('Izmeni nacrt')[0].props.style)).toBe(sys.color.surface); expect(words(row('Izmeni nacrt')[0]).color).toBe(sys.color.ink);
-  expect(surfaceOf(row('Obriši nacrt')[0].props.style)).toBe('transparent'); expect(words(row('Obriši nacrt')[0]).color).toBe(sys.color.danger);
+  // Two rows of the page's one list, no fill of their own: the words of the edit are ink and the words of the deletion are the danger colour.
+  expect(tone(row('Izmeni nacrt')[0])).toBe('ink'); expect(tone(row('Obriši nacrt')[0])).toBe('danger');
   // The only green fill is the footer's one action.
   expect(brand()).toEqual(['Pregledaj za objavu']);
-  // Each is at least a full 48 touch target.
+  // Each is at least a full 48 touch target (a row's own 56 and 64).
   for (const label of ['Izmeni nacrt', 'Obriši nacrt']) expect(StyleSheet.flatten(row(label)[0].props.style).minHeight).toBeGreaterThanOrEqual(48);
 });
 

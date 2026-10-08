@@ -62,7 +62,7 @@ const deferred = () => { let resolve!: (value: any) => void; const promise = new
 // Alert used to get), for the tests that fire an answer after the screen has retired its question.
 const sheet = () => tree!.root.findByType(ConfirmSheet);
 const sheets = () => tree!.root.findAllByType(ConfirmSheet);
-const confirm = () => { const open = sheet(); expect(open.props).toMatchObject({ title: 'Povući prijavu?', confirmLabel: 'Povuci', cancelLabel: 'Odustani', tone: 'danger' });
+const confirm = () => { const open = sheet(); expect(open.props).toMatchObject({ title: 'Povući prijavu?', confirmLabel: 'Povuci prijavu', cancelLabel: 'Odustani', tone: 'danger' });
   return open.findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress; };
 const cancel = () => sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress;
 const retained = () => sheet().props.onConfirm;
@@ -119,10 +119,10 @@ it('reconfirmation of a total-price task covers every place with the task total'
 it('a definite price refusal leads to review after readback, without treating the result as a network loss', async () => {
   mockResolve.mockResolvedValueOnce({ ok: false, kod: 'FIXED_PRICE_MISMATCH', poruka: 'hidden backend detail' });
   await review(); await tap('Zadrži prijavu');
-  expect(text()).toContain('Cena prijave mora da prati cenu i obračun iz zadatka');
-  expect(text()).not.toContain('hidden backend detail'); expect(text()).not.toContain('Ishod radnje nije potvrđen');
-  await tap('Proveri sačuvano stanje'); expect(press('Pošalji ponovo')).toBeUndefined();
-  await tap('Pregledaj aktuelnu prijavu'); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
+  expect(text()).toContain('Cena u prijavi mora da bude ista kao cena u zadatku');
+  expect(text()).not.toContain('hidden backend detail'); expect(text()).not.toContain('Ne znamo da li je radnja uspela');
+  await tap('Proveri da li je poslato'); expect(press('Pošalji ponovo')).toBeUndefined();
+  await tap('Pregledaj trenutnu prijavu'); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
   expect(press('Sačuvaj izmenjenu prijavu')).toBeDefined();
 });
 it('filters actual attention, active and finished rows without changing their status', async () => {
@@ -219,7 +219,7 @@ it('requires a visible stale review, then KEEP preserves null-ignored fields and
   expect(text()).toContain('Dvoje ljudi i trake.'); expect(text()).toContain('20. septembar');
   const keep = press('Zadrži prijavu'); await act(async () => { keep(); keep(); }); expect(mockResolve).toHaveBeenCalledTimes(1);
   expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'KEEP', ocekivanaVerzija: 2, ocekivanaPotrebaRevizija: 4, cenaRsd: null, napomena: null });
-  expect(mockRead).toHaveBeenCalledTimes(2); expect(text()).toContain('Prijava je usklađena');
+  expect(mockRead).toHaveBeenCalledTimes(2); expect(text()).toContain('Prijava je ažurirana');
 });
 it('updates price, people and note while preserving the exact existing interval including microseconds', async () => {
   await editing(); expect(mockInterval).toHaveBeenCalledWith(stale()); expect(text()).toContain('Ponuđeni termin ostaje nepromenjen');
@@ -236,7 +236,7 @@ it('shows an interval inside one minute as one time, with an honest unknown time
 });
 it('does not infer a missing interval as null and refuses editing after an interval read failure', async () => {
   mockInterval.mockResolvedValue({ ok: false, kod: 'CHANGED', poruka: 'private raw error' }); await editing();
-  expect(press('Sačuvaj izmenjenu prijavu')).toBeUndefined(); expect(text()).toContain('Sačuvani termin ili aktuelna cena nisu potvrđeni'); expect(text()).not.toContain('private raw'); expect(mockResolve).not.toHaveBeenCalled();
+  expect(press('Sačuvaj izmenjenu prijavu')).toBeUndefined(); expect(text()).toContain('Ne možemo da prikažemo termin i cenu prijave'); expect(text()).not.toContain('private raw'); expect(mockResolve).not.toHaveBeenCalled();
 });
 it('accepts an explicitly read null interval without inventing a time', async () => {
   mockInterval.mockResolvedValue({ ok: true, podatak: { start: null, end: null, pricing } }); await editing(); await tap('Sačuvaj izmenjenu prijavu');
@@ -301,22 +301,22 @@ it('unknown UPDATE requires readback then retries the identical immutable payloa
   mockResolve.mockResolvedValue({ ok: false, kod: 'NETWORK', poruka: 'secret backend text' }); await editing(); await edit('Cena ponude (RSD)', '5600');
   const oldSave = press('Sačuvaj izmenjenu prijavu'); await tap('Sačuvaj izmenjenu prijavu'); expect(press('Pošalji ponovo')).toBeUndefined();
   expect(text()).not.toContain('secret backend text'); await act(async () => oldSave()); expect(mockResolve).toHaveBeenCalledTimes(1);
-  mockRows = [stale()]; mockRows[0].potrebaRevizija = 5; await tap('Proveri sačuvano stanje'); await tap('Pošalji ponovo');
+  mockRows = [stale()]; mockRows[0].potrebaRevizija = 5; await tap('Proveri da li je poslato'); await tap('Pošalji ponovo');
   expect(mockResolve.mock.calls[1][0]).toEqual(mockResolve.mock.calls[0][0]); expect(mockResolve.mock.calls[1][0].ocekivanaPotrebaRevizija).toBe(4);
 });
 it('known stale rejection permits a new reviewed intent only after readback', async () => {
   mockResolve.mockResolvedValueOnce({ ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: 'raw data' }); await review(); await tap('Zadrži prijavu');
-  expect(press('Pregledaj aktuelnu prijavu')).toBeUndefined(); await tap('Proveri sačuvano stanje'); await tap('Pregledaj aktuelnu prijavu');
+  expect(press('Pregledaj trenutnu prijavu')).toBeUndefined(); await tap('Proveri da li je poslato'); await tap('Pregledaj trenutnu prijavu');
   await tap(REVIEW_FOOT); await tap('Zadrži prijavu'); expect(mockResolve.mock.calls[1][0].clientRequestId).not.toBe(mockResolve.mock.calls[0][0].clientRequestId);
 });
 it('a malformed receipt cannot fabricate success or unlock a changed command', async () => {
   mockResolve.mockResolvedValue({ ok: true, podatak: { status: 'SUBMITTED', version: 2 } }); await review(); await tap('Zadrži prijavu');
-  expect(text()).toContain('Ishod radnje nije potvrđen'); expect(text()).not.toContain('Prijava je usklađena'); expect(mockRead).toHaveBeenCalledTimes(1);
+  expect(text()).toContain('Ne znamo da li je radnja uspela'); expect(text()).not.toContain('Prijava je ažurirana'); expect(mockRead).toHaveBeenCalledTimes(1);
 });
 it('a valid receipt plus failed readback says refresh is needed without an optimistic card', async () => {
   await render(); mockRead.mockRejectedValueOnce(new Error('private server path')); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
-  expect(text()).toContain('Radnja je potvrđena, ali lista nije učitana'); expect(text()).not.toContain('Prijava je povučena.'); expect(text()).not.toContain('private server');
-  await tap('Proveri sačuvano stanje'); expect(text()).toContain('Prijava je povučena.');
+  expect(text()).toContain('Radnja je uspela, ali se lista nije osvežila'); expect(text()).not.toContain('Prijava je povučena.'); expect(text()).not.toContain('private server');
+  await tap('Proveri da li je poslato'); expect(text()).toContain('Prijava je povučena.');
 });
 it('bounds a hanging initial read; retry works and its late result cannot replace the current list', async () => {
   jest.useFakeTimers(); const d = deferred(); mockRead.mockReturnValueOnce(d.promise); await render(); await act(async () => jest.advanceTimersByTime(15001));
@@ -325,8 +325,8 @@ it('bounds a hanging initial read; retry works and its late result cannot replac
 });
 it('bounds a hanging write, discards its late completion and reuses the same key after owned read', async () => {
   jest.useFakeTimers(); const d = deferred(); mockWithdraw.mockReturnValueOnce(d.promise); await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
-  await act(async () => jest.advanceTimersByTime(15001)); expect(text()).toContain('Ishod radnje nije potvrđen');
-  await tap('Proveri sačuvano stanje'); await act(async () => d.resolve({ ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }));
+  await act(async () => jest.advanceTimersByTime(15001)); expect(text()).toContain('Ne znamo da li je radnja uspela');
+  await tap('Proveri da li je poslato'); await act(async () => d.resolve({ ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }));
   expect(text()).not.toContain('Prijava je povučena.'); await tap('Pošalji ponovo'); expect(mockWithdraw.mock.calls[1][0]).toEqual(mockWithdraw.mock.calls[0][0]);
 });
 it('late interval read after blur cannot reopen the editor', async () => {
@@ -335,9 +335,9 @@ it('late interval read after blur cannot reopen the editor', async () => {
 });
 it('refocus while a write is pending waits for settlement and then permits explicit readback', async () => {
   const d = deferred(); mockWithdraw.mockReturnValueOnce(d.promise); await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
-  mockFocused = false; await update(); mockFocused = true; await update(); await tap('Proveri sačuvano stanje'); expect(mockRead).toHaveBeenCalledTimes(2);
+  mockFocused = false; await update(); mockFocused = true; await update(); await tap('Proveri da li je poslato'); expect(mockRead).toHaveBeenCalledTimes(2);
   mockRows = [row({ stanje: 'WITHDRAWN', mozePovuci: false })]; await act(async () => d.resolve({ ok: true, podatak: { stanje: 'WITHDRAWN', verzija: 2 } }));
-  await tap('Proveri sačuvano stanje'); expect(mockRead).toHaveBeenCalledTimes(3); expect(text()).toContain('Prijava je povučena.');
+  await tap('Proveri da li je poslato'); expect(mockRead).toHaveBeenCalledTimes(3); expect(text()).toContain('Prijava je povučena.');
 });
 it('a late read from the prior account incarnation never reveals its rows', async () => {
   const d = deferred(); mockRead.mockReturnValueOnce(d.promise); await render(); mockRows = [row({ naslov: 'Current account' })];
@@ -352,8 +352,8 @@ it('a pending write from the prior account incarnation cannot replace the curren
 });
 it('a confirmed command with a different fresh offer shows actual state and allows explicit review without claiming a matching offer', async () => {
   mockResolve.mockImplementationOnce(async () => { mockRows = [row({ prijavaVerzija: 3, cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } })]; return { ok: true, podatak: { status: 'SUBMITTED', version: 3 } }; });
-  await review(); await tap('Zadrži prijavu'); expect(text()).not.toContain('Prijava je usklađena'); expect(text()).toContain('6.000 RSD');
-  await tap('Pregledaj aktuelnu prijavu'); expect(press('Proveri sačuvano stanje')).toBeUndefined(); expect(mockResolve).toHaveBeenCalledTimes(1);
+  await review(); await tap('Zadrži prijavu'); expect(text()).not.toContain('Prijava je ažurirana'); expect(text()).toContain('6.000 RSD');
+  await tap('Pregledaj trenutnu prijavu'); expect(press('Proveri da li je poslato')).toBeUndefined(); expect(mockResolve).toHaveBeenCalledTimes(1);
 });
 
 it('confirms withdrawal from its named row even when the displayed list omits it', async () => {
@@ -363,55 +363,55 @@ it('confirms withdrawal from its named row even when the displayed list omits it
   await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
   expect(mockCommandState).toHaveBeenCalledWith(row());
   expect(text()).toContain('Prijava je povučena.');
-  expect(press('Proveri sačuvano stanje')).toBeUndefined();
+  expect(press('Proveri da li je poslato')).toBeUndefined();
 });
 it('a missing or unreadable named row cannot be replaced by a matching list row', async () => {
   mockCommandState.mockResolvedValue({ ok: false, kod: 'APPLICATION_STATE_INVALID', poruka: 'private backend detail' });
   await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
   expect(text()).not.toContain('Prijava je povučena.'); expect(text()).not.toContain('private backend');
-  expect(press('Pregledaj aktuelnu prijavu')).toBeUndefined();
+  expect(press('Pregledaj trenutnu prijavu')).toBeUndefined();
   expect(press('Pošalji ponovo')).toBeUndefined();
   mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ stanje: 'WITHDRAWN' })) });
-  await tap('Proveri sačuvano stanje'); expect(text()).toContain('Prijava je povučena.');
+  await tap('Proveri da li je poslato'); expect(text()).toContain('Prijava je povučena.');
 });
 it('an unchanged named row outside the list permits only the identical unknown command retry', async () => {
   mockWithdraw.mockImplementationOnce(async () => { mockRows = []; return { ok: false, kod: 'NETWORK', poruka: 'unknown' }; });
   mockCommandState.mockResolvedValue({ ok: true, podatak: commandState() });
   await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
-  expect(press('Pošalji ponovo')).toBeUndefined(); await tap('Proveri sačuvano stanje'); await tap('Pošalji ponovo');
+  expect(press('Pošalji ponovo')).toBeUndefined(); await tap('Proveri da li je poslato'); await tap('Pošalji ponovo');
   expect(mockCommandState).toHaveBeenCalled(); expect(mockWithdraw.mock.calls[1][0]).toEqual(mockWithdraw.mock.calls[0][0]);
 });
 it('a named row resembling KEEP without a receipt still requires replay of the same key', async () => {
   mockResolve.mockResolvedValue({ ok: false, kod: 'NETWORK', poruka: 'unknown' });
   mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ prijavaVerzija: 3 })) });
-  await review(); await tap('Zadrži prijavu'); mockRows = []; await tap('Proveri sačuvano stanje');
-  expect(text()).not.toContain('Prijava je usklađena'); await tap('Pošalji ponovo');
+  await review(); await tap('Zadrži prijavu'); mockRows = []; await tap('Proveri da li je poslato');
+  expect(text()).not.toContain('Prijava je ažurirana'); await tap('Pošalji ponovo');
   expect(mockCommandState).toHaveBeenCalled(); expect(mockResolve.mock.calls[1][0]).toEqual(mockResolve.mock.calls[0][0]);
 });
 it('confirmed KEEP remains saved against its reviewed revision when the task changes again', async () => {
   mockResolve.mockImplementationOnce(async () => { mockRows = [row({ stanje: 'STALE_REVIEW_REQUIRED', potrebaRevizija: 5, prijavaVerzija: 3, traziPaznju: true })];
     return { ok: true, podatak: { status: 'SUBMITTED', version: 3 } }; });
   await review(); await tap('Zadrži prijavu');
-  expect(text()).toContain('Prijava je usklađena sa izmenjenim zadatkom.');
-  expect(text()).toContain('Zadatak je izmenjen.'); expect(press('Proveri sačuvano stanje')).toBeUndefined();
+  expect(text()).toContain('Prijava je ažurirana prema izmenjenom zadatku.');
+  expect(text()).toContain('Zadatak je izmenjen.'); expect(press('Proveri da li je poslato')).toBeUndefined();
 });
 it('an UPDATE receipt cannot confirm an interval with a different microsecond', async () => {
   mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ prijavaVerzija: 3 }), { proposedEndAt: '2026-09-20T11:00:00.654322Z' }) });
   await editing(); await tap('Sačuvaj izmenjenu prijavu');
-  expect(text()).not.toContain('Prijava je usklađena'); expect(press('Pregledaj aktuelnu prijavu')).toBeDefined();
+  expect(text()).not.toContain('Prijava je ažurirana'); expect(press('Pregledaj trenutnu prijavu')).toBeDefined();
 });
 it('UPDATE readback compares exact instants across timestamp offsets without losing microseconds', async () => {
   mockCommandState.mockResolvedValue({ ok: true, podatak: commandState(row({ prijavaVerzija: 3 }), {
     proposedStartAt: '2026-09-20T12:00:00.123456+02:00', proposedEndAt: '2026-09-20T13:00:00.654321+02:00',
   }) });
-  await editing(); await tap('Sačuvaj izmenjenu prijavu'); expect(text()).toContain('Prijava je usklađena');
+  await editing(); await tap('Sačuvaj izmenjenu prijavu'); expect(text()).toContain('Prijava je ažurirana');
 });
 it('a successful named read is retired when the next read fails, keeping retry locked', async () => {
   mockWithdraw.mockResolvedValue({ ok: false, kod: 'NETWORK', poruka: 'unknown' });
   await render(); await tap('Povuci prijavu: Unos ormara'); await act(async () => confirm()());
-  await tap('Proveri sačuvano stanje'); const oldRetry = press('Pošalji ponovo'); expect(oldRetry).toBeDefined();
+  await tap('Proveri da li je poslato'); const oldRetry = press('Pošalji ponovo'); expect(oldRetry).toBeDefined();
   mockCommandState.mockResolvedValue({ ok: false, kod: 'APPLICATION_STATE_UNAVAILABLE' });
-  await tap('Proveri sačuvano stanje'); expect(press('Pošalji ponovo')).toBeUndefined();
+  await tap('Proveri da li je poslato'); expect(press('Pošalji ponovo')).toBeUndefined();
   await act(async () => oldRetry()); expect(mockWithdraw).toHaveBeenCalledTimes(1);
 });
 it.each(['blur', 'account', 'background'])('a late named-row confirmation after %s cannot settle the current screen', async change => {

@@ -55,13 +55,13 @@ function pricedOffer(draft: OfferEdit): OfferEdit {
 }
 const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors,
   FORBIDDEN: 'Ova prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova prijava nije dostupna na ovom nalogu.',
-  RESPONSE_NOT_WITHDRAWABLE: 'Prijavu sada nije moguće povući. Proveri aktuelno stanje.',
-  RESPONSE_NOT_AWAITING_REVIEW: 'Prijava više ne čeka ovu proveru. Učitaj aktuelno stanje.',
-  RESPONSE_ALREADY_CURRENT: 'Prijava je već usklađena. Učitaj aktuelno stanje.',
-  INVALID_PROPOSED_WINDOW: 'Sačuvani termin nije prihvaćen. Proveri aktuelnu prijavu.',
+  RESPONSE_NOT_WITHDRAWABLE: 'Prijavu trenutno ne možeš da povučeš. Osveži listu da vidiš trenutno stanje.',
+  RESPONSE_NOT_AWAITING_REVIEW: 'Prijava je u međuvremenu promenjena. Osveži listu.',
+  RESPONSE_ALREADY_CURRENT: 'Prijava je već ažurirana. Osveži listu.',
+  INVALID_PROPOSED_WINDOW: 'Taj termin nije prihvaćen. Otvori prijavu i izaberi drugi termin.',
   SCOPE_NOTE_TOO_LONG: 'Napomena može imati najviše 1.200 znakova.',
 };
-const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ishod radnje nije potvrđen. Proveri sačuvano stanje pre ponavljanja.' });
+const unknown = () => ({ ok: false as const, kod: 'APPLICATION_OUTCOME_UNKNOWN', poruka: 'Ne znamo da li je radnja uspela. Osveži listu pa pokušaj ponovo.' });
 const identity = (p: MojaPrijavaProjekcija) => `${p.prijavaId}:${p.potrebaId}:${p.potrebaRevizija}:${p.prijavaRevizija}:${p.prijavaVerzija}:${p.stanje}`;
 const withdrawal = (pending: Pending) => pending.intent.kind === 'withdraw' || pending.intent.command.akcija === 'WITHDRAW';
 function observed(pending: Pending, row: ApplicationCommandState) {
@@ -138,17 +138,17 @@ export default function MojePrijave() {
           : boundedApplicationSelectionRead(izvor.mojePrijave()),
         pending ? readApplicationCommandState(pending.row) : Promise.resolve(null),
       ]);
-      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelne prijave.' };
+      if (!owned()) return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj trenutne prijave.' };
       let notice: string | null = null;
       if (pending && session.pending === pending && !pending.inFlight && named) {
         pending.reconciled = named.ok;
-        if (!named.ok) notice = 'Sačuvano stanje ove prijave nije potvrđeno. Proveri ponovo pre nove radnje.';
+        if (!named.ok) notice = 'Ne možemo da vidimo trenutno stanje ove prijave. Osveži listu pre nove radnje.';
         else if (observed(pending, named.podatak)) {
           // What happened is said once, in the app's one bar, and only after the readback confirmed it (a tick belongs to an outcome).
           // Neither command has an undo, so the bar carries no "Vrati".
-          poruka.show({ text: withdrawal(pending) ? 'Prijava je povučena.' : 'Prijava je usklađena sa izmenjenim zadatkom.', confirmed: true });
+          poruka.show({ text: withdrawal(pending) ? 'Prijava je povučena.' : 'Prijava je ažurirana prema izmenjenom zadatku.', confirmed: true });
           session.pending = null;
-        } else if (pending.result === 'receipt') notice = 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.';
+        } else if (pending.result === 'receipt') notice = 'Radnja je uspela, ali je prijava u međuvremenu promenjena. Pregledaj je ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
     // The failure's cause is not known here, so the words do not guess one (verify r4b item B).
@@ -205,7 +205,7 @@ export default function MojePrijave() {
       if (!session.focused || !session.active || token !== session.token) return unknown();
       if (!result.ok) return result;
       const fresh = await read();
-      if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Radnja je potvrđena, ali lista nije učitana. Proveri sačuvano stanje.' };
+      if (!fresh.ok) return { ok: false, kod: 'APPLICATION_REFRESH_REQUIRED', poruka: 'Radnja je uspela, ali se lista nije osvežila. Osveži je.' };
       // A command moves an application between sections: the sets that are not shown are read again as new when they are asked for.
       pager?.forgetOtherSets();
       return fresh;
@@ -219,7 +219,7 @@ export default function MojePrijave() {
     if (action === 'UPDATE') {
       if (!draft) return;
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
-      if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesi celu pozitivnu cenu u RSD i ceo broj ljudi.'; render(v => v + 1); return; }
+      if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesi cenu u dinarima i broj ljudi, bez decimala.'; render(v => v + 1); return; }
       // Existing RU4 SQL limit, not a new UI/business policy.
       if (Array.from(draft.note.trim()).length > 1200) { session.message = errors.SCOPE_NOTE_TOO_LONG; render(v => v + 1); return; }
     }
@@ -241,7 +241,7 @@ export default function MojePrijave() {
     // the withdrawal command takes none.
     confirmation.ask({ title: 'Povući prijavu?',
       message: `Osoba koja je objavila zadatak više ne vidi tvoju ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možeš da pošalješ novu.`,
-      cancelLabel: 'Odustani', confirmLabel: 'Povuci', tone: 'danger', onConfirm: () => {
+      cancelLabel: 'Odustani', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
         if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
       } });
   };
@@ -252,7 +252,7 @@ export default function MojePrijave() {
       const result = await readExistingApplicationInterval(p);
       if (!rowCurrent(p) || generation !== session.editRevision) return;
       if (result.ok) session.draft = pricedOffer({ price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak });
-      else session.message = 'Sačuvani termin ili aktuelna cena nisu potvrđeni. Osveži prijave pre izmene ponude.';
+      else session.message = 'Ne možemo da prikažemo termin i cenu prijave. Osveži prijave pa pokušaj ponovo.';
     } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };

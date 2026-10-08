@@ -1,31 +1,38 @@
 import { memo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { CaretRight } from 'phosphor-react-native';
+import Animated from 'react-native-reanimated';
 import type { KandidatProjekcija } from '../../contracts/projections';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { Avatar, type AvatarSize } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
+import { layout } from '../system/layout';
 import { osoba } from '../system/plural';
+import { Surface } from '../system/Surface';
 import { useTextScale } from '../system/textScale';
-import { cardCompact, raisedItem, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
+import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { recordBody, recordFlush } from './offer/RecordParts';
 import { PRICE_NOT_STORED, PrijavaCard, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaModel, type PrijavaStatus } from './PrijavaCard';
 
 /**
- * The requester's side of the shared application card (owner's step 7, 2026-09-24; one object for both people since 2026-10-07,
- * plan 2.12). An application is chosen as a PERSON first, so the card reads the way the decision is made, and it is the SAME card
- * the worker finds in "Moje prijave" (`PrijavaCard`):
+ * The requester's side of the shared application card (owner's step 7, 2026-09-24; one object for both people since 2026-10-07, plan 2.12;
+ * one `Surface record` since 2026-10-08, composition spec 4.7). An application is chosen as a PERSON first, so the card reads the way the
+ * decision is made, and it is the SAME card the worker finds in "Moje prijave" (`PrijavaCard`):
  *
- *   1. the state, as the app's one `StatusChip` (Poslata, Viđena, Izabrana, Nije izabrana, Povučena), and under it the reason when
+ *   1. the state, as the app's one `StatusChip` (Poslata, Viđena, Izabrana, Nije izabrana, Povučena), and beside it the reason when
  *      an open application cannot simply be chosen;
- *   2. the person — the one Avatar (or their photo), the name and the rating with the count it stands on;
- *   3. the facts in the fixed order: the term, the price, the people, their complete message, before opening the application to decide.
+ *   2. the person — the face (56: the one person on the card), the name and the rating with the count it stands on;
+ *   3. the offer on ONE line ("4.500 RSD ukupno · 2 osobe"), the term only when the person proposed one (the task's own term is the same
+ *      on every card of the list and is said once, above it), what the person has (a vehicle, a tool: "Ima: Kombi · Trake"), and their
+ *      message, two lines of it, before opening the application to decide.
  *
  * Nothing here invents a rating, a count, a time or a state: a missing rating says it is missing, a count is the server's own
- * words, an amount without figures is never dressed as money ("Iznos nije sačuvan"), and "Viđena" is said only for an application the
+ * words, an amount without figures is never dressed as money ("Cena nije navedena"), and "Viđena" is said only for an application the
  * server confirmed as seen on this phone (the candidate read merges SUBMITTED, VIEWED and SHORTLISTED into one SELECTABLE and carries no
  * viewed flag; until it does, an application opened earlier reads "Poslata" again after a restart, which is still true).
  * The card is ONE press that opens the application and is heard once, as the person and everything the card shows.
@@ -54,7 +61,7 @@ export function candidateTrust(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recen
     spoken: count ? `ocena nije dostupna, ${count}` : 'ocena nije dostupna' };
 }
 
-/** What stands in the price row: the total, or the quiet words for a price that was not stored. The people have a row of their own. */
+/** What stands in the price row: the total, or the quiet words for a price that was not stored. The people have a place of their own. */
 export type CandidateValue = PrijavaModel['price'];
 export const UNPRICED = PRICE_NOT_STORED;
 export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta'>): CandidateValue {
@@ -63,6 +70,18 @@ export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMest
   // An amount never loses its currency: a figure written without one gets the offer's own.
   const amount = /[A-Za-z]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
   return { kind: 'amount', amount, basis: 'ukupno' };
+}
+
+/**
+ * What the person says they have: the vehicle and the tools they declared, and nothing else (owner, 2026-10-07: the person with the
+ * task sees the vehicles and the tools; the skills stay hidden until the owner confirms them). A task never REQUIRES them, so this is
+ * information beside the offer, never a condition. Null when the read carried none (a legacy application declares nothing).
+ */
+export function candidateHas(k: Pick<KandidatProjekcija, 'dokazPrijave'>): { art: 'vehicle' | 'tool'; text: string } | null {
+  const clean = (values: readonly string[] | null | undefined) => (values ?? []).map(value => value.trim()).filter(Boolean);
+  const vehicles = clean(k.dokazPrijave?.vozila), tools = clean(k.dokazPrijave?.alati);
+  const all = [...vehicles, ...tools];
+  return all.length ? { art: vehicles.length ? 'vehicle' : 'tool', text: `Ima: ${all.join(' · ')}` } : null;
 }
 
 /**
@@ -122,21 +141,23 @@ export function requesterPrijava(k: KandidatProjekcija, context: { timezone?: st
   const message = k.napomena?.trim();
   return { status: candidateChip(k, context.viewed), reason: candidateStatus(k),
     who: { kind: 'person', name: k.ime, avatar: context.avatar, trust: <CandidateTrustLine candidate={k} /> },
-    term: candidateTerm(k, context.timezone, context.taskTerm), price: candidateValue(k), people: osoba(k.pokrivaMesta), message: message || null,
+    term: candidateTerm(k, context.timezone, context.taskTerm), showTerm: candidateTime(k, context.timezone) !== null,
+    price: candidateValue(k), people: osoba(k.pokrivaMesta), has: candidateHas(k), message: message || null,
     quiet: k.stanje === 'WITHDRAWN' || k.stanje === 'CLOSED' || k.stanje === 'FULL' };
 }
 
 /**
  * Everything the card shows, as one sentence a screen reader hears after its name: the state, the rating, the term, the price, the
- * people, a bounded preview of the message and, for an application that cannot be chosen, why.
+ * people, what the person has, a bounded preview of the message and, for an application that cannot be chosen, why.
  */
 export function candidateSpoken(k: KandidatProjekcija, taskTerm: string, timezone?: string | null, viewed = false): string {
-  const trust = candidateTrust(k), reason = candidateStatus(k);
+  const trust = candidateTrust(k), reason = candidateStatus(k), has = candidateHas(k);
   const message = k.napomena?.trim() ?? '';
   const preview = messagePreview(message);
   const price = candidateValue(k), proposed = candidateTime(k, timezone);
   return [prijavaStatusWord(candidateChip(k, viewed)), `${trust.spoken.charAt(0).toLocaleUpperCase('sr-Latn-RS')}${trust.spoken.slice(1)}`,
     proposed ? `Predlog termina: ${proposed}` : `Termin: ${taskTerm}`, price.kind === 'amount' ? `Ponuda: ${price.amount} ${price.basis}` : UNPRICED, osoba(k.pokrivaMesta),
+    has?.text ?? null,
     message ? `Poruka: „${preview.text}${preview.cut ? '…' : ''}“. Otvori prijavu za celu poruku` : null, reason?.text.replace(/\.$/, '') ?? null]
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join('. ').concat('.');
 }
@@ -157,16 +178,17 @@ export function CandidateTrustLine({ candidate, lines = 2 }: { candidate: Pick<K
   const [lead, count] = trust.text.split(' · ');
   const shown = count ? `${lead}${NBSP}· ${count.replace(/ /g, NBSP)}` : trust.text;
   return <View style={s.trust}>
-    {trust.star ? <FactArt kind="star" size={14} /> : null}
-    <T style={s.trustText} numberOfLines={lines}>{shown}</T>
+    {trust.star ? <FactArt kind="star" size={16} /> : null}
+    <T variant="note" tone="muted" style={s.trustText} numberOfLines={lines}>{shown}</T>
   </View>;
 }
 const NBSP = ' ';
 
 /**
  * An application in the requester's list: ONE press that opens it, heard as the person and everything the card shows. The content
- * is the shared `PrijavaCard` (the same card the worker finds in "Moje prijave"); the frame is the raised white item, leaving the
- * person and the facts to lead, and an application that was chosen keeps its semantic green edge.
+ * is the shared `PrijavaCard` (the same card the worker finds in "Moje prijave"); the frame is the one `Surface record`, leaving the
+ * person and the offer to lead, and an application that was chosen keeps its semantic green edge. The frame gives under the finger as
+ * ONE object (`usePressLift`, the row rung).
  */
 export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, large, narrow = false }: {
   candidate: KandidatProjekcija; timezone?: string | null;
@@ -176,12 +198,17 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   /** The owner's large text: the price and its basis stack. */ large: boolean;
   /** A narrow phone uses the same stacked terms. */ narrow?: boolean;
 }) {
-  const model = requesterPrijava(k, { timezone, taskTerm: fallbackTime, viewed, avatar: <CandidateAvatar candidate={k} size={56} photo={photo} /> });
-  return <Press accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
-    accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
-    haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.card, k.stanje === 'SELECTED' && s.chosen]}>
-    <PrijavaCard model={model} large={large || narrow} trailing={<CaretRight size={20} color={sys.color.muted} />} />
-  </Press>;
+  const model = requesterPrijava(k, { timezone, taskTerm: fallbackTime, viewed, avatar: <CandidateAvatar candidate={k} size={layout.slotFace} photo={photo} /> });
+  const lift = usePressLift();
+  return <Animated.View style={lift.style}>
+    <Surface kind="record" style={[recordFlush, k.stanje === 'SELECTED' && s.chosen]}>
+      <Press accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
+        accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
+        haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={recordBody}>
+        <PrijavaCard model={model} large={large || narrow} noteLines={2} trailing={<Glyph name="caret-right" size={20} tone="muted" />} />
+      </Press>
+    </Surface>
+  </Animated.View>;
 });
 
 /**
@@ -192,40 +219,47 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
  * beside the picture, and the columns slipped).
  */
 export function compareIdentityHeight(scale: number): number {
-  const text = 3 * sys.type.cardTitleCompact.lineHeight! + 2 * TRUST_LINE + CHIP_HEIGHT + 2 * REASON_LINE;
+  const text = 3 * sys.type.heading.lineHeight! + 2 * TRUST_LINE + CHIP_HEIGHT + 2 * REASON_LINE;
   return Math.ceil(40 + 3 * COMPARE_IDENTITY_GAP + sys.space.sm + text * scale);
 }
-const TRUST_LINE = 20, COMPARE_IDENTITY_GAP = 6, CHIP_HEIGHT = 24, REASON_LINE = sys.type.note.lineHeight!;
+const TRUST_LINE = sys.type.note.lineHeight!, COMPARE_IDENTITY_GAP = sys.space.sm, CHIP_HEIGHT = 24, REASON_LINE = sys.type.note.lineHeight!;
 
 /**
  * An application as a comparison column: the person on top, then the state (the same chip as the card), then the same cells in
- * every column and in the card's order — the term, the offer, the people — followed by the complete message. `aligned` holds
+ * every column and in the card's order — the term, the offer, the people, what the person has — followed by the complete message. A
+ * cell is a small grey label over its value, and the cells are told apart by the space between them, not by lines. `aligned` holds
  * the head to one height when two columns stand side by side.
  */
 export const CandidateCompareCard = memo(function CandidateCompareCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, aligned }: {
   candidate: KandidatProjekcija; timezone?: string | null; fallbackTime: string; viewed?: boolean; onOpen: () => void; photo?: ReactNode; aligned: boolean;
 }) {
-  const reason = candidateStatus(k), value = candidateValue(k), message = k.napomena?.trim() ?? '';
+  const reason = candidateStatus(k), value = candidateValue(k), message = k.napomena?.trim() ?? '', has = candidateHas(k);
   const scale = useTextScale();
-  return <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
-    accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
-    haptic="select" scaleTo={0.986} onPress={onOpen} style={[s.compare, k.stanje === 'SELECTED' && s.chosen]}>
-    <View style={[s.compareHead, aligned && { minHeight: compareIdentityHeight(scale) }]}>
-      <View style={[s.compareIdentity, !aligned && s.comparePhoneHead]}>
-        <CandidateAvatar candidate={k} size={40} photo={photo} />
-        <View style={[!aligned && s.identity, s.comparePersonCopy]}>
-          <T style={s.compareName} numberOfLines={aligned ? 3 : undefined}>{k.ime}</T>
-          <CandidateTrustLine candidate={k} />
+  const lift = usePressLift();
+  return <Animated.View style={[s.column, lift.style]}>
+    <Surface kind="record" style={[recordFlush, s.column, k.stanje === 'SELECTED' && s.chosen]}>
+      <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
+        accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
+        haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={[recordBody, s.columnBody]}>
+        <View style={[s.compareHead, aligned && { minHeight: compareIdentityHeight(scale) }]}>
+          <View style={[s.compareIdentity, !aligned && s.comparePhoneHead]}>
+            <CandidateAvatar candidate={k} size={40} photo={photo} />
+            <View style={[!aligned && s.identity, s.comparePersonCopy]}>
+              <T variant="heading" style={s.compareName} numberOfLines={aligned ? 3 : undefined}>{k.ime}</T>
+              <CandidateTrustLine candidate={k} />
+            </View>
+          </View>
+          <PrijavaState status={candidateChip(k, viewed)} reason={reason ? { text: reason.text, tone: reason.tone } : null} silent />
         </View>
-      </View>
-      <PrijavaState status={candidateChip(k, viewed)} reason={reason ? { text: reason.text, tone: reason.tone } : null} silent />
-    </View>
-    <View style={s.cell}><T variant="label" tone="muted">Termin</T><T variant="meta" style={s.ink}>{candidateTerm(k, timezone, fallbackTime)}</T></View>
-    {/* A column reads from its left edge: the quiet words too (review r4 rk item 7). */}
-    <View style={s.cell}><T variant="label" tone="muted">Ponuda</T><PrijavaPriceText price={value} large={false} /></View>
-    <View style={s.cell}><T variant="label" tone="muted">Ljudi</T><T variant="bodyStrong" style={s.ink}>{osoba(k.pokrivaMesta)}</T></View>
-    {message ? <View style={s.cell}><T variant="label" tone="muted">Poruka</T><T style={s.compareMessage}>{message}</T></View> : null}
-  </Press>;
+        <View style={s.cell}><T variant="label" tone="muted">Termin</T><T variant="note">{candidateTerm(k, timezone, fallbackTime)}</T></View>
+        {/* A column reads from its left edge: the quiet words too (review r4 rk item 7). */}
+        <View style={s.cell}><T variant="label" tone="muted">Ponuda</T><PrijavaPriceText price={value} large={false} /></View>
+        <View style={s.cell}><T variant="label" tone="muted">Ljudi</T><T variant="bodyStrong">{osoba(k.pokrivaMesta)}</T></View>
+        {has ? <View style={s.cell}><T variant="label" tone="muted">Ima</T><T variant="note">{has.text.replace(/^Ima: /, '')}</T></View> : null}
+        {message ? <View style={s.cell}><T variant="label" tone="muted">Poruka</T><T variant="note" tone="muted">{message}</T></View> : null}
+      </Press>
+    </Surface>
+  </Animated.View>;
 });
 
 /**
@@ -240,34 +274,31 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
   // No heading role inside the press: a screen reader never reaches a heading that lives in a button (review r4 rk item
   // 3). The sheet's own title is the heading.
   return <Press accessibilityRole="button" accessibilityLabel={`${k.ime}, ${trust.spoken}`} accessibilityHint="Otvara javni profil"
-    accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99} onPress={onPress} style={s.person}>
-    <CandidateAvatar candidate={k} size={56} photo={photo} />
+    accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={sys.motion.scale.row} onPress={onPress} style={s.person}>
+    <CandidateAvatar candidate={k} size={layout.slotFace} photo={photo} />
     <View style={s.identity}>
       <CandidateTrustLine candidate={k} lines={3} />
       {/* A visible word for the row (verify r4c item 3): with only the picture and "Ocena nije dostupna" beside the caret,
           the row read as dead or as a link to the rating. It stays while a command runs, as the caret does. */}
-      <T style={s.personAction}>Pogledaj profil</T>
+      <T variant="bodyStrong" tone="green">Pogledaj profil</T>
     </View>
-    <CaretRight size={20} color={sys.color.muted} />
+    <Glyph name="caret-right" size={20} tone="muted" />
   </Press>;
 }
 
 const s = StyleSheet.create({
-  ink: { color: sys.color.ink },
-  personAction: { ...sys.type.bodyStrong, color: sys.color.green },
-  card: { ...raisedItem, borderRadius: sys.radius.card, padding: sys.space.base, gap: sys.space.md },
   chosen: { borderColor: sys.color.green },
   identity: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  trust: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  trustText: { flexShrink: 1, fontSize: 14, lineHeight: TRUST_LINE, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
-  compare: { ...cardCompact, ...raisedItem, flex: 1, minWidth: 0, padding: sys.space.base, gap: sys.space.md,
-    borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  compareName: { ...sys.type.cardTitleCompact, color: sys.color.ink },
+  trust: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  trustText: { flexShrink: 1, fontVariant: ['tabular-nums'] },
+  // Two columns share a row of the list and stand level: each fills the height the taller one needs.
+  column: { flex: 1, minWidth: 0 },
+  columnBody: { flex: 1 },
+  compareName: { color: sys.color.ink },
   compareHead: { gap: sys.space.sm },
   compareIdentity: { gap: COMPARE_IDENTITY_GAP },
   comparePhoneHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   comparePersonCopy: { gap: COMPARE_IDENTITY_GAP, minWidth: 0 },
-  cell: { gap: sys.space.xs, paddingTop: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line },
-  compareMessage: { fontSize: 14, lineHeight: 21, color: sys.color.muted },
-  person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base, minHeight: 64, paddingVertical: sys.space.xs },
+  cell: { gap: sys.space.xs },
+  person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: layout.rowMin, paddingVertical: sys.space.xs },
 });

@@ -1,8 +1,9 @@
 import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import { endingOf } from '../../data/needEnding';
+import { calendarInstant } from '../../lib/calendarTime';
 import { readinessCopy, type NeedPublicationReadiness } from '../../data/needPublicationReadiness';
-import { applicationsWaitSentence, ownTaskStanding, type TaskChip } from '../../data/ownTaskStanding';
+import { APPLICATION_PROMISE, applicationsWaitSentence, ownTaskStanding, type TaskChip } from '../../data/ownTaskStanding';
 import { nedostajeOsoba, plural, prijava as prijave } from '../system/plural';
 
 /** The application as the object of "Imaš": "1 prijavu", "2 prijave", "5 prijava". */
@@ -73,8 +74,8 @@ const NOTE_STATES = new Set(['OBJAVLJENA', 'CEKA_PRIJAVE', 'DELIMICNO_POPUNJENA'
 
 /** A draft is private, and the one action says what it does. */
 export const DRAFT_NEXT = 'Nacrt je privatan. Pregledaj ga i objavi.';
-/** The words for a published task nobody has applied to yet (`ownTaskStanding` says the same under its card). */
-const WAITING_FOR_FIRST = 'Čekaš prijave. Javićemo ti.';
+/** The words for a published task nobody has applied to yet (`ownTaskStanding` says the same under its card; one promise, R12). */
+const WAITING_FOR_FIRST = APPLICATION_PROMISE.waiting;
 
 export function ownTaskOverview(input: {
   need: PotrebaProjekcija;
@@ -152,7 +153,7 @@ export function ownTaskOverview(input: {
         if (canChoose) return applicationsWaitSentence(waiting!);
         if (cancelled) return 'Tvoj zadatak opet prima prijave.';
         if (total > 0 && waiting === null) return `Imaš ${prijavu(total)}. ${total === 1 ? 'Pogledaj je.' : 'Pogledaj ih.'}`;
-        if (total > 0 && waiting === 0) return 'Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.';
+        if (total > 0 && waiting === 0) return APPLICATION_PROMISE.noneToChoose;
         return standing.next ?? WAITING_FOR_FIRST;
       case 'CEKA_PRIJAVE':
       case 'DELIMICNO_POPUNJENA':
@@ -179,4 +180,62 @@ export function ownTaskOverview(input: {
       agreements: popunjeno > 0 && !!input.canOpenAgreements && primary?.kind !== 'AGREEMENTS',
     },
   };
+}
+
+/* --------------------------------------------------------------------------------------------------------------- R16 */
+
+/**
+ * R16 (POTREBE, 2026-10-07; "Moj zadatak" after a day of silence): a published task that nobody applied to for 24 hours does not stay silent
+ * any more. The page may say so, with the ways the owner really has to change it, each one a real button and each one offered only when the
+ * state of THIS task makes it a real thing to do. Nothing is counted or invented: the sentence is the idea's own ("Nema prijava već 24 sata.").
+ *
+ * BUILT BEHIND A SWITCH, OFF: the owner's own read of a task carries neither the time it was published nor how many photos it has, so today
+ * the card cannot be told the truth. TRAŽI SERVER: `publishedAt` (the instant of `published_at`, which `rpc_publish_need` already returns once,
+ * `publication.ts: publishedAt`) and the count of the task's photos in the owner's task read; the page then passes them in (`publishedAt`,
+ * `photoCount`), turns `NO_APPLICATIONS_HELP_ON` on and mounts `NoApplicationsHelp` (`offer/NoApplicationsHelp.tsx`). With the switch off, or
+ * with a time that is missing or is not a time, the answer is null: never a guess.
+ */
+export const NO_APPLICATIONS_HELP_ON = false;
+/** A day, in hours: from this long without an application the card appears. */
+export const NO_APPLICATIONS_AFTER_HOURS = 24;
+/** A fixed term this short, in hours, or shorter, is "narrow": few people can come at exactly that time, and the card offers to widen it. */
+export const NARROW_TERM_HOURS = 2;
+export type NoApplicationsHelpAction = 'PHOTO' | 'WIDEN_TERM' | 'SHARE' | 'EDIT';
+export type NoApplicationsHelp = { sentence: string; actions: readonly NoApplicationsHelpAction[] };
+/** The words of each button. */
+export const NO_APPLICATIONS_HELP_LABEL: Readonly<Record<NoApplicationsHelpAction, string>> = {
+  PHOTO: 'Dodaj fotografiju', WIDEN_TERM: 'Proširi termin', SHARE: 'Podeli zadatak', EDIT: 'Izmeni zadatak',
+};
+const HOUR_MICROS = 3_600_000_000n;
+
+export function noApplicationsHelp(input: {
+  need: PotrebaProjekcija;
+  /** When the task was published, as the server wrote it. Absent: nothing is said. */
+  publishedAt?: string | null;
+  /** How many photos the task has; null or absent is unknown, never zero. */
+  photoCount?: number | null;
+  /** The page can share the task / edit it. A button the page cannot honour is not offered. */
+  canShare?: boolean; canEdit?: boolean;
+  now?: Date;
+  /** The switch; `NO_APPLICATIONS_HELP_ON` when left out. */
+  on?: boolean;
+}): NoApplicationsHelp | null {
+  if (!(input.on ?? NO_APPLICATIONS_HELP_ON)) return null;
+  const { need } = input;
+  // Only a published task that nobody applied to, and that is not waiting on anything of the owner's.
+  if (need.stanje !== 'OBJAVLJENA' || need.brojPrijava !== 0) return null;
+  const published = calendarInstant(input.publishedAt);
+  if (published === null) return null;
+  const now = BigInt((input.now ?? new Date()).getTime()) * 1000n;
+  if (now - published < BigInt(NO_APPLICATIONS_AFTER_HOURS) * HOUR_MICROS) return null;
+  const schedule = need.schedule;
+  const from = schedule?.kind === 'FIXED_WINDOW' ? calendarInstant(schedule.startsAt) : null, to = schedule?.kind === 'FIXED_WINDOW' ? calendarInstant(schedule.endsAt) : null;
+  const narrow = from !== null && to !== null && to > from && to - from <= BigInt(NARROW_TERM_HOURS) * HOUR_MICROS;
+  const actions: NoApplicationsHelpAction[] = [];
+  if (input.photoCount === 0) actions.push('PHOTO');
+  if (narrow && input.canEdit) actions.push('WIDEN_TERM');
+  if (input.canShare) actions.push('SHARE');
+  if (input.canEdit) actions.push('EDIT');
+  // A card with nothing to press is a card that complains: no real way, no card.
+  return actions.length ? { sentence: 'Nema prijava već 24 sata.', actions } : null;
 }

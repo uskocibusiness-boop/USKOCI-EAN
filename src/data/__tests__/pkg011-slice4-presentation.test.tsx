@@ -44,7 +44,7 @@ test('PKG-035: task detail retains history without promising an unavailable sele
   expect(labels()).toContain('Otvori prijave. Trenutno nema prijava za izbor. Ukupno 7 prijava');
   // Nothing is the owner's to choose, so there is no green action (plan 3.5): the sentence says what the task waits for, and the
   // history of the applications stays one quiet row away.
-  expect(texts()).toContain('Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.');
+  expect(texts()).toContain('Trenutno nema prijava za izbor. Nove vidiš ovde i u zvoncu.');
   expect(texts()).not.toContain('Pregledaj prijave · ');
   expect(brand()).toEqual([]);
 });
@@ -103,9 +103,11 @@ test('V41 facts: the place, Termin as day and hours, Potrebno, and the price wit
   const spoken = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => node.props.accessibilityLabel);
   // The saved sentence is shown whole as the value of Termin; nothing is reworded, and it is heard whole.
   expect(texts()).toContain('20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
-  expect(spoken).toContain('Termin: 20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
-  expect(spoken).toContain('Lokacija: Novi Sad, Liman');
-  expect(spoken).toContain('Potrebno: 2 osobe, popunjeno 0 od 2 mesta');
+  // The facts are the system's `FactRow`: a screen reader hears each as its own sentence (the fact, then its note), the same on this page
+  // as on the page of the task somebody else sees; the picture is decoration. What the old page prefixed ("Termin: ", "Lokacija: ") is said by the value.
+  expect(spoken).toContain('20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
+  expect(spoken).toContain('Novi Sad, Liman');
+  expect(spoken).toContain('Dogovoreno 0/2');
   // The figure stays large and what it covers goes quietly beside it, in the words the rest of the app uses.
   expect(texts()).toContain('3.000 RSD Po osobi · ukupno 6.000 RSD');
   expect(spoken).toContain('Budžet: 3.000 RSD, Po osobi · ukupno 6.000 RSD');
@@ -130,7 +132,7 @@ test('the footer leads somewhere with an arrow; while an action runs it says so,
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<NeedPresentation need={need()} loading={false} error={null} busy remainingClosed={false}
     onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} />); });
-  const footer = byLabel('Radnja je u toku…');
+  const footer = byLabel('Samo trenutak…');
   expect(footer.props.disabled).toBe(true);
   expect(footer.findAllByType(ArrowRight)).toHaveLength(0);
 });

@@ -204,7 +204,7 @@ export function NeedLifecycleActions(p: { need: PotrebaProjekcija | null; needId
         : phase === 'SUBMITTING' ? 'Šaljemo pregledani zahtev…' : phase === 'RECONCILING' ? 'Proveravamo potvrdu…'
           : view.state.error?.poruka ?? 'Ponovo otvori zadatak.'}</T>
       {phase === 'UNKNOWN_OUTCOME' ? <>
-        <V2Action label="Proveri ishod" kind="quiet" style={s.quiet} onPress={() => run('reconcile')} />
+        <V2Action label="Proveri da li je uspelo" kind="quiet" style={s.quiet} onPress={() => run('reconcile')} />
         <V2Action label="Pošalji ponovo" kind="quiet" style={s.quiet} disabled={!controller.current?.canRetrySame()} onPress={() => run('retrySame')} />
         <T style={s.copy}>Ponovno slanje je dostupno tek posle uspešne provere.</T>
       </> : phase === 'CONFIRMED' ? <>

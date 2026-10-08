@@ -5,6 +5,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod, Izvor, IzborKomanda } from '../../../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead, readSelectedAgreement } from '../../../../data/applicationSelectionClientService';
+import { workTrustClientService } from '../../../../data/workTrustClientService';
 import type { CandidatesPageRequest } from '../../../../data/candidatesPage';
 import { candidatesPagedBuilt } from '../../../../data/candidatesPagedGate';
 import { useCandidatesPager } from '../../../../hooks/useCandidatesPager';
@@ -58,7 +59,7 @@ export default function Kandidati() {
   const [sorted, setSorted] = useState<{ scope: string; sort: CandidateSort } | null>(null);
   const sort = sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL';
   // Paged builds only. The order by price and the comparison are only right over every application: while either is on, the rest of the set is read, a page at a time and up to a bound.
-  const paged = usePagedCandidateRows(izvor, id, sort === 'PRICE' || session.compare);
+  const paged = usePagedCandidateRows(izvor, id, sort !== 'ARRIVAL' || session.compare);
   const pager = paged?.pager;
   // A person's photo by their verified public profile id; without one (or while it cannot be read) the one Avatar with the
   // letters the candidate read already carries. One function for the life of the screen, so the memoised rows keep.
@@ -89,19 +90,19 @@ export default function Kandidati() {
     const generation = ++session.readRevision, token = session.focusToken; session.reading = true;
     session.navigated = false;
     const hard = session.hardReload; session.hardReload = false;
-    if (!id) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Zadatak nije dostupan.' }; }
+    if (!id) { session.reading = false; return { ok: false, kod: 'UNAVAILABLE', poruka: 'Ovaj zadatak više nije dostupan. Vrati se na zadatke.' }; }
     try {
       const [need, candidates] = await boundedApplicationSelectionRead(Promise.all([izvor.potreba(id),
         // Paged: the first page of the set is the read (the rows live in the pager); a page that did not arrive is a read that failed, like the whole list.
         pager ? pager.reload(hard ? 'keep' : 'auto').then(fresh => { if (!fresh) throw new Error('CANDIDATES_PAGE_NOT_READ'); return pager.snapshot().items as KandidatProjekcija[]; })
           : izvor.prijaveZaPotrebu(id)]));
-      if (!need) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Zadatak nije dostupan.' };
+      if (!need) return { ok: false, kod: 'UNAVAILABLE', poruka: 'Ovaj zadatak više nije dostupan. Vrati se na zadatke.' };
       // RPC needRevision is the current Need revision for every row, including
       // STALE. Its separate responseNeedRevision is the older submitted snapshot.
       // Never combine independent reads from different current Need revisions.
       if (candidates.some(k => k.potrebaRevizija !== need.revizija)) return { ok: false, kod: 'STALE_REVIEW_REQUIRED', poruka: STALE_REVIEW_MESSAGE };
       if (generation !== session.readRevision || token !== session.focusToken || !session.focused || !session.active || !currentAccount())
-        return { ok: false, kod: 'STALE_READ', poruka: 'Učitaj aktuelno stanje.' };
+        return { ok: false, kod: 'STALE_READ', poruka: 'Osveži pa pokušaj ponovo.' };
       if (session.pending) session.pending.reconciled = !session.pending.inFlight;
       const result = session.pending?.result;
       return { ok: true, podatak: { need, candidates: pager ? NO_ROWS : candidates, receipt: result?.ok ? result.podatak : null } };
@@ -140,7 +141,7 @@ export default function Kandidati() {
       request.inFlight = true; request.reconciled = false;
       let result: Ishod<Receipt>;
       try { result = await izvor.izaberiPrijavu(request.command); }
-      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod izbora nije potvrđen. Proveri stanje.' }; }
+      catch { result = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ne znamo da li je izbor sačuvan. Izaberi „Proveri da li je izabrano“.' }; }
       finally { request.inFlight = false; }
       request.result = result;
       if (session.focused && session.active && currentAccount()) render(v => v + 1);
@@ -208,10 +209,17 @@ export default function Kandidati() {
       const profile = await izvor.javniProfil(candidate.radnikProfilId);
       return current() ? profile : null;
     }}
+    // R24: "Dolazi kako je dogovoreno N%" is the server's to give (the owner's privacy switch): the profile sheet draws what comes back for this viewer and
+    // nothing when it is hidden. A failed or stale read is no answer, for this account and this visit only.
+    publicTrust={async profileId => {
+      if (!current() || !user?.id) return null;
+      const result = await workTrustClientService.publicTrust(profileId, { accountId: user.id, accountRevision });
+      return current() && result.ok ? result.podatak.trust : null;
+    }}
     choose={choose} busy={editor.busy || !!pending?.inFlight} pending={!!pending} uncertain={editor.uncertain || (!!pending && !pending.reconciled && !data.receipt)} refresh={refresh}
-    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora pošalji ponovo.'
+    error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Prijave su osvežene. Ako izbor nije sačuvan, izaberi prijavu ponovo.'
       : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
-        ? 'Ponuda je otvorena, ali nije označena kao viđena. Zatvori je i otvori ponovo.' : null)}
+        ? 'Ponuda je otvorena, ali nismo zabeležili da je pogledana. Zatvori je i otvori ponovo.' : null)}
     confirmed={!!data.receipt} openAgreement={() => {
       if (!current() || !data.receipt || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });

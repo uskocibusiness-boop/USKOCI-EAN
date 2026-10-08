@@ -136,7 +136,7 @@ test('a command refreshes the shown set and drops the sets that are not shown: a
   await act(async () => props().onTab('all')); await answer(2, page(['a', 'b'], false, COUNTS));
   const target = props().rows[0];
   await act(async () => props().onWithdraw(target));
-  const open = sheet(); expect(open.props).toMatchObject({ title: 'Povući prijavu?', confirmLabel: 'Povuci' });
+  const open = sheet(); expect(open.props).toMatchObject({ title: 'Povući prijavu?', confirmLabel: 'Povuci prijavu' });
   await act(async () => open.findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
   expect(mockWithdraw).toHaveBeenCalledTimes(1);
   expect(reads[3].request).toEqual({ scope: 'ALL', limit: 30, cursor: null });   // the read that follows the confirmed command

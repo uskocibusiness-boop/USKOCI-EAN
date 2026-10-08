@@ -1,40 +1,40 @@
 import { memo, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet } from 'react-native';
-import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import type { MojaPrijavaProjekcija, StanjeMojePrijave } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { useReducedMotion } from '../system/motion';
+import { layout } from '../system/layout';
 import { osoba } from '../system/plural';
 import { STATUS_CHIPS, type StatusKey } from '../system/StatusChip';
+import { Surface } from '../system/Surface';
 import { useLayoutClass } from '../system/textScale';
-import { cardCompact, raisedItem, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
+import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { RecordFoot, recordBody, recordFlush, type RecordFootTone } from './offer/RecordParts';
 import { PrijavaCard, prijavaSpoken, type PrijavaModel, type PrijavaPrice, type PrijavaStatus } from './PrijavaCard';
-import { CARD_PRESS_SCALE } from './TaskCard';
-import { CardFootLine, faceStyles, type FootTone } from './TaskFace';
 
 /**
- * MY application in a list (owner's step 5c, 2026-09-24; one object for both people since 2026-10-07, plan 2.12). The content
- * is the shared `PrijavaCard` (the state as the app's one `StatusChip`, the TASK's title, then the term, the price, the people
- * and my message in that fixed order); this file is the worker's side of it:
+ * MY application in a list (owner's step 5c, 2026-09-24; one object for both people since 2026-10-07, plan 2.12; one `Surface record`
+ * since 2026-10-08, composition spec 4.7). The content is the shared `PrijavaCard` (the state as the app's one `StatusChip`, the TASK's
+ * title, then the term, the offer and the people on one line, and my message); this file is the worker's side of it:
  *
  *   - what each state of the read is called (the owner's five words: Poslata, Viđena, Izabrana, Nije izabrana, Povučena);
  *   - the interactive shell: the body opens the task, a long note has a separate read-only control to open its complete text,
- *     and the foot holds at most ONE action, the one this state allows, as a quiet row link (never a button inside the card, and
- *     never green for a withdrawal): Izabrana → "Otvori Dogovor", an open one the server lets me withdraw → "Povuci prijavu" (a
+ *     and the foot holds at most ONE action, the one this state allows, as a quiet row link under a line (never a button inside the card,
+ *     and never green for a withdrawal): Izabrana → "Otvori Dogovor", an open one the server lets me withdraw → "Povuci prijavu" (a
  *     quiet ink link; the danger colour is kept for the question it opens), a changed task → "Pregledaj izmene zadatka" (the one
  *     orange dot of the card); nothing for a state that is over.
  *
- * The body opens the task the application belongs to, as it always did. The foot is its own press, a sibling of the body.
+ * The body opens the task the application belongs to, as it always did. The foot is its own press, a sibling of the body. The frame
+ * gives under the finger as ONE object (`usePressLift`, the row rung), and nothing moves under reduced motion.
  *
- * Two of the read's states say more than the five words do, and the card says it in a line under the chip rather than in a sixth word:
+ * Two of the read's states say more than the five words do, and the card says it in a line beside the chip rather than in a sixth word:
  * STALE_REVIEW_REQUIRED is still the application that was SENT, but the task changed under it ("Zadatak je izmenjen"); CLOSED merges an
  * application that was not chosen, one that expired and one whose task closed (private.my_application_state), so it is "Nije izabrana"
  * and the line says what is true of all three, "Zadatak više ne prima prijave", never a reason the read does not know.
  */
-
-const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 /* ------------------------------------------------------------------------------------------------ what it says */
 
@@ -43,7 +43,7 @@ const STATUS: Record<StanjeMojePrijave, PrijavaStatus> = {
   VIEWED: 'application.seen',
   // The owner's five states have no "u užem izboru". A shortlisted application is one the requester has acted on, so it has been seen.
   SHORTLISTED: 'application.seen',
-  // The task changed under it: it is still the application that was sent. What is new is the line under the chip and the foot.
+  // The task changed under it: it is still the application that was sent. What is new is the line beside the chip and the foot.
   STALE_REVIEW_REQUIRED: 'application.sent',
   SELECTED: 'application.selected',
   WITHDRAWN: 'application.withdrawn',
@@ -60,7 +60,7 @@ const REASON: Partial<Record<StanjeMojePrijave, NonNullable<PrijavaModel['reason
  * My offer. The stored price of an application is its own total: a task priced per person is multiplied by the places
  * this application covers when it is sent (pkg025b), and the edit form asks for "Cena prijave ukupno". So the card says
  * "ukupno"; "po osobi" is drawn only for a value that is one, and the read hands none over today. An amount that is not a
- * positive number with its written form is not an amount, and the card says so in words ("Iznos nije sačuvan").
+ * positive number with its written form is not an amount, and the card says so in words ("Cena nije navedena").
  */
 export type ApplicationValue = PrijavaPrice;
 export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena'>): ApplicationValue {
@@ -88,13 +88,13 @@ export function applicationFoot(row: Pick<MojaPrijavaProjekcija, 'stanje' | 'dog
   // The server's own flag, the one the screen's withdrawal guard reads; it is only ever set on an open application.
   return row.mozePovuci ? 'withdraw' : null;
 }
-const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone: FootTone; caret: 'right' | 'down' | 'none'; hint?: string }> = {
+const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone: RecordFootTone; caret: 'right' | 'down' | 'none'; hint?: string }> = {
   agreement: { label: 'Otvori Dogovor', spoken: 'Otvori Dogovor', tone: 'green', caret: 'right' },
   // Withdrawing is rare ("retko"): a quiet ink link on every open card, and the danger colour only in the question it
   // opens (review r4 item 7).
   withdraw: { label: 'Povuci prijavu', spoken: 'Povuci prijavu', tone: 'ink', caret: 'none', hint: 'Pre povlačenja te pitamo da potvrdiš.' },
   // The spoken name starts with the visible words, so voice control and a screen reader name it the same (WCAG 2.5.3).
-  review: { label: 'Pregledaj izmene zadatka', spoken: 'Pregledaj izmene zadatka', tone: 'waiting', caret: 'down', hint: 'Otvara aktuelne uslove ispod kartice.' },
+  review: { label: 'Pregledaj izmene zadatka', spoken: 'Pregledaj izmene zadatka', tone: 'waiting', caret: 'down', hint: 'Otvara trenutne uslove ispod kartice.' },
 };
 /** What the foot says, and what a screen reader hears ("Povuci prijavu: <naslov>"), per action. */
 export const applicationFootWords = (action: ApplicationFootAction) => FOOT[action];
@@ -118,10 +118,10 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large,
 });
 
 /**
- * One application: a softly raised marketplace card. The body is ONE press that opens the task; the foot, when the
- * state allows an action, is its own press beside it; `children` is what opens under the card (the review of a changed
- * task). The frame gives under the finger as one object, as the task card's does, and nothing moves under reduced motion.
- * The handlers are the screen's own guarded commands, handed in fresh on every render on purpose.
+ * One application: a `Surface record`. The body is ONE press that opens the task; the foot, when the state allows an action, is its own
+ * press under a line; `children` is what opens under the card (the review of a changed task, which brings its own line). The frame
+ * gives under the finger as one object, as the task card's does, and nothing moves under reduced motion. The handlers are the screen's
+ * own guarded commands, handed in fresh on every render on purpose.
  */
 function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, expanded = false, disabled = false, large: forced, children }: {
   row: MojaPrijavaProjekcija; onTask: () => void; onAgreement: () => void; onWithdraw: () => void; onReview: () => void;
@@ -133,7 +133,6 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
   // The same rule as the task card: stacked only for a window under 340 dp or text scale 1.3 and up (`useLayoutClass`).
   const stacked = useLayoutClass().stacked;
   const large = forced ?? stacked;
-  const reduced = useReducedMotion();
   const title = readableTitle(row.naslov);
   const action = applicationFoot(row, expanded);
   const foot = action ? FOOT[action] : null;
@@ -158,37 +157,32 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
   };
   const noteLabel = noteExpanded ? 'Prikaži manje' : 'Prikaži celu poruku';
 
-  const scale = useSharedValue(1);
-  const lift = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
-  const give = () => { if (!reduced) scale.set(withTiming(CARD_PRESS_SCALE, { duration: sys.motion.press, easing: EASE_OUT })); };
-  const settle = () => { scale.set(reduced ? 1 : withSpring(1, { ...sys.motion.spring, reduceMotion: ReduceMotion.System })); };
+  const lift = usePressLift();
 
-  return <Animated.View style={[s.card, lift]}>
-    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row) }}
-      accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
-      style={s.body}>
-      <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} />
-    </Press>
-    {/* A read-only sibling, never a nested press inside the task destination or the application command. */}
-    {longNote ? <Press accessibilityRole="button" accessibilityLabel={noteLabel}
-      accessibilityHint={`Poruka uz prijavu: ${title}`} accessibilityState={{ expanded: noteExpanded, disabled }}
-      disabled={disabled} onPress={toggleNote} haptic="select" scaleTo={1} hitSlop={0} style={s.noteToggle}>
-      <T variant="note" tone={disabled ? 'muted' : 'ink'}>{noteLabel}</T>
-    </Press> : null}
-    {/* No hit slop: the hairline is the border between reading controls and the application command. */}
-    {foot ? <Press accessibilityRole="button" accessibilityLabel={`${foot.spoken}: ${title}`} accessibilityHint={foot.hint}
-      accessibilityState={{ disabled }} disabled={disabled} onPress={onFoot} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1}
-      hitSlop={0} style={foot.tone === 'waiting' ? faceStyles.ownerFoot : faceStyles.footLink}>
-      <CardFootLine label={foot.label} tone={foot.tone} caret={foot.caret} disabled={disabled} />
-    </Press> : null}
-    {children}
+  return <Animated.View style={lift.style}>
+    <Surface kind="record" style={recordFlush}>
+      <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row) }}
+        accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
+        style={recordBody}>
+        <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} />
+      </Press>
+      {/* A read-only sibling, never a nested press inside the task destination or the application command. */}
+      {longNote ? <Press accessibilityRole="button" accessibilityLabel={noteLabel}
+        accessibilityHint={`Poruka uz prijavu: ${title}`} accessibilityState={{ expanded: noteExpanded, disabled }}
+        disabled={disabled} onPress={toggleNote} haptic="select" scaleTo={1} hitSlop={0} style={s.noteToggle}>
+        <T variant="note" tone={disabled ? 'muted' : 'ink'}>{noteLabel}</T>
+      </Press> : null}
+      {/* No hit slop: the line is the border between reading controls and the application command. */}
+      {foot ? <RecordFoot label={foot.label} tone={foot.tone} caret={foot.caret} disabled={disabled} accessibilityLabel={`${foot.spoken}: ${title}`}
+        accessibilityHint={foot.hint} onPress={onFoot} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
+      {children}
+    </Surface>
   </Animated.View>;
 }
 export const ApplicationCard = memo(ApplicationCardBase);
 
 const s = StyleSheet.create({
-  // Shared raised frame; body/footer keep their existing separate targets and exact internal geometry.
-  card: { ...cardCompact, ...raisedItem, padding: 0 },
-  body: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 14, gap: sys.space.md, borderRadius: sys.radius.cardCompact },
-  noteToggle: { minHeight: 48, paddingHorizontal: 16, paddingVertical: sys.space.sm, justifyContent: 'center' },
+  // Read-only, under the message it opens: its 48 dp reach starts at the end of the message (the body's own 16 under it are lent), and
+  // the words stand at the card's text edge.
+  noteToggle: { minHeight: layout.touch, justifyContent: 'center', paddingHorizontal: layout.card, marginTop: -sys.space.base },
 });

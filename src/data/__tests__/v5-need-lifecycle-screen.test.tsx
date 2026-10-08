@@ -134,20 +134,20 @@ it('retires confirmation after Odustani and does not let an old cancel discard a
   await inSheet('confirm-sheet-cancel'); await act(async () => { await oldSend(); }); expect(mockStorage.setItem).not.toHaveBeenCalled();
   await ask('DELETE_DRAFT'); const oldCancel = retainedCancel();
   mockService.deleteDraftNeed.mockResolvedValue(unknown); await inSheet('confirm-sheet-confirm'); await act(async () => oldCancel());
-  expect(action('Proveri ishod')).toBeDefined(); expect(sheets()).toHaveLength(0);
+  expect(action('Proveri da li je uspelo')).toBeDefined(); expect(sheets()).toHaveLength(0);
   // The uncertain command owns the screen: nothing new can be asked over it.
   await ask('DELETE_DRAFT'); expect(sheets()).toHaveLength(0);
 });
 it('unknown command requires successful readback before an explicit identical retry', async () => {
   mockService.deleteDraftNeed.mockResolvedValueOnce(unknown); await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm');
   expect(action('Pošalji ponovo').disabled).toBe(true); await tap('Pošalji ponovo'); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
-  await tap('Proveri ishod'); expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command);
+  await tap('Proveri da li je uspelo'); expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command);
   expect(action('Pošalji ponovo').disabled).toBe(false); expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1);
   await tap('Pošalji ponovo'); expect(mockService.deleteDraftNeed.mock.calls).toEqual([[N, 3, ''], [N, 3, '']]);
 });
 it('failed readback never licenses retry and missing list rows do not prove deletion', async () => {
   mockService.deleteDraftNeed.mockResolvedValue(unknown); mockService.readCommandReceipt.mockResolvedValue({ ok: false, kod: 'READ_FAILED', poruka: 'Nedostupno.' });
-  await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm'); await tap('Proveri ishod'); await tap('Pošalji ponovo');
+  await render(); await ask('DELETE_DRAFT'); await inSheet('confirm-sheet-confirm'); await tap('Proveri da li je uspelo'); await tap('Pošalji ponovo');
   expect(mockService.deleteDraftNeed).toHaveBeenCalledTimes(1); expect(mockSource.mojePotrebe).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ label: 'Moji zadaci' })).toHaveLength(0);
 });

@@ -64,9 +64,9 @@ test('a switch row is one focus stop spoken as a switch, the drawn switch green 
   expect(off.props.accessibilityState).toEqual({ checked: false, disabled: true });
   expect(off.props.accessibilityHint).toBe('Samo hitno. Prvo sačuvaj.');
   expect(texts()).toContain('Prvo sačuvaj.'); expect(texts()).toContain('Važi za ovaj telefon.');
-  // The group name is a quiet header, not a tracked capital label.
+  // The group name is the system's section title (UI/UX pass 2026-10-08: `Section`, the `heading` type, a header), not a tracked capital label.
   const title = tree.root.findAllByType('T' as React.ElementType).find(node => node.children.includes('Tihi sati'))!;
-  expect(title.props.accessibilityRole).toBe('header'); expect(title.props.variant).toBe('meta');
+  expect(title.props.accessibilityRole).toBe('header'); expect(title.props.variant).toBe('heading');
 });
 test('a person row has two focus stops side by side: the person, and the action', async () => {
   const open = jest.fn(), unblock = jest.fn();
@@ -89,10 +89,11 @@ test('rows are 56 dp at least, a destructive row speaks in the danger colour, an
     const style = flat(byLabel(label).props.style);
     expect(style.minHeight).toBe(56); expect(style.opacity).toBeUndefined();
   }
-  const colorOf = (label: string) => flat(tree.root.findAllByType('T' as React.ElementType).find(node => node.children.includes(label))!.props.style).color;
-  expect(colorOf('Zatvori nalog')).toBe(sys.color.danger);
-  expect(colorOf('Nedostupno')).toBe(sys.color.muted);
-  expect(colorOf('Pravila')).toBe(sys.color.ink);
+  // The words are drawn by the one text component in a tone (the row is a `ListRow`): danger, muted, ink.
+  const toneOf = (label: string) => tree.root.findAllByType('T' as React.ElementType).find(node => node.children.includes(label))!.props.tone;
+  expect(toneOf('Zatvori nalog')).toBe('danger');
+  expect(toneOf('Nedostupno')).toBe('muted');
+  expect(toneOf('Pravila')).toBe('ink');
 });
 // Round-5 review (2026-09-24): a disabled row's picture is muted with its words, as V2Action mutes its icon; a live row
 // keeps its colours.

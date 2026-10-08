@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
 import { brandAction } from '../../ui/system/tokens';
@@ -52,7 +52,9 @@ const press = (label: string) => tree.root.findByProps({ accessibilityLabel: lab
 const tap = async (label: string) => act(async () => press(label).props.onPress());
 const click = async (label: string) => act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === label)!.props.onPress());
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /^Otvori priliku /.test(node.props.accessibilityLabel ?? ''));
+const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /^Otvori zadatak [^:]/.test(node.props.accessibilityLabel ?? ''));
+/** A card's label is the command, its title and then everything it shows: the title is what a guard test reads. */
+const titleOf = (node: ReactTestInstance) => String(node.props.accessibilityLabel).replace(/\. .*$/, '');
 const maps = () => tree.root.findAllByType('DiscoveryMap' as React.ElementType);
 // Discovery V47: the search is a panel over the map; its one green action says how many tasks it will show.
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
@@ -139,11 +141,11 @@ test('the search panel offers price modes as radios and its apply action is the 
 // From marketplace-presentation (review r3 item 7): the filtered-empty view's one way forward clears what was chosen,
 // and only that. Where the map stands is not a filter, and neither is where the list sheet rests (Discovery V47 keeps
 // it in the view).
-test('"Obriši uslove" clears search, price and area but keeps the map and where it stands', async () => {
+test('"Poništi filtere" clears search, price and area but keeps the map and where it stands', async () => {
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19, 45, 20, 46] as [number, number, number, number] };
   Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', area: [19, 45, 20, 46], viewport });
   await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
-  await click('Obriši uslove');
+  await click('Poništi filtere');
   expect(snapshot).toEqual({ ...initialMarketplaceView(), mode: 'map', viewport, sheet: 'half' });
   const [map] = maps();
   expect(map.props.viewport).toEqual(viewport);
@@ -183,7 +185,7 @@ test('with a search and a map area on, "Prikaži N zadataka" counts the list sho
     row('četiri', { priblizno: { lat: 44.0, lng: 21.5 } }), row('pet', { priblizno: { lat: 45.3, lng: 19.9 } })];
   Object.assign(initial, { query: 'Pomoć', area: [19, 45, 20, 46] });
   await render();
-  expect(cards().map(node => node.props.accessibilityLabel)).toEqual(['Otvori priliku Pomoć one', 'Otvori priliku Pomoć pet', 'Otvori priliku Pomoć two']);
+  expect(cards().map(titleOf)).toEqual(['Otvori zadatak Pomoć one', 'Otvori zadatak Pomoć pet', 'Otvori zadatak Pomoć two']);
   // The list is lowered here (most tasks are on the map), so the row of chips stands over the map as well as in the sheet's header: the first one is the one in reach.
   await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Filteri')[0].props.onPress());
   expect(showAction().props.label).toBe('Prikaži 3 zadatka');

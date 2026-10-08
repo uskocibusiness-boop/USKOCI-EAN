@@ -69,7 +69,7 @@ it('a draft that only waits has no green action, says why, and "Osveži zadatak"
   await render();
   expect(mockReadiness).toHaveBeenCalledTimes(1); expect(mockReadiness).toHaveBeenCalledWith(NEED, 7);
   expect(texts()).toContain('Fotografije se još obrađuju'); expect(brand()).toEqual([]);
-  await act(async () => tree.root.findByProps({ label: 'Osveži zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ label: 'Osveži' }).props.onPress());
   // The gate was asked again. Until it answers, the old answer stays: the page never offers the green review in the middle of a wait.
   expect(mockReadiness).toHaveBeenCalledTimes(2);
   expect(texts()).toContain('Fotografije se još obrađuju'); expect(brand()).toEqual([]);
@@ -81,7 +81,7 @@ it('a draft that only waits has no green action, says why, and "Osveži zadatak"
 it('a draft that is still held after reading again stays as it was', async () => {
   mockReadiness.mockResolvedValue(held('POLICY_NOT_READY'));
   await render();
-  await act(async () => tree.root.findByProps({ label: 'Osveži zadatak' }).props.onPress());
+  await act(async () => tree.root.findByProps({ label: 'Osveži' }).props.onPress());
   expect(mockReadiness).toHaveBeenCalledTimes(2);
   expect(texts()).toContain('Nije do tebe. Nacrt je sačuvan, pokušaj kasnije.'); expect(brand()).toEqual([]);
 });

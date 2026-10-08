@@ -146,7 +146,7 @@ it('an uncertain cancel keeps its recovery on the screen under the title, with n
   mockLifecycle.cancelNeed.mockResolvedValue({ ok: false, kod: 'UNKNOWN_OUTCOME', poruka: 'Ishod nije potvrđen.' });
   await render(); await choose('Otkaži zadatak'); await inSheet('confirm-sheet-confirm');
   expect(sheets()).toHaveLength(0);
-  expect(tree.root.findAllByProps({ label: 'Proveri ishod' })).toHaveLength(1);
+  expect(tree.root.findAllByProps({ label: 'Proveri da li je uspelo' })).toHaveLength(1);
   expect(tree.root.findAllByProps({ label: 'Pošalji ponovo' })).toHaveLength(1);
   const all = texts();
   expect(all.lastIndexOf('Pregledani Zadatak')).toBeLessThan(all.indexOf('Ponovno slanje je dostupno tek posle uspešne provere.'));

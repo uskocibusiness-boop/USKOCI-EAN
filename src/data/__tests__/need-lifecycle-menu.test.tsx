@@ -158,9 +158,9 @@ it('keeps an uncertain outcome and its recovery on the screen, never inside a sh
   mockService.cancelNeed.mockResolvedValue({ ok: false, kod: 'UNKNOWN_OUTCOME', poruka: 'Ishod nije potvrđen.' });
   await render(); await request('CANCEL'); await pressIn('confirm-sheet-confirm');
   expect(sheets()).toHaveLength(0);
-  expect(actions()).toEqual(expect.arrayContaining(['Proveri ishod', 'Pošalji ponovo']));
+  expect(actions()).toEqual(expect.arrayContaining(['Proveri da li je uspelo', 'Pošalji ponovo']));
   expect(tree.root.findByProps({ label: 'Pošalji ponovo' }).props.disabled).toBe(true);
-  await act(async () => { tree.root.findByProps({ label: 'Proveri ishod' }).props.onPress(); });
+  await act(async () => { tree.root.findByProps({ label: 'Proveri da li je uspelo' }).props.onPress(); });
   expect(mockService.readCommandReceipt).toHaveBeenCalledWith(command); expect(mockService.cancelNeed).toHaveBeenCalledTimes(1);
 });
 

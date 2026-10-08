@@ -66,7 +66,7 @@ describe('CB1 — deleteDraftNeed', () => {
     for (const [name, fragment] of [
       ['NEED_NOT_DELETABLE_DRAFT', 'nacrt'],
       ['DRAFT_MEDIA_CLEANUP_REQUIRED', 'fotografije'],
-      ['DRAFT_HAS_AUTHORITATIVE_HISTORY', 'otkazati'],
+      ['DRAFT_HAS_AUTHORITATIVE_HISTORY', 'otkažeš zadatak'],
       ['FORBIDDEN', 'tvoj zadatak'],
     ] as const) {
       resetRpc({ data: null, error: { code: 'P0001', message: name } });

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../contracts/projections';
 import { PublicProfileSheet } from '../ui/system/PublicProfileSheet';
+import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable } from '../ui/v2/ApplicationSelectionPresentation';
 import { Press } from '../ui/Press';
@@ -18,10 +19,10 @@ import { T } from '../ui/Text';
  * anything. Every command is a local stand-in (a choice "runs" for a moment and then says the Dogovor is made; the safety
  * entry "opens" and says the person is not available), so the states can be seen without touching an account.
  */
-type Scene = 'lista' | 'prazno' | 'ucitavanje' | 'greska' | 'dugacka' | 'veliki' | 'ponuda' | 'ne-moze' | 'izabrana' | 'ishod' | 'ponovi'
+type Scene = 'lista' | 'prazno' | 'ucitavanje' | 'greska' | 'dugacka' | 'veliki' | 'ponuda' | 'ponuda-veliki' | 'ne-moze' | 'izabrana' | 'ishod' | 'ponovi'
   | 'sklopljen' | 'profil' | 'profil-ucitavanje' | 'profil-greska';
 const SCENES: [Scene, string][] = [['lista', 'Lista'], ['prazno', 'Prazno'], ['ucitavanje', 'Učitavanje'], ['greska', 'Greška'],
-  ['dugacka', 'Dugačka imena'], ['veliki', 'Veliki tekst (raspored)'], ['ponuda', 'Ponuda'], ['ne-moze', 'Ne može izbor'],
+  ['dugacka', 'Dugačka imena'], ['veliki', 'Veliki tekst (raspored)'], ['ponuda', 'Ponuda'], ['ponuda-veliki', 'Ponuda: veliki tekst'], ['ne-moze', 'Ne može izbor'],
   ['izabrana', 'Izabrana'], ['ishod', 'Ishod nepoznat'], ['ponovi', 'Ponovi izbor'], ['sklopljen', 'Dogovor sklopljen'],
   ['profil', 'Javni profil'], ['profil-ucitavanje', 'Profil: učitavanje'], ['profil-greska', 'Profil: greška']];
 
@@ -54,14 +55,20 @@ const PROFILE = { profilId: 'galerija-profil-1', uloga: 'radnik', ime: 'Milan Pe
   poverenje: { ocenaProsek: 4.8, brojRecenzija: 11, zavrseniBroj: 14, identitetVerifikovan: true, ocenaDostupna: true, recenzijeDostupne: true,
     verifikacijaIdentitetaDostupna: true } } as unknown as JavniProfilProjekcija;
 
+const isScene = (value: unknown): value is Scene => SCENES.some(([key]) => key === value);
+
 export default function DizajnKandidati() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
-  const [scene, setScene] = useState<Scene>('lista');
+  // A scene can be opened by its address (`/dizajn-kandidati?scene=dugacka`); the lab moves between them without reloading the page.
+  const params = useLocalSearchParams<{ scene?: string | string[] }>();
+  const requested = typeof params.scene === 'string' && isScene(params.scene) ? params.scene : undefined;
+  const [scene, setScene] = useState<Scene>(requested ?? 'lista');
   // Local stand-ins for the commands, so the busy and outcome states can be seen; nothing leaves the phone.
   const [busy, setBusy] = useState(false), [chosen, setChosen] = useState(false);
   const [safety, setSafety] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timers.current.forEach(clearTimeout); }, []);
+  useEffect(() => { if (requested) { setScene(requested); setBusy(false); setChosen(false); setSafety({ busy: false, error: null }); } }, [requested]);
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   const later = (ms: number, run: () => void) => { timers.current.push(setTimeout(run, ms)); };
   const show = (next: Scene) => { setScene(next); setBusy(false); setChosen(false); setSafety({ busy: false, error: null }); };
@@ -84,18 +91,21 @@ export default function DizajnKandidati() {
     : scene === 'dugacka' ? list(LONG)
     : scene === 'veliki' ? list([...NORMAL, ...LONG], 1.3)
     : list(NORMAL);
-  const sheet = scene === 'ponuda' ? offer(NORMAL[0])
+  const sheet = scene === 'ponuda' || scene === 'ponuda-veliki' ? offer(NORMAL[0])
     : scene === 'ne-moze' ? offer(NORMAL[2])
     : scene === 'izabrana' ? offer({ ...NORMAL[0], stanje: 'SELECTED', mozeIzabrati: false })
-    : scene === 'ishod' ? offer(NORMAL[0], { pending: true, uncertain: true, error: 'Ishod izbora nije potvrđen. Proveri stanje.' })
-    : scene === 'ponovi' ? offer(NORMAL[0], { pending: true, reset: true, error: 'Aktuelno stanje je učitano. Za potvrdu prvobitnog izbora pošalji ponovo.' })
+    : scene === 'ishod' ? offer(NORMAL[0], { pending: true, uncertain: true, error: 'Ne znamo da li je izbor sačuvan. Izaberi „Proveri da li je izabrano“.' })
+    : scene === 'ponovi' ? offer(NORMAL[0], { pending: true, reset: true, error: 'Prijave su osvežene. Ako izbor nije sačuvan, izaberi prijavu ponovo.' })
     : scene === 'sklopljen' ? offer(NORMAL[0], { pending: true, confirmed: true })
     : scene === 'profil' ? <PublicProfileSheet state={{ loading: false, data: PROFILE }} onClose={toList} onRetry={() => {}} safety={safetyEntry} />
     : scene === 'profil-ucitavanje' ? <PublicProfileSheet state={{ loading: true, data: null }} onClose={toList} onRetry={() => {}} />
     : scene === 'profil-greska' ? <PublicProfileSheet state={{ loading: false, data: null }} onClose={toList} onRetry={() => {}} />
     : null;
-  return <View style={s.screen}>
-    <View style={s.grow}>{body}</View>
+  // The lab has no system font, so the large-text layout is forced for the scenes that show it, as the other galleries do.
+  const large = scene === 'veliki' || scene === 'ponuda-veliki';
+  const content = <View style={s.screen}>
+    {/* Each scene is mounted fresh, so its comparison and its order start where the scene says. */}
+    <View key={scene} style={s.grow}>{body}</View>
     {sheet}
     <SafeAreaView edges={['bottom']} style={s.strip}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
@@ -106,6 +116,7 @@ export default function DizajnKandidati() {
       </ScrollView>
     </SafeAreaView>
   </View>;
+  return large ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{content}</LayoutClassOverride.Provider> : content;
 }
 
 const s = StyleSheet.create({

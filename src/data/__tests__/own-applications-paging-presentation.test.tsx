@@ -101,7 +101,7 @@ test('the foot offers the next page, says it is reading, or says it failed and o
   paging = makePaging({ loadingMore: true }); await rerender();
   expect(actions()).not.toContain('Prikaži još'); expect(texts()).toContain('Učitavamo još prijava…');
   paging = makePaging({ moreError: true }); await rerender();
-  expect(texts()).toContain('Nije uspelo učitavanje još prijava.'); expect(actions()).toContain('Pokušaj ponovo'); expect(actions()).not.toContain('Prikaži još');
+  expect(texts()).toContain('Ne možemo da učitamo ostale prijave.'); expect(actions()).toContain('Pokušaj ponovo'); expect(actions()).not.toContain('Prikaži još');
   action('Pokušaj ponovo').props.onPress(); expect(loadMore).toHaveBeenCalledTimes(2);
   paging = makePaging({ hasMore: false }); await rerender();
   expect(actions()).not.toContain('Prikaži još'); expect(actions()).not.toContain('Pokušaj ponovo');

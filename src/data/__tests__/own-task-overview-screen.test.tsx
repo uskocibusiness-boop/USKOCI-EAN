@@ -49,6 +49,32 @@ const press = async (label: string) => { await act(async () => presses().find(no
 const search = (patch: Partial<OverviewSearch> = {}): OverviewSearch => ({ status: 'PUBLISHED', coveredSlots: 0, searchAuthority: 'OPEN',
   searchTimeAdmitted: true, agreementCount: 0, activeAgreementCount: 0, ...patch });
 
+// UX needs R16 (F3's `noApplicationsHelp` says it, behind its switch; this page only draws what it is given): after a day without a single
+// application, ONE section whose rows are the real ways to change the task, each one opening what the page already opens.
+describe('R16: no applications for a day', () => {
+  const HELP = { sentence: 'Nema prijava već 24 sata.', actions: ['PHOTO', 'WIDEN_TERM', 'SHARE', 'EDIT'] } as const;
+  it('draws one section named by its own sentence, a row for each real way, and tells which one was pressed', async () => {
+    const onHelp = jest.fn();
+    await draw({ stanje: 'OBJAVLJENA' }, { waitingHelp: HELP, onWaitingHelp: onHelp });
+    expect(texts()).toContain('Nema prijava već 24 sata');
+    for (const label of ['Dodaj fotografiju', 'Proširi termin', 'Podeli zadatak', 'Izmeni zadatak']) expect(labels().filter(item => item === label)).toHaveLength(1);
+    await press('Proširi termin');
+    expect(onHelp).toHaveBeenCalledWith('WIDEN_TERM');
+    // Rows, not buttons: the page keeps its own foot, and no new green action appears.
+    expect(brand()).toEqual([]);
+  });
+  it('draws only the ways it is given, and nothing at all without them, on a draft, or while the page cannot be read', async () => {
+    await draw({ stanje: 'OBJAVLJENA' }, { waitingHelp: { sentence: 'Nema prijava već 24 sata.', actions: ['EDIT'] }, onWaitingHelp: jest.fn() });
+    expect(labels()).not.toContain('Dodaj fotografiju'); expect(labels()).toContain('Izmeni zadatak');
+    await draw({ stanje: 'OBJAVLJENA' }, { waitingHelp: null, onWaitingHelp: jest.fn() });
+    expect(texts()).not.toContain('Nema prijava već 24 sata');
+    await draw({ stanje: 'OBJAVLJENA' }, { waitingHelp: HELP });
+    expect(texts()).not.toContain('Nema prijava već 24 sata');
+    await draw({ stanje: 'NACRT' }, { waitingHelp: HELP, onWaitingHelp: jest.fn() });
+    expect(texts()).not.toContain('Nema prijava već 24 sata');
+  });
+});
+
 describe('one chip, one sentence, at most one green action', () => {
   // [what the server read says, the chip as a screen reader hears it, the sentence, the green action]. A sentence the list of "Moji zadaci"
   // says under its card (`ownTaskStanding`) is that sentence here too, so the two cannot disagree; the others are this page's own.
@@ -164,7 +190,7 @@ describe('a draft the publication gate holds back', () => {
 
   it('whose place is missing opens the conversation, and says why where the owner reads first', async () => {
     await draw({ stanje: 'NACRT' }, { readiness: held('LOCATION_INCOMPLETE') });
-    expect(texts()).toContain('Fali još mesto na mapi');
+    expect(texts()).toContain('Još nedostaje mesto na mapi');
     expect(brand()).toEqual(['Otvori razgovor i dopuni']); expect(sentence()).toBeNull();
     await press('Otvori razgovor i dopuni'); expect(calls.edit).toHaveBeenCalledTimes(1); expect(calls.review).not.toHaveBeenCalled();
   });
@@ -174,7 +200,7 @@ describe('a draft the publication gate holds back', () => {
     expect(texts()).toContain('Fotografije se još obrađuju');
     expect(brand()).toEqual([]);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(0);
-    const again = tree.root.findByProps({ label: 'Osveži zadatak' });
+    const again = tree.root.findByProps({ label: 'Osveži' });
     await act(async () => again.props.onPress()); expect(calls.refresh).toHaveBeenCalledTimes(1);
     // The same for "not your fault": the owner can only look again later.
     await act(async () => tree.unmount());
@@ -192,8 +218,8 @@ describe('a draft the publication gate holds back', () => {
 describe('while an action runs', () => {
   it('the one action says so, is disabled and points nowhere, whatever it was', async () => {
     await draw({ stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 }, { busy: true });
-    expect(brand()).toEqual(['Radnja je u toku…']);
-    const working = presses().find(node => node.props.accessibilityLabel === 'Radnja je u toku…')!;
+    expect(brand()).toEqual(['Samo trenutak…']);
+    const working = presses().find(node => node.props.accessibilityLabel === 'Samo trenutak…')!;
     expect(working.props.disabled).toBe(true);
     // A task that is waiting for applications and is not busy draws no button at all.
     await act(async () => tree.unmount());

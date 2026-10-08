@@ -1,8 +1,8 @@
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import type { NeedPublicationReadiness } from '../needPublicationReadiness';
-import { applicationsWaitSentence, ownTaskStanding } from '../ownTaskStanding';
+import { APPLICATION_PROMISE, applicationsWaitSentence, ownTaskStanding } from '../ownTaskStanding';
 import { STATUS_CHIPS } from '../../ui/system/StatusChip';
-import { DRAFT_NEXT, missingPeople, ownTaskOverview, type Overview, type OverviewSearch } from '../../ui/v2/ownTaskOverview';
+import { DRAFT_NEXT, NARROW_TERM_HOURS, NO_APPLICATIONS_AFTER_HOURS, NO_APPLICATIONS_HELP_LABEL, NO_APPLICATIONS_HELP_ON, missingPeople, noApplicationsHelp, ownTaskOverview, type Overview, type OverviewSearch } from '../../ui/v2/ownTaskOverview';
 
 /**
  * The owner's own task page says ONE state, ONE next step and at most ONE green action (plan 2.2, 3.5; owner 2026-10-07). This is the
@@ -46,7 +46,7 @@ describe('state by state: one chip, one grey sentence, at most one green action'
 
   it('applications that exist but cannot be chosen are said, kept one quiet row away, and are no reason for a green action', () => {
     const none = view({ stanje: 'OBJAVLJENA', brojPrijava: 4, brojPrijavaZaIzbor: 0 });
-    expect(none.sentence).toBe('Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.');
+    expect(none.sentence).toBe(APPLICATION_PROMISE.noneToChoose);
     expect(none.primary).toBeNull();
     expect(none.rows).toEqual({ applications: true, agreements: false });
   });
@@ -271,5 +271,55 @@ describe('how many people a task still needs', () => {
       'Nedostaje još 11 osoba.', 'Nedostaje još 12 osoba.', 'Nedostaje još 14 osoba.', 'Nedostaje još 20 osoba.', 'Nedostaje još 21 osoba.',
       'Nedostaju još 22 osobe.', 'Nedostaje još 25 osoba.', 'Nedostaje još 101 osoba.', 'Nedostaju još 102 osobe.', 'Nedostaje još 112 osoba.']);
     for (const count of [1, 2, 5]) expect(missingPeople(count)).not.toMatch(/ljudi/);
+  });
+});
+
+/**
+ * R16 (2026-10-07): after a day without a single application the page says so, with the real ways to change it. Built behind a switch, OFF:
+ * the owner's read of a task has no time of publication and no photo count yet (TRAŽI SERVER), and the card never guesses either.
+ */
+describe('R16: a day without an application, built behind a switch', () => {
+  const published = (hoursAgo: number) => new Date(NOW.getTime() - hoursAgo * 3_600_000).toISOString();
+  const WINDOW = (hours: number) => ({ kind: 'FIXED_WINDOW' as const, startsAt: '2026-10-10T08:00:00Z', endsAt: new Date(Date.parse('2026-10-10T08:00:00Z') + hours * 3_600_000).toISOString() });
+  const help = (patch: Partial<PotrebaProjekcija> = {}, extra: Partial<Parameters<typeof noApplicationsHelp>[0]> = {}) =>
+    noApplicationsHelp({ need: task({ stanje: 'OBJAVLJENA', brojPrijava: 0, schedule: WINDOW(4), ...patch }), now: NOW, on: true, publishedAt: published(30), photoCount: 0, canShare: true, canEdit: true, ...extra });
+
+  it('is off, and says nothing, whatever the task and the data are', () => {
+    expect(NO_APPLICATIONS_HELP_ON).toBe(false);
+    expect(noApplicationsHelp({ need: task({ stanje: 'OBJAVLJENA', brojPrijava: 0 }), now: NOW, publishedAt: published(300), photoCount: 0, canShare: true, canEdit: true })).toBeNull();
+  });
+
+  it('says it from 24 hours, never before, for a published task that nobody applied to', () => {
+    expect(NO_APPLICATIONS_AFTER_HOURS).toBe(24);
+    expect(help({}, { publishedAt: published(23.9) })).toBeNull();
+    expect(help({}, { publishedAt: published(24) })).toMatchObject({ sentence: 'Nema prijava već 24 sata.' });
+    expect(help({}, { publishedAt: published(300) })).not.toBeNull();
+    // Somebody applied, or the task is not a published one that waits: it is not silent.
+    expect(help({ brojPrijava: 1 })).toBeNull();
+    for (const stanje of ['NACRT', 'CEKA_PRIJAVE', 'DELIMICNO_POPUNJENA', 'POPUNJENA', 'ZATVORENA'] as const) expect(help({ stanje })).toBeNull();
+  });
+
+  it('is nothing without a time that is a time: it never guesses how long it has been', () => {
+    for (const publishedAt of [null, undefined, '', 'sutra', '2026-10-05', '2026-13-45T10:00:00Z', 1_700_000_000_000 as unknown as string]) expect(help({}, { publishedAt })).toBeNull();
+  });
+
+  it('offers each real way only when this task makes it a real thing to do', () => {
+    // A photo only when the task is KNOWN to have none; an unknown count is not zero.
+    expect(help({}, { photoCount: 0 })!.actions).toContain('PHOTO');
+    for (const photoCount of [1, 4, null, undefined]) expect(help({}, { photoCount })!.actions).not.toContain('PHOTO');
+    // A term is "narrow" when it is fixed and no longer than two hours.
+    expect(NARROW_TERM_HOURS).toBe(2);
+    expect(help({ schedule: WINDOW(2) })!.actions).toContain('WIDEN_TERM');
+    for (const schedule of [WINDOW(2.5), { kind: 'FLEXIBLE' as const, startsAt: '2026-10-10T08:00:00Z', endsAt: '2026-10-10T09:00:00Z' }, undefined]) expect(help({ schedule })!.actions).not.toContain('WIDEN_TERM');
+    // What the page cannot do is not offered: the term is widened by editing, and a share needs a share sheet.
+    expect(help({ schedule: WINDOW(1) }, { canEdit: false, canShare: true })!.actions).toEqual(['PHOTO', 'SHARE']);
+    expect(help({}, { canShare: false })!.actions).toEqual(['PHOTO', 'EDIT']);
+    expect(help({ schedule: WINDOW(1) })!.actions).toEqual(['PHOTO', 'WIDEN_TERM', 'SHARE', 'EDIT']);
+  });
+
+  it('is no card at all when no way is real: a card with nothing to press only complains', () => {
+    expect(help({}, { photoCount: 3, canShare: false, canEdit: false })).toBeNull();
+    expect(Object.keys(NO_APPLICATIONS_HELP_LABEL)).toEqual(['PHOTO', 'WIDEN_TERM', 'SHARE', 'EDIT']);
+    expect(Object.values(NO_APPLICATIONS_HELP_LABEL)).toEqual(['Dodaj fotografiju', 'Proširi termin', 'Podeli zadatak', 'Izmeni zadatak']);
   });
 });
