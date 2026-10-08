@@ -1,0 +1,182 @@
+{
+  "id": "INBOX-NASLOV",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "none beyond the owner's standing order for proven packages (2026-10-07, 'DA, PRIMENJUJ DOKAZANE PAKETE SAM'); applied by the integrator after the green proof",
+  "requiresApplied": "none (the DEV body of 2026-10-08 is pinned)",
+  "devStateReadAt": "2026-10-08",
+  "devLedger": 234,
+  "devLatestVersion": "20261008000839",
+  "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+  "certificateMoves": false,
+  "closureRoster": "closure_source_digest_v5 hashes a fixed list of function signatures plus the schema digest and the erasure program digest; none of private.closure_source_digest_v5, closure_schema_digest_v5_139, closure_erasure_program_digest_v5 or retention_ai_source_ready names rpc_list_inbox (read on DEV 2026-10-08), and a function body is not schema. The apply and the revert assert both digests unchanged in the same transaction.",
+  "functions": [
+    {
+      "signature": "public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)",
+      "before_md5": "b7928c5040ff715ea2af15e1f745c285",
+      "after_md5": "bd46f06fba17b28c5f5ed30ae61a1ee9",
+      "before_definition_md5": "4a9f079ac2fde1bb80dd8a6e552fa958",
+      "after_definition_md5": "4897d93c094b6f6d3fe244e8cd0824cf",
+      "before_chars": 2310,
+      "after_chars": 4181,
+      "language": "plpgsql",
+      "volatility": "STABLE",
+      "securityDefiner": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "comment": null
+    }
+  ],
+  "newFunctions": [],
+  "dependencyPins": [
+    {
+      "signature": "private.category_of_event(text)",
+      "body_md5": "85389285506a1f5801ad204f60dfa2a1"
+    }
+  ],
+  "columns": [
+    {
+      "relation": "public.user_activity_events",
+      "column": "entity_type",
+      "type": "text",
+      "notNull": true
+    },
+    {
+      "relation": "public.user_activity_events",
+      "column": "entity_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.user_activity_events",
+      "column": "event_type",
+      "type": "text",
+      "notNull": true
+    },
+    {
+      "relation": "public.user_activity_events",
+      "column": "recipient_user_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.needs",
+      "column": "id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.needs",
+      "column": "title",
+      "type": "text",
+      "notNull": true
+    },
+    {
+      "relation": "public.needs",
+      "column": "category",
+      "type": "text",
+      "notNull": true
+    },
+    {
+      "relation": "public.needs",
+      "column": "requester_account_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column": "id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column": "need_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.marketplace_responses",
+      "column": "worker_account_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.agreements",
+      "column": "id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.agreements",
+      "column": "need_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.agreements",
+      "column": "requester_account_id",
+      "type": "uuid",
+      "notNull": true
+    },
+    {
+      "relation": "public.agreements",
+      "column": "worker_account_id",
+      "type": "uuid",
+      "notNull": true
+    }
+  ],
+  "erasureMarkers": {
+    "function": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+    "substrings": [
+      "elsif r='public.needs' then p:=jsonb_build_object('title','Obrisan zadatak',",
+      ",'category','OBRISANO',"
+    ],
+    "title": "Obrisan zadatak",
+    "category": "OBRISANO"
+  },
+  "response": {
+    "newItemKey": "taskTitle",
+    "type": "string or null",
+    "everyOtherKeyUnchanged": true,
+    "rule": {
+      "NEED": "the need entity_id; the recipient is its requester, or the event is OPPORTUNITY_AVAILABLE, or the recipient applied to it (any application row of his on that need)",
+      "RESPONSE": "the need of the application entity_id; the recipient is the worker of that application or the requester of its need",
+      "AGREEMENT": "the need of the Dogovor entity_id; the recipient is its requester or its worker",
+      "otherwise": "null (CLARIFICATION and any other entity kind, a missing row, an erased task, no right)"
+    }
+  },
+  "devEventsReadAt20261008": {
+    "NEED/OPPORTUNITY_AVAILABLE": 25,
+    "RESPONSE/RESPONSE_RECEIVED": 12,
+    "AGREEMENT/MESSAGE_RECEIVED": 10,
+    "RESPONSE/RESPONSE_VIEWED": 9,
+    "RESPONSE/RESPONSE_SELECTED": 8,
+    "AGREEMENT/REVIEW_RECEIVED": 7,
+    "NEED/NEED_CANCELLED": 4,
+    "AGREEMENT/EXECUTION_STATE_CHANGED": 4,
+    "AGREEMENT/AGREEMENT_CANCELLED": 3,
+    "AGREEMENT/COMPLETION_REQUIRED": 2,
+    "RESPONSE/RESPONSE_WITHDRAWN": 1
+  },
+  "artifact_sha256": {
+    "candidate.sql": "6951d250ed536eaff91acc95e40f27380e4e1c61f66947a76eb8aa64278136e0",
+    "candidate.in-transaction.sql": "0bd676d5893c09ef3701f48f037557ab0a64fe1cf73c153505e3fc4b45a3860c",
+    "revert.sql": "0c482cf5a33f87d5edddee474de227c4713a6ed9d5685432742a9acc3c4cb9a3",
+    "preflight.readonly.sql": "3fb205950c55e94fcf4aa439fd169eed7be58f5e42045377828c93ea70228474",
+    "postflight.readonly.sql": "faae108768f02bd8234f0b73521d814593efe51dba258acc2a2bc359e48775ea",
+    "body.diff": "e451dedf7bb9568de61d783894c0379255cc55fb8b4f59eaa81e244b36b4196f",
+    "patches.json": "8a26e8a292ed353eca52b43c9dd4cc850047586f7c91948c48c49e884b6f61d5"
+  },
+  "artifact_md5": {
+    "candidate.sql": "a74e45bef7c4828ff017b18543afb734",
+    "candidate.in-transaction.sql": "daf74018ea60c8716f13ebe234b89293",
+    "revert.sql": "97be7afad735fd4bc1b4b5a3d232dcf0",
+    "preflight.readonly.sql": "28e53e1312281eabf58e8e1306625b73",
+    "postflight.readonly.sql": "8648be05ca3444be468fd199a133c574"
+  }
+}

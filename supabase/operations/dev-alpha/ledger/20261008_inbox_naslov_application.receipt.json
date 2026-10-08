@@ -1,0 +1,78 @@
+{
+  "schema": "USKOCI_DEV_INBOX_NASLOV_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "INBOX-NASLOV (owner, phone round of 2026-10-08: notifications such as 'Dogovor je otkazan' did not say which task): public.rpc_list_inbox returns taskTitle beside every item - the title of the task (need) the event is about (NEED: that need; RESPONSE: the need of that application; AGREEMENT: the need of that Dogovor), only for the requester of that need, the worker of that application, a party of that Dogovor, the worker an OPPORTUNITY_AVAILABLE offered it to, or (NEED events) a worker who applied to it; null for any other entity kind, a missing row, a task an account closure erased ('Obrisan zadatak' / 'OBRISANO') and anyone without that right. ONE REPLACED body (prosrc b7928c50 -> bd46f06f, pg_get_functiondef 4a9f079a -> 4897d93c), three anchored edits; signature, STABLE, SECURITY DEFINER, search_path, owner, ACL, comment, every other key, order, paging, unreadCount and errors unchanged. No table, column, trigger, policy, index or grant changed.",
+  "sourceCommit": "1428e16c on candidate/inbox-naslov-20261008 (remote novi), folder supabase/candidates/inbox-naslov-20261008/ exported byte-exact with git show (LF) and copied with this receipt; final proof run 37784417178 on commit 5ff3b86a (behaviour 14/14 and load 2/2 PASS, disposable database only, workflow .github/workflows/inbox-naslov-proof.yml on that branch); built by a server agent on Opus 5.5",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself. INBOX-NASLOV was proven on a disposable database (FAIL before: none of 41 items of five real accounts carried taskTitle; PASS after: every item equals an independent oracle and a hand table of 33 cases plus 9 events from real RPC flows, all 11 entity/event pairs on DEV, null cases; everything else byte-identical over 174 pages and through PostgREST; exact revert; the closure certificate unchanged) and moves nothing the owner reserved: no money, keys, legal text, real-data deletion, store, push, dependency, certificate change or privacy switch. Owner's 2026-10-08 later word on the usage limit: 'idi slobodno do 100%, samo nemoj da stajes'.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply (2026-10-08 about 13:37 UTC): ledger 234, latest version 20261008000839, readerIsDev true (prosrc b7928c50..., definition 4a9f079a...), alreadyApplied false, dependencies true (private.category_of_event 85389285...), the 15 columns true, erasureMarkers true, retriedLiteralFunctions 0, certificateReady true with closure digest 3a785d42... and erasure program digest 2027655d..., 85 events (NEED 29, RESPONSE 30, AGREEMENT 26), at most 39 events of one recipient.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). The statement was typed into the connector and the DATABASE measured the typed text first (select md5(t), length(t), octet_length(t) from a dollar-quoted literal): md5 daf74018ea60c8716f13ebe234b89293, 12409 characters, 12409 bytes, equal to the file (pure ASCII, LF only). The same text was then applied with apply_migration and the stored statement read back: 1 statement, md5 daf74018ea60c8716f13ebe234b89293.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: not already or partially applied; the reader pinned (prosrc md5, pg_get_functiondef md5, SECURITY DEFINER, STABLE, owner postgres, plpgsql, jsonb, search_path=pg_catalog, ACL, no comment); the dependency body pin; 15 columns with type and not-null; the erasure markers in private.closure_redaction_patch_v5; certificate ready. Then the body is replaced only after the preimage md5, the payload md5 bd46f06f..., the definition md5 and exactly one anchor of the old body are asserted, and the whole pg_proc row apart from the body plus the comment are asserted unchanged with the new definition md5 4897d93c.... Post-guards: the reader pinned again, the dependency pin, both closure digests equal before and after (a temporary table of the pre-apply digests), the certificate ready. Every refusal is errcode 55000; any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 234,
+    "after": 235,
+    "version": "20261008133853",
+    "name": "dev_alpha_inbox_naslov_application",
+    "storedStatementChars": 12409,
+    "statements": 1,
+    "storedStatementMd5": "daf74018ea60c8716f13ebe234b89293",
+    "fileSha256": "0bd676d5893c09ef3701f48f037557ab0a64fe1cf73c153505e3fc4b45a3860c",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (daf74018ea60c8716f13ebe234b89293): read back after the apply (md5 daf74018ea60c8716f13ebe234b89293, 1 statement)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "None of the three closure digest functions names rpc_list_inbox (read-only check 2026-10-08); the same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "faae108768f02bd8234f0b73521d814593efe51dba258acc2a2bc359e48775ea",
+    "readerAfter": true,
+    "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+    "dependencies": true,
+    "columns": true,
+    "erasureMarkers": true,
+    "retriedLiteralFunctions": 0,
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/inbox-naslov-20261008/revert.sql",
+    "sha256": "0c482cf5a33f87d5edddee474de227c4713a6ed9d5685432742a9acc3c4cb9a3",
+    "applied": false,
+    "effect": "revert.sql (md5 97be7afa...) restores the predecessor body b7928c50 / definition 4a9f079a byte for byte. Code rollback only: the package writes no data."
+  },
+  "notProven": [
+    "The app on a phone: the client already reads taskTitle (commit 6c78480e, inboxClientService keeps it, inboxCopy shows it as the second line); the next APK shows it.",
+    "Speed on DEV beyond the smoke: measured on CI hardware with 10,000 notifications.",
+    "A real account closure end to end: the redaction was proven with the certified erasure function on the disposable chain."
+  ],
+  "followUps": [
+    "Deliberate difference from RLS (accepted for the owner's request): a worker who applied to a task that was then cancelled sees that task's title in the cancellation notification, though RLS no longer shows the task itself; blocks are not consulted (the title only).",
+    "The title shown is today's title of the task, not the title at the moment of the event.",
+    "The production Supabase project (decision R04) needs this package before its first real user."
+  ],
+  "filesCopiedToThisCheckout": [
+    "body.diff",
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "live-functions.json",
+    "manifest.json",
+    "patches.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql"
+  ],
+  "measurement": {
+    "devSmokeReadOnly": "Read-only on DEV right after the apply, inside a DO block that ended in a deliberate RAISE EXCEPTION so nothing was stored, as the account with the most notifications (authenticated role, its own jwt sub): rpc_list_inbox(null, 30) returned 30 items, all 30 with a string taskTitle, e.g. NEED_CANCELLED 'Zadatak je otkazan' -> taskTitle 'Hitno prenošenje troseda' (the stored title carries quotation marks), MESSAGE_RECEIVED 'Nova poruka' -> 'Krečenje stana od 80 m² u belo', OPPORTUNITY_AVAILABLE -> 'Čišćenje stana na Petrovaradinu'.",
+    "ciMeasured": "On CI hardware, 10,000 notifications of one worker, median ms DEV body -> INBOX-NASLOV: page of 30 6.58 -> 7.22, page of 100 8.37 -> 8.91, worker 100 7.78 -> 9.87, mid cursor 8.59 -> 9.53, requester 100 3.05 -> 4.89, HTTP 13.2 -> 14.8, worst artificial case (100 cancellations of tasks with 200 applications each, recipient not applied) 3.06 -> 10.49."
+  },
+  "orderWithOtherPackages": "Applied after DISCOVERY-GRAD (234). A later package that replaces rpc_list_inbox must pin the postimage bd46f06f / 4897d93c."
+}
