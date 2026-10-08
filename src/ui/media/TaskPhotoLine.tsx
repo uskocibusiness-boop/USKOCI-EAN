@@ -3,6 +3,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { PermissionRecovery } from '../system/PermissionRecovery';
 import type { ConfirmRequest } from '../system/ConfirmSheet';
+import { OUTCOME_ACTION } from '../system/outcomeCopy';
 import { sys } from '../system/tokens';
 import { PhotoAttachStrip, type AttachTile } from './PhotoAttachTiles';
 import { PHOTO_LIMIT, PHOTO_SOURCE_WORDS, PHOTO_WORDS, photoCount, removalRequest } from './photoWords';
@@ -28,17 +29,22 @@ export function taskPhotoTiles(photos: TaskPhotosController, items: readonly Tas
   });
 }
 
-/** The way out of the one unconfirmed send and the check of a photo still processing: each drawn once. */
-export function TaskPhotoRecovery({ photos, disabled = false }: { photos: TaskPhotosController; disabled?: boolean }) {
+/**
+ * The way out of the one unconfirmed send and the check of a photo still processing: each drawn once. In the conversation they stand on the
+ * person's side (`end`); on the photo screen, where everything starts at the edge, they start there too (`start`).
+ */
+export function TaskPhotoRecovery({ photos, disabled = false, align = 'end' }: { photos: TaskPhotosController; disabled?: boolean; align?: 'start' | 'end' }) {
   const off = disabled || photos.busy;
   if (!photos.unconfirmed && !photos.checkByHand && !photos.readError) return null;
-  return <View style={s.actions}>
+  return <View style={[s.actions, align === 'start' && s.actionsStart]}>
     {photos.unconfirmed && photos.canRetry ? <V2Action tone="neutral" kind="secondary" compact label={PHOTO_WORDS.retry}
       loading={photos.working === 'RETRY'} disabled={off} onPress={() => { void photos.retry(); }} /> : null}
     {photos.unconfirmed ? <V2Action tone="neutral" kind="quiet" compact label={PHOTO_WORDS.cancel}
       loading={photos.working === 'CANCEL'} disabled={off} onPress={() => { void photos.cancel(); }} /> : null}
-    <V2Action tone="neutral" kind="quiet" compact label={PHOTO_WORDS.check} loading={photos.working === 'REFRESH'} disabled={off}
-      onPress={() => { void photos.refresh(); }} />
+    {/* The shared vocabulary (`system/outcomeCopy`): what is not known is looked at with ONE word, "Proveri"; a read that did not arrive is
+        tried again. The sentence above says what is not known and never the verb of this button; a screen reader still hears what is checked. */}
+    <V2Action tone="neutral" kind="quiet" compact label={photos.readError && !photos.unconfirmed && !photos.checkByHand ? OUTCOME_ACTION.retry : OUTCOME_ACTION.check}
+      accessibilityLabel={PHOTO_WORDS.check} loading={photos.working === 'REFRESH'} disabled={off} onPress={() => { void photos.refresh(); }} />
   </View>;
 }
 
@@ -85,4 +91,5 @@ const s = StyleSheet.create({
   end: { textAlign: 'right', maxWidth: '90%' },
   muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: sys.space.sm },
+  actionsStart: { justifyContent: 'flex-start' },
 });

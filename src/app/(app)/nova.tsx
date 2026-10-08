@@ -17,8 +17,11 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 
 
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
+import { SEND_UNCONFIRMED_CODE, conversationErrorLine } from '../../ui/aiFirst/aiDownLine';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { tick } from '../../ui/system/haptics';
+import { UNCERTAIN_ABOUT } from '../../ui/system/outcomeCopy';
 import type { PhotoSource } from '../../features/media/nativePhotoPicker';
 import { useTaskPhotoUploads } from '../../ui/media/useTaskPhotoUploads';
 
@@ -47,6 +50,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
   const request = useRef<PendingTurn | null>(null), abandoning = useRef(false);
+  // The data layer's sentence for the last send it could not prove delivered: the status line says that once (`conversationErrorLine`).
+  const unconfirmedSend = useRef<string | null>(null);
   const dialogueEnabled = locationDialogueEnabled();
   const locationPrompt = useRef<LocationReplyPrompt | null>(null);
   const locationFlight = useRef<LocationReplyLease | null>(null);
@@ -102,7 +107,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       if (stored) {
         if (resumeId && resumeId !== stored.conversationId) {
           setRecoveryConversation(stored.conversationId);
-          return { ok: false, kod: 'AI_OTHER_TURN_PENDING', poruka: 'Najpre proveri prethodno slanje poruke.' };
+          return { ok: false, kod: 'AI_OTHER_TURN_PENDING', poruka: 'Prethodna poruka možda nije stigla. Otvori taj razgovor i proveri je.' };
         }
         if (conversation.current && conversation.current !== stored.conversationId) return unavailable();
         conversation.current = stored.conversationId;
@@ -159,6 +164,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const stanje = editor.data?.conversation ?? lastGood.current, turn = editor.data?.turn ?? null;
   const razgovorId = stanje?.conversationId ?? null;
   const radi = editor.busy, greska = editor.error;
+  // A command that fails ticks once with the failure pattern (haptics rule R5); the same words showing again do not tick twice.
+  const failed = useRef<string | null>(null);
+  useEffect(() => { if (greska && greska !== failed.current) tick('error'); failed.current = greska; }, [greska]);
   // The draft's photos (the conversation's "+"): the task photo screen's own upload path and journal, bound to this conversation.
   const photos = useTaskPhotoUploads(razgovorId || null);
   // A source chosen before the conversation existed waits here until opening it is confirmed and its photos are read.
@@ -201,7 +209,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       try {
         await aiTurnIntentJournal.save({ accountId: accountId!, conversationId: id, clientRequestId: command.id });
       } catch {
-        return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Slanje nije pokrenuto. Proveri stanje pre ponovnog pokušaja.' };
+        return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Poruka nije poslata. Pokušaj ponovo.' };
       }
       // Storage completion is asynchronous: recheck focus/account before HTTP.
       if (!isCurrent() || !command.body)
@@ -230,6 +238,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
         if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }
       }
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+      unconfirmedSend.current = !result.ok && result.kod === SEND_UNCONFIRMED_CODE ? result.poruka : null;
       if (!result.ok) return result;
       return read();
     }); } finally {
@@ -372,7 +381,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   };
 
   if (!stanje) return <IntakeUnavailable loading={editor.loading}
-    error={greska ?? 'Razgovor nije dostupan.'} retry={invalidRoute || recoveryConversation ? undefined : osvezi} back={back}
+    error={greska ?? 'Proveri vezu i pokušaj ponovo.'} retry={invalidRoute || recoveryConversation ? undefined : osvezi} back={back}
     recover={recoveryConversation ? () => navigate(() => router.replace({ pathname: '/nova', params: { conversationId: recoveryConversation } })) : undefined} />;
 
   // The send is still running (the answer may be streaming): "Stiže odgovor…" is the whole truth, so no recovery is drawn.
@@ -384,7 +393,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     ? stanje.status === 'ABANDONED' ? 'Razgovor je napušten.'
       : stanje.status === 'COMPLETED' ? 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.'
         : 'Nastavak ovog razgovora nije dostupan.'
-    : abandoning.current ? 'Napuštanje razgovora još nije potvrđeno. Proveri stanje pre ponovnog pokušaja.'
+    : abandoning.current ? 'Ne znamo da li je razgovor napušten.'
       // A dispatched attempt that can already be cancelled is one whose lease the server has let
       // go: on 2026-09-18 two of these sat at "AI još obrađuje poruku" for over two hours while the
       // function had already logged AI_PROVIDER_FAILED. The server still cannot call the turn
@@ -392,18 +401,18 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       // implying that an answer is on its way, and must name the way out.
       : pending ? turn?.state === 'PROCESSING'
         ? editor.data?.recovery?.canCancel && editor.data.recovery.providerDispatched
-          ? 'AI još nije odgovorio na ovu poruku. Ako ne stigne, otkaži slanje pa pošalji ponovo.'
-          : 'AI još obrađuje poruku. Proveri ishod.'
+          ? 'Asistent još nije odgovorio na ovu poruku. Ako odgovor ne stigne, otkaži slanje pa pošalji ponovo.'
+          : 'Asistent još obrađuje poruku. Sačekaj odgovor.'
         : knownRetry ? 'Poruka je sačuvana za ponovni pokušaj. Pošalji ponovo.'
           : editor.data?.recovery?.canCancel ? 'Prethodno slanje nije završeno. Otkaži ga da ponovo uneseš poruku.'
-          : 'Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.'
+          : `${UNCERTAIN_ABOUT.message.title}.`
         : editor.data?.recovery?.cancelled && editor.data.recovery.providerDispatched
-          ? 'Odgovor je otkazan i podaci su ostali nepromenjeni. Poruka se ipak računa kao poslata, jer je obrada već bila počela.'
+          ? 'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; zadatak je ostao isti.'
         : turn?.state === 'FAILED' && editor.data?.recovery?.providerDispatched
-          ? 'AI nije primenio prethodnu poruku. Možeš je izmeniti i poslati ponovo.' : null;
+          ? 'Asistent nije uzeo u obzir prethodnu poruku. Izmeni je i pošalji ponovo.' : null;
 
   return <><IntakePresentation conversationKey={`${accountId}:${accountRevision}:${resumeId ?? openRequestId}`}
-    conversation={stanje} value={unos} busy={radi} error={greska}
+    conversation={stanje} value={unos} busy={radi} error={conversationErrorLine(greska, { hasDraft: stanje.facts.length > 0, unconfirmedSend: unconfirmedSend.current, statusCopy })}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
     locationDialogueEnabled={dialogueEnabled} onLocationPromptReady={registerLocationPrompt}
@@ -432,7 +441,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     cancelPendingDispatched={editor.data?.recovery?.providerDispatched}
     showAbandon={!!razgovorId && stanje.status === 'OPEN' && !stanje.review.boundNeedId}
     abandonDisabled={radi || editor.loading || editor.uncertain}
-    abandonLabel={abandoning.current ? 'Ponovi napuštanje razgovora' : 'Napusti razgovor'}
+    abandonLabel={abandoning.current ? 'Pokušaj ponovo da napustiš razgovor' : 'Napusti razgovor'}
     onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
     newTaskDisabled={!canAct() || !!request.current}
     onBack={back} onSend={posalji} onRefresh={osvezi} onAbandon={napusti}

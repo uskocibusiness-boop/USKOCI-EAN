@@ -1,18 +1,21 @@
 import { lazy, Suspense, useCallback, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CaretDown, CaretRight, CaretUp } from 'phosphor-react-native';
 import { FactArt } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
+import { layout } from '../system/layout';
+import { Surface } from '../system/Surface';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import { mediaAssetId } from '../../data/mediaAssetId';
 import type { AiNeedV2Conversation, AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { safetyMessage } from '../../data/aiNeedV2Ui';
 import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { Press } from '../Press';
-import { brandAction, cardCompact, sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { useReducedMotion } from '../system/motion';
 import { useLayoutClass } from '../system/textScale';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
+import { OUTCOME_ACTION } from '../system/outcomeCopy';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { T } from '../Text';
@@ -130,16 +133,19 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <ScreenChrome variant="detail" tone="conversation" onBack={back} />
     <View style={s.unavailable}>
-      {loading ? <View style={s.loading}>
-        <View style={s.unavailableMark}><FactArt kind="chat" size={36} role="ai" /></View>
-        <T accessibilityRole="header" variant="title" style={s.ink}>Otvaramo razgovor</T>
-        <ActivityIndicator accessibilityLabel="Učitavamo razgovor" color={sys.color.artRole.ai.front} />
-      </View> : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error} primary={primary} />}
+      {loading ? <StateView kind="loading" title="Otvaramo razgovor" skeleton={{ variant: 'thread', count: 3 }} />
+        : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error} primary={primary} />}
     </View>
   </SafeAreaView>;
 }
 
-/** Three ways in, taken from what people actually opened a conversation to ask for. */
+/**
+ * Three ways in (R18), as whole sentences a person might say, not names of categories. Each carries what, when, where, how many or
+ * how to pay in a different mix, so the first message already has something in it. One tap puts the sentence in the field; nothing is
+ * sent, and no assistant call is made until the person sends it.
+ */
+export const TASK_OPENINGS = ['Treba mi pomoć oko selidbe u subotu, 2 osobe, Novi Sad.', 'Treba mi neko da sastavi ormar u petak popodne.',
+  'Treba mi neko da okreči sobu, tražim ponude.'] as const;
 
 /**
  * The live draft starts compact. Disclosure only shows existing facts; its sibling review action retains the
@@ -175,15 +181,13 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
     summary.people, summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
-  const DisclosureCaret = expanded ? CaretUp : CaretDown;
   const title = <View style={s.titleSide}>
     <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy, readyForReview && s.dotReady]} />
       <T variant="label" style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
     <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={readyForReview || expanded ? 0 : locationSummary ? 1 : 2}
       style={[s.compactTitle, !summary.title && s.titleEmpty]} />
   </View>;
-  return <View testID="intake-task-summary"
-    style={[s.card, (compact || locationSummary) && s.cardCompact, readyForReview && s.cardReady]}>
+  return <Surface kind="panel" testID="intake-task-summary" style={[s.card, (compact || locationSummary) && s.cardCompact]}>
     {readyForReview ? <View testID="intake-ready-head" accessible accessibilityLabel={spoken} style={s.disclosure}>
       {title}
     </View> : <Press testID="intake-draft-disclosure" accessibilityRole="button"
@@ -191,17 +195,17 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru." accessibilityState={{ expanded }}
       onPress={toggle} haptic="select" style={s.disclosure}>
       {title}
-      <DisclosureCaret size={20} color={sys.color.muted} />
+      <Glyph name={expanded ? 'caret-up' : 'caret-down'} tone="muted" />
     </Press>}
     {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
       {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" role="location" />} text={summary.zone} lines={0} />
-        : <T variant="note" tone="muted">Lokacija nije određena</T>}
+        : <T variant="note" tone="muted">Mesto nije određeno</T>}
       {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" role="time" />} text={summary.schedule} lines={0} /> : null}
       {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" role="people" />} text={summary.people} lines={0} /> : null}
     </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
-    {!locationSummary && (next ? <T variant="note" tone="muted" style={s.next}>{next}</T>
-      : ready && !canReview ? <T variant="note" tone="muted" style={s.next}>Sve traženo je uneto.</T> : null)}
+    {!locationSummary && (next ? <T variant="note" tone="muted">{next}</T>
+      : ready && !canReview ? <T variant="note" tone="muted">Sve traženo je uneto.</T> : null)}
     {!locationSummary && (summary.value || !reviewAtEnd || readyForReview) ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
       {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
         {briefReview ? <T variant="note" style={s.briefValue}>{valueSpoken(summary.value)}</T>
@@ -214,12 +218,12 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
         onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={[s.reviewAction, briefReview && s.reviewActionBrief]}>
         <T variant="note" style={[s.readyText, !canReview && s.muted]}>{readyForReview ? 'Izmeni' : briefReview ? 'Pregledaj' : reviewLabel}</T>
-        <CaretRight size={18} color={canReview ? sys.color.ink : sys.color.muted} />
+        <Glyph name="caret-right" tone={canReview ? 'ink' : 'muted'} />
       </Press> : null}
     </View> : null}
     {readyForReview ? <V2Action label={editing ? 'Pregledaj izmene' : 'Pregledaj i objavi'}
       style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} /> : null}
-  </View>;
+  </Surface>;
 }
 
 /**
@@ -353,6 +357,7 @@ export function IntakePresentation(props: Props) {
     sentMessage={props.sentMessage}
     welcome="Reci šta ti treba."
     welcomeDetail="Opiši zadatak svojim rečima. Pre objave sve pregledaš."
+    openings={TASK_OPENINGS}
     placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
@@ -374,7 +379,7 @@ export function IntakePresentation(props: Props) {
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
           disabled={props.photosDisabled || editingPlace} accessibilityState={{ disabled: !!props.photosDisabled || editingPlace }} onPress={outsidePlace(props.onPhotos)}
           style={s.photoHeader}>
-          <T variant="bodyStrong">Fotografije zadatka</T><CaretRight size={20} color={sys.color.muted} />
+          <T variant="bodyStrong">Fotografije zadatka</T><Glyph name="caret-right" tone="muted" />
         </Press> : <T variant="bodyStrong">Fotografije zadatka</T>}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.photoRow}>
           {photoAssets.map((assetId, index) => <AuthorizedPhoto key={assetId} assetId={assetId}
@@ -407,20 +412,23 @@ export function IntakePresentation(props: Props) {
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>
       {props.retainedLocationSpeech ? <View style={{ gap: sys.space.sm }}>
-        <T variant="note" tone="muted">Govorna poruka je sačuvana za ponovni unos.</T>
+        <T variant="note" tone="muted">Glasovna poruka je sačuvana. Možeš je ponovo poslati.</T>
         <T variant="note" selectable>{props.retainedLocationSpeech.text}</T>
         <V2Action tone="neutral" kind="secondary" label="Vrati tekst u polje" disabled={!props.retainedLocationSpeech.canRestore}
-          reason={!props.retainedLocationSpeech.canRestore ? 'Završi proveru prethodne poruke i oslobodi mesto u polju za tekst.' : null}
+          reason={!props.retainedLocationSpeech.canRestore ? 'Prvo proveri prethodnu poruku; tek onda možeš da upišeš novu.' : null}
           onPress={props.retainedLocationSpeech.onRestore} />
       </View> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
+      {/* What can be done, most likely first: read what happened ("Proveri", the app's one word for it), and only then the rarer way out, with
+          what it costs written right above it. */}
+      {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}
+        disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
       {props.onCancelPending ? <>
-        <T variant="note" style={s.muted}>Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, poruka se ipak računa kao poslata.</T>
+        <T variant="note" style={s.muted}>Ako odustaneš, odgovor asistenta neće promeniti zadatak. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
         <V2Action tone="neutral" kind="quiet" label={props.cancelPendingDispatched ? 'Odustani od odgovora' : 'Otkaži slanje poruke'}
           disabled={props.cancelPendingDisabled} onPress={props.onCancelPending} />
       </> : null}
-      {props.showReadback ? <V2Action tone="neutral" label="Proveri ishod" disabled={props.readbackDisabled} onPress={props.onRefresh} /> : null}
     </>}>
     {panel === 'options' ? <ActionSheet label="Opcije razgovora" actions={menu} reduced={reduced} onClose={() => setPanel(null)} /> : null}
     {panel === 'photos' && attach ? <PhotoAttachSheet remaining={attach.remaining} disabledReason={attach.addReason}
@@ -436,34 +444,31 @@ const s = StyleSheet.create({
   photoRow: { gap: sys.space.sm },
   photoTile: { width: 104, height: 104, aspectRatio: 1 },
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
-  ink: { color: sys.color.ink }, muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
-  // The living draft is a distinct summary above the thread, with the task card's facts and rhythm.
-  card: { ...cardCompact, paddingVertical: 12, gap: 8, backgroundColor: sys.color.surface, borderColor: sys.conversation.edge },
-  cardCompact: { paddingVertical: 8 },
-  cardReady: { borderColor: sys.color.line },
-  disclosure: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  details: { gap: 8, paddingTop: 8, paddingBottom: 4 },
-  reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
+  // The living draft is a panel above the thread (a thing that is read, in a frame, with no shadow); only its padding is its own.
+  card: { paddingVertical: sys.space.md, gap: sys.space.sm },
+  cardCompact: { paddingVertical: sys.space.sm },
+  disclosure: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  details: { gap: sys.space.sm, paddingTop: sys.space.sm, paddingBottom: sys.space.xs },
+  reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   reviewRowLarge: { flexDirection: 'column', alignItems: 'stretch', gap: 0 },
   value: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },
   valueStacked: { width: '100%' },
   briefValue: { color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
   reviewActionBrief: { flexShrink: 0 },
-  reviewAction: { minHeight: 48, flexShrink: 1, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  reviewAction: { minHeight: layout.touch, flexShrink: 1, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.muted },
   // While the conversation changes the draft, the dot is the screen's orange accent: a dot, never a fill.
   dotBusy: { backgroundColor: sys.color.orange },
   dotReady: { backgroundColor: sys.color.green },
-  status: { flex: 1, color: sys.color.muted, letterSpacing: 0.3 },
+  // The words of a state are not capitals, so the label's wide tracking goes (as the one status chip has it).
+  status: { flex: 1, color: sys.color.muted, letterSpacing: 0 },
   statusReady: { color: sys.color.muted },
   titleSide: { flex: 1, minWidth: 0, gap: 4 },
   titleEmpty: { color: sys.color.muted },
-  next: { marginTop: 2 },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
   readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.ink },
-  unavailable: { flex: 1, paddingHorizontal: sys.space.xl, justifyContent: 'center' },
-  loading: { gap: 16, alignItems: 'center' },
-  unavailableMark: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
+  unavailable: { flex: 1, paddingHorizontal: layout.gutter },
 });

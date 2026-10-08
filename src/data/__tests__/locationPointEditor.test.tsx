@@ -298,7 +298,7 @@ describe('compact conversation proposal', () => {
     expect(text()).not.toContain('Svi vide približno područje.');
     expect(button('Potvrdi tačku: Početak').props.label).toBe('Da, ovo je početak');
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
-    expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi gde sam')).toBeUndefined();
+    expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi moju lokaciju')).toBeUndefined();
     expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin, address: candidate.label });
@@ -552,14 +552,14 @@ describe('use where I am', () => {
 
   it('is not offered where it was never asked for, so the long form gains no permission prompt', async () => {
     await render({ resolver: configured() as never, initialQuery: 'Novi Sad' });
-    expect(buttons().some(node => node.props.label === 'Koristi gde sam')).toBe(false);
+    expect(buttons().some(node => node.props.label === 'Koristi moju lokaciju')).toBe(false);
   });
 
   it('asks for the position only when pressed, and never on opening', async () => {
     await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
     expect(capture).not.toHaveBeenCalled();
     capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } });
-    await press('Koristi gde sam');
+    await press('Koristi moju lokaciju');
     expect(capture).toHaveBeenCalledTimes(1);
     expect(map().props.position).toEqual({ latitude: 45.2551, longitude: 19.8451 });
   });
@@ -567,7 +567,7 @@ describe('use where I am', () => {
   it('places a pin the person still has to confirm, never a confirmed point', async () => {
     capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8, capturedAt: '2026-09-18T10:00:00Z' } });
     await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-    await press('Koristi gde sam');
+    await press('Koristi moju lokaciju');
     expect(props.onConfirm).not.toHaveBeenCalled();
     expect(props.onInvalidate).toHaveBeenCalled();
   });
@@ -575,7 +575,7 @@ describe('use where I am', () => {
   it('says a refusal plainly and leaves the other ways open', async () => {
     capture.mockResolvedValue({ kind: 'DENIED' });
     await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-    await press('Koristi gde sam');
+    await press('Koristi moju lokaciju');
     expect(text()).toContain('Pristup lokaciji nije dozvoljen');
     expect(buttons().some(node => node.props.label === 'Pronađi na mapi')).toBe(true);
   });
@@ -583,7 +583,7 @@ describe('use where I am', () => {
   it('does not treat an unavailable reading as a position', async () => {
     capture.mockResolvedValue({ kind: 'UNAVAILABLE' });
     await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-    await press('Koristi gde sam');
+    await press('Koristi moju lokaciju');
     expect(text()).toContain('Ne možemo da očitamo gde si');
     expect(props.onConfirm).not.toHaveBeenCalled();
   });
@@ -601,7 +601,7 @@ describe('use where I am', () => {
     it('"Dozvoli": the position is then read, and a pin is proposed as before', async () => {
       holds(false, false); host = answeringHost('allow');
       await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-      await press('Koristi gde sam');
+      await press('Koristi moju lokaciju');
       expect(host.asked).toEqual(['location']);
       expect(capture).toHaveBeenCalledTimes(1);
       expect(map().props.position).toEqual({ latitude: 45.2551, longitude: 19.8451 });
@@ -610,23 +610,23 @@ describe('use where I am', () => {
     it('"Ne sada": nothing is read and nothing is said; the button is as it was and the other ways stay open', async () => {
       holds(false, false); host = answeringHost('later');
       await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-      await press('Koristi gde sam');
+      await press('Koristi moju lokaciju');
       expect(host.asked).toEqual(['location']);
       expect(capture).not.toHaveBeenCalled();
-      expect(button('Koristi gde sam')).toBeDefined(); expect(button('Koristi gde sam').props.disabled).toBe(false);
+      expect(button('Koristi moju lokaciju')).toBeDefined(); expect(button('Koristi moju lokaciju').props.disabled).toBe(false);
       expect(text()).not.toContain('Pristup lokaciji nije dozvoljen'); expect(text()).not.toContain('Ne možemo da očitamo gde si');
       expect(props.onConfirm).not.toHaveBeenCalled();
       expect(buttons().some(node => node.props.label === 'Pronađi na mapi')).toBe(true);
       // And the person can still ask again.
       host.stop(); host = answeringHost('allow');
-      await press('Koristi gde sam');
+      await press('Koristi moju lokaciju');
       expect(capture).toHaveBeenCalledTimes(1);
     });
 
     it.each([[true, false], [false, true], [true, true]])('is not asked when the phone already allows it (fine=%s, coarse=%s)', async (fine, coarse) => {
       holds(fine, coarse); host = answeringHost('later');
       await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-      await press('Koristi gde sam');
+      await press('Koristi moju lokaciju');
       expect(host.asked).toEqual([]); expect(capture).toHaveBeenCalledTimes(1);
     });
 
@@ -639,7 +639,7 @@ describe('use where I am', () => {
     it('with no host to draw the question the position is read directly, as before', async () => {
       holds(false, false);
       await render({ resolver: configured() as never, autoLocate: true, initialQuery: 'Novi Sad' });
-      await press('Koristi gde sam');
+      await press('Koristi moju lokaciju');
       expect(capture).toHaveBeenCalledTimes(1);
     });
   });

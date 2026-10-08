@@ -10,6 +10,7 @@ import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { PermissionRecovery } from '../system/PermissionRecovery';
 import { useConfirmSheet } from '../system/ConfirmSheet';
+import { tick } from '../system/haptics';
 import { useReducedMotion } from '../system/motion';
 import { sys } from '../system/tokens';
 
@@ -78,6 +79,12 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   // Pressable's onPressOut also fires on leaving its press rectangle or losing the responder.
   // Held speech must finish only on actual responder release; termination cancels it unsent.
   const MicTarget = explicit ? Pressable : View;
+  // The three ticks of holding to talk are outcomes (haptics rule R5): the recording really began, the finger was lifted to send what
+  // was said, the recording was called off. The first is read from the phase, not from the touch: a hold that never got the
+  // microphone (permission, a busy adapter) has not started anything to feel.
+  useEffect(() => { if (phase === 'LISTENING' && gesture.current) tick('gestureStart'); }, [phase]);
+  // A recording that fails says so with the error tick, here and not in the notice, so that voice mode over this composer does not tick twice.
+  useEffect(() => { if (p.state.error) tick('error'); }, [p.state.error]);
   const begin = () => {
     if (p.disabled || occupied || active) return;
     const id = noviUuidZahtevId(); gesture.current = id;
@@ -88,6 +95,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     if (!id) return;
     // A tap on a held control does nothing a person can see, so the composer says how it works.
     const early = phase !== 'LISTENING';
+    if (!early) tick('gestureEnd');
     void p.controller.release(id);
     if (early && !explicit) p.onTooShort?.();
   };
@@ -96,7 +104,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const label = listening ? review ? 'Zaustavi i pregledaj tekst' : 'Slušamo — pusti da pošalješ'
     : PHASE_WORDS[phase] ?? (explicit ? 'Pokreni govorni unos' : 'Drži da govoriš');
   const waiting = phase === 'PERMISSION_PENDING' || phase === 'PREPARING' || phase === 'STARTING' || phase === 'FINALIZING';
-  const cancel = () => { if (gesture.current) { gesture.current = null; p.controller.cancel('gesture'); } };
+  const cancel = () => { if (gesture.current) { gesture.current = null; tick('cancel'); p.controller.cancel('gesture'); } };
   return <MicTarget testID="voice-mic" accessible accessibilityRole="button" accessibilityLabel={label}
     accessibilityHint={explicit ? 'Zaustavljanje priprema tekst za pregled i izmenu. Poruku šalješ zasebnim dugmetom.'
       : 'Drži tokom govora. Kad pustiš, poruka ide u razgovor. Povuci prst naviše da otkažeš.'}
@@ -230,7 +238,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
     : active || finishing ? PHASE_WORDS[state.phase]!
       // While the answer is being written the exchange above says "Stiže odgovor…" once, in its own live region
       // (review r4 ra item 10); the line under it would say it a second time.
-      : disabled ? p.thinking ? null : 'Prethodna poruka još čeka ishod. Zatvori i proveri je u razgovoru.'
+      : disabled ? p.thinking ? null : 'Prethodna poruka još nije poslata. Zatvori i proveri razgovor.'
         : review ? 'Dodirni mikrofon i govori. Tekst stiže u polje za poruku da ga pregledaš.'
           : 'Dodirni mikrofon i govori. Kad ponovo dodirneš, poruka ide u razgovor.';
   // The answer is above the person's latest words, so a previous answer never appears to answer a live capture.
@@ -271,7 +279,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
               : <Microphone size={28} weight={listening ? 'fill' : 'regular'} color={blocked ? sys.color.muted : sys.color.surface} />}
           </Press>
           <Press testID="voice-mode-close" accessibilityRole="button" accessibilityLabel="Zatvori govorni razgovor"
-            accessibilityHint={active ? 'Ono što je izgovoreno, a nije poslato, se odbacuje.' : undefined}
+            accessibilityHint={active ? 'Ako zatvoriš, izgovoreni tekst koji nije poslat se briše.' : undefined}
             haptic="select" hitSlop={0} onPress={leave} style={s.big}>
             <X size={28} color={sys.color.ink} />
           </Press>

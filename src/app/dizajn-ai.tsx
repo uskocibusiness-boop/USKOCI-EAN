@@ -12,8 +12,12 @@ import { AiConversationShell } from '../ui/aiFirst/AiConversationShell';
 import { VoiceMode, type VoiceInput } from '../ui/aiFirst/VoiceComposer';
 import { WorkerAiCard } from '../ui/workerProfile/WorkerAiPresentation';
 import { ScreenChrome } from '../ui/system/ScreenChrome';
-import { Press } from '../ui/Press';
+import { UNCERTAIN_ABOUT } from '../ui/system/outcomeCopy';
 import { T } from '../ui/Text';
+import { aiDownLine } from '../ui/aiFirst/aiDownLine';
+import { layout } from '../ui/system/layout';
+import { ListRow } from '../ui/system/ListRow';
+import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 
 /**
@@ -87,6 +91,8 @@ export default function DizajnAi() {
   const running = conversation({ messages: THREAD, facts: FACTS }, ['need.description', 'need.category', 'need.task_geography']);
   const STATES: { key: string; title: string; render: () => ReactNode }[] = [
     { key: 'welcome', title: 'Novi zadatak · početak', render: () => intake({ conversation: conversation({ conversationId: '' }) }) },
+    { key: 'welcome-large', title: 'Novi zadatak · početak, veliki tekst', render: () => <LayoutClassOverride.Provider value={LARGE_LAYOUT}>
+      {intake({ conversation: conversation({ conversationId: '' }) })}</LayoutClassOverride.Provider> },
     { key: 'worker-welcome', title: 'Radni profil · početak', render: () => <AiConversationShell conversationKey="gallery-worker-welcome"
       title="Tvoj radni profil" welcome="Šta umeš da radiš?" welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja."
       openings={['Radim popravke i montažu', 'Imam vozilo za prevoz', 'Mogu da pomognem oko']} openingArts={['tool', 'vehicle', 'users']}
@@ -99,12 +105,20 @@ export default function DizajnAi() {
       conversation: conversation({ messages: [said('ready-user', false, 'Treba mi prevod kratkog uputstva na engleski, do kraja nedelje. Može na daljinu, tražim ponude.'),
         said('ready-assistant', true, 'Sve je tu. Pregledaj zadatak, pa ga objavi kad ti odgovara.')], facts: [fact('need.title', 'Prevod kratkog uputstva na engleski'), fact('need.price_mode', 'OFFERS'),
         fact('need.people_needed', 1), fact('need.schedule_kind', 'WEEK_FLEXIBLE'), fact('need.task_geography', { mode: 'REMOTE' })] }) }) },
+    { key: 'ready-large', title: 'Spremno za pregled, veliki tekst', render: () => <LayoutClassOverride.Provider value={LARGE_LAYOUT}>
+      {intake({ canReview: true, showAbandon: true, onPhotos: noop, conversation: conversation({ messages: [said('rl-user', false, 'Treba mi prevod kratkog uputstva na engleski, do kraja nedelje.'),
+        said('rl-assistant', true, 'Sve je tu. Pregledaj zadatak, pa ga objavi kad ti odgovara.')], facts: [fact('need.title', 'Prevod kratkog uputstva na engleski'),
+        fact('need.price_mode', 'OFFERS'), fact('need.people_needed', 1), fact('need.schedule_kind', 'WEEK_FLEXIBLE'), fact('need.task_geography', { mode: 'REMOTE' })] }) })}
+    </LayoutClassOverride.Provider> },
+    { key: 'ai-down', title: 'AI nedostupan, nacrt sačuvan', render: () => intake({ conversation: running, canReview: true, onPhotos: noop,
+      error: aiDownLine('AI trenutno nije dostupan.', true) }) },
     { key: 'pending', title: 'Čeka odgovor (slanje nije moguće, razlog)', render: () => intake({ conversation: running, pending: true, busy: true,
       value: 'Moja cena je 5.000 ukupno.', canEdit: false, canSubmit: false, sentMessage: 'Moja cena je 5.000 ukupno.', voice: voice(snapshot(), true) }) },
     { key: 'stream', title: 'Stiže odgovor (stvaran tekst)', render: () => intake({ conversation: running, busy: true, pending: true, canEdit: false,
       sentMessage: 'Moja cena je 5.000 ukupno.', streamingText: 'Odlično, 5.000 RSD ukupno za dve osobe. Još mi treba', voice: voice(snapshot(), true) }) },
-    { key: 'error', title: 'Greška i provera ishoda', render: () => intake({ conversation: running, pending: true, canEdit: false, value: 'Sutra posle podne.',
-      error: 'Veza je prekinuta. Poruka možda nije stigla.', statusCopy: 'Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.', showReadback: true,
+    { key: 'error', title: 'Poruka možda nije stigla', render: () => intake({ conversation: running, pending: true, canEdit: false, value: 'Sutra posle podne.',
+      // A send that may not have arrived is said once: the status line and the one button (the data layer's own sentence is not drawn).
+      error: null, statusCopy: `${UNCERTAIN_ABOUT.message.title}.`, showReadback: true,
       onCancelPending: noop, voice: voice(snapshot(), true) }) },
     { key: 'long', title: 'Dugi nazivi i poruke', render: () => intake({ conversation: conversation({ facts: [fact('need.title', LONG), fact('need.people_needed', 14),
       fact('need.price_mode', 'MY_PRICE'), fact('need.price_rsd', 1250000), fact('need.price_basis', 'PER_PERSON')],
@@ -159,19 +173,18 @@ export default function DizajnAi() {
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" onBack={() => router.back()} title="AI razgovor · galerija" />
     <ScrollView contentContainerStyle={s.content}>
-      <T variant="note" tone="muted">Veliki tekst: font_scale 1.3 u sistemu. Širine: wm density 540 / 480 / 443 / 402.</T>
-      {[{ key: 'cards', title: 'Živa kartica nacrta · sva stanja' }, ...STATES].map(state => <Press key={state.key} accessibilityRole="button"
-        accessibilityLabel={state.title} haptic="select" onPress={() => setOpen(state.key)} style={s.row}>
-        <T variant="bodyStrong" style={s.ink}>{state.title}</T>
-      </Press>)}
+      <T variant="note" tone="muted" style={s.note}>Veliki tekst: font_scale 1.3 u sistemu. Širine: wm density 540 / 480 / 443 / 402.</T>
+      <View>
+        {[{ key: 'cards', title: 'Živa kartica nacrta · sva stanja' }, ...STATES].map((state, index, all) => <ListRow key={state.key} title={state.title}
+          accessibilityLabel={state.title} last={index === all.length - 1} onPress={() => setOpen(state.key)} />)}
+      </View>
     </ScrollView>
   </SafeAreaView>;
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
-  content: { paddingHorizontal: sys.space.lg, paddingBottom: 48, gap: sys.space.sm },
-  row: { minHeight: 56, justifyContent: 'center', paddingVertical: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  ink: { color: sys.color.ink },
+  content: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.huge, gap: sys.space.sm },
+  note: { paddingBottom: sys.space.sm },
   sample: { gap: sys.space.sm, paddingVertical: sys.space.md },
 });

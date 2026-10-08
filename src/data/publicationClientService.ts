@@ -9,12 +9,12 @@ import { supabaseKlijent } from './supabaseClient';
 const COPY: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavi se da objaviš zadatak.',
   NEED_NOT_OWNED: 'Ovaj zadatak ne možeš da objaviš.',
-  NEED_NOT_FOUND: 'Zadatak nije pronađen.',
-  NEED_NOT_DRAFT: 'Zadatak više nije nacrt. Učitaj trenutno stanje.',
+  NEED_NOT_FOUND: 'Ovaj zadatak više ne postoji. Vrati se na zadatke.',
+  NEED_NOT_DRAFT: 'Zadatak više nije nacrt.',
   NEED_REVISION_STALE: 'Zadatak je izmenjen. Učitaj novu verziju i ponovi proveru.',
   PUBLICATION_CONTEXT_STALE: 'Zadatak ili pravila su promenjeni. Ponovi proveru pre objave.',
-  PUBLICATION_CONTEXT_NOT_READY: 'Uslovi za objavu su promenjeni. Učitaj zadatak i ponovi proveru.',
-  PUBLICATION_DECISION_STALE: 'Potrebna je nova provera pre objave.',
+  PUBLICATION_CONTEXT_NOT_READY: 'Uslovi za objavu su se promenili. Otvori zadatak i ponovi proveru.',
+  PUBLICATION_DECISION_STALE: 'Pre objave je potrebna nova provera. Otvori pregled.',
   PUBLICATION_DECISION_CONTEXT_STALE: 'Zadatak ili pravila su promenjeni. Ponovi proveru pre objave.',
   PUBLICATION_DECISION_FINGERPRINT_STALE: 'Zadatak je promenjen. Ponovi proveru pre objave.',
   PUBLICATION_DECISION_NOT_ALLOW: 'Ovaj zadatak još nije odobren za objavu.',
@@ -24,7 +24,7 @@ const COPY: Readonly<Record<string, string>> = {
   PUBLICATION_LOCATION_INCOMPLETE: 'Potvrdi sve potrebne tačke lokacije pre objave.',
   RESPONSE_DEADLINE_INVALID: 'Rok za prijave mora biti u budućnosti.',
   FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin, pa objavi zadatak.',
-  IDEMPOTENCY_KEY_REUSED: 'Zahtev se razlikuje od prethodnog pokušaja. Učitaj trenutno stanje.',
+  IDEMPOTENCY_KEY_REUSED: 'Zadatak se promenio od prethodnog pokušaja.',
 };
 const NOT_READY = new Set<PublicationNotReadyCode>(['POLICY_NOT_READY', 'POLICY_CONTENT_NOT_READY', 'LOCATION_INCOMPLETE', 'COUNTRY_NOT_READY', 'PUBLIC_MEDIA_NOT_READY', 'EVALUATOR_UNAVAILABLE', 'EVALUATOR_INVALID_RESPONSE', 'RATE_LIMITED', 'NEED_CHANGED']);
 const outcomes = ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'] as const;
@@ -64,7 +64,7 @@ export function decodePublicationEvaluation(raw: unknown, request: PublicationRe
     ...(value.missingSlots === undefined ? {} : { missingSlots: value.missingSlots as LocationSlot[] }) };
 }
 function validRequest(request: PublicationRequest): boolean { return uuid(request?.needId) && positiveInteger(request?.expectedRevision); }
-const invalid = () => Promise.resolve(failure('PUBLICATION_INPUT_INVALID', 'Učitaj zadatak i proveri podatke pre objave.'));
+const invalid = () => Promise.resolve(failure('PUBLICATION_INPUT_INVALID', 'Otvori zadatak i proveri podatke pre objave.'));
 
 export const publicationClientService = {
   evaluate(request: PublicationRequest): Promise<Ishod<PublicationEvaluation>> {

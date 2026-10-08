@@ -58,7 +58,7 @@ export const needPublicationReadiness = {
 export function readinessCopy(readiness: NeedPublicationReadiness): { title: string; detail: string } | null {
   if (readiness.kind !== 'NOT_READY') return null;
   if (readiness.code === 'LOCATION_INCOMPLETE') {
-    return { title: 'Fali još mesto na mapi',
+    return { title: 'Još nedostaje mesto na mapi',
       detail: readiness.missingSlots.length > 1
         ? 'Ime ulice nije dovoljno da neko dođe. Otvori razgovor i potvrdi obe tačke na mapi.'
         : 'Ime ulice nije dovoljno da neko dođe. Otvori razgovor i potvrdi tačku na mapi.' };

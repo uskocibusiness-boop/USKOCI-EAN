@@ -68,15 +68,33 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = baseRows(); loading = error = mockReduced = false; allowNew = true; withBack = false; open.mockClear(); refresh.mockClear(); newTask.mockClear(); applications.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-test('search opens from the header with the keyboard; clearing it keeps price, attention and section', async () => {
+test('search is one of the filters: it lives in the Filteri sheet and applies with the rest; clearing it keeps price, attention and section', async () => {
  initial.price = 'MY_PRICE';
  await render(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži zadatke' })).toHaveLength(0);
- await tap('Pretraga'); expect(press('Pretraži zadatke').props.autoFocus).toBe(true);
+ // The one control of the bar is Filteri; there is no second control for search.
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraga' })).toHaveLength(0);
+ await tap('Filteri, aktivni'); expect(press('Pretraži zadatke').props.autoFocus).toBeUndefined();
  await act(async () => press('Pretraži zadatke').props.onChangeText('Nema takvog posla'));
+ expect(action('Prikaži 0 zadataka')).toBeTruthy();
+ await click('Prikaži zadatke');
  expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await tap('Obriši pretragu');
+ await tap('Filteri, aktivni'); expect(press('Pretraži zadatke').props.value).toBe('Nema takvog posla');
+ await tap('Obriši pretragu'); await click('Prikaži zadatke');
  expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', attention: false, section: 'active' });
  expect(press('Otvori zadatak Pomoć one')).toBeTruthy();
+});
+test('the one control "Filteri" is drawn only when there is something to narrow down: not for a person with no task, nor while the tasks are read or failed', async () => {
+ const control = () => tree.root.findAllByProps({ accessibilityLabel: 'Filteri' });
+ await render(); expect(control().length).toBeGreaterThan(0);
+ await act(async () => tree.unmount());
+ rows = []; await render(); expect(control()).toHaveLength(0); expect(tree.root.findAllByProps({ accessibilityLabel: 'Filteri, aktivni' })).toHaveLength(0);
+ await act(async () => tree.unmount());
+ rows = baseRows(); loading = true; await render(); expect(control()).toHaveLength(0);
+ await act(async () => tree.unmount());
+ loading = false; error = true; await render(); expect(control()).toHaveLength(0);
+ await act(async () => tree.unmount());
+ // A refinement that came back empty keeps the control: it is how the refinement is cleared.
+ error = false; rows = []; initial.price = 'OFFERS'; await render(); expect(press('Filteri, aktivni')).toBeTruthy();
 });
 test('the active tab speaks tasks waiting for a choice, then removes the count when none remain', async () => {
  rows = [row('waiting', { brojPrijavaZaIzbor: 3 }), row('ready'), row('draft', { stanje: 'NACRT', brojPrijavaZaIzbor: 5 })];
@@ -89,7 +107,7 @@ test('the active tab speaks tasks waiting for a choice, then removes the count w
  expect(cards()).toHaveLength(2);
 });
 test('filter working copy can cancel and hardware back does not apply; Apply preserves selected choice', async () => {
- await render(); await tap('Filteri'); await tap('Tražim ponude'); await click('Odustani od filtera'); expect(snapshot.price).toBe('all');
+ await render(); await tap('Filteri'); await tap('Tražim ponude'); await tap('Zatvori filtere'); expect(snapshot.price).toBe('all');
  await tap('Filteri'); await tap('Navedena cena'); await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose()); expect(snapshot.price).toBe('all');
  await tap('Filteri'); await tap('Tražim ponude'); await click('Prikaži zadatke'); expect(snapshot.price).toBe('OFFERS'); expect(press('Otvori zadatak Pomoć two')).toBeTruthy(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori zadatak Pomoć one' })).toHaveLength(0);
 });
@@ -103,7 +121,8 @@ test('drag/backdrop closure discards filter drafts and opens nothing', async () 
 });
 test('filter count uses the same search and section as Apply, including zero real matches', async () => {
  rows = [...baseRows(), row('three', { stanje: 'NACRT' })]; initial.query = 'Pomoć one';
- await render(); await tap('Filteri'); expect(action('Prikaži 1 zadatak')).toBeTruthy();
+ // A search that is set makes the control "on": the search is one of the filters.
+ await render(); await tap('Filteri, aktivni'); expect(action('Prikaži 1 zadatak')).toBeTruthy();
  await tap('Tražim ponude'); expect(action('Prikaži 0 zadataka')).toBeTruthy();
  await click('Prikaži zadatke'); expect(snapshot).toMatchObject({ price: 'OFFERS', query: 'Pomoć one', section: 'active' });
  expect(texts()).toContain('Nema zadataka u ovom prikazu');
@@ -113,8 +132,8 @@ test.each(['section', 'search', 'price', 'attention'])('a changed %s starts its 
   .concat(Array.from({ length: 20 }, (_, index) => row(`draft-${index}`, { stanje: 'NACRT' })));
  await render(); await scrollTo(900); expect(list().props.offset).toBe(900);
  if (choice === 'section') await tap('Nacrti');
- else if (choice === 'search') { await tap('Pretraga'); await act(async () => press('Pretraži zadatke').props.onChangeText('active-1')); }
- else { await tap('Filteri'); await tap(choice === 'price' ? 'Tražim ponude' : 'Treba moja radnja'); await click('Prikaži zadatke'); }
+ else if (choice === 'search') { await tap('Filteri'); await act(async () => press('Pretraži zadatke').props.onChangeText('active-1')); await click('Prikaži zadatke'); }
+ else { await tap('Filteri'); await tap(choice === 'price' ? 'Tražim ponude' : 'Čeka tvoj izbor'); await click('Prikaži zadatke'); }
  expect(cards().length).toBeGreaterThan(5);
  expect(list().props.offset).toBe(0);
 });
@@ -124,8 +143,8 @@ test('a reread and unchanged filter choices keep the task reading position', asy
  rows = rows.map(item => ({ ...item, brojPrijavaZaIzbor: 1 }));
  await act(async () => tree.update(<Screen />));
  expect(list().props.offset).toBe(900);
- await tap('Pretraga'); expect(list().props.offset).toBe(900);
- await tap('Filteri'); await tap('Tražim ponude'); await click('Odustani od filtera');
+ await tap('Filteri'); await tap('Zatvori filtere'); expect(list().props.offset).toBe(900);
+ await tap('Filteri'); await tap('Tražim ponude'); await tap('Zatvori filtere');
  expect(list().props.offset).toBe(900);
  await tap('Filteri'); await click('Prikaži zadatke'); expect(list().props.offset).toBe(900);
 });
@@ -136,20 +155,20 @@ test.each(['loading', 'error'])('%s removes stale cards; retry is bound', async 
 });
 test('owned active/draft/attention filters use actual rows and full long title remains readable', async () => {
  const long = 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu '.repeat(3); rows = [row('one', { naslov: long, stanje: 'OBJAVLJENA', brojPrijava: 1 }), row('two', { stanje: 'NACRT', brojPrijava: 0 })];
- await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Treba moja radnja');
+ await render(); expect(texts()).toContain(long); await tap('Filteri'); await tap('Čeka tvoj izbor');
  expect(snapshot.attention).toBe(false); await click('Prikaži zadatke'); expect(snapshot.attention).toBe(true);
  await tap('Nacrti'); expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await tap('Filteri, aktivni'); await tap('Treba moja radnja'); await click('Prikaži zadatke'); expect(press('Otvori zadatak Pomoć two')).toBeTruthy();
+ await tap('Filteri, aktivni'); await tap('Čeka tvoj izbor'); await click('Prikaži zadatke'); expect(press('Otvori zadatak Pomoć two')).toBeTruthy();
 });
 
 test('attention and price are one filter draft: cancel, system back and reset have consistent effects', async () => {
  rows = [row('one', { stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 1 })];
- await render(); await tap('Filteri'); await tap('Treba moja radnja'); await tap('Tražim ponude');
- await click('Odustani od filtera'); expect(snapshot).toMatchObject({ attention: false, price: 'all' });
- await tap('Filteri'); await tap('Treba moja radnja');
+ await render(); await tap('Filteri'); await tap('Čeka tvoj izbor'); await tap('Tražim ponude');
+ await tap('Zatvori filtere'); expect(snapshot).toMatchObject({ attention: false, price: 'all' });
+ await tap('Filteri'); await tap('Čeka tvoj izbor');
  await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose());
  expect(snapshot.attention).toBe(false);
- await tap('Filteri'); await tap('Treba moja radnja'); await tap('Navedena cena'); await click('Prikaži zadatke');
+ await tap('Filteri'); await tap('Čeka tvoj izbor'); await tap('Navedena cena'); await click('Prikaži zadatke');
  expect(snapshot).toMatchObject({ attention: true, price: 'MY_PRICE' });
  await tap('Filteri, aktivni'); await click('Poništi izbor');
  expect(snapshot).toMatchObject({ attention: true, price: 'MY_PRICE' });
@@ -169,7 +188,7 @@ test('my own tasks carry no floating creation action and no eyebrow; an empty li
  await act(async () => tree.unmount()); rows = []; await render();
  // The same words as Početna's "Moji zadaci" door for an account with no task: "Zadatak" is the product's noun.
  expect(texts()).toContain('Još nemaš zadatak');
- await click('Napravi prvi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
+ await click('Objavi prvi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
 });
 test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {
  mockReduced = true; await render(); await tap('Filteri'); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
@@ -178,16 +197,16 @@ test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding 
  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
 });
 // Review r3 item 7: the filtered-empty view's one way forward clears what was chosen, and only that.
-test('"Obriši uslove" clears search, price, attention and section, and asks for nothing', async () => {
+test('"Poništi filtere" clears search, price, attention and section, and asks for nothing', async () => {
  Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', attention: true, section: 'drafts' });
  await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
- await click('Obriši uslove');
+ await click('Poništi filtere');
  expect(snapshot).toEqual(initialMarketplaceView()); expect(press('Otvori zadatak Pomoć two')).toBeTruthy();
  expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
 });
 test('"Pokušaj ponovo" after a failed read asks for the list again and changes nothing else', async () => {
  error = true; initial.query = 'Pomoć'; initial.section = 'history'; await render();
- expect(texts()).toContain('Zadatke trenutno nije moguće učitati');
+ expect(texts()).toContain('Ne možemo da učitamo zadatke');
  await click('Pokušaj ponovo');
  expect(refresh).toHaveBeenCalledTimes(1); expect(snapshot).toMatchObject({ query: 'Pomoć', section: 'history' });
 });
@@ -206,13 +225,13 @@ test('my own task\'s foot opens its applications with that row; the body still o
  expect(texts()).toContain('Imaš 2 prijave. Uporedi ih i izaberi.');
  expect(texts()).not.toMatch(/čeka izbor|čekaju izbor|Čeka prijave/);
  // Nothing to choose is said quietly and is not a target.
- expect(texts()).toContain('Čekaš prijave. Javićemo ti.');
+ expect(texts()).toContain('Čekaš prijave. Vidiš ih ovde i u zvoncu.');
  expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pomoć two') && node.props.accessibilityLabel !== 'Otvori zadatak Pomoć two' && typeof node.props.onPress === 'function')).toHaveLength(0);
 });
 // Review r3 item 8: the box's corner is the named `check` token, not a magic 6 dressed up as a nested corner.
-test('"Treba moja radnja" is a square checkbox, not a round radio', async () => {
+test('"Čeka tvoj izbor" is a square checkbox, not a round radio', async () => {
  rows = [row('one', { stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 1 })]; await render(); await tap('Filteri');
- const box = press('Treba moja radnja').findAllByType('View' as React.ElementType)[0];
+ const box = press('Čeka tvoj izbor').findAllByType('View' as React.ElementType)[0];
  const radio = press('Svi načini').findAllByType('View' as React.ElementType)[0];
  expect(box.props.style[0]).toMatchObject({ width: 22, height: 22, borderRadius: sys.radius.check });
  expect(sys.radius.check).toBe(6);
@@ -238,7 +257,7 @@ test('every row says its state with the chip, in the owner\'s eight words, and t
  expect(words()).not.toContain('Zatvoren'); expect(texts()).not.toMatch(/Čeka prijave|Termin je sada|Delimično popunjen|Popunjen/);
  expect(cards()).toHaveLength(9);
  // One next step, in grey words, where there is one.
- expect(texts()).toContain('Nacrt nije objavljen. Nastavi uređivanje.'); expect(texts()).toContain('Čekaš prijave. Javićemo ti.');
+ expect(texts()).toContain('Nacrt nije objavljen. Nastavi uređivanje.'); expect(texts()).toContain('Čekaš prijave. Vidiš ih ovde i u zvoncu.');
  expect(texts()).toContain('Dogovoreno 1 od 2. Čekaš prijave za ostala mesta.'); expect(texts()).toContain('Sva mesta su dogovorena. Dogovor vidiš u Dogovorima.');
  expect(texts()).toContain('Dogovoreni termin je počeo. Dogovor vidiš u Dogovorima.');
  expect(texts()).toContain('Otkazan zadatak ne prima prijave.'); expect(texts()).toContain('Rok za prijave je istekao bez izbora.');
@@ -260,9 +279,9 @@ test('a closed task whose ending was not carried, and an archived one, get no ch
 test('an empty Nacrti or Istorija says what the tab holds and offers no "Obriši uslove"; a narrowed list still does', async () => {
  rows = [row('active', { stanje: 'OBJAVLJENA' })];
  await render(); await tap('Nacrti');
- expect(texts()).toContain('Nemaš nacrt'); expect(texts()).not.toContain('Nema zadataka u ovom prikazu'); expect(tree.root.findAllByProps({ label: 'Obriši uslove' })).toHaveLength(0);
+ expect(texts()).toContain('Nemaš nacrt'); expect(texts()).not.toContain('Nema zadataka u ovom prikazu'); expect(tree.root.findAllByProps({ label: 'Poništi filtere' })).toHaveLength(0);
  await tap('Istorija');
- expect(texts()).toContain('Istorija je prazna'); expect(texts()).toContain('Ovde su završeni, otkazani i istekli zadaci.'); expect(tree.root.findAllByProps({ label: 'Obriši uslove' })).toHaveLength(0);
- await tap('Pretraga'); await act(async () => press('Pretraži zadatke').props.onChangeText('nema takvog'));
- expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(tree.root.findAllByProps({ label: 'Obriši uslove' }).length).toBeGreaterThan(0);
+ expect(texts()).toContain('Istorija je prazna'); expect(texts()).toContain('Ovde su završeni, otkazani i istekli zadaci.'); expect(tree.root.findAllByProps({ label: 'Poništi filtere' })).toHaveLength(0);
+ await tap('Filteri'); await act(async () => press('Pretraži zadatke').props.onChangeText('nema takvog')); await click('Prikaži zadatke');
+ expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(tree.root.findAllByProps({ label: 'Poništi filtere' }).length).toBeGreaterThan(0);
 });

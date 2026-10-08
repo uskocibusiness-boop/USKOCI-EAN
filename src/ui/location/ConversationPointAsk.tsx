@@ -192,7 +192,7 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
             exactAddress } },
       },
     }).catch(() => ({ ok: false as const, kod: 'NEED_LOCATION_SAVE_UNCONFIRMED',
-      poruka: 'Čuvanje mesta nije potvrđeno. Potvrđene tačke su ostale za ponovni pokušaj.' }));
+      poruka: 'Ne znamo da li je mesto sačuvano. Potvrđene tačke su ostale za ponovni pokušaj.' }));
     saving.current = false;
     if (!ownsAccount()) return false;
     if (!result.ok) { setState({ kind: 'FAILED', message: result.poruka, review: current }); return false; }

@@ -1,17 +1,21 @@
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated as NativeAnimated, AppState, Easing, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowDown, ArrowUpRight, DotsThree, Info, PaperPlaneTilt, Plus, Waveform } from 'phosphor-react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { Easing as ReanimatedEasing, FadeInDown } from 'react-native-reanimated';
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { Press } from '../Press';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
-import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
+import { layout } from '../system/layout';
+import { ListRow } from '../system/ListRow';
+import { Section } from '../system/Section';
+import { Surface } from '../system/Surface';
 import { AiAssistantArt, AiAssistantWelcome, type AssistantWelcomeMemory } from './AiAssistantArt';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { useReducedMotion } from '../system/motion';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass, useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } from './VoiceComposer';
@@ -57,7 +61,10 @@ export type AiConversationShellProps = {
   /** The "+" at the start of the composer (the task's photos). Left out when there is nothing to attach to. */
   attach?: { label: string; hint?: string; onPress: () => void; disabled?: boolean };
   placeholder?: string;
-  /** Openings offered before the first word. 38 of the first 62 conversations never got one. */
+  /**
+   * Openings offered before the first word (38 of the first 62 conversations never got one): whole sentences a person might say,
+   * not names of categories. Each is a row of the empty conversation; one tap puts the sentence in the field for the person to finish.
+   */
   openings?: readonly string[];
   /** Illustrations describe the opening's task; they add no command or domain state. */
   openingArts?: readonly FactArtKind[];
@@ -88,6 +95,8 @@ export type AiConversationShellProps = {
 export function AiConversationShell(p: AiConversationShellProps) {
   const { height } = useWindowDimensions();
   const textScale = useTextScale();
+  // The up-right arrow at the end of an opening only fits beside the words; at a large text size the row would put it under them.
+  const { stacked: stackedRows } = useLayoutClass();
   const [keyboard, setKeyboard] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
   // Voice mode opened from the hold advice while the field has a draft starts with the review on, so what is said joins
@@ -222,13 +231,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
   }, [p.value]);
   const voiceIdle = phase === 'IDLE';
   const sendReason = p.canSend || !sendShown ? null
-    : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Prethodna poruka čeka ishod. Proveri ga u razgovoru.'
+    : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Prethodna poruka još nije poslata. Proveri razgovor.'
       : !voiceIdle ? 'Završi govor pa pošalji.' : p.busy ? 'Sačekaj da stigne odgovor.' : 'Poruku sada ne možeš da pošalješ.');
   const privacy = () => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null });
 
   // Voice mode shows the last exchange: what the person said last and the answer to it, or the answer being written.
   const last = p.messages.at(-1), beforeLast = p.messages.at(-2);
   const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText;
+  const openings = p.openings ?? [];
   // History notes are not messages: no entrance, no speaker, and nothing about them is docked outside the thread.
   const notes = p.threadNotes ?? [], anchored = new Set(p.messages.map(message => message.id));
   const drawNote = (note: ConversationNote) => <View key={`note:${note.key}`} testID="ai-thread-note">{note.node}</View>;
@@ -239,7 +249,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
-        right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." icon={DotsThree} onPress={p.onOptions} /> : undefined} />
+        right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." glyph="more" onPress={p.onOptions} /> : undefined} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
       {pinned && !inlineSummary && !cardAtEnd ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
@@ -302,20 +312,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
           </View> : null}
           <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
-          {p.openings?.length && p.canEdit ? <View style={s.openings}>
-            {p.openings.map((opening, index) => <Press key={opening} accessibilityRole="button" accessibilityLabel={opening}
-              accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš." haptic="select" style={s.opening}
-              onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }}>
-              {p.openingArts?.[index] ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.openingArt}>
-                <FactArt kind={p.openingArts[index]} size={24} cut="art"
-                  role={p.openingArts[index] === 'home' || p.openingArts[index] === 'pin' ? 'location'
-                    : p.openingArts[index] === 'users' || p.openingArts[index] === 'person' ? 'people' : 'skills'} /></View> : null}
-              <T variant="body" style={s.openingText}>{opening}</T><ArrowUpRight size={18} color={sys.color.muted} /></Press>)}
+          {openings.length && p.canEdit ? <View style={s.openings}>
+            <Section title="Na primer">
+              {openings.map((opening, index) => <ListRow key={opening} title={opening} last={index === openings.length - 1}
+                leading={p.openingArts?.[index] ? <FactArt kind={p.openingArts[index]} size={32} role={openingRole(p.openingArts[index])} /> : undefined}
+                // The arrow says "this goes into the field", not "this opens a screen": the row draws no caret of its own.
+                arrow={false} trailing={stackedRows ? undefined : <Glyph name="arrow-up-right" tone="muted" />}
+                accessibilityLabel={opening} accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš."
+                onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }} />)}
+            </Section>
           </View> : null}
           {/* The speech disclosure is reachable before the first word, and from voice mode at any time. */}
           {p.voice ? <Press accessibilityRole="button" accessibilityLabel="O govornom unosu i privatnosti" haptic="select"
             onPress={privacy} style={s.privacy}>
-            <Info size={16} color={sys.color.muted} /><T variant="meta" tone="muted">O govornom unosu i privatnosti</T>
+            <Glyph name="info" size={16} tone="muted" /><T variant="meta" tone="muted">O govornom unosu i privatnosti</T>
           </Press> : null}
         </View> : null}
         {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting. */}
@@ -341,7 +351,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         </View> : null}
         {p.context ? <View ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
-        {p.status ? <View testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</View> : null}
+        {p.status ? <Surface kind="note" testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</Surface> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
         {pinned && cardAtEnd ? <View testID="ai-end-card">{pinned}</View> : null}
         </View>
@@ -351,7 +361,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {readingEarlier && hasActivity ? <View testID="ai-latest-region" style={s.latestRegion}>
         <Press testID="ai-latest" accessibilityRole="button"
         accessibilityLabel="Najnovija poruka" onPress={() => latest(!reduced)} haptic="select" style={s.latest}>
-        <ArrowDown size={18} color={sys.color.ink} /><T variant="note" style={s.latestText}>Najnovija poruka</T>
+        <Glyph name="caret-down" /><T variant="note" style={s.latestText}>Najnovija poruka</T>
       </Press></View> : null}
       </View>
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
@@ -377,10 +387,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
               accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
               hitSlop={0} onPress={p.attach.onPress} style={s.target}>
-              <View style={s.toolCircle}><Plus size={22} color={p.attach.disabled ? sys.color.muted : sys.color.ink} /></View>
+              <View style={s.toolCircle}><Glyph name="plus" size={24} tone={p.attach.disabled ? 'muted' : 'ink'} /></View>
             </Press>
           </View> : null}
-          <TextInput ref={input} accessibilityLabel="Poruka za AI" value={p.value} editable={p.canEdit}
+          <TextInput ref={input} accessibilityLabel="Poruka za asistenta" value={p.value} editable={p.canEdit}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             onChangeText={text => { setHoldHint(false); p.onChange(text); }}
             placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
@@ -400,13 +410,13 @@ export function AiConversationShell(p: AiConversationShellProps) {
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
             <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
-              <PaperPlaneTilt size={22} weight="fill" color={p.canSend ? sys.color.onGreen : sys.color.muted} /></View>
+              <Glyph name="send" size={24} on tone={p.canSend ? 'onGreen' : 'muted'} /></View>
           </Press> : p.voice ? <Press testID="ai-voice-mode" accessibilityRole="button" accessibilityLabel="Razgovaraj glasom"
             accessibilityHint="Govoriš umesto da kucaš; odgovor stiže kao tekst."
             accessibilityState={{ disabled: p.voice.disabled || !voiceIdle }} disabled={p.voice.disabled || !voiceIdle}
             haptic="select" hitSlop={0} onPress={() => { Keyboard.dismiss(); setVoiceReview(false); setVoiceMode(true); }} style={s.target}>
             <View style={[s.round, s.voiceRound, (p.voice.disabled || !voiceIdle) && s.roundOff]}>
-              <Waveform size={22} weight="bold" color={p.voice.disabled || !voiceIdle ? sys.color.muted : sys.color.ink} /></View>
+              <Glyph name="wave" size={24} strong tone={p.voice.disabled || !voiceIdle ? 'muted' : 'ink'} /></View>
           </Press> : null}
           </View>
         </View>
@@ -418,6 +428,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
     {p.children}
     {notice.sheet}
   </SafeAreaView></DraftDisclosure.Provider>;
+}
+
+/** The colour family of an opening's picture: a place, people or, for everything else, what the person can do. */
+function openingRole(kind: FactArtKind): FactArtRole {
+  return kind === 'home' || kind === 'pin' ? 'location' : kind === 'users' || kind === 'person' ? 'people' : 'skills';
 }
 
 /** Speaker identity stays explicit without repeating the product logo throughout the transcript. */
@@ -439,7 +454,7 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
     life.stopAnimation();
     life.setValue(0);
     if (reduced || !foreground) return;
-    const timing = (toValue: number) => NativeAnimated.timing(life, { toValue, duration: 520,
+    const timing = (toValue: number) => NativeAnimated.timing(life, { toValue, duration: sys.motion.loop.typing,
       easing: Easing.inOut(Easing.quad), useNativeDriver: true, isInteraction: false });
     const run = NativeAnimated.sequence([NativeAnimated.delay(index * 140),
       NativeAnimated.loop(NativeAnimated.sequence([timing(1), timing(0)]))]);
@@ -459,7 +474,10 @@ function TypingDot({ index, reduced }: { index: number; reduced: boolean }) {
 const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis = 'plain' }: ConversationMessage & {
   reduced: boolean; showSpeaker: boolean; emphasis?: 'plain' | 'question' | 'earlier';
 }) {
-  const entering = reduced ? undefined : FadeInDown.duration(sys.motion.enter).withInitialValues({ transform: [{ translateY: 8 }] });
+  // A turn settles up from 8 dp while it fades in, and it decelerates like every entrance (rule R2, `sys.motion.easeOut`); without the curve
+  // Reanimated would run its own ease-in-out, which has covered only 2 % of the way after the first tenth of the time.
+  const entering = reduced ? undefined : FadeInDown.duration(sys.motion.enter).easing(ReanimatedEasing.bezier(...sys.motion.easeOut))
+    .withInitialValues({ transform: [{ translateY: sys.space.sm }] });
   return fromAi
     ? <Animated.View entering={entering} accessibilityLabel={`USKOČI: ${body}`} style={s.assistant}>
       {showSpeaker ? <Mark /> : null}<T selectable style={emphasis === 'question' ? s.question : emphasis === 'earlier' ? s.earlier : s.answer}>{body}</T></Animated.View>
@@ -469,26 +487,21 @@ const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis =
 
 const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground }, flex: { flex: 1, minHeight: 0 },
-  cardArea: { flexGrow: 0, flexShrink: 1, paddingHorizontal: sys.space.lg },
+  cardArea: { flexGrow: 0, flexShrink: 1, paddingHorizontal: layout.chatList },
   cardContents: { paddingTop: 2, paddingBottom: sys.space.md },
   cardAreaCompact: { paddingTop: 0, paddingBottom: sys.space.sm },
-  thread: { flexGrow: 1, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md },
-  turns: { gap: 20 }, inlineContext: { paddingBottom: 20 },
+  thread: { flexGrow: 1, paddingHorizontal: layout.chatList, paddingTop: sys.space.md, paddingBottom: sys.space.md },
+  turns: { gap: sys.space.xl }, inlineContext: { paddingBottom: sys.space.xl },
   threadEmpty: { justifyContent: 'center', paddingBottom: sys.space.lg },
   welcome: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, maxWidth: 440, width: '100%', alignSelf: 'center' },
   presence: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
   welcomeTitle: { ...sys.type.title, fontWeight: '600', color: sys.color.ink, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
-  openings: { gap: sys.space.sm, marginTop: sys.space.sm },
-  // Three illustrated ways into the person's task, not generic command chips.
-  opening: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: sys.space.sm,
-    borderRadius: 16, backgroundColor: sys.conversation.surface, borderWidth: 1, borderColor: sys.conversation.edge },
-  openingArt: { width: 28, height: 28,
-    alignItems: 'center', justifyContent: 'center' },
-  openingText: { flex: 1, ...sys.type.copy, color: sys.color.ink },
+  // Whole sentences, one under the other, from the same edge as the thread will have: rows, not boxes.
+  openings: { marginTop: sys.space.md },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
   // Long replies read on the canvas; alignment and the group label identify the speaker.
-  assistant: { gap: 8, alignSelf: 'stretch', paddingVertical: 4, paddingHorizontal: 2 },
+  assistant: { gap: sys.space.sm, alignSelf: 'stretch', paddingVertical: sys.space.xs },
   mark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // The type scale's own voice for a sentence said in the conversation (review r4 ra item 11; it was a raw 17/27).
   answer: { ...sys.type.speech, color: sys.color.ink },
@@ -502,18 +515,18 @@ const s = StyleSheet.create({
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
   sending: { opacity: 0.85 },
   // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
-  typing: { flexDirection: 'row', gap: 12, alignItems: 'center', flexWrap: 'wrap', minHeight: 28, paddingLeft: 2 },
+  typing: { flexDirection: 'row', gap: sys.space.md, alignItems: 'center', flexWrap: 'wrap', minHeight: 28 },
   dots: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26 },
   dot: { width: 7, height: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.ai.front },
   dotStill: { opacity: 0.55 },
-  recovery: { gap: 10, padding: 14, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
-  actions: { gap: 10 },
+  recovery: { gap: sys.space.md },
+  actions: { gap: sys.space.md },
   latestRegion: { flexShrink: 0, paddingHorizontal: sys.space.md, backgroundColor: sys.conversation.ground },
   latest: { alignSelf: 'center', maxWidth: '100%', minHeight: 48, flexDirection: 'row', gap: 8,
     alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface },
   latestText: { flexShrink: 1, color: sys.color.ink, fontWeight: '600' },
-  footer: { paddingHorizontal: sys.space.md, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
+  footer: { paddingHorizontal: layout.chatComposer, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
   reason: { paddingHorizontal: sys.space.sm },
   // One ordinary horizontal pill; only a wrapped draft or limited reading space moves tools below.
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6,

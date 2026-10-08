@@ -14,6 +14,8 @@ import { V2Action as Button } from '../v2/V2Action';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
+import { FlowFooter } from '../system/FlowFooter';
+import { layout } from '../system/layout';
 import { brandAction, sys } from '../system/tokens';
 import { LocationDetails, LocationField } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
@@ -445,20 +447,20 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
                 cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
                 disabled={controlDisabled || !focused} compact fill />
             </View>
-            <View style={editorStyles.fullFooter}>
+            <FlowFooter>
               {position ? <>
                 <T variant="bodyStrong" style={editorStyles.fullTitle}>{pointQuestion}</T>
                 <T variant="note" tone="muted" accessibilityLiveRegion="polite">{lookup.status === 'LOADING' && lookupMode === 'reverse'
                   ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
-                <T variant="note" tone="muted">Dodirni mapu ili prevuci pin ako želiš preciznije mesto.</T>
+                <T variant="note" tone="muted">Dodirni mapu ili prevuci oznaku ako želiš preciznije mesto.</T>
                 <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`}
                   kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
                   onPress={() => { if (confirm()) setExpandedMap(false); }} />
               </> : <>
                 <T variant="bodyStrong" style={editorStyles.fullTitle}>Označi tačno mesto</T>
-                <T variant="note" tone="muted">Uvećaj ulicu po potrebi i dodirni mesto na mapi. Pin ostaje privatan dok ga ne potvrdiš.</T>
+                <T variant="note" tone="muted">Uvećaj ulicu po potrebi i dodirni mesto na mapi. Oznaka ostaje privatna dok je ne potvrdiš.</T>
               </>}
-            </View>
+            </FlowFooter>
           </SafeAreaView>
         </Modal>
       </> : null}
@@ -512,10 +514,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   return <View style={{ gap: sys.space.md }}>
     <T variant="bodyStrong">{title} na mapi</T>
     <T variant="meta" tone="muted">Izaberi tačno mesto i potvrdi ga. Tačka i detalji ispod ostaju privatni.</T>
-    <LocationField label={`${title} — pronađi mesto`} value={searchText} maxLength={1000} editable={!controlDisabled && focused} onChangeText={changeSearch} />
+    <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađi mesto" value={searchText} maxLength={1000} editable={!controlDisabled && focused} onChangeText={changeSearch} />
     <Button label={lookup.status === 'LOADING' ? 'Tražimo mesto…' : lookup.status === 'UNAVAILABLE' ? 'Pokušaj ponovo' : 'Pronađi na mapi'}
       kind="secondary" disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || lookup.status === 'LOADING'} onPress={search} />
-    {autoLocate ? <Button label={here === 'BUSY' ? 'Tražimo gde si…' : 'Koristi gde sam'} kind="quiet"
+    {autoLocate ? <Button label={here === 'BUSY' ? 'Tražimo gde si…' : 'Koristi moju lokaciju'} kind="quiet"
       disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
     {here === 'DENIED' ? <T variant="meta" accessibilityRole="alert">Pristup lokaciji nije dozvoljen. Možeš ga dozvoliti u podešavanjima ili upisati mesto iznad.</T> : null}
     {here === 'UNAVAILABLE' ? <T variant="meta" accessibilityRole="alert">Ne možemo da očitamo gde si. Upiši mesto iznad ili izaberi tačku na mapi.</T> : null}
@@ -551,11 +553,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         onPress={() => setPlaceByHand(true)} />}
     {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
       kind="quiet" disabled={controlDisabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
-    <LocationDetails label={`${title} — privatni detalji tačke`} disabled={controlDisabled || !focused}
+    <LocationDetails label={`${title} — privatni detalji tačke`} shownLabel="Privatni detalji tačke" disabled={controlDisabled || !focused}
       summary={[address, notes].filter(value => value.trim()).join(' · ') || 'Dodaj adresu ili napomenu po potrebi'}>
-    <LocationField label={`${title} — privatna adresa (opciono)`} value={address} maxLength={1000} editable={!controlDisabled && focused}
+    <LocationField label={`${title} — privatna adresa (opciono)`} shownLabel="Privatna adresa (opciono)" value={address} maxLength={1000} editable={!controlDisabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(); setAddress(value); invalidate(); } }} />
-    <LocationField label={`${title} — privatne napomene za pristup (opciono)`} value={notes} maxLength={2000} multiline editable={!controlDisabled && focused}
+    <LocationField label={`${title} — privatne napomene za pristup (opciono)`} shownLabel="Privatne napomene za pristup (opciono)" value={notes} maxLength={2000} multiline editable={!controlDisabled && focused}
       onChangeText={value => { if (owns()) { retireSearch(); setNotes(value); invalidate(); } }} />
     </LocationDetails>
     {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
@@ -571,11 +573,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
 
 const editorStyles = StyleSheet.create({
   fullScreen: { flex: 1, backgroundColor: sys.color.surface },
-  fullHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg,
-    paddingVertical: sys.space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
-  fullHeaderCopy: { flex: 1, minWidth: 0, gap: 2 },
+  fullHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: layout.gutter, paddingVertical: sys.space.sm },
+  fullHeaderCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   fullTitle: { color: sys.color.ink },
-  fullMap: { flex: 1, paddingHorizontal: sys.space.sm, paddingTop: sys.space.sm },
-  fullFooter: { gap: sys.space.sm, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.base,
-    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+  fullMap: { flex: 1, paddingHorizontal: sys.space.sm, paddingTop: sys.space.sm, paddingBottom: sys.space.sm },
 });

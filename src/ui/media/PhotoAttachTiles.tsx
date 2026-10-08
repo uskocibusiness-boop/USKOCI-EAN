@@ -38,7 +38,7 @@ export type AttachTile = {
 
 /** One word or two for each state, said on the tile and to a screen reader. */
 export const TILE_WORDS: Readonly<Record<Exclude<AttachTileKind, 'READY'>, string>> = {
-  QUEUED: 'Čeka', SENDING: 'Šalje se…', PROCESSING: 'Obrađuje se…', UNCONFIRMED: 'Slanje nije potvrđeno',
+  QUEUED: 'Čeka', SENDING: 'Šalje se…', PROCESSING: 'Obrađuje se…', UNCONFIRMED: 'Ne znamo da li je poslato',
   FAILED: 'Nije obrađena', RESERVED: 'Uz poslatu poruku',
 };
 const ART: Readonly<Record<Exclude<AttachTileKind, 'READY'>, FactArtKind>> = {
@@ -78,10 +78,10 @@ export function PhotoAttachTile({ tile, index, size, context = {}, onOpen, pictu
   // Over the photo's own picture the state is a white chip at the bottom; without one, it stands in the middle of the well.
   const state = tile.preview ? <View style={s.chipArea} pointerEvents="none">
     {working ? <View style={s.spinner}><ActivityIndicator size="small" color={sys.color.ink} /></View> : null}
-    <View style={s.chip}><T variant="meta" numberOfLines={2} style={s.chipText}>{retry ?? words}</T></View>
-  </View> : <View style={s.state} pointerEvents="none">
-    {working ? <ActivityIndicator size="small" color={sys.color.ink} /> : retry ? null : <FactArt kind={ART[kind]} size={24} muted />}
-    <T variant="meta" tone="muted" numberOfLines={2} style={s.center}>{words}</T>
+    <View style={s.chip}><T variant="meta" numberOfLines={3} style={s.chipText}>{retry ?? words}</T></View>
+  </View> : <View style={[s.state, tile.onRemove && s.stateBelowRemove]} pointerEvents="none">
+    {working ? <ActivityIndicator size="small" color={sys.color.ink} /> : retry || tile.onRemove ? null : <FactArt kind={ART[kind]} size={24} muted />}
+    <T variant="meta" tone="muted" numberOfLines={3} style={s.center}>{words}</T>
     {retry ? <T variant="meta" numberOfLines={2} style={[s.center, s.retry]}>{retry}</T> : null}
   </View>;
   const body = <>{tile.preview ? <LocalPhoto bytes={tile.preview} /> : null}{state}</>;
@@ -141,6 +141,8 @@ const s = StyleSheet.create({
   // A photo not yet saved has a dashed edge, so it never reads as one the draft or the message already holds.
   unsaved: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: sys.color.lineStrong },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, padding: sys.space.sm },
+  // The corner X is a 48 dp target around a 32 dp circle (8 dp in): a tile that has one starts its words below the circle.
+  stateBelowRemove: { paddingTop: sys.space.xxl + sys.space.sm },
   center: { textAlign: 'center' },
   retry: { color: sys.color.ink, fontWeight: '600' },
   chipArea: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-end', padding: sys.space.xs, gap: sys.space.xs },

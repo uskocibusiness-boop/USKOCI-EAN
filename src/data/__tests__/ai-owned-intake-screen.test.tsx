@@ -61,7 +61,9 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 // own views with `createAnimatedComponent` when it loads. The harness hands that component back unchanged.
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   FadeIn: { duration: (duration: number) => ({ duration }) },
-  FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
+  // An entrance is a chain (`duration`, `easing`, `withInitialValues`), and its curve comes from Reanimated's own `Easing`.
+  FadeInDown: { duration: (duration: number) => { const chain: Record<string, unknown> = { duration, easing: () => chain, withInitialValues: () => chain }; return chain; } },
+  Easing: { bezier: () => (value: number) => value },
   useReducedMotion: () => mockReduced, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
   useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
@@ -92,6 +94,9 @@ jest.mock('../../ui/location/ConversationPointAsk', () => {
 // --experimental-vm-modules). It is the only lazy part of this screen, so the harness hands lazy the stand-in above.
 jest.mock('react', () => ({ ...jest.requireActual('react'), lazy: () => require('../../ui/location/ConversationPointAsk').default }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
+// Rule R5 (haptics are outcomes): the screen asks `ui/system/haptics` for an "error" tick when a command fails; the harness counts the asks.
+const mockTick = jest.fn();
+jest.mock('../../ui/system/haptics', () => ({ tick: (...a: unknown[]) => mockTick(...a), forgetTicks: jest.fn() }));
 // The draft's photos (the "+" of the conversation): the task photo service and the picker stand in; the journal is the
 // AsyncStorage map above.
 const mockReadPhotos = jest.fn(), mockReadUpload = jest.fn(), mockUploadPhoto = jest.fn(), mockRemovePhoto = jest.fn(), mockPickPhotos = jest.fn();
@@ -109,6 +114,7 @@ import { ActionSheet } from '../../ui/system/ActionSheet';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { ProductSheet } from '../../ui/product/ProductSheet';
 import { AiConversationShell } from '../../ui/aiFirst/AiConversationShell';
+import { TASK_OPENINGS } from '../../ui/v2/IntakePresentation';
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const ok = <T,>(podatak: T) => ({ ok: true as const, podatak });
@@ -131,13 +137,13 @@ let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<Intake />); }); };
 const update = async () => { await act(async () => tree.update(<Intake />)); };
 const button = (label: string) => tree.root.findByProps({ label }).props;
-const input = () => tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props;
+const input = () => tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props;
 const submit = () => tree.root.findByProps({ accessibilityLabel: mockSend.mock.calls.length ? 'Pošalji ponovo' : 'Pošalji poruku' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 // Typing and speaking are two modes: the field opens when the keyboard is chosen, and a
 // draft keeps it open. A test that types chooses it first, exactly as a person does.
 const openKeyboard = async () => {
-  if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za AI' }).length) return;
+  if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' }).length) return;
   const keyboard = tree.root.findByProps({ accessibilityLabel: 'Piši umesto da govoriš' }).props;
   await act(async () => keyboard.onPress());
 };
@@ -297,14 +303,14 @@ it.each([
   const sent = mockSend.mock.calls[0].slice(0, 3);
   expect(sent.slice(0, 2)).toEqual([id, spoken]);
   if (outcome === 'explicit retry') {
-    await act(async () => button('Proveri ishod').onPress());
+    await act(async () => button('Proveri').onPress());
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     await act(async () => submit().onPress());
     expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(sent);
   } else if (outcome === 'unknown then success') {
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-    await act(async () => button('Proveri ishod').onPress());
+    await act(async () => button('Proveri').onPress());
   }
   expect(input().value).toBe(draft); expect(input().editable).toBe(true);
   expect(mockSend).toHaveBeenCalledTimes(outcome === 'explicit retry' ? 2 : 1);
@@ -337,21 +343,21 @@ it.each([
   expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockSend.mock.calls[0][1]).toBe(origin === 'typed' ? 'Poslati nacrt.' : 'Govorna poruka.');
   if (outcome === 'explicit retry') {
-    await act(async () => button('Proveri ishod').onPress());
+    await act(async () => button('Proveri').onPress());
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     await act(async () => submit().onPress());
     expect(mockSend.mock.calls[1].slice(0, 3)).toEqual(mockSend.mock.calls[0].slice(0, 3));
   } else if (outcome === 'unknown then success') {
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-    await act(async () => button('Proveri ishod').onPress());
+    await act(async () => button('Proveri').onPress());
   }
   expect(input().value).toBe(freshDraft); expect(input().editable).toBe(true);
   expect(mockSend).toHaveBeenCalledTimes(outcome === 'explicit retry' ? 2 : 1);
 });
 it('CF01: a typed retry clears only its unchanged raw submitted draft', async () => {
   await render(); await type('  Poslati nacrt.  '); await act(async () => submit().onPress());
-  await act(async () => button('Proveri ishod').onPress());
+  await act(async () => button('Proveri').onPress());
   mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
   await act(async () => submit().onPress());
@@ -427,12 +433,37 @@ it('creates nothing until the first word, and then exactly one conversation', as
   await blur(); await focus();
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
+// UX needs R18: 38 of the first 62 conversations never received a word. The empty conversation offers whole sentences a person might say
+// (what, when, where), not names of categories; one tap puts a sentence in the field for the person to finish.
+it('offers three whole sentences before the first word; a tap puts one in the field and opens or sends nothing', async () => {
+  await render();
+  const drawn = (label: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLabel === label);
+  expect(TASK_OPENINGS).toHaveLength(3);
+  for (const sentence of TASK_OPENINGS) { expect(drawn(sentence)).toHaveLength(1); expect(sentence).toMatch(/^Treba mi .{25,}\.$/); }
+  expect(text()).toContain('Na primer');
+  await act(async () => drawn(TASK_OPENINGS[0])[0].props.onPress());
+  expect(input().value).toBe(`${TASK_OPENINGS[0]} `);
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  // They are for the start only: with the first word sent, the thread has taken their place.
+  await act(async () => submit().onPress());
+  expect(drawn(TASK_OPENINGS[0])).toHaveLength(0); expect(drawn(TASK_OPENINGS[1])).toHaveLength(0);
+});
+// B0 / R5: a command that fails is felt once ("error"), at the moment its message appears, and the same message is not felt again on a re-render.
+it('ticks "error" once when a command fails, and not again for the same message', async () => {
+  mockOpen.mockResolvedValueOnce(unknown());
+  await render(); await type(); mockTick.mockClear();
+  await act(async () => submit().onPress());
+  expect(text()).toContain('Ishod nije potvrđen');
+  expect(mockTick.mock.calls.filter(call => call[0] === 'error')).toHaveLength(1);
+  await update();
+  expect(mockTick.mock.calls.filter(call => call[0] === 'error')).toHaveLength(1);
+});
 it('retains the owned open key after an unknown result and retries only by user action', async () => {
   mockOpen.mockResolvedValueOnce(unknown());
   await render(); await type(); await act(async () => submit().onPress());
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).toContain('Ishod nije potvrđen');
-  await act(async () => button('Proveri ishod').onPress());
+  await act(async () => button('Proveri').onPress());
   await openKeyboard();
   // The typed words are still there: nothing was sent, so nothing was consumed.
   expect(input().value).toBe('Treba preneti ormar sutra.');
@@ -450,7 +481,7 @@ it('does not adopt a late open response on a blurred screen; the next send repla
   expect(mockOpen.mock.calls[1][0]).toBe(key);
   // The conversation the screen now has is the one its own second open answered with, never the
   // one the abandoned first attempt came back with.
-  await act(async () => button('Proveri ishod').onPress());
+  await act(async () => button('Proveri').onPress());
   expect(mockLoad).toHaveBeenCalledWith(id); expect(mockLoad).not.toHaveBeenCalledWith(other);
 });
 it.each([['ambiguous', [id]], ['malformed', 'wrong']] as const)('rejects %s resume route without opening a replacement conversation', async (_label, value) => {
@@ -472,7 +503,7 @@ it('serializes two retained send taps before render and keeps the original body 
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const sent = mockSend.mock.calls[0];
   await act(async () => submit().onPress()); expect(mockSend).toHaveBeenCalledTimes(1);
-  await act(async () => button('Proveri ishod').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
+  await act(async () => button('Proveri').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
   await act(async () => input().onChangeText('different body')); expect(input().value).toBe(sent[1]);
   await act(async () => submit().onPress()); expect(mockSend.mock.calls[1].slice(0,3)).toEqual(sent.slice(0,3));
 });
@@ -488,43 +519,59 @@ it.each(['first send', 'existing conversation'] as const)('shows no unknown-outc
   } else await render();
   await type(); await act(async () => { void submit().onPress(); });
   expect(mockSend).toHaveBeenCalledTimes(1);
-  const box = () => tree.root.findAllByProps({ testID: 'ai-recovery-in-thread' });
+  // The recovery is a `Surface`: the component and the view it draws both carry the testID, so only the drawn view is counted.
+  const box = () => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'ai-recovery-in-thread');
   const settledOnly = () => {
-    expect(text()).not.toContain('Ishod slanja nije potvrđen'); expect(tree.root.findAllByProps({ label: 'Proveri ishod' })).toHaveLength(0);
+    expect(text()).not.toContain('Ne znamo da li je poruka poslata'); expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(0);
     expect(box()).toHaveLength(0); expect(tree.root.findAllByProps({ testID: 'ai-send-reason' })).toHaveLength(0);
   };
   expect(text()).toContain('Stiže odgovor…'); settledOnly();
   await act(async () => mockSend.mock.calls[0][3].onText('Evo, '));
   expect(text()).toContain('Evo, '); settledOnly();
   await act(async () => held.resolve(unknown()));
-  expect(text()).toContain('Ishod slanja nije potvrđen. Proveri ga pre sledeće poruke.');
-  expect(box()).toHaveLength(1); expect(button('Proveri ishod').disabled).toBe(false);
+  expect(text()).toContain('Ne znamo da li je poruka poslata.');
+  expect(box()).toHaveLength(1); expect(button('Proveri').disabled).toBe(false);
   expect(mockSend).toHaveBeenCalledTimes(1);
 });
-it('keeps the retry, cancel and "AI još obrađuje" paths once a send has settled, and hides them again while the retry runs', async () => {
+// One sentence for "we are not sure the message arrived": the status line and the one button. The data layer's own sentence for the same fact
+// ("Ishod radnje nije potvrđen. Osveži prikaz ...") is not drawn a second time above them, in other words and with another button's verb.
+it('says a send that may not have arrived once, with the shared sentence and the one button', async () => {
+  const GENERIC = 'Ishod radnje nije potvrđen. Osveži prikaz pre ponovnog pokušaja.';
+  mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_TURN_SEND_UNCONFIRMED', poruka: GENERIC });
   await render(); await type(); await act(async () => submit().onPress());
-  await act(async () => button('Proveri ishod').onPress());
+  expect(text()).toContain('Ne znamo da li je poruka poslata.'); expect(text()).not.toContain(GENERIC);
+  expect(button('Proveri').disabled).toBe(false);
+});
+it('keeps the line of any other failed send, even while the delivery is not known', async () => {
+  const OTHER = 'Poruka nije poslata. Pokušaj ponovo.';
+  mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: OTHER });
+  await render(); await type(); await act(async () => submit().onPress());
+  expect(text()).toContain(OTHER); expect(text()).toContain('Ne znamo da li je poruka poslata.');
+});
+it('keeps the retry, cancel and "Asistent još obrađuje" paths once a send has settled, and hides them again while the retry runs', async () => {
+  await render(); await type(); await act(async () => submit().onPress());
+  await act(async () => button('Proveri').onPress());
   expect(text()).toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(button('Otkaži slanje poruke')).toBeDefined();
   const held = deferred(); mockSend.mockReturnValueOnce(held.promise);
   await act(async () => { void submit().onPress(); });
   expect(mockSend).toHaveBeenCalledTimes(2);
-  expect(text()).not.toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(text()).not.toContain('Ishod slanja nije potvrđen');
+  expect(text()).not.toContain('Poruka je sačuvana za ponovni pokušaj.'); expect(text()).not.toContain('Ne znamo da li je poruka poslata');
   expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'ai-recovery-in-thread' })).toHaveLength(0);
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
   await act(async () => held.resolve(turn(mockSend.mock.calls[1][2], 'PROCESSING')));
-  expect(text()).toContain('AI još obrađuje poruku. Proveri ishod.'); expect(button('Proveri ishod').disabled).toBe(false);
+  expect(text()).toContain('Asistent još obrađuje poruku. Sačekaj odgovor.'); expect(button('Proveri').disabled).toBe(false);
 });
 it('keeps an in-progress server receipt read-only and never polls or retries automatically', async () => {
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
-  await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proveri ishod').onPress());
-  expect(submit().disabled).toBe(true); expect(text()).toContain('AI još obrađuje poruku'); expect(mockSend).toHaveBeenCalledTimes(1);
+  await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proveri').onPress());
+  expect(submit().disabled).toBe(true); expect(text()).toContain('Asistent još obrađuje poruku'); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockTurn).toHaveBeenCalledTimes(1);
 });
 it('resolves a lost success receipt using IDs, clears the sent draft and accepts a fresh next request', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const old = mockSend.mock.calls[0][2];
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
-  await act(async () => button('Proveri ishod').onPress());
+  await act(async () => button('Proveri').onPress());
   // The readback clears the sent draft, which returns the composer to voice mode. The
   // invariant is unchanged: the draft is empty and still editable.
   await openKeyboard(); expect(input().value).toBe(''); expect(input().editable).toBe(true);
@@ -642,7 +689,8 @@ it('keeps the complete conversation in its own scroll area beneath the pinned ca
   expect(text()).toContain('Ranije pitanje'); expect(text()).toContain('Raniji odgovor');
   const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
   expect(thread.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
-  expect(tree.root.findByProps({ testID: 'ai-pinned-card' }).findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(1);
+  // The card is a `Surface` panel: the component and the view it draws both carry the testID, so only the drawn view is counted.
+  expect(tree.root.findByProps({ testID: 'ai-pinned-card' }).findAll(node => typeof node.type === 'string' && node.props.testID === 'intake-task-summary')).toHaveLength(1);
   expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
 });
 
@@ -808,7 +856,7 @@ it('keeps the complete safety note visible on the collapsed card during a pendin
   mockLoad.mockResolvedValue(flagged); await resume();
   const card = () => tree.root.findByProps({ testID: 'intake-task-summary' });
   const noteOf = () => card().findAll(node => node.type === ('T' as React.ElementType) && node.props.variant === 'note' && node.props.tone === 'muted'
-    && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.' && node.props.children !== 'Lokacija nije određena');
+    && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.' && node.props.children !== 'Mesto nije određeno');
   expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
   // A sent message makes the card compact (the shell's rule while a turn is pending).
   await type('Dodaj da je treći sprat.'); await act(async () => submit().onPress());
@@ -1103,7 +1151,7 @@ it('retains the new owned-open request after an unknown second-Task open outcome
   await type(); await act(async () => submit().onPress());
   const key = mockOpen.mock.calls[0][0];
   // The outcome is unknown, so the retry asks for the same conversation rather than another one.
-  await act(async () => button('Proveri ishod').onPress());
+  await act(async () => button('Proveri').onPress());
   await type(); await act(async () => submit().onPress());
   expect(mockOpen.mock.calls[1][0]).toBe(key);
 });
@@ -1185,7 +1233,7 @@ it('a known terminal failure restores a bound edit without abandoning it or rese
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
   await openKeyboard();
   expect(input().editable).toBe(true); expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
-  expect(text()).toContain('AI nije primenio prethodnu poruku.');
+  expect(text()).toContain('Asistent nije uzeo u obzir prethodnu poruku.');
 });
 it('does not dispatch if opaque UUID persistence fails and keeps the unsent typed body', async () => {
   await render(); await type('Unsent private draft');
@@ -1221,13 +1269,13 @@ it('restored bound-edit dispatched exit explains retained cost and unlocks only 
   mockRecover.mockResolvedValue(ok({...recovery(turn(other,'PROCESSING').podatak,false,true).podatak,canCancel:true}));
   await render();expect(button('Odustani od odgovora').disabled).toBe(false);
   await openKeyboard();
-  expect(text()).toContain('poruka se ipak računa kao poslata');expect(input().editable).toBe(false);
+  expect(text()).toContain('poruka je ipak poslata');expect(input().editable).toBe(false);
   const cancelled=recovery(turn(other,'FAILED').podatak,true,true);
   mockCancel.mockResolvedValue(cancelled);mockRecover.mockResolvedValue(cancelled);
   await act(async()=>button('Odustani od odgovora').onPress());
   expect(mockCancel).toHaveBeenCalledWith(id,other);expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();
   await openKeyboard();
-  expect(input().editable).toBe(true);expect(text()).toContain('Odgovor je otkazan i podaci su ostali nepromenjeni');expect(mockSend).not.toHaveBeenCalled();
+  expect(input().editable).toBe(true);expect(text()).toContain('Odgovor je zaustavljen. Poruka je ipak poslata');expect(mockSend).not.toHaveBeenCalled();
   await type('Izričita nova poruka');await act(async()=>tree.root.findByProps({accessibilityLabel:'Pošalji poruku'}).props.onPress());
   expect(mockSend).toHaveBeenCalledTimes(1);expect(mockSend.mock.calls[0][2]).not.toBe(other);
 });
@@ -1247,7 +1295,7 @@ it('completion winning dispatched cancellation shows the actual result without c
   const completed=recovery(turn(other,'SUCCEEDED').podatak,false,true);mockCancel.mockResolvedValue(completed);mockRecover.mockResolvedValue(completed);
   mockLoad.mockResolvedValue(conversation({messages:[{id:other,fromAi:true,body:'Stvarni završen odgovor',safety:'ALLOW',proposedFactIds:[]}]}));
   await act(async()=>button('Odustani od odgovora').onPress());
-  expect(text()).toContain('Stvarni završen odgovor');expect(text()).not.toContain('Odgovor je otkazan i podaci su ostali nepromenjeni');
+  expect(text()).toContain('Stvarni završen odgovor');expect(text()).not.toContain('Odgovor je zaustavljen. Poruka je ipak poslata');
   expect(await aiTurnIntentJournal.load(intent.accountId)).toBeNull();expect(mockSend).not.toHaveBeenCalled();
 });
 it('late dispatched cancellation after blur cannot retire the journal or load another conversation',async()=>{
@@ -1308,9 +1356,10 @@ test('saved task photos stay visible from the facts through authorized asset ref
   const photos = thread.findAllByType('AuthorizedPhoto' as React.ElementType);
   expect(photos.map(photo => photo.props.assetId)).toEqual([other]);
   expect(text()).toContain('Dodata fotografija (1/6)'); expect(text()).toContain('Fotografije nisu učitane.');
-  // The read failed, so the way to check again is on screen; nothing navigates away.
+  // The read failed (a read that did not arrive, not a send that is not known), so the way to try again is on screen, in the table's word for
+  // it; nothing navigates away.
   mockReadPhotos.mockResolvedValue(ok({ conversationId: id, accountId: mockSession.user.id, photos: [], ready: true, authoritative: true }));
-  await act(async () => tree.root.findByProps({ label: 'Proveri fotografije' }).props.onPress());
+  await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress());
   expect(mockReadPhotos).toHaveBeenCalledTimes(2); expect(mockRouter.push).not.toHaveBeenCalled();
 });
 

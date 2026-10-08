@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { FactArt } from '../system/FactArt';
+import { layout } from '../system/layout';
+import { Screen } from '../system/Screen';
 import { SuccessMark } from '../system/SuccessMark';
 import { sys } from '../system/tokens';
 
@@ -37,7 +39,7 @@ function useScreenReaderOn(): boolean {
 export function PublishedMoment({ title, line, actionLabel = 'Otvori zadatak', onContinue }: {
   /** What happened, as a sentence: "Zadatak je objavljen." */
   title: string;
-  /** What happens next, in one grey sentence that is true: "Prijave stižu ovde. Javićemo ti." */
+  /** What happens next, in one grey sentence that is true: `APPLICATION_PROMISE.published` (`data/ownTaskStanding`), what the app can promise today. */
   line: string;
   actionLabel?: string;
   /** Goes on to the task. Called at most once per tap or timer; the route's own fence decides whether it may. */
@@ -51,23 +53,24 @@ export function PublishedMoment({ title, line, actionLabel = 'Otvori zadatak', o
     const timer = setTimeout(() => latest.current(), PUBLISHED_MOMENT_MS);
     return () => clearTimeout(timer);
   }, [screenReader]);
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
+  return <Screen kind="detail" scroll={false}>
     <View style={s.center}>
-      <SuccessMark fresh size={64} />
+      <SuccessMark fresh size={96}><FactArt kind="check" size={64} /></SuccessMark>
       <View style={s.words}>
         <T accessibilityRole="header" accessibilityLiveRegion="polite" variant="title" style={s.title}>{title}</T>
         <T variant="copy" tone="muted" style={s.line}>{line}</T>
       </View>
       <V2Action kind="primary" label={actionLabel} onPress={onContinue} style={s.action} />
     </View>
-  </SafeAreaView>;
+  </Screen>;
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.surface },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: sys.space.xl, paddingHorizontal: sys.space.xl },
+  // The mark, the words and the one way on stand in the middle of the screen, on the screen's own edge; the way on is as wide as the
+  // words allow (320) and centred, never pushed to one side.
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: layout.section },
   words: { alignItems: 'center', gap: sys.space.sm },
   title: { color: sys.color.ink, textAlign: 'center' },
   line: { textAlign: 'center' },
-  action: { alignSelf: 'stretch', maxWidth: 320, width: '100%' },
+  action: { alignSelf: 'center', maxWidth: 320, width: '100%' },
 });

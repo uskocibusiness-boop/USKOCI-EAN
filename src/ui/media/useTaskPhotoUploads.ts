@@ -75,7 +75,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
       failure.current = null;
     } else {
       // Admitted and still processing: the identity stays until the outcome is known, and the bounded check below asks again.
-      setUnconfirmed(true); setProcessingPending(true); say('Obrada fotografije još nije potvrđena. Proveri ishod.', 'error');
+      setUnconfirmed(true); setProcessingPending(true); say('Ne znamo da li je fotografija obrađena.', 'error');
     }
   };
   const read = async (current: () => boolean) => {
@@ -86,7 +86,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
       // Not a command identity: it can never be reconciled or replayed, so it must not strand the picker.
       await AsyncStorage.removeItem(key);
       if (!current()) return;
-      say('Zapis nepotvrđenog slanja nije čitljiv, pa je uklonjen. Proveri fotografije.');
+      say('Zapis o slanju nije mogao da se pročita, pa je uklonjen. Ne znamo da li je fotografija stigla.');
     } else if (stored && !pending.current) pending.current = { id: stored };
     if (pending.current) {
       setUnconfirmed(true);
@@ -98,9 +98,9 @@ export function useTaskPhotoUploads(conversationId: string | null) {
         // the same-key retry while the bytes exist and always has the authoritative cancel below.
         const missing = receipt.kod === 'MEDIA_NOT_FOUND', retained = !!pending.current?.photo;
         setCanRetry(retained); setProcessingPending(false);
-        say(!missing ? 'Ishod slanja nije učitan. Proveri vezu i osveži prikaz.'
-          : retained ? 'Slanje nije primljeno. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.'
-            : 'Slanje nije primljeno, a fotografija više nije na uređaju. Odustani od slanja pa izaberi fotografiju ponovo.', 'error');
+        say(!missing ? 'Ne znamo da li je slanje uspelo.'
+          : retained ? 'Slanje još nije primljeno. Možeš da pošalješ istu fotografiju ponovo ili da odustaneš od slanja.'
+            : 'Slanje još nije primljeno, a fotografija više nije na uređaju. Odustani od slanja pa izaberi fotografiju ponovo.', 'error');
       }
     }
     if (!current()) return;
@@ -120,7 +120,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
     if (interrupted.current) {
       say(`Slanje je prekinuto pre kraja. Izaberi ponovo fotografije koje nisu poslate (${interrupted.current}).`); interrupted.current = 0;
     }
-    void read(current).catch(() => { if (current()) say('Ishod nije učitan. Proveri vezu i osveži prikaz.', 'error'); })
+    void read(current).catch(() => { if (current()) say('Ne možemo da učitamo fotografije. Proveri vezu.', 'error'); })
       .finally(() => { if (current()) { operation.current = false; setBusy(false); } });
     return () => {
       if (focused.current === token) focused.current = null; abort.current?.abort();
@@ -168,7 +168,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
   };
   const refresh = async () => { if (!begin('REFRESH')) return;
     try { await read(current); if (current() && !pending.current && queue.current.length) await drain(); }
-    catch { if (current()) say('Ishod nije učitan. Proveri vezu i pokušaj ponovo.', 'error'); } finally { finish(); } };
+    catch { if (current()) say('Ne možemo da učitamo fotografije. Proveri vezu.', 'error'); } finally { finish(); } };
   const list = photos?.photos ?? [];
   const pendingInList = !!pending.current && list.some(asset => asset.clientRequestId === pending.current?.id);
   const taken = list.length + (pending.current && !pendingInList ? 1 : 0) + queued.length;
@@ -189,7 +189,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
       readyInSequence.current = 0; setBatch({ total: commands.length, done: 0 }); setPollRound(value => value + 1);
       setQueue(commands);
       await drain();
-    } catch (error) { if (current()) { say(pending.current ? 'Slanje nije potvrđeno. Proveri ishod pre novog izbora.' : photoSelectionMessage(error), 'error'); setUnconfirmed(!!pending.current);
+    } catch (error) { if (current()) { say(pending.current ? 'Ne znamo da li je slanje uspelo.' : photoSelectionMessage(error), 'error'); setUnconfirmed(!!pending.current);
       // Owner decision 4: a denied camera permission always leaves a way forward (settings or the gallery).
       setPermissionDenied(!pending.current && (error as { code?: string } | null)?.code === 'PERMISSION'); } }
     finally { finish(); }
@@ -201,7 +201,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
       await send(command);
       if (current()) setSending(null);
       if (current() && !pending.current && queue.current.length) await drain();
-    } catch { if (current()) say('Ishod nije potvrđen. Proveri fotografije.', 'error'); } finally { if (current()) setSending(null); finish(); }
+    } catch { if (current()) say('Ne znamo da li su fotografije poslate.', 'error'); } finally { if (current()) setSending(null); finish(); }
   };
   // PKG-008 / GAP-0036: the server owns the exit. A tombstone (absent key) or a
   // deselection (admitted key) is the only thing that retires the journal identity;
@@ -219,10 +219,10 @@ export function useTaskPhotoUploads(conversationId: string | null) {
       pending.current = null; setUnconfirmed(false); setCanRetry(false); setProcessingPending(false); kept.current.delete(command.id);
       // Stopping one send stops the sequence it belonged to: the photos still waiting are not sent behind the person's back.
       const dropped = queue.current.length; setQueue([]); setBatch(null); skipped.current = null;
-      say([result.podatak.previousState === null ? 'Slanje je otkazano. Zakasnela fotografija sa ovog zahteva neće biti prihvaćena.'
+      say([result.podatak.previousState === null ? 'Slanje je otkazano. Fotografija koja stigne kasnije neće biti prihvaćena.'
         : 'Slanje je otkazano. Fotografija nije u nacrtu.', dropped ? `Ostale izabrane fotografije nisu poslate (${dropped}).` : null].filter(Boolean).join(' '), 'success');
       await read(current);
-    } catch { if (current()) say('Otkazivanje nije potvrđeno. Osveži prikaz pre novog pokušaja.', 'error'); }
+    } catch { if (current()) say('Ne znamo da li je otkazivanje uspelo.', 'error'); }
     finally { finish(); }
   };
   const remove = async (assetId: string) => {
@@ -247,7 +247,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
       const command = { id: noviUuidZahtevId(), photo }; kept.current.set(command.id, photo);
       readyInSequence.current = 0; setBatch({ total: 1, done: 0 }); setPollRound(value => value + 1); setQueue([command]);
       await drain();
-    } catch { if (current()) say(pending.current ? 'Slanje nije potvrđeno. Proveri ishod pre novog izbora.' : 'Ishod nije potvrđen. Proveri fotografije.', 'error'); }
+    } catch { if (current()) say(pending.current ? 'Ne znamo da li je slanje uspelo.' : 'Ne znamo da li su fotografije poslate.', 'error'); }
     finally { finish(); }
   };
   /** A photo that has not left the phone yet goes without a question: nothing about it was saved. */

@@ -21,9 +21,12 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSad
 const mockId = jest.fn(() => '33333333-3333-4333-8333-333333333333');
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => mockId() }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Photo' }));
-// The screen keeps its add actions in the footer: the harness draws it next to the content so they stay findable.
-jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsPanel: 'Panel', SettingsAction: 'Action',
-  SettingsScreen: ({ footer, children, ...p }: { footer?: unknown; children?: unknown }) => require('react').createElement('Screen', p, children, footer) }));
+// The screen is the system's: the harness draws its bar, its content and, right after it, its foot, so the foot's one action stays findable;
+// the real foot (with its reason above the action), sections and tiles are kept, and the action is the host whose props the tests read.
+jest.mock('../../ui/system/Screen', () => ({ Screen: ({ header, footer, children }: { header?: unknown; footer?: unknown; children?: unknown }) =>
+  require('react').createElement('Screen', null, header, children, footer) }));
+jest.mock('../../ui/system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
+jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/PermissionRecovery', () => ({ PermissionRecovery: 'PermissionRecovery' }));
 // The shared photo sheet is drawn by its own suite; here it is a host whose `onPick` is the screen's own.
 jest.mock('../../ui/media/PhotoAttachSheet', () => ({ PhotoAttachSheet: 'PhotoAttachSheet' }));
@@ -35,6 +38,7 @@ jest.mock('../../ui/system/ConfirmSheet', () => ({ useConfirmSheet: () => ({ ask
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(t, k) { return k === 'View' ? 'View' : Reflect.get(t, k); } }); });
 import Route from '../../app/(app)/fotografije-zadatka';
 import { PhotoViewer } from '../../ui/media/PhotoViewer';
+import { FlowFooter } from '../../ui/system/FlowFooter';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const absent = () => ({ ok: false, kod: 'MEDIA_NOT_FOUND', poruka: 'Fotografija nije dostupna.' });
 const photo = { bytes: new Uint8Array([1, 2, 3]).buffer, contentType: 'image/jpeg', width: 1, height: 1 };
@@ -45,6 +49,8 @@ let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<Route />); }); };
 const action = (label: string) => tree.root.findByProps({ label }).props;
 const ADD = 'Dodaj fotografije';
+/** Why the one green action is grey: the foot says it in a line ABOVE the action (the system's `FlowFooter reason`). */
+const footReason = () => tree.root.findByType(FlowFooter).props.reason;
 /** The footer's one action opens the shared sheet; the sheet's source is then chosen, as a person does. */
 const choose = async (source: 'LIBRARY' | 'CAMERA' = 'LIBRARY') => {
   await act(async () => action(ADD).onPress());
@@ -95,7 +101,7 @@ it('performs no upload when durable identity storage fails, including an explici
   mockSet.mockRejectedValue(new Error('unavailable')); await render();
   await choose();
   expect(mockUpload).not.toHaveBeenCalled();
-  await act(async () => action('Proveri fotografije').onPress());
+  await act(async () => action('Proveri').onPress());
   await act(async () => action('Pošalji ponovo').onPress());
   expect(mockUpload).not.toHaveBeenCalled();
 });
@@ -116,7 +122,7 @@ it('does not start upload after account revision changes while the identity is b
 // Opened from a link on a cold start, the arrow used to replace to a blank new conversation.
 it('the arrow with no screen behind it returns to this conversation; with one, it goes back', async () => {
   await render();
-  const arrow = () => tree.root.findByType('Screen' as React.ElementType).props.onBack;
+  const arrow = () => tree.root.findByType('DetailTopBar' as React.ElementType).props.onBack;
   mockCanGoBack.mockReturnValue(false); await act(async () => arrow()());
   expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CID } });
   await act(async () => tree.unmount()); mockCanGoBack.mockReturnValue(true); await render(); await act(async () => arrow()());
@@ -126,13 +132,15 @@ it('says why adding is grey once six photos are in the draft', async () => {
   const six = Array.from({ length: 6 }, (_, i) => ({ assetId: `6666666${i}-6666-4666-8666-666666666666`, state: 'READY' }));
   mockRead.mockResolvedValue(ok({ ...listing(), photos: six })); await render();
   expect(action(ADD).disabled).toBe(true);
-  expect(action(ADD).reason).toBe('Dodato je najviše fotografija. Ukloni jednu da dodaš drugu.');
+  expect(footReason()).toBe('Dodato je najviše fotografija. Ukloni jednu da dodaš drugu.');
   expect(JSON.stringify(tree.toJSON())).toContain('6 fotografija od 6');
 });
 it('invalid conversation routes cause no photo reads, picker, or writes', async () => {
   mockParams = { conversationId: 'invalid' }; await render();
   expect(mockRead).not.toHaveBeenCalled(); expect(mockGet).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
-  expect(action(ADD).disabled).toBe(true);
+  // There is no draft to add to: the screen says so, and has no foot with an action that could never work.
+  expect(JSON.stringify(tree.toJSON())).toContain('Fotografije nisu dostupne');
+  expect(tree.root.findAllByProps({ label: ADD })).toHaveLength(0); expect(tree.root.findAllByType(FlowFooter)).toHaveLength(0);
 });
 describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', () => {
   const JOURNAL = `uskoci:media-upload:${OWNER}:TASK:${CID}`;
@@ -146,7 +154,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
     mockGet.mockResolvedValue(REQUEST); await render();
     expect(mockReceipt).toHaveBeenCalledWith(REQUEST);
     expect(action(ADD).disabled).toBe(true); expect(has('Pošalji ponovo')).toBe(false);
-    expect(shown()).toContain('Slanje nije primljeno'); expect(mockRemoveJournal).not.toHaveBeenCalled();
+    expect(shown()).toContain('Slanje još nije primljeno'); expect(mockRemoveJournal).not.toHaveBeenCalled();
     mockCancel.mockResolvedValueOnce(ok(cancelled()));
     await act(async () => action('Odustani od slanja').onPress());
     expect(mockCancel).toHaveBeenCalledWith({ conversationId: CID, clientRequestId: REQUEST });
@@ -177,7 +185,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
     await choose();
     await act(async () => held.resolve({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' }));
     expect(has('Pošalji ponovo')).toBe(true); expect(has('Odustani od slanja')).toBe(true);
-    expect(shown()).toContain('Slanje nije primljeno');
+    expect(shown()).toContain('Slanje još nije primljeno');
     mockCancel.mockResolvedValueOnce(ok(cancelled()));
     await act(async () => action('Odustani od slanja').onPress());
     expect(mockUpload).toHaveBeenCalledTimes(1); expect(mockRemoveJournal).toHaveBeenCalledWith(JOURNAL);
@@ -192,7 +200,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
   it('an unknown command read keeps the exit without claiming the server has no command', async () => {
     mockGet.mockResolvedValue(REQUEST); mockReceipt.mockResolvedValue({ ok: false, kod: 'MEDIA_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' });
     await render();
-    expect(shown()).toContain('Ishod slanja nije učitan'); expect(shown()).not.toContain('Slanje nije primljeno');
+    expect(shown()).toContain('Ne znamo da li je slanje uspelo.'); expect(shown()).not.toContain('Slanje još nije primljeno');
     expect(has('Odustani od slanja')).toBe(true); expect(has('Pošalji ponovo')).toBe(false);
     expect(mockRemoveJournal).not.toHaveBeenCalled(); expect(action(ADD).disabled).toBe(true);
   });
@@ -206,7 +214,7 @@ describe('PKG-008 safe exit from an unconfirmed Task photo upload (GAP-0036)', (
   it('a corrupt journal value is discarded and the picker recovers without any command read', async () => {
     mockGet.mockResolvedValue('not-a-command-id'); await render();
     expect(mockReceipt).not.toHaveBeenCalled(); expect(mockRemoveJournal).toHaveBeenCalledWith(JOURNAL);
-    expect(action(ADD).disabled).toBe(false); expect(shown()).toContain('nije čitljiv');
+    expect(action(ADD).disabled).toBe(false); expect(shown()).toContain('nije mogao da se pročita');
   });
 });
 
@@ -231,10 +239,10 @@ describe('round 6: the photo grid', () => {
   });
   it('draws each way out of an unconfirmed send at most once, with a tile of its own', async () => {
     mockGet.mockResolvedValue(REQUEST); await render(); await lay();
-    for (const label of ['Odustani od slanja', 'Proveri fotografije', 'Pošalji ponovo'])
+    for (const label of ['Odustani od slanja', 'Proveri', 'Pošalji ponovo'])
       expect(tree.root.findAllByProps({ label }).length).toBeLessThanOrEqual(1);
-    expect(JSON.stringify(tree.toJSON())).toContain('Slanje nije potvrđeno');
-    expect(action(ADD).reason).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
+    expect(JSON.stringify(tree.toJSON())).toContain('Ne znamo da li je poslato');
+    expect(footReason()).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
   });
   it('an unconfirmed send keeps the server-owned cancel when the photo list read also fails', async () => {
     mockRead.mockResolvedValueOnce(ok(listing())).mockResolvedValue({ ok: false, kod: 'MEDIA_READ_FAILED', poruka: 'Fotografije nisu učitane.' });
@@ -242,7 +250,7 @@ describe('round 6: the photo grid', () => {
     await choose();
     expect(mockUpload).toHaveBeenCalledTimes(1);
     expect(tree.root.findAllByProps({ label: 'Odustani od slanja' })).toHaveLength(1);
-    expect(tree.root.findAllByProps({ label: 'Proveri fotografije' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(1);
     mockCancel.mockResolvedValueOnce(ok({ accountId: OWNER, conversationId: CID, clientRequestId: REQUEST, previousState: null,
       assetId: null, selected: false, cancelled: true, authoritative: true }));
     await act(async () => action('Odustani od slanja').onPress());
@@ -252,7 +260,7 @@ describe('round 6: the photo grid', () => {
     await render();
     expect(JSON.stringify(tree.toJSON())).toContain('Još nema fotografija');
     expect(action(ADD).disabled).toBe(false);
-    expect(tree.root.findAllByProps({ label: 'Proveri fotografije' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(0);
   });
 });
 
@@ -278,7 +286,7 @@ describe('2026-10-07: one sequence, the bounded check and the shared viewer', ()
     expect(mockUpload.mock.calls[1][0].bytes).toBe(second.bytes);
     for (const node of tree.root.findAll(n => typeof n.props.onLayout === 'function'))
       await act(async () => node.props.onLayout({ nativeEvent: { layout: { width: 320, height: 0 } } }));
-    expect(shown()).toContain('Čeka'); expect(shown()).toContain('Slanje nije potvrđeno'); expect(action(ADD).disabled).toBe(true);
+    expect(shown()).toContain('Čeka'); expect(shown()).toContain('Ne znamo da li je poslato'); expect(action(ADD).disabled).toBe(true);
     // Its own exits are there; cancelling it stops the sequence it belonged to and says so.
     mockCancel.mockResolvedValueOnce(ok({ accountId: OWNER, conversationId: CID, clientRequestId: ID(2), previousState: null,
       assetId: null, selected: false, cancelled: true, authoritative: true }));
@@ -305,7 +313,7 @@ describe('2026-10-07: one sequence, the bounded check and the shared viewer', ()
       mockUpload.mockResolvedValueOnce(ok(asset(ID(1), 'PROCESSING')));
       mockReceipt.mockResolvedValue(ok(asset(ID(1), 'PROCESSING')));
       await render(); await choose();
-      expect(shown()).toContain('Obrada fotografije još nije potvrđena');
+      expect(shown()).toContain('Ne znamo da li je fotografija obrađena');
       const reads = mockReceipt.mock.calls.length;
       await act(async () => { jest.advanceTimersByTime(3000); });
       await act(async () => { await Promise.resolve(); });
@@ -316,10 +324,10 @@ describe('2026-10-07: one sequence, the bounded check and the shared viewer', ()
       expect(spent - reads).toBeLessThanOrEqual(20);
       await act(async () => { jest.advanceTimersByTime(30000); });
       expect(mockReceipt.mock.calls.length).toBe(spent);
-      expect(tree.root.findAllByProps({ label: 'Proveri fotografije' })).toHaveLength(1);
+      expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(1);
       // A hand check that finds it ready retires the identity and the check.
       mockReceipt.mockResolvedValue(ok(asset(ID(1), 'READY')));
-      await act(async () => action('Proveri fotografije').onPress());
+      await act(async () => action('Proveri').onPress());
       expect(mockRemoveJournal).toHaveBeenCalled(); expect(shown()).toContain('Fotografija je dodata privatnom nacrtu.');
     } finally { jest.useRealTimers(); }
   });

@@ -2,8 +2,9 @@ import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { FactArt } from '../system/FactArt';
+import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
-import { useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { PhotoAttachTile, type AttachTile, type AttachTileState } from '../media/PhotoAttachTiles';
 import type { PhotoReadContext } from '../media/PhotoViewer';
 import { TASK_PHOTO_NOTICE } from '../media/photoWords';
@@ -16,6 +17,9 @@ import { TASK_PHOTO_NOTICE } from '../media/photoWords';
  */
 
 export type PhotoTone = 'progress' | 'success' | 'error' | 'info';
+
+/** The side of a tile that stands alone in its row (large text). */
+const STACKED_TILE = 240;
 
 /** What just happened, in one line whose look says what kind of news it is. Announced politely; an error as an alert. */
 export function PhotoStatus({ text, tone }: { text: string; tone: PhotoTone }) {
@@ -30,9 +34,11 @@ export function PhotoStatus({ text, tone }: { text: string; tone: PhotoTone }) {
 /** Two square tiles to a row, filling the width exactly (a percentage width wrapped at 320 dp). */
 export function PhotoGrid({ children }: { children: (tile: number) => ReactNode }) {
   const [width, setWidth] = useState(0);
-  // At large text a tile's words need the whole width: one tile to a row.
-  const large = useTextScale() >= 1.3;
-  const tile = !width ? 0 : large ? width : Math.floor((width - sys.space.sm) / 2);
+  // At large text (or on a very narrow screen) a tile's words need more than half the width: one tile to a row, and no taller than a
+  // thumbnail can usefully be (a square as wide as a phone is a whole screen for one photo). The layout class is the one rule for that, so a
+  // gallery can show it too.
+  const { stacked } = useLayoutClass();
+  const tile = !width ? 0 : stacked ? Math.min(width, STACKED_TILE) : Math.floor((width - sys.space.sm) / 2);
   return <View style={s.grid} onLayout={event => setWidth(event.nativeEvent.layout.width)}>{tile ? children(tile) : null}</View>;
 }
 
@@ -71,13 +77,13 @@ export function PhotosLoading() {
 
 /** The limits and the processing notice, word for word (privacy text), with the lock. Always on screen before a pick. */
 export function PhotosPrivacyNote({ limits }: { limits: string }) {
-  return <View style={s.privacy}>
+  return <Surface kind="note" style={s.privacy}>
     <FactArt kind="lock" size={20} />
     <View style={s.privacyText}>
       <T variant="note" tone="muted">{limits}</T>
       <T variant="note" tone="muted">{TASK_PHOTO_NOTICE}</T>
     </View>
-  </View>;
+  </Surface>;
 }
 
 const s = StyleSheet.create({
@@ -86,6 +92,6 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   placeholder: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
   loading: { gap: sys.space.md },
-  privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingTop: sys.space.sm },
+  privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   privacyText: { flex: 1, gap: sys.space.sm },
 });

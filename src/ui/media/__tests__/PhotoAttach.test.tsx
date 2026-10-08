@@ -73,6 +73,18 @@ describe('the shared tiles', () => {
       accessibilityState: { disabled: true } });
     expect(tree.root.findByProps({ accessibilityLabel: 'Fotografija 3: Obrađuje se…' })).toBeTruthy();
   });
+  // The corner X is a 48 dp target around a 32 dp circle: the words of a tile that has one used to run under it (a 104 dp tile with two lines
+  // of words and a retry line). Now they start below the circle, and the picture that would have stood beside them is left out.
+  it('the words of a tile that has an X start below its circle, and a tile without an X keeps its picture', async () => {
+    const flat = (node: { props: { style?: unknown } }) => (Array.isArray(node.props.style) ? Object.assign({}, ...node.props.style.flat(3).filter(Boolean)) : node.props.style) as { paddingTop?: number };
+    const stateOf = (renderer: ReactTestRenderer) => renderer.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.pointerEvents === 'none')[0];
+    await act(async () => { tree = create(<PhotoAttachTile tile={{ key: 'f', state: { kind: 'FAILED' }, onRemove: jest.fn() }} index={0} size={104} />); });
+    expect(flat(stateOf(tree)).paddingTop).toBe(40);
+    expect(tree.root.findAllByType('T' as React.ElementType)).toHaveLength(1);
+    await act(async () => tree.unmount());
+    await act(async () => { tree = create(<PhotoAttachTile tile={{ key: 'u', state: { kind: 'UNCONFIRMED' } }} index={0} size={104} />); });
+    expect(flat(stateOf(tree)).paddingTop).not.toBe(40);
+  });
   it('a tile that can be sent again is one target that says so', async () => {
     const onRetry = jest.fn();
     await act(async () => { tree = create(<PhotoAttachTile tile={{ key: 'f', state: { kind: 'FAILED' }, onRetry }} index={0} size={104} />); });

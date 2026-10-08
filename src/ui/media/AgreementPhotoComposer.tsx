@@ -25,7 +25,7 @@ type Item = AgreementPhotosController['items'][number];
 export function agreementPhotoReason(photos: AgreementPhotosController, capturing: boolean): string | null {
   if (photos.available || photos.busy || capturing) return null;
   const pending = photos.items.some(item => !item.receipt || !['READY', 'CANCELLED', 'FAILED'].includes(item.receipt.state));
-  return pending ? 'Prvo sačekaj ishod fotografije koja se šalje.' : photos.items.length >= PHOTO_LIMIT ? SIX
+  return pending ? 'Sačekaj da se fotografija pošalje.' : photos.items.length >= PHOTO_LIMIT ? SIX
     : photos.loaded ? 'Osveži uslove Dogovora pre nove fotografije.' : null;
 }
 
@@ -83,15 +83,15 @@ export function AgreementPhotoComposer({ photos, capturing, showSaved = false, o
   return <View style={s.tray}>
     {tiles.length ? <PhotoAttachStrip testID="agreement-photo-strip" tiles={tiles} context={{ agreementId: photos.agreementId }}
       viewerTitle="Fotografije uz poruku" /> : null}
-    {reserved ? <T variant="meta" tone="muted">Fotografija je vezana za poslatu poruku. Proveri njen ishod.</T> : null}
+    {reserved ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proveri da li je poslata.</T> : null}
     {absent ? <T variant="meta" tone="muted">Slanje fotografije nije započeto. Dodirni je da je pošalješ ponovo ili je ukloni.</T> : null}
-    {unknown ? <T variant="meta" tone="muted">Ishod slanja fotografije još nije potvrđen.</T> : null}
+    {unknown ? <T variant="meta" tone="muted">Ne znamo da li je fotografija poslata.</T> : null}
     {why && tiles.length ? <T variant="meta" tone="muted">{why}</T> : null}
     {photos.message === PHOTO_PERMISSION_MESSAGE ? <PermissionRecovery compact message={photos.message} alternative={PHOTO_SOURCE_WORDS.LIBRARY}
       onAlternative={() => { void photos.pick('LIBRARY'); }} />
       : photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
-    {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su promenjeni. Ukloni fotografije pripremljene za raniju verziju i ponovo ih izaberi uz važeće uslove.</T> : null}
-    {uncertain ? <Press accessibilityRole="button" accessibilityLabel="Osveži fotografije poruke" accessibilityState={{ disabled }} disabled={disabled}
+    {photos.versionConflict ? <T variant="meta" accessibilityLiveRegion="polite">Uslovi Dogovora su se promenili. Ukloni pripremljene fotografije i izaberi ih ponovo.</T> : null}
+    {uncertain ? <Press accessibilityRole="button" accessibilityLabel="Proveri fotografije poruke" accessibilityState={{ disabled }} disabled={disabled}
       onPress={() => { void photos.refresh(); }} style={s.text}>
       <T variant="meta" style={disabled ? s.off : s.on}>{PHOTO_WORDS.check}</T>
     </Press> : null}
@@ -109,7 +109,7 @@ export function AgreementPhotoComposer({ photos, capturing, showSaved = false, o
           accessibilityHint={photos.items.length >= PHOTO_LIMIT ? SIX : undefined}
           accessibilityState={{ disabled: disabled || photos.items.length >= PHOTO_LIMIT }}
           onPress={() => { void photos.restore(item.clientRequestId); }} style={s.text}>
-          <T variant="meta">Fotografija {index + 1} · {item.photo ? `${item.photo.width} × ${item.photo.height}` : 'obrada nije potvrđena'} · Vrati u izbor</T>
+          <T variant="meta">Fotografija {index + 1} · {item.photo ? `${item.photo.width} × ${item.photo.height}` : 'ne znamo da li je obrađena'} · Vrati u izbor</T>
         </Press>)}
       </ScrollView>
     </View> : null}

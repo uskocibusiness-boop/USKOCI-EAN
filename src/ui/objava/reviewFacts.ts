@@ -65,9 +65,9 @@ export function publicPlaceLines(geography: unknown, zone: string | null): strin
  * and currency, and the confirmed points as a count and their private details, never coordinates or a country code.
  */
 export function reviewRowValue(fact: AiNeedV2Fact): string {
-  if (fact.valueType === 'TIMESTAMPTZ') return dogovorenoVreme(fact.value, 'Termin nije dostupan');
+  if (fact.valueType === 'TIMESTAMPTZ') return dogovorenoVreme(fact.value, 'Termin nije naveden');
   if (fact.key === 'need.price_rsd') return typeof fact.value === 'number' && Number.isSafeInteger(fact.value)
-    ? novac(fact.value) : 'Podatak nije dostupan';
+    ? novac(fact.value) : 'Nije navedeno';
   if (fact.key === 'need.resolved_location') {
     const raw = fact.value as { binding?: { taskCountryCode?: unknown; geography?: unknown; exactAddress?: unknown } } | null;
     const location = normalizeNeedLocation({ ...raw?.binding, accessNotes: null, resolvedLocation: fact.value });
@@ -114,7 +114,7 @@ export type ReviewTodo = { key: string; text: string;
 export function reviewTodos(review: { safety: string; missingRequired: readonly NeedFactV2Key[]; location: unknown; canAccept?: boolean },
   factProblem: string | null, identityBlock = false): ReviewTodo[] {
   const todos: ReviewTodo[] = [];
-  if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Sadržaj ne može da se objavi u ovom obliku.', target: 'conversation' });
+  if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', target: 'conversation' });
   const missing = review.missingRequired.filter(key => key !== 'need.category');
   if (missing.length) todos.push({ key: 'missing', text: `Nedostaje: ${missing.map(factLabel).join(', ')}.`, target: 'conversation' });
   else if (review.missingRequired.length) todos.push({ key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' });

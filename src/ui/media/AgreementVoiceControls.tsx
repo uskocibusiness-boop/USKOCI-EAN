@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { PorukaProjekcija } from '../../contracts/projections';
@@ -6,6 +6,7 @@ import type { AgreementVoiceController } from '../../hooks/useAgreementVoice';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
+import { tick } from '../system/haptics';
 import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
 import { useLayoutClass } from '../system/textScale';
@@ -52,7 +53,16 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
     ? capturing ? 'Zaustavi snimanje i pregledaj glasovnu poruku' : 'Snimi glasovnu poruku'
     : 'Drži za glasovnu poruku';
   const MicTarget = voice.screenReader ? Press : Animated.View;
-  const cancel = () => { if (held.current) { held.current = false; lift.settle(); void voice.cancel(); } };
+  // The recording REALLY began (the microphone is open, not merely touched): one tick, as the picture changes (spec M-04, rule R5).
+  // A tick is not movement and follows no reduced-motion setting (`system/haptics`).
+  const recording = state.phase === 'recording';
+  const wasRecording = useRef(false);
+  useEffect(() => {
+    if (recording && !wasRecording.current) tick('gestureStart');
+    wasRecording.current = recording;
+  }, [recording]);
+  // Called off by dragging away or by the system taking the touch: the recording is dropped, and that is felt as a refusal.
+  const cancel = () => { if (held.current) { held.current = false; lift.settle(); tick('cancel'); void voice.cancel(); } };
   return <MicTarget accessible accessibilityRole="button" accessibilityLabel={label}
     accessibilityHint={voice.review ? `Snimak prvo preslušaj, pa izaberi Pošalji snimak.${voice.screenReader ? '' : ' Povuci nagore da odustaneš.'}` : 'Drži dok govoriš. Puštanje šalje snimak. Povuci nagore da otkažeš.'}
     accessibilityState={{ disabled, busy: state.phase === 'requesting' }} disabled={disabled}
@@ -64,14 +74,14 @@ export function AgreementVoiceMic({ voice }: { voice: AgreementVoiceController }
     }}
     onResponderRelease={voice.screenReader ? undefined : () => {
       if (!held.current) return;
-      held.current = false; lift.settle(); void voice.release();
+      held.current = false; lift.settle(); tick('gestureEnd'); void voice.release();
     }}
     onResponderTerminate={voice.screenReader ? undefined : cancel}
     onResponderTerminationRequest={voice.screenReader ? undefined : () => true}
     onResponderMove={voice.screenReader ? undefined : event => {
       if (held.current && startY.current - event.nativeEvent.pageY > 70) cancel();
     }}
-    onPress={voice.screenReader ? () => { void (capturing ? voice.release() : voice.begin()); } : undefined}
+    onPress={voice.screenReader ? () => { if (capturing) tick('gestureEnd'); void (capturing ? voice.release() : voice.begin()); } : undefined}
     style={[s.mic, capturing && s.primary, disabled && s.disabled, !voice.screenReader && lift.style]}>
     <Glyph name="mic" size={24} tone={capturing ? 'onGreen' : 'ink'} />
   </MicTarget>;
@@ -142,7 +152,7 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
     {voice.interactionError ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{voice.interactionError}</T> : null}
     {state.recovered.map(item => <View style={s.preview} key={item.ref.clientRequestId}>
       <T variant="bodyStrong">Sačuvan snimak · {voiceTime(item.durationMs)}</T>
-      <T variant="note" tone="muted">Ovaj snimak još nije vezan za poruku.</T>
+      <T variant="note" tone="muted">Snimak je sačuvan, ali još nije poslat.</T>
       <View style={s.row}>
         <Action label="Odbaci sačuvan snimak" onPress={() => { void voice.discardRecovered(item.ref); }} />
         {writable ? <Action label="Pošalji sačuvan snimak" primary onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}

@@ -161,7 +161,8 @@ describe('actual native Need location form', () => {
     await act(async () => { tree = create(<NeedLocationForm review={{ ...historical, value: { ...historical.value, taskCountryCode: null } }} busy={false} uncertain={false} onSave={onSave} />); });
     expect(tree.root.findByProps({ accessibilityLabel: 'Država zadatka' }).props.accessibilityValue.text).toBe('Nije izabrano');
     await save(); expect(onSave).not.toHaveBeenCalled();
-    expect(saveButton().props.reason).toContain('Izaberi državu u „Država i način rada"');
+    // The reason is a line ABOVE the grey action (the system's foot says it the same way), and the action itself carries none.
+    expect(text()).toContain('Izaberi državu u „Država i način rada“'); expect(saveButton().props.reason).toBeUndefined();
     await chooseMode('Srbija'); await save();
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ taskCountryCode: 'RS' }));
   });
@@ -170,7 +171,8 @@ describe('actual native Need location form', () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<NeedLocationForm review={review()} busy={false} uncertain={false} onSave={onSave} />); });
     expect(saveButton().props.disabled).toBe(false);
-    expect(saveButton().props.reason).toBeNull();
+    // A live save has no reason line above it; what stands there is only what the save will do.
+    expect(text()).not.toMatch(/Izaberi državu|Potvrdi tačku na mapi|Ne znamo da li/);
     await save();
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },

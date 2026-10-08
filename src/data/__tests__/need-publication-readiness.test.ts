@@ -68,7 +68,7 @@ describe('what the person is told', () => {
 
   it('names the map point, and speaks of one or both ends', () => {
     expect(readinessCopy({ kind: 'NOT_READY', code: 'LOCATION_INCOMPLETE', missingSlots: ['start', 'end'] }))
-      .toEqual({ title: 'Fali još mesto na mapi',
+      .toEqual({ title: 'Još nedostaje mesto na mapi',
         detail: 'Ime ulice nije dovoljno da neko dođe. Otvori razgovor i potvrdi obe tačke na mapi.' });
     expect(readinessCopy({ kind: 'NOT_READY', code: 'LOCATION_INCOMPLETE', missingSlots: ['start'] })?.detail)
       .toContain('potvrdi tačku na mapi');

@@ -128,12 +128,12 @@ describe('V5 saved Task enters the same single acceptance review', () => {
   ])('rejects %s in a successful-looking open receipt', async (_, patch) => {
     mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true, ...patch }));
     await render(); await tap('Pregledaj za objavu');
-    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).toContain('Otvaranje izmene nije potvrđeno'); expect(mockPublish).not.toHaveBeenCalled();
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).toContain('Ne znamo da li se izmena otvorila'); expect(mockPublish).not.toHaveBeenCalled();
   });
   it.each([{ revision: 8 }, { needStatus: 'PUBLISHED' }])('requires a fresh read if Task revision or draft status changed: %j', async patch => {
     mockEdit.mockResolvedValue(ok({ needId: NEED, conversationId: CONVERSATION, revision: 7, needStatus: 'DRAFT', authoritative: true, ...patch }));
     await render(); await tap('Pregledaj za objavu');
-    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).toContain('Zadatak je promenjen');
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(texts()).toContain('Zadatak se promenio');
   });
   it.each(['account before render', 'account incarnation', 'blur and return', 'background and return', 'route'])('retires a retained review callback after %s', async reason => {
     await render(); const retained = button('Pregledaj za objavu').props.onPress;
@@ -221,7 +221,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     mockClose.mockResolvedValue({ ok: false, kod, poruka });
     await render(); await fromMenu('Ne traži više nikoga'); await confirm();
-    expect(texts()).toContain(poruka); expect(texts()).not.toContain('Potraga nije potvrđeno zatvorena');
+    expect(texts()).toContain(poruka); expect(texts()).not.toContain('Ne znamo da li je potraga zatvorena');
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockNeed).toHaveBeenCalledTimes(1);
   });
   it('cancelling a confirmation sends nothing, and the same question can be asked again', async () => {
@@ -239,7 +239,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     mockClose.mockResolvedValue({ ok: false, kod: 'UNRECOGNIZED', poruka: 'PRIVATE_SQL' });
     await render(); await fromMenu('Ne traži više nikoga'); await confirm();
-    expect(texts()).toContain('Potraga nije potvrđeno zatvorena'); expect(texts()).not.toContain('PRIVATE_SQL');
+    expect(texts()).toContain('Ne znamo da li je potraga zatvorena'); expect(texts()).not.toContain('PRIVATE_SQL');
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
   it.each(['edit', 'remaining search'] as const)('retires retained published %s confirmation on blur', async action => {
@@ -286,7 +286,7 @@ describe('V2 saved Need presentation', () => {
     await render(); const action = button('Pregledaj za objavu');
     let parent = action.parent;
     while (parent) { expect(parent.type).not.toBe('ScrollView'); parent = parent.parent; }
-    expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom']);
+    expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom', 'left', 'right']);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ label: 'Pregledaj prijave' })).toHaveLength(0);
     expect(texts()).not.toContain('HITNO');

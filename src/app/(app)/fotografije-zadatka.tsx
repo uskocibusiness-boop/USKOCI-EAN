@@ -1,12 +1,20 @@
 import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSesija } from '../../store/sesija';
 import { uuid } from '../../data/serverReceipt';
+import { DetailTopBar } from '../../ui/system/DetailTopBar';
+import { FlowFooter } from '../../ui/system/FlowFooter';
+import { layout } from '../../ui/system/layout';
+import { OUTCOME_ACTION, cannotLoad } from '../../ui/system/outcomeCopy';
 import { PermissionRecovery } from '../../ui/system/PermissionRecovery';
+import { Screen } from '../../ui/system/Screen';
+import { Section } from '../../ui/system/Section';
 import { StateView } from '../../ui/system/StateView';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { useReducedMotion } from '../../ui/system/motion';
-import { SettingsText as T, SettingsScreen, SettingsAction } from '../../ui/settings/SettingsPresentation';
+import { brandAction } from '../../ui/system/tokens';
+import { V2Action } from '../../ui/v2/V2Action';
 import { PhotoGrid, PhotoStatus, PhotosLoading, PhotosPrivacyNote } from '../../ui/objava/TaskPhotosPresentation';
 import { PhotoAttachTile, usePhotoViewer } from '../../ui/media/PhotoAttachTiles';
 import { PhotoAttachSheet } from '../../ui/media/PhotoAttachSheet';
@@ -18,6 +26,9 @@ import { PHOTO_LIMIT, PHOTO_SOURCE_WORDS, PHOTO_WORDS, TASK_PHOTO_NOTICE, photoC
  * The task draft's photos, all of them in one place: the screen the review links to ("manage photos"). Since 2026-10-07 it
  * draws the same tiles and says the same words as the conversation's "+" (Galerija, Kamera, the corner X, the full-screen
  * viewer), from the same controller (`useTaskPhotoUploads`), so a photo added in one is the same photo in the other.
+ *
+ * One screen of the system: the arrow and the name above, the photos as one section, the privacy note at the end, and the one
+ * green action in the foot, with the reason ABOVE it while it is grey (UI/UX pass 2026-10-08).
  */
 export default function TaskPhotosRoute() {
   const params = useLocalSearchParams<{ conversationId?: string }>(), { user, accountRevision } = useSesija();
@@ -37,24 +48,29 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
   const tiles = taskPhotoTiles(photos, photos.items, confirm.ask);
   const { openFor, viewer } = usePhotoViewer(tiles, {}, 'Fotografije zadatka');
   const addDisabled = !conversationId || !photos.canAdd;
-  // The add action needs its reason when it is grey and nothing on it spins (owner rule).
-  const addReason = !conversationId ? null : photos.addReason;
-  return <SettingsScreen title="Fotografije zadatka" onBack={back} footer={
-    <SettingsAction label={PHOTO_WORDS.add} loading={photos.working === 'PICK'} disabled={addDisabled} reason={addReason}
-      onPress={() => { if (!addDisabled) setChoosing(true); }} />}>
+  // Nothing can be added to a draft that cannot be read, and there is no draft to add to without a conversation.
+  const footer = !conversationId || photos.readError ? null : <FlowFooter reason={photos.addReason ?? undefined}>
+    <V2Action label={PHOTO_WORDS.add} style={brandAction} loading={photos.working === 'PICK'} disabled={addDisabled}
+      onPress={() => { if (!addDisabled) setChoosing(true); }} />
+  </FlowFooter>;
+  return <Screen kind="detail" header={<DetailTopBar title="Fotografije zadatka" onBack={back} />} footer={footer}>
     {!conversationId ? <StateView kind="error" art="photo" title="Fotografije nisu dostupne" body="Otvori fotografije iz razgovora o zadatku." />
-      : photos.readError ? <StateView kind="error" art="photo" title="Fotografije nisu učitane" body={photos.message ?? undefined}
-        primary={{ label: PHOTO_WORDS.check, onPress: () => { void photos.refresh(); } }} />
+      : photos.readError ? <StateView kind="error" art="photo" title={cannotLoad('fotografije').title} body={photos.message ?? cannotLoad('fotografije').copy}
+        primary={{ label: OUTCOME_ACTION.retry, onPress: () => { void photos.refresh(); } }} />
       : <>
         {photos.message && photos.permissionDenied ? <PermissionRecovery message={photos.message} alternative={PHOTO_SOURCE_WORDS.LIBRARY}
           onAlternative={() => { void photos.pick('LIBRARY'); }} />
           : photos.message ? <PhotoStatus text={photos.message} tone={photos.tone} /> : null}
-        {photos.count ? <T variant="meta" tone="muted">{`${photoCount(photos.count)} od ${PHOTO_LIMIT}`}</T> : null}
-        {tiles.length ? <PhotoGrid>{size => tiles.map((tile, index) => <PhotoAttachTile key={tile.key} tile={tile} index={index} size={size}
-          onOpen={openFor(tile)} />)}</PhotoGrid> : null}
-        {/* The ways out of an unconfirmed send, and the check of a photo still processing after its own checks: each once. */}
-        <TaskPhotoRecovery photos={photos} />
-        {photos.loaded && !tiles.length ? <StateView kind="empty" art="photo" title="Još nema fotografija" /> : null}
+        {/* The photos are one section, named by how many there are of how many may be. The ways out of an unconfirmed send, and the
+            check of a photo still processing after its own checks, stand right under them: each once. */}
+        {tiles.length ? <Section title={`${photoCount(photos.count)} od ${PHOTO_LIMIT}`}>
+          <View style={s.block}>
+            <PhotoGrid>{size => tiles.map((tile, index) => <PhotoAttachTile key={tile.key} tile={tile} index={index} size={size}
+              onOpen={openFor(tile)} />)}</PhotoGrid>
+            <TaskPhotoRecovery photos={photos} align="start" />
+          </View>
+        </Section> : <TaskPhotoRecovery photos={photos} align="start" />}
+        {photos.loaded && !tiles.length ? <StateView kind="empty" art="photo" title="Još nema fotografija" body="Dodaj ih dugmetom ispod." /> : null}
         {photos.busy && !photos.loaded && !photos.message ? <PhotosLoading /> : null}
       </>}
     <PhotosPrivacyNote limits={photoLimits('TASK')} />
@@ -62,5 +78,9 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
       notice={TASK_PHOTO_NOTICE} reduced={reduced} onPick={source => { void photos.pick(source); }} onClose={() => setChoosing(false)} /> : null}
     {viewer}
     {confirm.sheet}
-  </SettingsScreen>;
+  </Screen>;
 }
+
+const s = StyleSheet.create({
+  block: { gap: layout.group },
+});

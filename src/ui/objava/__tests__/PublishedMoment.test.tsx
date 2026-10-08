@@ -10,6 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('phosphor-react-native', () => ({ Check: 'Check' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
+import { forgetTicks } from '../../system/haptics';
 import { PUBLISHED_MOMENT_MS, PublishedMoment } from '../PublishedMoment';
 
 /**
@@ -25,7 +26,9 @@ const render = async (onContinue: () => void, props: Partial<React.ComponentProp
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string'));
 const action = () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak' });
-beforeEach(() => { jest.useFakeTimers(); mockHaptic.mockClear(); });
+// The success mark ticks through `system/haptics`, which holds two ticks closer than `sys.motion.tickGap` to one; each case here starts
+// with no past (and the one case that mounts the moment twice says so).
+beforeEach(() => { jest.useFakeTimers(); forgetTicks(); mockHaptic.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockReduced = false; jest.useRealTimers(); jest.restoreAllMocks(); });
 
 it('says what happened and what comes next in black and grey words, with one green way on', async () => {
@@ -78,7 +81,7 @@ it('settles in with the success tick, and under reduced motion keeps the tick an
   expect(mockHaptic).toHaveBeenCalledTimes(1);
   expect(spring).toHaveBeenCalled();
   await act(async () => tree.unmount());
-  spring.mockClear(); timing.mockClear(); mockHaptic.mockClear(); mockReduced = true;
+  spring.mockClear(); timing.mockClear(); mockHaptic.mockClear(); forgetTicks(); mockReduced = true;
   const onContinue = jest.fn();
   await render(onContinue);
   expect(mockHaptic).toHaveBeenCalledTimes(1);      // a tick is an outcome, not movement

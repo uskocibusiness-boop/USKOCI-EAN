@@ -22,6 +22,9 @@ jest.mock('../../ui/system/usePressLift',()=>({usePressLift:()=>({style:{},give:
 jest.mock('../../ui/system/Glyph',()=>({Glyph:'Glyph'}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({VOICE_PROCESSING_NOTICE:'Approved transient Google speech notice.'}));
 jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=> 'GESTURE_SYNTHETIC'}));
+const mockTick=jest.fn();
+// Rule R5: the held microphone is felt where listening really begins and where the finger lets go, never at touch-down.
+jest.mock('../../ui/system/haptics',()=>({tick:(...a:unknown[])=>mockTick(...a),forgetTicks:jest.fn()}));
 import { VoiceComposer, VoiceMode, VoiceNotice } from '../../ui/aiFirst/VoiceComposer';
 import { AgreementVoiceMic } from '../../ui/media/AgreementVoiceControls';
 let tree:ReactTestRenderer;
@@ -37,6 +40,23 @@ it('hold release finalizes once while edit/send remain the parent controller res
   await act(async()=>{mic.props.onResponderRelease();mic.props.onResponderRelease();});
   expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC','hold');expect(c.release).toHaveBeenCalledTimes(1);
   expect(keep).not.toHaveBeenCalled();
+});
+it('is felt where listening really begins and where the finger lets go; a hold called off is "cancel", never "gestureEnd"',async()=>{
+  const c=controller();
+  const props={controller:c as unknown as HoldToTalkController,disabled:false,onKeepText:jest.fn()};
+  await act(async()=>{tree=create(<VoiceComposer {...props} state={idle}/>);});
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderGrant({nativeEvent:{pageY:200}}));
+  expect(mockTick).not.toHaveBeenCalled();
+  await act(async()=>tree.update(<VoiceComposer {...props} state={{...idle,phase:'LISTENING'}}/>));
+  expect(mockTick.mock.calls).toEqual([['gestureStart']]);
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderRelease());
+  expect(mockTick.mock.calls).toEqual([['gestureStart'],['gestureEnd']]);
+  await act(async()=>tree.unmount());mockTick.mockClear();
+  await act(async()=>{tree=create(<VoiceComposer {...props} state={idle}/>);});
+  await act(async()=>tree.root.findByProps({testID:'voice-mic'}).props.onResponderGrant({nativeEvent:{pageY:200}}));
+  await act(async()=>tree.update(<VoiceComposer {...props} state={{...idle,phase:'LISTENING'}}/>));
+  await act(async()=>{const mic=tree.root.findByProps({testID:'voice-mic'});mic.props.onResponderMove({nativeEvent:{pageY:120}});mic.props.onResponderRelease();});
+  expect(mockTick.mock.calls).toEqual([['gestureStart'],['cancel']]);
 });
 it('moving outside the press rectangle does not send; only physical responder release finalizes',async()=>{
   const c=controller();
@@ -290,7 +310,7 @@ describe('voice mode', () => {
     expect(text().match(/Stiže odgovor…/g)).toHaveLength(1);
     await act(async () => tree.update(<VoiceMode voice={{ controller: c as unknown as HoldToTalkController, state: idle, disabled: true, onKeepText: jest.fn() }}
       prompt="Reci šta ti treba." answer={null} said="Treba mi prevoz." thinking={false} onClose={jest.fn()} />));
-    expect(tree.root.findByProps({ testID: 'voice-mode-line' }).props.children).toBe('Prethodna poruka još čeka ishod. Zatvori i proveri je u razgovoru.');
+    expect(tree.root.findByProps({ testID: 'voice-mode-line' }).props.children).toBe('Prethodna poruka još nije poslata. Zatvori i proveri razgovor.');
   });
   // Review r4 ra item 5: only a finalised reviewed capture put text in the field; a tap while the microphone was still on
   // its way, or a cancel when the app went to the background, ends with nothing there, and voice mode stays open.

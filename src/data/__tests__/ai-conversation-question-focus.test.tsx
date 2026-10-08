@@ -20,7 +20,9 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   FadeIn: { duration: (duration: number) => ({ duration }) },
-  FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
+  // An entrance is a chain (`duration`, `easing`, `withInitialValues`), and its curve comes from Reanimated's own `Easing`.
+  FadeInDown: { duration: (duration: number) => { const chain: Record<string, unknown> = { duration, easing: () => chain, withInitialValues: () => chain }; return chain; } },
+  Easing: { bezier: () => (value: number) => value },
   useReducedMotion: () => false, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
   useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));

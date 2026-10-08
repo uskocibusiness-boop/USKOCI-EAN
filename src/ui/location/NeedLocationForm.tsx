@@ -6,6 +6,9 @@ import { locationSlots, normalizeNeedLocation } from '../../lib/location';
 import { V2Action as Button } from '../v2/V2Action';
 import { brandAction, sys } from '../system/tokens';
 import { FactArt } from '../system/FactArt';
+import { FlowFooter } from '../system/FlowFooter';
+import { Surface } from '../system/Surface';
+import { layout as grid } from '../system/layout';
 import { T } from '../Text';
 import { LocationChoice, LocationDetails, LocationField, PrivateLocationNote, locationStyles as s } from './LocationControls';
 import { CountryField, countryName, selectableCountry, useCountryOptions, type CountryOptions } from './CountryField';
@@ -13,7 +16,7 @@ import { LocationPointEditor } from './LocationPointEditor';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
 
 const MODES: ReadonlyArray<[NeedTaskGeography['mode'], string]> = [
-  ['STATIONARY', 'Na jednoj lokaciji'], ['POINT_TO_POINT', 'Od mesta do mesta'],
+  ['STATIONARY', 'Na jednom mestu'], ['POINT_TO_POINT', 'Od mesta do mesta'],
   ['MULTI_STOP', 'Više stanica'], ['AREA_BASED', 'Na području'], ['REMOTE', 'Na daljinu'],
 ];
 
@@ -26,13 +29,14 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
     onChange(next);
   };
   return <View style={s.section}>
-    <T variant="bodyStrong" style={{ color: sys.color.ink }}>{title}</T>
-    <LocationField label={`${title} — grad ili mesto`} value={value.city ?? ''} maxLength={160}
+    {/* The name of the place stands once, as the label of its field; the full names stay for a screen reader. */}
+    <LocationField label={`${title} — grad ili mesto`} shownLabel={title} value={value.city ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('city', text)} />
-    <LocationDetails label={`${title} — dodatni javni opis`} disabled={disabled} summary={[value.area, value.label].filter(Boolean).join(' · ') || 'Deo grada i opis područja, opciono'}>
-    <LocationField label={`${title} — deo grada (opciono)`} value={value.area ?? ''} maxLength={160}
+    <LocationDetails label={`${title} — dodatni javni opis`} shownLabel="Dodatni javni opis" disabled={disabled}
+      summary={[value.area, value.label].filter(Boolean).join(' · ') || 'Deo grada i opis područja, opciono'}>
+    <LocationField label={`${title} — deo grada (opciono)`} shownLabel="Deo grada (opciono)" value={value.area ?? ''} maxLength={160}
       editable={!disabled} onChangeText={text => field('area', text)} />
-    <LocationField label={`${title} — javni opis (opciono)`} value={value.label ?? ''} maxLength={240}
+    <LocationField label={`${title} — javni opis (opciono)`} shownLabel="Javni opis (opciono)" value={value.label ?? ''} maxLength={240}
       hint="Ovo je javno. Unesi samo približno područje, bez adrese, broja stana ili kontakta."
       editable={!disabled} onChangeText={text => field('label', text)} />
     </LocationDetails>
@@ -42,7 +46,7 @@ function PlaceFields({ title, value, disabled, onChange }: { title: string; valu
 /** The head of one of the two groups: what everybody sees, and what only a Dogovor reveals. */
 function GroupHeader({ art, label }: { art: 'eye' | 'lock'; label: string }) {
   return <View style={f.groupHeader}>
-    <FactArt kind={art} size={18} />
+    <FactArt kind={art} size={20} />
     <T variant="heading" accessibilityRole="header" style={f.groupTitle}>{label}</T>
   </View>;
 }
@@ -127,7 +131,7 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
     countryChosen: !!country, countrySelectable: selectableCountry(countryOptions.countries, country) });
 
   const body = <>
-    {!review.editable ? <T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na zadatak.</T> : null}
+    {!review.editable ? <Surface kind="note" tone="warn"><T accessibilityRole="alert">Ovaj pregled više nije dostupan za izmene. Vrati se na zadatak.</T></Surface> : null}
     {/* The country and the working mode are chosen once and rarely changed, so they fold into one row that says what is
         chosen (owner's rule of place, 2026-09-23) — open from the start only while the country is unset. */}
     <LocationDetails label="Država i način rada" disabled={disabled} initiallyOpen={!country || !selectableCountry(countryOptions.countries, country)}
@@ -168,11 +172,11 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
         {mode === 'POINT_TO_POINT' || mode === 'MULTI_STOP' ? <PlaceFields title="Odredište" value={end}
           disabled={disabled} onChange={value => change(() => setEnd(value))} /> : null}
       </View>
-      <View style={[f.group, f.divided]}>
+      <View style={f.group}>
         <GroupHeader art="lock" label="Samo u Dogovoru" />
         <PrivateLocationNote />
         {!baseValue || !slots.length ? <T>Prvo unesi državu i javno mesto za potrebne tačke.</T> : <>
-          <T variant="bodyStrong">Potvrđeno tačaka: {confirmedPoints.length} od {slots.length}</T>
+          <T variant="body">Potvrđeno tačaka: {confirmedPoints.length} od {slots.length}</T>
           {slots.length > 1 ? <LocationChoice label="Tačka koju uređuješ" value={selectedSlot}
             options={slots.map(slot => ({ value: slot, label: `${titleForSlot(slot)}${pendingPoint && slot === selectedSlot
               ? ' · čeka potvrdu' : confirmedPoints.some(point => point.slot === slot) ? ' · potvrđeno' : ''}` }))}
@@ -202,17 +206,16 @@ function LocationFormBody({ review, busy, uncertain, onSave, resolver, reviewOnl
   // waits for its confirmation, the one way to drop it stands right here, where the grey save is.
   const save = <>
     <Button style={brandAction} label={reviewOnly ? 'Primeni izmenu mesta' : 'Sačuvaj mesto'} loading={busy}
-      disabled={disabled || pendingPoint || !selectableCountry(countryOptions.countries, country)}
-      reason={reason} onPress={submit} />
+      disabled={disabled || pendingPoint || !selectableCountry(countryOptions.countries, country)} onPress={submit} />
     {pendingPoint ? <Button label="Odbaci nepotvrđenu tačku" kind="quiet" disabled={disabled} onPress={discardPending} /> : null}
-    {!reason && !busy ? <T variant="note" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.'
-      : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.'}</T> : null}
   </>;
+  const consequence = !reason && !busy ? <T variant="note" tone="muted">{reviewOnly ? 'Mesto će biti prikazano u završnom pregledu. Zadatak još nije objavljen.'
+    : 'Čuva se mesto u istom pregledu. Zadatak još nije objavljen.'}</T> : null;
   if (layout === 'screen') return <View style={f.screen}>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={f.scroll}>{body}</ScrollView>
-    <View style={f.footer}>{save}</View>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={f.scroll}>{body}{consequence}</ScrollView>
+    <FlowFooter reason={reason ?? undefined}>{save}</FlowFooter>
   </View>;
-  return <View style={f.inline}>{body}{save}</View>;
+  return <View style={f.inline}>{body}{reason ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">{reason}</T> : consequence}{save}</View>;
 }
 
 /** Why the one save is grey, or null when it is live (or while it is at work: its spinner says so). */
@@ -220,20 +223,18 @@ export function saveBlockReason(state: { busy: boolean; uncertain: boolean; edit
   countryChosen: boolean; countrySelectable: boolean }): string | null {
   if (state.busy) return null;
   if (!state.editable) return 'Ovaj pregled više nije dostupan za izmene.';
-  if (state.uncertain) return 'Prethodna radnja nije potvrđena. Učitaj sačuvano stanje pre novog pokušaja.';
+  if (state.uncertain) return 'Ne znamo da li je prethodna radnja uspela.';
   if (state.pendingPoint) return 'Potvrdi tačku na mapi, pa sačuvaj mesto.';
-  if (!state.countryChosen) return 'Izaberi državu u „Država i način rada", pa sačuvaj mesto.';
-  if (!state.countrySelectable) return 'Izabrana država još nije dostupna. Izaberi dostupnu u „Država i način rada".';
+  if (!state.countryChosen) return 'Izaberi državu u „Država i način rada“, pa sačuvaj mesto.';
+  if (!state.countrySelectable) return 'Izabrana država još nije dostupna. Izaberi dostupnu u „Država i način rada“.';
   return null;
 }
 
 const f = StyleSheet.create({
-  inline: { gap: sys.space.xl },
+  inline: { gap: grid.section },
   screen: { flex: 1 },
-  scroll: { padding: sys.space.lg, gap: sys.space.xl, paddingBottom: sys.space.xxl },
-  footer: { padding: sys.space.lg, gap: sys.space.sm, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+  scroll: { paddingHorizontal: grid.gutter, paddingTop: sys.space.sm, gap: grid.section, paddingBottom: grid.section },
   group: { gap: sys.space.base },
-  divided: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.xl },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   groupTitle: { flex: 1, color: sys.color.ink },
   stopActions: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },

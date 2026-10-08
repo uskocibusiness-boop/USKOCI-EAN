@@ -1,7 +1,7 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { ArrowsOutSimple } from 'phosphor-react-native';
+import { Glyph } from '../system/Glyph';
 import { mediaClientService, type MediaPreview } from '../../data/mediaClientService';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { useSesija } from '../../store/sesija';
@@ -43,7 +43,7 @@ function NeedPhotoGallery({ needId, photos }: { needId: string; photos: readonly
     <View style={galleryStyles.inline} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
       <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }} />
       <View pointerEvents="none" style={galleryStyles.overlay}>
-        <View style={galleryStyles.counter}><ArrowsOutSimple size={16} color={sys.color.ink} />
+        <View style={galleryStyles.counter}><Glyph name="expand" size={16} />
           <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${photos.length}`}>{counter}</T></View>
       </View>
     </View>

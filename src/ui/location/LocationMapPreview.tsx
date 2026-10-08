@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Linking, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowsOutSimple, ArrowSquareOut } from 'phosphor-react-native';
+import { Glyph } from '../system/Glyph';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -103,7 +103,7 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
       <LocationOverviewMap points={points} scopeKey={scopeKey} coarse={coarse} interactive={false} height={height} testID="location-preview-map" />
       <Press accessibilityRole="button" accessibilityLabel="Otvori mapu" scaleTo={1}
         onPress={() => { if (own() && !modalVisit.current) { const visit = {}; modalVisit.current = visit; setExpanded(visit); } }} style={s.openLabel}>
-        <ArrowsOutSimple size={20} color={sys.color.green} /><T variant="bodyStrong">Otvori mapu</T>
+        <Glyph name="expand" tone="green" /><T variant="bodyStrong">Otvori mapu</T>
       </Press>
     </View> : null}
     {expanded ? <Modal visible transparent={false} presentationStyle="fullScreen" hardwareAccelerated
@@ -130,9 +130,9 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
             </View> : null}
             <V2Action label={coarse ? 'Otvori područje u Google mapama' : points.length > 1 ? `Navigacija: ${selected?.label}` : 'Otvori navigaciju'}
               style={brandAction}
-              icon={<ArrowSquareOut size={20} color={sys.color.onGreen} />} loading={launch === 'opening'}
+              icon={<Glyph name="external" tone="onGreen" />} loading={launch === 'opening'}
               onPress={() => openLink(selected ? pointMapUrl(selected, coarse) : null)}
-              error={launch === 'error' ? 'Otvaranje mapa nije potvrđeno. Pokušaj ponovo.' : null} />
+              error={launch === 'error' ? 'Ne znamo da li se mapa otvorila. Pokušaj ponovo.' : null} />
             {routeUrl ? <V2Action label="Cela putanja u Google mapama" kind="secondary" disabled={launch === 'opening'} onPress={() => openLink(routeUrl)} /> : null}
             {route && points.length > 2 ? <T variant="meta" tone="muted">{routeUrl
               ? 'Proveri redosled stanica u Google mapama pre polaska.'

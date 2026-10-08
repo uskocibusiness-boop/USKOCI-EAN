@@ -12,7 +12,7 @@ import { retainRemainingSearchCloseAttempt, type RemainingSearchCloseAttempt } f
 import { needPublicationReadiness, type NeedPublicationReadiness } from '../../../../data/needPublicationReadiness';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { NeedPresentation } from '../../../../ui/v2/NeedPresentation';
-import { missingPeople } from '../../../../ui/v2/ownTaskOverview';
+import { missingPeople, noApplicationsHelp } from '../../../../ui/v2/ownTaskOverview';
 import { UrgentActivationActions, useUrgentActivationActions } from '../../../../ui/v2/UrgentActivationActions';
 import { LocationMapPreview } from '../../../../ui/location/LocationMapPreview';
 import { NeedPhotos } from '../../../../ui/media/ContextPhotos';
@@ -206,20 +206,20 @@ function OwnedNeed({ id }: { id: string }) {
   const zatvoriPreostaluPotragu = () => {
     if (!canAct() || !potreba || preostalaPotragaZatvorena || potreba.pokrivenost.popunjeno <= 0 || potreba.pokrivenost.preostalo <= 0) return;
     // "za preostalih 1 mesta" counted the English way; the case follows the number.
-    ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i originalni uslovi zadatka ostaju nepromenjeni.`,
+    ask('Ne traži više nikoga?', `Zatvorićemo potragu za ${plural(potreba.pokrivenost.preostalo, 'preostalo mesto', 'preostala mesta', 'preostalih mesta')}. Postojeći Dogovori i prvobitni uslovi zadatka ostaju nepromenjeni.`,
       'Zatvori potragu', 'danger', async () => { await editor.save(async () => {
         const attempt = retainRemainingSearchCloseAttempt(closeAttempt.current, potreba.id, potreba.revizija, () => noviZahtevId('zatvori-preostalu-potragu'));
         closeAttempt.current = attempt;
         const result = await ru4Production.closeRemainingSearch(attempt.needId, attempt.revision, attempt.clientRequestId);
         if (!current()) return changed();
         if (!result.ok) return knownRemainingSearchRefusal(result.kod) ? result
-          : failure('REMAINING_SEARCH_CLOSE_FAILED', 'Potraga nije potvrđeno zatvorena. Učitaj trenutno stanje.');
+          : failure('REMAINING_SEARCH_CLOSE_FAILED', 'Ne znamo da li je potraga zatvorena.');
         const after = await read();
         if (!current()) return changed();
         if (!after.ok) return after;
         if (after.podatak.remainingClosed) closeAttempt.current = null;
         return after.podatak.remainingClosed ? after
-          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Zatvaranje preostale potrage nije potvrđeno. Učitaj trenutno stanje.');
+          : failure('REMAINING_SEARCH_CLOSE_NOT_CONFIRMED', 'Ne znamo da li je potraga zatvorena.');
       });
         if (current()) await recoveryController.current?.check();
       });
@@ -232,10 +232,10 @@ function OwnedNeed({ id }: { id: string }) {
       if (!result.ok) return result;
       if (!sameId(result.podatak.needId, potreba.id) || !uuid(result.podatak.conversationId) || !positiveInteger(result.podatak.revision)
         || result.podatak.authoritative !== true || !['DRAFT', 'PUBLISHED', 'SELECTION'].includes(result.podatak.needStatus)) {
-        return failure('NEED_EDIT_INVALID_RESPONSE', 'Otvaranje izmene nije potvrđeno. Učitaj zadatak ponovo.');
+        return failure('NEED_EDIT_INVALID_RESPONSE', 'Ne znamo da li se izmena otvorila.');
       }
       if (result.podatak.revision !== potreba.revizija || (potreba.stanje === 'NACRT' && result.podatak.needStatus !== 'DRAFT')) {
-        return failure('STALE_REVIEW_REQUIRED', 'Zadatak je promenjen. Učitaj trenutno stanje pre otvaranja izmene.');
+        return failure('STALE_REVIEW_REQUIRED', 'Zadatak se promenio.');
       }
       navigate(() => router.push({ pathname: destination, params: { conversationId: result.podatak.conversationId } }));
       return { ok: true, podatak: editor.data! };
@@ -244,8 +244,8 @@ function OwnedNeed({ id }: { id: string }) {
   const otvoriIzmenu = () => {
     if (!canAct() || !potreba) return;
     if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
-    ask('Izmena zadatka', 'Izmene pregledaš pre objave. Prihvatanje izmena ponovo pokreće proveru za objavu i postojeće prijave tada moraju da se osveže.',
-      'Nastavi', 'default', async () => openOwnedReview('/nova'));
+    ask('Izmena zadatka', 'Izmene prvo pregledaš pa objaviš. Posle objave se postojeće prijave ponovo proveravaju.',
+      'Izmeni zadatak', 'default', async () => openOwnedReview('/nova'));
   };
   const effectiveRecoveryView = recoveryView;
   // R3 recovery is additive authority: a temporary read failure must never make the whole owned task unreadable.
@@ -335,6 +335,11 @@ function OwnedNeed({ id }: { id: string }) {
     } : undefined}
     error={greska} busy={akcijaUToku || terminalActive || urgentActive} remainingClosed={preostalaPotragaZatvorena}
     readiness={readiness}
+    // R16 (F3's `noApplicationsHelp`): the page says "Nema prijava već 24 sata" only when the read can tell the truth. Today the owner's read of a
+    // task carries neither `publishedAt` nor the photo count, so the answer is null; the day the server gives them (and the switch is on), the
+    // rows appear. Every one of the ways is a change of the task, which the edit asks about before it opens.
+    waitingHelp={potreba ? noApplicationsHelp({ need: potreba, canEdit: potreba.pokrivenost.popunjeno === 0 && !preostalaPotragaZatvorena && potreba.stanje !== 'ZATVORENA' }) : null}
+    onWaitingHelp={otvoriIzmenu}
     // What the page may say about the search for the missing places comes only from what this screen already read (the R3 state):
     // "Dogovor je otkazan" and "Tvoj zadatak opet prima prijave" never from a guess. `speaks` is true while the recovery section is
     // drawn, and then the section says the search itself.
