@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T16:48:24Z",
+  "osvezeno": "2026-10-08T17:48:44Z",
   "grana": "integration/spoj-20261006",
-  "head": "81b9baa8",
-  "head_poruka": "docs(handoff): forensic cross-section of 8 Oct 2026 and the start prompt for Codex [skip ci]",
+  "head": "3beec3c0",
+  "head_poruka": "feat(ui): the success mark settles without a bounce (owner: no bounce in moments); docs(handoff): the one list of what Codex does, in order [skip ci]",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -4208,7 +4208,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: Dostupnost (vreme HH:MM, Po vremenu u Srbiji, čuvanje isključeno dok se ništa ne promeni) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Audit 24.09: DN-05: kopiranje dostupnosti može izbaciti termin iz dana sa kog se kopira; ponovljeno čistom funkcijom. DN-10/11: osvežavanje i bitno objašnjenje nisu pouzdano dostupni čitaču ekrana. → Ispravljeno u kodu (round 5c): DN-05, DN-10, DN-11. „Mogu odmah“ se čuva odmah (odluka vlasnika 2). 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
@@ -4275,7 +4275,8 @@
     "shared_material_home_native_20261003": {
      "status": "BOUNDED_EMULATOR_REVIEW",
      "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
-    }
+    },
+    "mogu_odmah_jedan_upis_20261008": "8.10. uveče: „Mogu odmah“ ima jedan upis (src/data/availableNowWrite.ts) koji dele Početna i Radni profil; ponašanje isto, 189 + 3 testa zeleno (c5cfe96d)."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -7697,7 +7698,8 @@
      "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
      "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
      "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
-    }
+    },
+    "push_kapacitet_uzrok_20261008": "8.10. uveče: uzrok ograničenja 1 push/min POTVRĐEN čitanjem — Edge radnik uskoci-push-transport (index.ts:169) pravi tačno jedan SEND claim po minutnom otkucaju; rpc_claim_push_transport već ima kapije (6 zakupa, 60/s, SKIP LOCKED). Recept (petlja u otkucaju sa granicom broja i vremena, test u n09_push_transport_edge.test.mjs koji je danas 72/72) u docs/implementation/handoff-codex-20261008/DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md. Izmena NIJE urađena (klasifikator je zaustavio izmenu Edge koda za push; deploy je vlasnikova reč). Pre slanja: povući 1 zaostalu CREATED isporuku (d15, 7.10.)."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -8797,7 +8799,8 @@
       "phone": 37112338160,
       "emulator": 37112340815
      }
-    }
+    },
+    "j5_zatvaranje_20261008": "8.10. uveče: red „Zatvaranje naloga“ bez rečenice-objašnjenja (J5), test usklađen (6ebef10f)."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -9237,7 +9240,8 @@
     "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
     "status": "ZAVRŠNI KRUG PREDSTOJI",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-    "round73": "P6 obuhvat: stari čitači (rpc_list_open_tasks_v3 itd.) ostaju kao rezervni put i kill switch dok se P6 ne prihvati u prodavnici; njihovo uklanjanje je C2 (predlog u docs/implementation/cleanup-inventory-20260930/), ništa nije uklonjeno."
+    "round73": "P6 obuhvat: stari čitači (rpc_list_open_tasks_v3 itd.) ostaju kao rezervni put i kill switch dok se P6 ne prihvati u prodavnici; njihovo uklanjanje je C2 (predlog u docs/implementation/cleanup-inventory-20260930/), ništa nije uklonjeno.",
+    "retire_v1_pripremljen_20261008": "8.10. uveče: paket RETIRE-V1 PRIPREMLJEN (supabase/candidates/retire-v1-20261008/, komit 92f2e094), NIJE dokazan ni primenjen. Od 11 rpc_* koje aplikacija ne zove, 4 smeju odmah (rpc_ai_open_conversation, rpc_confirm_need_edit, rpc_get_my_safety_report, rpc_list_my_agreements: bez pozivalaca, okidača, crona i mesta u sertifikatu — suvi prolaz čuvara na DEV-u čist, 258 rpc_*), 7 ostaju (zovu ih druge funkcije ili su u digestu). Codex: revert.sql iz DEV-a + dokaz na jednokratnoj bazi, pa primena po stojećem nalogu."
    },
    "ukupno": "PROBLEM",
    "veza": {
@@ -10462,6 +10466,14 @@
  },
  "ci": [
   {
+   "id": 37818622934,
+   "ime": "CodeQL",
+   "sha": "a047bc0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-08T17:42:20Z"
+  },
+  {
    "id": 36901345565,
    "ime": "CodeQL",
    "sha": "a047bc0e",
@@ -10548,14 +10560,6 @@
    "stanje": "completed",
    "ishod": "action_required",
    "vreme": "2026-09-13T19:37:12Z"
-  },
-  {
-   "id": 34778244566,
-   "ime": "CodeQL",
-   "sha": "91a1e0d7",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-13T19:37:10Z"
   }
  ]
 }

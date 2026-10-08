@@ -1696,7 +1696,8 @@
         "shared_material_home_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
-        }
+        },
+        "mogu_odmah_jedan_upis_20261008": "8.10. uveče: „Mogu odmah“ ima jedan upis (src/data/availableNowWrite.ts) koji dele Početna i Radni profil; ponašanje isto, 189 + 3 testa zeleno (c5cfe96d)."
       }
     },
     {
@@ -4161,7 +4162,8 @@
           "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
           "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
           "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
-        }
+        },
+        "push_kapacitet_uzrok_20261008": "8.10. uveče: uzrok ograničenja 1 push/min POTVRĐEN čitanjem — Edge radnik uskoci-push-transport (index.ts:169) pravi tačno jedan SEND claim po minutnom otkucaju; rpc_claim_push_transport već ima kapije (6 zakupa, 60/s, SKIP LOCKED). Recept (petlja u otkucaju sa granicom broja i vremena, test u n09_push_transport_edge.test.mjs koji je danas 72/72) u docs/implementation/handoff-codex-20261008/DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md. Izmena NIJE urađena (klasifikator je zaustavio izmenu Edge koda za push; deploy je vlasnikova reč). Pre slanja: povući 1 zaostalu CREATED isporuku (d15, 7.10.)."
       }
     },
     {
@@ -4917,7 +4919,8 @@
             "phone": 37112338160,
             "emulator": 37112340815
           }
-        }
+        },
+        "j5_zatvaranje_20261008": "8.10. uveče: red „Zatvaranje naloga“ bez rečenice-objašnjenja (J5), test usklađen (6ebef10f)."
       },
       "native_e572_account_readonly_20261003": {
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
@@ -5203,7 +5206,8 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-        "round73": "P6 obuhvat: stari čitači (rpc_list_open_tasks_v3 itd.) ostaju kao rezervni put i kill switch dok se P6 ne prihvati u prodavnici; njihovo uklanjanje je C2 (predlog u docs/implementation/cleanup-inventory-20260930/), ništa nije uklonjeno."
+        "round73": "P6 obuhvat: stari čitači (rpc_list_open_tasks_v3 itd.) ostaju kao rezervni put i kill switch dok se P6 ne prihvati u prodavnici; njihovo uklanjanje je C2 (predlog u docs/implementation/cleanup-inventory-20260930/), ništa nije uklonjeno.",
+        "retire_v1_pripremljen_20261008": "8.10. uveče: paket RETIRE-V1 PRIPREMLJEN (supabase/candidates/retire-v1-20261008/, komit 92f2e094), NIJE dokazan ni primenjen. Od 11 rpc_* koje aplikacija ne zove, 4 smeju odmah (rpc_ai_open_conversation, rpc_confirm_need_edit, rpc_get_my_safety_report, rpc_list_my_agreements: bez pozivalaca, okidača, crona i mesta u sertifikatu — suvi prolaz čuvara na DEV-u čist, 258 rpc_*), 7 ostaju (zovu ih druge funkcije ili su u digestu). Codex: revert.sql iz DEV-a + dokaz na jednokratnoj bazi, pa primena po stojećem nalogu."
       }
     }
   ],
