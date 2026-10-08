@@ -152,6 +152,7 @@ analyze public.needs; analyze public.marketplace_responses; analyze public.agree
   };
   const phase = () => Object.fromEntries(Object.entries(REQUESTS).map(([k, [uid, args]]) => [k, measure(uid, args)]));
 
+  phase();   // a warm-up round, discarded: the first round of a fresh stack pays for cold buffers (seen in run 37781816542: 21 ms median, 7 ms minimum)
   const before = phase();
   const httpBefore = await httpMs(W.client);
   C.applyFile(P + 'candidate.sql');

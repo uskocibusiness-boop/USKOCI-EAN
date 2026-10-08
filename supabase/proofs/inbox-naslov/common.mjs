@@ -74,13 +74,13 @@ export const catalog = () => sql(`select md5(string_agg(p.oid::regprocedure::tex
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private')`);
 /** Tables, columns, constraints, indexes, policies, triggers and table grants of public/private: what a function-only package must leave alone. */
 export const schemaPrint = () => sql(`select md5(string_agg(x, E'\\n' order by x)) from (
-  select 'col:'||c.oid::regclass::text||'.'||a.attname||':'||format_type(a.atttypid,a.atttypmod)||':'||a.attnotnull||':'||coalesce(pg_get_expr(d.adbin,d.adrelid),'') as x
+  select 'col:'||c.oid::regclass::text||'.'||a.attname::text||':'||format_type(a.atttypid,a.atttypmod)||':'||a.attnotnull::text||':'||coalesce(pg_get_expr(d.adbin,d.adrelid),'') as x
     from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_attribute a on a.attrelid=c.oid and a.attnum>0 and not a.attisdropped
     left join pg_attrdef d on d.adrelid=c.oid and d.adnum=a.attnum where n.nspname in ('public','private') and c.relkind in ('r','p','v','m')
-  union all select 'con:'||conrelid::regclass::text||':'||conname||':'||pg_get_constraintdef(oid) from pg_constraint where connamespace in ('public'::regnamespace,'private'::regnamespace)
+  union all select 'con:'||conrelid::regclass::text||':'||conname::text||':'||pg_get_constraintdef(oid) from pg_constraint where connamespace in ('public'::regnamespace,'private'::regnamespace)
   union all select 'idx:'||indexrelid::regclass::text||':'||pg_get_indexdef(indexrelid) from pg_index i join pg_class c on c.oid=i.indrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private')
-  union all select 'pol:'||schemaname||'.'||tablename||':'||policyname||':'||permissive||':'||coalesce(qual,'')||':'||coalesce(with_check,'') from pg_policies where schemaname in ('public','private')
-  union all select 'trg:'||tgrelid::regclass::text||':'||tgname||':'||tgenabled||':'||pg_get_triggerdef(oid) from pg_trigger where not tgisinternal and tgrelid in (select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private'))
+  union all select 'pol:'||schemaname::text||'.'||tablename::text||':'||policyname::text||':'||permissive::text||':'||coalesce(qual,'')||':'||coalesce(with_check,'') from pg_policies where schemaname in ('public','private')
+  union all select 'trg:'||tgrelid::regclass::text||':'||tgname::text||':'||tgenabled::text||':'||pg_get_triggerdef(oid) from pg_trigger where not tgisinternal and tgrelid in (select c.oid from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private'))
   union all select 'acl:'||c.oid::regclass::text||':'||coalesce(c.relacl::text,'') from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private') and c.relkind in ('r','p','v','m')
 ) s`);
 export const closure = () => rows(`select private.closure_source_digest_v5() as digest,private.closure_erasure_program_digest_v5() as program,
