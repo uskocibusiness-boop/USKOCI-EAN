@@ -97,33 +97,39 @@ describe('a stranger\'s task', () => {
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
     // Owner, 2026-10-07: what was asked about the work, and what its owner answered, is read right after the work.
-    const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', '0/2', 'Beograd, Vračar', 'Sutra ujutru',
-      'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Ana Anić', 'Mesto zadatka', 'MAPA'].map(at);
+    // The page reads: name, the one amount, where, when, how many, what the work is, what it asks, the questions, who posted it, where it is.
+    const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '0/2',
+      'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Ana Anić', 'Mesto', 'MAPA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // R13 gives the real publisher a readable portrait without changing the role or rating facts.
-    expect(all).toContain('FOTO 56'); expect(all).toContain('Traži pomoć · Ocena 4,8');
+    expect(all).toContain('FOTO 56'); expect(all).toContain('Ocena 4,8');
     // No rating is invented when the server has none.
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null }} />));
-    expect(texts()).toContain('Traži pomoć · Ocena nije dostupna');
+    expect(texts()).toContain('Ocena nije dostupna');
+    // R27: the rating says how many reviews it stands on, "Još nema ocena" when there are none, and never a count that was not read.
+    await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: '4,7', narucilacBrojOcena: 3 }} />));
+    expect(texts()).toContain('Ocena 4,7 · 3 ocene');
+    await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null, narucilacBrojOcena: 0 }} />));
+    expect(texts()).toContain('Još nema ocena');
   });
 
   it.each<{ name: string; patch: Partial<PrilikaProjekcija>; value: string; note: string | null; amount: boolean }>([
     { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'Ukupno za ceo zadatak', amount: true },
     { name: 'per-person price', patch: { osnovaCene: 'PER_PERSON' }, value: '9.000 RSD', note: 'Po osobi · ukupno 18.000 RSD', amount: true },
     { name: 'offers', patch: { rezimCene: 'OFFERS', osnovaCene: 'PER_PERSON', ponudjenaCena: undefined },
-      value: 'Tražim ponude', note: 'Ukupan iznos predlažeš u prijavi.', amount: false },
+      value: 'Prima ponude', note: 'Ukupan iznos predlažeš u prijavi.', amount: false },
     { name: 'missing price', patch: { osnovaCene: 'TOTAL', ponudjenaCena: undefined }, value: 'Cena nije navedena', note: null, amount: false },
   ])('keeps $name truthful and complete in the promoted terms', async ({ patch, value, note, amount }) => {
     await render(<Stranger need={{ ...task, ...patch }} />);
     const copy = texts();
     expect(copy.filter(text => text === value)).toHaveLength(1);
-    // The shared decision summary promotes price before capacity, place and time.
+    // The one amount comes right after the name, before where, when and how many.
     expect(copy.indexOf(value)).toBeGreaterThan(copy.indexOf('Selidba stana'));
     expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Beograd, Vračar'));
     expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Ana Anić'));
-    const label = `Budžet: ${value}${note ? `, ${note}` : ''}`;
+    const label = `Cena: ${value}${note ? `, ${note}` : ''}`;
     expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.accessibilityLabel === label)).toHaveLength(1);
     if (note) expect(copy).toContain(note);
     else expect(copy).not.toContain('Ukupno za ceo zadatak');
@@ -131,12 +137,12 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(terms.props.style).color).toBe(amount ? sys.color.money : sys.color.ink);
   });
 
-  it('puts the poster\'s face on the first line of the name, as every other fact\'s picture, and keeps the row one touch target', async () => {
+  it('puts the poster in one row with a face of 56, and keeps the row one touch target', async () => {
     const open = jest.fn();
     await render(<Stranger onRequesterProfile={open} />);
-    const row = byLabel('Ana Anić, Traži pomoć, Ocena 4,8')!;
-    // Review of step 5b: centred, the face slid to the middle of a name and caption wrapped by a large text size.
-    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ alignItems: 'flex-start', minHeight: 56 });
+    const row = byLabel('Ana Anić, Ocena 4,8')!;
+    // The person is the page's main person (composition spec 2026-10-07): a `ListRow` with a face slot, at least 64 high, whatever the text size.
+    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ minHeight: 64 });
     expect(row.props.accessibilityHint).toBe('Otvara javni profil');
     await act(async () => row.props.onPress()); expect(open).toHaveBeenCalledTimes(1);
   });

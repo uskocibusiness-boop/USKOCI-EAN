@@ -1,22 +1,29 @@
 import type { TaskRelation } from '../../data/taskRelation';
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { needGeographyRows, needRequirementRows, readableTitle } from '../../data/needDetailPresentation';
 import { inicijali } from '../../lib/inicijali';
 import { vreme } from '../../lib/vreme';
-import { DetailDescription, DetailRoute, DetailSection, routeAddsToArea, ProductFooterAction, ProductHeader,
+import { DetailDescription, DetailRoute, routeAddsToArea, ProductFooterAction, ProductHeader,
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
+import { FactRow } from '../system/FactRow';
+import { FlowFooter } from '../system/FlowFooter';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
+import { Screen } from '../system/Screen';
+import { Section } from '../system/Section';
 import { SkeletonCard } from '../system/Skeleton';
-import { FactArt } from '../system/FactArt';
-import { brandAction, card, sys } from '../system/tokens';
+import { StateView } from '../system/StateView';
+import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
-import { NeedUrgencyBadge } from './NeedUrgencyBadge';
-import { TaskDecisionSummary, TaskDecisionPerson, TaskDecisionRequirements, TaskDecisionSection, TaskDecisionTitle } from './detail/TaskDecision';
+import type { TaskFitContext } from './detail/taskFit';
+import { useUrgencyClock } from './NeedUrgencyBadge';
+import { CardStatus } from './TaskFace';
+import { TaskDecisionFacts, TaskDecisionPrice, TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle,
+  publisherRatingLine } from './detail/TaskDecision';
 
 /**
  * Why a person cannot apply to a task they could otherwise apply to, in one short line, from the facts the screen
@@ -31,17 +38,23 @@ export function applyClosedReason(need: Pick<PrilikaProjekcija, 'pokrivenost' | 
   return 'Nove prijave trenutno nisu dostupne';
 }
 
+/** What the page says about this account's own part in the task, as the state at its head. Not known (a failed read) says nothing here: the foot says it. */
+const relationStatus = (relation: TaskRelation): { text: string; quiet: boolean } | null => relation.kind === 'OWNER' ? { text: 'Tvoj zadatak', quiet: false }
+  : relation.kind === 'APPLIED' ? { text: relation.agreementId ? 'Prijava je izabrana' : 'Prijava poslata', quiet: false } : null;
+
+/** What the worker's own plans and work area say about this task (UX plan R25), drawn as two quiet rows under the facts; see `detail/taskFit`. A row without its fact is not drawn. */
+export type { TaskFitContext };
+
 /**
- * A task somebody else posted: first decide whether its work and terms suit me. The open white page puts the
- * work first, genuine task photos when present, and compact terms. The description and requirements are readable
- * before the questions, publisher context and approximate place; the questions come right after the work because what
- * was asked about it, and what its owner answered, is part of understanding it.
- * The name comes into the bar once the large title has scrolled away; reporting the person who posted it waits
- * behind the bar's "···". The one action, chosen by what I am to this task, stays at the foot.
+ * A task somebody else posted, as a page read top to bottom (composition spec 2026-10-07, T3): its state when it has one, its name, the one
+ * amount, where, when and how many, then what the work is, what it asks, what was asked about it, who posted it and where it is, parted by
+ * space and never by a line. The same facts in the same words as its card in the list and on the map.
+ * The name comes into the bar once the large title has scrolled away; sharing it and reporting the person who posted it wait behind the bar's
+ * "···". The one action, chosen by what I am to this task, stays at the foot, with the reason above it when it cannot be pressed.
  * Presentation only; the route owns reads, deadline and guards.
  */
 export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
-  onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety, deadlinePassed = false, onOtherTasks }: {
+  onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety, deadlinePassed = false, onOtherTasks, onShare, fit }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
   /** What this account is to this task, from its own tasks and applications. Never from an app mode. */
@@ -59,6 +72,10 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   deadlinePassed?: boolean;
   /** The way on when applying is not possible here: back to the other tasks. */
   onOtherTasks?: () => void;
+  /** Hands the task (its title and its public area, never an address) to the system's share sheet; the route owns the call (UX plan R35). */
+  onShare?: () => void;
+  /** R25: the worker's overlap and distance, when the route could read them. */
+  fit?: TaskFitContext;
 }) {
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const ready = !!need && !loading && !error && !missing;
@@ -69,92 +86,98 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   // The server's own deadline, said only when there is one and a person can still apply before it.
   const deadline = canApply && typeof need?.rokZaPrijaveIso === 'string' ? vreme(need.rokZaPrijaveIso) : null;
   const scrollTitle = useDetailScrollTitle();
-  // Reporting the person behind a task is rare, so it waits behind "···". My own task has nobody to report. The row names
+  const urgencyNow = useUrgencyClock([need?.urgency]);
+  // Sharing and reporting are rare, so they wait behind "···". My own task has nobody to report. The row names
   // the person: on a screen whose action is "Sastavi prijavu", a bare "Prijavi" reads as "apply" (review of step 5b).
-  const rare: SheetAction[] = ready && safety && relation.kind !== 'OWNER' ? [{ key: 'safety', label: 'Prijavi ili blokiraj osobu', icon: 'shield',
-    destructive: true, disabled: safety.busy, hint: 'Prijava ili blokiranje osobe koja je objavila zadatak.', onPress: safety.onPress }] : [];
+  const rare: SheetAction[] = [
+    ...(ready && onShare ? [{ key: 'share', label: 'Podeli', icon: 'send' as const, hint: 'Otvara deljenje sa naslovom i mestom zadatka, bez adrese.', onPress: onShare }] : []),
+    ...(ready && safety && relation.kind !== 'OWNER' ? [{ key: 'safety', label: 'Prijavi ili blokiraj osobu', icon: 'shield' as const,
+      destructive: true, disabled: safety.busy, hint: 'Prijava ili blokiranje osobe koja je objavila zadatak.', onPress: safety.onPress }] : []),
+  ];
   const menu = useDetailMenu(rare, { disabled: busy });
-  const rating = need ? (need.narucilacOcena !== null ? `Ocena ${need.narucilacOcena}` : 'Ocena nije dostupna') : '';
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader back={back} disabled={busy} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
-      right={menu.button} />
-    <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} onScroll={scrollTitle.onScroll} scrollEventThrottle={16}>
-      {loading || error || missing ? <View style={s.state} accessibilityLiveRegion="polite">
-        {loading ? <><View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T></>
-          : <View style={card}><T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Zadatak trenutno nije moguće učitati.' : 'Zadatak nije dostupan.'}</T>
-            <T variant="copy" tone="muted" style={s.gapTop}>{error ? 'Proveri internet vezu i pokušaj ponovo.' : 'Možda je zatvoren ili više nije dostupan tvom nalogu. Vrati se na zadatke.'}</T>
-            {canRetry ? <V2Action label="Pokušaj ponovo" onPress={retry} disabled={busy} style={[brandAction, s.gapTop]} /> : null}</View>}
-        {stale ? <T variant="note" tone="muted">Poslednji učitani podaci. Osveži zadatak pre nastavka.</T> : null}
+  const status = ready ? relationStatus(relation) : null;
+  const urgent = !!need?.urgency && ready;
+  // The one foot: what I am to this task decides the one action, and the reason stands above it when there is one.
+  const foot = !ready ? null : relation.kind === 'OWNER'
+    ? <FlowFooter reason="Ovo je tvoj zadatak. Ovako ga vide drugi.">
+      <ProductFooterAction label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} /></FlowFooter>
+    : relation.kind === 'APPLIED'
+      ? <FlowFooter reason={relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Tvoja prijava na ovaj zadatak je već poslata.'}>
+        <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></FlowFooter>
+      : relation.kind === 'UNKNOWN'
+        ? <FlowFooter reason="Ne možemo da proverimo da li je ovo tvoj zadatak ili je prijava već poslata.">
+          <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></FlowFooter>
+        : canApply
+          ? <FlowFooter reason={deadline ? `Prijave do ${deadline}` : undefined}>
+            <ProductFooterAction label="Sastavi prijavu" onPress={apply} disabled={busy} /></FlowFooter>
+          // Not the brand action: nothing here can be done about it, so the foot is one grey sentence of state (never an empty bar) and the way on.
+          : <FlowFooter reason={applyClosedReason(need!, deadlinePassed)}>
+            {onOtherTasks ? <V2Action label="Drugi zadaci" kind="quiet" disabled={busy} onPress={onOtherTasks} /> : null}
+          </FlowFooter>;
+  return <>
+    <Screen kind="detail" header={<ProductHeader back={back} disabled={busy} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
+      right={menu.button} />} footer={foot} onScroll={scrollTitle.onScroll}>
+      {!need && loading ? <View style={s.state} accessibilityLiveRegion="polite">
+        <View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View>
+        <T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T>
       </View> : null}
+      {!need && !loading && error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatak" body="Proveri internet vezu i pokušaj ponovo."
+        primary={canRetry ? { label: 'Pokušaj ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
+      {/* A task that is not there says so and leads back to the other tasks; a read that may only have failed can be tried again. */}
+      {!need && !loading && !error && missing ? <StateView art="tasks" title="Ovaj zadatak više nije dostupan" body="Zadatak je možda zatvoren ili ga ne možeš da vidiš."
+        primary={onOtherTasks ? { label: 'Nazad na zadatke', onPress: onOtherTasks, disabled: busy } : undefined}
+        quiet={canRetry ? { label: 'Pokušaj ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
+      {need && stale ? <Surface kind="note" tone="warn">
+        <T accessibilityLiveRegion="polite" variant="note">Vidiš starije podatke. Osveži zadatak pre nastavka.</T>
+        {error && canRetry ? <V2Action label="Pokušaj ponovo" kind="quiet" onPress={retry} disabled={busy} style={s.refresh} /> : null}
+      </Surface> : null}
       {need ? <>
         {ready && !stale ? photos : null}
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
-          {need.urgency ? <View style={s.badgeRow}><NeedUrgencyBadge urgency={need.urgency} /></View> : null}
+          {status || urgent ? <CardStatus status={status} urgency={need.urgency} now={urgencyNow} /> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
+          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
+          <View style={s.facts}>
+            <TaskDecisionFacts need={need} />
+            {ready && fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa tvojim Dogovorom ${fit.overlapTitle}`} /> : null}
+            {ready && typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0 ? <FactRow size="detail" art="map"
+              value={`Oko ${Math.max(1, Math.round(fit.distanceKm))} km od tvog područja rada`} /> : null}
+          </View>
         </View>
-        <TaskDecisionSummary need={need} price={price} />
-        {need.opis ? <TaskDecisionSection title="O zadatku"><DetailDescription text={need.opis} /></TaskDecisionSection> : null}
+        {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
         <TaskDecisionRequirements rows={needRequirementRows(need)} />
         {/* What was asked about the work, and what its owner answered, is read with the work (owner, 2026-10-07: it was a
             link at the very end, and nobody who read the task saw it). The route builds the section: it owns the reads. */}
-        {ready && !stale && qa ? <DetailSection>{qa}</DetailSection> : null}
+        {ready && !stale && qa ? qa : null}
         {/* Trust follows an understanding of the work. A missing rating stays explicitly missing. */}
-        <View style={s.publisher}>
-          <TaskDecisionPerson name={need.narucilacIme || 'Ime trenutno nije dostupno'} caption={`Traži pomoć · ${rating}`}
-            initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy} />
-          {/* The profile sheet announces its own reporting errors; avoid announcing the same error behind it. */}
-          {safety?.error && !requesterProfile ? <T accessibilityLiveRegion="polite" variant="note" tone="danger">{safety.error}</T> : null}
-        </View>
+        <TaskDecisionPublisher name={need.narucilacIme || 'Ime trenutno nije dostupno'} rating={publisherRatingLine(need.narucilacOcena, need.narucilacBrojOcena)}
+          initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy}
+          // The profile sheet announces its own reporting errors; avoid announcing the same error behind it.
+          error={safety?.error && !requesterProfile ? safety.error : null} />
         {/* The place is one section: the approximate pin, what is private, and the stops of a route. It used
             to be said three times — a fact, a map and a "Mesto izvršenja" row that opened into the same words. */}
-        {!remote && (map || route.length) ? <DetailSection title="Mesto zadatka">
-          {map}
-          <View style={s.privacy}><FactArt kind="lock" size={24} />
-            <T variant="note" tone="muted" style={s.grow}>Približno područje. Tačna adresa se deli tek u Dogovoru.</T></View>
-          {route.length ? <DetailRoute rows={route} /> : null}
-        </DetailSection> : null}
+        {!remote && (map || route.length) ? <Section title="Mesto">
+          <View style={s.place}>
+            {map}
+            <FactRow art="lock" value="Približno područje. Tačna adresa se deli tek u Dogovoru." />
+            {route.length ? <DetailRoute rows={route} /> : null}
+          </View>
+        </Section> : null}
       </> : null}
-    </ScrollView>
-    {ready ? <View style={s.footer}>
-      {/* One action, chosen by what I am to this task. It used to be chosen by the mode the app was
-          in, and an open task told a person in the other mode to go and change it in Profil. */}
-      {relation.kind === 'OWNER' ? <>
-        <T variant="note" tone="muted" style={s.center}>Ovo je tvoj zadatak. Ovako ga vide drugi.</T>
-        <ProductFooterAction label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} /></>
-        : relation.kind === 'APPLIED' ? <>
-          <T variant="note" tone="muted" style={s.center}>{relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Tvoja prijava na ovaj zadatak je već poslata.'}</T>
-          <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></>
-          : relation.kind === 'UNKNOWN' ? <>
-            <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>Nismo uspeli da proverimo da li je zadatak tvoj ili je prijava već poslata.</T>
-            <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></>
-            : canApply ? <>
-              {deadline ? <T variant="note" tone="muted" style={s.center}>{`Prijave do ${deadline}`}</T> : null}
-              <ProductFooterAction label="Sastavi prijavu" onPress={apply} disabled={busy} /></>
-              // Not the brand action: nothing here can be done about it, so the screen says why and offers the way on.
-              : <View style={s.closed}>
-                <T variant="note" tone="muted" style={s.closedReason}>{applyClosedReason(need!, deadlinePassed)}</T>
-                {onOtherTasks ? <V2Action label="Drugi zadaci" kind="quiet" disabled={busy} onPress={onOtherTasks} style={s.closedAction} /> : null}
-              </View>}
-    </View> : null}
+    </Screen>
     {menu.sheet}
     {onCloseRequesterProfile ? <PublicProfileSheet state={requesterProfile} onClose={onCloseRequesterProfile} onRetry={onRequesterProfile ?? onCloseRequesterProfile}
       photo={publicPhoto} safety={safety} /> : null}
-  </SafeAreaView>;
+  </>;
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground },
-  ink: { color: sys.color.ink }, center: { textAlign: 'center' }, gapTop: { marginTop: 10 }, grow: { flex: 1, minWidth: 0 },
-  content: { paddingHorizontal: sys.space.xl, paddingTop: sys.space.sm, gap: sys.space.xl, paddingBottom: 40 },
-  state: { gap: 12 },
+  state: { gap: sys.space.md },
+  center: { textAlign: 'center' },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
-  hero: { gap: sys.space.md, backgroundColor: sys.color.surface },
-  publisher: { gap: sys.space.md, paddingTop: sys.space.lg, borderTopWidth: 1, borderTopColor: sys.color.line },
-  badgeRow: { flexDirection: 'row' },
-  privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  // The reason and the way on share a line while they fit; at a large text size the action moves under the reason.
-  closed: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12 },
-  closedReason: { flexGrow: 1, flexShrink: 1, flexBasis: 160 },
-  closedAction: { paddingHorizontal: 8 },
+  // State, name and amount are 8 apart; the facts are 16 under the amount.
+  hero: { gap: sys.space.sm },
+  facts: { gap: sys.space.md, paddingTop: sys.space.sm },
+  place: { gap: sys.space.md },
+  refresh: { alignSelf: 'flex-start' },
 });

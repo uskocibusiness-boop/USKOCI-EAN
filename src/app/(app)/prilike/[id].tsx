@@ -1,4 +1,7 @@
+import { Share } from 'react-native';
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
+import { taskShareMessage } from '../../../ui/v2/detail/taskShare';
+import { useTaskFit } from '../../../ui/v2/detail/useTaskFit';
 import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { LocationMapPreview } from '../../../ui/location/LocationMapPreview';
 import { TaskQaInline } from '../../../ui/qa/TaskQaInline';
@@ -77,6 +80,8 @@ export default function PrilikaDetaljiEkran() {
   // the section is hidden while the task reads again, and what was read must survive that. It reads once there is a task
   // to ask about, and a failed read stays on the section; it never takes the task with it.
   const questions = useTaskQaInline(prilika ? prilika.id : null);
+  // R25: what my own Dogovori and my work area say about this task, read beside it for a task I have not applied to; the page is whole without it.
+  const fit = useTaskFit({ prilika: fresh && !resource.loading && !resource.error ? fresh : null, relation, izvor, accountId, accountRevision });
   const scopeRef = useRef<ActionScope | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -169,7 +174,7 @@ export default function PrilikaDetaljiEkran() {
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }]} coarse height={184}
         scopeKey={`${accountId}:${accountRevision}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
       : undefined}
-    need={prilika} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
+    need={prilika} fit={fit} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && relation.kind === 'NONE'}
     deadlinePassed={deadlinePassed}
@@ -183,6 +188,8 @@ export default function PrilikaDetaljiEkran() {
         : router.navigate({ pathname: '/moje-prijave', params: { prijavaId: applicationId } })); }}
     back={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/zadaci'))}
     retry={retry} apply={compose}
+    // The system's share sheet, with the task's name and its public area only; a dismissed sheet is not an error, so nothing is said about it.
+    onShare={fresh ? () => { void Share.share({ message: taskShareMessage(fresh) }, { dialogTitle: 'Podeli zadatak' }).catch(() => {}); } : undefined}
     onRequesterProfile={fresh ? openRequesterProfile : undefined} requesterProfile={requesterProfile} onCloseRequesterProfile={closeRequesterProfile}
     safety={safety}
     // The poster row asks for 56 px, the profile sheet for its large portrait. Without a photo, or while it cannot be

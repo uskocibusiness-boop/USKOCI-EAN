@@ -1,6 +1,6 @@
 import { starost } from '../starost';
 
-// The age of an answer ("Odgovorio vlasnik zadatka · pre 2 dana"): one short Serbian phrase, days counted on the
+// The age of an answer ("Odgovor osobe koja je objavila zadatak · pre 2 dana"): one short Serbian phrase, days counted on the
 // calendar of Serbian time, the count word following the number, and nothing invented when the moment is unreadable.
 const sada = new Date('2026-09-24T10:00:00Z'); // 12:00 in Belgrade (summer time)
 const minus = (ms: number) => new Date(sada.getTime() - ms).toISOString();

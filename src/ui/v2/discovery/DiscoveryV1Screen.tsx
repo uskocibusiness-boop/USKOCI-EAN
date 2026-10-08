@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { Izvor } from '../../../data/ports';
-import { createDiscoveryV1SupabaseTransport } from '../../../data/discoveryV1ClientTransport';
+import { createDiscoveryV1SupabaseTransport, DISCOVERY_V1_FOR_ME_REFUSED } from '../../../data/discoveryV1ClientTransport';
 import { discoveryV1ErrorCode, traceDiscoveryV1 } from '../../../data/discoveryV1Trace';
 import { createDiscoveryV1ExistingOverlayLoaders, discoveryV1OverlayRelation } from '../../../data/discoveryV1OverlayOwner';
 import { createDiscoveryV1RouteCoordinator, type DiscoveryV1RouteSnapshot } from '../../../data/discoveryV1RouteCoordinator';
@@ -12,7 +12,10 @@ import type { TaskRelation } from '../../../data/taskRelation';
 import { DiscoveryV1PresentationBridge } from '../../../data/discoveryV1PresentationBridge';
 import type { DiscoveryV1WarmReturn } from '../../../data/discoveryV1WarmReturn';
 import type { SearchDraft } from './DiscoverySearchPanel';
-import { StateView } from '../../system/StateView';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { layout } from '../../system/layout';
+import { DiscoveryListState } from './DiscoveryListState';
+import { CLEAR_ALL } from './discoveryWords';
 import type { DiscoveryTrace } from '../DiscoveryPresentation';
 
 type Coordinator = ReturnType<typeof createDiscoveryV1RouteCoordinator>;
@@ -33,6 +36,13 @@ export type DiscoveryV1ScreenProps = {
   onProfile: () => void;
   onNew: () => void;
   onNotifications: () => void;
+  /**
+   * R28 ("Za mene"): the route says whether the switch exists in this build (the server package is applied and the client switch is on). Without it the
+   * request never carries the key and nothing is drawn.
+   */
+  forMeAvailable?: boolean;
+  /** The way into the work profile, offered beside the refusal when "Za mene" is asked of a person without an active one. */
+  onWorkProfile?: () => void;
   trace?: DiscoveryTrace;
   /** What the route keeps of a screen that left (EX-03 warm return). Without it the screen retires its coordinator on the way out, as before. */
   warmReturn?: DiscoveryV1WarmReturn<Coordinator>;
@@ -64,6 +74,8 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const warmStart = !replaced && !!kept.current && coordinator === kept.current.coordinator;
   const [state, setState] = useState<DiscoveryV1RouteSnapshot | null>(() => warmStart ? coordinator.snapshot() : null);
   const [loading, setLoading] = useState(!warmStart), [error, setError] = useState(false);
+  // "Za mene" was refused (no active work profile): the switch is back off and the screen says why, once, until the person closes it.
+  const [forMeRefused, setForMeRefused] = useState(false);
   const errorRef = useRef(false); errorRef.current = error;
   const mounted = useRef(true), searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null), searchGeneration = useRef(0);
 
@@ -90,11 +102,21 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
       if (live() && (result as { kind?: string } | undefined)?.kind === 'applied') setError(false);
       commit();
     } catch (failure) {
-      if (live()) { traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure)); setError(true); }
+      if (live()) {
+        // The one refusal that is about the person and not about the read: the list is read again WITHOUT "Za mene" and the reason is said beside it.
+        if (failure instanceof Error && failure.message === DISCOVERY_V1_FOR_ME_REFUSED) { refuseForMe(); return; }
+        traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure)); setError(true);
+      }
     } finally {
       if (busy && live()) setLoading(false);
     }
   }, [commit, live]);
+
+  const refuseForMe = () => {
+    setForMeRefused(true);
+    const view = coordinator.snapshot().view;
+    if (view?.forMe) handleView({ ...view, forMe: false });
+  };
 
   useEffect(() => {
     if (props.activity === null) return;
@@ -124,16 +146,22 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     } else {
       props.warmReturn?.discard(coordinator);
       setLoading(true); setError(false);
-      void coordinator.restore(initialViewRef.current).then(() => {
+      const restoreFrom = (from: MarketplaceView): Promise<void> => coordinator.restore(from).then(() => {
         if (!live()) return;
         const read = coordinator.snapshot().screen;
         traceDiscoveryV1('restored', `${Math.min(read.items.length, 9999)}/${Math.min(read.mapMarkers.length, 9999)}`);
         commit(); setLoading(false);
       }, failure => {
         if (!live()) return;
+        // A view kept from before the work profile went inactive still asks "Za mene": the list is read again without it, and the refusal is said.
+        if (from.forMe && failure instanceof Error && failure.message === DISCOVERY_V1_FOR_ME_REFUSED) {
+          setForMeRefused(true);
+          return restoreFrom({ ...from, forMe: false });
+        }
         traceDiscoveryV1('restore-failed', discoveryV1ErrorCode(failure));
         setError(true); setLoading(false);
       });
+      void restoreFrom(initialViewRef.current);
     }
     return () => {
       mounted.current = false;
@@ -161,6 +189,8 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const [, showAsked] = useState(0);
   const handleView = useCallback((view: MarketplaceView) => {
     if (!live()) return;
+    // Asking "Za mene" again is a new attempt: the last refusal is not repeated until this one is refused too.
+    if (view.forMe) setForMeRefused(false);
     askedView.current = view; showAsked(count => count + 1);
     void execute(() => coordinator.updateView(view)).finally(() => {
       if (askedView.current === view) { askedView.current = null; if (live()) showAsked(count => count + 1); }
@@ -237,12 +267,11 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   }, [coordinator, execute]);
   const onNextSearchPlaces = useCallback(() => { void execute(async () => { await coordinator.nextSearchPlaces(); }); }, [coordinator, execute]);
 
+  // Before the first read lands (or when it failed) there is no list to hold the state, so the state stands on its own, in the words of the list's own states.
   if (!state?.screen.active || !state.screen.view) {
-    return <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
-      <StateView kind={error ? 'error' : 'loading'} title={error ? 'Zadaci trenutno nisu dostupni' : 'Učitavamo zadatke…'}
-        body={error ? 'Proveri vezu i pokušaj ponovo.' : undefined}
-        primary={error ? { label: 'Pokušaj ponovo', onPress: handleRefresh } : undefined} skeleton={{ variant: 'task' }} />
-    </View>;
+    return <SafeAreaView edges={['top']} style={{ flex: 1 }}><View style={{ paddingHorizontal: layout.gutter, paddingVertical: layout.section }}>
+      <DiscoveryListState state={error ? { kind: 'error', onRetry: handleRefresh } : { kind: 'loading' }} clearAllLabel={CLEAR_ALL} />
+    </View></SafeAreaView>;
   }
 
   return <DiscoveryV1PresentationBridge snapshot={askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
@@ -253,5 +282,6 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
     trace={props.trace} onView={handleView} onRefresh={handleRefresh}
     onOpen={item => { if (live()) props.onOpen(item, discoveryV1OverlayRelation(state.overlay, item.id)); }}
-    onProfile={props.onProfile} onNew={props.onNew} onNotifications={props.onNotifications} />;
+    onProfile={props.onProfile} onNew={props.onNew} onNotifications={props.onNotifications}
+    arriveAfterLoading={!warmStart} forMeAvailable={props.forMeAvailable} forMeRefused={forMeRefused} onWorkProfile={props.onWorkProfile} onDismissForMeRefused={() => setForMeRefused(false)} />;
 }

@@ -104,10 +104,11 @@ const s = StyleSheet.create({
   field: { ...fieldBox, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0, paddingRight: sys.space.xs },
   input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: sys.space.sm }),
   clear: { width: 48, height: 48, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  // Place rows read as a list; only the chosen row has a neutral well and a check.
-  place: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 56, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.sm,
-    borderRadius: sys.radius.control },
+  // Place rows read as a list; only the chosen row has a neutral well and a check. The row's picture and words stand at the edge of the list (the
+  // section names above them), and the chosen row's well reaches 8 beyond it, so a tint never makes the words step in.
+  place: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 56, marginHorizontal: -sys.space.sm, paddingHorizontal: sys.space.sm,
+    paddingVertical: sys.space.sm, borderRadius: sys.radius.control },
   placeOn: { backgroundColor: sys.color.greenSoft },
   well: { width: sys.space.xxl, height: sys.space.xxl, alignItems: 'center', justifyContent: 'center' },
-  groupTitle: { paddingTop: sys.space.md, paddingHorizontal: sys.space.sm, fontWeight: '600' },
+  groupTitle: { paddingTop: sys.space.md, fontWeight: '600' },
 });

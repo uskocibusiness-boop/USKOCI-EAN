@@ -1,14 +1,16 @@
+import {Fragment,type ReactNode} from 'react';
 import {KeyboardAvoidingView,Platform,ScrollView,StyleSheet,TextInput,View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {ArrowClockwise,X} from 'phosphor-react-native';
 import type {OwnerPreselectionQuestion,PublicPreselectionQa} from '../../contracts/preselectionQa';
 import {T} from '../Text';
 import {V2Action} from '../v2/V2Action';
 import {ChromeIconButton,ScreenChrome} from '../system/ScreenChrome';
 import {StateView} from '../system/StateView';
 import {PillComposer,PillNote} from '../system/PillComposer';
+import {Surface} from '../system/Surface';
+import {ruleWidth} from '../system/layout';
 import {useConfirmSheet} from '../system/ConfirmSheet';
-import {brandAction,field,inset,sys} from '../system/tokens';
+import {brandAction,field,sys} from '../system/tokens';
 
 export type Question=OwnerPreselectionQuestion|PublicPreselectionQa;
 type Recovery={kind:'TEXT'|'DISPOSITION';absent:boolean;canCancel:boolean};
@@ -61,13 +63,15 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
         </View>:null}
     </View>;
   };
+  // The questions of one list stand one under the other, parted by a line of 1 dp, none above the first and none under the last.
+  const parted=(rows:ReactNode[])=>rows.map((row,index)=><Fragment key={index}>{index?<View pointerEvents="none" style={s.rule}/>:null}{row}</Fragment>);
   // A failed read with nothing else to show; a saved action in doubt keeps its own panel, which carries the message.
   const trouble=!p.loaded&&!p.busy&&!!p.message&&!p.recovery;
   return <KeyboardAvoidingView style={s.screen} behavior={Platform.OS==='ios'?'padding':'height'}>
     <SafeAreaView edges={['top','bottom']} style={s.screen}>
       {/* One title in every state, so the bar does not re-lay out once the task is known; the task's name is its quiet line. */}
       <ScreenChrome variant="detail" onBack={p.onBack} title="Pitanja o zadatku" subtitle={p.title??undefined}
-        right={<ChromeIconButton label="Osveži pitanja i ishod radnje" icon={ArrowClockwise} disabled={p.busy} onPress={p.onRefresh}/>}/>
+        right={<ChromeIconButton label="Osveži pitanja i ishod radnje" glyph="refresh" disabled={p.busy} onPress={p.onRefresh}/>}/>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         {!p.loaded&&p.busy?<StateView kind="loading" title="Učitavamo pitanja…" skeleton={{count:3,rows:2,variant:'thread'}}/>
           :trouble?<StateView kind="error" art="chat" title="Pitanja nisu učitana" body={p.message}
@@ -81,31 +85,31 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
             :<T tone="danger" accessibilityRole="alert">{p.message}</T>:null}
           {p.receipt?<T accessibilityLiveRegion="polite">{p.receipt}</T>:null}
           {p.material?<V2Action label="Nazad na zadatak radi izmene" onPress={p.onEditTask} disabled={p.busy}/>:null}
-          {p.recovery?<View style={s.notice}><T variant="bodyStrong">Provera prethodnog slanja</T>
-            <T>Konačan ishod prethodnog slanja još nije potvrđen. Ako izađeš odavde, ništa se ne šalje ponovo i ništa što je već u toku se ne poništava.</T>
-            {p.recovery.kind==='TEXT'?<><T>Za ponavljanje upiši potpuno isti tekst — nije sačuvan na telefonu.</T>
+          {p.recovery?<Surface kind="note" style={s.notice}><T variant="bodyStrong">Provera prethodnog slanja</T>
+            <T>Ne znamo da li je prethodno slanje uspelo. Ako izađeš, ništa se ne šalje ponovo.</T>
+            {p.recovery.kind==='TEXT'?<><T>Za ponovno slanje upiši isti tekst; nije sačuvan na telefonu.</T>
               <View style={s.fieldBlock}><T variant="label" tone="muted">Isti tekst kao ranije</T>
                 <TextInput accessibilityLabel="Isti tekst kao ranije" placeholder="Napiši isti tekst…" placeholderTextColor={sys.color.muted}
                   value={p.text} onChangeText={p.onText} editable={!p.busy} multiline style={s.field}/></View></>:null}
             {p.recovery.absent?<V2Action label="Pošalji ponovo" style={brandAction} disabled={p.busy||sameTextMissing}
               reason={sameTextMissing?'Upiši isti tekst pre ponavljanja.':null} onPress={p.onRetry}/>:null}
             {p.recovery.canCancel?<V2Action label="Odustani od ovog slanja" kind="quiet" disabled={p.busy} onPress={p.onCancel}/>:null}
-          </View>:null}
-          {p.cannotAsk?<View style={s.notice}><T>{p.cannotAsk.text}</T>
+          </Surface>:null}
+          {p.cannotAsk?<Surface kind="note" style={s.notice}><T>{p.cannotAsk.text}</T>
             {p.cannotAsk.action?<V2Action label={p.cannotAsk.action.label} kind="quiet" disabled={p.busy} onPress={p.cannotAsk.action.onPress} style={s.noticeAction}/>:null}
-          </View>:null}
+          </Surface>:null}
         </>:null}
         {p.loaded&&owner&&p.pending.length?<View style={s.section}>
           <T variant="heading" accessibilityRole="header">Čekaju odgovor <T variant="heading" tone="muted">· {p.pending.length}</T></T>
-          {p.pending.map(q=>item(q))}</View>:null}
+          {parted(p.pending.map(q=>item(q)))}</View>:null}
         {p.loaded?<View style={s.section}>
           <T variant="heading" accessibilityRole="header">Pitanja i odgovori</T>
-          {p.answered.length?p.answered.map(q=>item(q))
+          {p.answered.length?parted(p.answered.map(q=>item(q)))
             :<StateView kind="empty" art="chat" title="Još nema objavljenih odgovora" body="Odgovoreno pitanje se ovde prikazuje javno."/>}
         </View>:null}
-        {p.loaded&&owner&&p.set.length?<View style={s.section}><T variant="heading" accessibilityRole="header">Sklonjena pitanja</T>{p.set.map(q=>item(q))}</View>:null}
+        {p.loaded&&owner&&p.set.length?<View style={s.section}><T variant="heading" accessibilityRole="header">Sklonjena pitanja</T>{parted(p.set.map(q=>item(q)))}</View>:null}
         {p.loaded&&owner&&p.historical.length?<View style={s.section}><T variant="heading" accessibilityRole="header">Prethodne verzije</T>
-          <T variant="copy" tone="muted">Ovi odgovori ne opisuju aktuelne uslove zadatka.</T>{p.historical.map(q=>item(q,true))}</View>:null}
+          <T variant="copy" tone="muted">Ovi odgovori ne opisuju trenutne uslove zadatka.</T>{parted(p.historical.map(q=>item(q,true)))}</View>:null}
       </ScrollView>
       {c?<PillComposer value={p.text} onChange={p.onText} label={c.answering!==null?'Tekst odgovora':'Tekst pitanja'}
         placeholder={c.answering!==null?'Napiši odgovor…':'Napiši pitanje…'} sendLabel={c.answering!==null?'Objavi odgovor':'Pošalji pitanje'}
@@ -114,10 +118,10 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
         above={<>
           {c.answering!==null?<View style={s.answering}>
             <View style={s.answeringText}><T variant="meta" tone="muted">Odgovor na</T><T variant="bodyStrong" numberOfLines={3}>{c.answering}</T></View>
-            <ChromeIconButton label="Zatvori odgovor" icon={X} quiet disabled={p.busy} onPress={p.onCloseAnswer}/>
+            <ChromeIconButton label="Zatvori odgovor" glyph="close" quiet disabled={p.busy} onPress={p.onCloseAnswer}/>
           </View>:null}
           {c.answering!==null?<PillNote>Odgovor razjašnjava postojeće uslove. Za promenu uslova vrati se na zadatak i izmeni ga kroz pregled i objavu.</PillNote>:null}
-          {c.revisionChanged?<PillNote tone="danger" alert>Zadatak je izmenjen. Zatvori odgovor i pregledaj aktuelna pitanja pre slanja.</PillNote>:null}
+          {c.revisionChanged?<PillNote tone="danger" alert>Zadatak je izmenjen. Zatvori odgovor i pregledaj trenutna pitanja pre slanja.</PillNote>:null}
           {over?<PillNote tone="danger">{length.toLocaleString('sr-Latn-RS')} / {c.maxChars!.toLocaleString('sr-Latn-RS')} znakova — skrati tekst.</PillNote>:null}
         </>}/>:null}
       {confirm.sheet}
@@ -129,12 +133,13 @@ const s=StyleSheet.create({
   screen:{flex:1,backgroundColor:sys.color.ground},
   content:{paddingHorizontal:sys.space.lg,paddingTop:sys.space.sm,paddingBottom:sys.space.xl,gap:sys.space.base},
   section:{gap:sys.space.md,paddingTop:sys.space.sm},
-  // A question is a bare item on the page, parted from the next by a hairline: the thread is one list, not a stack of cards.
-  item:{gap:sys.space.sm,paddingVertical:sys.space.md,borderTopWidth:StyleSheet.hairlineWidth,borderTopColor:sys.color.cardLine},
+  // A question is a bare item on the page, parted from the next by a line of 1 dp (`rule`): the thread is one list, not a stack of cards.
+  item:{gap:sys.space.sm,paddingVertical:sys.space.md},
+  rule:{height:ruleWidth,backgroundColor:sys.color.line},
   // The answer stands behind the green rule, so the two voices of the thread differ at a glance.
   answer:{gap:sys.space.xs,paddingLeft:sys.space.md,borderLeftWidth:3,borderLeftColor:sys.color.green},
   actions:{flexDirection:'row',flexWrap:'wrap',gap:sys.space.sm},
-  notice:{...inset,gap:sys.space.sm,backgroundColor:sys.color.wash},
+  notice:{gap:sys.space.sm},
   // The way out of a notice stands under its sentence, at the sentence's own left edge, sized to its words.
   noticeAction:{alignSelf:'flex-start',paddingHorizontal:0},
   fieldBlock:{gap:sys.space.xs},

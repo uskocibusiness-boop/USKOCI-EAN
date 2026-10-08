@@ -1,4 +1,4 @@
-import { createDiscoveryV1SearchOwner, discoveryV1SearchPreviewKey, SEARCH_PREVIEW_FRESH_MS, type SearchPreviewView } from '../discoveryV1SearchOwner';
+import { createDiscoveryV1SearchOwner, DISCOVERY_V1_PLACES_BY_CITY, discoveryV1SearchPreviewKey, SEARCH_PREVIEW_FRESH_MS, type SearchPreviewView } from '../discoveryV1SearchOwner';
 import { initialMarketplaceView, type MarketplaceView } from '../marketplaceView';
 import type { DiscoveryV1OwnerRequest } from '../discoveryV1Owner';
 
@@ -41,11 +41,72 @@ it('the letters typed to find a place narrow the places only; the words searched
  const read=owner.preview(v,[19,44,21,46],3);
  expect(h.pending[0].request).toMatchObject({mode:'PAGE',filter:{text:'selidba',place:null}});
  expect(h.pending[1].request).toMatchObject({mode:'PLACES',prefix:'vrač',filter:{text:''}});
- h.pending[0].resolve(page(8));h.pending[1].resolve(places([{key:'beograd, vračar',text:'Beograd, Vračar',count:3}],true));await read;
+ // The parts of a city are asked for apart (the AREA rows), over the same letters and the same facets.
+ expect(h.pending[2].request).toMatchObject({mode:'PLACES',prefix:'vrač',filter:{text:''},facetArea:[19,44,21,46]});
+ h.pending[0].resolve(page(8));h.pending[1].resolve(places([{key:'beograd',text:'Beograd',count:3}],true));
+ h.pending[2].resolve(places([{key:'beograd, vračar',text:'Beograd, Vračar',count:3}],false));await read;
  expect(owner.snapshot().key).toBe(discoveryV1SearchPreviewKey(v,[19,44,21,46]));
- // The continuation keeps the same prefix.
- const next=owner.nextPlaces();expect(h.pending[2].request).toMatchObject({mode:'PLACES',prefix:'vrač'});
- h.pending[2].resolve(places([{key:'beograd, vračar',text:'Beograd, Vračar',count:3},{key:'novi sad, vračar',text:'Novi Sad, Vračar',count:1}],false));await next;
+ // The continuation of the cities keeps the same prefix.
+ const next=owner.nextPlaces();expect(h.pending[3].request).toMatchObject({mode:'PLACES',prefix:'vrač',groupBy:'CITY'});
+ h.pending[3].resolve(places([{key:'beograd',text:'Beograd',count:3},{key:'novi sad',text:'Novi Sad',count:1}],false));await next;
+});
+
+// DISCOVERY-GRAD (owner decision d14, applied to DEV 2026-10-08): "Gde" lists CITIES; the parts of a city are the AREA rows, asked for apart by the letters typed.
+it('the places are asked as cities in every read of the list, and the parts of a city are asked for apart by the letters typed',async()=>{
+ expect(DISCOVERY_V1_PLACES_BY_CITY).toBe(true);
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v:SearchPreviewView={...view(),placeSearch:'lim'},area:[number,number,number,number]=[19,44,21,46];
+ const read=owner.preview(v,area,3);
+ expect(h.pending.map(x=>x.request.mode)).toEqual(['PAGE','PLACES','PLACES']);
+ expect(h.pending[1].request).toMatchObject({mode:'PLACES',prefix:'lim',groupBy:'CITY',anchor:null,after:null,limit:3});
+ // the AREA request is the list of before: no key at all, and its own chain (no anchor)
+ expect('groupBy' in h.pending[2].request).toBe(false);
+ expect(h.pending[2].request).toMatchObject({mode:'PLACES',prefix:'lim',anchor:null,after:null,limit:3});
+ h.pending[0].resolve(page(5));
+ h.pending[1].resolve(places([{key:'limanovci',text:'Limanovci',count:2}],true));
+ h.pending[2].resolve(places([{key:'liman, novi sad',text:'Liman, Novi Sad',count:9},{key:'novi sad',text:'Novi Sad',count:4}],false));
+ await read;
+ expect(owner.snapshot().places).toEqual([{key:'limanovci',text:'Limanovci',count:2}]);
+ // only a part of a city (a place text with a comma) is kept: a bare city name is a city row and is not offered twice
+ expect(owner.snapshot().parts).toEqual([{key:'liman, novi sad',text:'Liman, Novi Sad',count:9}]);
+ expect(owner.snapshot()).toMatchObject({status:'ready',facetError:false,placeHasMore:true});
+ // the continuation pages the cities only, over the cities' own anchor and cursor
+ const next=owner.nextPlaces();
+ expect(h.pending[3].request).toMatchObject({mode:'PLACES',prefix:'lim',groupBy:'CITY',anchor:anchor(),after:{count:2,text:'Limanovci',key:'limanovci'}});
+ h.pending[3].resolve(places([{key:'limanovci',text:'Limanovci',count:2},{key:'limani',text:'Limani',count:1}],false));await next;
+ expect(owner.snapshot().places.map(row=>row.key)).toEqual(['limanovci','limani']);
+ expect(owner.snapshot().parts).toHaveLength(1);
+});
+
+it('a draft that says no letters asks for the cities alone; the parts are asked for only by letters typed in "Gde"',async()=>{
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport);
+ void owner.preview({...view(),placeSearch:''},null,3);
+ expect(h.pending.map(x=>x.request.mode)).toEqual(['PAGE','PLACES']);
+ expect(h.pending[1].request).toMatchObject({mode:'PLACES',prefix:'',groupBy:'CITY'});
+ // the words searched are the prefix of a caller that says nothing of letters: that is the places of before, so no parts either
+ void owner.preview(view({query:'selidba'}),null,3);
+ expect(h.pending.slice(2).map(x=>x.request.mode)).toEqual(['PAGE','PLACES']);
+});
+
+it('a failed or unreadable read of the parts leaves the cities standing, and says nothing of them',async()=>{
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v:SearchPreviewView={...view(),placeSearch:'lim'};
+ const read=owner.preview(v,null,3);
+ h.pending[0].resolve(page(5));h.pending[1].resolve(places([{key:'novi sad',text:'Novi Sad',count:4}],false));h.pending[2].reject(new Error('P6_INVALID_REQUEST'));
+ await read;
+ expect(owner.snapshot()).toMatchObject({status:'ready',facetError:false,parts:[]});
+ expect(owner.snapshot().places).toEqual([{key:'novi sad',text:'Novi Sad',count:4}]);
+ const again=owner.preview({...v,placeSearch:'lima'},null,3);
+ h.pending[3].resolve(page(5));h.pending[4].resolve(places([{key:'novi sad',text:'Novi Sad',count:4}],false));h.pending[5].resolve({bad:'shape'});
+ await again;
+ expect(owner.snapshot()).toMatchObject({status:'ready',facetError:false,parts:[]});
+ expect(owner.snapshot().places).toHaveLength(1);
+});
+
+it('a server that refuses the cities leaves the count working and says the places are not available',async()=>{
+ const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport);
+ const read=owner.preview({...view(),placeSearch:''},null,3);
+ h.pending[0].resolve(page(5));h.pending[1].reject(new Error('P6_INVALID_REQUEST'));
+ await read;
+ expect(owner.snapshot()).toMatchObject({status:'ready',count:5,facetError:true,places:[],parts:[]});
 });
 
 it('another set of letters is another preview, and a draft that says no letters keeps the words out of the places',async()=>{

@@ -1,9 +1,11 @@
+import { Fragment } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { starost } from '../../lib/starost';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from '../v2/V2Action';
 import { Glyph } from '../system/Glyph';
+import { ruleWidth } from '../system/layout';
 import { SkeletonList } from '../system/Skeleton';
 import { sys } from '../system/tokens';
 import { qaCountLine, waitingWords, type QaInlineItem, type QaInlineReady, type TaskQaInlineState } from './taskQaInlineModel';
@@ -31,8 +33,9 @@ const spoken = (line: string) => line.split(' · ').join(', ');
 /**
  * The questions of one task and the owner's answers, where the task is read (owner, 2026-10-07: they were a link to another
  * screen, and nobody who read the task saw what had been asked). A stranger sees the answered questions, the owner sees
- * the ones that wait for him first and the answered after them. Quiet rows on the page, no card in a card: the question,
- * and under it the answer behind the green rule the whole thread uses, with who answered and how long ago.
+ * the ones that wait for him first and the answered after them. Quiet rows on the page, no card in a card, parted by a short
+ * line of 1 dp (the one divider, composition spec 2026-10-07): the question, and under it the answer behind the green rule
+ * the whole thread uses, with who answered and how long ago.
  *
  * Presentation only. The reader above owns the two reads, the account and the version of the task; asking and answering
  * stay in the whole thread, which this opens by the same route as before. A read that failed says so and offers the read
@@ -61,8 +64,10 @@ function Thread({ ready, disabled, now, onAsk, onAnswer, onOpenAll }: Pick<TaskQ
   const count = qaCountLine(ready.listed, ready.answered);
   return <>
     {count ? <T variant="note" tone="muted" accessibilityLabel={spoken(count)}>{count}</T> : null}
-    {ready.shown.length ? <View>{ready.shown.map(item => <Row key={item.questionId} item={item} viewer={ready.viewer} canAnswer={ready.canAnswer}
-      disabled={disabled} now={now} onAnswer={onAnswer} />)}</View>
+    {ready.shown.length ? <View>{ready.shown.map((item, index) => <Fragment key={item.questionId}>
+      {index ? <View testID="task-qa-rule" pointerEvents="none" style={s.rule} /> : null}
+      <Row item={item} viewer={ready.viewer} canAnswer={ready.canAnswer} disabled={disabled} now={now} onAnswer={onAnswer} />
+    </Fragment>)}</View>
       // A thread kept out because the task changed must not read as a task nobody asked about.
       : <T variant="copy" tone="muted">{ready.olderVersion ? 'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.' : 'Još nema pitanja.'}</T>}
     {ready.shown.length && ready.olderVersion ? <T variant="note" tone="muted">Neka ranija pitanja pripadaju starijoj verziji zadatka.</T> : null}
@@ -83,7 +88,7 @@ function Row({ item, viewer, canAnswer, disabled, now, onAnswer }: {
     // Who answered: to the owner it is his own answer. Only the stranger's read says when; the owner's read does not.
     // "Upravo" is a sentence's first word elsewhere; in the middle of this line it is not capitalised.
     const age = item.answeredAt ? starost(item.answeredAt, { sada: now }) : null;
-    const by = [viewer === 'OWNER' ? 'Tvoj odgovor' : 'Odgovorio vlasnik zadatka', age === 'Upravo' ? 'upravo' : age, item.edited ? 'izmenjeno' : null]
+    const by = [viewer === 'OWNER' ? 'Tvoj odgovor' : 'Odgovor osobe koja je objavila zadatak', age === 'Upravo' ? 'upravo' : age, item.edited ? 'izmenjeno' : null]
       .filter(Boolean).join(' · ');
     return <View style={s.item}>
       <T variant="bodyStrong">{item.question}</T>
@@ -122,8 +127,9 @@ const s = StyleSheet.create({
   title: { color: sys.color.ink },
   loading: { gap: sys.space.sm },
   trouble: { gap: sys.space.xs, alignItems: 'flex-start' },
-  // A question is a bare item on the page, parted from the next by a hairline: the thread is one list, not a stack of cards.
-  item: { gap: sys.space.sm, paddingVertical: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine },
+  // A question is a bare item on the page, parted from the next by a line of 1 dp (`rule`): the thread is one list, not a stack of cards.
+  item: { gap: sys.space.sm, paddingVertical: sys.space.md },
+  rule: { height: ruleWidth, backgroundColor: sys.color.line },
   // The answer stands behind the green rule, as in the whole thread, so the two voices differ at a glance.
   answer: { gap: sys.space.xs, paddingLeft: sys.space.md, borderLeftWidth: 3, borderLeftColor: sys.color.green },
   waiting: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm, rowGap: sys.space.xs },

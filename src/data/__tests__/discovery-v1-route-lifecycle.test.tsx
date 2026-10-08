@@ -86,7 +86,7 @@ function server(request: DiscoveryV1OwnerRequest): unknown {
 
 let tree: ReactTestRenderer | undefined;
 const bridge = () => tree!.root.findAllByType('Bridge' as unknown as React.ElementType)[0];
-const errorState = () => tree!.root.findAllByProps({ title: 'Zadaci trenutno nisu dostupni' });
+const errorState = () => tree!.root.findAllByProps({ title: 'Ne možemo da učitamo zadatke' });
 const flush = async () => { for (let i = 0; i < 80; i++) await act(async () => { await Promise.resolve(); }); };
 const modes = () => mockTransportCalls.map(request => request.mode);
 let info: jest.SpyInstance;

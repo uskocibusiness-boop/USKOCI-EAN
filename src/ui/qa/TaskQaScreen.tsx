@@ -57,7 +57,7 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     setContext(c);setRows(feed.podatak);
   }
   async function finish(i:QaIntent,c:QaRecoveredCommand,token:object):Promise<'FOUND'|'UNKNOWN'> {
-    if(!matchesQaReceipt(i,c)){setAbsent(false);say('Potvrda se ne podudara sa sačuvanom radnjom. Slanje ostaje zaustavljeno.');return 'UNKNOWN';}
+    if(!matchesQaReceipt(i,c)){setAbsent(false);say('Ova radnja se ne poklapa sa sačuvanom. Slanje je zaustavljeno.');return 'UNKNOWN';}
     await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);
     if(!live(token))return 'UNKNOWN';
     setIntent(null);setAbsent(false);setClassification(null);setMaterial(false);setTarget(null);setText('');
@@ -67,14 +67,14 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
   async function consumeAi(i:Exclude<QaIntent,{type:'DISPOSITION'}>,s:QaSubmissionStatus,token:object):Promise<'FOUND'|'ABSENT'|'UNKNOWN'|'TERMINAL'> {
     if(!live(token))return 'UNKNOWN';
     if(s.state!=='ABSENT'&&(s.type!==i.type||s.needRevision!==i.needRevision||s.textSha256!==i.textSha256||s.questionId!==(i.type==='ANSWER'?i.questionId:null))){
-      setClassification(null);setAbsent(false);say('Potvrda obrade ne odgovara sačuvanom zahtevu. Proveri stanje ponovo.');return 'UNKNOWN';
+      setClassification(null);setAbsent(false);say('Ne znamo da li je pitanje obrađeno. Osveži pa proveri.');return 'UNKNOWN';
     }
     setClassification(s);setAbsent(s.state==='ABSENT'||s.state==='READY');
     if(s.state==='COMMITTED')return finish(i,{type:i.type,needRevision:i.needRevision,textSha256:i.textSha256,receipt:s.receipt!},token);
     if(['CANCELLED','REJECTED','STALE'].includes(s.state)) {
       await qaIntentJournal.clear(accountId!,i.needId,i.clientRequestId);if(!live(token))return 'UNKNOWN';
       setIntent(null);setAbsent(false);setClassification(null);setMaterial(s.materiality==='MATERIAL');
-      setReceipt(s.state==='CANCELLED'&&s.safeReasonCodes.includes('QA_PROCESSING_FAILED')?'Provera teksta nije uspela. Tekst nije poslat ovim zahtevom. Možeš ponovo da ga pošalješ.'
+      setReceipt(s.state==='CANCELLED'&&s.safeReasonCodes.includes('QA_PROCESSING_FAILED')?'Provera teksta nije uspela. Tekst nije poslat. Možeš da ga pošalješ ponovo.'
         :s.state==='CANCELLED'?'Slanje je otkazano. Tekst neće biti objavljen naknadno.'
         :s.state==='STALE'?'Zadatak ili pravila su promenjeni. Pregledaj aktuelna pitanja pre novog slanja.'
          :s.materiality==='MATERIAL'?'Odgovor menja uslove zadatka. Izmeni zadatak kroz pregled i objavu.'
@@ -170,7 +170,7 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     if(renderGeneration!==viewGeneration.current)return;
     if(!intent||!absent)return;
     const body=text.trim();
-    if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){say('Za isti zahtev unesi potpuno isti tekst. Prethodni tekst nije sačuvan na telefonu.');return;}
+    if(intent.textSha256!==null&&qaTextHash(body)!==intent.textSha256){say('Za ponovno slanje upiši isti tekst. Prethodni tekst nije sačuvan na telefonu.');return;}
     if(await readIntent(intent,token)!=='ABSENT'||!live(token))return;
     await send(intent,body,token);
   });

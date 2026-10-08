@@ -26,9 +26,9 @@ export const filtersSpoken = (count: number) => count > 0 ? `Filteri, ${plural(c
  * the search pill while the list is lowered, and as the sticky header of the list sheet from half height up, where a thumb reaches
  * it. It never scrolls away with the list.
  *
- * - The scope ("Svi zadaci | Za mene") is BUILT but not drawn: "Za mene" needs a filter key the server does not have yet, and a
- *   control that does nothing is not shown. `forMeAvailable` is the one switch that brings it in once that package ships; until
- *   then the row starts with "Filteri". A scope with a single option would be a dead control too, so it never stands alone.
+ * - The scope ("Svi zadaci | Za mene", R28) is drawn only when the build says the server has the filter key (`forMeAvailable`,
+ *   DISCOVERY-ZAMENE): a control that does nothing is not shown, so without it the row starts with "Filteri". A scope with a single
+ *   option would be a dead control too, so it never stands alone.
  * - "Filteri · N" opens the search at its conditions; N counts the conditions that are on.
  * - A quick chip is offered only for a filter the search really has and the tasks can back (the screen decides which), and it
  *   writes into the same state as the panel, so there are never two sources of truth.
@@ -46,7 +46,7 @@ export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScop
   const flat = surface === 'sheet';
   return <ScrollView testID={testID} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
     accessibilityLabel="Brzi filteri" style={s.rail} contentContainerStyle={[s.chips, flat && s.chipsSheet]}>
-    {forMeAvailable ? <Segmented<ScopeKey> options={SCOPE_OPTIONS} value={scope} onChange={next => onScope?.(next)} contentSized /> : null}
+    {forMeAvailable ? <Segmented<ScopeKey> options={SCOPE_OPTIONS} value={scope} onChange={next => onScope?.(next)} contentSized style={s.scope} /> : null}
     <Press testID="chip-filters" accessibilityRole="button" accessibilityLabel={filtersSpoken(filtersCount)}
       accessibilityHint="Otvara pretragu: gde, kada i uslovi." accessibilityState={{ selected: filtersCount > 0 }}
       haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onFilters}
@@ -65,6 +65,9 @@ export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScop
 
 const s = StyleSheet.create({
   rail: { flexGrow: 0, alignSelf: 'stretch' },
+  // The two tabs of the scope share a track, and in a row that scrolls the track has no width of its own to share: it shrank to the shortest word and broke "Svi zadaci" in
+  // two (found in the lab). It is given the width its two names need at the owner's text size; at a larger one the words go to a second line, as the control says.
+  scope: { width: 232 },
   // The room the row asks of its parent: one row of 48 high chips with the air a lift needs above and below.
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingTop: 2, paddingBottom: sys.space.sm },
   // In the list's header the row lines up with the cards under it (the list's own side padding).

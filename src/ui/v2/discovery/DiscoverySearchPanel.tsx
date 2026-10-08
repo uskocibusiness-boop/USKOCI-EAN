@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { AccessibilityInfo, Keyboard, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
-import { discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot, type SearchPreviewView } from '../../../data/discoveryV1SearchOwner';
+import { DISCOVERY_V1_PLACES_BY_CITY, discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot, type SearchPreviewView } from '../../../data/discoveryV1SearchOwner';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { TurningCaret } from '../../system/Disclosure';
+import { FlowFooter } from '../../system/FlowFooter';
+import { layout } from '../../system/layout';
 import { osoba, zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { brandAction, sys } from '../../system/tokens';
@@ -74,19 +76,20 @@ export function useScreenReader(): boolean {
 
 /**
  * The search over the Zadaci map, as an Airbnb-style panel (owner, 2026-10-07; UX plan 2.19): a tall white sheet over the
- * screen it opened on, which is blurred behind it. The questions are separate cards in the order Gde, Kada, Šta, Cena,
- * Broj ljudi, Način rada; one is open at a time, a closed one says what is chosen in it, and a choice that completes a
+ * screen it opened on, which is blurred behind it. The questions are the rows of one list, in the order Gde, Kada, Šta, Cena,
+ * Broj ljudi, Način rada (UI/UX pass 2026-10-08: no card around a section, a short line between two); one is open at a time, a closed one says what is chosen in it, and a choice that completes a
  * question opens the next (a place, a day range once confirmed, the typed word on "Gotovo", a price, a way of working).
  * Nothing that takes several taps or letters (the number of people, a word being typed) moves on by itself.
  *
  * "Gde" is a list of places that fills the screen as soon as it is scrolled; the × then brings the sheet back. Every
  * choice is a draft: the footer's one green action applies it all and says how many tasks the list will then show (a
- * polite live region, so the new number is heard), "Obriši uslove" empties the draft, and × or Back leaves the list exactly
+ * polite live region, so the new number is heard), "Poništi filtere" empties the draft, and × or Back leaves the list exactly
  * as it was. While the list is not known yet the panel counts nothing: the action says the list is being read, or that it
  * could not be, and cannot be pressed; while only what is mine is still read it applies the draft without a number.
  *
- * "Gde" offers every task, the map's area, the person's own position (once, applied with the draft), the places the tasks
- * name with their counts, and the biggest cities of Serbia (see `PlacePicker`). The letters typed there only find places.
+ * "Gde" offers every task, the map's area, the person's own position (once, applied with the draft), the cities the tasks are in with their
+ * counts (the server's city list; the places the tasks name when it is not there), the parts of a city that contain the letters typed, and the biggest
+ * cities of Serbia (see `PlacePicker`). The letters typed there only find places.
  */
 export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, start = 'gde', reduced, readiness = 'ready',
   p6Search, canNearby = false, onApply, onClose }: {
@@ -233,8 +236,10 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const placesRead = p6Search ? serverCurrent : true;
   const rows: PlaceRow[] = (p6Search ? serverCurrent ? p6Search.snapshot.places.map(place => ({ text: place.text, count: place.count })) : [] : localPlaces)
     .map(place => ({ text: place.text, count: known(place.count) }));
+  // The parts of a city ("Liman, Novi Sad") that contain the letters typed: the server's AREA rows, apart from the city rows above, with the same honesty about counts.
+  const partRows: PlaceRow[] = p6Search && serverCurrent ? p6Search.snapshot.parts.map(place => ({ text: place.text, count: known(place.count) })) : [];
   // A place that is chosen stays in the list and can be taken away, even if the other conditions (or a fresh read) leave it no tasks.
-  if (draft.place && placesRead && !rows.some(place => placeKey(place.text) === placeKey(draft.place!))) {
+  if (draft.place && placesRead && !rows.some(place => placeKey(place.text) === placeKey(draft.place!)) && !partRows.some(place => placeKey(place.text) === placeKey(draft.place!))) {
     rows.push({ text: draft.place, count: p6Search ? null : known(0) });
   }
   const everywhere = p6Search ? serverCurrent ? known(p6Search.snapshot.everywhere) : null : known(localEverywhere);
@@ -251,7 +256,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     : effectiveReadiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
       : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
-  const emptyReason = counted && count === 0 ? 'Probaj širu oblast ili drugi dan.' : null;
+  const emptyReason = counted && count === 0 ? 'Pokušaj sa širom oblašću ili drugim danom.' : null;
 
   // Once the panel has begun to leave, nothing in it is acted on again: a second "Prikaži" or × during the 170 ms of its exit
   // must not apply the draft twice or close twice.
@@ -275,15 +280,20 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     beginClose();
   };
 
-  const common = (step: SearchStep) => ({ step, open: activeStep === step, large, reduced, onToggle: toggleStep,
+  const lastStep = order[order.length - 1];
+  const common = (step: SearchStep) => ({ step, open: activeStep === step, last: step === lastStep, large, reduced, onToggle: toggleStep,
     onPosition: positionSection, onBodyPosition: positionBody, onSettled: settled });
   const gdeSummary = nearbyChosen && draft.where !== 'remote' ? 'U blizini' : whereWords({ ...draft, query: '' });
-  const footer = <View testID="search-actions" style={[s.footer, stackedActions && s.footerStacked]}>
-    <V2Action label={CLEAR_ALL} accessibilityLabel="Obriši sve uslove pretrage" kind="quiet" tone="neutral" compact style={s.reset} onPress={clearAll} />
-    <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
-      <V2Action label={show.label} disabled={show.disabled} reason={emptyReason} onPress={apply} style={brandAction} />
+  // The foot every flow has (UI/UX pass 2026-10-08): the quiet "take everything away" beside the one green action, which says how many tasks the list will show;
+  // when it cannot be pressed the reason stands in a line above it. At a large text size or a narrow window the two stand one under the other.
+  const footer = <FlowFooter testID="search-footer" reason={emptyReason ?? undefined}>
+    <View testID="search-actions" style={[s.actions, stackedActions && s.actionsStacked]}>
+      <V2Action label={CLEAR_ALL} kind="quiet" tone="neutral" compact style={s.reset} onPress={clearAll} />
+      <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
+        <V2Action label={show.label} disabled={show.disabled} onPress={apply} style={brandAction} />
+      </View>
     </View>
-  </View>;
+  </FlowFooter>;
 
   return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} expanded={wide} closing={closing}
     title={wide ? SECTION_LABEL.gde : start === 'gde' ? 'Pretraga' : 'Filteri'}
@@ -291,20 +301,20 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={onClose}>
     <ScrollView ref={scroll} style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}
       onScrollBeginDrag={() => { retireReveal(); if (activeStep === 'gde') setWide(true); }}>
-      <SearchSection {...common('gde')} label={SECTION_LABEL.gde} summary={gdeSummary} art="pin">
+      <SearchSection {...common('gde')} label={SECTION_LABEL.gde} summary={gdeSummary}>
         <PlacePicker typed={placeSearch} onType={setPlaceSearch} remote={draft.where === 'remote'}
           anywhere={{ checked: !draft.place && !draft.area && !draft.pinPlace && !nearbyChosen, count: everywhere, onPress: () => choosePlaceFlow(ANYWHERE) }}
           area={{ available: !!mapArea, checked: !draft.place && !!draft.area && !draft.pinPlace && !nearbyChosen, count: inMapArea,
             onPress: () => { if (mapArea) choosePlaceFlow({ ...ANYWHERE, area: mapArea }); } }}
           nearby={{ available: canNearby && draft.where !== 'remote', checked: nearbyChosen, onPress: () => choosePlaceFlow(ANYWHERE, true) }}
-          places={rows} chosenPlace={draft.place} ready={counted && placesRead} complete={placesComplete}
+          places={rows} parts={partRows} cities={!!p6Search && DISCOVERY_V1_PLACES_BY_CITY} serverFiltered={!!p6Search} chosenPlace={draft.place} ready={counted && placesRead} complete={placesComplete}
           more={p6Search && serverCurrent && p6Search.snapshot.placeHasMore
             ? { label: p6Search.snapshot.placePaging ? 'Učitavamo još mesta…' : 'Prikaži još mesta', busy: p6Search.snapshot.placePaging, onPress: p6Search.onNextPlaces } : null}
           note={facetDown ? PLACE_WORDS.facetDown : null}
           onPlace={text => choosePlaceFlow({ ...ANYWHERE, place: text })}
           onWord={text => { edit({ query: text }); setPlaceSearch(''); openStep('sta'); }} />
       </SearchSection>
-      <SearchSection {...common('kada')} label={SECTION_LABEL.kada} summary={whenWords(draft, now)} art="calendar">
+      <SearchSection {...common('kada')} label={SECTION_LABEL.kada} summary={whenWords(draft, now)}>
         <Choice compact label="Kada" options={WHEN} value={draft.dates ? null : draft.when}
           onChange={when => { setRangeStart(null); edit({ when, dates: null }); advance('kada'); }} />
         <Press testID="search-date-toggle" accessibilityRole="button" accessibilityLabel="Datumi"
@@ -326,15 +336,15 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         </View> : null}
         {counted && undated ? <T variant="note" tone="muted">{undatedWords(undated)}</T> : null}
       </SearchSection>
-      <SearchSection {...common('sta')} label={SECTION_LABEL.sta} summary={draft.query.trim() ? quoted(draft.query) : ANY_WHAT} art="tool">
+      <SearchSection {...common('sta')} label={SECTION_LABEL.sta} summary={draft.query.trim() ? quoted(draft.query) : ANY_WHAT}>
         <SearchField testID="search-what-field" value={draft.query} onChangeText={query => edit({ query })} label="Šta tražiš"
           placeholder="Npr. selidba, farbanje, košenje" clearLabel="Obriši reč" returnKeyType="done" onSubmit={() => advance('sta')} />
         <T variant="note" tone="muted">Traži se u naslovima, mestu i uslovima zadataka.</T>
       </SearchSection>
-      <SearchSection {...common('cena')} label={SECTION_LABEL.cena} summary={said(PRICE, draft.price)} art="money">
+      <SearchSection {...common('cena')} label={SECTION_LABEL.cena} summary={said(PRICE, draft.price)}>
         <Choice label="Cena" options={PRICE} value={draft.price} onChange={price => { edit({ price }); advance('cena'); }} />
       </SearchSection>
-      <SearchSection {...common('koliko')} label={SECTION_LABEL.koliko} summary={osoba(draft.places)} art="users">
+      <SearchSection {...common('koliko')} label={SECTION_LABEL.koliko} summary={osoba(draft.places)}>
         <View testID="search-people-layout" style={[s.peopleRow, stackedPeople && s.peopleStacked]}>
           <Stepper value={draft.places} expanded={stackedPeople} onChange={places => edit({ places })} />
         </View>
@@ -342,7 +352,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         {/* A number is counted with several taps, so it never moves on by itself; "Gotovo" says it is the number. */}
         <V2Action label="Gotovo" kind="secondary" onPress={() => advance('koliko')} />
       </SearchSection>
-      {workModes ? <SearchSection {...common('kako')} label={SECTION_LABEL.kako} summary={said(WHERE, draft.where)} art="remote">
+      {workModes ? <SearchSection {...common('kako')} label={SECTION_LABEL.kako} summary={said(WHERE, draft.where)}>
         <Choice label="Način rada" options={WHERE} value={draft.where} onChange={where => { edit({ where }); advance('kako'); }} />
       </SearchSection> : null}
     </ScrollView>
@@ -353,7 +363,8 @@ const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
   ink: { color: sys.color.ink },
   scroll: { flex: 1 },
-  sections: { paddingHorizontal: sys.space.base, paddingTop: sys.space.xs, paddingBottom: sys.space.base, gap: sys.space.md },
+  // The sections are rows of one list, 20 from the edge like every screen; they part with an inset line, not with space.
+  sections: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.base },
   dateToggle: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: sys.touch.min,
     paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm, backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
   dateOn: { color: sys.color.ink, fontWeight: '600' },
@@ -361,10 +372,9 @@ const s = StyleSheet.create({
   peopleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.md },
   peopleStacked: { flexDirection: 'column', alignItems: 'stretch' },
   reset: { paddingHorizontal: 0, flexShrink: 1, alignSelf: 'flex-start' },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.lg, paddingTop: sys.space.md,
-    paddingBottom: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   // At 320 dp / large text, the clear label otherwise takes nearly the whole row and turns the primary label into
   // a column of letters. The primary gets the full width; reset stays a quiet link with a 48 dp touch target.
-  footerStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.xs },
+  actionsStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.xs },
   showStacked: { flex: 0, width: '100%' },
 });

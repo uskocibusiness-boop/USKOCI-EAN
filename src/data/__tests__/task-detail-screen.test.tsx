@@ -90,7 +90,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     const retry = deferred<PrilikaProjekcija>();
     mockLoad.mockRejectedValueOnce(new Error('secret transport internals')).mockReturnValueOnce(retry.promise);
     await render();
-    expect(text()).toContain('Zadatak trenutno nije moguće učitati'); expect(text()).not.toContain('secret');
+    expect(text()).toContain('Ne možemo da učitamo zadatak'); expect(text()).not.toContain('secret');
     expect(buttons('Sastavi prijavu')).toHaveLength(0);
     const press = buttons('Pokušaj ponovo')[0].props.onPress;
     await act(async () => { press(); press(); }); expect(mockLoad).toHaveBeenCalledTimes(2);
@@ -105,8 +105,8 @@ describe('W04 actual screen and focused read lifecycle', () => {
     // belongs to the Dogovor, so `coarse` must stay on and the pin must not be draggable.
     mockLoad.mockResolvedValue({ ...detail(), priblizno: { lat: 45.2671, lng: 19.8335 } });
     await render();
-    // V41 names the section "Mesto zadatka" (2026-09-23); it was "Gde je".
-    expect(text()).toContain('Mesto zadatka');
+    // The section is "Mesto" (composition spec 2026-10-07, T3); it was "Mesto zadatka" and, before V41, "Gde je".
+    expect(text()).toContain('Mesto');
     expect(text()).toContain('Približno područje. Tačna adresa se deli tek u Dogovoru.');
     const map = tree!.root.findByProps({ coarse: true });
     expect(map.props.points).toEqual([{ id: 'area', label: 'Približno mesto', latitude: 45.2671, longitude: 19.8335 }]);
@@ -116,7 +116,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await act(async () => { tree!.unmount(); }); tree = undefined;
     mockLoad.mockResolvedValue(detail());
     await render();
-    expect(text()).not.toContain('Mesto zadatka');
+    expect(text()).not.toContain('Približno područje');
     expect(tree!.root.findAllByProps({ coarse: true })).toHaveLength(0);
   });
 
@@ -133,17 +133,17 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render(); const stalePress = buttons('Sastavi prijavu')[0].props.onPress;
     await act(async () => { mockAppListeners.forEach(listener => listener('active')); stalePress(); });
     expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(buttons('Sastavi prijavu')).toHaveLength(0);
-    expect(text()).toContain('Zadatak task-a'); expect(text()).toContain('Poslednji učitani podaci');
+    expect(text()).toContain('Zadatak task-a'); expect(text()).toContain('Vidiš starije podatke');
     await act(async () => refresh.reject(new Error('offline')));
     expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
     await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
-    expect(text()).not.toContain('Poslednji učitani podaci'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(text()).not.toContain('Vidiš starije podatke'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
   });
 
   it('removes cached detail when a successful refresh says the row is unavailable', async () => {
     mockLoad.mockResolvedValueOnce(detail()).mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('offline'));
     await render(); await act(async () => mockAppListeners.forEach(listener => listener('active')));
-    expect(text()).toContain('Zadatak nije dostupan'); expect(text()).not.toContain('Zadatak task-a');
+    expect(text()).toContain('Ovaj zadatak više nije dostupan'); expect(text()).not.toContain('Zadatak task-a');
     await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
   });
@@ -190,7 +190,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
 
   it('rejects a response that does not match the requested task', async () => {
     mockLoad.mockResolvedValue(detail('other-task')); await render();
-    expect(text()).toContain('Zadatak nije dostupan'); expect(text()).not.toContain('other-task');
+    expect(text()).toContain('Ovaj zadatak više nije dostupan'); expect(text()).not.toContain('other-task');
     expect(buttons('Sastavi prijavu')).toHaveLength(0);
   });
 
@@ -319,7 +319,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   });
   it('makes a successful unavailable read finite, with Back and retry but no application action', async () => {
     mockLoad.mockResolvedValue(null); await render();
-    expect(text()).toContain('Zadatak nije dostupan');
+    expect(text()).toContain('Ovaj zadatak više nije dostupan');
     expect(text()).not.toContain('Učitavam');
     expect(buttons('Sastavi prijavu')).toHaveLength(0);
     await act(async () => back());
@@ -328,7 +328,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
 
   it('keeps a malformed route unavailable without querying and falls back to W03', async () => {
     mockId = ['task-a', 'task-b']; mockRouter.canGoBack.mockReturnValue(false); await render();
-    expect(mockLoad).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak nije dostupan');
+    expect(mockLoad).not.toHaveBeenCalled(); expect(text()).toContain('Ovaj zadatak više nije dostupan');
     await act(async () => { back(); back(); });
     expect(mockRouter.replace.mock.calls).toEqual([['/zadaci']]);
   });
@@ -346,7 +346,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockLoad.mockReturnValueOnce(old.promise).mockResolvedValueOnce({ ...detail(), naslov: 'Sveži Zadatak' });
     await render();
     await act(async () => jest.advanceTimersByTime(15_000));
-    expect(text()).toContain('Zadatak trenutno nije moguće učitati');
+    expect(text()).toContain('Ne možemo da učitamo zadatak');
     await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
     expect(text()).toContain('Sveži Zadatak');
     await act(async () => old.resolve({ ...detail(), naslov: 'Istekli Zadatak' }));
@@ -398,7 +398,7 @@ describe('the questions of the task, drawn on it', () => {
     mockLoad.mockResolvedValue({ ...detail(), opis: 'Dva sprata bez lifta.', narucilacIme: 'Ana Anić' }); await render();
     const all = text();
     expect(all).toContain('2 pitanja · sva odgovorena'); expect(all).toContain('Pitanje 2?'); expect(all).toContain('Odgovor 2.');
-    expect(all).toContain('Odgovorio vlasnik zadatka');
+    expect(all).toContain('Odgovor osobe koja je objavila zadatak');
     expect(all.indexOf('Dva sprata bez lifta.')).toBeLessThan(all.indexOf('Pitanja i odgovori'));
     expect(all.indexOf('Pitanja i odgovori')).toBeLessThan(all.indexOf('Ana Anić'));
     // The one green action is still the application; the section adds none.

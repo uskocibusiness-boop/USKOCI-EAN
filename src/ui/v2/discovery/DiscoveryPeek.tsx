@@ -2,22 +2,18 @@ import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { pinLabel, type MarketplaceItem } from '../../../data/marketplaceView';
 import { needScheduleText, readableTitle } from '../../../data/needDetailPresentation';
-import { displaysUrgent } from '../../../lib/needUrgency';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { PEEK_MAX_SHARE, PeekSheet } from '../../system/PeekSheet';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
-import { FactArt } from '../../system/FactArt';
 import { Glyph } from '../../system/Glyph';
-import { CalendarArt } from '../../system/CalendarArt';
 import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { sys } from '../../system/tokens';
-import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardBriefFoot, CardDecision, CardTitle, CardFact, CardPerson, CardPlaces, CardStatus, personSpoken, placesText, taskPlace, taskSpoken,
-  taskStatus, taskValue, type TaskCardRelation } from '../TaskFace';
+import { taskStatus, type TaskCardRelation } from '../TaskFace';
 import { TaskPublisherPortrait } from '../TaskPublisherPortrait';
 import { V2Action } from '../V2Action';
+import { TaskRecordBody, useTaskRecord } from './TaskRecordBody';
 
 /** Rows a place shows in its card; a place with more offers the whole set in the list. Large text may scroll within the card. */
 export const PLACE_ROWS = 3;
@@ -36,52 +32,24 @@ export const PIN_CARD_LARGE_SHARE = 0.75;
 function PriceWords({ item }: { item: MarketplaceItem }) {
   const label = pinLabel(item);
   return label.tone === 'money' ? <T variant="priceRow" style={s.money}>{label.spoken}</T>
-    : <T variant="note" tone="muted" style={s.word}>{label.tone === 'offer' ? 'Tražim ponude' : 'Cena nije navedena'}</T>;
+    : <T variant="note" tone="muted" style={s.word}>{label.tone === 'offer' ? 'Prima ponude' : 'Cena nije navedena'}</T>;
 }
 
 /**
  * One chosen task on the map (Discovery V47, the Airbnb pattern in USKOČI's look). The whole card is one press that opens
- * the task ("Otvori zadatak: …"), and its round × top right closes it. It says, bare (it is the card, never a card inside
- * one): HITNO or "Prijava poslata" when they apply, a full title with its shared value/capacity group, illustrated
- * place/time rows, and who posted it with the honest rating when the read has them. The title clears the close control and the
- * body follows the list card's reading order. No photo:
- * a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
+ * the task ("Otvori zadatak: …"), and its round × top right closes it. It is the list card's face, bare (it is the card, never
+ * a card inside one) and in the same order: HITNO or "Prijava poslata" when they apply, the full title with what it pays and how
+ * many people, where, when, and who posted it with the honest rating and how long ago. The first row clears the close
+ * control. No photo: a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
 function PinTask({ item, relation, onOpen, onLayout }: {
   item: MarketplaceItem; relation?: TaskCardRelation; onOpen: () => void; onLayout: (event: LayoutChangeEvent) => void;
 }) {
-  const large = useTextScale() >= 1.3;
-  const title = readableTitle(item.naslov);
-  const status = taskStatus(item, relation);
-  const owned = relation === 'OWNED';
-  const urgencyNow = useUrgencyClock([item.urgency]);
-  const urgent = displaysUrgent(item.urgency, urgencyNow);
-  const value = taskValue(item);
-  const place = taskPlace(item);
-  // The task's own time in the one time format ("24. sep · 12:00–19:00"): a window or a flexible range keeps both ends.
-  const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
-  const publisher = !owned && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
-  const person = 'narucilacIme' in item && publisher ? <CardPerson name={publisher} rating={item.narucilacOcena}
-    count={item.narucilacBrojOcena} size={40} portrait={<TaskPublisherPortrait item={item} size={40} />} /> : null;
-  const places = item.pokrivenost ? placesText(item.pokrivenost, owned ? 'owner' : 'worker', 'fraction') : null;
-  const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, places: places?.spoken,
-    person: 'narucilacIme' in item && publisher ? personSpoken(publisher, item.narucilacOcena, item.narucilacBrojOcena) : null });
-  const head = status || urgent;
+  const model = useTaskRecord(item, relation);
   return <View style={s.pin} onLayout={onLayout}>
-    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: spoken }}
+    <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${model.title}`} accessibilityValue={{ text: model.spoken }}
       haptic="select" scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.pinBody}>
-      {head ? <View style={[s.clearOfClose, s.closeClearance]}><CardStatus status={status} urgency={item.urgency} now={urgencyNow} /></View> : null}
-      <View style={s.summary}>
-        <View style={!head ? [s.clearOfClose, s.closeClearance] : undefined}><CardTitle title={title} lines={0} /></View>
-        <CardDecision value={value} large={large}
-          places={item.pokrivenost ? <CardPlaces places={item.pokrivenost} audience={owned ? 'owner' : 'worker'} display="fraction" large={large} /> : null} />
-      </View>
-      <View style={s.facts}>
-        <CardFact art={<FactArt kind={place.remote ? 'remote' : 'pin'} size={28} cut="art" role="location" />}
-          text={place.text} lines={2} artSize={28} />
-        <CardFact art={<CalendarArt size={28} />} text={schedule} lines={2} artSize={28} />
-      </View>
-      {person ? <CardBriefFoot person={person} large={large} places={null} /> : null}
+      <TaskRecordBody model={model} portrait={<TaskPublisherPortrait item={item} size={40} />} clearOfClose />
     </Press>
   </View>;
 }
@@ -157,16 +125,12 @@ export function DiscoveryPeek({ item, place, relation, active, bottomInset, redu
 const s = StyleSheet.create({
   stack: { gap: sys.space.md },
   grow: { flex: 1, minWidth: 0 },
-  // The single card's face spans the whole card, its padding included, so every part of it opens the task. Its lines
-  // are as far apart as a task card's.
+  // The single card's face spans the whole card, its padding included, so every part of it opens the task. It has the
+  // padding of a record (16) and the face inside keeps the list card's own spacing.
   pin: { margin: -sys.space.base },
-  pinBody: { padding: sys.space.base, gap: sys.space.base, borderRadius: sys.radius.card },
-  // The first line keeps clear of the × in the corner (one chrome control wide).
+  pinBody: { padding: sys.space.base, borderRadius: sys.radius.card },
+  // The first line of a place's rows keeps clear of the × in the corner (one chrome control wide).
   clearOfClose: { marginRight: chrome.control },
-  // The first row must clear the whole close target before any following full-width text or value/capacity.
-  closeClearance: { minHeight: chrome.control },
-  summary: { gap: sys.space.sm },
-  facts: { gap: sys.space.sm },
   close: { position: 'absolute', top: CLOSE_INSET, right: CLOSE_INSET },
   head: { flexDirection: 'row', alignItems: 'center', minHeight: chrome.control },
   title: { flex: 1, color: sys.color.ink },

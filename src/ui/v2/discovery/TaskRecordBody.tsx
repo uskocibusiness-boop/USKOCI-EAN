@@ -1,0 +1,174 @@
+import type { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import type { NeedUrgencyProjection, Pokrivenost, StanjePotrebe } from '../../../contracts/projections';
+import { isOwnedNeed, type MarketplaceItem } from '../../../data/marketplaceView';
+import { needScheduleText, readableTitle } from '../../../data/needDetailPresentation';
+import { inicijali } from '../../../lib/inicijali';
+import { displaysUrgent } from '../../../lib/needUrgency';
+import { T } from '../../Text';
+import { Avatar } from '../../system/Avatar';
+import { FactArt } from '../../system/FactArt';
+import { FactRow } from '../../system/FactRow';
+import { layout } from '../../system/layout';
+import { useLayoutClass } from '../../system/textScale';
+import { sys } from '../../system/tokens';
+import { useUrgencyClock } from '../NeedUrgencyBadge';
+import { CardStatus, REQUIREMENT_ART, personSpoken, placesText, ratingWords, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue,
+  type TaskCardRelation, type TaskRequirement, type TaskValue } from '../TaskFace';
+import { useTaskAge } from './taskAge';
+
+/**
+ * The face of a task as the Zadaci family draws it (composition spec 2026-10-07, 4.2): the list's card, the pin's card on the map
+ * and, by the same words in the same order, the head of the detail. One face, so a task does not change its clothes between the
+ * map, the list and the page that opens: [state] -> title -> what it pays and how many people -> where -> when -> (one condition)
+ * -> who posted it, and how long ago.
+ *
+ * Four type sizes and no more: the title (heading 18), the amount (16), every fact and the person (note 14), the state (12). The
+ * title takes the full width, because a title and an amount side by side broke into three-line titles on the owner's 361 dp phone
+ * (the head was measured twice and left); the amount stands under it, with what it buys, and the count of people at the end of
+ * that line. Nothing is invented: a word about money never wears the amount's type, and what the read does not say is left out.
+ *
+ * The body draws no card and no press of its own: the container is a `Surface record` (the list) or the pin's sheet (the map), and
+ * says the whole face to a screen reader ONCE (`TaskRecordModel.spoken`), so nothing in here is a stop of its own.
+ */
+export type TaskRecordModel = {
+  title: string;
+  status: { text: string; quiet: boolean } | null;
+  urgency: NeedUrgencyProjection | undefined;
+  /** The one clock the HITNO badge and the card read, so the two never disagree for a frame. */
+  urgencyNow: number;
+  urgent: boolean;
+  value: TaskValue;
+  /** Who reads it: a worker is told how many places are left, the owner follows the progress of the task. */
+  audience: 'worker' | 'owner';
+  /** The words of a task that takes offers: the worker is told it takes them, the owner that they are being asked for. */
+  offersWord: string;
+  places: Pokrivenost;
+  place: { remote: boolean; text: string };
+  schedule: string;
+  requirement: TaskRequirement | null;
+  /** The person who posted it; null for a task that is mine (nobody to introduce) and for a read without a name. */
+  person: { name: string; rating: string | null | undefined; count: number | null | undefined } | null;
+  /** "pre 2 dana", from the list that read the task; null where the time is not known (nothing is invented). */
+  age: string | null;
+  /** Everything the face shows, as one sentence after the command name. */
+  spoken: string;
+};
+
+export const OFFERS_WORD = { worker: 'Prima ponude', owner: 'Tražiš ponude' } as const;
+
+/** What a face shows and says, from the task and what this account is to it. */
+export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation, sectionSays?: StanjePotrebe): TaskRecordModel {
+  const ownerView = isOwnedNeed(item) || relation === 'OWNED';
+  const title = readableTitle(item.naslov);
+  const status = taskStatus(item, relation, sectionSays);
+  // HITNO counts only until the server's expiry, on the one clock the badge is given: an expired HITNO on a task with no state drew an empty first row.
+  const urgencyNow = useUrgencyClock([item.urgency]);
+  const urgent = displaysUrgent(item.urgency, urgencyNow);
+  const value = taskValue(item);
+  const place = taskPlace(item);
+  const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
+  const requirement = taskRequirement(item);
+  const publisher = !ownerView && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
+  const person = publisher && 'narucilacIme' in item ? { name: publisher, rating: item.narucilacOcena, count: item.narucilacBrojOcena } : null;
+  const age = useTaskAge(item.id);
+  const audience = ownerView ? 'owner' : 'worker';
+  const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, requirement,
+    places: placesText(item.pokrivenost, audience, 'fraction').spoken,
+    person: person ? personSpoken(person.name, person.rating, person.count) : null,
+    next: age ? `Objavljeno: ${age.charAt(0).toLocaleLowerCase('sr-Latn-RS')}${age.slice(1)}` : null });
+  return { title, status, urgency: item.urgency, urgencyNow, urgent, value, audience, offersWord: OFFERS_WORD[audience], places: item.pokrivenost, place,
+    schedule, requirement, person, age, spoken: spokenWithOffers(spoken, value, OFFERS_WORD[audience]) };
+}
+
+/** `taskSpoken` says the shared "Tražim ponude"; this face says the words it draws. */
+function spokenWithOffers(spoken: string, value: TaskValue, word: string): string {
+  return value.kind === 'offers' ? spoken.replace('Tražim ponude', word) : spoken;
+}
+
+/** The count of people, with its picture: "0/2". The same fraction the cards of Moji zadaci show. */
+function Places({ model }: { model: TaskRecordModel }) {
+  const words = placesText(model.places, model.audience, 'fraction');
+  return <View style={s.places}>
+    <FactArt kind="users" size={16} tone="quiet" />
+    <T variant="note" tone="muted" style={s.fraction}>{words.text}</T>
+  </View>;
+}
+
+/** What it pays (or the word that stands in for an amount) and how many people, in one line. */
+function Decision({ model, stacked }: { model: TaskRecordModel; stacked: boolean }) {
+  const { value } = model;
+  return <View style={[s.decision, stacked && s.decisionStacked]}>
+    {value.kind === 'amount'
+      ? <View style={s.money}>
+        <T variant="priceRow" style={s.amount}>{value.amount}</T>
+        {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
+      </View>
+      : <T variant="note" tone="muted" style={s.word}>{value.kind === 'offers' ? model.offersWord : 'Cena nije navedena'}</T>}
+    <Places model={model} />
+  </View>;
+}
+
+/** Who posted it: the one avatar (or the authorized photo the list supplies), the name, and the honest rating with how old the task is. */
+function Person({ model, portrait }: { model: TaskRecordModel; portrait?: ReactNode }) {
+  const { person, age } = model;
+  if (!person) return null;
+  const trust = ratingWords(person.rating, person.count);
+  return <View style={s.person}>
+    <View style={s.face}>{portrait ?? <Avatar initials={inicijali(person.name)} size={40} />}</View>
+    <View style={s.personText}>
+      <T variant="note" style={s.name} numberOfLines={1}>{person.name}</T>
+      {trust || age ? <View style={s.trustRow}>
+        {trust?.star ? <FactArt kind="star" size={16} /> : null}
+        {trust ? <T variant="note" tone="muted" style={s.trust}>{trust.text}</T> : null}
+        {age ? <T variant="note" tone="muted">{trust ? `· ${age}` : age}</T> : null}
+      </View> : null}
+    </View>
+  </View>;
+}
+
+export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
+  model: TaskRecordModel; portrait?: ReactNode;
+  /** The pin's card has a round × in its top-right corner: the first row keeps clear of it. */
+  clearOfClose?: boolean;
+}) {
+  const { stacked } = useLayoutClass();
+  const head = !!model.status || model.urgent;
+  const first = clearOfClose ? s.clearOfClose : undefined;
+  return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.body}>
+    {head ? <View style={first}><CardStatus status={model.status} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
+    <View style={s.lead}>
+      <View style={head ? undefined : first}><T variant="heading" style={s.title}>{model.title}</T></View>
+      <Decision model={model} stacked={stacked} />
+    </View>
+    <View style={s.facts}>
+      <FactRow art={model.place.remote ? 'remote' : 'pin'} value={model.place.text} />
+      <FactRow art="calendar" value={model.schedule} />
+      {model.requirement ? <FactRow art={REQUIREMENT_ART[model.requirement.kind]} value={model.requirement.text} /> : null}
+    </View>
+    <Person model={model} portrait={portrait} />
+  </View>;
+}
+
+const s = StyleSheet.create({
+  // Between the parts of a face: 12. Inside a part: 4.
+  body: { gap: sys.space.md },
+  lead: { gap: sys.space.xs },
+  facts: { gap: sys.space.xs },
+  title: { color: sys.color.ink },
+  // The first row keeps one chrome control (the pin card's close) clear on the right, and is as high as it.
+  clearOfClose: { marginRight: layout.touch, minHeight: layout.touch },
+  decision: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: sys.space.base, rowGap: sys.space.xs },
+  decisionStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  money: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: 0, flexShrink: 1, maxWidth: '100%' },
+  amount: { color: sys.color.money, flexShrink: 0 },
+  word: { flexShrink: 1 },
+  places: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 0 },
+  fraction: { fontWeight: '600', fontVariant: ['tabular-nums'] },
+  person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  face: { width: 40, height: 40, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 },
+  personText: { flex: 1, minWidth: 0 },
+  name: { color: sys.color.ink, fontWeight: '600' },
+  trustRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.xs },
+  trust: { fontVariant: ['tabular-nums'] },
+});

@@ -14,6 +14,8 @@ type RpcClient = {
  * and the screen would stay on its last picture for ever.
  */
 export const DISCOVERY_V1_READ_DEADLINE_MS = 15_000;
+/** The code of the one refusal that is about the person and not about the read: "Za mene" needs an active work profile. */
+export const DISCOVERY_V1_FOR_ME_REFUSED = 'DISCOVERY_V1_FOR_ME_PROFILE_REQUIRED';
 
 /**
  * P6 transport only. It is intentionally not exported through Izvor and is not referenced by a route.
@@ -43,11 +45,13 @@ export function createDiscoveryV1SupabaseTransport(client: RpcClient = supabaseK
       clearTimeout(timer); signal.removeEventListener('abort', onAbort);
     }
     if (signal.aborted) throw new Error('DISCOVERY_V1_READ_ABORTED');
-    // Only two server refusals are named: the session (AUTH_REQUIRED) and an anchor that lived out its 30 minutes (P6_ANCHOR_EXPIRED), which the route renews with one fresh open.
+    // Only three server refusals are named: the session (AUTH_REQUIRED), an anchor that lived out its 30 minutes (P6_ANCHOR_EXPIRED), which the route renews with one fresh open,
+    // and "Za mene" asked of a person with no active work profile (P6_FOR_ME_PROFILE_REQUIRED), which the screen answers by turning the switch off and saying why.
     // Everything else, an invalid anchor included, stays the generic failure; no provider text is passed on.
     if (response.error) {
       const message = response.error.message;
-      throw new Error(message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : message === 'P6_ANCHOR_EXPIRED' ? 'DISCOVERY_V1_ANCHOR_EXPIRED' : 'DISCOVERY_V1_READ_FAILED');
+      throw new Error(message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : message === 'P6_ANCHOR_EXPIRED' ? 'DISCOVERY_V1_ANCHOR_EXPIRED'
+        : message === 'P6_FOR_ME_PROFILE_REQUIRED' ? DISCOVERY_V1_FOR_ME_REFUSED : 'DISCOVERY_V1_READ_FAILED');
     }
     return response.data;
   };

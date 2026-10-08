@@ -8,6 +8,11 @@ export type DiscoveryV1When = 'any' | 'today' | 'tomorrow' | 'week' | 'weekend' 
 export type DiscoveryV1Filter = {
   text: string; price: DiscoveryV1Price; where: DiscoveryV1Where; places: number; when: DiscoveryV1When;
   dates: null | { from: string; to: string }; place: string | null;
+  /**
+   * "Za mene": the one OPTIONAL key (DISCOVERY-ZAMENE, applied to DEV 2026-10-07). It is present only when true: left out, the request, its `filterKey`, its
+   * anchors and its cursors are exactly those of the reader without it. A change of it is a new traversal (a new anchor, never an old one reused).
+   */
+  forMe?: true;
 };
 export type DiscoveryV1Anchor = {
   version: typeof DISCOVERY_V1; filterKey: string; timeAt: string; publishedThrough: string; expiresAt: string;

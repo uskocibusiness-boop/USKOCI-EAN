@@ -34,7 +34,9 @@ export function discoveryV1ViewPlan(view: MarketplaceView): DiscoveryV1ViewPlan 
   const scoped=remoteDiscoveryScope(view), dates=dateRange(scoped.dates);
   const filter:DiscoveryV1Filter={ text:scoped.query, price:scoped.price, where:scoped.where ?? 'any', places:atLeast(scoped.places),
     when:dates ? 'any' : scoped.when ?? 'any', dates,
-    place:scoped.where==='remote' ? null : typeof scoped.place==='string' && scoped.place.trim() ? scoped.place : null };
+    place:scoped.where==='remote' ? null : typeof scoped.place==='string' && scoped.place.trim() ? scoped.place : null,
+    // Only "Za mene" ON is a key of the request: off, the request is the one the server has always read.
+    ...(scoped.forMe===true ? { forMe:true as const } : {}) };
   let pageScope:DiscoveryV1Scope={kind:'ALL'};
   if(scoped.where!=='remote' && scoped.pinPlace) pageScope={kind:'POINT_LIST',point:pinPoint(scoped.pinPlace)};
   else if(scoped.where!=='remote' && scoped.area) {

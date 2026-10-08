@@ -35,7 +35,7 @@ import { sys } from '../../ui/system/tokens';
  * The Zadaci search panel as an Airbnb-style panel (owner, 2026-10-07): separate collapsible sections in the order Gde,
  * Kada, Šta, Cena, Broj ljudi, Način rada; one open at a time; a choice that completes a question opens the next; "Gde" is a
  * place list that fills the screen when it is scrolled; the screen behind is blurred where the platform can and dimmed where
- * it cannot, never a white page. Choices are a draft: the one green action applies it and counts it, "Obriši uslove"
+ * it cannot, never a white page. Choices are a draft: the one green action applies it and counts it, "Poništi filtere"
  * empties it, × leaves the list as it was. "Gde" offers the places the tasks name and, under them, the biggest cities.
  */
 // Thursday 24 September 2026, 10:00 in Belgrade: the 23rd is past, the 26th and 27th are the weekend.
@@ -130,7 +130,7 @@ const p6Snapshot = (patch: Partial<DiscoveryV1SearchSnapshot> = {}): DiscoveryV1
   active: true, generation: 1, key: discoveryV1SearchPreviewKey({ ...view, placeSearch: '' } as SearchPreviewView, mapArea), status: 'ready', count: 37, undated: 6,
   availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE', 'OFFERS'] },
   places: [{ key: 'novi sad, liman', text: 'Novi Sad, Liman', count: 21 }, { key: 'beograd, vračar', text: 'Beograd, Vračar', count: 9 }],
-  placeHasMore: false, placePaging: false, everywhere: 80, inMapArea: mapArea ? 23 : null, facetError: false, ...patch,
+  parts: [], placeHasMore: false, placePaging: false, everywhere: 80, inMapArea: mapArea ? 23 : null, facetError: false, ...patch,
 });
 const p6Seam = (snapshot: DiscoveryV1SearchSnapshot): DiscoveryV1SearchPanelSeam => ({
   snapshot, onDraft: jest.fn(), onNextPlaces: jest.fn(),
@@ -231,6 +231,65 @@ describe('a city asked of the server', () => {
       places: [{ key: 'beograd, vračar', text: 'Beograd, Vračar', count: 9 }, { key: 'beograd, zemun', text: 'Beograd, Zemun', count: 4 }], placeHasMore: false }));
     await act(async () => tree.update(panelOf()));
     expect(offered()).toEqual(['Beograd, Vračar, 9 zadataka', 'Beograd, Zemun, 4 zadatka']);
+  });
+});
+
+// DISCOVERY-GRAD (owner decision d14, applied to DEV 2026-10-08): the server's rows are CITIES, a city row is the ordinary place filter and its count is what it lists, and the
+// parts of a city ("Liman, Novi Sad") come apart, under the cities, by the letters typed.
+describe('the cities of "Gde" (P6)', () => {
+  const cities = [{ key: 'novi sad', text: 'Novi Sad', count: 23 }, { key: 'beograd', text: 'Beograd', count: 13 }];
+  const typedKey = (letters: string) => discoveryV1SearchPreviewKey({ ...view, placeSearch: letters } as SearchPreviewView, mapArea);
+
+  test('the rows are cities with their counts, the group is named for them, and a city that has tasks is not offered again among the popular ones', async () => {
+    p6Search = p6Seam(p6Snapshot({ places: cities }));
+    await render();
+    expect(texts()).toContain('Gradovi sa zadacima'); expect(texts()).not.toContain('Mesta sa zadacima');
+    expect(offered().slice(0, 4)).toEqual(['Svi zadaci, 80 zadataka', 'Novi Sad, 23 zadatka', 'Beograd, 13 zadataka', 'Niš, Još nema zadataka']);
+    expect(offered().filter(label => /^(Novi Sad|Beograd)/.test(label))).toHaveLength(2);
+    await choose('Novi Sad, 23 zadatka');
+    expect(placeValue()).toBe('Novi Sad'); expect(openStep()).toEqual(['kada']);
+    await act(async () => show().props.onPress());
+    expect(lastDraft()).toMatchObject({ place: 'Novi Sad', query: '' });
+  });
+
+  test('letters typed bring the parts of a city under the cities; a part is an ordinary place, and is not offered twice', async () => {
+    p6Search = p6Seam(p6Snapshot({ places: cities }));
+    await render();
+    await typeWhere('lim');
+    p6Search = p6Seam(p6Snapshot({ key: typedKey('lim'), places: [{ key: 'limanovci', text: 'Limanovci', count: 2 }],
+      parts: [{ key: 'liman, novi sad', text: 'Liman, Novi Sad', count: 9 }, { key: 'limanovci', text: 'Limanovci', count: 2 }] }));
+    await act(async () => tree.update(panelOf()));
+    expect(texts()).toContain('Gradovi sa zadacima'); expect(texts()).toContain('Delovi grada');
+    expect(offered()).toEqual(['Limanovci, 2 zadatka', 'Liman, Novi Sad, 9 zadataka']);
+    await choose('Liman, Novi Sad, 9 zadataka');
+    expect(placeValue()).toBe('Liman, Novi Sad');
+    await act(async () => show().props.onPress());
+    expect(lastDraft()).toMatchObject({ place: 'Liman, Novi Sad' });
+  });
+
+  test('without letters there are no parts, and nothing is said of them', async () => {
+    p6Search = p6Seam(p6Snapshot({ places: cities, parts: [{ key: 'liman, novi sad', text: 'Liman, Novi Sad', count: 9 }] }));
+    await render();
+    expect(texts()).not.toContain('Delovi grada'); expect(offered().some(label => /^Liman/.test(label))).toBe(false);
+  });
+
+  test('the rows the server answers for the letters are not filtered again here, where "đ" folds to "d" and the server\'s fold says "dj"', async () => {
+    p6Search = p6Seam(p6Snapshot({ places: cities }));
+    await render();
+    await typeWhere('djordje');
+    p6Search = p6Seam(p6Snapshot({ key: typedKey('djordje'), places: [{ key: 'đorđe', text: 'Đorđe', count: 2 }] }));
+    await act(async () => tree.update(panelOf()));
+    expect(offered()).toEqual(['Đorđe, 2 zadatka']);
+  });
+
+  test('letters that find no city and no part say so, and offer the words search instead', async () => {
+    p6Search = p6Seam(p6Snapshot({ places: cities }));
+    await render();
+    await typeWhere('zzz');
+    p6Search = p6Seam(p6Snapshot({ key: typedKey('zzz'), places: [], parts: [] }));
+    await act(async () => tree.update(panelOf()));
+    expect(texts()).toContain('Nema takvog mesta.');
+    expect(tree.root.findAllByType('Action' as React.ElementType).some(node => node.props.label === 'Traži „zzz“ u zadacima')).toBe(true);
   });
 });
 
@@ -411,7 +470,10 @@ describe('the place list in "Gde"', () => {
     await render();
     await choose('Niš, Još nema zadataka');
     expect(placeValue()).toBe('Niš'); expect(openStep()).toEqual(['kada']);
-    expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true, reason: 'Probaj širu oblast ili drugi dan.' });
+    expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
+    // A grey action says why in a line above it (the foot every flow has), heard politely when it appears.
+    const why = tree.root.findByProps({ testID: 'search-footer-reason' });
+    expect(why.props.accessibilityLiveRegion).toBe('polite'); expect(why.children.join('')).toBe('Pokušaj sa širom oblašću ili drugim danom.');
     // It stays in the list, chosen, and can be taken away again.
     // Chosen, it is one of the places now (a place the conditions leave empty says so plainly) and stays removable.
     await tap('Gde'); expect(radio('Niš, Nema zadataka')[0].props.accessibilityState).toEqual({ checked: true });
@@ -476,11 +538,11 @@ describe('the place list in "Gde"', () => {
     expect(byLabel('U blizini')).toHaveLength(0); expect(texts()).toContain('Zadaci na daljinu ne zavise od oblasti mape.');
   });
 
-  test('"Obriši uslove" also forgets "U blizini", the letters typed and the words', async () => {
+  test('"Poništi filtere" also forgets "U blizini", the letters typed and the words', async () => {
     canNearby = true; await render();
     await typeWhere('liman'); await tap('Šta'); await typeWhat('pomoć'); await tap('Gde'); await typeWhere('');
     await choose('U blizini');
-    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
+    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Poništi filtere')!.props.onPress());
     expect(placeValue()).toBe('Svi zadaci'); expect(valueOf('search-sta-toggle')).toBe('Bilo šta');
     await act(async () => show().props.onPress()); expect(lastDraft()).toEqual(NO_SEARCH); expect(apply.mock.calls[0][1]).toBeUndefined();
   });
@@ -740,10 +802,10 @@ describe('the draft', () => {
     expect(lastDraft()).toMatchObject({ where: 'remote', area: null, place: null, pinPlace: null, query: 'Pomoć', price: 'MY_PRICE', places: 2 });
   });
 
-  test('"Obriši uslove" empties the draft and counts every task again; × leaves the list exactly as it was', async () => {
+  test('"Poništi filtere" empties the draft and counts every task again; × leaves the list exactly as it was', async () => {
     view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd' }; await render();
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
-    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Obriši uslove')!.props.onPress());
+    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Poništi filtere')!.props.onPress());
     expect(show().props.label).toBe('Prikaži 5 zadataka');
     for (const [group, choice] of [['Kada', 'Bilo kada'], ['Način rada', 'Bilo gde'], ['Cena', 'Sve']]) {
       await tap(group); expect(radio(choice)[0].props.accessibilityState.checked).toBe(true);
@@ -822,13 +884,15 @@ describe('the layout at large text and in a narrow window', () => {
     expect(StyleSheet.flatten(chip.findByType('T' as React.ElementType).props.style).flexShrink).toBe(1);
     expect(chip.findByType('T' as React.ElementType).props.numberOfLines).toBeUndefined();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());
-    const grid = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
-      && StyleSheet.flatten(node.props.style)?.marginHorizontal === -sys.space.md)[0];
-    expect(grid).toBeDefined();
-    // 320 dp, less the sheet's and the card's side paddings, plus the grid's bleed: 294 across, 42 a day.
-    await act(async () => grid.props.onLayout({ nativeEvent: { layout: { width: 294, height: 300 } } }));
+    const grid = tree.root.findByProps({ testID: 'search-date-grid' });
+    expect(typeof grid.props.onLayout).toBe('function');
+    // A roomy window (a 361 dp phone less the list's 20 dp edges is 321 across, 45 a day): the circle stops at its 40.
+    await act(async () => grid.props.onLayout({ nativeEvent: { layout: { width: 321, height: 300 } } }));
     await act(async () => dayCell(26).props.onPress());
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 40, height: 40, borderRadius: 20 });
+    // This 320 dp window less the same edges is 280 across, 40 a day: the circle is 38, 2 narrower than its cell.
+    await act(async () => grid.props.onLayout({ nativeEvent: { layout: { width: 280, height: 300 } } }));
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 38, height: 38, borderRadius: 19 });
     await act(async () => grid.props.onLayout({ nativeEvent: { layout: { width: 266, height: 300 } } }));
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'range-end' }).props.style)).toMatchObject({ width: 36, height: 36, borderRadius: 18 });
   });
@@ -925,5 +989,59 @@ describe('the parts of the panel', () => {
       expect(header.props.accessibilityState).toEqual({ expanded: id === 'search-place-toggle' });
     }
     expect(valueOf('search-cena-toggle')).toBe('Prima ponude');
+  });
+});
+
+// UI/UX pass 2026-10-08 (composition spec 4.3): the sections are rows of one list, not six cards, and the foot is the one every flow has.
+describe('the panel is a list of rows with the foot every flow has', () => {
+  const header = (testID: string) => StyleSheet.flatten(tree.root.findByProps({ testID }).props.style);
+  const rules = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.pointerEvents === 'none'
+    && StyleSheet.flatten(node.props.style)?.height === 1 && StyleSheet.flatten(node.props.style)?.backgroundColor === sys.color.line);
+
+  test('a closed section is a row of at least 56 dp with no card around it, and the list stands 20 from the edge', async () => {
+    start = 'kada'; await render();
+    for (const id of ['search-place-toggle', 'search-kada-toggle', 'search-sta-toggle', 'search-cena-toggle', 'search-koliko-toggle', 'search-kako-toggle']) {
+      expect(header(id)).toMatchObject({ minHeight: 56, flexDirection: 'row', paddingVertical: 12 });
+      expect(header(id).borderWidth).toBeUndefined(); expect(header(id).borderRadius).toBeUndefined();
+    }
+    for (const step of ['gde', 'kada', 'sta', 'cena', 'koliko', 'kako']) {
+      const section = StyleSheet.flatten(byId(`search-step-${step}`).props.style);
+      expect(section?.borderWidth).toBeUndefined(); expect(section?.backgroundColor).toBeUndefined();
+    }
+    expect(StyleSheet.flatten(tree.root.findByType('ScrollView' as React.ElementType).props.contentContainerStyle)).toMatchObject({ paddingHorizontal: 20 });
+    // Each name is in the row's own type, 16 at 600, and no section carries a picture of its own.
+    expect(tree.root.findAllByType('FactArt' as React.ElementType)).toHaveLength(0);
+  });
+
+  test('the sections part with a short inset line, and the last one has none; an open section keeps its name and shows what it holds below', async () => {
+    start = 'kada'; await render();
+    expect(rules()).toHaveLength(5);
+    expect(byId('search-step-kako').findAll(node => String(node.type) === 'View' && node.props.pointerEvents === 'none')).toHaveLength(0);
+    // Open, a section does not repeat its choice beside the name: it is what is open under it.
+    const kada = tree.root.findByProps({ testID: 'search-kada-toggle' });
+    expect(kada.findAllByType('T' as React.ElementType)).toHaveLength(1);
+  });
+
+  test('a closed section says its choice as a quiet note beside the caret, in one line with the name when it fits', async () => {
+    start = 'kada'; view = { ...view, price: 'OFFERS' }; await render();
+    const cena = tree.root.findByProps({ testID: 'search-cena-toggle' });
+    const [name, choice] = cena.findAllByType('T' as React.ElementType);
+    expect(name.props.variant).toBe('bodyStrong');
+    expect(choice.props).toMatchObject({ variant: 'note', tone: 'muted' });
+    expect(choice.children.join('')).toBe('Prima ponude');
+    expect(name.parent).toBe(choice.parent);
+  });
+
+  test('the foot is the flow foot: the quiet reset and the one green action, with the reason above when it cannot be pressed', async () => {
+    start = 'kada'; await render();
+    const foot = tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'search-footer')[0];
+    expect(StyleSheet.flatten(foot.props.style)).toMatchObject({ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8 });
+    expect(tree.root.findAllByProps({ testID: 'search-footer-reason' })).toHaveLength(0);
+    expect(foot.findAllByType('Action' as React.ElementType).map(action => action.props.label)).toEqual(['Poništi filtere', 'Prikaži 5 zadataka']);
+    view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd' };
+    await act(async () => tree.update(panelOf()));
+    await act(async () => tree.unmount()); await render();
+    expect(tree.root.findByProps({ testID: 'search-footer-reason' }).children.join('')).toBe('Pokušaj sa širom oblašću ili drugim danom.');
+    expect(show().props.disabled).toBe(true);
   });
 });

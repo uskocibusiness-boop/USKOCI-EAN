@@ -9,6 +9,7 @@ import type { TaskRelation } from '../../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { izvorSada, useIzvor } from '../../../store/uloga';
 import { StateView } from '../../system/StateView';
+import { FOR_ME_SWITCH_EXISTS } from '../../workerProfile/workerProfileFacts';
 import { DiscoveryV1Screen } from './DiscoveryV1Screen';
 import { useDiscoveryNativeTrace } from './discoveryNativeTrace';
 
@@ -128,5 +129,5 @@ export function DiscoveryV1Route() {
     isCurrent={current} onPersistView={persistView} onOpen={open} trace={trace} warmReturn={warmReturn.current!}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
-    onNew={() => navigate(() => router.navigate('/nova'))} />;
+    onNew={() => navigate(() => router.navigate('/nova'))} forMeAvailable={FOR_ME_SWITCH_EXISTS} onWorkProfile={() => navigate(() => router.navigate('/profil/radnik'))} />;
 }

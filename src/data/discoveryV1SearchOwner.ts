@@ -4,6 +4,15 @@ import { discoveryV1ViewPlan } from './discoveryV1MarketplaceAdapter';
 import { placeKey, publicBounds, type MarketplaceView, type PublicBounds } from './marketplaceView';
 import type { DiscoveryV1OwnerTransport, DiscoveryV1PageRequest, DiscoveryV1PlacesRequest } from './discoveryV1Owner';
 
+/**
+ * DISCOVERY-GRAD (owner decision d14, applied to DEV 2026-10-08): the rows of "Gde" are CITIES ("Novi Sad", 23), because choosing a city now lists every task of the city and the
+ * count of the row is exactly that list. The parts of a city ("Liman, Novi Sad") are the AREA rows, asked for apart when letters are typed. A server without the package refuses the key
+ * (P6_INVALID_REQUEST), which reads here as "the places could not be read" and leaves the count working, so a build for such a server (a future production project) sets this to false.
+ */
+export const DISCOVERY_V1_PLACES_BY_CITY = true;
+/** How many parts of a city (AREA rows) are offered under the cities when letters are typed: the first page only, never paged. */
+export const DISCOVERY_V1_PARTS_LIMIT = 10;
+
 export type DiscoveryV1SearchStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type DiscoveryV1SearchSnapshot = {
   active: boolean;
@@ -13,7 +22,10 @@ export type DiscoveryV1SearchSnapshot = {
   count: number | null;
   undated: number | null;
   availability: DiscoveryV1Availability | null;
+  /** Cities with their task counts (the places of before when the city list is switched off). */
   places: DiscoveryV1PlaceRow[];
+  /** The parts of a city that contain the letters typed ("Liman, Novi Sad"), when letters are typed; never paged. */
+  parts: DiscoveryV1PlaceRow[];
   placeHasMore: boolean;
   placePaging: boolean;
   everywhere: number | null;
@@ -51,13 +63,13 @@ export const SEARCH_PREVIEW_FRESH_MS=20_000;
 export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport,isCurrent:()=>boolean=()=>true){
   let active=true,generation=0,controller:AbortController|null=null,placesController:AbortController|null=null;
   let state:DiscoveryV1SearchSnapshot={active:true,generation:0,key:null,status:'idle',count:null,undated:null,availability:null,
-    places:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};
+    places:[],parts:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};
   let placesBase:PlacesBase|null=null,placesAnchor:any=null,placesCursor:any=null,readyAt=0;
 
-  const snapshot=():DiscoveryV1SearchSnapshot=>({...state,places:state.places.map(row=>({...row}))});
+  const snapshot=():DiscoveryV1SearchSnapshot=>({...state,places:state.places.map(row=>({...row})),parts:state.parts.map(row=>({...row}))});
   const current=(g:number)=>active&&generation===g&&isCurrent();
   const failState=(g:number,key:string):DiscoveryV1SearchSnapshot=>{
-    state={active:true,generation:g,key,status:'error',count:null,undated:null,availability:null,places:[],placeHasMore:false,
+    state={active:true,generation:g,key,status:'error',count:null,undated:null,availability:null,places:[],parts:[],placeHasMore:false,
       placePaging:false,everywhere:null,inMapArea:null,facetError:true};
     return snapshot();
   };
@@ -75,7 +87,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     controller?.abort();placesController?.abort();
     const own=new AbortController();controller=own;placesController=null;const g=++generation,key=askedKey;
     placesBase=null;placesAnchor=null;placesCursor=null;
-    state={active:true,generation:g,key,status:'loading',count:null,undated:null,availability:null,places:[],placeHasMore:false,
+    state={active:true,generation:g,key,status:'loading',count:null,undated:null,availability:null,places:[],parts:[],placeHasMore:false,
       placePaging:false,everywhere:null,inMapArea:null,facetError:false};
 
     const plan=discoveryV1ViewPlan(view);
@@ -87,11 +99,16 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     const facetPlan=discoveryV1ViewPlan(facetView);
     const base:PlacesBase={filter:facetPlan.filter,prefix:placePrefix(view),facetArea:area,limit};
     const placeRequest:DiscoveryV1PlacesRequest={mode:'PLACES',filter:base.filter,anchor:null,prefix:base.prefix,
-      facetArea:base.facetArea?cloneBounds(base.facetArea):null,limit,after:null};
+      facetArea:base.facetArea?cloneBounds(base.facetArea):null,limit,after:null,...(DISCOVERY_V1_PLACES_BY_CITY?{groupBy:'CITY' as const}:{})};
     const placeTask=remote ? Promise.resolve<unknown>(null) : transport(placeRequest,own.signal).catch(()=>null);
+    // The parts of a city are the AREA rows (the request without the key), asked for only when letters are typed in "Gde" (a caller that says no letters, whose prefix is the words
+    // searched, wants the places of before): "lim" finds "Liman, Novi Sad", which no city row contains. A failed read of them is no failure of the places: the cities stand without them.
+    const partsTask=remote||!DISCOVERY_V1_PLACES_BY_CITY||typeof view.placeSearch!=='string'||base.prefix==='' ? Promise.resolve<unknown>(null)
+      : transport({mode:'PLACES',filter:base.filter,anchor:null,prefix:base.prefix,facetArea:base.facetArea?cloneBounds(base.facetArea):null,
+        limit:Math.min(limit,DISCOVERY_V1_PARTS_LIMIT),after:null},own.signal).catch(()=>null);
 
-    let pageRaw:unknown,placeRaw:unknown;
-    try {[pageRaw,placeRaw]=await Promise.all([pageTask,placeTask]);}
+    let pageRaw:unknown,placeRaw:unknown,partsRaw:unknown;
+    try {[pageRaw,placeRaw,partsRaw]=await Promise.all([pageTask,placeTask,partsTask]);}
     catch(error){if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};failState(g,key);throw error;}
     if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
 
@@ -99,7 +116,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     try{page=decodeDiscoveryV1Page(pageRaw,1);}
     catch(error){failState(g,key);throw error;}
 
-    let places:DiscoveryV1PlaceRow[]=[],placeHasMore=false,everywhere:number|null=null,inMapArea:number|null=null,facetError=false;
+    let places:DiscoveryV1PlaceRow[]=[],parts:DiscoveryV1PlaceRow[]=[],placeHasMore=false,everywhere:number|null=null,inMapArea:number|null=null,facetError=false;
     if(!remote){
       if(placeRaw===null){facetError=true;}
       else {
@@ -109,10 +126,14 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
           inMapArea=decoded.counts.inArea;placesAnchor=decoded.anchor;placesCursor=decoded.nextCursor;placesBase=base;
         }catch{facetError=true;}
       }
+      if(partsRaw!==null&&partsRaw!==undefined&&!facetError){
+        try{parts=decodeDiscoveryV1Places(partsRaw,Math.min(limit,DISCOVERY_V1_PARTS_LIMIT)).items.filter(row=>row.text.includes(',')).map(row=>({...row}));}
+        catch{parts=[];}
+      }
     }
 
     state={active:true,generation:g,key,status:'ready',count:page.counts.listed,undated:page.counts.undated,
-      availability:page.availability,places,placeHasMore,placePaging:false,everywhere,inMapArea,facetError};
+      availability:page.availability,places,parts,placeHasMore,placePaging:false,everywhere,inMapArea,facetError};
     readyAt=Date.now();
     if(controller===own)controller=null;own.abort();
     return {kind:'applied' as const,snapshot:snapshot()};
@@ -125,7 +146,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     placesController?.abort();const own=new AbortController();placesController=own;
     state={...state,placePaging:true};
     const request:DiscoveryV1PlacesRequest={mode:'PLACES',filter:base.filter,anchor:{...anchor},prefix:base.prefix,
-      facetArea:base.facetArea?cloneBounds(base.facetArea):null,limit:base.limit,after:{...cursor}};
+      facetArea:base.facetArea?cloneBounds(base.facetArea):null,limit:base.limit,after:{...cursor},...(DISCOVERY_V1_PLACES_BY_CITY?{groupBy:'CITY' as const}:{})};
     let raw:unknown;
     try{raw=await transport(request,own.signal);}
     catch(error){if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};state={...state,placePaging:false,facetError:true};throw error;}
@@ -143,11 +164,11 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
   /** The screen has left and may come back: a preview belongs to one visit of the search panel, so what it read and what it is reading are dropped (the owner stays usable). */
   const suspend=()=>{if(!active)return;generation++;controller?.abort();placesController?.abort();controller=placesController=null;
     placesBase=null;placesAnchor=null;placesCursor=null;readyAt=0;state={active:true,generation,key:null,status:'idle',count:null,undated:null,
-      availability:null,places:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};};
+      availability:null,places:[],parts:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};};
 
   const retire=()=>{if(!active)return;active=false;generation++;controller?.abort();placesController?.abort();controller=placesController=null;
     placesBase=null;placesAnchor=null;placesCursor=null;state={active:false,generation,key:null,status:'idle',count:null,undated:null,
-      availability:null,places:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};};
+      availability:null,places:[],parts:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};};
 
   return {preview,nextPlaces,snapshot,suspend,retire};
 }

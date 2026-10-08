@@ -31,6 +31,12 @@ export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'h
   place?: string | null;
   /** Kada by dates (Discovery V47). While it is set, `when` is 'any': the two are one choice. */
   dates?: DateRange | null;
+  /**
+   * "Za mene" (R28, DISCOVERY-ZAMENE): the server narrows the list, the map and their counts to the tasks that fit this person's work profile (the kind
+   * of work, the area and the time: the rule of the notifications). Absent or false is every task, exactly as before. It is a scope and not a filter:
+   * it is not counted by `discoveryConditions` and "Obriši sve" does not take it away. Only the P6 server reader understands it.
+   */
+  forMe?: boolean;
   /** A chosen place on the map where several tasks share one public point (its `pointKey`); null when none. */
   selectedPlace?: string | null;
   /**

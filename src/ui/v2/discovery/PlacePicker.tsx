@@ -12,7 +12,7 @@ import { quoted } from './discoveryWords';
 /** The words of "Gde", in one place. */
 export const PLACE_WORDS = {
   field: 'Pretraži mesta', placeholder: 'Grad ili deo grada', clear: 'Obriši pretragu mesta',
-  withTasks: 'Mesta sa zadacima', popular: 'Popularni gradovi',
+  withTasks: 'Mesta sa zadacima', citiesWithTasks: 'Gradovi sa zadacima', parts: 'Delovi grada', popular: 'Popularni gradovi',
   noTasksYet: 'Još nema zadataka', noneNow: 'Nema zadataka', inParts: 'po delovima grada', partsOnly: 'Zadaci su po delovima grada',
   remote: 'Zadaci na daljinu ne zavise od oblasti mape.',
   facetDown: 'Mesta trenutno nisu dostupna. Pretraga zadataka i dalje radi.',
@@ -34,22 +34,30 @@ const counted = (text: string, count: number | null) => {
  * The body of "Gde": a field to find a place by letters, then the choices. Typing only finds places; the words that find
  * tasks have their own section ("Šta"), so a letter typed here never silently becomes a search of the tasks' titles.
  *
- * Nothing typed: "Svi zadaci", the map's area and "U blizini", then the places that have tasks (with how many), then the
- * biggest cities of Serbia that have none listed above, each with what the tasks can honestly say about it:
+ * Nothing typed: "Svi zadaci", the map's area and "U blizini", then the places that have tasks (with how many; with the server's city list they are
+ * CITIES, and choosing one lists exactly its count), then the biggest cities of Serbia that have none listed above, each with what the tasks can honestly say about it:
  *   - tasks name exactly the city: it is one of the places above and is not repeated;
  *   - tasks are under parts of the city: the row leads to those parts (the place filter matches the whole text, so it cannot
  *     say "all of Beograd" and never pretends to);
  *   - no task anywhere: "Još nema zadataka", and choosing it is the ordinary place filter, which answers "no tasks yet";
  *   - places not all read: nothing is claimed, and the row leads to the places that contain the name.
- * Letters typed: the same rows, only those that contain them (a letter without its diacritic finds the same place).
+ * Letters typed: the same rows, only those that contain them (a letter without its diacritic finds the same place), and under the cities the parts of a city that
+ * contain them ("Liman, Novi Sad"), which no city row does.
  */
-export function PlacePicker({ typed, onType, remote, anywhere, area, nearby, places, chosenPlace, ready, complete, more, note, onPlace, onWord }: {
+export function PlacePicker({ typed, onType, remote, anywhere, area, nearby, places, parts = [], cities: byCity = false, serverFiltered = false, chosenPlace, ready, complete, more, note, onPlace, onWord }: {
   typed: string; onType: (text: string) => void;
   /** Work done remotely has no place: the choices give way to one sentence. */ remote: boolean;
   anywhere: { checked: boolean; count: number | null; onPress: () => void };
   area: { available: boolean; checked: boolean; count: number | null; onPress: () => void };
   nearby: { available: boolean; checked: boolean; onPress: () => void };
   /** Every place the tasks name, with how many (null while that is not known). */ places: readonly PlaceEntry[];
+  /** The parts of a city that contain the letters typed, with how many (the server's AREA rows). Nothing while nothing is typed. */ parts?: readonly PlaceEntry[];
+  /** The rows of `places` are cities (the server's city list): the group is named for them. */ cities?: boolean;
+  /**
+   * The rows are already the ones that contain the letters typed (the server's prefix, which folds Serbian letters its own way: "dj" for "đ"), so they are not filtered again here, where
+   * "đ" folds to "d". Without the server (the loaded rows) every place is held and the letters filter them.
+   */
+  serverFiltered?: boolean;
   chosenPlace: string | null;
   /** Whether the places held answer what is typed now; false while they are still being read (nothing is said missing then). */ ready: boolean;
   /** Whether every place with tasks has been read; false while more are to come. */ complete: boolean;
@@ -58,7 +66,9 @@ export function PlacePicker({ typed, onType, remote, anywhere, area, nearby, pla
   onPlace: (text: string) => void; onWord: (text: string) => void;
 }) {
   const typing = foldPlace(typed) !== '';
-  const shown = useMemo(() => places.filter(place => placeMatches(place.text, typed)), [places, typed]);
+  const shown = useMemo(() => serverFiltered ? places : places.filter(place => placeMatches(place.text, typed)), [places, typed, serverFiltered]);
+  // A part of a city is listed once, and never as a city of the list above.
+  const partsShown = useMemo(() => typing ? parts.filter(part => !shown.some(place => placeKey(place.text) === placeKey(part.text))) : [], [parts, shown, typing]);
   // A city is listed once: as a place when tasks name it exactly (above), and here otherwise. A city that leads on to its parts is
   // not listed again once its parts are what the list shows (its name is what has been typed).
   const cities = useMemo(() => POPULAR_CITIES.filter(city => placeMatches(city, typed))
@@ -77,13 +87,19 @@ export function PlacePicker({ typed, onType, remote, anywhere, area, nearby, pla
         {nearby.available ? <PlaceRow art="person" text="U blizini" note={PLACE_WORDS.nearbyNote} label="U blizini" hint={PLACE_WORDS.nearbyHint}
           checked={nearby.checked} onPress={nearby.onPress} /> : null}
       </>}
-      {shown.length ? <GroupTitle>{PLACE_WORDS.withTasks}</GroupTitle> : null}
+      {shown.length ? <GroupTitle>{byCity ? PLACE_WORDS.citiesWithTasks : PLACE_WORDS.withTasks}</GroupTitle> : null}
       {shown.map(place => {
         const words = counted(place.text, place.count);
         return <PlaceRow key={placeKey(place.text)} art="pin" text={place.text} note={words.note} label={words.label}
           checked={chosen !== null && chosen === placeKey(place.text)} onPress={() => onPlace(place.text)} />;
       })}
       {more ? <V2Action label={more.label} disabled={more.busy} kind="quiet" onPress={more.onPress} /> : null}
+      {partsShown.length ? <GroupTitle>{PLACE_WORDS.parts}</GroupTitle> : null}
+      {partsShown.map(part => {
+        const words = counted(part.text, part.count);
+        return <PlaceRow key={`part:${placeKey(part.text)}`} art="pin" text={part.text} note={words.note} label={words.label}
+          checked={chosen !== null && chosen === placeKey(part.text)} onPress={() => onPlace(part.text)} />;
+      })}
       {note ? <T variant="note" tone="muted">{note}</T> : null}
       {cities.length ? <GroupTitle>{PLACE_WORDS.popular}</GroupTitle> : null}
       {cities.map(({ city, standing }) => {
@@ -98,7 +114,7 @@ export function PlacePicker({ typed, onType, remote, anywhere, area, nearby, pla
         }
         return <PlaceRow key={`city:${city}`} art="pin" text={city} label={city} role="button" hint={PLACE_WORDS.showPlaces} onPress={() => onType(city)} />;
       })}
-      {typing && ready && !shown.length && !cities.length && !note ? <>
+      {typing && ready && !shown.length && !partsShown.length && !cities.length && !note ? <>
         <T variant="note" tone="muted">{PLACE_WORDS.nobody}</T>
         <V2Action label={`Traži ${quoted(typed)} u zadacima`} kind="quiet" onPress={() => onWord(typed.trim())} />
       </> : null}

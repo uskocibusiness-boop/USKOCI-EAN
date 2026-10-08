@@ -4,6 +4,7 @@ import { Press } from '../../Press';
 import { T } from '../../Text';
 import { Glyph } from '../../system/Glyph';
 import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
+import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
 
 /** The bar's distance from the top of the map. */
@@ -47,7 +48,7 @@ export function DiscoverySearchBar({ where, conditions, onSearch, onMore, onClea
   };
   return <View pointerEvents="box-none" style={s.bar}>
     <View testID="discovery-search-row" pointerEvents="box-none" style={s.row} onLayout={measure}>
-      <View style={s.searchSurface}>
+      <Surface kind="float" style={s.searchSurface}>
         <View style={s.search}>
           <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={{ text: `${where}, ${conditions}` }}
             accessibilityHint="Otvara pretragu: gde, kada i uslovi." haptic="select" scaleTo={sys.motion.scale.row} onPress={onSearch}
@@ -68,33 +69,58 @@ export function DiscoverySearchBar({ where, conditions, onSearch, onMore, onClea
         {onMore ? <View testID="discovery-search-tools" style={s.tool}>
           <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." glyph="more" quiet onPress={onMore} />
         </View> : null}
-      </View>
+      </Surface>
     </View>
     {below}
   </View>;
 }
 
 /**
+ * A line the map says under the search: a float like the other things over the map (white, one edge, one shadow), and a polite live
+ * region, so a screen reader hears it without losing its place.
+ */
+function MapNotice({ name, stacked = false, children }: { name: string; stacked?: boolean; children: ReactNode }) {
+  return <View testID={name} accessibilityLiveRegion="polite" style={s.noticeSlot}>
+    <Surface kind="float" style={stacked ? s.noticeStacked : s.notice}>{children}</Surface>
+  </View>;
+}
+
+/**
  * What "U blizini" says when it cannot do its one job (no permission, the location switched off, no answer in time), or while it
- * is asking: a quiet white line under the search, with the way to the settings when that is the remedy. A polite live region, so a
- * screen reader hears it without losing its place.
+ * is asking: a quiet white line under the search, with the way to the settings when that is the remedy.
  */
 export function NearbyNotice({ message, onSettings }: { message: string; onSettings?: () => void }) {
-  return <View testID="nearby-notice" style={s.notice} accessibilityLiveRegion="polite">
+  return <MapNotice name="nearby-notice">
     <T variant="note" style={s.noticeText}>{message}</T>
     {onSettings ? <Press accessibilityRole="button" accessibilityLabel="Podešavanja lokacije" hitSlop={0}
       onPress={onSettings} style={s.settings}><T variant="note" style={s.settingsText}>Podešavanja</T></Press> : null}
-  </View>;
+  </MapNotice>;
+}
+
+/**
+ * What "Za mene" says when the server refused it (R28: the person's work profile is not active): the switch is already back off, and this
+ * line says why, once, with the one way out and a close of its own. It stays until the person closes it or asks "Za mene" again.
+ */
+export function ForMeNotice({ message, entry, onEntry, onClose }: { message: string; entry: string; onEntry?: () => void; onClose: () => void }) {
+  // The sentence and its close share the first line; the one way out stands under the sentence, at its own left edge.
+  return <MapNotice name="for-me-notice" stacked>
+    <View style={s.noticeTop}>
+      <T variant="note" style={s.noticeSentence}>{message}</T>
+      <Press accessibilityRole="button" accessibilityLabel="Zatvori poruku" hitSlop={0} onPress={onClose} style={s.close}>
+        <Glyph name="close" size={16} tone="ink" />
+      </Press>
+    </View>
+    {onEntry ? <Press accessibilityRole="button" accessibilityLabel={entry} hitSlop={0} onPress={onEntry} style={s.entry}>
+      <T variant="note" style={s.settingsText}>{entry}</T></Press> : null}
+  </MapNotice>;
 }
 
 const s = StyleSheet.create({
   bar: { position: 'absolute', top: BAR_TOP, left: 0, right: 0, gap: sys.space.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: sys.space.base },
   search: { flex: 1, minWidth: 0 },
-  // One lifted surface owns the search and its controls. The map no longer carries three competing white discs.
-  searchSurface: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: 4,
-    borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line,
-    ...sys.elevation.soft },
+  // One float owns the search and its controls: the first of the few things over the map, in the one look of a float.
+  searchSurface: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: sys.space.xs, borderRadius: sys.radius.pill },
   pill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 56, paddingLeft: sys.space.base,
     paddingRight: sys.space.sm, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface },
@@ -109,9 +135,15 @@ const s = StyleSheet.create({
   clear: { position: 'absolute', top: 0, bottom: 0, right: 0, width: CLEAR_WIDTH, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   clearCircle: { width: 28, height: 28, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
   tool: { width: chrome.control, height: chrome.control },
-  notice: { marginHorizontal: sys.space.base, paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
-    borderRadius: sys.radius.control, backgroundColor: sys.color.surface, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
-  noticeText: { color: sys.color.ink, flexGrow: 1, flexBasis: 180 },
+  noticeSlot: { marginHorizontal: sys.space.base },
+  notice: { paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
+  noticeStacked: { paddingLeft: sys.space.md, paddingRight: sys.space.xs, paddingBottom: sys.space.xs },
+  noticeTop: { flexDirection: 'row', alignItems: 'flex-start', columnGap: sys.space.sm },
+  noticeSentence: { color: sys.color.ink, flex: 1, minWidth: 0, paddingTop: sys.space.md },
+  entry: { alignSelf: 'flex-start', minHeight: 48, justifyContent: 'center', paddingRight: sys.space.sm },
+  noticeText: { color: sys.color.ink, flexGrow: 1, flexBasis: 180, paddingVertical: sys.space.sm },
   settings: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
   settingsText: { color: sys.color.ink, fontWeight: '600' },
+  // The close of a notice: a full 48 square at its end, the glyph at its centre.
+  close: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
 });

@@ -19,8 +19,8 @@ export const WHEN: readonly (readonly [WhenFilter, string])[] = [['any', 'Bilo k
 export const QUICK_WHEN: readonly WhenFilter[] = ['today', 'tomorrow', 'week'];
 export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Bilo gde'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
 export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Sve'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Prima ponude']];
-/** The one reset of the search, on the panel and on the empty list alike. */
-export const CLEAR_ALL = 'Obriši uslove';
+/** The one reset of the search, on the panel and on the empty list alike. The bar says "Filteri", so this takes "filteri" away (text proposal 2026-10-07, DUGME). */
+export const CLEAR_ALL = 'Poništi filtere';
 /**
  * The sections of the search panel, in the order the person is walked through them (UX plan 2.19: Gde, Kada, Šta, Cena,
  * Broj ljudi, Način rada), and the one word each is called by. A person is spoken to as "ti": there is no "vas" here.
@@ -43,6 +43,13 @@ export const placesWords = (places: number | undefined) => atLeast(places) > 1 ?
 
 /** The word over the list for how it is ordered: the server reads the open tasks newest first (UX plan 2.14). */
 export const NEWEST_FIRST = 'Najnovije prvo';
+
+/**
+ * "Za mene" asked of a person whose work profile is not active (R28; the server refuses with P6_FOR_ME_PROFILE_REQUIRED): the switch goes back off and the
+ * screen says why in this one sentence, with the one way out, the same entry to the work profile that an application and the availability offer.
+ */
+export const FOR_ME_REFUSED = 'Za mene radi kad je radni profil aktivan.';
+export const WORK_PROFILE_ENTRY = 'Dopuni radni profil';
 
 /** A count with the thousands set apart by a dot, as the app writes money and as the person reads it: 1.248. */
 export const groupDigits = (count: number) => String(Math.trunc(count)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -67,13 +74,14 @@ export const quoted = (text: string) => `„${text.trim()}“`;
  * Line 1 of the search pill, and the value of the "Gde" step: one public point (a place's whole set, "Na ovom mestu"),
  * the chosen place (with the searched words, when there are both), the searched words, the map's area, or "Svi zadaci".
  */
-export function whereWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area' | 'pinPlace' | 'where'>): string {
+export function whereWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area' | 'pinPlace' | 'where'> & { forMe?: boolean }): string {
   const place = typeof view.place === 'string' ? view.place.trim() : '', query = view.query.trim();
   if (view.where === 'remote') return query ? `Na daljinu · ${quoted(query)}` : 'Na daljinu';
   const where = view.pinPlace ? PIN_PLACE : place;
   if (where) return query ? `${where} · ${quoted(query)}` : where;
   if (query) return quoted(query);
-  return view.area ? 'Ova oblast' : 'Svi zadaci';
+  // "Za mene" is a scope, so with nothing else said the pill does not claim to show every task.
+  return view.area ? 'Ova oblast' : view.forMe ? 'Za mene' : 'Svi zadaci';
 }
 
 /**

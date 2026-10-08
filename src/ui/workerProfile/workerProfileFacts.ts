@@ -11,19 +11,21 @@ import type { WorkerAiProfile } from '../../data/workerAiClientService';
 /**
  * Owner 2026-10-07: tools and vehicles are information, never a condition (PUT_RADNIKA_NACRT_20261007, point 5).
  *
- * OFF until the server package that removes the condition is applied (final check 2026-10-07, finding G1): today
- * `private.match_detail_without_calendar` treats a missing required tool or vehicle as a HARD blocker, so such a task is
- * not offered and `rpc_submit_response` refuses the application (`WORKER_NOT_ELIGIBLE`). Turning this on changes only the
- * words of the profile screens; applying the package still needs the owner's exact "PRIMENI".
+ * ON since MATCH-V1 is applied to canonical DEV (ledger 231, 2026-10-07): `private.match_detail_without_calendar` no longer
+ * treats a missing required tool or vehicle as a hard blocker, so such a task is offered and `rpc_submit_response` accepts the
+ * application. Before that (final check 2026-10-07, finding G1) the switch was off, because the words would have promised what
+ * the server did not do. A server without MATCH-V1 (a future production project) needs this off again.
  */
-export const TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY = false;
+export const TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY = true;
 
 /**
- * The "Za mene" switch on the map and the list (owner 2026-10-07; final check finding G4). OFF until the server
- * understands the filter (`DiscoveryChipRow` keeps its own `forMeAvailable` off for the same reason): a profile screen
+ * The "Za mene" switch on the map and the list (owner 2026-10-07; final check finding G4). ON since DISCOVERY-ZAMENE is applied
+ * to canonical DEV (ledger 232, 2026-10-07): the server reads the optional filter key `forMe` (`DiscoveryChipRow` draws its
+ * switch from it, and the Zadaci request carries the key only while it is on). A server without the package refuses the key
+ * (`P6_INVALID_FILTER`), so a build for such a server (a future production project) needs this off again: a profile screen
  * must not promise a list that does not exist.
  */
-export const FOR_ME_SWITCH_EXISTS = false;
+export const FOR_ME_SWITCH_EXISTS = true;
 
 /**
  * What the "Dostupnost" row of the work profile says (UX plan 3.8, 2026-10-07): "Raspored" is the name of the planner now, so

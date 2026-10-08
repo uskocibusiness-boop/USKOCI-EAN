@@ -113,23 +113,23 @@ describe('what a stranger sees on the task', () => {
       answeredPublic(2, { answeredAt: '2026-10-07T07:00:00Z', edited: true, answerVersion: 2 })]));
     expect(texts()).toContain('2 pitanja · sva odgovorena');
     expect(texts()).toContain('Pitanje 1?'); expect(texts()).toContain('Odgovor 1.');
-    expect(texts()).toContain('Odgovorio vlasnik zadatka · pre 2 dana');
+    expect(texts()).toContain('Odgovor osobe koja je objavila zadatak · pre 2 dana');
     // The newest answer first; an answer that was changed after it was given says so.
-    expect(texts()).toContain('Odgovorio vlasnik zadatka · pre 3 sata · izmenjeno');
+    expect(texts()).toContain('Odgovor osobe koja je objavila zadatak · pre 3 sata · izmenjeno');
     expect(joined().indexOf('Pitanje 2?')).toBeLessThan(joined().indexOf('Pitanje 1?'));
     expect(joined().indexOf('Pitanje 2?')).toBeLessThan(joined().indexOf('Odgovor 2.'));
     expect(joined().indexOf('Odgovor 2.')).toBeLessThan(joined().indexOf('Pitanje 1?'));
     // The dot between the parts is for the eye; a screen reader pauses at a comma.
     const line = (text: string) => tree.root.findAll(node => node.type === T && node.props.children === text)[0];
     expect(line('2 pitanja · sva odgovorena').props.accessibilityLabel).toBe('2 pitanja, sva odgovorena');
-    expect(line('Odgovorio vlasnik zadatka · pre 3 sata · izmenjeno').props.accessibilityLabel).toBe('Odgovorio vlasnik zadatka, pre 3 sata, izmenjeno');
+    expect(line('Odgovor osobe koja je objavila zadatak · pre 3 sata · izmenjeno').props.accessibilityLabel).toBe('Odgovor osobe koja je objavila zadatak, pre 3 sata, izmenjeno');
   });
 
   it('says "upravo" in lower case in the middle of the line, and gives no age when the moment cannot be read', async () => {
     await render(asStranger([answeredPublic(1, { answeredAt: '2026-10-07T09:58:00Z' }), answeredPublic(2, { answeredAt: 'nije vreme' })]));
-    expect(texts()).toContain('Odgovorio vlasnik zadatka · upravo');
+    expect(texts()).toContain('Odgovor osobe koja je objavila zadatak · upravo');
     // An unreadable moment is not an age: the line says who answered and nothing more.
-    expect(texts()).toContain('Odgovorio vlasnik zadatka');
+    expect(texts()).toContain('Odgovor osobe koja je objavila zadatak');
   });
 
   it('draws the answer in ink behind the green rule, and no waiting sign and no way to answer', async () => {
@@ -216,7 +216,7 @@ describe('what the owner sees on his own task', () => {
   it('the answered ones read as the owner\'s own answer, with the edit mark, and no age that the read does not carry', async () => {
     await render(asOwner([answeredOwner(1), answeredOwner(2, { edited: true, answerVersion: 2, createdAt: '2026-10-05T08:00:00Z' })]));
     expect(texts()).toContain('Tvoj odgovor'); expect(texts()).toContain('Tvoj odgovor · izmenjeno');
-    expect(joined()).not.toContain('Odgovorio vlasnik zadatka'); expect(joined()).not.toMatch(/pre \d+ dana/);
+    expect(joined()).not.toContain('Odgovor osobe koja je objavila zadatak'); expect(joined()).not.toMatch(/pre \d+ dana/);
     expect(chips()).toHaveLength(0);
     expect(byLabel('Odgovori na pitanje: Pitanje 1?')).toBeUndefined();
   });
@@ -264,5 +264,31 @@ describe('the section never acts for the screen', () => {
     const label = presses().map(node => node.props.accessibilityLabel).find(value => String(value).startsWith('Odgovori na pitanje: '))!;
     expect(label.startsWith('Odgovori na pitanje: Da li ima lift')).toBe(true);
     expect(Array.from(label).length).toBeLessThan(110); expect(label.endsWith('…')).toBe(true);
+  });
+});
+
+// UI/UX pass 2026-10-08 (the one divider): the questions of a thread are one list parted by a line of 1 dp between them, not a hairline above each.
+describe('the questions are parted by the one line of the system', () => {
+  const rules = () => tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.testID === 'task-qa-rule');
+
+  it('puts a line of 1 dp between two questions, none above the first and none under the last', async () => {
+    await render(asStranger([answeredPublic(3), answeredPublic(2), answeredPublic(1)]));
+    expect(rules()).toHaveLength(2);
+    for (const rule of rules()) expect(flat(rule)).toEqual({ height: 1, backgroundColor: sys.color.line });
+    const rows = tree.root.findAll(node => node.type === ('View' as React.ElementType) && flat(node).paddingVertical === sys.space.md);
+    expect(rows).toHaveLength(3);
+    for (const row of rows) { expect(flat(row).borderTopWidth).toBeUndefined(); expect(flat(row).borderTopColor).toBeUndefined(); }
+  });
+
+  it('draws no line for one question, and the answer stays behind the green rule of the whole thread', async () => {
+    await render(asStranger([answeredPublic(1)]));
+    expect(rules()).toHaveLength(0);
+    const answer = tree.root.findAll(node => node.type === ('View' as React.ElementType) && flat(node).borderLeftWidth === 3)[0];
+    expect(flat(answer).borderLeftColor).toBe(sys.color.green);
+  });
+
+  it('says who answered without a gender: the person who published the task', async () => {
+    await render(asStranger([answeredPublic(1)]));
+    expect(joined()).toContain('Odgovor osobe koja je objavila zadatak'); expect(joined()).not.toContain('Odgovorio');
   });
 });

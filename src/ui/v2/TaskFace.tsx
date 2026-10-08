@@ -82,14 +82,20 @@ export function taskRequirement(item: Pick<MarketplaceItem, 'detalji'>): TaskReq
 export const REQUIREMENT_ART: Record<TaskRequirement['kind'], FactArtKind> = { condition: 'info', vehicle: 'vehicle', tool: 'tool' };
 
 /**
+ * "popunjeno" agrees with the number of places filled: "2, 3 and 4 mesta popunjena", and "popunjeno" for 0, 1 and 5 and over (text proposal 2026-10-07, MNOZINA); 12 to 14 are 5-and-over.
+ */
+const filledWord = (count: number) => { const last = count % 10, tens = count % 100; return last >= 2 && last <= 4 && !(tens >= 12 && tens <= 14) ? 'popunjena' : 'popunjeno'; };
+const filledSpoken = (places: Pokrivenost) => `${places.popunjeno} od ${places.ukupno} mesta ${filledWord(places.popunjeno)}`;
+
+/**
  * How many people, said to the one reading it. A worker asks how many places are left ("Traži 2 osobe", "Još 1 od 2
  * mesta"); the owner follows the progress of their own task ("0/2 popunjeno").
  */
 export function placesText(places: Pokrivenost, audience: 'worker' | 'owner', display: 'words' | 'fraction' = 'words'): { text: string; spoken: string } {
   // A list card compares filled/total at a glance; its single accessible card still explains the fraction in full.
   // Composer and detail-like previews keep the audience-specific words unless they explicitly opt in.
-  if (display === 'fraction') return { text: `${places.popunjeno}/${places.ukupno}`, spoken: `${places.popunjeno} od ${places.ukupno} mesta popunjeno` };
-  if (audience === 'owner') return { text: `${places.popunjeno}/${places.ukupno} popunjeno`, spoken: `${places.popunjeno} od ${places.ukupno} mesta popunjeno` };
+  if (display === 'fraction') return { text: `${places.popunjeno}/${places.ukupno}`, spoken: filledSpoken(places) };
+  if (audience === 'owner') return { text: `${places.popunjeno}/${places.ukupno} popunjeno`, spoken: filledSpoken(places) };
   if (places.preostalo <= 0) return { text: 'Sva mesta su popunjena', spoken: 'Sva mesta su popunjena' };
   if (places.popunjeno <= 0) return { text: `Traži ${osobuAkuz(places.ukupno)}`, spoken: `Traži ${osobuAkuz(places.ukupno)}` };
   return { text: `Još ${places.preostalo} od ${places.ukupno} mesta`, spoken: `Još ${places.preostalo} od ${places.ukupno} mesta` };

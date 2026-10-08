@@ -18,8 +18,6 @@ export const MONTHS_AHEAD = 12;
 const CELL = 48;
 /** The filled circle of a chosen end, at most this wide and always 2 px narrower than its cell, so it never spills. */
 const DOT_MAX = 40;
-/** The grid reaches the open card's edges (it undoes the card's side padding) to give each day all the width there is. */
-const BLEED = sys.space.md;
 
 const pad = (value: number) => String(value).padStart(2, '0');
 const monthOf = (day: string) => day.slice(0, 7);
@@ -64,7 +62,7 @@ export function DateRangeGrid({ today, from, to, now, onDay }: {
   const cells: (string | null)[] = [...Array.from({ length: lead }, () => null), ...days];
   while (cells.length % 7) cells.push(null);
   const weeks = Array.from({ length: cells.length / 7 }, (_, index) => cells.slice(index * 7, index * 7 + 7));
-  return <View style={s.grid} onLayout={measure}>
+  return <View testID="search-date-grid" onLayout={measure}>
     <View style={s.head}>
       <ChromeIconButton label="Prethodni mesec" icon={CaretLeft} quiet disabled={month <= first} onPress={() => setMonth(addMonths(month, -1))} />
       <T variant="bodyStrong" accessibilityRole="header" accessibilityLiveRegion="polite" style={s.month}>{monthTitle(month)}</T>
@@ -104,8 +102,7 @@ function Day({ day, today, from, to, now, dot, onDay }: {
 }
 
 const s = StyleSheet.create({
-  grid: { marginHorizontal: -BLEED },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: sys.space.xs, paddingHorizontal: BLEED },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: sys.space.xs },
   month: { color: sys.color.ink, flex: 1, textAlign: 'center' },
   week: { flexDirection: 'row' },
   weekday: { flex: 1, textAlign: 'center', paddingVertical: sys.space.xs },

@@ -1,11 +1,11 @@
 import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, ActivityIndicator, BackHandler, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
+import { AccessibilityInfo, ActivityIndicator, Animated as NativeAnimated, BackHandler, Easing, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import { useIsFocused } from 'expo-router';
-import Animated, { FadeIn, FadeOut, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { State as GestureState } from 'react-native-gesture-handler';
 import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, useBottomSheetInternal, useScrollEventsHandlersDefault,
   type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
@@ -20,14 +20,15 @@ import { Appear, useAppear } from '../system/Appear';
 import { ActionSheet } from '../system/ActionSheet';
 import { useReducedMotion } from '../system/motion';
 import { zadataka } from '../system/plural';
-import { StateView } from '../system/StateView';
-import { floating, sys } from '../system/tokens';
+import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
 import { DiscoveryMap } from './DiscoveryMap';
 import type { DiscoveryV1ServerMapSeam } from './DiscoveryMap.types';
 import type { DiscoveryV1Availability, DiscoveryV1Counts } from '../../data/discoveryV1Contract';
 import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
-import { BAR_TOP, DiscoverySearchBar, NearbyNotice } from './discovery/DiscoverySearchBar';
+import { DiscoveryListState, type DiscoveryListStateKind } from './discovery/DiscoveryListState';
+import { BAR_TOP, DiscoverySearchBar, ForMeNotice, NearbyNotice } from './discovery/DiscoverySearchBar';
 import { DiscoveryChipRow, type QuickChip, type ScopeKey } from './discovery/DiscoveryChipRow';
 import { CONTROL_SIZE, fullSheetTop } from './discovery/mapClearBand';
 import { useCoverValue, useRidingStyle } from './discovery/mapControls';
@@ -35,8 +36,8 @@ import { handleHint, listViewport, nextSheetIndex, snapHeights } from './discove
 import { TaskAgeContext, taskAgeOf, type PublishedAt } from './discovery/taskAge';
 import { useNearbyMap } from './discovery/useNearbyMap';
 import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type SearchApplyOptions, type SearchDraft, type SearchReadiness, type SearchStep } from './discovery/DiscoverySearchPanel';
-import { CLEAR_ALL, NEWEST_FIRST, PRICE, QUICK_WHEN, WHEN, WHERE, conditionsWords, countLineWords, countWords, datesWords, placesWords, quoted, removeWords, said,
-  undatedWords, whereWords } from './discovery/discoveryWords';
+import { CLEAR_ALL, FOR_ME_REFUSED, NEWEST_FIRST, PRICE, QUICK_WHEN, WHEN, WHERE, WORK_PROFILE_ENTRY, conditionsWords, countLineWords, countWords, datesWords, placesWords,
+  quoted, removeWords, said, undatedWords, whereWords } from './discovery/discoveryWords';
 import { TaskCard } from './TaskCard';
 import type { TaskCardRelation } from './TaskFace';
 import type { TaskRelationIndex } from '../../data/taskRelation';
@@ -100,11 +101,18 @@ export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; lo
   /** P6-only presentation seam. No production route supplies this until rollout/native gates explicitly close. */
   p6Seam?: DiscoveryV1PresentationSeam;
   /**
-   * "Za mene" (the tasks that match the person's own work profile) is BUILT but not drawn: it needs a server filter key that does not
-   * exist yet, and a control that does nothing is not shown. The one switch that brings "Svi zadaci | Za mene" in once that package
-   * ships; `scope` and `onScope` are then the route's.
+   * "Za mene" (the tasks that match the person's own work profile; R28): the server has the filter key (DISCOVERY-ZAMENE), and the switch "Svi zadaci | Za mene"
+   * is drawn only when the route says it exists in this build (`forMeAvailable`), because a control that does nothing is not shown. The scope is the view's own
+   * `forMe` unless the route owns one (`scope` and `onScope`). `forMeRefused` is set when the server refused it (no active work profile): the switch is already
+   * back off, and a line under the search says why, with `onWorkProfile` as the way out and `onDismissForMeRefused` as its close.
    */
   forMeAvailable?: boolean; scope?: ScopeKey; onScope?: (scope: ScopeKey) => void;
+  forMeRefused?: boolean; onWorkProfile?: () => void; onDismissForMeRefused?: () => void;
+  /**
+   * M-02 (UI/UX pass 2026-10-08): the list is drawn for the first time after a skeleton, so its first rows are news: the first few (at most six) arrive once, and a warm return
+   * (rows kept from the last visit) or a filter that changes the rows stays still. When the route does not say, a presentation that mounted while it was still reading is the one.
+   */
+  arriveAfterLoading?: boolean;
   trace?: DiscoveryTrace };
 
 const GAP = sys.space.md;
@@ -170,7 +178,7 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
       accessibilityLabel={`${section.label}, ${zadataka(section.count)}`} style={s.section}>
       <T variant="bodyStrong" style={s.sectionTitle}>{section.label}</T><T variant="meta" style={s.sectionCount}>{section.count}</T>
     </View> : null}
-    <Appear index={index} animate={animate}><TaskCard item={item} compact onOpen={open} relation={relation}
+    <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} relation={relation}
       portrait={portraitVisible ? <TaskPublisherPortrait item={item} size={40} /> : undefined} /></Appear>
   </>;
 });
@@ -279,6 +287,28 @@ function DiscoveryCell({ cellKey: _key, index, item: _item, onLayout, ...nativeP
   }} />;
 }
 
+/**
+ * The fade of the "Mapa" pill (M-06, UI/UX pass 2026-10-08): in over `enter` and out over `exit` on the decelerating curve, with React Native's own Animated on the native driver (opacity only).
+ * It used a Reanimated layout animation (`entering` and `exiting`), which the motion rules (R4, B22) keep out of everything that sits over a list. The pill stays mounted
+ * while it fades out and is gone after; under reduced motion it is simply there, and simply gone.
+ */
+function usePillFade(shown: boolean, reduced: boolean) {
+  const opacity = useRef(new NativeAnimated.Value(shown ? 1 : 0)).current;
+  const [leaving, setLeaving] = useState(false);
+  const was = useRef(shown);
+  useEffect(() => {
+    // Only a change of state is animated: a pill that is there when the screen opens is simply there, and one that is not there leaves nothing behind.
+    const changed = was.current !== shown; was.current = shown;
+    if (reduced || !changed) { opacity.setValue(shown ? 1 : 0); setLeaving(false); return; }
+    setLeaving(!shown);
+    const run = NativeAnimated.timing(opacity, { toValue: shown ? 1 : 0, duration: shown ? sys.motion.enter : sys.motion.exit,
+      easing: Easing.bezier(...sys.motion.easeOut), useNativeDriver: true });
+    run.start(({ finished }) => { if (finished && !shown) setLeaving(false); });
+    return () => run.stop();
+  }, [shown, reduced, opacity]);
+  return { opacity, mounted: shown || leaving };
+}
+
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { items, loading, error } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
   const userIntent = props.onUserIntent;
@@ -329,7 +359,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { query, price, area, when, where, places: freePlaces, place: chosenPlace, dates, pinPlace } = view;
   // The screen outlives each native MapSession. Keep the publication camera's acknowledgement here so returning from
   // a task detail restores the saved viewport instead of treating the same publication as a fresh camera command.
-  const cameraFilterKey = JSON.stringify([query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace]);
+  const cameraFilterKey = JSON.stringify([query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace, view.forMe === true]);
   const [cameraIntent, setCameraIntent] = useState<{ token: string; scopeKey: string; filterKey: string;
     status: 'pending' | 'consumed' | 'retired' } | null>(null);
   const publicationToken = props.publicationFocus?.kind === 'map' ? props.publicationFocus.token : null;
@@ -438,6 +468,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const undated = useMemo(() => loading || error ? 0 : props.p6Seam?.counts?.undated
     ?? undatedCount(items, filters, undefined, now), [loading, error, items, filters, now, props.p6Seam?.counts?.undated]);
   const conditionCount = discoveryConditions(view);
+  // "Za mene" is on: the list is narrowed to the tasks that fit the person's work profile (the switch is drawn only when the route says it exists).
+  const scope: ScopeKey = props.scope ?? (view.forMe ? 'forMe' : 'all');
+  const forMeOn = !!props.forMeAvailable && scope === 'forMe';
+  // Over the map the row of chips stands only while something is applied: with nothing applied the one search pill is the way in, and the map is left to itself.
+  const chipsOverMapShown = conditionCount > 0 || forMeOn;
   // Ownership only labels rows: counts describe the same public subset before and after the overlay arrives.
   const readiness: SearchReadiness = loading || props.collectionStatus === 'loading' ? 'loading'
     : error || props.collectionStatus === 'error' ? 'error' : 'ready';
@@ -753,12 +788,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const mapCovered = coverage?.owner === coverageOwner && coverage.covered;
   // The floating "Mapa" stands over the end of the list at the full height.
   const pillShown = expanded && mapShown;
+  const pillFade = usePillFade(pillShown, reduced);
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
   // Attribution occupies camera headroom now, so it must not also inflate the bottom padding.
   const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP + footerRow;
   // The map's own top edge for its clear band, fits and credits: the pill, and under it the chips while they stand over the map.
-  const mapToolsBottom = toolsBottom + (lowered ? chipsRoom : 0);
+  const mapToolsBottom = toolsBottom + (lowered && chipsOverMapShown ? chipsRoom : 0);
   const previewMaxHeight = bodyHeight ? Math.max(48, bodyHeight - toolsBottom - creditsRoom - CARD_BOTTOM - 2 * GAP - HIDDEN) : undefined;
   // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
   useEffect(() => {
@@ -787,7 +823,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     trace('fit', sheetIndex, bounds ? 1 : 0, sheetIndex === SNAP.peek ? peek : halfSheet);
     if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? peek : halfSheet) + GAP });
   };
-  const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet }); };
+  // "Poništi filtere" takes the conditions away, not the scope: "Za mene" is a choice of which tasks the list is about, so it stays.
+  const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus();
+    props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet, ...(view.forMe ? { forMe: true } : {}) }); };
 
   // Quick chips: each toggles one existing filter at once, and is offered only when the tasks carry the fact it reads (or it is
   // already on and must be removable). The legacy reader holds every task, so its loaded rows say it. P6 holds one area's pages,
@@ -806,6 +844,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const priceSaid = (key: 'MY_PRICE' | 'OFFERS') => p6 ? !!availability?.priceModes.includes(key) : items.some(item => item.rezimCene === key);
   const roomSaid = p6 ? roomSeen.current === props.scopeKey : loadedRoom;
   const toggle = (patch: Partial<MarketplaceView>) => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
+  // The scope is the route's when it owns one; otherwise it is the view's own `forMe`, which the server reader sends as the filter's one optional key.
+  const chooseScope = (next: ScopeKey) => { if (props.onScope) props.onScope(next); else toggle({ forMe: next === 'forMe' }); };
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
   const chips: QuickChip[] = [
     // Remote work remains a direct way in, ahead of the optional date/price rail. It has no stale map scope.
@@ -823,8 +863,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The one row of chips: over the map under the search pill while the list is lowered, and the list sheet's sticky header from half
   // height up (UX plan section P, variant B). "Svi zadaci | Za mene" is not in it until `forMeAvailable`; "Filteri · N" opens the
   // search at its conditions; the quick chips write into the same state as the panel.
-  const chipRow = (surface: 'map' | 'sheet') => <DiscoveryChipRow surface={surface} forMeAvailable={props.forMeAvailable} scope={props.scope}
-    onScope={props.onScope} filtersCount={conditionCount} onFilters={() => openSearch('kada')} chips={chips} />;
+  const chipRow = (surface: 'map' | 'sheet') => <DiscoveryChipRow surface={surface} forMeAvailable={props.forMeAvailable} scope={scope}
+    onScope={chooseScope} filtersCount={conditionCount} onFilters={() => openSearch('kada')} chips={chips} />;
 
   // The list's scroll offset: remembered in the route's view a moment after the list stops, found again when the list
   // is read anew (a return after a while, or after the app was away), and back at the top when the search changes. A
@@ -1073,7 +1113,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const published = props.p6Seam?.published;
   const ageOf = useMemo(() => taskAgeOf(published, new Date()), [published]);
   const appear = useAppear();
-  appear.settle(listed.map(keyOf), searchKey);
+  const cameFromSkeleton = useRef(props.arriveAfterLoading ?? props.loading).current;
+  appear.settle(listed.map(keyOf), searchKey, { afterLoading: cameFromSkeleton });
   const appearRef = useRef(appear); appearRef.current = appear;
   const sectionsRef = useRef(sections); sectionsRef.current = sections;
   // The render window is wider than the visible list. Start authorized photo reads only for settled visible rows,
@@ -1082,15 +1123,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [portraitIds, setPortraitIds] = useState<ReadonlySet<string>>(() => new Set());
   const portraitViewability = useRef({ itemVisiblePercentThreshold: 30, minimumViewTime: 180 }).current;
   const visibleRangeRef = useRef(props.p6Seam?.onVisibleRange); visibleRangeRef.current = props.p6Seam?.onVisibleRange;
+  // One function for the life of the list: React Native refuses a FlatList whose `onViewableItemsChanged` changes on the fly ("Changing
+  // onViewableItemsChanged on the fly is not supported", in development builds and on the web), so the current guard is read through a ref.
+  const currentListRef = useRef(currentList); currentListRef.current = currentList;
   const onVisibleRows = useCallback(({ viewableItems }: { viewableItems: ViewToken<MarketplaceItem>[] }) => {
-    if (!currentList()) return;
+    if (!currentListRef.current()) return;
     const shown = viewableItems.filter(token => token.isViewable);
     const next = new Set(shown.slice(0, 6).map(token => token.item.id));
     setPortraitIds(current => current.size === next.size && [...next].every(id => current.has(id)) ? current : next);
     // P6: the rows on screen get their optional details (relation, publisher), not only the first hundred of the list.
     const indexes = shown.map(token => token.index).filter((index): index is number => typeof index === 'number' && index >= 0);
     if (indexes.length) visibleRangeRef.current?.(Math.min(...indexes), Math.max(...indexes));
-  }, [currentList]);
+  }, []);
   useEffect(() => { setPortraitIds(new Set()); }, [props.scopeKey]);
   const showPortraits = focused && !cardShown && sheetIndex === SNAP.full;
   const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
@@ -1103,20 +1147,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Tasks under these conditions exist elsewhere when the legacy read holds them, or when P6's whole-filter count says so.
   const elsewhere = props.p6Seam ? (props.p6Seam.counts?.mapped ?? 0) > 0 : mapped.length > 0;
   const conditionsOn = !!view.query.trim() || discoveryFiltered(view) || !!view.place;
-  const empty = <View style={s.empty}>
-    {loading || props.collectionStatus === 'loading' ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
-      : error || props.collectionStatus === 'error' ? <StateView kind="error" art="tasks" title="Zadatke trenutno nije moguće učitati" body="Proveri internet vezu i pokušaj ponovo."
-        primary={{ label: 'Pokušaj ponovo', onPress: refreshList }} />
-        // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
-        : (pinPlace || area) && elsewhere ? <StateView art="map" title={pinPlace ? 'Nema zadataka na ovom mestu' : 'Nema zadataka u ovoj oblasti'}
-          body={pinPlace ? 'Pomeri mapu ili prikaži sve zadatke.' : 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.'}
-          primary={{ label: 'Prikaži sve zadatke', onPress: showAll }} />
-          : conditionsOn ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Nijedan zadatak ne odgovara ovim uslovima."
-            primary={{ label: CLEAR_ALL, onPress: reset }} />
-            : <StateView art="tasks" title="Trenutno nema otvorenih zadataka"
-              body="Kad neko objavi zadatak, videćeš ga ovde i na mapi."
-              primary={{ label: 'Osveži zadatke', onPress: refreshList }} />}
-  </View>;
+  // "Za mene" on, and nothing else narrowing the list: what the person asked for is what leaves nothing, and the way on is every task again.
+  const listState: DiscoveryListStateKind = loading || props.collectionStatus === 'loading' ? { kind: 'loading' }
+    : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList }
+      // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
+      : (pinPlace || area) && elsewhere ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
+        : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all') }
+          : conditionsOn ? { kind: 'filtered', onClear: reset }
+            : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
+  const empty = <View style={s.empty}><DiscoveryListState state={listState} clearAllLabel={CLEAR_ALL} /></View>;
   // A time choice leaves out the tasks whose schedule names no day; the list says how many instead of hiding them silently.
   const footer = undated ? <View key={extent.sequence} onLayout={event => {
     if (!currentSheet() || currentExtent.current !== extent) return;
@@ -1183,7 +1222,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     </Press>
     </View>
     {props.collectionStatus === 'error' ? <View style={s.relationsRecovery}>
-      <T variant="note" style={s.relationsMessage}>Tvoj zadatak je objavljen. Osveži spisak da vidiš i ostale.</T>
+      <T variant="note" style={s.relationsMessage}>Tvoj zadatak je objavljen. Osveži listu da vidiš i ostale.</T>
       <Press accessibilityRole="button" accessibilityLabel="Osveži ostale zadatke" onPress={refreshList}
         style={s.relationsRetry}><T variant="action" style={s.relationsRetryText}>Osveži</T></Press>
     </View> : null}
@@ -1233,24 +1272,28 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       </View>
       {/* "U blizini": the right end of the map's row of controls, directly above the list sheet, riding it like the zoom buttons. */}
       {canLocate && bodyHeight ? <Animated.View testID="discovery-locate-layer" pointerEvents="box-none" style={[s.locateLayer, { height: footerRow }, locateRide]}>
-        <Press testID="locate" accessibilityRole="button" accessibilityLabel="U blizini"
-          accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
-          accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
-          haptic="select" scaleTo={sys.motion.scale.button} hitSlop={2} onPress={findNearby}
-          style={[s.locate, { top: Math.round((footerRow - CONTROL_SIZE) / 2) }]}>
-          {nearby.busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <Crosshair size={22} color={sys.color.ink} />}
-        </Press>
+        {/* Everything over the map is a float: white, one line, one shadow. */}
+        <Surface kind="float" style={[s.locate, { top: Math.round((footerRow - CONTROL_SIZE) / 2) }]}>
+          <Press testID="locate" accessibilityRole="button" accessibilityLabel="U blizini"
+            accessibilityHint="Jednom koristi lokaciju da centrira mapu. Ne čuva je i ne menja uslove pretrage."
+            accessibilityState={{ disabled: nearby.busy, busy: nearby.busy }} disabled={nearby.busy}
+            haptic="select" scaleTo={sys.motion.scale.button} hitSlop={2} onPress={findNearby} style={s.locateTouch}>
+            {nearby.busy ? <ActivityIndicator size="small" color={sys.color.ink} /> : <Crosshair size={22} color={sys.color.ink} />}
+          </Press>
+        </Surface>
       </Animated.View> : null}
       <DiscoverySearchBar where={whereWords(view)} conditions={conditionsWords(view, now)}
         onSearch={() => openSearch('gde')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={area || pinPlace ? showAll : undefined}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         below={<>
-          {lowered ? <Animated.View testID="discovery-chips-over-map" style={chipsOverMap} onLayout={event => {
+          {lowered && chipsOverMapShown ? <Animated.View testID="discovery-chips-over-map" style={chipsOverMap} onLayout={event => {
             const next = Math.ceil(event.nativeEvent.layout.height) + sys.space.sm;
             if (next > sys.space.sm) setChipsRoom(current => current === next ? current : next);
           }}>{chipRow('map')}</Animated.View> : null}
           {canLocate && nearby.message ? <NearbyNotice message={nearby.message} onSettings={nearby.settings} /> : null}
+          {props.forMeRefused ? <ForMeNotice message={FOR_ME_REFUSED} entry={WORK_PROFILE_ENTRY} onEntry={props.onWorkProfile}
+            onClose={() => props.onDismissForMeRefused?.()} /> : null}
         </>} />
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={sheetSnapPoints} position={position} reduced={reduced}
         // Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not FINISHED (an interrupted one never
@@ -1301,19 +1344,21 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       </DiscoveryListSheet>
       {/* At the full height the same map is one tap away: a floating dark-green "Mapa" that lowers the list to its top line.
           It fades in and out only when motion is allowed; under reduced motion it is simply there. */}
-      {pillShown ? <Animated.View pointerEvents="box-none" style={s.mapPillRow}
-        entering={reduced ? undefined : FadeIn.duration(sys.motion.enter)} exiting={reduced ? undefined : FadeOut.duration(sys.motion.exit)}>
-        <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
-          onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={[s.mapPill, emptyOverMap && s.mapPillQuiet]}>
-          <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
-          <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
-        </Press>
-      </Animated.View> : null}
+      {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillRow, { opacity: pillFade.opacity }]}
+        accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
+        <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>
+          <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
+            onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
+            <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
+            <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
+          </Press>
+        </Surface>
+      </NativeAnimated.View> : null}
       {/* The next page of a long list is on its way. It is said over the list's end and not inside it, so the end the list measures (and the
           place a return restores to) never moves; a quiet line, since a spinner lives only inside a button. */}
       {paging ? <View pointerEvents="none" accessible accessibilityLabel={PAGING_WORDS} accessibilityLiveRegion="polite"
         style={[s.pagingRow, pillShown && s.pagingAbovePill]}>
-        <View style={s.paging}><T variant="note" style={s.pagingText}>{PAGING_WORDS}</T></View>
+        <Surface kind="float" style={s.paging}><T variant="note" style={s.pagingText}>{PAGING_WORDS}</T></Surface>
       </View> : null}
       {cardShown ? <DiscoveryPeek key={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
         item={chosen} place={placeTasks} relation={relation} active={focused} bottomInset={CARD_BOTTOM} reduced={reduced}
@@ -1343,8 +1388,9 @@ const s = StyleSheet.create({
   ground: { flex: 1, backgroundColor: sys.color.ground },
   // The layer of "U blizini": as wide as the map and as tall as the row of controls; the UI thread moves it with the sheet.
   locateLayer: { position: 'absolute', left: 0, right: 0, top: 0 },
-  locate: { position: 'absolute', right: sys.space.base, width: CONTROL_SIZE, height: CONTROL_SIZE, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center', ...sys.elevation.soft },
+  locate: { position: 'absolute', right: sys.space.base, width: CONTROL_SIZE, height: CONTROL_SIZE, borderRadius: sys.radius.pill },
+  // The touch fills the float (its line takes 1 dp each side) and keeps the round shape.
+  locateTouch: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   header: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm },
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },
@@ -1364,8 +1410,8 @@ const s = StyleSheet.create({
   listUnderPill: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.huge + sys.space.xxl, flexGrow: 1 },
   empty: { flex: 1, paddingVertical: sys.space.sm },
   undated: { paddingTop: sys.space.base, textAlign: 'center' },
-  // The quiet heading of the tasks without a point: the list's own words, never a card.
-  section: { flexDirection: 'row', alignItems: 'baseline', gap: sys.space.sm, paddingTop: sys.space.xs, paddingBottom: sys.space.md },
+  // The heading of a group of tasks (on the map, remote, with no point): the list's own words, never a card. 24 above it (12 of the gap between cards and 12 of its own), 12 under it.
+  section: { flexDirection: 'row', alignItems: 'baseline', gap: sys.space.sm, paddingTop: sys.space.md, paddingBottom: sys.space.md },
   sectionTitle: { fontWeight: '600', color: sys.color.ink },
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
   // Bottom-centre, just above the tab bar (the screen ends where the bar begins).
@@ -1373,12 +1419,12 @@ const s = StyleSheet.create({
   // The quiet note while the next page is read: where the "Mapa" pill stands, or just above it when that is on show.
   pagingRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
   pagingAbovePill: { bottom: sys.space.base + 48 + sys.space.sm },
-  paging: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line, ...floating },
+  paging: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill },
   pagingText: { color: sys.color.ink },
-  mapPill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48, paddingHorizontal: sys.space.lg, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.green, ...floating },
+  // The green pill is a float like the rest: its own colour for ground and line, the system's shadow.
+  mapPillSurface: { borderRadius: sys.radius.pill, backgroundColor: sys.color.green, borderColor: sys.color.green },
+  mapPill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48 - 2, paddingHorizontal: sys.space.xl, borderRadius: sys.radius.pill },
   mapPillText: { color: sys.color.onGreen },
-  mapPillQuiet: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.lineStrong },
+  mapPillQuiet: { backgroundColor: sys.color.surface, borderColor: sys.color.lineStrong },
   mapPillQuietText: { color: sys.color.green },
 });

@@ -20,6 +20,12 @@ export type DiscoveryV1MapRequest = {
 export type DiscoveryV1PlacesRequest = {
   mode: 'PLACES'; filter: DiscoveryV1Filter; anchor: DiscoveryV1Anchor | null; prefix: string;
   facetArea: DiscoveryV1Bounds | null; limit: number; after: DiscoveryV1PlacesResponse['nextCursor'];
+  /**
+   * DISCOVERY-GRAD (applied to DEV 2026-10-08, owner decision d14): the one OPTIONAL key of a PLACES request. 'CITY' lists one row per city (the task's city, or the last part
+   * of its place text), and choosing a row (filter.place = its text) lists exactly its count. Left out (or 'AREA', which the client never sends) it is the list of before: one row per
+   * place text. A 'CITY' list has its own filterKey: it starts with anchor null and never reuses an AREA anchor.
+   */
+  groupBy?: 'CITY';
 };
 export type DiscoveryV1ExactRequest = { mode: 'EXACT_PUBLIC'; needId: string };
 export type DiscoveryV1OwnerRequest = DiscoveryV1PageRequest | DiscoveryV1MapRequest | DiscoveryV1PlacesRequest | DiscoveryV1ExactRequest;
