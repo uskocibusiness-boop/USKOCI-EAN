@@ -27,7 +27,7 @@ Sve gore navedeno postoji u kodu i gradi se bez greške.
 2. **25 podataka iz paketa v4.3** (`podaci/cinjenice.json`): svojstvo operatera, adresa, registracioni podaci, datum primene, rokovi čuvanja (zvuk, izvoz, rezervne kopije, glasovne poruke…), kolačići, primaoci obrade, kopija Dogovora, obrazac za odustanak, objašnjenje rangiranja, putevi u aplikaciji. Svako prazno polje je na stranici vidljivo kao žuta oznaka „nedostaje: …“ (privatnost 15, operater 7, uslovi 6, podrška 2, brisanje 1, kako radi 1).
 3. **Zvaničan zapis imena operatera** — namerno NIJE prikazan dok ga ne potvrdiš (`_odobrenje.zvanicno_ime_i_javni_podaci_potvrdjeni`).
 4. **Brisanje naloga u aplikaciji:** u kodu ekran „Zatvaranje naloga“ kaže „trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.“ Google traži stvaran put u aplikaciji i na webu — ovo je blokada za Play, ne za sajt.
-5. **Vercel:** nisam našao Vercel projekat na ovom računaru (nema `.vercel/`, nema CLI prijave); deploy traži tvoj nalog. Koraci su ispod.
+5. **Vercel:** postojeći projekat PRONAĐEN — `C:\Users\user\Desktop\USKOCI-SAJT\.vercel\project.json`: `uskoci-web` (tim `team_17J08X8dOmNyHIMQiK8RtGZm`); CLI je prijavljen na ovom računaru (20. 9.). Taj folder ima jedan `index.html` (4,9 MB, 20. 9.) — verovatno sadašnja početna; NIJE diran. Preview deploy (bez `--prod`) ne menja produkciju ni domen, ali daje javnu vezu — čeka tvoju reč.
 6. **Stvarni snimci ekrana** iz izdanja (4 kadra 1080×1920 po `07_slike_i_opis.md`) — za Play i da zamene složene prikaze na sajtu.
 7. **Domen `uskoci.rs`** — DNS ne diram bez tvoje reči.
 
@@ -51,7 +51,8 @@ Sve gore navedeno postoji u kodu i gradi se bez greške.
 ## Kako do Vercel preview-a (bez diranja domena)
 ```bash
 cd site/public
-npx vercel@latest --yes            # prvi put: prijava na tvoj nalog, novi projekat „uskoci-sajt“
+mkdir .vercel; copy C:\Users\user\Desktop\USKOCI-SAJT\.vercel\project.json .vercel\   # isti projekat uskoci-web
+npx vercel@latest deploy           # BEZ --prod: samo preview URL; produkcija i domen ostaju
 ```
 Preview URL je javan svakome ko ima vezu; `X-Robots-Tag: noindex` i `robots.txt Disallow` drže ga van pretrage.
 
