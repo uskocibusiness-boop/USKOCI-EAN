@@ -5,10 +5,10 @@
     "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
     "concurrencyAcceptance": false
   },
-  "generated_at": "2026-10-08T00:12:00Z",
-  "ledger_total": 234,
-  "ledger_dev_alpha": 85,
-  "ledger_last": "dev_alpha_discovery_grad_application",
+  "generated_at": "2026-10-08T16:45:35Z",
+  "ledger_total": 235,
+  "ledger_dev_alpha": 86,
+  "ledger_last": "dev_alpha_inbox_naslov_application",
   "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "cron": [
     {
@@ -720,5 +720,16 @@
     },
     "certificate": "closure source digest live = certified = 3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23; erasure program digest 2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f (read separately with private.closure_erasure_program_digest_v5(); it is not part of dev_snapshot.sql); retention_ai_ready true. Unchanged by all five packages.",
     "problems": []
+  },
+  "refresh_20261008_evening": {
+    "at": "2026-10-08T16:45:35Z",
+    "readOnly": true,
+    "ledger": "234 -> 235: dev_alpha_inbox_naslov_application (20261008133853) applied under the owner's standing order after the disposable proof run 37784417178; receipt supabase/operations/dev-alpha/ledger/20261008_inbox_naslov_application.receipt.json",
+    "certificate": "closure_source_digest_v5 3a785d42... = certified; erasure program 2027655d...; retention_ai_ready true; unchanged by the eight packages of 7-8 Oct",
+    "rpcSurface": "258 rpc_* (182 EXECUTE for authenticated): unchanged since the 04:33 snapshot; rpc_list_inbox body replaced (taskTitle)",
+    "edge": "11 ACTIVE, versions unchanged since 04:33 (ai-interview 53, worker-interview 18, push-transport 22, media 14, account-closure-worker 4 ...)",
+    "cron": "uskoci_edge_workers and uskoci_marketplace_tick every minute, 2880 runs / 0 failures in 24 h",
+    "data": "5 accounts (all test); needs 48 (7 PUBLISHED, 3 ACTIVE, 1 SELECTION, 4 DRAFT, 20 EXPIRED, 10 CANCELLED, 3 COMPLETED); 16 applications; agreements 3 CONFIRMED / 4 COMPLETED / 3 CANCELLED; 89 inbox events; push deliveries 1 SENT, 1 CREATED (stale, from the d15 closures of 7 Oct), 8 EXPIRED, 79 SUPPRESSED; app_profiles 5 WORKER + 5 REQUESTER",
+    "switches": "match_v1_dispatch ceiling 10000 remoteWaves true; profile_trust_visibility OWN_ONLY; received_reviews_detail COMMENTED_ONLY; urgent_activation_policy enabled false; platform_payments enabled false; prices 0 RSD"
   }
 }
