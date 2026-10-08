@@ -21,7 +21,7 @@ export const FOR_ME = 'Za mene';
  * over the map, each raised off the tiles. It stands there at every height of the list and never moves into it: the list's own top line says only how
  * many tasks there are and in what order. It scrolls sideways, so a capsule cut by the edge says there is more.
  *
- * - "Za mene" (R28) comes first: a capsule that is on or off, drawn only when the build says the server has the filter key (`forMeAvailable`,
+ * - "Na daljinu" comes first when available. "Za mene" follows: a capsule that is on or off, drawn only when the build says the server has the filter key (`forMeAvailable`,
  *   DISCOVERY-ZAMENE): a control that does nothing is not shown. It used to be a two-part switch beside "Svi zadaci", which said "Svi zadaci"
  *   a second time under the pill and pushed the capsules off the screen.
  * - The rest are the quick choices the search really has and the tasks can back (the screen decides which), each writing into the same
@@ -35,11 +35,13 @@ export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScop
   chips: readonly QuickChip[];
   testID?: string;
 }) {
+  const remote = chips.find(chip => chip.key === 'where:remote');
   return <ScrollView testID={testID} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
     accessibilityLabel="Brzi filteri" style={s.rail} contentContainerStyle={s.chips}>
+    {remote ? <Capsule key={remote.key} label={remote.label} selected={remote.selected} removable={remote.removable} hint={remote.hint} onPress={remote.onPress} /> : null}
     {forMeAvailable ? <Capsule testID="chip-for-me" label={FOR_ME} selected={scope === 'forMe'} hint="Zadaci koji odgovaraju tvom radnom profilu."
       onPress={() => onScope?.(scope === 'forMe' ? 'all' : 'forMe')} /> : null}
-    {chips.map(chip => <Capsule key={chip.key} label={chip.label} selected={chip.selected} removable={chip.removable} hint={chip.hint} onPress={chip.onPress} />)}
+    {chips.filter(chip => chip.key !== remote?.key).map(chip => <Capsule key={chip.key} label={chip.label} selected={chip.selected} removable={chip.removable} hint={chip.hint} onPress={chip.onPress} />)}
   </ScrollView>;
 }
 

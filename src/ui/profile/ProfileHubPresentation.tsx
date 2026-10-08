@@ -79,7 +79,7 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
   const go = (path: ProfileHubPath) => () => open(path);
   // A row is drawn by a function, not a component: the screen's tests (and a screen reader) find one row by its words, once.
   const hubRow = (label: string, art: FactArtKind, path: ProfileHubPath, extra: { detail?: string; value?: string; last?: boolean; attention?: boolean } = {}) =>
-    <SettingsRow label={label} detail={extra.detail} value={extra.value} last={extra.last} disabled={busy} onPress={go(path)} attention={extra.attention}
+    <SettingsRow label={label} detail={extra.detail} value={extra.value} valuePlacement="below" last={extra.last} disabled={busy} onPress={go(path)} attention={extra.attention}
       icon={<FactArt kind={art} size={32} />} />;
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack} right={editProfile}>
     {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}

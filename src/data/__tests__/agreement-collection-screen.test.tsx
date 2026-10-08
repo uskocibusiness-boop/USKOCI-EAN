@@ -8,7 +8,7 @@ const mockListeners = new Set<(state: string) => void>();
 const mockApp = { currentState: 'active', addEventListener: (_: string, fn: (state: string) => void) => {
   mockListeners.add(fn); return { remove: () => mockListeners.delete(fn) };
 } };
-jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args) },
+jest.mock('expo-router', () => ({ router: { navigate: (...args: unknown[]) => mockNavigate(...args), setParams: (params: { odeljak?: string }) => { mockParams = params; } },
   useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, {
@@ -242,4 +242,20 @@ describe('who cancelled, when and why (CANCEL-INFO)', () => {
     await act(async () => { props().onSection('active'); }); await act(async () => { props().onSection('history'); });
     expect(props().cancellations).toBeNull();
   });
+});
+
+test('role survives background without a new filter read, retires on account ABA, and repeated total-history entry clears all narrowing', async () => {
+ await render(); await act(async()=>props().onRoleFilter('uskocer'));
+ expect(props().roleFilter).toBe('uskocer');expect(mockRead).toHaveBeenCalledTimes(1);
+ await act(async()=>{mockApp.currentState='background';mockListeners.forEach(fn=>fn('background'));});
+ await act(async()=>{mockApp.currentState='active';mockListeners.forEach(fn=>fn('active'));});
+ expect(props().roleFilter).toBe('uskocer');
+ for(let n=0;n<2;n++){
+  await act(async()=>{props().onRoleFilter('uskocer');props().onHistoryFilter('cancelled');});
+  mockParams={odeljak:'istorija'};await update();await update();
+  expect(props()).toMatchObject({section:'history',roleFilter:'all',historyFilter:'all',confirmationOnly:false});
+ }
+ await act(async()=>props().onRoleFilter('uskocer'));const stale=props().onRoleFilter;
+ mockSession={user:{id:'account-a'},accountRevision:3};await update();
+ await act(async()=>stale('narucilac'));expect(props().roleFilter).toBe('all');
 });

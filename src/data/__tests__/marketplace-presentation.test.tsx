@@ -389,11 +389,11 @@ describe('the empty states', () => {
 
  // Review r3 item 7: the filtered-empty view's one way forward clears what was chosen, and only that. Nothing on this screen narrows the list any more;
  // a caller that does still gets an honest answer and the way back.
- test('a view that a caller narrowed and that came back empty says so, and "Poništi filtere" clears search, price, attention and section and asks for nothing', async () => {
-  Object.assign(initial, { query: 'Nema takvog posla', price: 'MY_PRICE', attention: true, section: 'drafts' });
+ test.each(['drafts', 'history'] as const)('clearing filters preserves the chosen %s collection', async section => {
+  Object.assign(initial, { query: 'Nema takvog zadatka', price: 'MY_PRICE', attention: true, section });
   await render(); expect(texts()).toContain('Nema zadataka u ovom prikazu');
   await click('Poništi filtere');
-  expect(snapshot).toEqual(initialMarketplaceView()); expect(press('Otvori zadatak Pomoć two')).toBeTruthy();
+  expect(snapshot).toMatchObject({ section, query: '', price: 'all', attention: false, selectedId: null });
   expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
  });
 

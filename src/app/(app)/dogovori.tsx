@@ -8,7 +8,7 @@ import { agreementCancellationService, type AgreementCancellations } from '../..
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import type { HistoryFilter } from '../../ui/agreements/agreementListModel';
+import type { HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
 export default function Dogovori() {
@@ -22,9 +22,16 @@ function AgreementListSession() {
   // already mounted; without the param nothing changes.
   const { odeljak } = useLocalSearchParams<{ odeljak?: string }>();
   const [section, setSection] = useState<AgreementCollectionSection>(odeljak === 'istorija' ? 'history' : 'active');
-  useEffect(() => { if (odeljak === 'istorija') setSection('history'); }, [odeljak]);
   const [confirmationOnly, setConfirmationOnly] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+  const [roleFilter, setRoleFilter] = useState<AgreementRoleFilter>('all');
+  // The profile's total means every role. Consume this explicit entry once so
+  // back from a detail preserves filters and a later profile entry resets again.
+  useEffect(() => {
+    if (odeljak !== 'istorija') return;
+    setSection('history'); setConfirmationOnly(false); setHistoryFilter('all'); setRoleFilter('all');
+    router.setParams({ odeljak: undefined });
+  }, [odeljak]);
   const foreground = useRef({ active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', generation: 0 });
   const [, render] = useState(0);
   useEffect(() => {
@@ -39,12 +46,12 @@ function AgreementListSession() {
   // Retire private rows and callbacks synchronously, including a batched
   // background→foreground transition; returning creates a fresh owned read.
   return foreground.current.active ? <OwnedAgreements key={foreground.current.generation}
-    foreground={foreground.current} section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter}
-    onSection={setSection} onConfirmationOnly={setConfirmationOnly} onHistoryFilter={setHistoryFilter} /> : null;
+    foreground={foreground.current} section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
+    onSection={setSection} onConfirmationOnly={setConfirmationOnly} onHistoryFilter={setHistoryFilter} onRoleFilter={setRoleFilter} /> : null;
 }
-function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, onSection, onConfirmationOnly, onHistoryFilter }: {
-  foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean; historyFilter: HistoryFilter;
-  onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void; onHistoryFilter: (value: HistoryFilter) => void;
+function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, roleFilter, onSection, onConfirmationOnly, onHistoryFilter, onRoleFilter }: {
+  foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean; historyFilter: HistoryFilter; roleFilter: AgreementRoleFilter;
+  onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void; onHistoryFilter: (value: HistoryFilter) => void; onRoleFilter: (value: AgreementRoleFilter) => void;
 }) {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
@@ -109,10 +116,11 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   }, [section, cancelledKey, user?.id, accountRevision]); // eslint-disable-line react-hooks/exhaustive-deps
   return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     cancellations={cancellations}
-    section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter}
+    section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
     onSection={value => { if (current()) onSection(value); }}
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onHistoryFilter={value => { if (current()) onHistoryFilter(value); }}
+    onRoleFilter={value => { if (current()) { onRoleFilter(value); onConfirmationOnly(false); } }}
     onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={onProfile}

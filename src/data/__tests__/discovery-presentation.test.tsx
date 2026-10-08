@@ -3265,7 +3265,8 @@ describe('"Nisu na mapi": the way to the tasks that are not on the map, honest t
     expect(userIntent).toHaveBeenCalled();
     expect(listSheet().props.index).toBe(1);
     expect(cards()).toEqual(['online', 'nowhere']);
-    expect(capsuleLabels()[0]).toBe('Nisu na mapi');
+    expect(capsuleLabels()[0]).toBe('Na daljinu');
+    expect(capsuleLabels()).toContain('Nisu na mapi');
     expect(quick('Nisu na mapi').props.accessibilityState).toEqual({ selected: true });
     expect(quick('Nisu na mapi').findAll(node => String(node.type) === 'X')).toHaveLength(1); // a ✕ of its own
     expect(entry()).toHaveLength(0); // the row has done its job

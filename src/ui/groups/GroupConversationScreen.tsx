@@ -13,12 +13,24 @@ export function GroupConversationScreen({agreementId,fromInbox=false}:{agreement
  const {user,accountRevision}=useSesija(),accountId=user?.id??'';
  const [state,setState]=useState(initialGroupState),[epoch,setEpoch]=useState(0),[generation,setGeneration]=useState(0),[draft,setDraft]=useState(''),[showPeople,setShowPeople]=useState(false);
  const owner=useRef<object|null>(null),engine=useRef<GroupConversationController|null>(null),input=useRef('');
+ const heldDraft=useRef<{accountId:string;accountRevision:number;agreementId:string;groupId:string;text:string}|null>(null);
+ if(heldDraft.current&&(heldDraft.current.accountId!==accountId||heldDraft.current.accountRevision!==accountRevision||heldDraft.current.agreementId!==agreementId))heldDraft.current=null;
  useFocusEffect(useCallback(()=>{
   const scope={};owner.current=scope;setGeneration(x=>x+1);setState(initialGroupState);input.current='';setDraft('');setShowPeople(false);
   const current=()=>owner.current===scope&&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId
    &&sesijaSada().accountRevision===accountRevision;
   const controller=new GroupConversationController({agreementId,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
-  controller.subscribe(()=>{if(current()){const next=controller.snapshot();setState(next);if(next.phase==='CONFIRMED'){input.current='';setDraft('');}}});void controller.load();
+  controller.subscribe(()=>{if(current()){
+   const next=controller.snapshot();setState(next);
+   if(next.journal||next.phase==='CONFIRMED')heldDraft.current=null;
+   if(next.phase==='CONFIRMED'){input.current='';setDraft('');}
+   const held=heldDraft.current,group=next.context?.group;
+   if(held&&next.context?.authoritative&&(!group?.canSend||group.groupId!==held.groupId)){
+    heldDraft.current=null;input.current='';setDraft('');
+   }else if(held&&next.phase==='READY'&&!next.journal&&group?.canSend&&group.groupId===held.groupId){
+    input.current=held.text;setDraft(held.text);
+   }
+  }});void controller.load();
   const listener=AppState.addEventListener('change',next=>{if(next!=='active'){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}else setEpoch(x=>x+1);});
   return()=>{listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';setDraft('');setShowPeople(false);setState(initialGroupState);};
  },[agreementId,accountId,accountRevision,epoch]));
@@ -26,7 +38,12 @@ export function GroupConversationScreen({agreementId,fromInbox=false}:{agreement
  const current=()=>renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller&&controller?.snapshot()===state
   &&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
  const invoke=(method:'refresh'|'older'|'acknowledge'|'managementNext')=>{if(current())void controller?.[method]();};
- const change=(value:string)=>{if(current()&&(state.phase==='READY'||state.phase==='UNKNOWN')){input.current=value;setDraft(value);}};
+ const change=(value:string)=>{if(current()&&(state.phase==='READY'||state.phase==='UNKNOWN')){
+  input.current=value;setDraft(value);
+  const group=state.context?.group;
+  heldDraft.current=state.phase==='READY'&&!state.journal&&group?.canSend&&value
+   ?{accountId,accountRevision,agreementId,groupId:group.groupId,text:value}:null;
+ }};
  const retry=state.phase==='UNKNOWN'&&state.canRetry;
  const onVisible=useMemo(()=>({viewableItems}:{viewableItems:ViewToken<GroupMessage>[]})=>{
   // The current controller owns the list; blur/background disposal suppresses

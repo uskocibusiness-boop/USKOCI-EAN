@@ -38,7 +38,7 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 test('the row is the quick filters in the order they are given, and there is no "Filteri" capsule and no "moja lokacija" among them', async () => {
   await render();
-  expect(labels()).toEqual(['Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']);
+  expect(labels()).toEqual(['Na daljinu', 'Danas', 'Ovaj vikend', 'Sa iznosom']);
   // the filters have their own round button beside the pill; the capsule row never opens them
   expect(labels()).not.toContain('Filteri');
   expect(labels().filter(label => /^Filteri/.test(label))).toEqual([]);
@@ -57,7 +57,7 @@ test('"Za mene" is built but not drawn: no capsule, and never a "Svi zadaci" bes
 
 test('with the switch on, "Za mene" is ONE capsule before the others: a tap turns it on, a tap on it turns it off, and "Svi zadaci" is nowhere', async () => {
   await render({ forMeAvailable: true, onScope: scope });
-  expect(labels()).toEqual(['Za mene', 'Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']);
+  expect(labels()).toEqual(['Na daljinu', 'Za mene', 'Danas', 'Ovaj vikend', 'Sa iznosom']);
   expect(labels()).not.toContain('Svi zadaci');
   expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityRole: 'tab' })).toHaveLength(0);
@@ -90,7 +90,7 @@ test('a quick capsule is a toggle: spoken as selected or not, with a tick on the
 test('a capsule that is on and has its own ✕ ("Nisu na mapi") shows the ✕ instead of a tick, and a tap takes it away', async () => {
   const off: QuickChip = { key: 'offMap', label: 'Nisu na mapi', selected: true, removable: true, hint: 'Isključuje ovaj izbor.', onPress: leave };
   await render({ forMeAvailable: true, chips: [off, ...chips()] });
-  expect(labels()).toEqual(['Za mene', 'Nisu na mapi', 'Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']);
+  expect(labels()).toEqual(['Na daljinu', 'Za mene', 'Nisu na mapi', 'Danas', 'Ovaj vikend', 'Sa iznosom']);
   expect(button('Nisu na mapi').props).toMatchObject({ accessibilityState: { selected: true }, accessibilityHint: 'Isključuje ovaj izbor.' });
   expect(button('Nisu na mapi').findAll(node => String(node.type) === 'X')).toHaveLength(1);
   expect(button('Nisu na mapi').findAll(node => String(node.type) === 'Check')).toHaveLength(0);
@@ -100,7 +100,7 @@ test('a capsule that is on and has its own ✕ ("Nisu na mapi") shows the ✕ in
 
 test('every capsule lifts off the map tiles (white, raised) and is at least 48 high, whether it is on or not', async () => {
   await render({ forMeAvailable: true, scope: 'forMe' });
-  for (const label of ['Za mene', 'Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']) {
+  for (const label of ['Na daljinu', 'Za mene', 'Danas', 'Ovaj vikend', 'Sa iznosom']) {
     const style = StyleSheet.flatten(button(label).props.style);
     expect([label, style.minHeight]).toEqual([label, 48]);
     expect(style.borderRadius).toBe(sys.radius.pill);

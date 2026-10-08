@@ -437,13 +437,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const sharedFilters = useMemo(() => ({ ...initialMarketplaceView(), query, price, when, where, places: freePlaces, place: chosenPlace, dates }),
     [query, price, when, where, freePlaces, chosenPlace, dates]);
   const filters = useMemo(() => ({ ...sharedFilters, area, pinPlace: pinPlace ?? null }), [sharedFilters, area, pinPlace]);
+  const serverOwned = !!props.p6Seam;
   const mapped = useMemo(() => loading || error ? NOTHING.mapped
-    : props.p6Seam ? [...items] : discoveryShown(items, sharedFilters, undefined, now).mapped,
-    [loading, error, items, sharedFilters, now, props.p6Seam]);
-  const { inArea, withoutPoint, listed: ordinaryList } = useMemo(() => props.p6Seam
+    : serverOwned ? [...items] : discoveryShown(items, sharedFilters, undefined, now).mapped,
+    [loading, error, items, sharedFilters, now, serverOwned]);
+  const { inArea, withoutPoint, listed: ordinaryList } = useMemo(() => serverOwned
     ? { inArea: mapped.filter(item => !!publicPoint(item)), withoutPoint: mapped.filter(item => !publicPoint(item)), listed: mapped }
     : discoveryMapScope(mapped, { area, pinPlace, where }),
-    [mapped, area, pinPlace, where, props.p6Seam]);
+    [mapped, area, pinPlace, where, serverOwned]);
   const [retiredListFocus, setRetiredListFocus] = useState<{ token: string; scopeKey: string } | null>(null);
   const retireListFocus = () => {
     const request = props.publicationFocus;

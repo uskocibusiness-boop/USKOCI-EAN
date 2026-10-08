@@ -83,9 +83,10 @@ export function SettingsGroup({ title, footer, action, children }: { title?: str
  * and at the edge without one; the divider inset). A row that cannot be opened now draws its picture quiet as well as its words.
  * The row speaks its label and, as the hint, its detail, as it always did.
  */
-export function SettingsRow({ label, detail, value, icon, onPress, disabled = false, last = false, compact = false, tone = 'default', accessory, attention = false }: {
+export function SettingsRow({ label, detail, value, valuePlacement, icon, onPress, disabled = false, last = false, compact = false, tone = 'default', accessory, attention = false }: {
   label: string; detail?: string;
   /** What is set, in grey at the end of the line before the arrow ("Novi Sad"): the row's own answer, never a sentence. */ value?: string;
+  valuePlacement?: 'end' | 'below';
   icon?: ReactNode; onPress: () => void; disabled?: boolean; last?: boolean;
   /** A row for something needed once in a long while (legal, export, the blocked list): no picture, so it does not
    *  compete with the rows a person opens every day (owner rule, 2026-09-23). A group has pictures in all its rows or in none. */
@@ -97,7 +98,7 @@ export function SettingsRow({ label, detail, value, icon, onPress, disabled = fa
   /** Something waits behind this row: an orange dot before the arrow, the app's one accent. */
   attention?: boolean;
 }) {
-  return <ListRow leading={icon && !compact ? icon : undefined} title={label} subtitle={detail} value={value} onPress={onPress} disabled={disabled} last={last}
+  return <ListRow leading={icon && !compact ? icon : undefined} title={label} subtitle={detail} value={value} valuePlacement={valuePlacement} onPress={onPress} disabled={disabled} last={last}
     tone={tone} trailing={accessory ?? (attention ? <View accessible={false} style={styles.dot} /> : undefined)}
     arrow={accessory === undefined ? undefined : false} accessibilityLabel={label} accessibilityHint={detail ?? value} />;
 }

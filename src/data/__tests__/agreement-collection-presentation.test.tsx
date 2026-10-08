@@ -73,9 +73,9 @@ test('Istorija offers Sve, Završeni and Otkazani, narrows the list by them and 
   rows = [agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED'), agreement('done-2', 'COMPLETED'), agreement('live', 'CONFIRMED')];
   await render();
   // Aktivni has no history chips, and Istorija has no confirmation filter.
-  expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Stanje završenih Dogovora' })).toHaveLength(0);
   await tap('Istorija');
-  const chips = () => tree.root.findAllByProps({ accessibilityRole: 'radio' }).map(node => [node.props.accessibilityLabel, node.props.accessibilityState.checked]);
+  const chips = () => tree.root.findByProps({ accessibilityLabel: 'Stanje završenih Dogovora' }).findAllByProps({ accessibilityRole: 'radio' }).map(node => [node.props.accessibilityLabel, node.props.accessibilityState.checked]);
   expect(chips()).toEqual([['Sve', true], ['Završeni', false], ['Otkazani', false]]);
   expect(titles()).toEqual(['done', 'off', 'done-2'].map(id => `Otvori Dogovor Posao ${id}`));
   await tap('Završeni'); expect(chips()).toEqual([['Sve', false], ['Završeni', true], ['Otkazani', false]]);
@@ -554,4 +554,13 @@ test('the first rows after a skeleton arrive once, at most six; a warm list and 
   await render();
   expect(arriving()).toBe(0);
   await tap('Istorija'); expect(arriving()).toBe(0);
+});
+
+test('role filters use my actual participant role and persist across active/history without hiding the reset', async () => {
+ rows = [agreement('request', 'CONFIRMED'), agreement('help', 'CONFIRMED', false), agreement('old-help', 'COMPLETED', false)];
+ await render();await tap('Uskačem');expect(titles()).toEqual(['Otvori Dogovor Posao help']);
+ await tap('Istorija');expect(titles()).toEqual(['Otvori Dogovor Posao old-help']);
+ await tap('Tražim pomoć');expect(titles()).toEqual([]);
+ await tap('Sve uloge');expect(titles()).toEqual(['Otvori Dogovor Posao old-help']);
+ await tap('Aktivni');expect(titles()).toHaveLength(2);
 });

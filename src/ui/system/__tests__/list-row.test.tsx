@@ -216,6 +216,15 @@ describe('the answer a row carries, and a row that opens in place', () => {
     expect(copy.findAll(node => typeof node.type === 'string' && node.props.testID === 'dot').length).toBe(1);
   });
 
+  it('keeps a status sentence below a settings title even at ordinary text size', async () => {
+    mockStacked = false;
+    await render(<ListRow title="Pravila i saglasnosti" value="Čekaju tvoju saglasnost" valuePlacement="below" leading={art()} onPress={() => undefined} />);
+    const copy = hosts().find(node => flat(node).flex === 1 && flat(node).minWidth === 0)!;
+    expect(copy.findAll(node => node.type === Text && node.props.children === 'Pravila i saglasnosti')).toHaveLength(1);
+    expect(copy.findAll(node => node.type === Text && node.props.children === 'Čekaju tvoju saglasnost')).toHaveLength(1);
+    expect(word('Čekaju tvoju saglasnost').props.numberOfLines).toBeUndefined();
+  });
+
   it('on a row that only tells the value is one stop with the title, after it', async () => {
     await render(<ListRow title="Verzija" value="1.0.0" subtitle="Izdanje 214" testID="row" />);
     expect(row().props).toMatchObject({ accessible: true, accessibilityLabel: 'Verzija, 1.0.0, Izdanje 214' });

@@ -36,7 +36,7 @@ export const offMapWords = (count: number) => plural(count, 'nije na mapi', 'nis
  * What the search and the filters call their parts, the one word each. The SEARCH is the field "Šta tražiš?" and "Gde" (the cities, with how many tasks each, and the
  * work done remotely), then what was searched before; the FILTERS are "Kada", "Gde" (how the work is done) and "Iznos". A person is spoken to as "ti": there is no "vas" here.
  */
-export const SEARCH_WORDS = { what: 'Šta tražiš', whatPlaceholder: 'Npr. selidba, farbanje, košenje', where: 'Gde', recent: 'Skorašnje pretrage',
+export const SEARCH_WORDS = { what: 'Šta tražiš', whatPlaceholder: 'Šta tražiš?', where: 'Gde', recent: 'Skorašnje pretrage',
   searchTitle: 'Pretraga', filtersTitle: 'Filteri', all: 'Svi zadaci', remote: 'Na daljinu',
   /** While the work done remotely is chosen there are no places to choose: it has none, and the way to a city is "Svi zadaci". */
   remoteNote: 'Zadaci na daljinu nemaju mesto. Izaberi „Svi zadaci“ da biraš grad.' } as const;

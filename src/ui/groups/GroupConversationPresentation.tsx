@@ -125,9 +125,8 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
       <FlatList key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
         onViewableItemsChanged={p.onVisible} viewabilityConfig={p.viewability} refreshing={pull.refreshing} onRefresh={pull.onRefresh}
         ListHeaderComponent={header}
-        renderItem={({ item }) => {
-          // The position is read from the page itself, so the run is right whatever index the list hands in.
-          const index = state.messages.indexOf(item), entry = thread[index];
+        renderItem={({ item, index }) => {
+          const entry = thread[index];
           if (!entry) return null;
           // Mine carries the one small mark: sent, because the group's read holds it. A group has no single reader, so it is never "seen".
           const mark = item.mine ? 'sent' as const : null;
@@ -151,7 +150,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         ListFooterComponent={<View style={[s.stack, s.gutter]}>
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekamo potvrdu slanja…</T> : null}
           {state.phase === 'UNKNOWN' ? <V2Action label="Proveri da li je poruka stigla" style={brandAction} onPress={p.onRefresh} /> : null}
-          {state.phase === 'CONFIRMED' ? <V2Action label="Prikaži razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
+          {state.phase === 'CONFIRMED' ? <V2Action label="Nastavi razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
         </View>} />
       {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upiši istu poruku' : 'Poruka grupi'}
         placeholder={retry ? 'Prvobitna poruka…' : 'Napiši poruku grupi…'} sendLabel={retry ? 'Ponovi slanje iste poruke' : 'Pošalji poruku grupi'}

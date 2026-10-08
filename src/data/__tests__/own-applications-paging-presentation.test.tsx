@@ -81,7 +81,7 @@ test('a tab whose set is empty is not "no applications at all": the tabs stay an
 test('with no application at all there are no tabs, only the first-run state; a complete set is parted into groups, not tabs', async () => {
   rows = []; paging = makePaging({ counts: { total: 0, attention: 0, active: 0, finished: 0 }, hasMore: false }); await render();
   expect(tabs()).toEqual([]); expect(texts()).toContain('Još nemaš prijavu'); action('Pronađi zadatak').props.onPress(); expect(onExplore).toHaveBeenCalledTimes(1);
-  rows = [row('one')]; paging = makePaging({ counts: null, hasMore: false }); await rerender(); expect(tabs()).toHaveLength(0); expect(heads()).toEqual(['Čeka odgovor · 1']);
+  rows = [row('one')]; paging = makePaging({ counts: null, hasMore: false }); await rerender(); expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']); expect(heads()).toEqual([]);
 });
 
 // The approved draft U8: groups need EVERY application of the set. A page still to come is parted by the server's own sets (the chips), never by what happens to be loaded;
@@ -90,7 +90,7 @@ test('groups are drawn only for a complete set: a page still to come keeps the s
   await render();
   expect(heads()).toEqual([]); expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']); expect(texts()).toContain('40 prijava');
   paging = makePaging({ hasMore: false }); await rerender();
-  expect(tabs()).toEqual([]); expect(heads()).toEqual(['Čeka odgovor · 2']); expect(texts()).not.toContain('40 prijava');
+  expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']); expect(heads()).toEqual([]); expect(texts()).toContain('40 prijava');
   tab = 'finished'; await rerender();
   expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']);
 });

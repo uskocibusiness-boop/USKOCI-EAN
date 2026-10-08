@@ -39,7 +39,7 @@ export function SearchField({ value, onChangeText, label, placeholder, clearLabe
     <Glyph name="search" tone="muted" />
     <TextInput testID={testID} accessibilityLabel={label} placeholder={placeholder} placeholderTextColor={sys.color.muted}
       value={value} onChangeText={text => onChangeText(text.slice(0, maxLength))} maxLength={maxLength} style={s.input}
-      returnKeyType={returnKeyType} onSubmitEditing={onSubmit} autoFocus={autoFocus} />
+      multiline={false} numberOfLines={1} returnKeyType={returnKeyType} onSubmitEditing={onSubmit} autoFocus={autoFocus} />
     {value ? <Press accessibilityRole="button" accessibilityLabel={clearLabel} haptic="select" hitSlop={0} style={s.clear}
       onPress={() => onChangeText('')}><Glyph name="close" size={16} /></Press> : null}
   </View>;
@@ -94,7 +94,7 @@ const s = StyleSheet.create({
   chipTextOn: { color: sys.color.ink, fontWeight: '600' },
   // The one text field of the system, with the search glass before it and the clear button in it.
   field: { ...fieldBox, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0, paddingRight: sys.space.xs },
-  input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: sys.space.sm }),
+  input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, minHeight: 48, paddingVertical: sys.space.sm }),
   clear: { width: 48, height: 48, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   // Place rows read as a list; only the chosen row has a neutral well and a check. The row's picture and words stand at the edge of the list (the
   // section names above them), and the chosen row's well reaches 8 beyond it, so a tint never makes the words step in.

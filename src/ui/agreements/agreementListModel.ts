@@ -29,6 +29,17 @@ export const isActiveAgreement = (item: DogovorProjekcija) =>
 export const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje === 'AWAITING_REQUESTER'
   && item.ucesnici.some(person => person.viSte && person.uloga === 'narucilac');
 
+export type AgreementRoleFilter = 'all' | 'narucilac' | 'uskocer';
+export const AGREEMENT_ROLE_FILTERS = [
+  { key: 'all', label: 'Sve', spoken: 'Sve uloge' },
+  { key: 'narucilac', label: 'Tražim pomoć', spoken: 'Tražim pomoć' },
+  { key: 'uskocer', label: 'Uskačem', spoken: 'Uskačem' },
+] as const;
+/** A person's role belongs to this Agreement, never to a global account mode. */
+export function filterAgreementRole(items: readonly DogovorProjekcija[], role: AgreementRoleFilter): readonly DogovorProjekcija[] {
+  return role === 'all' ? items : items.filter(item => item.ucesnici.find(person => person.viSte)?.uloga === role);
+}
+
 export type AgreementAttention = { kind: 'change' | 'confirm' | 'rate' | 'check-rating'; title: string; line: string };
 /**
  * What this Dogovor is waiting for from ME, if anything, in the order the Dogovor itself leads with: a change the other side

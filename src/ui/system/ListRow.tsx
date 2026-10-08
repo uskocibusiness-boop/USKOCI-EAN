@@ -43,6 +43,8 @@ export type ListRowProps = {
    * reader hears it after the title. Added to the contract (F8b, at F2's request); optional.
    */
   value?: string;
+  /** Status sentences belong below the title; short selected values can remain at the end. */
+  valuePlacement?: 'end' | 'below';
   /**
    * The row opens something IN PLACE, under itself: `false` draws the caret down (closed), `true` draws it up (open), and the row tells a
    * screen reader which it is. Only a touched row can be expanded (it needs `onPress`; on a row that only tells it is ignored). `arrow={false}`
@@ -71,8 +73,9 @@ export type ListRowProps = {
  * its choices under itself is both ("Gde", "Novi Sad", caret down). Neither changes a row that does not say it.
  */
 export function ListRow({ leading, title, subtitle, meta, trailing, onPress, tone = 'default', last = false, faceSlot = false, disabled = false, arrow,
-  value, expanded, accessibilityLabel, accessibilityHint, testID }: ListRowProps) {
+  value, valuePlacement = 'end', expanded, accessibilityLabel, accessibilityHint, testID }: ListRowProps) {
   const { stacked } = useLayoutClass();
+  const valueBelow = stacked || valuePlacement === 'below';
   const tap = onPress !== undefined;
   const slot = leading ? (faceSlot ? layout.slotFace : layout.slot) : 0;
   const start = slot ? slot + sys.space.md : 0;
@@ -89,10 +92,10 @@ export function ListRow({ leading, title, subtitle, meta, trailing, onPress, ton
       <T variant={tap ? 'bodyStrong' : 'body'} tone={ink}>{title}</T>
       {subtitle ? <T variant="note" tone="muted">{subtitle}</T> : null}
       {meta ? <T variant="meta" tone="muted">{meta}</T> : null}
-      {stacked && value ? <T variant="note" tone="muted">{value}</T> : null}
+      {valueBelow && value ? <T variant="note" tone="muted">{value}</T> : null}
       {stacked && trailing ? <View style={s.trailingStacked}>{trailing}</View> : null}
     </View>
-    {!stacked && value ? <T variant="note" tone="muted" style={s.value}>{value}</T> : null}
+    {!valueBelow && value ? <T variant="note" tone="muted" style={s.value}>{value}</T> : null}
     {!stacked && trailing ? <View style={s.trailing}>{trailing}</View> : null}
     {drawsArrow ? <Glyph name={caret} size={20} tone="muted" /> : null}
     {last ? null : <View pointerEvents="none" style={[s.rule, { left: start }]} />}

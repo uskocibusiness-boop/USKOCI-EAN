@@ -138,7 +138,7 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(byId('search-sheet').props).toMatchObject({ accessibilityViewIsModal: true, accessibilityLabel: 'Pretraga' });
     const header = byId('search-header');
     expect(header.findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel)).toContain('Zatvori pretragu');
-    expect(whatField().props).toMatchObject({ accessibilityLabel: 'Šta tražiš', placeholder: 'Npr. selidba, farbanje, košenje', autoFocus: true, returnKeyType: 'search' });
+    expect(whatField().props).toMatchObject({ accessibilityLabel: 'Šta tražiš', placeholder: 'Šta tražiš?', autoFocus: true, returnKeyType: 'search' });
     expect(texts()).toContain('Gde');
     expect(byLabel('Zatvori pretragu')).toHaveLength(1); expect(byLabel('Zatvori filtere')).toHaveLength(0);
     // the filters are the round button's: no days, no amount, no way of working here
@@ -752,6 +752,27 @@ describe('the frame, the backdrop and the motion', () => {
 });
 
 describe('the parts of the panel', () => {
+  test('failed preview retries the same choices without applying or closing the panel', async () => {
+    mode = 'filters'; view = { ...view, query: 'selidba', where: 'remote', price: 'OFFERS' };
+    const seam = p6Seam(p6Snapshot({ status: 'error', count: null })); p6Search = seam;
+    await render();
+    expect(show().props).toMatchObject({ label: 'Pokušaj ponovo', disabled: false });
+    await act(async () => show().props.onPress());
+    expect(seam.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ query: 'selidba', where: 'remote', price: 'OFFERS' }), mapArea);
+    expect(apply).not.toHaveBeenCalled(); expect(close).not.toHaveBeenCalled();
+    p6Search = { ...seam, snapshot: p6Snapshot({ count: 12 }) };
+    await act(async () => tree.update(panelOf()));
+    expect(show().props).toMatchObject({ label: 'Prikaži 12 zadataka', disabled: false });
+  });
+
+  test('the narrow search retains one input line and keeps typed text and clear available', async () => {
+    mockWindow = { width: 361, height: 779, scale: 3.5, fontScale: 1.15 };
+    await render();
+    expect(whatField().props).toMatchObject({ multiline: false, numberOfLines: 1, placeholder: 'Šta tražiš?' });
+    await typeWhat('Pomoć pri preseljenju u Novi Sad');
+    expect(whatField().props.value).toBe('Pomoć pri preseljenju u Novi Sad');
+    await tap('Obriši reč'); expect(whatField().props.value).toBe('');
+  });
   test('a chosen chip has a neutral well, ink edge and words, and a confirmation tick; a chosen day is written in onDark', async () => {
     mode = 'filters'; await render();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());

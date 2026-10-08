@@ -19,6 +19,7 @@ import { AgreementRow } from '../agreements/AgreementListCard';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
   agreementAttention, awaitsMyConfirmation, filterHistory, groupActiveAgreements, HISTORY_FILTERS, isActiveAgreement, type HistoryFilter,
+  AGREEMENT_ROLE_FILTERS, filterAgreementRole, type AgreementRoleFilter,
 } from '../agreements/agreementListModel';
 
 /** Aktivni and Istorija (round-1 critique A11): "Svi" repeated both, and the count line repeated the tabs' own counts. */
@@ -44,6 +45,7 @@ type Props = {
   header?: ReactNode;
   /** Istorija shows "Sve · Završeni · Otkazani". The route may keep the choice through the foreground gate; without it the list keeps its own. */
   historyFilter?: HistoryFilter; onHistoryFilter?: (value: HistoryFilter) => void;
+  roleFilter?: AgreementRoleFilter; onRoleFilter?: (value: AgreementRoleFilter) => void;
   /** "Now" for the day groups ("Danas", "Sutra"…). The screen leaves it out; the tests and the gallery fix it. */
   now?: Date;
   /**
@@ -75,9 +77,13 @@ export function AgreementCollectionPresentation(props: Props) {
   const [ownHistoryFilter, setOwnHistoryFilter] = useState<HistoryFilter>('all');
   const historyFilter = props.historyFilter ?? ownHistoryFilter;
   const setHistoryFilter = props.onHistoryFilter ?? setOwnHistoryFilter;
+  const [ownRoleFilter, setOwnRoleFilter] = useState<AgreementRoleFilter>('all');
+  const roleFilter = props.roleFilter ?? ownRoleFilter;
+  const setRoleFilter = props.onRoleFilter ?? setOwnRoleFilter;
+  const roleItems = useMemo(() => filterAgreementRole(items, roleFilter), [items, roleFilter]);
   const now = minuteOf(props.now);
-  const activeItems = useMemo(() => items.filter(isActiveAgreement), [items]);
-  const historyItems = useMemo(() => items.filter(item => !isActiveAgreement(item)), [items]);
+  const activeItems = useMemo(() => roleItems.filter(isActiveAgreement), [roleItems]);
+  const historyItems = useMemo(() => roleItems.filter(item => !isActiveAgreement(item)), [roleItems]);
   // Aktivni is groups ("Čeka tebe" first, then the days), each a heading and its cards; Istorija keeps the newest-first order
   // the server gave, narrowed by its chips. One flat list, so the window and the row memo stay as they were.
   const rows = useMemo<ListRow[]>(() => {
@@ -86,7 +92,7 @@ export function AgreementCollectionPresentation(props: Props) {
     return groupActiveAgreements(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const, title: group.title },
       ...group.items.map(item => ({ id: item.id, kind: 'item' as const, item }))]);
   }, [section, filtering, activeItems, historyItems, historyFilter, now]);
-  const waiting = useMemo(() => items.filter(awaitsMyConfirmation).length, [items]);
+  const waiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
   const settledRead = !loading && !error;
   // The two sets are told apart by their words, not by counts: a number is drawn ONLY for what needs the person, as the orange
   // count on Aktivni ("Čeka tebe"), and only once the read has settled; a count of how many there are says nothing to act on.
@@ -101,7 +107,7 @@ export function AgreementCollectionPresentation(props: Props) {
   // no skeleton) and a change of set or filter stay still.
   const sawSkeleton = useRef(false);
   if (loading) sawSkeleton.current = true;
-  appear.settle(rows.filter(row => row.kind === 'item').map(keyOf), JSON.stringify([section, filtering, historyFilter]), { afterLoading: sawSkeleton.current });
+  appear.settle(rows.filter(row => row.kind === 'item').map(keyOf), JSON.stringify([section, filtering, historyFilter, roleFilter]), { afterLoading: sawSkeleton.current });
   // `useAppear` returns a new object each render over the same two refs, and the route's `onOpen`
   // is a fresh closure each render; both are read through refs so `renderItem` keeps its identity.
   const appearRef = useRef(appear); appearRef.current = appear;
@@ -122,6 +128,11 @@ export function AgreementCollectionPresentation(props: Props) {
   const showOther = () => { props.onSection(target); props.onConfirmationOnly(false); };
   // A chip of Istorija that holds nothing while the other chips do: the way forward is "Sve", not another set.
   const narrowedEmpty = section === 'history' && historyFilter !== 'all' && historyCount > 0;
+  const emptyRole = roleFilter !== 'all' && roleItems.length === 0 && items.length > 0;
+  const clearRole = () => {
+    setRoleFilter('all'); props.onConfirmationOnly(false); setHistoryFilter('all');
+    if (!items.some(item => isActiveAgreement(item) === (section === 'active'))) props.onSection(section === 'active' ? 'history' : 'active');
+  };
   // The one state view: reading, not read, nothing in this set, nothing yet - each in the same look. Nothing yet leads to the two
   // ways a Dogovor begins (look at the tasks; publish one) when the route can take the person there, and otherwise to Početna.
   const first = props.onTasks ? { label: 'Pogledaj zadatke', onPress: props.onTasks } : { label: 'Idi na Početnu', onPress: props.onHome };
@@ -130,6 +141,7 @@ export function AgreementCollectionPresentation(props: Props) {
     {loading ? <StateView kind="loading" title="Učitavamo Dogovore…" skeleton={{ count: 3, rows: 2 }} />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+        : emptyRole ? <StateView art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikaži sve uloge', onPress: clearRole }} />
         : items.length ? <StateView art="agreements"
           title={filtering ? 'Nijedan Dogovor ne čeka tvoju potvrdu' : section === 'active' ? 'Nema aktivnih Dogovora'
             : narrowedEmpty ? (historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Nema završenih Dogovora') : 'Još nema završenih Dogovora'}
@@ -144,7 +156,7 @@ export function AgreementCollectionPresentation(props: Props) {
     style={[s.chip, confirmationOnly && s.chipOn]}>
     {confirmationOnly ? <Glyph name="check" size={16} tone="green" /> : null}
     <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka tvoju potvrdu</T>
-  </Press> : null) : settledRead && historyCount ? <View style={s.chipRow}>
+  </Press> : null) : settledRead && historyCount ? <View accessibilityRole="radiogroup" accessibilityLabel="Stanje završenih Dogovora" style={s.chipRow}>
     {HISTORY_FILTERS.map(option => {
       const on = historyFilter === option.key;
       return <Press key={option.key} accessibilityRole="radio" accessibilityLabel={option.label} accessibilityState={{ checked: on }}
@@ -167,6 +179,18 @@ export function AgreementCollectionPresentation(props: Props) {
         <View style={s.tabs}><Segmented options={sections} value={section} onChange={props.onSection} /></View>
         <ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} />
       </View>
+      {items.length > 0 || loading || roleFilter !== 'all' ? <View style={s.toolbar}>
+        <View accessibilityRole="radiogroup" accessibilityLabel="Tvoja uloga u Dogovorima" style={s.chipRow}>
+          {AGREEMENT_ROLE_FILTERS.map(option => {
+            const selected = roleFilter === option.key;
+            return <Press key={option.key} accessibilityRole="radio" accessibilityLabel={option.spoken} accessibilityState={{ checked: selected }}
+              onPress={() => { setRoleFilter(option.key); props.onConfirmationOnly(false); }} haptic="select" style={[s.chip, selected && s.chipOn]}>
+              {selected ? <Glyph name="check" size={16} tone="green" /> : null}
+              <T variant="meta" style={[s.chipText, selected && s.chipTextOn]}>{option.label}</T>
+            </Press>;
+          })}
+        </View>
+      </View> : null}
       {chips || holdsStrip ? <View style={s.toolbar}>{chips}</View> : null}
     </View>
     <FlatList<ListRow> data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}

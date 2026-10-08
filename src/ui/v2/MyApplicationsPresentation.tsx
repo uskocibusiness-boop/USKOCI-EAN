@@ -79,8 +79,7 @@ const deviceZone = (): string | undefined => {
  * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24; one record since 2026-10-08, composition spec
  * 4.5 and 4.7; groups since the approved draft U8). A detail screen: the arrow back and the name, then the applications in three groups, each with
  * its name and its count ("Čeka odgovor · 2", "Izabrana · 1", "Završene · 3"), then one `Surface record` per application (`ApplicationFace`, the
- * worker's side of the shared `PrijavaCard`), 12 apart. The groups are drawn when every application of the shown set is here (the whole-list read,
- * or the last page of a paged one). A paged set with a page still to come is parted by the SERVER'S own sets instead, which are chips (Sve · Čeka te ·
+ * worker's side of the shared `PrijavaCard`), 12 apart. The legacy whole-list read draws groups. A paged read keeps the SERVER'S own sets even after the final page, which are chips (Sve · Čeka te ·
  * Aktivne · Završene, the one control that scrolls sideways) with the count of the set as the first line of the list: what happens to be loaded is
  * never counted or grouped as if it were everything. No card edge carries a state: the card's chip says it, in the owner's five words (Poslata,
  * Viđena, Izabrana, Nije izabrana, Povučena). Empty, loading and error go through the one StateView. Presentation only: every callback
@@ -91,10 +90,10 @@ const deviceZone = (): string | undefined => {
  */
 export function MyApplicationsPresentation(props: Props) {
   const filtered = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
-  // Whole: every application of the shown set is here, so the list can be parted into its groups. Chips only where it cannot be (a page is still to
-  // come) or where a set other than "Sve" is shown and the way back to it is needed.
-  const whole = !props.paging || !props.paging.hasMore;
-  const chips = !!props.paging && (props.paging.hasMore || props.tab !== 'all');
+  // Loading the last page must not remove filters or reorder the cards under the finger.
+  // Only the legacy whole-list read uses groups; paged reads keep their server set and order.
+  const whole = !props.paging;
+  const chips = !!props.paging || props.tab !== 'all';
   // Put the explicitly requested row first. Unlike scrollToIndex this also works before variable-height
   // cards outside the initial virtualized window have been measured. Never change the user's filter.
   const focused = props.focusId ? filtered.find(p => p.prijavaId === props.focusId) : undefined;

@@ -407,3 +407,8 @@ Plaćanje (ko plaća, cena, dobavljač, Google Play naplata, fiskalni račun), p
 (plaćeni LocationIQ ili državni Adresni registar), paketi koji traže odobrenje (govor aplikacije, provera mreže),
 serverski paketi (obaveštenja sa imenom, poslednja poruka na Dogovorima) i iste reči za vozila i alat kod pomoćnika.
 Sve ostalo je odluka tima.
+
+
+## Dopuna 8.10 — završavanje stvarnih tokova
+
+Aktuelna izvedba i granice: [CONTINUITY_FINISH_20261008](docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md). Vlasnik je odobrio autonomnu implementaciju. Nova role kapsula u Dogovorima označava moju stvarnu ulogu; profilov ukupni broj ne sme otvoriti suženu istoriju. Prednost kontinuitetu i jasnoj posledici akcije: filteri ne nestaju na poslednjoj stranici, potvrđena grupna poruka vraća razgovor automatski, statusne rečenice ne lome naslove profila. Prvi radni AI prihvata i svakodnevnu pomoć; stvarno naknadno pitanje i matching sinonimi zahtevaju zasebnu proverenu serversku doradu.

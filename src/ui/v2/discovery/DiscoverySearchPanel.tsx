@@ -98,8 +98,9 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const reducedTransparency = useReducedTransparency();
   const backdrop = searchBackdropKind({ os: Platform.OS, version: Platform.Version, hasTarget: !!blurTarget, reducedTransparency });
   const viewOf = (value: SearchDraft): MarketplaceView => ({ ...view, ...value });
-  const localCount = useMemo(() => discoveryItems(items, viewOf(draft), mine, now).length, [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const localUndated = useMemo(() => undatedCount(items, viewOf(draft), mine, now), [items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const serverOwned = !!p6Search;
+  const localCount = useMemo(() => serverOwned ? 0 : discoveryItems(items, viewOf(draft), mine, now).length, [serverOwned, items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const localUndated = useMemo(() => serverOwned ? 0 : undatedCount(items, viewOf(draft), mine, now), [serverOwned, items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
   const serverKey = discoveryV1SearchPreviewKey({ ...viewOf(draft), placeSearch: within } as SearchPreviewView, mapArea);
   const serverCurrent = !!p6Search && p6Search.snapshot.active && p6Search.snapshot.key === serverKey;
   const effectiveReadiness: SearchReadiness = p6Search
@@ -166,13 +167,15 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
   const emptyReason = counted && count === 0 ? 'Pokušaj sa širom oblašću ili drugim danom.' : null;
+  const retryPreview = effectiveReadiness === 'error' && p6Search
+    ? () => p6Search.onDraft({ ...draft, placeSearch: within }, mapArea) : undefined;
   // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Očisti" beside the one green action, which says how many tasks the list will show;
   // when it cannot be pressed the reason stands in a line above it. At a large text size or a narrow window the two stand one under the other.
-  const footer = <FlowFooter testID="search-footer" reason={emptyReason ?? undefined}>
+  const footer = <FlowFooter testID="search-footer" reason={retryPreview ? 'Zadaci nisu učitani. Tvoji izbori su sačuvani.' : emptyReason ?? undefined}>
     <View testID="search-actions" style={[s.actions, stackedActions && s.actionsStacked]}>
       <V2Action label={CLEAR} kind="quiet" tone="neutral" compact style={s.reset} onPress={clearAll} />
       <View testID="search-show" accessibilityLiveRegion="polite" style={[s.grow, stackedActions && s.showStacked]}>
-        <V2Action label={show.label} disabled={show.disabled} onPress={apply} style={brandAction} />
+        <V2Action label={retryPreview ? 'Pokušaj ponovo' : show.label} disabled={!retryPreview && show.disabled} onPress={retryPreview ?? apply} style={brandAction} />
       </View>
     </View>
   </FlowFooter>;
@@ -181,7 +184,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     // Gde: legacy mode derives from the full loaded collection. P6 uses exact PLACES rows/counts and never derives a zero or a locality list from the bounded PAGE
     // slice. The place counts never include the words typed in the field. While the work done remotely is chosen there are no places to offer (it has none, and the
     // server's preview asks for none): the picker says so and leads to "Svi zadaci", which is the way to a city.
-    const localPlaces = placeSuggestions(items, viewOf(draft), mine, now);
+    const localPlaces = p6Search ? [] : placeSuggestions(items, viewOf(draft), mine, now);
     const known = (value: number | null) => counted ? value : null;
     const placesRead = p6Search ? serverCurrent : true;
     const rows: PlaceRow[] = (p6Search ? serverCurrent ? p6Search.snapshot.places.map(place => ({ text: place.text, count: place.count })) : [] : localPlaces)

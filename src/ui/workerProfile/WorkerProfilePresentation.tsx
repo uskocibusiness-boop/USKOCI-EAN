@@ -306,6 +306,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     </ProfileSection>
     <ProfileSection title="Veštine i usluge" summary={draft.vestine.join(' · ')}
       empty="Koje zadatke možeš da preuzmeš?" open={editing === 'skills'} toggle={() => toggle('skills')} disabled={disabled}>
+      <T variant="note" tone="muted">Možeš da navedeš i svakodnevnu pomoć. Dodaj samo ono što želiš da radiš.</T>
       <TermsEditor label="Veštine i usluge" placeholder="Dodaj veštinu ili uslugu" values={draft.vestine} pending={draft.newSkill}
         setPending={newSkill => patch({ newSkill })} change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })}
         disabled={disabled} inputRef={skillRef} />

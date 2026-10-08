@@ -31,10 +31,26 @@ it('read failure or read-only context prevents retry and never creates a replace
  f.service.recover.mockResolvedValue(ok({found:false,receipt:null}));f.service.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false}}));
  await f.controller.refresh();expect(f.controller.snapshot().canRetry).toBe(false);await f.controller.retry('Privatna zajednička poruka');expect(f.service.send).not.toHaveBeenCalled();
 });
-it('restores authoritative receipt without synthesizing a message; acknowledged refresh loads real page',async()=>{
+it('restores authoritative receipt and resumes the real page without another tap or another send',async()=>{
  const f=fixture(JSON.stringify(j)),receipt={...j,messageId:M};f.service.recover.mockResolvedValue(ok({found:true,receipt}));await f.controller.load();
- expect(f.controller.snapshot()).toMatchObject({phase:'CONFIRMED',receipt,messages:[]});expect(f.service.messages).not.toHaveBeenCalled();expect(f.storage.removeItem).not.toHaveBeenCalled();
- await f.controller.acknowledge();expect(f.storage.removeItem).toHaveBeenCalledTimes(1);expect(f.controller.snapshot()).toMatchObject({phase:'READY',journal:null,messages:[message()]});
+ expect(f.storage.removeItem).toHaveBeenCalledTimes(1);expect(f.controller.snapshot()).toMatchObject({phase:'READY',journal:null,messages:[message()]});
+ expect(f.service.messages).toHaveBeenCalledTimes(1);expect(f.service.send).not.toHaveBeenCalled();
+ await f.controller.acknowledge();expect(f.storage.removeItem).toHaveBeenCalledTimes(1);
+});
+it('a confirmed send stays confirmed if local cleanup fails; continuing retries cleanup, never delivery',async()=>{
+ const f=fixture();await f.controller.load();f.storage.removeItem.mockRejectedValueOnce(new Error('DISK'));
+ f.service.send.mockResolvedValue(ok({...j,messageId:M}));await f.controller.send('Privatna zajednička poruka');
+ expect(f.controller.snapshot()).toMatchObject({phase:'CONFIRMED',canRetry:false,journal:j});
+ await f.controller.retry('Privatna zajednička poruka');expect(f.service.send).toHaveBeenCalledTimes(1);
+ await f.controller.acknowledge();expect(f.controller.snapshot()).toMatchObject({phase:'READY',journal:null});
+ expect(f.service.send).toHaveBeenCalledTimes(1);
+});
+it('a late confirmed cleanup cannot restore a disposed conversation',async()=>{
+ const f=fixture(),gate=deferred<void>(),entered=deferred<void>();await f.controller.load();f.storage.removeItem.mockImplementation(()=>{entered.resolve();return gate.promise;});
+ f.service.send.mockResolvedValue(ok({...j,messageId:M}));const sending=f.controller.send('Privatna zajednička poruka');
+ await entered.promise;expect(f.controller.snapshot().phase).toBe('CONFIRMED');
+ f.controller.dispose();gate.resolve();await sending;
+ expect(f.controller.snapshot().context).toBeNull();expect(f.service.messages).toHaveBeenCalledTimes(1);
 });
 it('storage failure never dispatches, and malformed/wrong-group journals cannot enable a fresh send',async()=>{
  const f=fixture();await f.controller.load();f.storage.setItem.mockRejectedValue(new Error('DISK'));await f.controller.send('Privatna zajednička poruka');expect(f.service.send).not.toHaveBeenCalled();expect(f.controller.snapshot().phase).toBe('ERROR');
@@ -55,9 +71,15 @@ it('loads older pages with strict server cursor and retains chronological messag
  f.service.messages.mockResolvedValueOnce(ok({messages:[{...message(),messageId:K}],nextBeforeSequence:null,nextAfterSequence:'1'}));await f.controller.older();
  expect(f.service.messages.mock.calls[1][2]).toEqual({before:'2'});expect(f.controller.snapshot().messages.map(m=>m.sequence)).toEqual(['1','2']);
 });
-it('send ACK alone does not clear journal, while a late failed read cannot license a duplicate',async()=>{
- const f=fixture();await f.controller.load();f.service.send.mockResolvedValue(ok({...j,messageId:M}));await f.controller.send('Privatna zajednička poruka');
- expect(f.controller.snapshot().phase).toBe('CONFIRMED');expect(f.storage.removeItem).not.toHaveBeenCalled();await f.controller.send('Druga poruka');expect(f.service.send).toHaveBeenCalledTimes(1);
+it('confirmed delivery cannot be repeated while its authoritative reread is pending or fails',async()=>{
+ const f=fixture(),gate=deferred<unknown>(),entered=deferred<void>();await f.controller.load();
+ f.service.messages.mockImplementationOnce(()=>{entered.resolve();return gate.promise;});
+ f.service.send.mockResolvedValue(ok({...j,messageId:M}));const sending=f.controller.send('Privatna zajednička poruka');
+ await entered.promise;expect(f.controller.snapshot().phase).toBe('LOADING');
+ await f.controller.send('Druga poruka');expect(f.service.send).toHaveBeenCalledTimes(1);
+ gate.resolve(unknown);await sending;expect(f.controller.snapshot().phase).toBe('ERROR');
+ await f.controller.send('Druga poruka');expect(f.service.send).toHaveBeenCalledTimes(1);
+ expect(f.storage.removeItem).toHaveBeenCalledTimes(1);
 });
 it('corrupt journal remains unreadable across refresh and cannot be overwritten by a new command',async()=>{
  const f=fixture(JSON.stringify({...j,body:'CORRUPT PRIVATE DATA'}));await f.controller.load();await f.controller.refresh();await f.controller.send('Nova poruka');

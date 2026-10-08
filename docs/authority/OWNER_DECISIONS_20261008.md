@@ -17,3 +17,12 @@ Doslovne reči vlasnika (glasovni unos, iskvaren) i moje čitanje; svaka kasnija
 | 11 | (uveče, o pretrazi na Zadacima) „dobro je da gore bude lupa i ono, i može da se traži, i skoče odatle predlozi, ali možda ne pretraga na mapi nego tek na listi, možda, ili kako god… ne znam“ | SKLONOST, ne odluka: lupa gore ostaje, predlozi ispod polja ostaju; pretraga možda pripada listi, a ne mapi — dva moguća čitanja: (a) polje pretrage se pokazuje tek kad je lista podignuta, (b) potvrđena pretraga odmah podiže listu sa rezultatima (mapa ostaje filtrirana). Preporuka Claude: (b). Codex pokazuje oba na skici/emulatoru pre promene; do vlasnikove reči važi nacrt (lupa gore, rezultati i na mapi i u listi). | — |
 
 Otvorene odluke (nisu date): „Dogovoren“ vs „Dogovoreno“; „⋯“ u Porukama Dogovora; „d“ bez kvačice → „đ“; primena DISCOVERY-GRAD S3; PNG zvezda; brisanje grane `backup/telefon-20261008-1`.
+
+
+## Naknadna odluka — autonomno završavanje i uređaji (8.10.)
+
+Vlasnik u ovom Codex razgovoru: „imasv sve moej izirit odlike da psujes vse o dsad na dalje iamz dovxzu xa sve nep otreb vise nsita da me ptias..vodi isuavrsava p ak oda je tovja ida xelis od nje da narpvi najbolji amekrtalce app iakd...od zas zabeeli da nsite ne ceka moju ptrvrdu veci ams ddozvu i tprobvtu za sve sto doborm alizim utvris da treba uradii i ens taj dok ne bdue sve perfektno“.
+
+Čitanje: vlasnik daje široko odobrenje da agent autonomno analizira, donosi odluke, dovršava i proverava proizvod i šalje završene izmene na GitHub, bez novih potvrda za svaki paket. Ranija obavezna potvrda svake skice nije uslov za rutinske UI/UX dorade. Ovo nije dokaz završenosti i ne uklanja preflight, rollback, zaštitu podataka i obavezu tačnog izveštavanja. Ne podrazumeva izmišljene cene, pravni identitet ili podatke za prodavnicu.
+
+Potom: „upali soatii  emurator i telfo rksiti ga iams dva proifal pekrvaj sve usavrsavaj sve“ — odobren pregled i proba na emulatoru i povezanom telefonu sa dva postojeća naloga. Ažuriranje preko postojećeg paketa, bez brisanja podataka/sesije. Prvo utvrditi odgovarajući APK, naloge i ograničen scenario; ne slati stare obaveštenja nepovezanim korisnicima.

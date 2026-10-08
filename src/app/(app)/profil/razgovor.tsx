@@ -369,13 +369,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(next==='time')showPanel('availability');else if(next!=='identity')showPanel('manual',{part:next});
   };
   return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
+    closed={!!data.saved || data.status !== 'OPEN'}
     attach={writable?{label:'Dodaj podatke',hint:'Veštine, područje, vreme, alat i vozilo.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome={hasProfileContent?'Šta želiš da dopuniš?':'Koje zadatke želiš da preuzimaš?'}
-    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci čime se baviš i šta umeš. Zajedno ćemo složiti tvoj radni profil.'}
+    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci šta želiš da radiš — stručne zadatke ili svakodnevnu pomoć, poput dostave i nošenja stvari.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}

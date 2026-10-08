@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T20:52:27Z",
+  "osvezeno": "2026-10-08T21:24:40Z",
   "grana": "integration/spoj-20261006",
-  "head": "19d0cea5",
-  "head_poruka": "docs(design): connect discovery states and clarify personal work [skip ci]",
+  "head": "a6504718",
+  "head_poruka": "docs(design): ground finishing plan in verified HONOR screens [skip ci]",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -3240,6 +3240,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Cena ispod naslova; najvažnija pažnja samo jednom.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Reset filtera čuva nacrte/istoriju.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -4181,6 +4187,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Isti jezik kao task AI, različita pitanja; bez tehničkog RS unosa.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Terminalni razgovor bez unosa; uvod obuhvata svakodnevnu pomoć.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -4409,6 +4421,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Oprema vidljiva, ali ne obećava matching kriterijum koji nije odobren.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Ručne veštine obuhvataju svakodnevnu pomoć samo po izboru osobe.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -5143,6 +5161,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Remote prvo; nema cena na svakoj tački; jedan source of truth i bounded pinless.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "P6 scalar memo čuva listu; Na daljinu prva kapsula.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -5579,6 +5603,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Tri ponuđene varijante, preporuka potvrda→FULL lista; owner bira.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Jednoredna kraća pretraga i retry uz očuvan draft; P6 preskače nepotrebno lokalno filtriranje.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -6152,6 +6182,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Čeka odgovor i čeka tvoju potvrdu odvojeni.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Paged prikaz ostaje stabilan i na poslednjoj stranici.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -6502,6 +6538,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Kompaktni redovi; iznos+termin+lice, jedna statusna poruka, bez ogromnih kartica.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Filter stvarne sopstvene uloge i ponovljiv ulaz iz profilovog ukupnog broja.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -7044,6 +7086,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Ukloniti policy pasus iz stalne istorije, smisao sačuvati u informacijama.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Automatski nastavak posle potvrde; neizvestan ishod nije retry novim ključem; nacrt u memoriji vezan za nalog/reviziju/grupu.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -8223,6 +8271,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Nema zelene uspostavljeno dok receipt nije potvrđen.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "PHONE dozvola granted; DEV1 aktivan Android session-bound uređaj. Nije delivery dokaz.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -8976,6 +9030,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Profil hub kompozicija kraća, postojeće ispravke fotografije ne prijaviti kao nove bez dokaza.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "continuity_finish_20261008": {
+     "scope": "Duže statusne vrednosti ispod naslova u profilu.",
+     "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+     "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     }
    },
    "ukupno": "PROBLEM",

@@ -64,10 +64,13 @@ export class GroupConversationController{
  private async recover(){const j=this.state.journal;if(!j)return;this.update({canRetry:false});
   const result=await this.service.recover(j,this.deps.account);if(!this.current())return;
   if(!result.ok){this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});return;}
-  if(result.podatak.found){this.confirm(result.podatak.receipt!);return;}
+  if(result.podatak.found){await this.confirm(result.podatak.receipt!);return;}
   this.update({phase:'UNKNOWN',canRetry:!!this.state.context?.group?.canSend,message:'Ne znamo da li je poruka stigla. Za novi pokušaj upiši istu poruku.'});
  }
- private confirm(receipt:GroupReceipt){this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Poruka je sačuvana u ovom grupnom razgovoru.'});}
+ private async confirm(receipt:GroupReceipt){
+  this.inMemoryBody=null;this.update({phase:'CONFIRMED',receipt,canRetry:false,message:'Poruka je sačuvana u ovom grupnom razgovoru.'});
+  await this.resumeConfirmed();
+ }
  send=(input:string)=>this.run(async()=>{
   const body=normalizeGroupBody(input),g=this.state.context?.group;if(this.state.phase!=='READY'||this.state.journal||!g?.canSend||!groupBody(body))return;
   const journal:GroupJournal={version:1,groupId:g.groupId,clientRequestId:(this.deps.uuid??noviUuidZahtevId)(),bodySha256:groupBodyHash(body)};
@@ -79,7 +82,7 @@ export class GroupConversationController{
  });
  private async write(body:string){const j=this.state.journal;if(!j)return;
   this.update({phase:'SENDING',canRetry:false,message:null});const result=await this.service.send(j,body,this.deps.account);if(!this.current())return;
-  if(result.ok)this.confirm(result.podatak);else this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});
+  if(result.ok)await this.confirm(result.podatak);else this.update({phase:'UNKNOWN',canRetry:false,message:result.poruka});
  }
  retry=(reentry?:string)=>this.run(async()=>{
   const j=this.state.journal,body=reentry===undefined?this.inMemoryBody:normalizeGroupBody(reentry);
@@ -87,9 +90,16 @@ export class GroupConversationController{
   if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256){this.update({message:'Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.'});return;}
   await this.write(body);
  });
- acknowledge=()=>this.run(async()=>{if(this.state.phase!=='CONFIRMED')return;await this.deps.storage.removeItem(this.key);if(!this.current())return;
+ // The receipt is final: continue reading without another tap, never dispatch again.
+ // If local cleanup fails, keep that confirmed receipt and its explicit recovery action.
+ private async resumeConfirmed(){if(!this.current()||this.state.phase!=='CONFIRMED')return;
+  try{await this.deps.storage.removeItem(this.key);}catch{
+   this.update({phase:'CONFIRMED',canRetry:false,message:'Poruka je poslata. Nastavi razgovor kada bude moguće.'});return;
+  }
+  if(!this.current())return;
   this.update({journal:null,receipt:null,phase:'LOADING',message:null});if(await this.context())await this.page();
- });
+ }
+ acknowledge=()=>this.run(()=>this.resumeConfirmed());
  markVisible=async(ids:string[])=>{
   const g=this.state.context?.group;if(!this.current()||!g)return;
   const allowed=new Set(this.state.messages.map(m=>m.messageId)),unique=[...new Set(ids)].filter(id=>allowed.has(id)).slice(0,50);if(!unique.length)return;

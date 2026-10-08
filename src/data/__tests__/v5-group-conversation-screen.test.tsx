@@ -19,7 +19,7 @@ jest.mock('expo-router',()=>({router:{push:(...args:unknown[])=>mockPush(...args
 jest.mock('react-native-safe-area-context',()=>({SafeAreaView:'SafeAreaView'}));
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
  if(['View','TextInput','KeyboardAvoidingView'].includes(String(key)))return String(key);
- if(key==='FlatList')return (p:any)=>require('react').createElement('List',p,p.ListHeaderComponent,p.data.map((item:any)=>require('react').createElement('Row',{key:item.messageId},p.renderItem({item}))),p.ListFooterComponent);
+ if(key==='FlatList')return (p:any)=>require('react').createElement('List',p,p.ListHeaderComponent,p.data.map((item:any,index:number)=>require('react').createElement('Row',{key:item.messageId},p.renderItem({item,index}))),p.ListFooterComponent);
  if(key==='AppState')return{get currentState(){return mockForeground;},addEventListener:(_name:string,listener:(value:string)=>void)=>{mockListeners.add(listener);return{remove:()=>mockListeners.delete(listener)};}};
  return Reflect.get(target,key);
  }});});
@@ -81,10 +81,29 @@ it('restart reads original key and requires exact re-entry before same-key retry
  await change('Promenjena poruka');await act(async()=>send('Ponovi slanje iste poruke').onPress());expect(mockService.send).not.toHaveBeenCalled();expect(text()).toContain('razlikuje');
  await change('Prvobitna poruka');await act(async()=>send('Ponovi slanje iste poruke').onPress());expect(mockService.send.mock.calls[0][0]).toEqual(journal);expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
-it('confirmed receipt clears composer but displays real message page only after explicit acknowledgement',async()=>{
+it('confirmed receipt clears composer and automatically shows the authoritative page, never a fabricated message',async()=>{
  await render();await change('Prvobitna poruka');mockService.send.mockResolvedValue(ok({...journal,messageId:KEY}));await act(async()=>send('Pošalji poruku grupi').onPress());
- expect(text()).toContain('Poruka je sačuvana');expect(text()).not.toContain('Prvobitna poruka');expect(mockStorage.removeItem).not.toHaveBeenCalled();
- await tap('Prikaži razgovor');expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);expect(tree!.root.findByType('TextInput' as never).props.value).toBe('');
+ expect(text()).not.toContain('Prvobitna poruka');expect(text()).toContain(message.body);
+ expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);expect(mockService.send).toHaveBeenCalledTimes(1);
+ expect(tree!.root.findByType('TextInput' as never).props.value).toBe('');
+});
+it.each(['blur','background'])('restores an unsent draft after %s only in the same authorized conversation',async kind=>{
+ await render();await change('Još nisam poslao');
+ await act(async()=>{if(kind==='blur')mockFocused=false;else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
+ await act(async()=>{if(kind==='blur')mockFocused=true;else{mockForeground='active';[...mockListeners].forEach(fn=>fn('active'));}tree!.update(page());});
+ expect(tree!.root.findByType('TextInput' as never).props.value).toBe('Još nisam poslao');
+ expect(mockService.send).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
+});
+it.each(['account','ABA','group','permission'])('does not restore an unsent draft after %s changes',async kind=>{
+ await render();await change('Privatan nacrt');
+ await act(async()=>{mockFocused=false;tree!.update(page());});
+ if(kind==='account')mockSession={user:{id:B},accountRevision:2};
+ if(kind==='ABA')mockSession={user:{id:A},accountRevision:3};
+ if(kind==='group')mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,groupId:ID}}));
+ if(kind==='permission')mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false}}));
+ await act(async()=>{mockFocused=true;tree!.update(page());});
+ expect(tree!.root.findAllByType('TextInput' as never).every(node=>!node.props.value)).toBe(true);
+ expect(mockService.send).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
 });
 it('read-only and bilateral contexts offer no composer or fabricated group members',async()=>{
  mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true,members:[]}}));await render();expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);expect(text()).toContain('Razgovor je završen');
