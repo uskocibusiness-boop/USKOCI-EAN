@@ -412,3 +412,6 @@ Sve ostalo je odluka tima.
 ## Dopuna 8.10 — završavanje stvarnih tokova
 
 Aktuelna izvedba i granice: [CONTINUITY_FINISH_20261008](docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md). Vlasnik je odobrio autonomnu implementaciju. Nova role kapsula u Dogovorima označava moju stvarnu ulogu; profilov ukupni broj ne sme otvoriti suženu istoriju. Prednost kontinuitetu i jasnoj posledici akcije: filteri ne nestaju na poslednjoj stranici, potvrđena grupna poruka vraća razgovor automatski, statusne rečenice ne lome naslove profila. Prvi radni AI prihvata i svakodnevnu pomoć; stvarno naknadno pitanje i matching sinonimi zahtevaju zasebnu proverenu serversku doradu.
+
+
+Airbnb reference14395–14424 i dodatna vlasnikova smernica: [NACRT §16.8](docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#168-vlasnikove-airbnb-reference--kriterijum-kvaliteta-cele-aplikacije). Kriterijum je jasnoća, moderan oštar prikaz i korisnost svih ekrana. Konkretan source pomak: FULL povlačenje nadole oslobođeno od pull-to-refresh konflikta; osvežavanje je eksplicitna radnja. TEST212/212 i tipovi PASS; novi native gest još nije potvrđen.

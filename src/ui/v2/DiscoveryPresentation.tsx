@@ -23,7 +23,6 @@ import { useReducedMotion } from '../system/motion';
 import { zadataka } from '../system/plural';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
-import { usePullRefresh } from '../system/usePullRefresh';
 import { DiscoveryMap } from './DiscoveryMap';
 import type { DiscoveryV1ServerMapSeam } from './DiscoveryMap.types';
 import type { DiscoveryV1Availability, DiscoveryV1Counts } from '../../data/discoveryV1Contract';
@@ -1132,10 +1131,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     tryRestore();
   };
   const refreshList = () => { trace('refresh', currentSheet(), restore.current ?? -1); if (currentList()) { restore.current = null; props.onRefresh(); } };
-  // The pull-to-refresh spinner is the person's own pull and nothing else: a list that reads again on its own (a tab switched back to, a page that
-  // follows) must not raise the disc (the owner's phone of 8 Oct 2026). `busy` is a read over a list that is on show; while the list itself is being read
-  // it is the loading state's to say.
-  const pull = usePullRefresh(refreshList, !!props.refreshing && !loading);
   const searchKey = JSON.stringify([query, price, area, when, where, freePlaces, chosenPlace, dates, pinPlace ?? null, offMap]);
   const lastSearch = useRef(searchKey);
   useEffect(() => {
@@ -1352,10 +1347,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         sunk={cardShown}>
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
           requestedIndex={sheetIndex} pendingRequest={sheetCommand.current.pending} onReady={receiveListReady}>
-        {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
-            refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
-            a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
-            the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži". */}
+        {/* The content drag raises the sheet, then scrolls the list; at offset zero a downward drag lowers it again.
+            An onRefresh prop makes Gorhom reserve that FULL gesture for refresh. Refresh is an explicit menu action. */}
         <CellLayoutContext.Provider value={cellLayoutContext}>
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem} CellRendererComponent={DiscoveryCell}
           scrollEventsHandlersHook={useDiscoveryScrollEvents}
@@ -1363,7 +1356,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={sectionsSignature}
-          refreshing={pull.refreshing} onRefresh={pull.onRefresh}
           onEndReached={props.p6Seam?.pageHasMore && !props.p6Seam.loadingMore ? () => { if (currentList()) props.p6Seam?.onNextPage(); } : undefined}
           onEndReachedThreshold={props.p6Seam?.pageHasMore ? 0.4 : undefined}
           {...scrollProps} onContentSizeChange={onContentSizeChange}
@@ -1415,6 +1407,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
       ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),
       { key: 'profile', label: 'Moj profil', icon: 'person', onPress: props.onProfile },
+      { key: 'refresh', label: 'Osveži zadatke', icon: 'tasks', onPress: refreshList },
       ...(props.onNotifications ? [{ key: 'notifications', label: 'Obaveštenja', icon: 'bell' as const, onPress: props.onNotifications }] : []),
     ]} /> : null}
   </SafeAreaView></DistanceFromContext.Provider></TaskAgeContext.Provider>;

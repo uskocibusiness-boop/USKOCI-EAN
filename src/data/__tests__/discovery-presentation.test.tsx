@@ -934,7 +934,10 @@ test('a retired sheet cannot save an old scroll, cancel the current restore or c
     initial = { ...initial, sheet: 'full', listOffset: 160 };
     await render(); await layOutBody(760); await readyList();
     await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 } } }));
-    const oldScroll = list().props.onScroll, oldDrag = list().props.onScrollBeginDrag, oldContent = list().props.onContentSizeChange, oldRefresh = list().props.onRefresh;
+    const oldScroll = list().props.onScroll, oldDrag = list().props.onScrollBeginDrag, oldContent = list().props.onContentSizeChange;
+    await tap('Još mogućnosti');
+    const oldRefresh = tree.root.findByType(ActionSheet).props.actions.find((action: { key: string }) => action.key === 'refresh').onPress;
+    await act(async () => tree.root.findByType(ActionSheet).props.onClose());
     await act(async () => oldScroll({ nativeEvent: { contentOffset: { y: 260 } } }));
     mockFocused = false; await update();
     await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
@@ -1992,7 +1995,7 @@ test('secondary entries stay reachable from one menu without taking map space wi
   expect(press('Pretraži zadatke')).toBeTruthy();
   await tap('Još mogućnosti');
   const menu = tree.root.findByType(ActionSheet);
-  expect(menu.props.actions.map((action: { label: string }) => action.label)).toEqual(['Objavi zadatak', 'Moj profil']);
+  expect(menu.props.actions.map((action: { label: string }) => action.label)).toEqual(['Objavi zadatak', 'Moj profil', 'Osveži zadatke']);
   expect(newTask).not.toHaveBeenCalled(); expect(profile).not.toHaveBeenCalled();
   await act(async () => menu.props.actions[0].onPress()); expect(newTask).toHaveBeenCalledTimes(1);
   await act(async () => menu.props.actions[1].onPress()); expect(profile).toHaveBeenCalledTimes(1);
@@ -2055,18 +2058,25 @@ test.each(['loading','error'] as const)('an incomplete %s collection outside the
   expect(action('Prikaži sve zadatke')).toBeUndefined();
 });
 
-test('pull to refresh is the list\'s own: the disc shows only for a pull, never for a read the screen makes on its own; the list follows the area the map hands up, and the pill\'s × takes it away', async () => {
-  // A list that reads again by itself (a tab switched back to) must not raise the disc (the owner's phone of 8 Oct 2026) ...
+test('explicit refresh preserves discovery scope without taking the sheet drag gesture', async () => {
+  initial = { ...initial, sheet: 'full', query: 'pomoć', when: 'today' };
   refreshing = true; await render();
-  expect(list().props.refreshing).toBe(false);
+  expect(list().props.onRefresh).toBeUndefined();
+  expect(list().props.refreshing).toBeUndefined();
   expect(refresh).not.toHaveBeenCalled();
-  // ... only the person's pull does, for as long as the read it started runs.
-  await act(async () => list().props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
-  expect(list().props.refreshing).toBe(true);
+  await tap('Još mogućnosti');
+  const menu = tree.root.findByType(ActionSheet);
+  await act(async () => menu.props.actions.find((action: { key: string }) => action.key === 'refresh').onPress());
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(snapshot).toMatchObject({ query: 'pomoć', when: 'today', sheet: 'full' });
+  await act(async () => menu.props.onClose());
   refreshing = false; await update();
-  expect(list().props.refreshing).toBe(false);
-  refreshing = true; await update(); // a later read of the screen's own does not borrow the pull
-  expect(list().props.refreshing).toBe(false);
+  refreshing = true; await update();
+  expect(refresh).toHaveBeenCalledTimes(1);
+});
+
+test('the list follows the map area and the search pill clears it', async () => {
+  await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(0);
   await act(async () => map().props.onArea([20, 44, 21, 45])); expect(snapshot.area).toEqual([20, 44, 21, 45]);
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
@@ -2379,7 +2389,11 @@ test('a waiting restore is dropped when the list is taken hold of or refreshed; 
     // A refresh drops it too.
     await act(async () => tree.unmount()); scrollToOffset.mockReset(); await render();
     expect(scrollToOffset).not.toHaveBeenCalled(); scrollToOffset.mockReset();
-    await act(async () => list().props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
+    await tap('Još mogućnosti');
+    const refreshMenu = tree.root.findByType(ActionSheet);
+    await act(async () => refreshMenu.props.actions.find((action: { key: string }) => action.key === 'refresh').onPress());
+    await act(async () => refreshMenu.props.onClose());
+    expect(refresh).toHaveBeenCalledTimes(1);
     await readyList(2000);
     expect(scrollToOffset).not.toHaveBeenCalled();
     // Scrolled, and a task opened at once: the scroll is written before the task opens.
@@ -3326,4 +3340,14 @@ describe('"Nisu na mapi": the way to the tasks that are not on the map, honest t
     collectionStatus = undefined; await update();
     expect(entry()).toHaveLength(1);
   });
+});
+
+
+// Owner 8 Oct: at the top of FULL, the content drag lowers the sheet instead of refreshing.
+test('the full discovery list leaves its downward gesture to the sheet', async () => {
+  initial = { ...initial, sheet: 'full' };
+  refreshing = true; await render();
+  expect(list().props.onRefresh).toBeUndefined();
+  expect(list().props.refreshControl).toBeUndefined();
+  expect(refresh).not.toHaveBeenCalled();
 });

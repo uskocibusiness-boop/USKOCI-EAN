@@ -28,3 +28,14 @@ Novi native izgled/motion; cela objava→ocene na dva naloga; nova voice/push do
 ## SLEDEĆE
 
 Tačan emulator/phone APK ovog paketa → instalacija-r uz isti potpis i podatke → ograničene slike/tokovi → korekcija stvarnih nalaza. Push transport: kapacitet i single-target dokaz pre kontrolisane dostave. AI pitanja/sinonimi zasebno uz existing server contracts. Lokalna kontrolna tabla se osvežava; objavljena Claude tabla nije time republished.
+
+
+## Dopuna — reference i neprekinuto povlačenje liste
+
+**URADIO / SOURCE:** vizuelne reference14395–14424 prevedene u konkretne kriterijume svih površina u postojećem NACRT-u §16.8. Nađen stvaran gesture sukob: Gorhom5.2.14 na FULL rezerviše content drag za refresh čim lista ima `onRefresh` (`createBottomSheetScrollableComponent`, `useGestureEventsHandlersDefault`). Discovery više ne daje taj prop; povlačenje nadole pripada sheet-u. Redovno osvežavanje ostaje Još mogućnosti → Osveži zadatke, a recovery radnje ostaju iste. Ne menjaju se biblioteka, cache/reader, kamera, privatnost ili server.
+
+**DOKAZAO / TEST:** novi regresioni test FAIL pre izmene (onRefresh prisutan), zatim cela Discovery presentation grupa212/212 PASS; TypeScript PASS. Provereno da eksplicitno osvežavanje čuva query/filtere/visinu, a callback prethodnog mount-a ne može da osveži novi ili poništi njegovo vraćanje scroll-a. Ovo su provere source integracije, ne emulacija fizičkog prsta.
+
+**NIJE DOKAZANO:** neprekinuti native gest na APK-u sa ovom naknadnom izmenom. Buildovi37846681465 (emulator) i37846682483 (telefon) pripadaju ranijem source6dbd38e0; ne sadrže ovu dopunu. Map/tablet/performance/whole-app/store tvrdnje nisu zatvorene. Posebno proveriti važnu lokacijsku/Za mene poruku na FULL, floating Mapa preko srednjih redova i pojavu tabova tokom zadržanog draga.
+
+**SLEDEĆE:** tačan novi APK uz postojeći redosled build→slika/snimak→kritika→korekcija. Native proba: HALF→FULL→scroll, scroll→vrh→spuštanje, kratka/prazna lista, detalj→Back, font1.15, reduced motion i dostupnost poslednje kartice. Nova autonomija ne menja oznake nivoa dokaza.

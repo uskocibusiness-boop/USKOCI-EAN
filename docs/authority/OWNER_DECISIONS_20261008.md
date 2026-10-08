@@ -26,3 +26,8 @@ Vlasnik u ovom Codex razgovoru: „imasv sve moej izirit odlike da psujes vse o 
 Čitanje: vlasnik daje široko odobrenje da agent autonomno analizira, donosi odluke, dovršava i proverava proizvod i šalje završene izmene na GitHub, bez novih potvrda za svaki paket. Ranija obavezna potvrda svake skice nije uslov za rutinske UI/UX dorade. Ovo nije dokaz završenosti i ne uklanja preflight, rollback, zaštitu podataka i obavezu tačnog izveštavanja. Ne podrazumeva izmišljene cene, pravni identitet ili podatke za prodavnicu.
 
 Potom: „upali soatii  emurator i telfo rksiti ga iams dva proifal pekrvaj sve usavrsavaj sve“ — odobren pregled i proba na emulatoru i povezanom telefonu sa dva postojeća naloga. Ažuriranje preko postojećeg paketa, bez brisanja podataka/sesije. Prvo utvrditi odgovarajući APK, naloge i ograničen scenario; ne slati stare obaveštenja nepovezanim korisnicima.
+
+
+### Dopuna posle Airbnb slika 14395–14424
+
+Vlasnik precizira da reference prvenstveno određuju nivo kvaliteta stila, jasnoće, boja, oštrog modernog prikaza i lakoće korišćenja cele aplikacije. Agent samostalno osmišljava poboljšanja po svrsi svakog ekrana. Za Discovery izričito traži kontinuitet: podizanje liste prelazi u skrol, vraćanje do vrha u spuštanje liste; tabovi ostaju na HALF/FULL, a skrivaju se na spuštenoj listi. Konkretna primena i granice dokaza: postojeći NACRT_PROIZVODA_20261008.md §16.8. To nije odluka da se kopiraju Airbnb asseti, pet tabova, poslovna pravila ili privatnosni prekidači.

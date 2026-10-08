@@ -1739,6 +1739,11 @@
           "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
           "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
           "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+        },
+        "airbnb_reference_20261008": {
+          "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
+          "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
+          "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
         }
       }
     },
@@ -2390,6 +2395,17 @@
           "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
           "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
           "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+        },
+        "airbnb_reference_20261008": {
+          "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
+          "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
+          "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
+        },
+        "discovery_content_drag_20261008": {
+          "state": "SOURCE / TEST212 PASS / TYPECHECK PASS / NATIVE PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "change": "Removed refreshable list gesture conflict at FULL; refresh remains explicit in existing menu, stale callback/restore guards preserved.",
+          "boundary": "Fail-before/PASS-after binding proof; existing6dbd38e0 APK jobs do not include this later change. No server/library change."
         }
       }
     },
@@ -2796,6 +2812,11 @@
           "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
           "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
           "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+        },
+        "airbnb_reference_20261008": {
+          "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
+          "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
+          "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
         }
       }
     },
@@ -3021,6 +3042,11 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Poverenje kroz dokazive činjenice; prazna ocena nije0zvezdica.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "airbnb_reference_20261008": {
+          "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
+          "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
+          "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
         }
       }
     },
@@ -5146,6 +5172,11 @@
           "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
           "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
           "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+        },
+        "airbnb_reference_20261008": {
+          "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
+          "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
+          "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
         }
       }
     },
@@ -5669,6 +5700,11 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Jedan dom za privatnost, ne kopija cele liste i u profilu.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "airbnb_reference_20261008": {
+          "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
+          "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
+          "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
         }
       },
       "native_e572_account_readonly_20261003": {
