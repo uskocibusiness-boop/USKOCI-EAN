@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T22:50:15Z",
+  "osvezeno": "2026-10-08T22:52:29Z",
   "grana": "integration/spoj-20261006",
-  "head": "66275774",
-  "head_poruka": "merge: sync generated control views",
+  "head": "45232d86",
+  "head_poruka": "test: prepare isolated 40000-task Discovery baseline",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,

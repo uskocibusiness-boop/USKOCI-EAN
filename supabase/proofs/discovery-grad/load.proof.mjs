@@ -201,7 +201,6 @@ async function deployedBaseline(viewer, requester, open) {
     assert.ok(result.ok, 'RLS_COUNT_FAILED');
     return Number(lastLine(result.output));
   };
-  const visibleOpen = visible();
   const verify = () => {
     const result = run(fs.readFileSync(G + 'postflight.readonly.sql', 'utf8'));
     assert.ok(result.ok, 'BASELINE_POSTFLIGHT_FAILED:' + result.error);
@@ -233,11 +232,11 @@ async function deployedBaseline(viewer, requester, open) {
     report.load.DEPLOYED_BASELINE = measured; report.load.DEPLOYED_BASELINE_HTTP = http; write();
   }
   assert.ok(Object.values(measured).every(x => !x.error), 'BASELINE_MEASUREMENT_FAILED:' + JSON.stringify(measured));
-  assert.equal(measured.pageDefault.counted, visibleOpen, 'ALL_VISIBLE_TASKS_REACHABLE');
+  assert.equal(measured.pageDefault.counted, visible(`and published_at<=${q(measured.pageDefault.anchor.publishedThrough)}::timestamptz`), 'ALL_VISIBLE_TASKS_REACHABLE');
   assert.equal(measured.pageDefault.rows, 50, 'FULL_FIRST_PAGE');
   for (const key of ['mapDefault', 'mapCityDense']) {
     const [west, south, east, north] = requests[key].bounds;
-    const count = visible(`and execution_location_mode is distinct from 'REMOTE' and approximate_lat between ${south} and ${north} and approximate_lng between ${west} and ${east}`);
+    const count = visible(`and published_at<=${q(measured[key].anchor.publishedThrough)}::timestamptz and execution_location_mode is distinct from 'REMOTE' and approximate_lat between ${south} and ${north} and approximate_lng between ${west} and ${east}`);
     assert.ok(measured[key].rows > 0); assert.equal(measured[key].memberCount, count, 'MAP_MEMBERS:' + key);
   }
   assert.equal(measured.pageTextNoHit.counted, 0, 'NO_HIT_COUNT');
