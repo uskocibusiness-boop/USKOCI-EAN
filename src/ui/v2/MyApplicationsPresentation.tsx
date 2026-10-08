@@ -146,7 +146,7 @@ export function MyApplicationsPresentation(props: Props) {
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
         : hasAny && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."
           primary={{ label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
-          : <StateView art="offers" title="Još nemaš prijavu" body="Kada se prijaviš na zadatak, ovde pratiš svoju prijavu i svaki sledeći korak."
+          : <StateView hero art="offers" title="Još nemaš prijavu" body="Kad se prijaviš na zadatak, ovde pratiš prijavu i svaki sledeći korak."
             primary={{ label: 'Istraži zadatke', onPress: props.onExplore }} />}
   </View>;
   const shown = count(props.tab);

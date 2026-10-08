@@ -38,11 +38,45 @@ describe('Arrive: the picture of an empty state settles in once', () => {
     expect(sys.motion.arrive.duration).toBeGreaterThan(sys.motion.enter);
   });
 
+  // "Bez odskoka" (the owner's choice, 2026-10-08): the picture only settles. It used to rise 3 dp over its place and tilt 1° past straight before it came back.
+  it('only settles: every value goes one way, from where it starts to where it stays, and none goes past it', () => {
+    const interpolate = jest.spyOn(Animated.Value.prototype, 'interpolate');
+    act(() => { tree = create(<Arrive><View /></Arrive>); });
+    const ranges = interpolate.mock.calls.map(([config]) => config as { inputRange: number[]; outputRange: (number | string)[] });
+    expect(ranges).toHaveLength(3);
+    const [rise, tilt, opacity] = ranges;
+    expect(rise).toEqual({ inputRange: [0, 1], outputRange: [4, 0] });
+    expect(tilt).toEqual({ inputRange: [0, 1], outputRange: ['-3deg', '0deg'] });
+    expect(opacity.outputRange.every(value => (value as number) >= 0.65 && (value as number) <= 1)).toBe(true);
+    for (const { outputRange } of ranges) {
+      const values = outputRange.map(value => parseFloat(String(value))), resting = values[values.length - 1];
+      // Each step is no farther from where the picture stays than the one before it: it never overshoots and never turns back.
+      for (let at = 1; at < values.length; at += 1) expect(Math.abs(values[at] - resting)).toBeLessThanOrEqual(Math.abs(values[at - 1] - resting));
+    }
+  });
+
+  it('follows a curve that does not overshoot either: it stays between 0 and 1 from the first moment to the last', () => {
+    const curve = Easing.bezier(...sys.motion.arrive.easing);
+    for (let step = 0; step <= 100; step += 1) {
+      const at = curve(step / 100);
+      expect(at).toBeGreaterThanOrEqual(-1e-9); expect(at).toBeLessThanOrEqual(1 + 1e-9);
+    }
+    expect([curve(0), curve(1)]).toEqual([0, 1]);
+  });
+
   it('does not move at all under reduced motion: it is simply there', () => {
     mockReduced = true;
     const timing = jest.spyOn(Animated, 'timing');
     act(() => { tree = create(<Arrive><View /></Arrive>); });
     expect(timing).not.toHaveBeenCalled();
+  });
+
+  it('under reduced motion it stands at once in its final place: no rise, no tilt, full opacity', () => {
+    mockReduced = true;
+    act(() => { tree = create(<Arrive><View /></Arrive>); });
+    const style = (tree!.toJSON() as unknown as { props: { style: { opacity: number; transform: Record<string, number | string>[] } } }).props.style;
+    expect(style.opacity).toBe(1);
+    expect(style.transform).toEqual([{ translateY: 0 }, { rotate: '0deg' }]);
   });
 });
 

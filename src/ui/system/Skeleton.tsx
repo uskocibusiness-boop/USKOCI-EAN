@@ -42,9 +42,11 @@ function SkeletonLine({ width, line, height }: { width: DimensionValue; line: nu
  * the layout jumped and a card stood where the rule forbids one). They are kept for the screens that use them and are not extended; a
  * screen that is built on the new primitives takes `row`, `record` or `fact`:
  *
- * - `task`: a task list's card. It was drawn at the measure of the old TaskCard (146 dp: 15/14 padding, 8 between the lines, a 32 picture)
- *   and the task card has since become a `Surface record` with its own face, about 200 dp and more; it is now `record` with the foot, so every
- *   list that said `task` waits at the measure it will arrive in without being touched.
+ * - `task`: a task list's card, at the measure of the face the task card has since the owner's pick of 8 Oct 2026 (`TaskRecordBody`): the title, then the
+ *   facts with the AMOUNT as the first of them (the place of its picture and a bar the width of a sum), `rows` more facts (2 by default), and the foot,
+ *   the person's 40 picture and two lines with the count of people at the end of the same line. It is the least a task card is (a title of one line, one line
+ *   to each fact), so a list that says `task` waits at the measure it will arrive in. `record` is the older face and keeps its own shape for the
+ *   lists of Dogovori and prijave.
  * - `plain`: every other old card (a Prijava, a Dogovor, a task's detail, legal documents, the export): a title and its lines over a quiet
  *   foot, with no person drawn.
  * - `preview`: the publish review's "Ovako će drugi videti zadatak" card (ReviewPreview): the task head and `rows` fact lines on a compact
@@ -161,6 +163,48 @@ function RecordPlaceholder({ lines, foot }: { lines: number; foot: boolean }) {
   </Surface>;
 }
 
+/**
+ * The amount of a task before it arrives (`TaskRecordBody`'s amount row): a fact whose picture stands where the money's does, and whose first line is the sum in
+ * its own line box (16/21, centred on the picture as `FactRow` centres its line) with a short bar after it for what it buys.
+ */
+function AmountPlaceholder() {
+  const px = useScaled();
+  return <View style={[s.factBox, { minHeight: FACT_ART }]}>
+    <SkeletonBlock width={FACT_ART} height={FACT_ART} radius={sys.radius.pill} />
+    <View style={[s.taskAmount, { paddingTop: Math.max(0, (FACT_ART - PRICE_LINE) / 2) }]}>
+      <TextBar width={96} line={px(PRICE_LINE)} height={px(14)} />
+      <TextBar width={44} line={px(PRICE_LINE)} height={px(12)} />
+    </View>
+  </View>;
+}
+
+/**
+ * A task's card before it arrives, with the face the card has (`TaskRecordBody`: 12 between its parts, 4 between the facts): the title; the amount as the first
+ * fact and `lines` more; and the foot, the person's picture with its two lines (the name and the rating, both of the `note` line) and the count of people at the
+ * end of that line. The measure is the sum of the same tokens the face is built from, and `skeleton.test.tsx` lays the real card beside it.
+ */
+function TaskPlaceholder({ lines }: { lines: number }) {
+  const px = useScaled();
+  const note = px(sys.type.note.lineHeight);
+  return <Surface kind="record">
+    <View style={s.recBody}>
+      <TextBar width="78%" line={px(sys.type.heading.lineHeight)} height={px(18)} />
+      <View style={s.recFacts}>
+        <AmountPlaceholder />
+        {Array.from({ length: lines }, (_, index) => <FactPlaceholder key={index} lines={1} index={index} />)}
+      </View>
+      <View style={s.recFoot}>
+        <SkeletonBlock width={layout.slot} height={layout.slot} radius={sys.radius.pill} />
+        <View style={s.listCopy}>
+          <TextBar width="48%" line={note} height={px(12)} />
+          <TextBar width="32%" line={note} height={px(12)} />
+        </View>
+        <TextBar width={40} line={note} height={px(12)} />
+      </View>
+    </View>
+  </Surface>;
+}
+
 export function SkeletonCard({ rows, variant = 'plain', face = false, switches = false, foot = false, last = true, index = 0 }: {
   rows?: number; variant?: SkeletonVariant;
   /** `row`: the slot holds a person's face (56). */ face?: boolean;
@@ -170,7 +214,8 @@ export function SkeletonCard({ rows, variant = 'plain', face = false, switches =
   /** `row` and `fact`: which one of the group, so the lines are not all the same width. */ index?: number;
 }) {
   if (variant === 'row') return <RowPlaceholder lines={Math.min(3, Math.max(1, rows ?? 2))} face={face} switches={switches} last={last} index={index} />;
-  if (variant === 'record' || variant === 'task') return <RecordPlaceholder lines={rows ?? 2} foot={foot || variant === 'task'} />;
+  if (variant === 'task') return <TaskPlaceholder lines={rows ?? 2} />;
+  if (variant === 'record') return <RecordPlaceholder lines={rows ?? 2} foot={foot} />;
   if (variant === 'fact') return <FactPlaceholder lines={Math.min(2, Math.max(1, rows ?? 1))} index={index} />;
   const lines = rows ?? 2;
   if (variant === 'preview' || variant === 'face') return <View {...hidden} style={variant === 'preview' ? s.preview : s.face}>
@@ -296,5 +341,7 @@ const s = StyleSheet.create({
   recLead: { gap: sys.space.xs },
   recDecision: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', columnGap: sys.space.base },
   recFacts: { gap: sys.space.xs },
+  // The amount's row of a task's card (`TaskRecordBody`'s valueCopy): the sum and what it buys on one line, 8 apart.
+  taskAmount: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', columnGap: sys.space.sm },
   recFoot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
 });

@@ -29,6 +29,8 @@ const SAYS_CONFIRMED: readonly FactArtKind[] = ['check', 'agreements', 'shield']
 /** The picture of a state at the size of a screen (composition spec, rule C: "art 96 prazno stanje"), and in a section of one. */
 const ART = 96;
 const ART_COMPACT = 48;
+/** The picture of a FIRST encounter (`hero`): the size of a door of Početna, because it is the same object as the door that fulfils the state. */
+const ART_HERO = 144;
 /** The measure of the words: the sentence is never wider than this, whatever the screen (T7: "copy ≤ 280 širine"); the actions stand in the same column. */
 const MEASURE = 280;
 
@@ -37,7 +39,7 @@ const MEASURE = 280;
  * 2026-10-08): a list that has nothing to show, is still reading, could not read, has no connection or does not know whether a send
  * arrived says so the same way on every screen.
  *
- * THE LOOK. A centred column: the FactArt picture at 96, the title in the `title` type (21), one sentence in `copy` (15, grey, at most 280
+ * THE LOOK. A centred column: the FactArt picture at 96 (at 144 for a `hero`, below), the title in the `title` type (21), one sentence in `copy` (15, grey, at most 280
  * wide), then at most one green action and one quiet one, stacked. No well and no card around the picture: white, as every reading
  * surface is. The block lies about a third of the way down, not glued to the top: where the screen gives it room (a `flex: 1` parent)
  * a fifth of the free space is above it and four fifths below, which puts the middle of the block at about 38 % of the height of the screen
@@ -50,6 +52,11 @@ const MEASURE = 280;
  *     reader hears ("Učitavamo Dogovore…"). No action: nothing can be done while it reads, and nothing spins over the screen.
  *   - `compact`: the same, for a state that stands INSIDE a screen (a section, a sheet, a list under a heading): the picture at 48, the
  *     title in `heading`, no lift, 16 over and under. A state that is the whole screen is not compact.
+ *   - `hero` (owner's pick of 2026-10-08, "Predmet vrata"): the FIRST encounter of an empty screen. The picture stands at 144, the size of a
+ *     door of Početna, and is the same object as the door or the row that fulfils the state (the paper with the pin for "Moji zadaci", the
+ *     tag for "Moje prijave", the link for "Dogovori", the two panels for "Poruke", the bell for "Obaveštenja", the map for "Zadaci"), so an
+ *     empty screen is a promise of its action. Only an `empty` state that is the whole screen can be a hero, and only when the person has
+ *     never had one (`cause: 'first'`); filtered, done, failure, offline and unknown outcome keep 96 and a failure keeps its stillness.
  *
  * THE RULES. Every state follows them, and `stateProblems` (`stateRules.ts`) holds them as checks a screen's suite can ask.
  *   1. A sentence and one way forward. The title says what is the matter, the copy says why or what will be here, and one action (green)
@@ -87,17 +94,22 @@ export type StateViewProps = {
   skeleton?: { count?: number; rows?: number; variant?: SkeletonVariant; face?: boolean; heading?: boolean; switches?: boolean; foot?: boolean };
   /** The state is inside a section or a sheet, not the whole screen: a smaller picture and title and no lift. */
   compact?: boolean;
+  /**
+   * The first encounter of an empty screen: the picture at 144, the object of the door that fulfils it (see the header). Only for `empty`
+   * and not `compact`; anything else ignores it. The screen says it only when the person has never had one, never for a filter or "done".
+   */
+  hero?: boolean;
   testID?: string;
 };
 
-export function StateView({ kind = 'empty', art, title, body, primary, quiet, skeleton, compact = false, testID }: StateViewProps) {
+export function StateView({ kind = 'empty', art, title, body, primary, quiet, skeleton, compact = false, hero = false, testID }: StateViewProps) {
   if (kind === 'loading') return <View testID={testID} accessibilityLiveRegion="polite" style={s.loading}>
     <SkeletonList count={skeleton?.count ?? 3} rows={skeleton?.rows} variant={skeleton?.variant} face={skeleton?.face} heading={skeleton?.heading}
       switches={skeleton?.switches} foot={skeleton?.foot} />
     <T variant="note" tone="muted" style={s.sentence}>{title}</T>
   </View>;
   const trouble = kind !== 'empty';
-  const size = compact ? ART_COMPACT : ART;
+  const size = compact ? ART_COMPACT : hero && kind === 'empty' ? ART_HERO : ART;
   // A failure never wears a picture that says "confirmed"; it falls back to the kind's quiet sign.
   const drawn = art === undefined || (trouble && SAYS_CONFIRMED.includes(art)) ? DEFAULT_ART[kind] : art;
   const picture = kind === 'empty' && art === 'chat' ? <ConversationArt size={size} />

@@ -8,16 +8,18 @@ import type { MarketConfig } from '../contracts/market';
 import type { JavniProfilProjekcija, StanjeProfila } from '../contracts/projections';
 import { passwordChangeMessages } from '../data/passwordChangeClientService';
 import type { WorkerAiReview } from '../data/workerAiClientService';
+import type { ReviewTag } from '../data/reviewsClientService';
 import type { MyWorkStats, PublicWorkTrust, ReceivedReview } from '../data/workTrustClientService';
 import { inicijali } from '../lib/inicijali';
 import { WorkerLocationForm } from './(app)/profil/lokacija';
 import { DisplayNameForm } from '../ui/profile/DisplayNameForm';
 import { GalleryLargeText } from '../ui/profile/GalleryLargeText';
 import { ProfileHub, PROFILE_AVATAR, type ProfileHubIdentity } from '../ui/profile/ProfileHubPresentation';
-import { ProfileStatsSection, type ProfileStatsState } from '../ui/profile/ProfileStats';
+import { ReliabilityFigure, type ProfileStatsState } from '../ui/profile/ProfileStats';
 import { FinishedAgreements, type FinishedView } from '../ui/profile/ProfileWorkSummary';
 import { ProfilePhotoEditor, type ProfilePhotoMode, type ProfilePhotoRunning, type ProfilePhotoStage } from '../ui/profile/ProfilePhotoPresentation';
-import { ReputationLine } from '../ui/reviews/AccountReputation';
+import { ReputationFigure } from '../ui/reviews/AccountReputation';
+import { AgreementReviewPresentation, type ReviewPerson, type ReviewView } from '../ui/reviews/AgreementReviewPresentation';
 import { RatingsScreen, ReceivedRatings, GivenRatings, type GivenView, type RatingsTab, type ReceivedView } from '../ui/reviews/RatingsPresentation';
 import { ReceivedReviewsList, type ReceivedReviewsView } from '../ui/reviews/ReceivedReviewsList';
 import { ChangePasswordView, type ChangePasswordPhase } from '../ui/settings/ChangePasswordPresentation';
@@ -95,7 +97,7 @@ function Hub({ identity, capabilityDetail, capabilityNeedsAttention, workArea, b
   return <ProfileHub identity={identity} capabilityDetail={capabilityDetail} capabilityNeedsAttention={capabilityNeedsAttention} workArea={workArea} busy={busy}
     email={email} open={noop} onBack={toList.current} onLogout={noop} logoutError={false}
     workSummary={finished ? <FinishedAgreements view={finished} onOpen={noop} onRefresh={noop} /> : undefined}
-    stats={stats ? <ProfileStatsSection state={stats} /> : undefined} />;
+    stats={stats ? <ReliabilityFigure state={stats} /> : undefined} />;
 }
 /** What the server answers for the person's own funnel; the fixtures only vary the parts a scene is about. */
 const STATS = (patch: Partial<MyWorkStats> = {}): ProfileStatsState => ({ kind: 'ready', stats: { hasWorkerProfile: true, profileId: 'galerija-profil', profileStatus: 'ACTIVE',
@@ -105,7 +107,7 @@ const FINISHED: FinishedView = { kind: 'ready', facts: [{ role: 'uskocer', count
 const face = (name: string | null) => <Avatar initials={inicijali(name)} size={PROFILE_AVATAR} />;
 const ready = (name: string | null, place: string | null, reputation: ReactNode, photo: ReactNode = face(name)): ProfileHubIdentity =>
   ({ state: 'ready', name, place, photo, photoReady: true, openPhoto: noop, reputation });
-const rating = (state: unknown) => <ReputationLine state={state} onRetry={noop} />;
+const rating = (state: unknown) => <ReputationFigure state={state} onRetry={noop} onOpen={noop} />;
 const RATED = { accountId: 'galerija', reviewCount: 12, averageRating: 4.8, state: 'RATED', authoritative: true };
 const UNRATED = { accountId: 'galerija', reviewCount: 0, averageRating: null, state: 'NO_REVIEWS', authoritative: true };
 
@@ -201,6 +203,23 @@ function Name({ savedName, uncertain = false, error = null, saved = false, busy 
   </SettingsScreen>;
 }
 
+// Ocena saradnje (8 Oct 2026, "Zvezde kao nalepnice" and "Pilula pada, sjaj"): the real presentation on fixtures; the stars and tags answer on a local copy.
+const RATED_PERSON: ReviewPerson = { name: 'Marko Jovanović', initials: 'MJ', profileId: null, role: 'Uskače na tvoj zadatak', task: 'Prenos ormana do kombija' };
+const LONG_PERSON: ReviewPerson = { name: 'Aleksandra Stefanović-Radosavljević', initials: 'AS', profileId: null, role: 'Uskače na tvoj zadatak',
+  task: 'Selidba stanova i kancelarija sa pakovanjem, montažom i odvozom ambalaže' };
+const REVIEW_CATALOG = { maxTags: 3, tags: ['AS_AGREED', 'CAREFUL', 'CLEAR_COMMUNICATION', 'ON_TIME', 'RELIABLE', 'RESPECTFUL'] as readonly ReviewTag[] };
+const reviewRetry = { label: 'Ponovo učitaj ocenu', disabled: false, onPress: noop };
+function Rating({ initial = 4, person = RATED_PERSON }: { initial?: number; person?: ReviewPerson | null }) {
+  const [stars, setStars] = useState(initial);
+  const [tags, setTags] = useState<ReviewTag[]>(initial ? ['ON_TIME'] : []);
+  const view: ReviewView = { kind: 'eligible', catalog: REVIEW_CATALOG, rating: stars, tags, editable: true, attempt: false, onRate: setStars,
+    onToggleTag: tag => setTags(values => values.includes(tag) ? values.filter(value => value !== tag) : values.length < REVIEW_CATALOG.maxTags ? [...values, tag] : values),
+    save: { label: 'Sačuvaj ocenu', loading: false, disabled: stars < 1, reason: stars < 1 ? 'Izaberi ocenu.' : null, onPress: noop } };
+  return <AgreementReviewPresentation backLabel="Nazad na Dogovor" onBack={toList.current} view={view} person={person} notice={null} retry={reviewRetry} />;
+}
+const savedRating = (view: Extract<ReviewView, { kind: 'saved' }>, person: ReviewPerson | null = RATED_PERSON) =>
+  <AgreementReviewPresentation backLabel="Nazad na Dogovor" onBack={toList.current} view={view} person={person} notice={null} retry={reviewRetry} />;
+
 /** The scene list's own back, set while the gallery is mounted, so every scene's arrow returns to the list. */
 const toList: { current: () => void } = { current: noop };
 
@@ -249,6 +268,19 @@ const GROUPS: Group[] = [
     { key: 'ratings-given', label: 'Ocene: date', draw: () => <Ratings average={AVERAGE} view={reviews([])} tab="given" given={<GivenRatings view={GIVEN} />} /> },
     { key: 'ratings-large', label: 'Ocene: veliki tekst (1,3)', large: true, draw: () => <Ratings average={AVERAGE}
       view={reviews([R1, R2, R3], { totalCount: 12, notListedCount: 9 })} /> },
+  ] },
+  { title: 'Ocena saradnje', scenes: [
+    { key: 'rating-choose', label: 'Ocena: izbor (4 zvezde, jedna oznaka)', draw: () => <Rating /> },
+    { key: 'rating-empty', label: 'Ocena: bez izbora', draw: () => <Rating initial={0} /> },
+    { key: 'rating-long', label: 'Ocena: dugi nazivi', draw: () => <Rating person={LONG_PERSON} /> },
+    { key: 'rating-no-person', label: 'Ocena: bez osobe (Dogovor nije pročitan)', draw: () => <Rating person={null} /> },
+    { key: 'rating-saved', label: 'Ocena: sačuvana upravo sad (pilula pada, sjaj)', draw: () => savedRating({ kind: 'saved', rating: 4, tags: ['ON_TIME', 'RELIABLE'], fresh: true }) },
+    { key: 'rating-saved-again', label: 'Ocena: sačuvana, otvorena ponovo (mirno)', draw: () => savedRating({ kind: 'saved', rating: 4, tags: ['ON_TIME', 'RELIABLE'], fresh: false }) },
+    { key: 'rating-saved-long', label: 'Ocena: sačuvana, dugo ime i komentar', draw: () => savedRating({ kind: 'saved', rating: 5, tags: ['AS_AGREED', 'CLEAR_COMMUNICATION', 'RESPECTFUL'], fresh: false,
+      comment: 'Sve je proteklo kako treba, došli su na vreme i ostavili čisto.' }, LONG_PERSON) },
+    { key: 'rating-saved-no-person', label: 'Ocena: sačuvana, bez osobe', draw: () => savedRating({ kind: 'saved', rating: 2, tags: [], fresh: false }, null) },
+    { key: 'rating-large', label: 'Ocena: veliki tekst (1,3)', large: true, draw: () => <Rating person={LONG_PERSON} /> },
+    { key: 'rating-saved-large', label: 'Ocena: sačuvana, veliki tekst (1,3)', large: true, draw: () => savedRating({ kind: 'saved', rating: 4, tags: ['ON_TIME', 'RELIABLE'], fresh: false }, LONG_PERSON) },
   ] },
   { title: 'Javni profil: poverenje', scenes: [
     { key: 'public-hidden', label: 'Javni profil: poverenje skriveno (podrazumevano)', draw: () => <PublicProfile trust={HIDDEN} /> },

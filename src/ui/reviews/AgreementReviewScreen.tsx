@@ -32,9 +32,9 @@ export function backFromReviewToHome() { if (router.canGoBack()) router.back(); 
 /**
  * One rating, up to N tags, one save. The saved receipt is final and shown as such.
  *
- * One calm screen (round 6, unit `prijava`, 2026-09-24): the person being rated first (their picture, name, what they are
- * to me and the task), five large stars, the optional tags, and ONE green save pinned at the foot. The stars are the
- * screen's one orange accent. The person comes from a second read of the Dogovor; it never blocks or delays the rating,
+ * One calm screen (round 6, unit `prijava`, 2026-09-24; the owner's pick of 8 Oct 2026, "Zvezde kao nalepnice"): the person being rated
+ * first, centred (their face at 72, name, what they are to me and the task), five stars as 48 dp stickers, the optional tags, and ONE
+ * green save pinned at the foot. The stars are the screen's one orange accent. The person comes from a second read of the Dogovor; it never blocks or delays the rating,
  * and when it fails or does not match the person the server names, no person is drawn (nothing is invented).
  */
 export function AgreementReviewScreen({ agreementId, accountId, accountRevision, backLabel = 'Nazad na Dogovor', onBack = backFromReview,
@@ -46,8 +46,8 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
   onBack?: () => void;
   /** Reads the Dogovor, only to show whom the rating is about. */
   readAgreement?: () => Promise<DogovorProjekcija | null>;
-  /** The person's photo at 56, drawn by the route; `fallback` (their letters) when there is none. */
-  photo?: (profileId: string, fallback: ReactNode) => ReactNode;
+  /** The person's photo, drawn by the route at the `size` it is asked for (72, the face of the owner's rating); `fallback` (their letters, the same size) when there is none. */
+  photo?: (profileId: string, fallback: ReactNode, size?: number) => ReactNode;
   /** What the person is to me, in the Dogovor's own words; the route hands it in so this screen loads no media code. */
   roleOf?: (person: UcesnikProjekcija) => string;
 }) {

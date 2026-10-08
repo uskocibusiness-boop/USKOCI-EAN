@@ -19,6 +19,8 @@ import { ListRow } from '../ListRow';
 import { Skeleton, SkeletonCard, SkeletonList } from '../Skeleton';
 import { Surface } from '../Surface';
 import { sys } from '../tokens';
+import type { MarketplaceItem } from '../../../data/marketplaceView';
+import { TaskCard } from '../../v2/TaskCard';
 
 /**
  * A placeholder is drawn at the measure of what is coming (composition spec T7: "skelet iste geometrije kao stvarni red"; UI/UX pass
@@ -201,12 +203,50 @@ describe('a record is the card of a task', () => {
     expect(size(hosts().filter(node => flat(node).width === FACT_ROW_ART && flat(node).height === FACT_ROW_ART))).toBe(3);
   });
 
-  it('`task`, which drew the old card at 146 dp, is the same record with the person, so the lists that say it wait at the measure they will arrive in', async () => {
-    await render(<SkeletonCard variant="record" foot />);
-    const record = JSON.stringify(drawn(tree.root).map(node => flat(node)));
-    await act(async () => tree.update(<SkeletonCard variant="task" />));
-    expect(JSON.stringify(drawn(tree.root).map(node => flat(node)))).toBe(record);
-    expect(heightOfRender()).toBeGreaterThanOrEqual(199);
+  // The owner's pick of 8 Oct 2026: the amount is the first fact of the task card (the place of its picture is a fact's), and the count of people ends the line of the
+  // person. The placeholder of a task list has that face, and the height of the real card at the least it is.
+  describe('`task` is the face of the task card', () => {
+    const NEED = { id: 'need-1', naslov: 'Farbanje dnevne sobe', podrucjeTekst: 'Liman, Novi Sad', vremeTekst: '24. sep · 17:00', statusTekst: 'Otvoren', uslovi: [],
+      pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: null, narucilacProfilId: 'profile-1', narucilacIme: 'Nikola Petrović',
+      narucilacOcena: '4,8', narucilacBrojOcena: 12, rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 5500, valuta: 'RSD', prikaz: '5.500 RSD' },
+      detalji: { kategorija: 'Krečenje', geografija: null, rezimLokacije: 'STATIONARY', zahtevi: { vestine: [], alati: [], vozila: [], dozvole: [], bitniUslovi: null,
+        iskustvoGodina: null, potvrdjenIdentitet: false } } } as unknown as MarketplaceItem;
+
+    it('draws three facts (the amount first, then two), the person\'s 40 picture, and the count of people at the end of the person\'s line', async () => {
+      await render(<SkeletonCard variant="task" />);
+      expect(size(hosts().filter(node => flat(node).width === FACT_ROW_ART && flat(node).height === FACT_ROW_ART))).toBe(3);
+      expect(size(hosts().filter(node => flat(node).width === layout.slot && flat(node).height === layout.slot && flat(node).borderRadius === sys.radius.pill))).toBe(1);
+      expect(size(hosts().filter(node => flat(node).width === 40 && flat(node).height === 12))).toBe(1);
+      // The amount's row is the first of the facts, with the sum's bar and a shorter one for what it buys.
+      const [sum, buys] = hosts().filter(node => flat(node).height === 14 || (flat(node).width === 44 && flat(node).height === 12));
+      expect([flat(sum).width, flat(buys).width]).toEqual([96, 44]);
+    });
+
+    it('is as tall as the least the real card is: a title of one line, the amount, where, when, and the person; and 4 between the facts, 12 between the parts', async () => {
+      await render(<TaskCard item={NEED} onOpen={() => undefined} />);
+      const real = heightOfRender();
+      await act(async () => tree.update(<SkeletonCard variant="task" />));
+      expect(heightOfRender()).toBe(real);
+      expect(real).toBe(sys.type.heading.lineHeight + sys.space.md + (3 * FACT_ROW_ART + 2 * sys.space.xs) + sys.space.md + layout.slot + 2 * layout.card + 2);
+    });
+
+    it('takes `rows` more facts after the amount, and stands 12 from the next card', async () => {
+      await render(<Skeleton variant="task" count={2} rows={3} />);
+      expect(size(drawn(first()))).toBe(2);
+      expect(flat(first()).gap).toBe(layout.group);
+      expect(size(hosts().filter(node => flat(node).width === FACT_ROW_ART && flat(node).height === FACT_ROW_ART))).toBe(8);
+    });
+
+    it('grows with the text size as the real card does: the lines are taller, a fact is the taller of its picture and its line, the person the taller of 40 and its two lines', async () => {
+      mockScale = 1.3;
+      await render(<Skeleton variant="task" count={1} />);
+      const px = (n: number) => Math.round(n * 1.3);
+      const amount = Math.max(FACT_ROW_ART, (FACT_ROW_ART - PRICE) / 2 + px(PRICE));
+      const fact = Math.max(FACT_ROW_ART, (FACT_ROW_ART - sys.type.note.lineHeight) / 2 + px(sys.type.note.lineHeight));
+      const person = Math.max(layout.slot, 2 * px(sys.type.note.lineHeight));
+      expect(heightOfRender()).toBe(px(sys.type.heading.lineHeight) + sys.space.md + (amount + sys.space.xs + fact + sys.space.xs + fact) + sys.space.md + person
+        + 2 * layout.card + 2);
+    });
   });
 
   it('grows with the text size: at 1.3 the card is as tall as the real one, which is taller by the lines it holds', async () => {

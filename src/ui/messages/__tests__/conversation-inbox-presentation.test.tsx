@@ -191,7 +191,8 @@ describe('the states of the list', () => {
     const onAgreements = jest.fn();
     await act(async () => tree.update(<ConversationInboxPresentation {...props([], { onAgreements })} />));
     // The state of the system (one green way forward), not a screen of its own.
-    expect(tree.root.findAllByType('StateView' as never)[0].props).toMatchObject({ kind: 'empty', art: 'chat', title: 'Još nema razgovora' });
+    // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the two panels at the size of a door.
+    expect(tree.root.findAllByType('StateView' as never)[0].props).toMatchObject({ kind: 'empty', hero: true, art: 'chat', title: 'Još nema razgovora', body: 'Čim nastane Dogovor, ovde je razgovor.' });
     await act(async () => tree.root.findAllByType('StateView' as never)[0].props.primary.onPress());
     expect(onAgreements).toHaveBeenCalledTimes(1);
   });

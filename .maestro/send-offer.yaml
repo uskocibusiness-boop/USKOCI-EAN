@@ -6,6 +6,9 @@
 #
 #   maestro --device emulator-5554 test -e TASK=".*krečenja stana.*" -e PRICE=3000 -e EXPECT=".*3.000.*" .maestro/send-offer.yaml
 #
+# The one action at the foot of the task is "Pošalji ponudu" on a task with no fixed price and "Pošalji prijavu" on one with a fixed price (8 Oct 2026); the flow takes either
+# (LABEL is a pattern), and a run that knows the kind of price of its task may pin it: -e LABEL="Pošalji ponudu".
+#
 # The compose screen already opens an explicit review before sending (F10); this flow goes through it
 # the way a person does: compose → Pregledaj ponudu → Pošalji ovu Prijavu → the "Tvoja prijava" landing.
 
@@ -14,6 +17,7 @@ env:
   TASK: ".*krečenja stana.*"
   PRICE: "3000"
   EXPECT: ".*3.000.*"
+  LABEL: "Pošalji (ponudu|prijavu)"
 ---
 - launchApp:
     clearState: false
@@ -35,14 +39,14 @@ env:
 - assertNotVisible: "Ovo je tvoj zadatak"
 - scrollUntilVisible:
     element:
-      text: "Sastavi prijavu"
+      text: ${LABEL}
     direction: DOWN
     timeout: 15000
 - extendedWaitUntil:
-    visible: "Sastavi prijavu"
+    visible: ${LABEL}
     timeout: 10000
 - tapOn:
-    text: "Sastavi prijavu"
+    text: ${LABEL}
 # The compose screen is a separate route. Nothing below may run against the task detail by mistake,
 # so the flow waits for the compose screen's own price field and fails here if it never opens.
 - extendedWaitUntil:

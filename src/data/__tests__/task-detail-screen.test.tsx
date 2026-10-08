@@ -24,6 +24,8 @@ import { taskRelationIndex } from '../taskRelation';
 const mockLoad = jest.fn(), mockRelations = jest.fn();
 // My relation to the task is read beside it, for this task alone (PKG-023b).
 const mockSource = { prilika: mockLoad, odnosiPremaZadacima: mockRelations };
+// The public work-trust read of the poster is a read of its own (and brings the whole transport with it): this suite is about the task's own lifecycle, so it stands in for it.
+jest.mock('../../ui/profile/usePublicWorkTrust', () => ({ usePublicWorkTrust: () => null }));
 // The server answers about the ids it was asked and no others, so the double never does either.
 const relatesAs = (...rows: { needId: string }[]) => async (ids: readonly string[]) =>
   taskRelationIndex(rows.filter(row => ids.includes(row.needId)), ids);
@@ -91,12 +93,12 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockLoad.mockRejectedValueOnce(new Error('secret transport internals')).mockReturnValueOnce(retry.promise);
     await render();
     expect(text()).toContain('Ne možemo da učitamo zadatak'); expect(text()).not.toContain('secret');
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
     const press = buttons('Pokušaj ponovo')[0].props.onPress;
     await act(async () => { press(); press(); }); expect(mockLoad).toHaveBeenCalledTimes(2);
     expect(text()).toContain('Učitavamo zadatak');
     await act(async () => retry.resolve(detail()));
-    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('shows where the job is as an approximate pin, and shows no map when there is no point', async () => {
@@ -122,7 +124,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
 
   it('opens the real composer once and never submits directly', async () => {
     mockLoad.mockResolvedValue(detail()); await render();
-    const press = buttons('Sastavi prijavu')[0].props.onPress;
+    const press = buttons('Pošalji ponudu')[0].props.onPress;
     await act(async () => { press(); press(); });
     expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/prilike/[id]/prijava', params: { id: 'task-a' } }]]);
   });
@@ -130,14 +132,14 @@ describe('W04 actual screen and focused read lifecycle', () => {
   it('retains only marked display data after a failed foreground refresh and invalidates old presses immediately', async () => {
     const refresh = deferred<PrilikaProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(refresh.promise).mockResolvedValueOnce(detail());
-    await render(); const stalePress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const stalePress = buttons('Pošalji ponudu')[0].props.onPress;
     await act(async () => { mockAppListeners.forEach(listener => listener('active')); stalePress(); });
-    expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(buttons('Pošalji ponudu')).toHaveLength(0);
     expect(text()).toContain('Zadatak task-a'); expect(text()).toContain('Vidiš starije podatke');
     await act(async () => refresh.reject(new Error('offline')));
-    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(0);
     await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
-    expect(text()).not.toContain('Vidiš starije podatke'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(text()).not.toContain('Vidiš starije podatke'); expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('removes cached detail when a successful refresh says the row is unavailable', async () => {
@@ -145,12 +147,12 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render(); await act(async () => mockAppListeners.forEach(listener => listener('active')));
     expect(text()).toContain('Ovaj zadatak više nije dostupan'); expect(text()).not.toContain('Zadatak task-a');
     await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
-    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(0);
   });
 
   it.each([false, undefined])('fails closed for task-level availability %s', async primaNovePrijave => {
     mockLoad.mockResolvedValue({ ...detail(), primaNovePrijave }); await render();
-    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(0);
     expect(text()).toContain('Nove prijave trenutno nisu dostupne');
   });
 
@@ -158,7 +160,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   // leads back to the other tasks once, through the same navigation fence as every other press.
   it('says why applying is not possible from the facts it read, and leads back to Zadaci once', async () => {
     mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso: '2000-01-01T00:00:00Z' }); await render();
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
     expect(text()).toMatch(/Rok za prijave je prošao 1\. jan\.? 2000/); expect(text()).not.toContain('Prijave do');
     const other = buttons('Drugi zadaci')[0].props.onPress;
     await act(async () => { other(); other(); });
@@ -174,31 +176,31 @@ describe('W04 actual screen and focused read lifecycle', () => {
 
   it.each([undefined, 'invalid', '2000-01-01T00:00:00Z'])('never offers the composer for unknown/expired deadline %s', async rokZaPrijaveIso => {
     mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso }); await render();
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
   });
 
   it('expires the visible CTA without a network call and rejects a press before the timer paints', async () => {
     jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-07T12:00:00Z'));
     mockLoad.mockResolvedValue({ ...detail(), rokZaPrijaveIso: '2026-09-07T12:00:10Z' });
-    await render(); const press = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const press = buttons('Pošalji ponudu')[0].props.onPress;
     jest.setSystemTime(new Date('2026-09-07T12:00:10Z'));
     await act(async () => press()); expect(mockRouter.navigate).not.toHaveBeenCalled();
     await act(async () => jest.advanceTimersByTime(10_000));
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
     expect(mockLoad).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a response that does not match the requested task', async () => {
     mockLoad.mockResolvedValue(detail('other-task')); await render();
     expect(text()).toContain('Ovaj zadatak više nije dostupan'); expect(text()).not.toContain('other-task');
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
   });
 
   it('clears displayed A detail on id change and rejects A handlers', async () => {
     const b = deferred<PrilikaProjekcija>(); mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(b.promise);
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     mockId = 'task-b'; await update();
-    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(0);
     await act(async () => oldPress()); expect(mockRouter.navigate).not.toHaveBeenCalled();
     await act(async () => b.resolve(detail('task-b'))); expect(text()).toContain('Zadatak task-b');
   });
@@ -216,7 +218,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     const oldRead = deferred<PrilikaProjekcija>();
     const currentRead = deferred<PrilikaProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(oldRead.promise).mockReturnValueOnce(currentRead.promise);
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
     mockAccountId = 'account-b'; mockEpoch++; mockAccountRevision++;
     mockAccountId = 'account-a'; mockEpoch++; mockAccountRevision++;
@@ -226,15 +228,15 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await act(async () => oldRead.resolve({ ...detail(), naslov: 'Prethodna sesija A' }));
     expect(text()).not.toContain('Prethodna sesija A');
     expect(text()).not.toContain('Zadatak task-a');
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
     await act(async () => currentRead.resolve({ ...detail(), naslov: 'Nova sesija A' }));
     expect(text()).toContain('Nova sesija A');
-    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('preserves W04 content and actions across token refresh for the same identity revision', async () => {
     mockLoad.mockResolvedValueOnce(detail());
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     mockEpoch++;
     await act(async () => oldPress());
     expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
@@ -242,12 +244,12 @@ describe('W04 actual screen and focused read lifecycle', () => {
     expect(mockAccountRevision).toBe(1);
     expect(mockLoad).toHaveBeenCalledTimes(1);
     expect(text()).toContain('Zadatak task-a');
-    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('blocks pre-render account changes and clears the display cache for a new session', async () => {
     mockLoad.mockResolvedValueOnce(detail()).mockRejectedValueOnce(new Error('offline'));
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     mockAccountId = 'account-b'; mockEpoch++;
     await act(async () => { oldPress(); back(); });
     expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockRouter.back).not.toHaveBeenCalled();
@@ -256,12 +258,12 @@ describe('W04 actual screen and focused read lifecycle', () => {
 
   it('does not reuse a detail or press across logout and a new session for the same account', async () => {
     mockLoad.mockResolvedValueOnce(detail()).mockRejectedValueOnce(new Error('offline'));
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     mockAccountId = undefined; mockEpoch++;
     await act(async () => oldPress()); expect(mockRouter.navigate).not.toHaveBeenCalled();
     await update(); expect(text()).not.toContain('Zadatak task-a');
     mockAccountId = 'account-a'; mockEpoch++; await update();
-    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(text()).not.toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(0);
     expect(mockLoad).toHaveBeenCalledTimes(2);
   });
 
@@ -270,9 +272,9 @@ describe('W04 actual screen and focused read lifecycle', () => {
   // by what I am to this task, read from my own tasks and my own applications.
   it('a flip of the retired app mode changes nothing: the task stays, and the application action still opens the composer', async () => {
     mockLoad.mockResolvedValue(detail());
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     mockIntent = 'narucilac'; await update();
-    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(1);
     await act(async () => oldPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/prilike/[id]/prijava', params: { id: 'task-a' } });
   });
@@ -281,17 +283,17 @@ describe('W04 actual screen and focused read lifecycle', () => {
     mockRelations.mockImplementation(relatesAs(owner('task-a'))); mockLoad.mockResolvedValue(detail());
     await render();
     expect(mockRelations).toHaveBeenCalledWith(['task-a']);
-    expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(text()).toContain('Ovo je tvoj zadatak.');
+    expect(buttons('Pošalji ponudu')).toHaveLength(0); expect(text()).toContain('Ovo je tvoj zadatak.');
     await act(async () => buttons('Otvori svoj zadatak')[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'task-a' } });
     await act(async () => { tree?.unmount(); });
     mockId = 'task-b'; mockLoad.mockResolvedValue(detail('task-b')); await render();
-    expect(text()).not.toContain('Ovo je tvoj zadatak.'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(text()).not.toContain('Ovo je tvoj zadatak.'); expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('a task I already applied to offers my application, and my Dogovor once I am chosen; never a second application', async () => {
     mockRelations.mockImplementation(relatesAs(applicant('task-a', 'SUBMITTED'))); mockLoad.mockResolvedValue(detail());
-    await render(); expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    await render(); expect(buttons('Pošalji ponudu')).toHaveLength(0);
     await act(async () => buttons('Pogledaj svoju prijavu')[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'application-a' } });
     await act(async () => { tree?.unmount(); });
@@ -303,25 +305,25 @@ describe('W04 actual screen and focused read lifecycle', () => {
   it('a relation that could not be read never becomes a licence to apply', async () => {
     mockRelations.mockRejectedValue(new Error('TASK_RELATIONS_READ_FAILED')); mockLoad.mockResolvedValue(detail());
     await render();
-    expect(text()).toContain('Zadatak task-a'); expect(buttons('Sastavi prijavu')).toHaveLength(0); expect(buttons('Proveri ponovo')).toHaveLength(1);
+    expect(text()).toContain('Zadatak task-a'); expect(buttons('Pošalji ponudu')).toHaveLength(0); expect(buttons('Proveri ponovo')).toHaveLength(1);
   });
 
   it('invalidates reads and actions on blur and rereads on focus', async () => {
     const late = deferred<PrilikaProjekcija>();
     mockLoad.mockResolvedValueOnce(detail()).mockReturnValueOnce(late.promise).mockResolvedValueOnce({ ...detail(), naslov: 'Sveži podaci' });
-    await render(); const oldPress = buttons('Sastavi prijavu')[0].props.onPress;
+    await render(); const oldPress = buttons('Pošalji ponudu')[0].props.onPress;
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
     mockFocused = false; await update(); await act(async () => { oldPress(); late.resolve({ ...detail(), naslov: 'Kasni podaci' }); });
     expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(text()).not.toContain('Kasni podaci');
     expect(mockAppListeners.size).toBe(0);
     mockFocused = true; await update(); expect(text()).toContain('Sveži podaci');
-    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
   it('makes a successful unavailable read finite, with Back and retry but no application action', async () => {
     mockLoad.mockResolvedValue(null); await render();
     expect(text()).toContain('Ovaj zadatak više nije dostupan');
     expect(text()).not.toContain('Učitavam');
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
     await act(async () => back());
     expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
@@ -336,7 +338,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
   it('keeps Back available while loading', async () => {
     mockLoad.mockReturnValue(new Promise(() => {})); await render();
     expect(text()).toContain('Učitavamo zadatak');
-    expect(buttons('Sastavi prijavu')).toHaveLength(0);
+    expect(buttons('Pošalji ponudu')).toHaveLength(0);
     await act(async () => back()); expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
 
@@ -390,19 +392,19 @@ describe('the questions of the task, drawn on it', () => {
 
   it('draws no section while the reader has nothing, and the task is complete without it', async () => {
     mockLoad.mockResolvedValue(detail()); await render();
-    expect(text()).not.toContain('Pitanja i odgovori'); expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(text()).not.toContain('Pitanja i odgovori'); expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
-  it('reads the questions and the owner’s answers after the work and before the poster', async () => {
+  it('reads the questions and the owner’s answers after the work, which comes after the poster (the owner’s pick of 8 Oct 2026)', async () => {
     mockQuestions = strangerSees([answered(1), answered(2)]);
     mockLoad.mockResolvedValue({ ...detail(), opis: 'Dva sprata bez lifta.', narucilacIme: 'Ana Anić' }); await render();
     const all = text();
     expect(all).toContain('2 pitanja · sva odgovorena'); expect(all).toContain('Pitanje 2?'); expect(all).toContain('Odgovor 2.');
     expect(all).toContain('Odgovor osobe koja je objavila zadatak');
+    expect(all.indexOf('Ana Anić')).toBeLessThan(all.indexOf('Dva sprata bez lifta.'));
     expect(all.indexOf('Dva sprata bez lifta.')).toBeLessThan(all.indexOf('Pitanja i odgovori'));
-    expect(all.indexOf('Pitanja i odgovori')).toBeLessThan(all.indexOf('Ana Anić'));
     // The one green action is still the application; the section adds none.
-    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('"Postavi pitanje" opens the whole thread once, through the screen’s own fence, for a stranger’s task', async () => {
@@ -456,7 +458,7 @@ describe('the questions of the task, drawn on it', () => {
     expect(text()).toContain('Pitanja trenutno nisu učitana.'); expect(text()).not.toContain('Još nema pitanja');
     await act(async () => buttons('Učitaj pitanja ponovo')[0].props.onPress());
     expect(retry).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockLoad).toHaveBeenCalledTimes(1);
-    expect(buttons('Sastavi prijavu')).toHaveLength(1);
+    expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
   it('the owner looking at his own task as others see it is sent to his side of the thread', async () => {

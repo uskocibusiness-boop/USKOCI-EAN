@@ -105,3 +105,21 @@ describe('the rules are written where a person building a screen looks: the head
     expect(header).toMatch(/never repeats/i);
   });
 });
+
+describe('a picture at the size of a door is for the first time only', () => {
+  const first = { kind: 'empty' as const, cause: 'first' as const, title: 'Još nemaš zadatak', body: 'Reci šta ti treba. Nacrt pregledaš pre objave.',
+    primary: { label: 'Objavi prvi zadatak' }, quiet: { label: 'Pogledaj zadatke' } };
+
+  it('lets the first time of an empty screen be a hero, and says nothing of a state that is not one', () => {
+    expect(stateProblems(state({ ...first, hero: true }))).toEqual([]);
+    expect(stateProblems(state({ ...first }))).toEqual([]);
+    expect(stateProblems(state({ ...first, hero: false, cause: 'filtered', title: 'Nema zadataka u ovom prikazu', body: 'Promeni pretragu ili filtere.' }))).toEqual([]);
+  });
+
+  it('flags a hero that is a filter, a "done", or a failure: those keep the quiet 96', () => {
+    expect(stateProblems(state({ kind: 'empty', cause: 'filtered', hero: true, title: 'Nema zadataka u ovom prikazu', body: 'Promeni pretragu ili filtere.',
+      primary: { label: 'Poništi filtere' } }))).toEqual(['hero-is-for-the-first-time']);
+    expect(stateProblems(state({ kind: 'empty', cause: 'done', hero: true, title: 'Ništa ne čeka tvoju odluku', body: 'Kad se nešto promeni, javićemo ti.' }))).toEqual(['hero-is-for-the-first-time']);
+    expect(stateProblems(state({ kind: 'error', hero: true, title: 'Ne možemo da učitamo Dogovore', body: 'Proveri vezu.', primary: { label: 'Pokušaj ponovo' } }))).toEqual(['hero-is-for-the-first-time']);
+  });
+});

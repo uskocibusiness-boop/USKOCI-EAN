@@ -60,8 +60,11 @@ const picture=(prefix:string)=>row(prefix).findAll(node=>typeof node.type!=='str
 beforeEach(()=>{jest.clearAllMocks();mockIntent='narucilac';mockModel.canNavigate.mockReturnValue(true);mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'WORKER'});
   mockState={page:{items:[],unreadCount:0,hasMore:false,asOf:at},loading:false,paging:false,acting:null,error:null,unavailable:false};});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
-test('successful empty has original communication art and one owned settings destination',async()=>{
-  await render();expect(text()).toContain('Još nema obaveštenja');expect(tree.root.findAllByType(ConversationArt.type)).toHaveLength(1);
+test('successful empty is the first encounter of the screen: the bell at the size of a door, the one green way and one owned settings destination',async()=>{
+  // "Predmet vrata" (the owner's pick of 2026-10-08): the picture is the object of the screen, the bell, at 144, and not the conversation art of a message.
+  await render();expect(text()).toContain('Još nema obaveštenja');expect(tree.root.findAllByType(ConversationArt.type)).toHaveLength(0);
+  expect(tree.root.findAllByType(FactArt.type).filter(node=>node.props.kind==='bell'&&node.props.size===144)).toHaveLength(1);
+  expect(text()).toContain('Nove prijave, poruke i važne promene stižu ovde.');expect(text()).not.toContain('uz zadatak ili Dogovor na koji se odnose');
   // The SPOJ V2 vector and its eyebrow ("Na jednom mestu") are gone: an empty list says so the way every list does.
   expect(tree.root.findAllByType('NativeSvgXml' as React.ElementType)).toHaveLength(0);expect(text()).not.toContain('Na jednom mestu');
   const settings=press('Podesi obaveštenja');await act(async()=>{settings.props.onPress();settings.props.onPress();});

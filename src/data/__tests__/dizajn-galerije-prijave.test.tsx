@@ -34,7 +34,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
-jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
+jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar', FaceEdge: 'FaceEdge', FACE_EDGE: 2 }));
 // A gallery never reaches a data service: any of these would throw the moment a scene imported it.
 jest.mock('../supabaseClient', () => { throw new Error('a gallery must not load a data client'); });
 jest.mock('../applicationSelectionClientService', () => { throw new Error('a gallery must not reach a data service'); });
@@ -74,15 +74,17 @@ it.each([['Moji zadaci', MojiZadaci], ['Moje prijave', Prijave], ['Kandidati', K
 
 describe('Moji zadaci', () => {
   it.each([
-    ['lista', ['Moji zadaci', '5 zadataka', 'Montaža dve police u hodniku', 'Imaš 3 prijave. Uporedi ih i izaberi.']],
-    ['puno', ['12 zadataka']],
-    ['dugi', ['3 zadatka', 'Prenos starog trokrilnog ormara']],
-    ['nacrti', ['Pomoć oko bašte', 'Prenos ormara']],
-    ['istorija', ['Farbanje ograde', 'Nošenje peska u dvorište']],
-    ['prazno', ['Objavi prvi zadatak']],
+    // "Papir na stolu" (2026-10-08): the groups by phase with their numbers, the two quiet rows under them, no count line and no tabs.
+    ['lista', ['Moji zadaci', 'Čeka tvoj izbor · 2', 'Objavljeno · 2', 'Dogovoreno · 1', 'Montaža dve police u hodniku', 'Imaš 3 prijave. Uporedi ih i izaberi.', '2 nacrta', '3 zadatka']],
+    ['puno', ['Čeka tvoj izbor · 5', 'Objavljeno · 6', 'Dogovoreno · 1']],
+    ['dugi', ['Čeka tvoj izbor · 1', 'Objavljeno · 2', 'Prenos starog trokrilnog ormara']],
+    ['nacrti', ['Nacrti', 'Pomoć oko bašte', 'Prenos ormara']],
+    ['istorija', ['Istorija', 'Farbanje ograde', 'Nošenje peska u dvorište']],
+    ['prazno', ['Još nemaš zadatak', 'Objavi prvi zadatak', 'Pogledaj zadatke']],
+    ['prazan-skup', ['Nema aktivnih zadataka', '2 nacrta', '3 zadatka']],
     ['ucitavanje', ['Učitavamo zadatke']],
     ['greska', ['Ne možemo da učitamo zadatke']],
-    ['veliki', ['Moji zadaci', '8 zadataka']],
+    ['veliki', ['Moji zadaci', 'Čeka tvoj izbor · 3', 'Objavljeno · 4', 'Dogovoreno · 1']],
     ['stranice', ['Prikaži još']],
   ])('draws the scene %s from its address', async (key, expected) => {
     await scene(MojiZadaci, key);
@@ -127,7 +129,8 @@ describe('Kandidati', () => {
     ['ne-moze', ['Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.']],
     ['ishod', ['Proveri da li je izabrano']],
     ['ponovi', ['Pošalji izbor ponovo']],
-    ['sklopljen', ['Otvori Dogovor']],
+    ['sklopljen', ['Dogovoreno!', 'Ti i Milan Petrović', 'Unos ormara na treći sprat', '4.500 RSD ukupno', 'Otvori Dogovor']],
+    ['sklopljen-dugo', ['Dogovoreno!', 'Ti i Aleksandra Stefanović-Radosavljević', 'Pomoć oko selidbe dvosobnog stana', '125.000 RSD ukupno', 'Otvori Dogovor']],
     ['profil', ['Prijavi ili blokiraj osobu']],
   ])('draws the scene %s from its address', async (key, expected) => {
     await scene(Kandidati, key);
@@ -146,7 +149,8 @@ describe('Forma prijave', () => {
     ['bez-cene', ['Zadatak nema navedenu cenu. Osveži zadatak.']],
     ['profil', ['Radni profil još nije aktivan', 'Dopuni radni profil']],
     ['ishod', ['Proveri da li je poslato']],
-    ['poslato', ['Prijava je poslata.']],
+    ['poslato', ['Prijava je poslata.', 'Poslata', '4.500 RSD', 'ukupno', 'Zadatak', 'Otvori moje prijave', 'Nazad na zadatak']],
+    ['poslato-dugo', ['Prijava je poslata.', '125.000 RSD', 'Pomoć oko selidbe dvosobnog stana', '3 osobe', 'Imamo iskustva sa selidbama', 'Tačan početak i kraj još nisu dogovoreni.']],
     ['dugo', ['Pomoć oko selidbe dvosobnog stana']],
   ])('draws the scene %s from its address', async (key, expected) => {
     await scene(PrijavaForma, key);

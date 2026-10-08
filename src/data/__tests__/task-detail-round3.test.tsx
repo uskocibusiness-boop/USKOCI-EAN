@@ -91,26 +91,27 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(barTitle().props.style).opacity).toBe(1); expect(shown()).toBe(true);
   });
 
-  it('reads genuine photos, compact terms and work, then the questions about it, before publisher context and the place', async () => {
+  it('reads genuine photos, compact terms, then who posted it, then the work and the questions about it, and the place', async () => {
     await render(<Stranger photos={<T>FOTOGRAFIJE</T>} map={<T>MAPA</T>} qa={<T>PITANJA</T>}
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
     // Owner, 2026-10-07: what was asked about the work, and what its owner answered, is read right after the work.
-    // The page reads: name, the one amount, where, when, how many, what the work is, what it asks, the questions, who posted it, where it is.
+    // Owner, 8 Oct 2026 (the pick "Objavio kao kartica poverenja"): who posted it stands right under what, where and when.
+    // The page reads: name, the one amount, where, when, how many, who posted it, what the work is, what it asks, the questions, where it is.
     const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '0/2',
-      'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Ana Anić', 'Mesto', 'MAPA'].map(at);
+      'Ana Anić', 'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Mesto', 'MAPA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // R13 gives the real publisher a readable portrait without changing the role or rating facts.
-    expect(all).toContain('FOTO 56'); expect(all).toContain('Ocena 4,8');
+    expect(all).toContain('FOTO 56'); expect(all).toContain('4,8');
     // No rating is invented when the server has none.
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null }} />));
     expect(texts()).toContain('Ocena nije dostupna');
     // R27: the rating says how many reviews it stands on, "Još nema ocena" when there are none, and never a count that was not read.
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: '4,7', narucilacBrojOcena: 3 }} />));
-    expect(texts()).toContain('Ocena 4,7 · 3 ocene');
+    expect(texts()).toContain('4,7 · 3 ocene');
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null, narucilacBrojOcena: 0 }} />));
     expect(texts()).toContain('Još nema ocena');
   });
@@ -119,7 +120,7 @@ describe('a stranger\'s task', () => {
     { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'Ukupno za ceo zadatak', amount: true },
     { name: 'per-person price', patch: { osnovaCene: 'PER_PERSON' }, value: '9.000 RSD', note: 'Po osobi · ukupno 18.000 RSD', amount: true },
     { name: 'offers', patch: { rezimCene: 'OFFERS', osnovaCene: 'PER_PERSON', ponudjenaCena: undefined },
-      value: 'Prima ponude', note: 'Ukupan iznos predlažeš u prijavi.', amount: false },
+      value: 'Tražim ponude', note: 'Ukupan iznos predlažeš u prijavi.', amount: false },
     { name: 'missing price', patch: { osnovaCene: 'TOTAL', ponudjenaCena: undefined }, value: 'Cena nije navedena', note: null, amount: false },
   ])('keeps $name truthful and complete in the promoted terms', async ({ patch, value, note, amount }) => {
     await render(<Stranger need={{ ...task, ...patch }} />);
@@ -137,21 +138,37 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(terms.props.style).color).toBe(amount ? sys.color.money : sys.color.ink);
   });
 
-  it('puts the poster in one row with a face of 56, and keeps the row one touch target', async () => {
+  it('puts the poster in one record with a face of 56, and keeps the record one touch target', async () => {
     const open = jest.fn();
     await render(<Stranger onRequesterProfile={open} />);
     const row = byLabel('Ana Anić, Ocena 4,8')!;
-    // The person is the page's main person (composition spec 2026-10-07): a `ListRow` with a face slot, at least 64 high, whatever the text size.
-    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ minHeight: 64 });
+    // The person is the page's main person (the owner's pick of 8 Oct 2026): the one record of the page, a thing that is touched, with a face of 56 as a sticker.
+    expect(row.props.accessibilityRole).toBe('button');
+    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ borderRadius: sys.radius.card });
     expect(row.props.accessibilityHint).toBe('Otvara javni profil');
+    const faces = row.findAll(node => node.type === ('View' as React.ElementType) && StyleSheet.flatten(node.props.style)?.width === 56 && StyleSheet.flatten(node.props.style)?.height === 56);
+    // The sticker's own circle (the Avatar draws one of the same size inside it).
+    expect(faces.length).toBeGreaterThanOrEqual(1);
+    expect(StyleSheet.flatten(faces[0].props.style)).toMatchObject({ overflow: 'hidden', borderRadius: sys.radius.pill });
     await act(async () => row.props.onPress()); expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  // "Dolazi kako je dogovoreno" is the server's own percentage, drawn under the rating only when the route hands it in; nothing is drawn, and nothing said, without it.
+  it('says how reliably the poster comes as agreed only when the server gives the percentage', async () => {
+    await render(<Stranger />);
+    expect(joined()).not.toContain('Dolazi kako je dogovoreno');
+    await act(async () => tree.update(<Stranger reliabilityPercent={90} onRequesterProfile={noop} />));
+    expect(texts()).toContain('Dolazi kako je dogovoreno · 90%');
+    expect(byLabel('Ana Anić, Ocena 4,8, Dolazi kako je dogovoreno · 90%')).toBeDefined();
+    await act(async () => tree.update(<Stranger reliabilityPercent={null} />));
+    expect(joined()).not.toContain('Dolazi kako je dogovoreno');
   });
 
   it('says why applying is not possible in one muted line beside a quiet way on, never with the brand action', async () => {
     const other = jest.fn();
     await render(<Stranger canApply={false} need={{ ...task, pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } }} onOtherTasks={other} />);
     expect(texts()).toContain('Sva mesta su popunjena');
-    expect(brand()).toEqual([]); expect(byLabel('Sastavi prijavu')).toBeUndefined();
+    expect(brand()).toEqual([]); expect(byLabel('Pošalji prijavu')).toBeUndefined(); expect(byLabel('Pošalji ponudu')).toBeUndefined();
     const way = byLabel('Drugi zadaci')!;
     expect(surfaceOf(way.props.style)).toBe('transparent');
     expect(StyleSheet.flatten(way.props.style).minHeight).toBeGreaterThanOrEqual(48);
@@ -164,12 +181,24 @@ describe('a stranger\'s task', () => {
     expect(texts()).toContain('Nove prijave trenutno nisu dostupne'); expect(joined()).not.toContain('Rok za prijave');
   });
 
-  it('keeps the footer chosen by what I am to the task, and "Sastavi prijavu" as the one action when I can apply', async () => {
+  // The owner, 8 Oct 2026: only the green button at the foot (no amount and no time beside it), and its words say what is being sent: a task with a fixed price
+  // is applied to ("Pošalji prijavu"), a task with none is answered with an offer ("Pošalji ponudu"). Either opens the form; it sends nothing.
+  it('keeps the footer chosen by what I am to the task, and "Pošalji prijavu" or "Pošalji ponudu" as the one action when I can apply', async () => {
     await render(<Stranger canApply={false} relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: null }} onOtherTasks={noop} />);
     expect(byLabel('Pogledaj svoju prijavu')).toBeDefined(); expect(byLabel('Drugi zadaci')).toBeUndefined();
     expect(joined()).not.toMatch(/Nove prijave|Sva mesta|Rok za prijave/);
-    await act(async () => tree.update(<Stranger />));
-    expect(brand()).toEqual(['Sastavi prijavu']); expect(byLabel('Drugi zadaci')).toBeUndefined();
+    const apply = jest.fn();
+    await act(async () => tree.update(<Stranger apply={apply} />));
+    expect(brand()).toEqual(['Pošalji prijavu']); expect(byLabel('Drugi zadaci')).toBeUndefined();
+    await act(async () => byLabel('Pošalji prijavu')!.props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
+    // The foot holds the button alone: the amount and the time are said once, in the page, and not again beside the button.
+    expect(texts().filter(text => text === '9.000 RSD')).toHaveLength(1); expect(texts().filter(text => text === 'Sutra ujutru')).toHaveLength(1);
+    for (const patch of [{ rezimCene: 'OFFERS', ponudjenaCena: undefined }, { rezimCene: 'MY_PRICE', ponudjenaCena: undefined }, { rezimCene: 'OFFERS' }] as Partial<PrilikaProjekcija>[]) {
+      await act(async () => tree.update(<Stranger need={{ ...task, ...patch }} />));
+      expect(brand()).toEqual(['Pošalji ponudu']);
+    }
+    await act(async () => tree.update(<Stranger need={{ ...task, rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON' }} />));
+    expect(brand()).toEqual(['Pošalji prijavu']);
   });
 
   it('offers reporting the person who posted it behind "···", runs it once the menu has gone, and says when it fails', async () => {
@@ -177,7 +206,7 @@ describe('a stranger\'s task', () => {
     await render(<Stranger safety={{ onPress: report, busy: false, error: null }} />);
     await openMenu();
     const rows = menuItems();
-    // Updated in the review of step 5b: the row names the person, because beside "Sastavi prijavu" a bare "Prijavi"
+    // Updated in the review of step 5b: the row names the person, because beside "Pošalji prijavu" a bare "Prijavi"
     // reads as "apply". It was "Prijavi ili blokiraj".
     expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Prijavi ili blokiraj osobu']);
     expect(StyleSheet.flatten(rows[0].findByType('T' as React.ElementType).props.style).color).toBe(sys.color.danger);

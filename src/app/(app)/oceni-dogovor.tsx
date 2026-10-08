@@ -28,7 +28,8 @@ export default function OceniDogovor() {
   const onBack = fromHome || fromList || !id ? fallbackBack : () => backFromReviewToAgreement(id);
   // The Dogovor is read only to show whom the rating is about; the rating itself reads and writes through its own service.
   const readAgreement = useCallback(() => id ? izvor.dogovor(id) : Promise.resolve(null), [izvor, id]);
-  const photo = useCallback((profileId: string, fallback: ReactNode) => <ProfilePhoto profileId={profileId} size={56} fallback={fallback} />, []);
+  // The rating screen draws the face at its own size (72 since the owner's pick of 8 Oct 2026); 56 stays the fallback for other callers.
+  const photo = useCallback((profileId: string, fallback: ReactNode, size = 56) => <ProfilePhoto profileId={profileId} size={size} fallback={fallback} />, []);
   if (!uuid(agreementId) || !session.user) return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: sys.color.ground }}>
     {/* Without a session or a valid id there is no Dogovor to open: back through history, or to the list. */}
     <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={fallbackBack} />

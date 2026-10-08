@@ -17,6 +17,10 @@ import { sys } from '../ui/system/tokens';
  * with every kind of row it can hold (an application choice, a Dogovor with no term, a change to answer, a draft) and the work
  * profile still to be set up; `worker` is an account with an active work profile and its "Slobodan sam sada" switch; `stale` is the
  * last overview kept after a failed read ("Nema veze"); `loading` is the first read on its way.
+ *
+ * "Danas u 14" (the owner's pick of 2026-10-08): with a next appointment (`upcoming`, `long`, `waits`, `worker`, `stale`) its TIME is the largest
+ * word under the doors and "Raspored" stands before "Čeka te"; with none ahead (`loose`) the first thing that waits leads as the one record,
+ * its number first, and the Dogovori with no day are one quiet line under "Čeka te".
  */
 const noop = () => undefined;
 // 2026-10-07: Početna became Raspored-first. `flexible` and `untimed` showed an "Aktivni Dogovor" card that no longer exists

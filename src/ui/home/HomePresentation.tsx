@@ -2,7 +2,6 @@ import { useRef, type ReactNode } from 'react';
 import { RefreshControl, StyleSheet, Switch, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { Avatar } from '../system/Avatar';
-import { Glyph } from '../system/Glyph';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
@@ -31,12 +30,15 @@ import { HowItWorks } from './HowItWorks';
  * apart; every block under the doors is a `Section` or a group of `ListRow`s, the next appointment is a `Surface` record, and no
  * line separates one block from another. Nothing here draws a divider of its own.
  *
- * Order (owner, 2026-10-07): the two doors; for a brand-new account, one quiet row "Kako radi" (three steps, hidden for good
- * with "Sakrij"); "Čeka te", always once the reads answered (one grey line when nothing waits, and never when something does:
- * a Dogovor without a term, a change to answer, a draft to continue, a rating); "Raspored", as a card when an accepted
- * appointment lies ahead (day first, in Serbian time), as one quiet line when only Dogovori with no day to show them on are
- * active (no exact term, or an exact term that has passed unfinished), and not at all otherwise, with "Ceo raspored" at the end
- * of its heading; and "Moji zadaci" / "Moje prijave" as one group of rows directly below. */
+ * Order (owner, 2026-10-07; "Danas u 14", the owner's pick of 2026-10-08): the two doors; for a brand-new account, one quiet row
+ * "Kako radi" (three steps, hidden for good with "Sakrij"); "Raspored" when an accepted appointment lies ahead, as the one
+ * record of the screen, directly under the doors: the TIME of the next Dogovor is the largest word on Početna ("Danas ·
+ * 14:00–16:00", in the voice of money, 24/700) and the calendar stands small at the end of its line; then "Čeka te", always once
+ * the reads answered (one grey line when nothing waits, and never when something does: a Dogovor without a term, a change to
+ * answer, a draft to continue, a rating). With no appointment ahead the hero would vanish, so the first thing that waits takes
+ * its place as the one record (its number first: "2 prijave"), and the Dogovori with no day to show them on (no exact term, or
+ * an exact term that has passed unfinished) are one quiet line under "Čeka te", with "Ceo raspored" at the end of its heading;
+ * and "Moji zadaci" / "Moje prijave" as one group of rows directly below. The doors and the header are the locked signature. */
 export type HomePresentationProps = {
   home: HomeSnapshot | null; loading: boolean; refreshing: boolean; error: boolean;
   /**
@@ -142,12 +144,17 @@ function WaitingRow({ row, onOpen, last }: { row: HomeAttention; onOpen: (target
 
 /** The width and height of the other person's face in the Raspored block. */
 const FACE = 32;
+/** The calendar at the end of the time's line: small, so the time stays the largest thing on the screen. */
+const CALENDAR = 32;
 
 /**
- * The next accepted appointment, day first (owner, 2026-10-07): when it is, in Serbian time and from the accepted instant
- * (`raspored.when`, never the display sentence), then what it is, who it is with, and the one quiet line about the rest.
+ * The next accepted appointment, the time first and largest (owner, 2026-10-07; "Danas u 14", 2026-10-08): when it is, in Serbian
+ * time and from the accepted instant (`raspored.when`, never the display sentence), in the voice of money (`priceLarge`: ink, 700,
+ * tabular figures, so the clocks line up), then what it is, who it is with, and the one quiet line about the rest. The calendar
+ * stands at 32 at the end of the time's line (not larger: it would compete with the time) and says nothing the words do not say.
  * It is the same record a Dogovor is in Dogovori (one shadow, one corner, 16 inside); the whole card opens the Dogovor, and the
- * way into the whole schedule is the action at the end of the section's heading, never inside the card.
+ * way into the whole schedule is the action at the end of the section's heading, never inside the card. The time is a fact: it is
+ * never animated.
  */
 function RasporedCard({ row, raspored, photo, onOpen }: {
   row: HomeRow; raspored: HomeRaspored; photo?: HomePresentationProps['photo']; onOpen: (target: HomeTarget) => void;
@@ -163,11 +170,11 @@ function RasporedCard({ row, raspored, photo, onOpen }: {
   return <Surface kind="record" accessibilityLabel={spoken} accessibilityHint="Otvara Dogovor." onPress={() => onOpen(row.target)} style={s.appointment}>
     <View style={s.appointmentHead}>
       <View style={s.appointmentWhen}>
-        <T variant="heading" style={s.appointmentDay}>{raspored.when}</T>
+        <T variant="priceLarge" style={s.appointmentDay}>{raspored.when}</T>
         {/* A phone set to another zone, or one that does not say, is told which time this is (the planner's own rule). */}
         {raspored.zone ? <T variant="meta" tone="muted">{raspored.zone}</T> : null}
       </View>
-      <Glyph name="caret-right" size={20} tone="muted" />
+      <FactArt kind="calendar" size={CALENDAR} />
     </View>
     <T>{title}</T>
     {name || role ? <View style={s.appointmentPerson}>
@@ -178,6 +185,26 @@ function RasporedCard({ row, raspored, photo, onOpen }: {
       </View>
     </View> : null}
     {raspored.more ? <T variant="note" tone="muted">{raspored.more}</T> : null}
+  </Surface>;
+}
+
+/**
+ * No appointment ahead: the first thing that waits for me is the one record of the screen, so the focus does not vanish ("Danas u 14",
+ * the risk answered). Its number leads when it is a count ("2 prijave", in the voice of money), the task is under it and the reason last;
+ * the picture with the orange dot is at the end. It is the same row as the others (same words, same target), only larger.
+ */
+function FirstWaiting({ row, onOpen }: { row: HomeAttention; onOpen: (target: HomeTarget) => void }) {
+  const title = readableTitle(row.title), taskTitle = row.taskTitle === undefined ? null : readableTitle(row.taskTitle);
+  const counted = /^\d/.test(title);
+  return <Surface kind="record" onPress={() => onOpen(row.target)} accessibilityLabel={[title, taskTitle, row.detail].filter(Boolean).join('. ')} style={s.appointment}>
+    <View style={s.appointmentHead}>
+      <View style={s.appointmentWhen}>
+        <T variant={counted ? 'priceLarge' : 'heading'} style={s.appointmentDay}>{title}</T>
+        {taskTitle ? <T>{taskTitle}</T> : null}
+        <T variant="note" tone="muted">{row.detail}</T>
+      </View>
+      <Marked art={artFor(row.target)} attention />
+    </View>
   </Surface>;
 }
 
@@ -271,9 +298,14 @@ export function HomePresentation(p: HomePresentationProps) {
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   const setupProfile = !!profile && (profile.state === 'NONE' || profile.state === 'DRAFT');
   const switchShown = !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
-  // The rows of "Čeka te", in the order they are drawn, so only the last one has no divider.
+  // The rows of "Čeka te", in the order they are drawn, so only the last one has no divider. With no appointment ahead the first of them is
+  // the one record of the screen (`FirstWaiting`, "Danas u 14": the focus must not vanish), and the rest stand under it as rows.
   const ratings = home ? (home.ratingsDue === null ? 'unknown' as const : home.ratingsDue > 0 ? 'due' as const : null) : null;
-  const rowCount = (home?.attention.length ?? 0) + prompts.length + (ratings ? 1 : 0);
+  const waits = home ? [...home.attention, ...prompts] : [];
+  const lead = !raspored && !attentionUnavailable && waits.length > 0 ? waits[0] : null;
+  const rows = lead ? waits.slice(1) : waits;
+  const rowCount = rows.length + (ratings ? 1 : 0);
+  const underLead = rowCount > 0 || more > 0;
   const recovery = p.stale ? 'stale' as const : home?.partial ? 'partial' as const : p.error && !home ? 'failed' as const : null;
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
@@ -287,10 +319,19 @@ export function HomePresentation(p: HomePresentationProps) {
         : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proveri vezu i pokušaj ponovo.'}</T>
       <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
     </Surface> : null}
+    {/* Raspored, the hero: only an accepted appointment that is not over is "next", and its TIME is the largest word on the screen,
+        directly under the doors. */}
+    {next && raspored ? <Section title="Raspored" action={{ label: 'Ceo raspored', onPress: p.onPlanner }}>
+      <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
+    </Section> : null}
+
     {home && waitingShown ? <Section title="Čeka te">
       {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što te čeka." /> : null}
       {nothingWaits ? <ListRow leading={<FactArt kind="check" size={32} />} tone="quiet" title="Ništa ne čeka tvoju odluku." last /> : null}
-      {[...home.attention, ...prompts].map((item, index) => <Appear key={item.id} index={index} animate={waiting.isNew(item.id)}>
+      {lead ? <View style={underLead ? s.lead : undefined}>
+        <Appear index={0} animate={waiting.isNew(lead.id)}><FirstWaiting row={lead} onOpen={p.onOpen} /></Appear>
+      </View> : null}
+      {rows.map((item, index) => <Appear key={item.id} index={index + (lead ? 1 : 0)} animate={waiting.isNew(item.id)}>
         <WaitingRow row={item} onOpen={p.onOpen} last={index === rowCount - 1} />
       </Appear>)}
       {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing, verb first, and
@@ -304,13 +345,11 @@ export function HomePresentation(p: HomePresentationProps) {
       {more > 0 ? <T variant="note" tone="muted" style={s.more}>I još {more} u tvojim zadacima, prijavama i Dogovorima.</T> : null}
     </Section> : null}
 
-    {/* Raspored: only an accepted appointment that is not over is "next", as a card. With none ahead, active Dogovori with no
-        day to show them on (no confirmed term, or a term that passed unfinished) are counted in one quiet line; with neither
-        there is no block and no placeholder. A Dogovori read that failed says so here, never as an empty schedule. */}
+    {/* With no appointment ahead, active Dogovori with no day to show them on (no confirmed term, or a term that passed unfinished)
+        are counted in one quiet line; with neither there is no block and no placeholder. A Dogovori read that failed says so
+        here, never as an empty schedule. */}
     {home?.agreements.kind === 'unavailable' ? <Section title="Raspored"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section>
-      : next && raspored ? <Section title="Raspored" action={{ label: 'Ceo raspored', onPress: p.onPlanner }}>
-        <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
-      </Section> : quietLine ? <Section title="Raspored" action={{ label: 'Ceo raspored', onPress: p.onPlanner }}>
+      : !(next && raspored) && quietLine ? <Section title="Raspored" action={{ label: 'Ceo raspored', onPress: p.onPlanner }}>
         <T variant="note" tone="muted">{quietLine}</T>
       </Section> : null}
 
@@ -348,10 +387,12 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
   // The appointment is a record; its parts stand 12 apart.
   appointment: { gap: layout.group },
-  appointmentHead: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  appointmentHead: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  // The record that leads "Čeka te" when no appointment is ahead: a card, so the rows under it stand one card-gap below.
+  lead: { paddingBottom: layout.group },
   appointmentWhen: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  // The day leads, in black ("Danas · 14:00–16:00"); tabular figures keep the clocks in line.
-  appointmentDay: { color: sys.color.ink, fontVariant: ['tabular-nums'] },
+  // The time leads, in black ("Danas · 14:00–16:00"), in the voice of money: `priceLarge` is 700 with tabular figures, so the clocks line up.
+  appointmentDay: { color: sys.color.ink },
   appointmentPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   appointmentName: { color: sys.color.ink, fontWeight: '600' },
   face: { width: FACE, height: FACE, flexShrink: 0, borderRadius: sys.radius.pill, overflow: 'hidden' },

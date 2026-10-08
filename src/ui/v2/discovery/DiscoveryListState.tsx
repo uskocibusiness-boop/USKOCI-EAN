@@ -11,7 +11,9 @@ import { StateView } from '../../system/StateView';
  * - `place`     the map's own area or one point leaves nothing, and the tasks are elsewhere on the map: one move, or one tap, away.
  * - `filtered`  the conditions leave nothing: take them away.
  * - `forMe`     "Za mene" leaves nothing: say what it looks at, and the way back to every task.
- * - `none`      nobody has published a task: read again, or publish one.
+ * - `none`      nobody has published a task: read again, or publish one. It is the FIRST encounter of the screen, so it is a `hero` (the owner's pick of
+ *               8 Oct 2026, "Predmet vrata"): the map at 144, the object of the screen's own door, and a promise of what will be here. The states that
+ *               are about a view (`place`, `filtered`, `forMe`) keep the picture at 96.
  */
 export type DiscoveryListStateKind =
   | { kind: 'loading' }
@@ -31,8 +33,8 @@ export const LIST_STATE_WORDS = {
   areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.',
   filteredTitle: 'Nema zadataka u ovom prikazu', filteredBody: 'Nijedan zadatak ne odgovara ovim uslovima.',
   forMeTitle: 'Za sada nema zadataka za tebe', forMeBody: 'Gledamo tvoj radni profil: vrstu posla, područje i vreme. Prikaži sve zadatke da vidiš i ostale.',
-  noneTitle: 'Trenutno nema otvorenih zadataka', noneBody: 'Kad neko objavi zadatak, videćeš ga ovde i na mapi.',
-  refresh: 'Osveži zadatke', publish: 'Objavi zadatak',
+  noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
+  refresh: 'Osveži', publish: 'Objavi zadatak',
 } as const;
 
 export function DiscoveryListState({ state, clearAllLabel }: {
@@ -48,7 +50,7 @@ export function DiscoveryListState({ state, clearAllLabel }: {
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
     case 'filtered': return <StateView art="map" title={w.filteredTitle} body={w.filteredBody} primary={{ label: clearAllLabel, onPress: state.onClear }} />;
     case 'forMe': return <StateView art="tasks" title={w.forMeTitle} body={w.forMeBody} primary={{ label: w.showAll, onPress: state.onShowAll }} />;
-    case 'none': return <StateView art="tasks" title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
+    case 'none': return <StateView hero art="map" title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
       quiet={state.onNew ? { label: w.publish, onPress: state.onNew } : undefined} />;
   }
 }

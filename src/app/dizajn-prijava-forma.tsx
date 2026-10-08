@@ -18,13 +18,14 @@ import { ApplicationComposerPresentation, type ApplicationDraft } from '../ui/v2
  * Scenes: `prazna` an empty form, `ponuda` a filled one, `veliko` the same at the large-text layout (the lab has no system font, so the
  * layout class is forced, as the other galleries do), `pregled` and `pregled-veliko` the review sheet that stands before the send,
  * `po-osobi` a task priced per person, `bez-cene` a task whose price was not named, `profil` a worker profile that is not active, `ishod`
- * an outcome that is not known, `poslato` the receipt, `dugo` a long title. (The rest of the states of this screen and the rating are in
+ * an outcome that is not known, `poslato` the receipt ("Prijava je poslata": the tag has gone and the row stays, the last frame), `poslato-dugo` the same with a long
+ * title and a long message, `dugo` a long title. (The rest of the states of this screen and the rating are in
  * `dizajn-prijava`, which is another family's.)
  */
-const SCENES = ['prazna', 'ponuda', 'veliko', 'pregled', 'pregled-veliko', 'po-osobi', 'bez-cene', 'profil', 'ishod', 'poslato', 'dugo'] as const;
+const SCENES = ['prazna', 'ponuda', 'veliko', 'pregled', 'pregled-veliko', 'po-osobi', 'bez-cene', 'profil', 'ishod', 'poslato', 'poslato-dugo', 'dugo'] as const;
 type Scene = typeof SCENES[number];
 const LABELS: Record<Scene, string> = { prazna: 'Prazna', ponuda: 'Popunjena', veliko: 'Veliki tekst', pregled: 'Pregled', 'pregled-veliko': 'Pregled: veliki tekst',
-  'po-osobi': 'Po osobi', 'bez-cene': 'Bez cene', profil: 'Profil nije aktivan', ishod: 'Ishod nepoznat', poslato: 'Poslato', dugo: 'Dugačak naslov' };
+  'po-osobi': 'Po osobi', 'bez-cene': 'Bez cene', profil: 'Profil nije aktivan', ishod: 'Ishod nepoznat', poslato: 'Poslato', 'poslato-dugo': 'Poslato: dugi nazivi', dugo: 'Dugačak naslov' };
 const isScene = (value: unknown): value is Scene => typeof value === 'string' && (SCENES as readonly string[]).includes(value);
 const noop = () => {};
 
@@ -43,16 +44,18 @@ const LONG = task({ naslov: 'Pomoć oko selidbe dvosobnog stana sa trećeg sprat
 const EMPTY: ApplicationDraft = { price: '', people: '1', note: '', start: null, end: null };
 const FILLED: ApplicationDraft = { price: '4500', people: '2', note: 'Dolazimo nas dvojica sa trakama i kombijem.', start: null, end: null };
 
+const LONG_NOTE = 'Imamo iskustva sa selidbama stanova i kancelarija, donosimo sav alat, ćebad za zaštitu nameštaja i folije za pod. Klavir nosimo sa posebnim kaiševima.';
 function draftOf(scene: Scene): ApplicationDraft {
-  return scene === 'prazna' || scene === 'bez-cene' ? EMPTY : scene === 'po-osobi' ? { ...EMPTY, price: '2500' } : FILLED;
+  return scene === 'prazna' || scene === 'bez-cene' ? EMPTY : scene === 'po-osobi' ? { ...EMPTY, price: '2500' }
+    : scene === 'poslato-dugo' ? { ...FILLED, price: '125000', people: '3', note: LONG_NOTE } : FILLED;
 }
 
 function Form({ scene }: { scene: Scene }) {
   const [draft, setDraft] = useState<ApplicationDraft>(() => draftOf(scene));
-  const need = scene === 'po-osobi' ? PER_PERSON : scene === 'bez-cene' ? UNPRICED : scene === 'dugo' ? LONG : NEED;
+  const need = scene === 'po-osobi' ? PER_PERSON : scene === 'bez-cene' ? UNPRICED : scene === 'dugo' || scene === 'poslato-dugo' ? LONG : NEED;
   const state = scene === 'profil' ? { canSubmit: false, blocked: { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopuni radni profil', onAction: noop } }
     : scene === 'ishod' ? { pending: true, uncertain: true, error: 'Ne znamo da li je prijava stigla. Izaberi „Proveri da li je poslato“.' }
-    : scene === 'poslato' ? { confirmed: true }
+    : scene === 'poslato' || scene === 'poslato-dugo' ? { confirmed: true }
     : scene === 'pregled' || scene === 'pregled-veliko' ? { sheet: 'review' as const }
     : {};
   const body = <ApplicationComposerPresentation need={need} opportunity={opportunity(need)} draft={draft}

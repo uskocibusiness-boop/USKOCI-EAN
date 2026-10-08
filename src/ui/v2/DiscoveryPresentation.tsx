@@ -1313,7 +1313,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         {/* Pull to refresh belongs to the list at its full height (review r3 item 10, checked in gorhom 5.2.14: its
             refresh control is enabled only while the list may scroll, which is at the top height). At the lower heights
             a pull down lowers the sheet, as in the map apps people know; the list is read again on every return to
-            the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži zadatke". */}
+            the screen, and the error and empty states carry their own "Pokušaj ponovo" / "Osveži". */}
         <CellLayoutContext.Provider value={cellLayoutContext}>
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem} CellRendererComponent={DiscoveryCell}
           scrollEventsHandlersHook={useDiscoveryScrollEvents}

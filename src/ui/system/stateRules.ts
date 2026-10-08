@@ -23,6 +23,8 @@ export type StateDescription = {
   quiet?: { label: string };
   /** Only for `empty`. */
   cause?: EmptyCause;
+  /** The state draws its picture at the size of a door (`hero` of `StateView`). Only the first time of an empty screen may. */
+  hero?: boolean;
 };
 
 export type StateProblem =
@@ -39,7 +41,9 @@ export type StateProblem =
   /** A list that is empty because of what the person chose to look at says "Još nemaš ...", as if they had nothing. */
   | 'filter-says-first-time'
   /** A list that is empty because the person has never had one speaks about a view ("u ovom prikazu"), as if they had some. */
-  | 'first-time-says-filter';
+  | 'first-time-says-filter'
+  /** A picture at the size of a door for anything but the first time of an empty list: a filter, "done" and every failure stay quiet at 96. */
+  | 'hero-is-for-the-first-time';
 
 /** Lower case, without diacritics, punctuation as single spaces: two phrases are "the same words" when these are the same. */
 export function plainWords(text: string): string {
@@ -58,7 +62,7 @@ const ABOUT_A_VIEW = /\b(?:u ovom prikazu|u ovoj oblasti|na ovom mestu|za ove us
 /** What is wrong with a state, in the order of the rules; an empty list is a state that follows all of them. */
 export function stateProblems(state: StateDescription): StateProblem[] {
   const problems: StateProblem[] = [];
-  const { kind, title, body, primary, quiet, cause } = state;
+  const { kind, title, body, primary, quiet, cause, hero } = state;
   if (kind === 'loading') {
     if (primary || quiet) problems.push('loading-has-action');
     return problems;
@@ -73,5 +77,6 @@ export function stateProblems(state: StateDescription): StateProblem[] {
   if (primary && quiet && plainWords(primary.label) === plainWords(quiet.label)) problems.push('same-label-twice');
   if (kind === 'empty' && cause === 'filtered' && FIRST_TIME.test(plainWords(title))) problems.push('filter-says-first-time');
   if (kind === 'empty' && cause === 'first' && ABOUT_A_VIEW.test(plainWords(title))) problems.push('first-time-says-filter');
+  if (hero && !(kind === 'empty' && cause === 'first')) problems.push('hero-is-for-the-first-time');
   return problems;
 }

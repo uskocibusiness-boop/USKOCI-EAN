@@ -311,17 +311,19 @@ describe('real profile hub', () => {
     expect(tree.root.findByProps({ label: 'Područje rada' }).props.detail).toBe('Beograd - Zemun');
   });
 
-  // UI/UX pass 2026-10-08: the face stands BESIDE the name (row); only the layout class (a window under 340 dp, text scale 1.3) puts it over.
+  // 8 Oct 2026 ("Lice i tri broja"): the face stands OVER the name, centred, whatever the window and the text size; nothing stacks differently.
   it.each([
-    ['a phone of 390 dp', 390, 1, 'row'],
-    ['a phone of 360 dp at the owner\'s text size (1.15)', 360, 1.15, 'row'],
-    ['a phone of 320 dp', 320, 1, 'column'],
-    ['Android Large text (1.2999999523)', 390, 1.2999999523, 'column'],
-  ])('lays the identity out for %s', async (_name, width, fontScale, direction) => {
+    ['a phone of 390 dp', 390, 1],
+    ['a phone of 360 dp at the owner\'s text size (1.15)', 360, 1.15],
+    ['a phone of 320 dp', 320, 1],
+    ['Android Large text (1.2999999523)', 390, 1.2999999523],
+  ])('lays the identity out as one centred column for %s', async (_name, width, fontScale) => {
     mockWindow = { width, height: 844, scale: 3, fontScale };
     await render();
     const { StyleSheet } = jest.requireActual('react-native');
-    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection).toBe(direction);
+    const style = StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style);
+    expect(style.alignItems).toBe('center');
+    expect(style.flexDirection).toBeUndefined();
   });
 
   // Review of step 9: this used to lean on the suite-wide useFocusedResource mock feeding the profile object into the real
@@ -356,33 +358,34 @@ describe('real profile hub', () => {
     expect(detail()).toBeUndefined();
   });
 
-  // Round 5c: the name is never cut (it used to stop at three lines, so a name over ~42 letters ended in "…"); it wraps beside the face.
-  it('never cuts a long name: it wraps beside the face, and stands under it at a large text size', async () => {
+  // Round 5c: the name is never cut (it used to stop at three lines, so a name over ~42 letters ended in "…"); it wraps, centred under the face.
+  it('never cuts a long name: it wraps, centred under the face, at an ordinary and at a large text size', async () => {
     mockResource.data = { identity: { ime: 'Aleksandra Stefanović-Radosavljević', grad: 'Novi Sad' }, capability: null };
     await render();
     const { StyleSheet } = jest.requireActual('react-native');
-    const direction = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection;
+    const align = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).alignItems;
     const name = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header'
       && node.children.includes('Aleksandra Stefanović-Radosavljević'))[0];
-    expect(direction()).toBe('row');
+    expect(align()).toBe('center');
     expect(name().props.numberOfLines).toBeUndefined();
     expect(name().props.variant).toBe('pageTitle');
+    expect(StyleSheet.flatten(name().props.style).textAlign).toBe('center');
     await act(async () => { tree.unmount(); });
     mockWindow = { ...mockWindow, fontScale: 1.3 };
     await render();
-    expect(direction()).toBe('column');
+    expect(align()).toBe('center');
     expect(name().props.numberOfLines).toBeUndefined();
   });
 
-  // The name has the room at the owner's own text size (1.15) and at 1.2: the face stays beside it, the name wraps and is not cut.
-  it('keeps a 21-letter name beside the face at 1.0, 1.15 and 1.2', async () => {
+  // The name has the room at the owner's own text size (1.15) and at 1.2: the face stays over it, the name is centred and is not cut.
+  it('keeps a 21-letter name centred under the face at 1.0, 1.15 and 1.2', async () => {
     mockResource.data = { identity: { ime: 'Milica Jovanović-Ilić', grad: 'Novi Sad' }, capability: null };
     const { StyleSheet } = jest.requireActual('react-native');
-    const direction = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).flexDirection;
+    const align = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'profile-identity' }).props.style).alignItems;
     for (const fontScale of [1, 1.15, 1.2]) {
       mockWindow = { ...mockWindow, fontScale };
       await render();
-      expect(direction()).toBe('row');
+      expect(align()).toBe('center');
       await act(async () => { tree.unmount(); });
     }
   });
@@ -416,16 +419,30 @@ describe('the profile composed as one calm list', () => {
     expect(headers().filter(title => SECTIONS.includes(title))).toEqual(SECTIONS);
   });
 
-  it('puts the finished Dogovori before the sections, and the statistics between the work and the account, for an account with a work profile', async () => {
+  it('puts the three figures, the rating, finished and reliability, in one row under the name and before the sections, for an account with a work profile', async () => {
     mockResource.data = { identity: { ...identity, profileId: 'profile-r' }, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE', profileId: 'profile-w' } };
     await render();
+    const name = order(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.children.includes('Ana Petrović'));
+    const rating = order(node => String(node.type) === 'AccountReputation');
     const finished = order(node => String(node.type) === 'ProfileWorkSummary');
     const stats = order(node => String(node.type) === 'ProfileStats');
-    expect(finished).toBeGreaterThan(-1); expect(stats).toBeGreaterThan(-1);
-    expect(finished).toBeLessThan(heading('Kako mogu da uskočim'));
-    expect(heading('Kako mogu da uskočim')).toBeLessThan(stats);
-    expect(stats).toBeLessThan(heading('Nalog i pomoć'));
+    expect(rating).toBeGreaterThan(-1); expect(finished).toBeGreaterThan(-1); expect(stats).toBeGreaterThan(-1);
+    expect(name).toBeLessThan(rating);
+    expect(rating).toBeLessThan(finished); expect(finished).toBeLessThan(stats);
+    expect(stats).toBeLessThan(heading('Kako mogu da uskočim'));
+    expect(heading('Kako mogu da uskočim')).toBeLessThan(heading('Nalog i pomoć'));
     expect(heading('Nalog i pomoć')).toBeLessThan(heading('Privatnost'));
+    const row = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'profile-figures')[0];
+    const { StyleSheet } = jest.requireActual('react-native');
+    expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
+    expect(row.findAll(node => ['AccountReputation', 'ProfileWorkSummary', 'ProfileStats'].includes(String(node.type))).map(node => String(node.type)))
+      .toEqual(['AccountReputation', 'ProfileWorkSummary', 'ProfileStats']);
+  });
+
+  it('draws no section "Završeni Dogovori" and no section "Moja statistika" any more: the figures replace them', async () => {
+    mockResource.data = { identity: { ...identity, profileId: 'profile-r' }, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE', profileId: 'profile-w' } };
+    await render();
+    expect(headers()).not.toContain('Završeni Dogovori'); expect(headers()).not.toContain('Moja statistika');
   });
 
   it('draws no statistics for an account without a work profile: there is no work to count', async () => {
@@ -511,13 +528,15 @@ describe('the profile composed as one calm list', () => {
     expect(alert.children).toEqual(['Odjava nije uspela. Pokušaj ponovo.']);
   });
 
-  it('draws the identity without a card: the face, the name at 28, the city as a note and the rating line in one block', async () => {
+  it('draws the identity without a card: the face, the name at 28 and the city as a note in one centred block, the rating being the first figure outside it', async () => {
     await render();
     const identityBlock = tree.root.findByProps({ testID: 'profile-identity' });
     const name = identityBlock.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')[0];
     expect(name.props.variant).toBe('pageTitle');
     expect(identityBlock.findAll(node => String(node.type) === 'T' && node.props.variant === 'note' && node.children.includes('Novi Sad'))).toHaveLength(1);
-    expect(identityBlock.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(1);
+    expect(identityBlock.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(0);
+    const figures = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'profile-figures')[0];
+    expect(figures.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(1);
     const { StyleSheet } = jest.requireActual('react-native');
     const style = StyleSheet.flatten(identityBlock.props.style);
     for (const key of ['borderWidth', 'borderColor', 'backgroundColor', 'padding', 'shadowOpacity', 'elevation']) expect([key, style[key]]).toEqual([key, undefined]);

@@ -45,7 +45,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
   'src/ui/groups/GroupConversationPresentation.tsx',
   'src/ui/product/ProductDetails.tsx',
-  'src/ui/reviews/AgreementReviewPresentation.tsx',
   'src/ui/system/Disclosure.tsx',
   'src/ui/system/PillComposer.tsx',
   'src/ui/system/SuccessMark.tsx',
@@ -82,7 +81,7 @@ describe('one place for a control icon: only Glyph imports the Phosphor package'
   });
 
   it('the list has the size it says, never lists Glyph itself, and Glyph really is the importer', () => {
-    expect(PHOSPHOR_IMPORTERS.size).toBe(20);
+    expect(PHOSPHOR_IMPORTERS.size).toBe(19);
     expect(PHOSPHOR_IMPORTERS.has(THE_GLYPH_FILE)).toBe(false);
     expect(importsPhosphor(read(THE_GLYPH_FILE))).toBe(true);
   });

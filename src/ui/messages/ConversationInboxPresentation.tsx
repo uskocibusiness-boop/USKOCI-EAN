@@ -144,7 +144,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   </View>;
 
   const emptyTitle = !closedKnown ? 'Još nema razgovora' : set === 'closed' ? 'Još nema završenih razgovora' : 'Nema aktivnih razgovora';
-  const emptyBody = !closedKnown ? 'Poruke iz tvojih Dogovora i grupnih razgovora pojaviće se ovde.'
+  const emptyBody = !closedKnown ? 'Čim nastane Dogovor, ovde je razgovor.'
     : set === 'closed' ? 'Razgovori završenih Dogovora stoje ovde, da ih možeš pročitati.' : 'Završene razgovore vidiš pod „Završeni“.';
   const empty = items === null
     ? error && !reading
@@ -156,7 +156,8 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
         <T variant="meta" tone="muted" style={s.center}>Učitavamo razgovore…</T>
       </View>
     : error ? null
-      : <StateView kind="empty" art="chat" title={emptyTitle} body={emptyBody}
+      // Nobody has talked yet: the first encounter, the two panels at the size of a door; the quieter sets keep their 96.
+      : <StateView kind="empty" hero={!closedKnown} art="chat" title={emptyTitle} body={emptyBody}
           primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvori Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
   const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
     {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.</T> : null}

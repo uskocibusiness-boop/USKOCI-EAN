@@ -150,6 +150,9 @@ test.each(['loading', 'error'])('%s hides stale private rows and error retry use
 });
 test('empty history still offers a real task route, with no invented review or unread controls', async () => {
   rows = []; await render(); await tap('Istorija'); expect(texts()).toContain('Još nemaš Dogovor');
+  // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the link of the Dogovor at the size of a door, and one sentence that teaches.
+  expect(texts()).toContain('Dogovor nastaje kad izabereš prijavu ili te izaberu.');
+  expect(tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'agreements' && node.props.size === 144)).toHaveLength(1);
   await act(async () => tree.root.findByProps({ label: 'Idi na Početnu' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
   expect(texts()).not.toMatch(/Oceni|nepročitan/);
 });
@@ -450,6 +453,8 @@ test('an empty set leads to the set that holds Dogovori and turns the confirmati
   await act(async () => tree.unmount());
   await render();
   expect(texts()).toContain('Nema aktivnih Dogovora');
+  // Not a first encounter: the quiet 96, never the picture at the size of a door.
+  expect(tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'agreements' && node.props.size === 144)).toHaveLength(0);
   await act(async () => tree.root.findByProps({ label: 'Pogledaj istoriju' }).props.onPress());
   expect(titles()).toEqual(['Otvori Dogovor Posao done']);
   // And back: an empty history leads to the active Dogovori.

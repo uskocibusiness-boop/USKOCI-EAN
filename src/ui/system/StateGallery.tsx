@@ -20,13 +20,14 @@ import { brandAction, sys } from './tokens';
  *
  * Each state is a FULL screen under its bar, because where the block lies (a third of the way down) is only what a screen shows when the
  * block has a whole screen. The words are `outcomeCopy.ts`, as the screens will import them; the empty ones are the app's own, as the rules in
- * the header of `StateView` write them: the first time ("Još nemaš ..."), because of a filter ("... u ovom prikazu") and because everything is done.
+ * the header of `StateView` write them: the first time ("Još nemaš ...", a hero: the picture at 144), because of a filter ("... u ovom prikazu") and
+ * because everything is done (both at 96).
  */
 export type StateSceneKey = 'prazno-prvi' | 'prazno-filter' | 'prazno-gotovo' | 'ucitavanje-redovi' | 'ucitavanje-zapisi' | 'ucitavanje-cinjenice'
   | 'greska' | 'bez-veze' | 'bez-veze-traka' | 'usluga' | 'nije-sigurno' | 'nije-sigurno-provera' | 'nije-sigurno-traka' | 'sekcija' | 'dugi';
 
 export const STATE_SCENES: { key: StateSceneKey; label: string; hint: string; scroll?: boolean }[] = [
-  { key: 'prazno-prvi', label: 'Prazno, prvi put', hint: 'Još nemaš zadatak' },
+  { key: 'prazno-prvi', label: 'Prazno, prvi put', hint: 'Još nemaš zadatak, predmet vrata 144' },
   { key: 'prazno-filter', label: 'Prazno zbog filtera', hint: 'Nema zadataka u ovom prikazu' },
   { key: 'prazno-gotovo', label: 'Prazno, sve je gotovo', hint: 'Bez radnje' },
   { key: 'ucitavanje-redovi', label: 'Učitavanje, redovi', hint: 'Skelet reda: iste mere kao ListRow', scroll: true },
@@ -94,7 +95,8 @@ function Checking() {
 export function StateScene({ scene }: { scene: StateSceneKey }) {
   const load = cannotLoad('Dogovore');
   switch (scene) {
-    case 'prazno-prvi': return <StateView art="tasks" title="Još nemaš zadatak" body="Reci šta ti treba. Nacrt pregledaš pre objave."
+    // The first encounter is a hero: the picture is the object of the door that fulfils it (the paper with the pin of "Objavi zadatak"), at 144.
+    case 'prazno-prvi': return <StateView hero art="publish" title="Još nemaš zadatak" body="Reci šta ti treba. Nacrt pregledaš pre objave."
       primary={{ label: 'Objavi prvi zadatak', onPress: noop }} quiet={{ label: 'Pogledaj zadatke', onPress: noop }} />;
     case 'prazno-filter': return <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili filtere."
       primary={{ label: 'Poništi filtere', onPress: noop }} />;

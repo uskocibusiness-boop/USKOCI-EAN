@@ -196,9 +196,11 @@ describe('the Raspored block', () => {
     expect(card.findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual([
       'Danas · 14:00–16:00', 'Montaža police u hodniku', 'Jelena Nikolić', 'Tvoj zadatak', 'Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina']);
     expect(card.props.accessibilityLabel).toBe('Danas, od 14:00 do 16:00. Montaža police u hodniku. Jelena Nikolić, Tvoj zadatak. Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina');
-    // The day is the black first line, in the heading's own size (never a grey note).
+    // The time is the black first line and the largest word of the screen, in the voice of money (never a grey note), and the calendar stands
+    // small at the end of its line ("Danas u 14", the owner's pick of 2026-10-08).
     const first = card.findAll(node => String(node.type) === 'T')[0];
-    expect(first.props.variant).toBe('heading'); expect(first.props.tone ?? 'ink').toBe('ink');
+    expect(first.props.variant).toBe('priceLarge'); expect(first.props.tone ?? 'ink').toBe('ink');
+    expect(card.findAll(node => typeof node.type !== 'string' && node.props.kind === 'calendar' && node.props.size === 32)).toHaveLength(1);
     // The face: the route's own photo element with the person's profile id at 32 dp, and the stand-in (their initials) as its fallback.
     const photo = card.findByType('ProfilePhoto' as React.ElementType);
     expect(photo.props).toMatchObject({ profileId: 'profile-j', size: 32 });
@@ -415,6 +417,10 @@ it('a row only navigates, and to the exact place: a waiting choice opens its can
 
 it.each([[390, 1], [320, 2]])('separates the real attention task from its action without splitting or repeating its title at %idp / font %i', async (width, fontScale) => {
   mockWindow = { width, height: 844, scale: 3, fontScale };
+  // An appointment lies ahead, so the waiting thing is a row of "Čeka te" (the task leads, the action is under it), not the record that leads when none does.
+  jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
+  mockSource.mojiDogovori.mockResolvedValue([{ ...agreement('today', 'narucilac'), prihvacenPocetak: '2026-10-07T12:00:00Z',
+    tacanTermin: { pocetak: '2026-10-07T12:00:00Z', kraj: '2026-10-07T14:00:00Z' } }]);
   const taskTitle = 'Police · dnevna soba i veliko ogledalo';
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'application:changed:stale', title: 'Zadatak je izmenjen',
     taskTitle, detail: 'Pregledaj izmene pre odluke o prijavi.', target: { kind: 'APPLICATION', applicationId: 'changed' } }],
@@ -430,6 +436,60 @@ it.each([[390, 1], [320, 2]])('separates the real attention task from its action
   }
   await act(async () => attention.props.onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'changed' } });
+});
+
+// "Danas u 14" (owner's pick, 2026-10-08): the next appointment's time is the largest word and stands directly under the doors, before "Čeka te";
+// with none ahead the first thing that waits takes its place as the one record, its number first, and the rest stay rows.
+describe('what leads Početna', () => {
+  const choice = { id: 'need:orman:applications', title: '2 prijave', taskTitle: 'Pomoć pri selidbi', detail: 'Čeka tvoj izbor.', target: { kind: 'CANDIDATES' as const, needId: 'orman' } };
+  const term = { id: 'agreement:term', title: 'Predloži termin', taskTitle: 'Krečenje stana u belo', detail: 'Termin još nije dogovoren.', target: { kind: 'AGREEMENT_TERM' as const, agreementId: 'term' } };
+  const waiting = (): HomeSnapshot => { const home = emptyHome(); home.firstRun = false; home.attention = [choice, term]; return home; };
+  const headings = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.props.children);
+  const dots = () => tree.root.findAll(node => node.props.testID === 'attention-dot');
+  const largest = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'priceLarge').map(node => node.props.children);
+
+  it('puts "Raspored" before "Čeka te" when an appointment lies ahead, and then every waiting thing is a row', async () => {
+    const home = waiting();
+    home.agreements = { kind: 'known', value: { more: 0, rows: [{ id: 'agreement:soon', title: 'Montaža police u hodniku', detail: 'x', target: { kind: 'AGREEMENT', agreementId: 'soon' },
+      upcoming: true, appointment: { timeText: '', counterpartName: 'Jelena Nikolić', roleLabel: 'Tvoj zadatak', counterpartProfileId: null, counterpartInitials: 'JN' },
+      raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: null, zone: null } }] } };
+    await direct(home);
+    expect(headings().filter(name => name === 'Raspored' || name === 'Čeka te')).toEqual(['Raspored', 'Čeka te']);
+    // The time is the one largest word; both waiting things are rows (the task leads, the action under it), each with the orange dot.
+    expect(largest()).toEqual(['Danas · 14:00–16:00']);
+    expect(row('2 prijave').accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
+    expect(dots()).toHaveLength(2);
+  });
+
+  it('with no appointment ahead the first thing that waits is the one record: its number first, the task under it, the reason last, the others rows', async () => {
+    const handlers = await direct(waiting());
+    expect(headings().filter(name => name === 'Raspored')).toHaveLength(0);
+    const lead = row('2 prijave');
+    expect(lead.accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === lead.accessibilityLabel)[0]
+      .findAll(node => String(node.type) === 'T').map(node => [node.props.variant, node.props.children]))
+      .toEqual([['priceLarge', '2 prijave'], [undefined, 'Pomoć pri selidbi'], ['note', 'Čeka tvoj izbor.']]);
+    // The next one is a row as always.
+    expect(row('Predloži termin').accessibilityLabel).toBe('Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.');
+    expect(dots()).toHaveLength(2);
+    await act(async () => lead.onPress());
+    expect(handlers.onOpen).toHaveBeenCalledWith(choice.target);
+  });
+
+  it('a first thing that is not a count leads in the heading type; nothing leads while the attention read failed, nor when nothing waits', async () => {
+    const home = waiting(); home.attention = [term];
+    await direct(home);
+    expect(largest()).toEqual([]);
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'heading' && node.props.children === 'Predloži termin')).toHaveLength(1);
+    await act(async () => tree.unmount());
+    const failed = waiting(); failed.attentionState = 'unavailable'; failed.attention = []; failed.prompts = [];
+    await direct(failed);
+    expect(text()).toContain('Ne možemo da učitamo ono što te čeka.'); expect(dots()).toHaveLength(0);
+    await act(async () => tree.unmount());
+    const quiet = emptyHome(); quiet.firstRun = false;
+    await direct(quiet);
+    expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(dots()).toHaveLength(0);
+  });
 });
 
 it('"Moje aktivnosti" is no longer a destination: nothing on Početna leads there', async () => {

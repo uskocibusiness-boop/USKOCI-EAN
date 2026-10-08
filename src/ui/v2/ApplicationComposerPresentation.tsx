@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Keyboard, StyleSheet, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPeople, fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -8,11 +8,14 @@ import { CivilField } from '../calendar/CalendarControls';
 import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
+import { FactArt } from '../system/FactArt';
 import { FactRow } from '../system/FactRow';
 import { FlowFooter } from '../system/FlowFooter';
+import { tick } from '../system/haptics';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
+import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba, plural } from '../system/plural';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { Screen } from '../system/Screen';
@@ -20,11 +23,11 @@ import { Section } from '../system/Section';
 import { StateView } from '../system/StateView';
 import { StatusChip } from '../system/StatusChip';
 import { Surface } from '../system/Surface';
-import { SuccessMark } from '../system/SuccessMark';
 import { useLayoutClass, useTextScale } from '../system/textScale';
 import { brandAction, fieldBox, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
+import { MomentRise, useMomentPart } from './DogovorenoMoment';
 import { placesText, taskValue, valueSpoken } from './TaskFace';
 import { V2Action } from './V2Action';
 
@@ -182,6 +185,76 @@ function SentMessage({ note }: { note: string }) {
   </Section>;
 }
 
+/** How long the tag stands in the middle before it goes: half of what a picture takes to settle. There is no token for "hold", so the name is here. */
+const TAG_HOLDS = sys.motion.arrive.duration / 2;
+/** When it is gone, and the tick of the outcome plays: the hold and the short exit. */
+const TAG_GONE = TAG_HOLDS + sys.motion.exit;
+
+/**
+ * "Prijava je poslata" (owner's pick of 2026-10-08, "Etiketa odlazi", C): YOUR price tag stands in the middle for a moment and then goes up and
+ * away, toward the other side of the table (8 dp, fading, 160 ms: leaving is shorter than arriving), and in its place stays a small row,
+ * "Poslata · 4.500 RSD ukupno": your offer has crossed the table and is now a row in your list. One light tick as it goes. Under it the
+ * sentence, the receipt of what was sent as a panel of rows (the task, the people, the term, the message), and the way on.
+ *
+ * The tag's place stays reserved (only `transform` and `opacity` move: no layout is animated), the words and the amount are final the whole
+ * time (only the row that carries them rises into its place), and a receipt that is opened again later, or under reduced motion, is the last
+ * frame at once (the tick stays under reduced motion: it is an outcome, not movement).
+ */
+function SentReceipt({ fresh, price, title, people, time, timeNote, message, error, actions }: {
+  /** The send was confirmed while this screen was open: the tag leaves and the tick plays. Otherwise it is the last frame. */
+  fresh: boolean;
+  /** The total that was sent, "4.500 RSD"; null only if it cannot be read back, and then the row says the state alone. */
+  price: string | null; title: string; people: string; time: string;
+  /** What the term is beside the task's own, when the person proposed another (or said none is agreed): one quiet line under the receipt. */
+  timeNote: string | null; message: string;
+  /** A line that must not be lost (a notice the route set), above the actions. */
+  error: string | null;
+  /** The green way on and the quiet way back, which the frame owns. */
+  actions: ReactNode;
+}) {
+  const reduced = useReducedMotion();
+  const still = !fresh || reduced;
+  useEffect(() => {
+    if (!fresh) return;
+    const timer = setTimeout(() => tick('light'), reduced ? 0 : TAG_GONE);
+    return () => clearTimeout(timer);
+  }, [fresh, reduced]);
+  const leaving = useMomentPart(still, TAG_HOLDS, sys.motion.exit);
+  const tag = { opacity: leaving.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
+    transform: [{ translateY: leaving.interpolate({ inputRange: [0, 1], outputRange: [0, -sys.space.sm] }) }] };
+  return <>
+    <View style={s.table}>
+      <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.tag, tag]}><FactArt kind="offers" size={96} /></Animated.View>
+      <MomentRise still={still} delay={TAG_GONE - sys.motion.press} style={s.sentPlace}>
+        <View accessible accessibilityLabel={price ? `Poslata, ${price} ukupno` : 'Poslata'} style={s.sentRow}>
+          <FactArt kind="offers" size={28} />
+          <StatusChip status="application.sent" />
+          {price ? <><T variant="priceRow" style={s.sentPrice}>{price}</T><T variant="note" tone="muted">ukupno</T></> : null}
+        </View>
+      </MomentRise>
+    </View>
+    <View style={s.words}>
+      {/* Announced when it has just happened; reopened on a send already confirmed it is the screen's heading. */}
+      <T accessibilityRole={fresh ? 'alert' : 'header'} variant="title" style={s.centred}>Prijava je poslata.</T>
+      {/* The state the application wears in "Moje prijave" from now on is the chip above, so the receipt and the list say one word; the way on says where it is. */}
+      <T variant="copy" tone="muted" style={s.centred}>Ako te izaberu, odmah nastaje Dogovor.</T>
+    </View>
+    <Surface kind="panel" testID="sent-receipt" style={s.receipt}>
+      <KeyValueRow label="Zadatak" value={title} />
+      <KeyValueRow label="Ljudi" value={people} />
+      <KeyValueRow label="Termin" value={time} />
+      {/* The message is exactly what was sent (trimmed as the command sends it) and can be selected and copied, like the one in every other receipt. */}
+      <View style={s.messageRow}>
+        <T variant="meta" tone="muted">Poruka</T>
+        <T selectable variant="body" tone={message ? 'ink' : 'muted'}>{message || 'Bez dodatne poruke.'}</T>
+      </View>
+    </Surface>
+    {timeNote ? <T variant="note" tone="muted" style={s.receiptNote}>{timeNote}</T> : null}
+    {error ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" variant="body">{error}</T></Surface> : null}
+    <View style={s.actions}>{actions}</View>
+  </>;
+}
+
 /** The exact time of this application, in the one sheet engine; nothing is applied until "Potvrdi termin". */
 function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
   draft: ApplicationDraft; timezone: string; taskTime: string; close: () => void; accept: (start: string | null, end: string | null) => void;
@@ -326,21 +399,14 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const sentFacts = <SentFacts price={shownPrice} people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} flexible={!exact && !fixed}
     proposed={proposedTaskTime} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
-  return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={footer}>
+  // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
+  return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer}>
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
-    {confirmed ? <>
-      <View style={s.outcome}>
-        <SuccessMark fresh={!confirmedAtMount} size={72} />
-        {/* Announced when it has just happened; reopened on a send already confirmed it is the screen's heading. */}
-        <T accessibilityRole={confirmedAtMount ? 'header' : 'alert'} variant="pageTitle">Prijava je poslata.</T>
-        {/* The state the application will wear in "Moje prijave" from now on: the same chip, so the receipt and the list say one word. */}
-        <StatusChip status="application.sent" />
-        <T variant="copy" tone="muted">Ako tvoja prijava bude izabrana, odmah nastaje Dogovor. Prijavu pratiš u Mojim prijavama.</T>
-      </View>
-      <TaskHead opportunity={opportunity} />
-      {sentFacts}
-      <SentMessage note={draft.note} />
-    </> : <>
+    {confirmed ? <SentReceipt fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
+      people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} error={error}
+      timeNote={!exact && !fixed ? 'Tačan početak i kraj još nisu dogovoreni.' : proposedTaskTime ? `Tvoj predlog · termin zadatka je ${proposedTaskTime}` : null}
+      message={draft.note.trim()} actions={<>{primary}<V2Action label="Nazad na zadatak" kind="quiet" onPress={back} /></>} />
+    : <>
     <TaskHead opportunity={opportunity} showTerms={locked} />
     {locked ? <>
       {/* The receipt names its amount, people and time once, without another summary heading. */}
@@ -452,7 +518,19 @@ const s = StyleSheet.create({
   peopleInputLarge: { width: 88 },
   note: withInter({ ...fieldBox, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface,
     minHeight: 96, textAlignVertical: 'top', padding: sys.space.base }),
-  outcome: { gap: sys.space.md, alignItems: 'flex-start' },
+  // "Etiketa odlazi": the tag's place is reserved (96 and a gap) so nothing moves when it goes; the tag is at the top of it, the small row at its foot.
+  table: { height: 96 + sys.space.xl, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'flex-start' },
+  tag: { position: 'absolute', top: 0 },
+  sentPlace: { position: 'absolute', bottom: 0 },
+  sentRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  sentPrice: { color: sys.color.money },
+  words: { alignItems: 'center', gap: sys.space.sm, maxWidth: 320, alignSelf: 'center' },
+  centred: { textAlign: 'center' },
+  receipt: { maxWidth: 360, width: '100%', alignSelf: 'center' },
+  // The last row of the receipt is a paragraph: its label over it, from the left, 12 above and below, as a row of the receipt that stacks.
+  messageRow: { paddingVertical: sys.space.md, alignItems: 'flex-start' },
+  receiptNote: { maxWidth: 360, width: '100%', alignSelf: 'center' },
+  actions: { alignSelf: 'center', maxWidth: 320, width: '100%', gap: sys.space.sm },
   timeNote: { paddingTop: sys.space.sm },
   reviewBody: { gap: layout.section },
   reviewTask: { gap: sys.space.sm },

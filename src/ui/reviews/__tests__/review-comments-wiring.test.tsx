@@ -63,30 +63,30 @@ beforeEach(() => {
 });
 afterEach(async () => { delete process.env[FLAG]; await act(async () => tree?.unmount()); });
 
-describe('the rating line of the account reputation', () => {
+describe('the rating figure of the account reputation', () => {
   const draw = async (props: Record<string, unknown> = {}) => { await act(async () => { tree = create(<AccountReputation accountId={A} {...props} />); }); };
 
   it.each([[undefined], ['1']])('carries no comments under it, with the build flag %p: they moved to "Ocene"', async value => {
     if (value) process.env[FLAG] = value;
     await draw();
-    expect(texts()).toContain('4,8 · 12 ocena');
+    expect(texts()).toEqual(['4,8', '12 ocena']);
     expect(hosts('ReviewCommentsSection')).toHaveLength(0);
   });
 
-  it('is only a line without a way in, and a button that says where it goes with one', async () => {
+  it('is only a figure without a way in, and a button that says where it goes with one', async () => {
     await draw();
     expect(hosts('Press')).toHaveLength(0);
     await act(async () => tree.unmount());
     const open = jest.fn();
     await draw({ onOpen: open });
     const [press] = hosts('Press');
-    expect(press.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '4,8 · 12 ocena', accessibilityHint: 'Otvara ocene.' });
-    expect(texts()).toContain('4,8 · 12 ocena');
+    expect(press.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Ocena 4,8, 12 ocena', accessibilityHint: 'Otvara ocene.' });
+    expect(texts()).toEqual(['4,8', '12 ocena']);
     await act(async () => press.props.onPress());
     expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it('stays a refresh row when the rating cannot be read: the way in is for a line that has an answer', async () => {
+  it('stays a refresh cell when the rating cannot be read: the way in is for a figure that has an answer', async () => {
     mockUseFocused.mockImplementation(() => ({ data: null, loading: false, error: true, refresh: jest.fn() }));
     const open = jest.fn();
     await draw({ onOpen: open });

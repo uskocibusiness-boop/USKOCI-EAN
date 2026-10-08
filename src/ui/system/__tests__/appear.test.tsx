@@ -204,6 +204,22 @@ describe('a row arriving in a list', () => {
       expect(sys.space.sm).toBe(8);
     });
 
+    // The owner's pick of 2026-10-08 (rule B1): what somebody else brings comes from above, what is yours from below. Only the side
+    // changes; the length, the stagger and the curve are the same for both.
+    it('comes from above (-8 dp) when `from="above"`, from below (+8 dp) by default and when `from="below"`: only the side differs', async () => {
+      await act(async () => { tree = create(<Appear index={2} from="above"><View /></Appear>); });
+      await act(async () => tree.unmount());
+      await act(async () => { tree = create(<Appear index={2}><View /></Appear>); });
+      await act(async () => tree.unmount());
+      await act(async () => { tree = create(<Appear index={2} from="below"><View /></Appear>); });
+      expect(mockEntrances.map(rise)).toEqual([-8, 8, 8]);
+      for (const entrance of mockEntrances) {
+        expect(entrance.duration).toBe(sys.motion.enter);
+        expect(entrance.delay).toBe(2 * sys.motion.stagger);
+        expect(entrance.easing).toEqual({ bezier: [...sys.motion.easeOut] });
+      }
+    });
+
     it('gives every row of a list the same curve and the same rise, whatever its position', async () => {
       await draw(['a']);
       await redraw(['a', ...Array.from({ length: 8 }, (_, at) => `n${at}`)]);

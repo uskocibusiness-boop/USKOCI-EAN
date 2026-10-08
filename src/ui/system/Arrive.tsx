@@ -8,6 +8,11 @@ import { sys } from './tokens';
  * slight tilt that straightens, and full opacity — so an empty screen reads as ready, not broken. It runs once on
  * mount, on the native driver, and not at all under reduced motion. Only for illustrations, never for text or
  * controls. How long it takes and the curve it follows are `sys.motion.arrive` (rule R6).
+ *
+ * It only SETTLES (owner, 2026-10-08, "bez odskoka"): the picture goes from where it starts (4 dp low, tilted 3° the other way, a little
+ * transparent) to where it stays, and never goes past it. It used to rise 3 dp over its place and tilt 1° past straight before it came back;
+ * now every value moves one way only, and the curve of `sys.motion.arrive` itself has no overshoot either (its control points stay in 0 to 1).
+ * Under reduced motion it is simply there, at once, in its final place.
  */
 export function Arrive({ children, delay = 80 }: { children: ReactNode; delay?: number }) {
   const reduced = useReducedMotion();
@@ -19,8 +24,8 @@ export function Arrive({ children, delay = 80 }: { children: ReactNode; delay?: 
     run.start();
     return () => run.stop();
   }, [reduced, delay, progress]);
-  const translateY = progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [4, -3, 0] });
-  const rotate = progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: ['-3deg', '1deg', '0deg'] });
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [4, 0] });
+  const rotate = progress.interpolate({ inputRange: [0, 1], outputRange: ['-3deg', '0deg'] });
   const opacity = progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0.65, 1, 1] });
   return <Animated.View style={{ opacity, transform: [{ translateY }, { rotate }] }}>{children}</Animated.View>;
 }

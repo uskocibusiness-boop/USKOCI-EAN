@@ -69,8 +69,8 @@ const textNode = (value: string) => tree.root.find(node => node.type === T_ && n
 const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const presses = () => tree.root.findAll(node => node.type === PRESS);
 const spoken = () => presses().map(node => [node.props.accessibilityLabel, node.props.accessibilityValue?.text ?? null, node.props.accessibilityHint ?? null]);
-/** The row of the amount (or its word) and the count of people: the row that stacks. */
-const decisionOf = (amount: string) => textNode(amount).parent!.parent!;
+/** The line that ends the face, the person and the count of people: the line that stacks. */
+const foot = () => tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-foot');
 const offerRow = () => tree.root.findByType(PrijavaPriceText).findAllByType(VIEW)[0];
 beforeEach(() => { mockScale = 1; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
@@ -120,14 +120,14 @@ describe('the task card stacks only in the resilience cases', () => {
     await render(<TaskCard item={task({ naslov: 'Montaža police' })} onOpen={jest.fn()} />);
     expect(style(textNode('Montaža police')).flex).toBeUndefined();
     expect(textNode('Montaža police').props.numberOfLines).toBeUndefined();
-    expect(style(decisionOf('5.500 RSD')).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(style(foot()).flexDirection).toBe(stacked ? 'column' : 'row');
   });
 
-  it.each(WINDOWS)('my own task met in discovery, width %s dp, text scale %s: value and capacity share a row unless stacked', async (width, scale, stacked) => {
+  it.each(WINDOWS)('my own task met in discovery, width %s dp, text scale %s: the count of people ends the face, on its own line only when stacked', async (width, scale, stacked) => {
     mockWidth = width; mockScale = scale;
     await render(<TaskCard item={mine({ brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
-    expect(style(decisionOf('2.000 RSD')).flexDirection).toBe(stacked ? 'column' : 'row');
-    expect(textNode('0/2')).toBeTruthy();
+    expect(style(foot()).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(textNode('2.000 RSD')).toBeTruthy();
   });
 
   it('long titles and amounts retain their own full-width reading groups', async () => {
@@ -162,8 +162,8 @@ describe('my application\'s face stacks its offer only in the resilience cases',
 });
 
 describe('what a screen reader hears does not depend on the layout', () => {
-  const HEARD_TASK = 'HITNO, 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena';
-  const HEARD_MINE = '2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno';
+  const HEARD_TASK = 'HITNO, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena';
+  const HEARD_MINE = 'Budžet 2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno';
   const HEARD_APPLICATION = 'Poslata, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.';
 
   it.each(WINDOWS)('width %s dp, text scale %s: the command name and every word are the same sentence', async (width, scale) => {

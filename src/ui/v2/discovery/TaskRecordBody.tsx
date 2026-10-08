@@ -8,25 +8,30 @@ import { displaysUrgent } from '../../../lib/needUrgency';
 import { T } from '../../Text';
 import { Avatar } from '../../system/Avatar';
 import { FactArt } from '../../system/FactArt';
-import { FactRow } from '../../system/FactRow';
+import { FACT_ROW_ART, FactRow } from '../../system/FactRow';
 import { layout } from '../../system/layout';
 import { useLayoutClass } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardStatus, REQUIREMENT_ART, personSpoken, placesText, ratingWords, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue,
+import { CardStatus, REQUIREMENT_ART, VALUE_WORDS, personSpoken, placesText, ratingWords, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue,
   type TaskCardRelation, type TaskRequirement, type TaskValue } from '../TaskFace';
 import { useTaskAge } from './taskAge';
 
 /**
- * The face of a task as the Zadaci family draws it (composition spec 2026-10-07, 4.2): the list's card, the pin's card on the map
- * and, by the same words in the same order, the head of the detail. One face, so a task does not change its clothes between the
- * map, the list and the page that opens: [state] -> title -> what it pays and how many people -> where -> when -> (one condition)
- * -> who posted it, and how long ago.
+ * The face of a task as the Zadaci family draws it (composition spec 2026-10-07, 4.2; the owner's pick of 8 Oct 2026, "Etiketa" with his
+ * note): the list's card, the pin's card on the map and, by the same words in the same order, the head of the detail. One face, so a task
+ * does not change its clothes between the map, the list and the page that opens: [state] -> title -> what it pays -> where -> when ->
+ * (one condition) -> who posted it, and how long ago, with the count of people at the end of that line.
  *
- * Four type sizes and no more: the title (heading 18), the amount (16), every fact and the person (note 14), the state (12). The
- * title takes the full width, because a title and an amount side by side broke into three-line titles on the owner's 361 dp phone
- * (the head was measured twice and left); the amount stands under it, with what it buys, and the count of people at the end of
- * that line. Nothing is invented: a word about money never wears the amount's type, and what the read does not say is left out.
+ * The amount is a fact like the others (the owner: not the price on the right, but under the title with its picture on the left, like
+ * everything else): the money picture, the sum and what it buys, the first of the fact rows. The face writes no word for what the sum is,
+ * neither "cena" nor "budžet" (people know what it is); a screen reader says "Budžet 6.000 RSD ukupno". A task with no sum is the price
+ * tag and its words ("Tražim ponude"), never the sum's type.
+ *
+ * Four type sizes and no more: the title (heading 18), the amount (16), every fact and the person (note 14), the state (12). The title
+ * takes the full width, because a title and an amount side by side broke into three-line titles on the owner's 361 dp phone. Nothing is
+ * invented: what the read does not say is left out. (The picked variant's reason row, "Imaš kombi" or "Blizu · oko 1 km", is not drawn:
+ * the list holds no work profile and no distance per task, and a reason that is not read is not made up.)
  *
  * The body draws no card and no press of its own: the container is a `Surface record` (the list) or the pin's sheet (the map), and
  * says the whole face to a screen reader ONCE (`TaskRecordModel.spoken`), so nothing in here is a stop of its own.
@@ -41,7 +46,7 @@ export type TaskRecordModel = {
   value: TaskValue;
   /** Who reads it: a worker is told how many places are left, the owner follows the progress of the task. */
   audience: 'worker' | 'owner';
-  /** The words of a task that takes offers: the worker is told it takes them, the owner that they are being asked for. */
+  /** The words of a task that takes offers: the worker reads the poster's own ("Tražim ponude"), the owner that they are being asked for. */
   offersWord: string;
   places: Pokrivenost;
   place: { remote: boolean; text: string };
@@ -55,7 +60,8 @@ export type TaskRecordModel = {
   spoken: string;
 };
 
-export const OFFERS_WORD = { worker: 'Prima ponude', owner: 'Tražiš ponude' } as const;
+/** The words of a task that takes offers: the owner's own words for the card and the pin's card ("Tražim ponude", 8 Oct 2026); the owner of the task is told it is being asked for. */
+export const OFFERS_WORD = { worker: 'Tražim ponude', owner: 'Tražiš ponude' } as const;
 
 /** What a face shows and says, from the task and what this account is to it. */
 export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation, sectionSays?: StanjePotrebe): TaskRecordModel {
@@ -73,7 +79,7 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
   const person = publisher && 'narucilacIme' in item ? { name: publisher, rating: item.narucilacOcena, count: item.narucilacBrojOcena } : null;
   const age = useTaskAge(item.id);
   const audience = ownerView ? 'owner' : 'worker';
-  const spoken = taskSpoken({ status: status?.text, urgent, value, place: place.text, schedule, requirement,
+  const spoken = taskSpoken({ status: status?.text, urgent, value, budget: true, place: place.text, schedule, requirement,
     places: placesText(item.pokrivenost, audience, 'fraction').spoken,
     person: person ? personSpoken(person.name, person.rating, person.count) : null,
     next: age ? `Objavljeno: ${age.charAt(0).toLocaleLowerCase('sr-Latn-RS')}${age.slice(1)}` : null });
@@ -95,17 +101,20 @@ function Places({ model }: { model: TaskRecordModel }) {
   </View>;
 }
 
-/** What it pays (or the word that stands in for an amount) and how many people, in one line. */
-function Decision({ model, stacked }: { model: TaskRecordModel; stacked: boolean }) {
+/**
+ * What the task pays, as the first fact of the face: the money picture on the left like the picture of every other fact, the sum in the
+ * amount's type and what it buys beside it. No word says what it is (the picture and the figure do). A task with no sum is the same row
+ * with the price tag and words about money, drawn as every fact's words (`FactRow`) and never in the amount's type.
+ */
+function ValueRow({ model }: { model: TaskRecordModel }) {
   const { value } = model;
-  return <View style={[s.decision, stacked && s.decisionStacked]}>
-    {value.kind === 'amount'
-      ? <View style={s.money}>
-        <T variant="priceRow" style={s.amount}>{value.amount}</T>
-        {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
-      </View>
-      : <T variant="note" tone="muted" style={s.word}>{value.kind === 'offers' ? model.offersWord : 'Cena nije navedena'}</T>}
-    <Places model={model} />
+  if (value.kind !== 'amount') return <FactRow art="offers" value={value.kind === 'offers' ? model.offersWord : VALUE_WORDS.unpriced} />;
+  return <View style={s.valueRow}>
+    <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
+    <View style={s.valueCopy}>
+      <T variant="priceRow" style={s.amount}>{value.amount}</T>
+      {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
+    </View>
   </View>;
 }
 
@@ -137,35 +146,41 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
   const first = clearOfClose ? s.clearOfClose : undefined;
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.body}>
     {head ? <View style={first}><CardStatus status={model.status} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
-    <View style={s.lead}>
-      <View style={head ? undefined : first}><T variant="heading" style={s.title}>{model.title}</T></View>
-      <Decision model={model} stacked={stacked} />
-    </View>
+    <View style={head ? undefined : first}><T variant="heading" style={s.title}>{model.title}</T></View>
     <View style={s.facts}>
+      <ValueRow model={model} />
       <FactRow art={model.place.remote ? 'remote' : 'pin'} value={model.place.text} />
       <FactRow art="calendar" value={model.schedule} />
       {model.requirement ? <FactRow art={REQUIREMENT_ART[model.requirement.kind]} value={model.requirement.text} /> : null}
     </View>
-    <Person model={model} portrait={portrait} />
+    {/* The person and the count of people end the face on one line; where the window is narrow or the text large they stand one under the other. */}
+    <View testID="task-face-foot" style={[s.foot, stacked && s.footStacked]}>
+      {model.person ? <Person model={model} portrait={portrait} /> : <View style={s.grow} />}
+      <Places model={model} />
+    </View>
   </View>;
 }
 
 const s = StyleSheet.create({
   // Between the parts of a face: 12. Inside a part: 4.
   body: { gap: sys.space.md },
-  lead: { gap: sys.space.xs },
   facts: { gap: sys.space.xs },
   title: { color: sys.color.ink },
   // The first row keeps one chrome control (the pin card's close) clear on the right, and is as high as it.
-  clearOfClose: { marginRight: layout.touch, minHeight: layout.touch },
-  decision: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: sys.space.base, rowGap: sys.space.xs },
-  decisionStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  money: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: 0, flexShrink: 1, maxWidth: '100%' },
+  // The close is 48 tall and stands 8 in from the card's edge, the face 16: so the first row is as high as what is left of it, 40.
+  clearOfClose: { marginRight: layout.touch, minHeight: layout.touch - sys.space.sm },
+  // The amount's row has `FactRow`'s own geometry: the 28 picture, 12, the copy with its first line centred on the picture.
+  valueRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: FACT_ROW_ART },
+  valueArt: { width: FACT_ROW_ART, height: FACT_ROW_ART },
+  valueCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm,
+    paddingTop: Math.max(0, (FACT_ROW_ART - (sys.type.priceRow.lineHeight ?? FACT_ROW_ART)) / 2) },
   amount: { color: sys.color.money, flexShrink: 0 },
-  word: { flexShrink: 1 },
+  grow: { flex: 1 },
+  foot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  footStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.sm },
   places: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 0 },
   fraction: { fontWeight: '600', fontVariant: ['tabular-nums'] },
-  person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  person: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   face: { width: 40, height: 40, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 },
   personText: { flex: 1, minWidth: 0 },
   name: { color: sys.color.ink, fontWeight: '600' },

@@ -7,8 +7,10 @@ import { sys } from '../system/tokens';
 const SOURCE = require('../../../assets/ai/uskoci-assistant.png');
 
 /** Existing USKOČI robot identity, shared by task and work-profile interviews.
- * Static art identifies the assistant; it never signals capture, speech or a completed action. */
-export const AiAssistantArt = memo(function AiAssistantArt({ size }: { size: 24 | 88 }) {
+ * Static art identifies the assistant; it never signals capture, speech or a completed action. It stands at 24 beside what it says in the
+ * thread, at 88 where a screen needs it smaller, and at 128 before the first word ("Asistent i sto", owner's pick of 2026-10-08): the one
+ * character of the app and the only picture of 48 or more on that screen. */
+export const AiAssistantArt = memo(function AiAssistantArt({ size }: { size: 24 | 88 | 128 }) {
   return <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
     style={{ width: size, height: size, flexShrink: 0 }}>
     <Image source={SOURCE} contentFit="contain" transition={0} cachePolicy="memory" allowDownscaling
@@ -40,5 +42,5 @@ export function AiAssistantWelcome({ conversationKey, memory }: {
     run.start();
     return () => { subscription.remove(); settle(); };
   }, [conversationKey, memory, opacity, reduced]);
-  return <Animated.View style={{ opacity }}><AiAssistantArt size={88} /></Animated.View>;
+  return <Animated.View style={{ opacity }}><AiAssistantArt size={128} /></Animated.View>;
 }

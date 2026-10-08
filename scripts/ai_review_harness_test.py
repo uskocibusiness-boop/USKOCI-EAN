@@ -94,13 +94,51 @@ class NativeAssertions(unittest.TestCase):
                 journey.assert_requester_list()
 
     def test_saved_draft_is_revealed_only_through_actual_nacrti_tab_then_exact_card(self):
-        root, parents=tree('<hierarchy><node content-desc="Nacrti" selected="false" enabled="true" clickable="true" bounds="[200,400][400,520]"/></hierarchy>')
-        final=copy.deepcopy(root);next(n for n in final.iter() if n.attrib.get('content-desc')).attrib['selected']='true'
+        # The older look of the list: the "Moji" button is selected and "Nacrti" is a tab that becomes selected.
+        root, parents=tree('<hierarchy><node content-desc="Moji" selected="true" enabled="true" clickable="true" bounds="[20,200][200,300]"/><node content-desc="Nacrti" selected="false" enabled="true" clickable="true" bounds="[200,400][400,520]"/></hierarchy>')
+        final=copy.deepcopy(root);next(n for n in final.iter() if n.attrib.get('content-desc')=='Nacrti').attrib['selected']='true'
         fp={child:p for p in final.iter() for child in p}
-        with patch.object(journey,'assert_requester_list',side_effect=[(root,parents),(final,fp)]),patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'tap_node') as tap,patch.object(journey,'wait_visible') as wait:
-            journey.reveal_saved_draft('Exact saved title')
-            tap.assert_called_once_with(next(n for n in root.iter() if n.attrib.get('content-desc')),parents,hold_ms=120)
+        with patch.object(journey,'dump_tree',return_value=(root,parents,None)),patch.object(journey,'assert_requester_list',side_effect=[(root,parents),(final,fp)]),patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'tap_node') as tap,patch.object(journey,'wait_visible') as wait:
+            card=journey.reveal_saved_draft('Exact saved title')
+            tap.assert_called_once_with(next(n for n in root.iter() if n.attrib.get('content-desc')=='Nacrti'),parents,hold_ms=120)
             wait.assert_called_once_with(desc='Otvorite Zadatak Exact saved title',timeout=60)
+            self.assertEqual(card,{'desc':'Otvorite Zadatak Exact saved title'})
+        final_unselected=copy.deepcopy(root);fu={child:p for p in final_unselected.iter() for child in p}
+        with patch.object(journey,'dump_tree',return_value=(root,parents,None)),patch.object(journey,'assert_requester_list',side_effect=[(root,parents),(final_unselected,fu)]),patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'tap_node'),patch.object(journey,'wait_visible'):
+            with self.assertRaises(AssertionError):
+                journey.reveal_saved_draft('Exact saved title')
+
+    def test_saved_draft_is_revealed_through_the_nacrti_row_of_the_current_list_then_exact_card_and_the_row_is_gone(self):
+        # Since "Papir na stolu" (2026-10-08): Moji zadaci has its own bar and the quiet row "Nacrti, N nacrt/a" (no tab, no `selected`).
+        for desc in ('Nacrti, 2 nacrta','Nacrti, 1 nacrt','Nacrti'):
+            with self.subTest(desc=desc):
+                root, parents=tree(f'<hierarchy><node text="Moji zadaci"/><node content-desc="Istorija, 3 zadatka" enabled="true" clickable="true" bounds="[20,900][600,1000]"/><node content-desc="{desc}" enabled="true" clickable="true" bounds="[200,400][400,520]"/></hierarchy>')
+                opened, op=tree('<hierarchy><node text="Nacrti"/><node content-desc="Otvori zadatak Exact saved title, Objavljen" enabled="true" clickable="true" bounds="[20,300][600,700]"/></hierarchy>')
+                with patch.object(journey,'dump_tree',return_value=(root,parents,None)),patch.object(journey,'assert_requester_list') as older,patch.object(journey,'clean_surface',side_effect=[(root,parents),(opened,op)]) as surface,patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'tap_node') as tap,patch.object(journey,'wait_visible') as wait:
+                    card=journey.reveal_saved_draft('Exact saved title')
+                    older.assert_not_called()
+                    self.assertEqual([call.args for call in surface.call_args_list],[('Moji zadaci',),('Nacrti',)])
+                    tap.assert_called_once_with(next(n for n in root.iter() if n.attrib.get('content-desc')==desc),parents,hold_ms=120)
+                    wait.assert_called_once_with(contains='Otvori zadatak Exact saved title',timeout=60)
+                    self.assertEqual(card,{'contains':'Otvori zadatak Exact saved title'})
+        # A row that is still there after the press means the drafts did not open.
+        root, parents=tree('<hierarchy><node text="Moji zadaci"/><node content-desc="Nacrti, 2 nacrta" enabled="true" clickable="true" bounds="[200,400][400,520]"/></hierarchy>')
+        with patch.object(journey,'dump_tree',return_value=(root,parents,None)),patch.object(journey,'clean_surface',side_effect=[(root,parents),(root,parents)]),patch.object(journey,'screen_size',return_value=(1080,2400)),patch.object(journey,'tap_node'),patch.object(journey,'wait_visible'):
+            with self.assertRaises(AssertionError):
+                journey.reveal_saved_draft('Exact saved title')
+
+    def test_the_way_to_the_drafts_is_exactly_one_actionable_control_in_either_look(self):
+        for desc in ('Nacrti','Nacrti, 1 nacrt','Nacrti, 2 nacrta','Nacrti, 5 nacrta'):
+            root, parents=tree(f'<hierarchy><node content-desc="{desc}" enabled="true" clickable="true" bounds="[200,400][400,520]"/><node content-desc="Istorija" enabled="true" clickable="true" bounds="[200,600][400,720]"/></hierarchy>')
+            self.assertEqual(journey.drafts_way(root,parents).attrib['content-desc'],desc)
+        for xml in ('<hierarchy/>',
+                    '<hierarchy><node content-desc="Nacrti" enabled="true" clickable="true" bounds="[1,1][2,2]"/><node content-desc="Nacrti, 2 nacrta" enabled="true" clickable="true" bounds="[1,3][2,4]"/></hierarchy>',
+                    '<hierarchy><node content-desc="Nacrti, 2 nacrta" enabled="false" clickable="true" bounds="[1,1][2,2]"/></hierarchy>',
+                    '<hierarchy><node content-desc="Nacrti, 2 nacrta" enabled="true" clickable="false" bounds="[1,1][2,2]"/></hierarchy>',
+                    '<hierarchy><node content-desc="Nacrti i istorija" enabled="true" clickable="true" bounds="[1,1][2,2]"/></hierarchy>'):
+            root, parents=tree(xml)
+            with self.assertRaises(AssertionError):
+                journey.drafts_way(root,parents)
 
     def test_observed_core_profile_selects_current_moj_profil_without_legacy_retry(self):
         root, parents=tree('<hierarchy><node content-desc="Moj profil" enabled="true" clickable="true" bounds="[900,100][1030,230]"/></hierarchy>')

@@ -3,6 +3,10 @@ jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', Pro
 // The safety entry is the hook's own business (PKG-047); here it is a value the test moves, to see what the route shows.
 let mockSafety: { onPress: () => void; busy: boolean; error: string | null } | undefined;
 jest.mock('../../ui/safety/useSafetyEntry', () => ({ useSafetyEntry: () => mockSafety }));
+// The public work-trust read of the poster (`usePublicWorkTrust`) is a read of its own: a screen suite stands in for it and records what it was asked.
+const mockTrustAsked = jest.fn();
+let mockTrust: unknown = null;
+jest.mock('../../ui/profile/usePublicWorkTrust', () => ({ usePublicWorkTrust: (profileId: string | null) => { mockTrustAsked(profileId); return mockTrust; } }));
 // The questions of the task have their own reader and their own suite (owner, 2026-10-07); this suite is about the poster.
 jest.mock('../../ui/qa/useTaskQaInline', () => ({ useTaskQaInline: () => ({ state: { phase: 'idle' }, retry: () => undefined }) }));
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -58,7 +62,7 @@ const shownUnderPoster = () => tree!.root.findAll((node: ReactTestInstance) => n
 const presentation = () => tree!.root.findAll(node => typeof node.props.onCloseRequesterProfile === 'function')[0];
 
 beforeEach(() => {
-  jest.clearAllMocks(); mockFocused = true; mockSafety = undefined;
+  jest.clearAllMocks(); mockFocused = true; mockSafety = undefined; mockTrust = null;
   mockLoad.mockReset().mockResolvedValue(detail());
   mockRelations.mockReset().mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids));
   mockProfile.mockReset().mockResolvedValue(null);
@@ -77,8 +81,10 @@ describe('the poster without a photo', () => {
     mockProfile.mockResolvedValue({ profilId: 'requester-a', ime: 'Ana Anić', grad: null, naslov: null, poverenje: null, biografija: null });
     await act(async () => { presentation().props.onRequesterProfile(); });
     await act(async () => { await Promise.resolve(); });
-    expect(photos(96)).toHaveLength(1);
-    expect(photos(96)[0].props).toMatchObject({ profileId: 'requester-a', initial: null, fallback: undefined });
+    // (Its size is the sheet's own choice, not the row's 56: the sheet's suite holds the number.)
+    const portraits = tree!.root.findAll(node => node.type === ('ProfilePhoto' as React.ElementType) && node.props.size !== 56);
+    expect(portraits).toHaveLength(1);
+    expect(portraits[0].props).toMatchObject({ profileId: 'requester-a', initial: null, fallback: undefined });
   });
 
   it('draws a person, not invented letters, when the poster has no name', async () => {
@@ -96,6 +102,33 @@ describe('the poster without a photo', () => {
     await act(async () => { await Promise.resolve(); });
     expect(presentation().props).toMatchObject({ stale: true, error: true, missing: true });
     expect(photos(56)[0].props.fallback.props).toEqual({ size: 56, initials: 'AA' });
+  });
+});
+
+// "Dolazi kako je dogovoreno" (the owner's pick of 8 Oct 2026): the server's own percentage for the poster, read beside the task, handed to the page only as a percentage.
+// A person with too few Dogovori, a hidden figure (the default today), an answer of nothing and a read that has not come back are all nothing, and nothing is made up.
+describe('how reliably the poster comes as agreed', () => {
+  const trust = (patch: Record<string, unknown> = {}) => ({ profileId: 'requester-a', self: false, visibility: 'PUBLIC', completedCount: 14, agreedCount: 16, reliabilityPercent: 88,
+    reliabilityState: 'AVAILABLE', reliabilityMinimum: 5, memberSince: '2026-03-01', ...patch });
+  const percent = () => presentation().props.reliabilityPercent;
+
+  it('is read for the poster of a task that has been read, and handed to the page as the percentage the server gave', async () => {
+    mockTrust = trust();
+    await render();
+    expect(percent()).toBe(88);
+    expect(mockTrustAsked).toHaveBeenCalledWith('requester-a');
+    // Nothing is asked for before the task is there: the read is for the person who posted it.
+    expect(mockTrustAsked.mock.calls.some(([profileId]) => profileId === null)).toBe(true);
+  });
+
+  it.each([
+    ['too few Dogovori', trust({ reliabilityState: 'TOO_FEW', reliabilityPercent: null })],
+    ['a hidden figure, the default today', trust({ visibility: 'OWN_ONLY', agreedCount: null, reliabilityState: 'HIDDEN', reliabilityPercent: null, memberSince: null })],
+    ['an answer of nothing, or a read that failed or has not come back', null],
+  ])('says nothing for %s', async (_name, answer) => {
+    mockTrust = answer;
+    await render();
+    expect(percent()).toBeNull();
   });
 });
 

@@ -23,7 +23,7 @@ import type { TaskFitContext } from './detail/taskFit';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { CardStatus } from './TaskFace';
 import { TaskDecisionFacts, TaskDecisionPrice, TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle,
-  publisherRatingLine } from './detail/TaskDecision';
+  applyActionLabel } from './detail/TaskDecision';
 
 /**
  * Why a person cannot apply to a task they could otherwise apply to, in one short line, from the facts the screen
@@ -50,11 +50,13 @@ export type { TaskFitContext };
  * amount, where, when and how many, then what the work is, what it asks, what was asked about it, who posted it and where it is, parted by
  * space and never by a line. The same facts in the same words as its card in the list and on the map.
  * The name comes into the bar once the large title has scrolled away; sharing it and reporting the person who posted it wait behind the bar's
- * "···". The one action, chosen by what I am to this task, stays at the foot, with the reason above it when it cannot be pressed.
+ * "···". The one action, chosen by what I am to this task, stays at the foot alone (no amount and no time beside it: both are above, in the
+ * page), with the reason above it when it cannot be pressed. When I can apply it is "Pošalji prijavu" for a task with a fixed price and
+ * "Pošalji ponudu" for one with none (owner, 8 Oct 2026); either opens the form of the application, it sends nothing.
  * Presentation only; the route owns reads, deadline and guards.
  */
 export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
-  onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety, deadlinePassed = false, onOtherTasks, onShare, fit }: {
+  onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety, deadlinePassed = false, onOtherTasks, onShare, fit, reliabilityPercent }: {
   need: PrilikaProjekcija | null; loading: boolean; error: boolean; missing: boolean; stale: boolean; busy: boolean;
   canApply: boolean; canRetry: boolean; back: () => void; retry: () => void; apply: () => void;
   /** What this account is to this task, from its own tasks and applications. Never from an app mode. */
@@ -76,6 +78,8 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   onShare?: () => void;
   /** R25: the worker's overlap and distance, when the route could read them. */
   fit?: TaskFitContext;
+  /** "Dolazi kako je dogovoreno": the server's percentage for the person who posted it (the public work-trust read), only when the server says it; nothing is drawn without it. */
+  reliabilityPercent?: number | null;
 }) {
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const ready = !!need && !loading && !error && !missing;
@@ -88,7 +92,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   const scrollTitle = useDetailScrollTitle();
   const urgencyNow = useUrgencyClock([need?.urgency]);
   // Sharing and reporting are rare, so they wait behind "···". My own task has nobody to report. The row names
-  // the person: on a screen whose action is "Sastavi prijavu", a bare "Prijavi" reads as "apply" (review of step 5b).
+  // the person: on a screen whose action is "Pošalji prijavu", a bare "Prijavi" reads as "apply" (review of step 5b).
   const rare: SheetAction[] = [
     ...(ready && onShare ? [{ key: 'share', label: 'Podeli', icon: 'send' as const, hint: 'Otvara deljenje sa naslovom i mestom zadatka, bez adrese.', onPress: onShare }] : []),
     ...(ready && safety && relation.kind !== 'OWNER' ? [{ key: 'safety', label: 'Prijavi ili blokiraj osobu', icon: 'shield' as const,
@@ -109,7 +113,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           <V2Action label="Proveri ponovo" onPress={retry} disabled={busy || !canRetry} /></FlowFooter>
         : canApply
           ? <FlowFooter reason={deadline ? `Prijave do ${deadline}` : undefined}>
-            <ProductFooterAction label="Sastavi prijavu" onPress={apply} disabled={busy} /></FlowFooter>
+            <ProductFooterAction label={applyActionLabel(!!price?.isAmount)} onPress={apply} disabled={busy} /></FlowFooter>
           // Not the brand action: nothing here can be done about it, so the foot is one grey sentence of state (never an empty bar) and the way on.
           : <FlowFooter reason={applyClosedReason(need!, deadlinePassed)}>
             {onOtherTasks ? <V2Action label="Drugi zadaci" kind="quiet" disabled={busy} onPress={onOtherTasks} /> : null}
@@ -144,16 +148,17 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
               value={`Oko ${Math.max(1, Math.round(fit.distanceKm))} km od tvog područja rada`} /> : null}
           </View>
         </View>
+        {/* Who asks stands right under what, where and when (the owner's pick of 8 Oct 2026, "Objavio kao kartica poverenja"): the one record of the page.
+            A missing rating stays explicitly missing. */}
+        <TaskDecisionPublisher name={need.narucilacIme || 'Ime trenutno nije dostupno'} rating={need.narucilacOcena} count={need.narucilacBrojOcena}
+          reliabilityPercent={reliabilityPercent} initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy}
+          // The profile sheet announces its own reporting errors; avoid announcing the same error behind it.
+          error={safety?.error && !requesterProfile ? safety.error : null} />
         {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
         <TaskDecisionRequirements rows={needRequirementRows(need)} />
         {/* What was asked about the work, and what its owner answered, is read with the work (owner, 2026-10-07: it was a
             link at the very end, and nobody who read the task saw it). The route builds the section: it owns the reads. */}
         {ready && !stale && qa ? qa : null}
-        {/* Trust follows an understanding of the work. A missing rating stays explicitly missing. */}
-        <TaskDecisionPublisher name={need.narucilacIme || 'Ime trenutno nije dostupno'} rating={publisherRatingLine(need.narucilacOcena, need.narucilacBrojOcena)}
-          initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy}
-          // The profile sheet announces its own reporting errors; avoid announcing the same error behind it.
-          error={safety?.error && !requesterProfile ? safety.error : null} />
         {/* The place is one section: the approximate pin, what is private, and the stops of a route. It used
             to be said three times — a fact, a map and a "Mesto izvršenja" row that opened into the same words. */}
         {!remote && (map || route.length) ? <Section title="Mesto">

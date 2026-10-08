@@ -6,6 +6,11 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
  * comment client was written (its snapshot is the structure of the then-current screen, without styles), and it must pass
  * unchanged after it: a build without EXPO_PUBLIC_D12_REVIEW_COMMENT renders this tree, calls the legacy review pair only,
  * and draws no field, no row, no wrapper and no extra scroll behaviour.
+ *
+ * RE-RECORDED on 8 Oct 2026, on purpose: the owner picked a new look for the rating ("Zvezde kao nalepnice": the person's face over the
+ * stars, the stars as 48 dp stickers) and for the saved rating ("Pilula pada, sjaj": the pill "Ocenjeno" and the glow). That changed the
+ * structure of the screen by design, in every flag state alike; what this file keeps guarding is unchanged: with the flag off the
+ * screen has no comment field, no extra row, no wrapper of the comment and no extra scroll behaviour.
  */
 // A cold module graph under a loaded machine can take longer than the default five seconds; the snapshot is what is judged here, not the speed.
 jest.setTimeout(60_000);
@@ -38,6 +43,10 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));
+// The sticker stars, their glow and the pill "Ocenjeno" are drawn by their own components (the owner's picks of 8 Oct 2026): named elements
+// here too, so the snapshot stays the structure of the rating screen and a change to a drawing or a motion does not move it.
+jest.mock('../../ui/reviews/RatingStar', () => ({ RatingStar: 'RatingStar', StarGlow: 'StarGlow', STARS_WIDTH: 272, STAR_SLOT: 48 }));
+jest.mock('../../ui/system/Pecat', () => ({ Pecat: 'Pecat', PECAT_FALL_MS: 140 }));
 jest.mock('../reviewsClientService', () => ({
   ...jest.requireActual('../reviewsClientService'),
   reviewsClientService: { context: (...args: unknown[]) => mockContext(...args), submit: (...args: unknown[]) => mockSubmit(...args), reputation: jest.fn() },

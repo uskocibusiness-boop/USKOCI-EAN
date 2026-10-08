@@ -172,9 +172,12 @@ export function scheduleConfirmed(schedule: NeedScheduleProjection | undefined):
  * when, the requirement, the places, the person and what comes next. It is the order the card is drawn in, except that
  * HITNO, drawn after the status on the first line, is said before it. Empty parts are left out.
  */
-export function taskSpoken(parts: { status?: string | null; urgent?: boolean; value: TaskValue; place: string; schedule: string;
+export function taskSpoken(parts: { status?: string | null; urgent?: boolean; value: TaskValue;
+  /** The face draws no word for the amount (the owner, 8 Oct 2026), so it is the face that says what it is: "Budžet 6.000 RSD ukupno". */
+  budget?: boolean; place: string; schedule: string;
   requirement?: TaskRequirement | null; places?: string | null; person?: string | null; next?: string | null }): string {
-  return [parts.urgent ? 'HITNO' : null, parts.status, valueSpoken(parts.value), parts.place, parts.schedule, parts.requirement?.spoken,
+  const value = parts.budget && parts.value.kind === 'amount' ? `Budžet ${valueSpoken(parts.value)}` : valueSpoken(parts.value);
+  return [parts.urgent ? 'HITNO' : null, parts.status, value, parts.place, parts.schedule, parts.requirement?.spoken,
     parts.places, parts.person, parts.next].filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join(', ');
 }
 

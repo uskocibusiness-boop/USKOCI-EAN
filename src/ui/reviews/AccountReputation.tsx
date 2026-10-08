@@ -1,17 +1,11 @@
 import { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { accountReputationLabel, reviewsClientService, type AccountReputation as Reputation } from '../../data/reviewsClientService';
+import { reviewsClientService, type AccountReputation as Reputation } from '../../data/reviewsClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { Press } from '../Press';
-import { T } from '../Text';
-import { layout } from '../system/layout';
-import { sys } from '../system/tokens';
-import { FactArt } from '../system/FactArt';
-import { Glyph } from '../system/Glyph';
+import { FigureCell, FigureCellError, FigureCellPlaceholder, NEW_RATING, ratingFigure } from '../profile/ProfileFigures';
 
 /**
  * Only a real aggregate is drawn: anything without a numeric count (a read that is not this one) draws nothing, and a
- * count of reviews without a numeric average draws nothing either, because its label would read "undefined · 3 ocene".
+ * count of reviews without a numeric average draws nothing either, because its figure would read "undefined".
  */
 const isReputation = (value: unknown): value is Reputation => {
   if (!value || typeof value !== 'object') return false;
@@ -22,14 +16,13 @@ const isReputation = (value: unknown): value is Reputation => {
 /**
  * One account reputation in both intents; an unavailable read is not zero reviews.
  *
- * T4a, 2026-10-07: the line is a way in. With `onOpen` it is a row that opens "Ocene" (the ratings the person received and gave);
- * the written comments of D12 live there too, no longer under the rating on the profile. Without `onOpen` it is the line alone.
+ * The first of the three figures of a profile (8 Oct 2026, "Lice i tri broja"): the cell is drawn inside the profile's row of figures
+ * and takes its own share of it. With `onOpen` it is a way in: it opens "Ocene" (the ratings the person received and gave; the written
+ * comments of D12 live there too), the only door to that screen. Without `onOpen` it is the figure alone.
  */
-export function AccountReputation({ accountId, onOpen, centered = false }: {
+export function AccountReputation({ accountId, onOpen }: {
   accountId: string;
-  /** Center only the rating summary in an identity passport. */
-  centered?: boolean;
-  /** Opens the ratings. Absent: the line is only a line. */
+  /** Opens the ratings. Absent: the figure is only a figure. */
   onOpen?: () => void;
 }) {
   const load = useCallback(async () => {
@@ -38,48 +31,20 @@ export function AccountReputation({ accountId, onOpen, centered = false }: {
     return result.podatak;
   }, [accountId]);
   const reputation = useFocusedResource(load);
-  return <View style={centered ? s.centered : undefined}><ReputationLine state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
-    onRetry={() => { void reputation.refresh(); }} onOpen={onOpen} /></View>;
+  return <ReputationFigure state={reputation.loading ? 'loading' : reputation.error ? 'error' : reputation.data}
+    onRetry={() => { void reputation.refresh(); }} onOpen={onOpen} />;
 }
 
 /**
- * The reputation as one line under the name in the profile's identity column (2026-09-24). While it reads: a still bar where
- * the line will be (no spinner, nothing moves). With reviews: the star and "4,8 · 12 ocena". With none: "Još nema ocena" and
- * no star. When the read fails: one 48 dp row that says so and offers "Osveži" in the same line, instead of a full-width button
- * under the name. Anything else draws nothing, never "undefined". With `onOpen` a line that has an answer (ratings or none) is
- * a 48 dp button that says where it goes ("Otvara ocene.") and ends in the quiet arrow every row onward ends in.
+ * The rating as a figure (a cell of the profile's row). While it reads: the shape of it, standing still (no spinner, nothing moves).
+ * With reviews: the flat star, "4,8" and "12 ocena" under it. With none: the words "Nova ocena" and "još nema ocena", never a zero
+ * average and never a star. When the read fails: one short line and "Osveži" in the same place. Anything else draws nothing, never
+ * "undefined". With `onOpen` an answer (ratings or none) is a way in that says where it goes ("Otvara ocene.") and ends in the arrow.
  */
-export function ReputationLine({ state, onRetry, onOpen }: { state: 'loading' | 'error' | unknown; onRetry: () => void; onOpen?: () => void }) {
-  if (state === 'loading') return <View accessibilityRole="progressbar" accessibilityLabel="Učitavanje reputacije" style={s.bar} />;
-  if (state === 'error') return <Press accessibilityRole="button" accessibilityLabel="Osveži ocene" accessibilityHint="Ocene trenutno nisu dostupne."
-    haptic="select" scaleTo={0.99} onPress={onRetry} style={s.retry}>
-    <T variant="note" tone="muted" style={s.shrink}>Ocene trenutno nisu dostupne.</T>
-    <T variant="note" style={s.action}>Osveži</T>
-  </Press>;
+export function ReputationFigure({ state, onRetry, onOpen }: { state: 'loading' | 'error' | unknown; onRetry: () => void; onOpen?: () => void }) {
+  if (state === 'loading') return <FigureCellPlaceholder label="Učitavanje reputacije" />;
+  if (state === 'error') return <FigureCellError message="Ocene trenutno nisu dostupne." retryLabel="Osveži ocene" onRetry={onRetry} />;
   if (!isReputation(state)) return null;
-  const none = state.reviewCount === 0, label = accountReputationLabel(state);
-  const words = none ? <T variant="note" tone="muted">{label}</T>
-    : <View style={s.line}><FactArt kind="star" size={16} /><T variant="note" style={s.value}>{label}</T></View>;
-  if (!onOpen) return words;
-  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Otvara ocene." haptic="select"
-    scaleTo={sys.motion.scale.row} onPress={onOpen} hitSlop={OPEN_REACH} style={s.open}>
-    {words}
-    <Glyph name="caret-right" size={16} tone="muted" />
-  </Press>;
+  const figure = state.reviewCount === 0 || state.averageRating === null ? NEW_RATING : ratingFigure(state.averageRating, state.reviewCount);
+  return <FigureCell testID="reputation-figure" figure={onOpen ? { ...figure, hint: 'Otvara ocene.' } : figure} onPress={onOpen} />;
 }
-
-/** The line is as tall as its words (20, the `note` line); the finger reaches the 48 dp of a touch all the same, 14 above and under it. */
-const NOTE_LINE = 20;
-const OPEN_REACH = { top: (layout.touch - NOTE_LINE) / 2, bottom: (layout.touch - NOTE_LINE) / 2, left: sys.space.sm, right: sys.space.sm };
-
-const s = StyleSheet.create({
-  centered: { alignItems: 'center', maxWidth: '100%' },
-  bar: { width: 112, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: sys.space.xs },
-  retry: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: sys.space.sm, alignSelf: 'flex-start' },
-  // The words of the rating stand on the profile's edge, under the city, like every line of the identity.
-  open: { minHeight: NOTE_LINE, flexDirection: 'row', alignItems: 'center', columnGap: sys.space.xs },
-  shrink: { flexShrink: 1 },
-  action: { color: sys.color.green, fontWeight: '600' },
-  line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  value: { color: sys.color.ink, fontWeight: '600' },
-});

@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockTask = jest.fn(), mockNeed = jest.fn(), mockProfile = jest.fn(), mockSubmit = jest.fn(), mockSelect = jest.fn(), mockCandidates = jest.fn(), mockApplications = jest.fn(), mockPublic = jest.fn();
-const mockViewed = jest.fn();
+const mockViewed = jest.fn(), mockOwnRead = jest.fn();
 const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mockProfile, podnesiPrijavu: mockSubmit,
   izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockLinkQuery = jest.fn();
@@ -32,6 +32,8 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource}));
+// Your own identity, read by the same service the header's avatar uses (the faces of "Dogovoreno!").
+jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read: (...args: unknown[]) => mockOwnRead(...args) } }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
@@ -48,7 +50,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
 import { sys } from '../../ui/system/tokens';
+import { Avatar } from '../../ui/system/Avatar';
+import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { SuccessMark } from '../../ui/system/SuccessMark';
+import { DogovorenoMoment } from '../../ui/v2/DogovorenoMoment';
 const need = () => ({ id: mockId, revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sept · 10–11h',
   stanje: 'CEKA_PRIJAVE', pokrivenost: { ukupno: 3, preostalo: 3, popunjeno: 0 }, rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade',
   schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-20T08:00:00.123456Z', endsAt: '2026-09-20T09:00:00.654321Z' } });
@@ -80,6 +85,7 @@ beforeEach(() => {
   mockLinkQuery.mockResolvedValue({ data: null, error: null });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
   mockViewed.mockResolvedValue({ ok: true, podatak: null });
+  mockOwnRead.mockReset(); mockOwnRead.mockResolvedValue(null);
   mockStorage.clear();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
@@ -230,27 +236,28 @@ it('shows safe unconfirmed view status and repeats only on another explicit exac
 });
 // Plan 2.12 (owner 2026-10-07): the requester sees the same five states on each application as the worker does. The candidate read merges
 // SUBMITTED, VIEWED and SHORTLISTED and carries no viewed flag, so "Viđena" is claimed only for an application whose view mark the SERVER
-// confirmed on this phone; until then, and where the mark failed, it is "Poslata", which is still true.
+// confirmed on this phone; until then, and where the mark failed, it is "Poslata", which is still true. ("Ponude preko stola", 2026-10-08: the
+// card of the list does not repeat "Poslata", since every application of the list was sent; the offer sheet, where the person decides, says it.)
 it('says "Viđena" for an application only after the server confirmed that it was opened, on the list under the sheet and on the sheet', async () => {
   const chips = () => tree!.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel);
   const d = deferred(); mockViewed.mockReturnValueOnce(d.promise);
   mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: agreement, ime: 'Ana' }]);
   await render(Candidates);
-  expect(chips()).toEqual(['Poslata', 'Poslata']);
+  expect(chips()).toEqual([]);
   await tap('Pogledaj prijavu: Milan');
-  // The mark is on its way: nothing is claimed yet, by the card or by the sheet that opened.
-  expect(chips()).toEqual(['Poslata', 'Poslata', 'Poslata']);
+  // The mark is on its way: nothing is claimed yet, by the card or by the sheet that opened (the sheet says the plain state).
+  expect(chips()).toEqual(['Poslata']);
   await act(async () => d.resolve({ ok: true, podatak: null }));
-  // Milan's card and the sheet say it; Ana, never opened, is still "Poslata".
-  expect(chips()).toEqual(['Viđena', 'Poslata', 'Viđena']);
-  await closeOffer(); expect(chips()).toEqual(['Viđena', 'Poslata']);
+  // Milan's card and the sheet say it; Ana, never opened, wears no chip.
+  expect(chips()).toEqual(['Viđena', 'Viđena']);
+  await closeOffer(); expect(chips()).toEqual(['Viđena']);
 });
 it('does not claim "Viđena" where the mark failed, and says it on the next opening that the server confirms', async () => {
   const chips = () => tree!.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel);
   mockViewed.mockRejectedValueOnce(new Error('PRIVATE_SQL_DETAILS'));
   await render(Candidates); await tap('Pogledaj prijavu: Milan');
-  expect(chips()).toEqual(['Poslata', 'Poslata']); expect(text()).toContain('nismo zabeležili da je pogledana');
-  await closeOffer(); expect(chips()).toEqual(['Poslata']);
+  expect(chips()).toEqual(['Poslata']); expect(text()).toContain('nismo zabeležili da je pogledana');
+  await closeOffer(); expect(chips()).toEqual([]);
   await tap('Pogledaj prijavu: Milan');
   expect(chips()).toEqual(['Viđena', 'Viđena']); expect(text()).not.toContain('nismo zabeležili da je pogledana');
 });
@@ -368,16 +375,69 @@ it('shows the offer without skill labels, then confirms once and opens the exact
   expect(text()).toContain('Izabrati ovu prijavu?'); const choose = confirmChoice();
   await act(async () => { choose(); choose(); }); expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, prijavaVerzija: 2, prijavaHash: k().hash, mesta: 2 });
-  const confirmation = tree!.root.findAll(node => String(node.type) === 'T' && node.props.children === 'Dogovor je sklopljen.');
-  const marks = tree!.root.findAll(node => node.type === SuccessMark);
-  expect(confirmation).toHaveLength(1); expect(marks).toHaveLength(1); expect(marks[0].props.fresh).toBe(true);
-  const footer = tree!.root.findByProps({ testID: 'product-sheet-footer' });
-  expect(footer.findAll(node => node.type === SuccessMark)).toEqual(marks);
-  expect(footer.findAll(node => (String(node.type) === 'T' && node.props.children === 'Dogovor je sklopljen.')
-    || (String(node.type) === 'Press' && node.props.accessibilityLabel === 'Otvori Dogovor'))
-    .map(node => node.props.accessibilityLabel ?? node.props.children)).toEqual(['Dogovor je sklopljen.', 'Otvori Dogovor']);
+  // "Dogovoreno!" (owner's pick of 2026-10-08): the sheet gives way to a whole screen that ends in the one green way on; it was made while the
+  // sheet was open, so it is fresh (the faces meet and the tick plays).
+  const moments = tree!.root.findAll(node => node.type === DogovorenoMoment);
+  expect(moments).toHaveLength(1); expect(moments[0].props.fresh).toBe(true);
+  expect(tree!.root.findAll(node => node.props.testID === 'product-sheet-footer')).toHaveLength(0);
+  expect(text()).toContain('Dogovoreno!'); expect(text()).toContain('Ti i Milan'); expect(text()).toContain('Unos ormara'); expect(text()).not.toContain('Dogovor je sklopljen.');
+  expect(tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Otvori Dogovor')).toHaveLength(1);
   expect(mockRouter.replace).not.toHaveBeenCalled();
   await tap('Otvori Dogovor'); expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: agreement } });
+});
+// "Dogovoreno!" draws YOU and the chosen person (owner's pick of 2026-10-08, "Susret dva lica"), from the sources the app already has and from nowhere else: your own
+// profile (the requester identity first, the work identity only when there is no requester one; the same path the header's own avatar takes), read only while an offer is
+// open, and the chosen person's photo, else the letters their application already carries. Never a drawn figure where a real face is known, and never letters that belong to
+// nobody where it is not.
+describe('the faces of "Dogovoreno!"', () => {
+  const OWN = { accountId: 'owner-a', profileId: '10000000-0000-4000-8000-0000000000aa', kind: 'REQUESTER', ime: 'Marija Ilić', grad: null, stanje: null };
+  const moment = () => tree!.root.findAll(node => node.type === DogovorenoMoment)[0].props as { youFace: React.ReactElement<any>; themFace: React.ReactElement<any>; people: string };
+  const choose = async () => { await selection(); await tapConfirm(); };
+  it('reads your own identity only while an offer is open, the requester identity first', async () => {
+    mockOwnRead.mockResolvedValue(OWN);
+    await render(Candidates);
+    expect(mockOwnRead).not.toHaveBeenCalled();
+    await tap('Pogledaj prijavu: Milan');
+    expect(mockOwnRead.mock.calls).toEqual([['owner-a', 'narucilac']]);
+  });
+  it('draws your own photo and the letters of your own name beside theirs at 72, and theirs: their photo, else their letters', async () => {
+    mockOwnRead.mockResolvedValue(OWN);
+    await choose();
+    const { youFace, themFace } = moment();
+    expect(youFace.type).toBe(ProfilePhoto);
+    expect(youFace.props).toMatchObject({ profileId: OWN.profileId, size: 72 });
+    expect(youFace.props.fallback.type).toBe(Avatar); expect(youFace.props.fallback.props).toMatchObject({ initials: 'MI', size: 72 });
+    expect(themFace.type).toBe(ProfilePhoto);
+    expect(themFace.props).toMatchObject({ profileId: k().radnikProfilId, size: 72 });
+    expect(themFace.props.fallback.type).toBe(Avatar); expect(themFace.props.fallback.props).toMatchObject({ initials: 'M', size: 72 });
+    expect(moment().people).toBe('Ti i Milan');
+    // The faces are the real ones: no drawn person stands in for either.
+    expect(tree!.root.findAll(node => node.type === Avatar && node.props.initials === null && node.props.size === 72)).toHaveLength(0);
+  });
+  it('takes the work identity only when the account has no requester identity, and says so by asking for it second', async () => {
+    mockOwnRead.mockImplementation(async (_account: string, intent: string) => intent === 'narucilac' ? null
+      : { ...OWN, kind: 'WORKER', profileId: '10000000-0000-4000-8000-0000000000bb', ime: 'Marija I' });
+    await choose();
+    expect(mockOwnRead.mock.calls).toEqual([['owner-a', 'narucilac'], ['owner-a', 'uskocer']]);
+    expect(moment().youFace.props).toMatchObject({ profileId: '10000000-0000-4000-8000-0000000000bb', size: 72 });
+    expect(moment().youFace.props.fallback.props.initials).toBe('MI');
+  });
+  it('draws the person for you, and only that, when there is no name to take letters from, when the read fails and when there is no identity at all', async () => {
+    // A photo's profile with no name: the photo if it can be read, otherwise the drawn person (the letters are never invented).
+    mockOwnRead.mockResolvedValue({ ...OWN, ime: null });
+    await choose();
+    expect(moment().youFace.props.fallback.props.initials).toBeNull();
+    await act(async () => tree!.unmount());
+    // A read that fails is no identity: the moment still comes, with the drawn person for you and their face for theirs.
+    mockOwnRead.mockRejectedValue(new Error('OWN_PROFILE_READ_FAILED'));
+    await choose();
+    expect(moment().youFace.type).toBe(Avatar); expect(moment().youFace.props).toMatchObject({ initials: null, size: 72 });
+    expect(moment().themFace.type).toBe(ProfilePhoto);
+    await act(async () => tree!.unmount());
+    mockOwnRead.mockResolvedValue(null);
+    await choose();
+    expect(moment().youFace.type).toBe(Avatar); expect(moment().youFace.props).toMatchObject({ initials: null, size: 72 });
+  });
 });
 // Step 7 (2026-09-24): the offer's one green action asks first, in the app's own confirmation, with the words that always
 // stood before this choice; only its confirm runs the route's choose, whose guards are unchanged.
@@ -398,7 +458,7 @@ it('choose reaches its confirmation with the exact words; a cancel sends nothing
   expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toEqual({ potrebaId: mockId, potrebaRevizija: 3, prijavaId: k().prijavaId, prijavaVerzija: 2,
     prijavaHash: k().hash, mesta: 2, clientRequestId: expect.any(String) });
-  expect(text()).toContain('Dogovor je sklopljen.'); expect(brand()).toEqual(['Otvori Dogovor']);
+  expect(text()).toContain('Dogovoreno!'); expect(brand()).toEqual(['Otvori Dogovor']);
 });
 it('a question retained across a fresh read is retired and cannot choose; while the choice runs nothing closes the offer or sends twice', async () => {
   await selection(); const retained = confirmChoice();
@@ -731,14 +791,24 @@ describe('the composer as a checkout step', () => {
     await act(async () => { go(); go(); });
     expect(mockRouter.replace.mock.calls).toEqual([['/zadaci']]); expect(mockSubmit).not.toHaveBeenCalled();
   });
-  it('after the send, the fields give way to the success mark and the facts of what was sent, with its currency', async () => {
+  // "Etiketa odlazi" (owner's pick of 2026-10-08): the sent application is a price tag that goes, a small row "Poslata · 4.500 RSD ukupno" in its place, the
+  // sentence, the receipt of what was sent as a panel of rows, and the way on right under it (no pinned foot).
+  it('after the send, the fields give way to the sent row and the receipt of what was sent, with its currency', async () => {
     await offer(); await sendOffer();
-    expect(text()).toContain('Prijava je poslata.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(1);
-    expect(tree!.root.findAll(node => node.type === SuccessMark)[0].props.fresh).toBe(true);
+    expect(text()).toContain('Prijava je poslata.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(0);
+    expect(tree!.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel)).toEqual(['Poslata']);
+    expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Poslata, 4.500 RSD ukupno')).not.toHaveLength(0);
+    expect(text()).toContain('Ako te izaberu, odmah nastaje Dogovor.');
     expect(text()).toContain('4.500 RSD'); expect(text()).toContain('2 osobe');
-    // The term is said once, as the application's own ("Termin" under the facts); the task's head says only how many people it asks for.
-    expect(text()).not.toContain('20. sept · 10–11h'); expect(text()).toContain('10:00–11:00'); expect(text()).toContain('Traži 3 osobe');
+    // The receipt: the task, the people, the term (said once, as the application's own) and the message, in that order, and no amount in it (the amount is the row above).
+    const receipt = tree!.root.findAll(node => node.props.testID === 'sent-receipt')[0];
+    const rows = receipt.findAll(node => String(node.type) === 'T' && node.props.variant === 'meta').map(node => node.props.children);
+    expect(rows).toEqual(['Zadatak', 'Ljudi', 'Termin', 'Poruka']);
+    expect(text()).not.toContain('20. sept · 10–11h'); expect(text()).toContain('10:00–11:00'); expect(text()).toContain('Unos ormara'); expect(text()).not.toContain('Traži 3 osobe');
     expect(tree!.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+    // One green way on and one quiet way back, under the receipt: the screen has no pinned foot any more.
     expect(press('Otvori moje prijave')).toBeDefined(); expect(press('Pregledaj prijavu')).toBeUndefined();
+    expect(tree!.root.findAll(node => node.props.testID === 'flow-footer')).toHaveLength(0);
+    expect(tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Nazad na zadatak')).toHaveLength(2);
   });
 });

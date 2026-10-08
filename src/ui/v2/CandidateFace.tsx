@@ -7,6 +7,7 @@ import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { Avatar, type AvatarSize } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
+import { FactRow } from '../system/FactRow';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { osoba } from '../system/plural';
@@ -17,25 +18,32 @@ import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { recordBody, recordFlush } from './offer/RecordParts';
-import { PRICE_NOT_STORED, PrijavaCard, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaModel, type PrijavaStatus } from './PrijavaCard';
+import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaModel, type PrijavaStatus } from './PrijavaCard';
 
 /**
- * The requester's side of the shared application card (owner's step 7, 2026-09-24; one object for both people since 2026-10-07, plan 2.12;
- * one `Surface record` since 2026-10-08, composition spec 4.7). An application is chosen as a PERSON first, so the card reads the way the
- * decision is made, and it is the SAME card the worker finds in "Moje prijave" (`PrijavaCard`):
+ * The requester's side of an application (owner's step 7, 2026-09-24; one `Surface record` since 2026-10-08, composition spec 4.7; "Ponude
+ * preko stola" since the owner's pick of 2026-10-08). An application is chosen as a PERSON first, and an offer is the person and the
+ * price together, so the card is ONE shape for every offer in the list, five rows a person can compare at a glance:
  *
- *   1. the state, as the app's one `StatusChip` (Poslata, Viđena, Izabrana, Nije izabrana, Povučena), and beside it the reason when
- *      an open application cannot simply be chosen;
- *   2. the person — the face (56: the one person on the card), the name and the rating with the count it stands on;
- *   3. the offer on ONE line ("4.500 RSD ukupno · 2 osobe"), the term only when the person proposed one (the task's own term is the same
- *      on every card of the list and is said once, above it), what the person has (a vehicle, a tool: "Ima: Kombi · Trake"), and their
- *      message, two lines of it, before opening the application to decide.
+ *   1. the person and the offer: the face (56), the name and the rating with the count it stands on, and the TOTAL on the right in
+ *      the same row ("4.500" large, "RSD ukupno" under it): the owner's note is that the price belongs beside the person it is the
+ *      price of. An amount nobody stored is words, never a figure ("Cena nije navedena");
+ *   2. the term, always: the exact time the person proposed ("Predlog: …") or else the task's own, which then applies;
+ *   3. how many people they bring, and what they have (a vehicle, a tool: "Ima: Kombi · Trake");
+ *   4. one MARK, a dot and a few words, for what can be told from the fields and from nothing else: why the application cannot be
+ *      chosen now (the server's own reasons), or, when the list is whole, that it is the lowest price or the best rating among the
+ *      applications that can still be chosen. No mark when nothing is true: never a "best", never a guess;
+ *   5. their message in quotes, two lines of it.
+ *
+ * The state chip (Poslata, Viđena, Izabrana, Nije izabrana, Povučena) is only drawn when it says something: every application of the
+ * list was sent, so "Poslata" is not repeated on each card, but "Viđena" (the server confirmed that this phone opened it), a chosen
+ * one and one that is over are always said. The card is ONE press that opens the application and is heard once, as the person
+ * and everything the card shows.
  *
  * Nothing here invents a rating, a count, a time or a state: a missing rating says it is missing, a count is the server's own
- * words, an amount without figures is never dressed as money ("Cena nije navedena"), and "Viđena" is said only for an application the
- * server confirmed as seen on this phone (the candidate read merges SUBMITTED, VIEWED and SHORTLISTED into one SELECTABLE and carries no
- * viewed flag; until it does, an application opened earlier reads "Poslata" again after a restart, which is still true).
- * The card is ONE press that opens the application and is heard once, as the person and everything the card shows.
+ * words, and "Viđena" is said only for an application the server confirmed as seen on this phone (the candidate read merges SUBMITTED,
+ * VIEWED and SHORTLISTED into one SELECTABLE and carries no viewed flag; until it does, an application opened earlier reads as
+ * a plain one again after a restart, which is still true).
  *
  * Pure helpers first (tested on their own), then the parts the list, the comparison and the offer are built from.
  */
@@ -70,6 +78,12 @@ export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMest
   // An amount never loses its currency: a figure written without one gets the offer's own.
   const amount = /[A-Za-z]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
   return { kind: 'amount', amount, basis: 'ukupno' };
+}
+
+/** An amount as it is written, in its figure and its currency ("4.500 RSD" → "4.500", "RSD"): the figure carries the card's right side, the currency is a quiet word. */
+export function splitAmount(amount: string): [string, string] {
+  const at = amount.lastIndexOf(' ');
+  return at > 0 ? [amount.slice(0, at), amount.slice(at + 1)] : [amount, ''];
 }
 
 /**
@@ -136,7 +150,11 @@ export function messagePreview(message: string): { text: string; cut: boolean } 
   return { text, cut: text.length < message.length };
 }
 
-/** The shared card's model for an application seen by the requester: nothing here that the read did not carry. */
+/**
+ * The shared card's model for an application seen by the requester: nothing here that the read did not carry. The requester's list no longer
+ * draws it ("Ponude preko stola": `CandidateCard` draws its own five rows, with the term always on it); the function stays only as the shared
+ * model's description of what the read carries about an application (the same `PrijavaModel` the worker's card is built from), and is held by its test.
+ */
 export function requesterPrijava(k: KandidatProjekcija, context: { timezone?: string | null; taskTerm: string; viewed?: boolean; avatar: ReactNode }): PrijavaModel {
   const message = k.napomena?.trim();
   return { status: candidateChip(k, context.viewed), reason: candidateStatus(k),
@@ -148,9 +166,10 @@ export function requesterPrijava(k: KandidatProjekcija, context: { timezone?: st
 
 /**
  * Everything the card shows, as one sentence a screen reader hears after its name: the state, the rating, the term, the price, the
- * people, what the person has, a bounded preview of the message and, for an application that cannot be chosen, why.
+ * people, what the person has, a bounded preview of the message and, for an application that cannot be chosen, why. `measure` is the
+ * list's one comparative mark ("Najniža cena"), said last, as the card draws it.
  */
-export function candidateSpoken(k: KandidatProjekcija, taskTerm: string, timezone?: string | null, viewed = false): string {
+export function candidateSpoken(k: KandidatProjekcija, taskTerm: string, timezone?: string | null, viewed = false, measure?: string | null): string {
   const trust = candidateTrust(k), reason = candidateStatus(k), has = candidateHas(k);
   const message = k.napomena?.trim() ?? '';
   const preview = messagePreview(message);
@@ -158,7 +177,7 @@ export function candidateSpoken(k: KandidatProjekcija, taskTerm: string, timezon
   return [prijavaStatusWord(candidateChip(k, viewed)), `${trust.spoken.charAt(0).toLocaleUpperCase('sr-Latn-RS')}${trust.spoken.slice(1)}`,
     proposed ? `Predlog termina: ${proposed}` : `Termin: ${taskTerm}`, price.kind === 'amount' ? `Ponuda: ${price.amount} ${price.basis}` : UNPRICED, osoba(k.pokrivaMesta),
     has?.text ?? null,
-    message ? `Poruka: „${preview.text}${preview.cut ? '…' : ''}“. Otvori prijavu za celu poruku` : null, reason?.text.replace(/\.$/, '') ?? null]
+    message ? `Poruka: „${preview.text}${preview.cut ? '…' : ''}“. Otvori prijavu za celu poruku` : null, reason?.text.replace(/\.$/, '') ?? measure ?? null]
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join('. ').concat('.');
 }
 
@@ -184,28 +203,72 @@ export function CandidateTrustLine({ candidate, lines = 2 }: { candidate: Pick<K
 }
 const NBSP = ' ';
 
+/** The total of the offer, on the card's right: the figure large and the currency with what it buys under it, or the quiet words of an amount nobody stored. */
+function OfferedTotal({ value, stacked }: { value: CandidateValue; stacked: boolean }) {
+  if (value.kind !== 'amount') return <T variant="note" tone="muted" style={stacked ? undefined : s.unpriced}>{UNPRICED}</T>;
+  const [figure, currency] = splitAmount(value.amount);
+  return <View style={stacked ? s.totalStacked : s.total}>
+    <T variant="priceSmall" style={s.figure}>{figure}</T>
+    <T variant="meta" tone="muted" style={stacked ? undefined : s.currency}>{`${currency} ${value.basis}`.trim()}</T>
+  </View>;
+}
+
+/** The one mark of a card: a dot and a few words, green for a measured advantage, grey for a plain fact and warm for what blocks a choice. */
+export type CandidateMarkTone = 'green' | 'muted' | 'warn';
+function CandidateMark({ text, tone }: { text: string; tone: CandidateMarkTone }) {
+  return <View style={s.mark}>
+    <View style={[s.dot, tone === 'green' ? s.dotGreen : tone === 'warn' ? s.dotWarn : s.dotMuted]} />
+    <T variant="note" style={[s.markWords, tone === 'warn' && s.markWarn]}>{text}</T>
+  </View>;
+}
+
 /**
- * An application in the requester's list: ONE press that opens it, heard as the person and everything the card shows. The content
- * is the shared `PrijavaCard` (the same card the worker finds in "Moje prijave"); the frame is the one `Surface record`, leaving the
- * person and the offer to lead, and an application that was chosen keeps its semantic green edge. The frame gives under the finger as
- * ONE object (`usePressLift`, the row rung).
+ * An application in the requester's list: ONE press that opens it, heard as the person and everything the card shows ("Ponude preko
+ * stola": see the head of this file for the five rows). The frame is the one `Surface record`; an application that was chosen keeps
+ * its semantic green edge, and the frame gives under the finger as ONE object (`usePressLift`, the row rung). `measure` is the
+ * list's comparative mark for this application ("Najniža cena"), given only when the list is whole; a reason the server gives for
+ * an application that cannot be chosen takes its place. Large text and a narrow window stack the total under the person.
  */
-export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, large, narrow = false }: {
+export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, large, narrow = false, measure = null }: {
   candidate: KandidatProjekcija; timezone?: string | null;
   /** The task's own term: what applies when the person proposed none. */ fallbackTime: string;
   /** The server confirmed that this application was seen (see `candidateChip`). */ viewed?: boolean;
   onOpen: () => void; photo?: ReactNode;
-  /** The owner's large text: the price and its basis stack. */ large: boolean;
+  /** The owner's large text: the total stands under the person. */ large: boolean;
   /** A narrow phone uses the same stacked terms. */ narrow?: boolean;
+  /** "Najniža cena" or "Najviša ocena": what the whole list says about this application, or nothing. */ measure?: string | null;
 }) {
-  const model = requesterPrijava(k, { timezone, taskTerm: fallbackTime, viewed, avatar: <CandidateAvatar candidate={k} size={layout.slotFace} photo={photo} /> });
   const lift = usePressLift();
+  const chip = candidateChip(k, viewed), reason = candidateStatus(k), has = candidateHas(k), value = candidateValue(k);
+  const message = k.napomena?.trim() ?? '';
+  const stacked = large || narrow;
+  const mark: { text: string; tone: CandidateMarkTone } | null = reason ? { text: reason.text, tone: reason.tone }
+    : measure && k.stanje === 'SELECTABLE' ? { text: measure, tone: 'green' } : null;
+  const total = <OfferedTotal value={value} stacked={stacked} />;
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={[recordFlush, k.stanje === 'SELECTED' && s.chosen]}>
       <Press accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
-        accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
+        accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed, mark && !reason ? mark.text : null) }} accessibilityHint="Otvara celu prijavu."
         haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={recordBody}>
-        <PrijavaCard model={model} large={large || narrow} noteLines={2} trailing={<Glyph name="caret-right" size={20} tone="muted" />} />
+        {chip === 'application.sent' ? null : <PrijavaState status={chip} reason={null} silent />}
+        <View style={s.head}>
+          <CandidateAvatar candidate={k} size={layout.slotFace} photo={photo} />
+          <View style={s.identity}>
+            <T variant="bodyStrong" style={s.name}>{k.ime}</T>
+            <CandidateTrustLine candidate={k} />
+            {stacked ? total : null}
+          </View>
+          {stacked ? null : total}
+        </View>
+        <View>
+          <FactRow art="calendar" value={candidateTerm(k, timezone, fallbackTime)} />
+          <FactRow art="users" value={osoba(k.pokrivaMesta)} />
+          {has ? <FactRow art={has.art} value={has.text} /> : null}
+        </View>
+        {mark || message ? <View style={s.words}>
+          {mark ? <CandidateMark text={mark.text} tone={mark.tone} /> : null}
+          {message ? <T variant="note" tone="muted" numberOfLines={2}>{`„${message}“`}</T> : null}
+        </View> : null}
       </Press>
     </Surface>
   </Animated.View>;
@@ -289,6 +352,21 @@ export function CandidatePerson({ candidate: k, photo, onPress, disabled = false
 const s = StyleSheet.create({
   chosen: { borderColor: sys.color.green },
   identity: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  // The person and the offer in one row: the face, the name over the rating, and the total at the end (it keeps its width, the name gives).
+  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  name: { color: sys.color.ink },
+  total: { alignItems: 'flex-end', flexShrink: 0, maxWidth: '40%' },
+  totalStacked: { alignItems: 'flex-start' },
+  figure: { color: sys.color.money },
+  currency: { textAlign: 'right' },
+  unpriced: { textAlign: 'right', maxWidth: 110, flexShrink: 0 },
+  // The mark and the message are two lines of one thought, 4 apart.
+  words: { gap: sys.space.xs },
+  mark: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  dot: { width: sys.space.sm, height: sys.space.sm, borderRadius: sys.radius.pill },
+  dotGreen: { backgroundColor: sys.color.green }, dotMuted: { backgroundColor: sys.color.muted }, dotWarn: { backgroundColor: sys.color.orange },
+  markWords: { flexShrink: 1, fontWeight: '600', color: sys.color.ink },
+  markWarn: { color: sys.color.warn },
   trust: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   trustText: { flexShrink: 1, fontVariant: ['tabular-nums'] },
   // Two columns share a row of the list and stand level: each fills the height the taller one needs.

@@ -259,9 +259,11 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
         primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
       // The last loaded list always stays: an error with an empty page is the banner above, never "nothing here".
       : error ? null
-        : <StateView kind="empty" art="chat" title={EMPTY_TITLE[role ?? 'ALL']}
-            body={!role ? 'Nove prijave, poruke i važne promene stižu ovde — uz zadatak ili Dogovor na koji se odnose.' : undefined}
-            quiet={!role ? { label: 'Podesi obaveštenja', onPress: onSettings } : undefined} />;
+        // Nothing has come yet (no role chosen): the bell at the size of a door, with the one way to say what should come. A chosen role
+        // that has none yet is a view, and keeps the quiet 96 and no action.
+        : <StateView kind="empty" hero={!role} art="bell" title={EMPTY_TITLE[role ?? 'ALL']}
+            body={!role ? 'Nove prijave, poruke i važne promene stižu ovde.' : undefined}
+            primary={!role ? { label: 'Podesi obaveštenja', onPress: onSettings } : undefined} />;
 
   const footer = error === 'page' || page?.hasMore ? <View style={s.footer}>
     {error === 'page' ? <>

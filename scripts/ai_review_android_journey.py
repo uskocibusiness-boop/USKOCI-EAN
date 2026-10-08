@@ -399,16 +399,44 @@ def assert_requester_list():
     return root, parent
 
 
+# The way to the drafts. The older list has the tab "Nacrti" (a button, `selected` once it is open). Since "Papir na stolu" (the owner's pick of 2026-10-08)
+# "Moji zadaci" has the quiet row "Nacrti, 2 nacrta" under its groups ("Nacrti" alone while a filter is on): no tab and no `selected`; it opens the drafts in the
+# same screen, under a bar that says "Nacrti", and the row is gone then.
+DRAFTS_WAY = re.compile(r'Nacrti(?:, \d+ nacrt(?:a)?)?')
+
+
+def drafts_way(root, parent):
+    nodes = [node for node in root.iter() if DRAFTS_WAY.fullmatch(node.attrib.get('content-desc', ''))]
+    if len(nodes) != 1:
+        raise AssertionError('Expected one actual way to the drafts: the tab or the row Nacrti')
+    node = nodes[0]
+    if node.attrib.get('enabled') != 'true' or clickable_for(node, parent) is None:
+        raise AssertionError('Enabled control is not actionable: Nacrti')
+    return node
+
+
 def reveal_saved_draft(need_title):
-    # Active deliberately excludes DRAFT. Select the real Nacrti view, never
-    # infer absence or replace its filter/business model for the proof.
-    root, parent = assert_requester_list()
-    tab = assert_button(root, parent, 'Nacrti', True)
-    assert visible_node(tab, parent, *screen_size())
-    tap_node(tab, parent, hold_ms=120)
-    wait_visible(desc=f'Otvorite Zadatak {need_title}', timeout=60)
-    root, parent = assert_requester_list()
-    assert assert_button(root, parent, 'Nacrti', True).attrib.get('selected') == 'true'
+    # Active deliberately excludes DRAFT. Open the real drafts, never infer
+    # absence or replace its filter/business model for the proof. Either look of
+    # the list: the older one (the "Moji" button is selected under the title
+    # "Zadaci") or the one with its own bar "Moji zadaci". Returns the criteria
+    # that find the saved draft's card, in the words of the look that was met.
+    root, parent, _ = dump_tree()
+    older = any(node.attrib.get('content-desc') == 'Moji' for node in root.iter())
+    root, parent = assert_requester_list() if older else clean_surface('Moji zadaci')
+    way = drafts_way(root, parent)
+    assert visible_node(way, parent, *screen_size())
+    tap_node(way, parent, hold_ms=120)
+    card = {'desc': f'Otvorite Zadatak {need_title}'} if older else {'contains': f'Otvori zadatak {need_title}'}
+    wait_visible(timeout=60, **card)
+    if older:
+        root, parent = assert_requester_list()
+        assert assert_button(root, parent, 'Nacrti', True).attrib.get('selected') == 'true'
+    else:
+        # The bar says where the drafts are, and the row that led there is gone.
+        root, parent = clean_surface('Nacrti')
+        assert not any(DRAFTS_WAY.fullmatch(node.attrib.get('content-desc', '')) for node in root.iter()), 'The row Nacrti must be gone from the open drafts'
+    return card
 
 
 def initial_world_touch(bounds, density):
@@ -674,8 +702,8 @@ def marketplace_continue(fixture, need):
     # controls and the current signed-out Auth form before returning to owner.
     tap(desc='Zadaci', prefer='bottom'); core_profile(); tap(desc='Odjavite se')
     wait_visible(desc='Prijavite se', timeout=60); assert_signed_out_surface(form_open=True)
-    login(fixture['email'], form_open=True); reveal_saved_draft(need['title'])
-    tap(desc=f"Otvorite Zadatak {need['title']}")
+    login(fixture['email'], form_open=True); card = reveal_saved_draft(need['title'])
+    tap(**card)
     wait_visible(desc='Proveri za objavu'); capture('MARKETPLACE_draft_ready_for_evaluation', 'Zadatak')
     tap(desc='Proveri za objavu'); wait_visible(desc='Objavi Zadatak', timeout=60)
     before = fixture_command('observe', 'B06_ALLOW_BEFORE_PUBLISH')

@@ -4,16 +4,16 @@ import type { JavniProfilPoverenje, JavniProfilProjekcija } from '../../contract
 import type { PublicWorkTrust } from '../../data/workTrustClientService';
 import { inicijali } from '../../lib/inicijali';
 import { tidyPlaceLabel } from '../location/placeText';
-import { memberSincePhrase, publicTrustFacts, RELIABILITY_FEW, RELIABILITY_LABEL } from '../profile/workTrustModel';
+import { FigureCell, FigureRow, NEW_RATING, finishedFigure, ratingFigure, reliabilityFigure, type Figure } from '../profile/ProfileFigures';
+import { memberSincePhrase, publicTrustFacts } from '../profile/workTrustModel';
 import { ProductSheet } from '../product/ProductSheet';
 import { T } from '../Text';
+import { Avatar, FaceEdge } from './Avatar';
 import { FactArt } from './FactArt';
 import { FactRow } from './FactRow';
 import { layout } from './layout';
 import { ListRow } from './ListRow';
-import { plural, zadataka } from './plural';
 import { StateView } from './StateView';
-import { useLayoutClass } from './textScale';
 import { sys } from './tokens';
 
 export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null } | null;
@@ -32,20 +32,21 @@ export const SAFETY_LABEL = 'Prijavi ili blokiraj osobu';
  */
 export type PublicProfileTrust = PublicWorkTrust | null | undefined;
 
-/** A rating the Serbian way: "4,8", "5,0", and two decimals only when the average really has two. */
-const ratingText = (value: number) => value.toLocaleString('sr-Latn-RS', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
-/** How the rating of a person reads: a number with the count it stands on, "no ratings yet", or not available. */
-export type PublicRating = { kind: 'rated'; value: string; count: string | null } | { kind: 'none' } | { kind: 'unavailable' };
-export function publicRating(trust: JavniProfilPoverenje): PublicRating {
-  if (trust.recenzijeDostupne && trust.brojRecenzija === 0) return { kind: 'none' };
+/** The face of the sheet: 72, centred, with the sticker edge (8 Oct 2026, "Lice i tri broja"; the owner's own profile has the same shape at 96). */
+const FACE = 72;
+
+/**
+ * The rating of a person as a figure of the sheet: the average with the count it stands on, the words "Nova ocena" when the server says
+ * there are no reviews, and NOTHING when it says neither (the rating is not available): a figure the server did not return is not drawn.
+ */
+export function publicRatingFigure(trust: JavniProfilPoverenje): Figure | null {
+  if (trust.recenzijeDostupne && trust.brojRecenzija === 0) return NEW_RATING;
   if (trust.ocenaDostupna && typeof trust.ocenaProsek === 'number' && Number.isFinite(trust.ocenaProsek)) {
     const counted = trust.recenzijeDostupne && typeof trust.brojRecenzija === 'number' && trust.brojRecenzija > 0;
-    return { kind: 'rated', value: ratingText(trust.ocenaProsek), count: counted ? plural(trust.brojRecenzija as number, 'ocena', 'ocene', 'ocena') : null };
+    return ratingFigure(trust.ocenaProsek, counted ? trust.brojRecenzija as number : null);
   }
-  return { kind: 'unavailable' };
+  return null;
 }
-/** "Završeno 14 zadataka": the one phrase for what a person has finished, everywhere. Zero is said as zero. */
-export const finishedPhrase = (count: number) => `Završeno ${zadataka(count)}`;
 /** "Na USKOČI-ju od oktobra 2026", from an ISO date; anything that is not a date says nothing. */
 export const memberSinceFact = memberSincePhrase;
 
@@ -54,12 +55,14 @@ export const memberSinceFact = memberSincePhrase;
  * one sheet engine in step 7, 2026-09-24, where it was a hand-made page modal). The person's name is the sheet's title —
  * nothing above it says "Javni profil" once the name is known (owner rule, 2026-09-23: say who they are, not where you
  * are). Presentation over the existing `javniProfil` read: a rating, a review count or a verified identity appear solely
- * when the server marks them available, and a missing one says it is missing. The caller owns the read and its guards.
+ * when the server marks them available. The caller owns the read and its guards.
  *
- * T4/T5 (2026-10-07): under the name and the city, the person's own "O meni" when they wrote one, then the facts as `FactRow`s
- * (UI/UX pass 2026-10-08, F6): the rating ("4,8 · 12 ocena", or "Još nema ocena"), "Završeno N zadataka", only when it is true
- * "Identitet je potvrđen", and what the trust read adds when the server lets this viewer have it. Nothing here is a control except
- * the safety entry, which is last and red: no row opens another person's ratings, because no read of them exists.
+ * "Lice i tri broja" (owner's pick of 8 Oct 2026): the face at 72 with its sticker edge, centred, the person's own line under it
+ * (`naslov`) and the city; then the three figures in one row (the rating, "završenih", "dolazi kako je dogovoreno": each only when the
+ * server returned it), the person's own "O meni" when they wrote one, and the confirmations as `FactRow`s with their 2.5D pictures:
+ * "Identitet je potvrđen" only when it is true, and what the trust read adds when the server lets this viewer have it ("Dogovoreno N
+ * zadataka", "Na USKOČI-ju od ..."). Nothing here is a control except the safety entry, which is last and red: no row opens another
+ * person's ratings, because no read of them exists.
  *
  * Reporting and blocking are rare, so they close the sheet's content, apart from the facts by the sheet's own spacing and not by a
  * line: one row that names the person's action ("Prijavi ili blokiraj osobu") and says the report is private. The row keeps the
@@ -67,13 +70,12 @@ export const memberSinceFact = memberSincePhrase;
  */
 export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, trust }: {
   state: PublicProfileState; onClose: () => void; onRetry: () => void;
-  /** The public portrait and its initials stand-in both keep the larger 96 dp profile size. */
+  /** The public portrait at the size asked for (72); its initials stand-in has the same size. */
   photo?: (profileId: string, size?: number) => ReactNode;
   safety?: SafetyEntry;
   /** The trust read of this person (see `PublicProfileTrust`). Left out, or HIDDEN: nothing of it is drawn. */
   trust?: PublicProfileTrust;
 }) {
-  const { stacked } = useLayoutClass();
   if (!state) return null;
   const profile = state.loading ? null : state.data, facts = profile?.poverenje;
   const name = profile ? profile.ime?.trim() || 'Ime nije dostupno' : null;
@@ -85,22 +87,20 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
       : !profile ? <StateView kind="error" title="Javni profil trenutno nije dostupan." body="Proveri vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: onRetry }} />
       : <View style={s.content}>
-        <View style={[s.identity, stacked && s.identityStack]}>
-          <View testID="public-profile-portrait" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.face}>
-            {photo?.(profile.profilId, 96) ?? (initials
-              ? <T maxFontSizeMultiplier={1} numberOfLines={1} style={s.initials}>{initials}</T>
-              : <FactArt kind="person" size={48} />)}
+        <View style={s.identity}>
+          <View testID="public-profile-portrait" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <FaceEdge>{photo?.(profile.profilId, FACE) ?? <Avatar initials={initials} size={FACE} />}</FaceEdge>
           </View>
-          <View style={[s.identityCopy, stacked && s.identityCopyStack]}>
-            {profile.naslov ? <T variant="heading" style={s.ink}>{profile.naslov}</T> : null}
-            {profile.grad ? <View style={s.place}><FactArt kind="pin" size={16} /><T variant="body" tone="muted" style={s.grow}>{tidyPlaceLabel(profile.grad)}</T></View> : null}
-          </View>
+          {profile.naslov ? <T variant="heading" style={s.line}>{profile.naslov}</T> : null}
+          {profile.grad ? <View style={s.place}><FactArt kind="pin" size={16} />
+            <T variant="note" tone="muted" style={s.grow}>{tidyPlaceLabel(profile.grad)}</T></View> : null}
         </View>
+        {facts ? <TrustFigures facts={facts} trust={trust} /> : null}
         {about ? <View style={s.section}>
           <T accessibilityRole="header" variant="heading" style={s.ink}>O meni</T>
           <T selectable variant="body" style={s.ink}>{about}</T>
         </View> : null}
-        {facts ? <TrustFacts facts={facts} trust={trust} /> : null}
+        {facts ? <Confirmations facts={facts} trust={trust} /> : null}
         {safety ? <View>
           {/* A command with its words in red and its arrow: it opens the report, so the row says where it goes. */}
           <ListRow leading={<FactArt kind="shield" size={32} muted />} title={safety.busy ? 'Otvaramo…' : SAFETY_LABEL} tone="danger" arrow last
@@ -114,41 +114,46 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
 }
 
 /**
- * The facts of a person, one `FactRow` each, in a group with the screen's own spacing between them (no line, no box): the rating written
- * the Serbian way ("4,8") with the count it stands on, or "Još nema ocena", or not available; "Završeno N zadataka" (zero too, as zero); a
- * verified identity only when the server reports it; and what the trust read returned for a viewer it lets read it ("Dogovoreno N
- * zadataka", "Dolazi kako je dogovoreno: N%" or that there are not enough Dogovori for a percentage, "Na USKOČI-ju od ..."). Neither the
- * number of applications nor anything the server does not carry is here.
+ * The three figures of a person, in one row with no line and no box, each only when the server returned it: the rating ("4,8" with the
+ * count it stands on, or "Nova ocena" while there is none), "završenih" (zero too, as zero: the server counted it) and how reliably they
+ * come as agreed (a percentage from five Dogovori, or "Još nema procenta"; for a viewer who may not read it, nothing).
  */
-function TrustFacts({ facts, trust }: { facts: JavniProfilPoverenje; trust?: PublicProfileTrust }) {
-  const rating = publicRating(facts);
+function TrustFigures({ facts, trust }: { facts: JavniProfilPoverenje; trust?: PublicProfileTrust }) {
+  const reliability = publicTrustFacts(trust)?.reliability;
+  const cells: [string, Figure | null][] = [
+    ['rating', publicRatingFigure(facts)],
+    ['finished', finishedFigure(facts.zavrseniBroj)],
+    ['reliability', reliability ? reliabilityFigure(reliability.kind === 'percent' ? reliability.percent : null) : null],
+  ];
+  return <FigureRow testID="public-profile-figures">
+    {cells.map(([key, figure]) => figure ? <FigureCell key={key} figure={figure} testID={`public-profile-figure-${key}`} /> : null)}
+  </FigureRow>;
+}
+
+/**
+ * What the profile confirms, one `FactRow` each with its picture, in a group with the screen's own spacing between them (no line, no
+ * box): a verified identity only when the server reports it, and what the trust read returned for a viewer it lets read it ("Dogovoreno N
+ * zadataka", "Na USKOČI-ju od ..."). Neither the number of applications nor anything the server does not carry is here.
+ */
+function Confirmations({ facts, trust }: { facts: JavniProfilPoverenje; trust?: PublicProfileTrust }) {
   const verified = facts.verifikacijaIdentitetaDostupna && facts.identitetVerifikovan;
   const more = publicTrustFacts(trust);
+  if (!verified && !more?.agreed && !more?.since) return null;
   return <View testID="public-profile-facts" style={s.facts}>
-    {/* The star is the sign of a rating that exists; a person without one gets the quiet sign of information, not a star in colour. */}
-    <FactRow size="detail" art={rating.kind === 'rated' ? 'star' : 'info'} testID="public-profile-fact-rating"
-      value={rating.kind === 'rated' ? `${rating.value}${rating.count ? ` · ${rating.count}` : ''}` : rating.kind === 'none' ? 'Još nema ocena' : 'Ocena nije dostupna'} />
-    <FactRow size="detail" art="check" testID="public-profile-fact-finished" value={finishedPhrase(facts.zavrseniBroj)} />
     {verified ? <FactRow size="detail" art="shield" testID="public-profile-fact-verified" value="Identitet je potvrđen" /> : null}
     {more?.agreed ? <FactRow size="detail" art="agreements" testID="public-profile-fact-agreed" value={more.agreed} /> : null}
-    {more?.reliability ? <FactRow size="detail" art="agreements" testID="public-profile-fact-reliability"
-      value={more.reliability.kind === 'percent' ? `${RELIABILITY_LABEL}: ${more.reliability.percent}%` : RELIABILITY_FEW} /> : null}
     {more?.since ? <FactRow size="detail" art="calendar" testID="public-profile-fact-since" value={more.since} /> : null}
   </View>;
 }
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  grow: { flex: 1, minWidth: 0 },
+  grow: { flexShrink: 1, minWidth: 0 },
   content: { gap: layout.section, paddingTop: sys.space.sm, paddingBottom: sys.space.sm },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
-  identityStack: { flexDirection: 'column', alignItems: 'flex-start' },
-  face: { width: 96, height: 96, flexShrink: 0, alignItems: 'center', justifyContent: 'center',
-    borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, overflow: 'hidden' },
-  initials: { ...sys.type.display, color: sys.color.green, letterSpacing: 0, textAlign: 'center' },
-  identityCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.sm },
-  identityCopyStack: { width: '100%', flexShrink: 0 },
-  place: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  // The face, the person's own line and the city stand in one centred column: a long line wraps and stays centred.
+  identity: { alignItems: 'center', gap: sys.space.sm },
+  line: { color: sys.color.ink, textAlign: 'center' },
+  place: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, maxWidth: '100%' },
   facts: { gap: layout.group },
   section: { gap: sys.space.md },
 });

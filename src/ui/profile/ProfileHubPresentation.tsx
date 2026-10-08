@@ -7,17 +7,17 @@ import { T } from '../Text';
 import { ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { sys } from '../system/tokens';
-import { useLayoutClass } from '../system/textScale';
 import { BuildIdentity } from '../BuildIdentity';
-import { Avatar } from '../system/Avatar';
+import { Avatar, FaceEdge } from '../system/Avatar';
 import { Glyph } from '../system/Glyph';
 import { ChromeIconButton } from '../system/ScreenChrome';
+import { FigureRow } from './ProfileFigures';
 
 /**
- * The face of the profile. The spec asked for 80; the one stand-in for a person (`Avatar`) has no 80, and its profile portrait
- * below 96 is this one. The name beside it (28/33) then has the room, and a photo and its initials always take the same size.
+ * The face of the profile: 96, centred over the name, with the sticker edge of `FaceEdge` round it (owner's pick of 8 Oct 2026, "Lice i
+ * tri broja"). The route draws the photo and its initials stand-in at this size, so a photo and its initials always take the same one.
  */
-export const PROFILE_AVATAR = 72;
+export const PROFILE_AVATAR = 96;
 /** The camera mark sits on the photo's edge: a 24 dp disc with a 16 dp glyph leaves the face visible. */
 const BADGE = 24;
 
@@ -33,15 +33,19 @@ export type ProfileHubIdentity =
   | { state: 'ready'; name: string | null; place: string | null;
       /** The photo or what stands in for it, using PROFILE_AVATAR. */ photo: ReactNode;
       /** The photo screen can be opened (a profile exists and the read settled). */ photoReady: boolean; openPhoto: () => void;
-      /** The rating line under the name, or nothing. */ reputation: ReactNode };
+      /** The rating, the first of the three figures under the name (a cell of their row), or nothing. */ reputation: ReactNode };
 
 /**
- * The profile (UI/UX pass 2026-10-08, F6; composition spec 4.14). Identity is NOT a card: the face on the left, and the name
- * (28/33), the city (`note`) and the rating beside it, in one block on the screen's own edge (the face above the name at a large
- * text size). Under it everything is a `Section` of rows that all start their words at one place: a picture of 32 in a slot of 40
- * and the text 52 from the edge, a divider of 1 dp inset. "Završeni Dogovori" and "Moja statistika" are sections of facts
- * (`KeyValueRow`) that the route hands in; the last thing is the red "Odjavi se" row and the small version line. No row draws a
- * hairline of its own.
+ * The profile (owner's pick of 8 Oct 2026, "Lice i tri broja"; UI/UX pass 2026-10-08, F6). Identity is NOT a card: the face at 96,
+ * centred, with its sticker edge and the camera mark, the name (28/33) under it and the city (`note`); then the three figures in
+ * one row with no line and no box: the rating, "završenih" and "dolazi kako je dogovoreno". Under them everything is a `Section` of
+ * rows that all start their words at one place: a picture of 32 in a slot of 40 and the text 52 from the edge, a divider of 1 dp
+ * inset; the last thing is the red "Odjavi se" row and the small version line. No row draws a hairline of its own.
+ *
+ * The three figures are the three nodes the route hands in, each a cell of the row that reads its own figure and takes its own share
+ * of it: `identity.reputation` (opens "Ocene"), `workSummary` (opens the finished Dogovori) and `stats` (the reliability, only for an
+ * account with a work profile). A figure the server does not return is not drawn and leaves its share to the others. The sections
+ * "Završeni Dogovori" and "Moja statistika" that these replace are gone.
  *
  * The route still owns reads, navigation admission and logout. This view never substitutes unavailable facts.
  */
@@ -49,12 +53,13 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
   identity: ProfileHubIdentity; capabilityDetail?: string;
   /** The work profile is not set up or is still a draft: an orange dot on its row says that something waits for the person. */
   capabilityNeedsAttention?: boolean;
-  workArea?: string; workSummary?: ReactNode; stats?: ReactNode;
+  workArea?: string;
+  /** The second figure: how many Dogovori were finished (it opens them). */ workSummary?: ReactNode;
+  /** The third figure: how reliably the person comes as agreed. */ stats?: ReactNode;
   /** The email the account signs in with, said under "Promeni lozinku". Left out: the row says nothing under its name. */
   email?: string | null; busy: boolean;
   open: (path: ProfileHubPath) => void; onBack: () => void; onLogout: () => void; logoutError: boolean;
 }) {
-  const { stacked } = useLayoutClass();
   // The pencil opens the whole of "Izmeni profil" (photo, name, "O meni", city and what is public), not only the name (T4a, 2026-10-07).
   const editProfile = <ChromeIconButton label="Izmeni profil" hint="Otvara izmenu fotografije, imena i opisa." glyph="edit" raised disabled={busy}
     onPress={() => open('/profil/podaci')} />;
@@ -66,38 +71,34 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
   return <SettingsScreen title="Profil" disabled={busy} onBack={onBack} right={editProfile}>
     {/* Separate hosts keep loading semantics out of the ready/error identity after a native transition. */}
     {identity.state === 'loading' ? <View key="loading" testID="profile-identity" accessible
-      accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" accessibilityState={{ busy: true }} style={[s.identity, s.identityLoading]}>
+      accessibilityRole="progressbar" accessibilityLabel="Učitavamo profil" accessibilityState={{ busy: true }} style={s.identity}>
       {/* The shape of what is coming, standing still: the photo's disc, and one quiet line where the name will be. */}
       <View style={s.skeletonDisc} />
       <T tone="muted">Učitavamo profil…</T>
     </View> : identity.state === 'error' ? <View key="error" testID="profile-identity" accessible={false}
-      accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={[s.identity, stacked && s.identityStacked]}>
+      accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
       <Avatar initials={null} size={PROFILE_AVATAR} />
-      <View style={s.copy}>
-        <T variant="bodyStrong">Profil trenutno nije dostupan.</T>
-        <T variant="note" tone="muted">Proveri vezu pa pokušaj ponovo.</T>
-        <View style={s.retry}><SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={identity.retry} /></View>
-      </View>
+      <T variant="bodyStrong" style={s.center}>Profil trenutno nije dostupan.</T>
+      <T variant="note" tone="muted" style={s.center}>Proveri vezu pa pokušaj ponovo.</T>
+      <View style={s.retry}><SettingsAction label="Pokušaj ponovo" kind="secondary" onPress={identity.retry} /></View>
     </View> : <View key="ready" testID="profile-identity" accessible={false}
-      accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={[s.identity, stacked && s.identityStacked]}>
+      accessibilityRole="none" accessibilityLabel="" accessibilityState={{ busy: false }} style={s.identity}>
       {/* The photo itself opens the photo screen; the small camera badge says so without a second control. */}
       <Press accessibilityRole="button" accessibilityLabel="Fotografija profila" accessibilityHint="Otvara izbor fotografije profila."
         disabled={!identity.photoReady || busy} accessibilityState={{ disabled: !identity.photoReady || busy }} onPress={identity.openPhoto}
         haptic="select" scaleTo={sys.motion.scale.row} style={s.face}>
-        {identity.photo}
+        <FaceEdge>{identity.photo}</FaceEdge>
         {identity.photoReady ? <View style={s.badge}><Glyph name="camera" size={16} /></View> : null}
       </Press>
-      <View style={s.copy}>
-        {identity.name ? <T variant="pageTitle" accessibilityRole="header">{identity.name}</T>
-          // A name that is not there is a plain line, not a second 28 px title: it must not read as the thing the screen is about.
-          : <T variant="title" tone="muted" accessibilityRole="header">Ime još nije uneto</T>}
-        {identity.place ? <View style={s.city}><FactArt kind="pin" size={16} />
-          <T variant="note" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
-        {identity.reputation ? <View style={s.reputation}>{identity.reputation}</View> : null}
-      </View>
+      {identity.name ? <T variant="pageTitle" accessibilityRole="header" style={s.center}>{identity.name}</T>
+        // A name that is not there is a plain line, not a second 28 px title: it must not read as the thing the screen is about.
+        : <T variant="title" tone="muted" accessibilityRole="header" style={s.center}>Ime još nije uneto</T>}
+      {identity.place ? <View style={s.city}><FactArt kind="pin" size={16} />
+        <T variant="note" tone="muted" style={s.shrink}>{identity.place}</T></View> : null}
     </View>}
 
-    {workSummary}
+    {/* The three figures: rating, finished, reliability. Each node is a cell that reads its own figure (see the doc above). */}
+    {identity.state === 'ready' ? <FigureRow testID="profile-figures">{identity.reputation}{workSummary}{stats}</FigureRow> : null}
 
     <SettingsGroup title="Kako mogu da uskočim">
       {/* The one fact that decides whether a task is ever offered to you is whether this part is set up and active. */}
@@ -106,8 +107,6 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
       {hubRow('Dostupnost', 'clock', '/profil/dostupnost', { detail: 'Kada mogu da radim' })}
       {hubRow('Raspored', 'calendar', '/raspored', { detail: 'Dogovoreni termini', last: true })}
     </SettingsGroup>
-
-    {stats}
 
     <SettingsGroup title="Nalog i pomoć">
       {hubRow('Podešavanja obaveštenja', 'bell', '/profil/obavestenja')}
@@ -138,19 +137,16 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
 }
 
 const s = StyleSheet.create({
-  identity: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.base },
-  identityLoading: { alignItems: 'center' },
-  // At a large text size or on a narrow window the face stands over the name, at the same edge, so the name has the whole width.
-  identityStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  face: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: sys.radius.pill },
+  // The face, the name and the city stand in one centred column at every text size; a long name wraps and stays centred.
+  identity: { alignItems: 'center', gap: sys.space.sm },
+  // The photo's own size and its edge (2 dp each side): the camera mark sits on the corner of this box.
+  face: { alignSelf: 'center', borderRadius: sys.radius.pill },
   badge: { position: 'absolute', right: -sys.space.xs, bottom: -sys.space.xs, width: BADGE, height: BADGE, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface, borderWidth: ruleWidth, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
-  copy: { flex: 1, minWidth: 0, alignSelf: 'stretch', gap: sys.space.xs },
-  city: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, maxWidth: '100%' },
-  // Do not centre or constrain the supplied node's children: it can contain a retry action.
-  reputation: { alignSelf: 'stretch', minWidth: 0 },
+  center: { textAlign: 'center' },
+  city: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, maxWidth: '100%' },
   shrink: { flexShrink: 1 },
-  retry: { alignSelf: 'flex-start', marginTop: sys.space.xs },
+  retry: { alignSelf: 'center', marginTop: sys.space.xs },
   skeletonDisc: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: sys.radius.pill, backgroundColor: sys.color.skeleton },
   exit: { gap: sys.space.sm },
 });

@@ -26,7 +26,7 @@ class TaskRecoverySelectors(unittest.TestCase):
         namespace['assert_no_application_actions'](tree('Zadatak trenutno nije moguće učitati.', 'Nazad na Zadatke', 'Pokušajte ponovo'))
 
     def test_even_a_disabled_stale_application_action_is_rejected(self):
-        for label in ('Sastavi prijavu', 'Pošalji prijavu'):
+        for label in ('Pošalji ponudu', 'Pošalji prijavu'):
             with self.subTest(label=label), self.assertRaises(AssertionError):
                 namespace['assert_no_application_actions'](tree('Greška', label))
 
@@ -43,7 +43,7 @@ class TaskRecoverySelectors(unittest.TestCase):
                 namespace['task_error']('proof', cached=True)
 
     def test_fresh_detail_rejects_stale_notice_even_with_a_visible_application_control(self):
-        observed = tree('NAV title', 'Nazad na Zadatke', 'Sastavi prijavu', 'Poslednji učitani podaci')
+        observed = tree('NAV title', 'Nazad na Zadatke', 'Pošalji ponudu', 'Poslednji učitani podaci')
         with patch.dict(namespace, {'NAV_NEED_TITLE': 'NAV title', 'wait_surface': Mock(return_value=(observed, {})), 'shot': Mock()}):
             with self.assertRaises(AssertionError):
                 namespace['fresh_task']('proof')

@@ -7,9 +7,10 @@ import { sys } from '../../ui/system/tokens';
 
 /**
  * One task card (composition spec 2026-10-07, 4.2; 8 Oct 2026). The card is a `Surface record` that is touched, and its face is the
- * one the pin's card on the map draws: [state] -> title -> what it pays and how many people -> where -> when -> (one condition) ->
- * who posted it, and how long ago. It is heard once, as the card's own sentence. Four type sizes at most. A word about money never
- * wears the amount's type; nothing is invented. The older card review (r3) is carried by the lines that still describe this card.
+ * one the pin's card on the map draws: [state] -> title -> what it pays (a fact row with the money picture, no word for what it is: the owner's
+ * pick of 8 Oct 2026) -> where -> when -> (one condition) -> who posted it, and how long ago, with the count of people at the end of that line.
+ * It is heard once, as the card's own sentence ("Budžet 5.500 RSD ukupno"). Four type sizes at most. A word about money never wears the
+ * amount's type; nothing is invented. The older card review (r3) is carried by the lines that still describe this card.
  */
 let mockScale = 1, mockReduced = false, mockWidth = 411;
 jest.mock('react-native', () => {
@@ -61,10 +62,22 @@ beforeEach(() => { mockScale = 1; mockReduced = false; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 describe('the face, in its order', () => {
-  it('says title, amount with what it buys, the count of people, where, when and who, in that order, and nothing else', async () => {
+  it('says title, amount with what it buys, where, when, who and the count of people, in that order, and nothing else', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', '0/2', 'Liman, Novi Sad', '24. sep · 17:00', 'Nikola Petrović', '4,8 (12)']);
-    expect(facts()).toEqual(['users', 'pin', 'calendar', 'star']);
+    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Nikola Petrović', '4,8 (12)', '0/2']);
+    expect(facts()).toEqual(['money', 'pin', 'calendar', 'star', 'users']);
+  });
+
+  // The owner, 8 Oct 2026: not the price on the right but under the title with its picture on the left like everything else, and no word
+  // that says what it is (people know what it is); only a screen reader is told it is the budget.
+  it('draws the amount as the first fact, under the title, with the money picture and no word for what it is', async () => {
+    await render(<TaskCard item={task()} onOpen={jest.fn()} />);
+    expect(texts().join(' ')).not.toMatch(/cena|budžet|cenovnik/i);
+    expect(facts()[0]).toBe('money');
+    expect(presses()[0].props.accessibilityLabel).toContain('Budžet 5.500 RSD ukupno');
+    await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
+    expect(texts().join(' ')).not.toMatch(/cena|budžet|cenovnik/i);
+    expect(facts()[0]).toBe('offers'); expect(facts()).not.toContain('money');
   });
 
   it('uses four type roles at most: the title, the amount, the facts and the person, the state', async () => {
@@ -118,7 +131,7 @@ describe('the requirement line', () => {
 describe('the value slot', () => {
   const cases: [string, MarketplaceItem, string][] = [
     ['amount', task(), '5.500 RSD'],
-    ['offers', task({ rezimCene: 'OFFERS', ponudjenaCena: { iznos: 9000, valuta: 'RSD', prikaz: '9.000 RSD' } }), 'Prima ponude'],
+    ['offers', task({ rezimCene: 'OFFERS', ponudjenaCena: { iznos: 9000, valuta: 'RSD', prikaz: '9.000 RSD' } }), 'Tražim ponude'],
     ['no price', task({ rezimCene: 'MY_PRICE', ponudjenaCena: undefined, osnovaCene: null }), 'Cena nije navedena'],
   ];
 
@@ -133,11 +146,13 @@ describe('the value slot', () => {
         expect(style(value)).toMatchObject({ color: sys.color.money });
         expect(value.props.numberOfLines).toBeUndefined();
       } else {
-        // A word about money is a quiet note, never the amount's role or colour: it cannot be read as a sum.
-        expect(value.props).toMatchObject({ variant: 'note', tone: 'muted' });
+        // A word about money is a note in the fact's type, never the amount's role or colour: it cannot be read as a sum.
+        expect(value.props.variant).toBe('note');
         expect(style(value)).not.toMatchObject({ color: sys.color.money });
+        // And it stands beside the price tag, never beside the money.
+        expect(facts()[0]).toBe('offers');
       }
-      // "Prima ponude" means offers even when an old amount is still stored beside it.
+      // "Tražim ponude" means offers even when an old amount is still stored beside it.
       if (name === 'offers') expect(texts()).not.toContain('9.000 RSD');
       await act(async () => tree.unmount());
     }
@@ -152,22 +167,22 @@ describe('the value slot', () => {
     expect(texts()).not.toContain('ukupno'); expect(texts()).not.toContain('po osobi');
   });
 
-  it('keeps the whole title and the whole amount at larger text, and stacks the count under them', async () => {
+  it('keeps the whole title and the whole amount at larger text, and stacks the count under the person', async () => {
     mockScale = 1.3;
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 1250000, valuta: 'RSD', prikaz: '1.250.000 RSD' } })} onOpen={jest.fn()} />);
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     expect(textNode('1.250.000 RSD').props.numberOfLines).toBeUndefined();
-    const decision = textNode('1.250.000 RSD').parent!.parent!;
-    expect(style(decision).flexDirection).toBe('column');
+    const foot = () => tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-foot');
+    expect(style(foot()).flexDirection).toBe('column');
     await act(async () => tree.unmount());
     mockScale = 1;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(style(textNode('5.500 RSD').parent!.parent!).flexDirection).toBe('row');
+    expect(style(foot()).flexDirection).toBe('row');
   });
 
   it('tells the owner of a task found in discovery that offers are being asked for, not that they are taken', async () => {
     await render(<TaskCard item={task({ rezimCene: 'OFFERS' })} relation="OWNED" onOpen={jest.fn()} />);
-    expect(texts()).toContain('Tražiš ponude'); expect(texts()).not.toContain('Prima ponude');
+    expect(texts()).toContain('Tražiš ponude'); expect(texts()).not.toContain('Tražim ponude');
   });
 });
 
@@ -299,10 +314,10 @@ describe('what a screen reader hears', () => {
   it('is one sentence after the command name, in the order the face is drawn', async () => {
     await render(<TaskCard item={task({ urgency: LATER, detalji: detail({}, { vozila: ['Kombi'] }) })} relation="APPLIED" onOpen={jest.fn()} />);
     const [card] = presses();
-    expect(card.props.accessibilityLabel).toBe('Otvori zadatak Farbanje dnevne sobe. HITNO, Prijava poslata, 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
+    expect(card.props.accessibilityLabel).toBe('Otvori zadatak Farbanje dnevne sobe. HITNO, Prijava poslata, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
       + 'Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
-    expect(presses()[0].props.accessibilityLabel).toMatch(/^Otvori zadatak Farbanje dnevne sobe\. Prima ponude, /);
+    expect(presses()[0].props.accessibilityLabel).toMatch(/^Otvori zadatak Farbanje dnevne sobe\. Tražim ponude, /);
   });
 
   it('has no stop of its own inside: the whole face sits under a subtree hidden from assistive technology', async () => {

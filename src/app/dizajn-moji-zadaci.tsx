@@ -18,11 +18,12 @@ import { MarketplacePresentation, type MarketplacePaging } from '../ui/v2/Market
  * reads or writes anything: every task is an example, every command is inert (a press on a card only says so), and a store build
  * shows nothing.
  *
- * Scenes: `lista` is the usual list (an active set of five, with drafts and finished tasks behind the other two tabs), `puno` a long
- * active set (twelve tasks, more than three screens), `dugi` long titles and places, `nacrti` and `istorija` the other two tabs,
- * `prazno` a person with no task yet, `prazan-skup` tasks that exist but not in the set that is chosen, `ucitavanje` and `greska`
- * the two states a read can be in, `veliki` the list at the large-text layout (the lab has no system font, so the layout class is
- * forced, as the other galleries do), `stranice` a list read a page at a time with its "Prikaži još" foot.
+ * Scenes ("Papir na stolu", the owner's pick of 2026-10-08): `lista` is the usual list (an active set of five in groups by phase, with
+ * drafts and finished tasks behind the two rows under them), `puno` a long active set (twelve tasks, more than three screens), `dugi`
+ * long titles and places, `nacrti` and `istorija` the two sets those rows open (a bar with their name and the arrow back to the groups),
+ * `prazno` a person with no task yet (the first encounter), `prazan-skup` tasks that exist but none is active, `ucitavanje` and
+ * `greska` the two states a read can be in, `veliki` the list at the large-text layout (the lab has no system font, so the layout
+ * class is forced, as the other galleries do), `stranice` a list read a page at a time with its "Prikaži još" foot.
  */
 const SCENES = ['lista', 'puno', 'dugi', 'nacrti', 'istorija', 'prazno', 'prazan-skup', 'ucitavanje', 'greska', 'veliki', 'stranice'] as const;
 type Scene = typeof SCENES[number];
@@ -112,7 +113,7 @@ function MojiZadaci({ scene }: { scene: Scene }) {
   const paging: MarketplacePaging | undefined = setup.paged ? { counts: counts(setup.items), hasMore: true, loadingMore: false, moreError: false, onLoadMore: () => say('Učitavamo još zadataka.') } : undefined;
   const body = <MarketplacePresentation items={setup.items} loading={!!setup.loading} error={!!setup.error} view={view} onView={setView} paging={paging}
     onRefresh={noop} onOpen={item => say(`Otvara zadatak ${item.naslov}.`)} onApplications={item => say(`Otvara prijave za ${item.naslov}.`)}
-    onProfile={noop} onNew={() => say('Otvara objavu zadatka.')} onBack={() => router.back()} />;
+    onProfile={noop} onNew={() => say('Otvara objavu zadatka.')} onExplore={() => say('Otvara zadatke drugih.')} onBack={() => router.back()} />;
   return <View style={s.fill}>
     {setup.large ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{body}</LayoutClassOverride.Provider> : body}
     {said ? <View pointerEvents="none" style={s.said}><T variant="note" tone="onGreen">{said}</T></View> : null}

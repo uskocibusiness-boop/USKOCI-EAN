@@ -1746,7 +1746,8 @@ test('pin and discovery list keep the truthful task face without redundant surro
   const words = texts(peek()!);
   expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd'); expect(words).toContain('26. sep · 10:00–12:00');
   expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('1/3'); expect(words).toContain('Mila');
-  expect(card.props.accessibilityValue.text).toContain('2.000 RSD ukupno');
+  // The card draws no word for what the amount is (the owner, 8 Oct 2026); a screen reader is told it is the budget.
+  expect(card.props.accessibilityValue.text).toContain('Budžet 2.000 RSD ukupno');
   expect(card.props.accessibilityValue.text).toContain('1 od 3 mesta popunjeno');
   // Nothing in it is framed as a card of its own, and nothing is a photo or a place for one.
   const edged = card.findAll(node => String(node.type) === 'View' && (StyleSheet.flatten(node.props.style)?.borderWidth ?? 0) > 0);
@@ -1758,7 +1759,7 @@ test('pin and discovery list keep the truthful task face without redundant surro
   expect(listSheet().findAll(isTaskPhoto)).toHaveLength(0);
   // A task that asks for offers says so in words that never look like an amount.
   await tap('Zatvori pregled zadatka'); await act(async () => map().props.onSelect('ponude'));
-  expect(texts(peek()!)).toContain('Prima ponude');
+  expect(texts(peek()!)).toContain('Tražim ponude');
   // Each result is a distinct, scannable task card in the sheet, one record each (the card has no compact or bare variant any more).
   const listed = listSheet().findAllByType(CARD);
   expect(listed.length).toBeGreaterThan(0); expect(listed.every(node => !node.props.compact && !node.props.bare)).toBe(true);
@@ -1927,9 +1928,11 @@ test('reading, not read and nothing in this view keep their meanings, through th
   await act(async () => tree.unmount());
   error = false; rows = []; await render();
   // Owner, 2026-10-07: the map and the list always show every task, so nothing found is never about the person's profile.
-  expect(texts()).toContain('Trenutno nema otvorenih zadataka'); expect(texts()).toContain('Kad neko objavi zadatak, videćeš ga ovde i na mapi.');
+  // The first encounter of the screen is a hero (the owner's pick of 8 Oct 2026, "Predmet vrata"): the map at 144 and a promise of what will be here.
+  expect(texts()).toContain('Još niko nije tražio pomoć'); expect(texts()).toContain('Čim neko objavi zadatak, pojaviće se ovde i na mapi.');
+  expect(tree.root.findAll(node => node.props.hero === true && node.props.art === 'map')).toHaveLength(1);
   expect(texts()).not.toContain('radnom profilu'); expect(action('Dopuni radni profil')).toBeUndefined();
-  refresh.mockClear(); await click('Osveži zadatke'); expect(refresh).toHaveBeenCalledTimes(1); expect(profile).not.toHaveBeenCalled();
+  refresh.mockClear(); await click('Osveži'); expect(refresh).toHaveBeenCalledTimes(1); expect(profile).not.toHaveBeenCalled();
   expect(countLine().props.accessibilityLabel).toBe('Nema zadataka');
   await act(async () => tree.unmount());
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
@@ -1941,6 +1944,8 @@ test('reading, not read and nothing in this view keep their meanings, through th
   // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
   await act(async () => tree.unmount()); initial = { ...initial, query: 'nema takvog' }; await render();
   expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(listSheet().props.index).toBe(1);
+  // What is about a view, not about the person's first day, keeps the picture at 96: no hero.
+  expect(tree.root.findAll(node => node.props.hero === true)).toHaveLength(0);
   // The one reset of the app: "Poništi filtere", on the empty list as in the panel.
   expect(tree.root.findAll(node => node.props.label === 'Obriši uslove')).toHaveLength(0); // the name before 2026-10-08
   await click('Poništi filtere'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
@@ -1954,7 +1959,7 @@ test.each(['loading','error'] as const)('an incomplete %s collection never claim
   expect(texts()).toContain(status==='loading'?'Učitavamo zadatke…':'Ne možemo da učitamo zadatke');
   expect(texts()).toContain(status==='loading'?'Učitavamo ostale zadatke…':'Ostali zadaci nisu učitani');
   expect(texts()).not.toContain('Nema zadataka u ovom prikazu');
-  expect(texts()).not.toContain('Trenutno nema otvorenih zadataka');
+  expect(texts()).not.toContain('Još niko nije tražio pomoć');
   expect(action('Dopuni radni profil')).toBeUndefined();
   expect(action('Poništi filtere')).toBeUndefined();
 });
@@ -2646,8 +2651,8 @@ describe('an empty P6 list says what is true', () => {
   test('no task at all, under an area and no conditions: nothing is open yet, and the list can be read again', async () => {
     rows = []; initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9], sheet: 'half' }; p6Seam = { ...p6Seam_(), counts: p6Counts(0) };
     await render();
-    expect(texts()).toContain('Trenutno nema otvorenih zadataka'); expect(action('Poništi filtere')).toBeUndefined();
-    await click('Osveži zadatke'); expect(refresh).toHaveBeenCalledTimes(1);
+    expect(texts()).toContain('Još niko nije tražio pomoć'); expect(action('Poništi filtere')).toBeUndefined();
+    await click('Osveži'); expect(refresh).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -88,6 +88,9 @@ afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined
 it('renders the real empty state and uses the existing discovery route', async () => {
   // Step 5c: the old title "Tvoja sledeća prilika." was the pinned look; the first run is now the one StateView.
   mockRows = []; await render(); expect(text()).toContain('Još nemaš prijavu'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
+  // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the price tag at the size of a door, and one sentence that teaches.
+  expect(text()).toContain('Kad se prijaviš na zadatak, ovde pratiš prijavu i svaki sledeći korak.');
+  expect(tree!.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'offers' && node.props.size === 144)).toHaveLength(1);
 });
 
 

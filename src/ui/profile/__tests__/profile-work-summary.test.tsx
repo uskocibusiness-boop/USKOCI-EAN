@@ -2,26 +2,25 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 /**
- * "Završeni Dogovori" on the profile (UI/UX pass 2026-10-08, F6; composition spec 4.14): a section with two facts, one per role, as
- * `KeyValueRow`s, and one word at the end of its title ("Pogledaj") that goes to the Dogovori that were finished. A count that could not be
- * read says so in its own row, and the word at the end of the title is then "Osveži". Without a way in it is only a summary.
+ * "Završeno" on the profile (the second of the three figures, owner's pick of 8 Oct 2026, "Lice i tri broja"): how many Dogovori the
+ * person finished in every role they have, as one figure with its word under it ("9 završenih"). With a way in the figure itself goes to
+ * the Dogovori that were finished. A count that could not be read is never added up as if it were zero: the cell says so and offers
+ * "Osveži" in the same place. Without a way in it is only a figure.
  */
 const WORKER = '11111111-1111-4111-8111-111111111111', REQUESTER = '22222222-2222-4222-8222-222222222222';
 type Fact = { role: 'narucilac' | 'uskocer'; count: number | null };
 let mockResource: { data: Fact[] | null; loading: boolean; error: boolean; refresh: jest.Mock };
 let mockLoad: ((signal: AbortSignal) => Promise<Fact[]>) | null = null;
-let mockStacked = false;
 const mockJavniProfil = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return ['View'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
 jest.mock('../../../hooks/useFocusedResource', () => ({ useFocusedResource: (load: (signal: AbortSignal) => Promise<Fact[]>) => { mockLoad = load; return mockResource; } }));
-jest.mock('../../system/textScale', () => ({ useLayoutClass: () => ({ cls: mockStacked ? 'large' : 'compact', stacked: mockStacked }) }));
 jest.mock('../../../data/publicProfileClientService', () => ({ publicProfileClientService: { javniProfil: (...args: unknown[]) => mockJavniProfil(...args) } }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
-import { FinishedAgreements, ProfileWorkSummary, roleWords } from '../ProfileWorkSummary';
+import { FinishedAgreements, ProfileWorkSummary } from '../ProfileWorkSummary';
 
 let tree: ReactTestRenderer;
 const draw = async (onOpen?: () => void, ids: [string | null, string | null] = [REQUESTER, WORKER]) => {
@@ -30,67 +29,77 @@ const draw = async (onOpen?: () => void, ids: [string | null, string | null] = [
 const hosts = (name: string) => tree.root.findAll(node => String(node.type) === name);
 const texts = () => hosts('T').flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
 const action = (label: string) => hosts('Press').find(node => node.props.accessibilityLabel === label);
+const cell = () => hosts('View').find(node => node.props.testID === 'profile-work-summary')!;
 beforeEach(() => {
-  mockStacked = false; mockLoad = null; mockJavniProfil.mockReset();
+  mockLoad = null; mockJavniProfil.mockReset();
   mockResource = { data: [{ role: 'uskocer', count: 4 }, { role: 'narucilac', count: 0 }], loading: false, error: false, refresh: jest.fn() };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-describe('the section', () => {
-  it('names the two roles the way the app names them everywhere, and says each count in its own row, under one heading', async () => {
+describe('the finished figure', () => {
+  it('adds up the Dogovori finished in every role the person has, as one figure with its word under it, spoken once', async () => {
     await draw();
-    expect(texts()).toEqual(['Završeni Dogovori', 'Kad uskačeš', '4', 'Kad tražiš pomoć', '0']);
-    expect(hosts('T').find(node => node.children.includes('Završeni Dogovori'))!.props).toMatchObject({ variant: 'heading', accessibilityRole: 'header' });
-    expect(roleWords('uskocer')).toBe('Kad uskačeš');
-    expect(roleWords('narucilac')).toBe('Kad tražiš pomoć');
+    expect(texts()).toEqual(['4', 'završena']);
+    expect(hosts('T').find(node => node.children.includes('4'))!.props.variant).toBe('priceLarge');
+    expect(cell().props).toMatchObject({ accessible: true, accessibilityRole: 'text', accessibilityLabel: '4 završena' });
+    mockResource = { ...mockResource, data: [{ role: 'uskocer', count: 9 }, { role: 'narucilac', count: 3 }] };
+    await act(async () => tree.update(<ProfileWorkSummary requesterProfileId={REQUESTER} workerProfileId={WORKER} />));
+    expect(texts()).toEqual(['12', 'završenih']);
   });
 
-  it('is only a summary without a way in: no button at all', async () => {
+  it.each([[0, '0', 'završenih'], [1, '1', 'završen'], [2, '2', 'završena'], [4, '4', 'završena'], [5, '5', 'završenih'], [11, '11', 'završenih'],
+    [21, '21', 'završen'], [22, '22', 'završena']] as const)('says %i the Serbian way: "%s %s"', async (count, figure, word) => {
+    await act(async () => { tree = create(<FinishedAgreements view={{ kind: 'ready', facts: [{ role: 'uskocer', count }] }} onRefresh={jest.fn()} />); });
+    expect(texts()).toEqual([figure, word]);
+  });
+
+  it('is only a figure without a way in: no button at all, and no arrow', async () => {
     await draw();
     expect(hosts('Press')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.props.name === 'caret-right')).toHaveLength(0);
   });
 
-  it('with a way in has one word at the end of its title, "Pogledaj", that opens the finished Dogovori once', async () => {
+  it('with a way in is the way: the figure opens the finished Dogovori once, says where it goes and ends in the quiet arrow', async () => {
     const open = jest.fn();
     await draw(open);
     expect(hosts('Press')).toHaveLength(1);
-    const button = action('Pogledaj završene Dogovore')!;
-    expect(button.props.accessibilityRole).toBe('button');
-    expect(button.findAll(node => String(node.type) === 'T' && node.children.includes('Pogledaj'))).toHaveLength(1);
+    const button = action('4 završena')!;
+    expect(button.props).toMatchObject({ accessibilityRole: 'button', accessibilityHint: 'Otvara završene Dogovore.' });
+    expect(button.findAll(node => node.props.name === 'caret-right').length).toBeGreaterThan(0);
     await act(async () => button.props.onPress());
     expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it('says a count that could not be read in its own row, and offers "Osveži" instead of the way in until it can be', async () => {
+  it('says a count that could not be read in its own place, offers "Osveži" and no way in until it can be, and adds nothing up', async () => {
     mockResource = { ...mockResource, data: [{ role: 'uskocer', count: null }, { role: 'narucilac', count: 2 }] };
     await draw(jest.fn());
-    expect(texts()).toContain('Broj nije dostupan');
-    expect(hosts('T').find(node => node.children.includes('Broj nije dostupan'))!.props.tone).toBe('muted');
-    expect(action('Pogledaj završene Dogovore')).toBeUndefined();
+    expect(texts()).toEqual(['Broj završenih trenutno nije dostupan.', 'Osveži']);
+    expect(texts()).not.toContain('2');
+    expect(action('4 završena')).toBeUndefined();
     const refresh = action('Osveži pregled završenih Dogovora')!;
     await act(async () => refresh.props.onPress());
     expect(mockResource.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('never turns a count it could not read into a zero', async () => {
+  it('never turns counts it could not read into a zero', async () => {
     mockResource = { ...mockResource, data: [{ role: 'uskocer', count: null }, { role: 'narucilac', count: null }] };
     await draw();
-    expect(texts().filter(text => text === 'Broj nije dostupan')).toHaveLength(2);
+    expect(texts()).toEqual(['Broj završenih trenutno nije dostupan.', 'Osveži']);
     expect(texts()).not.toContain('0');
   });
 
-  it('while it reads there is nothing to open: no button, one quiet sentence a screen reader can name', async () => {
+  it('while it reads there is nothing to open: no button, the still shape a screen reader can name', async () => {
     mockResource = { ...mockResource, data: null, loading: true };
     await draw(jest.fn());
     expect(hosts('Press')).toHaveLength(0);
-    expect(texts()).toContain('Učitavamo pregled…');
-    expect(hosts('T').find(node => node.props.accessibilityRole === 'progressbar')!.props.accessibilityLabel).toBe('Učitavanje završenih Dogovora');
+    expect(texts()).toEqual([]);
+    expect(tree.root.findAll(node => node.props.accessibilityRole === 'progressbar')[0].props.accessibilityLabel).toBe('Učitavanje završenih Dogovora');
   });
 
-  it('says every count in the roles the person has could not be read when the whole read failed', async () => {
+  it('says the count could not be read when the whole read failed', async () => {
     mockResource = { ...mockResource, data: null, error: true };
     await draw(jest.fn());
-    expect(texts()).toEqual(['Završeni Dogovori', 'Osveži', 'Kad uskačeš', 'Broj nije dostupan', 'Kad tražiš pomoć', 'Broj nije dostupan']);
+    expect(texts()).toEqual(['Broj završenih trenutno nije dostupan.', 'Osveži']);
   });
 
   it('draws nothing for an account that has no profile to count', async () => {
@@ -98,21 +107,16 @@ describe('the section', () => {
     expect(tree.toJSON()).toBeNull();
   });
 
-  it('draws the role the account has, and only it', async () => {
+  it('draws the figure of the role the account has, and only it', async () => {
     mockResource = { ...mockResource, data: [{ role: 'narucilac', count: 3 }] };
     await draw(undefined, [REQUESTER, null]);
-    expect(texts()).toEqual(['Završeni Dogovori', 'Kad tražiš pomoć', '3']);
-  });
-
-  it('keeps the same words when the text is large and the layout stacks', async () => {
-    mockStacked = true;
-    await draw(jest.fn());
-    expect(texts()).toEqual(['Završeni Dogovori', 'Pogledaj', 'Kad uskačeš', '4', 'Kad tražiš pomoć', '0']);
+    expect(texts()).toEqual(['3', 'završena']);
   });
 
   it('is the presentation of a view that is handed to it, with no read of its own', async () => {
     await act(async () => { tree = create(<FinishedAgreements view={{ kind: 'ready', facts: [{ role: 'uskocer', count: 12 }] }} onOpen={jest.fn()} onRefresh={jest.fn()} />); });
-    expect(texts()).toEqual(['Završeni Dogovori', 'Pogledaj', 'Kad uskačeš', '12']);
+    expect(texts()).toEqual(['12', 'završenih']);
+    expect(mockJavniProfil).not.toHaveBeenCalled();
   });
 });
 

@@ -130,7 +130,7 @@ describe('the saved receipt shows the own comment', () => {
     const text = inOrder();
     expect(text).toContain('Tvoj komentar');
     expect(text.indexOf('Tvoj komentar')).toBeGreaterThan(text.indexOf('Na vreme'));
-    expect(text.indexOf('Sve je proteklo kako treba.')).toBeLessThan(text.indexOf('Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja.'));
+    expect(text.indexOf('Sve je proteklo kako treba.')).toBeLessThan(text.indexOf('Ocena pomaže drugima da biraju i ne može da se menja.'));
     const node = tree.root.findAll(candidate => String(candidate.type) === 'T' && candidate.children[0] === 'Sve je proteklo kako treba.')[0];
     expect(node.props).toMatchObject({ selectable: false, dataDetectorType: 'none' });
   });

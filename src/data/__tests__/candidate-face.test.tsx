@@ -33,12 +33,14 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
-jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
+jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar', FaceEdge: 'FaceEdge', FACE_EDGE: 2 }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
-import { CandidateListPresentation, CandidateSelectionPresentation, candidateRatingFigure, sortCandidates } from '../../ui/v2/ApplicationSelectionPresentation';
-import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight, requesterPrijava } from '../../ui/v2/CandidateFace';
+import { CandidateListPresentation, CandidateSelectionPresentation, MEASURE_BEST_RATING, MEASURE_LOWEST_PRICE, candidateMeasures, candidateRatingFigure,
+  sortCandidates } from '../../ui/v2/ApplicationSelectionPresentation';
+import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight, requesterPrijava,
+  splitAmount } from '../../ui/v2/CandidateFace';
+import { DogovorenoMoment } from '../../ui/v2/DogovorenoMoment';
 import { PublicProfileSheet } from '../../ui/system/PublicProfileSheet';
-import { SuccessMark } from '../../ui/system/SuccessMark';
 
 const need = { id: 'need-1', revizija: 3, naslov: 'Unos ormara', podrucjeTekst: 'Liman 2, Novi Sad', vremeTekst: '20. sep · 10:00–11:00', stanje: 'CEKA_PRIJAVE',
   pokrivenost: { ukupno: 3, preostalo: 3, popunjeno: 0, udeo: 0 }, rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade' } as unknown as PotrebaProjekcija;
@@ -62,32 +64,34 @@ const flat = (style: unknown) => Object.assign({}, ...[style].flat(4).filter(Boo
 const stars = (root: ReactTestInstance) => root.findAll(node => node.type === ('FactArt' as unknown as React.ElementType) && node.props.kind === 'star');
 
 describe('the candidate row', () => {
-  it('leads with the state, then the person, then the offer and the people on one line, what the person has and the message, in one press', async () => {
+  it('leads with the person and the total in one row, then the term, the people, what the person has and the message, in one press', async () => {
     const opened: string[] = [];
     await act(async () => { tree = create(<CandidateListPresentation need={need} candidates={[k()]} open={candidate => opened.push(candidate.prijavaId)}
       back={noop} refresh={noop} />); });
     const row = pressNamed('Pogledaj prijavu: Milan Petrović');
-    // Tree order is reading order: the state, the Avatar, the name, the rating, then the amount, its basis and the people on one line, what
-    // the person has. The task's own term is the same on every card of the list and is said once above it, so the card does not repeat it.
+    // Tree order is reading order ("Ponude preko stola"): the Avatar, the name, the rating and the total at the end of the row (the figure, then
+    // the currency with what it buys), then the term (the task's own when the person proposed none), the people, what the person has and the
+    // message in quotes. An application that was simply sent wears no chip: every application of the list was sent.
     const order = row.findAll(node => node.type === ('Avatar' as unknown as React.ElementType)
       || (node.type === ('T' as unknown as React.ElementType) && typeof node.props.children === 'string'))
       .map(node => node.type === ('Avatar' as unknown as React.ElementType) ? `avatar:${node.props.initials}` : node.props.children);
     // The rating line keeps its count whole when it wraps: no-break spaces inside the count and before the dot.
-    expect(order).toEqual(['Poslata', 'avatar:MP', 'Milan Petrović', '4,8 · 11 ocena', '4.500 RSD', 'ukupno', '·', '2 osobe',
-      'Ima: Kombi · Trake', 'Dolazimo sa trakama i kombijem.']);
-    const amount = row.findAll(node => node.props.children === '4.500 RSD')[0];
-    expect(flat(amount.props.style).color).toBe(sys.color.money);
+    expect(order).toEqual(['avatar:MP', 'Milan Petrović', '4,8 · 11 ocena', '4.500', 'RSD ukupno', '20. sep · 10:00–11:00', '2 osobe',
+      'Ima: Kombi · Trake', '„Dolazimo sa trakama i kombijem.“']);
+    // The figure is the card's money (the weight of its right side); the currency and what it buys are a quiet word under it.
+    const amount = row.findAll(node => node.props.children === '4.500')[0];
+    expect(amount.props.variant).toBe('priceSmall'); expect(flat(amount.props.style).color).toBe(sys.color.money);
+    expect(row.findAll(node => node.props.children === 'RSD ukupno')[0].props).toMatchObject({ variant: 'meta', tone: 'muted' });
     // The message is two lines of the row; the whole of it opens with the application (the spoken text says so).
-    expect(row.findAll(node => node.props.children === 'Dolazimo sa trakama i kombijem.')[0].props.numberOfLines).toBe(2);
-    // No proposed interval: the task's own term is not repeated on the row (the cards that differ are the proposals).
-    expect(texts(row)).not.toContain('Predlog'); expect(texts(row)).not.toContain('20. sep · 10:00–11:00');
+    expect(row.findAll(node => node.props.children === '„Dolazimo sa trakama i kombijem.“')[0].props.numberOfLines).toBe(2);
+    // No proposed interval: the task's own term is what applies, and it is on every card (a proposal says so: the next test).
+    expect(texts(row)).not.toContain('Predlog'); expect(texts(row)).toContain('20. sep · 10:00–11:00');
     // Essential facts remain available when the person has disabled screen-reader hints.
     expect(row.props.accessibilityValue.text).toBe('Poslata. Ocena 4,8, 11 ocena. Termin: 20. sep · 10:00–11:00. Ponuda: 4.500 RSD ukupno. 2 osobe. '
       + 'Ima: Kombi · Trake. Poruka: „Dolazimo sa trakama i kombijem.“. Otvori prijavu za celu poruku.');
     expect(row.props.accessibilityHint).toBe('Otvara celu prijavu.');
-    // One target: nothing inside the card is a press of its own, and the chip is not a stop of its own.
+    // One target: nothing inside the card is a press of its own (and a chip, when there is one, is not a stop of its own: the state test).
     expect(row.findAll(node => node.type === ('Press' as unknown as React.ElementType))).toHaveLength(1);
-    expect(row.findAll(node => node.props.importantForAccessibility === 'no-hide-descendants' && node.props.accessibilityElementsHidden === true).length).toBeGreaterThan(0);
     await act(async () => row.props.onPress()); expect(opened).toEqual(['application-1']);
   });
 
@@ -95,29 +99,83 @@ describe('the candidate row', () => {
     await render(list([k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z', stanje: 'STALE', mozeIzabrati: false })]));
     const row = pressNamed('Pogledaj prijavu: Milan Petrović');
     expect(texts(row)).toMatch(/Predlog: 20\. sep( 2026)? · 10:00–11:00/);
-    // The state is still the one it was ("Poslata"); the line under it says what is new, in the warn colour.
-    expect(texts(row).startsWith('Poslata Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')).toBe(true);
+    // A sent application wears no chip; the reason the server gives is the card's one mark, a dot and the words in the warn colour.
+    expect(texts(row)).not.toContain('Poslata'); expect(texts(row)).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
     const status = row.findAll(node => node.props.children === 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')[0];
     expect(flat(status.props.style).color).toBe(sys.color.warn);
     expect(row.props.accessibilityValue.text).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
   });
 
-  it('gives every application a state, in the owner\'s five words, and "Viđena" only once the server confirmed the view', async () => {
-    const WORDS: [KandidatProjekcija['stanje'], string, string][] = [['SELECTABLE', 'Poslata', 'Viđena'], ['STALE', 'Poslata', 'Viđena'], ['OVERFILL', 'Poslata', 'Viđena'],
+  it('draws the state chip only when it says something: not "Poslata" (every application of the list was sent), always "Viđena", "Izabrana", "Nije izabrana" and "Povučena"', async () => {
+    // [state, the chip a sent application wears (none), the chip once the server confirmed the view]
+    const WORDS: [KandidatProjekcija['stanje'], string | null, string][] = [['SELECTABLE', null, 'Viđena'], ['STALE', null, 'Viđena'], ['OVERFILL', null, 'Viđena'],
       ['SELECTED', 'Izabrana', 'Izabrana'], ['WITHDRAWN', 'Povučena', 'Povučena'], ['CLOSED', 'Nije izabrana', 'Nije izabrana'], ['FULL', 'Nije izabrana', 'Nije izabrana']];
     const chipWord = (row: ReactTestInstance) => row.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'status-chip')
       .map(node => node.props.accessibilityLabel);
     for (const [stanje, word, seen] of WORDS) {
       const application = k({ stanje, mozeIzabrati: stanje === 'SELECTABLE' });
       await render(<CandidateListPresentation need={need} candidates={[application]} open={noop} back={noop} refresh={noop} />);
-      expect([stanje, chipWord(pressNamed('Pogledaj prijavu: Milan Petrović'))]).toEqual([stanje, [word]]);
+      expect([stanje, chipWord(pressNamed('Pogledaj prijavu: Milan Petrović'))]).toEqual([stanje, word ? [word] : []]);
       await act(async () => tree.update(<CandidateListPresentation need={need} candidates={[application]} open={noop} back={noop} refresh={noop}
         viewed={new Set(['application-1'])} />));
-      expect([stanje, chipWord(pressNamed('Pogledaj prijavu: Milan Petrović'))]).toEqual([stanje, [seen]]);
+      const row = pressNamed('Pogledaj prijavu: Milan Petrović');
+      expect([stanje, chipWord(row)]).toEqual([stanje, [seen]]);
+      // The card is one stop and is heard once: the chip inside it is hidden from a screen reader, and the spoken text says the same word.
+      expect(row.findAll(node => node.props.importantForAccessibility === 'no-hide-descendants' && node.props.accessibilityElementsHidden === true).length).toBeGreaterThan(0);
+      expect(row.props.accessibilityValue.text.startsWith(`${seen}.`)).toBe(true);
       await act(async () => tree.unmount());
     }
-    expect(new Set(WORDS.flatMap(([, word, seen]) => [word, seen]))).toEqual(new Set(['Poslata', 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena']));
+    expect(new Set(WORDS.flatMap(([, word, seen]) => [word, seen]))).toEqual(new Set([null, 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena']));
     expect([candidateChip({ stanje: 'SELECTABLE' }), candidateChip({ stanje: 'SELECTABLE' }, true)]).toEqual(['application.sent', 'application.seen']);
+  });
+
+  // "Ponude preko stola": one mark per card for what the whole list says by comparing, and only when it is true and the list is whole.
+  it('says "Najniža cena" and "Najviša ocena" only among the applications that can still be chosen, and only for a list that is whole', () => {
+    const cheap = k({ prijavaId: 'cheap', cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' }, ocenaTekst: '—', recenzijeTekst: '' });
+    const best = k({ prijavaId: 'best', ocenaTekst: '4,9', recenzijeTekst: '12 ocena' });
+    const other = k({ prijavaId: 'other', ocenaTekst: '4,2', recenzijeTekst: '5 ocena', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
+    const marks = candidateMeasures([cheap, best, other], true);
+    expect([marks.get('cheap'), marks.get('best'), marks.get('other')]).toEqual([MEASURE_LOWEST_PRICE, MEASURE_BEST_RATING, undefined]);
+    expect([MEASURE_LOWEST_PRICE, MEASURE_BEST_RATING]).toEqual(['Najniža cena', 'Najviša ocena']);
+    // A list that is not whole says nothing: a lower price or a better rating may be on the page that was not read.
+    expect(candidateMeasures([cheap, best, other], false).size).toBe(0);
+    // One application is not the lowest of anything; one rating is not the best of anything; nobody is ranked who cannot be chosen.
+    expect(candidateMeasures([cheap], true).size).toBe(0);
+    expect(candidateMeasures([cheap, best], true).get('best')).toBeUndefined();
+    const withdrawn = k({ prijavaId: 'gone', stanje: 'WITHDRAWN', mozeIzabrati: false, cena: { iznos: 1000, valuta: 'RSD', prikaz: '1.000 RSD' } });
+    expect(candidateMeasures([withdrawn, cheap, best], true).get('gone')).toBeUndefined();
+    expect(candidateMeasures([withdrawn, cheap, best], true).get('cheap')).toBe(MEASURE_LOWEST_PRICE);
+    // An amount nobody stored is not a price: it is never the lowest.
+    const unpriced = k({ prijavaId: 'free', cena: { iznos: 0, valuta: 'RSD', prikaz: '' } });
+    expect(candidateMeasures([unpriced, cheap, best], true).get('free')).toBeUndefined();
+    // A tie is a tie: both are said.
+    const twin = k({ prijavaId: 'twin', cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' } });
+    expect([candidateMeasures([cheap, twin, best], true).get('cheap'), candidateMeasures([cheap, twin, best], true).get('twin')]).toEqual([MEASURE_LOWEST_PRICE, MEASURE_LOWEST_PRICE]);
+    // The lowest price takes the one mark when an application is both.
+    const both = k({ prijavaId: 'both', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' }, ocenaTekst: '5', recenzijeTekst: '20 ocena' });
+    expect(candidateMeasures([both, best, other], true).get('both')).toBe(MEASURE_LOWEST_PRICE);
+  });
+
+  it('draws the list\'s mark on the card as a dot and the words, green for an advantage, and says it to a screen reader last', async () => {
+    const cheap = k({ prijavaId: 'cheap', ime: 'Ana', cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' }, ocenaTekst: '—', recenzijeTekst: '', napomena: '' });
+    await render(list([cheap, k({ prijavaId: 'dear', ime: 'Bojan' })]));
+    const row = pressNamed('Pogledaj prijavu: Ana');
+    const mark = row.findAll(node => node.props.children === 'Najniža cena')[0];
+    expect(mark.props.variant).toBe('note'); expect(flat(mark.props.style).color).toBe(sys.color.ink);
+    expect(row.findAll(node => flat(node.props.style).backgroundColor === sys.color.green && flat(node.props.style).width === sys.space.sm)).toHaveLength(1);
+    expect(row.props.accessibilityValue.text.endsWith('2 osobe. Ima: Kombi · Trake. Najniža cena.')).toBe(true);
+    expect(texts(pressNamed('Pogledaj prijavu: Bojan'))).not.toContain('Najniža cena');
+    // Page by page, the list is not whole: the mark is not said until every application has been read.
+    await act(async () => tree.unmount());
+    await render(<CandidateListPresentation need={need} candidates={[cheap, k({ prijavaId: 'dear', ime: 'Bojan' })]} open={noop} back={noop} refresh={noop}
+      paging={{ total: 5, hasMore: true, loadingMore: false, moreError: false, onLoadMore: noop }} />);
+    expect(texts(pressNamed('Pogledaj prijavu: Ana'))).not.toContain('Najniža cena');
+  });
+
+  it('splits an amount into its figure and its currency, whatever it is written with', () => {
+    expect(splitAmount('4.500 RSD')).toEqual(['4.500', 'RSD']);
+    expect(splitAmount('1.250.000 RSD')).toEqual(['1.250.000', 'RSD']);
+    expect(splitAmount('4.500')).toEqual(['4.500', '']);
   });
 
   it('builds the one model both lists draw, with only what the read carried', () => {
@@ -198,11 +256,12 @@ describe('the candidate row', () => {
     await render(list([k({ ime: 'Aleksandra Stefanović-Radosavljević', pokrivaMesta: 123,
       cena: { iznos: 125000, valuta: 'RSD', prikaz: '125.000 RSD' } })]));
     const row = pressNamed('Pogledaj prijavu: Aleksandra Stefanović-Radosavljević');
-    const amount = row.findAll(node => node.props.children === '125.000 RSD')[0];
-    const basis = row.findAll(node => node.props.children === 'ukupno')[0];
+    const amount = row.findAll(node => node.props.children === '125.000')[0];
+    const basis = row.findAll(node => node.props.children === 'RSD ukupno')[0];
     const people = row.findAll(node => node.props.children === '123 osobe')[0];
     expect(amount.props.numberOfLines).toBeUndefined(); expect(basis.props.numberOfLines).toBeUndefined(); expect(people.props.numberOfLines).toBeUndefined();
-    expect(flat(amount.parent!.props.style).flexDirection).toBe('column');
+    // Enlarged, the total stands under the person (a column that starts at the person's own edge), never squeezed beside a long name.
+    expect(flat(amount.parent!.props.style).alignItems).toBe('flex-start');
     expect(texts(amount.parent!)).not.toContain('Aleksandra');
     expect(row.props.accessibilityValue.text).toContain('Ponuda: 125.000 RSD ukupno. 123 osobe');
   });
@@ -295,16 +354,18 @@ describe('the comparison', () => {
     expect(widths).toHaveLength(3);
   });
 
+  // The total is the card's right side, in the row of the person; large text and a narrow window stack it under the person instead.
   it.each([
-    ['at Large', 390, 1.2999999523, 'left'],
-    ['on a 320 dp phone', 320, 1, 'left'],
-    ['below the person on a 390 dp phone at normal text', 390, 1, 'left'],
+    ['under the person at Large', 390, 1.2999999523, 'flex-start'],
+    ['under the person on a 320 dp phone', 320, 1, 'flex-start'],
+    ['at the end of the person\'s row on a 390 dp phone at normal text', 390, 1, 'flex-end'],
+    ['at the end of the person\'s row on the actual 361 dp phone at 1.15', 361, 1.15, 'flex-end'],
   ])('places the total %s', async (_name, width, fontScale, align) => {
     mockWidth = width; mockFontScale = fontScale;
     await render(list([k()]));
     const row = pressNamed('Pogledaj prijavu: Milan Petrović');
-    const amount = row.findAll(node => node.props.children === '4.500 RSD')[0];
-    expect(flat(amount.props.style).textAlign).toBe(align);
+    const amount = row.findAll(node => node.props.children === '4.500')[0];
+    expect(flat(amount.parent!.props.style).alignItems).toBe(align);
   });
 });
 
@@ -419,19 +480,69 @@ describe('the offer sheet', () => {
     expect(chips()).toEqual(['Nije izabrana']); expect(texts()).toContain('Zadatak je zatvoren');
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'SELECTED', mozeIzabrati: false }) })));
     expect(chips()).toEqual(['Izabrana']);
-    // The Dogovor is made: the application is chosen, even before the list has been read again to say so.
+    // The Dogovor is made: the sheet gives way to the moment "Dogovoreno!" (the next tests), and the old line is not said any more.
     await act(async () => tree.update(offer({ confirmed: true })));
-    expect(chips()).toEqual(['Izabrana']); expect(texts()).toContain('Dogovor je sklopljen.');
+    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0);
+    expect(texts()).toContain('Dogovoreno!'); expect(texts()).not.toContain('Dogovor je sklopljen.');
   });
 
-  // Review r4 rk item 2: an outcome that was already confirmed when the sheet opened stands still (no spring, no haptic).
-  it('plays the success mark only for a choice confirmed while the sheet is open', async () => {
+  // Review r4 rk item 2: an outcome that was already confirmed when the sheet opened stands still (no meeting, no haptic).
+  it('plays the moment only for a choice confirmed while the sheet is open', async () => {
     await render(offer({ confirmed: true }));
-    expect(tree.root.findByType(SuccessMark).props.fresh).toBe(false);
+    expect(tree.root.findByType(DogovorenoMoment).props.fresh).toBe(false);
     await act(async () => tree.unmount());
     await render(offer());
+    expect(tree.root.findAllByType(DogovorenoMoment)).toHaveLength(0);
     await act(async () => tree.update(offer({ confirmed: true })));
-    expect(tree.root.findByType(SuccessMark).props.fresh).toBe(true);
+    expect(tree.root.findByType(DogovorenoMoment).props.fresh).toBe(true);
+  });
+
+  // "Dogovoreno!" (owner's pick "Susret dva lica", with his addition: the task's title under the faces): two faces, the title, the word, three
+  // rows, and the one green way on, which is the sheet's own `Otvori Dogovor` with its guard.
+  it('is a whole screen of two faces, the task\'s title, the word, the two of you, the term and the amount, and one green way on', async () => {
+    const openAgreement = jest.fn(), back = jest.fn();
+    await render(offer({ confirmed: true, pending: true, openAgreement, back,
+      publicPhoto: (profileId, size) => React.createElement('Photo' as unknown as React.ElementType, { profileId, size }), ownFace: React.createElement('Own' as unknown as React.ElementType) }));
+    const moment = tree.root.findByType(DogovorenoMoment);
+    expect(moment.props).toMatchObject({ people: 'Ti i Milan Petrović', taskTitle: 'Unos ormara', term: '20. sep · 10:00–11:00', amount: '4.500 RSD ukupno', fresh: false });
+    // Reading order: the task's title under the faces, then the word, then the three rows and the action.
+    expect(texts().replace(/\s+/g, ' ')).toBe('Unos ormara Dogovoreno! Ti i Milan Petrović 20. sep · 10:00–11:00 4.500 RSD ukupno Otvori Dogovor');
+    // Yours is the face the screen handed in; theirs is the portrait at 72 by their public profile; nothing else is invented.
+    expect(tree.root.findAllByType('Own' as unknown as React.ElementType)).toHaveLength(1);
+    expect(tree.root.findAllByType('Photo' as unknown as React.ElementType).map(node => node.props)).toEqual([{ profileId: 'profile-1', size: 72 }]);
+    // The word is announced when it has just happened; the whole screen is a modal whose Android Back is the screen's Back.
+    expect(tree.root.findAll(node => node.props.children === 'Dogovoreno!')[0].props.accessibilityRole).toBe('header');
+    const screen = tree.root.findByType('Modal' as unknown as React.ElementType);
+    await act(async () => screen.props.onRequestClose());
+    expect(back).toHaveBeenCalledTimes(1);
+    expect(green()).toEqual(['Otvori Dogovor']);
+    await act(async () => pressNamed('Otvori Dogovor').props.onPress()); expect(openAgreement).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws the faces it has: the drawn person for yours when the screen has none, the letters for theirs without a public portrait', async () => {
+    await render(offer({ confirmed: true, pending: true }));
+    const faces = tree.root.findAll(node => node.type === ('Avatar' as unknown as React.ElementType)).map(node => [node.props.initials, node.props.size]);
+    expect(faces).toEqual([[null, 72], ['MP', 72]]);
+    expect(texts()).toContain('Ti i Milan Petrović');
+  });
+
+  it('takes the chosen person\'s face from the screen when it is handed one, before their public portrait and before their letters', async () => {
+    const publicPhoto = jest.fn((_profileId: string, _size?: number) => React.createElement('Portrait' as unknown as React.ElementType));
+    await render(offer({ confirmed: true, pending: true, publicPhoto, themFace: React.createElement('Them' as unknown as React.ElementType) }));
+    expect(tree.root.findAllByType('Them' as unknown as React.ElementType)).toHaveLength(1);
+    expect(tree.root.findAllByType('Portrait' as unknown as React.ElementType)).toHaveLength(0);
+    expect(publicPhoto).not.toHaveBeenCalled();
+    // Without it the public portrait at 72 stands in, and without that their letters.
+    await act(async () => tree.unmount());
+    await render(offer({ confirmed: true, pending: true, publicPhoto }));
+    expect(publicPhoto).toHaveBeenCalledWith('profile-1', 72);
+    expect(tree.root.findAllByType('Portrait' as unknown as React.ElementType)).toHaveLength(1);
+  });
+
+  it('says "Vas dvoje" when the read could not give the person\'s name, never "Ti i Ime nije dostupno", and says a missing amount in words', async () => {
+    await render(offer({ confirmed: true, pending: true, candidate: k({ ime: 'Ime nije dostupno', inicijali: '', cena: { iznos: 0, valuta: 'RSD', prikaz: '' } }) }));
+    expect(texts()).toContain('Vas dvoje'); expect(texts()).not.toContain('Ime nije dostupno'); expect(texts()).toContain('Cena nije navedena');
+    expect(tree.root.findAll(node => node.type === ('Avatar' as unknown as React.ElementType)).map(node => node.props.initials)).toEqual([null, null]);
   });
 
   it('has no green action for an offer that cannot be chosen, and says why beside the one thing to do', async () => {
@@ -476,7 +587,9 @@ describe('the trust block of the person, which the server gives or does not', ()
     expect(publicTrust).not.toHaveBeenCalled();
     await open();
     expect(publicTrust).toHaveBeenCalledTimes(1); expect(publicTrust).toHaveBeenCalledWith('profile-1');
-    expect(texts()).toContain('Dolazi kako je dogovoreno: 90%'); expect(texts()).toContain('Dogovoreno 10 zadataka'); expect(texts()).toContain('Na USKOČI-ju od marta 2026');
+    // 8 Oct 2026 ("Lice i tri broja"): the percentage is the third figure of the sheet ("90 %" with its words under it), the rest are confirmations.
+    expect(texts()).toContain('90 %'); expect(texts()).toContain('dolazi kako je dogovoreno');
+    expect(texts()).toContain('Dogovoreno 10 zadataka'); expect(texts()).toContain('Na USKOČI-ju od marta 2026');
   });
 
   it('draws nothing at all when the server hides it from this viewer (the default today), when it has nothing to say, and when there is too little to say a percentage', async () => {
@@ -489,7 +602,7 @@ describe('the trust block of the person, which the server gives or does not', ()
     // Too few Dogovori for a percentage: the profile says so in its own words; the offer adds none.
     await render(sheet(async () => trust({ reliabilityState: 'TOO_FEW', reliabilityPercent: null, agreedCount: 2 })));
     await open();
-    expect(texts()).not.toContain('Dolazi kako je dogovoreno: 90%'); expect(texts()).not.toMatch(/\d+%/);
+    expect(texts()).not.toContain('90 %'); expect(texts()).not.toMatch(/\d+ ?%/);
   });
 
   it('never delays or fails the profile: a read that fails, that throws at once or that never answers leaves the profile as it is', async () => {
@@ -524,7 +637,7 @@ describe('the public profile sheet', () => {
     const onPress = jest.fn(), onClose = jest.fn();
     await render(<PublicProfileSheet state={{ loading: false, data: profile() }} onClose={onClose} onRetry={noop} safety={{ onPress, busy: false, error: null }} />);
     expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1);
-    expect(texts()).toContain('Marko Marković'); expect(texts()).toContain('Još nema ocena'); expect(texts()).not.toContain('Javni profil');
+    expect(texts()).toContain('Marko Marković'); expect(texts()).toContain('Nova ocena'); expect(texts()).toContain('još nema ocena'); expect(texts()).not.toContain('Javni profil');
     const entry = pressNamed('Prijavi ili blokiraj osobu: Marko Marković');
     expect(texts(entry)).toContain('Prijavi ili blokiraj osobu');
     await act(async () => entry.props.onPress()); expect(onPress).toHaveBeenCalledTimes(1);
@@ -551,26 +664,28 @@ describe('the public profile sheet', () => {
       ocenaDostupna: false, recenzijeDostupne: false, verifikacijaIdentitetaDostupna: false };
     const photo = jest.fn((_id: string, _size?: number) => null);
     await render(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} photo={photo} />);
-    expect(photo).toHaveBeenCalledWith('profile-1', 96);
-    // (T4b1, 2026-10-07: the rating is a row with its picture; "Ocena nije dostupna" says so.)
-    expect(texts()).toContain('Ocena nije dostupna'); expect(texts()).not.toContain('4,9'); expect(texts()).not.toContain('27 ocena');
+    expect(photo).toHaveBeenCalledWith('profile-1', 72);
+    // (8 Oct 2026: a rating the server says is not available is not drawn at all: no figure, no word about it.)
+    expect(texts()).not.toContain('Ocena nije dostupna'); expect(texts()).not.toContain('Nova ocena'); expect(texts()).not.toContain('4,9'); expect(texts()).not.toContain('27 ocena');
     expect(texts()).not.toContain('Identitet je potvrđen');
     await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} />));
     const portrait = tree.root.findAll(node => node.props.testID === 'public-profile-portrait')[0];
-    expect(flat(portrait.props.style)).toMatchObject({ width: 96, height: 96 });
-    expect(texts(portrait)).toBe('MM');
+    // The face is the one stand-in (`Avatar`, here a named element) at 72, with the initials of the name, inside the sticker edge.
+    expect(portrait.findAll(node => String(node.type) === 'Avatar').map(node => [node.props.initials, node.props.size])).toEqual([['MM', 72]]);
+    expect(portrait.findAll(node => String(node.type) === 'FaceEdge')).toHaveLength(1);
     expect(portrait.props.importantForAccessibility).toBe('no-hide-descendants');
   });
 
-  // T4b1 (2026-10-07; `FactRow`s since 2026-10-08): the facts are rows (a picture and one sentence each), so they never need to stack; only the identity does.
+  // T4b1 (2026-10-07; `FactRow`s since 2026-10-08; the three figures since 8 Oct 2026): the figures share one row and the confirmations are rows, so nothing needs to stack.
   it.each([[320, 1], [390, 1.2999999523], [390, 2]])('draws the facts as rows at width %s and scale %s without clamping the biography', async (width, fontScale) => {
     mockWidth = width; mockFontScale = fontScale;
     const data = { ...profile(), biografija: 'Radim sa bratom. '.repeat(35) };
     await render(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} />);
-    const rating = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'public-profile-fact-rating')[0];
-    expect(rating.props.accessibilityLabel).toBe('Još nema ocena');
-    expect(flat(rating.props.style).flexDirection).toBe('row');
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Završeno 2 zadatka')).toHaveLength(1);
+    const rating = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'public-profile-figure-rating')[0];
+    expect(rating.props.accessibilityLabel).toBe('Nova ocena još nema ocena');
+    const figures = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'public-profile-figures')[0];
+    expect(flat(figures.props.style).flexDirection).toBe('row');
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === '2 završena')).toHaveLength(1);
     const bio = tree.root.findAll(node => node.props.children === data.biografija)[0];
     expect(bio.props.numberOfLines).toBeUndefined(); expect(bio.props.selectable).toBe(true);
   });

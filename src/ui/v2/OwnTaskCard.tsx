@@ -37,17 +37,25 @@ import { VALUE_WORDS, placesText, taskPlace, taskSpoken, taskValue } from './Tas
  * did. The frame gives under the finger as ONE object (`usePressLift`, the row rung, 0.985), and nothing moves under reduced motion.
  * The requirement of the task (a vehicle, a tool) is not drawn here: I wrote it, and the task shows it.
  */
-function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false }: {
+function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, sectionSays = false }: {
   item: PotrebaProjekcija; onOpen: () => void;
   /** Opens the applications that wait for my choice. Without it the next step is still said, as a plain sentence. */
   onApplications?: () => void;
   disabled?: boolean;
+  /**
+   * The list's own group already says what state the task is in ("Čeka tvoj izbor", "Objavljeno", "Dogovoreno", or the list of drafts), so
+   * the card does not wear the state chip a second time (a division said twice, "Papir na stolu", the owner's pick of 2026-10-08). HITNO
+   * keeps its badge, and the card is still heard with its state, so it stands alone for a screen reader that lands on it.
+   */
+  sectionSays?: boolean;
 }) {
   // The money line stacks only when the room is short (a window under 340 dp, or text scale 1.3 and up), never on an ordinary phone.
   const large = useLayoutClass().stacked;
   const title = readableTitle(item.naslov);
   const standing = ownTaskStanding(item);
   const chip = standing.chip;
+  // What is drawn: the chip, unless the group the card stands in says it already.
+  const drawnChip = sectionSays ? null : chip;
   const urgencyNow = useUrgencyClock([item.urgency]);
   const urgent = displaysUrgent(item.urgency, urgencyNow);
   const value = taskValue(item);
@@ -67,10 +75,10 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false }: {
       <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak ${title}`} accessibilityValue={{ text: spoken }}
         accessibilityState={{ disabled }} disabled={disabled} onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
         style={recordBody}>
-        {chip || urgent ? <View style={s.top}>
+        {drawnChip || urgent ? <View style={s.top}>
           {/* The card is heard once, as one sentence (`taskSpoken`); its chip and badge are not stops of their own. */}
-          {chip ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            <StatusChip status={chip.status} detail={chip.detail} /></View> : <View style={s.grow} />}
+          {drawnChip ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <StatusChip status={drawnChip.status} detail={drawnChip.detail} /></View> : <View style={s.grow} />}
           <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><NeedUrgencyBadge urgency={item.urgency} now={urgencyNow} /></View>
         </View> : null}
         <View style={s.what}>

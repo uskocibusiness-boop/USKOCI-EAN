@@ -87,8 +87,9 @@ describe.each([
     await act(async () => { tree = create(<Screen pass={0} />); });
     expect(drawn(prefix)).toBe(3);
     await act(async () => tree.update(<Screen pass={1} />));
-    // Moji zadaci keeps its search in the Filteri sheet (it is one of the filters, 2026-10-08). Zadaci opens its search panel from the
-    // pill over the map (Discovery V47): the words are a draft in both, and the list takes them when the one action applies them.
+    // Moji zadaci keeps its search in the Filteri sheet (it is one of the filters, 2026-10-08; the groups by phase of "Papir na stolu" did not take it
+    // away). Zadaci opens its search panel from the pill over the map (Discovery V47): the words are a draft in both, and the list takes them when the
+    // one action applies them.
     if (discovery) {
       await act(async () => field('Pretraži zadatke').props.onPress());
       await act(async () => field('Šta').props.onPress());

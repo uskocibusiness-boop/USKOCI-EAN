@@ -149,14 +149,15 @@ test('the public Task leads with its title and four facts, offers the requester 
   for (const fact of ['Cena: 9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe, 0/2 popunjeno']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }
-  expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('Ocena 4,8');
+  expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('4,8');
   expect(copy).toContain('Objavio');
-  expect(brand()).toEqual(['Sastavi prijavu']);
+  // The owner, 8 Oct 2026: the one action is the button alone, "Pošalji prijavu" for a task with a fixed price (this one is 9.000 RSD).
+  expect(brand()).toEqual(['Pošalji prijavu']);
   // Owner step 5b (2026-09-24): the poster row is heard as the person it is ("Ana, Ocena 4,8") and says
   // what a press does as its hint; it was heard as "Pogledaj javni profil" alone, without the name.
   expect(byLabel('Ana, Ocena 4,8').props.accessibilityHint).toBe('Otvara javni profil');
   await act(async () => byLabel('Ana, Ocena 4,8').props.onPress()); expect(open).toHaveBeenCalledTimes(1);
-  await act(async () => byLabel('Sastavi prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
+  await act(async () => byLabel('Pošalji prijavu').props.onPress()); expect(apply).toHaveBeenCalledTimes(1);
   // The place is said once in the facts and once as the map section; no disclosure repeats it a third time.
   expect(labels()).not.toContain('Mesto izvršenja'); expect(copy).not.toContain('Mesto izvršenja');
 });
@@ -185,9 +186,11 @@ test('an open price is a word addressed to the person applying, never the amount
   await act(async () => { tree = create(<PublicNeedPresentation need={{ ...need, rezimCene: 'OFFERS', ponudjenaCena: undefined }} loading={false} error={false}
     missing={false} stale={false} busy={false} canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication}
     back={noop} retry={noop} apply={apply} />); });
-  // The word is the worker's ("Prima ponude"), in the heading type and never in the amount's.
-  const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Prima ponude')[0];
-  expect(price.props.children).toBe('Prima ponude'); expect(price.props.variant).toBe('heading');
+  // The word is the poster's own ("Tražim ponude", the owner's words of 8 Oct 2026), in the heading type and never in the amount's.
+  const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
+  expect(price.props.children).toBe('Tražim ponude'); expect(price.props.variant).toBe('heading');
+  // A task with no fixed price is answered with an offer.
+  expect(brand()).toEqual(['Pošalji ponudu']);
   expect(texts()).not.toContain('RSD');
   expect(texts()).not.toContain('NaN');
   expect(texts()).toContain('Ukupan iznos predlažeš u prijavi.');
@@ -201,10 +204,8 @@ test('closed applications remove the brand action and say so; the requester prof
   const copy = texts();
   // Step 7 (2026-09-24): the sheet wrote the raw number ("4.8"); a rating is written the Serbian way, as on every row.
   // T4b1 (2026-10-07; `FactRow`s since 2026-10-08, F6): the rating and the finished tasks are rows with one spoken sentence each ("4,8 · 3 ocene", "Završeno 5 zadataka").
-  const facts = tree.root.findByProps({ testID: 'public-profile-facts' }).findAll(node => typeof node.type === 'string' && node.props.accessible === true)
-    .map(node => node.props.accessibilityLabel);
+  // (The facts of the sheet are held by the sheet's own suite, `public-profile-sheet.test.tsx`; here it only has to open over the task, say who it is, and close.)
   expect(copy).toContain('Ana Anić'); expect(copy).toContain('Beograd'); expect(copy).toContain('Volim red.');
-  expect(facts).toEqual(['4,8 · 3 ocene', 'Završeno 5 zadataka']);
   expect(copy).not.toContain('Identitet je potvrđen');
   await act(async () => byLabel('Zatvori javni profil').props.onPress()); expect(close).toHaveBeenCalledTimes(1);
 });
@@ -214,12 +215,12 @@ test('closed applications remove the brand action and say so; the requester prof
 // standing in the other mode to go and change it in Profil.
 test('my own task offers my view of it, never an application to myself', async () => {
   await act(async () => { tree = create(<Detail relation={{ kind: 'OWNER' }} />); });
-  expect(texts()).toContain('Ovo je tvoj zadatak.'); expect(labels()).not.toContain('Sastavi prijavu');
+  expect(texts()).toContain('Ovo je tvoj zadatak.'); expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu');
   await act(async () => byLabel('Otvori svoj zadatak').props.onPress()); expect(ownTask).toHaveBeenCalledTimes(1); expect(apply).not.toHaveBeenCalled();
 });
 test('a task I applied to offers my application, and my Dogovor once I am chosen', async () => {
   await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: null }} />); });
-  expect(texts()).toContain('Tvoja prijava na ovaj zadatak je već poslata.'); expect(labels()).not.toContain('Sastavi prijavu');
+  expect(texts()).toContain('Tvoja prijava na ovaj zadatak je već poslata.'); expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu');
   await act(async () => byLabel('Pogledaj svoju prijavu').props.onPress()); expect(ownApplication).toHaveBeenCalledTimes(1);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: 'g1' }} />); });
@@ -227,6 +228,6 @@ test('a task I applied to offers my application, and my Dogovor once I am chosen
 });
 test('a relation that could not be read is never treated as not applied: no application is offered, only the check again', async () => {
   await act(async () => { tree = create(<Detail relation={{ kind: 'UNKNOWN' }} />); });
-  expect(labels()).not.toContain('Sastavi prijavu'); expect(labels()).toContain('Proveri ponovo');
+  expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu'); expect(labels()).toContain('Proveri ponovo');
   expect(texts()).not.toMatch(/JA MOGU|MENI TREBA|Profilu/);
 });

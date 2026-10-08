@@ -115,6 +115,19 @@ test('a flip of the retired app mode resets nothing: the search stays, the new-t
  expect(props().view.query).toBe('kept query'); expect(typeof props().onNew).toBe('function');
  await act(async () => old.onOpen(old.items[0])); expect(mockNavigate).toHaveBeenCalledTimes(1);
 });
+// "Papir na stolu" (2026-10-08): the first encounter of Moji zadaci has a quiet way, "Pogledaj zadatke", to other people's tasks; it is the route's command and
+// has the guard of every press here: the focused screen, the account, the foreground, once per focus.
+test('Moji zadaci hands the presentation the quiet way to the tasks of others: it opens Zadaci once, and a blurred or backgrounded screen refuses it', async () => {
+ Component = Owned; await render();
+ expect(typeof props().onExplore).toBe('function');
+ await act(async () => props().onExplore());
+ expect(mockNavigate).toHaveBeenCalledTimes(1); expect(mockNavigate).toHaveBeenCalledWith('/zadaci');
+ await act(async () => props().onExplore()); expect(mockNavigate).toHaveBeenCalledTimes(1);
+ await act(async () => tree.unmount()); mockNavigate.mockReset(); mockApp.currentState = 'background'; await render();
+ await act(async () => props().onExplore()); expect(mockNavigate).not.toHaveBeenCalled();
+ await act(async () => tree.unmount()); mockApp.currentState = 'active'; mockFocused = false; await render();
+ await act(async () => props().onExplore()); expect(mockNavigate).not.toHaveBeenCalled();
+});
 test('discovery labels my own task and the one I applied to, asks only about the tasks on screen, and a failed read labels nothing', async () => {
  mockPublic.mockResolvedValue([{ id: 'mine' }, { id: 'applied' }, { id: 'other' }]);
  mockRelations.mockImplementation(async (ids: readonly string[]) => taskRelationIndex([

@@ -1,7 +1,9 @@
 import { lazy, Suspense, useCallback, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FactArt } from '../system/FactArt';
+import { Appear, useAppear, type AppearList } from '../system/Appear';
+import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactRow } from '../system/FactRow';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { Surface } from '../system/Surface';
@@ -20,7 +22,7 @@ import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
-import { CardFact, CardTitle, CardValue, valueSpoken } from './TaskFace';
+import { CardTitle, CardValue, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
@@ -148,11 +150,30 @@ export const TASK_OPENINGS = ['Treba mi pomoć oko selidbe u subotu, 2 osobe, No
   'Treba mi neko da okreči sobu, tražim ponude.'] as const;
 
 /**
+ * "Sličice slete u nacrt" (owner's pick of 2026-10-08, A): a fact the assistant has understood is a small picture (a pin, a calendar,
+ * people, a price tag) that LANDS in the draft, arriving from above, 8 dp over its place, as what somebody else brings does (`Appear
+ * from="above"`, rule B1). A fact it has not understood is not drawn at all: unknown stays quiet, and nothing is invented. Only the
+ * picture's container moves, once, for a fact that arrives while the person is looking; a draft that was already there when the
+ * screen opened is simply there, and so is every fact under reduced motion. The words of a fact are never animated.
+ */
+export type DraftSticker = 'zone' | 'schedule' | 'people' | 'value';
+const STICKER_ORDER: readonly DraftSticker[] = ['zone', 'schedule', 'people', 'value'];
+/** The stickers the draft has a fact for, in the one order they stand (where, when, who, how much). */
+export function draftStickers(summary: Summary): DraftSticker[] {
+  return STICKER_ORDER.filter(kind => kind === 'zone' ? !!summary.zone : kind === 'schedule' ? !!summary.schedule : kind === 'people' ? !!summary.people : !!summary.value);
+}
+const stickerArt = (kind: DraftSticker, summary: Summary): FactArtKind => kind === 'zone' ? summary.zone === 'Na daljinu' ? 'remote' : 'pin'
+  : kind === 'schedule' ? 'calendar' : kind === 'people' ? 'users' : summary.value?.kind === 'amount' ? 'money' : 'offers';
+
+/**
  * The live draft starts compact. Disclosure only shows existing facts; its sibling review action retains the
- * owned editor's guards. Safety stays visible; during point editing, disclosure reveals the full draft.
+ * owned editor's guards. Safety stays visible; during point editing, disclosure reveals the full draft. Shut, the card shows the pictures
+ * of what has been understood as one row under the title (the facts' words are one tap away); open, or ready, each fact is a row of its
+ * picture and its words. `appear` is the conversation's memory of which pictures have already landed (the presentation keeps it, so
+ * moving the card from the top to the end of the thread never lands them again); without it nothing moves.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
-  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false }: {
+  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, appear }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
@@ -165,6 +186,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   reviewAtEnd?: boolean;
   /** Give an active location question room; existing disclosure still opens all draft facts. */
   locationEditing?: boolean;
+  /** Which pictures have already landed; a picture that is new to it lands, once. Left out, nothing moves. */
+  appear?: AppearList;
 }) {
   const { stacked } = useLayoutClass();
   const stackValue = stacked || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
@@ -181,6 +204,9 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
   const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
     summary.people, summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
+  // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
+  const stickers = draftStickers(summary);
+  const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
   const title = <View style={s.titleSide}>
     <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy, readyForReview && s.dotReady]} />
       <T variant="label" style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
@@ -198,10 +224,13 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       <Glyph name={expanded ? 'caret-up' : 'caret-down'} tone="muted" />
     </Press>}
     {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
-      {summary.zone ? <CardFact art={<FactArt kind={summary.zone === 'Na daljinu' ? 'remote' : 'pin'} size={24} cut="art" role="location" />} text={summary.zone} lines={0} />
+      {summary.zone ? lands('zone', 0, <FactRow art={stickerArt('zone', summary)} value={summary.zone} />)
         : <T variant="note" tone="muted">Mesto nije određeno</T>}
-      {summary.schedule ? <CardFact art={<FactArt kind="calendar" size={24} cut="art" role="time" />} text={summary.schedule} lines={0} /> : null}
-      {summary.people ? <CardFact art={<FactArt kind="users" size={24} cut="art" role="people" />} text={summary.people} lines={0} /> : null}
+      {summary.schedule ? lands('schedule', 1, <FactRow art="calendar" value={summary.schedule} />) : null}
+      {summary.people ? lands('people', 2, <FactRow art="users" value={summary.people} />) : null}
+    </View> : stickers.length && !locationSummary ? <View testID="intake-draft-stickers" accessible={false} importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden style={s.stickers}>
+      {stickers.map((kind, index) => lands(kind, index, <FactArt kind={stickerArt(kind, summary)} size={28} />))}
     </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
     {!locationSummary && (next ? <T variant="note" tone="muted">{next}</T>
@@ -254,6 +283,12 @@ export function IntakePresentation(props: Props) {
   const reduced = useReducedMotion();
   const photoConfirm = useConfirmSheet({ reduced });
   const summary = publicSummary(conversation.facts);
+  // Which pictures of the draft have landed (A, "Sličice slete u nacrt"). A conversation that began empty in this visit is news from its first fact, so
+  // the first pictures land; one that was opened with something in it is what was already there, and its pictures are simply in place. The memory
+  // lives here, not in the card: the card moves from the top of the screen to the end of the thread when the draft is ready, and must not land them again.
+  const landed = useAppear();
+  const beganEmpty = useRef(!conversation.facts.length && !conversation.messages.length);
+  landed.settle(draftStickers(summary), undefined, { afterLoading: beganEmpty.current });
   const safetyCopy = safetyMessage(conversation.safety);
   const open = conversation.status === 'OPEN';
   const hasConversation = !!conversation.conversationId;
@@ -373,7 +408,7 @@ export function IntakePresentation(props: Props) {
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
-      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} />}
+      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} appear={landed} />}
     actions={(!attach && photoAssets.length) || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
@@ -450,6 +485,8 @@ const s = StyleSheet.create({
   cardCompact: { paddingVertical: sys.space.sm },
   disclosure: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   details: { gap: sys.space.sm, paddingTop: sys.space.sm, paddingBottom: sys.space.xs },
+  // Shut, the pictures of what has been understood stand in one row under the title, 12 apart.
+  stickers: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingTop: sys.space.xs },
   reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   reviewRowLarge: { flexDirection: 'column', alignItems: 'stretch', gap: 0 },
   value: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },

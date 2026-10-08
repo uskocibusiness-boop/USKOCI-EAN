@@ -157,6 +157,24 @@ describe('the rest of the row', () => {
     expect(presses()[0].props.accessibilityValue.text.startsWith('HITNO, Objavljen, ')).toBe(true);
   });
 
+  // "Papir na stolu" (2026-10-08): the list is in groups by phase, and a group's name already says what state its tasks are in, so its cards do not wear the chip
+  // a second time (a division said twice). Nothing else about the card changes: HITNO stays, the foot stays, and the card still says its state aloud.
+  it('with `sectionSays` draws no chip but says the state aloud as before, and keeps HITNO, the foot and the next step', async () => {
+    await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} sectionSays />);
+    expect(chips()).toHaveLength(0); expect(texts()).not.toContain('Bira se · 3');
+    expect(presses()[0].props.accessibilityValue.text).toMatch(/^Bira se, 3, /);
+    expect(texts()).toContain('Imaš 3 prijave. Uporedi ih i izaberi.'); expect(presses()).toHaveLength(2);
+    const urgency = { level: 'HITNO' as const, expiresAt: '2099-01-01T00:00:00Z' };
+    await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0, urgency })} onOpen={jest.fn()} sectionSays />);
+    expect(chips()).toHaveLength(0); expect(texts()).toContain('HITNO');
+    expect(presses()[0].props.accessibilityValue.text.startsWith('HITNO, Objavljen, ')).toBe(true);
+  });
+
+  it('without `sectionSays` (the default, and the lists of finished and all tasks) the chip stands exactly as it did', async () => {
+    await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} />);
+    expect(chips()).toHaveLength(1); expect(texts()).toContain('Bira se · 3');
+  });
+
   it('while a command runs nothing on the row can be pressed, and the row stays readable', async () => {
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} disabled />);
     for (const node of presses()) { expect(node.props.disabled).toBe(true); expect(node.props.accessibilityState).toEqual({ disabled: true }); }

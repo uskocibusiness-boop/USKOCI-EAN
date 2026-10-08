@@ -7,7 +7,7 @@ import type { Ishod } from '../../data/ports';
 import type { PublicWorkTrust } from '../../data/workTrustClientService';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
-import type { AvatarSize } from '../system/Avatar';
+import { Avatar, type AvatarSize } from '../system/Avatar';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { ProductHeader } from '../product/ProductDetails';
@@ -21,12 +21,12 @@ import { osoba, osobuAkuz, prijava } from '../system/plural';
 import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
 import { StateView } from '../system/StateView';
-import { SuccessMark } from '../system/SuccessMark';
 import { Surface } from '../system/Surface';
 import { LARGE_TEXT_SCALE, useLayoutClass, useWindowRoom } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateHas, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
+import { DogovorenoMoment } from './DogovorenoMoment';
 import { ChoiceRow } from './offer/ChoiceRow';
 import { PrijavaState } from './PrijavaCard';
 import { V2Action } from './V2Action';
@@ -67,22 +67,50 @@ const CandidateSeparator = () => <View style={s.separator} />;
  * and primitives so a re-render of the screen touches only the rows whose offer changed; the
  * closure over `candidate` is made here, from the list's one stable `open`.
  */
-const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo, viewed }: {
+const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo, viewed, measure }: {
   candidate: KandidatProjekcija; need: PotrebaProjekcija; index: number; animate: boolean; compare: boolean;
   /** The width of one of two comparison columns; null in one column. A lone last application keeps it instead of the whole row. */
   columnWidth: number | null; large: boolean; narrow: boolean; open: (candidate: KandidatProjekcija) => void; photo?: CandidatePhoto;
   /** The server confirmed that this application was seen (opened on this phone): its chip says "Viđena". */
   viewed: boolean;
+  /** What the whole list says about this application ("Najniža cena"), or null: only a list that is whole says anything. */
+  measure: string | null;
 }) {
   const openThis = useCallback(() => open(candidate), [open, candidate]);
   const face = photo?.(candidate, compare ? 40 : layout.slotFace);
-  return <Appear index={index} animate={animate} style={columnWidth ? { width: columnWidth } : undefined}>
+  // An application is somebody else's: a new one arrives from above (owner's pick "Ponude preko stola", rule B1).
+  return <Appear index={index} animate={animate} from="above" style={columnWidth ? { width: columnWidth } : undefined}>
     {compare ? <CandidateCompareCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} viewed={viewed} onOpen={openThis}
       photo={face} aligned={columnWidth !== null} />
       : <CandidateCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} viewed={viewed} onOpen={openThis}
-        photo={face} large={large} narrow={narrow} />}
+        photo={face} large={large} narrow={narrow} measure={measure} />}
   </Appear>;
 });
+
+/** The two things a whole list can say about an application that can still be chosen, in the owner's words. */
+export const MEASURE_LOWEST_PRICE = 'Najniža cena';
+export const MEASURE_BEST_RATING = 'Najviša ocena';
+/**
+ * What a list says about its applications by comparing them, and only what is true: among the applications that can still be chosen, the
+ * one with the lowest total (when at least two have one) and the one with the best rating (when at least two have a rating that stands on
+ * at least one rating: a lone rating is not "the best" of anything). A tie is a tie: both are said. An application that cannot be chosen,
+ * one without a stored total and one without a rating are never ranked, and nothing is said for a list that is not whole, because a
+ * lower price or a better rating may be on the page that has not been read. The lowest price takes the one mark when an application is both.
+ */
+export function candidateMeasures(candidates: readonly KandidatProjekcija[], whole: boolean): ReadonlyMap<string, string> {
+  const marks = new Map<string, string>();
+  if (!whole) return marks;
+  const open = candidates.filter(k => k.stanje === 'SELECTABLE');
+  const priced = open.filter(k => candidateValue(k).kind === 'amount');
+  const lowest = priced.length > 1 ? Math.min(...priced.map(k => k.cena.iznos)) : null;
+  const rated = open.map(k => ({ k, figure: candidateRatingFigure(k) })).filter(entry => entry.figure && entry.figure.count > 0);
+  const best = rated.length > 1 ? Math.max(...rated.map(entry => entry.figure!.rating)) : null;
+  for (const k of open) {
+    if (lowest !== null && candidateValue(k).kind === 'amount' && k.cena.iznos === lowest) marks.set(k.prijavaId, MEASURE_LOWEST_PRICE);
+    else if (best !== null && rated.some(entry => entry.k === k && entry.figure!.rating === best)) marks.set(k.prijavaId, MEASURE_BEST_RATING);
+  }
+  return marks;
+}
 
 /**
  * How the loaded offers are ordered, on the phone and without a new request. The rows carry no time of
@@ -184,17 +212,19 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const appearRef = useRef(appear); appearRef.current = appear;
   const openRef = useRef(open); openRef.current = open;
   const openCandidate = useCallback((k: KandidatProjekcija) => openRef.current(k), []);
-  const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
-    <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columnWidth={columnWidth}
-      large={large} narrow={narrow} open={openCandidate} photo={photo} viewed={viewed?.has(candidateKey(k)) ?? false} />,
-  [need, compare, columnWidth, large, narrow, openCandidate, photo, viewed]);
-  // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
-  const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
-  const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
   // PKG-035: the list keeps every application, historical ones included; the ones that can still be
   // chosen are a different number and are named as such, never mixed into the total.
   // Read a page at a time, the number of applications is the server's, and how many of them can still be chosen is only known once every one is loaded.
   const known = !paging || !paging.hasMore;
+  // What the whole list says by comparing ("Najniža cena"): nothing until every application has been read, then one mark at most per card.
+  const measures = useMemo(() => candidateMeasures(candidates, known), [candidates, known]);
+  const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
+    <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columnWidth={columnWidth}
+      large={large} narrow={narrow} open={openCandidate} photo={photo} viewed={viewed?.has(candidateKey(k)) ?? false} measure={measures.get(candidateKey(k)) ?? null} />,
+  [need, compare, columnWidth, large, narrow, openCandidate, photo, viewed, measures]);
+  // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
+  const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
+  const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
   const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
   const counts = `${prijava(known ? candidates.length : paging?.total ?? candidates.length)}${known && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
   // An offer that can be read but not chosen says why on its own card; this says once what that means.
@@ -292,12 +322,13 @@ const CHOOSE_LABEL = 'Izaberi ovu prijavu';
  * is accepted (price, people, term) and what follows; only its confirm runs the route's `choose`, which keeps every guard it
  * had (the read revision and account, the offer's own version and hash, the selectable classifier, one idempotent
  * command). A retained confirmation is retired the moment the offer it asked about changes. After a choice the footer
- * carries its outcome: the Dogovor, a check of an unknown outcome, or the same command again.
+ * carries its outcome: a check of an unknown outcome, or the same command again; and once the Dogovor is made the sheet gives way to the
+ * moment "Dogovoreno!" (`DogovorenoMoment`), whose one green action is this sheet's `Otvori Dogovor`.
  *
  * Closing the sheet is the screen's Back: it returns to the list, or, once a choice was made, leaves as Back always did.
  * Nothing closes it while the choice runs.
  */
-export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, publicTrust, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, viewed = false }: {
+export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, publicTrust, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, ownFace, themFace, viewed = false }: {
   need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>;
   /** The server confirmed that this application was seen (it was opened on this phone): the chip says "Viđena" instead of "Poslata". */
   viewed?: boolean;
@@ -318,6 +349,10 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   safety?: SafetyEntry;
   /** The person's picture at the head of the offer (56); the Avatar with their letters when absent. */
   photo?: ReactNode;
+  /** YOUR face at 72, for the moment "Dogovoreno!" (the screen reads it from your own profile); the drawn person when absent. */
+  ownFace?: ReactNode;
+  /** The chosen person's face at 72, for the same moment: their photo, or their letters when there is none. Absent: their public portrait at 72 (`publicPhoto`), then their letters. */
+  themFace?: ReactNode;
 }) {
   const [profile, setProfile] = useState<PublicProfileState>(null);
   const [trust, setTrust] = useState<PublicWorkTrust | null>(null);
@@ -366,27 +401,30 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     : null;
   const quiet = reset ? <V2Action label="Pregledaj prijave" kind="quiet" onPress={reset} disabled={busy} /> : null;
   const priceWords = value.kind === 'amount' ? value.amount : UNPRICED;
+  // "Dogovoreno!" (owner's pick of 2026-10-08, "Susret dva lica"): once the Dogovor is made the offer is not what the person needs to see, so
+  // the sheet gives way to the moment, a whole screen with two faces, the task's title, the word, three rows and the one green way on, which
+  // is this sheet's own `Otvori Dogovor` with every guard it had. Fresh only when the choice was confirmed while this sheet was open: reopened
+  // on an outcome that was already confirmed (back from the profile's safety screen) it is the last frame at once, and nothing ticks.
+  if (confirmed) return <DogovorenoMoment fresh={!confirmedAtMount} onBack={back} action={primary}
+    // Both faces are handed in by the screen, from the sources the app already has (your own profile, the candidate's public portrait); without
+    // one, yours is the drawn person and theirs their letters, never letters that belong to nobody.
+    youFace={ownFace ?? <Avatar initials={null} size={72} />}
+    themFace={themFace ?? (publicPhoto ? publicPhoto(candidate.radnikProfilId, 72) : <Avatar initials={candidate.inicijali || null} size={72} />)}
+    // A candidate whose name the read could not give has no letters: the pair is just "vas dvoje", never "Ti i Ime nije dostupno".
+    people={candidate.inicijali ? `Ti i ${candidate.ime}` : 'Vas dvoje'} taskTitle={readableTitle(need.naslov)} term={term}
+    amount={value.kind === 'amount' ? `${value.amount} ${value.basis}` : UNPRICED} />;
   // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
   // visible × beside it, which a sighted person on iOS had no way to find before (only the handle, a tap outside and
   // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.
   return <ProductSheet title={candidate.ime} closeLabel={pending ? 'Nazad na zadatak' : 'Zatvori prijavu'}
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara prijavu i vraća na prijave.'} dismissible={!busy} onClose={back}
-    footer={primary || quiet ? () => <>
-      {/* Fresh only when the choice was confirmed while this sheet was open: reopened on an outcome that was already
-          confirmed (back from the profile's safety screen), the mark stands still and no haptic plays (review r4 rk
-          item 2; SuccessMark's own contract). Keep this outcome beside its pinned next action even for long offers. */}
-      {confirmed ? <View style={s.done}><SuccessMark fresh={!confirmedAtMount} size={48} />
-        <T accessibilityRole="alert" variant="title" style={s.grow}>Dogovor je sklopljen.</T></View> : null}
-      {primary}{quiet}
-    </> : undefined}>
+    footer={primary || quiet ? () => <>{primary}{quiet}</> : undefined}>
     {() => <View style={s.offerContent}>
       <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
       {/* The same state as the card, always: the chip (the sheet is where a person decides, so it says where the application stands),
           the reason beside it when it is not simply open, and the one thing to do when it cannot be chosen now. */}
       <View style={s.state}>
-        {/* Once the Dogovor is made the application IS chosen, whatever the list under the sheet has not been re-read to say yet: the chip never says
-            "Poslata" beside "Dogovor je sklopljen." */}
-        <PrijavaState status={confirmed ? 'application.selected' : candidateChip(candidate, viewed)} reason={confirmed || !reason ? null : { text: reason.text, tone: reason.tone }} />
+        <PrijavaState status={candidateChip(candidate, viewed)} reason={!reason ? null : { text: reason.text, tone: reason.tone }} />
         {blocked ? <Surface kind="note"><T variant="body">Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš trenutno stanje.</T>
           <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /></Surface> : null}
       </View>
@@ -431,5 +469,4 @@ const s = StyleSheet.create({
   offerContent: { gap: layout.section },
   state: { gap: sys.space.sm },
   noteAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
-  done: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
 });

@@ -4,13 +4,15 @@ import type { PrilikaProjekcija } from '../../../contracts/projections';
 import { needScheduleText } from '../../../data/needDetailPresentation';
 import { T } from '../../Text';
 import { Avatar } from '../../system/Avatar';
-import type { FactArtKind } from '../../system/FactArt';
+import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { FactRow } from '../../system/FactRow';
+import { Glyph } from '../../system/Glyph';
 import { layout } from '../../system/layout';
-import { ListRow } from '../../system/ListRow';
 import { osoba, plural } from '../../system/plural';
 import { Section } from '../../system/Section';
+import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
+import { RELIABILITY_LABEL } from '../../profile/workTrustModel';
 import { OFFERS_WORD } from '../discovery/TaskRecordBody';
 import { placesText, taskPlace } from '../TaskFace';
 import type { productPriceParts } from '../../product/ProductDetails';
@@ -75,29 +77,69 @@ export function TaskDecisionRequirements({ rows }: { rows: { label: string; valu
 }
 
 /**
- * A rating with how many reviews it stands on (UX plan 2.11, R27): "Ocena 4,7 · 3 ocene", "Još nema ocena" for none, "Ocena 4,7" when the
- * read does not say how many, and "Ocena nije dostupna" when it says nothing. The count is never guessed, so one review cannot pass for fifty.
+ * A rating with how many reviews it stands on (UX plan 2.11, R27), as the page draws it: the star and "4,7 · 3 ocene"; "Još nema ocena" for none
+ * and "Ocena nije dostupna" when the read says nothing (neither has a star: no figure, nothing to rate); "4,7" alone when the read does not say how
+ * many. The count is never guessed, so one review cannot pass for fifty.
  */
+export function publisherTrust(rating: string | null | undefined, count: number | null | undefined): { text: string; star: boolean } {
+  if (count === 0) return { text: 'Još nema ocena', star: false };
+  if (!rating) return { text: 'Ocena nije dostupna', star: false };
+  return { text: typeof count === 'number' && Number.isSafeInteger(count) && count > 0 ? `${rating} · ${plural(count, 'ocena', 'ocene', 'ocena')}` : rating, star: true };
+}
+
+/** The same rating as it is heard: "Ocena 4,7 · 3 ocene", "Još nema ocena", "Ocena nije dostupna". */
 export function publisherRatingLine(rating: string | null | undefined, count: number | null | undefined): string {
-  if (count === 0) return 'Još nema ocena';
-  if (!rating) return 'Ocena nije dostupna';
-  return typeof count === 'number' && Number.isSafeInteger(count) && count > 0 ? `Ocena ${rating} · ${plural(count, 'ocena', 'ocene', 'ocena')}` : `Ocena ${rating}`;
+  const trust = publisherTrust(rating, count);
+  return trust.star ? `Ocena ${trust.text}` : trust.text;
+}
+
+/** The words of the one action at the foot of a task I can apply to (owner, 8 Oct 2026): a task with a fixed price is applied to, a task without one is answered with an offer. */
+export const APPLY_WORDS = { priced: 'Pošalji prijavu', open: 'Pošalji ponudu' } as const;
+export const applyActionLabel = (priced: boolean): string => priced ? APPLY_WORDS.priced : APPLY_WORDS.open;
+
+/** The face of a person as a sticker: a ring of the page's own white and the one soft shadow of the screen, round whatever is put in it (a photo or the initials). */
+function StickerFace({ photo, initials }: { photo?: ReactNode; initials: string | null }) {
+  return <View style={s.sticker}><View style={s.stickerFace}>{photo ?? <Avatar initials={initials} size={FACE} />}</View></View>;
 }
 
 /**
- * Who posted it: the main person of the page, a row with a face of 56. Pressing it opens their public profile. A refusal of the safety entry
- * (the one place a person is reported or blocked from) is said under the row, politely, so a screen reader hears it without losing its place.
+ * Who posted it: the one record of the page, the only thing on it that casts a shadow because it is the only thing that is touched (owner, 8 Oct 2026, "Objavio
+ * kao kartica poverenja"). A face of 56 as a sticker, the name, the rating with its star, and how reliably the person comes as agreed, only when the server says so
+ * (`reliabilityPercent`, from the public work-trust read; nothing is drawn, and nothing is said about what is hidden, when it is not given). Pressing it opens
+ * their public profile. A refusal of the safety entry (the one place a person is reported or blocked from) is said under the record, politely, so a screen
+ * reader hears it without losing its place.
  */
-export function TaskDecisionPublisher({ name, rating, photo, initials, onPress, disabled = false, error }: {
-  name: string; /** From `publisherRatingLine`. */ rating: string; photo?: ReactNode; initials: string | null; onPress?: () => void; disabled?: boolean;
-  error?: string | null;
+export function TaskDecisionPublisher({ name, rating, count, reliabilityPercent, photo, initials, onPress, disabled = false, error }: {
+  name: string; rating: string | null | undefined; count: number | null | undefined;
+  /** "Dolazi kako je dogovoreno": the server's percentage for this person, or nothing. */ reliabilityPercent?: number | null;
+  photo?: ReactNode; initials: string | null; onPress?: () => void; disabled?: boolean; error?: string | null;
 }) {
+  const trust = publisherTrust(rating, count);
+  const reliability = typeof reliabilityPercent === 'number' && Number.isFinite(reliabilityPercent) ? `${RELIABILITY_LABEL} · ${Math.round(reliabilityPercent)}%` : null;
+  const pressable = !!onPress && !disabled;
   return <Section title="Objavio">
-    <ListRow faceSlot last leading={photo ?? <Avatar initials={initials} size={56} />} title={name} subtitle={rating}
-      onPress={onPress} disabled={disabled && !!onPress} accessibilityLabel={`${name}, ${rating}`} accessibilityHint={onPress ? 'Otvara javni profil' : undefined} />
+    <Surface kind="record" onPress={pressable ? onPress : undefined} accessibilityLabel={[name, publisherRatingLine(rating, count), reliability].filter(Boolean).join(', ')}
+      accessibilityHint={pressable ? 'Otvara javni profil' : undefined}>
+      <View style={s.person}>
+        <StickerFace photo={photo} initials={initials} />
+        <View style={s.personText}>
+          <T variant="bodyStrong" style={s.ink}>{name}</T>
+          <View style={s.trustRow}>
+            {trust.star ? <FactArt kind="star" size={16} /> : null}
+            <T variant="note" tone="muted" style={s.tabular}>{trust.text}</T>
+          </View>
+          {reliability ? <T variant="note" style={s.reliability}>{reliability}</T> : null}
+        </View>
+        {onPress ? <Glyph name="caret-right" size={20} tone="muted" /> : null}
+      </View>
+    </Surface>
     {error ? <T accessibilityLiveRegion="polite" variant="note" tone="danger" style={s.refusal}>{error}</T> : null}
   </Section>;
 }
+
+/** The face's own size, and the sticker's ring around it. */
+const FACE = 56;
+const RING = 2;
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
@@ -105,4 +147,12 @@ const s = StyleSheet.create({
   facts: { gap: layout.group },
   requirements: { gap: layout.group },
   refusal: { paddingTop: sys.space.sm },
+  person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  personText: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  trustRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  tabular: { fontVariant: ['tabular-nums'] },
+  reliability: { color: sys.color.fact },
+  sticker: { width: FACE + 2 * RING, height: FACE + 2 * RING, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center',
+    ...sys.elevation.card },
+  stickerFace: { width: FACE, height: FACE, borderRadius: sys.radius.pill, overflow: 'hidden' },
 });

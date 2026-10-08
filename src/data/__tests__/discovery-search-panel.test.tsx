@@ -1045,3 +1045,40 @@ describe('the panel is a list of rows with the foot every flow has', () => {
     expect(show().props.disabled).toBe(true);
   });
 });
+
+// The owner's pick of 8 Oct 2026, "Gradovi brojem": the number of tasks leads each place and the place stands beside it, so a city is no longer a pin again and again; the open
+// section stands in a panel (a frame that is read, with an edge and no shadow).
+describe('"Gradovi brojem"', () => {
+  const cities = [{ key: 'novi sad', text: 'Novi Sad', count: 23 }, { key: 'beograd', text: 'Beograd', count: 13 }];
+  const figure = (label: string | RegExp) => radio(label)[0].findAll(node => String(node.type) === 'T' && node.props.variant === 'priceRow').map(node => node.props.children);
+
+  test('the number leads each place; a picture leads only where there is no number; "Još nema" leads a city nobody has posted in', async () => {
+    mapArea = [19.7, 45.2, 19.9, 45.3]; canNearby = true;
+    p6Search = p6Seam(p6Snapshot({ places: cities, inMapArea: 7 }));
+    await render();
+    expect(figure(/^Svi zadaci/)).toEqual([80]); expect(figure(/^Novi Sad, 23/)).toEqual([23]); expect(figure(/^Beograd, 13/)).toEqual([13]);
+    // The map's area and the person's own position have no number to lead with: a picture does (the area still says how many, under its name).
+    expect(figure(/^Ova oblast/)).toEqual([]); expect(texts(radio(/^Ova oblast/)[0])).toBe('Ova oblast | 7 zadataka');
+    expect(figure(/^U blizini/)).toEqual([]); expect(texts(radio(/^U blizini/)[0])).toBe('U blizini | Koristi tvoju lokaciju jednom');
+    // A city nobody has posted in says so where the number would be, and a screen reader still hears the whole sentence.
+    expect(texts(radio('Niš, Još nema zadataka')[0])).toBe('Još nema | Niš');
+    // The place is the row's own plain word; the number is the one thing in bold.
+    expect(radio(/^Novi Sad, 23/)[0].findAll(node => String(node.type) === 'T' && node.props.children === 'Novi Sad')[0].props.variant).toBe('body');
+  });
+
+  test('an unknown count says nothing and a place that the other conditions leave empty says 0, quietly', async () => {
+    p6Search = p6Seam(p6Snapshot({ places: [{ key: 'novi sad', text: 'Novi Sad', count: 0 }] }));
+    await render();
+    const zero = radio(/^Novi Sad/)[0].findAll(node => String(node.type) === 'T' && node.props.variant === 'priceRow')[0];
+    expect(zero.props.children).toBe(0); expect(zero.props.tone).toBe('muted');
+    expect(offered()).toContain('Novi Sad, Nema zadataka');
+  });
+
+  test('an open section stands in a panel: a frame with an edge and no shadow', async () => {
+    await render();
+    const frame = byId('search-body-gde').findAll(node => String(node.type) === 'View' && StyleSheet.flatten(node.props.style)?.borderWidth === 1)[0];
+    expect(frame).toBeDefined();
+    expect(StyleSheet.flatten(frame.props.style)).toMatchObject({ padding: 16, borderRadius: sys.radius.cardCompact });
+    expect(StyleSheet.flatten(frame.props.style).boxShadow).toBeUndefined();
+  });
+});

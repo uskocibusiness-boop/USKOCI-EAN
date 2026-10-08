@@ -15,6 +15,9 @@ jest.mock('phosphor-react-native', () => new Proxy({}, { get: () => 'Icon' }));
 jest.mock('../system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../hooks/useSystemReducedMotion', () => ({ useSystemReducedMotion: () => false }));
 jest.mock('../Text', () => ({ T: 'T' }));
+// These tests mount the whole app router; alone the heaviest takes about 1.7 s, but on a loaded worker (the full suite with six
+// workers, a CI runner) it passed the default 5 s (8 Oct 2026, after Moji zadaci gained its phase groups). The checks are unchanged.
+jest.setTimeout(20000);
 
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';

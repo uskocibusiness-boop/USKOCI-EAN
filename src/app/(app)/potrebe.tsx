@@ -97,5 +97,7 @@ function OwnedCollection() {
     onApplications={applications}
     onProfile={onProfile}
     onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
-    onNew={() => navigate(() => router.navigate('/nova'))} />;
+    onNew={() => navigate(() => router.navigate('/nova'))}
+    // The first encounter's quiet way ("Pogledaj zadatke", "Papir na stolu", 2026-10-08): other people's tasks, the Zadaci tab. Same guard as every press here.
+    onExplore={() => navigate(() => router.navigate('/zadaci'))} />;
 }

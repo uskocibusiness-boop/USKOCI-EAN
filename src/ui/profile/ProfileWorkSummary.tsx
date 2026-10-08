@@ -1,38 +1,33 @@
 import { useCallback } from 'react';
 import { publicProfileClientService } from '../../data/publicProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { T } from '../Text';
-import { KeyValueRow } from '../system/KeyValueRow';
-import { Section } from '../system/Section';
+import { FigureCell, FigureCellError, FigureCellPlaceholder, finishedFigure } from './ProfileFigures';
 
 type Role = 'narucilac' | 'uskocer';
 /** How many Dogovori the person finished in one role, or null when that count could not be read (never a made-up zero). */
 export type FinishedFact = { role: Role; count: number | null };
-/** The roles are named the way the app names them everywhere else: "Uskačeš" and "Tražiš pomoć" (the owner's words). */
-export const roleWords = (role: Role) => role === 'uskocer' ? 'Kad uskačeš' : 'Kad tražiš pomoć';
 export type FinishedView = { kind: 'loading' } | { kind: 'ready'; facts: readonly FinishedFact[] };
 
 /**
- * "Završeni Dogovori" as the profile draws it (UI/UX pass 2026-10-08, F6; composition spec 4.14): a section with two facts, one per
- * role, as `KeyValueRow`s, and one word at the end of its title that goes to the Dogovori that were finished (the Dogovori screen takes
- * `odeljak: 'istorija'`). Presentation only: the container below reads the counts. A count that could not be read says so in its own row,
- * and the word at the end of the title is then "Osveži" (the way onward comes back with the count).
+ * "Završeno" as the profile draws it (8 Oct 2026, "Lice i tri broja"): the second of the three figures, the number of Dogovori the person
+ * finished in every role they have, written under the face as "9 završenih". It replaces the section "Završeni Dogovori" with its two
+ * rows and its word "Pogledaj": with `onOpen` the figure itself is the way to the Dogovori that were finished (the Dogovori screen takes
+ * `odeljak: 'istorija'`). Presentation only: the container below reads the counts. A count that could not be read is never added up as
+ * if it were zero: the cell says so and offers "Osveži" in the same place.
  */
 export function FinishedAgreements({ view, onOpen, onRefresh }: {
   view: FinishedView;
-  /** Opens the finished Dogovori. Absent: the summary is only a summary. */ onOpen?: () => void;
+  /** Opens the finished Dogovori. Absent: the figure is only a figure. */ onOpen?: () => void;
   onRefresh: () => void;
 }) {
-  if (view.kind === 'loading') return <Section title="Završeni Dogovori" testID="profile-work-summary">
-    <T variant="note" tone="muted" accessibilityRole="progressbar" accessibilityLabel="Učitavanje završenih Dogovora">Učitavamo pregled…</T>
-  </Section>;
-  const unavailable = view.facts.some(fact => fact.count === null);
-  const action = unavailable ? { label: 'Osveži', accessibilityLabel: 'Osveži pregled završenih Dogovora', onPress: onRefresh }
-    : onOpen ? { label: 'Pogledaj', accessibilityLabel: 'Pogledaj završene Dogovore', onPress: onOpen } : undefined;
-  return <Section title="Završeni Dogovori" action={action} testID="profile-work-summary">
-    {view.facts.map((fact, index) => <KeyValueRow key={fact.role} label={roleWords(fact.role)} last={index === view.facts.length - 1}
-      value={fact.count === null ? <T tone="muted">Broj nije dostupan</T> : fact.count.toLocaleString('sr-Latn-RS')} />)}
-  </Section>;
+  if (view.kind === 'loading') return <FigureCellPlaceholder label="Učitavanje završenih Dogovora" />;
+  if (view.facts.length === 0) return null;
+  if (view.facts.some(fact => fact.count === null)) {
+    return <FigureCellError message="Broj završenih trenutno nije dostupan." retryLabel="Osveži pregled završenih Dogovora" onRetry={onRefresh} />;
+  }
+  const total = view.facts.reduce((sum, fact) => sum + (fact.count ?? 0), 0);
+  const figure = finishedFigure(total);
+  return <FigureCell testID="profile-work-summary" figure={onOpen ? { ...figure, hint: 'Otvara završene Dogovore.' } : figure} onPress={onOpen} />;
 }
 
 /**

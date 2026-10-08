@@ -30,7 +30,7 @@ jest.mock('../../../data/reviewsClientService',()=>({
  reputation:(...args:unknown[])=>mockReputation(...args)}
 }));
 import ReviewRoute from '../../../app/(app)/oceni-dogovor';
-import { AccountReputation, ReputationLine } from '../AccountReputation';
+import { AccountReputation, ReputationFigure } from '../AccountReputation';
 import { REVIEW_TAGS } from '../../../data/reviewsClientService';
 import { sys } from '../../system/tokens';
 const context=()=>({accountId:A,agreementId:D,targetAccountId:B,eligible:true,review:null,
@@ -167,28 +167,28 @@ it('invalid route and account switch cannot reuse the previous focused write cal
 });
 it('reputation distinguishes no reviews from unavailable state and never invents 0.0',async()=>{
  mockReputation.mockResolvedValue({ok:true,podatak:{accountId:A,reviewCount:0,averageRating:null,state:'NO_REVIEWS',authoritative:true}});
- await act(async()=>{tree=create(<AccountReputation accountId={A}/>);});expect(texts()).toContain('Još nema ocena');expect(texts()).not.toContain('0,0');
+ await act(async()=>{tree=create(<AccountReputation accountId={A}/>);});expect(texts()).toContain('Nova ocena');expect(texts()).toContain('još nema ocena');expect(texts()).not.toContain('0,0');
  mockReputation.mockResolvedValue({ok:false,kod:'REPUTATION_READ_UNAVAILABLE',poruka:'Unavailable'});
  mockRevision=2;await act(async()=>tree.update(<AccountReputation accountId={A}/>));
- expect(texts()).toContain('Ocene trenutno nisu dostupne');expect(texts()).not.toContain('Još nema ocena');
+ expect(texts()).toContain('Ocene trenutno nisu dostupne');expect(texts()).not.toContain('Nova ocena');
 });
-// 2026-09-24: the reputation is one line in the identity column. While it reads it is a still bar, not a spinner;
-// a failed read is one 48 dp row that says so and reads again; reviews show the star and the label.
-it('reputation reads as a still bar, then the star and the label',async()=>{
+// 8 Oct 2026 ("Lice i tri broja"): the reputation is the first of the three figures of the profile. While it reads it is a still shape, not a
+// spinner; a failed read is one cell that says so and reads again; reviews show the star, the average and the count under it.
+it('reputation reads as a still shape, then the star, the figure and the count under it',async()=>{
  let finish!:(value:unknown)=>void;mockReputation.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
  await act(async()=>{tree=create(<AccountReputation accountId={A}/>);});
  expect(tree.root.findByProps({accessibilityLabel:'Učitavanje reputacije'}).props.accessibilityRole).toBe('progressbar');
  expect(tree.root.findAll(node=>String(node.type)==='ActivityIndicator')).toHaveLength(0);
  await act(async()=>finish({ok:true,podatak:{accountId:A,reviewCount:12,averageRating:4.8,state:'RATED',authoritative:true}}));
- expect(texts()).toContain('4,8 · 12 ocena');expect(tree.root.findAll(node=>node.props?.kind==='star').length).toBeGreaterThan(0);
+ expect(texts()).toContain('4,8');expect(texts()).toContain('12 ocena');expect(tree.root.findAll(node=>node.props?.kind==='star').length).toBeGreaterThan(0);
 });
-it('an unavailable reputation offers one row that reads it again',async()=>{
+it('an unavailable reputation offers one cell that reads it again',async()=>{
  mockReputation.mockResolvedValueOnce({ok:false,kod:'REPUTATION_READ_UNAVAILABLE',poruka:'Unavailable'})
   .mockResolvedValueOnce({ok:true,podatak:{accountId:A,reviewCount:0,averageRating:null,state:'NO_REVIEWS',authoritative:true}});
  await act(async()=>{tree=create(<AccountReputation accountId={A}/>);});
  expect(texts()).toContain('Ocene trenutno nisu dostupne');expect(button('Osveži ocene').props.accessibilityRole).toBe('button');
  await act(async()=>{button('Osveži ocene').props.onPress();});
- expect(mockReputation).toHaveBeenCalledTimes(2);expect(texts()).toContain('Još nema ocena');expect(texts()).not.toContain('0,0');
+ expect(mockReputation).toHaveBeenCalledTimes(2);expect(texts()).toContain('Nova ocena');expect(texts()).not.toContain('0,0');
 });
 // Review of step 9 (2026-09-24): the line is tested on its own for data that is not a reputation. It used to be tested
 // only through the profile hub, whose suite-wide resource mock happened to hand it the profile object.
@@ -197,7 +197,7 @@ it.each([
  ['a count of reviews without an average',{accountId:A,reviewCount:3,averageRating:null,state:'RATED',authoritative:true}],
  ['a count of reviews with an average that is not a number',{accountId:A,reviewCount:3,averageRating:'4,8',state:'RATED',authoritative:true}],
  ['nothing',null],
-])('the reputation line draws nothing for %s, never "undefined"',async(_name,state)=>{
- await act(async()=>{tree=create(<ReputationLine state={state} onRetry={()=>{}}/>);});
+])('the reputation figure draws nothing for %s, never "undefined"',async(_name,state)=>{
+ await act(async()=>{tree=create(<ReputationFigure state={state} onRetry={()=>{}}/>);});
  expect(tree.toJSON()).toBeNull();
 });

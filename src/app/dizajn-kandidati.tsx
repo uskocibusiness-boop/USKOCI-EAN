@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../contracts/projections';
+import { Avatar } from '../ui/system/Avatar';
 import { PublicProfileSheet } from '../ui/system/PublicProfileSheet';
 import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
@@ -20,15 +21,17 @@ import { T } from '../ui/Text';
  * entry "opens" and says the person is not available), so the states can be seen without touching an account.
  */
 type Scene = 'lista' | 'prazno' | 'ucitavanje' | 'greska' | 'dugacka' | 'veliki' | 'ponuda' | 'ponuda-veliki' | 'ne-moze' | 'izabrana' | 'ishod' | 'ponovi'
-  | 'sklopljen' | 'profil' | 'profil-ucitavanje' | 'profil-greska';
+  | 'sklopljen' | 'sklopljen-dugo' | 'profil' | 'profil-ucitavanje' | 'profil-greska';
 const SCENES: [Scene, string][] = [['lista', 'Lista'], ['prazno', 'Prazno'], ['ucitavanje', 'Učitavanje'], ['greska', 'Greška'],
   ['dugacka', 'Dugačka imena'], ['veliki', 'Veliki tekst (raspored)'], ['ponuda', 'Ponuda'], ['ponuda-veliki', 'Ponuda: veliki tekst'], ['ne-moze', 'Ne može izbor'],
-  ['izabrana', 'Izabrana'], ['ishod', 'Ishod nepoznat'], ['ponovi', 'Ponovi izbor'], ['sklopljen', 'Dogovor sklopljen'],
+  ['izabrana', 'Izabrana'], ['ishod', 'Ishod nepoznat'], ['ponovi', 'Ponovi izbor'], ['sklopljen', 'Dogovor sklopljen'], ['sklopljen-dugo', 'Dogovor sklopljen: dugi nazivi'],
   ['profil', 'Javni profil'], ['profil-ucitavanje', 'Profil: učitavanje'], ['profil-greska', 'Profil: greška']];
 
 const NEED = { id: 'galerija-zadatak', revizija: 3, naslov: 'Unos ormara na treći sprat', podrucjeTekst: 'Liman 2, Novi Sad',
   vremeTekst: '26. sep · 10:00–12:00', stanje: 'CEKA_PRIJAVE', pokrivenost: { ukupno: 3, popunjeno: 0, preostalo: 3, udeo: 0 },
   rezimCene: 'OFFERS', taskTimezone: 'Europe/Belgrade', uslovi: [], brojPrijava: 3, brojPrijavaZaIzbor: 2 } as unknown as PotrebaProjekcija;
+/** The longest words a task and a person can have, for the moment "Dogovoreno!": the title wraps, the names wrap, nothing is cut. */
+const LONG_NEED = { ...NEED, naslov: 'Pomoć oko selidbe dvosobnog stana sa trećeg sprata bez lifta, uz rasklapanje ormara i kreveta', vremeTekst: 'Fleksibilan raspon · 26. okt – 30. okt' } as PotrebaProjekcija;
 const evidence = (patch: Partial<KandidatProjekcija['dokazPrijave']> = {}): KandidatProjekcija['dokazPrijave'] => ({ sema: 'APPLICATION_V1_SELF_DECLARED',
   kapacitetTima: 2, vestine: [], alati: ['Trake za nošenje'], vozila: ['Kombi'], licence: [], ...patch });
 const candidate = (patch: Partial<KandidatProjekcija>): KandidatProjekcija => ({ prijavaId: 'galerija-1', radnikProfilId: 'galerija-profil-1', potrebaRevizija: 3,
@@ -78,11 +81,11 @@ export default function DizajnKandidati() {
   const safetyEntry = { ...safety, onPress: () => { setSafety({ busy: true, error: null });
     later(700, () => setSafety({ busy: false, error: 'Osoba trenutno nije dostupna.' })); } };
   const publicProfile = () => new Promise<JavniProfilProjekcija | null>(resolve => later(500, () => resolve(PROFILE)));
-  const offer = (k: KandidatProjekcija, state: { pending?: boolean; uncertain?: boolean; error?: string | null; reset?: boolean; confirmed?: boolean } = {}) =>
-    <CandidateSelectionPresentation need={NEED} candidate={k} back={toList} publicProfile={publicProfile} choose={choose} busy={busy}
+  const offer = (k: KandidatProjekcija, state: { pending?: boolean; uncertain?: boolean; error?: string | null; reset?: boolean; confirmed?: boolean; need?: PotrebaProjekcija } = {}) =>
+    <CandidateSelectionPresentation need={state.need ?? NEED} candidate={k} back={toList} publicProfile={publicProfile} choose={choose} busy={busy}
       pending={!!state.pending} uncertain={!!state.uncertain} refresh={() => {}} error={state.error ?? null} confirmed={!!state.confirmed || chosen}
       openAgreement={() => {}} reset={state.reset ? () => {} : undefined} readAgreement={async () => ({ ok: true, podatak: { dogovorId: 'galerija-dogovor' } })}
-      openLinkedAgreement={() => {}} safety={safetyEntry} />;
+      openLinkedAgreement={() => {}} safety={safetyEntry} ownFace={<Avatar initials="MI" size={72} />} />;
   const list = (candidates: KandidatProjekcija[], textScale?: number) =>
     <CandidateListPresentation need={NEED} candidates={candidates} open={() => show('ponuda')} back={leave} refresh={() => {}} openTask={() => {}} textScale={textScale} />;
   const body = scene === 'prazno' ? list([])
@@ -97,6 +100,7 @@ export default function DizajnKandidati() {
     : scene === 'ishod' ? offer(NORMAL[0], { pending: true, uncertain: true, error: 'Ne znamo da li je izbor sačuvan. Izaberi „Proveri da li je izabrano“.' })
     : scene === 'ponovi' ? offer(NORMAL[0], { pending: true, reset: true, error: 'Prijave su osvežene. Ako izbor nije sačuvan, izaberi prijavu ponovo.' })
     : scene === 'sklopljen' ? offer(NORMAL[0], { pending: true, confirmed: true })
+    : scene === 'sklopljen-dugo' ? offer(LONG[0], { pending: true, confirmed: true, need: LONG_NEED })
     : scene === 'profil' ? <PublicProfileSheet state={{ loading: false, data: PROFILE }} onClose={toList} onRetry={() => {}} safety={safetyEntry} />
     : scene === 'profil-ucitavanje' ? <PublicProfileSheet state={{ loading: true, data: null }} onClose={toList} onRetry={() => {}} />
     : scene === 'profil-greska' ? <PublicProfileSheet state={{ loading: false, data: null }} onClose={toList} onRetry={() => {}} />

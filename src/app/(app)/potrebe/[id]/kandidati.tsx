@@ -5,11 +5,14 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { KandidatProjekcija, PotrebaProjekcija } from '../../../../contracts/projections';
 import type { Ishod, Izvor, IzborKomanda } from '../../../../data/ports';
 import { applicationSelectionErrors, boundedApplicationSelectionRead, readSelectedAgreement } from '../../../../data/applicationSelectionClientService';
+import { ownProfileClientService } from '../../../../data/ownProfileClientService';
 import { workTrustClientService } from '../../../../data/workTrustClientService';
 import type { CandidatesPageRequest } from '../../../../data/candidatesPage';
 import { candidatesPagedBuilt } from '../../../../data/candidatesPagedGate';
 import { useCandidatesPager } from '../../../../hooks/useCandidatesPager';
+import { useFocusedResource } from '../../../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
+import { inicijali } from '../../../../lib/inicijali';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
@@ -35,6 +38,22 @@ function usePagedCandidates(source: Izvor, taskId: string | undefined, complete:
   return { pager, state, rows: state.items as KandidatProjekcija[],
     paging: { total: state.counts?.total ?? null, hasMore: state.hasMore, loadingMore: state.loadingMore, moreError: state.moreError,
       onLoadMore: () => { void pager.loadMore(); } } satisfies CandidatesPaging };
+}
+/**
+ * Who YOU are, for the moment "Dogovoreno!" (two faces: yours and the chosen person's): the name and the profile that holds your photo, read the way the header's own
+ * avatar reads them (`ActualUserAvatar`: the requester identity first, the work identity only if the requester has none) and from nowhere else. It is read only while an
+ * offer is open, which is where a choice, and so the moment, can happen: a list nobody opened an offer of makes no read, and by the time the choice is confirmed the answer
+ * is already here. A read that has not answered, or failed, is no identity: the moment then draws the person, never letters that belong to nobody.
+ */
+function useOwnIdentity(wanted: boolean, accountId: string | undefined) {
+  const read = useCallback(async (signal: AbortSignal) => {
+    if (!wanted || !accountId) return null;
+    const requester = await ownProfileClientService.read(accountId, 'narucilac');
+    if (signal.aborted) throw new Error('CANDIDATES_OWN_FACE_RETIRED');
+    return requester ?? ownProfileClientService.read(accountId, 'uskocer');
+  }, [wanted, accountId]);
+  const resource = useFocusedResource(read);
+  return !resource.loading && !resource.error && resource.data?.accountId === accountId ? resource.data : null;
 }
 type PagedCandidates = ReturnType<typeof usePagedCandidates>;
 const useNoPagedCandidates = (_source: Izvor, _taskId: string | undefined, _complete: boolean): PagedCandidates | null => null;
@@ -116,6 +135,8 @@ export default function Kandidati() {
   const candidate = pending?.candidate ?? (opened?.data === data ? opened.candidate : null);
   // F05: a candidate is a person; the server resolves the safety target before bezbednost opens.
   const safety = useSafetyEntry(candidate?.radnikProfilId, { needId: id ?? null });
+  // Your own name and photo for "Dogovoreno!", read while an offer is open (see `useOwnIdentity`).
+  const own = useOwnIdentity(!!candidate, user?.id);
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const current = () => session.focused && session.active && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
   const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) { session.hardReload = true; void editor.refresh(); } };
@@ -198,6 +219,11 @@ export default function Kandidati() {
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <>{list}<CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
     photo={photo(candidate, 56)} safety={safety} viewed={viewed.has(candidate.prijavaId)}
+    // "Dogovoreno!": the two faces at 72. Yours is your own photo, through the path the header's avatar takes, else the letters of your own name (the drawn
+    // person while the answer has not come, or when you have no name); theirs is their photo, else the letters the candidate read already carries.
+    ownFace={own ? <ProfilePhoto key={`${user?.id}:${accountRevision}:${own.profileId}`} profileId={own.profileId} size={72}
+      fallback={<Avatar size={72} initials={inicijali(own.ime)} />} /> : undefined}
+    themFace={photo(candidate, 72)}
     // The profile sheet's 96 px portrait, as the task's poster sheet draws it: the photo or its own large stand-in.
     publicPhoto={(profileId, size) => <ProfilePhoto profileId={profileId} size={size ?? 96} initial={null} />}
     readAgreement={readAgreement} openLinkedAgreement={agreementId => {

@@ -671,7 +671,7 @@ def core_map_preview():
     # observed native map centre; no SDK selection/viewport injection.
     adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
     wait_visible(desc='Otvori detalj Zadatka',timeout=30);wait_visible(text=NEED_TITLE);shot('CORE_map_selected')
-    tap(desc='Otvori detalj Zadatka');wait_visible(desc='Sastavi prijavu',timeout=45)
+    tap(desc='Otvori detalj Zadatka');wait_visible(desc='Pošalji ponudu',timeout=45)
 
 
 def core_selection_receipt(response_id,agreement_id):
@@ -785,7 +785,7 @@ def core_journey():
     launch_clean();login(WORKER_EMAIL);shot('AUTH_worker_authenticated');switch_to_worker_workspace()
     tap(desc='Zadaci',prefer='bottom');wait_visible(desc=f'Otvorite priliku {NEED_TITLE}',timeout=45)
     shot('W03_worker_opportunity_list');core_map_preview();shot('W04_worker_need_detail')
-    tap(desc='Sastavi prijavu');wait_visible(text='Tvoja prijava');wait_visible(desc='Cena za ponuđeni obim (RSD)')
+    tap(desc='Pošalji ponudu');wait_visible(text='Tvoja prijava');wait_visible(desc='Cena za ponuđeni obim (RSD)')
     edit_text(0,'3000');hide_keyboard()
     if os.environ.get('AI_REVIEW_SCOPE')=='marketplace':
         root,parent=wait_surface(desc='Ljudi')
@@ -825,9 +825,10 @@ tap(desc='Zadaci', prefer='bottom')
 wait_visible(desc=f'Otvorite priliku {NEED_TITLE}', timeout=45)
 shot('W03_worker_opportunity_list')
 tap(desc=f'Otvorite priliku {NEED_TITLE}')
-wait_visible(desc='Sastavi prijavu', timeout=45)
+# The one action at the foot of a task detail (owner, 8 Oct 2026): "Pošalji ponudu" on a task with no fixed price (this journey publishes an OFFERS task), "Pošalji prijavu" on one with a fixed price.
+wait_visible(desc='Pošalji ponudu', timeout=45)
 shot('W04_worker_need_detail')
-tap(desc='Sastavi prijavu')
+tap(desc='Pošalji ponudu')
 wait_visible(text='Sastavi prijavu', timeout=45)
 wait_nodes(timeout=30, minimum=1, clazz='android.widget.EditText')
 edit_text(0, '3000')

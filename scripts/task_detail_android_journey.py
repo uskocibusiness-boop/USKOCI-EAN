@@ -34,8 +34,10 @@ for filename in ('ru5_android_device_ui_journey.py', 'intent_shell_android_journ
 
 
 def assert_no_application_actions(root):
+    # The one action at the foot of a task detail (owner, 8 Oct 2026): "Pošalji ponudu" on a task with no fixed price, "Pošalji prijavu" on one with a fixed price.
+    # (Only functions of this file are loaded by test_task_detail_android.py, so the labels are spelled here and not as module constants.)
     for value in labels(root):
-        if 'Sastavi prijavu' in value or 'Pošalji prijavu' in value:
+        if 'Pošalji ponudu' in value or 'Pošalji prijavu' in value:
             raise AssertionError('Application action remains visible on a non-current/failed detail')
 
 
@@ -51,7 +53,8 @@ def task_error(name, cached=False):
 
 def fresh_task(name, title=None):
     expected = title or NAV_NEED_TITLE
-    root, _ = wait_surface(desc='Sastavi prijavu', timeout=45)
+    # Every task of this journey is a disposable OFFERS task (no fixed price), so its detail says "Pošalji ponudu".
+    root, _ = wait_surface(desc='Pošalji ponudu', timeout=45)
     assert expected in labels(root) and 'Nazad na Zadatke' in labels(root)
     assert not any('Poslednji učitani podaci' in value for value in labels(root))
     shot(name)
@@ -97,14 +100,14 @@ fresh_task('W04_retry_restored')
 
 # W05 is reached via its real W04 control. No form submit is made in this unit.
 with outage.stopped():
-    tap(desc='Sastavi prijavu')
+    tap(desc='Pošalji ponudu')
     composer_error('W05_read_error')
     tap(desc='Nazad na zadatak')
     task_error('W05_error_back_to_detail')
 tap(desc='Pokušajte ponovo')
 fresh_task('W04_after_composer_back')
 with outage.stopped():
-    tap(desc='Sastavi prijavu')
+    tap(desc='Pošalji ponudu')
     composer_error('W05_second_read_error')
 tap(desc='Pokušajte ponovo')
 root, _ = wait_surface(desc='Pošalji prijavu', timeout=45)

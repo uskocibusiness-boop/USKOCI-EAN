@@ -2,17 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { Arrive } from '../system/Arrive';
 import { FactArt } from '../system/FactArt';
 import { layout } from '../system/layout';
+import { PECAT_FALL_MS, Pecat } from '../system/Pecat';
 import { Screen } from '../system/Screen';
-import { SuccessMark } from '../system/SuccessMark';
 import { sys } from '../system/tokens';
 
 /**
- * "Objavljeno": the one calm moment right after a publication the server has confirmed (plan 2.9, owner 2026-10-07). Until now the
- * success was replaced by the jump to the map in the same breath, so nobody ever saw it. The moment is a mark that settles in with
- * its one success tick (`SuccessMark fresh`; under reduced motion it keeps the tick and drops the movement), what happened, one
- * grey line about what comes next, and ONE green way on. Nothing else moves and nothing else is said.
+ * "Objavljeno" (plan 2.9, owner 2026-10-07; "Papir i pečat", owner's pick of 2026-10-08): the one calm moment right after a publication the
+ * server has confirmed. Until 2026-10-07 the success was replaced by the jump to the map in the same breath, so nobody ever saw it. The
+ * moment is the paper with a pin and a pencil (144, the picture of a task laid on the table), which settles in once as the picture of an
+ * empty state does (`Arrive`); the pill "Objavljen" then falls onto it beside the title like a stamp (`Pecat`: tilted, 140 ms, no bounce, one
+ * light tick as it lands); what happened, one grey line about what comes next, and ONE green way on. Nothing else moves and nothing else is
+ * said. Under reduced motion the picture and the pill are there at once and the tick stays (a tick is an outcome, not movement).
  *
  * It holds `PUBLISHED_MOMENT_MS` when left alone and then continues by itself; a tap on the green action, or Android Back (the
  * route wires that), continues at once. It never blocks the way on. A screen reader is not hurried: while one is on, the moment
@@ -21,7 +24,8 @@ import { sys } from '../system/tokens';
  * The green action sits in the middle, under the words, and not at the foot where "Objavi zadatak" was: a second tap meant for
  * the publish button must not land on the way on and skip the moment before it was seen.
  */
-export const PUBLISHED_MOMENT_MS = 1500;
+/** The paper settles for `arrive`, the stamp falls on it as it ends, and the whole picture then holds for another 1,2 s before the moment goes on by itself. */
+export const PUBLISHED_MOMENT_MS = sys.motion.arrive.duration + PECAT_FALL_MS + 1200;
 
 /** True while a screen reader is on. The answer comes asynchronously; until then (and where there is no such API) it is off. */
 function useScreenReaderOn(): boolean {
@@ -55,9 +59,13 @@ export function PublishedMoment({ title, line, actionLabel = 'Otvori zadatak', o
   }, [screenReader]);
   return <Screen kind="detail" scroll={false}>
     <View style={s.center}>
-      <SuccessMark fresh size={96}><FactArt kind="check" size={64} /></SuccessMark>
+      <Arrive delay={0}><FactArt kind="publish" size={144} /></Arrive>
       <View style={s.words}>
-        <T accessibilityRole="header" accessibilityLiveRegion="polite" variant="title" style={s.title}>{title}</T>
+        <View style={s.heading}>
+          <T accessibilityRole="header" accessibilityLiveRegion="polite" variant="title" style={s.title}>{title}</T>
+          {/* The state word of a task that is now live, falling on the paper as the picture finishes settling. */}
+          <Pecat label="Objavljen" tone="green" play delay={sys.motion.arrive.duration} />
+        </View>
         <T variant="copy" tone="muted" style={s.line}>{line}</T>
       </View>
       <V2Action kind="primary" label={actionLabel} onPress={onContinue} style={s.action} />
@@ -66,10 +74,11 @@ export function PublishedMoment({ title, line, actionLabel = 'Otvori zadatak', o
 }
 
 const s = StyleSheet.create({
-  // The mark, the words and the one way on stand in the middle of the screen, on the screen's own edge; the way on is as wide as the
-  // words allow (320) and centred, never pushed to one side.
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: layout.section },
-  words: { alignItems: 'center', gap: sys.space.sm },
+  // The paper, the words and the one way on stand in the middle of the screen, one more edge in from the screen's own (as the owner's picture
+  // has it); the way on is as wide as the words allow (320) and centred, never pushed to one side.
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: layout.section, paddingHorizontal: layout.gutter },
+  words: { alignItems: 'center', gap: sys.space.sm, maxWidth: 320 },
+  heading: { alignItems: 'center', gap: sys.space.md },
   title: { color: sys.color.ink, textAlign: 'center' },
   line: { textAlign: 'center' },
   action: { alignSelf: 'center', maxWidth: 320, width: '100%' },

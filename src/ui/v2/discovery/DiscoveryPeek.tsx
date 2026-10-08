@@ -13,7 +13,7 @@ import { sys } from '../../system/tokens';
 import { taskStatus, type TaskCardRelation } from '../TaskFace';
 import { TaskPublisherPortrait } from '../TaskPublisherPortrait';
 import { V2Action } from '../V2Action';
-import { TaskRecordBody, useTaskRecord } from './TaskRecordBody';
+import { OFFERS_WORD, TaskRecordBody, useTaskRecord } from './TaskRecordBody';
 
 /** Rows a place shows in its card; a place with more offers the whole set in the list. Large text may scroll within the card. */
 export const PLACE_ROWS = 3;
@@ -32,14 +32,14 @@ export const PIN_CARD_LARGE_SHARE = 0.75;
 function PriceWords({ item }: { item: MarketplaceItem }) {
   const label = pinLabel(item);
   return label.tone === 'money' ? <T variant="priceRow" style={s.money}>{label.spoken}</T>
-    : <T variant="note" tone="muted" style={s.word}>{label.tone === 'offer' ? 'Prima ponude' : 'Cena nije navedena'}</T>;
+    : <T variant="note" tone="muted" style={s.word}>{label.tone === 'offer' ? OFFERS_WORD.worker : 'Cena nije navedena'}</T>;
 }
 
 /**
  * One chosen task on the map (Discovery V47, the Airbnb pattern in USKOČI's look). The whole card is one press that opens
  * the task ("Otvori zadatak: …"), and its round × top right closes it. It is the list card's face, bare (it is the card, never
- * a card inside one) and in the same order: HITNO or "Prijava poslata" when they apply, the full title with what it pays and how
- * many people, where, when, and who posted it with the honest rating and how long ago. The first row clears the close
+ * a card inside one) and in the same order: HITNO or "Prijava poslata" when they apply, the full title, what it pays (a row with the
+ * money picture, no word for it), where, when, and who posted it with the honest rating and how long ago, and how many people. The first row clears the close
  * control. No photo: a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
 function PinTask({ item, relation, onOpen, onLayout }: {

@@ -2,6 +2,8 @@ import { Share } from 'react-native';
 import { PublicNeedPresentation } from '../../../ui/v2/PublicNeedPresentation';
 import { taskShareMessage } from '../../../ui/v2/detail/taskShare';
 import { useTaskFit } from '../../../ui/v2/detail/useTaskFit';
+import { usePublicWorkTrust } from '../../../ui/profile/usePublicWorkTrust';
+import { publicTrustFacts } from '../../../ui/profile/workTrustModel';
 import { NeedPhotos, ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { LocationMapPreview } from '../../../ui/location/LocationMapPreview';
 import { TaskQaInline } from '../../../ui/qa/TaskQaInline';
@@ -82,6 +84,12 @@ export default function PrilikaDetaljiEkran() {
   const questions = useTaskQaInline(prilika ? prilika.id : null);
   // R25: what my own Dogovori and my work area say about this task, read beside it for a task I have not applied to; the page is whole without it.
   const fit = useTaskFit({ prilika: fresh && !resource.loading && !resource.error ? fresh : null, relation, izvor, accountId, accountRevision });
+  // "Dolazi kako je dogovoreno": how reliably the person who posted this task comes as agreed, as the server says it (the public work-trust read), beside the task and
+  // never in front of it. Only a percentage is passed on: a person with too few Dogovori, a hidden figure (the default today) and a read that failed or answered nothing are
+  // all nothing here, and no number is made up.
+  const trust = usePublicWorkTrust(fresh && !resource.loading && !resource.error ? fresh.narucilacProfilId : null);
+  const reliability = publicTrustFacts(trust)?.reliability;
+  const reliabilityPercent = reliability?.kind === 'percent' ? reliability.percent : null;
   const scopeRef = useRef<ActionScope | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -174,7 +182,7 @@ export default function PrilikaDetaljiEkran() {
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }]} coarse height={184}
         scopeKey={`${accountId}:${accountRevision}:${fresh.id}:${fresh.priblizno.lat}:${fresh.priblizno.lng}`} />
       : undefined}
-    need={prilika} fit={fit} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
+    need={prilika} fit={fit} reliabilityPercent={reliabilityPercent} loading={!!id && resource.loading} error={!!resource.error} missing={!fresh}
     stale={!!prilika && (resource.loading || !!resource.error)} busy={busy} canRetry={!!id}
     canApply={!!fresh && fresh.primaNovePrijave === true && deadlineOpen() && relation.kind === 'NONE'}
     deadlinePassed={deadlinePassed}

@@ -44,13 +44,14 @@ function Marketplace({ rows, loading = false }: { rows: MarketplaceItem[]; loadi
   return <MarketplacePresentation items={rows} loading={loading} error={false} view={view} onView={setView}
     onOpen={() => {}} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />;
 }
-test('the header says what the list is in the name the product uses and never an app mode; the sections are real tabs', async () => {
+test('the header says what the list is in the name the product uses and never an app mode; there are no tabs, and the one control is Filteri', async () => {
   // The invariant is unchanged: the title is a header, and it is never an app mode. V41 (2026-09-23): the tab header
   // draws the mark, not the section name; the name reaches a screen reader as the header's label.
   await act(async () => { tree = create(<Marketplace rows={[row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 })]} />); });
   expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Moji zadaci')).length).toBeGreaterThan(0);
   expect(texts()).not.toContain('Uskoči i zaradi'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
-  expect(roleOf('Aktivni').accessibilityRole).toBe('tab');
+  // "Papir na stolu" (2026-10-08): the groups by phase replaced the tabs (either groups or tabs, never both); the function of Filteri stays in the bar.
+  expect(labels()).not.toContain('Aktivni'); expect(labels()).not.toContain('Istorija'); expect(labels()).toContain('Filteri');
   // The list/map switch retired with discovery here (A5): no Lista, no Mapa.
   expect(labels()).not.toContain('Lista'); expect(labels()).not.toContain('Mapa');
 });
@@ -60,22 +61,25 @@ test('loading shows placeholder geometry and a spoken status, never a stale card
   expect(texts()).toContain('Učitavamo zadatke…');
   expect(tree.root.findAllByProps({ importantForAccessibility: 'no-hide-descendants' }).length).toBeGreaterThan(0);
 });
-test('an owner draft continues its editing and never draws an application count; the draft word stands in every tab', async () => {
+test('an owner draft continues its editing and never draws an application count; its list says it is the drafts, so the card does not repeat it', async () => {
   await act(async () => { tree = create(<Marketplace rows={[row('d', { stanje: 'NACRT', brojPrijava: 0 })]} />); });
-  await act(async () => roleOf('Nacrti').onPress());
+  // Nothing is active: the groups say so once, and the one quiet row "Nacrti" is right under it.
+  expect(texts()).toContain('Nema aktivnih zadataka');
+  await act(async () => roleOf('Nacrti, 1 nacrt').onPress());
   // One task card (step 5a, 2026-09-24): a draft draws no places and no application count; its one next step is to continue it.
   const copy = texts(); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 ?\/ ?2/);
-  // Plan 2.2 (owner 2026-10-07; was, review r3 item 10: "Nacrt" not repeated under Nacrti): every row wears its state as the chip, in every
-  // tab, because the tab no longer stands in for it. The whole word, not the "Nacrti" tab that contains it.
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
+  // The list of drafts says what it is (the bar's name), so its cards do not wear the state chip a second time; everywhere else the chip stands.
+  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(false);
   expect(roleOf('Otvori zadatak Pomoć d')).toBeTruthy();
-  // Where the section does not name the state, the card says it just the same.
-  await act(async () => roleOf('Aktivni').onPress());
-  await act(async () => tree.root.findAll(node => node.props.label === 'Prikaži sve moje zadatke')[0].props.onPress());
-  expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(true);
+  // The arrow of the bar comes back to the groups.
+  await act(async () => roleOf('Nazad').onPress());
+  expect(texts()).toContain('Nema aktivnih zadataka');
 });
-test('the filter sheet offers price modes as radios and the primary action is the only brand action', async () => {
+test('the list has no brand action of its own, and the filter sheet offers price modes as radios with the primary action as the only brand action', async () => {
   await act(async () => { tree = create(<Marketplace rows={[row('one', { stanje: 'OBJAVLJENA', brojPrijava: 0 })]} />); });
+  // With the sheet closed nothing on the list is green: the green action belongs to the empty list and to the sheet.
+  expect(labels()).not.toContain('Zatvori filtere'); expect(texts()).not.toMatch(/Način cene|Svi načini/);
+  expect(tree.root.findAllByType('Press' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor)).toHaveLength(0);
   await act(async () => roleOf('Filteri').onPress());
   expect(roleOf('Tražim ponude').accessibilityRole).toBe('radio'); expect(roleOf('Svi načini').accessibilityState).toEqual({ checked: true });
   const brand = tree.root.findAllByType('Press' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);

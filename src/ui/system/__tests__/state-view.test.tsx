@@ -335,3 +335,53 @@ describe('the placeholders of the flat screens', () => {
     expect(size(frames())).toBe(0);
   });
 });
+
+// "Predmet vrata" (the owner's pick of 2026-10-08, B6): the FIRST encounter of an empty screen is a hero. Its picture stands at 144, the size of a door of
+// Početna, and is the same object as the door or the row that fulfils the state, so an empty screen is a promise of its action.
+describe('the first encounter: a hero', () => {
+  const first = { title: 'Još nemaš zadatak', body: 'Reci šta ti treba. Nacrt pregledaš pre objave.',
+    primary: { label: 'Objavi prvi zadatak', onPress: () => {} }, quiet: { label: 'Pogledaj zadatke', onPress: () => {} } };
+
+  it('draws the picture of an empty screen at 144 and everything else as it was: the same column, the same words, the one green action and the one quiet one', async () => {
+    await render(<StateView hero art="publish" {...first} />);
+    expect(art().props).toMatchObject({ kind: 'publish', size: 144, muted: false });
+    expect(size(tree.root.findAllByType(Arrive))).toBe(1);
+    expect(flat(column())).toMatchObject({ alignItems: 'center', maxWidth: 280, width: '100%' });
+    expect(texts()).toEqual(['Još nemaš zadatak', 'Reci šta ti treba. Nacrt pregledaš pre objave.', 'Objavi prvi zadatak', 'Pogledaj zadatke']);
+    expect(role('header').map(node => node.props.children)).toEqual(['Još nemaš zadatak']);
+    expect(actions().map(action => action.props.kind)).toEqual([undefined, 'quiet']);
+    let picture = art().parent!;
+    while (!(host(picture) && flat(picture).marginBottom !== undefined)) picture = picture.parent!;
+    expect(flat(picture).marginBottom).toBe(sys.space.base);
+  });
+
+  it('is the same state without it: an empty list that is not a hero keeps its 96', async () => {
+    await render(<StateView art="publish" {...first} />);
+    expect(art().props.size).toBe(96);
+    await act(async () => tree.update(<StateView hero={false} art="publish" {...first} />));
+    expect(art().props.size).toBe(96);
+  });
+
+  it('is only for an empty screen: a failure, a lost connection and an unknown outcome stay grey and still at 96, and a state inside a section stays at 48', async () => {
+    for (const kind of ['error', 'offline', 'uncertain'] as const) {
+      await act(async () => tree?.unmount());
+      await render(<StateView hero kind={kind} art="tasks" title="Nije uspelo" body="Proveri vezu." primary={{ label: 'Pokušaj ponovo', onPress: () => {} }} />);
+      expect([kind, art().props.size, art().props.muted, size(tree.root.findAllByType(Arrive))]).toEqual([kind, 96, true, 0]);
+    }
+    await act(async () => tree.unmount());
+    await render(<StateView hero compact art="tasks" title="Nema aktivnih zadataka" />);
+    expect(art().props.size).toBe(48);
+  });
+
+  it('draws the two panels of a conversation at 144 as well', async () => {
+    await render(<StateView hero art="chat" title="Još nema razgovora" />);
+    expect(size(pictures())).toBe(0);
+    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === 144))).toBeGreaterThan(0);
+    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === 96))).toBe(0);
+  });
+
+  it('is written where a person building a screen looks: the header names it, and says it is for the first time only', () => {
+    const header = readFileSync(join(__dirname, '../StateView.tsx'), 'utf8').replace(/\r\n/g, '\n');
+    expect(header).toMatch(/`hero`/); expect(header).toMatch(/144/); expect(header).toMatch(/cause: 'first'/);
+  });
+});

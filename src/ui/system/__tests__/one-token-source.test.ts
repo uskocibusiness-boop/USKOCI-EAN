@@ -385,7 +385,6 @@ const WINDOW_WIDTH_READERS = new Set([
   'src/ui/calendar/AvailabilityForm.tsx', // 360
   'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
   'src/ui/referenceEntry/ReferenceEntryHero.tsx', // LOCKED entry
-  'src/ui/reviews/AgreementReviewPresentation.tsx',
   'src/ui/system/PickerTile.tsx', // 360
   'src/ui/v2/DiscoveryPresentation.tsx',
   'src/ui/v2/discovery/DiscoverySearchPanel.tsx', // 360 and 380
@@ -479,7 +478,6 @@ const MOTION_LITERALS_ALLOWED: Record<string, Partial<Record<MotionFamily, numbe
   'src/ui/calendar/CalendarControls.tsx': { scale: 1 },
   'src/ui/entry/entryV49Math.ts': { duration: 1 }, // LOCKED entry
   'src/ui/product/ProductDetails.tsx': { scale: 1 }, // DetailDescription's "Prikaži ceo opis"; DetailLink and ProductPerson (2 of 3) are gone
-  'src/ui/reviews/AccountReputation.tsx': { scale: 1 },
   'src/ui/support/SupportPresentation.tsx': { scale: 1 },
   'src/ui/system/Disclosure.tsx': { scale: 1 },
   'src/ui/system/SuccessMark.tsx': { spring: 2 }, // damping 13, stiffness 240

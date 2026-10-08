@@ -882,7 +882,7 @@ def s_paging():
     seen, order, idle, dupes, swipes, indexes, strays = set(), [], 0, [], 0, set(), []
     for swipes in range(1, 131):
         root, _p = dump()
-        if not count_nodes(root) and not cards(root) and (nodes(root, contains='Mesto zadatka') or nodes(root, contains='Sastavi prijavu')):
+        if not count_nodes(root) and not cards(root) and (nodes(root, contains='Mesto zadatka') or nodes(root, contains='Pošalji ponudu') or nodes(root, contains='Pošalji prijavu')):
             # Journey #10: a slow swipe on the stalled CI emulator arrived as a press and opened the task under the finger; the loop then swiped on that detail for ten minutes.
             # The list's top line stands in every list state and in no detail, so a task's own labels without it name the stray open: come back, go on, and report each one.
             strays.append(swipes)

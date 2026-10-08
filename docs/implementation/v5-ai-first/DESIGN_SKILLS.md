@@ -189,7 +189,7 @@ its entry fails too ("lower the entry, or delete it"), so an entry made stale by
 it was waiting for cannot stay green. When a change moves a literal onto a token, lower or
 delete that file's entry in the same change; never add one.
 
-- no component reads the window width itself (11 files are listed today, two of them the
+- no component reads the window width itself (10 files are listed today, two of them the
   locked entry; the files move onto `useLayoutClass()` wave by wave). An aliased import of
   `useWindowDimensions` or `Dimensions`, a namespace access and a width read from
   `useWindowRoom()` count as reads. Not seen: a width handed on as a value;

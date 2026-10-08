@@ -79,23 +79,30 @@ export function useAppear(): AppearList {
 }
 
 /**
- * How far below its place a row starts: 8 dp, the rise of the outcome bar (`Poruka`). Reanimated's own `FadeInDown` starts
+ * How far from its place a row starts: 8 dp, the rise of the outcome bar (`Poruka`). Reanimated's own `FadeInDown` starts
  * 25 dp low, a long slide for a whole card to cover in 240 ms, which reads as a shove and not as an arrival.
  */
 const ARRIVAL_RISE = sys.space.sm;
 
 /**
- * The one entrance a row can have: it settles up from `ARRIVAL_RISE` below while it fades in, and it decelerates (rule R2:
- * every entrance is passed `easeOut` explicitly). Without `.easing(...)` Reanimated falls back to ease-in-out on a quadratic,
- * which has covered only 2 % of the way after the first tenth of the time and so starts late.
+ * Where an arriving thing comes from (owner's pick of 2026-10-08, "Ponude preko stola", rule B1): what somebody ELSE brings (an
+ * application, a fact the assistant understood) arrives from `above`, 8 dp over its place; what is YOURS (the default) arrives from
+ * `below`, 8 dp under it. Only the side changes, never the length, the stagger or the curve.
+ */
+export type AppearFrom = 'above' | 'below';
+
+/**
+ * The one entrance a row can have: it settles from `ARRIVAL_RISE` above or below its place while it fades in, and it decelerates
+ * (rule R2: every entrance is passed `easeOut` explicitly). Without `.easing(...)` Reanimated falls back to ease-in-out on a
+ * quadratic, which has covered only 2 % of the way after the first tenth of the time and so starts late.
  *
  * The curve is built when a row arrives, not when this file loads, so a suite that stands in for Reanimated without an
  * `Easing` still loads every screen that draws rows.
  */
-const arrival = (index: number) => FadeInDown.duration(sys.motion.enter)
+const arrival = (index: number, from: AppearFrom = 'below') => FadeInDown.duration(sys.motion.enter)
   .delay(Math.min(index, ROWS_THAT_ARRIVE) * sys.motion.stagger)
   .easing(Easing.bezier(...sys.motion.easeOut))
-  .withInitialValues({ translateY: ARRIVAL_RISE });
+  .withInitialValues({ translateY: from === 'above' ? -ARRIVAL_RISE : ARRIVAL_RISE });
 
 /**
  * The stagger step (`sys.motion.stagger`) is per row, and stops at `ROWS_THAT_ARRIVE`.
@@ -106,12 +113,14 @@ const arrival = (index: number) => FadeInDown.duration(sys.motion.enter)
  * inside (losing its press state and its photo) nor create an animated view that Reanimated would have to track. A list
  * that has settled therefore holds no animated view at all, only the rows that actually arrived.
  */
-export function Appear({ index = 0, animate = true, children, style }: {
-  index?: number; animate?: boolean; children: ReactNode; style?: object;
+export function Appear({ index = 0, animate = true, from = 'below', children, style }: {
+  index?: number; animate?: boolean;
+  /** The side it comes from: `above` for what others bring, `below` (as it always was) for what is yours. Read once, when the row mounts. */
+  from?: AppearFrom; children: ReactNode; style?: object;
 }) {
   const reduced = useReducedMotion();
   const mode = useRef<{ entering: ReturnType<typeof arrival> | undefined } | null>(null);
-  if (!mode.current) mode.current = { entering: reduced || !animate ? undefined : arrival(index) };
+  if (!mode.current) mode.current = { entering: reduced || !animate ? undefined : arrival(index, from) };
   const { entering } = mode.current;
   if (!entering) return <View style={style}>{children}</View>;
   return <Animated.View style={style} entering={entering}>{children}</Animated.View>;

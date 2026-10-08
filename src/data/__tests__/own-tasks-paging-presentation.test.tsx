@@ -26,7 +26,8 @@ import { MarketplacePresentation, type MarketplacePaging } from '../../ui/v2/Mar
 
 /**
  * EX-04 S1 (A09): what "Moji zadaci" says when it is read a page at a time. The tasks on screen are the ones loaded so far; every number the person
- * is given is the server's, never the number that happens to be loaded, and the foot offers the next page (or says it failed and offers the retry).
+ * is given is the server's, never the number that happens to be loaded (a group's number only once the set was read to its end), and the foot offers
+ * the next page (or says it failed and offers the retry), right after the last task and before the two rows of the other sets.
  */
 const row = (id: string, patch = {}): MarketplaceItem => ({ id, revizija: 1, naslov: `Pomoć ${id}`, opis: '', stanje: 'OBJAVLJENA', podrucjeTekst: 'Novi Sad',
   vremeTekst: 'Po dogovoru', uslovi: ['Alat'], rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' },
@@ -47,31 +48,39 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); initial = initialMarketplaceView(); rows = [row('one'), row('two')]; paging = makePaging(); loading = error = mockReduced = false; loadMore.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-test('the badge on Aktivni is the server\'s count of tasks that wait for my choice, not what is loaded; unknown counts say nothing', async () => {
-  rows = [row('waiting', { brojPrijavaZaIzbor: 3 }), row('plain')];
-  await render(); expect(press('Aktivni').props.accessibilityValue).toEqual({ text: 'Za tvoj izbor: 4 zadatka' });
-  paging = makePaging({ counts: null }); await act(async () => tree.update(<Screen />)); expect(press('Aktivni').props.accessibilityValue).toEqual({ text: '' });
-  paging = makePaging({ counts: { ...COUNTS, waiting: 0 } }); await act(async () => tree.update(<Screen />)); expect(press('Aktivni').props.accessibilityValue).toEqual({ text: '' });
+test('the two rows say how many drafts and finished tasks there are by the count of the server, not by what is loaded; unknown counts draw no row', async () => {
+  await render(); expect(press('Nacrti, 3 nacrta').props.accessibilityHint).toBe('Otvara nacrte.'); expect(press('Istorija, 25 zadataka')).toBeTruthy();
+  expect(texts()).toContain('3 nacrta'); expect(texts()).toContain('25 zadataka');
+  paging = makePaging({ counts: null }); await act(async () => tree.update(<Screen />));
+  expect(tree.root.findAllByProps({ accessibilityHint: 'Otvara nacrte.' })).toHaveLength(0); expect(texts()).not.toContain('Istorija');
+  paging = makePaging({ counts: { ...COUNTS, drafts: 0 } }); await act(async () => tree.update(<Screen />));
+  expect(tree.root.findAllByProps({ accessibilityHint: 'Otvara nacrte.' })).toHaveLength(0); expect(press('Istorija, 25 zadataka')).toBeTruthy();
 });
 
-test('the line above the cards is the server\'s count of the set shown, whichever tab it is', async () => {
-  await render(); expect(texts()).toContain('12 zadataka');
-  await act(async () => press('Nacrti').props.onPress());
-  expect(snapshot.section).toBe('drafts'); expect(texts()).toContain('3 zadatka');
-  await act(async () => press('Istorija').props.onPress()); expect(texts()).toContain('25 zadataka');
+test('a row of the other sets opens that set, whichever page is loaded: the section is the one the row names', async () => {
+  await render();
+  await act(async () => press('Nacrti, 3 nacrta').props.onPress()); expect(snapshot.section).toBe('drafts');
+  await act(async () => press('Nazad').props.onPress()); expect(snapshot.section).toBe('active');
+  await act(async () => press('Istorija, 25 zadataka').props.onPress()); expect(snapshot.section).toBe('history');
+});
+
+test('a group has no number in its name while the rest of the set is still being read, and the exact one when it has been read to its end', async () => {
+  await render(); expect(texts()).toContain('Objavljeno'); expect(texts()).not.toMatch(/Objavljeno · \d/);
+  paging = makePaging({ hasMore: false }); await act(async () => tree.update(<Screen />));
+  expect(texts()).toContain('Objavljeno · 2');
+  paging = makePaging({ hasMore: true, loadingMore: true }); await act(async () => tree.update(<Screen />)); expect(texts()).not.toMatch(/ · \d/);
 });
 
 test('a refined set has no number while the rest of it is still being read, and the exact one when it has been read to its end', async () => {
   initial.query = 'Pomoć one'; await render();
-  expect(texts()).not.toMatch(/\d+ zadat/);
+  expect(texts()).not.toMatch(/ · \d/);
   paging = makePaging({ hasMore: false, counts: COUNTS }); await act(async () => tree.update(<Screen />));
-  expect(texts()).toContain('1 zadatak');
-  paging = makePaging({ hasMore: true, loadingMore: true }); await act(async () => tree.update(<Screen />)); expect(texts()).not.toMatch(/\d+ zadat/);
+  expect(texts()).toContain('Objavljeno · 1');
 });
 
-test('without counts the number is shown only once nothing more is to be read', async () => {
-  paging = makePaging({ counts: null }); await render(); expect(texts()).not.toMatch(/\d+ zadat/);
-  paging = makePaging({ counts: null, hasMore: false }); await act(async () => tree.update(<Screen />)); expect(texts()).toContain('2 zadatka');
+test('without counts the number of a group is shown only once nothing more is to be read, and no row of the other sets is drawn', async () => {
+  paging = makePaging({ counts: null }); await render(); expect(texts()).not.toMatch(/ · \d/); expect(texts()).not.toContain('Nacrti');
+  paging = makePaging({ counts: null, hasMore: false }); await act(async () => tree.update(<Screen />)); expect(texts()).toContain('Objavljeno · 2');
 });
 
 test('the foot offers the next page, says it is reading, or says it failed and offers the same retry', async () => {
@@ -106,8 +115,12 @@ test('the filter sheet promises no number while the set is incomplete, and the e
   expect(actions()).toContain('Prikaži 2 zadatka');
 });
 
-test('without the paging prop the list is the whole list: it counts itself and has no foot', async () => {
+test('without the paging prop the list is the whole list: it counts itself, has no foot and draws the rows of the other sets only when it holds some', async () => {
   paging = undefined; rows = [row('waiting', { brojPrijavaZaIzbor: 3 }), row('plain')];
-  await render(); expect(press('Aktivni').props.accessibilityValue).toEqual({ text: 'Za tvoj izbor: 1 zadatak' });
-  expect(texts()).toContain('2 zadatka'); expect(actions()).not.toContain('Prikaži još'); expect(list().props.onEndReached).toBeUndefined();
+  await render(); expect(texts()).toContain('Čeka tvoj izbor · 1'); expect(texts()).toContain('Objavljeno · 1');
+  expect(actions()).not.toContain('Prikaži još'); expect(list().props.onEndReached).toBeUndefined();
+  expect(tree.root.findAllByProps({ accessibilityHint: 'Otvara nacrte.' })).toHaveLength(0);
+  rows = [...rows, row('draft', { stanje: 'NACRT' }), row('done', { stanje: 'ZATVORENA', kraj: 'COMPLETED' }), row('gone', { stanje: 'ZATVORENA', kraj: 'CANCELLED' })];
+  await act(async () => tree.update(<Screen />));
+  expect(texts()).toContain('1 nacrt'); expect(texts()).toContain('2 zadatka');
 });

@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { useLocalSearchParams } from 'expo-router';
 import type { NeedDetailProjection, PrilikaProjekcija } from '../contracts/projections';
-import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../data/marketplaceView';
+import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView, type PublicBounds } from '../data/marketplaceView';
 import { taskRelationIndex, type TaskRelation } from '../data/taskRelation';
+import type { TaskCardRelation } from '../ui/v2/TaskFace';
 import { novac } from '../lib/novac';
 import type { DiscoveryV1SearchSnapshot, SearchPreviewView } from '../data/discoveryV1SearchOwner';
 import { discoveryV1SearchPreviewKey } from '../data/discoveryV1SearchOwner';
 import { DiscoveryPresentation } from '../ui/v2/DiscoveryPresentation';
+import { DiscoveryPeek } from '../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchPanel, type SearchStep } from '../ui/v2/discovery/DiscoverySearchPanel';
 import { PublicNeedPresentation } from '../ui/v2/PublicNeedPresentation';
 import { TaskCard } from '../ui/v2/TaskCard';
@@ -29,11 +31,12 @@ import { sys } from '../ui/system/tokens';
  * `detalj-zatvoren` (full places), `detalj-ucitavanje`, `detalj-greska` and `detalj-nedostupan`, and `detalj-uklapanje` (the two quiet rows of what my own plans and
  * work area say about it). `lista-za-mene` is the list with the "Svi zadaci | Za mene" switch on, `lista-za-mene-odbijeno` the line that says why it was refused
  * (no active work profile). `pretraga` is the search panel over the server's city list (letters typed into "Gde" bring the parts of a city under the cities, as the server would),
- * `pretraga-kada` and `pretraga-sta` with that section open.
+ * `pretraga-kada` and `pretraga-sta` with that section open. `kartica-na-mapi` is the card of a chosen pin (the same face as the list card), `kartica-na-mapi-dugo` with a long
+ * title and a long name; `detalj-ponude` is a task that takes offers (its one action is "Pošalji ponudu", the fixed price's is "Pošalji prijavu").
  */
 const SCENES = ['kartice', 'kartice-veliki', 'lista', 'lista-prazno', 'lista-ucitavanje', 'lista-greska', 'detalj', 'detalj-veliki', 'detalj-prijavljen',
   'detalj-moj', 'detalj-zatvoren', 'detalj-ucitavanje', 'detalj-greska', 'detalj-nedostupan', 'detalj-uklapanje', 'lista-za-mene', 'lista-za-mene-odbijeno',
-  'pretraga', 'pretraga-kada', 'pretraga-sta'] as const;
+  'pretraga', 'pretraga-kada', 'pretraga-sta', 'kartica-na-mapi', 'kartica-na-mapi-dugo', 'detalj-ponude'] as const;
 type Scene = typeof SCENES[number];
 const noop = () => {};
 
@@ -97,14 +100,16 @@ function List({ items, loading = false, error = false, forMe = false, refused = 
 /** The search panel over the server's cities (and, with letters typed, the parts of a city). A fixed "now" keeps the days of its calendar still. */
 const CITIES = [{ key: 'novi sad', text: 'Novi Sad', count: 23 }, { key: 'beograd', text: 'Beograd', count: 13 }, { key: 'subotica', text: 'Subotica', count: 4 }, { key: 'niš', text: 'Niš', count: 2 }];
 const PARTS = [{ key: 'liman, novi sad', text: 'Liman, Novi Sad', count: 9 }, { key: 'limanski park, novi sad', text: 'Limanski park, Novi Sad', count: 2 }];
+/** The visible part of the map the search is opened over: it gives "Ova oblast" a place in the list, and its key is the one the snapshot answers for. */
+const AREA: PublicBounds = [19.7, 45.2, 19.9, 45.3];
 function Search({ start }: { start: SearchStep }) {
   const view = useMemo<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }), []);
   const [letters, setLetters] = useState('');
-  const snapshot = useMemo<DiscoveryV1SearchSnapshot>(() => ({ active: true, generation: 1, key: discoveryV1SearchPreviewKey({ ...view, placeSearch: letters } as SearchPreviewView, null), status: 'ready',
+  const snapshot = useMemo<DiscoveryV1SearchSnapshot>(() => ({ active: true, generation: 1, key: discoveryV1SearchPreviewKey({ ...view, placeSearch: letters } as SearchPreviewView, AREA), status: 'ready',
     count: 41, undated: 0, availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE', 'OFFERS'] },
     places: letters ? CITIES.filter(city => city.text.toLowerCase().includes(letters.toLowerCase())) : CITIES, parts: letters ? PARTS : [],
-    placeHasMore: false, placePaging: false, everywhere: 41, inMapArea: null, facetError: false }), [view, letters]);
-  return <DiscoverySearchPanel items={[]} view={view} mine={undefined} now={new Date('2026-10-12T08:00:00Z')} mapArea={null} start={start} reduced={false}
+    placeHasMore: false, placePaging: false, everywhere: 41, inMapArea: 7, facetError: false }), [view, letters]);
+  return <DiscoverySearchPanel items={[]} view={view} mine={undefined} now={new Date('2026-10-12T08:00:00Z')} mapArea={AREA} start={start} reduced={false}
     p6Search={{ snapshot, onDraft: (draft: { placeSearch?: string }) => setLetters(draft.placeSearch ?? ''), onNextPlaces: noop }} canNearby onApply={noop} onClose={noop} />;
 }
 
@@ -123,12 +128,23 @@ function Cards({ large }: { large: boolean }) {
   return large ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{body}</LayoutClassOverride.Provider> : body;
 }
 
-type DetailState = { loading?: boolean; error?: boolean; missing?: boolean; relation?: TaskRelation; canApply?: boolean; need?: PrilikaProjekcija | null; fit?: { overlapTitle?: string; distanceKm?: number } };
+/** The card of a chosen pin over the map's ground, as the map draws it (the map itself is not part of this scene). */
+function Peek({ item, relation }: { item: PrilikaProjekcija; relation?: TaskCardRelation }) {
+  return <TaskAgeContext.Provider value={id => AGES[id] ?? null}>
+    <SafeAreaView edges={['top']} style={s.map}>
+      <DiscoveryPeek item={item as MarketplaceItem} place={[]} relation={() => relation} active bottomInset={sys.space.md} reduced={false}
+        onOpen={noop} onShowPlace={noop} onClose={noop} />
+    </SafeAreaView>
+  </TaskAgeContext.Provider>;
+}
+
+type DetailState = { loading?: boolean; error?: boolean; missing?: boolean; relation?: TaskRelation; canApply?: boolean; need?: PrilikaProjekcija | null; fit?: { overlapTitle?: string; distanceKm?: number };
+  /** What the public work-trust read would say about the person who posted it; only the gallery makes it up. */ reliabilityPercent?: number };
 function Detail({ large, state = {} }: { large: boolean; state?: DetailState }) {
   const need = state.need === undefined ? FIXTURES[0] : state.need;
   const body = <PublicNeedPresentation need={need} loading={!!state.loading} error={!!state.error} missing={!!state.missing} stale={false} busy={false}
     canApply={state.canApply ?? true} canRetry back={noop} retry={noop} apply={noop} relation={state.relation ?? RELATION_NONE} onOwnTask={noop}
-    onOwnApplication={noop} onOtherTasks={noop} onRequesterProfile={noop} fit={state.fit} />;
+    onOwnApplication={noop} onOtherTasks={noop} onRequesterProfile={noop} fit={state.fit} reliabilityPercent={state.reliabilityPercent} />;
   return large ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{body}</LayoutClassOverride.Provider> : body;
 }
 
@@ -145,7 +161,7 @@ export default function DizajnZadaci() {
     case 'lista-prazno': return <List items={[]} />;
     case 'lista-ucitavanje': return <List items={[]} loading />;
     case 'lista-greska': return <List items={[]} error />;
-    case 'detalj': return <Detail large={false} />;
+    case 'detalj': return <Detail large={false} state={{ reliabilityPercent: 90 }} />;
     case 'detalj-veliki': return <Detail large />;
     case 'detalj-prijavljen': return <Detail large={false} state={{ relation: { kind: 'APPLIED', applicationId: 'prijava-1', agreementId: null } }} />;
     case 'detalj-moj': return <Detail large={false} state={{ relation: { kind: 'OWNER' } }} />;
@@ -160,11 +176,15 @@ export default function DizajnZadaci() {
     case 'pretraga': return <Search start="gde" />;
     case 'pretraga-kada': return <Search start="kada" />;
     case 'pretraga-sta': return <Search start="sta" />;
+    case 'kartica-na-mapi': return <Peek item={FIXTURES[0]} />;
+    case 'kartica-na-mapi-dugo': return <Peek item={FIXTURES[2]} relation="APPLIED" />;
+    case 'detalj-ponude': return <Detail large={false} state={{ need: FIXTURES[1] }} />;
   }
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
+  map: { flex: 1, backgroundColor: sys.map.ground },
   // The list's own measure: the edge of every screen and 12 between records.
   list: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.zone, gap: layout.group },
 });

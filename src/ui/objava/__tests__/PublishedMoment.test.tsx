@@ -11,13 +11,15 @@ jest.mock('phosphor-react-native', () => ({ Check: 'Check' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 import { forgetTicks } from '../../system/haptics';
+import { Pecat } from '../../system/Pecat';
+import { sys } from '../../system/tokens';
 import { PUBLISHED_MOMENT_MS, PublishedMoment } from '../PublishedMoment';
 
 /**
- * "Objavljeno" (plan 2.9, owner 2026-10-07): the one calm moment after a confirmed publication. It must be SEEN (it holds at least 1,2 s
- * when left alone), it must never block the way on (a tap continues at once), it keeps its success tick under reduced motion and drops
- * the movement, and a screen reader is not hurried. The route's own fences (focus, account, the read-back) are tested with the route
- * (v5-review-screen); this is the moment itself.
+ * "Objavljeno" (plan 2.9, owner 2026-10-07; "Papir i pečat", owner's pick of 2026-10-08): the one calm moment after a confirmed publication. It must
+ * be SEEN (it holds at least 1,2 s after the stamp has landed, when left alone), it must never block the way on (a tap continues at once), the paper
+ * settles and the stamp falls on it (and under reduced motion both are there at once), and a screen reader is not hurried. The route's own fences
+ * (focus, account, the read-back) are tested with the route (v5-review-screen); this is the moment itself.
  */
 let tree: ReactTestRenderer;
 const render = async (onContinue: () => void, props: Partial<React.ComponentProps<typeof PublishedMoment>> = {}) => {
@@ -31,19 +33,19 @@ const action = () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak
 beforeEach(() => { jest.useFakeTimers(); forgetTicks(); mockHaptic.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockReduced = false; jest.useRealTimers(); jest.restoreAllMocks(); });
 
-it('says what happened and what comes next in black and grey words, with one green way on', async () => {
+it('says what happened and what comes next in black and grey words, with the state word of a live task between them and one green way on', async () => {
   await render(jest.fn());
-  expect(texts()).toEqual(['Zadatak je objavljen.', 'Prijave stižu ovde. Javićemo ti.', 'Otvori zadatak']);
+  expect(texts()).toEqual(['Zadatak je objavljen.', 'Objavljen', 'Prijave stižu ovde. Javićemo ti.', 'Otvori zadatak']);
   const title = tree.root.findAllByType('T' as React.ElementType)[0];
   expect(title.props).toMatchObject({ variant: 'title', accessibilityRole: 'header', accessibilityLiveRegion: 'polite' });
-  expect(tree.root.findAllByType('T' as React.ElementType)[1].props).toMatchObject({ variant: 'copy', tone: 'muted' });
+  expect(tree.root.findAllByType('T' as React.ElementType)[2].props).toMatchObject({ variant: 'copy', tone: 'muted' });
   // One action, the primary one, green; nothing else to press.
   expect(tree.root.findAllByType('Press' as React.ElementType)).toHaveLength(1);
   expect(action().props.accessibilityRole).toBe('button');
 });
 
-it('is seen for at least 1,2 s, and then continues by itself, once', async () => {
-  expect(PUBLISHED_MOMENT_MS).toBeGreaterThanOrEqual(1200);
+it('is seen for at least 1,2 s after the stamp has landed, and then continues by itself, once', async () => {
+  expect(PUBLISHED_MOMENT_MS).toBeGreaterThanOrEqual(sys.motion.arrive.duration + 140 + 1200);
   const onContinue = jest.fn();
   await render(onContinue);
   await advance(1199); expect(onContinue).not.toHaveBeenCalled();
@@ -75,17 +77,22 @@ it('stops its timer with the screen: nothing continues after it is gone', async 
   expect(onContinue).not.toHaveBeenCalled();
 });
 
-it('settles in with the success tick, and under reduced motion keeps the tick and drops the movement', async () => {
-  const spring = jest.spyOn(Animated, 'spring'), timing = jest.spyOn(Animated, 'timing');
+it('lays the paper with the pin and the pencil down and drops the stamp "Objavljen" on it, and under reduced motion shows both at once', async () => {
+  const timing = jest.spyOn(Animated, 'timing');
   await render(jest.fn());
-  expect(mockHaptic).toHaveBeenCalledTimes(1);
-  expect(spring).toHaveBeenCalled();
+  // The picture of a task laid on the table (144), not a mark with a tick in it: the paper settles once, as the picture of an empty state does.
+  const picture = (kind: string) => tree.root.findAll(node => node.props.kind === kind && typeof node.props.size === 'number');
+  expect(picture('publish').length).toBeGreaterThan(0); expect(new Set(picture('publish').map(node => node.props.size))).toEqual(new Set([144]));
+  expect(picture('check')).toHaveLength(0);
+  // The stamp is the state pill of the one state system, green, and it falls as the paper has settled (it is the stamp's own tick that is felt).
+  expect(tree.root.findByType(Pecat).props).toMatchObject({ label: 'Objavljen', tone: 'green', play: true, delay: sys.motion.arrive.duration });
+  expect(timing).toHaveBeenCalled();
   await act(async () => tree.unmount());
-  spring.mockClear(); timing.mockClear(); mockHaptic.mockClear(); forgetTicks(); mockReduced = true;
+  timing.mockClear(); mockReduced = true;
   const onContinue = jest.fn();
   await render(onContinue);
-  expect(mockHaptic).toHaveBeenCalledTimes(1);      // a tick is an outcome, not movement
-  expect(spring).not.toHaveBeenCalled(); expect(timing).not.toHaveBeenCalled();
+  expect(picture('publish').length).toBeGreaterThan(0);
+  expect(timing).not.toHaveBeenCalled();
   // The moment is as long and as quick to leave under reduced motion: nothing about its length is motion.
   await advance(PUBLISHED_MOMENT_MS); expect(onContinue).toHaveBeenCalledTimes(1);
 });
@@ -115,5 +122,5 @@ it('a screen reader that is turned on while the moment is shown stops the timer'
 
 it('says "Izmene su objavljene." for a changed task when it is handed those words', async () => {
   await render(jest.fn(), { title: 'Izmene su objavljene.', line: 'Prijave stižu ovde.' });
-  expect(texts()).toEqual(['Izmene su objavljene.', 'Prijave stižu ovde.', 'Otvori zadatak']);
+  expect(texts()).toEqual(['Izmene su objavljene.', 'Objavljen', 'Prijave stižu ovde.', 'Otvori zadatak']);
 });

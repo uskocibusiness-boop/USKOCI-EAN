@@ -788,7 +788,9 @@ describe('round 6: the publish review', () => {
     await render();
     await act(async () => publish().onPress());
     expect(text()).toContain('Zadatak je objavljen.');
-    expect(tree.root.findByType('SuccessMark' as React.ElementType).props.fresh).toBe(true);
+    // The publication made on this screen is the moment "Objavljeno" ("Papir i pečat"): the stamp falls on the paper, once; there is no success mark any more.
+    expect(tree.root.findAllByType('SuccessMark' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAll(node => node.props.testID === 'pecat').length).toBeGreaterThan(0);
   });
 
   it('Android Back in the place step closes it without saving, and is released afterwards', async () => {
@@ -973,13 +975,15 @@ describe('the Objavljeno moment', () => {
   beforeEach(() => { jest.useFakeTimers(); });
   afterEach(() => { jest.useRealTimers(); });
 
-  it('holds at least 1,2 s: the mark, what happened, what comes next and ONE green way on, then continues by itself to the overview', async () => {
+  it('holds at least 1,2 s: the paper and the stamp, what happened, what comes next and ONE green way on, then continues by itself to the overview', async () => {
     expect(PUBLISHED_MOMENT_MS).toBeGreaterThanOrEqual(1200);
     await publishHere();
     expect(mockAccept).toHaveBeenCalledTimes(1);
     // What the moment promises is the app's one promise (`APPLICATION_PROMISE`, F3's R12): "Javićemo ti" only the day push is sent.
     expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain(APPLICATION_PROMISE.published);
-    expect(tree.root.findByType('SuccessMark' as React.ElementType).props).toMatchObject({ fresh: true, size: 96 });
+    expect(tree.root.findAllByType('SuccessMark' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAll(node => node.props.kind === 'publish' && node.props.size === 144).length).toBeGreaterThan(0);
+    expect(tree.root.findAll(node => node.props.testID === 'pecat' && node.props.accessibilityLabel === 'Objavljen').length).toBeGreaterThan(0);
     expect(tree.root.findAllByProps({ label: 'Otvori zadatak' })).toHaveLength(1);
     expect(action('Otvori zadatak').kind).toBe('primary');
     // The review under it is gone: a finished publication has nothing left to change here, and no second action is offered.

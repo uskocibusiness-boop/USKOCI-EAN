@@ -1,26 +1,28 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { PotrebaProjekcija } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView, OwnedTaskCounts } from '../../data/marketplaceView';
 import { initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
+import { FactArt } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
+import { ListRow } from '../system/ListRow';
 import { useReducedMotion } from '../system/motion';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
-import { zadataka } from '../system/plural';
+import { plural, zadataka } from '../system/plural';
 import { Section } from '../system/Section';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
-import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { brandAction, fieldBox, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { ChoiceRow } from './offer/ChoiceRow';
 import { OwnTaskCard } from './OwnTaskCard';
-import { ownTaskTabs } from './ownTaskTabs';
+import { ownTaskPhases } from './ownTaskPhases';
 import { V2Action } from './V2Action';
 
 /**
@@ -36,18 +38,14 @@ export type MarketplacePresentationProps = { items: readonly MarketplaceItem[]; 
   paging?: MarketplacePaging;
   view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void;
+  /** The first encounter's quiet way: "Pogledaj zadatke" opens other people's tasks (Zadaci). Without it that way is not drawn. */
+  onExplore?: () => void;
   /** The card's foot opens the applications that wait for my choice. */
   onApplications?: (item: MarketplaceItem) => void;
   /** Set when the screen was pushed rather than being a tab: my own tasks are reached from Početna. */
   onBack?: () => void };
 
 const PRICES = [['all', 'Svi načini'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Tražim ponude']] as const;
-const Separator = () => <View style={s.separator} />;
-/** How many tasks the set the person is looking at holds, by the server's counts. */
-function setCount(counts: OwnedTaskCounts, view: MarketplaceView): number {
-  if (view.attention) return view.section === 'drafts' || view.section === 'history' ? 0 : counts.waiting;
-  return view.section === 'active' ? counts.active : view.section === 'drafts' ? counts.drafts : view.section === 'history' ? counts.history : counts.total;
-}
 const keyOf = (item: MarketplaceItem) => item.id;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. Rows here hold no text input that could lose focus. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
@@ -57,35 +55,55 @@ const CLIP_OFFSCREEN = Platform.OS === 'android';
  * search field or an open filter sheet re-renders the screen and not every card under it; the
  * `onOpen` it receives is the list's one stable function, and the closure over `item` is made here.
  */
-const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, onOpen, onApplications }: {
-  item: MarketplaceItem; index: number; animate: boolean; onOpen: (item: MarketplaceItem) => void;
+const MarketplaceRow = memo(function MarketplaceRow({ item, index, animate, sectionSays, onOpen, onApplications }: {
+  item: MarketplaceItem; index: number; animate: boolean; sectionSays: boolean; onOpen: (item: MarketplaceItem) => void;
   onApplications?: (item: MarketplaceItem) => void;
 }) {
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   const applications = useMemo(() => onApplications ? () => onApplications(item) : undefined, [onApplications, item]);
   // This list is made of my own tasks only (`marketplaceItems(…, owned = true)`); a task of someone else has no row here.
-  return isOwnedNeed(item) ? <Appear index={index} animate={animate}><OwnTaskCard item={item} onOpen={open} onApplications={applications} /></Appear> : null;
+  return isOwnedNeed(item) ? <Appear index={index} animate={animate}><OwnTaskCard item={item} sectionSays={sectionSays} onOpen={open} onApplications={applications} /></Appear> : null;
 });
 
+/** What the list is made of: the name of a group, a task, the one line that says there is no active task, the foot of a paged read, the two quiet rows. */
+type Row =
+  | { id: string; kind: 'head'; title: string; spoken: string; first: boolean }
+  | { id: string; kind: 'card'; item: PotrebaProjekcija; index: number; first: boolean; sectionSays: boolean }
+  | { id: 'none'; kind: 'none' }
+  | { id: 'foot'; kind: 'foot'; state: 'more' | 'loading' | 'error' }
+  | { id: 'sets'; kind: 'sets'; drafts: number; history: number; counted: boolean };
+
 /**
- * Moji zadaci: the person's own tasks in three sets (Aktivni · Nacrti · Istorija). UI/UX pass 2026-10-08 (composition spec 4.5): the
- * screen used to spend 172 dp on a bar, a row of tabs and a toolbar before the first card, and the cards were 304 dp each, so one fitted
- * under the other two; now it is a bar (the arrow, the name and ONE control, "Filteri"), ONE control row (the three tabs, equal
- * widths, a number only on what waits for the choice), the count of what the set shows as the first line of the list ("7 zadataka"),
- * and `Surface record` cards of about 200 dp, 12 apart, three to a screen.
+ * Moji zadaci, "Papir na stolu" (the owner's pick of 2026-10-08): the person's own ACTIVE tasks in groups by what each one is doing now
+ * ("Čeka tvoj izbor · 2", "Objavljeno · 2", "Dogovoreno · 1"; `ownTaskPhases`), the cards under each group's name, and under the groups two
+ * quiet rows, "Nacrti" and "Istorija", each with how many it holds. There are no tabs: either groups or tabs, never both. A group says the
+ * state, so the card does not wear the state chip a second time (`sectionSays`); HITNO keeps its badge. A row that is touched opens that set
+ * in this screen (`view.section` is `drafts` or `history`): the bar then says its name and its arrow comes back to the groups. In the list
+ * of drafts the card says nothing about its state either (the list is that state); in the history it keeps its chip, because Istorija holds
+ * three different endings (Završen, Otkazan, Istekao).
  *
- * Search is one of the filters: the one "Filteri" control opens the sheet with the search field, the way of pricing and "Čeka tvoj
- * izbor", and applies them together (the sheet promises how many tasks the list will show, by the same rule Apply uses). Other
- * people's tasks are the Zadaci tab (`DiscoveryPresentation`, the map under a list sheet, owner step 4, 2026-09-24); the discovery list
- * and map that used to share this file are gone with it. My own tasks carry no creation action over their cards (Početna has "Objavi
- * zadatak"); an empty list still offers it inline. Presentation only: every callback is the route's existing command.
+ * The FIRST ENCOUNTER is a promise (B6, "Predmet vrata"): a person with no task at all sees the paper with the pin and the pencil at 144,
+ * the same object as the door "Objavi zadatak" on Početna, "Još nemaš zadatak", one sentence, one green action and one quiet way.
  *
- * No eyebrow above the title (owner, 2026-09-23): "Moje aktivnosti" over "Moji zadaci" only said where you are, and that destination is
- * retired. For the same reason the count line does not name the set a tab already names ("2 zadatka · nacrti" under the tab "Nacrti"
- * said it twice); only the view that has no tab, all of my tasks (reached from an empty state), says which set it is.
+ * The cards are `Surface record`s of about 200 dp, 12 apart, three to a screen (composition spec 4.5). A group's name is 12 above its first
+ * card and 24 below the last card of the one before; the rows of the finished stand 24 under the last. A number in a group's name is the
+ * count of what the list holds, and is drawn only when it is exact: the whole list's own count, or a paged read that has read to its end (never
+ * the number that happens to be loaded). The counts of Nacrti and Istorija are the whole list's own or the server's, and a set that holds
+ * nothing has no row; while a filter is on they say only their names (a count of everything would not be what the set will show).
+ *
+ * FILTERI stays what it was (decision of 2026-10-08: the look is A, the function is not lost): the one control of the bar, at its end,
+ * with its word beside the drawing. It opens the sheet with the search field, the way of pricing and "Čeka tvoj izbor", and applies them
+ * together to the set that is shown (the groups, or the list of drafts or of the history); the sheet promises how many tasks the list will
+ * show, by the same rule Apply uses. The control is not drawn for a person who has nothing to narrow down, and a filter that came back empty
+ * keeps it, because it is how the filter is cleared. A filter that is on says so in the control ("Filteri, aktivni").
+ *
+ * Other people's tasks are the Zadaci tab (`DiscoveryPresentation`). My own tasks carry no creation action over their cards
+ * (Početna has "Objavi zadatak"); an empty list still offers it inline. Presentation only: every callback is the route's existing command.
+ *
+ * No eyebrow above the title (owner, 2026-09-23): "Moje aktivnosti" over "Moji zadaci" only said where you are, and that destination is retired.
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
-  const { items, loading, error, view, onOpen } = props, reduced = useReducedMotion();
+  const { items, loading, error, view, onOpen, paging } = props, reduced = useReducedMotion();
   // The route hands down a fresh `onOpen` closure on every render (its guards read the latest
   // read). The rows get one function that never changes and calls whatever is current at press time.
   const openRef = useRef(onOpen); openRef.current = onOpen;
@@ -96,7 +114,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const openApplications = useCallback((item: MarketplaceItem) => applicationsRef.current?.(item), []);
   const [filterOpen, setFilterOpen] = useState(false), [priceDraft, setPriceDraft] = useState(view.price);
   const [attentionDraft, setAttentionDraft] = useState(view.attention), [queryDraft, setQueryDraft] = useState(view.query);
-  const listRef = useRef<FlatList<MarketplaceItem>>(null);
+  const listRef = useRef<FlatList<Row>>(null);
   const criteria = JSON.stringify([view.section, view.query, view.price, view.attention]);
   const previousCriteria = useRef(criteria);
   useEffect(() => {
@@ -110,26 +128,19 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const draftCount = useMemo(() => loading || error ? null
     : marketplaceItems(items, { ...view, query: queryDraft, price: priceDraft, attention: attentionDraft }, true).length,
   [items, view, queryDraft, priceDraft, attentionDraft, loading, error]);
-  // The number on "Aktivni": how many active tasks wait for my choice (Početna does not repeat it, there what waits is said once, under
-  // "Čeka te", from the server's own attention list). Paged: the server's own counts, never the number that happens to be loaded
-  // (unknown until it answered); otherwise the counts of the whole list this build holds, and none while that is read or failed to
-  // read, so no stale number stands over an error. The counts of the other two sets are spoken, never drawn (`ownTaskTabs`).
-  const paged = !!props.paging, pagedCounts = props.paging?.counts ?? null;
-  const counts = useMemo<OwnedTaskCounts | null>(() => paged ? pagedCounts : loading || error ? null : ownedTaskCounts(items),
-    [items, paged, pagedCounts, loading, error]);
-  const sections = useMemo(() => ownTaskTabs(counts), [counts]);
-  // What the person chose to narrow the list with. A tab is not a refinement: an empty Nacrti or Istorija says what that tab is, and has
+  // The counts of Nacrti and Istorija (and what the whole list holds): the server's own for a paged build (unknown until it answered), otherwise the counts
+  // of the whole list this build holds, and none while that is read or failed to read, so no stale number stands over an error.
+  const counts = useMemo<OwnedTaskCounts | null>(() => paging ? paging.counts : loading || error ? null : ownedTaskCounts(items),
+    [items, paging, loading, error]);
+  const grouped = view.section === 'active';
+  // Every number in a group's name is exact: a whole list counts itself, a paged read only once it has read to its end (a refined set is read to its end by the route).
+  const exact = !paging || (!paging.hasMore && !paging.loadingMore);
+  const hasOthers = !!counts && (counts.drafts > 0 || counts.history > 0);
+  // What the person chose to narrow the list with. A set is not a refinement: an empty Nacrti or Istorija says what that set is, and has
   // nothing to "clear" (plan 2.2). Search is one of the filters now, so it counts as one.
   const filterActive = !!view.query || view.price !== 'all' || view.attention;
-  const hasFilter = filterActive;
   const change = (patch: Partial<MarketplaceView>) => props.onView({ ...view, ...patch });
   const openFilters = () => { Keyboard.dismiss(); setQueryDraft(view.query); setPriceDraft(view.price); setAttentionDraft(view.attention); setFilterOpen(true); };
-  const countNote = view.section === 'all' ? ' · svi zadaci' : '';
-  // Paged: an exact number only when it is the server's count of an unrefined set, or the refined set was read to its end; otherwise none (never a partial number).
-  const refined = !!view.query.trim() || view.price !== 'all', paging = props.paging;
-  const count = loading || error ? null : !paging ? visible.length
-    : refined ? (paging.hasMore || paging.loadingMore ? null : visible.length)
-      : paging.counts ? setCount(paging.counts, view) : paging.hasMore ? null : visible.length;
   // A refinement of a set that is still being read has no answer yet, so it says it is reading instead of saying there is nothing.
   const reading = loading || (!!paging && visible.length === 0 && !paging.moreError && (paging.hasMore || paging.loadingMore));
   const filterLabel = filterActive ? 'Filteri, aktivni' : 'Filteri';
@@ -140,23 +151,85 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // `useAppear` returns a new object each render over the same two refs; read it through a ref so
   // `renderItem` keeps its identity and the list does not re-render every cell on every render.
   const appearRef = useRef(appear); appearRef.current = appear;
-  const renderItem = useCallback(({ item, index }: ListRenderItemInfo<MarketplaceItem>) =>
-    <MarketplaceRow item={item} index={index} animate={appearRef.current.isNew(keyOf(item))} onOpen={openItem}
-      onApplications={hasApplications ? openApplications : undefined} />, [openItem, hasApplications, openApplications]);
+
+  const rows = useMemo<Row[]>(() => {
+    if (reading || error) return [];
+    const out: Row[] = [];
+    if (grouped) {
+      let n = 0;
+      for (const group of ownTaskPhases(visible.filter(isOwnedNeed))) {
+        if (!group.items.length) continue;
+        const count = group.items.length;
+        out.push({ id: `head:${group.key}`, kind: 'head', first: out.length === 0,
+          title: exact ? `${group.title} · ${count}` : group.title, spoken: exact ? `${group.title}, ${zadataka(count)}` : group.title });
+        group.items.forEach((item, at) => out.push({ id: `card:${item.id}`, kind: 'card', item, index: n++, first: at === 0, sectionSays: true }));
+      }
+      // Nothing is active, but there are drafts or finished tasks: say so once, and the two rows are right under it.
+      if (!out.length && hasOthers && !filterActive) out.push({ id: 'none', kind: 'none' });
+    } else {
+      visible.filter(isOwnedNeed).forEach((item, at) => out.push({ id: `card:${item.id}`, kind: 'card', item, index: at, first: at === 0, sectionSays: view.section === 'drafts' }));
+    }
+    // The next page is offered right after the last task, before the two rows of the other sets.
+    if (paging && out.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError)) {
+      out.push({ id: 'foot', kind: 'foot', state: paging.moreError ? 'error' : paging.loadingMore ? 'loading' : 'more' });
+    }
+    // The two rows stay reachable while a filter is on (they say only their names then: a count of the whole list is not what the set will show);
+    // a filter that came back empty draws the empty answer and its way back instead, never rows of other sets under it.
+    if (grouped && counts && hasOthers && (!filterActive || out.length > 0)) {
+      out.push({ id: 'sets', kind: 'sets', drafts: counts.drafts, history: counts.history, counted: !filterActive });
+    }
+    return out;
+  }, [reading, error, grouped, visible, exact, hasOthers, filterActive, counts, paging, view.section]);
+
+  // What the rows call is the route's latest, read at press time, so `renderItem` never changes and the cards under it stay as they are.
+  const show = (section: MarketplaceView['section']) => change({ section, selectedId: null });
+  const latest = useRef({ onNew: props.onNew, onLoadMore: paging?.onLoadMore, show });
+  latest.current = { onNew: props.onNew, onLoadMore: paging?.onLoadMore, show };
+  const renderItem = useCallback(({ item: row }: ListRenderItemInfo<Row>) => {
+    switch (row.kind) {
+      case 'head': return <T variant="heading" accessibilityRole="header" accessibilityLabel={row.spoken} style={row.first ? s.head : s.headAfter}>{row.title}</T>;
+      case 'card': return <View style={row.first ? undefined : s.cardAfter}>
+        <MarketplaceRow item={row.item} index={row.index} animate={appearRef.current.isNew(keyOf(row.item))} sectionSays={row.sectionSays} onOpen={openItem}
+          onApplications={hasApplications ? openApplications : undefined} />
+      </View>;
+      case 'none': return <StateView compact art="tasks" title="Nema aktivnih zadataka" body="Nacrti i završeni zadaci su ispod."
+        primary={latest.current.onNew ? { label: 'Objavi novi zadatak', onPress: latest.current.onNew } : undefined} />;
+      case 'foot': return <View style={s.foot}>
+        {row.state === 'error' ? <>
+          <T variant="note" tone="muted">Ne možemo da učitamo ostale zadatke.</T>
+          <V2Action label="Pokušaj ponovo" kind="quiet" onPress={() => latest.current.onLoadMore?.()} />
+        </> : row.state === 'loading' ? <T variant="note" tone="muted">Učitavamo još zadataka…</T>
+          : <V2Action label="Prikaži još" kind="quiet" onPress={() => latest.current.onLoadMore?.()} />}
+      </View>;
+      case 'sets': {
+        const drafts = plural(row.drafts, 'nacrt', 'nacrta', 'nacrta'), history = zadataka(row.history);
+        return <View style={s.sets}>
+          {row.drafts > 0 ? <ListRow leading={<FactArt kind="tasks" size={32} />} title="Nacrti" value={row.counted ? drafts : undefined}
+            onPress={() => latest.current.show('drafts')} last={row.history === 0} accessibilityLabel={row.counted ? `Nacrti, ${drafts}` : 'Nacrti'}
+            accessibilityHint="Otvara nacrte." /> : null}
+          {row.history > 0 ? <ListRow leading={<FactArt kind="document" size={32} />} title="Istorija" value={row.counted ? history : undefined}
+            onPress={() => latest.current.show('history')} last accessibilityLabel={row.counted ? `Istorija, ${history}` : 'Istorija'}
+            accessibilityHint="Otvara završene, otkazane i istekle zadatke." /> : null}
+        </View>;
+      }
+    }
+  }, [openItem, hasApplications, openApplications]);
 
   // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
   const empty = <View style={s.empty}>
     {reading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'plain' }} />
       : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
-        : hasFilter ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili filtere."
+        : filterActive ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili filtere."
           primary={{ label: 'Poništi filtere', onPress: () => props.onView(initialMarketplaceView()) }} />
           : view.section === 'drafts' ? <StateView art="tasks" title="Nemaš nacrt" body="Nacrt pregledaš pre objave." />
           : view.section === 'history' ? <StateView art="tasks" title="Istorija je prazna" body="Ovde su završeni, otkazani i istekli zadaci." />
-          : <StateView art="tasks" title={items.length ? 'Nema aktivnih zadataka' : 'Još nemaš zadatak'}
-            body={items.length ? 'Nacrti i završeni zadaci su pod Nacrti i Istorija.' : 'Reci šta ti treba. Nacrt pregledaš pre objave.'}
-            primary={props.onNew ? { label: items.length ? 'Objavi novi zadatak' : 'Objavi prvi zadatak', onPress: props.onNew } : undefined}
-            quiet={items.length ? { label: 'Prikaži sve moje zadatke', onPress: () => change({ section: 'all' }) } : undefined} />}
+          : items.length ? <StateView art="tasks" title="Nema aktivnih zadataka"
+            primary={props.onNew ? { label: 'Objavi novi zadatak', onPress: props.onNew } : undefined} />
+            // The first encounter: the paper with the pin and the pencil, the object of the door that fulfils it.
+            : <StateView hero art="publish" title="Još nemaš zadatak" body="Reci šta ti treba. Nacrt pregledaš pre objave."
+              primary={props.onNew ? { label: 'Objavi prvi zadatak', onPress: props.onNew } : undefined}
+              quiet={props.onExplore ? { label: 'Pogledaj zadatke', onPress: props.onExplore } : undefined} />}
   </View>;
 
   // The one control of the bar. A control nobody can guess from a drawing says its word beside it (the sliders icon alone says nothing).
@@ -164,35 +237,25 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // that came back empty keeps it, because it is how the filter is cleared).
   const canFilter = filterActive || (!loading && !error && items.length > 0);
   const control = canFilter ? <HeaderIconButton label={filterLabel} glyph="filters" active={filterActive} caption="Filteri" onPress={openFilters} /> : undefined;
+  // A set that was opened from the two rows says its name in the bar and takes the arrow back to the groups; the control stays at its end.
   // A screen that was pushed has the arrow; a route that hands its own root header keeps it, and the control stands under it.
-  const bar = props.onBack ? <ProductHeader title="Moji zadaci" back={props.onBack} right={control} />
-    : props.header ? <>{props.header}{control ? <View style={s.controlRow}>{control}</View> : null}</>
-      : <ScreenHeader title="Moji zadaci" onProfile={props.onProfile} right={control} />;
+  const sub = view.section !== 'active';
+  const subTitle = view.section === 'drafts' ? 'Nacrti' : view.section === 'history' ? 'Istorija' : 'Svi zadaci';
+  const bar = sub ? <ProductHeader title={subTitle} back={() => show('active')} right={control} />
+    : props.onBack ? <ProductHeader title="Moji zadaci" back={props.onBack} right={control} />
+      : props.header ? <>{props.header}{control ? <View style={s.controlRow}>{control}</View> : null}</>
+        : <ScreenHeader title="Moji zadaci" onProfile={props.onProfile} right={control} />;
 
   return <SafeAreaView edges={props.onBack ? ['top', 'bottom'] : ['top']} style={s.screen}>
     <View aria-hidden={filterOpen} accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {bar}
-      {/* ONE control row under the bar: the three sets, equal widths, nothing beside them. A number is drawn only on "Aktivni", and
-          only for the tasks that wait for my choice. */}
-      <View testID="own-tasks-tabs" style={s.tabs}>
-        <Segmented options={sections} value={view.section} onChange={section => change({ section, selectedId: null })} />
-      </View>
-      <FlatList<MarketplaceItem> ref={listRef} data={loading || error ? [] : visible} keyExtractor={keyOf} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
+      <FlatList<Row> ref={listRef} data={loading || error ? [] : rows} keyExtractor={row => row.id} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         // Six cards are more than one phone screen of this card; the window stays modest so a fast
         // scroll fills in quickly without holding the whole list mounted.
         initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
-        ItemSeparatorComponent={Separator} ListEmptyComponent={empty} renderItem={renderItem}
-        // How many tasks the set shows is the list's first line: it scrolls away with the list instead of taking a row of its own.
-        ListHeaderComponent={count ? <T testID="own-tasks-count" variant="note" tone="muted" style={s.count}>{zadataka(count)}{countNote}</T> : null}
-        onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
-        ListFooterComponent={paging && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
-          {paging.moreError ? <>
-            <T variant="note" tone="muted">Ne možemo da učitamo ostale zadatke.</T>
-            <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
-          </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još zadataka…</T>
-            : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
-        </View> : null} />
+        ListEmptyComponent={empty} renderItem={renderItem}
+        onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6} />
       {/* No floating "+" over my own tasks (owner's information architecture, 2026-09-23): it sat on the cards and
           covered a price, and creating a task lives on Početna's "Objavi zadatak". An empty list still offers it inline. */}
     </View>
@@ -225,14 +288,16 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  // The control row under the bar: the screen's edge each side, and 8 under the bar. Nothing but the three sets is in it.
-  tabs: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   // A route that keeps its own root header gets the one control on a line of its own, at the end.
   controlRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: layout.gutter },
-  // The list: the edge, 12 under the control row, 32 under the last card; a card from the next 12 below it.
-  list: { paddingHorizontal: layout.gutter, paddingTop: sys.space.md, paddingBottom: layout.zone, flexGrow: 1 },
-  separator: { height: layout.group },
-  count: { paddingBottom: sys.space.sm },
+  // The list: the edge, 8 under the bar (the screen's own), 32 under the last thing. What is in it spaces itself (a group's name, a card, the rows of the finished).
+  list: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.zone, flexGrow: 1 },
+  // A group's name is 12 above its first card; the next group's name stands 24 below the last card of the one before.
+  head: { paddingBottom: layout.group },
+  headAfter: { paddingTop: layout.section, paddingBottom: layout.group },
+  cardAfter: { paddingTop: layout.group },
+  // The two rows of Nacrti and Istorija: 24 under the last card, one group of rows.
+  sets: { paddingTop: layout.section },
   foot: { paddingTop: sys.space.base, alignItems: 'center', gap: sys.space.sm },
   empty: { paddingVertical: sys.space.sm, flex: 1 },
   // The sheet: the search field, the way of pricing, the checkbox; a section from the next 24 below it.

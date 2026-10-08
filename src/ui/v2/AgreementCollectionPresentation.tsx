@@ -132,8 +132,7 @@ export function AgreementCollectionPresentation(props: Props) {
             : narrowedEmpty ? (historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Nema završenih Dogovora') : 'Još nema završenih Dogovora'}
           primary={narrowedEmpty ? { label: 'Prikaži sve', onPress: () => setHistoryFilter('all') }
             : { label: target === 'history' ? 'Pogledaj istoriju' : 'Pogledaj aktivne Dogovore', onPress: showOther }} />
-          : <StateView art="agreements" title="Još nemaš Dogovor"
-            body="Kada izabereš nekoga za svoj zadatak, ili kada tvoja prijava bude izabrana, Dogovor se pojavljuje ovde."
+          : <StateView hero art="agreements" title="Još nemaš Dogovor" body="Dogovor nastaje kad izabereš prijavu ili te izaberu."
             primary={first} quiet={second} />}
   </View>;
   // Aktivni: the one filter. Istorija: "Sve · Završeni · Otkazani". A chip is a choice of what is shown, not a command.
