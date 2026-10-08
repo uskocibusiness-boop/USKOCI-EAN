@@ -31,3 +31,8 @@ Potom: „upali soatii  emurator i telfo rksiti ga iams dva proifal pekrvaj sve 
 ### Dopuna posle Airbnb slika 14395–14424
 
 Vlasnik precizira da reference prvenstveno određuju nivo kvaliteta stila, jasnoće, boja, oštrog modernog prikaza i lakoće korišćenja cele aplikacije. Agent samostalno osmišljava poboljšanja po svrsi svakog ekrana. Za Discovery izričito traži kontinuitet: podizanje liste prelazi u skrol, vraćanje do vrha u spuštanje liste; tabovi ostaju na HALF/FULL, a skrivaju se na spuštenoj listi. Konkretna primena i granice dokaza: postojeći NACRT_PROIZVODA_20261008.md §16.8. To nije odluka da se kopiraju Airbnb asseti, pet tabova, poslovna pravila ili privatnosni prekidači.
+
+
+### Oznaka izvora mape — ostaje dole levo
+
+Najnovije pojašnjenje vlasnika: mali natpis izvora ostaje dole levo na samoj mapi. Ne podiže se uz listu niti izabranu karticu samo da bi ostao vidljiv; te površine smeju da ga prekriju. Ovo prevazilazi ranije pravilo da attribution prati sheet. Izvori/linkovi ostaju; nije promena kamere ili ponašanja dugmeta Moja lokacija.

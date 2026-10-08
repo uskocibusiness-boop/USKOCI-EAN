@@ -78,8 +78,7 @@ function MapSketch(props: DiscoveryMapProps) {
     </View>
     {props.locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikaži više mape" accessibilityHint="Spušta listu do pola."
       haptic="none" scaleTo={1} onPress={() => props.onStripPress?.()} style={StyleSheet.absoluteFill} /> : null}
-    <MapCredits sheetTop={props.sheetTop} coverBottom={props.coverBottom ?? 0} height={frame?.height ?? 0}
-      minTop={props.controlsMinTop ?? (props.toolsBottom ?? 0) + sys.space.md} locate={!!props.locateShown} reduced={reduced}
+    <MapCredits bottom={props.creditsBottom} covered={props.creditsCovered || props.locked} locate={!!props.locateShown}
       onPress={() => setSourcesOpen(true)} />
     {sourcesOpen ? <MapSources reduced={reduced} onClose={() => setSourcesOpen(false)} /> : null}
   </View>;

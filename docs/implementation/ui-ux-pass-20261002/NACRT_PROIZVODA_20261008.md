@@ -1485,3 +1485,8 @@ Vlasnik je naknadno odobrio samostalnu implementaciju i pregled na oba uređaja;
 **Utvrđen source sukob:** `DiscoveryPresentation` je davao `onRefresh` svom `BottomSheetFlatList`. Gorhom5.2.14 tada na FULL predaje content drag osvežavanju i ne spušta listu. Uklanja se samo taj konflikt: ručno osvežavanje premešteno u postojeći Još meni, recovery ostaje. Ne menja se biblioteka ni zaštita vraćanja scroll pozicije. Provera je FAIL-pre/PASS-posle na binding-u, a pravi neprekinuti gest mora posebno da se vidi na tačnom APK-u.
 
 **Native izlaz:** 1.15font na istom uređaju; HALF→FULL→skrol u jednom potezu; duboka lista→offset0→spuštanje; kratka/prazna lista; detalj→Back čuva scroll; poslednja kartica dostupna; lokacijska/Za mene poruka vidljiva i u FULL; prekid animacije/Back/reduced motion; zoom-in/out i gusta grupa pinova. Svaki dokaz vezati za APK/source. Screenshots vlasnikovog Airbnb-a nisu potvrda USKOČI implementacije.
+
+
+### 16.9 Mirna oznaka izvora mape
+
+Vlasnikova dopuna posle §16.8: attribution je mala jedna linija dole levo, fiksirana uz donji mapin prostor iznad osnovne spuštene liste. HALF/FULL i pin kartica ga prirodno prekriju; oznaka ne putuje nagore, nema svoje animacije ili stalnog plutajućeg panela. Visina početnog spusta rezerviše mesto samo dok je mapa otvorena; trenutna visina sheet-a i visina kartice ne određuju položaj oznake. Prekrivena kontrola isključena je iz dodira i accessibility fokusa. Izvori ostaju dostupni po vraćanju na mapu. Moja lokacija, clear-band kamere i pinovi imaju zasebno postojeće ponašanje. Ovo je izričit izuzetak ranijoj zajedničkoj vožnji svih mapinih kontrola.

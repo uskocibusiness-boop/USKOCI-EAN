@@ -1310,7 +1310,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           controlsMinTop={toolsBottom + GAP} locked={mapCovered} locateShown={canLocate}
           onStripPress={() => { userIntent?.(); setSheetIndex(SNAP.half); }}
           cameraLayoutReady={bodyHeight > 0 && toolsMeasured}
-          coverBottom={coverBottom}
+          coverBottom={coverBottom} creditsBottom={collapsedSnap} creditsCovered={cardShown || sheetIndex > SNAP.peek}
           focusBottom={cardBottom + GAP + Math.min(360, Math.round(windowHeight / 2))} />
           : <View style={s.ground} />}
       </View>

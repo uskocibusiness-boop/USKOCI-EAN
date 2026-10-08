@@ -554,8 +554,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     </View>
     {locked ? <Press testID="discovery-map-strip" accessibilityRole="button" accessibilityLabel="Prikaži više mape" accessibilityHint="Spušta listu do pola."
       haptic="select" scaleTo={1} onPress={() => { if (owns()) props.onStripPress?.(); }} style={StyleSheet.absoluteFill} /> : null}
-    <MapCredits sheetTop={sheetTop} coverBottom={props.coverBottom ?? 0} height={height} minTop={props.controlsMinTop ?? (props.toolsBottom ?? 0) + GAP}
-      locate={!!props.locateShown} reduced={reduced} onPress={() => { if (owns()) setSourcesOpen(true); }} />
+    <MapCredits bottom={props.creditsBottom} covered={props.creditsCovered || locked}
+      locate={!!props.locateShown} onPress={() => { if (owns()) setSourcesOpen(true); }} />
     {sourcesOpen ? <MapSources reduced={reduced} onClose={() => setSourcesOpen(false)} /> : null}
     {status !== 'ready' ? <View style={[s.feedback, { paddingTop: (props.toolsBottom ?? 0) + 24, paddingBottom: (props.focusBottom ?? 0) + 24 }]}>
       {status === 'loading' ? <><ActivityIndicator color={sys.color.green} /><T variant="body">Učitavamo mapu…</T></>

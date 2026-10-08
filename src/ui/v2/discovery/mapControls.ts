@@ -4,7 +4,7 @@ import { sys } from '../../system/tokens';
 import { controlsFade, controlsTop, sheetEdge } from './mapClearBand';
 
 /**
- * How the map's furniture rides the list sheet (UX plan section P). The row (the map's sources on the left, "moja lokacija" on the right)
+ * How the map's furniture rides the list sheet (UX plan section P). The location control ("moja lokacija")
  * stands directly above the sheet's top edge and goes up and down with it, on the UI thread: the sheet's position is a shared value, the
  * row's place is a pure function of it (`controlsTop`), and React renders nothing while the sheet moves. A pin's card that lies over the
  * map's bottom lifts the row above the card instead (`cover`). When the list is as high as it goes, no map is left above it and the row
@@ -17,7 +17,7 @@ import { controlsFade, controlsTop, sheetEdge } from './mapClearBand';
 
 /**
  * How much of the map's bottom a pin's card covers, moving to a new value without a bounce. `coverBottom` is 0 when there is no card.
- * Both screens that draw a control read it, so the sources (in the map) and "moja lokacija" (beside the list) move as one row.
+ * The location control follows it; map credits stay fixed behind the card/list.
  */
 export function useCoverValue(coverBottom: number, reduced: boolean): SharedValue<number> {
   const cover = useSharedValue(Math.max(0, coverBottom));

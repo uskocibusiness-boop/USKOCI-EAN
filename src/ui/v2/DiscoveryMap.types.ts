@@ -63,10 +63,14 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   /** The chosen place, drawn as the green pill that says how many tasks it holds. */
   selectedPlace?: string | null;
   /**
-   * The list sheet's top edge, in pixels from the map's top. The row of the map's furniture (its sources) stands directly above it and
-   * moves with it on the UI thread; without a sheet the row stands above the map's bottom edge.
+   * The list sheet's top edge, in pixels from the map's top. Map visibility and camera clear-band calculations follow it.
+   * Credits are fixed to the lower map and do not follow this position.
    */
   sheetTop?: SharedValue<number>;
+  /** Fixed bottom-left credit clearance; never the animated sheet position or pin-card height. */
+  creditsBottom?: number;
+  /** The raised list/card covers the credit control, so it must not receive touch or accessibility focus. */
+  creditsCovered?: boolean;
   /**
    * The highest the row of furniture may stand, in pixels from the map's top: one gap under the tools (the search pill and its capsules).
    * The row reaches it when the sheet is as high as it goes, and fades there: no map is left above the list. Without it, one gap under

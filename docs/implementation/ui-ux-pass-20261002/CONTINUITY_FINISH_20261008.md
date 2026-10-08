@@ -52,3 +52,16 @@ Tačan emulator/phone APK ovog paketa → instalacija-r uz isti potpis i podatke
 **SLEDEĆE:** uključiti ove uske vizuelne korekcije u sledeći objedinjeni APK i pregledati iste deep-screen scene pri1.15 fontu. Fizičke i sintetičke probe ostaju odvojeno označene.
 
 Nezavisni SOURCE pregled ove dopune pronašao je gramatičko slaganje fallback-a sa novim nazivom: sada „Trenutno nedostupno“ / „Još nije podešeno“. Ponovna provera route + postojećeg formattera39/39 PASS (preklapa se sa gore navedenih93; ne sabirati kao nove testove). TypeScript PASS.
+
+
+## Dopuna — fiksna oznaka izvora mape (09.10)
+
+**URADIO / SOURCE:** prema poslednjoj odluci vlasnika, mali natpis izvora ostaje dole levo uz spuštenu listu. Nema animiranog podizanja za listom ili karticom pina; te površine ga prirodno prekrivaju. Prekrivena kontrola uklanja se iz dodira i navigacije čitača ekrana. Isti ugovor primenjen je u native i web komponenti. Izvori i linkovi sačuvani, kamera i Moja lokacija ne menjaju ponašanje.
+
+**DOKAZAO / TEST:** discovery-map + discovery-presentation, 2 grupe / 266 testova PASS; TypeScript PASS nakon usaglašavanja web poziva. Nezavisni read-only pregled pronašao je stari web potpis, ispravljen pre završne provere. Granica: stanje dostupnosti kontrole tokom samog draga prati poslednji potvrđeni sheet indeks; konačni HALF/FULL i prikaz kartice ga isključuju.
+
+**DOKAZAO / APK:** raniji buildovi37846681465 /37846682483 završeni uspešno. Preuzeti APK-ovi source6dbd38e0: emulator SHA256 ad65bee27d0876132e45f8975a881bcf03d33373ee886ecf5318754991171d69; telefon SHA256 6b610fe29214443a496f93368179497e181ae062d3f60d53f54680c4af498d2d. Potpis direktno pročitan iz oba trenutno instalirana preview APK-a i novih artefakata: SHA256 fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c. Nema razlike potpisa; raniji kratki dumpsys identifikator nije SHA256 sertifikata. Provera sama ne znači instalaciju.
+
+**NIJE DOKAZANO:** poslednja kompozicija oznake i dubokih redova na native APK-u. Raniji6dbd artefakti ne sadrže ove dopune ni gesture fix. Dce7 buildovi sadrže samo raniji gesture fix. Nema nove serverske primene, dostave push-a ili dokaza spremnosti za prodavnicu.
+
+**SLEDEĆE:** objedinjeni APK sa ovom izmenom i profilom/privatnošću; proveriti COMPACT/HALF/FULL i pin karticu, zatim nativni gest i povratak. Instalacija isključivo preko postojećeg paketa uz očuvane podatke.
