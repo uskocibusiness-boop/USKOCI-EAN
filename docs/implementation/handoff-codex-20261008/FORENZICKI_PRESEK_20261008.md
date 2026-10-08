@@ -192,3 +192,8 @@ Vidi `OCENA_KVALITETA_20261008.md`: ocena po oblastima (klijent 3,5; server 4 be
 ## 12. Plan napred
 
 Vidi `PLAN_NAPRED_20261008.md`: četiri koraka (dokaz na telefonu → čišćenje i učvršćivanje → povezivanje i isključeni tokovi → izlazak), merilo „gotovo“ za svaki, vlasnikove odluke koje to traži, ko šta radi.
+
+## 13. Treći prolaz (isto veče, vlasnikovo odobrenje čišćenja)
+
+- **RETIRE-V1 pripremljen** (`supabase/candidates/retire-v1-20261008/`, komit 92f2e094): od 11 funkcija koje aplikacija ne zove, 4 smeju odmah (nema pozivalaca, okidača, crona ni mesta u sertifikatu — suvi prolaz čuvara na DEV-u čist), 7 ostaju jer ih zovu druge funkcije ili su u sertifikatu. NIJE dokazano ni primenjeno: Codex prvo generiše `revert.sql` iz DEV-a i dokaz na jednokratnoj bazi, pa primena po stalnom nalogu.
+- **`.gitattributes`: LF za sve** (indeks već LF, nijedan fajl se ne menja; upozorenja prestaju).
