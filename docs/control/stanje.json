@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T20:31:02Z",
+  "osvezeno": "2026-10-08T20:52:27Z",
   "grana": "integration/spoj-20261006",
-  "head": "e6a9713c",
-  "head_poruka": "fix(docs): isolate screen preview from browser globals [skip ci]",
+  "head": "19d0cea5",
+  "head_poruka": "docs(design): connect discovery states and clarify personal work [skip ci]",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2063,6 +2063,49 @@
      "HTML fixture interactions are not server acceptance"
     ],
     "acceptance_lights_changed": false
+   },
+   "phone_review_20261008_evening": {
+    "state": "BOUNDED_PHONE_REVIEW / DESIGN_PLAN_NOT_IMPLEMENTED",
+    "source_head": "19d0cea5895e1062fbf240a82ce96e6b235928b1",
+    "apk_source": "4e0ea50614dc74af9a1dee771eb8fb7e53034892",
+    "apk_sha256": "7122b1c22073af4f4b38330e22115dbf02536cef0072092502aa19fa06d2fea1",
+    "package": "rs.uskoci.preview",
+    "versionCode": 35,
+    "ci_run": 37801944334,
+    "ci_artifact": 11563501200,
+    "receipt": "docs/implementation/ui-ux-pass-20261002/PHONE_REVIEW_20261008.json",
+    "report": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#telefon-plan-20261008",
+    "private_screenshot_count": 22,
+    "findings": [
+     "HALF/FULL bottom navigation physically present",
+     "Search placeholder clipped at owner font 1.15",
+     "Profile legal-status row breaks words at owner width",
+     "Personal lists need clearer role/type/status hierarchy",
+     "Phone says not enrolled; no push sent"
+    ],
+    "dev_readonly": {
+     "at_utc": "2026-10-08T20:48:37Z",
+     "ledger": 235,
+     "closure_digest_prefix": "3a785d42",
+     "active_push_devices": 0,
+     "runtime_readiness_rows": 0,
+     "edge_enabled_secret_read": false
+    },
+    "push_followup": [
+     "Preserve already-applied MATCH-V1B; do not rebuild matching",
+     "Bound SEND and RECEIPT within a consistent deadline",
+     "Rebase/reprove single-target candidate against ledger 235 before owner approval",
+     "No automatic global enable, backlog retirement, enrollment or send"
+    ],
+    "limits": [
+     "No whole-flow phone acceptance",
+     "No FPS/latency/video measurement",
+     "No source/DEV/Edge/dependency changes",
+     "No business commands or preference saves",
+     "Private screenshots stay outside Git/public dashboard"
+    ],
+    "acceptance_lights_changed": false,
+    "hosted_dashboard_republished": false
    }
   }
  },

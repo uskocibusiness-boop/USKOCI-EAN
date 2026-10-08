@@ -1,3 +1,5 @@
+> **Dopuna posle read-only pregleda 8.10. uveče:** PUSH-KAPACITET recept nije izvršen. Prvo uskladiti postojeći25s deadline sa SEND budžetom i rešiti RECEIPT kapacitet;1receipt/tick ne prati predloženih40send/tick. Single-target kandidat je istorijski vezan zaledger225 i traži novi preflight na235. Ne povlačiti preostaliCREATED i ne uključivati globalno slanje bez posebne vlasnikove reči. [Aktuelan dokaz i bezbedan redosled](../ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#telefon-plan-20261008). Tekst ispod ostaje zapis predaje, ne novo odobrenje.
+
 # Lista za Codex — šta TI radiš (vlasnik, 8. 10. uveče: „reši sve što možeš sad, ali navedi Codexu šta treba on“)
 
 Sve što je Claude mogao bez telefona i bez tvoje reči je URAĐENO i komitovano (spisak u `FORENZICKI_PRESEK_20261008.md` §9–13). Ispod je samo ono što ostaje — redom. Pored svake stavke stoji merilo „gotovo“ i gde je materijal. Pravila: `AGENTS.md`; nikad tvrdnja „radi na telefonu“ bez slike sa telefona; dokazani serverski paket smeš sam (stojeći nalog), ostalo iz liste odluka = vlasnikova reč.

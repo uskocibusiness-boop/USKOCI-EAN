@@ -1,0 +1,135 @@
+{
+  "kind": "BOUNDED_PHYSICAL_UI_REVIEW_NOT_WHOLE_FLOW_ACCEPTANCE",
+  "date": "2026-10-08",
+  "source_head_reviewed": "19d0cea5895e1062fbf240a82ce96e6b235928b1",
+  "apk": {
+    "package": "rs.uskoci.preview",
+    "versionCode": 35,
+    "apk_source_claim": "VERIFIED: installed SHA-256 equals downloaded GitHub Actions APK",
+    "base_apk_sha256": "7122b1c22073af4f4b38330e22115dbf02536cef0072092502aa19fa06d2fea1",
+    "device_model": "VKP-NX9",
+    "android": "16",
+    "time": "2026-10-08 22:38:00",
+    "screen": [
+      1264,
+      2728
+    ],
+    "font_scale": 1.15,
+    "source_commit": "4e0ea50614dc74af9a1dee771eb8fb7e53034892",
+    "ci_run": 37801944334,
+    "ci_artifact": 11563501200
+  },
+  "private_evidence_folder": "C:\\Users\\user\\Documents\\Codex\\uskoci-phone-review-20261008",
+  "screenshots": [
+    {
+      "file": "01-initial.png",
+      "sha256": "91c9d01d31dd479b8fead9c8e05cfbad01f0ad760828124d90dfcb8929b8e4ad"
+    },
+    {
+      "file": "02-sheet-tap.png",
+      "sha256": "68f4071e0d796d30cd0643ed6512c983070178d4ae1e3fdf7c9d74b1de5963e7"
+    },
+    {
+      "file": "03-sheet-full.png",
+      "sha256": "bad773820b4175fd1fb445d949317bc63394a26d484d47d34d2b9da442348374"
+    },
+    {
+      "file": "04-filters.png",
+      "sha256": "94fd926588173d19e34e3345276d9d975f4a414b7204db40241269538f976b7d"
+    },
+    {
+      "file": "05-filter-back.png",
+      "sha256": "74f76e97af35675da74324128a594b4bc998d8be6fce33f1831eedd50a14864d"
+    },
+    {
+      "file": "06-search.png",
+      "sha256": "d64eb3030e5d595695b1c1b44ba76a92fe995c78e861770cd9bed69202a4456b"
+    },
+    {
+      "file": "07-search-close.png",
+      "sha256": "f3bf906cc9d1bd20623a22018718180d34b5296605b002fda21763ee4efbc875"
+    },
+    {
+      "file": "08-agreements.png",
+      "sha256": "d827ad8da5c52e8637d88b86ec6c6f1c98072bea22c013b5ab324c316a027a86"
+    },
+    {
+      "file": "09-home.png",
+      "sha256": "c15775ece34808c87e64f5639d8f0f18bcdb592c3b733fba5714da2074df14ef"
+    },
+    {
+      "file": "10-own-tasks.png",
+      "sha256": "9b0818a7f7a9d352b341614b0688c8ff662794b8c66d59e88d2a9d665ffc5383"
+    },
+    {
+      "file": "11-home-return.png",
+      "sha256": "effae120cb1c5e8097be9a3327ffe3b15795b47846473887f55a31b4e11ee85e"
+    },
+    {
+      "file": "12-applications.png",
+      "sha256": "af786416aa96aee684d10706100eada6ab126001a7a283810438ec1cfe97cf3c"
+    },
+    {
+      "file": "13-home-return.png",
+      "sha256": "50dcefcaa8ef54c0bd3c6f892e896ddef1a417ab622ed19eaf515f02fe7d4df5"
+    },
+    {
+      "file": "14-profile.png",
+      "sha256": "2deee3d153a385c7c0eddbc43cbf6dc324c0717fbc73a6ff91302d018926ae0e"
+    },
+    {
+      "file": "15-push-settings.png",
+      "sha256": "86a539e56f31b929580a4836d60b700785e01377219601c102dfc8b8560d6a47"
+    },
+    {
+      "file": "16-push-lower.png",
+      "sha256": "925190e809e340f2e9c26376f35910efd0698d1ff18e862b00960742d6a7dfaa"
+    },
+    {
+      "file": "17-push-advanced.png",
+      "sha256": "935df3cb7e9726a2c540e60beb9fb63a61d6af149ad07a0ccefec613d838cd51"
+    },
+    {
+      "file": "18-profile-return.png",
+      "sha256": "1cddc4e5d694e37215241fec1be38fd63068437c870dff1814f288734be02591"
+    },
+    {
+      "file": "19-profile-lower.png",
+      "sha256": "ef5c6ce99f659f0882a93f1707378164e2ba358e51e428a86f537477ab7d52f2"
+    },
+    {
+      "file": "20-privacy.png",
+      "sha256": "e18bc02b82e4d351878a6ce70dcdef00c8941e25c16de8c3a0ba21d9f0b2790f"
+    },
+    {
+      "file": "21-profile-return.png",
+      "sha256": "699b37be89ba7607ee308119c982f2ca3843dfbb9d3d5a7a0a1eea4952a1410f"
+    },
+    {
+      "file": "22-home-end.png",
+      "sha256": "e04f957583550ebc84944be08e3057f0a176e8ff51d7f89466486298980bad32"
+    }
+  ],
+  "phone_green_changed": false,
+  "scope": [
+    "Discovery compact/half/full",
+    "Filter open/Back",
+    "Search open/close",
+    "Home and return",
+    "Agreement list",
+    "Own tasks",
+    "Applications",
+    "Profile upper/lower",
+    "Notification settings and advanced disclosure",
+    "Privacy overview"
+  ],
+  "limits": [
+    "No business commands, push enrollment or preference save",
+    "No paid AI call or location save",
+    "No message read-state validation",
+    "No pin/detail route proof in this pass",
+    "No recording/FPS/latency benchmark",
+    "No new install or app-source change"
+  ],
+  "end_state": "Home; account still signed in; no logout or clear-data commands"
+}

@@ -1,3 +1,5 @@
+> **Dopuna posle read-only pregleda 8.10. uveče:** PUSH-KAPACITET recept nije izvršen. Prvo uskladiti postojeći25s deadline sa SEND budžetom i rešiti RECEIPT kapacitet;1receipt/tick ne prati predloženih40send/tick. Single-target kandidat je istorijski vezan zaledger225 i traži novi preflight na235. Ne povlačiti preostaliCREATED i ne uključivati globalno slanje bez posebne vlasnikove reči. [Aktuelan dokaz i bezbedan redosled](../ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#telefon-plan-20261008). Tekst ispod ostaje zapis predaje, ne novo odobrenje.
+
 # Drugi prolaz uveče 8. 10. 2026 (rešeno) + recept za PUSH-KAPACITET (nije primenjeno)
 
 Dopuna `FORENZICKI_PRESEK_20261008.md`, odeljak 9. Sve ispod je komitovano i na `novi` (obe grane).
