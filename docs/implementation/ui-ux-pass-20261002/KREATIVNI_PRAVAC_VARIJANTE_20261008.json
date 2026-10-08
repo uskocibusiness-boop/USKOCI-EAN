@@ -1,0 +1,134 @@
+[
+  {
+    "grupa": "V1",
+    "ekran": "Početna (Čeka te, Raspored, Moji zadaci / Moje prijave; vrata i HOME potpis zaključani)",
+    "ruta_scene": "dizajn-var-V1",
+    "polazni_ekrani_u_kodu": ["src/ui/home/HomePresentation.tsx", "src/ui/home/HowItWorks.tsx", "src/app/(app)/index.tsx", "src/app/dizajn-pocetna.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Lice koje čeka", "polazna_tacka": "iz osobe i predmeta", "zarište": "prvi red „Čeka te“ kao jedini zapis sa licem 40, iznosom i glagolom; ostali redovi tanki; vrata netaknuta", "potez": "B1 Uskok odozgo za nov red + B4 Par (lice); narandžasta tačka samo na onome što čeka", "rizik": "jedan zapis među redovima mora ostati jedini; ne sme postati kartica u listi redova", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Danas u 14", "polazna_tacka": "iz broja", "zarište": "vreme sledećeg Dogovora kao 24/700 tabular odmah ispod vrata (kartica Rasporeda je heroj), „Čeka te“ redovi ispod", "potez": "B5 Glas broja; kalendar 32 desno, ne 56", "rizik": "kad nema termina heroj nestaje: rezerva je „Čeka te“ prvi red; bez termina ekran ne sme da izgleda prazno", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Sto se postavlja", "polazna_tacka": "iz pokreta", "zarište": "mir u stanju; prvo učitavanje i nov red igraju Uskok sa smerom; „Ništa ne čeka tvoju odluku“ je jedan red sa kvačicom 24; „Slobodan sam sada“ sa Dahom", "potez": "B1 smer (odozgo tuđe, odozdo moje) + B7 Dah", "rizik": "pokret se u laboratoriji slabo vidi: isporučiti snimak od 1,5 s; najviše 6 redova, jedna petlja", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V1",
+    "ekran": "Moji zadaci (lista) + prvi susret (prazno)",
+    "ruta_scene": "dizajn-var-V1",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/MarketplacePresentation.tsx", "src/ui/v2/OwnTaskCard.tsx", "src/app/dizajn-moji-zadaci.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Papir na stolu", "polazna_tacka": "iz predmeta", "zarište": "prazno = `publish` 144 centrirano (isti predmet kao vrata „Objavi zadatak“); lista = kartice ≤ 200 grupisane po fazi (Čeka tvoj izbor · Objavljeno · Dogovoreno)", "potez": "B6 Pozornica koja se rimuje", "rizik": "grupe po fazi + tabovi mogu udvostručiti podelu: ili grupe ili tabovi", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Dva broja", "polazna_tacka": "iz broja", "zarište": "kartica vodi brojevima „Prijave 3 · Dogovoreno 0 od 2“ 20/700, naslov 16 ispod, činjenice jedan red; prazno = jedna velika rečenica", "potez": "B5 Glas broja", "rizik": "„0 od 2“ se ne sme sudariti sa „0/2 mesta“ javne kartice; reči moraju biti različite", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Noga koja uskače", "polazna_tacka": "iz pokreta", "zarište": "ono što čeka tebe stiže prvo i odozgo; narandžasta noga je jedina podela; promena stanja čipa u mestu; prazno kroz Arrive", "potez": "B1 smer + B3 pečat kad zadatak postane „Objavljen“ dok gledaš", "rizik": "nikad animirati reč stanja; samo kontejner", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V1",
+    "ekran": "Prazna stanja kao porodica (Moji zadaci, Moje prijave, Dogovori, Poruke, Obaveštenja, Zadaci bez rezultata) + greška i bez veze",
+    "ruta_scene": "dizajn-var-V1",
+    "polazni_ekrani_u_kodu": ["src/ui/system/StateView.tsx", "src/ui/system/StateGallery.tsx", "src/ui/system/stateRules.ts", "src/app/dizajn-sistem.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Predmet vrata", "polazna_tacka": "iz predmeta", "zarište": "jedan predmet 144 na ≈ 38 % visine, isti kao vrata ili red koji stanje ispunjava (publish, offers, agreements, chat, bell, map); 96 za filtrirano i grešku", "potez": "B6 rima", "rizik": "šest ekrana sa istim kalupom: razlikuju se predmet, rečenica i radnja; proveriti da nijedan predmet ne stoji 3× na ekranu", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Jedna rečenica", "polazna_tacka": "iz reči", "zarište": "naslov 32/700 („Još nemaš Dogovor“) je žarište, predmet 48 pored njega, rečenica koja uči, jedna zelena", "potez": "B5 glas slova (display samo ovde)", "rizik": "display 32 je rezervisan za trenutke: ako pobedi, pravilo se menja", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Scena koja stiže", "polazna_tacka": "iz pokreta", "zarište": "predmet 120 kroz Arrive jednom, rečenica koja uči u 2. licu, jedna zelena + jedna tiha; greška i bez veze miruju sivo bez Arrive", "potez": "B6 + B1", "rizik": "Arrive 800 ms ne sme da kasni iza dugmeta: dugme je aktivno od prvog kadra", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V2",
+    "ekran": "Kartica i lista Zadataka (+ peek na mapi; pin i mapa se ne diraju)",
+    "ruta_scene": "dizajn-var-V2",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/TaskCard.tsx", "src/ui/v2/TaskFace.tsx", "src/ui/v2/discovery/TaskRecordBody.tsx", "src/ui/v2/discovery/DiscoveryPeek.tsx", "src/ui/v2/discovery/DiscoveryListSheet.tsx", "src/app/dizajn-zadaci.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Etiketa", "polazna_tacka": "iz predmeta", "zarište": "iznos gore desno u naslovnom redu; kad cene nema, etiketa `offers` 28 + „Prima ponude“; dve činjenice 2.5D 28 (mesto, vreme); lice 40 + ime + zvezdica 16; jedan red razloga iz podataka", "potez": "B5 prazna etiketa + B4 lice", "rizik": "≤ 200 dp pri 1,15; razlog samo merljiv („Imaš kombi“ iz profila), nikad „Najbolji“", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Cena vodi", "polazna_tacka": "iz broja", "zarište": "iznos 20/700 prvi red, naslov 16 ispod, činjenice kao jedan tekstualni red „Liman · 12. okt 10:00“ bez ikona, lice 32 desno; ≈ 150 dp", "potez": "B5 glas broja", "rizik": "bez ikona se gubi 2.5D koji vlasnik traži: zadržati jednu nalepnicu 28 za mesto", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Osoba govori", "polazna_tacka": "iz osobe i pokreta", "zarište": "lice 48 i ime prvi red („Marija traži pomoć“), naslov zadatka kao njena rečenica u navodnicima, iznos desno; nova kartica uskače odozgo", "potez": "B4 + B1 smer", "rizik": "lice u svakoj kartici znači čitanje fotografija po redu: u listi inicijali, fotografija tek u detalju", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V2",
+    "ekran": "Detalj zadatka",
+    "ruta_scene": "dizajn-var-V2",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/PublicNeedPresentation.tsx", "src/ui/v2/detail/TaskDecision.tsx", "src/ui/product/ProductDetails.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Objavio kao kartica poverenja", "polazna_tacka": "iz osobe", "zarište": "iznos 24/700 pod naslovom, tri činjenice 2.5D, „Objavio“ kao jedini zapis sa senkom: lice 56 + „4,7 · 3 ocene“ + „dolazi kako je dogovoreno“ kad server da; podnožje iznos + termin levo, zelena radnja desno", "potez": "B4 + B5", "rizik": "samo stvarni brojevi; ocena ispod 3 ocene = „Nova ocena“", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Traka činjenica", "polazna_tacka": "iz broja", "zarište": "ispod naslova red od 4 ćelije (UKUPNO · TERMIN · LJUDI · MESTO: oznaka 12/600 + vrednost 700), bez ikona; ostalo odeljci", "potez": "B5", "rizik": "oznaka 12 je naš minimum; na 1,3 ćelije idu u dva reda; traka nije nov primitiv nego lokalni View", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Prvo osoba, pa odgovor", "polazna_tacka": "iz pokreta i osobe", "zarište": "ekran počinje rečenicom osobe sa licem („Marija: Ormar je rasklopljen…“, prve dve rečenice opisa), iznos i termin odmah ispod kao odgovor; činjenice i „Važno“ posle; podnožje uskače jednom kad stigne puno čitanje", "potez": "B4 + B1", "rizik": "opis može biti dug: seći na 2 rečenice + „Ceo opis“; ne izmišljati rečenicu kad opisa nema", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V2",
+    "ekran": "Pretraga (panel Gde / Kada / Šta / Cena / Ljudi / Način)",
+    "ruta_scene": "dizajn-var-V2",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/discovery/DiscoverySearchPanel.tsx", "src/ui/v2/discovery/SearchSheet.tsx", "src/ui/v2/discovery/SearchSection.tsx", "src/ui/v2/discovery/SearchParts.tsx", "src/ui/v2/discovery/DiscoverySearchBar.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Gradovi brojem", "polazna_tacka": "iz broja", "zarište": "redovi gradova bez pina: broj zadataka 16/700 tabular je vodeći element, ime grada pored; pin 2.5D 28 samo uz „Ova oblast“ i „U blizini“; otvoren odeljak kao `panel`", "potez": "B5; uklanja simptom „ista ikona 3×“", "rizik": "grad bez zadataka ima „Još nema“ umesto broja; redosled po broju pa po imenu", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Pilula kao rečenica", "polazna_tacka": "iz reči", "zarište": "zatvoreni odeljci su delovi jedne rečenice na vrhu panela od čipova („Svuda · Bilo kada · bilo koja cena · 1 osoba“); dodir dela otvara njegov odeljak ispod", "potez": "jezik asistenta preveden u filter (R2 j, bez podvlake)", "rizik": "rečenica na 361 dp u dva reda; čipovi ostaju kontrole bez predmeta", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Korak po korak", "polazna_tacka": "iz pokreta", "zarište": "jedan odeljak po kadru panela, izbor sam vodi na sledeći (240 ms), tanka linija napretka 4 dp, mesta kao lista do celog ekrana; dno uvek „Prikaži N zadataka“", "potez": "B1 kadar uskače odozgo", "rizik": "sporije za ponovljenu pretragu: preskok na bilo koji korak dodirom linije; visina samo transform (bez JS layout animacije)", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V3",
+    "ekran": "Kandidati (izbor prijave) + trenutak „Dogovoreno!“",
+    "ruta_scene": "dizajn-var-V3",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/ApplicationSelectionPresentation.tsx", "src/ui/v2/CandidateFace.tsx", "src/ui/entry/BrandRaster.tsx", "src/app/dizajn-kandidati.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Ponude preko stola", "polazna_tacka": "iz osobe i predmeta", "zarište": "šablon od 5 redova: lice 56 · ime + zvezdica · iznos desno 20/700 · termin · „Ima“; labela razloga umesto „Poslata“; posle izbora ceo ekran: zelena i narandžasta figura znaka dolaze sa strana i spoje se (BrandRasterMark part), pin i osmeh se pojave, „Dogovoreno!“, tri reda, „Otvori Dogovor“", "potez": "B2 Stisak + B4 + B1 odozgo", "rizik": "prizor sa znakom traži vlasnika; rezerva: ceo BrandMark kroz Arrive + par lica; nova lokalna komponenta DogovorenoMoment, SuccessMark se ne dira", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Tabela odmah", "polazna_tacka": "iz broja", "zarište": "poređenje je podrazumevani prikaz: 2 kolone, redovi Cena / Termin / Ljudi / Ima, tihi marker najbolje vrednosti (tačka + reč), treći kandidat bočnim skrolom; „Lista“ je drugi prikaz; „Dogovoreno!“ = reč 32/700 + priznanica, znak 56 iznad", "potez": "B5 + B3", "rizik": "tri kolone na 361 dp su tesne; „najbolji“ samo merljivo", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Jedan po jedan", "polazna_tacka": "iz pokreta", "zarište": "jedan kandidat u kadru (lice 72, poruka u navodnicima, iznos), „Sledeći“ i brojač „2 od 3“; izbor u panelu; „Dogovoreno!“ = par lica (ti i izabrani) ide jedno ka drugom i preklopi se 12, bez znaka", "potez": "B4 Susret + B1", "rizik": "pager krije poređenje: tabela mora ostati na dohvat; prelaz samo transform/opacity", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V3",
+    "ekran": "AI razgovor (početak, nacrt spreman) + trenutak „Objavljeno“",
+    "ruta_scene": "dizajn-var-V3",
+    "polazni_ekrani_u_kodu": ["src/ui/aiFirst/AiConversationShell.tsx", "src/ui/aiFirst/AiAssistantArt.tsx", "src/ui/v2/IntakePresentation.tsx", "src/ui/objava/PublishedMoment.tsx", "src/app/dizajn-ai.tsx", "src/app/dizajn-objava.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Asistent i sto", "polazna_tacka": "iz predmeta", "zarište": "asistent 128 + „Reci šta ti treba.“ + tri rečenice-primera kao redovi; kad asistent razume činjenicu, predmet 28 (pin, kalendar, ljudi, etiketa) uskače u karticu nacrta, nepoznato ostaje siva silueta „Dodaj“; Objavljeno = papir sa pinom i olovkom 144 kroz Arrive + pilula „Objavljen“", "potez": "B1 + B3 + B6", "rizik": "ništa se ne izmišlja u nacrtu; AiAssistantArt dobija 128 (samo providnost); PNG `publish` ≤ 150 KB", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Reč vodi", "polazna_tacka": "iz reči", "zarište": "iznad preloma nema lika: „Reci šta ti treba.“ 32/700 + polje; asistent 24 samo uz odgovore; nacrt kao priznanica (KeyValueRow) bez predmeta; Objavljeno = „Zadatak je objavljen.“ 32/700 + priznanica", "potez": "B5 glas slova + B3", "rizik": "gubi maskotu koju vlasnik voli: varijanta je namerno suprotna da se razlika vidi", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Pin sleće", "polazna_tacka": "iz pokreta", "zarište": "početak je pilula-kompozitor u sredini sa sjajem glasa, asistent 88 iznad, primeri ispod; Objavljeno = pin pada na mapu (`discover-v3` + pin iz `assets/discovery`), krug koji raste i bledi 600 ms, tik na dodiru", "potez": "B1 Uskok predmeta + haptika na kontaktu", "rizik": "dva PNG-a u jednom kadru (mapa + pin): jedan veliki crtež + jedan mali; bez preskoka (D3)", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V3",
+    "ekran": "Prijava: forma → „Ovo šalješ“ → „Prijava je poslata“",
+    "ruta_scene": "dizajn-var-V3",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/ApplicationComposerPresentation.tsx", "src/app/(app)/prilike/[id]/prijava.tsx", "src/app/dizajn-prijava-forma.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Cedulja sa pečatom", "polazna_tacka": "iz predmeta", "zarište": "priznanica (zadatak, ponuda, ljudi, termin) centrirana kao cedulja; pilula „Poslata“ nagnuta −4°, 1,25× → 1, pada na njen gornji desni ugao; rečenica „Ako te izaberu, odmah nastaje Dogovor.“", "potez": "B3 Pečat", "rizik": "reč stanja ulazi gotova u pilulji; nagib samo na pilulji", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Veliki iznos", "polazna_tacka": "iz broja", "zarište": "4.500 RSD 32/700 na vrhu, ispod „poslato · Marija Ilić“ sa licem 40, priznanica ispod; bez pečata", "potez": "B5", "rizik": "iznos se nikad ne animira; display rezervisan za trenutke (ovo jeste trenutak)", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Etiketa odlazi", "polazna_tacka": "iz pokreta", "zarište": "tvoja etiketa `offers` 96 uskače nagore ka drugoj strani stola (translateY −8, providnost) i ostaje mali red „Poslata · 4.500 RSD“; priznanica ispod", "potez": "B1 smer (moje ide ka njima) + B5", "rizik": "izlazni pokret samo RN Animated, bez Reanimated exiting; smanjen pokret = krajnje stanje", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V4",
+    "ekran": "Dogovori (lista) + Dogovor (detalj, koraci, „Potvrđeno“)",
+    "ruta_scene": "dizajn-var-V4",
+    "polazni_ekrani_u_kodu": ["src/ui/v2/AgreementCollectionPresentation.tsx", "src/ui/agreements/AgreementListCard.tsx", "src/app/dogovor/[id].tsx", "src/ui/agreements/AgreementWorkspace.tsx", "src/ui/agreements/AgreementSteps.tsx", "src/ui/v2/AgreementPresentation.tsx", "src/app/dizajn-dogovori.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Par u traci", "polazna_tacka": "iz osobe i predmeta", "zarište": "detalj: dva lica 56 preklopljena 12 u traci sa prstenom stanja, prvi čvor koraka = znak-pečat 28, vreme 18/700 iznad koraka; lista: lice 40, vreme prvi red, čip + iznos desno; „Potvrđeno“ = linija do kvačice + tik", "potez": "B4 Par + B2 ostatak + B5", "rizik": "Avatar dobija edge/ring (V4 vlasnik fajla); znak 28 = vektorska varijanta BrandMark", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Vreme vodi", "polazna_tacka": "iz broja", "zarište": "lista: „Danas · 14:00–16:00“ 18/700 tabular prvi red, naslov 16, grupe Čeka tebe / Danas / Sutra / Ove nedelje / Bez tačnog termina; detalj: rečenica poteza 21 na vrhu, vreme 24/700, pa koraci", "potez": "B5 glas broja (R2 a1, b2)", "rizik": "rečenica poteza se menja po fazi ali se ne animira; bez termina prvi red je „Termin nije dogovoren“ + „Predloži termin“", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Potez kao kartica", "polazna_tacka": "iz pokreta", "zarište": "detalj počinje jednim zapisom „sledeći korak“ sa licem onoga ko je na potezu i jednom zelenom radnjom u njemu; podnožje bez dugmeta; koraci ispod; kad se stanje promeni dok gledaš, zapis uskače odozgo", "potez": "B1 smer + B4", "rizik": "jedna zelena po ekranu: ili u zapisu ili u podnožju, nikad oboje; kartica mora biti zapis koji se dodiruje", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V4",
+    "ekran": "Ocena saradnje (davanje) + „Ocena je sačuvana“",
+    "ruta_scene": "dizajn-var-V4",
+    "polazni_ekrani_u_kodu": ["src/ui/reviews/AgreementReviewPresentation.tsx", "src/ui/reviews/RatingsPresentation.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Zvezde 2.5D", "polazna_tacka": "iz predmeta", "zarište": "lice 72 iznad, pet zvezda 48 kao nalepnice (pune narandžaste, prazne krem; vektor dok ne stigne crtež), čipovi ispod; sačuvano: pilula „Ocenjeno“ pada, beli sjaj 420 ms preko punih zvezda", "potez": "B3 Pečat + jedini sjaj u aplikaciji", "rizik": "5 × 48 + 4 × 8 = 272 staje u 321; zvezda PNG je odluka vlasnika (G2)", "novi_predmeti": ["zvezda puna i prazna (G2, odluka vlasnika; do tada vektor)"] },
+      { "id": "B", "naziv": "Broj i reč", "polazna_tacka": "iz reči", "zarište": "ravne zvezde 40, posle dodira reč ocene „Vrlo dobro“ 32/700 pod zvezdama; sačuvano: „Hvala, Ana.“ 32/700 + mali red zvezda 24 + oznake", "potez": "B5 glas slova + lični detalj (ime iz podataka)", "rizik": "ime samo kad postoji; bez roda („Hvala.“ kad imena nema)", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Punjenje", "polazna_tacka": "iz pokreta", "zarište": "zvezde se pune redom 1..N (40 ms, skala 0,8 → 1) sa jednim `select`; lice 56; sačuvano zadržava isti raspored, naslov se menja u mestu 180 ms, tik `success` na početku sjaja", "potez": "B1 ritam + haptika (R4 M4)", "rizik": "bez petlje; smanjen pokret = bez redosleda i sjaja, tik ostaje", "novi_predmeti": [] }
+    ]
+  },
+  {
+    "grupa": "V4",
+    "ekran": "Profil (moj) + javni profil (panel)",
+    "ruta_scene": "dizajn-var-V4",
+    "polazni_ekrani_u_kodu": ["src/ui/profile/ProfileHubPresentation.tsx", "src/ui/system/PublicProfileSheet.tsx", "src/ui/system/Avatar.tsx", "src/app/dizajn-profil.tsx"],
+    "varijante": [
+      { "id": "A", "naziv": "Lice i tri broja", "polazna_tacka": "iz osobe", "zarište": "lice 96 centrirano sa belom ivicom, ime 28/33, „Novi Sad“; red od tri broja 24/700 + oznaka 12 („4,8 · 12 ocena | 9 završenih | 90 % dolazi“); grupe redova ispod; javni profil isto sa licem 72 i 4–6 potvrda 2.5D", "potez": "B4 + B5", "rizik": "brojevi samo iz podataka (pouzdanost tek po prekidaču vlasnika); ispod 3 ocene „Nova ocena“", "novi_predmeti": [] },
+      { "id": "B", "naziv": "Brojevi vode", "polazna_tacka": "iz broja", "zarište": "tri broja 32/700 na vrhu pre lica; lice 56 levo uz ime u drugom redu; ostalo redovi; javni profil: tri broja + „O meni“", "potez": "B5 (R2 f3 duh, bez deljenja)", "rizik": "32/700 je display: tri display broja = tri žarišta; proveriti test zamućenja", "novi_predmeti": [] },
+      { "id": "C", "naziv": "Kartica poverenja", "polazna_tacka": "iz predmeta (jedan oblik kroz tok)", "zarište": "identitet + tri broja + potvrde u jednom `panel` (okvir, bez senke) istog oblika koji se pojavljuje u detalju zadatka kao „Objavio“ i u javnom profilu; ispod njega grupe redova", "potez": "B4 + B5; jedan objekat kroz ceo tok (T)", "rizik": "panel oko identiteta se kosi sa „identitet bez kartice“ (AIRBNB P4, KOMPOZICIJA 4.14): varijanta namerno testira suprotno", "novi_predmeti": [] }
+    ]
+  }
+]
