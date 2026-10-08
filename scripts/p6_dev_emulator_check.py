@@ -40,7 +40,7 @@ ap.add_argument('--reader', choices=('p6', 'legacy'), default='p6', help='legacy
 ap.add_argument('--restart', action='store_true', help='force-stop and relaunch the app (a cold start; the process dies, no data is cleared and the session stays)')
 ap.add_argument('--search', default=None, help='ASCII word to type into the search panel: the first place suggestion is chosen, applied and cleared again (a typed query: nothing is sent or written, but the remembered search view changes for a while and is restored)')
 ap.add_argument('--visible-return', type=int, default=0, help='N repeats of: open a task, press Back, and watch the SCREEN (a burst of screenshots, no UI tree) until the list is back: the time the person sees')
-ap.add_argument('--filters', action='store_true', help='toggle the quick filters "Na daljinu" and "Na licu mesta" and back (never "U blizini": it asks for the location permission)')
+ap.add_argument('--filters', action='store_true', help='toggle the quick filters "Na daljinu" and "Sa iznosom" and back (never "Moja lokacija": it asks for the location permission)')
 ap.add_argument('--expect-apk-sha256', default=None, help='the SHA-256 of the APK that was installed: the run fails at once if the device reports another one')
 ap.add_argument('--route', default=None, help='open this deep link instead of the launcher activity (e.g. uskociapp://zadaci?p6Proof=1 on a proof build)')
 ap.add_argument('--expect-count', type=int, default=None)
@@ -463,10 +463,9 @@ def time_pins():
     for _ in range(4):
         if pins(root):
             break
-        zoom_out = by_desc(root, exact='Umanji mapu')
-        if not zoom_out:
-            break
-        tap_node(zoom_out[0])                                      # the map's own button: the camera goes out until a bucket is in view
+        # The map has no + and - buttons any more (the owner's phone of 8 Oct 2026) and a pinch cannot be sent through adb: the camera looks around with a drag until a bucket is in view.
+        top, bottom = map_rows(root)
+        send_input('touchscreen', 'swipe', str(int(W * 0.30)), str((top + bottom) // 2), str(int(W * 0.75)), str((top + bottom) // 2), '600')
         time.sleep(4)
         root = dump()
     png('02_map')
@@ -567,15 +566,15 @@ def map_rows(root):
 
 
 def gestures():
-    """P6-11 pan and zoom on the real map (a pinch cannot be sent through adb): a drag and each zoom button settle to the reader's own trace line, and the screen keeps its
-    list line and shows no error."""
+    """P6-11 pan and zoom on the real map (a pinch cannot be sent through adb, and the map has no zoom buttons any more): a drag and a double tap (zooms in) settle to the reader's own
+    trace line, and the screen keeps its list line and shows no error."""
     root = to_map(dump())
     png('04_before_gestures')
     top, bottom = map_rows(root)
     y = (top + bottom) // 2
     steps = [('PAN', lambda: send_input('touchscreen', 'swipe', str(int(W * 0.76)), str(y), str(int(W * 0.28)), str(y - int(H * 0.025)), '700')),
-             ('ZOOM_OUT', lambda: (lambda b: tap_node(b[0]))(by_desc(dump(), exact='Umanji mapu'))),
-             ('ZOOM_IN', lambda: (lambda b: tap_node(b[0]))(by_desc(dump(), exact='Uvećaj mapu')))]
+             # both taps in one shell command, so they land inside the double-tap window
+             ('DOUBLE_TAP_ZOOM_IN', lambda: adb('shell', f'input tap {int(W * 0.5)} {y}; input tap {int(W * 0.5)} {y}'))]
     gfx_reset()
     for name, act in steps:
         m = LOG.mark()
@@ -765,7 +764,7 @@ def first_int(text):
 
 
 def search_flow():
-    """The search panel as a person uses it: open it, type one word, read the place suggestions and their counts, choose the first, apply it, and put the search back to what it was."""
+    """The search as a person uses it (the approved plan of 8 Oct 2026, U4): it fills the screen, the field "Šta tražiš" on top and "Gde" under it. Read the places and their counts, choose the first (a place is the end of the search: it applies at once) and check the list says the same count; then type one word, read what the green action promises, apply it, and put the search back to what it was."""
     word = ARGS.search
     root = reset_view()
     bar = by_desc(root, prefix='Pretraži zadatke')
@@ -777,49 +776,58 @@ def search_flow():
     t0 = time.time()
     tap_node(bar[0])
     got, root = poll_or_now(lambda r: [a for a in attrs(r) if a.get('class') == 'android.widget.EditText'], 20, 0.5)
-    check('SEARCH_PANEL_OPENS_WITH_A_TEXT_FIELD', bool(got), openedS=round(time.time() - t0, 2))
+    check('SEARCH_OPENS_WITH_A_TEXT_FIELD', bool(got), openedS=round(time.time() - t0, 2))
     png('20_search_open')
     REPORT['search'] = {'word': word, 'barBefore': before_label, 'countBefore': before_count}
     if not got:
         return
-    type_text(word)
-    time.sleep(4)
+    hide_keyboard()
     root = dump()
-    png('21_search_typed')
-    suggestions = [a for a in attrs(root) if a.get('clickable') == 'true' and 'zadat' in (a.get('content-desc') or '') and not (a.get('content-desc') or '').startswith(('Pretraži', 'Prikaži'))]
+    # the places: rows that say their count ("Novi Sad, 23 zadatka"); "Svi zadaci" and "Na daljinu" are the first two rows and not places
+    suggestions = [a for a in attrs(root) if a.get('clickable') == 'true' and re.search(r', \d+ zadat', a.get('content-desc') or '')
+                   and not (a.get('content-desc') or '').startswith(('Svi zadaci', 'Na daljinu', 'Pretraži', 'Prikaži', 'Skorašnje'))]
     labels = [a.get('content-desc') for a in suggestions][:6]
-    labels.sort(key=lambda label: 0 if word.lower() in (label or '').lower() else 1)          # the place that carries the typed word first, the rest as they came
     REPORT['search']['suggestions'] = labels
-    check('SEARCH_SUGGESTS_A_PLACE_WITH_A_COUNT', bool(suggestions), suggestions=labels)
-    applied = None
+    check('SEARCH_OFFERS_A_PLACE_WITH_A_COUNT', bool(suggestions), suggestions=labels)
+    png('21_search_places')
     if suggestions:
-        hide_keyboard()
-        root = dump()
-        suggestions = [a for a in attrs(root) if a.get('clickable') == 'true' and (a.get('content-desc') or '') == labels[0]]
-        if suggestions:
-            tap_node(suggestions[0])
-            time.sleep(2)
+        t1 = time.time()
+        tap_node(suggestions[0])
+        got, root = poll_or_now(lambda r: (by_id(r, 'list-count-words') or by_id(r, 'list-count')) and not [a for a in attrs(r) if a.get('class') == 'android.widget.EditText'], 30, 0.5)
+        applied = count_shown(root) if got else None
+        REPORT['search']['appliedS'] = round(time.time() - t1, 2)
+        REPORT['search']['countApplied'] = applied
+        png('22_search_place_applied')
+        check('SEARCH_COUNT_MATCHES_THE_PLACE_ROW', applied is not None and applied == first_int(re.sub(r'^[^,]*,\s*', '', labels[0]).split(',')[-1]), place=labels[0], list=applied)
+    # the pill's own x takes the place away; then the same search is opened again for one word
+    if by_id(dump(), 'clear-where'):
+        tap_node(by_id(dump(), 'clear-where')[0])
+        time.sleep(3)
+    root = reset_view()
+    bar = by_desc(root, prefix='Pretraži zadatke')
+    if bar:
+        tap_node(bar[0])
+        got, root = poll_or_now(lambda r: [a for a in attrs(r) if a.get('class') == 'android.widget.EditText'], 20, 0.5)
+        if got:
+            type_text(word)
+            time.sleep(3)
+            hide_keyboard()
             root = dump()
-            png('22_search_place_chosen')
+            png('23_search_word_typed')
             show = sorted([a for a in attrs(root) if a.get('clickable') == 'true' and ((a.get('content-desc') or a.get('text') or '').startswith('Prikaži'))], key=lambda a: bounds(a['bounds'])[1])
-            REPORT['search']['applyLabel'] = (show[0].get('content-desc') or show[0].get('text')) if show else None
+            promise = (show[0].get('content-desc') or show[0].get('text')) if show else None
+            REPORT['search']['wordApplyLabel'] = promise
             if show:
-                t1 = time.time()
+                t2 = time.time()
                 tap_node(show[0])
                 got, root = poll_or_now(lambda r: (by_id(r, 'list-count-words') or by_id(r, 'list-count')) and not [a for a in attrs(r) if a.get('class') == 'android.widget.EditText'], 30, 0.5)
-                applied = count_shown(root) if got else None
-                REPORT['search']['appliedS'] = round(time.time() - t1, 2)
-                REPORT['search']['countApplied'] = applied
-                png('23_search_applied')
-                check('SEARCH_COUNT_MATCHES_THE_SUGGESTION', applied is not None and applied == first_int(re.sub(r'^[^,]*,\s*', '', labels[0]).split(',')[-1]), suggestion=labels[0], list=applied)
+                counted = count_shown(root) if got else None
+                REPORT['search']['wordAppliedS'] = round(time.time() - t2, 2)
+                REPORT['search']['wordCountApplied'] = counted
+                png('24_search_word_applied')
+                check('SEARCH_WORD_COUNT_MATCHES_THE_ACTION', counted is not None and counted == first_int(promise), action=promise, list=counted)
     REPORT['search']['logLinesSince'] = LOG.since(m).count('USKOCI_P6_TRACE')
-    # put the search back: each removable condition of the list ("Ukloni uslov: ..."), the where-chip's own clear button, then the whole list
-    for _ in range(4):
-        removable = [a for a in attrs(dump()) if (a.get('content-desc') or '').startswith('Ukloni uslov') and a.get('clickable') == 'true']
-        if not removable:
-            break
-        tap_node(removable[0])
-        time.sleep(3)
+    # put the search back: the pill's own clear button, then the whole list
     if by_id(dump(), 'clear-where'):
         tap_node(by_id(dump(), 'clear-where')[0])
         time.sleep(3)
@@ -831,12 +839,12 @@ def search_flow():
 
 
 def filters_flow():
-    """The quick filters that need no permission: remote work and on-site work, each toggled on and off again; the count shown and the time it took to change."""
+    """The quick capsules that need no permission: remote work and the stated amount, each toggled on and off again where the tasks have it; the count shown and the time it took to change."""
     root = reset_view()
     base = count_shown(root)
     out = {'countBefore': base, 'chips': {}}
     REPORT['filters'] = out
-    for chip in ('Na daljinu', 'Na licu mesta'):
+    for chip in ('Na daljinu', 'Sa iznosom'):
         node = by_desc(root, exact=chip)
         if not node:
             out['chips'][chip] = {'found': False}
@@ -846,14 +854,15 @@ def filters_flow():
         got, root = poll_or_now(lambda r: count_shown(r) is not None and count_shown(r) != base, 20, 0.4)
         changed = round(time.time() - t0, 2) if got else None
         counted = count_shown(root)
-        png('30_filter_' + ('remote' if 'daljinu' in chip else 'onsite'))
+        png('30_filter_' + ('remote' if 'daljinu' in chip else 'amount'))
         node = by_desc(root, exact=chip)
         if node:
             tap_node(node[0])                                       # the chip is a toggle: off again
         time.sleep(3)
         root = reset_view()
         out['chips'][chip] = {'found': True, 'countOn': counted, 'changedAfterS': changed, 'countBackAfterOff': count_shown(root)}
-    check('FILTERS_TOGGLE_AND_RETURN_TO_THE_WHOLE_LIST', all(c.get('found') and c.get('countBackAfterOff') == base for c in out['chips'].values()), chips=out['chips'], base=base)
+    found = [c for c in out['chips'].values() if c.get('found')]
+    check('FILTERS_TOGGLE_AND_RETURN_TO_THE_WHOLE_LIST', bool(found) and all(c.get('countBackAfterOff') == base for c in found), chips=out['chips'], base=base)
 
 
 def gfx_reset():
@@ -1043,10 +1052,19 @@ def error_text(root):
 
 
 def press_tab(name):
-    for a in attrs(dump()):
-        if (a.get('content-desc') == name or a.get('text') == name) and a.get('clickable') == 'true' and bounds(a['bounds'])[1] > int(H * 0.82):
-            tap_node(a)
-            return True
+    """A tab of the bottom navigation. On Zadaci the navigation is away while the list rests at its top line and comes back with the half height (the owner's phone, 8 Oct 2026),
+    so a tab that is not on screen is looked for again after the list has been raised by its own handle."""
+    for attempt in range(2):
+        root = dump()
+        for a in attrs(root):
+            if (a.get('content-desc') == name or a.get('text') == name) and a.get('clickable') == 'true' and int(H * 0.82) < bounds(a['bounds'])[1] < H:
+                tap_node(a)
+                return True
+        handle = by_id(root, 'list-count')
+        if attempt or not handle:
+            break
+        tap_node(handle[0])
+        time.sleep(1.2)
     return False
 
 

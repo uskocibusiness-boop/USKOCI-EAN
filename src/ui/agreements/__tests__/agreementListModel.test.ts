@@ -29,7 +29,7 @@ const groupOf = (iso: string | null, now = NOW, patch: Partial<DogovorProjekcija
 describe('the day groups, taken in Serbian time from the accepted start', () => {
   it('names the six groups of the plan in its order, and the one more it needs for a day already behind us', () => {
     expect(AGREEMENT_GROUP_ORDER.map(key => AGREEMENT_GROUP_TITLES[key])).toEqual(
-      ['Čeka tebe', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Bez tačnog termina']);
+      ['Čeka tebe', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
   });
 
   it('puts today, tomorrow, the rest of this week, later, and no term in their groups', () => {
@@ -137,7 +137,7 @@ describe('the Aktivni list as groups', () => {
     ];
     const groups = groupActiveAgreements(items, NOW);
     expect(groups.map(group => group.key)).toEqual(['waiting', 'past', 'today', 'tomorrow', 'week', 'later', 'undated']);
-    expect(groups.map(group => group.title)).toEqual(['Čeka tebe', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Bez tačnog termina']);
+    expect(groups.map(group => group.title)).toEqual(['Čeka tebe', 'Ranije', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
     expect(groups.map(group => group.items.map(item => item.id))).toEqual([['waiting'], ['past'], ['today'], ['tomorrow'], ['week'], ['later'], ['undated']]);
     expect(groupActiveAgreements([agreement('today', starting('2026-10-07T15:00:00Z'))], NOW).map(group => group.key)).toEqual(['today']);
     expect(groupActiveAgreements([], NOW)).toEqual([]);

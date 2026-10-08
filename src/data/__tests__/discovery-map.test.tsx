@@ -22,7 +22,7 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-import { AREA_SETTLE_MS, DiscoveryMap } from '../../ui/v2/DiscoveryMap';
+import { AREA_SETTLE_MS, DiscoveryMap, NEARBY_ZOOM } from '../../ui/v2/DiscoveryMap';
 import { clearBandBounds, latitudeAtRow, MIN_CLEAR_BAND, rowOfLatitude } from '../../ui/v2/discovery/mapClearBand';
 import { DiscoveryMap as WebMap } from '../../ui/v2/DiscoveryMap.web';
 import { sys } from '../../ui/system/tokens';
@@ -37,7 +37,8 @@ let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Screen />); });
 const update = async () => act(async () => tree.update(<Screen />));
 const native = () => tree.root.findByType('NativeMap' as React.ElementType);
-const source = () => tree.root.findByType('Source' as React.ElementType);
+const source = () => tree.root.findAll(node => String(node.type) === 'Source' && node.props.id === 'public-needs')[0];
+const sources = () => tree.root.findByProps({ accessibilityLabel: 'Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap' });
 const sourceData = () => JSON.parse(source().props.data);
 const ready = async () => act(async () => {
  tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function')
@@ -160,31 +161,30 @@ test('a pan in several strokes asks once, for where it ended; taking hold of the
  await act(async () => native().props.onRegionWillChange({ nativeEvent: { ...third, userInteraction: false } }));
  await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[second.bounds, second.bounds], [third.bounds, third.bounds]]);
 });
-test('a zoom button or a cluster tap counts as the person\'s move; a chosen pin brought into view never does', async () => {
+test('a cluster tap or "moja lokacija" counts as the person\'s move; a chosen pin brought into view never does', async () => {
  await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
- // "+" moves the camera by the app's hand; the map reports that settle as the app's, and it is still the person's intent.
- await act(async () => zoomButton('Uvećaj mapu').props.onPress());
- const zoomed = { ...region, zoom: 5, bounds: [-0.5, -0.5, 0.5, 0.5] };
- await act(async () => native().props.onRegionDidChange({ nativeEvent: zoomed }));
- await wait(AREA_SETTLE_MS); expect(search.mock.calls).toEqual([[zoomed.bounds, zoomed.bounds]]);
- // The intent is used once: the next settle of the app's own is not the person's.
- await act(async () => native().props.onRegionDidChange({ nativeEvent: region })); await wait(AREA_SETTLE_MS * 2);
- expect(search).toHaveBeenCalledTimes(1);
- // A cluster tap flies the camera in; where it lands is the person's.
+ // A cluster tap flies the camera in by the app's hand; the map reports that settle as the app's, and where it lands is the person's.
  mockExpand.mockResolvedValue(9); await pressFeature([cluster]);
  const opened = { ...region, zoom: 9, bounds: [-0.1, -0.1, 0.1, 0.1] };
  await act(async () => native().props.onRegionDidChange({ nativeEvent: opened })); await wait(AREA_SETTLE_MS);
- expect(search.mock.calls[1]).toEqual([opened.bounds, opened.bounds]);
- // A zoom tap that is followed by a chosen pin: the pin is brought into view by the camera, and that is never an area.
- await act(async () => zoomButton('Uvećaj mapu').props.onPress());
+ expect(search.mock.calls).toEqual([[opened.bounds, opened.bounds]]);
+ // The intent is used once: the next settle of the app's own is not the person's.
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: region })); await wait(AREA_SETTLE_MS * 2);
+ expect(search).toHaveBeenCalledTimes(1);
+ // "Moja lokacija" moves the camera by the app's hand too (the person asked for it), and the list follows where it settles.
+ nearby = { key: 1, center: [0.2, 0.2] }; await update();
+ const here = { ...region, zoom: 12, center: [0.2, 0.2], bounds: [0.15, 0.15, 0.25, 0.25] };
+ await act(async () => native().props.onRegionDidChange({ nativeEvent: here })); await wait(AREA_SETTLE_MS);
+ expect(search.mock.calls[1]).toEqual([here.bounds, here.bounds]);
+ // A pin brought into view by the camera (a chosen pin) is never the person's move, however recent the last one was.
  selectedId = 'one'; await update();
  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, bounds: [-0.2, -0.2, 0.2, 0.2] } }));
  await wait(AREA_SETTLE_MS * 2); expect(search).toHaveBeenCalledTimes(2);
  // An intent too old to be this settle's is not carried over either.
  selectedId = null; await update();
- await act(async () => zoomButton('Umanji mapu').props.onPress()); await wait(5_000);
+ mockExpand.mockResolvedValue(9); await pressFeature([cluster]); await wait(5_000);
  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, bounds: [-3, -3, 3, 3] } })); await wait(AREA_SETTLE_MS);
- expect(search).toHaveBeenCalledTimes(2);
+ expect(search.mock.calls.filter(([bounds]) => JSON.stringify(bounds) === JSON.stringify([-3, -3, 3, 3]))).toHaveLength(0);
 });
 // Review of V47 (coverage): the wait after a move of the person's own belongs to the map that is on screen. A map taken
 // away, or a screen left for another one, never hands an area up to the list afterwards.
@@ -209,22 +209,17 @@ test('a tap on the empty map closes whatever card is open', async () => {
  await act(async () => native().props.onPress({ nativeEvent: {} }));
  expect(clear).toHaveBeenCalledTimes(1);
 });
-test('the region the camera settles into on first load arms the area control without being remembered', async () => {
- // On a phone this was the whole map's first impression: "Pretraži ovu oblast" and both zoom
- // buttons dead, with no reason beside them, until the person happened to drag the map. The region
- // event that the initial camera fit produces arrives before the map reports itself ready, and it
+test('the region the camera settles into on first load is known without being remembered', async () => {
+ // The region event that the initial camera fit produces arrives before the map reports itself ready, and it
  // used to be discarded — and nothing else produces a viewport.
  await render();
- // The camera fit settles, and the map has not called itself ready yet. The controls are not on
- // screen during loading, so nothing is visible here — but this is the event that used to be lost.
+ // The camera fit settles, and the map has not called itself ready yet.
  await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
  // Not remembered: a position seen while the map is still loading must never become the viewport
  // a person returns to.
  expect(setViewport).not.toHaveBeenCalled();
  await ready();
- // The controls appear already armed, instead of dead until the person drags the map. (The zoom capsule is what this
- // first region arms; that first region is the camera's own and never becomes the list's area.)
- expect(zoomButton('Uvećaj mapu').props.disabled).toBe(false);
+ // That first region is the camera's own and never becomes the list's area.
  await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled();
  // And from ready on, where the person moves the map is remembered as before, and the list follows it.
  await act(async () => native().props.onRegionDidChange(moved(region)));
@@ -241,7 +236,7 @@ test('display deadline stays retryable, while actual success of the same current
  expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
  await act(async () => late());
  expect(native()).toBe(current); expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo sa mapom' })).toHaveLength(0);
- expect(zoomButton('Uvećaj mapu')).toBeTruthy();
+ expect(sources()).toBeTruthy();
  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: region.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
 });
 test.each(['retry', 'account', 'blur', 'unmount'])('late success of a %s-retired map cannot acknowledge its replacement', async retirement => {
@@ -254,7 +249,7 @@ test.each(['retry', 'account', 'blur', 'unmount'])('late success of a %s-retired
  await act(async () => { old.onDidFinishLoadingMap(); old.onDidFinishRenderingFrameFully(); old.onDidFailLoadingMap(); });
  expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo sa mapom' })).toHaveLength(0);
  expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('Učitavamo mapu…'))).toHaveLength(1);
- await ready(); expect(zoomButton('Uvećaj mapu')).toBeTruthy();
+ await ready(); expect(sources()).toBeTruthy();
  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: region.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
 });
 test.each([false, true])('an actual native error remains terminal even when display deadline already fired: %s', async afterDeadline => {
@@ -263,31 +258,38 @@ test.each([false, true])('an actual native error remains terminal even when disp
  await act(async () => { callbacks.onDidFailLoadingMap(); callbacks.onDidFinishLoadingMap(); callbacks.onDidFinishRenderingFrameFully(); });
  expect(tree.root.findByProps({ label: 'Pokušaj ponovo sa mapom' })).toBeTruthy();
 });
-test('web fallback has real List action and creates no schematic map', async () => {
- await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onArea={search} onList={list} />); });
- expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0); await act(async () => tree.root.findByProps({ label: 'Pogledaj listu' }).props.onPress()); expect(list).toHaveBeenCalledTimes(1);
+test('a web build without development has no map: it says so and offers the list, and draws no sketch', async () => {
+ const dev = (global as { __DEV__?: boolean }).__DEV__; (global as { __DEV__?: boolean }).__DEV__ = false;
+ try {
+  await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onArea={search} onList={list} />); });
+  expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'discovery-map-sketch' })).toHaveLength(0);
+  await act(async () => tree.root.findByProps({ label: 'Pogledaj listu' }).props.onPress()); expect(list).toHaveBeenCalledTimes(1);
+ } finally { (global as { __DEV__?: boolean }).__DEV__ = dev; }
 });
-// Review r1 items 1-2 (2026-09-24): the zoom buttons computed from `viewport`, which updates only when the camera
-// settles, so a second tap inside the animation asked for the same level again; and the motion path had no test.
-const zoomButton = (label: 'Uvećaj mapu' | 'Umanji mapu') => tree.root.findByProps({ accessibilityLabel: label });
-test('two quick taps on "+" before the camera settles zoom two levels, at the toggle pace', async () => {
+test('in development the web build draws a SKETCH of a map for the design lab: pins that select, the same furniture, never a real map', async () => {
+ rows = [row('a', 45.25, 19.83), row('b', 45.27, 19.86)];
+ await act(async () => { tree = create(<WebMap items={rows} scopeKey={key} selectedId={null} viewport={null} onSelect={select} onViewport={setViewport} onArea={search} onList={list} onClear={clear} />); });
+ expect(tree.root.findAllByType('NativeMap' as React.ElementType)).toHaveLength(0);
+ await act(async () => tree.root.findByProps({ testID: 'discovery-map-sketch' }).props.onLayout({ nativeEvent: { layout: { width: 361, height: 780 } } }));
+ // one pin per public point, each a button that selects its own task; a tap on the ground closes a card; the sources stand in the same row as on the phone
+ const pins = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Privatan naslov van source properties');
+ expect(pins).toHaveLength(2);
+ await act(async () => pins[0].props.onPress()); expect(select).toHaveBeenCalledWith('a');
+ await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mapa približnih lokacija zadatka' }).props.onPress()); expect(clear).toHaveBeenCalledTimes(1);
+ expect(tree.root.findByProps({ accessibilityLabel: 'Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap' }).props.accessibilityRole).toBe('button');
+ expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('Skica mape za laboratoriju'))).toHaveLength(1);
+});
+// The owner's phone of 8 Oct 2026: no + and − on the map (it is zoomed with two fingers, as the map apps people know are); only "moja lokacija" stays, and the
+// screen draws it. The map offers no zoom control and no longer asks for a zoom level of its own.
+test('the map has no zoom buttons: it is zoomed with two fingers, and nothing of it calls the camera\'s zoom', async () => {
  await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
- await act(async () => { zoomButton('Uvećaj mapu').props.onPress(); zoomButton('Uvećaj mapu').props.onPress(); });
- expect(mockZoom.mock.calls).toEqual([[5, { duration: sys.motion.toggle }], [6, { duration: sys.motion.toggle }]]);
- // Where the camera settled is the new base; the next tap builds on it, and "−" never goes below the world view.
- await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, zoom: 6 } }));
- await act(async () => zoomButton('Uvećaj mapu').props.onPress());
- expect(mockZoom).toHaveBeenLastCalledWith(7, { duration: sys.motion.toggle });
- await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, zoom: 0.5 } }));
- await act(async () => zoomButton('Umanji mapu').props.onPress());
- expect(mockZoom).toHaveBeenLastCalledWith(0, { duration: sys.motion.toggle });
- // The cluster flight keeps the camera pace.
- expect(sys.motion.toggle).toBeLessThan(sys.motion.camera);
-});
-test('under reduced motion the zoom buttons jump without animation', async () => {
- mockReduced = true; await render(); await ready(); await act(async () => native().props.onRegionDidChange({ nativeEvent: region }));
- await act(async () => zoomButton('Umanji mapu').props.onPress());
- expect(mockZoom).toHaveBeenCalledWith(3, { duration: 0 });
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Uvećaj mapu' })).toHaveLength(0);
+ expect(tree.root.findAllByProps({ accessibilityLabel: 'Umanji mapu' })).toHaveLength(0);
+ expect(tree.root.findAllByProps({ testID: 'discovery-map-zoom' })).toHaveLength(0);
+ expect(mockZoom).not.toHaveBeenCalled();
+ // two fingers and a double tap are the SDK's own; the app turns off only what it does not use
+ expect(native().props).toMatchObject({ touchPitch: false, touchRotate: false });
 });
 test('a cluster flies at the camera pace when motion is allowed', async () => {
  mockExpand.mockResolvedValue(9); await render(); await ready(); await pressFeature([cluster]);
@@ -317,18 +319,42 @@ test.each(['rs.uskoci', 'rs.uskoci.preview', 'another.dev', undefined])('DEV map
  await act(async () => tree.unmount()); expect(log).not.toHaveBeenCalled();
 });
 
-test.each([false, true])('Nearby centers once, preserves list semantics and public pins (reduced motion: %s)', async reduced => {
+// "Moja lokacija" (the owner, 8 Oct 2026: "da se mapa fiksira i prikažu zadaci oko mene"): the camera goes to the person at the zoom of a neighbourhood, with
+// the person in the middle of the clear part of the map (the padding of every other camera move), and, being the person's own request, the list follows where it
+// settles. The person is never a pin or a stored place: the public points the map draws are the tasks' alone.
+test.each([false, true])('"Moja lokacija" centers once at a neighbourhood zoom in the clear part of the map, and the list follows (reduced motion: %s)', async reduced => {
   mockReduced = reduced; await render(); await ready();
   await act(async () => native().props.onRegionDidChange(moved(region)));
+  await wait(AREA_SETTLE_MS); search.mockClear();
   nearby = { key: 1, center: [20.412345, 44.812345] }; await update();
-  const options = { center: nearby.center, zoom: 12 };
+  // the room the tools above (none here) and the list below (the first fit's 56) leave: 26 over the pin's half, 24 and 56 under, 50 each side
+  const options = { center: nearby.center, zoom: NEARBY_ZOOM, padding: { top: 26, right: 50, bottom: 80, left: 50 } };
+  expect(NEARBY_ZOOM).toBe(12);
   if (reduced) { expect(mockJump).toHaveBeenCalledWith(options); expect(mockEase).not.toHaveBeenCalled(); }
   else { expect(mockEase).toHaveBeenCalledWith({ ...options, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled(); }
   await update(); expect((reduced ? mockJump : mockEase)).toHaveBeenCalledTimes(1);
-  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...region, center: nearby!.center, zoom: 12 } }));
-  await wait(AREA_SETTLE_MS * 2); expect(search).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
+  const here = { ...region, center: nearby.center, zoom: 12, bounds: [20.37, 44.78, 20.45, 44.84] };
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: here }));
+  // the move was asked for by the person, so the list follows it: the tasks around them (the map's area, never a pin and never a filter)
+  await wait(AREA_SETTLE_MS - 1); expect(search).not.toHaveBeenCalled();
+  await wait(1); expect(search).toHaveBeenCalledTimes(1); expect(search).toHaveBeenCalledWith(here.bounds, here.bounds);
+  expect(select).not.toHaveBeenCalled();
   expect(sourceData().features[0].geometry.coordinates).toEqual([0, 0]);
   expect(source().props.data).not.toContain('20.412345');
+});
+test('the person\'s dot is drawn as one native point for as long as the screen says where they are, and is never one of the tasks\' public points', async () => {
+  rows = [row('a', 45.25, 19.83)]; await render(); await ready();
+  const meSources = () => tree.root.findAll(node => String(node.type) === 'Source' && node.props.id === 'me');
+  expect(meSources()).toHaveLength(0);
+  const me = (): { type: string; geometry: { coordinates: number[] } } => JSON.parse(meSources()[0].props.data);
+  await act(async () => tree.update(<DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={null} me={[20.4, 44.8]} onSelect={select} onViewport={setViewport} onArea={search} onList={list} />));
+  expect(me()).toMatchObject({ type: 'Feature', geometry: { type: 'Point', coordinates: [20.4, 44.8] } });
+  expect(tree.root.findAllByProps({ id: 'me-dot' })).toHaveLength(1);
+  expect(tree.root.findByProps({ id: 'me-dot' }).props.paint['circle-color']).toBe(sys.color.artRole.location.front);
+  // the tasks' own source is untouched by it
+  expect(sourceData().features).toHaveLength(1); expect(sourceData().features[0].properties).toEqual({ needId: 'a' });
+  await act(async () => tree.update(<DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={null} me={null} onSelect={select} onViewport={setViewport} onArea={search} onList={list} />));
+  expect(meSources()).toHaveLength(0);
 });
 test('Nearby waits for map readiness and does not move a blurred map', async () => {
   nearby = { key: 2, center: [20.4, 44.8] }; await render(); expect(mockEase).not.toHaveBeenCalled();
@@ -359,13 +385,25 @@ test('Nearby then manual pan then refresh/remount restores the pan without repla
   expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: elsewhere.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
   await ready(); expect(mockEase).toHaveBeenCalledTimes(1); expect(mockJump).not.toHaveBeenCalled(); expect(capture.target).toBeNull();
 });
-test('visible map attribution has one 48 dp source control instead of a competing scrolling rail', async () => {
+test('the map\'s sources are one small line in the bottom left corner above the list, with no box and a touch of 44, not a competing scrolling rail', async () => {
   await render(); await ready();
   expect(native().props.attribution).toBe(false);
-  const control = tree.root.findByProps({ accessibilityLabel: 'Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap' });
+  const control = sources();
   expect(control.props.accessibilityRole).toBe('button');
-  expect(StyleSheet.flatten(control.props.style).minHeight).toBeGreaterThanOrEqual(48);
+  expect(StyleSheet.flatten(control.props.style).minHeight).toBeGreaterThanOrEqual(44);
   expect(tree.root.findAll(node => node.props.persistentScrollbar)).toHaveLength(0);
+  // the words: both required names, 12 px, in ONE line, quiet, and drawn without a box (no background of their own; a halo only)
+  const words = control.findAllByType('T' as React.ElementType)[0];
+  expect(words.children).toEqual(['© OpenStreetMap · © OpenMapTiles']);
+  expect(words.props.variant).toBe('label'); expect(words.props.numberOfLines).toBe(1);
+  const style = StyleSheet.flatten(words.props.style);
+  expect(style.backgroundColor).toBeUndefined(); expect(style.color).toBe(sys.color.muted);
+  expect(sys.type.label.fontSize).toBeGreaterThanOrEqual(12);
+  // the row they stand in is the one above the list: left, with the right kept for "moja lokacija" when the screen draws it
+  const row = tree.root.findByProps({ testID: 'discovery-map-credits' });
+  expect(StyleSheet.flatten(row.props.style)).toMatchObject({ position: 'absolute', left: sys.space.base });
+  await act(async () => tree.update(<DiscoveryMap items={rows} scopeKey={key} viewport={viewport} selectedId={null} locateShown onSelect={select} onViewport={setViewport} onArea={search} onList={list} />));
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-map-credits' }).props.style).right).toBe(sys.space.base + 44 + 8);
 });
 
 // P5 exercises the real camera boundary, never fake GPS or area filtering.

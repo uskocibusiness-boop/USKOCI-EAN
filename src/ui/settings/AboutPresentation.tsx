@@ -15,7 +15,9 @@ const BRAND_MAX = 232;
  * What USKOČI is, the two ways into its rules, and the build detail support may ask for (UI/UX pass 2026-10-08, F6; composition
  * spec 4.15). The bar already names the screen, so the brand is the mark itself, centred (its own label says "USKOČI"), and one
  * sentence under it; then a section whose two facts are the two things one account can do, as `FactRow`s, and a section of rows that
- * lead on to the rules and to privacy, with the same picture the profile gives them. No primary action: nothing here is done.
+ * lead on to the rules and to privacy, with the same picture the profile gives them and no second line (a row says a second line only
+ * when it is a fact). The sentence about the assistant does not write "AI": in the screen's type its I is one stroke and it read "Al"
+ * (owner's phone, 8 Oct 2026). No primary action: nothing here is done.
  * Presentation only: the route owns the navigation.
  */
 export function AboutView({ onBack, onRules, onPrivacy }: { onBack: () => void; onRules: () => void; onPrivacy: () => void }) {
@@ -34,11 +36,11 @@ export function AboutView({ onBack, onRules, onPrivacy }: { onBack: () => void; 
         <FactRow size="detail" art="publish" value="Objavi zadatak" note="Reci šta ti treba. Izaberi ko će pomoći." />
         <FactRow size="detail" art="map" value="Uskoči i zaradi" note="Pronađi zadatak za svoje veštine." />
       </View>
-      <T variant="note" tone="muted" style={s.ai}>AI pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.</T>
+      <T variant="note" tone="muted" style={s.ai}>Asistent pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.</T>
     </SettingsGroup>
     <SettingsGroup title="Pravila i privatnost">
-      <SettingsRow label="Pravila i saglasnosti" detail="Pravni dokumenti i obrada podataka." icon={<FactArt kind="document" size={32} />} onPress={onRules} />
-      <SettingsRow label="Privatnost i podaci" detail="Šta je javno, rokovi čuvanja, zatvaranje naloga." icon={<FactArt kind="lock" size={32} />} last onPress={onPrivacy} />
+      <SettingsRow label="Pravila i saglasnosti" icon={<FactArt kind="document" size={32} />} onPress={onRules} />
+      <SettingsRow label="Privatnost i podaci" icon={<FactArt kind="eye" size={32} />} last onPress={onPrivacy} />
     </SettingsGroup>
     <BuildIdentity />
   </SettingsScreen>;

@@ -2,22 +2,21 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { BackHandler, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { CaretRight, GearSix } from 'phosphor-react-native';
 import type { InboxItem, InboxRole } from '../contracts/inbox';
-import type { NotificationRole, NotificationSettings } from '../contracts/notificationPreferences';
+import type { NotificationSettings } from '../contracts/notificationPreferences';
 import type { MyBlockedAccounts } from '../data/safetyClientService';
 import type { PushReadiness } from '../data/pushReadinessClientService';
 import { InboxList, type InboxView } from '../ui/notifications/InboxPresentation';
-import { INBOX_SET_LABEL } from '../ui/notifications/inboxCopy';
-import { PushPreferencesView, type PushPreferencesViewProps } from '../ui/notifications/PushPreferences';
+import { PushPreferencesView, editSettings, pushScope, type PushPreferencesViewProps, type Roles } from '../ui/notifications/PushPreferences';
 import { BlockedAccountsList } from '../ui/settings/BlockedAccountsList';
 import { SettingsGroup, SettingsInfo, SettingsPersonRow, SettingsRow, SettingsScreen, SettingsSwitchRow } from '../ui/settings/SettingsPresentation';
 import { ConfirmSheet } from '../ui/system/ConfirmSheet';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { FactArt } from '../ui/system/FactArt';
 import { ChromeIconButton } from '../ui/system/ScreenChrome';
-import { Segmented } from '../ui/system/Segmented';
+import { LARGE_LAYOUT, LayoutClassOverride, type LayoutClassResult } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 import { Press } from '../ui/Press';
 import { T } from '../ui/Text';
@@ -33,6 +32,8 @@ import { V2Action } from '../ui/v2/V2Action';
  * return to that list.
  */
 const noop = () => {};
+/** The web lab has no text scale: `?text=1.15` draws the designed layout and `?text=1.3` the stacked one, whatever the width says. */
+const COMPACT_LAYOUT: LayoutClassResult = { cls: 'compact', stacked: false };
 const now = Date.now();
 const ago = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
 const inbox = (id: string, eventType: string, family: string, minutes: number, title: string, body: string, read = false,
@@ -50,10 +51,11 @@ const ITEMS: InboxItem[] = [
   inbox('g8', 'RESPONSE_SELECTED', 'responses', 60 * 24 * 400, 'Tvoja prijava je izabrana', 'Otvori Dogovor za detalje zadatka.', true),
 ];
 /**
- * R11 / R15, as the list looks the day the read says which task an event is about (`taskTitle`, not in the inbox read yet): the event
- * leads and the task is the line under it. The read does not return it today, so this scene is the only place it can be seen.
+ * R11 / R15, as the list looks the day the read says which task an event is about (`taskTitle`, kept by the decoder since commit 6c78480e;
+ * the server package INBOX-NASLOV that sends it is proven apart and not applied): the event leads and the task is the line under it. A server
+ * that does not send it leaves the line to the event's own words, so until it does this scene is the only place the task can be seen.
  */
-const named = (source: InboxItem, taskTitle: string): InboxItem => Object.assign({}, source, { taskTitle });
+const named = (source: InboxItem, taskTitle: string): InboxItem => ({ ...source, taskTitle });
 const TASK_ITEMS: InboxItem[] = [
   named(ITEMS[2], 'Montaža police u hodniku'),
   named(inbox('t2', 'RESPONSE_SELECTED', 'responses', 130, 'Tvoja prijava je izabrana', 'Otvori Dogovor za detalje zadatka.'), 'Krečenje stana u belo'),
@@ -66,6 +68,8 @@ const base: InboxView = { page: page(ITEMS, true), loading: false, paging: false
 const SETTINGS: NotificationSettings = { in_app_enabled: true, push_enabled: true, opportunities_enabled: true, responses_enabled: true,
   dogovor_enabled: true, execution_enabled: true, recovery_enabled: true, account_enabled: true, quiet_hours_enabled: true,
   quiet_start: '22:00:00', quiet_end: '07:00:00', quiet_timezone: 'Europe/Belgrade', urgent_overrides_quiet_hours: false };
+/** Both sets of settings as the server keeps them for the account (the screen is one for both); a scene changes the parts it is about. */
+const BOTH: Roles<NotificationSettings> = { REQUESTER: SETTINGS, WORKER: SETTINGS };
 const READINESS = { state: 'OPERATIONAL', checkedAt: ago(12) } as PushReadiness;
 /** DEV today: the sender is switched off (PKG-030), so the send check reads NOT_READY while a set's choice is on. */
 const NOT_READY = { state: 'NOT_READY', checkedAt: ago(3) } as PushReadiness;
@@ -91,6 +95,9 @@ const SCENES: Scene[] = [
   { key: 'inbox-unavailable', label: 'Obaveštenja · sadržaj nije dostupan', group: 'Obaveštenja' },
   { key: 'push', label: 'Podešavanja · uključeno, povezan telefon', group: 'Podešavanja obaveštenja' },
   { key: 'push-unlinked', label: 'Podešavanja · uključeno, telefon nije povezan', group: 'Podešavanja obaveštenja' },
+  { key: 'push-off', label: 'Podešavanja · isključeno na telefonu', group: 'Podešavanja obaveštenja' },
+  { key: 'push-some', label: 'Podešavanja · telefon prima samo „Kad uskačeš“', group: 'Podešavanja obaveštenja' },
+  { key: 'push-mixed', label: 'Podešavanja · vrsta uključena delimično', group: 'Podešavanja obaveštenja' },
   { key: 'push-denied', label: 'Podešavanja · telefon ne dozvoljava', group: 'Podešavanja obaveštenja' },
   { key: 'push-dirty', label: 'Podešavanja · izmena nije sačuvana', group: 'Podešavanja obaveštenja' },
   { key: 'push-saving', label: 'Podešavanja · čuvanje', group: 'Podešavanja obaveštenja' },
@@ -115,7 +122,11 @@ const SCENES: Scene[] = [
 
 export default function DizajnObavestenja() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
-  const [scene, setScene] = useState<Scene | null>(null);
+  // A known scene can be opened by its address (`?scene=push-unlinked`), to be photographed in the lab; anything else selects nothing.
+  // `?text=1.15` draws the designed layout and `?text=1.3` the stacked one, whatever the width says (the web lab has no text scale).
+  const params = useLocalSearchParams<{ scene?: string | string[]; text?: string | string[] }>();
+  const textLayout = params.text === '1.3' ? LARGE_LAYOUT : params.text === '1.15' ? COMPACT_LAYOUT : null;
+  const [scene, setScene] = useState<Scene | null>(() => SCENES.find(option => option.key === (typeof params.scene === 'string' ? params.scene : undefined)) ?? null);
   // Android Back inside a scene returns to the list, as the arrow and "Nazad" do.
   useEffect(() => {
     if (!scene) return;
@@ -137,13 +148,13 @@ export default function DizajnObavestenja() {
     </ScrollView>
   </SafeAreaView>;
   const back = () => setScene(null);
-  return <SafeAreaView edges={['bottom']} style={s.screen}>
+  return <LayoutClassOverride.Provider value={textLayout}><SafeAreaView edges={['bottom']} style={s.screen}>
     <View style={s.stage}>{render(scene.key, back)}</View>
     <View style={s.strip}>
       <V2Action kind="quiet" compact label="Nazad" accessibilityLabel="Nazad na scene" onPress={back} style={s.stripBack} />
       <T variant="meta" tone="muted" numberOfLines={1} style={s.stripName}>{scene.label}</T>
     </View>
-  </SafeAreaView>;
+  </SafeAreaView></LayoutClassOverride.Provider>;
 }
 
 function render(key: string, back: () => void): ReactNode {
@@ -173,33 +184,39 @@ function InboxScene({ state, role: initial, back }: { state: InboxView; role: In
   </SafeAreaView>;
 }
 
-/** The route's own frame (underlined sets, the caption) around the real settings view; switches change a local copy. */
+/**
+ * The route's own frame (the bar, nothing else: the screen is ONE for both sets, no tabs and no caption) around the real settings view;
+ * switches change a local copy of both sets, the very edit the container makes (`editSettings`).
+ *
+ * - `push`: both sets send to a connected phone, the last check is good; `push-unlinked`: sending is on and this phone is not connected;
+ *   `push-off`: the phone is connected and no set sends; `push-some`: the phone is sent "Kad uskačeš" only; `push-mixed`: a choice whose
+ *   categories differ ("Prijave i poruke" under "Kad uskačeš" reads off and says why); `push-dirty`: a change not yet saved and the phone
+ *   still to be asked; the rest are the states of a save, of a read and of a device that cannot receive notifications.
+ */
 function PushScene({ scene, back }: { scene: string; back: () => void }) {
-  const [role, setRole] = useState<NotificationRole>(scene === 'push' ? 'WORKER' : 'REQUESTER');
-  const saved = scene === 'push-invalid' ? { ...SETTINGS, quiet_start: '25:99' } : SETTINGS;
-  const [draft, setDraft] = useState<NotificationSettings>(scene === 'push-dirty' || scene === 'push-saving' || scene === 'push-invalid'
-    ? { ...saved, dogovor_enabled: false } : saved);
-  const dirty = (Object.keys(saved) as (keyof NotificationSettings)[]).some(key => saved[key] !== draft[key]);
+  const saved: Roles<NotificationSettings> = scene === 'push-invalid' ? { REQUESTER: { ...SETTINGS, quiet_start: '25:99' }, WORKER: { ...SETTINGS, quiet_start: '25:99' } }
+    : scene === 'push-off' ? { REQUESTER: { ...SETTINGS, push_enabled: false }, WORKER: { ...SETTINGS, push_enabled: false } }
+    : scene === 'push-some' ? { REQUESTER: { ...SETTINGS, push_enabled: false }, WORKER: SETTINGS }
+    : scene === 'push-mixed' ? { REQUESTER: SETTINGS, WORKER: { ...SETTINGS, dogovor_enabled: false } }
+    : BOTH;
+  const [draft, setDraft] = useState<Roles<NotificationSettings>>(scene === 'push-dirty' || scene === 'push-saving' || scene === 'push-invalid'
+    ? editSettings(saved, 'WORKER', 'dogovor_enabled', false) : saved);
+  const dirty = (['REQUESTER', 'WORKER'] as const).some(role => (Object.keys(saved[role]) as (keyof NotificationSettings)[]).some(key => saved[role][key] !== draft[role][key]));
   const native: NonNullable<PushPreferencesViewProps['data']>['native'] = scene === 'push-denied' ? 'DENIED'
     : scene === 'push-emulator' || scene === 'push-emulator-on' ? 'UNSUPPORTED'
     : scene === 'push-dirty' ? 'PERMISSION_REQUIRED' : 'READY';
   const busy = scene === 'push-saving', error = scene === 'push-uncertain' || scene === 'push-failed';
   // Only "telefon nije povezan" draws a phone that has not been connected; every other ready phone is connected.
-  const props: PushPreferencesViewProps = { role, signedIn: true,
-    data: scene === 'push-loading' || scene === 'push-failed' ? null : { settings: draft, native, enabled: native === 'READY' || scene === 'push-emulator-on',
+  const props: PushPreferencesViewProps = { signedIn: true,
+    data: scene === 'push-loading' || scene === 'push-failed' ? null : { settings: draft, native, push: pushScope(saved),
       registered: native === 'READY' && scene !== 'push-unlinked',
       readiness: scene === 'push' || scene === 'push-saved' ? READINESS : scene === 'push-emulator-on' ? NOT_READY : null },
     busy, error, locked: busy || error, dirty, validation: scene === 'push-invalid' ? 'Vreme tihih sati nije ispravno. Izaberi ga ponovo.' : null,
     working: busy ? 'save' : null, justSaved: scene === 'push-saved' && !dirty, deviceZone: 'Europe/Belgrade',
-    onEdit: (key, value) => setDraft(current => ({ ...current, [key]: value })), onSave: noop, onEnable: noop, onDisable: noop, onRefresh: noop,
+    onEdit: (role, key, value) => setDraft(current => editSettings(current, role, key, value)), onSave: noop, onEnable: noop, onDisable: noop, onRefresh: noop,
     onOpenSystemSettings: noop };
   return <SafeAreaView edges={['top']} style={s.screen}>
-    <DetailTopBar title="Podešavanja obaveštenja" onBack={back} />
-    <View style={s.sets}>
-      <Segmented appearance="underline" value={role} onChange={setRole}
-        options={[{ key: 'REQUESTER', label: INBOX_SET_LABEL.REQUESTER }, { key: 'WORKER', label: INBOX_SET_LABEL.WORKER }]} />
-      <T variant="note" tone="muted">{role === 'REQUESTER' ? 'Obaveštenja o zadacima koje objavljuješ.' : 'Novi zadaci, tvoje prijave i Dogovori.'}</T>
-    </View>
+    <DetailTopBar title="Podešavanja" onBack={back} />
     <PushPreferencesView {...props} />
   </SafeAreaView>;
 }
@@ -231,13 +248,13 @@ function RowsScene({ back }: { back: () => void }) {
       <SettingsRow label="Zatvori nalog" detail="Trajno, posle potvrde." tone="danger" icon={<FactArt kind="lock" size={26} />} onPress={noop} last />
     </SettingsGroup>
     <SettingsGroup title="Izbori" footer="Ono što isključiš ne stiže ni u aplikaciju ni na telefon.">
-      <SettingsSwitchRow label="Prijave i poruke" help="Promene tvoje prijave, Dogovor, poruke i završetak zadatka." value={on} onChange={setOn} />
-      <SettingsSwitchRow label="Sve ostalo" help="Nedovršene radnje koje treba proveriti, tvoj nalog i bezbednost." value={false} onChange={noop} />
-      <SettingsSwitchRow label="Hitno može i tokom tihih sati" help="Važi samo za hitne događaje." value={false} disabled
+      <SettingsSwitchRow label="Prijave i poruke" value={on} onChange={setOn} />
+      <SettingsSwitchRow label="Ostalo" value={false} onChange={noop} />
+      <SettingsSwitchRow label="Hitno može i tokom tihih sati" value={false} disabled
         reason="Prvo sačuvaj izmene." onChange={noop} last />
     </SettingsGroup>
     <SettingsGroup title="Stanje i osobe">
-      <SettingsInfo title="Obaveštenja na telefon su uključena" icon={<FactArt kind="phone" size={26} />}>Važi za Moje zadatke. Ovaj telefon je povezan sa tvojim nalogom.</SettingsInfo>
+      <SettingsInfo title="Obaveštenja su uključena" icon={<FactArt kind="phone" size={26} />}>Ovaj telefon je povezan sa tvojim nalogom.</SettingsInfo>
       <SettingsPersonRow name="Aleksandra Stojanović-Radovanović iz Novog Sada" initials="AS" onOpen={noop}
         action={{ label: 'Odblokiraj', onPress: noop }} />
       <SettingsPersonRow name="Ime nije dostupno" initials={null} onOpen={noop} action={{ label: 'Odblokiraj', onPress: noop, loading: true }} last />
@@ -253,7 +270,6 @@ const s = StyleSheet.create({
   groupTitle: { fontWeight: '600', paddingBottom: 4 },
   pick: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },
   pickLabel: { flex: 1 },
-  sets: { paddingHorizontal: 20, paddingTop: 4, gap: 8 },
   strip: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: sys.color.line,
     backgroundColor: sys.color.surface },
   stripBack: { paddingHorizontal: 0 },

@@ -5,6 +5,7 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import { cancellationOf, type AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { Press } from '../Press';
 import { useAppear } from '../system/Appear';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { ChromeIconButton } from '../system/ScreenChrome';
@@ -66,6 +67,8 @@ const waitingSpoken = (count: number) => `${dogovora(count)} ${count === 1 ? 'č
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
   const { items, section, confirmationOnly, loading, error, onOpen, onRate } = props;
+  // The pull spinner answers a pull only; a read of its own (a focus, a tab) does not raise it (the owner's "dot", 8 Oct 2026).
+  const pull = usePullRefresh(props.onRefresh, !!(props.refreshing ?? loading));
   // "Čeka tvoju potvrdu" narrows the active Dogovori only: nothing in history waits for a confirmation.
   const filtering = section === 'active' && confirmationOnly;
   // Istorija's chips: the route may keep the choice through the foreground gate; a list drawn without that keeps its own.
@@ -166,8 +169,8 @@ export function AgreementCollectionPresentation(props: Props) {
       </View>
       {chips || holdsStrip ? <View style={s.toolbar}>{chips}</View> : null}
     </View>
-    <FlatList<ListRow> data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={props.refreshing ?? loading}
-      onRefresh={props.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
+    <FlatList<ListRow> data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}
+      onRefresh={pull.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
       // Six of these cards are more than one phone screen; a modest window fills a fast scroll quickly.
       initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7} removeClippedSubviews={CLIP_OFFSCREEN}
       ItemSeparatorComponent={Separator} renderItem={renderItem} />

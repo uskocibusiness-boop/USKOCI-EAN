@@ -86,10 +86,14 @@ export default function MojePrijave() {
   const izvor = useIzvor(), router = useRouter();
   // "Zadatak je izmenjen — proveri svoju prijavu" used to land on the list and stop there, leaving
   // the person to find which of their applications it meant. The notification knows; it now says.
-  const params = useLocalSearchParams<{ prijavaId?: string | string[] }>();
+  const params = useLocalSearchParams<{ prijavaId?: string | string[]; nova?: string | string[] }>();
   const named = typeof params.prijavaId === 'string' ? params.prijavaId : null;
+  // The receipt of an application that has just been sent opens this list with `nova=1` (the approved draft U8): that application is marked once, for
+  // this visit ("Poslata · upravo"). A notification names an application without it, and then nothing is marked.
+  const justSent = params.nova === '1';
   const landing = useRef<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [freshId, setFreshId] = useState<string | null>(null);
   // Paged builds only: a named application is not necessarily on the first page, so while it has not been met the rest of the set is read.
   const [landingActive, setLandingActive] = useState(false);
   const { user, accountRevision } = useSesija();
@@ -100,7 +104,7 @@ export default function MojePrijave() {
   const [, render] = useState(0), [resume, setResume] = useState(0);
   // A destination named by a notification takes precedence over a retained filter: the one set that holds every application is "Sve".
   useEffect(() => {
-    landing.current = named; setFocusId(null);
+    landing.current = named; setFocusId(null); setFreshId(null);
     if (ownApplicationsPagedBuilt() && named) { session.tab = 'all'; setLandingActive(true); render(v => v + 1); } else setLandingActive(false);
   }, [named]);
   const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
@@ -114,7 +118,7 @@ export default function MojePrijave() {
     retireConfirmation(); }, [session, retireConfirmation]);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.token++; clearReview(); render(v => v + 1);
-    return () => { session.focused = false; session.token++; session.readRevision++; session.reading = false; clearReview(); };
+    return () => { session.focused = false; session.token++; session.readRevision++; session.reading = false; clearReview(); setFreshId(null); };
   }, [session, clearReview]));
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
@@ -169,8 +173,8 @@ export default function MojePrijave() {
     // A new explicit destination takes precedence over a retained filter. Consume it once:
     // later tab choices and closing the review remain the person's own decisions.
     if (session.tab !== 'all' && session.tab !== applicationSection(row)) session.tab = 'all';
-    landing.current = null; session.expanded = id; setFocusId(id); setLandingActive(false); render(v => v + 1);
-  }, [data, session, named, editor.loading, accountCurrent, shownRows]);
+    landing.current = null; session.expanded = id; setFocusId(id); setFreshId(justSent ? id : null); setLandingActive(false); render(v => v + 1);
+  }, [data, session, named, justSent, editor.loading, accountCurrent, shownRows]);
   const token = session.token, revision = session.readRevision, editRevision = session.editRevision;
   const current = () => session.focused && session.active && token === session.token && revision === session.readRevision && accountCurrent();
   const rowCurrent = (p: MojaPrijavaProjekcija) => current() && shownRows.some(row => identity(row) === identity(p));
@@ -264,7 +268,7 @@ export default function MojePrijave() {
   return <><MyApplicationsPresentation rows={visible ? shownRows as MojaPrijavaProjekcija[] : []} loading={reading} paging={paged?.paging}
     unavailable={!data || (!!paged && paged.settled && paged.state.error)} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
-    focusId={visible ? focusId : null} requestedId={visible && wholeSetKnown ? named : null}
+    focusId={visible ? focusId : null} freshId={visible ? freshId : null} requestedId={visible && wholeSetKnown ? named : null}
     expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
     editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}

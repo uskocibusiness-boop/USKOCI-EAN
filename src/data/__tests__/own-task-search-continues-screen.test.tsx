@@ -63,7 +63,8 @@ const render = async () => { await act(async () => { tree = create(<Review />); 
 const presses = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType));
 const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
 const chips = () => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel);
-const sentence = () => tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.testID === 'own-task-next')[0]?.props.children ?? null;
+const said = (testID: string) => tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.testID === testID)[0]?.props.children ?? null;
+const notice = () => said('own-task-notice'), line = () => said('own-task-line');
 const texts = () => tree.root.findAll(node => node.type === ('T' as React.ElementType)).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(() => {
   jest.clearAllMocks();
@@ -72,9 +73,9 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('after a Dogovor was cancelled and the search is open, the page says so and what the task does now', async () => {
+it('after a Dogovor was cancelled and the search is open, the page says so and what the task has now', async () => {
   await render();
-  expect(sentence()).toBe('Dogovor je otkazan. Tvoj zadatak opet prima prijave.');
+  expect([notice(), line()]).toEqual(['Dogovor je otkazan', 'Nema prijava za izbor']);
   expect(chips()).toEqual(['Objavljen']); expect(brand()).toEqual([]);
   // Nothing was sent: this is the existing read, drawn.
   expect(mockReopen).not.toHaveBeenCalled();
@@ -84,7 +85,7 @@ it('where applications still wait, the one green action is another application, 
   mockNeed.mockResolvedValue(need({ stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 2 }));
   await render();
   expect(chips()).toEqual(['Bira se, 2']);
-  expect(String(sentence())).toMatch(/^Dogovor je otkazan\. Imaš 2 prijave\./);
+  expect([notice(), line()]).toEqual(['Dogovor je otkazan', '2 prijave']);
   expect(brand()).toEqual(['Izaberi drugu prijavu, 2 prijave za izbor']);
   await act(async () => presses().find(node => node.props.accessibilityLabel === 'Izaberi drugu prijavu, 2 prijave za izbor')!.props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: NEED } });
@@ -93,14 +94,15 @@ it('where applications still wait, the one green action is another application, 
 it('before the search state is read the page makes no claim about the past', async () => {
   mockRecoveryRead.mockResolvedValue({ ok: false, kod: 'SEARCH_STATE_UNAVAILABLE', poruka: 'Podaci trenutno nisu dostupni.' });
   await render();
-  expect(String(sentence() ?? '')).not.toMatch(/otkazan/);
+  expect(String(notice() ?? '')).not.toMatch(/otkazan/);
 });
 
 it('a search the owner closed survives the cancellation: the page says the Dogovor ended and offers to open the search, in right grammar', async () => {
+  // (the line is not drawn: a closed search takes no applications, and the search section says the rest)
   mockSearch.mockResolvedValue({ closed: true, closedAt: '2026-10-07T09:00:00Z' });
   mockRecoveryRead.mockResolvedValue({ ok: true, podatak: closedAndReopenable() });
   await render();
-  expect(sentence()).toBe('Dogovor je otkazan.');
+  expect([notice(), line()]).toEqual(['Dogovor je otkazan', null]);
   expect(texts()).toContain('0 od 2 dogovoreno · preostala potraga je zatvorena');
   expect(chips()).toEqual(['Objavljen']);
   expect(brand()).toEqual(['Ponovo traži ljude']);
@@ -128,6 +130,6 @@ it('while the screen\'s own section speaks for the search, the page adds no seco
   await render();
   expect(texts()).toContain('Potvrdi završetak zadatka');
   expect(chips()).toEqual(['Dogovoren']);
-  expect(sentence()).toBeNull();
+  expect(line()).toBeNull();
   expect(brand()).toEqual(['Otvori moje Dogovore']);
 });

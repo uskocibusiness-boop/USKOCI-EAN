@@ -44,13 +44,34 @@ it('names the zone only when it is not Serbian time', async () => {
   expect(texts()).toContain('Vremenska zona');
 });
 
-it('uses one empty label without legacy licence/team rows or an empty biography section', async () => {
+it('uses one empty label without legacy licence/team rows', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null } })} />); });
   const copy = texts();
   expect(copy).not.toMatch(/Još nije navedeno/);
-  // Three parts have nothing in them: the skills, the area, and the tools and vehicles (one word for the two lists).
-  expect(copy.split('Nije navedeno').length - 1).toBe(3);
+  // Four parts have nothing in them: the skills, the area, the tools and vehicles (one word for the two lists) and "O meni" (the name is no part of the review).
+  expect(copy.split('Nije navedeno').length - 1).toBe(4);
   expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
+});
+
+// ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, so the review has no row for the name, and "O meni" is the only part
+// of the identity group. Only an account with no name at all is told so, with the way to the one place it is written.
+it('has no row for the name, whatever the proposal carries', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { displayName: 'Pera peric' })} />); });
+  expect(texts().split(' | ')).not.toContain('Ime'); expect(texts()).not.toContain('Pera peric'); expect(texts()).not.toContain('Ime na profilu');
+});
+it('tells an account with no name to add it, and leads to the one place it is written', async () => {
+  const onAddName = jest.fn();
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Ime', 'Veštine'], canAccept: false }} onAddName={onAddName} />); });
+  const alert = tree.root.findAll(node => node.props.accessibilityRole === 'alert');
+  expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopuni: Ime naloga, Veštine.');
+  const add = tree.root.findAll(node => node.props.label === 'Dodaj ime');
+  expect(add.length).toBeGreaterThan(0); await act(async () => { add[0].props.onPress(); }); expect(onAddName).toHaveBeenCalledTimes(1);
+});
+it('does not offer the way to the name when the name is not what is missing or there is no place to go', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Veštine'], canAccept: false }} onAddName={jest.fn()} />); });
+  expect(tree.root.findAll(node => node.props.label === 'Dodaj ime')).toHaveLength(0);
+  await act(async () => tree.update(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Ime'], canAccept: false }} />));
+  expect(tree.root.findAll(node => node.props.label === 'Dodaj ime')).toHaveLength(0);
 });
 
 it('writes the year of a rule day only when it is not the current one', async () => {
@@ -71,12 +92,14 @@ it('shows a malformed rule day as it came instead of an invented date', async ()
 });
 
 
-it('says what the name and "O meni" do, without claiming verification or a score', async () => {
-  await act(async () => { tree = create(<WorkerAiReviewDetails review={review()} />); });
+it('says who reads "O meni", without claiming verification or a score, and only when there is a text to read', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { bio: 'Radim vikendom.' })} />); });
   const explanation = tree.root.findByProps({ testID: 'worker-matching-explanation' });
   const copy = explanation.children.filter(child => typeof child === 'string').join('');
-  expect(copy).toContain('vide osobe koje otvore tvoj profil'); expect(copy).toContain('ne menjaju koji ti zadaci stižu');
+  expect(copy).toContain('vide osobe koje otvore tvoj profil');
   expect(copy).not.toMatch(/licenc|kapacitet/); expect(copy).not.toMatch(/verifikovan|%|skor/i);
+  await act(async () => tree.update(<WorkerAiReviewDetails review={review()} />));
+  expect(tree.root.findAllByProps({ testID: 'worker-matching-explanation' })).toHaveLength(0);
 });
 
 it('summarizes only actual schedule rules and keeps paused rules and exceptions visible', async () => {

@@ -17,7 +17,7 @@ import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { recordBody, recordFlush } from './offer/RecordParts';
+import { RecordFoot, recordBody, recordFlush } from './offer/RecordParts';
 import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaModel, type PrijavaStatus } from './PrijavaCard';
 
 /**
@@ -28,12 +28,14 @@ import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, ty
  *   1. the person and the offer: the face (56), the name and the rating with the count it stands on, and the TOTAL on the right in
  *      the same row ("4.500" large, "RSD ukupno" under it): the owner's note is that the price belongs beside the person it is the
  *      price of. An amount nobody stored is words, never a figure ("Cena nije navedena");
- *   2. the term, always: the exact time the person proposed ("Predlog: …") or else the task's own, which then applies;
+ *   2. the term, always: the exact time the person can ("Može: …") or else the task's own, which then applies;
  *   3. how many people they bring, and what they have (a vehicle, a tool: "Ima: Kombi · Trake");
  *   4. one MARK, a dot and a few words, for what can be told from the fields and from nothing else: why the application cannot be
  *      chosen now (the server's own reasons), or, when the list is whole, that it is the lowest price or the best rating among the
  *      applications that can still be chosen. No mark when nothing is true: never a "best", never a guess;
- *   5. their message in quotes, two lines of it.
+ *   5. their message in quotes, two lines of it;
+ *   6. the foot, "Izaberi", for an application that can be chosen now: the one thing to do, a target of its own under a line (the approved
+ *      draft R4). It opens the application, where the choice is asked once more and made; the body opens it too.
  *
  * The state chip (Poslata, Viđena, Izabrana, Nije izabrana, Povučena) is only drawn when it says something: every application of the
  * list was sent, so "Poslata" is not repeated on each card, but "Viđena" (the server confirmed that this phone opened it), a chosen
@@ -136,12 +138,12 @@ export function candidateStatus(k: Pick<KandidatProjekcija, 'stanje'>): { text: 
 }
 
 /**
- * The term row: the exact time the person proposed, marked as theirs, or else the task's own term (which then applies, and is what
- * every card of the list says; the proposals are the cards that differ).
+ * The term row: the exact time the person can, in the draft's words ("Može: sub 10–14"), or else the task's own term (which then applies, and is
+ * what every card of the list says; the proposals are the cards that differ).
  */
 export function candidateTerm(k: Pick<KandidatProjekcija, 'predlozeniPocetak' | 'predlozeniKraj'>, timezone: string | null | undefined, taskTerm: string): string {
   const proposed = candidateTime(k, timezone);
-  return proposed ? `Predlog: ${proposed}` : taskTerm;
+  return proposed ? `Može: ${proposed}` : taskTerm;
 }
 
 /** The message's first 180 characters, for what is heard before the application is opened. */
@@ -175,7 +177,7 @@ export function candidateSpoken(k: KandidatProjekcija, taskTerm: string, timezon
   const preview = messagePreview(message);
   const price = candidateValue(k), proposed = candidateTime(k, timezone);
   return [prijavaStatusWord(candidateChip(k, viewed)), `${trust.spoken.charAt(0).toLocaleUpperCase('sr-Latn-RS')}${trust.spoken.slice(1)}`,
-    proposed ? `Predlog termina: ${proposed}` : `Termin: ${taskTerm}`, price.kind === 'amount' ? `Ponuda: ${price.amount} ${price.basis}` : UNPRICED, osoba(k.pokrivaMesta),
+    proposed ? `Može: ${proposed}` : `Termin: ${taskTerm}`, price.kind === 'amount' ? `Ponuda: ${price.amount} ${price.basis}` : UNPRICED, osoba(k.pokrivaMesta),
     has?.text ?? null,
     message ? `Poruka: „${preview.text}${preview.cut ? '…' : ''}“. Otvori prijavu za celu poruku` : null, reason?.text.replace(/\.$/, '') ?? measure ?? null]
     .filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join('. ').concat('.');
@@ -245,6 +247,8 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   const mark: { text: string; tone: CandidateMarkTone } | null = reason ? { text: reason.text, tone: reason.tone }
     : measure && k.stanje === 'SELECTABLE' ? { text: measure, tone: 'green' } : null;
   const total = <OfferedTotal value={value} stacked={stacked} />;
+  // The one thing to do with an offer that can be chosen now; any other offer (changed, full, closed, chosen, withdrawn) has none.
+  const choosable = k.stanje === 'SELECTABLE' && k.mozeIzabrati;
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={[recordFlush, k.stanje === 'SELECTED' && s.chosen]}>
       <Press accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
@@ -270,6 +274,8 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
           {message ? <T variant="note" tone="muted" numberOfLines={2}>{`„${message}“`}</T> : null}
         </View> : null}
       </Press>
+      {choosable ? <RecordFoot label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđuješ."
+        onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
     </Surface>
   </Animated.View>;
 });

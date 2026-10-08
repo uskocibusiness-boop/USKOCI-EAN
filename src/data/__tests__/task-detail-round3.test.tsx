@@ -23,8 +23,9 @@ import { NeedPresentation } from '../../ui/v2/NeedPresentation';
 
 /**
  * Task detail, pass 3 (owner step 5b, 2026-09-24): the task's name comes into the bar when its large title has scrolled
- * away, a stranger's task reads its facts and its poster together, says why applying is not possible, and keeps its
- * rare action behind "···"; my own task keeps every change behind "···" and the lifecycle's outcome under its title.
+ * away, a stranger's task reads its facts and its poster together, says why applying is not possible, and keeps sharing
+ * behind "···" while reporting the person is a red row of the page; my own task keeps every change ON the screen (the owner,
+ * 8 Oct 2026, rule J15: no "···" at all) and the lifecycle's outcome under its title.
  */
 let tree: ReactTestRenderer;
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockReduced = false; jest.restoreAllMocks(); });
@@ -98,8 +99,9 @@ describe('a stranger\'s task', () => {
     const at = (value: string) => all.findIndex(text => text.includes(value));
     // Owner, 2026-10-07: what was asked about the work, and what its owner answered, is read right after the work.
     // Owner, 8 Oct 2026 (the pick "Objavio kao kartica poverenja"): who posted it stands right under what, where and when.
-    // The page reads: name, the one amount, where, when, how many, who posted it, what the work is, what it asks, the questions, where it is.
-    const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '0/2',
+    // The page reads: name, what it pays, where, when, how many (in words, and only when it is more than one), who posted it, what the work is, what it asks,
+    // the questions, where it is.
+    const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', 'Traži 2 osobe',
       'Ana Anić', 'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Mesto', 'MAPA'].map(at);
     // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
     expect(order.every(index => index >= 0)).toBe(true);
@@ -116,26 +118,29 @@ describe('a stranger\'s task', () => {
     expect(texts()).toContain('Još nema ocena');
   });
 
-  it.each<{ name: string; patch: Partial<PrilikaProjekcija>; value: string; note: string | null; amount: boolean }>([
-    { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'Ukupno za ceo zadatak', amount: true },
-    { name: 'per-person price', patch: { osnovaCene: 'PER_PERSON' }, value: '9.000 RSD', note: 'Po osobi · ukupno 18.000 RSD', amount: true },
-    { name: 'offers', patch: { rezimCene: 'OFFERS', osnovaCene: 'PER_PERSON', ponudjenaCena: undefined },
-      value: 'Tražim ponude', note: 'Ukupan iznos predlažeš u prijavi.', amount: false },
-    { name: 'missing price', patch: { osnovaCene: 'TOTAL', ponudjenaCena: undefined }, value: 'Cena nije navedena', note: null, amount: false },
-  ])('keeps $name truthful and complete in the promoted terms', async ({ patch, value, note, amount }) => {
+  // What it pays is the FIRST FACT of the page, a row with its picture like where and when, and nothing explains it (the owner, 8 Oct 2026: no "Ukupan iznos
+  // predlažeš u prijavi."): the sum with what it buys, or the price tag's words; a word about money is never drawn in the sum's type.
+  it.each<{ name: string; patch: Partial<PrilikaProjekcija>; value: string; note: string | null; amount: boolean; label: string }>([
+    { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'ukupno', amount: true, label: 'Budžet 9.000 RSD ukupno' },
+    { name: 'per-person price', patch: { osnovaCene: 'PER_PERSON' }, value: '9.000 RSD', note: 'po osobi · ukupno 18.000 RSD', amount: true,
+      label: 'Budžet 9.000 RSD po osobi · ukupno 18.000 RSD' },
+    { name: 'offers', patch: { rezimCene: 'OFFERS', osnovaCene: 'PER_PERSON', ponudjenaCena: undefined }, value: 'Tražim ponude', note: null, amount: false, label: 'Tražim ponude' },
+    { name: 'missing price', patch: { osnovaCene: 'TOTAL', ponudjenaCena: undefined }, value: 'Cena nije navedena', note: null, amount: false, label: 'Cena nije navedena' },
+  ])('keeps $name truthful and complete in the promoted terms', async ({ patch, value, note, amount, label }) => {
     await render(<Stranger need={{ ...task, ...patch }} />);
     const copy = texts();
     expect(copy.filter(text => text === value)).toHaveLength(1);
-    // The one amount comes right after the name, before where, when and how many.
+    // What it pays comes right after the name, before where, when and how many.
     expect(copy.indexOf(value)).toBeGreaterThan(copy.indexOf('Selidba stana'));
     expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Beograd, Vračar'));
     expect(copy.indexOf(value)).toBeLessThan(copy.indexOf('Ana Anić'));
-    const label = `Cena: ${value}${note ? `, ${note}` : ''}`;
     expect(tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.accessibilityLabel === label)).toHaveLength(1);
     if (note) expect(copy).toContain(note);
-    else expect(copy).not.toContain('Ukupno za ceo zadatak');
+    expect(copy).not.toContain('Ukupno za ceo zadatak'); expect(joined()).not.toMatch(/Ukupan iznos predlažeš|Svako u prijavi/);
     const terms = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === value)[0];
-    expect(StyleSheet.flatten(terms.props.style).color).toBe(amount ? sys.color.money : sys.color.ink);
+    // The sum is money in its own type and colour; the words are a fact like the others, in the body type.
+    if (amount) expect(StyleSheet.flatten(terms.props.style).color).toBe(sys.color.money);
+    else { expect(terms.props.variant).toBe('body'); expect(terms.props.variant).not.toMatch(/price/); }
   });
 
   it('puts the poster in one record with a face of 56, and keeps the record one touch target', async () => {
@@ -201,17 +206,18 @@ describe('a stranger\'s task', () => {
     expect(brand()).toEqual(['Pošalji prijavu']);
   });
 
-  it('offers reporting the person who posted it behind "···", runs it once the menu has gone, and says when it fails', async () => {
+  it('offers reporting the person who posted it as a red row at the end of the page, not behind "···", runs it once, and says when it fails', async () => {
     const report = jest.fn();
     await render(<Stranger safety={{ onPress: report, busy: false, error: null }} />);
-    await openMenu();
-    const rows = menuItems();
-    // Updated in the review of step 5b: the row names the person, because beside "Pošalji prijavu" a bare "Prijavi"
-    // reads as "apply". It was "Prijavi ili blokiraj".
-    expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Prijavi ili blokiraj osobu']);
-    expect(StyleSheet.flatten(rows[0].findByType('T' as React.ElementType).props.style).color).toBe(sys.color.danger);
-    await act(async () => rows[0].props.onPress());
-    expect(report).toHaveBeenCalledTimes(1); expect(menuItems()).toHaveLength(0);
+    // Rule J15 (the owner, 8 Oct 2026): a way out that a person must find at once is on the screen. Nothing else is rare here, so there is no "···" either.
+    expect(byLabel('Više radnji')).toBeUndefined(); expect(menuItems()).toHaveLength(0);
+    // Updated in the review of step 5b: the row names the person, because beside "Pošalji prijavu" a bare "Prijavi" reads as "apply".
+    const row = byLabel('Prijavi ili blokiraj osobu')!;
+    expect(row.findAllByType('T' as React.ElementType)[0].props.tone).toBe('danger');
+    // It is the last thing of the page.
+    expect(presses().map(node => node.props.accessibilityLabel).filter(Boolean).slice(-2)).toEqual(['Prijavi ili blokiraj osobu', 'Pošalji prijavu']);
+    await act(async () => row.props.onPress());
+    expect(report).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<Stranger safety={{ onPress: report, busy: false, error: 'Korisnik trenutno nije dostupan.' }} />));
     expect(texts()).toContain('Korisnik trenutno nije dostupan.');
     // With the person's profile open, its sheet says the failure itself; the line under the poster would repeat it and
@@ -220,11 +226,21 @@ describe('a stranger\'s task', () => {
       requesterProfile={{ loading: true, data: null }} onCloseRequesterProfile={noop} />));
     expect(tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.tone === 'danger'
       && node.props.children === 'Korisnik trenutno nije dostupan.')).toHaveLength(0);
-    // My own task has nobody to report, and without a safety entry there is nothing rare: no "···" is drawn.
+    // My own task has nobody to report, and without a safety entry there is nothing to report: no row is drawn, and no "···" either.
     await act(async () => tree.update(<Stranger relation={{ kind: 'OWNER' }} safety={{ onPress: report, busy: false, error: null }} />));
-    expect(byLabel('Više radnji')).toBeUndefined();
+    expect(byLabel('Prijavi ili blokiraj osobu')).toBeUndefined(); expect(byLabel('Više radnji')).toBeUndefined();
     await act(async () => tree.update(<Stranger />));
-    expect(byLabel('Više radnji')).toBeUndefined();
+    expect(byLabel('Prijavi ili blokiraj osobu')).toBeUndefined(); expect(byLabel('Više radnji')).toBeUndefined();
+  });
+
+  it('keeps only sharing behind "···": the one thing that is rare', async () => {
+    const share = jest.fn();
+    await render(<Stranger onShare={share} safety={{ onPress: noop, busy: false, error: null }} />);
+    await openMenu();
+    expect(menuItems().map(row => row.props.accessibilityLabel)).toEqual(['Podeli']);
+    await act(async () => menuItems()[0].props.onPress()); expect(share).toHaveBeenCalledTimes(1);
+    // Reporting is on the page, once: not in the menu.
+    expect(presses().filter(node => node.props.accessibilityLabel === 'Prijavi ili blokiraj osobu')).toHaveLength(1);
   });
 });
 
@@ -259,17 +275,16 @@ describe('my own task', () => {
     await scrollTo(70); expect(shown()).toBe(true);
   });
 
-  it('keeps every change of the task behind "···": no "Upravljanje zadatkom" section, and each row reaches its own callback', async () => {
+  it('keeps every change of the task on the screen: no "···", no "Upravljanje zadatkom" section, and each button reaches its own callback', async () => {
     const edit = jest.fn(), cancel = jest.fn();
     await render(<Own value={mine()} onEdit={edit} lifecycleMenu={[cancelRow(cancel)]} />);
     expect(joined()).not.toContain('Upravljanje zadatkom');
-    expect(byLabel('Izmeni zadatak')).toBeUndefined(); expect(byLabel('Otkazivanje zadatka')).toBeUndefined();
-    await openMenu();
-    expect(menuItems().map(row => row.props.accessibilityLabel)).toEqual(['Izmeni zadatak', 'Otkaži zadatak']);
-    await act(async () => menuItems()[0].props.onPress()); expect(edit).toHaveBeenCalledTimes(1); expect(cancel).not.toHaveBeenCalled();
-    await openMenu();
-    const destructive = menuItems()[1];
-    expect(StyleSheet.flatten(destructive.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.danger);
+    expect(byLabel('Više radnji')).toBeUndefined(); expect(menuItems()).toHaveLength(0);
+    // The edit stands beside the state at the head of the page; the cancel is the last row, in the danger colour.
+    expect(presses().map(node => node.props.accessibilityLabel).filter(label => label === 'Izmeni zadatak' || label === 'Otkaži zadatak')).toEqual(['Izmeni zadatak', 'Otkaži zadatak']);
+    await act(async () => byLabel('Izmeni zadatak')!.props.onPress()); expect(edit).toHaveBeenCalledTimes(1); expect(cancel).not.toHaveBeenCalled();
+    const destructive = byLabel('Otkaži zadatak')!;
+    expect(destructive.findAllByType('T' as React.ElementType)[0].props.tone).toBe('danger');
     await act(async () => destructive.props.onPress()); expect(cancel).toHaveBeenCalledTimes(1);
   });
 
@@ -278,10 +293,10 @@ describe('my own task', () => {
     const partly = mine({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     await render(<Own value={partly} onCloseRemaining={close}
       lifecycleMenu={[{ key: 'agreements', label: 'Otvori moje Dogovore', icon: 'agreements', onPress: agreements }]} />);
-    await openMenu();
-    expect(menuItems().map(row => row.props.accessibilityLabel)).toEqual(['Otvori moje Dogovore', 'Ne traži više nikoga']);
-    expect(menuItems()[1].props.accessibilityHint).toBe('Dogovoreno je 1 od 2. Zatvara potragu za preostala mesta.');
-    await act(async () => menuItems()[1].props.onPress()); expect(close).toHaveBeenCalledTimes(1);
+    const rows = presses().map(node => node.props.accessibilityLabel).filter(label => label === 'Otvori moje Dogovore' || label === 'Ne traži više nikoga');
+    expect(rows).toEqual(['Otvori moje Dogovore', 'Ne traži više nikoga']);
+    expect(byLabel('Ne traži više nikoga')!.findAllByType('T' as React.ElementType)[0].props.tone).toBe('danger');
+    await act(async () => byLabel('Ne traži više nikoga')!.props.onPress()); expect(close).toHaveBeenCalledTimes(1);
     // Closed early, a task is never "Sva mesta su dogovorena", whatever state the server maps it to.
     await act(async () => tree.update(<Own value={{ ...partly, stanje: 'POPUNJENA' }} remainingClosed />));
     expect(joined()).toContain('1 od 2 dogovoreno · preostala potraga je zatvorena'); expect(joined()).not.toContain('Sva mesta su dogovorena');
@@ -303,11 +318,12 @@ describe('my own task', () => {
     }
   });
 
-  it('draws no "···" when nothing can be changed, and a disabled one while an action runs', async () => {
+  it('draws nothing to change when nothing can be changed, and every command waits grey while an action runs', async () => {
     await render(<Own value={mine({ stanje: 'ZATVORENA' })} />);
+    expect(byLabel('Više radnji')).toBeUndefined(); expect(byLabel('Izmeni zadatak')).toBeUndefined();
+    await act(async () => tree.update(<Own value={mine()} lifecycleMenu={[cancelRow(noop)]} busy />));
     expect(byLabel('Više radnji')).toBeUndefined();
-    await act(async () => tree.update(<Own value={mine()} busy />));
-    expect(byLabel('Više radnji')!.props.disabled).toBe(true);
+    expect(byLabel('Otkaži zadatak')!.props.disabled).toBe(true); expect(byLabel('Izmeni zadatak')!.props.disabled).toBe(true);
   });
 
   it('shows what happened to a sent command under the title, before the facts, never inside the menu', async () => {

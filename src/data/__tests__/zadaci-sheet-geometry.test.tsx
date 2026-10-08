@@ -2,12 +2,12 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { sys } from '../../ui/system/tokens';
 import { SHEET_SPRING } from '../../ui/product/ProductSheet';
-import { CONTROL_GAP, CONTROL_SIZE, ZOOM_WIDTH, controlsRowWidth, controlsTop, fullSheetTop, sheetEdge } from '../../ui/v2/discovery/mapClearBand';
+import { CONTROLS_FADE, CONTROL_GAP, CONTROL_SIZE, controlsFade, controlsReserve, controlsTop, fullSheetTop, sheetEdge } from '../../ui/v2/discovery/mapClearBand';
 import { SHEET_FULL, SHEET_HALF, SHEET_LOWERED, handleHint, listViewport, nextSheetIndex, snapHeights } from '../../ui/v2/discovery/sheetSnaps';
 
-// The Zadaci list sheet's heights, the handle's cycle and the row of map controls that rides the sheet, as arithmetic on measured
+// The Zadaci list sheet's heights, the handle's cycle and the row of the map's furniture that rides the sheet, as arithmetic on measured
 // pixels. The sheet itself (a drag, the spring on a phone) is checked on the device; what is pinned here is where it stops and
-// what stands above it.
+// what stands above it. (The owner's phone of 8 Oct 2026: the list goes all the way up, directly under the pill and the capsules; no + and −.)
 
 const mockSpring = jest.fn(), mockTiming = jest.fn();
 jest.mock('react-native-reanimated', () => {
@@ -49,11 +49,22 @@ describe('the three heights', () => {
     expect(snapHeights(body)).toEqual([68, 400, 660]);
   });
 
-  it('keep the full height below the strip: the map stays visible above the list', () => {
+  it('keep the full height directly under the tools: nothing of the map is left between them', () => {
     const [, , full] = snapHeights(body);
     expect(800 - Number(full)).toBe(body.fullTop);
-    // a taller strip (larger text, a wrapped credit line) shortens the full list and nothing else
+    // taller tools (larger text, a wrapped pill) shorten the full list and nothing else
     expect(snapHeights({ ...body, fullTop: 180 })).toEqual([68, 400, 620]);
+  });
+
+  it('make the half stop half of what the bottom navigation leaves, since the navigation lies over the sheet from half height up', () => {
+    // 800 high, a 72 high navigation: the sheet's top at half is where half of the 728 that the navigation leaves ends, 364 from the top
+    expect(snapHeights({ ...body, bar: 72 })).toEqual([68, 436, 660]);
+    expect(800 - Number(snapHeights({ ...body, bar: 72 })[1])).toBe(364);
+    // the lowest and the full stop do not move, and without a navigation (a gallery, a test) it is half the body as it was
+    expect(snapHeights({ ...body, bar: 72 })[0]).toBe(68); expect(snapHeights({ ...body, bar: 72 })[2]).toBe(660);
+    expect(snapHeights({ ...body, bar: 0 })).toEqual(snapHeights(body));
+    // never as tall as the full one, whatever the navigation says
+    expect(Number(snapHeights({ ...body, bar: 5000 })[1])).toBeLessThan(Number(snapHeights({ ...body, bar: 5000 })[2]));
   });
 
   it('never let half reach full or sink under the top line', () => {
@@ -72,28 +83,24 @@ describe('the three heights', () => {
   });
 
   it('give the list its own viewport: the full sheet less what stays pinned above the rows', () => {
-    expect(listViewport(660, 68, 58)).toBe(534);
-    expect(listViewport(660, 0, 58)).toBe(602); // a tall header scrolls with the rows, the chips stay pinned
-    expect(listViewport(40, 68, 58)).toBe(0);
+    expect(listViewport(660, 68)).toBe(592);
+    expect(listViewport(660, 0)).toBe(660); // a tall header scrolls with the rows
+    expect(listViewport(40, 68)).toBe(0);
   });
 });
 
-describe('the strip of map above the full list', () => {
-  it('stands between the search pill and the list, one row high, when there is a map or "U blizini"', () => {
-    expect(fullSheetTop(68, 12, 48, true)).toBe(68 + 12 + 48 + 12);
+describe('the full list stands directly under the tools', () => {
+  it('ends one gap under the pill and its capsules: no strip of map between them (the owner, 8 Oct 2026: "lista ide do vrha")', () => {
+    expect(fullSheetTop(134, 4)).toBe(138);
   });
 
-  it('is only the gap under the pill when there is neither', () => {
-    expect(fullSheetTop(68, 12, 48, false)).toBe(80);
-  });
-
-  it('grows with the row: a credit line that wraps makes the strip taller, never the controls overlap it', () => {
-    expect(fullSheetTop(68, 12, 64, true) - fullSheetTop(68, 12, 48, true)).toBe(16);
+  it('follows the tools: capsules that wrap, or a pill that grows at large text, only lower the top of the list', () => {
+    expect(fullSheetTop(150, 4) - fullSheetTop(134, 4)).toBe(16);
   });
 });
 
-describe('the row of map controls rides the sheet', () => {
-  const row = 48, gap = 12, minTop = 80; // the strip's top at the full stop
+describe('the row of the map\'s furniture rides the sheet', () => {
+  const row = 44, gap = 12, minTop = 146; // one gap under the tools, where the row ends when the sheet is full
 
   it('stands directly above the sheet, one gap up', () => {
     expect(controlsTop(sheetEdge(660, 800, 0), row, gap, minTop)).toBe(660 - gap - row);
@@ -106,17 +113,30 @@ describe('the row of map controls rides the sheet', () => {
     expect(at(300) - at(290)).toBe(10);
   });
 
-  it('ends in the strip when the sheet is full: never behind the list, never above the strip', () => {
-    const fullTop = fullSheetTop(68, gap, row, true); // 140
+  it('is held at the top of the map that is left while the list rises past it, and then it is gone (no map is left above a full list)', () => {
+    const fullTop = fullSheetTop(134, 4); // 138
     expect(controlsTop(sheetEdge(fullTop, 800, 0), row, gap, minTop)).toBe(minTop);
-    expect(minTop).toBe(68 + gap);
-    // a sheet dragged a little past its last stop (it cannot stretch, but a frame can arrive early) holds the row at the strip
+    expect(minTop).toBe(134 + gap);
+    // a sheet dragged a little past its last stop (it cannot stretch, but a frame can arrive early) holds the row at the same place
     expect(controlsTop(sheetEdge(fullTop - 30, 800, 0), row, gap, minTop)).toBe(minTop);
-    // the row's bottom stays above the list's top edge all the way
-    for (const top of [fullTop, 200, 400, 700]) {
+    // where the map leaves room for the row (the sheet's edge a row and a gap under the top), the row is on show
+    for (const top of [400, 700]) {
       const rowTop = controlsTop(sheetEdge(top, 800, 0), row, gap, minTop);
       expect(rowTop + row).toBeLessThanOrEqual(top - gap + 0.0001);
+      expect(controlsFade(sheetEdge(top, 800, 0), row, gap, minTop)).toBe(1);
     }
+  });
+
+  it('fades over CONTROLS_FADE as the list takes the map it stands on, and is gone when the list is up', () => {
+    expect(CONTROLS_FADE).toBe(24);
+    const at = (edge: number) => controlsFade(edge, row, gap, minTop);
+    expect(at(minTop + row + gap + CONTROLS_FADE)).toBe(1);          // the row fits with room to spare
+    expect(at(minTop + row + gap + CONTROLS_FADE / 2)).toBeCloseTo(0.5, 9);
+    expect(at(minTop + row + gap)).toBe(0);                          // the row would stand on the top of the map's room: nothing is left of the map
+    expect(at(fullSheetTop(134, 4))).toBe(0);                        // the full list: gone
+    expect(at(0)).toBe(0);
+    // a card at the bottom lifts the edge the row stands above: it is on show above it
+    expect(at(sheetEdge(799, 800, 300))).toBe(1);
   });
 
   it('stands above a pin card when the card lies higher than the sheet', () => {
@@ -129,12 +149,10 @@ describe('the row of map controls rides the sheet', () => {
     expect(sheetEdge(400, 800, -20)).toBe(400);
   });
 
-  it('is as wide as its controls: the zoom capsule, then "U blizini"', () => {
-    expect([CONTROL_SIZE, CONTROL_GAP, ZOOM_WIDTH]).toEqual([44, 8, 89]);
-    expect(controlsRowWidth(true, false)).toBe(89);
-    expect(controlsRowWidth(false, true)).toBe(44);
-    expect(controlsRowWidth(true, true)).toBe(89 + 8 + 44);
-    expect(controlsRowWidth(false, false)).toBe(0);
+  it('is the map\'s sources on the left and "moja lokacija" on the right (there are no zoom buttons): the sources keep clear of it', () => {
+    expect([CONTROL_SIZE, CONTROL_GAP]).toEqual([44, 8]);
+    expect(controlsReserve(true)).toBe(44 + 8);
+    expect(controlsReserve(false)).toBe(0);
   });
 });
 
@@ -188,9 +206,10 @@ describe('nothing overshoots', () => {
     expect(cover!.value).toBe(300);
   });
 
-  it('the row is placed from the sheet and the cover on the UI thread', async () => {
+  it('the row is placed from the sheet and the cover on the UI thread, and is on show while the list leaves it map to stand on', async () => {
     await render(0);
     expect(style!.transform[0].translateY).toBe(600 - 12 - 48);
+    expect((style as unknown as { opacity: number }).opacity).toBe(1);
     await act(async () => { (cover as { value: unknown }).value = 400; });
     await render(400, true);
     expect(style!.transform[0].translateY).toBe(400 - 12 - 48);

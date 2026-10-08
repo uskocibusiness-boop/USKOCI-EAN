@@ -25,7 +25,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'SettingsScreen', SettingsText: 'T', SettingsAction: 'Button',
-  // "Izmeni profil" (T4a, 2026-10-07) also draws the rows of "O meni" and the city under the name.
+  // "Lični podaci" (T4a, 2026-10-07; "Izmeni profil" until 8 Oct 2026) also draws the rows of "O meni" and the city under the name.
   SettingsGroup: 'SettingsGroup', SettingsRow: 'SettingsRow' }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 // One data source for the life of the test, as in the app: a source that is new on every render would restart the work-profile read on every render.
@@ -57,9 +57,11 @@ const cases: Kind[] = ['name', 'area'];
 const route = (kind: Kind) => kind === 'name' ? <Personal /> : <Area />;
 const frame = () => tree.root.findAll(node => ['SettingsScreen', 'WorkerProfileFrame'].includes(String(node.type)))[0];
 const back = async () => { await act(async () => { const p = frame().props; (p.onBack ?? p.back)(); }); };
+// The radius is chosen from the distances, one tap each (there is no numeric field any more): "50 km" is a change from the saved 25.
 const input = (kind: Kind) => kind === 'name' ? tree.root.findByProps({ accessibilityLabel: 'Ime za prikaz' })
-  : tree.root.findByProps({ label: 'Radijus rada u kilometrima' });
-const edit = async (kind: Kind) => { await act(async () => input(kind).props.onChangeText(kind === 'name' ? 'Novo ime' : '40')); };
+  : tree.root.findByProps({ accessibilityLabel: '50 km' });
+const edit = async (kind: Kind) => { await act(async () => kind === 'name' ? input(kind).props.onChangeText('Novo ime') : input(kind).props.onPress()); };
+const edited = (kind: Kind) => kind === 'name' ? input(kind).props.value === 'Novo ime' : input(kind).props.accessibilityState.checked === true;
 const tap = async (id: string) => { await act(async () => tree.root.findByProps({ testID: id }).props.onPress()); };
 async function render(kind: Kind) {
   mockEditor.data = kind === 'name' ? { displayName: 'Prethodno ime', revision: 'r1' }
@@ -77,7 +79,7 @@ it.each(cases)('%s: toolbar cancel preserves typed draft; Android Back asks agai
   await render(kind); await edit(kind); await back();
   expect(router.back).not.toHaveBeenCalled();
   await tap('confirm-sheet-cancel');
-  expect(input(kind).props.value).toBe(kind === 'name' ? 'Novo ime' : '40');
+  expect(edited(kind)).toBe(true);
   expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   let handled = false;
   await act(async () => { handled = mockBack.handlers.at(-1)!(); });

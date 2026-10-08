@@ -70,13 +70,14 @@ const press = (accessibilityLabel: string) => tree.root.findByProps({ accessibil
 const texts = () => tree.root.findAll(node => node.type === 'T' as React.ElementType)
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
-// Owner step 5b (2026-09-24): changing the task (edit, closing the remaining search, cancel, delete) moved from buttons at
-// the end of the screen into the bar's "···". A person opens the menu and picks the row; the row runs once the menu has
-// gone and reaches the same guarded callback and the same confirmation the button did. A draft ALSO draws "Izmeni nacrt" and "Obriši nacrt" as
-// visible rows (owner, 2026-10-07), so the row of the menu is the one that has the menu item's role.
-const fromMenu = async (label: string) => {
-  await act(async () => { press('Više radnji').props.onPress(); });
-  await act(async () => { tree.root.findByProps({ accessibilityLabel: label, accessibilityRole: 'menuitem' }).props.onPress(); });
+// Owner, 8 Oct 2026 (rule J15, "jedva se nađu"): what changes the task is on the screen and not behind a "···". The edit stands beside the state,
+// and what closes or removes something is a row at the end of the page. A person presses what she sees; it reaches the same guarded callback and
+// the same confirmation the menu's row did, and the page has no "···" to open.
+const visible = async (label: string) => {
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Više radnji' })).toHaveLength(0);
+  const control = tree.root.findAll(node => typeof node.props.onPress === 'function' && (node.props.label === label || node.props.accessibilityLabel === label))[0];
+  if (!control) throw new Error('Nothing on the screen is called ' + label);
+  await act(async () => { control.props.onPress(); });
 };
 // The confirmations were Alert.alert and are an in-app ConfirmSheet now. `confirmation()` is its confirm button, pressed
 // the way a person presses it; `retainedAnswer()` is the screen's own answer as the sheet holds it (the closure the Alert
@@ -109,7 +110,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled(); expect(sheets()).toHaveLength(0);
   });
   it('keeps manual conversation editing available without a separate draft confirmation', async () => {
-    await render(); await fromMenu('Izmeni nacrt');
+    await render(); await visible('Izmeni nacrt');
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
     expect(sheets()).toHaveLength(0); expect(mockPublish).not.toHaveBeenCalled();
   });
@@ -179,7 +180,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
   });
   it('preserves partial-search closure with one confirmed command and actual reread', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await fromMenu('Ne traži više nikoga'); expect(mockClose).not.toHaveBeenCalled(); mockSearch.mockResolvedValue({ closed: true });
+    await render(); await visible('Ne traži više nikoga'); expect(mockClose).not.toHaveBeenCalled(); mockSearch.mockResolvedValue({ closed: true });
     const action = confirmation(); await act(async () => { action(); action(); });
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockClose).toHaveBeenCalledWith(NEED, 7, expect.any(String)); expect(mockNeed).toHaveBeenCalledTimes(2);
   });
@@ -188,7 +189,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     // twice: the second call is refused by the screen's own guards (the token it retired, `canAct`) or by the editor's
     // write lock, whichever comes first. It does not single out the token; the next test does.
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
+    await render(); await visible('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
     const answer = retainedAnswer(); await act(async () => { answer(); answer(); });
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
@@ -196,9 +197,8 @@ describe('V5 saved Task enters the same single acceptance review', () => {
     // Round 2c (verifier vs, must 2): nothing else is in flight here (no editor write, no sheet latch on this closure), so
     // only the screen's dialog token can refuse it. It fails when `dialog.current !== confirmation ||` is removed.
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    // Reached through the "···" (owner step 5b), as the other tests here: this one came from round 2c alongside step 5b
-    // and still pressed the retired button, so it failed on the integrated base. The fence it proves is unchanged.
-    await render(); await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
+    // Reached through the visible row (rule J15), as the other tests here. The fence it proves is unchanged.
+    await render(); await visible('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true });
     const answer = retainedAnswer();
     await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
     expect(sheets()).toHaveLength(0);
@@ -207,7 +207,7 @@ describe('V5 saved Task enters the same single acceptance review', () => {
   it('keeps the question open with a busy confirm while the search is being closed, and closes it once that settles', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     const closing = deferred(); mockClose.mockReturnValueOnce(closing.promise);
-    await render(); await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true }); await confirm();
+    await render(); await visible('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true }); await confirm();
     expect(mockClose).toHaveBeenCalledTimes(1); expect(sheets()).toHaveLength(1);
     expect(sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
     await act(async () => closing.resolve(ok(null)));
@@ -220,32 +220,32 @@ describe('V5 saved Task enters the same single acceptance review', () => {
   ])('shows the answered remaining-search refusal on the real screen: %s', async (kod, poruka) => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     mockClose.mockResolvedValue({ ok: false, kod, poruka });
-    await render(); await fromMenu('Ne traži više nikoga'); await confirm();
+    await render(); await visible('Ne traži više nikoga'); await confirm();
     expect(texts()).toContain(poruka); expect(texts()).not.toContain('Ne znamo da li je potraga zatvorena');
     expect(mockClose).toHaveBeenCalledTimes(1); expect(mockNeed).toHaveBeenCalledTimes(1);
   });
   it('cancelling a confirmation sends nothing, and the same question can be asked again', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await fromMenu('Ne traži više nikoga');
+    await render(); await visible('Ne traži više nikoga');
     // Closing the search cannot be undone, so its confirm is drawn as the destructive one (as izvoz's withdrawals are).
     expect(sheet().props).toMatchObject({ title: 'Ne traži više nikoga?', confirmLabel: 'Zatvori potragu', cancelLabel: 'Odustani', tone: 'danger' });
     await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
     expect(sheets()).toHaveLength(0); expect(mockClose).not.toHaveBeenCalled();
     // The cancel path released the screen's dialog token, so the question opens again and its answer runs once.
-    mockSearch.mockResolvedValue({ closed: true }); await fromMenu('Ne traži više nikoga'); await confirm();
+    mockSearch.mockResolvedValue({ closed: true }); await visible('Ne traži više nikoga'); await confirm();
     expect(mockClose).toHaveBeenCalledTimes(1); expect(sheets()).toHaveLength(0);
   });
   it('keeps an unknown remaining-search result uncertain instead of echoing arbitrary text', async () => {
     mockNeed.mockResolvedValue({ ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
     mockClose.mockResolvedValue({ ok: false, kod: 'UNRECOGNIZED', poruka: 'PRIVATE_SQL' });
-    await render(); await fromMenu('Ne traži više nikoga'); await confirm();
+    await render(); await visible('Ne traži više nikoga'); await confirm();
     expect(texts()).toContain('Ne znamo da li je potraga zatvorena'); expect(texts()).not.toContain('PRIVATE_SQL');
     expect(mockClose).toHaveBeenCalledTimes(1);
   });
   it.each(['edit', 'remaining search'] as const)('retires retained published %s confirmation on blur', async action => {
     mockNeed.mockResolvedValue(action === 'edit' ? need(7, 'OBJAVLJENA')
       : { ...need(7, 'DELIMICNO_POPUNJENA'), pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } });
-    await render(); await fromMenu(action === 'edit' ? 'Izmeni zadatak' : 'Ne traži više nikoga');
+    await render(); await visible(action === 'edit' ? 'Izmeni zadatak' : 'Ne traži više nikoga');
     // Opening the edit can be walked back; closing the search cannot.
     expect(sheet().props.tone).toBe(action === 'edit' ? 'default' : 'danger');
     const retained = retainedAnswer(); mockFocused = false; await update(); expect(sheets()).toHaveLength(0);
@@ -272,8 +272,9 @@ describe('V2 saved Need presentation', () => {
     // "Mesto izvršenja" row that repeated the place a third time.
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Mesto izvršenja')).toHaveLength(0);
     // One line in the order of the trip, each stop's role heard rather than printed.
-    expect(texts()).toContain('Novi Sad  →  Beočin  →  Petrovaradin  →  Kamenica'); expect(texts()).toContain('Više stanica · Srbija');
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Više stanica: Polazište Novi Sad, Stanica 1 Beočin, Stanica 2 Petrovaradin, Odredište Kamenica, Srbija')).not.toHaveLength(0);
+    // The country is not a line of its own under the map any more (the owner's phone, 8 Oct 2026): what kind of trip it is, and the stops.
+    expect(texts()).toContain('Novi Sad  →  Beočin  →  Petrovaradin  →  Kamenica'); expect(texts()).toContain('Više stanica'); expect(texts()).not.toContain('Srbija');
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Više stanica: Polazište Novi Sad, Stanica 1 Beočin, Stanica 2 Petrovaradin, Odredište Kamenica')).not.toHaveLength(0);
     // A list reads as chips under its label, each item once per stored value, never a bullet under a bullet (2026-09-23).
     expect(texts()).not.toContain('•');
     // The place and the requirements are both visible at once.
@@ -282,12 +283,15 @@ describe('V2 saved Need presentation', () => {
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
     expect(texts()).not.toContain('Revizija 7');
   });
-  it('keeps one primary review action outside the scroll with bottom safe area', async () => {
-    await render(); const action = button('Pregledaj za objavu');
-    let parent = action.parent;
-    while (parent) { expect(parent.type).not.toBe('ScrollView'); parent = parent.parent; }
+  it('keeps one primary review action at the head of the page, in the block of the state, with the edit beside it and no "···"', async () => {
+    await render();
     expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom', 'left', 'right']);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
+    // There is no foot: the one green action is part of the first block, above every fact, and the edit is the visible secondary one beside it.
+    const copy = texts();
+    expect(copy.indexOf('Pregledaj za objavu')).toBeGreaterThan(-1); expect(copy.indexOf('Pregledaj za objavu')).toBeLessThan(copy.indexOf('Novi Sad'));
+    expect(tree.root.findAllByProps({ label: 'Izmeni nacrt' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Više radnji' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ label: 'Pregledaj prijave' })).toHaveLength(0);
     expect(texts()).not.toContain('HITNO');
     // A draft is private and nobody can have asked about it: no questions section, and nothing is read for it.
@@ -305,7 +309,7 @@ describe('V2 saved Need presentation', () => {
     expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
     // The read carries no selectable count here, so the page counts the total and says that it is the total: "Pogledaj", never
     // "Uporedi", and no number is drawn on the button.
-    expect(texts()).toContain('Imaš 3 prijave. Pogledaj ih.');
+    expect(texts()).toContain('3 prijave'); expect(texts()).not.toMatch(/Imaš 3|Pogledaj ih/);
     expect(button('Pogledaj prijave').props.count).toBeUndefined();
     expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType
       && node.props.accessibilityLabel === 'Pogledaj prijave, ukupno 3 prijave')).toHaveLength(1);
@@ -364,7 +368,7 @@ describe('V2 saved Need presentation', () => {
     const closing = deferred(); mockClose.mockReturnValueOnce(closing.promise);
     await render();
     expect(pressHost('Prikaži sva pitanja (4)')[0].props.disabled).toBe(false);
-    await fromMenu('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true }); await confirm();
+    await visible('Ne traži više nikoga'); mockSearch.mockResolvedValue({ closed: true }); await confirm();
     expect(pressHost('Prikaži sva pitanja (4)')[0].props.disabled).toBe(true);
     const kept = pressHost('Prikaži sva pitanja (4)')[0].props.onPress;
     await act(async () => kept()); expect(mockRouter.push).not.toHaveBeenCalled();

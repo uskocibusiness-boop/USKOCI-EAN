@@ -235,6 +235,7 @@ def wait_nodes(timeout=40, minimum=1, save_timeout=True, **criteria):
 def tap(prefer='bottom', timeout=40, hold_ms=0, **criteria):
     end = time.time() + timeout
     last_visible = 0
+    raised = False
     while time.time() < end:
         try:
             root, parent, _ = dump_tree()
@@ -248,6 +249,15 @@ def tap(prefer='bottom', timeout=40, hold_ms=0, **criteria):
                 if target is not None:
                     unique[target.attrib.get('bounds', str(id(target)))] = (target, parent)
             options = list(unique.values())
+            if not options and not raised and prefer == 'bottom' and (criteria.get('desc') or criteria.get('text')) in ('Početna', 'Zadaci', 'Dogovori', 'Prijave', 'Profil'):
+                # On Zadaci the bottom navigation is away while the list rests at its top line and comes back with the half height (the owner's phone, 8 Oct 2026):
+                # a tab asked for while the list is low raises the list by its own handle first, once.
+                handle = [n for n in root.iter() if n.attrib.get('resource-id') == 'list-count' and clickable_for(n, parent) is not None]
+                if handle:
+                    raised = True
+                    tap_node(handle[0], parent)
+                    time.sleep(1.2)
+                    continue
             if options:
                 options.sort(
                     key=lambda item: parse_bounds(item[0].attrib.get('bounds'))[1],

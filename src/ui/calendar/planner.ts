@@ -1,91 +1,94 @@
-import type { MojaPrijavaProjekcija, NeedScheduleProjection, PotrebaProjekcija } from '../../contracts/projections';
 import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { calendarInstant } from '../../lib/calendarTime';
-import { dogovora, prijava, zadataka } from '../system/plural';
 import type { StatusKey, StatusShape, StatusTone } from '../system/StatusChip';
-import { ROLE_REQUESTER, ROLE_WORKER, agendaCoverage, agendaFacts, agendaItems, agendaRole, agreementsWithoutExactTerm,
+import { LIST_FALLBACK_TITLE, ROLE_REQUESTER, ROLE_WORKER, agendaCoverage, agendaFacts, agendaItems, agendaRole, agreementsWithoutExactTerm,
   type AgendaAgreement, type AgendaItem, type AgendaState } from './agenda';
 import { overlapsInterval } from './calendarPresentation';
 import { instantMs, serbianDayRange } from './serbianDays';
 
 /**
- * "Raspored" (owner, 2026-10-07): ONE planner over everything of mine that has a time. The Dogovori (both sides, from the
- * worker schedule and the Dogovori list, `agenda.ts`), my own published tasks, and my open applications are brought to one
- * shape here, `PlannerEntry`, so the week strip, the day, the sections under it and the overlap line all read one list.
+ * "Raspored" (owner, 2026-10-07; narrowed 2026-10-08): the DOGOVORI of both sides, and nothing else. The owner's phone showed a schedule
+ * that mixed three things ("1 Dogovor · 6 zadataka": my published tasks, my applications and my Dogovori, under four chips and three
+ * words for "flexible"), and the decision was that a schedule is where a person looks to see WHEN something is agreed: Raspored is the
+ * Dogovori, my own tasks stay in "Moji zadaci" and my applications in "Moje prijave". A Dogovor with an accepted time stands on its day (a
+ * whole window, or its accepted start alone: "od 14:00", the way Početna writes it); one with none stands under "Termin još nije dogovoren"
+ * and asks for a term. Both are brought to one shape here, `PlannerEntry`, so the week strip, the day, the section under it and the overlap
+ * line all read one list. The section's name is true of everything in it: a Dogovor that has a start is never listed there (the owner's phone,
+ * 8 Oct 2026: "Od 9. okt · 17:00" under "Bez tačnog termina" was a date inside a heading that denied it).
  *
- * Nothing is invented. An entry is placed on a day only by exact instants the read gave (a Dogovor's accepted window, a task's
- * fixed window, an application's task window); a thing without them is listed in a section under its OWN words for its time
- * ("Fleksibilan raspon · …", "Termin nije dogovoren"), never parsed from a sentence and never put on a day. A task with one stored
- * bound keeps one bound, as Početna's "Raspored" does. Every day is a day of Serbian time (`serbianDays.ts`).
+ * Nothing is invented. An entry is placed on a day only by exact instants the read gave (a Dogovor's accepted window, or its accepted
+ * start); a Dogovor without them is listed under its OWN words for its time (only a stored end, "Do 9. okt · 17:00 · početak nije potvrđen"),
+ * never parsed from a sentence and never put on a day. Every day is a day of Serbian time (`serbianDays.ts`).
  *
  * Pure and dependency-light on purpose: no React and no native module, so the screens' pure helpers load in every suite.
  */
 
-export type PlannerKind = 'dogovor' | 'zadatak' | 'prijava';
-/** The chips under the week: "Sve · Dogovori · Moji zadaci · Moje prijave". */
-export type PlannerFilter = 'all' | PlannerKind;
-export const PLANNER_FILTERS: readonly { key: PlannerFilter; label: string }[] = [
-  { key: 'all', label: 'Sve' }, { key: 'dogovor', label: 'Dogovori' }, { key: 'zadatak', label: 'Moji zadaci' }, { key: 'prijava', label: 'Moje prijave' },
-];
-
 /**
  * Where a thing stands, said by the shared chip (`ui/system/StatusChip`). A state the chip's table has a word for is its key; the
- * few that it has not ("Čeka potvrdu", "U užem izboru", "Zadatak je izmenjen", "Zatvoren", "Zatvorena") carry their own word with
- * the shape and the tone the chip would give them, and are drawn by the same marks.
+ * few that it has not ("Čeka potvrdu", and the words of the Arhiva: "Zatvoren", "Zatvorena") carry their own word with the shape and
+ * the tone the chip would give them, and are drawn by the same marks.
  */
 export type PlannerStatus =
   | Readonly<{ key: StatusKey; detail?: string }>
   | Readonly<{ word: string; shape: StatusShape; tone: StatusTone; detail?: string }>;
 
-export const ROLE_APPLICANT = 'Tvoja prijava';
 export const PROBLEM_NOTE = 'Prijavljen je problem u Dogovoru';
-export const ATTENTION_NOTE = 'Prijava traži tvoju pažnju';
-export const NO_TERM_WORD = 'Termin nije dogovoren';
-export const TASK_FALLBACK_TITLE = 'Zadatak';
-export const APPLICATION_FALLBACK_TITLE = 'Prijava';
 
+/** One Dogovor of mine, placed on a day by its exact window or listed for lack of one. */
 export type PlannerEntry = Readonly<{
   key: string;
-  kind: PlannerKind;
-  /** What the row opens: the Dogovor's, the task's or the application's id. */
+  /** What the row opens: the Dogovor's id. */
   id: string;
-  /** A task: how many applications wait for a choice (the row then opens the candidates). */
-  choosing: number;
   title: string | null;
   fallbackTitle: string;
-  /**
-   * The stored bounds. With `exact` they are the term itself (both for a window, one for a lone bound, as stored); without it
-   * they are the flexible range the thing may happen in, or null when it names none.
-   */
+  /** The accepted window, whole or with one bound as stored; null for a Dogovor that has none. */
   startsAt: string | null;
   endsAt: string | null;
-  /** The thing has an exact term, so it stands on a day. */
+  /** The Dogovor has an exact term, so it stands on a day. */
   exact: boolean;
-  /** Its own words for its time, when it has no exact term to draw. */
+  /** Its own words for its time, when it has no exact term to draw; null when they would only say what the section says. */
   timeWord: string | null;
   status: PlannerStatus;
-  /** Something waits for me here: the orange ring in the week. */
+  /** Something waits for me here: the orange mark in the week. */
   waits: boolean;
   /** Over: drawn quiet, and a grey mark in the week. */
   done: boolean;
-  /** A term of mine that can collide with another one: an active Dogovor or an application. */
+  /** A term of mine that can collide with another one: an active Dogovor. */
   term: boolean;
-  /** The term is work I do (a Dogovor where I "Uskačeš", an application): the one kind that cannot be in two places. */
+  /** The term is work I do (a Dogovor where I "Uskačeš"): the one kind that cannot be in two places. */
   commitsMe: boolean;
   /** An orange line about it other than the overlap ("Prijavljen je problem u Dogovoru"). */
   note: string | null;
   role: string | null;
   person: string | null;
+  /** The other person's public profile id (a photo is read by it) and the letters that stand in for the photo; null when the read did not say. */
+  personProfileId: string | null;
+  personInitials: string | null;
   amount: string | null;
   place: string;
+  /** Nobody has proposed a term yet and none waits: the row offers "Predloži termin" (the same rule Početna asks it by). */
+  proposesTerm: boolean;
 }>;
 
 const tidy = (value: unknown): string | null => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') || null : null;
 /** The name a row goes by. */
 export const entryTitle = (entry: Pick<PlannerEntry, 'title' | 'fallbackTitle'>): string => entry.title ?? entry.fallbackTitle;
 
+/**
+ * A Dogovor's own words for its time, said once and in one voice. Under "Termin još nije dogovoren" the words "Termin nije dogovoren" /
+ * "Termin nije potvrđen" say what the heading says, so they are not drawn (null); the three ways the app used to say "flexible"
+ * ("Fleksibilan termin", "Fleksibilan raspon", "Fleksibilno") are the one word "Fleksibilno"; and the zero of a day that a phone's own
+ * date pattern writes ("Od 09. okt") is not written ("Od 9. okt"), the way `displayDate` writes it everywhere else.
+ */
+export function termWord(text: unknown): string | null {
+  const said = tidy(text);
+  if (!said || /^termin nije (dogovoren|potvrđen)\.?$/i.test(said)) return null;
+  return said.replace(/^fleksibilan (termin|raspon)/i, 'Fleksibilno').replace(/^fleksibilno/i, 'Fleksibilno')
+    .replace(/(^|[\s·])0(\d)\. (?=\p{L}{3})/gu, '$1$2. ');
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* One entry from each kind of read                                                                                    */
+/* One entry from each kind of Dogovor                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
@@ -107,65 +110,50 @@ function dogovorStatus(state: AgendaState, role: string | null, ratingDue: boole
 export function dogovorEntry(item: AgendaItem, now: Date = new Date()): PlannerEntry {
   const { status, waits } = dogovorStatus(item.state, item.role, item.ratingDue, item.startsAt, item.endsAt, now);
   const done = item.state === 'COMPLETED';
-  return { key: item.key, kind: 'dogovor', id: item.agreementId, choosing: 0, title: item.title, fallbackTitle: item.fallbackTitle,
+  return { key: item.key, id: item.agreementId, title: item.title, fallbackTitle: item.fallbackTitle,
     startsAt: item.startsAt, endsAt: item.endsAt, exact: true, timeWord: null, status, waits: waits || item.problem, done, term: !done,
     commitsMe: item.role === ROLE_WORKER, note: item.problem ? PROBLEM_NOTE : null,
-    role: item.role, person: item.person, amount: item.amount, place: item.place };
+    role: item.role, person: item.person, personProfileId: item.personProfileId, personInitials: item.personInitials,
+    amount: item.amount, place: item.place, proposesTerm: false };
 }
 
-/** An active Dogovor that has no exact window: it stands in a section under its own words for the term. */
+/**
+ * Whether the row may ask for a term: a confirmed Dogovor that has neither a window nor even an accepted start, with no change waiting
+ * to give it one. Both fields have to be there and be empty: a list that did not read the terms leaves them out, and that is not "no term".
+ * (The rule Početna asks "Predloži termin" by, written here so the planner stays free of the data layer.)
+ */
+const canProposeTerm = (agreement: AgendaAgreement): boolean => agreement.stanje === 'CONFIRMED' && agreement.tacanTermin === null
+  && agreement.prihvacenPocetak === null && !agreement.izmenaCeka;
+
+/**
+ * An active Dogovor that has an accepted START and no accepted end ("Od 14:00 · kraj nije potvrđen"): it has a day and an hour to say, so
+ * it stands on that day with the one bound it has ("od 14:00"), exactly as Početna writes the next appointment ("Sutra · od 10:00"). The
+ * end is never invented, and a lone start has no length, so it never collides with another term. Null when the Dogovor has a whole
+ * window (the schedule's way), no start, or the read did not say (`prihvacenPocetak` absent): nothing is placed that is not known.
+ */
+export function startOnlyDogovorEntry(agreement: AgendaAgreement, now: Date = new Date()): PlannerEntry | null {
+  const start = agreement.prihvacenPocetak;
+  if (agreement.tacanTermin !== null || typeof start !== 'string' || calendarInstant(start) === null) return null;
+  const facts = agendaFacts(agreement), role = agendaRole(agreement);
+  const { status, waits } = dogovorStatus(agreement.stanje as AgendaState, role, false, start, null, now);
+  const problem = agreement.problemOtvoren === true;
+  return { key: `agreement:${agreement.id}`, id: agreement.id, title: facts.title, fallbackTitle: LIST_FALLBACK_TITLE,
+    startsAt: start, endsAt: null, exact: true, timeWord: null, status, waits: waits || problem,
+    done: false, term: true, commitsMe: role === ROLE_WORKER, note: problem ? PROBLEM_NOTE : null,
+    role, person: facts.person, personProfileId: facts.personProfileId, personInitials: facts.personInitials,
+    amount: facts.amount, place: facts.place, proposesTerm: false };
+}
+
+/** An active Dogovor that has no accepted start and no exact window: it stands in a section under its own words for the term, and asks for one when it may. */
 export function looseDogovorEntry(agreement: AgendaAgreement, now: Date = new Date()): PlannerEntry {
   const facts = agendaFacts(agreement), role = agendaRole(agreement);
   const { status, waits } = dogovorStatus(agreement.stanje as AgendaState, role, false, null, null, now);
   const problem = agreement.problemOtvoren === true;
-  return { key: `loose:${agreement.id}`, kind: 'dogovor', id: agreement.id, choosing: 0, title: facts.title, fallbackTitle: 'Dogovor',
-    startsAt: null, endsAt: null, exact: false, timeWord: tidy(agreement.vremeTekst) ?? NO_TERM_WORD, status, waits: waits || problem,
+  return { key: `loose:${agreement.id}`, id: agreement.id, title: facts.title, fallbackTitle: LIST_FALLBACK_TITLE,
+    startsAt: null, endsAt: null, exact: false, timeWord: termWord(agreement.vremeTekst), status, waits: waits || problem,
     done: false, term: true, commitsMe: role === ROLE_WORKER, note: problem ? PROBLEM_NOTE : null,
-    role, person: facts.person, amount: facts.amount, place: facts.place };
-}
-
-/** The stored bounds of a schedule and whether they are an exact term (a fixed window, whole or with one bound as stored). */
-function readBounds(schedule: NeedScheduleProjection | null | undefined): { startsAt: string | null; endsAt: string | null; exact: boolean } {
-  const read = (value: string | null | undefined) => calendarInstant(value) !== null ? value as string : null;
-  const [startsAt, endsAt] = [read(schedule?.startsAt), read(schedule?.endsAt)];
-  if (startsAt !== null && endsAt !== null && calendarInstant(startsAt)! >= calendarInstant(endsAt)!) return { startsAt: null, endsAt: null, exact: false };
-  return { startsAt, endsAt, exact: schedule?.kind === 'FIXED_WINDOW' && (startsAt !== null || endsAt !== null) };
-}
-
-const TASK_OPEN: readonly PotrebaProjekcija['stanje'][] = ['OBJAVLJENA', 'CEKA_PRIJAVE', 'DELIMICNO_POPUNJENA'];
-/**
- * One of my own tasks that is still looking for people. A draft is private, a filled task is its Dogovori, and a closed one is
- * in the archive, so none of those is here (null). "Bira se · N" waits for me; a partly filled task says how far it is.
- */
-export function taskEntry(row: PotrebaProjekcija): PlannerEntry | null {
-  if (!TASK_OPEN.includes(row.stanje)) return null;
-  const choosing = Math.max(0, row.brojPrijavaZaIzbor ?? 0);
-  const status: PlannerStatus = choosing > 0 ? { key: 'task.choosing', detail: String(choosing) }
-    : row.stanje === 'DELIMICNO_POPUNJENA' ? { key: 'task.published', detail: `${row.pokrivenost.popunjeno} od ${row.pokrivenost.ukupno}` }
-      : { key: 'task.published' };
-  const bounds = readBounds(row.schedule);
-  return { key: `need:${row.id}`, kind: 'zadatak', id: row.id, choosing, title: tidy(row.naslov), fallbackTitle: TASK_FALLBACK_TITLE,
-    ...bounds, timeWord: bounds.exact ? null : tidy(row.vremeTekst), status, waits: choosing > 0, done: false, term: false, commitsMe: false,
-    note: null, role: ROLE_REQUESTER, person: null, amount: null, place: row.podrucjeTekst ?? '' };
-}
-
-const APPLICATION_OPEN: readonly MojaPrijavaProjekcija['stanje'][] = ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED'];
-/**
- * One of my applications that has not been answered. Selected ones are Dogovori, withdrawn and closed ones are in the archive
- * (null). It is information, not an obligation, until it is chosen: it is a term only so that two of my terms can be seen to collide.
- */
-export function applicationEntry(row: MojaPrijavaProjekcija): PlannerEntry | null {
-  if (!APPLICATION_OPEN.includes(row.stanje)) return null;
-  const stale = row.stanje === 'STALE_REVIEW_REQUIRED' || row.promenjenaPotreba;
-  const status: PlannerStatus = stale ? { word: 'Zadatak je izmenjen', shape: 'dot', tone: 'attention' }
-    : row.stanje === 'SHORTLISTED' ? { word: 'U užem izboru', shape: 'dot', tone: 'neutral' }
-      // The row says what it IS in its chip ("Prijava poslata", a ring: sent and waiting for someone else), so an application needs no
-      // second mark of its own - no dashed edge, no role line (composition spec 4.10).
-      : row.stanje === 'VIEWED' ? { word: 'Prijava viđena', shape: 'dot', tone: 'neutral' } : { word: 'Prijava poslata', shape: 'ring', tone: 'neutral' };
-  const bounds = readBounds(row.zadatak?.raspored);
-  return { key: `application:${row.prijavaId}`, kind: 'prijava', id: row.prijavaId, choosing: 0, title: tidy(row.naslov), fallbackTitle: APPLICATION_FALLBACK_TITLE,
-    ...bounds, timeWord: bounds.exact ? null : tidy(row.vremeTekst), status, waits: stale || row.traziPaznju, done: false, term: true, commitsMe: true,
-    note: !stale && row.traziPaznju ? ATTENTION_NOTE : null, role: ROLE_APPLICANT, person: null, amount: null, place: row.podrucjeTekst ?? '' };
+    role, person: facts.person, personProfileId: facts.personProfileId, personInitials: facts.personInitials,
+    amount: facts.amount, place: facts.place, proposesTerm: canProposeTerm(agreement) };
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -173,12 +161,10 @@ export function applicationEntry(row: MojaPrijavaProjekcija): PlannerEntry | nul
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 export type Planner = Readonly<{
-  /** Entries with an exact term that touches the window, in start order. They stand on days. */
+  /** Dogovori with an accepted time (a whole window, or a start alone) that touches the window, in start order. They stand on days. */
   placed: readonly PlannerEntry[];
-  /** Dogovori and tasks without an exact term: "Bez tačnog termina". */
+  /** Active Dogovori with no accepted start and no exact window: "Termin još nije dogovoren". */
   loose: readonly PlannerEntry[];
-  /** My open applications that cannot be put on a day: "Čekaju odgovor". */
-  pending: readonly PlannerEntry[];
 }>;
 
 /** The instant an entry is ordered by: its start, or its end when only that is stored. */
@@ -191,47 +177,29 @@ function touches(entry: Pick<PlannerEntry, 'startsAt' | 'endsAt'>, from: string,
   if (moment === null || begin === null || end === null) return false;
   return entry.startsAt !== null ? moment >= begin && moment < end : moment > begin && moment <= end;
 }
-/** Whether a flexible range reaches into the span; a range with one bound is open on the other side, one with none is always. */
-function reaches(entry: Pick<PlannerEntry, 'startsAt' | 'endsAt'>, from: string, to: string): boolean {
-  const [start, end, begin, over] = [calendarInstant(entry.startsAt), calendarInstant(entry.endsAt), calendarInstant(from), calendarInstant(to)];
-  if (begin === null || over === null) return false;
-  return (start === null || start < over) && (end === null || end > begin);
-}
 
 /**
- * Everything of mine that has a time, as the window sees it. `from` and `to` are the instants of the window the schedule was read
- * for. The Dogovori are the planner's own (`agendaItems`: the worker schedule is the authority for the work I do), a task or an
- * application with an exact term overlapping the window is placed, and the rest is listed. The Dogovori without an exact term are
- * listed only when the list says enough to know which they are (`agendaCoverage`): nothing is listed that is not known.
+ * My Dogovori, as the window sees them. `from` and `to` are the instants of the window the schedule was read for. The Dogovori are the
+ * planner's own (`agendaItems`: the worker schedule is the authority for the work I do); the ones without a whole window are known only
+ * when the list says enough to know which they are (`agendaCoverage`): nothing is listed that is not known. Of those, the ones with an
+ * accepted start stand on its day (when it falls in the window; a start outside it is for another week's read), the others are listed.
  */
-export function buildPlanner({ events, agreements, needs, applications, from, to, now = new Date() }: {
-  events: readonly WorkerCalendarEvent[]; agreements: readonly AgendaAgreement[] | null;
-  needs: readonly PotrebaProjekcija[] | null; applications: readonly MojaPrijavaProjekcija[] | null;
-  from: string; to: string; now?: Date;
+export function buildPlanner({ events, agreements, from, to, now = new Date() }: {
+  events: readonly WorkerCalendarEvent[]; agreements: readonly AgendaAgreement[] | null; from: string; to: string; now?: Date;
 }): Planner {
   const placed: PlannerEntry[] = agendaItems({ events, agreements, from, to }).map(item => dogovorEntry(item, now));
   const loose: PlannerEntry[] = [];
-  const pending: PlannerEntry[] = [];
   if (agreements && agendaCoverage(agreements, events) === 'full') {
-    loose.push(...agreementsWithoutExactTerm(agreements, events).map(agreement => looseDogovorEntry(agreement, now)));
-  }
-  for (const entry of (needs ?? []).map(taskEntry)) {
-    if (!entry) continue;
-    if (!entry.exact) loose.push(entry);
-    else if (touches(entry, from, to)) placed.push(entry);
-  }
-  for (const entry of (applications ?? []).map(applicationEntry)) {
-    if (!entry) continue;
-    if (!entry.exact) pending.push(entry);
-    else if (touches(entry, from, to)) placed.push(entry);
+    for (const agreement of agreementsWithoutExactTerm(agreements, events)) {
+      const started = startOnlyDogovorEntry(agreement, now);
+      if (!started) loose.push(looseDogovorEntry(agreement, now));
+      else if (touches(started, from, to)) placed.push(started);
+    }
   }
   // Stable: the Dogovori came in start order and title order, and what shares a start keeps the order it was given.
   placed.sort((a, b) => startOf(a) < startOf(b) ? -1 : startOf(a) > startOf(b) ? 1 : 0);
-  return { placed, loose, pending };
+  return { placed, loose };
 }
-
-export const filterEntries = (entries: readonly PlannerEntry[], filter: PlannerFilter): PlannerEntry[] =>
-  filter === 'all' ? [...entries] : entries.filter(entry => entry.kind === filter);
 
 /** Every entry that stands on a day of Serbian time, in start order. */
 export function entriesOnDay(placed: readonly PlannerEntry[], day: string): PlannerEntry[] {
@@ -239,31 +207,12 @@ export function entriesOnDay(placed: readonly PlannerEntry[], day: string): Plan
   return placed.filter(entry => entry.exact && touches(entry, from, to));
 }
 
-/** The "Bez tačnog termina" list for the week being looked at: what has no range, or a range that reaches into the week. */
-export function looseOnWeek(planner: Planner, week: { from: string; to: string }, filter: PlannerFilter): PlannerEntry[] {
-  return filterEntries(planner.loose, filter).filter(entry => reaches(entry, week.from, week.to));
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The week strip                                                                                                       */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
 /**
- * The one mark of a day, by what matters most: something waits for me (an orange ring), a Dogovor is on it (a green dot), an open
- * task or application of mine is on it (a dashed outline), only finished work is on it (a grey dot).
+ * The Dogovori that stand on each of the given days, in one pass over the days (the month grid asks for forty-odd of them at once):
+ * what a day's dots, its spoken name and its list all read. A day the planner did not read is the caller's to leave out.
  */
-export type DayMarkKind = 'waiting' | 'active' | 'open' | 'finished';
-
-export function markOf(entriesOfDay: readonly PlannerEntry[]): DayMarkKind | null {
-  if (entriesOfDay.some(entry => entry.waits)) return 'waiting';
-  if (entriesOfDay.some(entry => entry.kind === 'dogovor' && !entry.done)) return 'active';
-  if (entriesOfDay.some(entry => !entry.done)) return 'open';
-  return entriesOfDay.length ? 'finished' : null;
-}
-
-/** The mark of each of the given days; what the chip hides is not marked either, so the strip answers what the list will show. */
-export function dayMarks(placed: readonly PlannerEntry[], days: readonly string[], filter: PlannerFilter): Record<string, DayMarkKind | null> {
-  return Object.fromEntries(days.map(day => [day, markOf(filterEntries(entriesOnDay(placed, day), filter))]));
+export function entriesByDay(placed: readonly PlannerEntry[], days: readonly string[]): Record<string, PlannerEntry[]> {
+  return Object.fromEntries(days.map(day => [day, entriesOnDay(placed, day)]));
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -287,15 +236,5 @@ export function overlapNotes(entriesOfDay: readonly PlannerEntry[]): ReadonlyMap
   return notes;
 }
 
-/** What an empty day says, by the chip that is on. */
-export const EMPTY_DAY: Readonly<Record<PlannerFilter, string>> = {
-  all: 'Ništa nije zakazano za ovaj dan.', dogovor: 'Nema Dogovora za ovaj dan.',
-  zadatak: 'Nema tvojih zadataka za ovaj dan.', prijava: 'Nema prijava za ovaj dan.',
-};
-
-/** How many of each kind: "1 Dogovor · 2 zadatka", each count with the plural its noun needs, and a kind with none left out. */
-export function countsText(entries: readonly PlannerEntry[]): string {
-  const of = (kind: PlannerKind) => entries.filter(entry => entry.kind === kind).length;
-  const counts: [number, (count: number) => string][] = [[of('dogovor'), dogovora], [of('zadatak'), zadataka], [of('prijava'), prijava]];
-  return counts.filter(([count]) => count > 0).map(([count, say]) => say(count)).join(' · ');
-}
+/** What an empty day says. */
+export const EMPTY_DAY = 'Ništa nije zakazano za ovaj dan.';

@@ -162,8 +162,9 @@ describe('my application\'s face stacks its offer only in the resilience cases',
 });
 
 describe('what a screen reader hears does not depend on the layout', () => {
-  const HEARD_TASK = 'HITNO, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena';
-  const HEARD_MINE = 'Budžet 2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno';
+  // The count of people is said in words, and only when the task needs more than one ("0/1" meant nothing: the owner's phone of 8 Oct 2026).
+  const HEARD_TASK = 'HITNO, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, Potrebno vozilo: Kombi, Treba 2 osobe, Nikola Petrović, ocena 4,8, 12 ocena';
+  const HEARD_MINE = 'Budžet 2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, Treba 2 osobe';
   const HEARD_APPLICATION = 'Poslata, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.';
 
   it.each(WINDOWS)('width %s dp, text scale %s: the command name and every word are the same sentence', async (width, scale) => {

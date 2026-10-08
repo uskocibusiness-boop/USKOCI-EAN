@@ -147,11 +147,11 @@ describe('an entry that names a section of the overview', () => {
     expect(mockScrollTo).toHaveBeenCalledWith({ y: 320 - sys.space.sm, animated: true });
   });
 
-  it('chosen in the overview itself, an entry behaves exactly as before: no tab change', async () => {
+  it('chosen in the overview itself, from its own row (the overview has no "···"), it behaves as the entry does: no tab change', async () => {
     mockParams = { id: mockAgreementId };
     await render(base());
     expect(chat()).toHaveLength(0);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Više radnji' }).props.onPress());
+    expect(labels()).not.toContain('Više radnji');
     await act(async () => presses().find(node => node.props.accessibilityLabel === 'Prijavi problem')!.props.onPress());
     expect(chat()).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Opiši problem' }).length).toBeGreaterThan(0);

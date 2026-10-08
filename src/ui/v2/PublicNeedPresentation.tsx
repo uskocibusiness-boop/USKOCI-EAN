@@ -8,8 +8,10 @@ import { vreme } from '../../lib/vreme';
 import { DetailDescription, DetailRoute, routeAddsToArea, ProductFooterAction, ProductHeader,
   productPriceParts, useDetailMenu, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
+import { FactArt } from '../system/FactArt';
 import { FactRow } from '../system/FactRow';
 import { FlowFooter } from '../system/FlowFooter';
+import { ListRow } from '../system/ListRow';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
@@ -22,7 +24,7 @@ import { V2Action } from './V2Action';
 import type { TaskFitContext } from './detail/taskFit';
 import { useUrgencyClock } from './NeedUrgencyBadge';
 import { CardStatus } from './TaskFace';
-import { TaskDecisionFacts, TaskDecisionPrice, TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle,
+import { OFFERS_INFO, TaskDecisionFacts, TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle, TaskDecisionValue, TaskPlacePrivacy,
   applyActionLabel } from './detail/TaskDecision';
 
 /**
@@ -46,13 +48,15 @@ const relationStatus = (relation: TaskRelation): { text: string; quiet: boolean 
 export type { TaskFitContext };
 
 /**
- * A task somebody else posted, as a page read top to bottom (composition spec 2026-10-07, T3): its state when it has one, its name, the one
- * amount, where, when and how many, then what the work is, what it asks, what was asked about it, who posted it and where it is, parted by
- * space and never by a line. The same facts in the same words as its card in the list and on the map.
- * The name comes into the bar once the large title has scrolled away; sharing it and reporting the person who posted it wait behind the bar's
- * "···". The one action, chosen by what I am to this task, stays at the foot alone (no amount and no time beside it: both are above, in the
- * page), with the reason above it when it cannot be pressed. When I can apply it is "Pošalji prijavu" for a task with a fixed price and
- * "Pošalji ponudu" for one with none (owner, 8 Oct 2026); either opens the form of the application, it sends nothing.
+ * A task somebody else posted, as a page read top to bottom (composition spec 2026-10-07, T3): its state when it has one, its name, then what it
+ * pays, where, when and (only when it is more than one) how many people, as facts of one kind with their pictures, then what the work is, what it
+ * asks, what was asked about it, who posted it and where it is, parted by space and never by a line. The same facts in the same words as its card in
+ * the list and on the map.
+ * The name comes into the bar once the large title has scrolled away. Sharing it is rare and waits behind the bar's "···"; reporting or blocking the
+ * person who posted it is not hidden there but stands at the end of the page, in red (rule J15, the owner's "jedva se nađu", 8 Oct 2026). The one
+ * action, chosen by what I am to this task, stays at the foot alone (no amount and no time beside it: both are above, in the page), with the reason
+ * above it only when it cannot be pressed and the page does not say it already. When I can apply it is "Pošalji prijavu" for a task with a fixed
+ * price and "Pošalji ponudu" for one with none (owner, 8 Oct 2026); either opens the form of the application, it sends nothing.
  * Presentation only; the route owns reads, deadline and guards.
  */
 export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
@@ -85,28 +89,30 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   const ready = !!need && !loading && !error && !missing;
   // The stops of a route are public structure. They are shown only when they say more than the area the
   // facts already name: "Novi Sad · Novi Sad" under "Novi Sad" was the place a fourth time.
-  const route = need?.detalji?.geografija && !remote && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
-  const price = need ? productPriceParts(need, 'Ukupan iznos predlažeš u prijavi.') : null;
+  // The stops of a route only for a task that moves: a task done in one place has its place in the facts and on the map.
+  const moves = !!need?.detalji?.geografija && need.detalji.geografija.mode !== 'STATIONARY' && !remote;
+  const route = need && moves && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
+  // Whether the task names a sum decides the word of the one action ("Pošalji prijavu" or "Pošalji ponudu"); the sum itself is drawn by `TaskDecisionValue`.
+  const price = need ? productPriceParts(need, '') : null;
   // The server's own deadline, said only when there is one and a person can still apply before it.
   const deadline = canApply && typeof need?.rokZaPrijaveIso === 'string' ? vreme(need.rokZaPrijaveIso) : null;
   const scrollTitle = useDetailScrollTitle();
   const urgencyNow = useUrgencyClock([need?.urgency]);
-  // Sharing and reporting are rare, so they wait behind "···". My own task has nobody to report. The row names
-  // the person: on a screen whose action is "Pošalji prijavu", a bare "Prijavi" reads as "apply" (review of step 5b).
+  // Only sharing is rare enough for "···". Reporting or blocking the person is a way out that a person must find at once, so it is a row of the page (rule J15),
+  // and it names the person: on a screen whose action is "Pošalji prijavu", a bare "Prijavi" reads as "apply" (review of step 5b). My own task has nobody to report.
   const rare: SheetAction[] = [
-    ...(ready && onShare ? [{ key: 'share', label: 'Podeli', icon: 'send' as const, hint: 'Otvara deljenje sa naslovom i mestom zadatka, bez adrese.', onPress: onShare }] : []),
-    ...(ready && safety && relation.kind !== 'OWNER' ? [{ key: 'safety', label: 'Prijavi ili blokiraj osobu', icon: 'shield' as const,
-      destructive: true, disabled: safety.busy, hint: 'Prijava ili blokiranje osobe koja je objavila zadatak.', onPress: safety.onPress }] : []),
+    ...(ready && onShare ? [{ key: 'share', label: 'Podeli', icon: 'send' as const, onPress: onShare }] : []),
   ];
+  const reportable = ready && !!safety && relation.kind !== 'OWNER';
   const menu = useDetailMenu(rare, { disabled: busy });
   const status = ready ? relationStatus(relation) : null;
   const urgent = !!need?.urgency && ready;
   // The one foot: what I am to this task decides the one action, and the reason stands above it when there is one.
   const foot = !ready ? null : relation.kind === 'OWNER'
-    ? <FlowFooter reason="Ovo je tvoj zadatak. Ovako ga vide drugi.">
+    ? <FlowFooter>
       <ProductFooterAction label="Otvori svoj zadatak" onPress={onOwnTask} disabled={busy} /></FlowFooter>
     : relation.kind === 'APPLIED'
-      ? <FlowFooter reason={relation.agreementId ? 'Tvoja prijava je izabrana.' : 'Tvoja prijava na ovaj zadatak je već poslata.'}>
+      ? <FlowFooter>
         <ProductFooterAction label={relation.agreementId ? 'Otvori Dogovor' : 'Pogledaj svoju prijavu'} onPress={onOwnApplication} disabled={busy} /></FlowFooter>
       : relation.kind === 'UNKNOWN'
         ? <FlowFooter reason="Ne možemo da proverimo da li je ovo tvoj zadatak ili je prijava već poslata.">
@@ -140,8 +146,8 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
           {status || urgent ? <CardStatus status={status} urgency={need.urgency} now={urgencyNow} /> : null}
           <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
-          {price ? <TaskDecisionPrice price={price} offers={need.rezimCene === 'OFFERS'} /> : null}
           <View style={s.facts}>
+            <TaskDecisionValue need={need} offersInfo={OFFERS_INFO.worker} />
             <TaskDecisionFacts need={need} />
             {ready && fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa tvojim Dogovorom ${fit.overlapTitle}`} /> : null}
             {ready && typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0 ? <FactRow size="detail" art="map"
@@ -164,10 +170,13 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         {!remote && (map || route.length) ? <Section title="Mesto">
           <View style={s.place}>
             {map}
-            <FactRow art="lock" value="Približno područje. Tačna adresa se deli tek u Dogovoru." />
+            <TaskPlacePrivacy />
             {route.length ? <DetailRoute rows={route} /> : null}
           </View>
         </Section> : null}
+        {/* Reporting or blocking the person who posted the task: at the end of the page, in red, and not only behind "···" (rule J15). */}
+        {reportable ? <Section><ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi ili blokiraj osobu" accessibilityLabel="Prijavi ili blokiraj osobu"
+          tone="danger" disabled={busy || !!safety?.busy} last onPress={safety!.onPress} /></Section> : null}
       </> : null}
     </Screen>
     {menu.sheet}

@@ -6,7 +6,6 @@ import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { reviewFactProblem } from '../../data/reviewFactProblem';
-import { APPLICATION_PROMISE } from '../../data/ownTaskStanding';
 import { publishedTaskRoute, rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { aiNeedV2Izvor, izvor } from '../../data';
@@ -442,13 +441,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const publishWorking = editor.busy && publishing;
   // Everything else on the review waits while a save runs, another edit or the deadline is open, or an outcome is not read yet.
   const quietEdit = disabled || !!edit || !!locationEditor || deadlineEditor;
-  // One line ABOVE the publish button, in the foot: the first thing in its way, short (the full list is "Još treba" above), or what
-  // the tap does. A grey button always says why, and the reason stands over it, not under it, where it read as the next thing.
+  // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
+  // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
+  // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
   const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.'
     : edit ? 'Sačuvaj ili otkaži otvorenu izmenu.'
-      : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.'
-        : revising ? 'Objavljuješ izmenjenu verziju zadatka.'
-          : 'Objavljuješ ovu verziju zadatka.';
+      : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
@@ -537,7 +535,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
   if (momentOpen && command && review) return <PublishedMoment
     title={revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.'}
-    line={revising ? 'Prijave stižu ovde.' : APPLICATION_PROMISE.published}
     onContinue={openPublished} />;
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
@@ -598,7 +595,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />;
   // The one foot. A review that is read has its reason ABOVE the green button; a stored command has none, because the note at the top says
   // what is known. The one quiet action under the green one is "Sačuvaj nacrt" (or the check, when an outcome is not known).
-  const footer = !review ? null : <FlowFooter reason={command ? undefined : caption}>
+  const footer = !review ? null : <FlowFooter reason={command ? undefined : caption ?? undefined}>
     {/* A draft opened from "Nacrti" is deleted by the lifecycle's own command, as on the draft's screen: its question, its sending and
         its outcome are drawn here, where the person is looking, and everything else on the screen waits while it is on. */}
     {draftNeed && !command ? <NeedLifecycleActions need={draftNeed} needId={draftNeed.id} menu={lifecycleMenu}

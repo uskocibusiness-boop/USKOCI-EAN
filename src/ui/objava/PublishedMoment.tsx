@@ -14,8 +14,8 @@ import { sys } from '../system/tokens';
  * server has confirmed. Until 2026-10-07 the success was replaced by the jump to the map in the same breath, so nobody ever saw it. The
  * moment is the paper with a pin and a pencil (144, the picture of a task laid on the table), which settles in once as the picture of an
  * empty state does (`Arrive`); the pill "Objavljen" then falls onto it beside the title like a stamp (`Pecat`: tilted, 140 ms, no bounce, one
- * light tick as it lands); what happened, one grey line about what comes next, and ONE green way on. Nothing else moves and nothing else is
- * said. Under reduced motion the picture and the pill are there at once and the tick stays (a tick is an outcome, not movement).
+ * light tick as it lands); what happened and ONE green way on. Nothing else moves and nothing else is said (the owner, 8 Oct 2026: the grey line about
+ * where the applications can be seen, "Prijave vidiš ovde i u zvoncu.", explained what the green action already is). Under reduced motion the picture and the pill are there at once and the tick stays (a tick is an outcome, not movement).
  *
  * It holds `PUBLISHED_MOMENT_MS` when left alone and then continues by itself; a tap on the green action, or Android Back (the
  * route wires that), continues at once. It never blocks the way on. A screen reader is not hurried: while one is on, the moment
@@ -40,11 +40,9 @@ function useScreenReaderOn(): boolean {
   return on;
 }
 
-export function PublishedMoment({ title, line, actionLabel = 'Otvori zadatak', onContinue }: {
+export function PublishedMoment({ title, actionLabel = 'Otvori zadatak', onContinue }: {
   /** What happened, as a sentence: "Zadatak je objavljen." */
   title: string;
-  /** What happens next, in one grey sentence that is true: `APPLICATION_PROMISE.published` (`data/ownTaskStanding`), what the app can promise today. */
-  line: string;
   actionLabel?: string;
   /** Goes on to the task. Called at most once per tap or timer; the route's own fence decides whether it may. */
   onContinue: () => void;
@@ -66,7 +64,6 @@ export function PublishedMoment({ title, line, actionLabel = 'Otvori zadatak', o
           {/* The state word of a task that is now live, falling on the paper as the picture finishes settling. */}
           <Pecat label="Objavljen" tone="green" play delay={sys.motion.arrive.duration} />
         </View>
-        <T variant="copy" tone="muted" style={s.line}>{line}</T>
       </View>
       <V2Action kind="primary" label={actionLabel} onPress={onContinue} style={s.action} />
     </View>
@@ -80,6 +77,5 @@ const s = StyleSheet.create({
   words: { alignItems: 'center', gap: sys.space.sm, maxWidth: 320 },
   heading: { alignItems: 'center', gap: sys.space.md },
   title: { color: sys.color.ink, textAlign: 'center' },
-  line: { textAlign: 'center' },
   action: { alignSelf: 'center', maxWidth: 320, width: '100%' },
 });

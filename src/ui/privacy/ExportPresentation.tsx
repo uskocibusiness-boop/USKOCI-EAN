@@ -145,10 +145,13 @@ export function ExportNoticeLine({ text, tone }: { text: string; tone: NoticeTon
 
 /**
  * Izvoz podataka (round 5, owner step 11b; UI/UX pass 2026-10-08, F6, composition spec 4.15): the copy's state as the content of one
- * section, with no card around it: its status chip and the steps of the copy as one track, "Osveži" as the one word at the end of the
- * section's title; the one action for this state pinned in the foot with the outcome line right above it; and the rare withdrawals in
- * the scroll as red rows (a command, not a way onward). Presentation only: the route owns every read, command, fence and label of the
- * foot's action.
+ * section, with no card around it: its status chip and the steps of the copy as one track; the one action for this state pinned in the foot
+ * with the outcome line right above it; and the rare withdrawals in the scroll as red rows (a command, not a way onward).
+ *
+ * Until a copy has been asked for there is nothing to track, so there is no chip "Nije traženo" and no three grey steps that said what had not
+ * happened (owner's phone, 8 Oct 2026): the screen is ONE sentence and the green action, and the steps appear once the request is sent. The
+ * state is read again by pulling the screen, not by a standing "Osveži" (the retry of a failed read keeps its button). Presentation only: the
+ * route owns every read, command, fence and label of the foot's action.
  */
 export function ExportScreenView({ onBack, loading, failure, status, preparation, now, busy, notice, primary,
   onCancel, onRevoke, onRefresh, refreshDisabled }: {
@@ -162,18 +165,18 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
   const request = status?.request;
   const noticeLine = notice ? <ExportNoticeLine text={notice.text} tone={notice.tone} /> : null;
   const phase = exportPhase(status, now);
-  // A re-read keeps what was read on screen: the word at the end of the title says it is at work, and does nothing meanwhile.
-  const refresh = { label: loading ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži stanje izvoza',
-    onPress: () => { if (!busy && !loading && !refreshDisabled) onRefresh(); } };
-  return <SettingsScreen title="Izvoz podataka" onBack={onBack} footer={primary ? <>{noticeLine}{primary}</> : null}>
+  // A re-read keeps what was read on screen: it is the pull of the screen, and does nothing while another read is at work.
+  return <SettingsScreen title="Izvoz podataka" onBack={onBack} footer={primary ? <>{noticeLine}{primary}</> : null}
+    refresh={{ onRefresh: () => { if (!busy && !loading && !refreshDisabled) onRefresh(); }, busy: loading }}>
     {notice && !primary ? noticeLine : null}
     {/* The skeleton is for the first read. A re-read keeps the steps on screen: the word at the end of the title shows it works. */}
     {loading && !status ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
       // The sentences of a failure end in "Osveži stanje.", so the one retry says the same words.
       : failure ? <StateView kind="error" art="download" title={failure.title} body={failure.body}
         primary={{ label: 'Osveži stanje', onPress: onRefresh, disabled: refreshDisabled }} />
+      : phase === 'NONE' ? <StateView kind="empty" art="download" title="Zatraži kopiju podataka svog naloga i preuzmi je kad bude spremna." />
       : <>
-        <SettingsGroup title="Tvoja kopija" action={refresh}>
+        <SettingsGroup title="Tvoja kopija">
           <View style={s.track}>
             <ExportStatusChip phase={phase} />
             <ExportStepper steps={exportSteps(phase, status)} />

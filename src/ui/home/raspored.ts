@@ -141,9 +141,11 @@ export type HomeRaspored = Readonly<{ when: string; spoken: string; more: string
 
 /**
  * The block for the featured appointment. `others` are the other appointments that are not over yet; only those with an
- * exact window are counted as "this week" (a lone start is counted with the Dogovori that have no exact term, so it is
- * said once). `loose` counts the active Dogovori the schedule ahead has no day for (see `LooseCounts`). The agreed time
- * is always read in Serbian time; `phoneZone` only decides whether that is said in words, by the planner's own rule.
+ * exact window are counted as "this week" (a lone start is not counted here: it has no length to say). The card's one grey line says
+ * that and nothing else: the Dogovori the schedule ahead has no day for (`loose`, see `LooseCounts`) were counted in it as well, and the
+ * owner's phone (8 Oct 2026: "natrpano, previše teksta") showed them as a long line of counts under the person. They are asked for
+ * under "Čeka te" and listed in Raspored, under "Termin još nije dogovoren"; `loose` stays in the signature for the snapshot that
+ * counts them. The agreed time is always read in Serbian time; `phoneZone` only decides whether that is said in words, by the planner's own rule.
  */
 export function rasporedOf(featured: AcceptedTerm, others: readonly AcceptedTerm[], loose: LooseCounts, now: Date,
   phoneZone: string | undefined): HomeRaspored | null {
@@ -151,14 +153,15 @@ export function rasporedOf(featured: AcceptedTerm, others: readonly AcceptedTerm
   if (!when) return null;
   const week = serbianWeek(now);
   const thisWeek = week ? others.filter(term => term.endAt !== null && inWeek(term, week)).length : 0;
-  return { when: when.text, spoken: when.spoken, more: moreLine(thisWeek, loose.withoutTerm, loose.awaitingFinish),
+  return { when: when.text, spoken: when.spoken, more: moreLine(thisWeek, 0, 0),
     zone: showScheduleZone(DOGOVORENA_ZONA, phoneZone) ? scheduleZone(DOGOVORENA_ZONA) : null };
 }
 
 /**
- * The active Dogovori the planner lists as "bez tačnog termina", except the featured one (none is left out when `featuredId`
- * is null): the same rule as the planner's own foot (`withoutExactTerm`), so the number on Početna is the number behind
- * "Ceo raspored". Nothing is counted that is not known.
+ * The active Dogovori that have no whole exact window, except the featured one (none is left out when `featuredId` is null): the
+ * rule of `withoutExactTerm`. Since 8 Oct 2026 Početna draws no count of them (the quiet line was a weak row), and Raspored lists
+ * under "Termin još nije dogovoren" only those with no accepted start either, so this number is the snapshot's own, not a number
+ * any screen shows. Nothing is counted that is not known.
  */
 export function withoutTermCount(agreements: readonly DogovorProjekcija[], featuredId: string | null = null): number {
   return withoutExactTerm(featuredId === null ? agreements : agreements.filter(row => row.id !== featuredId), []);

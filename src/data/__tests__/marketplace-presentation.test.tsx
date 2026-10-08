@@ -58,7 +58,8 @@ let snapshot: MarketplaceView, initial: MarketplaceView; const open = jest.fn(),
 let withBack = false; const back = jest.fn();
 function Screen() { const [view, setView] = useState(initial); snapshot = view; return <MarketplacePresentation items={rows} loading={loading} error={error} view={view} onView={setView} onOpen={open} onRefresh={refresh} onProfile={() => {}} onNew={allowNew ? newTask : undefined} onExplore={allowExplore ? explore : undefined} onBack={withBack ? back : undefined} onApplications={applications} />; }
 let tree: ReactTestRenderer;
-const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
+// What is pressed, not what is only named alike: a row of facts says "Tražim ponude" too, and is not a button.
+const press = (label: string) => tree.root.findAll(node => node.props.accessibilityLabel === label && typeof node.props.onPress === 'function')[0] ?? tree.root.findByProps({ accessibilityLabel: label });
 const action = (label: string) => tree.root.findByProps({ label });
 const tap = async (label: string) => act(async () => press(label).props.onPress());
 const click = async (label: string) => act(async () => (label === 'Prikaži zadatke'
@@ -353,13 +354,13 @@ describe('the empty states', () => {
   withBack = true; rows = []; await render();
   expect(texts()).toContain('Još nemaš zadatak'); expect(texts()).toContain('Reci šta ti treba. Nacrt pregledaš pre objave.');
   expect(pictures().map(node => [node.props.kind, node.props.size])).toEqual([['publish', 144]]);
-  await click('Objavi prvi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
+  await click('Objavi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
   await click('Pogledaj zadatke'); expect(explore).toHaveBeenCalledTimes(1);
   // The quiet way is drawn only when the screen can take the person there; a screen that cannot has the one green action.
   await act(async () => tree.unmount()); allowExplore = false; await render();
-  expect(tree.root.findAllByProps({ label: 'Pogledaj zadatke' })).toHaveLength(0); expect(action('Objavi prvi zadatak')).toBeTruthy();
+  expect(tree.root.findAllByProps({ label: 'Pogledaj zadatke' })).toHaveLength(0); expect(action('Objavi zadatak')).toBeTruthy();
   await act(async () => tree.unmount()); allowNew = false; await render();
-  expect(tree.root.findAllByProps({ label: 'Objavi prvi zadatak' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Objavi zadatak' })).toHaveLength(0);
  });
 
  test('nothing is active but there are drafts or finished tasks: it says so once, offers the next task and the two rows are right under it', async () => {
@@ -423,7 +424,7 @@ test('my own tasks carry no floating creation action and no eyebrow; an empty li
  await act(async () => tree.unmount()); rows = []; await render();
  // The same words as Početna's "Moji zadaci" door for an account with no task: "Zadatak" is the product's noun.
  expect(texts()).toContain('Još nemaš zadatak');
- await click('Objavi prvi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
+ await click('Objavi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
 });
 
 // One task card (step 5a, 2026-09-24): on my own list the card's foot goes straight to the applications waiting for my
@@ -431,16 +432,16 @@ test('my own tasks carry no floating creation action and no eyebrow; an empty li
 test('my own task\'s foot opens its applications with that row; the body still opens the task', async () => {
  withBack = true; rows = [row('one', { stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 2 }), row('two', { stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 })];
  await render();
- const foot = 'Imaš 2 prijave. Uporedi ih i izaberi. Zadatak: Pomoć one';
+ const foot = 'Pogledaj prijave, 2 prijave. Zadatak: Pomoć one';
  expect(tree.root.findAllByProps({ accessibilityLabel: foot }).length).toBeGreaterThan(0);
  expect(press(foot).props.accessibilityHint).toBe('Otvara prijave za izbor.');
  await tap(foot); expect(applications).toHaveBeenCalledWith(rows[0]); expect(open).not.toHaveBeenCalled();
  await tap('Otvori zadatak Pomoć one'); expect(open).toHaveBeenCalledWith(rows[0]); expect(applications).toHaveBeenCalledTimes(1);
- // The next step is said in grey words, and the foot says it as it is written: no "N prijava čeka izbor", no "Čeka prijave" that reads as "has none".
- expect(texts()).toContain('Imaš 2 prijave. Uporedi ih i izaberi.');
+ // The line is data in grey words, and the foot says it as it is written: no "N prijava čeka izbor", no "Čeka prijave" that reads as "has none".
+ expect(texts()).toContain('2 prijave');
  expect(texts()).not.toMatch(/čeka izbor|čekaju izbor|Čeka prijave/);
  // Nothing to choose is said quietly and is not a target.
- expect(texts()).toContain('Čekaš prijave. Vidiš ih ovde i u zvoncu.');
+ expect(texts()).toContain('Još nema prijava'); expect(texts()).not.toMatch(/zvonc|Vidiš ih|Uporedi ih/);
  expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pomoć two') && node.props.accessibilityLabel !== 'Otvori zadatak Pomoć two' && typeof node.props.onPress === 'function')).toHaveLength(0);
 });
 
@@ -456,11 +457,9 @@ test('every row says its state with the chip, in the owner\'s eight words, where
  // No row is without a state, and none says what the server never said: not "Zatvoren", not "Čeka prijave", not "Termin je sada".
  expect(words()).not.toContain('Zatvoren'); expect(texts()).not.toMatch(/Čeka prijave|Termin je sada|Delimično popunjen|Popunjen/);
  expect(cards()).toHaveLength(9);
- // One next step, in grey words, where there is one.
- expect(texts()).toContain('Nacrt nije objavljen. Nastavi uređivanje.'); expect(texts()).toContain('Čekaš prijave. Vidiš ih ovde i u zvoncu.');
- expect(texts()).toContain('Dogovoreno 1 od 2. Čekaš prijave za ostala mesta.'); expect(texts()).toContain('Sva mesta su dogovorena. Dogovor vidiš u Dogovorima.');
- expect(texts()).toContain('Dogovoreni termin je počeo. Dogovor vidiš u Dogovorima.');
- expect(texts()).toContain('Otkazan zadatak ne prima prijave.'); expect(texts()).toContain('Rok za prijave je istekao bez izbora.');
+ // One line of data, where there is one; what the chip already says is not said again and nothing explains.
+ expect(texts()).toContain('Još nema prijava'); expect(texts()).toContain('3 prijave');
+ expect(texts()).not.toMatch(/zvonc|Dogovor vidiš|Nastavi uređivanje|Sva mesta su dogovorena|Dogovoreni termin je počeo|Otkazan zadatak ne prima|Rok za prijave je istekao|Čekaš/);
  // The view of all of them has no tab, so the bar says what it is.
  expect(texts()).toContain('Svi zadaci');
 });

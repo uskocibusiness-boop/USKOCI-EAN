@@ -13,8 +13,10 @@ import { sys } from '../system/tokens';
  * profile and on the public one.
  *
  * Every figure is the server's or it is not drawn: a figure the server did not return (a reliability the viewer may not read, a rating
- * that is not available) leaves its place to the other two, and a figure that does not exist YET says so in words ("Nova ocena", "Još nema
- * procenta") instead of a zero nobody counted. Nothing here computes a figure; it only writes down what came back.
+ * that is not available) leaves its place to the other two, and a rating that does not exist YET says so in words ("Nova ocena") instead of
+ * a zero nobody counted. The person's own profile does not draw a reliability that does not exist yet either (owner's phone, 8 Oct 2026: what is
+ * not there is not drawn); `reliabilityFigure(null)` is only what a visitor's sheet still says for a person with too few Dogovori. Nothing here
+ * computes a figure; it only writes down what came back.
  */
 export type Figure = {
   /** The figure as the server gave it ("4,8", "9", "90 %"); null when there is none, and `word` says so. */

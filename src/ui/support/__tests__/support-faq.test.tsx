@@ -76,7 +76,7 @@ describe('the questions and answers', () => {
 
   it('names a button only by the words it has on its screen', () => {
     const named = [...new Set(all().match(/„([^“]+)“/g)?.map(quoted => quoted.slice(1, -1)))];
-    expect(named.sort()).toEqual(['Izmene i otkazivanje', 'Prijavi ili blokiraj osobu', 'Prijavi problem', 'Zadatak je gotov']);
+    expect(named.sort()).toEqual(['Izmeni uslove', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu', 'Prijavi problem', 'Zadatak je gotov']);
     const sources = sourceFiles('src').filter(file => !file.endsWith('SupportFaq.tsx') && !file.includes('dizajn-')).map(file => read(file)).join('\n');
     for (const label of named) expect([label, sources.includes(label)]).toEqual([label, true]);
   });

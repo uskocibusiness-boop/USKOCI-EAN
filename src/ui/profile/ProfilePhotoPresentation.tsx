@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SettingsText as T, SettingsScreen, SettingsAction } from '../settings/SettingsPresentation';
+import { HeaderInfo } from '../settings/InfoTitle';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import { FactArt } from '../system/FactArt';
 import { PermissionRecovery } from '../system/PermissionRecovery';
@@ -19,15 +20,27 @@ export type ProfilePhotoStage = { kind: 'loading' } | { kind: 'unavailable' } | 
  */
 export type ProfilePhotoMode = 'pick' | 'staged' | 'unresolved' | 'reconcile' | 'none';
 
-const PREVIEW = 160;
+/** The circle the photo is shown in: 160 wide and 160 high, always (J13: a face is a circle, whatever it is made of). */
+export const PREVIEW = 160;
+
+/**
+ * The style every picture in the circle takes. The frame `AuthorizedPhoto` draws has an aspect ratio of 4:3 of its own, and where a
+ * width and a height are both given the phone's layout lets that ratio win over the width: the owner's phone drew this circle as an OVAL
+ * 213 dp wide and 160 high (8 Oct 2026). The ratio is therefore said again here as 1, as the face of the profile and its header have always done.
+ */
+export const PHOTO_CIRCLE = { width: PREVIEW, height: PREVIEW, aspectRatio: 1, borderRadius: sys.radius.pill } as const;
 
 /**
  * The photo of one profile (2026-09-24): shown the way others see it, a round crop, 160 px; under it what the circle
- * holds and the last notice; then only the actions that can work now; the privacy note last, word for word. Removing the
+ * holds and the last notice; then only the actions that can work now, all the same width. What is done to the picture before it
+ * leaves the phone, its size and when others see it are behind the "ⓘ" in the bar (owner's phone, 8 Oct 2026: a lock and a note
+ * under the buttons explained what nobody had asked). While the
+ * picture is on its way the circle holds the person's initials (the same letters the face has everywhere else), never a grey
+ * slab with a spinner; a person without initials or a profile without a photograph is drawn as a person. Removing the
  * public photo asks first (the route renders the sheet). Presentation only: every command and guard is the route's.
  */
 export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDenied, mode, retryable, running, sending = false, canAct, waiting,
-  hasPhoto, onLibrary, onCamera, onRemove, onApply, onDiscard, onRetry, onCheck, photo, sheet }: {
+  hasPhoto, onLibrary, onCamera, onRemove, onApply, onDiscard, onRetry, onCheck, photo, sheet, initials = null }: {
   onBack: () => void; stage: ProfilePhotoStage | null; notice: string | null; error: string | null;
   /** The error is the camera permission refusal: the phone settings are offered. */ permissionDenied: boolean;
   mode: ProfilePhotoMode; retryable: boolean; running: ProfilePhotoRunning;
@@ -39,20 +52,27 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
   /** How a stored picture is drawn; the authorized reader by default. */
   photo?: (assetId: string, label: string, unavailable: ReactNode) => ReactNode;
   sheet?: ReactNode;
+  /** The letters of the person's name (`inicijali`), when the route knows them: they stand in the circle while the picture is on its way. */
+  initials?: string | null;
 }) {
   // Its own element for a screen reader: iOS focuses a view only when it is `accessible`.
   const unavailable = <View accessible accessibilityRole="image" accessibilityLabel="Fotografija trenutno nije dostupna." style={[s.circle, s.wash]}>
     <FactArt kind="photo" size={48} muted /></View>;
+  // The person's letters in the circle, or the drawn person when there are none: the stand-in of a picture that is on its way or not there.
+  const standIn = <View style={[s.circle, s.soft]}>
+    {initials ? <T variant="pageTitle" maxFontSizeMultiplier={1} accessible={false} style={s.letters}>{initials}</T> : <FactArt kind="person" size={72} />}
+  </View>;
   const draw = photo ?? ((assetId: string, label: string, fallback: ReactNode) =>
-    <AuthorizedPhoto assetId={assetId} label={label} contentFit="cover" style={s.photo} unavailable={fallback} />);
-  const preview = !stage ? null : stage.kind === 'loading' ? <View style={[s.circle, s.skeleton]} />
+    <AuthorizedPhoto assetId={assetId} label={label} contentFit="cover" style={PHOTO_CIRCLE} pending={standIn} unavailable={fallback} />);
+  const preview = !stage ? null : stage.kind === 'loading' ? standIn
     : stage.kind === 'unavailable' ? unavailable
-      : stage.kind === 'none' ? <View style={[s.circle, s.soft]}><FactArt kind="person" size={72} /></View>
+      : stage.kind === 'none' ? standIn
         : draw(stage.assetId, stage.staged ? 'Izabrana fotografija profila' : 'Sadašnja fotografija profila', unavailable);
   // While a chosen picture travels the circle still shows what is saved; the caption says the new one is on its way.
   const caption = !stage ? null : sending ? 'Šaljemo fotografiju…' : stage.kind === 'loading' ? 'Učitavamo fotografiju…'
     : stage.kind === 'none' ? 'Profil još nema fotografiju.' : stage.kind === 'photo' && stage.staged ? 'Još nije sačuvana' : null;
-  return <SettingsScreen title="Fotografija profila" onBack={onBack}>
+  return <SettingsScreen title="Fotografija profila" onBack={onBack}
+    right={<HeaderInfo testID="photo-info" title="Fotografija profila" info={photoInfoLines(mode === 'staged')} />}>
     {stage ? <View style={s.stage}>
       {preview}
       {caption ? <T variant="note" tone="muted" style={s.centered}>{caption}</T> : null}
@@ -80,27 +100,28 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
     </View> : mode === 'pick' ? <View style={s.actions}>
       <SettingsAction label="Izaberi iz galerije" loading={running === 'LIBRARY'} disabled={!canAct} onPress={onLibrary} />
       <SettingsAction label="Fotografiši" kind="secondary" loading={running === 'CAMERA'} disabled={!canAct} onPress={onCamera} />
-      {hasPhoto ? <View style={s.start}><SettingsAction label="Ukloni fotografiju profila" kind="destructive" loading={running === 'CLEAR'}
-        disabled={!canAct} onPress={onRemove} /></View> : null}
+      {/* The same width and the same centre as the two above: it stood indented at the start, as if it were part of the note. */}
+      {hasPhoto ? <SettingsAction label="Ukloni fotografiju profila" kind="destructive" loading={running === 'CLEAR'}
+        disabled={!canAct} onPress={onRemove} /> : null}
     </View> : null}
-    {/* Privacy wording, word for word; it is the owner's. */}
-    <View style={s.note}><FactArt kind="lock" size={20} />
-      <T variant="note" tone="muted" style={s.grow}>Jedna fotografija ovog profila, do 10 MB. Uklanjamo metapodatke i smanjujemo sliku. Nova fotografija se prikazuje drugima tek kada izabereš „Sačuvaj fotografiju“.</T>
-    </View>
     {sheet}
   </SettingsScreen>;
 }
 
+/** The size, and what is done to the picture before it leaves the phone: behind the "ⓘ" in every state of the screen. */
+export const PHOTO_LIMIT = 'Najviše 10 MB.';
+export const PHOTO_STRIPPED = 'Pre slanja uklanjamo podatke o mestu i vremenu snimanja.';
+/** Only once a new picture has been chosen, when the button that saves it exists: when others see it. */
+export const PHOTO_SEEN_AFTER_SAVE = 'Drugi je vide tek kad izabereš „Sačuvaj fotografiju“.';
+/** What the "ⓘ" says: the size and the stripping always, and once a picture is chosen, when it becomes visible to others (the old note named a button the screen did not have yet). */
+export const photoInfoLines = (staged: boolean): string[] => staged ? [PHOTO_STRIPPED, PHOTO_SEEN_AFTER_SAVE] : [PHOTO_LIMIT, PHOTO_STRIPPED];
+
 const s = StyleSheet.create({
   stage: { alignItems: 'center', gap: sys.space.md, marginTop: sys.space.sm },
-  photo: { width: PREVIEW, height: PREVIEW, borderRadius: sys.radius.pill },
-  circle: { width: PREVIEW, height: PREVIEW, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
-  skeleton: { backgroundColor: sys.color.skeleton },
+  circle: { width: PREVIEW, height: PREVIEW, aspectRatio: 1, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   soft: { backgroundColor: sys.color.greenSoft },
   wash: { backgroundColor: sys.color.wash },
+  letters: { color: sys.color.green, fontWeight: '700', textAlign: 'center' },
   centered: { textAlign: 'center' },
   actions: { gap: sys.space.sm },
-  start: { alignSelf: 'flex-start' },
-  note: { flexDirection: 'row', gap: sys.space.sm, alignItems: 'flex-start' },
-  grow: { flex: 1, minWidth: 0 },
 });

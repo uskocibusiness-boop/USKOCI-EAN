@@ -6,6 +6,7 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { FactRow } from '../system/FactRow';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
+import { osoba } from '../system/plural';
 import { Surface } from '../system/Surface';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import { mediaAssetId } from '../../data/mediaAssetId';
@@ -15,16 +16,15 @@ import { factDisplayLabel } from '../../contracts/needFactsV2';
 import { Press } from '../Press';
 import { brandAction, sys } from '../system/tokens';
 import { useReducedMotion } from '../system/motion';
-import { useLayoutClass } from '../system/textScale';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
 import { OUTCOME_ACTION } from '../system/outcomeCopy';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
-import { CardTitle, CardValue, valueSpoken } from './TaskFace';
+import { CardTitle, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
-import { AiConversationShell, useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
+import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
@@ -152,108 +152,107 @@ export const TASK_OPENINGS = ['Treba mi pomoć oko selidbe u subotu, 2 osobe, No
 /**
  * "Sličice slete u nacrt" (owner's pick of 2026-10-08, A): a fact the assistant has understood is a small picture (a pin, a calendar,
  * people, a price tag) that LANDS in the draft, arriving from above, 8 dp over its place, as what somebody else brings does (`Appear
- * from="above"`, rule B1). A fact it has not understood is not drawn at all: unknown stays quiet, and nothing is invented. Only the
- * picture's container moves, once, for a fact that arrives while the person is looking; a draft that was already there when the
- * screen opened is simply there, and so is every fact under reduced motion. The words of a fact are never animated.
+ * from="above"`, rule B1), WITH its words beside it (the owner, 8 Oct 2026: four pictures with no text said nothing). A fact it has not
+ * understood is not drawn at all: unknown stays quiet, and nothing is invented. Only the picture's container moves, once, for a fact that
+ * arrives while the person is looking; a draft that was already there when the screen opened is simply there, and so is every fact under
+ * reduced motion. The words of a fact are never animated.
  */
 export type DraftSticker = 'zone' | 'schedule' | 'people' | 'value';
-const STICKER_ORDER: readonly DraftSticker[] = ['zone', 'schedule', 'people', 'value'];
-/** The stickers the draft has a fact for, in the one order they stand (where, when, who, how much). */
+const STICKER_ORDER: readonly DraftSticker[] = ['value', 'zone', 'schedule', 'people'];
+/** How many people the draft needs, as a number: how many is a fact only when it is more than one ("Treba 3 osobe"; one person says nothing). */
+const peopleMany = (summary: Summary): number | null => {
+  const count = summary.peopleCount ?? (summary.people ? Number(/^\d+/.exec(summary.people)?.[0]) : NaN);
+  return Number.isFinite(count) && count > 1 ? count : null;
+};
+/** The stickers the draft has a fact for, in the one order they stand (what it pays, where, when, who). */
 export function draftStickers(summary: Summary): DraftSticker[] {
-  return STICKER_ORDER.filter(kind => kind === 'zone' ? !!summary.zone : kind === 'schedule' ? !!summary.schedule : kind === 'people' ? !!summary.people : !!summary.value);
+  return STICKER_ORDER.filter(kind => kind === 'zone' ? !!summary.zone : kind === 'schedule' ? !!summary.schedule : kind === 'people' ? peopleMany(summary) !== null : !!summary.value);
 }
 const stickerArt = (kind: DraftSticker, summary: Summary): FactArtKind => kind === 'zone' ? summary.zone === 'Na daljinu' ? 'remote' : 'pin'
   : kind === 'schedule' ? 'calendar' : kind === 'people' ? 'users' : summary.value?.kind === 'amount' ? 'money' : 'offers';
+/** The words of each sticker: the sum with what it buys, or the price tag's words; the place and the time as the draft has them; how many people. */
+const stickerWords = (kind: DraftSticker, summary: Summary): string => kind === 'zone' ? summary.zone : kind === 'schedule' ? summary.schedule ?? ''
+  : kind === 'people' ? `Treba ${osoba(peopleMany(summary) ?? 0)}` : summary.value ? valueSpoken(summary.value) : '';
 
 /**
- * The live draft starts compact. Disclosure only shows existing facts; its sibling review action retains the
- * owned editor's guards. Safety stays visible; during point editing, disclosure reveals the full draft. Shut, the card shows the pictures
- * of what has been understood as one row under the title (the facts' words are one tap away); open, or ready, each fact is a row of its
- * picture and its words. `appear` is the conversation's memory of which pictures have already landed (the presentation keeps it, so
- * moving the card from the top to the end of the thread never lands them again); without it nothing moves.
+ * The living draft, a panel above the thread: the name of the task and, under it, what the assistant has understood, each fact as its picture with
+ * its words (where it can, in one wrapping line; as rows once the draft is ready). It names no state: no "Nacrt" and no "Izmena" stands over the
+ * name (the owner, 8 Oct 2026: an eyebrow that only said where the person is), the chrome's title already says it. What is still needed is one
+ * quiet line, the way to the review is a quiet word at the end while something is missing, and, once nothing is, the one green action of the
+ * screen with the review's own name ("Pregledaj zadatak", "Pregledaj izmene"). `appear` is the conversation's memory of which pictures have
+ * already landed (the presentation keeps it, so moving the card from the top to the end of the thread never lands them again); without it
+ * nothing moves.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
-  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, appear }: {
+  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, ended = false, appear }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
   reviewLabel?: string;
-  /** The conversation changes a task that already exists (review r4 ra item 9): the card says "Izmena", not "Nacrt". */
+  /** The conversation changes a task that already exists: the card says it to a screen reader, never over the name. */
   editing?: boolean;
   /** Something the server still needs is one people never see (the category): the card claims nothing is missing. */
   hiddenMissing?: boolean;
-  /** A complete draft becomes the final summary in the thread, with review and edit entries inside this one card. */
+  /** A complete draft becomes the final summary in the thread, with the one green action inside this one card. */
   reviewAtEnd?: boolean;
-  /** Give an active location question room; existing disclosure still opens all draft facts. */
+  /** Give an active location question room: the card shows only its name. */
   locationEditing?: boolean;
+  /** The conversation is over: the card is the final summary and has no review of its own (the screen's one green action stands where the composer was). */
+  ended?: boolean;
   /** Which pictures have already landed; a picture that is new to it lands, once. Left out, nothing moves. */
   appear?: AppearList;
 }) {
-  const { stacked } = useLayoutClass();
-  const stackValue = stacked || (summary.value?.kind === 'amount' && summary.value.amount.length > 12);
-  const { expanded, toggle } = useAiDraftDisclosure();
   const next = !open ? null : stillNeeded ? `Još treba: ${stillNeeded}` : null;
   const ready = open && !stillNeeded && !hiddenMissing;
-  // A complete authoritative draft is no longer presented as if it were still being collected. It keeps the same
-  // TaskFace language and shows the facts needed for the decision with one guarded primary review action.
-  // This is not the published TaskCard/Peek and carries no publication state.
+  // A complete authoritative draft is no longer presented as if it were still being collected: it keeps the same TaskFace language, shows its facts as
+  // rows and carries the one guarded review action. This is not the published TaskCard/Peek and carries no publication state.
   const readyForReview = ready && reviewAtEnd;
-  // The docked summary keeps short terms readable beside one quiet action, without two competing blocks.
-  const briefReview = compact && !expanded && !readyForReview && !stackValue;
-  const locationSummary = locationEditing && !expanded && !readyForReview;
-  const status = `${readyForReview ? editing ? 'Izmena spremna za pregled' : 'Spremno za pregled' : editing ? 'Izmena' : 'Nacrt'}${busy ? ' · dopunjuje se' : ''}`;
-  const spoken = [status, summary.title ?? 'Zadatak u nastajanju', summary.zone || null, summary.schedule ?? null,
-    summary.people, summary.value ? valueSpoken(summary.value) : null].filter(Boolean).join(', ');
-  // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
+  // The facts are rows when the draft is final (ready, or the conversation is over) and a line of pictures with their words while it is being made.
+  const final = readyForReview || ended;
   const stickers = draftStickers(summary);
+  // A question about the place has the room while it is asked: the card shows only its name then. Every fact is read once: by its own row when they are rows,
+  // and in the one sentence with the name when they are a line of pictures (that line is decoration for a screen reader).
+  const facts = stickers.length > 0 && !locationEditing;
+  const spoken = [editing ? 'Izmena zadatka' : null, summary.title ?? 'Zadatak u nastajanju', ...(facts && !final ? stickers.map(kind => stickerWords(kind, summary)) : [])].filter(Boolean).join(', ');
+  // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
   const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
-  const title = <View style={s.titleSide}>
-    <View style={s.statusRow}><View style={[s.dot, busy && s.dotBusy, readyForReview && s.dotReady]} />
-      <T variant="label" style={[s.status, readyForReview && s.statusReady]}>{status}</T></View>
-    <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={readyForReview || expanded ? 0 : locationSummary ? 1 : 2}
-      style={[s.compactTitle, !summary.title && s.titleEmpty]} />
-  </View>;
-  return <Surface kind="panel" testID="intake-task-summary" style={[s.card, (compact || locationSummary) && s.cardCompact]}>
-    {readyForReview ? <View testID="intake-ready-head" accessible accessibilityLabel={spoken} style={s.disclosure}>
-      {title}
-    </View> : <Press testID="intake-draft-disclosure" accessibilityRole="button"
-      accessibilityLabel={expanded ? 'Sakrij detalje nacrta' : 'Pokaži detalje nacrta'} accessibilityValue={{ text: spoken }}
-      accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru." accessibilityState={{ expanded }}
-      onPress={toggle} haptic="select" style={s.disclosure}>
-      {title}
-      <Glyph name={expanded ? 'caret-up' : 'caret-down'} tone="muted" />
-    </Press>}
-    {readyForReview || expanded ? <View testID="intake-draft-details" style={s.details}>
-      {summary.zone ? lands('zone', 0, <FactRow art={stickerArt('zone', summary)} value={summary.zone} />)
-        : <T variant="note" tone="muted">Mesto nije određeno</T>}
-      {summary.schedule ? lands('schedule', 1, <FactRow art="calendar" value={summary.schedule} />) : null}
-      {summary.people ? lands('people', 2, <FactRow art="users" value={summary.people} />) : null}
-    </View> : stickers.length && !locationSummary ? <View testID="intake-draft-stickers" accessible={false} importantForAccessibility="no-hide-descendants"
-      accessibilityElementsHidden style={s.stickers}>
-      {stickers.map((kind, index) => lands(kind, index, <FactArt kind={stickerArt(kind, summary)} size={28} />))}
-    </View> : null}
-    {note ? <T variant="note" tone="muted">{note}</T> : null}
-    {!locationSummary && (next ? <T variant="note" tone="muted">{next}</T>
-      : ready && !canReview ? <T variant="note" tone="muted">Sve traženo je uneto.</T> : null)}
-    {!locationSummary && (summary.value || !reviewAtEnd || readyForReview) ? <View style={[s.reviewRow, stackValue && s.reviewRowLarge]}>
-      {summary.value ? <View testID="intake-draft-value" style={[s.value, stackValue && s.valueStacked]}>
-        {briefReview ? <T variant="note" style={s.briefValue}>{valueSpoken(summary.value)}</T>
-          : <CardValue value={summary.value} large />}
+  return <Surface kind="panel" testID="intake-task-summary" style={[s.card, compact && s.cardCompact]}>
+    <View testID="intake-draft-head" accessible accessibilityLabel={spoken}>
+      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
+        style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+    </View>
+    {facts ? final
+      ? <View testID="intake-draft-details" style={s.details}>
+        {stickers.map((kind, index) => lands(kind, index, <FactRow art={stickerArt(kind, summary)} value={stickerWords(kind, summary)} />))}
+      </View>
+      : <View testID="intake-draft-stickers" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.stickers}>
+        {stickers.map((kind, index) => lands(kind, index, <View style={s.sticker}>
+          <FactArt kind={stickerArt(kind, summary)} size={28} /><T variant="note" style={s.stickerWords}>{stickerWords(kind, summary)}</T>
+        </View>))}
       </View> : null}
-      {!reviewAtEnd || readyForReview ? <Press testID="intake-draft-review" accessibilityRole="button"
-        accessibilityLabel={readyForReview ? 'Izmeni podatke zadatka' : reviewLabel}
-        accessibilityHint={readyForReview ? 'Otvara pregled u kome možeš da izmeniš podatke pre objave.'
-          : editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
+    {note ? <T variant="note" tone="muted">{note}</T> : null}
+    {!locationEditing && next ? <T variant="note" tone="muted">{next}</T> : null}
+    {readyForReview ? <V2Action label={reviewLabel} style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} />
+      : !locationEditing && !ended ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
+        accessibilityHint={editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
-        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={[s.reviewAction, briefReview && s.reviewActionBrief]}>
-        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{readyForReview ? 'Izmeni' : briefReview ? 'Pregledaj' : reviewLabel}</T>
+        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
+        <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
         <Glyph name="caret-right" tone={canReview ? 'ink' : 'muted'} />
       </Press> : null}
-    </View> : null}
-    {readyForReview ? <V2Action label={editing ? 'Pregledaj izmene' : 'Pregledaj i objavi'}
-      style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} /> : null}
   </Surface>;
 }
+
+/**
+ * What the assistant's fixed closing sentences say about a task that is being CHANGED (not published): "Otvori pregled zadatka. Tamo možeš da dopuniš podatke i
+ * potvrdiš objavu." is the server's own line for the end of any conversation (`supabase/functions/uskoci-ai-interview/index.ts`), and a change is not an
+ * objava. Only these exact sentences are said otherwise; whatever the assistant wrote in its own words is shown as it came.
+ * TRAŽI SERVER (not changed here): the edit conversation's REVIEW step should answer "Otvori pregled izmena. Tamo ih potvrđuješ." itself.
+ */
+const SERVER_REVIEW_ENDINGS: ReadonlySet<string> = new Set(['Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.',
+  'Otvori pregled zadatka. Tamo proveri podatke pre objave.']);
+export const EDIT_ENDING = 'Otvori pregled izmena. Tamo ih potvrđuješ.';
+export const editEnding = (body: string): string => SERVER_REVIEW_ENDINGS.has(body.trim()) ? EDIT_ENDING : body;
 
 /**
  * Presentation only. The owned editor retains command, focus and receipt authority.
@@ -291,6 +290,10 @@ export function IntakePresentation(props: Props) {
   landed.settle(draftStickers(summary), undefined, { afterLoading: beganEmpty.current });
   const safetyCopy = safetyMessage(conversation.safety);
   const open = conversation.status === 'OPEN';
+  // A conversation that is over takes no more words: the field and the microphone are gone (the owner's phone, 8 Oct 2026: "Razgovor je završen" over a field
+  // that still said "Opiši šta ti treba"), and where they stood is the one green action, the review, with its own name. It needs no sentence of its own.
+  const ended = conversation.status === 'COMPLETED' || conversation.status === 'ABANDONED';
+  const completed = conversation.status === 'COMPLETED';
   const hasConversation = !!conversation.conversationId;
   // The map point is the one thing publishing cannot do without and the AI may not propose, so
   // the conversation asks for it rather than leaving it to be discovered. Read from the facts
@@ -342,7 +345,9 @@ export function IntakePresentation(props: Props) {
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   // Current facts belong in the live card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
-  const messages = conversation.messages;
+  // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).
+  // The words are the server's fixed ones (`uskoci-ai-interview`, the answer of its REVIEW step), and they are said as what they mean here; the stored message is not touched.
+  const messages = conversation.review.boundNeedId ? conversation.messages.map(message => message.fromAi ? { ...message, body: editEnding(message.body) } : message) : conversation.messages;
   // The "···" of this conversation. Each row runs once the menu has gone, so a navigation or the next sheet never starts
   // underneath it. Photos are the composer's "+", not a row here. Before the first word there is no conversation to act
   // on, so there is no menu either.
@@ -356,6 +361,14 @@ export function IntakePresentation(props: Props) {
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
     disabled: props.abandonDisabled, subtitle: 'Povratak čuva razgovor. Napušten razgovor više ne možeš da nastaviš.', onPress: props.onAbandon });
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
+  // The one way on from a conversation that is over, and it is on the screen (rule J15: a "···" is never the only road): the review while there is one
+  // (green), otherwise a new task (quiet). The same "Novi zadatak" stays in the menu for the rare case.
+  const footerAction = completed && props.canReview
+    ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
+    : ended && props.onNewTask
+      ? <V2Action label="Novi zadatak" kind="secondary" tone="neutral" disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : undefined;
+  // "Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda." said what the green action beside it now says by being there.
+  const statusCopy = completed && props.canReview ? null : props.statusCopy;
   // One line, built locally from the confirmed point (no AI call): street and number, the place, and the way back to the map.
   const placeLine = placeComplete && anchor && place ? <ConfirmedPlaceLine testID="intake-place-line"
     entries={confirmedPlaceEntries(confirmedPoints, { geography: place.geography, exactAddress: place.exactAddress }, new Set(anchor.acknowledged))}
@@ -381,7 +394,8 @@ export function IntakePresentation(props: Props) {
         disabled={photosOff} onGallery={() => props.onPhotoSource?.('LIBRARY')} /> }));
   }
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
-    cardPlacement={readyForReview ? 'end' : 'top'}
+    cardPlacement={readyForReview || ended ? 'end' : 'top'} closed={ended}
+    footerAction={footerAction}
     interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
     revealInteractiveContext={editingSavedPlace}
@@ -390,8 +404,9 @@ export function IntakePresentation(props: Props) {
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
+    // The assistant and the one line the draft asks for (R1): the three examples under it show what to say, so no sentence explains it.
     welcome="Reci šta ti treba."
-    welcomeDetail="Opiši zadatak svojim rečima. Pre objave sve pregledaš."
+    welcomeDetail=""
     openings={TASK_OPENINGS}
     placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
@@ -408,7 +423,7 @@ export function IntakePresentation(props: Props) {
     card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
-      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} appear={landed} />}
+      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended} appear={landed} />}
     actions={(!attach && photoAssets.length) || (safetyCopy && conversation.safety === 'BLOCK') ? <>
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
@@ -445,7 +460,7 @@ export function IntakePresentation(props: Props) {
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
-    status={!props.error && !props.statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>
+    status={!props.error && !statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>
       {props.retainedLocationSpeech ? <View style={{ gap: sys.space.sm }}>
         <T variant="note" tone="muted">Glasovna poruka je sačuvana. Možeš je ponovo poslati.</T>
         <T variant="note" selectable>{props.retainedLocationSpeech.text}</T>
@@ -454,7 +469,7 @@ export function IntakePresentation(props: Props) {
           onPress={props.retainedLocationSpeech.onRestore} />
       </View> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
-      {props.statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{props.statusCopy}</T> : null}
+      {statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{statusCopy}</T> : null}
       {/* What can be done, most likely first: read what happened ("Proveri", the app's one word for it), and only then the rarer way out, with
           what it costs written right above it. */}
       {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}
@@ -483,27 +498,14 @@ const s = StyleSheet.create({
   // The living draft is a panel above the thread (a thing that is read, in a frame, with no shadow); only its padding is its own.
   card: { paddingVertical: sys.space.md, gap: sys.space.sm },
   cardCompact: { paddingVertical: sys.space.sm },
-  disclosure: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  details: { gap: sys.space.sm, paddingTop: sys.space.sm, paddingBottom: sys.space.xs },
-  // Shut, the pictures of what has been understood stand in one row under the title, 12 apart.
-  stickers: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingTop: sys.space.xs },
-  reviewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
-  reviewRowLarge: { flexDirection: 'column', alignItems: 'stretch', gap: 0 },
-  value: { minWidth: 0, maxWidth: '100%', flexShrink: 1 },
-  valueStacked: { width: '100%' },
-  briefValue: { color: sys.color.ink, flexShrink: 1, fontVariant: ['tabular-nums'] },
-  reviewActionBrief: { flexShrink: 0 },
-  reviewAction: { minHeight: layout.touch, flexShrink: 1, marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  // Final, the facts are rows of one kind, 8 apart; while the draft is made they are pictures with their words in a line that wraps by whole facts.
+  details: { gap: sys.space.sm },
+  stickers: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.sm },
+  sticker: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 1, maxWidth: '100%' },
+  stickerWords: { color: sys.color.fact, flexShrink: 1 },
+  // The way to the review while something is missing is a quiet word at the start of its own line, as high as a finger.
+  reviewAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  dot: { width: 6, height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.muted },
-  // While the conversation changes the draft, the dot is the screen's orange accent: a dot, never a fill.
-  dotBusy: { backgroundColor: sys.color.orange },
-  dotReady: { backgroundColor: sys.color.green },
-  // The words of a state are not capitals, so the label's wide tracking goes (as the one status chip has it).
-  status: { flex: 1, color: sys.color.muted, letterSpacing: 0 },
-  statusReady: { color: sys.color.muted },
-  titleSide: { flex: 1, minWidth: 0, gap: 4 },
   titleEmpty: { color: sys.color.muted },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
   readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.ink },

@@ -7,6 +7,7 @@ import { SettingsAction, SettingsGroup, SettingsText as T } from '../settings/Se
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { supportActionAllowed } from './SupportController';
 import { SupportBubble, SupportChoiceRow, SupportComposer, SupportDecisionBlock, SupportField, SupportLoading, SupportPrivacy, SupportStatusChip,
   SupportSystemLine, SupportThreadFrame, supportLabel, supportStyles, supportTime } from './SupportPresentation';
@@ -78,6 +79,8 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
     void controller?.page(cursor, state);
   };
   const reload = () => { if (current()) void controller?.load(); };
+  // The spinner of the pull is the pull's own: a read that starts by itself (a page, the screen coming back) must not raise Android's white disc.
+  const pull = usePullRefresh(reload, state.phase === 'LOADING');
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/podrska'));
   const allowed = (action: SupportAction) => !!detail && supportActionAllowed(detail, action);
   const actionsDisabled = state.phase !== 'READY' || !!state.pending;
@@ -173,7 +176,7 @@ export function SupportDetailView({ model, caseId }: { model: Model; caseId: str
         <SupportStatusChip status={detail.case.status} />
         <T variant="meta" tone="muted">{`${supportLabel(detail.case.topic)} · Primljeno ${supportTime(detail.case.createdAt)}`}</T>
       </> : null}
-      refresh={<RefreshControl refreshing={state.phase === 'LOADING'} onRefresh={reload} tintColor={sys.color.green} colors={[sys.color.green]} />}
+      refresh={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}
       scrollRef={scroll} onContentSizeChange={() => {
         // The conversation opens at its newest line, and again after a confirmed reply; paging leaves the place alone.
         if (!live || scrolledTo.current === key) return; scrolledTo.current = key; scroll.current?.scrollToEnd?.({ animated: false });

@@ -27,9 +27,11 @@ const NEW_UNAVAILABLE = 'Novi zahtev trenutno nije dostupan ovom nalogu.';
  * new request (the footer: grey with its reason when it cannot be used, never missing without a word); and, apart, the two
  * places for blocking and data rights. Authorised staff get the same list with a switch between their two inboxes.
  *
- * A refresh the person asked for keeps the list and the footer on screen (the skeleton is for the first read and for a
- * page that is being fetched, never a wipe of what was just read). Presentation over the controller's state: every command
- * is the controller's, fenced by `current()` / `navigate()`.
+ * A refresh the person asked for (a pull of the screen, no standing word "Osveži") keeps the list and the footer on screen (the skeleton is
+ * for the first read and for a page that is being fetched, never a wipe of what was just read). With no requests the list says so in one
+ * line, "Nema tvojih zahteva." (owner's phone, 8 Oct 2026: "Još nema primljenih zahteva" spoke of what support received, and these are the
+ * person's own), and the green "Novi zahtev" under it is the way forward. The sentence about who reads a request is on the screen that
+ * writes one, not on this list. Presentation over the controller's state: every command is the controller's, fenced by `current()` / `navigate()`.
  */
 export function SupportInboxView({ model, mode, onMode }: {
   model: ReturnType<typeof useSupportController>; mode: SupportMode; onMode?: (mode: 'OPERATOR' | 'SAFETY') => void;
@@ -56,15 +58,13 @@ export function SupportInboxView({ model, mode, onMode }: {
   };
   const reload = () => { if (current()) void controller?.load(); };
   const messageTone = supportMessageTone(state);
-  // One word at the end of the list's title: the list's own re-read, which keeps the rows on screen while it works.
-  const refresh = state.phase === 'ERROR' || (state.phase === 'LOADING' && !kept) ? undefined
-    : { label: state.phase === 'LOADING' ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži zahteve', onPress: () => { if (!busy) reload(); } };
   const newReason = busy ? 'Učitavamo zahteve…' : !capabilities?.canCreate ? NEW_UNAVAILABLE : state.pending ? 'Najpre proveri prethodno slanje.' : null;
   return <SupportFrame title={mode === 'OWN' ? 'Podrška' : mode === 'SAFETY' ? 'Bezbednosni zahtevi' : 'Zahtevi'}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}
     // A failed list read has its own green retry in the error state; the footer's green action waits for the list, so the
     // screen never shows two primaries (round 5 review). When the account cannot start a request, or one waits to be
     // checked, the action stays and is grey with the reason beside it.
+    refresh={{ onRefresh: () => { if (!busy) reload(); }, busy }}
     footer={mode === 'OWN' && capabilities && state.phase !== 'ERROR' ?
       <SettingsAction label="Novi zahtev" disabled={newReason !== null} reason={newReason} onPress={() => navigate(() => router.push('/podrska/novi'))} /> : undefined}>
     {mode !== 'OWN' && inbox?.operatorAvailable && onMode ? <Segmented appearance="underline" value={mode === 'SAFETY' ? 'SAFETY' : 'OPERATOR'}
@@ -77,14 +77,14 @@ export function SupportInboxView({ model, mode, onMode }: {
     {state.phase === 'LOADING' && !kept ? <SupportLoading />
       : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtevi nisu učitani" body={state.message ?? undefined}
         primary={{ label: 'Pokušaj ponovo', onPress: reload, disabled: busy }} />
-      : inbox ? <SettingsGroup title={mode === 'OWN' ? 'Tvoji zahtevi' : 'Zahtevi'} action={refresh}>
+      : inbox ? <SettingsGroup title={mode === 'OWN' ? 'Tvoji zahtevi' : 'Zahtevi'}>
         {inbox.cases.length ? inbox.cases.map((item, index) => <SupportCaseRow key={item.id} topic={supportLabel(item.topic)} status={item.status}
           channel={item.channel} time={supportTime(item.updatedAt)} caseNumber={item.caseNumber} unread={item.unread}
           last={index === inbox.cases.length - 1} disabled={locked}
           onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: item.id } }))} />)
           : mode === 'OWN'
-            // One sentence under the title and no action of its own: the green "Novi zahtev" below is the screen's one way forward.
-            ? <StateView kind="empty" art="chat" title="Još nema primljenih zahteva" body="Zahteve i odgovore podrške vidiš ovde." />
+            // One line and no action of its own: the green "Novi zahtev" below is the screen's one way forward.
+            ? <StateView kind="empty" art="chat" compact title="Nema tvojih zahteva." />
             : <StateView kind="empty" art="chat" title="Nema zahteva na ovoj stranici." />}
         {cursors.length > 1 || inbox.nextBeforeCaseNumber ? <View style={supportStyles.pager}>
           {cursors.length > 1 ? <SettingsAction label="Prethodna stranica" kind="quiet" disabled={busy}
@@ -95,15 +95,15 @@ export function SupportInboxView({ model, mode, onMode }: {
       </SettingsGroup> : null}
     {/* The questions people ask before they write: answered where they are asked, for the person's own list only. */}
     {mode === 'OWN' && state.phase !== 'ERROR' ? <SupportFaq /> : null}
-    <View style={s.privacy}><SupportPrivacy safety={mode === 'SAFETY'} /></View>
+    {mode !== 'OWN' ? <View style={s.privacy}><SupportPrivacy safety={mode === 'SAFETY'} /></View> : null}
     {capabilities?.operatorAvailable && mode === 'OWN' ? <SettingsGroup title="Ovlašćena obrada">
       <SettingsRow label="Otvori sve zahteve" detail="Pristup odobren ovom nalogu." disabled={locked} last
         onPress={() => navigate(() => router.push('/podrska/operator'))} />
     </SettingsGroup> : null}
     {mode === 'OWN' ? <SettingsGroup title="Bezbednost i podaci">
-      <SettingsRow compact label="Blokirane osobe" detail="Pregled i odblokiranje." disabled={locked}
+      <SettingsRow compact label="Blokirane osobe" disabled={locked}
         onPress={() => navigate(() => router.push('/profil/blokirani'))} />
-      <SettingsRow compact label="Privatnost i podaci" detail="Izvoz podataka, rokovi čuvanja i zatvaranje naloga." disabled={locked} last
+      <SettingsRow compact label="Privatnost i podaci" disabled={locked} last
         onPress={() => navigate(() => router.push('/profil/privatnost'))} />
     </SettingsGroup> : null}
   </SupportFrame>;

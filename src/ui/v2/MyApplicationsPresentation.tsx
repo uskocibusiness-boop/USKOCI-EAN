@@ -15,6 +15,7 @@ import { prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { brandAction, field, sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
 import { ApplicationCard } from './ApplicationFace';
 import { V2Action } from './V2Action';
@@ -41,6 +42,8 @@ type Props = {
   focusId?: string | null;
   /** Requested destination, including a row that the current owned read cannot return. */
   requestedId?: string | null;
+  /** The application the person has just sent (the list was opened from its receipt): its chip adds "upravo" for this visit. */
+  freshId?: string | null;
   /** The internal gallery draws the large-text card layout without changing the phone's setting. */
   largeText?: boolean;
   /** Paged builds only (the ex04b package). */
@@ -48,6 +51,18 @@ type Props = {
 };
 const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'all', label: 'Sve' }, { key: 'attention', label: 'Čeka te' },
   { key: 'active', label: 'Aktivne' }, { key: 'finished', label: 'Završene' }];
+/**
+ * The three groups of the list (the approved draft U8): what waits for the other side, what was chosen, what is over. An application whose task
+ * changed is still waiting: its card asks for the decision, and it stands first in its group.
+ */
+export type ApplicationGroup = 'waiting' | 'selected' | 'finished';
+export const APPLICATION_GROUPS: readonly { key: ApplicationGroup; title: string }[] = [
+  { key: 'waiting', title: 'Čeka odgovor' }, { key: 'selected', title: 'Izabrana' }, { key: 'finished', title: 'Završene' }];
+export function applicationGroup(p: Pick<MojaPrijavaProjekcija, 'stanje'>): ApplicationGroup {
+  return p.stanje === 'SELECTED' ? 'selected' : p.stanje === 'WITHDRAWN' || p.stanje === 'CLOSED' ? 'finished' : 'waiting';
+}
+type Entry = { kind: 'head'; group: ApplicationGroup; title: string; count: number; first: boolean } | { kind: 'row'; p: MojaPrijavaProjekcija };
+const entryKey = (entry: Entry) => entry.kind === 'head' ? `head:${entry.group}` : entry.p.prijavaId;
 /** What an empty set says. "Čeka te" keeps its meaning: what waits for my decision (a changed task, a Dogovor to open). */
 const TAB_EMPTY: Record<ApplicationSection, string> = { attention: 'Ništa te ne čeka', active: 'Nema aktivnih prijava', finished: 'Nema završenih prijava' };
 const Separator = () => <View style={s.separator} />;
@@ -61,11 +76,13 @@ const deviceZone = (): string | undefined => {
 };
 
 /**
- * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24; one control row and one record since
- * 2026-10-08, composition spec 4.5 and 4.7). A detail screen: the arrow back and the name, then ONE control row (Sve · Čeka te · Aktivne ·
- * Završene: four sets are chips, the one control that scrolls sideways, and "Čeka te" keeps its orange count), the count of what the
- * set shows as the first line of the list ("3 prijave"), then one `Surface record` per application (`ApplicationFace`, the worker's side
- * of the shared `PrijavaCard`), 12 apart. No card edge carries a state: the card's chip says it, in the owner's five words (Poslata,
+ * Moje prijave — what I applied to and where each application stands (owner's step 5c, 2026-09-24; one record since 2026-10-08, composition spec
+ * 4.5 and 4.7; groups since the approved draft U8). A detail screen: the arrow back and the name, then the applications in three groups, each with
+ * its name and its count ("Čeka odgovor · 2", "Izabrana · 1", "Završene · 3"), then one `Surface record` per application (`ApplicationFace`, the
+ * worker's side of the shared `PrijavaCard`), 12 apart. The groups are drawn when every application of the shown set is here (the whole-list read,
+ * or the last page of a paged one). A paged set with a page still to come is parted by the SERVER'S own sets instead, which are chips (Sve · Čeka te ·
+ * Aktivne · Završene, the one control that scrolls sideways) with the count of the set as the first line of the list: what happens to be loaded is
+ * never counted or grouped as if it were everything. No card edge carries a state: the card's chip says it, in the owner's five words (Poslata,
  * Viđena, Izabrana, Nije izabrana, Povučena). Empty, loading and error go through the one StateView. Presentation only: every callback
  * is the route's existing guarded command.
  *
@@ -74,6 +91,10 @@ const deviceZone = (): string | undefined => {
  */
 export function MyApplicationsPresentation(props: Props) {
   const filtered = props.tab === 'all' ? props.rows : props.rows.filter(p => applicationSection(p) === props.tab);
+  // Whole: every application of the shown set is here, so the list can be parted into its groups. Chips only where it cannot be (a page is still to
+  // come) or where a set other than "Sve" is shown and the way back to it is needed.
+  const whole = !props.paging || !props.paging.hasMore;
+  const chips = !!props.paging && (props.paging.hasMore || props.tab !== 'all');
   // Put the explicitly requested row first. Unlike scrollToIndex this also works before variable-height
   // cards outside the initial virtualized window have been measured. Never change the user's filter.
   const focused = props.focusId ? filtered.find(p => p.prijavaId === props.focusId) : undefined;
@@ -81,6 +102,19 @@ export function MyApplicationsPresentation(props: Props) {
   const missingNamed = !!props.requestedId && !props.rows.some(p => p.prijavaId === props.requestedId);
   const appear = useAppear();
   appear.settle(visible.map(keyOf));
+  // The entries of the list: the groups with their heads, and in each group the row that was asked for first, then what asks for the person (the
+  // server's own flag), then the order the read gave. Not whole: the rows as they are.
+  const entries: Entry[] = !whole ? visible.map(p => ({ kind: 'row' as const, p })) : APPLICATION_GROUPS.reduce<Entry[]>((out, group) => {
+    const rows = filtered.map((p, at) => ({ p, at })).filter(entry => applicationGroup(entry.p) === group.key);
+    if (!rows.length) return out;
+    const rank = (p: MojaPrijavaProjekcija) => p.prijavaId === props.focusId ? 0 : p.traziPaznju ? 1 : 2;
+    rows.sort((a, b) => rank(a.p) - rank(b.p) || a.at - b.at);
+    out.push({ kind: 'head', group: group.key, title: group.title, count: rows.length, first: out.length === 0 });
+    rows.forEach(entry => out.push({ kind: 'row', p: entry.p }));
+    return out;
+  }, []);
+  // The spinner of the pull is for a pull: a read the screen makes by itself (a tab switched, a focus) must not raise it (the owner's phone, 8 Oct 2026).
+  const pull = usePullRefresh(props.onRefresh, props.loading);
   const disabled = props.busy || props.pending || props.editingLoading;
   // The route's handlers are fresh closures every render and are handed to the cards as such, on
   // purpose: each carries the guards of the render that made it, and a handle captured before an
@@ -112,9 +146,9 @@ export function MyApplicationsPresentation(props: Props) {
           <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled} style={brandAction} />
           <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>
-          {/* What each choice means is its own second line: three buttons of one look said nothing about which one does what. */}
-          <ListRow title="Zadrži prijavu" subtitle="Ostaju tvoja cena, obim, termin i napomena." accessibilityLabel="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} />
-          <ListRow title="Izmeni prijavu" subtitle="Promeni cenu, broj ljudi ili poruku." accessibilityLabel="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
+          {/* The sentence above says what keeping keeps; each row says what it does by its name, and no row explains itself (J4). */}
+          <ListRow title="Zadrži prijavu" accessibilityLabel="Zadrži prijavu" onPress={() => props.onKeep(p)} disabled={disabled} />
+          <ListRow title="Izmeni prijavu" accessibilityLabel="Izmeni prijavu" onPress={() => props.onEdit(p)} disabled={disabled} />
           <ListRow title="Povuci izmenjenu prijavu" tone="danger" accessibilityLabel="Povuci izmenjenu prijavu" onPress={() => props.onWithdraw(p)} disabled={disabled} />
         </View>}
         <V2Action label="Zatvori pregled izmena" onPress={props.onClose} disabled={props.busy || props.pending} kind="quiet" style={s.quietLeft} />
@@ -122,12 +156,17 @@ export function MyApplicationsPresentation(props: Props) {
     </View>;
   }
   const review = expandedRow ? reviewOf(expandedRow) : null;
-  const renderItem = ({ item: p, index }: ListRenderItemInfo<MojaPrijavaProjekcija>) => <Appear index={index} animate={appear.isNew(p.prijavaId)}>
-    <ApplicationCard row={p} expanded={props.expanded === p.prijavaId && review !== null} disabled={disabled} large={props.largeText}
-      onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)} onTask={() => props.onTask(p)}>
-      {props.expanded === p.prijavaId ? review : null}
-    </ApplicationCard>
-  </Appear>;
+  const renderItem = ({ item, index }: ListRenderItemInfo<Entry>) => {
+    if (item.kind === 'head') return <T accessibilityRole="header" variant="heading" style={item.first ? undefined : s.groupGap}>{`${item.title} · ${item.count}`}</T>;
+    const p = item.p;
+    return <Appear index={index} animate={appear.isNew(p.prijavaId)}>
+      <ApplicationCard row={p} expanded={props.expanded === p.prijavaId && review !== null} disabled={disabled} large={props.largeText}
+        fresh={!!props.freshId && props.freshId === p.prijavaId}
+        onReview={() => props.onReview(p)} onAgreement={() => props.onAgreement(p)} onWithdraw={() => props.onWithdraw(p)} onTask={() => props.onTask(p)}>
+        {props.expanded === p.prijavaId ? review : null}
+      </ApplicationCard>
+    </Appear>;
+  };
   // Paged: the server's own counts, never the number that happens to be loaded.
   const paging = props.paging, serverCounts = paging?.counts ?? null;
   const count = (tab: ApplicationsTab) => paging ? (serverCounts ? (tab === 'all' ? serverCounts.total : serverCounts[tab]) : 0)
@@ -144,29 +183,28 @@ export function MyApplicationsPresentation(props: Props) {
       // (`busy` is a write, item 3); a read in flight shows the loading state above instead of this one.
       : props.unavailable ? <StateView kind="error" art="offers" title="Prijave trenutno nisu dostupne" body={props.message ?? 'Pokušaj ponovo za trenutak.'}
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh, disabled: props.busy }} quiet={{ label: 'Nazad', onPress: props.onBack }} />
-        : hasAny && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]} body="Ostale prijave su u svojim prikazima."
+        : hasAny && props.tab !== 'all' ? <StateView art="offers" title={TAB_EMPTY[props.tab]}
           primary={{ label: 'Prikaži sve prijave', onPress: () => props.onTab('all') }} />
-          : <StateView hero art="offers" title="Još nemaš prijavu" body="Kad se prijaviš na zadatak, ovde pratiš prijavu i svaki sledeći korak."
-            primary={{ label: 'Istraži zadatke', onPress: props.onExplore }} />}
+          : <StateView hero art="offers" title="Još nemaš prijavu" primary={{ label: 'Pronađi zadatak', onPress: props.onExplore }} />}
   </View>;
   const shown = count(props.tab);
   const showsFeedback = !props.loading && !props.unavailable && (props.message || props.notice || props.pending || missingNamed);
-  const showsCount = !props.loading && !props.unavailable && shown > 0;
+  const showsCount = chips && !props.loading && !props.unavailable && shown > 0;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Moje prijave" onBack={props.onBack} />
     {/* ONE control row: four sets are chips, and chips are the one control that scrolls sideways (they run out to the edges). With no
         application there is nothing to switch, so the first-run state stands alone under the bar. */}
-    {!props.unavailable && (hasAny || props.loading) ? <View testID="applications-tabs" style={s.controls}>
+    {chips && !props.unavailable && (hasAny || props.loading) ? <View testID="applications-tabs" style={s.controls}>
       <Segmented value={props.tab} onChange={props.onTab} options={tabs} />
     </View> : null}
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.grow}>
-      <FlatList<MojaPrijavaProjekcija> data={props.loading || props.unavailable ? [] : visible} keyExtractor={keyOf}
+      <FlatList<Entry> data={props.loading || props.unavailable ? [] : entries} keyExtractor={entryKey}
         // Six of these cards are more than one phone screen. Off-screen cells are NOT detached here:
         // the expanded review holds text inputs, and a detached input loses the keyboard on Android. FlatList
         // detaches them by default on Android, so it is said explicitly.
         removeClippedSubviews={false} initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
-        refreshing={props.loading} onRefresh={props.onRefresh} ListEmptyComponent={empty} ItemSeparatorComponent={Separator}
+        refreshing={pull.refreshing} onRefresh={pull.onRefresh} ListEmptyComponent={empty} ItemSeparatorComponent={Separator}
         onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
         ListFooterComponent={paging && !props.loading && !props.unavailable && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
           {paging.moreError ? <>
@@ -178,7 +216,6 @@ export function MyApplicationsPresentation(props: Props) {
         ListHeaderComponent={showsFeedback || showsCount ? <View style={s.head}>
           {showsFeedback ? <View style={s.feedback}>
             {missingNamed ? <Surface kind="note"><T variant="body" accessibilityRole="alert">Ova prijava trenutno nije dostupna</T>
-              <T variant="note" tone="muted">Osveži listu da proveriš njeno stanje.</T>
               <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></Surface> : null}
             {props.message ? <Note tone="warn">{props.message}</Note> : null}{props.notice ? <Note>{props.notice}</Note> : null}
             {/* A command waits for its readback: a flat tint above the list, never a card among the cards. */}
@@ -201,6 +238,8 @@ const s = StyleSheet.create({
   // The list: the edge, 12 under the control row, 32 under the last card; a card from the next 12 below it.
   list: { flexGrow: 1, paddingHorizontal: layout.gutter, paddingTop: sys.space.md, paddingBottom: layout.zone },
   separator: { height: layout.group },
+  // A group other than the first starts 12 lower than the 12 the separator gives: 24 between the groups, 12 between a head and its cards.
+  groupGap: { paddingTop: layout.group },
   empty: { flex: 1, paddingVertical: sys.space.sm },
   head: { gap: sys.space.md, paddingBottom: sys.space.sm },
   feedback: { gap: sys.space.md },

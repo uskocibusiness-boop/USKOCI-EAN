@@ -1,12 +1,13 @@
 import type { PotrebaProjekcija } from '../contracts/projections';
 import { calendarInstant } from '../lib/calendarTime';
-import { plural } from '../ui/system/plural';
+import { prijava as prijave } from '../ui/system/plural';
 import type { StatusKey } from '../ui/system/StatusChip';
 import { endingOf } from './needEnding';
 
 /**
  * Where one of MY tasks stands, in the owner's eight words (decision 2026-10-07): Nacrt, Objavljen, Bira se, Dogovoren, U toku,
- * Završen, Otkazan, Istekao; and the ONE next step, in grey words, that the row says under them (plan 2.2, 3.5). Pure: it reads the
+ * Završen, Otkazan, Istekao; and, only where it carries a fact the word does not, ONE line of data under them (plan 2.2, 3.5; the
+ * rule of 8 Oct 2026: no sentence that explains, "Čekaš prijave. Vidiš ih ovde i u zvoncu." is gone for good). Pure: it reads the
  * task the screen already has and nothing else, so the list, the tests and a later Arhiva all agree on what a task is called.
  *
  * Nothing here is invented. A word the read cannot support is not drawn:
@@ -15,32 +16,23 @@ import { endingOf } from './needEnding';
  *   carried, and an ARCHIVED one (the table has no word for it and nothing in the app sets it), get no chip and a plain sentence;
  * - "U toku" is the task's OWN fixed window reaching today's time while the task is going. A Dogovor may carry a changed time that this
  *   list does not read, so a flexible term ("Sutra, fleksibilno") is never "U toku": it stays "Dogovoren";
- * - "Sva mesta su dogovorena" is said only when every place IS agreed. A search closed with places still open is "Potraga je zatvorena" and
- *   how many are agreed ("Dogovoren · 1 od 2"): the read folds both into one stanje, so the coverage is what tells them apart.
+ * - a word that the chip already says is not said again: "Dogovoren" has no line that says "Sva mesta su dogovorena".
  */
 export type TaskChip = { status: StatusKey; /** What the word alone cannot say, after a dot ("Bira se · 3"). */ detail?: string };
 export type OwnTaskStanding = {
   /** The one chip the row wears; null when no honest word exists. */
   chip: TaskChip | null;
-  /** The one next step in grey words; null when there is nothing to say. */
+  /** The one line of data under it ("Još nema prijava", "3 prijave"); null when the chip says all there is to say. */
   next: string | null;
   /** True when `next` is the way to the applications waiting for my choice: the row's foot opens them. */
   toApplications: boolean;
 };
 
-/**
- * What the app says it will do when an application arrives (R12, 2026-10-07). Push is the last item of the plan and every send is off, so
- * the app does not promise a notification it cannot send: it says where the applications can be seen ("ovde i u zvoncu"). The day sending
- * is switched on, `PUSH_SENDING_ON` becomes true and the promise returns; nothing else changes. The words are built once, here, for every
- * place that says them: the card in the list, the task page, and the moment after a task is published.
- */
-export const PUSH_SENDING_ON = false;
-export function applicationPromise(pushOn: boolean) {
-  return pushOn
-    ? { waiting: 'Čekaš prijave. Javićemo ti.', noneToChoose: 'Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.', published: 'Prijave stižu ovde. Javićemo ti.' }
-    : { waiting: 'Čekaš prijave. Vidiš ih ovde i u zvoncu.', noneToChoose: 'Trenutno nema prijava za izbor. Nove vidiš ovde i u zvoncu.', published: 'Prijave vidiš ovde i u zvoncu.' };
-}
-export const APPLICATION_PROMISE = applicationPromise(PUSH_SENDING_ON);
+/** The two lines of an open task that has nothing to choose among: no application came yet, or none of them can be chosen now. */
+export const NO_APPLICATIONS = 'Još nema prijava';
+export const NOTHING_TO_CHOOSE = 'Nema prijava za izbor';
+/** The line of an open task whose count of applications to choose among is `waiting` (a known number) and whose total is `total`. */
+export const noApplicationsLine = (waiting: number | null, total: number): string | null => waiting === 0 ? total > 0 ? NOTHING_TO_CHOOSE : NO_APPLICATIONS : null;
 
 /** The agreed places of a task whose every place is agreed, and whose own fixed window has begun and not yet ended. */
 function agreedTimeHasCome(item: PotrebaProjekcija, now: Date): boolean {
@@ -53,12 +45,6 @@ function agreedTimeHasCome(item: PotrebaProjekcija, now: Date): boolean {
   return at >= from && (to === null || at < to);
 }
 
-/** "Imaš 3 prijave. Uporedi ih i izaberi." One application has nothing to compare, so it is only read and chosen. */
-export function applicationsWaitSentence(count: number): string {
-  const wait = plural(count, 'prijavu', 'prijave', 'prijava');
-  return count === 1 ? `Imaš ${wait}. Pogledaj je i izaberi.` : `Imaš ${wait}. Uporedi ih i izaberi.`;
-}
-
 export function ownTaskStanding(item: PotrebaProjekcija, now: Date = new Date()): OwnTaskStanding {
   const count = item.brojPrijavaZaIzbor;
   const waiting = typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null;
@@ -66,38 +52,34 @@ export function ownTaskStanding(item: PotrebaProjekcija, now: Date = new Date())
   const none = (chip: TaskChip | null, next: string | null): OwnTaskStanding => ({ chip, next, toApplications: false });
   switch (item.stanje) {
     case 'NACRT':
-      return none({ status: 'task.draft' }, 'Nacrt nije objavljen. Nastavi uređivanje.');
+      // The list says "Nacrti" and the page says "Nacrt": a line under it would only say the same again.
+      return none({ status: 'task.draft' }, null);
     case 'OBJAVLJENA':
       // Not yet read as "no applications": an unknown count says nothing.
-      return none({ status: 'task.published' }, waiting === 0 ? APPLICATION_PROMISE.waiting : null);
+      return none({ status: 'task.published' }, noApplicationsLine(waiting, item.brojPrijava));
     case 'CEKA_PRIJAVE':
       return waiting !== null && waiting > 0
-        ? { chip: { status: 'task.choosing', detail: String(waiting) }, next: applicationsWaitSentence(waiting), toApplications: true }
+        ? { chip: { status: 'task.choosing', detail: String(waiting) }, next: prijave(waiting), toApplications: true }
         : none({ status: 'task.choosing' }, null);
     case 'DELIMICNO_POPUNJENA': {
-      const agreed = `Dogovoreno ${popunjeno} od ${ukupno}.`;
-      if (waiting !== null && waiting > 0) {
-        return { chip: { status: 'task.choosing', detail: String(waiting) }, next: `${agreed} ${applicationsWaitSentence(waiting)}`, toApplications: true };
-      }
-      return none({ status: 'task.agreed', detail: `${popunjeno} od ${ukupno}` },
-        waiting === 0 ? `${agreed} Čekaš prijave za ostala mesta.` : agreed);
+      // How many places are agreed is the chip's own detail ("Dogovoren · 1 od 2"); the line says only what is to be chosen.
+      if (waiting !== null && waiting > 0) return { chip: { status: 'task.choosing', detail: String(waiting) }, next: prijave(waiting), toApplications: true };
+      return none({ status: 'task.agreed', detail: `${popunjeno} od ${ukupno}` }, null);
     }
     case 'POPUNJENA': {
       // The read folds the server's ACTIVE into POPUNJENA whatever the coverage is, and a search that was closed with places still open
-      // (the owner stopped looking for the rest) is ACTIVE with fewer places agreed than needed. "Sva mesta su dogovorena" is a fact only of
-      // full coverage; with open places the true thing to say is that the search is closed, and how many are agreed.
+      // (the owner stopped looking for the rest) is ACTIVE with fewer places agreed than needed. The chip then carries how many are
+      // agreed, and the one thing it cannot say is that the search is closed. Every place agreed says nothing more than the chip.
       const everyPlace = popunjeno >= ukupno;
       const detail = everyPlace ? {} : { detail: `${popunjeno} od ${ukupno}` };
-      const closed = `Potraga je zatvorena. Dogovoreno ${popunjeno} od ${ukupno}.`;
-      return agreedTimeHasCome(item, now)
-        ? none({ status: 'task.now', ...detail }, everyPlace ? 'Dogovoreni termin je počeo. Dogovor vidiš u Dogovorima.' : `Dogovoreni termin je počeo. ${closed}`)
-        : none({ status: 'task.agreed', ...detail }, everyPlace ? 'Sva mesta su dogovorena. Dogovor vidiš u Dogovorima.' : closed);
+      const closed = everyPlace ? null : 'Potraga je zatvorena';
+      return agreedTimeHasCome(item, now) ? none({ status: 'task.now', ...detail }, closed) : none({ status: 'task.agreed', ...detail }, closed);
     }
     case 'ZATVORENA':
       switch (endingOf(item)) {
         case 'COMPLETED': return none({ status: 'task.completed' }, null);
-        case 'CANCELLED': return none({ status: 'task.cancelled' }, 'Otkazan zadatak ne prima prijave.');
-        case 'EXPIRED': return none({ status: 'task.expired' }, 'Rok za prijave je istekao bez izbora.');
+        case 'CANCELLED': return none({ status: 'task.cancelled' }, null);
+        case 'EXPIRED': return none({ status: 'task.expired' }, null);
         case 'ARCHIVED': return none(null, 'Zadatak je u arhivi.');
         default: return none(null, 'Zadatak je zatvoren.');
       }

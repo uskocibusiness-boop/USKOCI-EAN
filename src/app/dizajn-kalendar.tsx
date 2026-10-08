@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CaretRight } from 'phosphor-react-native';
-import type { MojaPrijavaProjekcija, NeedScheduleProjection, PotrebaProjekcija, UcesnikProjekcija } from '../contracts/projections';
+import type { MojaPrijavaProjekcija, PotrebaProjekcija, UcesnikProjekcija } from '../contracts/projections';
 import type { WorkerCalendarEvent } from '../contracts/workerCalendar';
 import type { AvailabilityRule, AvailabilityWindow, WorkerAvailabilityInput } from '../contracts/workerAvailability';
-import { AgendaScreen, type AgendaApplications, type AgendaList, type AgendaNeeds, type AgendaSchedule } from '../ui/calendar/AgendaScreen';
+import { AgendaScreen, type AgendaList, type AgendaSchedule } from '../ui/calendar/AgendaScreen';
 import { ArchiveScreen } from '../ui/calendar/ArchiveScreen';
 import type { AgendaAgreement } from '../ui/calendar/agenda';
 import { AvailabilityForm, CopySheet, RuleSheet, WindowSheet } from '../ui/calendar/AvailabilityForm';
@@ -15,6 +15,7 @@ import { CalendarScreen } from '../ui/calendar/CalendarControls';
 import { civilInstant, deviceDate, shiftDate, weekdays } from '../ui/calendar/calendarPresentation';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { StateView } from '../ui/system/StateView';
+import { LARGE_LAYOUT, LayoutClassOverride, type LayoutClassResult } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 import { Press } from '../ui/Press';
 import { T } from '../ui/Text';
@@ -28,14 +29,14 @@ import { V2Action } from '../ui/v2/V2Action';
  * save does nothing. Each scene is chosen from the list by its label; "Nazad" (the strip at the bottom, or the top bar's
  * arrow) returns to the list.
  */
-type SceneKey = 'dan' | 'prazno' | 'prazanDan' | 'jednaVrsta' | 'bezTermina' | 'ucitava' | 'greska' | 'delimicno' | 'bezVremena' | 'dugi' | 'zona'
+type SceneKey = 'dan' | 'prazno' | 'prazanDan' | 'bezTermina' | 'vlasnik' | 'ucitava' | 'greska' | 'delimicno' | 'bezVremena' | 'dugi' | 'zona'
   | 'arhiva' | 'arhivaPrazna' | 'arhivaGreska'
   | 'nedeljaPrazna' | 'nedelja' | 'dUcitava' | 'dGreska' | 'bezProfila' | 'cuva' | 'nepoznato' | 'razlog' | 'sacuvano' | 'dZona'
   | 'termin' | 'poseban' | 'kopiraj';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'dan', label: 'Kalendar · dan sa Dogovorima' }, { key: 'prazno', label: 'Kalendar · prazan dan' },
-  { key: 'prazanDan', label: 'Kalendar · prazan dan, ima čipove' }, { key: 'jednaVrsta', label: 'Kalendar · samo Dogovori, bez čipova' },
-  { key: 'bezTermina', label: 'Kalendar · bez tačnog termina i prijave na čekanju' },
+  { key: 'prazanDan', label: 'Kalendar · prazan dan, Dogovori na drugim danima' },
+  { key: 'bezTermina', label: 'Kalendar · termin još nije dogovoren' }, { key: 'vlasnik', label: 'Kalendar · kako ga je video vlasnik (jedan Dogovor bez termina)' },
   { key: 'arhiva', label: 'Arhiva · završeno i otkazano' }, { key: 'arhivaPrazna', label: 'Arhiva · prazna' }, { key: 'arhivaGreska', label: 'Arhiva · greška' },
   { key: 'ucitava', label: 'Kalendar · učitava' }, { key: 'greska', label: 'Kalendar · greška' },
   { key: 'delimicno', label: 'Kalendar · samo termini u kojima uskačeš' },
@@ -51,6 +52,8 @@ const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'kopiraj', label: 'List · Kopiraj termine' },
 ];
 const noop = () => {};
+/** The web lab has no text scale: `?text=1.15` draws the designed layout and `?text=1.3` the stacked one, whatever the width says. */
+const COMPACT_LAYOUT: LayoutClassResult = { cls: 'compact', stacked: false };
 
 const today = deviceDate(new Date());
 /** An instant of today (or a day around it) at a Serbian clock. */
@@ -82,7 +85,22 @@ const AGREEMENTS: AgendaAgreement[] = [
     ucesnici: people('narucilac', 'Jelena'), putanjaTekst: 'Detelinara, Novi Sad' }),
   agreement('r3', { naslov: 'Pomoć pri selidbi', tacanTermin: { pocetak: at('22:00', 1), kraj: at('02:00', 2) }, ucesnici: people('narucilac', 'Stefan') }),
   agreement('r4', { naslov: 'Lekcije iz matematike', rezim: 'DALJINSKI', tacanTermin: { pocetak: at('17:00', -1), kraj: at('18:00', -1) } }),
-  agreement('f1', { naslov: 'Košenje trave', tacanTermin: null }),
+  // An accepted start and no accepted end ("kraj nije potvrđen"): it has an hour, so it stands on its day as "od 15:30", never under "Termin još nije dogovoren".
+  agreement('r5', { naslov: 'Šišanje živice', vremeTekst: 'Od 15:30 · kraj nije potvrđen', tacanTermin: null, prihvacenPocetak: at('15:30'), ucesnici: people('narucilac', 'Stefan') }),
+  agreement('f1', { naslov: 'Košenje trave', tacanTermin: null, prihvacenPocetak: null }),
+];
+/**
+ * The Dogovori that have no accepted start, as the list tells them: one that has no term at all (it asks for one), one with only an accepted
+ * END (its own words say so: "Do 10. okt · 18:00 · početak nije potvrđen"; asks for a term), and one whose completion waits for a
+ * confirmation (no command: "Čeka potvrdu"). One with an accepted start is not here: it stands on its day (`r5`).
+ */
+const WITHOUT_TERM: AgendaAgreement[] = [
+  agreement('f1', { naslov: 'Krečenje stana od 80 m² u belo', vremeTekst: 'Termin nije dogovoren', putanjaTekst: 'Novi Sad', cena: { iznos: 62000, valuta: 'RSD', prikaz: '62.000 RSD' },
+    tacanTermin: null, prihvacenPocetak: null, ucesnici: people('uskocer', 'msljivic031') }),
+  agreement('f2', { naslov: 'Čišćenje stana na Petrovaradinu', vremeTekst: 'Do 10. okt · 18:00 · početak nije potvrđen', putanjaTekst: 'Petrovaradin, Novi Sad', tacanTermin: null,
+    prihvacenPocetak: null, ucesnici: people('narucilac', 'Jelena') }),
+  agreement('f3', { naslov: 'Montaža nadstrešnice', vremeTekst: 'Termin nije dogovoren', stanje: 'AWAITING_REQUESTER', tacanTermin: null,
+    prihvacenPocetak: null, ucesnici: people('narucilac', 'Nikola'), cena: { iznos: 0, valuta: 'RSD', prikaz: '' } }),
 ];
 const LONG: AgendaAgreement[] = [
   agreement('l1', { naslov: 'Prenos starog trokrilnog ormara iz stana na petom spratu bez lifta do kombija parkiranog u dvorištu zgrade',
@@ -92,25 +110,15 @@ const LONG: AgendaAgreement[] = [
     tacanTermin: { pocetak: at('17:00'), kraj: at('23:30') }, ucesnici: people('narucilac', 'Konstantin Radosavljević') }),
 ];
 
-/** My own task, published: the fields the planner and the archive read, with a fixed window or none. */
+/** My own task, closed: the fields the Arhiva reads (Raspored no longer holds tasks or applications). */
 const need = (id: string, patch: Partial<PotrebaProjekcija>): PotrebaProjekcija => ({ id, revizija: 1, naslov: 'Selidba ormara', opis: '', stanje: 'OBJAVLJENA',
   pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 }, vremeTekst: 'Fleksibilan termin', podrucjeTekst: 'Detelinara, Novi Sad', uslovi: [],
   brojPrijava: 0, brojPrijavaZaIzbor: 0, schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null }, ...patch } as PotrebaProjekcija);
-const fixed = (start: string, end: string | null): NeedScheduleProjection => ({ kind: 'FIXED_WINDOW', startsAt: start, endsAt: end });
-/** My own application, sent: with a task window it stands on a day, without one it waits under "Čekaju odgovor". */
+/** My own application, withdrawn or closed: the fields the Arhiva reads. */
 const application = (id: string, patch: Partial<MojaPrijavaProjekcija>): MojaPrijavaProjekcija => ({ prijavaId: id, potrebaId: `need-${id}`, potrebaRevizija: 1,
   prijavaRevizija: 1, prijavaVerzija: 1, stanje: 'SUBMITTED', naslov: 'Košenje trave', opis: '', cena: { iznos: 1500, valuta: 'RSD', prikaz: '1.500 RSD' },
   pokrivaMesta: 1, napomena: '', podrucjeTekst: 'Novi Sad', vremeTekst: 'Fleksibilno', dogovorId: null, promenjenaPotreba: false, mozePovuci: true,
   traziPaznju: false, ...patch });
-const MY_NEEDS: PotrebaProjekcija[] = [
-  need('n1', { naslov: 'Selidba ormara', stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3, schedule: fixed(at('13:00'), at('15:00')) }),
-];
-const MY_APPLICATIONS: MojaPrijavaProjekcija[] = [
-  application('p1', { naslov: 'Košenje trave u dvorištu', zadatak: { raspored: fixed(at('15:30'), at('17:30')), rezimLokacije: null, vremenskaZona: null, rezimCene: 'OFFERS',
-    osnovaCene: null, potrebnoMesta: 1 } }),
-];
-const LOOSE_NEEDS: PotrebaProjekcija[] = [need('f1', { naslov: 'Čišćenje tavana' }), need('f2', { naslov: 'Pomoć oko računara', vremeTekst: 'Bilo kada ove nedelje' })];
-const PENDING_APPLICATIONS: MojaPrijavaProjekcija[] = [application('p2', { naslov: 'Farbanje ograde' }), application('p3', { naslov: 'Pomoć pri selidbi', stanje: 'VIEWED' })];
 /** A little of everything that is over, for the Arhiva. */
 const OVER_AGREEMENTS: AgendaAgreement[] = [
   agreement('o1', { naslov: 'Prenos ormana do kombija', stanje: 'COMPLETED', vremeTekst: '20. sep · 10:00–14:00', ucesnici: people('uskocer', 'Milica') }),
@@ -131,11 +139,10 @@ const WEEK: WorkerAvailabilityInput = { timezone: 'Europe/Belgrade', availableNo
   windows: [windowAt(5, 3, '08:00', '20:00', 'UNAVAILABLE', 'Slava'), windowAt(6, 10, '09:00', '13:00', 'AVAILABLE'),
     windowAt(7, -20, '08:00', '12:00', 'UNAVAILABLE', 'Pregled kod lekara')] };
 
-function Calendar({ schedule, list, needs, applications, phoneZone, back }: { schedule: AgendaSchedule; list: AgendaList; needs?: AgendaNeeds;
-  applications?: AgendaApplications; phoneZone?: string; back: () => void }) {
+function Calendar({ schedule, list, phoneZone, back }: { schedule: AgendaSchedule; list: AgendaList; phoneZone?: string; back: () => void }) {
   const [selected, setSelected] = useState(today);
-  return <AgendaScreen selected={selected} today={today} schedule={schedule} list={list} needs={needs} applications={applications} refreshing={false}
-    onSelect={setSelected} onBack={back} onRefresh={noop} onRetry={noop} onRetryList={noop} onOpen={noop} onOpenTask={noop} onOpenApplication={noop}
+  return <AgendaScreen selected={selected} today={today} schedule={schedule} list={list} refreshing={false}
+    onSelect={setSelected} onBack={back} onRefresh={noop} onRetry={noop} onRetryList={noop} onOpen={noop} onProposeTerm={noop}
     onAvailability={noop} onArchive={noop} phoneZone={phoneZone ?? 'Europe/Belgrade'} />;
 }
 const source = <Row,>(rows: Row[]) => ({ state: 'ready' as const, rows });
@@ -156,19 +163,18 @@ function Availability({ value, back, loading = false, error, errorAction = 'Uči
 function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
   const ready = (events: readonly WorkerCalendarEvent[]): AgendaSchedule => ({ state: 'ready', events });
   switch (scene) {
-    // Every kind at once: Dogovori, my own task with applications to choose from, and my application - so the chips have something to choose.
-    case 'dan': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS }}
-      needs={{ state: 'ready', needs: MY_NEEDS }} applications={{ state: 'ready', applications: MY_APPLICATIONS }} />;
+    // The Dogovori of both sides on a day: mine to do, mine to confirm, finished, an overlap.
+    case 'dan': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS }} />;
     case 'prazno': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: [] }} />;
-    // Two kinds in the window but none on today: the chips are there, the day is one quiet line.
-    case 'prazanDan': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: [] }}
-      needs={{ state: 'ready', needs: [need('n2', { naslov: 'Pomoć pri selidbi', schedule: fixed(at('10:00', 3), at('12:00', 3)) })] }}
-      applications={{ state: 'ready', applications: [application('p4', { naslov: 'Montaža rolo zavesa', zadatak: { raspored: fixed(at('09:00', 4), at('11:00', 4)),
-        rezimLokacije: null, vremenskaZona: null, rezimCene: 'OFFERS', osnovaCene: null, potrebnoMesta: 1 } })] }} />;
-    // Only Dogovori: there is nothing to choose between, so there is no row of chips.
-    case 'jednaVrsta': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS }} />;
-    case 'bezTermina': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS }}
-      needs={{ state: 'ready', needs: LOOSE_NEEDS }} applications={{ state: 'ready', applications: PENDING_APPLICATIONS }} />;
+    // Dogovori in the window but none on today: the day is one quiet line, and the dots of the week say where they are.
+    case 'prazanDan': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: [
+      agreement('d3', { naslov: 'Pomoć pri selidbi', tacanTermin: { pocetak: at('10:00', 3), kraj: at('12:00', 3) }, ucesnici: people('narucilac', 'Stefan') }),
+      agreement('d4', { naslov: 'Montaža rolo zavesa', tacanTermin: { pocetak: at('09:00', 4), kraj: at('11:00', 4) }, ucesnici: people('uskocer', 'Ana') })] }} />;
+    // The section under the day: three Dogovori with no accepted start (none at all, only an end, waiting for a confirmation), the command only
+    // where a term may be proposed, and above them, on the day, the one that has a start ("od 15:30").
+    case 'bezTermina': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: [...AGREEMENTS.filter(item => item.id !== 'f1'), ...WITHOUT_TERM] }} />;
+    // The owner's phone, 8 Oct 2026: one Dogovor without a term and nothing on the day.
+    case 'vlasnik': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: [WITHOUT_TERM[0]] }} />;
     case 'arhiva': return <ArchiveScreen agreements={source(OVER_AGREEMENTS)} needs={source(OVER_NEEDS)} applications={source([application('o4', { naslov: 'Lekcije iz matematike', stanje: 'WITHDRAWN' as MojaPrijavaProjekcija['stanje'] })])}
       refreshing={false} onBack={back} onRefresh={noop} onRetry={noop} onOpen={noop} />;
     case 'arhivaPrazna': return <ArchiveScreen agreements={source([])} needs={source([])} applications={source([])} refreshing={false} onBack={back} onRefresh={noop} onRetry={noop} onOpen={noop} />;
@@ -179,8 +185,7 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
     case 'delimicno': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'error' }} />;
     // What a list read that does not carry the exact window shows: only my own work, and a line that says so.
     case 'bezVremena': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS.map(unsaid) }} />;
-    case 'dugi': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: LONG }}
-      needs={{ state: 'ready', needs: [need('n3', { naslov: 'Prenos trosed i dve fotelje sa trećeg sprata bez lifta', schedule: fixed(at('18:00'), at('20:00')) })] }} />;
+    case 'dugi': return <Calendar back={back} schedule={ready([])} list={{ state: 'ready', agreements: LONG }} />;
     case 'zona': return <Calendar back={back} schedule={ready(EVENTS)} list={{ state: 'ready', agreements: AGREEMENTS }} phoneZone="America/New_York" />;
     case 'nedeljaPrazna': return <Availability back={back} value={EMPTY} />;
     case 'nedelja': return <Availability back={back} value={WEEK} />;
@@ -208,8 +213,9 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
 export default function DizajnKalendar() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
   // A known scene can be opened by its address (`?scene=dan`), to be photographed on the emulator or in the lab; arbitrary queries select nothing.
-  const params = useLocalSearchParams<{ scene?: string | string[] }>();
+  const params = useLocalSearchParams<{ scene?: string | string[]; text?: string | string[] }>();
   const requested = SCENES.find(option => option.key === (typeof params.scene === 'string' ? params.scene : undefined))?.key ?? null;
+  const textLayout = params.text === '1.3' ? LARGE_LAYOUT : params.text === '1.15' ? COMPACT_LAYOUT : null;
   const [scene, setScene] = useState<SceneKey | null>(requested);
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
@@ -226,7 +232,7 @@ export default function DizajnKalendar() {
   const back = () => setScene(null);
   return <View style={s.screen}>
     {/* Each scene is mounted fresh, so its day, draft and open parts start where the scene says. */}
-    <View key={scene} style={s.grow}><Scene scene={scene} back={back} /></View>
+    <LayoutClassOverride.Provider value={textLayout}><View key={scene} style={s.grow}><Scene scene={scene} back={back} /></View></LayoutClassOverride.Provider>
     <SafeAreaView edges={['bottom']} style={s.strip}>
       <V2Action label="Nazad" accessibilityLabel="Nazad na scene" kind="quiet" onPress={back} />
     </SafeAreaView>

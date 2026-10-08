@@ -10,7 +10,7 @@ import { Segmented } from '../ui/system/Segmented';
 import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
-import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from '../ui/v2/MyApplicationsPresentation';
+import { MyApplicationsPresentation, type ApplicationsPaging, type ApplicationsTab, type OfferEdit } from '../ui/v2/MyApplicationsPresentation';
 
 /**
  * Moje prijave in its main states, for the lead to photograph on the emulator (owner's step 5c, 2026-09-24). Reached only
@@ -19,11 +19,13 @@ import { MyApplicationsPresentation, type ApplicationsTab, type OfferEdit } from
  * or writes data, no command is sent, and no press navigates anywhere but back. The scene is chosen in the strip at the
  * bottom, so the top of every scene is exactly the screen.
  */
-type Scene = 'lista' | 'dugi' | 'pregled' | 'izmena' | 'ceka' | 'ucitava' | 'greska' | 'prazno' | 'prazanSkup' | 'veliki';
-const SCENES: { key: Scene; label: string }[] = [{ key: 'lista', label: 'Lista' }, { key: 'dugi', label: 'Dugi nazivi' },
+type Scene = 'lista' | 'nova' | 'dugi' | 'pregled' | 'izmena' | 'ceka' | 'ucitava' | 'greska' | 'prazno' | 'strane' | 'veliki';
+// The approved draft U8: the applications stand in three groups (Čeka odgovor, Izabrana, Završene), the one just sent is marked, and a set with a page still to
+// come keeps the server's own sets as chips ("Strana po strana").
+const SCENES: { key: Scene; label: string }[] = [{ key: 'lista', label: 'Lista' }, { key: 'nova', label: 'Upravo poslata' }, { key: 'dugi', label: 'Dugi nazivi' },
   { key: 'pregled', label: 'Pregled izmena' }, { key: 'izmena', label: 'Izmena ponude' }, { key: 'ceka', label: 'Na čekanju' },
   { key: 'ucitava', label: 'Učitava' }, { key: 'greska', label: 'Greška' }, { key: 'prazno', label: 'Prazno' },
-  { key: 'prazanSkup', label: 'Prazan prikaz' }, { key: 'veliki', label: 'Veliki tekst' }];
+  { key: 'strane', label: 'Strana po strana' }, { key: 'veliki', label: 'Veliki tekst' }];
 
 const offer = (id: string, patch: Partial<MojaPrijavaProjekcija>): MojaPrijavaProjekcija => ({ prijavaId: id, potrebaId: `n-${id}`,
   potrebaRevizija: 3, prijavaRevizija: 3, prijavaVerzija: 1, stanje: 'SUBMITTED', naslov: 'Prenos ormara do kombija',
@@ -53,6 +55,10 @@ const LONG: MojaPrijavaProjekcija[] = [
   // The read never hands over an application without an amount today; the scene shows the word the card says if it did.
   offer('unpriced', { naslov: 'Pomoć oko bašte', cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, pokrivaMesta: 1 }),
 ];
+/** The application the person has just sent: the receipt opened the list with it. */
+const SENT_NOW = offer('now', { naslov: 'Montaža dve police u hodniku', cena: price(4000), pokrivaMesta: 2, podrucjeTekst: 'Grbavica, Novi Sad', vremeTekst: '26. sep · 10:00–12:00' });
+/** A set of forty applications read a page at a time: the server's own counts, one page loaded. */
+const PAGING: ApplicationsPaging = { counts: { total: 40, attention: 4, active: 12, finished: 24 }, hasMore: true, loadingMore: false, moreError: false, onLoadMore: () => {} };
 const DRAFT: OfferEdit = { price: '2000', people: '1', note: 'Donosim bušilicu i tiple.', start: '2026-09-26T08:00:00Z', end: '2026-09-26T10:00:00Z',
   pricing: { rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 2000 }, pokrivenost: { ukupno: 2 } } };
 const noop = () => {};
@@ -65,19 +71,18 @@ export default function DizajnPrijave() {
   const params = useLocalSearchParams<{ scene?: string | string[] }>();
   const requested = typeof params.scene === 'string' && isScene(params.scene) ? params.scene : undefined;
   const [scene, setScene] = useState<Scene>(requested ?? 'lista');
-  const [tab, setTab] = useState<ApplicationsTab>(requested === 'prazanSkup' ? 'attention' : 'all');
+  const [tab, setTab] = useState<ApplicationsTab>('all');
   const [expanded, setExpanded] = useState<string | null>(requested === 'pregled' || requested === 'izmena' ? 'stale' : null);
   const [draft, setDraft] = useState<OfferEdit | null>(requested === 'izmena' ? DRAFT : null);
   const confirmation = useConfirmSheet();
   const choose = (next: Scene) => {
-    setScene(next); setTab(next === 'prazanSkup' ? 'attention' : 'all'); setDraft(next === 'izmena' ? DRAFT : null);
+    setScene(next); setTab('all'); setDraft(next === 'izmena' ? DRAFT : null);
     setExpanded(next === 'pregled' || next === 'izmena' ? 'stale' : null);
   };
   useEffect(() => { if (requested) choose(requested); }, [requested]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
-  // "Prazan prikaz": applications exist, but nothing waits for me, and "Čeka te" is the chosen tab.
   const rows = scene === 'dugi' ? LONG : scene === 'veliki' ? [...LIST, ...LONG] : scene === 'prazno' || scene === 'ucitava' || scene === 'greska' ? []
-    : scene === 'prazanSkup' ? LIST.filter(p => !p.traziPaznju) : LIST;
+    : scene === 'nova' ? [SENT_NOW, ...LIST] : LIST;
   // The withdrawal question is the real sheet; its answer does nothing here.
   const ask = (p: MojaPrijavaProjekcija) => confirmation.ask({ title: 'Povući prijavu?', message: `Prijava za „${p.naslov}” više neće biti aktivna.`,
     cancelLabel: 'Odustani', confirmLabel: 'Povuci', tone: 'danger', onConfirm: noop });
@@ -88,7 +93,8 @@ export default function DizajnPrijave() {
         <MyApplicationsPresentation rows={rows} loading={scene === 'ucitava'} unavailable={scene === 'greska'}
           message={scene === 'greska' ? 'Pokušaj ponovo za trenutak.' : null}
           notice={scene === 'ceka' ? 'Radnja je potvrđena. Sačuvana prijava sada ima drugačije stanje; pregledaj je ponovo.' : null}
-          tab={tab} onTab={setTab} expanded={expanded} draft={draft}
+          tab={tab} onTab={setTab} expanded={expanded} draft={draft} paging={scene === 'strane' ? PAGING : undefined}
+          focusId={scene === 'nova' ? SENT_NOW.prijavaId : null} freshId={scene === 'nova' ? SENT_NOW.prijavaId : null}
           busy={false} editingLoading={false} pending={scene === 'ceka'} canRetry={scene === 'ceka'} canReset={false}
           onRefresh={noop} onExplore={noop} onProfile={noop} onBack={() => router.back()}
           onReview={p => setExpanded(p.prijavaId)} onClose={() => { setExpanded(null); setDraft(null); }} onEdit={() => setDraft(DRAFT)}

@@ -5,7 +5,6 @@ import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskRe
 import type { NeedLocationInput } from '../../contracts/location';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
-import { APPLICATION_PROMISE } from '../ownTaskStanding';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -426,7 +425,8 @@ describe('a private draft reviewed for its first publication', () => {
     expect(text()).toContain('Pregled zadatka'); expect(text()).not.toContain('Pregled izmena');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' })).toHaveLength(0);
-    expect(text()).toContain('Objavljuješ ovu verziju zadatka.'); expect(text()).not.toContain('izmenjenu verziju');
+    // The button that can be pressed says what it does by its name: no sentence over it says what "Objavi zadatak" is (the owner, 8 Oct 2026).
+    expect(text()).not.toContain('Objavljuješ ovu verziju zadatka.'); expect(text()).not.toContain('izmenjenu verziju');
     expect(publish().disabled).toBe(false);
   });
 
@@ -525,7 +525,7 @@ describe('a private draft reviewed for its first publication', () => {
       });
       await render();
       await act(async () => publish().onPress());
-      expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain(APPLICATION_PROMISE.published);
+      expect(text()).toContain('Zadatak je objavljen.'); expect(text()).not.toMatch(/zvonc|Prijave vidiš|Javićemo/);
       expect(text()).not.toContain('Izmene su objavljene.');
     } finally { jest.useRealTimers(); }
   });

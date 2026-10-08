@@ -3,10 +3,10 @@ import { civilInstant, shiftDate, weekdayOf, zonedParts } from './calendarPresen
 import { instantMs, serbianClock, serbianDayRange } from './serbianDays';
 
 /**
- * The thin shade under a day number in the planner's week (owner, 2026-10-07): "on this day I have said I can work". It is
- * read from the availability the worker already keeps (`workerAvailabilityClientService.read`): the weekly rules and the dated
- * exceptions of Dostupnost. It says nothing about being booked (a Dogovor on the day is a Dogovor, drawn as one) and nothing
- * about "Mogu odmah" (that switch is about now, not about a day).
+ * The soft shade behind a day of the month, and the band beside the hours of a day (owner, 2026-10-07 and 8 Oct 2026, "Raspored kao
+ * kalendar"): "on this day I have said I can work". It is read from the availability the worker already keeps
+ * (`workerAvailabilityClientService.read`): the weekly rules and the dated exceptions of Dostupnost. It says nothing about being booked
+ * (a Dogovor on the day is a Dogovor, drawn as one) and nothing about "Mogu odmah" (that switch is about now, not about a day).
  *
  * The availability is kept in its own named zone and the planner's days are Serbian days, so every rule is turned into exact
  * instants first and only then cut by the Serbian day. A person who keeps Dostupnost in another zone sees the shade where the
@@ -95,6 +95,27 @@ export type DayAvailability = Readonly<{
 
 const spanClock = (ms: number, dayEnd: number) => ms === dayEnd ? '24:00' : serbianClock(new Date(ms).toISOString());
 const SPOKEN_SPANS = 3;
+
+/** A stretch of a Serbian day in minutes of its clock ("09:00" is 540; the end of the day is 1440). */
+export type MinuteSpan = Readonly<{ from: number; to: number }>;
+
+/** The minutes of a Serbian clock an instant of the day stands at; the end of the day is 1440, not a "00:00" of the next one. */
+function clockMinutes(ms: number, dayEnd: number): number {
+  if (ms >= dayEnd) return 1440;
+  const clock = serbianClock(new Date(ms).toISOString());
+  return Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5));
+}
+
+/**
+ * The stretches of one Serbian day a worker has said they can work, as minutes of its clock, earliest first and never overlapping: what
+ * the day view draws as the band beside its hours. The same spans `dayAvailability` counts, so the shade of a day in the month and the band
+ * in its hours can never disagree about whether the day is one the worker has given.
+ */
+export function availabilitySpans(availability: Pick<WorkerAvailability, 'timezone' | 'rules' | 'windows'>, day: string): MinuteSpan[] {
+  const dayEnd = instantMs(serbianDayRange(day).to) ?? 0;
+  return availableSpans(availability, day).map(([from, to]): MinuteSpan => ({ from: clockMinutes(from, dayEnd), to: clockMinutes(to, dayEnd) }))
+    .filter(span => span.to > span.from);
+}
 
 /** What a worker has said they can work on one Serbian day; null when nothing, so no shade is drawn. */
 export function dayAvailability(availability: Pick<WorkerAvailability, 'timezone' | 'rules' | 'windows'>, day: string): DayAvailability | null {

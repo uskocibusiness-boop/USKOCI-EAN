@@ -7,21 +7,23 @@ import { trenutak, type Trenutak } from '../../lib/trenutak';
 import { T } from '../Text';
 import { Avatar } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
-import { ListRow } from '../system/ListRow';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { layout } from '../system/layout';
 import { neprocitanih, osoba } from '../system/plural';
+import { useLayoutClass } from '../system/textScale';
 import { sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import { ListSkeleton } from '../notifications/ListSkeleton';
+import { TimedRow } from '../notifications/TimedRow';
 
 /**
  * The admitted reader's contract owns these facts (`MY_CONVERSATIONS_PAGE_V1`). Two things the Poruke design draws are NOT in that
- * projection today, so nothing supplies them yet and nothing is invented: that the Dogovor is closed (a lock, and the "Završeni" set),
- * and how many people a group has ("Grupa · 3 osobe"). A reader that learns them fills these optional fields and the row draws them; the
- * route fills `closed` from the Dogovori it already reads (R17).
+ * projection today, so nothing supplies them yet and nothing is invented: that the Dogovor is closed (the "Završeni" set), and how
+ * many people a group has ("Grupa · 3 osobe"). A reader that learns them fills these optional fields and the row draws them; the route
+ * fills `closed` from the Dogovori it already reads (R17).
  */
 export type ConversationInboxRow = ConversationInboxItem & Readonly<{ closed?: boolean; memberCount?: number }>;
 export const conversationRowKey = (row: ConversationInboxRow): string => `${row.kind}:${row.id}`;
@@ -35,7 +37,7 @@ export type ConversationInboxPresentationProps = {
   disabled?: boolean; openingDisabled?: boolean; openingKey?: string | null;
   unavailableKeys?: ReadonlySet<string>; openErrorKey?: string | null;
   onOpen: (row: ConversationInboxRow) => void; onRefresh: () => void; onLoadMore: () => void;
-  /** Only supply an already-authorized photo node. The presentation never fetches photos or message media. */
+  /** Only supply an already-authorized photo node, drawn at 48. The presentation never fetches photos or message media. */
   renderAvatar?: (row: ConversationInboxRow) => ReactNode;
   /** Optional route chrome, outside the scrolling list. Does not create a bell or any data read. */
   header?: ReactNode;
@@ -68,7 +70,7 @@ export function conversationInboxRows(items: readonly ConversationInboxRow[], op
 }
 
 /**
- * What stands with the task under a row (proposal J2): the clock for a message of today, otherwise the day as the app says it
+ * What stands at the end of the name's line (proposal J2): the clock for a message of today, otherwise the day as the app says it
  * ("Juče", "3. okt"). Never both: the list has no day headings, so the stamp carries the day.
  */
 export const conversationStamp = (moment: Trenutak | null): string | null => moment ? moment.dan === 'Danas' ? moment.sat : moment.dan : null;
@@ -87,21 +89,6 @@ export function conversationPreview(message: ConversationInboxRow['lastMessage']
       : caption || 'Tekst poruke nije dostupan';
   return `${message.mine ? 'Ti: ' : ''}${content}`;
 }
-
-/**
- * The words under the name are a preview, not the message: two lines at most on an ordinary phone, so a row stays about as high as the
- * system's row is (the row has no line limit of its own). A screen reader hears the whole preview in the row's one label.
- */
-export const PREVIEW_CHARACTERS = 72;
-/** The task in the quiet line under the preview says what the conversation is about, as a hint, so it is cut too (the label has all of it). */
-export const TASK_CHARACTERS = 48;
-/** At most `limit` letters, the last of them an ellipsis when something was cut; counted in letters, never cut inside one. */
-function clipped(text: string, limit: number): string {
-  const letters = Array.from(text);
-  return letters.length <= limit ? text : `${letters.slice(0, limit - 1).join('').trimEnd()}…`;
-}
-export const conversationPreviewLine = (preview: string): string => clipped(preview, PREVIEW_CHARACTERS);
-export const conversationTaskLine = (title: string): string => clipped(title, TASK_CHARACTERS);
 
 const EMPTY_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_ITEMS: readonly ConversationInboxRow[] = [];
@@ -125,6 +112,9 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   const openDisabled = disabled || openingDisabled || openingKey !== null;
   // Keep RefreshControl mounted while reading; the caller still owns async single-flight admission.
   const refresh = useCallback(() => { if (!readDisabled) onRefresh(); }, [readDisabled, onRefresh]);
+  // The pull spinner is for a pull only: a read the screen starts by itself (a tab switched back, a focus) used to raise it, and on Android
+  // it is a white disc over the top of the list, which sat half grown on the Aktivni/Završeni switch on the owner's phone (8 Oct 2026).
+  const pull = usePullRefresh(refresh, reading);
   const renderItem = useCallback(({ item: row }: ListRenderItemInfo<ListItem>) => <ConversationRow item={row.item} moment={row.moment} closed={row.closed === true}
     last={row.key === lastKey}
     unavailable={unavailableKeys.has(row.key)} failed={openErrorKey === row.key} opening={openingKey === row.key}
@@ -170,7 +160,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
     <FlatList data={shown} keyExtractor={rowKey} renderItem={renderItem}
       ListHeaderComponent={listHeader} ListEmptyComponent={empty} ListFooterComponent={footer}
       contentContainerStyle={[s.content, { paddingBottom: Math.max(0, bottomInset) + layout.zone }]}
-      refreshing={items !== null && reading} onRefresh={refresh}
+      refreshing={items !== null && pull.refreshing} onRefresh={pull.onRefresh}
       keyboardShouldPersistTaps="handled" initialNumToRender={12} />
   </View>;
 }
@@ -178,7 +168,20 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
 type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; last: boolean; closed: boolean;
   openDisabled: boolean; opening: boolean; unavailable: boolean; failed: boolean; photo?: ReactNode;
   onOpen: (row: ConversationInboxRow) => void };
+
+/** The face of a row, and the whole of its slot: the face stands on the edge of the screen, in line with the control and the bar above it. */
+const FACE = 48;
+
+/**
+ * One conversation (UI/UX pass, 2026-10-08, the owner's phone): the face, then three lines and each of them ONE line. The person (or
+ * the group) with the time of the last message at the end of the same line, what was said, and what it is about, in grey. A preview that
+ * is longer than the room is cut by the line, not by a count of letters: the whole of it is in the conversation, and the row's one
+ * label says all of it to a screen reader. A closed Dogovor draws nothing of its own (the lock explained nothing; the "Završeni" set
+ * already says it is over) and a row draws no arrow: the whole row is the way in. At a large text size the time has no room beside the
+ * name: the name may take two lines and the time goes to the front of the line of the task.
+ */
 const ConversationRow = memo(function ConversationRow({ item, moment, last, closed, openDisabled, opening, unavailable, failed, photo, onOpen }: RowProps) {
+  const { stacked } = useLayoutClass();
   const title = conversationTitle(item);
   const preview = conversationPreview(item.lastMessage);
   // Private unread is explicitly unknown in V1, even if an upstream caller accidentally supplies a number.
@@ -188,21 +191,23 @@ const ConversationRow = memo(function ConversationRow({ item, moment, last, clos
   const stamp = conversationStamp(moment);
   const time = moment ? `${moment.dan}, ${moment.sat}` : null;
   const label = [title, item.task.title, closed ? 'Dogovor je zatvoren' : null, preview, time, unread === null ? null : neprocitanih(unread), status].filter(Boolean).join('. ');
-  // The line under the words says when and what it is about, like a notification does ("14:05 · Montaža police"); while it opens or when it
-  // cannot be opened it says that instead.
-  const meta = opening ? 'Otvaramo razgovor…' : status ?? ([stamp, conversationTaskLine(item.task.title)].filter(Boolean).join(' · ') || undefined);
+  // The third line says what the conversation is about; while it opens, or when it cannot be opened, it says that instead.
+  const about = opening ? 'Otvaramo razgovor…' : status ?? item.task.title;
+  const aboutLine = stacked && stamp && !opening && !status ? `${stamp} · ${about}` : about;
+  const off = unavailable || opening;
   // The face is the one thing of the row's slot: a photo, the person's letters, or the picture of a group. Decoration only: the row speaks.
   const face = <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.face}>
-    {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={48} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={layout.slotFace} />)}
+    {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={FACE} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={FACE} />)}
   </View>;
-  // At the end of the row: how many messages of a group are unread (the only unread the server counts) and the lock of a closed Dogovor.
-  const trailing = unread !== null || closed ? <View style={s.trailing}>
-    {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}
-    {closed ? <View testID="conversation-lock" accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><FactArt kind="lock" size={16} muted /></View> : null}
-  </View> : undefined;
-  return <ListRow faceSlot leading={face} title={title} subtitle={conversationPreviewLine(preview)} meta={meta} trailing={trailing} last={last}
-    disabled={unavailable || opening} onPress={() => { if (!openDisabled) onOpen(item); }}
-    accessibilityLabel={label} accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'} />;
+  return <TimedRow leading={face} slot={FACE} title={title} titleLines={stacked ? 2 : 1} time={stacked ? null : stamp} last={last} disabled={off}
+    onPress={() => { if (!openDisabled) onOpen(item); }} accessibilityLabel={label}
+    accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}>
+    <View style={s.line}>
+      <T variant="note" tone="muted" numberOfLines={1} style={s.grow}>{preview}</T>
+      {unread !== null ? <View style={s.unread}><T variant="meta" style={s.unreadText}>{unread.toLocaleString('sr-Latn-RS')}</T></View> : null}
+    </View>
+    <T variant="meta" tone="muted" numberOfLines={1}>{aboutLine}</T>
+  </TimedRow>;
 });
 
 const s = StyleSheet.create({
@@ -211,9 +216,11 @@ const s = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: layout.maxWidth, alignSelf: 'center', paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   heading: { gap: layout.group, paddingBottom: sys.space.sm },
   notice: { gap: sys.space.xs },
-  face: { width: layout.slotFace, height: layout.slotFace, alignItems: 'center', justifyContent: 'center' },
-  trailing: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  unread: { minWidth: 24, paddingHorizontal: sys.space.sm, paddingVertical: sys.space.xs, borderRadius: sys.radius.pill, backgroundColor: sys.color.ink },
+  face: { width: FACE, height: FACE, alignItems: 'center', justifyContent: 'center' },
+  line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  grow: { flex: 1, minWidth: 0 },
+  // The count of a group is 20 high, the height of the line it stands in, so a group's row is as tall as any other.
+  unread: { minWidth: 20, height: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill, backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   unreadText: { color: sys.color.surface, textAlign: 'center', fontVariant: ['tabular-nums'] },
   loading: { gap: sys.space.base },
   center: { textAlign: 'center', maxWidth: '100%' },

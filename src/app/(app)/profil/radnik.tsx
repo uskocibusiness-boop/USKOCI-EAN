@@ -1,20 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, BackHandler, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { RadnikProfilProjekcija } from '../../../contracts/projections';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
+import { inicijali } from '../../../lib/inicijali';
+import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
+import { RatingLine } from '../../../ui/profile/RatingLine';
+import { useAccountName } from '../../../ui/profile/useAccountName';
+import { HeaderInfo } from '../../../ui/settings/InfoTitle';
+import { Avatar } from '../../../ui/system/Avatar';
 import { brandAction } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
 import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerNavigation, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
+import { workerProfileInfoLines } from '../../../ui/workerProfile/workerProfileFacts';
+import type { AvailableNowControl, SavedProfilePart } from '../../../ui/workerProfile/WorkerProfileSaved';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
 type Draft = { value: WorkerDraft; initial: WorkerDraft; profileId: string | null };
 type Attempt = { command: AzurirajProfilKomanda; expected: AzurirajProfilKomanda; profileId: string | null; afterRead: number };
+/** The one write that changes only the name ("Koristi „<ime naloga>“"): nothing else is sent, so nothing else can be read back differently. */
+const isNameOnly = (command: AzurirajProfilKomanda) => command.zavrsi !== true && command.ime !== undefined
+  && Object.keys(command).every(key => key === 'zavrsi' || key === 'ime');
 const failed = (): Ishod<Snapshot> => ({ ok: false, kod: 'PROFILE_UNCONFIRMED',
   poruka: 'Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što pokušaš ponovo.' });
 async function bounded<T>(request: () => Promise<T>, milliseconds: number): Promise<T> {
@@ -29,6 +40,9 @@ export default function ProfilRadnikEkran() {
 }
 function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string; accountRevision: number }) {
   const izvor = useIzvor();
+  // ONE NAME (owner, 8 Oct 2026): the work profile has no field for it. It takes the ACCOUNT's name, changed only in "Lični podaci".
+  const account = useAccountName();
+  const accountName = account.state === 'ready' ? account.name : null;
   const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId &&
     sesijaSada().accountRevision === accountRevision, [accountId, accountRevision]);
   const lifecycle = useRef({ focus: null as object | null, active: !AppState.currentState || AppState.currentState === 'active', generation: 0 });
@@ -60,8 +74,16 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const [transportBusy, setTransportBusy] = useState(false), transportRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null), [validation, setValidation] = useState<string | null>(null);
   const [focusRequest, setFocusRequest] = useState<WorkerProfileFocusRequest | null>(null), focusRequestSequence = useRef(0);
-  // A finished profile is READ first (M3); "Izmeni ručno" is what turns it into the editor. Leaving the screen reads it again next time.
+  // A finished profile is READ first (M3); a row of it that changes something (`editPart`) is what turns it into the editor, with that part open and no field
+  // focused, so no keyboard comes up. Leaving the screen reads it again next time.
   const [manual, setManual] = useState(false);
+  const [openSection, setOpenSection] = useState<{ section: SavedProfilePart | 'identity'; token: number } | null>(null), openSectionSequence = useRef(0);
+  // "O meni" is written in the work profile's editor, and "Lični podaci" leads there with `uredi=o-meni` (and a nonce `n`, so each tap is its own request).
+  const params = useLocalSearchParams<{ uredi?: string; n?: string }>(), openedFor = useRef<string | null>(null);
+  // The switch "Mogu odmah" (approved draft, P3): saved exactly as Početna saves it, the saved week with only the status changed, against the revision it was
+  // read at. What the switch shows while it saves and after it saved is this screen's own until the next read lands, which is the truth again.
+  const [switching, setSwitching] = useState<{ value: boolean | null; busy: boolean; failed: boolean }>({ value: null, busy: false, failed: false });
+  const switchSaving = useRef(false);
   const setLocal = (next: Draft) => { draftGeneration.current++; draftRef.current = next; setDraft(next); };
   useEffect(() => {
     if (!editor.data || transportBusy) return;
@@ -74,8 +96,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (confirmed) {
       pendingRef.current = null; setPending(null); setValidation(null);
       setMessage(attempt.command.zavrsi ? 'Profil je aktivan i sačuvan.'
-        : attempt.profileId === null ? 'Profil je sačuvan. Nastavi sa podešavanjem.'
-          : 'Izmene profila su sačuvane.');
+        : isNameOnly(attempt.command) ? 'Ime radnog profila je promenjeno.'
+          : attempt.profileId === null ? 'Profil je sačuvan. Nastavi sa podešavanjem.'
+            : 'Izmene profila su sačuvane.');
     }
   }, [editor.data, transportBusy]);
   useEffect(() => {
@@ -100,24 +123,15 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       setLocal({ ...local, value: local.initial });
       setMessage(null); setValidation(null); setFocusRequest(null);
     }
-    setManual(false);
+    setManual(false); setOpenSection(null);
     if (router.canGoBack()) router.back(); else router.replace('/profil');
   };
   const change = (value: WorkerDraft) => {
     if (!enabled || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
     setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null); setFocusRequest(null);
   };
-  const save = async (activate: boolean) => {
-    if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
-    const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate);
-    if (!built.command) {
-      setValidation(built.error ?? 'Proveri popunjena polja.');
-      const value = draftRef.current.value;
-      const target = value.newSkill.trim() ? 'skill' : value.newTool.trim() ? 'tool' : value.newVehicle.trim() ? 'vehicle' : null;
-      if (target) setFocusRequest({ target, token: ++focusRequestSequence.current });
-      return;
-    }
-    const attempt = pendingRef.current ?? { command: built.command, expected: built.expected!, profileId: draftRef.current.profileId, afterRead: readSequence.current };
+  // One attempt at a time: a command is sent once, its whole pipeline stays owned until it settles, and the profile is read back before it is called saved.
+  const commit = async (attempt: Attempt) => {
     await editor.save(async () => {
       transportRef.current = true; setTransportBusy(true); pendingRef.current = attempt; setPending(attempt); setMessage(null); setValidation(null);
       try {
@@ -136,6 +150,28 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       }
     });
   };
+  const save = async (activate: boolean) => {
+    if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
+    const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate, accountName);
+    if (!built.command) {
+      setValidation(built.error ?? 'Proveri popunjena polja.');
+      const value = draftRef.current.value;
+      const target = value.newSkill.trim() ? 'skill' : value.newTool.trim() ? 'tool' : value.newVehicle.trim() ? 'vehicle' : null;
+      if (target) setFocusRequest({ target, token: ++focusRequestSequence.current });
+      return;
+    }
+    await commit(pendingRef.current ?? { command: built.command, expected: built.expected!, profileId: draftRef.current.profileId, afterRead: readSequence.current });
+  };
+  // "Koristi „<ime naloga>“" (the person's own action, never automatic): writes the account's name into the work profile through the same owned
+  // writer and the same readback as every other save. Unsaved edits are not thrown away by it: they have to be saved first.
+  const adoptAccountName = async () => {
+    if (!enabled || !current() || transportRef.current || pendingRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
+    const name = accountName?.trim();
+    if (!name || draftRef.current.profileId === null) return;
+    if (JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) { setValidation('Sačuvaj unos pre promene imena.'); return; }
+    const command: AzurirajProfilKomanda = { zavrsi: false, ime: name };
+    await commit({ command, expected: command, profileId: draftRef.current.profileId, afterRead: readSequence.current });
+  };
   const refresh = () => { if (current() && !transportRef.current) { setMessage(null); void editor.refresh(); } };
   const editAfterRead = () => {
     if (!enabled || !current() || transportRef.current || !editor.data || !pendingRef.current || editor.data.read <= pendingRef.current.afterRead) return;
@@ -152,6 +188,34 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     returningTo.current = { y: readingOffset.current, fromFocus: focus };
     if (path === '/profil/obavestenja') router.navigate({ pathname: path, params: { skup: 'WORKER' } });
     else router.navigate(path);
+  };
+  // A row of the read profile that changes something opens the editor of ITS part. Nothing is written by the tap; unsaved work and a save in flight keep it out.
+  const editPart = (part: SavedProfilePart) => {
+    if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+    setManual(true); setMessage(null); setValidation(null);
+    setOpenSection({ section: part, token: ++openSectionSequence.current });
+  };
+  const changeAvailable = (next: boolean) => {
+    if (!enabled || !current() || switchSaving.current || pendingRef.current || !draftRef.current
+      || JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) return;
+    switchSaving.current = true;
+    setSwitching({ value: next, busy: true, failed: false });
+    void (async () => {
+      let saved: boolean | null = null;
+      try {
+        // Loaded when the switch is touched, not with the screen: the screen's suites and its first paint never load the availability client for it.
+        const { workerAvailabilityClientService: availability } = require('../../../data/workerAvailabilityClientService') as typeof import('../../../data/workerAvailabilityClientService');
+        const read = await bounded(() => availability.read(), 15_000);
+        if (read.ok) {
+          const { timezone, rules, windows, revision } = read.podatak;
+          const result = await bounded(() => availability.save({ expectedRevision: revision, value: { timezone, availableNow: next, rules, windows } }), 30_000);
+          if (result.ok) saved = result.podatak.availability.availableNow;
+        }
+      } catch { saved = null; }
+      switchSaving.current = false;
+      if (!owns()) return;
+      setSwitching(saved === null ? { value: null, busy: false, failed: true } : { value: saved, busy: false, failed: false });
+    })();
   };
   const guide = (target: WorkerProfileFocusRequest['target'], copy: string) => {
     if (!enabled || !current() || pendingRef.current || transportRef.current) return;
@@ -179,8 +243,19 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const status = profile?.stanje ?? null;
   const firstSave = profile === null;
   const localDirty = !!draft && JSON.stringify(draft.value) !== JSON.stringify(draft.initial);
-  // Read, not edited: a finished profile with nothing unsaved or in flight. Any edit in progress means the editor is already open.
-  const reading = profile !== null && (status === 'ACTIVE' || status === 'SUSPENDED') && !manual && !localDirty && !pending && !transportBusy;
+  // Read, not edited: a finished profile with nothing unsaved or in flight. Any edit in progress means the editor is already open. A write of ONLY the name
+  // ("Koristi „<ime naloga>“") leaves the profile read: its button spins in place, and the screen does not turn into the editor for the length of one write.
+  const nameOnly = !!pending && isNameOnly(pending.command);
+  const reading = profile !== null && (status === 'ACTIVE' || status === 'SUSPENDED') && !manual && !localDirty && (!pending || nameOnly) && (!transportBusy || nameOnly);
+  // The next read of the profile is the truth about the switch again, so it takes this screen's own answer away.
+  useEffect(() => { setSwitching(held => held.busy || held.value === null && !held.failed ? held : { value: null, busy: false, failed: false }); }, [editor.data]);
+  // "Lični podaci" led here to write "O meni": the editor opens on that part, once for each tap.
+  useEffect(() => {
+    const token = params.uredi === 'o-meni' && params.n ? params.n : null;
+    if (!token || openedFor.current === token || profile === null || !enabled || !current()) return;
+    openedFor.current = token;
+    setManual(true); setOpenSection({ section: 'identity', token: ++openSectionSequence.current });
+  }, [params.uredi, params.n, profile, enabled]);
   const leave = useUnsavedProfileBack({ dirty: localDirty, busy: transportBusy || editor.busy, uncertain: !!pending || editor.uncertain,
     revision: draftGeneration.current, onBack: goBack });
   const pendingBack = () => {
@@ -199,7 +274,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const showFooter = (status !== 'ACTIVE' && status !== 'SUSPENDED') || localDirty || !!pending || transportBusy
     || editor.busy || editor.loading || editor.uncertain || !!editor.error || !!validation || !!message;
   const value = draft?.value;
-  const basicsReady = !!value && value.ime.trim().length >= 2 && value.vestine.length > 0;
+  // The name this profile is activated under is the account's (`nameForSave`); its own only while the account's cannot be read.
+  const profileName = accountName?.trim() || value?.ime.trim() || '';
+  const basicsReady = !!value && profileName.length >= 2 && value.vestine.length > 0;
   const locationReady = !!value && value.grad.trim().length >= 2 && /^\d{1,3}$/.test(value.radius)
     && Number(value.radius) >= 1 && Number(value.radius) <= 200;
   // `activates` marks the one branch that really offers activation; the status note says "ready" only then, never while
@@ -212,9 +289,11 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
     if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
-    if (!basicsReady) return { label: 'Dopuni osnovne podatke', run: () => guide((value?.ime.trim().length ?? 0) >= 2 ? 'skill' : 'name',
-      'Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.') };
-    return { label: 'Proveri i aktiviraj profil', run: () => { void save(true); }, activates: true };
+    // The name is not typed here: when it is missing, the primary leads to the one place it is written.
+    if (!basicsReady) return profileName.length < 2
+      ? { label: 'Dodaj ime', run: () => navigate('/profil/podaci') }
+      : { label: 'Dopuni osnovne podatke', run: () => guide('skill', 'Pre aktivacije dodaj bar jednu veštinu.') };
+    return { label: 'Proveri i aktiviraj profil', run: () => { if (account.state !== 'loading') void save(true); }, activates: true };
   })();
   // The main setup entry preserves the same ownership and pending-save guards as manual corrections.
   const openConversation = () => {
@@ -225,12 +304,23 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     router.push('/profil/razgovor');
   };
   // The answer to a save stands in the footer, above the button that was pressed (it used to sit at the top of the scroll).
+  // What the profile does with its data is behind the "ⓘ" in the bar, not a block of sentences on the screen (owner's phone, 8 Oct 2026).
+  const nameWorking = transportBusy && nameOnly;
+  // The card "Kako te vide kad uskačeš": the face (the account's own photo, or its letters), and the rating when there is one.
+  const accountProfileId = account.state === 'ready' ? account.profileId ?? null : null;
+  const stand = <Avatar initials={inicijali(accountName ?? value?.ime ?? null)} size={56} />;
+  const face = accountProfileId ? <ProfilePhoto profileId={accountProfileId} size={56} fallback={stand} /> : stand;
+  // Only an active profile has the switch; a suspended one says its state and cannot change it.
+  const availableNowControl: AvailableNowControl | undefined = status === 'ACTIVE' && value
+    ? { value: switching.value ?? value.dostupanOdmah, onChange: changeAvailable, busy: switching.busy, failed: switching.failed } : undefined;
   return <WorkerProfileFrame back={back} scrollRef={scroll} onScroll={rememberReading} onScrollBeginDrag={beginReading}
+    right={visible ? <HeaderInfo title="Na šta utiče radni profil" testID="worker-profile-info" info={workerProfileInfoLines(!reading)} /> : undefined}
     footer={visible && showFooter ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
     {pending && (editor.uncertain || editor.error) ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
       : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Sačuvaj ponovo' : primary.label}
-        disabled={!enabled} loading={transportBusy} success={!!message} onPress={() => { if (pending) void save(false); else primary.run(); }}
+        disabled={!enabled || (!!primary.activates && !pending && account.state === 'loading')} loading={transportBusy} success={!!message}
+        onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
     {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
     {pending && enabled ? <V2Action tone="neutral" label="Izmeni podatke" kind="quiet" onPress={editAfterRead} /> : null}
@@ -239,7 +329,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
         openConversation={openConversation} profileExists={profile !== null}
-        reading={reading} onManual={() => { if (enabled && current()) setManual(true); }} primaryTaken={visible && showFooter} /></View>}
+        reading={reading} onEditPart={editPart} openSection={openSection} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
+        availableNow={availableNowControl}
+        accountName={accountName} onUseAccountName={() => { void adoptAccountName(); }} nameWorking={nameWorking} /></View>}
     {leave.sheet}
   </WorkerProfileFrame>;
 }

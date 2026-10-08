@@ -4,15 +4,17 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { AgreementPeople, AgreementTerms, agreementTaskPlace, isGroupAgreement } from '../v2/AgreementPresentation';
 import { AgreementContactPlace } from './AgreementContactPlace';
-import { AgreementHead, AgreementLinks, AgreementTermNote } from './AgreementOverviewParts';
+import { AgreementActions, AgreementDangerActions, AgreementHead, AgreementLinks, AgreementTermNote } from './AgreementOverviewParts';
 import type { AgreementSteps } from './AgreementSteps';
-import type { AgreementStep } from './AgreementWorkspace';
+import type { AgreementInfo, AgreementStep } from './AgreementWorkspace';
 
 /**
  * The overview of a Dogovor (Pregled), composed ONCE for the route and for its gallery (composition spec 4.9, template T3): the head
  * with the work's name and where the Dogovor stands; the note for a Dogovor with no term (R02); a reported problem and the three
- * ways on after it (R04); the terms; the people of a group; the number and the place; and the few rows that lead elsewhere, ending in
- * the form that reports a problem. Sections are parted by the space of the scroll it stands in (24) and by nothing else - no line, no box.
+ * ways on after it (R04); the terms; the people of a group; the number and the place; the rows that lead elsewhere; and, last, what can
+ * be done - "Izmeni uslove" and "Prijavi problem" (the form that reports one takes the place of its row), then, apart and in red,
+ * "Otkaži Dogovor" and "Prijavi ili blokiraj osobu" (J15: the actions are on the page and in no menu). Sections are parted by the space of the
+ * scroll it stands in (24) and by nothing else - no line, no box.
  *
  * It decides nothing: whether a row is drawn is whether the route handed it a command (`on`), and what each command does, behind which
  * guard, is the route's. It reads nothing and writes nothing. It is meant to be the children of the page's own scroll
@@ -22,6 +24,8 @@ export type AgreementOverviewProps = {
   agreement: DogovorProjekcija;
   /** Where the Dogovor stands and what comes next, and the step bar's own props (all of it computed in one place by the route). */
   step: AgreementStep; steps: ComponentProps<typeof AgreementSteps>;
+  /** How the Dogovor goes, behind the "ⓘ" at the end of the state's line; given only to a side of a Dogovor that is still open. */
+  info?: AgreementInfo | null;
   /** What the step is about: the lines of a proposal, the way to read the permissions again. Inside the step. */
   headExtra?: ReactNode;
   /** I am a side of the Dogovor, and which: the worker's own application is a row only for the worker. */
@@ -45,25 +49,25 @@ export type AgreementOverviewProps = {
   on: {
     /** The note "Termin još nije dogovoren" and its "Predloži termin". Given only for an agreed Dogovor with no term and nothing else waiting. */
     proposeTerm?: () => void;
-    /** "Izmeni" at the end of the title of the terms. */
-    changeTerms?: () => void;
     togglePhone: () => void; openMessages: () => void; requestAddress?: () => void;
     /** Rows of the links. */
-    openTask?: () => void; openApplication?: () => void; openChange?: () => void; openProblem?: () => void; openSafety?: () => void;
+    openTask?: () => void; openApplication?: () => void;
+    /** Rows of the actions: "Izmeni uslove" (the form of a proposal), "Prijavi problem", "Otkaži Dogovor" (the form of the cancelling) and "Prijavi ili blokiraj osobu". */
+    openChange?: () => void; openProblem?: () => void; openCancel?: () => void; openSafety?: () => void;
     /** Where the place section and the problem form stand, to take a person to them. */
     placeLayout?: (event: LayoutChangeEvent) => void; problemLayout?: (event: LayoutChangeEvent) => void;
   };
 };
 
-export function AgreementOverview({ agreement, step, steps, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, location, on }: AgreementOverviewProps) {
+export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, location, on }: AgreementOverviewProps) {
   const title = readableTitle(agreement.naslov);
   const link = (command: (() => void) | undefined) => command ? { disabled: !enabled, onPress: command } : undefined;
   return <>
-    <AgreementHead title={title} step={step} steps={steps}>{headExtra}</AgreementHead>
+    <AgreementHead title={title} step={step} steps={steps} info={info}>{headExtra}</AgreementHead>
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}
     {problem?.note}
     {problem?.exits}
-    <AgreementTerms agreement={agreement} onChange={on.changeTerms} />
+    <AgreementTerms agreement={agreement} />
     {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
     {isGroupAgreement(agreement) ? <AgreementPeople agreement={agreement} /> : null}
     {group}
@@ -72,8 +76,12 @@ export function AgreementOverview({ agreement, step, steps, headExtra, party, en
       locationSlot={location} onLayout={on.placeLayout} onTogglePhone={on.togglePhone} onOpenMessages={on.openMessages} onRequestAddress={on.requestAddress} />
     <AgreementLinks
       task={on.openTask ? { title, place: agreementTaskPlace(agreement), ...link(on.openTask)! } : undefined}
-      application={link(on.openApplication)} change={link(on.openChange)} problem={link(on.openProblem)} safety={link(on.openSafety)}
-      history={agreement.hronologija} />
+      application={link(on.openApplication)} history={agreement.hronologija} />
+    <AgreementActions change={link(on.openChange)} problem={link(on.openProblem)} />
+    {/* The form that reports a problem takes the place of its row. It stands on its own as a child of the page's scroll, so the place it
+        reports (`problemLayout`) is the scroll's own, and the red actions come after it. */}
     {problem?.form ? <View onLayout={on.problemLayout}>{problem.form}</View> : null}
+    {/* While the ways on after a problem are drawn, "Otkaži Dogovor" is theirs: one place for one action (J1). */}
+    <AgreementDangerActions cancel={problem?.exits ? undefined : link(on.openCancel)} safety={link(on.openSafety)} />
   </>;
 }

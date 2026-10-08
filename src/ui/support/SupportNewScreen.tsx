@@ -184,8 +184,9 @@ function NewContents({ model, initialReference, preset, readAgreements, back }: 
   // A refused or failed command is drawn as failed; a word about a send whose outcome is unconfirmed as waiting (round 5
   // review). The absent-confirmation words are the recovery panel's own, so they are not said twice (round 5c review).
   const messageTone = supportMessageTone(state);
-  return <SupportFrame title="Novi zahtev" onBack={leave} footer={hideForm ? undefined
-    : <SettingsAction label="Pošalji privatni zahtev" loading={sending} disabled={disabled || !valid} reason={missing} onPress={send} />}>
+  // A grey send says why in the foot's own line ABOVE it, where it reads as the cause and not as the next thing (owner's phone, 8 Oct 2026: it stood under the button).
+  return <SupportFrame title="Novi zahtev" onBack={leave} footerReason={hideForm ? null : missing} footer={hideForm ? undefined
+    : <SettingsAction label="Pošalji privatni zahtev" loading={sending} disabled={disabled || !valid} onPress={send} />}>
     <SupportRecoveryPanel model={model} receipt={false} />
     {state.phase === 'LOADING' && hideForm ? <SupportLoading />
       : state.phase === 'ERROR' && hideForm ? <StateView kind="error" title="Stanje zahteva nije učitano" body={state.message ?? undefined}

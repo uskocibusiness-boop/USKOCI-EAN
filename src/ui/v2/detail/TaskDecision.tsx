@@ -1,21 +1,20 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import type { PrilikaProjekcija } from '../../../contracts/projections';
-import { needScheduleText } from '../../../data/needDetailPresentation';
+import type { PotrebaProjekcija, PrilikaProjekcija } from '../../../contracts/projections';
+import { needPriceBasisNote, needScheduleText } from '../../../data/needDetailPresentation';
 import { T } from '../../Text';
 import { Avatar } from '../../system/Avatar';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
-import { FactRow } from '../../system/FactRow';
+import { FACT_ROW_ART, FactRow } from '../../system/FactRow';
 import { Glyph } from '../../system/Glyph';
+import { InfoButton } from '../../system/InfoButton';
 import { layout } from '../../system/layout';
-import { osoba, plural } from '../../system/plural';
+import { plural } from '../../system/plural';
 import { Section } from '../../system/Section';
 import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
 import { RELIABILITY_LABEL } from '../../profile/workTrustModel';
-import { OFFERS_WORD } from '../discovery/TaskRecordBody';
-import { placesText, taskPlace } from '../TaskFace';
-import type { productPriceParts } from '../../product/ProductDetails';
+import { VALUE_WORDS, placesText, taskPlace, taskValue } from '../TaskFace';
 
 /**
  * The parts of a task page, in the order the page reads (composition spec 2026-10-07, T3 and 4.4): the name (28), the one amount, three
@@ -30,29 +29,69 @@ export function TaskDecisionTitle({ children, onLayout }: { children: ReactNode;
 }
 
 /**
- * The one amount the page is built around: the figure in the amount type and what it covers under it ("ukupno za ceo zadatak"), or - for a
- * task that takes offers or names no price - a word in the heading type, never in the amount's, so a word about money cannot be read as a sum.
+ * What the task pays, as the FIRST FACT of the page (the owner, 8 Oct 2026: the amount is a row with its picture, like the card, and no sentence
+ * under it): the money picture, the sum and, beside it, what it buys ("ukupno", "po osobi · ukupno 6.000 RSD"). A task with no sum is the price tag
+ * and its words ("Tražim ponude"), drawn as every fact's words and never in the sum's type, so a word about money cannot be read as a sum. No word
+ * says what it is ("cena", "budžet"): the picture and the figure do, and a screen reader hears "Budžet 6.000 RSD ukupno".
  */
-export function TaskDecisionPrice({ price, offers }: { price: ReturnType<typeof productPriceParts>; offers: boolean }) {
-  const value = offers ? OFFERS_WORD.worker : price.value;
-  return <View accessible accessibilityLabel={`Cena: ${value}${price.note ? `, ${price.note}` : ''}`} style={s.price}>
-    <T variant={price.isAmount ? 'priceLarge' : 'heading'} style={s.ink}>{value}</T>
-    {price.note ? <T variant="note" tone="muted">{price.note}</T> : null}
+export function TaskDecisionValue({ need, size = 'detail', offersInfo }: { need: Pick<PotrebaProjekcija, 'rezimCene' | 'ponudjenaCena' | 'osnovaCene' | 'pokrivenost'>;
+  /** `detail` on a page; `card` in a record of a list (the sum in the card's row type, and only the short word of what it buys). */
+  size?: 'card' | 'detail';
+  /** What "Tražim ponude" means to the one who reads the page, one short sentence a line: it stands behind a small ⓘ at the end of the row and never under it (rule J5). */
+  offersInfo?: readonly string[] }) {
+  const value = taskValue(need);
+  if (value.kind !== 'amount') {
+    const words = <FactRow size={size} art="offers" value={VALUE_WORDS[value.kind]} />;
+    return value.kind === 'offers' && offersInfo?.length ? <View style={s.withInfo}>
+      <View style={s.grow}>{words}</View>
+      <View style={s.infoSlot}><InfoButton title="Tražim ponude" lines={offersInfo} /></View>
+    </View> : words;
+  }
+  // What the sum buys, in the words of the place: a page says "ukupno" for the whole task and "po osobi · ukupno 6.000 RSD" when the people multiply it; a card says "ukupno" or "po osobi".
+  const basis = size === 'card' ? value.basis : needPriceBasisNote(need)?.replace('ukupno za ceo zadatak', 'ukupno') ?? null;
+  return <View accessible accessibilityRole="text" accessibilityLabel={`Budžet ${value.amount}${basis ? ` ${basis}` : ''}`} style={s.valueRow}>
+    <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
+    <View style={size === 'card' ? s.valueCopyCard : s.valueCopy}>
+      <T variant={size === 'card' ? 'priceRow' : 'priceSmall'} style={s.amount}>{value.amount}</T>
+      {basis ? <T variant="note" tone="muted">{basis}</T> : null}
+    </View>
   </View>;
 }
 
 /**
- * Three aligned facts read as one group: where, when and how many. No date, place or count is parsed, shortened or guessed. The time is
- * written the way the card writes it (the task's own schedule in its own zone), and the place is the public start of the work only.
+ * The facts of where, when and how many, read as one group. No date, place or count is parsed, shortened or guessed. The time is written the way the
+ * card writes it (the task's own schedule in its own zone), and the place is the public start of the work only. How many people the task needs is a
+ * fact only when it is more than one (the owner, 8 Oct 2026: "0/1" said nothing), in words ("Traži 3 osobe", "Još 1 od 3 mesta"), and when the places
+ * are all taken ("Sva mesta su popunjena") it is the one thing a person must know before they apply.
  */
 export function TaskDecisionFacts({ need }: { need: Pick<PrilikaProjekcija, 'detalji' | 'podrucjeTekst' | 'vremeTekst' | 'schedule' | 'taskTimezone' | 'pokrivenost'> }) {
   const place = taskPlace(need);
-  const capacity = placesText(need.pokrivenost, 'worker', 'fraction');
+  const people = placesText(need.pokrivenost, 'worker');
   const time = need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
   return <View style={s.facts}>
     <FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} />
     <FactRow size="detail" art="calendar" value={time} />
-    <FactRow size="detail" art="users" value={osoba(need.pokrivenost.ukupno)} note={`${capacity.text} popunjeno`} />
+    {need.pokrivenost.ukupno > 1 || need.pokrivenost.preostalo <= 0 ? <FactRow size="detail" art="users" value={people.text} /> : null}
+  </View>;
+}
+
+/** What "Tražim ponude" says to the person who asks, and to the person who may answer. The page shows the fact; this is the explanation behind it. */
+export const OFFERS_INFO = {
+  owner: ['Ne navodiš iznos.', 'Svako ko se prijavi predlaže ukupan iznos, a ti biraš.'],
+  worker: ['Zadatak nema unapred određen iznos.', 'U prijavi predlažeš ukupan iznos.'],
+} as const;
+
+/**
+ * The one line of privacy that a place needs, as a FACT ("Tačna adresa: samo u Dogovoru") with the lock, and who sees what behind a small ⓘ at the end of
+ * the row (the owner, 8 Oct 2026: one sentence of privacy and none under the map; the integrator's InfoButton, rule J5). Nothing here is a secret: the
+ * map shows the approximate area, and the exact address and the private notes are a Dogovor's.
+ */
+export function TaskPlacePrivacy() {
+  return <View style={s.withInfo}>
+    <View style={s.grow}><FactRow art="lock" value="Tačna adresa: samo u Dogovoru" /></View>
+    <View style={s.infoSlot}>
+      <InfoButton title="Ko vidi adresu" lines={['Na mapi se vidi približno područje, ne tačna adresa.', 'Tačnu adresu i privatne napomene vidi samo osoba sa kojom se dogovoriš, u Dogovoru.']} />
+    </View>
   </View>;
 }
 
@@ -143,7 +182,18 @@ const RING = 2;
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  price: { gap: sys.space.xs },
+  // The amount's row has `FactRow`'s own geometry: the 28 picture, 12, the copy with its first line centred on the picture.
+  valueRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: FACT_ROW_ART },
+  valueArt: { width: FACT_ROW_ART, height: FACT_ROW_ART },
+  valueCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm,
+    paddingTop: Math.max(0, (FACT_ROW_ART - (sys.type.priceSmall.lineHeight ?? FACT_ROW_ART)) / 2) },
+  // A fact with its ⓘ at the end of the row, the mark centred on the first line of the fact (the picture's 28).
+  withInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.xs },
+  grow: { flex: 1, minWidth: 0 },
+  infoSlot: { height: FACT_ROW_ART, justifyContent: 'center' },
+  valueCopyCard: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm,
+    paddingTop: Math.max(0, (FACT_ROW_ART - (sys.type.priceRow.lineHeight ?? FACT_ROW_ART)) / 2) },
+  amount: { color: sys.color.money, flexShrink: 0 },
   facts: { gap: layout.group },
   requirements: { gap: layout.group },
   refusal: { paddingTop: sys.space.sm },

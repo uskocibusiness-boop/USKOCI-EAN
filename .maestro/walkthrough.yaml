@@ -31,13 +31,15 @@ appId: rs.uskoci.dev
 - scroll
 - takeScreenshot: 03-pocetna-nize
 
-# ── Mapa / Lista prilika ───────────────────────────────────────────────────────────────────────
+# ── Zadaci: the map, and the list as its sheet ─────────────────────────────────────────────────
 - tapOn:
-    text: "Mapa"
+    text: "Zadaci"
     optional: true
 - takeScreenshot: 04-mapa
+# The list rests at its top line and the bottom navigation is away there (the owner's phone of 8 Oct 2026); the count is the sheet's handle, a tap raises the list to half
+# and the navigation comes back with it, so the next tab can be reached.
 - tapOn:
-    text: "Lista"
+    id: "list-count"
     optional: true
 - takeScreenshot: 05-lista-prilika
 
@@ -61,14 +63,22 @@ appId: rs.uskoci.dev
     text: "Otvori Dogovor.*"
     optional: true
 - takeScreenshot: 08-dogovor-pregled
-- scroll
+# What can be done in a Dogovor is on the page, as rows (J15), not in a menu: "Izmeni uslove", "Prijavi problem", then in red
+# "Otkaži Dogovor" and "Prijavi ili blokiraj osobu". Only a Dogovor that is still agreed has the first three; the picture is the
+# evidence, so nothing here is pressed.
+- scrollUntilVisible:
+    element:
+      text: "Prijavi ili blokiraj osobu"
+    direction: DOWN
+    timeout: 8000
+    optional: true
 - takeScreenshot: 09-dogovor-radnje
 
-# PKG-048: the two rows that say where this Dogovor came from ("Zadatak", and "Tvoja prijava" for the worker).
+# PKG-048: the rows that say where this Dogovor came from ("Otvori zadatak", and "Tvoja prijava" for the worker).
 # Present only on a build whose server carries the links, so the assertion is optional and the picture is the
 # evidence either way.
 - assertVisible:
-    text: "Zadatak"
+    text: "Otvori zadatak"
     optional: true
 - takeScreenshot: 10-dogovor-izvor
 

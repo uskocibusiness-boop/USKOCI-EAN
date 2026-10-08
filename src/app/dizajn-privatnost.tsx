@@ -9,14 +9,17 @@ import type { DogovorProjekcija } from '../contracts/projections';
 import type { RetentionExecutionStatus, RetentionPolicyStatus } from '../contracts/retentionPolicy';
 import type { BuildIdentity } from '../data/buildIdentity';
 import type { ClosureExecutionReview, ClosureExecutionState } from '../data/closureExecutionClientService';
+import type { MyBlockedAccounts } from '../data/safetyClientService';
 import type { SupportDetail, SupportInbox } from '../data/supportCaseTypes';
 import { ClosureView, type ClosureModel } from '../ui/closure/ClosurePresentation';
 import { GalleryLargeText } from '../ui/profile/GalleryLargeText';
 import { AboutView } from '../ui/settings/AboutPresentation';
+import { BlockedAccountsList } from '../ui/settings/BlockedAccountsList';
 import { LegalReviewView, PublicLegalBody } from '../ui/legal/LegalDocuments';
 import type { LegalReviewState } from '../ui/legal/legalReview';
 import { ExportScreenView, type NoticeTone } from '../ui/privacy/ExportPresentation';
 import { PrivacyBody, type PrivacyRead } from '../ui/privacy/PrivacyPresentation';
+import { hubWords, type HubWords } from '../ui/profile/hubStates';
 import { Press } from '../ui/Press';
 import { ProductSheet } from '../ui/product/ProductSheet';
 import { SettingsAction, SettingsRow, SettingsScreen } from '../ui/settings/SettingsPresentation';
@@ -46,7 +49,10 @@ import { T } from '../ui/Text';
  */
 type Scene = { key: string; group: string; label: string };
 const SCENES: Scene[] = [
-  ['privatnost-ucitavanje', 'Privatnost', 'Učitavanje'], ['privatnost-nije-objavljeno', 'Privatnost', 'Rokovi nisu objavljeni'],
+  // The hub (approved draft of the product, 8 Oct 2026, P5): one list of rows, each with its own state; "Rokovi čuvanja" is a row that opens in place.
+  ['privatnost-cvoriste', 'Privatnost', 'Čvorište: redovi sa stanjem'], ['privatnost-cvoriste-stanja', 'Privatnost', 'Čvorište: izvoz spreman, blokirane osobe, pravila prihvaćena'],
+  ['privatnost-cvoriste-nepoznato', 'Privatnost', 'Čvorište: stanja nisu pročitana'],
+  ['privatnost-ucitavanje', 'Privatnost', 'Rokovi: učitavanje'], ['privatnost-nije-objavljeno', 'Privatnost', 'Rokovi nisu objavljeni'],
   ['privatnost-objavljeno', 'Privatnost', 'Objavljeni rokovi i brisanje'], ['privatnost-greska', 'Privatnost', 'Greška čitanja'],
   ['izvoz-ucitavanje', 'Izvoz', 'Učitavanje'], ['izvoz-bez-zahteva', 'Izvoz', 'Bez zahteva'], ['izvoz-zahtev', 'Izvoz', 'Zahtev zabeležen'],
   ['izvoz-nije-spremno', 'Izvoz', 'Priprema nije dostupna'], ['izvoz-spremno', 'Izvoz', 'Kopija spremna, sačuvana'],
@@ -69,15 +75,27 @@ const SCENES: Scene[] = [
   ['zahtev-ucitavanje', 'Zahtev', 'Učitavanje'], ['zahtev-greska', 'Zahtev', 'Greška'],
   ['poruka-podrska', 'Poruka', 'Izabrana poruka (sheet)'],
   ['o-aplikaciji', 'O aplikaciji', 'Znak, dve mogućnosti, pravila'],
+  ['blokirani-prazno', 'Blokirane osobe', 'Nema nikoga'], ['blokirani-lista', 'Blokirane osobe', 'Tri osobe, jedna bez imena'],
+  ['blokirani-dugo', 'Blokirane osobe', 'Dugo ime'], ['blokirani-stranica', 'Blokirane osobe', 'Ima još osoba'],
+  ['blokirani-ucitavanje', 'Blokirane osobe', 'Učitavanje'], ['blokirani-greska', 'Blokirane osobe', 'Lista nije učitana'],
+  ['blokirani-proveri', 'Blokirane osobe', 'Lista prikazana, provera potrebna'],
   ['privatnost-veliki', 'Veliki tekst (1,3)', 'Privatnost'], ['izvoz-veliki', 'Veliki tekst (1,3)', 'Izvoz: kopija spremna'],
   ['pravila-veliki', 'Veliki tekst (1,3)', 'Pravila: za prihvatanje'], ['o-aplikaciji-veliki', 'Veliki tekst (1,3)', 'O aplikaciji'],
   ['podrska-veliki', 'Veliki tekst (1,3)', 'Podrška: lista zahteva'], ['novi-greska-veliki', 'Veliki tekst (1,3)', 'Prijava greške u aplikaciji'],
+  ['blokirani-veliki', 'Veliki tekst (1,3)', 'Blokirane osobe: dugo ime'],
+  ['privatnost-vlasnik', 'Tekst 1,15 (vlasnikov telefon)', 'Privatnost'], ['izvoz-vlasnik', 'Tekst 1,15 (vlasnikov telefon)', 'Izvoz: bez zahteva'],
+  ['pravila-vlasnik', 'Tekst 1,15 (vlasnikov telefon)', 'Pravila: za prihvatanje'], ['podrska-vlasnik', 'Tekst 1,15 (vlasnikov telefon)', 'Podrška: prazno'],
+  ['blokirani-vlasnik', 'Tekst 1,15 (vlasnikov telefon)', 'Blokirane osobe: tri osobe'], ['o-aplikaciji-vlasnik', 'Tekst 1,15 (vlasnikov telefon)', 'O aplikaciji'],
 ].map(([key, group, label]) => ({ key, group, label }));
 /** The groups of scenes, in the order they first appear. */
 const GROUPS = [...new Set(SCENES.map(item => item.group))];
 /** The scenes drawn at text scale 1.3: the same scene as its twin, with the components told "large". */
-const LARGE: Readonly<Record<string, string>> = { 'privatnost-veliki': 'privatnost-objavljeno', 'izvoz-veliki': 'izvoz-spremno',
-  'pravila-veliki': 'pravila-prihvatanje', 'o-aplikaciji-veliki': 'o-aplikaciji', 'podrska-veliki': 'podrska-lista', 'novi-greska-veliki': 'novi-greska' };
+const LARGE: Readonly<Record<string, string>> = { 'privatnost-veliki': 'privatnost-cvoriste-stanja', 'izvoz-veliki': 'izvoz-spremno',
+  'pravila-veliki': 'pravila-prihvatanje', 'o-aplikaciji-veliki': 'o-aplikaciji', 'podrska-veliki': 'podrska-lista', 'novi-greska-veliki': 'novi-greska',
+  'blokirani-veliki': 'blokirani-dugo' };
+/** The scenes drawn at the owner's own text scale, 1.15 (his phone, 361 dp): the same scene as its twin, zoomed in the web lab. */
+const AT_OWNER_SIZE: Readonly<Record<string, string>> = { 'privatnost-vlasnik': 'privatnost-cvoriste-stanja', 'izvoz-vlasnik': 'izvoz-bez-zahteva',
+  'pravila-vlasnik': 'pravila-prihvatanje', 'podrska-vlasnik': 'podrska-prazno', 'blokirani-vlasnik': 'blokirani-lista', 'o-aplikaciji-vlasnik': 'o-aplikaciji' };
 
 /** The build a bug report names: made-up, like every fixture here. */
 const BUILD: BuildIdentity = { version: '1.4.2', sourceCommit: 'abcdef0123456789abcdef0123456789abcdef01', sourceDirty: false, backendTarget: 'canonical',
@@ -97,6 +115,15 @@ const EXECUTION = (admitted: boolean): RetentionExecutionStatus => ({ engineVers
   policyVersion: admitted ? 'primer-2026-09' : null, unsupportedDataClasses: [], storageCleanup: 'NOT_APPLICABLE',
   datasets: [{ dataset: 'AI_ABANDONED_UNBOUND', dataClass: 'AI_VOLATILE', action: 'DELETE', ready: admitted, reason: admitted ? null : 'POLICY_NOT_READY' }] });
 const read = <V,>(data: V | null, loading = false, error = false): PrivacyRead<V> => ({ data, loading, error });
+// The state of the hub's rows, from the same functions the route uses over fixtures.
+const WORDS_A = hubWords({ blocked: { count: 0, more: false }, exportPhase: 'NONE', legal: 'UNPUBLISHED' });
+const WORDS_B = hubWords({ blocked: { count: 2, more: false }, exportPhase: 'READY_AVAILABLE', legal: 'ACCEPTED' });
+
+// Blokirane osobe: the names are made up; one person has no name the server returned (never letters made up for them).
+const blockedPerson = (n: number, displayName: string | null): MyBlockedAccounts['items'][number] => ({ accountId: 'galerija', blocked: true, revision: 1,
+  authoritative: true, targetAccountId: `00000000-0000-4000-8000-00000000010${n}`, displayName });
+const BLOCKS = (items: MyBlockedAccounts['items'], nextCursor: string | null = null): MyBlockedAccounts => ({ accountId: 'galerija', items, nextCursor, authoritative: true });
+const THREE = BLOCKS([blockedPerson(1, 'Marko Marić'), blockedPerson(2, null), blockedPerson(3, 'Jelena Ilić')]);
 
 // Izvoz
 const exportStatus = (state: 'REQUESTED' | 'READY' | 'CANCELLED' | 'FAILED' | 'EXPIRED' | null, expiresIn?: number): DataExportStatus => ({
@@ -182,9 +209,9 @@ export default function DizajnPrivatnost() {
   const fromAddress = SCENES.find(item => item.key === params.scene)?.key ?? null;
   const [picked, setPicked] = useState<string | null>(fromAddress);
   useEffect(() => { setPicked(fromAddress); }, [fromAddress]);
-  const large = picked !== null && picked in LARGE;
-  const scene = picked !== null && large ? LARGE[picked] : picked;
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const large = picked !== null && picked in LARGE, ownerText = picked !== null && picked in AT_OWNER_SIZE;
+  const scene = picked !== null && large ? LARGE[picked] : picked !== null && ownerText ? AT_OWNER_SIZE[picked] : picked;
+  const [expanded, setExpanded] = useState<string | null>(null), [retentionOpen, setRetentionOpen] = useState(false);
   const confirm = useConfirmSheet(), closeQuestion = confirm.close;
   // Android Back inside a scene returns to the list, as "Nazad" does (the sibling galleries do the same). An open sheet
   // takes Back first (its own Modal); the "Odbaciti zahtev?" question of a typed Novi zahtev is shown by its arrow.
@@ -205,13 +232,13 @@ export default function DizajnPrivatnost() {
     <SettingsAction label="Zatvori galeriju" kind="quiet" onPress={() => router.back()} />
   </Screen>;
 
-  const privacy = (policy: PrivacyRead<RetentionPolicyStatus>, execution: PrivacyRead<RetentionExecutionStatus>, admitted = false) =>
+  // `open`: "Rokovi čuvanja" drawn open (the scenes about the schedule); otherwise the row is the person's own to open, and starts closed.
+  const privacy = (policy: PrivacyRead<RetentionPolicyStatus>, execution: PrivacyRead<RetentionExecutionStatus>, admitted = false,
+    options: { open?: boolean; words?: HubWords } = {}) =>
     <SettingsScreen title="Privatnost i podaci" onBack={toList}>
       <PrivacyBody policy={policy} execution={execution} admitted={admitted} expandedRule={expanded} onToggle={(key, next) => setExpanded(next ? key : null)}
-        onRefresh={noop} dataRows={<>
-          <SettingsRow compact label="Izvoz podataka" detail="Pogledaj zahtev, pripremu i dostupnost svoje kopije." onPress={noop} />
-          <SettingsRow compact last label="Zatvaranje naloga" detail="Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva." onPress={noop} />
-        </>} />
+        onRefresh={noop} retentionOpen={options.open ?? retentionOpen} onToggleRetention={setRetentionOpen} words={options.words ?? WORDS_A} onOpen={noop}
+        closure={<SettingsRow compact last label="Zatvaranje naloga" detail="Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva." onPress={noop} />} />
     </SettingsScreen>;
   const exportView = (status: DataExportStatus | null, options: { loading?: boolean; failure?: boolean; busy?: boolean; notReady?: boolean;
     notice?: { text: string; tone: NoticeTone }; primary?: ReactNode } = {}) =>
@@ -219,6 +246,11 @@ export default function DizajnPrivatnost() {
       failure={options.failure ? { title: 'Stanje izvoza nije učitano', body: 'Stanje izvoza nije dostupno.' } : null}
       preparation={options.notReady ? { receiptId: 'galerija', kind: 'NOT_READY', code: 'POLICY_NOT_READY' } : null}
       primary={options.primary ?? null} onCancel={noop} onRevoke={noop} onRefresh={noop} refreshDisabled={false} />;
+  const blocked = (data: MyBlockedAccounts | null, options: { loading?: boolean; error?: string | null; uncertain?: boolean; cursor?: string | null } = {}) =>
+    <SettingsScreen title="Blokirane osobe" onBack={toList}>
+      <BlockedAccountsList data={data} loading={!!options.loading} busy={false} error={options.error ?? null} uncertain={!!options.uncertain}
+        cursor={options.cursor ?? null} pending={null} onOpen={noop} onUnblock={noop} onRefresh={noop} onPage={noop} />
+    </SettingsScreen>;
   const legalView = (state: LegalReviewState, action: ReactNode = null) =>
     <LegalReviewView state={state} onBack={toList} action={action} linkError={null} onOpen={noop} onOpenUrl={noop} onRefresh={noop} />;
   const closureView = (value: ClosureModel) => <ClosureView model={value} commands={{ onClose: toList, onPrepare: noop, onRetry: noop, onRefresh: noop,
@@ -226,10 +258,13 @@ export default function DizajnPrivatnost() {
     onAskStart: () => confirm.ask({ title: 'Zatvoriti nalog?', message: 'Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.',
       confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustani', tone: 'danger', onConfirm: noop }) }} />;
 
-  const body = scene === 'privatnost-ucitavanje' ? privacy(read<RetentionPolicyStatus>(null, true), read<RetentionExecutionStatus>(null, true))
-    : scene === 'privatnost-nije-objavljeno' ? privacy(read(POLICY_UNPUBLISHED), read(EXECUTION(false)))
-    : scene === 'privatnost-objavljeno' ? privacy(read(POLICY), read(EXECUTION(true)), true)
-    : scene === 'privatnost-greska' ? privacy(read<RetentionPolicyStatus>(null, false, true), read<RetentionExecutionStatus>(null, false, true))
+  const body = scene === 'privatnost-cvoriste' ? privacy(read(POLICY_UNPUBLISHED), read(EXECUTION(false)))
+    : scene === 'privatnost-cvoriste-stanja' ? privacy(read(POLICY), read(EXECUTION(true)), true, { words: WORDS_B })
+    : scene === 'privatnost-cvoriste-nepoznato' ? privacy(read(POLICY_UNPUBLISHED), read(EXECUTION(false)), false, { words: {} })
+    : scene === 'privatnost-ucitavanje' ? privacy(read<RetentionPolicyStatus>(null, true), read<RetentionExecutionStatus>(null, true), false, { open: true })
+    : scene === 'privatnost-nije-objavljeno' ? privacy(read(POLICY_UNPUBLISHED), read(EXECUTION(false)), false, { open: true })
+    : scene === 'privatnost-objavljeno' ? privacy(read(POLICY), read(EXECUTION(true)), true, { open: true })
+    : scene === 'privatnost-greska' ? privacy(read<RetentionPolicyStatus>(null, false, true), read<RetentionExecutionStatus>(null, false, true), false, { open: true })
     : scene === 'izvoz-ucitavanje' ? exportView(null, { loading: true })
     : scene === 'izvoz-bez-zahteva' ? exportView(exportStatus(null), { primary: <SettingsAction label="Zatraži izvoz" onPress={noop} /> })
     : scene === 'izvoz-zahtev' ? exportView(exportStatus('REQUESTED'), { notice: { text: 'Zahtev za izvoz je zabeležen.', tone: 'success' },
@@ -300,11 +335,18 @@ export default function DizajnPrivatnost() {
         onContinue={noop} onCancel={toList} />
     </View>
     : scene === 'o-aplikaciji' ? <AboutView onBack={toList} onRules={noop} onPrivacy={noop} />
+    : scene === 'blokirani-prazno' ? blocked(BLOCKS([]))
+    : scene === 'blokirani-lista' ? blocked(THREE)
+    : scene === 'blokirani-dugo' ? blocked(BLOCKS([blockedPerson(1, 'Aleksandra Stefanović-Radosavljević'), blockedPerson(2, 'Marko Marić')]))
+    : scene === 'blokirani-stranica' ? blocked(BLOCKS([blockedPerson(1, 'Marko Marić'), blockedPerson(2, 'Jelena Ilić')], '00000000-0000-4000-8000-000000000199'))
+    : scene === 'blokirani-ucitavanje' ? blocked(null, { loading: true })
+    : scene === 'blokirani-greska' ? blocked(null, { error: 'Lista trenutno nije dostupna. Proveri vezu.' })
+    : scene === 'blokirani-proveri' ? blocked(THREE, { error: 'Čuvanje nije potvrđeno. Proveri listu pre novog pokušaja.', uncertain: true })
     : null;
   const current = SCENES.find(item => item.key === picked);
   const drawn = <View style={s.grow}>{body}</View>;
   return <View style={s.screen}>
-    {large ? <GalleryLargeText>{drawn}</GalleryLargeText> : drawn}
+    {large ? <GalleryLargeText>{drawn}</GalleryLargeText> : ownerText ? <GalleryLargeText scale={1.15}>{drawn}</GalleryLargeText> : drawn}
     {confirm.sheet}
     {/* Every scene's arrow returns here (in the support scenes every way out does; their other commands are no-op
         stand-ins). This bar says which scene is shown and is always one tap back. A scene opened by its address has none. */}

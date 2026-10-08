@@ -46,14 +46,14 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   if (state === 'COMPLETED') return { tone: 'green', title: 'Dogovor je završen', body: !party ? null
     : ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
       : ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' };
-  if (state === 'CANCELLED') return { tone: 'muted', title: 'Dogovor je otkazan.', body: null };
+  // One form of the words across the app ("Dogovor je otkazan", as the task's own notice says it): the full stop that stood here was the only one.
+  if (state === 'CANCELLED') return { tone: 'muted', title: 'Dogovor je otkazan', body: null };
   if (state === 'AWAITING_REQUESTER') return { tone: 'warn', title: worker ? 'Čeka se potvrda druge strane' : CONFIRM_WAITS_FOR_ME,
     body: problemOpen ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` };
-  // Confirmed: the state is the title and the next step its sentence. The title used to be the step, and the body
-  // then said the same step again ("Kada završiš, označi završetak. Kada završiš, označi završetak…").
-  return { tone: 'green', title: 'Dogovoreno', body: !party ? null : worker
-    ? 'Kada završiš, izaberi „Zadatak je gotov“. Druga strana tada potvrđuje završetak ili prijavljuje problem.'
-    : 'Završetak potvrđuješ kada je zadatak obavljen.' };
+  // Confirmed: the state is the title and the next step its one sentence (phone, 2026-10-08: two sentences stood over the steps). The
+  // worker is told which button ends the work; what the other side then does is said in the review that button opens. The one who asked
+  // for the work is told nothing here: the foot says, in its own sentence, whose move it is ("Čeka da Marko javi da je zadatak gotov.").
+  return { tone: 'green', title: 'Dogovoreno', body: !party || !worker ? null : 'Kad završiš, dodirni „Zadatak je gotov“.' };
 }
 
 /** The step's own words where the step is mine, shared by the step card and the head of Poruke. */
@@ -79,13 +79,32 @@ export function agreementWaitsForMe({ state, requester, change, ownRating }: {
   return state === 'COMPLETED' && ownRating === 'DUE' ? RATING_WAITS_FOR_ME : null;
 }
 
+/** An explanation that stands behind an "ⓘ" (`system/InfoButton`) instead of on the screen: the question it answers, and a few short lines. */
+export type AgreementInfo = { title: string; lines: readonly string[] };
+
+/**
+ * How a Dogovor goes, for the "ⓘ" at its head (owner, 8 Oct 2026: too much text; the coordinator: "na ekranu jedna rečenica ili ništa, ostalo iza ⓘ").
+ * The screen keeps one sentence about the next step; what follows it - the other side's answer, the term in which it is given, the rating - is
+ * here, in the order it happens and in the words of the buttons. Said to each side from its own place: the one who does the work marks it done,
+ * the one who asked for it confirms. No hours are named: the server's own deadline is on the screen while the confirmation is awaited.
+ */
+export function agreementStepsInfo({ worker }: { worker: boolean }): AgreementInfo {
+  return { title: 'Kako ide Dogovor', lines: [
+    worker ? 'Kad završiš zadatak, dodirni „Zadatak je gotov“.' : 'Osoba koja uskače javlja da je zadatak gotov.',
+    worker ? 'Druga strana potvrđuje završetak ili prijavljuje problem.' : 'Ti potvrđuješ završetak ili prijavljuješ problem.',
+    worker ? 'Ako nema odgovora u roku, Dogovor se zatvara sam.' : 'Ako ne odgovoriš u roku, Dogovor se zatvara sam.',
+    'Kad je završetak potvrđen, možeš da oceniš saradnju.',
+  ] };
+}
+
 /**
  * Where the Dogovor stands and what comes next, said once: a dot in the state's colour, the state, and the next step under it.
  * The eyebrow "Sledeći korak" is gone (owner, 2026-09-23: no copy explaining where you are). When the step waits for someone, the
  * whole of it is one tinted `note` (the sentence that has to stand out, never a card), with what the step is about (a proposal's
- * lines) inside it; otherwise it is plain words on the white.
+ * lines) inside it; otherwise it is plain words on the white. `aside` is what stands at the end of the state's line: the "ⓘ" that opens how
+ * a Dogovor goes.
  */
-export function NextStepCard({ title, body, tone = 'green', children }: { title: string; body?: string | null; tone?: WorkspaceTone; children?: ReactNode }) {
+export function NextStepCard({ title, body, tone = 'green', aside, children }: { title: string; body?: string | null; tone?: WorkspaceTone; aside?: ReactNode; children?: ReactNode }) {
   const previousTitle = useRef(title);
   useEffect(() => {
     if (title === previousTitle.current) return;
@@ -96,7 +115,8 @@ export function NextStepCard({ title, body, tone = 'green', children }: { title:
   const waits = tone === 'warn' || tone === 'danger';
   const words = <>
     <View style={s.nextHead}><View style={[s.dot, { backgroundColor: toneColor[tone] }]} />
-      <T variant={waits ? 'heading' : 'bodyStrong'} accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
+      <T variant={waits ? 'heading' : 'bodyStrong'} accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T>
+      {aside}</View>
     {body ? <T variant={waits ? 'copy' : 'note'} tone="muted" style={s.nextBody}>{body}</T> : null}
     {children}
   </>;
@@ -121,9 +141,11 @@ function RecoveryMessage({ message, limit }: { message: string; limit: number })
 }
 
 /**
- * The grey sentence that stands in the footer's place when NOTHING waits for the person (plan 2.6): no green button, only the
- * state in words - "Čeka da Marko potvrdi završetak.". The route calls it only when it has no action to offer. Null when the
- * honest thing is to say nothing: the permissions could not be read, and the step card above already says how to read them again.
+ * The grey sentence that stands in the footer's place when NOTHING waits for the person (plan 2.6): no green button, only whose move it is -
+ * "Čeka da Marko potvrdi završetak.". The route calls it only when it has no action to offer. Null when the honest thing is to say nothing:
+ * the permissions could not be read, and the step card above already says how to read them again; and a Dogovor that is over (finished or
+ * cancelled), whose state the head of the page has already said - the same words again at the foot were a duplicate (owner, 8 Oct 2026), and the
+ * footer with nothing to say draws no bar at all.
  *
  * - `worker`: I am the side that does the work; once it is reported done, the confirmation is the other side's. Before that the move is
  *   the worker's, and the one who asked for the work is told whose move it is ("Čeka da Marko javi da je zadatak gotov."), not that
@@ -138,8 +160,7 @@ export function agreementQuietLine({ state, party, worker, otherName, change, pe
   if (!party) return null;
   // The name stands as the subject of its sentence, so it needs no case ending; the app's own stand-in for a missing name is not a name.
   const given = otherName?.trim(), who = given && given !== 'Druga strana' ? given : 'druga strana';
-  if (state === 'CANCELLED') return 'Dogovor je otkazan.';
-  if (state === 'COMPLETED') return 'Dogovor je završen.';
+  if (state === 'CANCELLED' || state === 'COMPLETED') return null;
   if (change.waits) return change.mine === true ? `Čeka da ${who} odgovori na tvoj predlog izmene.` : 'Predlog izmene čeka odgovor.';
   if (state === 'AWAITING_REQUESTER' && worker) return `Čeka da ${who} potvrdi završetak.`;
   if (!permissionsKnown) return null;
@@ -198,7 +219,8 @@ const s = StyleSheet.create({
   nextWaiting: { gap: sys.space.sm },
   nextHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill },
-  nextTitle: { color: sys.color.ink, flexShrink: 1 },
+  // The title takes the line, so what stands at its end (the "ⓘ") is at the end of the line and not after the last word.
+  nextTitle: { color: sys.color.ink, flexGrow: 1, flexShrink: 1 },
   // The words start where the title's start (the dot and its gap are 16).
   nextBody: { paddingLeft: sys.space.base },
   feedbackScroll: { flexGrow: 0, flexShrink: 0 },

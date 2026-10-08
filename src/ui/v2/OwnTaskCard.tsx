@@ -6,32 +6,33 @@ import { needScheduleText, readableTitle } from '../../data/needDetailPresentati
 import { ownTaskStanding } from '../../data/ownTaskStanding';
 import { displaysUrgent } from '../../lib/needUrgency';
 import { FactRow } from '../system/FactRow';
+import { osoba } from '../system/plural';
 import { STATUS_CHIPS, StatusChip } from '../system/StatusChip';
 import { Surface } from '../system/Surface';
-import { useLayoutClass } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { NeedUrgencyBadge, useUrgencyClock } from './NeedUrgencyBadge';
-import { MoneyLine, RecordFoot, recordBody, recordFlush } from './offer/RecordParts';
-import { VALUE_WORDS, placesText, taskPlace, taskSpoken, taskValue } from './TaskFace';
+import { TaskDecisionValue } from './detail/TaskDecision';
+import { RecordFoot, recordBody, recordFlush } from './offer/RecordParts';
+import { taskPlace, taskSpoken, taskValue } from './TaskFace';
 
 /**
  * One of MY tasks in the "Moji zadaci" list (plan 2.2 and 3.5, owner 2026-10-07; composition spec 4.5, 2026-10-08). It is a
- * `Surface record` of at most 200 dp where it used to be 304, because it says the same things in one rhythm (16 inside, 12 between
- * the parts) instead of three lines of money, places, place and time each with its own picture:
+ * `Surface record` of about 200 dp where it used to be 304, because it says the same things in one rhythm (16 inside, 12 between
+ * the parts), and since the owner's phone of 8 Oct 2026 in the SAME words as the card of the Zadaci family (one card look):
  *
  *   1. the state, as the app's one `StatusChip` in the owner's eight words (Nacrt, Objavljen, Bira se · N, Dogovoren, U toku, Završen,
  *      Otkazan, Istekao); every row that has an honest word wears one (`ownTaskStanding` says which, and says nothing it cannot
  *      support). HITNO keeps its badge beside the chip (a word with a symbol, never a colour alone); it counts only until the
  *      server's expiry, on one clock;
- *   2. the title (18/24, two lines at most; the whole of it is what a screen reader hears) and, under it, ONE line of what it is
- *      worth: "2.000 RSD po osobi · 0/2 popunjeno", "Tražim ponude · 0/1 popunjeno". A word is never drawn as an amount;
- *   3. the two facts of where and when, as `FactRow`s;
- *   4. the ONE next step in grey words ("Imaš 3 prijave. Uporedi ih i izaberi."). When it is the way to the applications waiting for
- *      my choice it is the card's foot ("noga"), its own target under a line and never inside the body: one touch to the applications
- *      instead of two. Only a task that waits for my decision has a foot; any other next step is a sentence of the body.
+ *   2. the title (18/24, two lines at most; the whole of it is what a screen reader hears);
+ *   3. the facts as rows of one kind, each with its picture: what it pays (the sum with what it buys, or the price tag and "Tražim ponude"; a
+ *      word is never drawn as an amount), where, when and, ONLY when it is more than one, how many people ("Treba 3 osobe"; "0/1" said nothing);
+ *   4. the ONE line of data ("Još nema prijava", "3 prijave"). When it is the way to the applications waiting for my choice it is the card's
+ *      foot ("noga"), its own target under a line and never inside the body: one touch to the applications instead of two. Only a task that
+ *      waits for my decision has a foot; any other line is a quiet line of the body, and a draft has none.
  *
  * "Čeka prijave" is not a word of this row: it said "has applications" and read as "has none". The body opens the task, as it always
  * did. The frame gives under the finger as ONE object (`usePressLift`, the row rung, 0.985), and nothing moves under reduced motion.
@@ -49,8 +50,6 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
    */
   sectionSays?: boolean;
 }) {
-  // The money line stacks only when the room is short (a window under 340 dp, or text scale 1.3 and up), never on an ordinary phone.
-  const large = useLayoutClass().stacked;
   const title = readableTitle(item.naslov);
   const standing = ownTaskStanding(item);
   const chip = standing.chip;
@@ -64,10 +63,12 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
   const foot = standing.toApplications && onApplications ? standing.next : null;
   const sentence = foot ? null : standing.next;
   const chipWords = chip ? `${STATUS_CHIPS[chip.status].word}${chip.detail ? `, ${chip.detail}` : ''}` : null;
-  // A draft was never published, so it has no places to fill: "0/2 popunjeno" on it would count what does not exist.
-  const draft = item.stanje === 'NACRT';
-  const places = draft ? null : placesText(item.pokrivenost, 'owner');
-  const spoken = taskSpoken({ status: chipWords, urgent, value, place: place.text, schedule, requirement: null, places: places?.spoken ?? null, next: sentence });
+  // How many people only when it is more than one, in words ("Treba 3 osobe"), and how many are agreed once any is: "0/1" and "0/2 popunjeno" said nothing.
+  // A draft was never published, so it has nothing agreed to count.
+  const { ukupno, popunjeno } = item.pokrivenost;
+  const people = ukupno > 1 ? { text: `Treba ${osoba(ukupno)}`, note: item.stanje !== 'NACRT' && popunjeno > 0 ? `${popunjeno} dogovoreno` : undefined } : null;
+  const spoken = taskSpoken({ status: chipWords, urgent, value, budget: true, place: place.text, schedule, requirement: null,
+    places: people ? `${people.text}${people.note ? `, ${people.note}` : ''}` : null, next: sentence });
   const lift = usePressLift();
 
   return <Animated.View style={lift.style}>
@@ -81,18 +82,16 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
             <StatusChip status={drawnChip.status} detail={drawnChip.detail} /></View> : <View style={s.grow} />}
           <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><NeedUrgencyBadge urgency={item.urgency} now={urgencyNow} /></View>
         </View> : null}
-        <View style={s.what}>
-          <T variant="heading" numberOfLines={2}>{title}</T>
-          <MoneyLine amount={value.kind === 'amount' ? value.amount : null} word={value.kind === 'amount' ? null : VALUE_WORDS[value.kind]}
-            basis={value.kind === 'amount' ? value.basis : null} notes={[places?.text]} stacked={large} />
-        </View>
+        <T variant="heading" numberOfLines={2}>{title}</T>
         <View style={s.facts}>
+          <TaskDecisionValue need={item} size="card" />
           <FactRow art={place.remote ? 'remote' : 'pin'} value={place.text} />
           <FactRow art="calendar" value={schedule} />
+          {people ? <FactRow art="users" value={people.text} note={people.note} /> : null}
         </View>
         {sentence ? <T variant="note" tone="muted">{sentence}</T> : null}
       </Press>
-      {foot ? <RecordFoot label={foot} tone="muted" accessibilityLabel={`${foot} Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
+      {foot ? <RecordFoot label={foot} tone="muted" accessibilityLabel={`Pogledaj prijave, ${foot}. Zadatak: ${title}`} accessibilityHint="Otvara prijave za izbor."
         disabled={disabled} onPress={onApplications!} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
     </Surface>
   </Animated.View>;
@@ -102,6 +101,6 @@ export const OwnTaskCard = memo(OwnTaskCardBase);
 const s = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.sm },
   grow: { flex: 1 },
-  what: { gap: sys.space.sm },
-  facts: { gap: sys.space.sm },
+  // The facts stand 4 apart, as in the card of the Zadaci family: the rows are one group.
+  facts: { gap: sys.space.xs },
 });

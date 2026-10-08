@@ -44,7 +44,8 @@ it('opens every scene by its visible label and comes back with "Nazad"', async (
   const labels = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^(Kalendar|Dostupnost|List|Arhiva) · /.test(String(node.props.accessibilityLabel)))
     .map(node => String(node.props.accessibilityLabel));
   // 21 since the review of step 10 (the list that does not say the exact time, availability without a work profile); 27 since the UI pass of 2026-10-08:
-  // an empty day with chips, only Dogovori (no chips), the sections under the day, and the Arhiva in three states.
+  // the day with Dogovori, an empty day (with and without Dogovori on other days), the section "Termin još nije dogovoren", the owner's phone
+  // (one Dogovor without a term) and the Arhiva in three states. The scenes with chips are gone with the chips.
   expect(labels).toHaveLength(27);
   for (const label of labels) {
     await pressHost(label);
@@ -54,14 +55,17 @@ it('opens every scene by its visible label and comes back with "Nazad"', async (
   }
 });
 
-it('draws both sides, a finished Dogovor and the row of Dogovori without an exact time', async () => {
+it('draws both sides, a finished Dogovor, one with only a start, and the section of Dogovori without a term', async () => {
   await act(async () => { tree = create(<DizajnKalendar />); });
   await pressHost('Kalendar · dan sa Dogovorima');
   expect(text()).toContain('Uskačeš · Ana'); expect(text()).toContain('Tvoj zadatak · Marko');
   // The agenda draws the system status words (T3b, 2026-10-07): "Završen" for a finished Dogovor, "Čeka potvrdu" while a completion waits,
-  // and the Dogovori without an exact time sit in their own section "Bez tačnog termina" (the former "Svi Dogovori" row is gone).
+  // and the Dogovori without a term sit in their own section "Termin još nije dogovoren" (the former "Svi Dogovori" row is gone, and so
+  // is "Bez tačnog termina": a heading that denied the date of a Dogovor with an accepted start).
   expect(text()).toContain('Završen'); expect(text()).toContain('Čeka potvrdu');
-  expect(text()).toContain('Bez tačnog termina');
+  expect(text()).toContain('Termin još nije dogovoren'); expect(text()).not.toContain('Bez tačnog termina');
+  // A Dogovor with an accepted start and no end stands on its day with the one bound it has, not under the heading.
+  expect(text()).toContain('Šišanje živice'); expect(text()).toContain('od 15:30');
   // My own work, marked done, waits for the other side's confirmation (review of step 10).
   expect(text()).toContain('Uskačeš · Nikola');
   // Round-5c: a finished row's mark is the muted grey (the hairline grey was about 1.4:1). Since T3b the mark is the system StatusMark of the
@@ -75,7 +79,7 @@ it('draws what a list read without the exact window leaves: only my work, and a 
   await pressHost('Kalendar · lista ne kaže tačno vreme');
   expect(text()).toContain('Učitani su samo termini u kojima uskačeš.');
   expect(text()).not.toContain('Tvoj zadatak');
-  expect(text()).not.toContain('Svi Dogovori'); expect(text()).not.toContain('bez tačnog termina');
+  expect(text()).not.toContain('Svi Dogovori'); expect(text()).not.toContain('Termin još nije dogovoren');
 });
 
 it('goes home from the list when it was opened cold by its address', async () => {
@@ -107,19 +111,24 @@ it('shows the conversation check that the reason of the "razlog" scene names', a
   expect(tree.root.findAll(node => node.props.label === 'Proveri stanje razgovora').length).toBeGreaterThan(0);
 });
 
-// The UI pass of 2026-10-08 (composition spec 4.10): the row of chips is the one control row over the day, and it is there only when there is
-// something to choose between.
-it('draws the chips only when the window holds two kinds, and the sections under the day with the group headings', async () => {
+// The owner's phone of 8 Oct 2026: Raspored is the Dogovori and nothing else, so no scene has a chip, a task or an application of mine.
+it('draws no chips and no task or application in any scene, and the section under the day with its command', async () => {
   const chips = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel);
+  const proposals = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^Predloži termin\. /.test(String(node.props.accessibilityLabel)))
+    .map(node => String(node.props.accessibilityLabel));
   await act(async () => { tree = create(<DizajnKalendar />); });
   await pressHost('Kalendar · dan sa Dogovorima');
-  expect(chips()).toEqual(['Sve', 'Dogovori', 'Moji zadaci', 'Moje prijave']);
-  await pressHost('Nazad na scene'); await pressHost('Kalendar · samo Dogovori, bez čipova');
   expect(chips()).toEqual([]);
-  await pressHost('Nazad na scene'); await pressHost('Kalendar · prazan dan, ima čipove');
-  expect(chips()).toHaveLength(4); expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
-  await pressHost('Nazad na scene'); await pressHost('Kalendar · bez tačnog termina i prijave na čekanju');
-  expect(text()).toContain('Bez tačnog termina'); expect(text()).toContain('Čekaju odgovor'); expect(text()).toContain('Prijava poslata'); expect(text()).toContain('Prijava viđena');
+  await pressHost('Nazad na scene'); await pressHost('Kalendar · prazan dan, Dogovori na drugim danima');
+  expect(chips()).toEqual([]); expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
+  await pressHost('Nazad na scene'); await pressHost('Kalendar · termin još nije dogovoren');
+  // Three without an accepted start: none at all, an end only (its own words), one waiting for a confirmation (no command).
+  expect(text()).toContain('Termin još nije dogovoren'); expect(text()).toContain('Do 10. okt · 18:00 · početak nije potvrđen');
+  expect(proposals()).toEqual(['Predloži termin. Krečenje stana od 80 m² u belo', 'Predloži termin. Čišćenje stana na Petrovaradinu']);
+  for (const word of ['Čekaju odgovor', 'Prijava poslata', 'Prijava viđena', 'Moji zadaci', 'Moje prijave', 'Bira se']) expect(text()).not.toContain(word);
+  await pressHost('Nazad na scene'); await pressHost('Kalendar · kako ga je video vlasnik (jedan Dogovor bez termina)');
+  expect(text()).toContain('Krečenje stana od 80 m² u belo'); expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
+  expect(proposals()).toEqual(['Predloži termin. Krečenje stana od 80 m² u belo']);
 });
 
 it('draws the Arhiva in its states from the same fixtures, with its records under the group headings', async () => {

@@ -7,12 +7,12 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
  * conversation and the list have their own suites. Here: every scene opens, and the scenes of the ideas of the UI pass (R01a, R02, R03,
  * R04, R29, CANCEL-INFO) show what they promise.
  */
-let mockScene: string | undefined;
+let mockScene: string | undefined, mockScale: string | undefined, mockWidth = 390;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
-    if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: 1 });
+    if (key === 'useWindowDimensions') return () => ({ width: mockWidth, height: 844, scale: 3, fontScale: 1 });
     if (key === 'FlatList') return ({ data, renderItem, ListEmptyComponent, ...props }: any) => require('react').createElement('List', props,
       data.length ? data.map((item: any, index: number) => require('react').createElement(require('react').Fragment, { key: item.id ?? index }, renderItem({ item, index }))) : ListEmptyComponent);
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'RefreshControl', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
@@ -20,7 +20,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('expo-constants', () => ({ expoConfig: { android: { package: 'rs.uskoci.app.dev' } } }));
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), push: jest.fn() }, useLocalSearchParams: () => ({ scene: mockScene }) }));
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), push: jest.fn() }, useLocalSearchParams: () => ({ scene: mockScene, scale: mockScale }) }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
@@ -42,15 +42,49 @@ const open = async (scene: string) => { mockScene = scene; await act(async () =>
 const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const labels = () => tree.root.findAll(node => String(node.type) === 'Press').map(node => String(node.props.accessibilityLabel));
 const headers = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
-afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockScene = undefined; });
+afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockScene = undefined; mockScale = undefined; mockWidth = 390; });
 
-const DETAILS = ['one', 'worker', 'group', 'waiting', 'recovery', 'done', 'no-term', 'problem', 'form', 'shared', 'no-number', 'cancelled', 'cancelled-me', 'long-detail'];
+const DETAILS = ['one', 'worker', 'worker-done', 'worker-term', 'group', 'waiting', 'recovery', 'done', 'no-term', 'problem', 'form', 'shared', 'no-number', 'cancelled', 'cancelled-me', 'long-detail'];
 const STATES = ['status-loading', 'status-error', 'status-unavailable', 'review', 'review-grey', 'review-saved', 'review-loading', 'review-error'];
 const CHATS = ['chat', 'chat-waiting', 'chat-empty', 'chat-loading', 'chat-error', 'chat-closed', 'chat-media', 'chat-unknown'];
 
 it.each([...DETAILS, ...STATES, ...CHATS, 'list', 'history', 'empty', 'loading', 'error', 'long'])('opens the scene "%s" without reading or writing anything', async scene => {
   await open(scene);
   expect(text().length).toBeGreaterThan(0);
+});
+
+/**
+ * The Dogovor of the owner's phone picture of 2026-10-08 (the one who does the work, the work agreed, no term yet): the gallery draws what
+ * the route draws - one green action, the four actions as rows of the page with no "···" - and, for a text size the lab has none of
+ * (`?scale=`), the step bar for that size.
+ */
+describe('the Dogovor of the owner\'s phone picture, in the gallery', () => {
+  it('has one green action, the actions as rows of the page and no "···", and says no sentence that the ⓘ says', async () => {
+    await open('worker-done');
+    expect(labels()).toContain('Zadatak je gotov');
+    expect(labels()).toEqual(expect.arrayContaining(['Izmeni uslove', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu', 'Predloži termin', 'Objašnjenje: Kako ide Dogovor']));
+    expect(labels()).not.toContain('Više radnji');
+    expect(text()).toContain('Kad završiš, dodirni „Zadatak je gotov“.'); expect(text()).not.toContain('Druga strana tada potvrđuje');
+    expect(text()).not.toContain('Dogovorite tačno vreme');
+  });
+
+  it('draws the four steps in one row at the owner\'s phone and text size, and as a column at 1.3, with every word whole', async () => {
+    mockWidth = 361; mockScale = '1.15';
+    await open('worker-done');
+    const joins = () => tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('agreement-join-'));
+    expect(joins()).toHaveLength(3);
+    await act(async () => { tree.unmount(); });
+    mockScale = '1.3';
+    await open('worker-done');
+    expect(joins()).toHaveLength(0);
+    for (const word of ['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']) expect(text()).toContain(word);
+  });
+
+  it('ignores a text size it does not know', async () => {
+    mockWidth = 361; mockScale = '9';
+    await open('worker-done');
+    expect(tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('agreement-join-'))).toHaveLength(3);
+  });
 });
 
 describe('the ideas of the UI pass, as the gallery draws them', () => {

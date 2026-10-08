@@ -106,8 +106,10 @@ describe('R01a: a number is offered only to an account that has one', () => {
     expect(labels()).toContain('Podeli svoj broj'); expect(labels()).not.toContain('Kontakt kroz Poruke');
   });
 
-  it('leaves the number out of the "···" menu too, yet lets a number that was shared be taken back', async () => {
+  it('leaves the number out of the "···" of the conversation too, yet lets a number that was shared be taken back', async () => {
     mockAccountPhone = undefined;
+    // The overview has no menu (its actions are rows of the page); the "···" is the conversation's.
+    mockParams = { id: mockAgreementId, tab: 'poruke' };
     const menu = () => presses().filter(node => node.props.accessibilityRole === 'menuitem').map(node => node.props.accessibilityLabel);
     await render(base());
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Više radnji' }).props.onPress());
@@ -163,6 +165,21 @@ describe('R04: three ways on after a problem was reported', () => {
     expect(texts()).toContain('Šta dalje');
     expect(labels()).toEqual(expect.arrayContaining(['Dogovorite se u Porukama', 'Otkaži Dogovor', 'Prijavi nedolazak']));
     expect(labels()).not.toContain('Prijavi problem');
+    // One place for one action (J1): the cancelling is the ways-on's while they stand, and the actions of the page do not draw it a second time.
+    expect(labels().filter(label => label === 'Otkaži Dogovor')).toHaveLength(1);
+  });
+
+  it('say what each is by its title alone: no line of explanation under a row, what it does is spoken', async () => {
+    await reported();
+    for (const sentence of ['Napišite šta je ostalo nerešeno.', 'Uz razlog. Posle toga možeš ponovo da tražiš ljude.', 'Otvara podršku sa ovim Dogovorom.']) expect(texts()).not.toContain(sentence);
+    expect(press('Otkaži Dogovor').props.accessibilityHint).toBe('Uz razlog. Posle toga možeš ponovo da tražiš ljude.');
+  });
+
+  it('are one tinted note, and the sentence in it is one: who sees the words, and that a problem decides no one is guilty or owes', async () => {
+    await reported();
+    expect(texts()).toContain('Opis vide oba učesnika, a problem sam po sebi ne određuje krivicu ili dug.');
+    // The stopped completion is said by the head of the Dogovor (while the confirmation is awaited), not by a second sentence in the note.
+    expect(texts()).not.toContain('Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi.');
   });
 
   it('lead to the conversation, to the cancelling with its reason, and to support with this Dogovor already chosen', async () => {

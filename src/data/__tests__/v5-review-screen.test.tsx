@@ -4,7 +4,6 @@ import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskRe
 import type { NeedLocationInput } from '../../contracts/location';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
 import { PUBLISHED_MOMENT_MS } from '../../ui/objava/PublishedMoment';
-import { APPLICATION_PROMISE } from '../ownTaskStanding';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -496,7 +495,8 @@ it('restores the server review deadline and allows its explicit removal without 
   mockPrepare.mockResolvedValue(ok(review()));
   await act(async () => form.apply(null));
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
-  expect(text()).toContain('Zadatak sa tačnim terminom se zatvara kad termin prođe');
+  // The deadline says one sentence; the rule for a task with a fixed time was a second one, and an explanation (the owner, 8 Oct 2026).
+  expect(text()).toContain('Bez posebnog roka'); expect(text()).not.toContain('Zadatak sa tačnim terminom se zatvara kad termin prođe');
   expect(mockAccept).not.toHaveBeenCalled();
 });
 
@@ -979,8 +979,8 @@ describe('the Objavljeno moment', () => {
     expect(PUBLISHED_MOMENT_MS).toBeGreaterThanOrEqual(1200);
     await publishHere();
     expect(mockAccept).toHaveBeenCalledTimes(1);
-    // What the moment promises is the app's one promise (`APPLICATION_PROMISE`, F3's R12): "Javićemo ti" only the day push is sent.
-    expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain(APPLICATION_PROMISE.published);
+    // The moment says what happened and has ONE green way on; it explains nothing (no "Prijave vidiš ovde i u zvoncu", no promise of a notification).
+    expect(text()).toContain('Zadatak je objavljen.'); expect(text()).not.toMatch(/zvonc|Prijave vidiš|Javićemo/);
     expect(tree.root.findAllByType('SuccessMark' as React.ElementType)).toHaveLength(0);
     expect(tree.root.findAll(node => node.props.kind === 'publish' && node.props.size === 144).length).toBeGreaterThan(0);
     expect(tree.root.findAll(node => node.props.testID === 'pecat' && node.props.accessibilityLabel === 'Objavljen').length).toBeGreaterThan(0);
@@ -1050,8 +1050,7 @@ describe('the Objavljeno moment', () => {
 
   it('confirming the changes of a task that already exists says so, with no promise of a first application, and lands on the same overview', async () => {
     await publishHere({ ...review(), draftId: NEED, draftRevision: 4 });
-    expect(text()).toContain('Izmene su objavljene.'); expect(text()).toContain('Prijave stižu ovde.');
-    expect(text()).not.toContain('Javićemo ti');
+    expect(text()).toContain('Izmene su objavljene.'); expect(text()).not.toMatch(/Prijave stižu ovde|Javićemo/);
     await advance(PUBLISHED_MOMENT_MS);
     expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
   });

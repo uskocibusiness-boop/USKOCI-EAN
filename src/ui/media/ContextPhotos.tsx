@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Glyph } from '../system/Glyph';
@@ -8,7 +8,6 @@ import { useSesija } from '../../store/sesija';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { V2Action } from '../v2/V2Action';
 import { FactArt } from '../system/FactArt';
 import { inicijali } from '../../lib/inicijali';
 import { PhotoPages, PhotoViewer } from './PhotoViewer';
@@ -16,43 +15,57 @@ import { PhotoPages, PhotoViewer } from './PhotoViewer';
 /** The viewer is shared (both chats' photo tiles open it); it lives in its own file and is re-exported here. */
 export { PhotoViewer, type PhotoReadContext } from './PhotoViewer';
 
-/** Only actual photos lead the detail. An authoritative empty list stays absent for either side;
- * a failed read remains distinct and retryable. `owned` is retained for caller compatibility. */
+/**
+ * Only actual photos lead the detail, and only photos that can be seen (the owner's phone, 8 Oct 2026: a big grey plate with a dot and "1 / 1" stood
+ * where a photo that would not load should have been). While a photo is read its page holds a picture of a photo; one that cannot be read is left
+ * out, and a task whose photos can none of them be read draws no gallery at all. An authoritative empty list stays absent for either side; a failed
+ * read of the LIST draws nothing either (the screen is read again on every visit), so no sentence says something is missing. `owned` is retained
+ * for caller compatibility.
+ */
 export function NeedPhotos({ needId }: { needId: string; owned?: boolean }) {
   const { user, accountRevision } = useSesija();
   const read = useCallback(() => mediaClientService.readNeedPhotos(needId), [needId]);
   const editor = useOwnedEditor(read);
-  const photos = editor.data?.photos ?? [];
-  if (editor.loading && !editor.data) return null;
-  if (!photos.length && !editor.error) return null;
-  return <View style={galleryStyles.section}>
-    {photos.length ? <NeedPhotoGallery key={`${user?.id}:${accountRevision}:${needId}:${photos.map(photo => photo.assetId).join(':')}`}
-      needId={needId} photos={photos} /> : null}
-    {editor.error ? <><T variant="note" tone="muted">Fotografije trenutno nisu učitane.</T>
-      <V2Action label="Učitaj fotografije" kind="quiet" disabled={editor.loading} onPress={() => { void editor.refresh(); }} /></> : null}
-  </View>;
+  // The photos that could not be read in this visit. Every visit tries them again, so a photo that failed once is not lost for good.
+  const [lost, setLost] = useState<ReadonlySet<string>>(() => new Set());
+  useFocusEffect(useCallback(() => { setLost(previous => previous.size ? new Set() : previous); }, []));
+  const lose = useCallback((assetId: string) => setLost(previous => previous.has(assetId) ? previous : new Set(previous).add(assetId)), []);
+  const all = editor.data?.photos ?? [], photos = all.filter(photo => !lost.has(photo.assetId));
+  if (!photos.length) return null;
+  // The key is what the task has, not what could be read: a page that is left out does not make the others read their photos again.
+  return <NeedPhotoGallery key={`${user?.id}:${accountRevision}:${needId}:${all.map(photo => photo.assetId).join(':')}`}
+    needId={needId} photos={photos} onLost={lose} />;
 }
 
-function NeedPhotoGallery({ needId, photos }: { needId: string; photos: readonly MediaPreview[] }) {
-  const [index, setIndex] = useState(0), [open, setOpen] = useState(false);
+/** A page whose photo cannot be read says so to the gallery once, and draws nothing. */
+function Lost({ onLost }: { onLost: () => void }) {
+  useEffect(() => { onLost(); }, [onLost]);
+  return null;
+}
+
+function NeedPhotoGallery({ needId, photos, onLost }: { needId: string; photos: readonly MediaPreview[]; onLost: (assetId: string) => void }) {
+  const [chosen, setIndex] = useState(0), [open, setOpen] = useState(false);
+  // A page that was left out may have been the one the person stood on.
+  const index = Math.min(chosen, photos.length - 1);
   useFocusEffect(useCallback(() => () => setOpen(false), []));
   const close = () => setOpen(false);
   const counter = `${index + 1} / ${photos.length}`;
   const context = { needId };
   return <>
     <View style={galleryStyles.inline} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
-      <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }} />
-      <View pointerEvents="none" style={galleryStyles.overlay}>
+      <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }}
+        pending={<FactArt kind="photo" size={48} />} unavailable={assetId => <Lost onLost={() => onLost(assetId)} />} />
+      {/* The count of the pages is a fact about more than one photo; one photo is "1 / 1" and says nothing. */}
+      {photos.length > 1 ? <View pointerEvents="none" style={galleryStyles.overlay}>
         <View style={galleryStyles.counter}><Glyph name="expand" size={16} />
           <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${photos.length}`}>{counter}</T></View>
-      </View>
+      </View> : null}
     </View>
     {open ? <PhotoViewer context={context} photos={photos} index={index} onIndex={setIndex} onClose={close} /> : null}
   </>;
 }
 
 const galleryStyles = StyleSheet.create({
-  section: { gap: sys.space.sm },
   inline: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
   overlay: { position: 'absolute', bottom: 12, right: 12 },
   counter: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6,

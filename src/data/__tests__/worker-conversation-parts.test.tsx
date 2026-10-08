@@ -15,7 +15,9 @@ const A = mockAccount, B = mockProfile, C = mockConversation;
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
-const mockRouter = { back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(), setParams: jest.fn() };
+const mockRouter = { back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(), setParams: jest.fn(), push: jest.fn() };
+// ONE NAME (owner, 8 Oct 2026): the profile is saved under the ACCOUNT's name; the hook is mocked (the real one reads the server). No name by default.
+let mockAccountName: { state: 'loading' } | { state: 'error'; retry: () => void } | { state: 'ready'; name: string | null } = { state: 'ready', name: null };
 const mockVoice = { controller: { cancel: jest.fn() }, state: { phase: 'IDLE' } };
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (['View', 'ScrollView', 'KeyboardAvoidingView', 'Switch', 'RefreshControl', 'TextInput'].includes(String(key))) return key;
@@ -31,6 +33,7 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
   useFocusEffect: (fn: () => void) => require('react').useEffect(() => fn(), [fn]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
+jest.mock('../../ui/profile/useAccountName', () => ({ useAccountName: () => mockAccountName }));
 jest.mock('../workerAiClientService', () => ({ get workerAiClientService() { return mockApi; } }));
 jest.mock('../workerAiTurnIntentJournal', () => ({ get workerAiTurnIntentJournal() { return mockJournal; } }));
 jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: () => mockVoice }));
@@ -57,7 +60,7 @@ const candidate = () => ({ displayName: 'Ana', bio: '', skills: ['Montaža'], to
 const snapshot = (revision = 0) => ({ schemaVersion: 'WORKER_PROFILE_V1', accountId: A, conversationId: C, profileId: B, status: 'OPEN', profileStatus: 'DRAFT',
   revision, candidate: candidate(), safety: 'ALLOW', stale: false, messages: [], turn: null, review: null, saved: null });
 const reviewed = (revision = 0, activate = true) => ({ ...snapshot(revision), review: { reviewId: '44444444-4444-4444-8444-444444444444', revision,
-  expiresAt: new Date(Date.now() + 60000).toISOString(), canAccept: true, activate } });
+  expiresAt: new Date(Date.now() + 60000).toISOString(), canAccept: true, activate, missingRequired: [] } });
 
 let tree: ReactTestRenderer;
 const shell = () => tree.root.findByType('Shell' as never);
@@ -75,7 +78,7 @@ const openReview = async () => {
   await act(async () => { shell().props.card(false).props.review(); });
 };
 beforeEach(() => {
-  jest.clearAllMocks(); mockRouter.canGoBack.mockReturnValue(true);
+  jest.clearAllMocks(); mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -190,7 +193,7 @@ describe('the review (M2)', () => {
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('identity'); });
     mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1, false)));
-    await act(async () => { manual().props.apply({ displayName: 'Ana P.', bio: '' }); });
+    await act(async () => { manual().props.apply({ bio: 'Radim sa bratom.' }); });
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
   });
 
@@ -223,5 +226,83 @@ describe('the review (M2)', () => {
     expect(review().props.onEdit).toBeUndefined();
     expect(action('Otvori sačuvani profil').props.style).toBe(brandAction);
     expect(tree.root.findAllByProps({ label: 'Nazad na razgovor' })).toHaveLength(0);
+  });
+});
+
+// ONE NAME (owner, 8 Oct 2026, "Može, dobro vam jedno ime za sve."): the work profile is saved under the name of the ACCOUNT, whatever the assistant proposed or
+// the profile carried. The assistant is not asked for it and the review has no row for it: the route puts the account's name into the proposal before the review is made.
+describe('one name: the review is made under the account\'s name', () => {
+  // The conversation is read as it stands (revision 0, the assistant's name "Ana"); what is read after the review is made is `after`.
+  const open = async (after: unknown = reviewed()) => {
+    await render(); mockApi.read.mockResolvedValue(ok(after));
+    await act(async () => { shell().props.card(false).props.review(); });
+  };
+
+  it('patches the account\'s name into a proposal that carries another, then makes the same review for the revision that patch made', async () => {
+    mockAccountName = { state: 'ready', name: 'Milos' };   // the proposal says "Ana"
+    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.prepare.mockResolvedValue(ok({}));
+    await open(reviewed(1));
+    expect(mockApi.patch).toHaveBeenCalledTimes(1); expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' });
+    expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
+    expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
+    expect(review()).toBeTruthy();
+  });
+
+  it('sends nothing extra when the proposal already carries the account\'s name', async () => {
+    mockAccountName = { state: 'ready', name: 'Ana' };
+    mockApi.prepare.mockResolvedValue(ok({}));
+    await open();
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true);
+  });
+
+  it.each([['an account with no name', { state: 'ready', name: null }], ['a name that could not be read', { state: 'error', retry: () => {} }],
+    ['a name that is still being read', { state: 'loading' }]] as const)('makes the review as before for %s: nothing is patched, and no name is made up', async (_label, value) => {
+    mockAccountName = value as typeof mockAccountName;
+    mockApi.prepare.mockResolvedValue(ok({}));
+    await open();
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true);
+  });
+
+  it('a name patch that is refused or unconfirmed prepares nothing and opens no review', async () => {
+    mockAccountName = { state: 'ready', name: 'Milos' };
+    mockApi.patch.mockResolvedValue({ ok: false, kod: 'UNKNOWN', poruka: 'Ishod nije potvrđen.' });
+    await open();
+    expect(mockApi.prepare).not.toHaveBeenCalled(); expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
+  });
+
+  it('puts the account\'s name into any other change of the proposal too, while it carries another, and never over a name the patch itself carries', async () => {
+    mockAccountName = { state: 'ready', name: 'Milos' };
+    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.prepare.mockResolvedValue(ok({}));
+    await open();
+    mockApi.patch.mockClear(); mockApi.prepare.mockClear();
+    await act(async () => { review().props.onEdit('area'); });
+    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
+    await act(async () => { manual().props.apply({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } }); });
+    expect(mockApi.patch).toHaveBeenCalledTimes(1);
+    expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 }, displayName: 'Milos' });
+    expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
+  });
+
+  it('the review of an account that has no name at all says so and leads to the one place it is written', async () => {
+    const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
+    mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
+    await render(); await act(async () => { shell().props.card(false).props.review(); });
+    expect(review().props.onAddName).toBeInstanceOf(Function);
+    await act(async () => { review().props.onAddName(); });
+    expect(mockRouter.push).toHaveBeenCalledWith('/profil/podaci'); expect(mockApi.patch).not.toHaveBeenCalled();
+  });
+
+  it('once the account has a name, the review that still lacks it is no longer valid: a fresh one puts the name in', async () => {
+    const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
+    mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
+    await render(); await act(async () => { shell().props.card(false).props.review(); });
+    expect(review().props.editDisabled).toBe(false);
+    mockAccountName = { state: 'ready', name: 'Milos' };   // added meanwhile, in "Lični podaci"
+    await act(async () => tree.update(<Screen />));
+    expect(review().props.editDisabled).toBe(true); expect(review().props.onAddName).toBeUndefined();
+    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
+    await click('Učitaj novi pregled');
+    expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' }); expect(mockApi.prepare).toHaveBeenLastCalledWith(C, 1, true);
+    expect(review().props.review.missingRequired).toEqual([]);
   });
 });

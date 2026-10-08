@@ -59,9 +59,13 @@ const render = async () => { await act(async () => { tree = create(element()); }
 const update = async () => { await act(async () => tree.update(element())); };
 const action = (label: string) => tree.root.findByProps({ label }).props;
 const actions = (label: string) => tree.root.findAllByProps({ label });
-/** The word at the end of the title of the list ("Osveži", spoken as "Osveži zahteve"): the group's `action`, absent while the first read runs or after a failed one. */
-const listRefresh = () => tree.root.findAllByType('Group' as React.ElementType).map(node => node.props.action as { label: string; accessibilityLabel: string; onPress: () => void } | undefined)
-  .find(item => item?.accessibilityLabel === 'Osveži zahteve');
+/**
+ * The pull of the screen (the frame hands `SettingsScreen` its `refresh`; the mocked screen here is a named element that keeps the props): the
+ * standing word "Osveži" at the title of the list is gone (owner's phone, 8 Oct 2026), and the spinner is the pull's own.
+ */
+const pull = () => tree.root.findAllByType('Screen' as React.ElementType)[0]?.props.refresh as { onRefresh: () => void; busy: boolean } | undefined;
+/** The line ABOVE the green send, in the foot (it stood under the button, where it read as the next thing and not as the cause). */
+const footerReason = () => tree.root.findAllByType('Screen' as React.ElementType)[0]?.props.footerReason as string | null | undefined;
 const hostPress = (label: string) => tree.root.find(node => node.type === ('Press' as React.ElementType)
   && node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label).props;
 const field = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props;
@@ -84,20 +88,20 @@ afterEach(async () => { await act(async () => tree?.unmount()); expect(mockListe
 
 it('uses a private create form with optional outcome, scalar limits and no safety category replacement', async () => {
   await render(); expect(text()).toContain('Zahtev vide podnosilac'); expect(actions('Pošalji privatni zahtev')[0].props.disabled).toBe(true);
-  // A grey send button says why it is grey (owner rule, 2026-09-23): the reason is the button's own.
-  expect(action('Pošalji privatni zahtev').reason).toBe('Za slanje su potrebni naslov i opis.');
+  // A grey send button says why it is grey (owner rule, 2026-09-23), in the foot's own line above it (8 Oct 2026), not under the button.
+  expect(footerReason()).toBe('Za slanje su potrebni naslov i opis.'); expect(action('Pošalji privatni zahtev').reason).toBeUndefined();
   await type('Kratak naslov', 'Pomoć'); await type('Opis zahteva', '🙂'.repeat(4000));
-  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(action('Pošalji privatni zahtev').reason).toBeNull();
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(footerReason()).toBeNull();
   await type('Opis zahteva', '🙂'.repeat(4001));
   expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(text()).toContain('Skrati tekst');
   expect(mockService.prepare).not.toHaveBeenCalled(); expect(actions('Bezbednost')).toHaveLength(0);
 });
-it('a topic that needs a Dogovor says so under the grey send button until one is chosen', async () => {
+it('a topic that needs a Dogovor says so above the grey send button until one is chosen', async () => {
   await render(); await act(async () => hostPress('Tema zahteva').onPress()); await act(async () => action('Prijava nedolaska').onPress());
   await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Nisam našao saradnika.');
-  expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(action('Pošalji privatni zahtev').reason).toContain('Izaberi Dogovor iznad');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(footerReason()).toContain('Izaberi Dogovor iznad');
   await act(async () => action('Izaberi Dogovor').onPress()); await act(async () => action('Stvarni sopstveni Dogovor').onPress());
-  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(action('Pošalji privatni zahtev').reason).toBeNull();
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(footerReason()).toBeNull();
 });
 it('does not submit a retained button after the visible draft changes', async () => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Prva verzija');
@@ -238,14 +242,14 @@ it('a person\'s own inbox has no intro: the list explains itself, and its one ac
   screen = 'INBOX'; await render();
   expect(tree.root.findAllByType('Intro' as React.ElementType)).toHaveLength(0);
   expect(text()).not.toContain('Prati svaki odgovor');
-  // The empty state keeps its sentence and has no action of its own; the brand action is in the frame's footer.
-  expect(text()).toContain('Još nema primljenih zahteva');
+  // The empty state is ONE line and has no action of its own; the brand action is in the frame's footer.
+  expect(text()).toContain('Nema tvojih zahteva.');
   expect(actions('Novi zahtev')).toHaveLength(1);
 });
 it('shows the operator inbox entry only when the server grants it to this account', async () => {
   screen = 'INBOX'; await render(); expect(actions('Otvori sve zahteve')).toHaveLength(0);
   mockService.capabilities.mockResolvedValue(ok({ accountId: A, operatorAvailable: true, canCreate: true, authoritative: true }));
-  await act(async () => listRefresh()!.onPress()); expect(actions('Otvori sve zahteve')).toHaveLength(1);
+  await act(async () => pull()!.onRefresh()); expect(actions('Otvori sve zahteve')).toHaveLength(1);
   expect(mockService.submit).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
 });
 it.each([{ contextKind: 'TASK', contextId: C }, { contextKind: 'TASK_REVIEW', contextId: C, contextRevision: '1' },
@@ -319,7 +323,7 @@ it('an inbox row says what the request is about, its state and news in words, an
 it('a failed inbox read is one state with its own retry, not a second refresh beside the title', async () => {
   screen = 'INBOX'; mockService.inbox.mockResolvedValue({ ok: false, poruka: 'Zahtevi trenutno nisu dostupni.' }); await render();
   expect(text()).toContain('Zahtevi nisu učitani'); expect(text()).toContain('Zahtevi trenutno nisu dostupni.');
-  expect(actions('Pokušaj ponovo')).toHaveLength(1); expect(listRefresh()).toBeUndefined();
+  expect(actions('Pokušaj ponovo')).toHaveLength(1); expect(actions('Osveži zahteve')).toHaveLength(0);
   // Round 5 review: the capabilities loaded (canCreate), yet the footer's green action waits for the list, so the error's
   // own retry is the screen's one primary.
   expect(actions('Novi privatni zahtev')).toHaveLength(0);
@@ -366,7 +370,7 @@ it('the confirmed request replaces this form, so Back from the case does not lan
 it('an unconfirmed send says why the send is grey, and its words are drawn as waiting, never as failed', async () => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Opis');
   await act(async () => action('Pošalji privatni zahtev').onPress());
-  expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true, reason: 'Najpre proveri prethodno slanje.' });
+  expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true }); expect(footerReason()).toBe('Najpre proveri prethodno slanje.');
   // The send may already have reached support: while it is unconfirmed its words wait with the check, not as a failure.
   expect(notes()).toContainEqual({ tone: 'warn', text: 'Sačekaj proveru.' });
   expect(notes().filter(note => note.tone === 'danger')).toHaveLength(0);
@@ -448,7 +452,7 @@ it('stopping an unconfirmed send spins the stop, never the send, and the send sa
   await act(async () => action('Zaustavi prethodno slanje').onPress());
   expect(action('Zaustavi prethodno slanje')).toMatchObject({ loading: true, disabled: true });
   expect(action('Proveri da li je uspelo').loading).toBe(false);
-  expect(action('Pošalji privatni zahtev')).toMatchObject({ loading: false, disabled: true, reason: 'Najpre proveri prethodno slanje.' });
+  expect(action('Pošalji privatni zahtev')).toMatchObject({ loading: false, disabled: true }); expect(footerReason()).toBe('Najpre proveri prethodno slanje.');
   await act(async () => held.resolve(unknown));
   expect(action('Zaustavi prethodno slanje').loading).toBe(false);
 });
@@ -539,39 +543,42 @@ it('the one green action is grey with its reason when this account cannot start 
   expect(action('Novi zahtev')).toMatchObject({ disabled: true, reason: 'Najpre proveri prethodno slanje.' });
   expect(actions('Proveri da li je uspelo')).toHaveLength(1);
 });
-it('the empty list says one sentence and offers its one action in the footer, not a second one in the state', async () => {
+it('the empty list says ONE line and offers its one action in the footer, not a second one in the state', async () => {
   screen = 'INBOX'; await render();
-  expect(text()).toContain('Još nema primljenih zahteva'); expect(text()).toContain('Zahteve i odgovore podrške vidiš ovde.');
+  // The owner's phone, 8 Oct 2026: "Još nema primljenih zahteva" spoke of what support received, and these are the person's own requests.
+  expect(text()).toContain('Nema tvojih zahteva.'); expect(text()).not.toContain('Još nema primljenih zahteva'); expect(text()).not.toContain('Zahteve i odgovore podrške vidiš ovde.');
   expect(actions('Novi zahtev')).toHaveLength(1);
-  // The rows to blocked people and to privacy are plain words, not "privatne prijave i blokiranja".
+  // The rows to blocked people and to privacy are names and nothing else: no sentence under them, and the sentence about who reads a request is
+  // on the screen that writes one.
   expect(actions('Blokirane osobe')).toHaveLength(1); expect(actions('Privatnost i podaci')).toHaveLength(1);
-  expect(text()).not.toContain('Privatne prijave i blokiranja'); expect(text()).not.toContain('inbox');
+  expect(actions('Blokirane osobe')[0].props.detail).toBeUndefined(); expect(actions('Privatnost i podaci')[0].props.detail).toBeUndefined();
+  expect(text()).not.toContain('Privatne prijave i blokiranja'); expect(text()).not.toContain('inbox'); expect(text()).not.toContain('Zahtev vide podnosilac');
 });
-it('a refresh the person asks for keeps the list on screen under its own spinner; only the first read is a skeleton', async () => {
+it('a pull the person makes keeps the list on screen under its own spinner; only the first read is a skeleton, and no word "Osveži" stands over the list', async () => {
   screen = 'INBOX';
   mockService.inbox.mockResolvedValue(inboxOf([inboxRow(C, '71', 'IN_REVIEW')]));
   const first = deferred(); mockService.inbox.mockReturnValueOnce(first.promise); await render();
-  expect(text()).toContain('Učitavamo sačuvano stanje'); expect(listRefresh()).toBeUndefined();
+  expect(text()).toContain('Učitavamo sačuvano stanje'); expect(pull()!.busy).toBe(true);
   await act(async () => first.resolve(inboxOf([inboxRow(C, '71', 'IN_REVIEW')])));
   expect(text()).toContain('#71'); expect(text()).not.toContain('Učitavamo sačuvano stanje');
-  expect(listRefresh()).toMatchObject({ label: 'Osveži', accessibilityLabel: 'Osveži zahteve' });
+  expect(pull()).toMatchObject({ busy: false }); expect(text()).not.toContain('Osveži'); expect(actions('Osveži zahteve')).toHaveLength(0);
   const again = deferred(); mockService.inbox.mockReturnValueOnce(again.promise);
-  await act(async () => { void listRefresh()!.onPress(); });
-  // Still reading, and the list, the footer's action and the refresh are all still there; the word says it works.
+  await act(async () => { void pull()!.onRefresh(); });
+  // Still reading, and the list and the footer's action are still there; the pull says it works.
   expect(text()).toContain('#71'); expect(text()).not.toContain('Učitavamo sačuvano stanje');
-  expect(listRefresh()!.label).toBe('Osvežavamo…'); expect(actions('Novi zahtev')).toHaveLength(1);
-  // A second press while it works asks for nothing more.
-  await act(async () => { listRefresh()!.onPress(); }); expect(mockService.inbox).toHaveBeenCalledTimes(2);
+  expect(pull()!.busy).toBe(true); expect(actions('Novi zahtev')).toHaveLength(1);
+  // A second pull while it works asks for nothing more.
+  await act(async () => { pull()!.onRefresh(); }); expect(mockService.inbox).toHaveBeenCalledTimes(2);
   await act(async () => again.resolve(inboxOf([inboxRow(C, '71', 'CLOSED')])));
-  expect(listRefresh()!.label).toBe('Osveži'); expect(text()).toContain('Zatvoren');
+  expect(pull()!.busy).toBe(false); expect(text()).toContain('Zatvoren');
 });
 it('a failed refresh does not leave the old list as if it were current: the error is one state with its own retry', async () => {
   screen = 'INBOX';
   mockService.inbox.mockResolvedValueOnce(inboxOf([inboxRow(C, '71', 'IN_REVIEW')]));
   await render(); expect(text()).toContain('#71');
   mockService.inbox.mockResolvedValueOnce({ ok: false, poruka: 'Zahtevi trenutno nisu dostupni.' });
-  await act(async () => listRefresh()!.onPress());
-  expect(text()).toContain('Zahtevi nisu učitani'); expect(text()).not.toContain('#71'); expect(actions('Pokušaj ponovo')).toHaveLength(1); expect(listRefresh()).toBeUndefined();
+  await act(async () => pull()!.onRefresh());
+  expect(text()).toContain('Zahtevi nisu učitani'); expect(text()).not.toContain('#71'); expect(actions('Pokušaj ponovo')).toHaveLength(1);
   expect(actions('Novi zahtev')).toHaveLength(0);
 });
 it('a case being read again stays on screen: the conversation and the typed reply wait grey under the spinner', async () => {
@@ -655,12 +662,12 @@ describe('a bug report', () => {
     preset = bugReportPreset(BUILD); await render();
     expect(field('Kratak naslov').value).toBe('Greška u aplikaciji');
     expect(field('Opis zahteva').value).toBe('Verzija aplikacije: 1.4.2 (abcdef0)\n\nŠta se desilo:\n');
-    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true, reason: 'Dopiši šta se desilo pre slanja.' });
+    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true }); expect(footerReason()).toBe('Dopiši šta se desilo pre slanja.');
     // The words that were there already are not a report, and neither are blanks after them.
     await type('Opis zahteva', `${preset.body}   \n `);
-    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true, reason: 'Dopiši šta se desilo pre slanja.' });
+    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: true }); expect(footerReason()).toBe('Dopiši šta se desilo pre slanja.');
     await type('Opis zahteva', `${preset.body}Aplikacija se zatvorila na mapi.`);
-    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: false, reason: null });
+    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: false }); expect(footerReason()).toBeNull();
   });
 
   it('sends the same private request as any other, with the build named in it and nothing else about the person', async () => {
@@ -675,7 +682,7 @@ describe('a bug report', () => {
     await render();
     expect(field('Kratak naslov').value).toBe(''); expect(field('Opis zahteva').value).toBe('');
     await type('Kratak naslov', 'Pomoć'); await type('Opis zahteva', 'Opis');
-    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: false, reason: null });
+    expect(action('Pošalji privatni zahtev')).toMatchObject({ disabled: false }); expect(footerReason()).toBeNull();
   });
 
   it('leaves at once while it only has its own first words, and asks first once the person has written something', async () => {

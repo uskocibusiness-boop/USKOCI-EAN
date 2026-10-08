@@ -189,12 +189,12 @@ test('old unknown ratings cannot preempt accepted appointments or confirmed rati
   // the one that is really due, whatever its date. Then the days: tomorrow, this week, and no term last.
   expect(titles()).toEqual(['Otvori Dogovor Posao due', 'Otvori Dogovor Posao old-unknown', 'Otvori Dogovor Posao soon',
     'Otvori Dogovor Posao later', 'Otvori Dogovor Posao no-term']);
-  expect(headers()).toEqual(['Čeka tebe', 'Sutra', 'Ove nedelje', 'Bez tačnog termina']);
+  expect(headers()).toEqual(['Čeka tebe', 'Sutra', 'Ove nedelje', 'Termin još nije dogovoren']);
 });
 
 // Plan 2.6: Aktivni is groups, "Čeka tebe" first and always, then the days in Serbian time, each under its own heading.
 const headers = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.props.accessibilityRole === 'header').map(node => node.props.children);
-test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasnije and Bez tačnog termina, each with its heading', async () => {
+test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasnije and Termin još nije dogovoren, each with its heading', async () => {
   rows = [
     { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
     { ...agreement('later', 'CONFIRMED'), prihvacenPocetak: '2026-10-05T10:00:00Z' },
@@ -205,7 +205,7 @@ test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasni
     agreement('over', 'COMPLETED'), agreement('off', 'CANCELLED'),
   ];
   await render();
-  expect(headers()).toEqual(['Čeka tebe', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Bez tačnog termina']);
+  expect(headers()).toEqual(['Čeka tebe', 'Danas', 'Sutra', 'Ove nedelje', 'Kasnije', 'Termin još nije dogovoren']);
   expect(titles()).toEqual(['waits', 'today', 'tomorrow', 'week', 'later', 'no-term'].map(id => `Otvori Dogovor Posao ${id}`));
   // The rows of Istorija keep the server's order and carry no day headings.
   await tap('Istorija'); expect(headers()).toEqual([]);

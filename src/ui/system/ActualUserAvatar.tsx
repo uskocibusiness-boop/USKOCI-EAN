@@ -29,8 +29,10 @@ export function ActualUserAvatar({ onPress }: { onPress: () => void }) {
     accessibilityValue={identity?.ime ? { text: identity.ime } : undefined} onPress={onPress}
     haptic="select" hitSlop={0} style={s.target}>
     <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.portrait}>
+      {/* The person's own photograph: remembered in memory while the app stays in front (ownPhotoCache), so coming back to a tab
+          draws it at once instead of the letter that stands in for it while it is read. */}
       {identity?.profileId ? <ProfilePhoto key={`${accountId}:${accountRevision}:${identity.profileId}`}
-        profileId={identity.profileId} size={ROOT_AVATAR_SIZE} fallback={fallback} /> : fallback}
+        profileId={identity.profileId} size={ROOT_AVATAR_SIZE} fallback={fallback} own /> : fallback}
     </View>
   </Press>;
 }

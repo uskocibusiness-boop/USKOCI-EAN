@@ -5,7 +5,6 @@ import { router } from 'expo-router';
 import type { MarketConfig } from '../contracts/market';
 import type { NeedLocationReview } from '../contracts/location';
 import type { PotrebaProjekcija } from '../contracts/projections';
-import { APPLICATION_PROMISE } from '../data/ownTaskStanding';
 import type { NeedPublicationReadiness } from '../data/needPublicationReadiness';
 import type { createConfiguredLocationResolver } from '../data/configuredLocationResolver';
 import { NeedLocationForm } from '../ui/location/NeedLocationForm';
@@ -64,7 +63,13 @@ const SCENES: Scene[] = [
   { key: 'nacrt-mesto', group: 'Nacrt i moj zadatak', label: 'Nacrt kome fali mesto' },
   { key: 'nacrt-ceka', group: 'Nacrt i moj zadatak', label: 'Nacrt čeka obradu fotografija' },
   { key: 'moj-bez-prijava', group: 'Nacrt i moj zadatak', label: 'Objavljen, bez prijava 24 sata' },
+  { key: 'moj-nema-prijava', group: 'Nacrt i moj zadatak', label: 'Objavljen, još nema prijava' },
   { key: 'moj-prijave', group: 'Nacrt i moj zadatak', label: 'Objavljen, prijave čekaju izbor' },
+  { key: 'moj-ponude', group: 'Nacrt i moj zadatak', label: 'Tražim ponude, dve prijave' },
+  { key: 'moj-delimicno', group: 'Nacrt i moj zadatak', label: 'Treba troje, jedan dogovoren' },
+  { key: 'moj-zatvorena-potraga', group: 'Nacrt i moj zadatak', label: 'Dogovoreno, potraga zatvorena' },
+  // "Objavljen pre 2 sata": the page is ready to say it, but the owner's read of a task does not carry the time yet (TRAŽI SERVER: publishedAt), so on the phone it is not said.
+  { key: 'moj-objavljen-pre', group: 'Nacrt i moj zadatak', label: 'Objavljen pre 2 sata (kad server pošalje vreme)' },
   { key: 'moj-dogovoren', group: 'Nacrt i moj zadatak', label: 'Dogovoren' },
   { key: 'moj-dugo', group: 'Nacrt i moj zadatak', label: 'Dugi nazivi' },
   { key: 'moj-ucitavanje', group: 'Nacrt i moj zadatak', label: 'Učitavanje' },
@@ -199,7 +204,7 @@ export default function DizajnObjava() {
           title: `Obrisati nacrt „${summary.title}“?`, confirmLabel: 'Obriši nacrt', tone: 'danger',
           message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možeš da nastaviš.', onConfirm: noop })} />}
       </>;
-    const reason = todos.length ? 'Prvo uradi ono što piše pod „Još treba“.' : options.revising ? 'Objavljuješ izmenjenu verziju zadatka.' : 'Objavljuješ ovu verziju zadatka.';
+    const reason = todos.length ? 'Prvo uradi ono što piše pod „Još treba“.' : undefined;
     const footer = options.loading || options.failure ? null : <FlowFooter reason={options.command ? undefined : reason}>
       {options.error ? <T accessibilityRole="alert" style={s.error}>{options.error}</T> : null}
       {options.command ?? <>
@@ -268,12 +273,15 @@ export default function DizajnObjava() {
 
   /* ------------------------------------------------------------------------------------------------ the owner's own task */
   const mine = (options: { need?: Partial<PotrebaProjekcija>; readiness?: NeedPublicationReadiness | null; loading?: boolean; missing?: boolean;
-    error?: string | null; waiting?: boolean; large?: boolean }) => {
+    error?: string | null; waiting?: boolean; large?: boolean; closed?: boolean; publishedAt?: string }) => {
     const need: PotrebaProjekcija | null = options.missing ? null : { ...OWN_TASK, ...options.need };
     const draft = need?.stanje === 'NACRT';
-    const view = <NeedPresentation need={need} loading={!!options.loading} error={options.error ?? null} busy={false} remainingClosed={false}
+    const view = <NeedPresentation need={need} loading={!!options.loading} error={options.error ?? null} busy={false} remainingClosed={!!options.closed}
       onBack={toList} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} onAgreements={noop}
       readiness={options.readiness ?? (draft ? { kind: 'READY' } : null)} onDeleteDraft={draft ? noop : undefined}
+      publishedAt={options.publishedAt ?? null} now={new Date('2026-10-08T12:00:00Z')}
+      lifecycleMenu={need && need.stanje !== 'NACRT' && need.stanje !== 'ZATVORENA' && need.pokrivenost.popunjeno === 0
+        ? [{ key: 'cancel', label: 'Otkaži zadatak', icon: 'tasks', destructive: true, onPress: noop }] : []}
       waitingHelp={options.waiting && need ? noApplicationsHelp({ need, publishedAt: '2020-01-01T08:00:00Z', photoCount: 0, canShare: true, canEdit: true, on: true }) : null}
       onWaitingHelp={noop}
       map={need?.priblizno ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
@@ -281,8 +289,7 @@ export default function DizajnObjava() {
     return options.large ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{view}</LayoutClassOverride.Provider> : view;
   };
 
-  const moment = (revising: boolean) => <PublishedMoment title={revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.'}
-    line={revising ? 'Prijave stižu ovde.' : APPLICATION_PROMISE.published} onContinue={toList} />;
+  const moment = (revising: boolean) => <PublishedMoment title={revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.'} onContinue={toList} />;
 
   const body = scene === 'pregled-spremno' ? review({})
     : scene === 'pregled-jos-treba' ? review({ todos })
@@ -305,7 +312,17 @@ export default function DizajnObjava() {
     : scene === 'nacrt-mesto' ? mine({ readiness: HELD('LOCATION_INCOMPLETE') })
     : scene === 'nacrt-ceka' ? mine({ readiness: HELD('PUBLIC_MEDIA_NOT_READY') })
     : scene === 'moj-bez-prijava' ? mine({ waiting: true, need: { stanje: 'OBJAVLJENA', schedule: { kind: 'FIXED_WINDOW', startsAt: '2026-09-27T10:00:00+02:00', endsAt: '2026-09-27T12:00:00+02:00' } } })
+    // One block of state on top and nothing else about it: "Još nema prijava", or the faces and the count with the one green action.
+    : scene === 'moj-nema-prijava' ? mine({ need: { stanje: 'OBJAVLJENA' } })
     : scene === 'moj-prijave' ? mine({ need: { stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 } })
+    // "Tražim ponude" is a fact with its picture, and what it means is behind the small ⓘ, not under the word.
+    : scene === 'moj-ponude' ? mine({ need: { stanje: 'CEKA_PRIJAVE', rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined, brojPrijava: 2, brojPrijavaZaIzbor: 2 } })
+    // How many people the task needs is said only when it is more than one ("Treba 3 osobe"); one is agreed, two are still to choose among four applications.
+    : scene === 'moj-delimicno' ? mine({ need: { stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 },
+      osnovaCene: 'PER_PERSON', brojPrijava: 4, brojPrijavaZaIzbor: 2 } })
+    : scene === 'moj-objavljen-pre' ? mine({ publishedAt: '2026-10-08T10:00:00Z', need: { stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 } })
+    // The owner stopped looking for the rest: one place is agreed and the search for the other is closed, said once in one line.
+    : scene === 'moj-zatvorena-potraga' ? mine({ closed: true, need: { stanje: 'POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 }, brojPrijava: 2, brojPrijavaZaIzbor: 0 } })
     : scene === 'moj-dogovoren' ? mine({ need: { stanje: 'POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } } })
     : scene === 'moj-dugo' ? mine({ need: { naslov: LONG_TITLE, podrucjeTekst: 'Novi Sad · Grbavica → Sremska Kamenica', rezimCene: 'OFFERS',
       vremeTekst: '27. sep · 10:00–12:00 (po vremenu u Srbiji)', opis: LONG_DESCRIPTION, uslovi: ['Kombi sa najmanje 12 m³ tovarnog prostora', 'Kaiševi za klavir',

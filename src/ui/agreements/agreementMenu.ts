@@ -1,14 +1,16 @@
 import type { SheetAction } from '../system/ActionSheet';
 
 /**
- * The "···" menu of a Dogovor (plan 2.6): the rare actions, out of the page and one tap from the top bar. In this order:
+ * The "···" menu of the CONVERSATION of a Dogovor (plan 2.6; T3c): while Poruke is shown, what can be done is one tap from its bar. In this order:
  *
  *   Izmeni uslove · Podeli svoj broj (only an account that has a number) / Opozovi deljenje broja · Podeli lokaciju (only the requester) · Prijavi problem
  *   ----
  *   Otkaži Dogovor · Prijavi ili blokiraj osobu            (both in the danger colour)
  *
- * The rows that exist in the page stay there; this is a second way to the same commands, so each entry is offered under the same
- * condition as its row, and an action the page cannot take right now is shown grey with its reason, never hidden and never faded.
+ * The overview has NO such menu (owner, 8 Oct 2026, J15: "jedva se nađu"): its actions are rows of the page, "Izmeni uslove", "Prijavi problem",
+ * "Otkaži Dogovor" and "Prijavi ili blokiraj osobu", each in one place. This menu is the second way to the same commands for the person who is in
+ * the conversation, so each entry is offered under the same condition as its row, and an action the page cannot take right now is shown grey
+ * with its reason, never hidden and never faded.
  * Pure: it builds the entries, the route gives them their commands. `ActionSheet` puts the destructive ones last and draws the rule.
  */
 export type AgreementMenuInput = {

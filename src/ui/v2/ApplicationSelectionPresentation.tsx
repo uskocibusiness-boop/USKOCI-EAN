@@ -12,7 +12,6 @@ import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
-import { FactArt } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
@@ -24,6 +23,7 @@ import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { LARGE_TEXT_SCALE, useLayoutClass, useWindowRoom } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
 import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateHas, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
 import { DogovorenoMoment } from './DogovorenoMoment';
@@ -89,7 +89,7 @@ const CandidateItem = memo(function CandidateItem({ candidate, need, index, anim
 
 /** The two things a whole list can say about an application that can still be chosen, in the owner's words. */
 export const MEASURE_LOWEST_PRICE = 'Najniža cena';
-export const MEASURE_BEST_RATING = 'Najviša ocena';
+export const MEASURE_BEST_RATING = 'Najbolja ocena';
 /**
  * What a list says about its applications by comparing them, and only what is true: among the applications that can still be chosen, the
  * one with the lowest total (when at least two have one) and the one with the best rating (when at least two have a rating that stands on
@@ -120,7 +120,8 @@ export function candidateMeasures(candidates: readonly KandidatProjekcija[], who
  */
 export type CandidateSort = 'ARRIVAL' | 'PRICE' | 'RATING';
 const SORTS: readonly CandidateSort[] = ['ARRIVAL', 'PRICE', 'RATING'];
-const SORT_LABEL: Record<CandidateSort, string> = { ARRIVAL: 'Redom pristizanja', PRICE: 'Najniža cena', RATING: 'Najbolje ocenjeni' };
+/** The three orders in the approved draft's words (R4): the earliest, the lowest price, the best rating. One name for one thing: the marks on the cards say the same two. */
+const SORT_LABEL: Record<CandidateSort, string> = { ARRIVAL: 'Najranije', PRICE: 'Najniža cena', RATING: 'Najbolja ocena' };
 /**
  * The rating a candidate stands on, from the words the read gave ("4,8", the count "11 ocena"): the figure, and how many ratings it
  * stands on. A person with no rating ("—", "Još nema ocena") has none (null), which is not a bad one: they come after everyone who has one.
@@ -141,12 +142,15 @@ export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: 
     ? b.figure.rating - a.figure.rating || b.figure.count - a.figure.count || a.at - b.at : a.figure ? -1 : b.figure ? 1 : a.at - b.at).map(({ k }) => k);
 }
 
-/** The Task these offers answer, as one row that opens it: its title and how many places are still free. */
+/**
+ * The Task these offers answer, as one row that opens it: its title and, only when it says something, how many places are still free ("Još 1 od 2 mesta",
+ * "Sva mesta su popunjena"). One free place of one is every task there is, and "1 od 1" said nothing (the owner's phone, 8 Oct 2026).
+ */
 function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void }) {
   const title = readableTitle(need.naslov), { preostalo, ukupno } = need.pokrivenost;
-  const places = preostalo > 0 ? `Slobodna mesta: ${preostalo} od ${ukupno}` : 'Sva mesta su popunjena';
+  const places = preostalo <= 0 ? 'Sva mesta su popunjena' : ukupno > 1 ? `Još ${preostalo} od ${ukupno} mesta` : undefined;
   return open ? <ListRow title={title} subtitle={places} last accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityHint={places} onPress={open} />
-    : <ListRow title={title} subtitle={places} last accessibilityLabel={`${title}. ${places}`} />;
+    : <ListRow title={title} subtitle={places} last accessibilityLabel={places ? `${title}. ${places}` : title} />;
 }
 
 /**
@@ -192,7 +196,13 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const setCompare = (value: boolean) => { if (onComparison) onComparison(value); else setOwnCompare(value); };
   const [ownSort, setOwnSort] = useState<CandidateSort>('ARRIVAL');
   const [sorting, setSorting] = useState(false);
-  const sort = chosenSort ?? ownSort;
+  // Reading the applications again is a pull on the list, not a button under it: the screen shows its own loading state while it reads.
+  const pull = usePullRefresh(refresh, false);
+  // Read a page at a time, the number of applications is the server's, and how many of them can still be chosen is only known once every one is loaded.
+  const known = !paging || !paging.hasMore;
+  // The lowest price and the best rating are orders of the WHOLE list: the server sorts only by arrival, so while a page is still to come the list is
+  // not ordered by price or rating at all and the control is not drawn (the approved draft R4: only when the list is whole). Arrival is the server's own order.
+  const sort: CandidateSort = known ? chosenSort ?? ownSort : 'ARRIVAL';
   // The comparison has to know how much room there is (two columns of at least 200 dp), so it reads the width through the one hook that may; the
   // kind of room (the owner's large text, a window under 340 dp) is the layout class. A gallery that gives its own text size decides by it.
   const room = useWindowRoom();
@@ -214,8 +224,6 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const openCandidate = useCallback((k: KandidatProjekcija) => openRef.current(k), []);
   // PKG-035: the list keeps every application, historical ones included; the ones that can still be
   // chosen are a different number and are named as such, never mixed into the total.
-  // Read a page at a time, the number of applications is the server's, and how many of them can still be chosen is only known once every one is loaded.
-  const known = !paging || !paging.hasMore;
   // What the whole list says by comparing ("Najniža cena"): nothing until every application has been read, then one mark at most per card.
   const measures = useMemo(() => candidateMeasures(candidates, known), [candidates, known]);
   const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
@@ -227,39 +235,30 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
   const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
   const counts = `${prijava(known ? candidates.length : paging?.total ?? candidates.length)}${known && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
-  // An offer that can be read but not chosen says why on its own card; this says once what that means.
-  const unavailable = candidates.some(k => k.stanje !== 'SELECTABLE' && k.stanje !== 'SELECTED');
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ProductHeader backLabel={compare ? 'Nazad na prijave' : 'Nazad na zadatak'} title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back}
       right={candidates.length > 1 ? <V2Action label={compare ? 'Prikaži listu' : 'Uporedi'} kind="quiet" compact onPress={() => setCompare(!compare)} /> : undefined} />
     <View style={s.grow}>
       <FlatList key={`${compare ? 'comparison' : 'offers'}:${columns}`} numColumns={columns} data={rows} keyExtractor={candidateKey} initialNumToRender={8} maxToRenderPerBatch={8} windowSize={7}
+        refreshing={pull.refreshing} onRefresh={pull.onRefresh}
         contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
         ListHeaderComponent={<View style={s.listHeader}>
           <TaskBrief need={need} open={openTask} />
           {candidates.length ? <View style={s.toolbar}>
             <T variant="note" tone="muted" style={s.counts}>{counts}</T>
-            {candidates.length > 1 ? <Press accessibilityRole="button" accessibilityLabel={`Redosled prijava: ${SORT_LABEL[sort]}`}
+            {candidates.length > 1 && known ? <Press accessibilityRole="button" accessibilityLabel={`Redosled prijava: ${SORT_LABEL[sort]}`}
               accessibilityHint="Otvara izbor redosleda" accessibilityState={{ expanded: sorting }} haptic="select"
               onPress={() => setSorting(true)} style={s.sortButton}>
               <T variant="copy" tone="green" style={s.sortText}>{SORT_LABEL[sort]}</T><Glyph name="caret-down" size={16} tone="green" />
             </Press> : null}</View> : null}
-          {!known && sort !== 'ARRIVAL' ? <View accessibilityLiveRegion="polite" style={s.notes}>
-            <T variant="note" tone="muted">{sort === 'PRICE' ? 'Redosled po ceni važi samo za učitane prijave.' : 'Redosled po oceni važi samo za učitane prijave.'}</T>
-            {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
-              : paging?.loadingMore ? <T variant="meta" tone="muted">Učitavamo preostale…</T> : null}
-          </View> : null}
-          {!known && compare && sort === 'ARRIVAL' ? <View accessibilityLiveRegion="polite" style={s.notes}>
+          {!known && compare ? <View accessibilityLiveRegion="polite" style={s.notes}>
             <T variant="note" tone="muted">Porediš učitane prijave. Još nisu prikazane sve prijave.</T>
             {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
               : paging?.loadingMore ? <T variant="meta" tone="muted">Učitavamo preostale…</T> : null}
           </View> : null}
         </View>}
-        // What happens next, without promising that anyone will apply.
-        // Comparing needs two applications, so the first one promises nothing about it (review r4 rk item 8).
-        ListEmptyComponent={<StateView kind="empty" art="offers" title="Još nema prijava"
-          body="Kad neko pošalje prijavu za ovaj zadatak, videćeš je ovde."
-          quiet={{ label: 'Osveži prijave', onPress: refresh }} />}
+        // The empty list is an object and one sentence: no promise of what will happen, and no button (the list is read again by pulling it).
+        ListEmptyComponent={<StateView kind="empty" art="offers" title="Još nema prijava" />}
         renderItem={renderItem}
         onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
         ListFooterComponent={candidates.length ? <View style={s.listFooter}>
@@ -269,12 +268,9 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
               <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
             </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
               : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}</View> : null}
-          {unavailable ? <View style={s.footnote}><FactArt kind="info" size={20} muted />
-            <T variant="note" tone="muted" style={s.footnoteText}>Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš. Razlog piše na njenoj kartici.</T></View> : null}
-          <V2Action label="Osveži prijave" kind="quiet" onPress={refresh} style={s.footerAction} />
         </View> : null} />
     </View>
-    {sorting && candidates.length > 1 ? <ProductSheet title="Redosled prijava" closeLabel="Zatvori izbor redosleda" onClose={() => setSorting(false)}>
+    {sorting && candidates.length > 1 && known ? <ProductSheet title="Redosled prijava" closeLabel="Zatvori izbor redosleda" onClose={() => setSorting(false)}>
       {dismiss => <View accessibilityRole="radiogroup" style={s.sortOptions}>
         {SORTS.map(option => <ChoiceRow key={option} kind="radio" label={SORT_LABEL[option]} checked={sort === option} onPress={() => { choose(option); dismiss(); }} />)}
       </View>}
@@ -301,7 +297,7 @@ function SelectedAgreementAction({ load, open }: { load: () => Promise<Ishod<{ d
 /** The words that stand before the one choice that forms the Dogovor, while it is retried; the question itself is `CHOICE_QUESTION`. */
 const CHOICE_TITLE = 'Kad izabereš prijavu, nastaje Dogovor.';
 /** The question the dialog asks: a verb with a question mark, and under it what is accepted and what follows (plan 2.3). */
-const CHOICE_QUESTION = 'Izabrati ovu prijavu?';
+const CHOICE_QUESTION = 'Izabrati ovu osobu?';
 /** What is accepted: the price, the people and the term that applies (the person's proposal, or else the task's own), then what follows. */
 const choiceTerms = (candidate: KandidatProjekcija, term: string) => {
   const price = candidateValue(candidate);
@@ -309,7 +305,7 @@ const choiceTerms = (candidate: KandidatProjekcija, term: string) => {
 };
 const CHOICE_NOTE = 'Pri izboru proveravamo da li izabrana osoba i dalje ima slobodan termin.';
 /** The one name of the choice: the green button of the application and the confirm of the question it asks. */
-const CHOOSE_LABEL = 'Izaberi ovu prijavu';
+const CHOOSE_LABEL = 'Izaberi osobu';
 
 /**
  * One application in full, as a sheet over the list (owner's step 7, 2026-09-24; it was a page of its own with a review page
@@ -318,7 +314,7 @@ const CHOOSE_LABEL = 'Izaberi ovu prijavu';
  * of terms (the total and whom it is for, the time, what they have) and their whole message as another. Space is the only divider
  * between the sections; the terms are rows of one kind and stand on the system's inset lines.
  *
- * The sheet's pinned footer holds the ONE green action. "Izaberi ovu prijavu" asks first, in a centred dialog that says what
+ * The sheet's pinned footer holds the ONE green action. "Izaberi osobu" asks first, in a centred dialog that says what
  * is accepted (price, people, term) and what follows; only its confirm runs the route's `choose`, which keeps every guard it
  * had (the read revision and account, the offer's own version and hash, the selectable classifier, one idempotent
  * command). A retained confirmation is retired the moment the offer it asked about changes. After a choice the footer
@@ -425,15 +421,14 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
           the reason beside it when it is not simply open, and the one thing to do when it cannot be chosen now. */}
       <View style={s.state}>
         <PrijavaState status={candidateChip(candidate, viewed)} reason={!reason ? null : { text: reason.text, tone: reason.tone }} />
-        {blocked ? <Surface kind="note"><T variant="body">Ovu prijavu možeš da pročitaš, ali je sada ne možeš izabrati. Osveži prijave da proveriš trenutno stanje.</T>
-          <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /></Surface> : null}
+        {blocked ? <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
       </View>
       <Section title="Ponuda">
         <KeyValueRow label={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} value={priceWords} emphasis={value.kind === 'amount' ? 'price' : undefined} />
         <KeyValueRow label={time ? 'Predloženi termin' : 'Termin zadatka'} value={term} last={!has} />
         {has ? <KeyValueRow label="Ima" value={has.text.replace(/^Ima: /, '')} last /> : null}
       </Section>
-      {message ? <Section title="Poruka"><T selectable variant="body">{candidate.napomena}</T></Section> : <T variant="note" tone="muted">Bez poruke.</T>}
+      {message ? <Section title="Poruka"><T selectable variant="body">{candidate.napomena}</T></Section> : null}
       {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
           owner as labels; the vehicle and the tools they have are (owner, 2026-10-07), and what the applicant wants to say is in the
           message above. */}
@@ -462,9 +457,6 @@ const s = StyleSheet.create({
   columnRow: { gap: sys.space.md },
   listFooter: { gap: sys.space.xs, paddingTop: sys.space.md },
   pagingFoot: { alignItems: 'center', gap: sys.space.sm, paddingBottom: sys.space.xs },
-  footnote: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, paddingVertical: sys.space.sm },
-  footnoteText: { flex: 1, minWidth: 0 },
-  footerAction: { alignSelf: 'center', marginTop: sys.space.sm },
   // The offer sheet stays one white reading surface; the sections are 24 apart and nothing else divides them.
   offerContent: { gap: layout.section },
   state: { gap: sys.space.sm },

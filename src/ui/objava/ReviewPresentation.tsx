@@ -147,10 +147,12 @@ export function PublicPlace({ zone, lines, anchor, scopeKey, pointsConfirmed }: 
   </PlaceGroup>;
 }
 
-/** The private half of the place, with the privacy sentence word for word. */
+/**
+ * The private half of the place. Its name, "Privatni podaci", with the lock, says what it is; the one sentence of privacy this part of the review has is the
+ * one under the public map ("Tačne tačke ostaju privatne"), and a second one that said the same of the private half was an explanation (the owner, 8 Oct 2026).
+ */
 export function PrivatePlace({ children }: { children: ReactNode }) {
   return <PlaceGroup kind="private">
-    <T variant="note" tone="muted">Ovi podaci nisu deo javnog zadatka. Pristup ostaje prema pravilima Dogovora.</T>
     <View>{children}</View>
   </PlaceGroup>;
 }
@@ -181,7 +183,7 @@ export function OwnerPlaces({ places }: { places: readonly { slot: string; title
  */
 export function ReviewWaysOut({ onEdit, onDelete, disabled }: { onEdit: () => void; onDelete?: () => void; disabled: boolean }) {
   return <Section>
-    <ListRow leading={<FactArt kind="chat" size={32} />} title="Izmeni zadatak" subtitle="Vrati se u razgovor. Nacrt ostaje sačuvan."
+    <ListRow leading={<FactArt kind="chat" size={32} />} title="Izmeni zadatak"
       accessibilityLabel="Izmeni zadatak" disabled={disabled} last={!onDelete} onPress={onEdit} />
     {onDelete ? <ListRow leading={<FactArt kind="document" size={32} />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
       onPress={onDelete} /> : null}
@@ -203,12 +205,10 @@ export function ReviewPhotos({ assetIds, picture }: { assetIds: readonly string[
   </View> : <T variant="note" tone="muted">Fotografije nisu dodate.</T>;
 }
 
-/** When applications close: the deadline in Serbian time, or the rule when there is none. */
+/** When applications close: the deadline in Serbian time, or the rule when there is none (one sentence; the rule for a fixed time was a second one). */
 export function ReviewDeadline({ text }: { text: string | null }) {
-  // The rule for a task with a fixed time belongs to "no deadline"; with a deadline set, the deadline says it.
   return <View style={s.deadline}>
     <T variant="body">{text ? `Rok: ${text}` : 'Bez posebnog roka — do popune ili dok ne zaustaviš potragu.'}</T>
-    {text ? null : <T variant="note" tone="muted">Zadatak sa tačnim terminom se zatvara kad termin prođe.</T>}
   </View>;
 }
 

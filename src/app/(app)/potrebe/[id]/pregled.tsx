@@ -317,8 +317,11 @@ function OwnedNeed({ id }: { id: string }) {
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: potreba.priblizno.lat, longitude: potreba.priblizno.lng }]} coarse height={184}
         scopeKey={`potreba:${potreba.id}:${potreba.revizija}:${potreba.priblizno.lat}:${potreba.priblizno.lng}`} />
       : undefined}
-    qaAction={potreba && publicNeedId && questions.state.phase !== 'idle' ? <TaskQaInline key={`${accountId}:${accountRevision}:${potreba.id}`} state={questions.state}
-      disabled={!canAct()} onRetry={questions.retry} onAsk={openQuestions} onAnswer={openQuestions} onOpenAll={openQuestions} /> : undefined}
+    // The section of questions is drawn only when it has something to say: a question that was asked (or one of an earlier version), or a read that failed.
+    // Reading, and "Još nema pitanja." on one's own task (nobody can ask the owner anything else), would be a heading over nothing (owner, 8 Oct 2026).
+    qaAction={potreba && publicNeedId && (questions.state.phase === 'error' || (questions.state.phase === 'ready' && (questions.state.shown.length > 0 || questions.state.olderVersion)))
+      ? <TaskQaInline key={`${accountId}:${accountRevision}:${potreba.id}`} state={questions.state}
+        disabled={!canAct()} onRetry={questions.retry} onAsk={openQuestions} onAnswer={openQuestions} onOpenAll={openQuestions} /> : undefined}
     lifecycleActions={uuid(id) ? <>
       <UrgentActivationActions control={urgent} />
       <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}

@@ -14,6 +14,7 @@ import { Surface } from '../system/Surface';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import { ARCHIVE_FILTERS, DRAFTS_NOT_KEPT, EMPTY_ARCHIVE, REASON_NOT_KEPT, archiveEntries, archiveGroups, hasUnkeptReason,
   type ArchiveEntry, type ArchiveFilter, type ArchiveGroup } from './archive';
@@ -49,6 +50,8 @@ export function ArchiveScreen({ agreements, needs, applications, refreshing, onB
 }) {
   const scale = useTextScale();
   const [filter, setFilter] = useState<ArchiveFilter>('all');
+  // The pull spinner is for a pull only (a read the screen starts by itself must not raise Android's white disc at the top of the list).
+  const pull = usePullRefresh(onRefresh, refreshing);
   const sources = [agreements, needs, applications];
   const entries = useMemo(() => archiveEntries({
     agreements: agreements.state === 'ready' ? agreements.rows : null, needs: needs.state === 'ready' ? needs.rows : null,
@@ -90,7 +93,7 @@ export function ArchiveScreen({ agreements, needs, applications, refreshing, onB
         : <ArchiveRow entry={item.entry} scale={scale} onOpen={onOpen} />}
       ListHeaderComponent={header} ListEmptyComponent={<View style={s.empty}>{empty}</View>}
       ListFooterComponent={everythingFailed || (loading && !items.length) ? null : <T variant="note" tone="muted" style={s.foot}>{DRAFTS_NOT_KEPT}</T>}
-      refreshing={refreshing} onRefresh={onRefresh} contentContainerStyle={s.content} ItemSeparatorComponent={Gap} />
+      refreshing={pull.refreshing} onRefresh={pull.onRefresh} contentContainerStyle={s.content} ItemSeparatorComponent={Gap} />
   </SafeAreaView>;
 }
 

@@ -18,6 +18,7 @@ import { Section } from '../system/Section';
 import { HeaderIconButton, ScreenHeader } from '../system/ScreenHeader';
 import { StateView } from '../system/StateView';
 import { brandAction, fieldBox, sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
 import { withInter } from '../interFont';
 import { ChoiceRow } from './offer/ChoiceRow';
@@ -104,6 +105,9 @@ type Row =
  */
 export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const { items, loading, error, view, onOpen, paging } = props, reduced = useReducedMotion();
+  // The spinner of the pull is for a pull: a list that reads again by itself (a tab switched, a screen focused, a page that follows) must not raise it
+  // (the owner's phone, 8 Oct 2026: a white disc over the list at every background read).
+  const pull = usePullRefresh(props.onRefresh, props.refreshing ?? loading);
   // The route hands down a fresh `onOpen` closure on every render (its guards read the latest
   // read). The rows get one function that never changes and calls whatever is current at press time.
   const openRef = useRef(onOpen); openRef.current = onOpen;
@@ -228,7 +232,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
             primary={props.onNew ? { label: 'Objavi novi zadatak', onPress: props.onNew } : undefined} />
             // The first encounter: the paper with the pin and the pencil, the object of the door that fulfils it.
             : <StateView hero art="publish" title="Još nemaš zadatak" body="Reci šta ti treba. Nacrt pregledaš pre objave."
-              primary={props.onNew ? { label: 'Objavi prvi zadatak', onPress: props.onNew } : undefined}
+              primary={props.onNew ? { label: 'Objavi zadatak', onPress: props.onNew } : undefined}
               quiet={props.onExplore ? { label: 'Pogledaj zadatke', onPress: props.onExplore } : undefined} />}
   </View>;
 
@@ -249,7 +253,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   return <SafeAreaView edges={props.onBack ? ['top', 'bottom'] : ['top']} style={s.screen}>
     <View aria-hidden={filterOpen} accessibilityElementsHidden={filterOpen} importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'} style={s.screen}>
       {bar}
-      <FlatList<Row> ref={listRef} data={loading || error ? [] : rows} keyExtractor={row => row.id} refreshing={props.refreshing ?? loading} onRefresh={props.onRefresh}
+      <FlatList<Row> ref={listRef} data={loading || error ? [] : rows} keyExtractor={row => row.id} refreshing={pull.refreshing} onRefresh={pull.onRefresh}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         // Six cards are more than one phone screen of this card; the window stays modest so a fast
         // scroll fills in quickly without holding the whole list mounted.

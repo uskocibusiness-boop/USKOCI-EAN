@@ -1,10 +1,8 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { ABOUT_CLIP, SHARED_ONLY_BY_RULES, VISIBLE_TO_OTHERS, aboutDetail, cityDetail, clipText } from '../ProfileEditPresentation';
+import { ABOUT_CLIP, VISIBLE_TO_OTHERS, aboutDetail, cityDetail, clipText } from '../ProfileEditPresentation';
 
 /**
- * The words of "Izmeni profil" that are not the name (T4a, 2026-10-07): "O meni" as written, clipped honestly; the city; and the
- * two sentences about what is public and what is private, the second exactly as the privacy screen has it.
+ * The words of "Lični podaci" (it was "Izmeni profil" until 8 Oct 2026) that are not the name (T4a, 2026-10-07): "O meni" as written, clipped honestly; the city as the answer of its
+ * row; and, since the owner's phone of 8 Oct 2026, ONE sentence about what is public (what is private is said on the privacy screen).
  */
 describe('a stretch of "O meni"', () => {
   it('is the text itself when it fits, with its line breaks and runs of spaces made single spaces', () => {
@@ -25,36 +23,36 @@ describe('a stretch of "O meni"', () => {
 });
 
 describe('what the "O meni" row says', () => {
-  it('is the text as written, or the honest reason there is none, and where it is written', () => {
+  it('is the text as written, or the one word that invites the person to write it; the row itself leads to where it is written', () => {
     expect(aboutDetail({ kind: 'text', text: 'Radim sa bratom.' })).toBe('Radim sa bratom.');
-    expect(aboutDetail({ kind: 'empty' })).toBe('Još nije napisano. Dodaj ga u radnom profilu.');
-    expect(aboutDetail({ kind: 'none' })).toBe('Piše se u radnom profilu.');
-    expect(aboutDetail({ kind: 'error' })).toBe('Opis trenutno nije dostupan. Piše se u radnom profilu.');
+    expect(aboutDetail({ kind: 'empty' })).toBe('Dodaj opis');
+    expect(aboutDetail({ kind: 'none' })).toBe('Dodaj opis');
+    expect(aboutDetail({ kind: 'error' })).toBe('Opis trenutno nije dostupan');
     expect(aboutDetail({ kind: 'loading' })).toBe('Učitavamo…');
+  });
+
+  it('explains no part of the screen: nothing of it says where a thing is written or how it changes', () => {
+    for (const view of [{ kind: 'empty' }, { kind: 'none' }, { kind: 'error' }, { kind: 'loading' }] as const) {
+      expect(aboutDetail(view)).not.toMatch(/piše se|radnom profilu|menja se/i);
+    }
   });
 });
 
-describe('what the "Grad" row says', () => {
-  it('is the city of the work area, or why there is none', () => {
+describe('what the "Grad" row answers', () => {
+  it('is the city of the work area, or why there is none, in the row\'s own words and never a sentence', () => {
     expect(cityDetail({ kind: 'city', city: 'Novi Sad' })).toBe('Novi Sad');
-    expect(cityDetail({ kind: 'none' })).toBe('Još nije podešen.');
-    expect(cityDetail({ kind: 'error' })).toBe('Grad trenutno nije dostupan.');
+    expect(cityDetail({ kind: 'none' })).toBe('Još nije podešen');
+    expect(cityDetail({ kind: 'error' })).toBe('Nije dostupan');
     expect(cityDetail({ kind: 'loading' })).toBe('Učitavamo…');
   });
 });
 
-describe('what is public and what is private', () => {
-  it('says who sees the profile, and keeps the second sentence exactly as the privacy screen says it', () => {
-    expect(VISIBLE_TO_OTHERS).toBe('Ime, fotografija, grad, „O meni“ i ocene vide druge osobe.');
-    expect(SHARED_ONLY_BY_RULES).toBe('Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup.');
-  });
-
-  it('reuses the privacy screen\'s own sentence rather than writing a second one: if that one changes, this one must follow', () => {
-    const privacy = readFileSync(join(__dirname, '..', '..', 'privacy', 'PrivacyPresentation.tsx'), 'utf8');
-    expect(privacy).toContain(SHARED_ONLY_BY_RULES);
+describe('what is public', () => {
+  it('says who sees the profile in one sentence', () => {
+    expect(VISIBLE_TO_OTHERS).toBe('Ime, fotografija, grad, „O meni“ i ocene vide drugi.');
   });
 
   it('promises no anonymity and uses no word of the engine or of the law', () => {
-    expect(`${VISIBLE_TO_OTHERS} ${SHARED_ONLY_BY_RULES}`).not.toMatch(/anonim|server|zakon|GDPR|Naručilac|Uskočer|korisnik/i);
+    expect(VISIBLE_TO_OTHERS).not.toMatch(/anonim|server|zakon|GDPR|Naručilac|Uskočer|korisnik/i);
   });
 });

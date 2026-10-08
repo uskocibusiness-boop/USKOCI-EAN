@@ -35,20 +35,19 @@ export function LegalDocumentRows({ bundle, onOpen, disabled = false, refresh }:
 }
 
 /**
- * The state of a screen that has nothing to read (composition spec T7): a column on the screen's own centre line, a picture of 96,
- * one title, one sentence, at most one green action and one quiet one, about a third of the way down. The system's `StateView` is
- * this shape's home; until it draws it (a 56 dp picture, at the left), the rules draw it themselves so the screen is right now.
+ * The state of a screen that has nothing to read BECAUSE IT COULD NOT READ (composition spec T7): a column on the screen's own centre
+ * line, a picture of 96, one title, one sentence and the one green retry, about a third of the way down. A screen whose documents are simply
+ * not published is NOT this: that is one calm line at the top (owner's phone, 8 Oct 2026: a whole screen and a "Proveri ponovo" for one sentence).
  */
-function CenteredState({ art, title, body, primary, quiet }: {
+function CenteredState({ art, title, body, primary }: {
   art: FactArtKind; title: string; body?: string;
-  primary?: { label: string; onPress: () => void; disabled?: boolean }; quiet?: { label: string; onPress: () => void; disabled?: boolean };
+  primary?: { label: string; onPress: () => void; disabled?: boolean };
 }) {
   return <View style={s.centered} accessibilityLiveRegion="polite">
     <FactArt kind={art} size={96} />
     <T variant="title" accessibilityRole="header" style={s.centerText}>{title}</T>
     {body ? <T variant="copy" tone="muted" style={[s.centerText, s.centerBody]}>{body}</T> : null}
     {primary ? <V2Action label={primary.label} onPress={primary.onPress} disabled={primary.disabled} style={[brandAction, s.centerAction]} /> : null}
-    {quiet ? <V2Action label={quiet.label} onPress={quiet.onPress} disabled={quiet.disabled} kind="quiet" style={s.centerAction} /> : null}
   </View>;
 }
 
@@ -78,8 +77,10 @@ function ProviderDisclosure({ provider, onOpenUrl, divider = true }: { provider:
 /**
  * Pravila i saglasnosti (round 5, owner step 11b): whether the current documents are accepted, the two documents, and
  * who processes the data, each provider folded to its name until opened. The one command (the explicit acceptance) is
- * the footer's, with its error right above it. Presentation only: the route owns the controller, the fences and the
- * link opening; every legal word is the owner's, verbatim.
+ * the footer's, with its error right above it. Documents that are not published are ONE line, "Uslovi korišćenja i Politika
+ * privatnosti još nisu objavljeni.", with no button: the screen is read again by pulling it (owner's phone, 8 Oct 2026: the whole screen
+ * held that one sentence and "Proveri ponovo"; a standing "Osveži" at the title of the documents is gone for the same reason).
+ * Presentation only: the route owns the controller, the fences and the link opening; every legal word is the owner's, verbatim.
  */
 export function LegalReviewView({ state, onBack, action, actionReason = null, linkError, onOpen, onOpenUrl, onRefresh }: {
   state: LegalReviewState; onBack: () => void;
@@ -97,6 +98,7 @@ export function LegalReviewView({ state, onBack, action, actionReason = null, li
     {processors.providers.map((provider, index) => <ProviderDisclosure key={provider.providerCode} provider={provider} onOpenUrl={onOpenUrl} divider={index > 0} />)}
   </SettingsGroup> : null;
   return <SettingsScreen title="Pravila i saglasnosti" onBack={onBack} footerReason={actionReason}
+    refresh={{ onRefresh: () => { if (!state.busy && !state.loading) onRefresh(); }, busy: state.loading }}
     footer={action ? <>{state.error ? <ErrorLine>{state.error}</ErrorLine> : null}{action}</> : null}>
     {firstRead ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
       {!action && state.error && documents ? <InlineNote tone="danger">{state.error}</InlineNote> : null}
@@ -105,17 +107,16 @@ export function LegalReviewView({ state, onBack, action, actionReason = null, li
         : state.receipt ? <InlineNote tone="neutral" art="info">Prethodno prihvatanje je potvrđeno. Učitaj trenutne dokumente ponovo.</InlineNote> : null}
       {documents ? <>
         <View style={s.documents}>
-          <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={onOpen}
-            refresh={{ label: state.loading ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži dokumente',
-              onPress: () => { if (!state.busy && !state.loading) onRefresh(); } }} />
+          <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={onOpen} />
           {linkError ? <ErrorLine>{linkError}</ErrorLine> : null}
         </View>
         {processorGroup ?? <InlineNote tone="quiet" art={null}>{state.processorError ?? 'Podaci o obrađivačima još nisu objavljeni.'}</InlineNote>}
       </> : <>
-        {/* Nothing to read: ONE honest sentence and the one way to look again. No row for a document that does not exist, no empty
-            group for who processes the data, and no accept action (the route draws none without documents). */}
+        {/* Nothing to read: ONE honest sentence (the pull of the screen looks again), or, when the read FAILED, the sentence and its retry. No
+            row for a document that does not exist, no empty group for who processes the data, and no accept action (the route draws none
+            without documents). */}
         {state.bundle
-          ? <CenteredState art="document" title={LEGAL_NOT_PUBLISHED} quiet={{ label: 'Proveri ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />
+          ? <InlineNote tone="neutral" art="document" artMuted>{LEGAL_NOT_PUBLISHED}</InlineNote>
           : <CenteredState art="document" title="Dokumenti nisu dostupni" body={state.error ?? LEGAL_UNAVAILABLE}
             primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />}
         {processorGroup}

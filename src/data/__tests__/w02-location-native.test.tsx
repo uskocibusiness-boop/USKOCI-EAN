@@ -30,7 +30,7 @@ jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
 import { NeedLocationForm, saveBlockReason } from '../../ui/location/NeedLocationForm';
-import { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
+import { WorkerLocationForm, radiusChoices } from '../../app/(app)/profil/lokacija';
 import { StyleSheet } from 'react-native';
 import { sys } from '../../ui/system/tokens';
 
@@ -315,23 +315,33 @@ describe('actual native Worker location form', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ city: 'Beograd', radiusKm: 25, approximatePosition: null }));
   });
 
-  it.each(['0', '201', '1.5', '-1', 'abc'])('rejects invalid radius %s before invoking a command', async radius => {
-    const onSave = jest.fn();
-    await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
-    await edit('Radijus rada u kilometrima', radius); await save('Sačuvaj područje rada');
-    expect(onSave).not.toHaveBeenCalled();
-    expect(text()).toContain('ceo broj od 1 do 200');
+  // Owner's phone, 8 Oct 2026: the same radius stood twice, as a field with "100" and as chips. The distances are the ONE control, so a radius that is not
+  // between 1 and 200 can no longer be typed at all; what was saved earlier and is not among them gets a chip of its own.
+  it('has no numeric radius field: the distance is chosen from the pills (a radiogroup), so no invalid radius can be entered', async () => {
+    await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={jest.fn()} />); });
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Radijus rada u kilometrima' })).toHaveLength(0);
+    expect(tree.root.findByProps({ accessibilityRole: 'radiogroup' }).props.accessibilityLabel).toBe('Radijus rada');
+    const radios = tree.root.findAllByProps({ accessibilityRole: 'radio' }).map(node => node.props.accessibilityLabel);
+    expect(radios).toEqual(['5 km', '10 km', '20 km', '25 km', '50 km', '100 km', '200 km']);
+    expect(tree.root.findAllByProps({ accessibilityRole: 'radio' }).filter(node => node.props.accessibilityState.checked).map(node => node.props.accessibilityLabel)).toEqual(['25 km']);
   });
 
-  // A radius preset prepares the same value as typing; only the save sends it.
-  it('a radius pill fills the field without sending and the save confirms it', async () => {
+  it.each([
+    ['20', [5, 10, 20, 50, 100, 200]], ['30', [5, 10, 20, 30, 50, 100, 200]], ['1', [1, 5, 10, 20, 50, 100, 200]],
+    ['200', [5, 10, 20, 50, 100, 200]], ['0', [5, 10, 20, 50, 100, 200]], ['201', [5, 10, 20, 50, 100, 200]], ['abc', [5, 10, 20, 50, 100, 200]],
+  ])('the distances for a saved radius of %s are %j (a saved value outside them gets its own chip, a value the server would refuse gets none)', (radius, expected) => {
+    expect(radiusChoices(radius)).toEqual(expected);
+  });
+
+  // A radius pill prepares the value; only the save sends it.
+  it('a radius pill selects the distance without sending and the save confirms it', async () => {
     const onSave = jest.fn();
     await act(async () => { tree = create(<WorkerLocationForm location={location()} busy={false} uncertain={false} onSave={onSave} />); });
     const pill = () => tree.root.findByProps({ accessibilityLabel: '20 km' });
     expect(pill().props.accessibilityRole).toBe('radio'); expect(pill().props.accessibilityState.checked).toBe(false);
     await act(async () => pill().props.onPress());
-    expect(tree.root.findByProps({ accessibilityLabel: 'Radijus rada u kilometrima' }).props.value).toBe('20');
     expect(pill().props.accessibilityState.checked).toBe(true);
+    expect(tree.root.findByProps({ accessibilityLabel: '25 km' }).props.accessibilityState.checked).toBe(false);
     expect(onSave).not.toHaveBeenCalled();
     await save('Sačuvaj područje rada');
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ radiusKm: 20 }));
@@ -342,6 +352,7 @@ describe('actual native Worker location form', () => {
     const pill = tree.root.findByProps({ accessibilityLabel: '50 km' });
     expect(pill.props.accessibilityState).toEqual({ checked: false, disabled: true });
     await act(async () => pill.props.onPress());
-    expect(tree.root.findByProps({ accessibilityLabel: 'Radijus rada u kilometrima' }).props.value).toBe('25');
+    expect(tree.root.findByProps({ accessibilityLabel: '25 km' }).props.accessibilityState).toEqual({ checked: true, disabled: true });
+    expect(pill.props.accessibilityState.checked).toBe(false);
   });
 });

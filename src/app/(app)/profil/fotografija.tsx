@@ -3,7 +3,10 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mediaClientService, type MediaAsset, type ProfileAvatar } from '../../../data/mediaClientService';
 import { PHOTO_PERMISSION_MESSAGE, pickPreparedPhoto, photoSelectionMessage, type PreparedPhoto, type PhotoSource } from '../../../features/media/nativePhotoPicker';
+import { ownProfileClientService } from '../../../data/ownProfileClientService';
+import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { inicijali } from '../../../lib/inicijali';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { failure, record, uuid } from '../../../data/serverReceipt';
@@ -47,6 +50,10 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   // Presentation only: the chosen picture is journaled and on its way, so the circle can say so while the spinner runs.
   const [sending, setSending] = useState(false);
   const confirm = useConfirmSheet();
+  // The letters that stand in the circle while the picture is on its way (J13): the name of the profile this screen is about. A read that
+  // fails, or a name that belongs to another profile, says nothing, and the circle draws a person.
+  const who = useFocusedResource(useCallback(() => ownProfileClientService.read(accountId ?? '', 'narucilac'), [accountId]));
+  const initials = who.data && who.data.profileId === profileId ? inicijali(who.data.ime) : null;
   const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision,
     [accountId, accountRevision]);
   useFocusEffect(useCallback(() => { const token = {}; focus.current = token; navigating.current = false; setPickError(null);
@@ -188,7 +195,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     : staged ? { kind: 'photo', assetId: staged.assetId, staged: true }
       : existing ? { kind: 'photo', assetId: existing, staged: false } : { kind: 'none' };
   const error = editor.error ?? pickError;
-  return <ProfilePhotoEditor stage={stage} notice={notice} error={error} permissionDenied={error === PHOTO_PERMISSION_MESSAGE}
+  return <ProfilePhotoEditor stage={stage} notice={notice} error={error} permissionDenied={error === PHOTO_PERMISSION_MESSAGE} initials={initials}
     // A retry in flight keeps its own pressed button and spinner (review 5b): the upload it sends resets `readAttempted`,
     // which would otherwise swap it for a grey check with no reason. Display only; retry() and the editor keep every guard.
     mode={mode} retryable={running === 'RETRY'

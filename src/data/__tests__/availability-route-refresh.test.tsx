@@ -54,8 +54,24 @@ it('keeps the loaded week on screen while it reads again, and holds edits until 
   mockEditor = editor({ loading: true });
   await act(async () => { tree = create(<Dostupnost />); });
   expect(texts()).not.toContain('Učitavamo sačuvanu dostupnost');
-  expect(scroll().props.refreshControl.props.refreshing).toBe(true);
   expect(tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.disabled).toBe(true);
+});
+
+// The owner's phone, 8 Oct 2026: a read that starts by itself (the screen came into focus) raised Android's white disc over the top of the week. The spinner is the
+// pull's own (`usePullRefresh`): it is up for a read the person pulled, for as long as that read runs, and never for one that started by itself.
+it('raises the spinner only for a pull, never for a read the screen started by itself', async () => {
+  mockEditor = editor({ loading: true });
+  await act(async () => { tree = create(<Dostupnost />); });
+  // The read that is running started by itself: edits wait for it, but no spinner is drawn over the week.
+  expect(scroll().props.refreshControl.props.refreshing).toBe(false);
+  // Pulled while it runs: no second read starts, and the spinner stays for as long as the running read does.
+  await act(async () => scroll().props.refreshControl.props.onRefresh());
+  expect(mockEditor.refresh).not.toHaveBeenCalled();
+  expect(scroll().props.refreshControl.props.refreshing).toBe(true);
+  // The read ends: the spinner goes with it.
+  mockEditor = editor({ loading: false });
+  await act(async () => tree.update(<Dostupnost />));
+  expect(scroll().props.refreshControl.props.refreshing).toBe(false);
 });
 
 it('shows the loading card only for the first read, with nothing to show yet', async () => {

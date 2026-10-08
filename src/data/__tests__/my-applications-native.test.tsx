@@ -4,7 +4,7 @@ const mockRead = jest.fn(), mockWithdraw = jest.fn(), mockResolve = jest.fn(), m
 const mockSource = { mojePrijave: mockRead, povuciPrijavu: mockWithdraw };
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true };
 let mockFocused = true, mockRole = 'uskocer';
-let mockParams: { prijavaId?: string } = {};
+let mockParams: { prijavaId?: string; nova?: string } = {};
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
 let mockState = 'active';
 const mockListeners = new Set<(state: string) => void>();
@@ -87,9 +87,10 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.useRealTimers(); poruka.hide(); });
 it('renders the real empty state and uses the existing discovery route', async () => {
   // Step 5c: the old title "Tvoja sledeća prilika." was the pinned look; the first run is now the one StateView.
-  mockRows = []; await render(); expect(text()).toContain('Još nemaš prijavu'); await tap('Istraži zadatke'); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
-  // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the price tag at the size of a door, and one sentence that teaches.
-  expect(text()).toContain('Kad se prijaviš na zadatak, ovde pratiš prijavu i svaki sledeći korak.');
+  mockRows = []; await render(); expect(text()).toContain('Još nemaš prijavu'); await tap('Pronađi zadatak'); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
+  // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the price tag at the size of a door and the one way on (the approved draft U8:
+  // an object and "Pronađi zadatak"; the sentence that taught is gone).
+  expect(text()).not.toContain('Kad se prijaviš na zadatak');
   expect(tree!.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'offers' && node.props.size === 144)).toHaveLength(1);
 });
 
@@ -128,11 +129,18 @@ it('a definite price refusal leads to review after readback, without treating th
   await tap('Pregledaj trenutnu prijavu'); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
   expect(press('Sačuvaj izmenjenu prijavu')).toBeDefined();
 });
-it('filters actual attention, active and finished rows without changing their status', async () => {
-  mockRows = [row(), stale(), row({ prijavaId: 'closed', naslov: 'Završena ponuda', stanje: 'CLOSED', mozePovuci: false })];
-  mockRows[1].prijavaId = 'stale'; await render(); await tap('Čeka te'); expect(text()).toContain('Zadatak je izmenjen.'); expect(text()).not.toContain('Završena ponuda');
-  await tap('Aktivne'); expect(text()).toContain('Poslata'); expect(text()).not.toContain('Zadatak je izmenjen.');
-  await tap('Završene'); expect(text()).toContain('Završena ponuda');
+it('parts the applications into Čeka odgovor, Izabrana and Završene without changing their status, and draws no tabs', async () => {
+  mockRows = [stale(), row({ prijavaId: 'closed', naslov: 'Završena ponuda', stanje: 'CLOSED', mozePovuci: false }),
+    row({ prijavaId: 'chosen', naslov: 'Izabrana ponuda', stanje: 'SELECTED', dogovorId: 'agreement-9', mozePovuci: false })];
+  mockRows[0].prijavaId = 'stale'; await render();
+  // The groups, in the draft's order, each with its count.
+  const heads = tree!.root.findAll(n => String(n.type) === 'T' && n.props.accessibilityRole === 'header').map(n => n.props.children).filter(c => / · \d+$/.test(String(c)));
+  expect(heads).toEqual(['Čeka odgovor · 1', 'Izabrana · 1', 'Završene · 1']);
+  expect(tree!.root.findAll(n => n.props.accessibilityRole === 'tab')).toHaveLength(0);
+  const copy = text();
+  expect(copy).toContain('Zadatak je izmenjen.'); expect(copy.indexOf('Čeka odgovor')).toBeLessThan(copy.indexOf('Izabrana'));
+  expect(copy.indexOf('Izabrana ponuda')).toBeLessThan(copy.indexOf('Završene')); expect(copy).toContain('Završena ponuda');
+  expect(copy).not.toMatch(/Čeka te|Aktivne/);
 });
 it('opens the one application a notification names, and keeps it closed once closed', async () => {
   // "Zadatak je izmenjen" landed on the list and stopped there. The event knows which application
@@ -158,22 +166,35 @@ it('a named submitted application is immediately visible beyond the initial view
   expect(press('Povuci izmenjenu prijavu')).toBeUndefined();
   expect(mockResolve).not.toHaveBeenCalled(); expect(mockWithdraw).not.toHaveBeenCalled();
 });
-it('a new application destination opens through a retained filter, then leaves later filter choices alone', async () => {
+it('a new application destination opens its review in the list that is already there, without a new read, and closing it is the person\'s decision', async () => {
   mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' }), stale()];
-  await render(); await tap('Aktivne');
-  expect(text()).not.toContain('Zadatak je izmenjen.');
+  await render();
+  expect(press('Zadrži prijavu')).toBeUndefined();
   const reads = mockRead.mock.calls.length;
   mockParams = { prijavaId: stale().prijavaId }; await update();
   expect(text()).toContain('Zadatak je izmenjen.'); expect(press('Zadrži prijavu')).toBeDefined();
   expect(mockRead).toHaveBeenCalledTimes(reads);
-  await tap('Zatvori pregled izmena'); await tap('Aktivne'); await update();
-  expect(text()).not.toContain('Zadatak je izmenjen.'); expect(press('Zadrži prijavu')).toBeUndefined();
+  await tap('Zatvori pregled izmena'); await update();
+  expect(press('Zadrži prijavu')).toBeUndefined();
   expect(mockResolve).not.toHaveBeenCalled(); expect(mockWithdraw).not.toHaveBeenCalled();
+});
+
+// The approved draft U8: the application that has just been sent is marked once, from its receipt, and a notification marks nothing.
+it('marks the application that was just sent ("Poslata · upravo") when the list is opened from its receipt, first in its group, and not when a notification names it', async () => {
+  mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' }), row({ naslov: 'Baš poslata ponuda' })];
+  mockParams = { prijavaId: row().prijavaId, nova: '1' }; await render();
+  const chips = () => tree!.root.findAll(n => String(n.type) === 'View' && n.props.testID === 'status-chip').map(n => n.props.accessibilityLabel);
+  expect(chips()).toEqual(['Poslata, upravo', 'Poslata']);
+  expect(text().indexOf('Baš poslata ponuda')).toBeLessThan(text().indexOf('Druga ponuda'));
+  expect(tree!.root.findAll(n => String(n.type) === 'Press' && n.props.accessibilityLabel === 'Otvori zadatak: Baš poslata ponuda')[0].props.accessibilityValue.text).toContain('Poslata, upravo');
+  await act(async () => tree!.unmount()); tree = undefined;
+  mockParams = { prijavaId: row().prijavaId }; await render();
+  expect(chips()).toEqual(['Poslata', 'Poslata']); expect(text()).not.toContain('upravo');
 });
 it('waits for the current read before consuming a named application destination', async () => {
   const late = deferred();
   mockRows = [row({ prijavaId: 'other', naslov: 'Druga ponuda' }), stale()];
-  await render(); await tap('Aktivne');
+  await render();
   mockRead.mockReturnValueOnce(late.promise);
   await background('background'); await background('active');
   mockParams = { prijavaId: stale().prijavaId }; await update();

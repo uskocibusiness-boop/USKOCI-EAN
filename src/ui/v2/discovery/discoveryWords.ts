@@ -3,33 +3,44 @@ import { civilDay, weekLabel } from '../../calendar/calendarPresentation';
 import { plural, zadataka } from '../../system/plural';
 
 /**
- * The words of the Zadaci search (Discovery V47), in one place: the search pill, the quick chips, the steps of the search
- * panel and the chips under the list's count all say a choice the same way. Every set starts with its "everything"
- * choice, so the default always sits in the same place. The work-mode and price words are the ones the app already says
- * (review of V47): "Na daljinu" as a task itself says it, "Navedena cena" as the Moji zadaci price filter says it, "Bilo gde" /
- * "Na licu mesta" as the Zadaci filter sheet before V47 said them; never new names.
- *
- * One reader, one voice (UX plan 2.13, 2.17; the visual proposal 2026-10-07): the person who looks for work reads the WORKER's
- * words. A task that waits for offers is "Prima ponude" here (the requester's own screens say "Tražim ponude": that is his voice),
- * and "at least two places" is "Za 2 i više".
+ * The words of the Zadaci search (Discovery V47), in one place: the search pill, the capsules over the map, the search and the filters all
+ * say a choice the same way. They are the words of the owner-approved plan of 8 Oct 2026 (NACRT_PROIZVODA, U1 to U5): "Svejedno" is the
+ * "everything" choice of a set, an amount is "Sa iznosom" or "Tražim ponude" (what the card says of a task that takes offers), and a task's work
+ * is done "Na licu mesta" or "Na daljinu".
  */
 export const WHEN: readonly (readonly [WhenFilter, string])[] = [['any', 'Bilo kada'], ['today', 'Danas'], ['tomorrow', 'Sutra'],
   ['week', 'Ove nedelje'], ['weekend', 'Ovaj vikend'], ['next7', 'Narednih 7 dana']];
-/** The time choices a quick chip over the map toggles; the rest are in the panel's Kada step. */
-export const QUICK_WHEN: readonly WhenFilter[] = ['today', 'tomorrow', 'week'];
-export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Bilo gde'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
-export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Sve'], ['MY_PRICE', 'Navedena cena'], ['OFFERS', 'Prima ponude']];
-/** The one reset of the search, on the panel and on the empty list alike. The bar says "Filteri", so this takes "filteri" away (text proposal 2026-10-07, DUGME). */
+/** The time choices a capsule over the map toggles; "Sutra" is the filters' (and, once chosen there, a capsule of its own that takes itself away). */
+export const QUICK_WHEN: readonly WhenFilter[] = ['today', 'weekend'];
+/** The days the filters offer: three choices, and "Izaberi datume" for the rest (a range of days). */
+export const FILTER_WHEN: readonly (readonly [WhenFilter, string])[] = [['today', 'Danas'], ['tomorrow', 'Sutra'], ['weekend', 'Ovaj vikend']];
+export const WHERE: readonly (readonly [WhereFilter, string])[] = [['any', 'Svejedno'], ['onsite', 'Na licu mesta'], ['remote', 'Na daljinu']];
+export const PRICE: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Svejedno'], ['MY_PRICE', 'Sa iznosom'], ['OFFERS', 'Tražim ponude']];
+/** The one reset of the list when it is empty under its conditions: it takes the search and the filters away (the sheets' own is `CLEAR`). */
 export const CLEAR_ALL = 'Poništi filtere';
+/** The quiet action at the foot of the search and of the filters: each takes away only its own half and leaves the other as it was. */
+export const CLEAR = 'Očisti';
+/** What the pill says while nothing is searched: the two things a search is, the one thing it opens (the owner-approved plan, U1). */
+export const SEARCH_PLACEHOLDER = 'Šta tražiš · Gde';
+/** What the pill does, for a screen reader: it opens the search (a word and a place) and nothing of the filters (they have their own button beside it). */
+export const SEARCH_HINT = 'Otvara pretragu po reči i mestu.';
+/** The filters button says its name always, and how many are on when any is: "Filteri", "Filteri, 2 aktivna". */
+export const filtersSpoken = (count: number) => count > 0 ? `Filteri, ${plural(count, 'aktivan', 'aktivna', 'aktivnih')}` : 'Filteri';
+/** What the filters button does, for a screen reader: it opens the filters and nothing of the search (the search is the pill beside it). */
+export const FILTERS_HINT = 'Otvara filtere: kada, gde i iznos.';
+/** The tasks that are not on the map (work done remotely, or a task placed nowhere): the capsule that is on, and its ✕ is the way back. */
+export const OFF_MAP_CHIP = 'Nisu na mapi';
+/** How many are not on the map, as the row under the list's count says it: "1 nije na mapi", "3 nisu na mapi". Never a count that was not read. */
+export const offMapWords = (count: number) => plural(count, 'nije na mapi', 'nisu na mapi', 'nisu na mapi');
 /**
- * The sections of the search panel, in the order the person is walked through them (UX plan 2.19: Gde, Kada, Šta, Cena,
- * Broj ljudi, Način rada), and the one word each is called by. A person is spoken to as "ti": there is no "vas" here.
+ * What the search and the filters call their parts, the one word each. The SEARCH is the field "Šta tražiš?" and "Gde" (the cities, with how many tasks each, and the
+ * work done remotely), then what was searched before; the FILTERS are "Kada", "Gde" (how the work is done) and "Iznos". A person is spoken to as "ti": there is no "vas" here.
  */
-export const SECTION_LABEL = { gde: 'Gde', kada: 'Kada', sta: 'Šta', cena: 'Cena', koliko: 'Broj ljudi', kako: 'Način rada' } as const;
-/** What the "Šta" row says while no word is typed. */
-export const ANY_WHAT = 'Bilo šta';
-/** What removes one condition that is on (a chip under the count). */
-export const removeWords = (label: string) => `Ukloni uslov: ${label}`;
+export const SEARCH_WORDS = { what: 'Šta tražiš', whatPlaceholder: 'Npr. selidba, farbanje, košenje', where: 'Gde', recent: 'Skorašnje pretrage',
+  searchTitle: 'Pretraga', filtersTitle: 'Filteri', all: 'Svi zadaci', remote: 'Na daljinu',
+  /** While the work done remotely is chosen there are no places to choose: it has none, and the way to a city is "Svi zadaci". */
+  remoteNote: 'Zadaci na daljinu nemaju mesto. Izaberi „Svi zadaci“ da biraš grad.' } as const;
+export const FILTER_GROUP = { when: 'Kada', where: 'Gde', amount: 'Iznos' } as const;
 /** Where the list is narrowed to one public point (a place's "Prikaži sve u listi"). */
 export const PIN_PLACE = 'Na ovom mestu';
 
@@ -71,27 +82,19 @@ export function whenWords(view: Pick<MarketplaceView, 'when' | 'dates'>, now: Da
 export const quoted = (text: string) => `„${text.trim()}“`;
 
 /**
- * Line 1 of the search pill, and the value of the "Gde" step: one public point (a place's whole set, "Na ovom mestu"),
- * the chosen place (with the searched words, when there are both), the searched words, the map's area, or "Svi zadaci".
+ * What the search pill says (the owner's phone of 8 Oct 2026: the pill is the SEARCH, the filters have their own button beside it): what is searched,
+ * in one line and in the order of the pill's own words, "Šta tražiš · Gde": the searched words, then the chosen place, or the map's area, or one public
+ * point (a place's whole set, "Na ovom mestu"); null when nothing is searched. It never says a filter ("Na daljinu", "Za mene", the days, the price): those
+ * are capsules, and a word said twice is a word too many.
  */
-export function whereWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area' | 'pinPlace' | 'where'> & { forMe?: boolean }): string {
+export function searchWords(view: Pick<MarketplaceView, 'place' | 'query' | 'area' | 'pinPlace'> & { where?: MarketplaceView['where'] }): string | null {
   const place = typeof view.place === 'string' ? view.place.trim() : '', query = view.query.trim();
-  if (view.where === 'remote') return query ? `Na daljinu · ${quoted(query)}` : 'Na daljinu';
+  // The work done remotely has no place, and the list ignores a place, an area or a point left over from before it: the pill does not claim them.
+  if (view.where === 'remote') return query ? quoted(query) : null;
   const where = view.pinPlace ? PIN_PLACE : place;
-  if (where) return query ? `${where} · ${quoted(query)}` : where;
+  if (where) return query ? `${quoted(query)} · ${where}` : where;
   if (query) return quoted(query);
-  // "Za mene" is a scope, so with nothing else said the pill does not claim to show every task.
-  return view.area ? 'Ova oblast' : view.forMe ? 'Za mene' : 'Svi zadaci';
-}
-
-/**
- * Line 2 of the search pill: when, then the conditions that are on ("Ovaj vikend · 2+ mesta").
- * The separate Filteri control already names the action, so this line only describes the current choice.
- */
-export function conditionsWords(view: MarketplaceView, now: Date = new Date()): string {
-  const extras = [(view.where ?? 'any') !== 'any' ? said(WHERE, view.where) : '', atLeast(view.places) > 1 ? placesWords(view.places) : '',
-    view.price !== 'all' ? said(PRICE, view.price) : ''].filter(Boolean);
-  return [whenWords(view, now), ...extras].join(' · ');
+  return view.area ? 'Ova oblast' : null;
 }
 
 /** Tasks a time choice leaves out because they name no day: said, never hidden silently. */

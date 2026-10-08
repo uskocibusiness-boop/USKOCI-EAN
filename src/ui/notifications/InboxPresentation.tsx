@@ -9,23 +9,25 @@ import { V2Action } from '../v2/V2Action';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ConversationArt } from '../system/ConversationArt';
-import { ListRow } from '../system/ListRow';
 import { layout } from '../system/layout';
 import { neprocitanih } from '../system/plural';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { INBOX_SET_LABEL, canMarkRead, inboxDestination, inboxTaskTitle, readableServerCopy } from './inboxCopy';
 import { ListSkeleton } from './ListSkeleton';
 import { SwipeToRead, type SwipeableRowHandle } from './SwipeToRead';
+import { TimedRow } from './TimedRow';
 
 /**
  * Chronological events, grouped by the server moment, on the one rhythm of the app (UI/UX pass, 2026-10-08, composition spec 4.13):
  * the edge is 20, a day is a group heading (16/24, grey) with 24 above it and 12 under it, and "Označi sve" is the action at the end of
- * the first day's heading, not a row of its own. An event is a `ListRow`: the picture (32, in a 40 slot) with the unread dot on it, the
- * event in 16/24, the words under it, and one quiet line, "14:05 · Otvara Dogovor", that says when and where a tap goes. Rows of a day
- * are parted by the inset line, days by space; no card, no band, no box.
+ * the first day's heading, not a row of its own. An event is a `TimedRow`: the picture (32, in a 40 slot) with the unread dot on it, the
+ * event in 16/24 with its clock at the end of the same line, and the words under it (two lines at most). Where a tap goes ("Otvara Dogovor")
+ * is said to a screen reader and to nobody else: a row that explains what it does is a row that is not clear (the owner's phone, 8 Oct 2026).
+ * Rows of a day are parted by the inset line, days by space; no card, no band, no box.
  *
  * The route/model still own read acknowledgment, target resolution and exact navigation. An event has no actor/avatar contract: none is
  * invented here. An unread row is the one with the dot (and its picture in colour); a pull to the left shows "Pročitano", which settles
@@ -123,25 +125,26 @@ function InboxRowBase({ item, moment, last, acting, busy, onOpen, onMarkRead, on
   const art = inboxEventArt(item.eventType, item.family);
   const { primary, secondary } = rowCopy(item);
   const when = moment ? `. ${moment.dan}, ${moment.sat}` : '';
-  // The clock and where a tap goes share one quiet line: "14:05 · Otvara Dogovor". An event the table does not know says only the clock.
+  // Where a tap goes is for a screen reader only; the eye gets the event, the words and the clock.
   const where = inboxDestination(item);
-  const meta = [moment?.sat, where].filter(Boolean).join(' · ');
   const markable = canMarkRead(item, !!onMarkRead);
   // One picture, 32: the event's own, a spinner while this row is being opened, and the unread dot on its corner (the dot shares the
-  // picture's footprint instead of taking a gutter of its own). A read row's picture goes quiet; the speech bubble has only its colour.
+  // picture's footprint instead of taking a gutter of its own). The picture keeps its colour once the row is read: what is read is said
+  // by the dot that goes and the weight of the name, never by a grey picture (the owner's phone: "siva ikona razgovora").
   const leading = <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.art}>
     {acting ? <ActivityIndicator size="small" color={sys.color.green} />
-      : art === 'chat' ? <ConversationArt size={32} /> : <FactArt kind={art} size={32} muted={!unread} />}
+      : art === 'chat' ? <ConversationArt size={32} /> : <FactArt kind={art} size={32} />}
     {unread ? <View testID="inbox-unread-dot" style={s.dot} /> : null}
   </View>;
   // The swipe is never the only way: a screen reader is offered the same command in the row's actions menu, for an unread row only.
-  // `ListRow` hands these on to the row's press as soon as it takes them (a request to the system layer); until then they are inert.
-  const menu: object = markable ? { accessibilityActions: MARK_READ_ACTIONS,
+  const menu = markable ? { accessibilityActions: MARK_READ_ACTIONS,
     onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => { if (event.nativeEvent.actionName === MARK_READ_ACTION) onMarkRead!(item); } } : {};
-  const row = <ListRow leading={leading} title={primary} subtitle={secondary || undefined} meta={meta || undefined} last={last} disabled={acting}
+  const row = <TimedRow leading={leading} slot={layout.slot} title={primary} titleLines={2} strong={unread} time={moment?.sat} last={last} disabled={acting}
     onPress={() => onOpen(item)} {...menu}
     accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${readableServerCopy(item.title)}. ${readableServerCopy(item.body)}${when}`}
-    accessibilityHint={where ? `${where}.` : undefined} />;
+    accessibilityHint={where ? `${where}.` : undefined}>
+    {secondary ? <T variant="note" tone="muted" numberOfLines={2}>{secondary}</T> : null}
+  </TimedRow>;
   // Decided when the row mounts and never switched (a stable handler is handed down): a row that is read keeps its element type
   // and slides back, instead of being rebuilt under the finger.
   return onMarkRead ? <SwipeToRead enabled={markable} label={MARK_READ_LABEL} hint={MARK_READ_HINT} busy={busy}
@@ -232,6 +235,8 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
   const appear = useArrivals(items ?? [], role ?? 'ALL');
   const unreadCount = page?.unreadCount;
   useReadAllAnnouncement(unreadCount);
+  // The pull spinner is for a pull only (a tab switched or a read of the screen's own used to raise it: the white dot of 8 Oct 2026).
+  const pull = usePullRefresh(onRefresh, loading);
 
   const banner = unavailable ? <Banner title="Sadržaj više nije dostupan." sentence="Možda je uklonjen ili mu više nemaš pristup." disabled={busy} />
     : error === 'action' ? <Banner title="Ne znamo da li je radnja uspela." sentence={AGAIN} retry={onRefresh} retryLabel="Osveži obaveštenja" disabled={busy} />
@@ -284,7 +289,7 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
 
   return <FlatList data={rows} keyExtractor={rowKey}
     contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
-    refreshing={loading && !!page} onRefresh={onRefresh}
+    refreshing={pull.refreshing && !!page} onRefresh={pull.onRefresh}
     ListHeaderComponent={header} ListEmptyComponent={empty} ListFooterComponent={footer}
     renderItem={renderItem} />;
 }

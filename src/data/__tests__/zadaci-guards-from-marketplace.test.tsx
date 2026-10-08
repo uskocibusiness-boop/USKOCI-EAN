@@ -58,9 +58,9 @@ const titleOf = (node: ReactTestInstance) => String(node.props.accessibilityLabe
 const maps = () => tree.root.findAllByType('DiscoveryMap' as React.ElementType);
 // Discovery V47: the search is a panel over the map; its one green action says how many tasks it will show.
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
-// The words that find tasks are typed in "Šta" (owner, 2026-10-07); the letters typed in "Gde" only find places.
+// The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4).
 const search = async (words: string) => {
-  await tap('Pretraži zadatke'); await tap('Šta');
+  await tap('Pretraži zadatke');
   await act(async () => press('Šta tražiš').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
@@ -111,29 +111,26 @@ test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bo
 test('reduced motion opens search at once; Nearby waits for its own tap and no distance/geocoder is invented', async () => {
   mockReduced = true; await render();
   await act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
-  await tap('Filteri');
+  await tap('Pretraži zadatke'); // the search fills the screen: the field, then Gde
   const modal = tree.root.findByType('Modal' as React.ElementType);
   expect(modal.props.animationType).toBe('none');
   expect(modal.findAllByType(BottomSheet)).toHaveLength(0);
-  await tap('Gde');
-  // The control above the list (beside the zoom buttons) is a button; in the panel "U blizini" is one of the places to choose (a radio), applied with the draft.
-  const nearby = (role: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'U blizini' && node.props.accessibilityRole === role);
-  expect(nearby('button')).toHaveLength(1); expect(nearby('radio')).toHaveLength(1);
+  // The control above the list ("Moja lokacija") is the map's button; the search has no position of its own, so "U blizini" is not one of the places to choose.
+  const control = (label: string, role: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label && node.props.accessibilityRole === role);
+  expect(control('Moja lokacija', 'button')).toHaveLength(1); expect(control('U blizini', 'radio')).toHaveLength(0);
   expect(loadNearbyLocation).not.toHaveBeenCalled();
-  await act(async () => nearby('radio')[0].props.onPress());
-  expect(loadNearbyLocation).not.toHaveBeenCalled(); // choosing it asks for nothing until the draft is applied
-  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
+  await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
+  expect(loadNearbyLocation).not.toHaveBeenCalled(); // applying a search asks nothing of the phone
+  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|km od|geocod/i);
 });
 
 // From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.
-test('the search panel offers price modes as radios and its apply action is the only brand action', async () => {
+test('the filters offer the amount as radios and their apply action is the only brand action', async () => {
   await render(); await tap('Filteri');
-  // The panel opens Kada; the real progressive Cena section must be opened before choosing its price mode.
-  expect(press('Cena').props.accessibilityState).toEqual({ expanded: false });
-  await tap('Cena');
-  expect(tree.root.findByProps({ testID: 'search-cena-toggle' }).props.accessibilityState).toEqual({ expanded: true });
-  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Prima ponude');
+  // The round button opens the filters: Kada, Gde (when a task says how the work is done) and Iznos, every choice in sight at once.
+  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Tražim ponude');
   expect(radio).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'filters-amount' })).toBeTruthy();
   const brand = tree.root.findAllByType('Action' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);
   expect(brand.map(node => node.props.label)).toEqual(['Prikaži 2 zadatka']);
 });
@@ -154,14 +151,19 @@ test('"Poništi filtere" clears search, price and area but keeps the map and whe
 });
 
 // From marketplace-presentation (verifier r3b vc, fix 1): clearing the search takes the search away and nothing else.
-// Discovery V47: the searched words are removed by their own chip under the count ("Obriši pretragu" is the panel's field).
+// The searched words are said by the pill, and its × (the way back to every task) removes them: the price stays, and so does the map's area, which the list still follows.
 test('removing the searched words keeps the price and the area', async () => {
   Object.assign(initial, { price: 'MY_PRICE', area: [19, 45, 20, 46] });
   await render();
   await search('Pomoć');
   expect(snapshot).toMatchObject({ query: 'Pomoć', price: 'MY_PRICE', area: [19, 45, 20, 46] });
-  await tap('Ukloni uslov: „Pomoć“');
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„Pomoć“' });
+  await tap('Prikaži sve zadatke');
   expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: [19, 45, 20, 46] });
+  // Nothing but the map's area is said now, and the same × takes that away too.
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
+  await tap('Prikaži sve zadatke');
+  expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: null });
 });
 
 // From marketplace-presentation (verifier r3b vc, fix 1): removing the price filter keeps the search, the area, where the
@@ -172,7 +174,7 @@ test('removing the price filter keeps the search, the area, the map position and
   Object.assign(initial, { price: 'OFFERS', query: 'Pomoć', area, viewport });
   await render();
   // Discovery V47: a price that is on is a chosen quick chip over the map, and the chip takes it away.
-  const chip = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Prima ponude' && node.props.accessibilityState?.selected)[0];
+  const chip = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Tražim ponude' && node.props.accessibilityState?.selected)[0];
   await act(async () => chip.props.onPress());
   expect(snapshot).toMatchObject({ price: 'all', query: 'Pomoć', area, viewport, mode: 'map' });
 });

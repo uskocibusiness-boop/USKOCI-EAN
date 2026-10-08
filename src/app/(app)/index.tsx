@@ -80,7 +80,7 @@ function Home() {
     else if (target.kind === 'WORKER_PROFILE') router.navigate('/profil/razgovor');
     else router.navigate({ pathname: '/moje-prijave', params: { prijavaId: target.applicationId } });
   });
-  // R06: "Slobodan sam sada" is saved exactly as the profile's own switch saves it: the saved week with only the status changed, against the
+  // R06: "Mogu odmah" is saved exactly as the profile's own switch saves it: the saved week with only the status changed, against the
   // revision it was read at. One save at a time; the screen belongs to one account (it is keyed by it), so the answer is always its own.
   const changeAvailable = (value: boolean) => {
     if (!current() || saving.current) return;
@@ -119,9 +119,9 @@ function Home() {
       ? router.navigate({ pathname: '/oceni-dogovor', params: { agreementId, from: 'pocetna' } }) : router.navigate('/dogovori'))}
     onMyTasks={() => navigate(() => router.navigate('/potrebe'))}
     onMyApplications={() => navigate(() => router.navigate('/moje-prijave'))}
-    // Raspored: "Ceo raspored" opens the planner; the face of the other person in its block is read by the route's own
-    // photo element (a data client), as the header's avatar is, so the presentation and its gallery load none.
-    onPlanner={() => navigate(() => router.navigate('/raspored'))}
+    // "Sledeće": the face of the other person in the card of the next Dogovor is read by the route's own photo element (a data client),
+    // as the header's avatar is, so the presentation and its gallery load none. The whole schedule is reached from Dogovori only (the
+    // blueprint of 8 Oct 2026: one home for each thing), so the card has no way into it.
     photo={(profileId, standIn) => <ProfilePhoto profileId={profileId} size={32} fallback={standIn} />}
     onRefresh={() => {
       if (!current() || resource.loading || retrying.current) return;

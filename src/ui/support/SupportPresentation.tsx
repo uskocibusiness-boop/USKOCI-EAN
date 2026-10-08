@@ -8,6 +8,7 @@ import { InlineNote, QuietLine } from '../privacy/InlineNote';
 import { Press } from '../Press';
 import { withInter } from '../interFont';
 import { SettingsAction, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
+import { ScrolledBar, useScrolledUnderBar } from '../settings/ScrolledBar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
 import { TurningCaret } from '../system/Disclosure';
@@ -39,11 +40,15 @@ export function supportTime(value: string) {
   return vreme(value, { inace: 'Vreme nije dostupno' });
 }
 
-export function SupportFrame({ title, onBack, children, footer }: {
+export function SupportFrame({ title, onBack, children, footer, footerReason, refresh }: {
   title: string; onBack: () => void; children: ReactNode; footer?: ReactNode;
+  /** Why the green action of the foot cannot be pressed yet: a quiet line ABOVE it, in the system foot (never under the button). */
+  footerReason?: string | null;
+  /** Pull to read the screen again (see `SettingsScreen`). */
+  refresh?: { onRefresh: () => void; busy: boolean };
 }) {
   return <KeyboardAvoidingView style={supportStyles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-    <SettingsScreen title={title} onBack={onBack} footer={footer}>{children}</SettingsScreen>
+    <SettingsScreen title={title} onBack={onBack} footer={footer} footerReason={footerReason} refresh={refresh}>{children}</SettingsScreen>
   </KeyboardAvoidingView>;
 }
 
@@ -56,11 +61,16 @@ export function SupportThreadFrame({ title, subtitle, onBack, strip, refresh, sc
   refresh?: ReactElement<RefreshControlProps>; scrollRef?: Ref<ScrollViewType>;
   onContentSizeChange?: (width: number, height: number) => void; composer?: ReactNode; children: ReactNode;
 }) {
+  // The conversation moves under the bar and its strip: once it has, they stand on their line (the same one every settings screen draws).
+  const { scrolled, onScroll } = useScrolledUnderBar();
   return <SafeAreaView edges={['top', 'bottom']} style={supportStyles.screen}>
     <KeyboardAvoidingView style={supportStyles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScreenChrome variant="detail" onBack={onBack} title={title} subtitle={subtitle} />
-      {strip ? <View style={supportStyles.strip}>{strip}</View> : null}
+      <ScrolledBar scrolled={scrolled}>
+        <ScreenChrome variant="detail" onBack={onBack} title={title} subtitle={subtitle} />
+        {strip ? <View style={supportStyles.strip}>{strip}</View> : null}
+      </ScrolledBar>
       <ScrollView ref={scrollRef} style={supportStyles.fill} contentContainerStyle={supportStyles.thread} keyboardShouldPersistTaps="handled"
+        onScroll={onScroll} scrollEventThrottle={16}
         refreshControl={refresh} onContentSizeChange={onContentSizeChange}>{children}</ScrollView>
       {composer ? <View style={supportStyles.composerArea}>{composer}</View> : null}
     </KeyboardAvoidingView>

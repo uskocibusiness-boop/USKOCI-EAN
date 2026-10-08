@@ -23,7 +23,7 @@ import { PUBLISHED_MOMENT_MS, PublishedMoment } from '../PublishedMoment';
  */
 let tree: ReactTestRenderer;
 const render = async (onContinue: () => void, props: Partial<React.ComponentProps<typeof PublishedMoment>> = {}) => {
-  await act(async () => { tree = create(<PublishedMoment title="Zadatak je objavljen." line="Prijave stižu ovde. Javićemo ti." onContinue={onContinue} {...props} />); });
+  await act(async () => { tree = create(<PublishedMoment title="Zadatak je objavljen." onContinue={onContinue} {...props} />); });
 };
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string'));
@@ -33,12 +33,13 @@ const action = () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak
 beforeEach(() => { jest.useFakeTimers(); forgetTicks(); mockHaptic.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockReduced = false; jest.useRealTimers(); jest.restoreAllMocks(); });
 
-it('says what happened and what comes next in black and grey words, with the state word of a live task between them and one green way on', async () => {
+it('says what happened, with the state word of a live task beside it and one green way on, and no sentence about where the applications will be seen', async () => {
   await render(jest.fn());
-  expect(texts()).toEqual(['Zadatak je objavljen.', 'Objavljen', 'Prijave stižu ovde. Javićemo ti.', 'Otvori zadatak']);
+  // The owner, 8 Oct 2026: the grey line ("Prijave stižu ovde. Javićemo ti.") explained what the green action already is.
+  expect(texts()).toEqual(['Zadatak je objavljen.', 'Objavljen', 'Otvori zadatak']);
+  expect(texts().join(' ')).not.toMatch(/Prijave|Javićemo|zvonc/);
   const title = tree.root.findAllByType('T' as React.ElementType)[0];
   expect(title.props).toMatchObject({ variant: 'title', accessibilityRole: 'header', accessibilityLiveRegion: 'polite' });
-  expect(tree.root.findAllByType('T' as React.ElementType)[2].props).toMatchObject({ variant: 'copy', tone: 'muted' });
   // One action, the primary one, green; nothing else to press.
   expect(tree.root.findAllByType('Press' as React.ElementType)).toHaveLength(1);
   expect(action().props.accessibilityRole).toBe('button');
@@ -64,7 +65,7 @@ it('never blocks the way on: a tap continues at once, whenever it comes', async 
 it('runs the newest continuation, not the one of the render that started the timer', async () => {
   const stale = jest.fn(), fresh = jest.fn();
   await render(stale);
-  await act(async () => { tree.update(<PublishedMoment title="Zadatak je objavljen." line="Prijave stižu ovde. Javićemo ti." onContinue={fresh} />); });
+  await act(async () => { tree.update(<PublishedMoment title="Zadatak je objavljen." onContinue={fresh} />); });
   await advance(PUBLISHED_MOMENT_MS);
   expect(stale).not.toHaveBeenCalled(); expect(fresh).toHaveBeenCalledTimes(1);
 });
@@ -121,6 +122,6 @@ it('a screen reader that is turned on while the moment is shown stops the timer'
 });
 
 it('says "Izmene su objavljene." for a changed task when it is handed those words', async () => {
-  await render(jest.fn(), { title: 'Izmene su objavljene.', line: 'Prijave stižu ovde.' });
-  expect(texts()).toEqual(['Izmene su objavljene.', 'Objavljen', 'Prijave stižu ovde.', 'Otvori zadatak']);
+  await render(jest.fn(), { title: 'Izmene su objavljene.' });
+  expect(texts()).toEqual(['Izmene su objavljene.', 'Objavljen', 'Otvori zadatak']);
 });

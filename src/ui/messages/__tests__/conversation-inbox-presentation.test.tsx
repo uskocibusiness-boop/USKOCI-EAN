@@ -1,9 +1,12 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+// The text size decides the layout (`useLayoutClass`), and Jest's own window is a doubled text size, so each case says which one it is at.
+let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
+    if (key === 'useWindowDimensions') return () => mockWindow;
     if (key === 'FlatList') return (p: any) => require('react').createElement('List', p, p.ListHeaderComponent,
       p.data.length ? p.data.map((item: any) => require('react').createElement('Row', { key: p.keyExtractor(item) }, p.renderItem({ item }))) : p.ListEmptyComponent,
       p.ListFooterComponent);
@@ -17,13 +20,13 @@ jest.mock('../../system/StateView', () => ({ StateView: 'StateView' }));
 jest.mock('../../system/ConversationArt', () => ({ ConversationArt: 'ConversationArt' }));
 import { sys } from '../../system/tokens';
 import { ListSkeleton } from '../../notifications/ListSkeleton';
-import { ConversationInboxPresentation, PREVIEW_CHARACTERS, TASK_CHARACTERS, conversationInboxRows, conversationPreview, conversationPreviewLine, conversationStamp,
-  conversationTaskLine, conversationTitle, type ConversationInboxRow } from '../ConversationInboxPresentation';
+import { ConversationInboxPresentation, conversationInboxRows, conversationPreview, conversationStamp, conversationTitle,
+  type ConversationInboxRow } from '../ConversationInboxPresentation';
 
 /**
- * The Poruke list (proposal J2, team T3c): one row per conversation, a tap opens THAT conversation, a group says it is a group, a
- * closed Dogovor has a lock, the time is Serbian time. What the server's projection does not carry (an unread mark for a private
- * conversation, how many people a group has, that a Dogovor is closed) is not drawn unless a reader supplies it.
+ * The Poruke list (proposal J2, team T3c; the owner's phone, 8 Oct 2026): one row per conversation, a tap opens THAT conversation, a
+ * group says it is a group, the time is Serbian time, and every line of a row is ONE line. What the server's projection does not carry
+ * (an unread mark for a private conversation, how many people a group has, that a Dogovor is closed) is not drawn unless a reader supplies it.
  */
 const NOW = new Date('2026-10-07T12:00:00Z');                       // 14:00 in Belgrade, a Wednesday
 const A = '10000000-0000-4000-8000-0000000000a1', B = '10000000-0000-4000-8000-0000000000b1', C = '10000000-0000-4000-8000-0000000000c1';
@@ -46,6 +49,7 @@ const flat = (style: unknown) => (StyleSheet.flatten(style as never) ?? {}) as R
 const texts = (node: ReactTestInstance = tree.root) => node.findAll(child => String(child.type) === 'T').flatMap(child => child.children.filter(c => typeof c === 'string')).join(' | ');
 const rows = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'button');
 const draw = async (p: ReturnType<typeof props>) => { await act(async () => { tree = create(<ConversationInboxPresentation {...p} />); }); };
+beforeEach(() => { mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 }; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('rows and their words', () => {
@@ -63,14 +67,20 @@ describe('rows and their words', () => {
     expect(rows().map(node => texts(node).split(' | ')[1])).toEqual(['Jovana', 'Teodora', 'Ivana']);
   });
 
-  it('writes the stamp first in the line under the words, with the task: the clock for today, "Juče", then the date; never both a day and a clock', async () => {
+  it('writes the stamp at the end of the name\'s line: the clock for today, "Juče", then the date; never both a day and a clock', async () => {
     await draw(props(items));
     expect(texts(rows()[0])).toContain('13:00'); expect(texts(rows()[0])).not.toContain('Danas');
     expect(texts(rows()[1])).toContain('Juče'); expect(texts(rows()[1])).not.toMatch(/\d{2}:\d{2}/);
     expect(texts(rows()[2])).toContain('3. okt'); expect(texts(rows()[2])).not.toMatch(/\d{2}:\d{2}/);
-    // The row reads: the person, what was said, and then "when · what it is about", the line a notification has too ("14:05 · Otvara Dogovor").
-    expect(texts(rows()[0]).split(' | ').slice(1)).toEqual(['Jovana', 'Gotovo, sve je sastavljeno.', '13:00 · Sastavljanje IKEA ormara']);
-    expect(texts(rows()[1]).split(' | ').slice(-1)).toEqual(['Juče · Bašta — sezonsko orezivanje']);
+    // The row reads: the person and the time, what was said, and what it is about in grey: three lines, and nothing else (no "when ·" in front of the task).
+    expect(texts(rows()[0]).split(' | ').slice(1)).toEqual(['Jovana', '13:00', 'Gotovo, sve je sastavljeno.', 'Sastavljanje IKEA ormara']);
+    expect(texts(rows()[1]).split(' | ').slice(1)).toEqual(['Teodora', 'Juče', 'Može i utorak, javi.', 'Bašta — sezonsko orezivanje']);
+  });
+
+  it('draws a date as the app writes it, without the zero of the phone\'s own pattern ("3. okt", never "03. okt")', async () => {
+    await draw(props([row({ id: A, at: '2026-10-03T10:00:00Z' }), row({ id: B, at: '2026-10-05T10:00:00Z' })]));
+    expect(texts(rows()[0])).toContain('3. okt'); expect(texts(rows()[1])).toContain('5. okt');
+    expect(texts()).not.toMatch(/\b0\d\. /);
   });
 
   it('reads the day and the clock in SERBIAN time, not the phone\'s (TZ=UTC here)', async () => {
@@ -111,7 +121,7 @@ describe('a tap opens that conversation', () => {
     expect((p.onOpen.mock.calls[0][0] as ConversationInboxRow)).toBe(personal);
   });
 
-  it('is the system\'s row, 64 dp high at least with a face of 56 in it, and opens nothing while another opening runs (the row is not greyed for it)', async () => {
+  it('is 64 dp high at the least, and opens nothing while another opening runs (the row is not greyed for it)', async () => {
     const p = props([row({ id: A, at: '2026-10-07T11:00:00Z' })], { openingDisabled: true });
     await draw(p);
     expect(flat(rows()[0].props.style).minHeight).toBeGreaterThanOrEqual(64);
@@ -150,6 +160,12 @@ describe('groups', () => {
     expect(texts(rows()[0])).toContain('3'); expect(rows()[0].props.accessibilityLabel).toContain('3 nepročitana');
     expect(rows()[1].props.accessibilityLabel).not.toContain('nepročitan');
   });
+
+  it('gives a group\'s count the height of its line, so a group is as tall as any other conversation', async () => {
+    await draw(props([group({ id: B, at: '2026-10-07T10:00:00Z', unreadMessageCount: 12 })]));
+    const count = rows()[0].findAll(node => String(node.type) === 'View' && flat(node.props.style).minWidth === 20)[0];
+    expect(flat(count.props.style)).toMatchObject({ height: 20 });
+  });
 });
 
 describe('what the server does not carry stays undrawn', () => {
@@ -159,22 +175,18 @@ describe('what the server does not carry stays undrawn', () => {
     expect(texts(rows()[0])).not.toMatch(/\b4\b/);
   });
 
-  it('no lock is drawn for a Dogovor the projection does not say is closed', async () => {
+  it('a Dogovor the projection does not say is closed is not called closed', async () => {
     await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z' })]));
-    expect(tree.root.findAllByProps({ testID: 'conversation-lock' })).toHaveLength(0);
     expect(rows()[0].props.accessibilityLabel).not.toContain('zatvoren');
   });
 
-  it('a closed Dogovor, when a reader supplies it, has a lock at the end of its row and says so aloud', async () => {
+  it('a closed Dogovor, when a reader supplies it, stands under "Završeni" and says so aloud, with no lock and no arrow: the set says it is over', async () => {
     await draw(props([row({ id: A, at: '2026-10-03T10:00:00Z', closed: true, name: 'Ivana', task: 'Prevoz fotelje iz Podbare', preview: 'Hvala!' })]));
     // The row says its Dogovor is closed, so the list is told in two sets and this one is under "Završeni" (opened here).
     expect(rows()).toHaveLength(0);
     await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Završeni')[0].props.onPress());
-    const lock = tree.root.findByProps({ testID: 'conversation-lock' });
-    expect(lock.props.accessibilityElementsHidden).toBe(true);
-    // The lock stands at the end of the row, with what else is there (the arrow is the row's own), and the whole row hears it.
-    expect(rows()[0].findAllByProps({ testID: 'conversation-lock' }).length).toBeGreaterThan(0);
-    expect(rows()[0].props.accessibilityLabel).toBe('Ivana. Prevoz fotelje iz Podbare. Dogovor je zatvoren. Hvala!. 3. okt, 10:00'.replace('10:00', '12:00'));
+    expect(tree.root.findAllByProps({ testID: 'conversation-lock' })).toHaveLength(0);
+    expect(rows()[0].props.accessibilityLabel).toBe('Ivana. Prevoz fotelje iz Podbare. Dogovor je zatvoren. Hvala!. 3. okt, 12:00');
     // A closed conversation is still opened by a tap: it can be read.
     expect(rows()[0].props.accessibilityState).toEqual({ disabled: false });
   });
@@ -183,7 +195,7 @@ describe('what the server does not carry stays undrawn', () => {
 describe('the states of the list', () => {
   it('shows the first read, a failure that can be tried again, and an empty inbox with the way to the Dogovori', async () => {
     await draw(props(null, { loading: true }));
-    // The rows that are coming, in their geometry (a face in its slot, two lines), and one sentence a screen reader hears.
+    // The rows that are coming, in their geometry (a face in its slot, three lines), and one sentence a screen reader hears.
     expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(1); expect(tree.root.findByType(ListSkeleton).props).toMatchObject({ face: true });
     expect(texts()).toContain('Učitavamo razgovore…');
     await act(async () => tree.update(<ConversationInboxPresentation {...props(null, { error: true })} />));
@@ -214,9 +226,11 @@ describe('the states of the list', () => {
 });
 
 describe('the face', () => {
-  it('is a 56 disc for a person and the group picture for a group; a photo the screen supplies replaces the initials', async () => {
+  it('is a 48 disc for a person and the group picture for a group; a photo the screen supplies replaces the initials', async () => {
     await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Jovana Jovanović' }), group({ id: B, at: '2026-10-07T10:00:00Z' })]));
-    expect(flat(rows()[0].findAll(node => String(node.type) === 'View' && node.props.accessible === false)[0].props.style)).toMatchObject({ width: 56, height: 56 });
+    // The face stands on the edge of the screen: its slot is its own width.
+    expect(flat(rows()[0].findAll(node => String(node.type) === 'View' && node.props.accessible === false)[0].props.style)).toMatchObject({ width: 48, height: 48 });
+    expect(tree.root.findAllByProps({ kind: 'users', size: 48 }).length).toBeGreaterThan(0);
     await act(async () => tree.update(<ConversationInboxPresentation {...props([row({ id: A, at: '2026-10-07T11:00:00Z' })], { renderAvatar: () => React.createElement('Photo') })} />));
     expect(tree.root.findAllByType('Photo' as never)).toHaveLength(1);
   });
@@ -230,8 +244,7 @@ describe('the face', () => {
   });
 });
 
-// UI/UX pass, 2026-10-08 (F1; composition spec 4.11 and R17): the list tells the active conversations from the finished ones, and its
-// preview is a preview.
+// UI/UX pass, 2026-10-08 (F1; composition spec 4.11 and R17): the list tells the active conversations from the finished ones.
 describe('Aktivni and Završeni (R17)', () => {
   const rowsOf = [
     row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Jovana' }),
@@ -257,8 +270,7 @@ describe('Aktivni and Završeni (R17)', () => {
     expect(names()).toEqual(['Jovana', 'Ivana']);
     await act(async () => tab('Završeni').props.onPress());
     expect(names()).toEqual(['Teodora']);
-    // A closed conversation is read, not hidden: it has its lock, and a tap opens it.
-    expect(rows()[0].findAllByProps({ testID: 'conversation-lock' }).length).toBeGreaterThan(0);
+    // A closed conversation is read, not hidden: its row says the Dogovor is closed, and a tap opens it.
     expect(rows()[0].props.accessibilityLabel).toContain('Dogovor je zatvoren');
   });
 
@@ -283,32 +295,59 @@ describe('Aktivni and Završeni (R17)', () => {
   });
 });
 
-describe('the words under the name are a preview', () => {
-  it('keeps a short preview whole and cuts a long one at 72 characters with an ellipsis, never in the middle of a letter', () => {
-    expect(PREVIEW_CHARACTERS).toBe(72);
-    expect(conversationPreviewLine('Gotovo, sve je sastavljeno.')).toBe('Gotovo, sve je sastavljeno.');
-    const long = 'Dobar dan, javljam se u vezi sa terminom koji smo dogovorili za subotu, mislim da će nam trebati još jedna osoba.';
-    const cut = conversationPreviewLine(long);
-    expect(Array.from(cut)).toHaveLength(PREVIEW_CHARACTERS); expect(cut.endsWith('…')).toBe(true); expect(long.startsWith(cut.slice(0, -1))).toBe(true);
-    const exact = 'č'.repeat(PREVIEW_CHARACTERS); expect(conversationPreviewLine(exact)).toBe(exact);
-    expect(Array.from(conversationPreviewLine('ć'.repeat(PREVIEW_CHARACTERS + 1)))).toHaveLength(PREVIEW_CHARACTERS);
+// The owner's phone, 8 Oct 2026: a row was 150 dp high (the name in two lines, the preview in four, the task, a date, a lock). Every line is one.
+describe('the words of a row are three lines of one line each', () => {
+  const long = 'Dobar dan, javljam se u vezi sa terminom koji smo dogovorili za subotu, mislim da će nam trebati još jedna osoba.';
+  const title = 'Prenos troseda i dve fotelje sa trećeg sprata zgrade bez lifta do kombija ispred ulaza';
+  // The first of them is the letters of the face (a line of their own); the three lines of the row follow.
+  const lines = (node: ReactTestInstance) => node.findAll(child => String(child.type) === 'T' && typeof child.props.numberOfLines === 'number').slice(1);
+
+  it('keeps the name, the preview and the task to one line each, and cuts by the line, not by a count of letters', async () => {
+    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Aleksandra Konstantinović-Radovanović', preview: long, task: title })]));
+    expect(lines(rows()[0]).map(node => [node.props.children, node.props.numberOfLines])).toEqual([
+      ['Aleksandra Konstantinović-Radovanović', 1], [long, 1], [title, 1]]);
+    // Nothing was shortened by the code: the whole text is in the node, and the line does the cutting.
+    expect(texts(rows()[0])).toContain(long); expect(texts(rows()[0])).toContain(title);
   });
 
-  it('cuts the task under the preview at 48 letters too, so a long title cannot make the row tall, and the label still names all of it', async () => {
-    expect(TASK_CHARACTERS).toBe(48);
-    expect(conversationTaskLine('Sastavljanje IKEA ormara')).toBe('Sastavljanje IKEA ormara');
-    const title = 'Prenos troseda i dve fotelje sa trećeg sprata zgrade bez lifta do kombija ispred ulaza';
-    const cut = conversationTaskLine(title);
-    expect(Array.from(cut)).toHaveLength(TASK_CHARACTERS); expect(cut.endsWith('…')).toBe(true); expect(title.startsWith(cut.slice(0, -1))).toBe(true);
-    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', task: title })]));
-    expect(texts(rows()[0])).not.toContain(title); expect(texts(rows()[0])).toContain(`13:00 · ${cut}`);
-    expect(rows()[0].props.accessibilityLabel).toContain(title);
+  it('is heard whole in its one label, however much of it is shown', async () => {
+    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', preview: long, task: title })]));
+    expect(rows()[0].props.accessibilityLabel).toContain(long); expect(rows()[0].props.accessibilityLabel).toContain(title);
   });
 
-  it('is shown cut in the row and heard whole in its one label', async () => {
-    const long = 'Dobar dan, javljam se u vezi sa terminom koji smo dogovorili za subotu, mislim da će nam trebati još jedna osoba.';
-    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', preview: long })]));
-    expect(texts(rows()[0])).not.toContain(long); expect(texts(rows()[0])).toContain('Dobar dan, javljam se');
-    expect(rows()[0].props.accessibilityLabel).toContain(long);
+  it('has no arrow and no lock: the whole row is the way in', async () => {
+    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', closed: false })]));
+    expect(rows()[0].findAll(node => String(node.type) === 'Glyph')).toHaveLength(0);
+    expect(rows()[0].findAllByProps({ testID: 'conversation-lock' })).toHaveLength(0);
+  });
+
+  // At a large text size the time has no room beside the name: the name may take two lines, and the time goes before the task.
+  it('at a large text size lets the name take two lines and moves the time to the front of the task', async () => {
+    mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1.3 };
+    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Aleksandra Konstantinović', preview: 'Gotovo, sve je sastavljeno.', task: 'Sastavljanje IKEA ormara' })]));
+    expect(lines(rows()[0]).map(node => [node.props.children, node.props.numberOfLines])).toEqual([
+      ['Aleksandra Konstantinović', 2], ['Gotovo, sve je sastavljeno.', 1], ['13:00 · Sastavljanje IKEA ormara', 1]]);
+  });
+});
+
+// The white dot on the owner's phone (8 Oct 2026): the Android pull spinner, raised by every read the list started by itself.
+describe('the pull spinner', () => {
+  const list = () => tree.root.findByType('List' as never);
+  it('is shown for a pull only, never for a read the screen started on its own', async () => {
+    const p = props([row({ id: A, at: '2026-10-07T11:00:00Z' })]);
+    await draw(p);
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} refreshing />));
+    expect(list().props.refreshing).toBe(false);
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} refreshing={false} />));
+    await act(async () => list().props.onRefresh());
+    expect(p.onRefresh).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} refreshing />));
+    expect(list().props.refreshing).toBe(true);
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} refreshing={false} />));
+    expect(list().props.refreshing).toBe(false);
+  });
+  it('is never shown while the first page is still to come', async () => {
+    await draw(props(null, { loading: true }));
+    expect(list().props.refreshing).toBe(false);
   });
 });

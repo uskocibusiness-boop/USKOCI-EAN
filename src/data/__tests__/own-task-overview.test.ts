@@ -1,14 +1,14 @@
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import type { NeedPublicationReadiness } from '../needPublicationReadiness';
-import { APPLICATION_PROMISE, applicationsWaitSentence, ownTaskStanding } from '../ownTaskStanding';
+import { NO_APPLICATIONS, NOTHING_TO_CHOOSE, ownTaskStanding } from '../ownTaskStanding';
 import { STATUS_CHIPS } from '../../ui/system/StatusChip';
-import { DRAFT_NEXT, NARROW_TERM_HOURS, NO_APPLICATIONS_AFTER_HOURS, NO_APPLICATIONS_HELP_LABEL, NO_APPLICATIONS_HELP_ON, missingPeople, noApplicationsHelp, ownTaskOverview, type Overview, type OverviewSearch } from '../../ui/v2/ownTaskOverview';
+import { NARROW_TERM_HOURS, NO_APPLICATIONS_AFTER_HOURS, NO_APPLICATIONS_HELP_LABEL, NO_APPLICATIONS_HELP_ON, missingPeople, noApplicationsHelp, ownTaskOverview, type Overview, type OverviewSearch } from '../../ui/v2/ownTaskOverview';
 
 /**
- * The owner's own task page says ONE state, ONE next step and at most ONE green action (plan 2.2, 3.5; owner 2026-10-07). This is the
- * pure model behind it, state by state, so the page, the list of "Moji zadaci" and the tests agree, and so that nothing is said that the
- * read cannot support: "Dogovor je otkazan" only when it is certain, "Bira se" only with applications to choose among, no green
- * action when nothing is the owner's to do.
+ * The owner's own task page says ONE state, ONE line of data and at most ONE green action (plan 2.2, 3.5; owner 2026-10-07, and 8 Oct 2026: no
+ * sentence that explains). This is the pure model behind it, state by state, so the page, the list of "Moji zadaci" and the tests agree, and so
+ * that nothing is said that the read cannot support: "Dogovor je otkazan" only when it is certain, "Bira se" only with applications to choose
+ * among, no green action when nothing is the owner's to do, and what the chip already says is not said again.
  */
 const NOW = new Date('2026-10-07T12:00:00Z');
 const HALF = { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 };
@@ -24,79 +24,79 @@ const view = (patch: Parameters<typeof task>[0] = {}, extra: Extra = {}): Overvi
 const word = (overview: Overview) => overview.chip ? STATUS_CHIPS[overview.chip.status].word + (overview.chip.detail ? ` · ${overview.chip.detail}` : '') : null;
 const borrowed = (patch: Parameters<typeof task>[0]) => ownTaskStanding(task(patch), NOW).next;
 
-describe('state by state: one chip, one grey sentence, at most one green action', () => {
-  it('a draft is "Nacrt", says it is private, and its one action reviews it', () => {
+describe('state by state: one chip, one line of data, at most one green action', () => {
+  it('a draft is "Nacrt", says nothing more about itself, and its one action reviews it', () => {
     const draft = view({ stanje: 'NACRT' });
     expect(word(draft)).toBe('Nacrt');
-    expect(draft.sentence).toBe(DRAFT_NEXT);
+    expect([draft.line, draft.notice, draft.applicants]).toEqual([null, null, 0]);
     expect(draft.primary).toEqual({ kind: 'REVIEW', label: 'Pregledaj za objavu' });
     expect(draft.rows).toEqual({ applications: false, agreements: false });
   });
 
-  it('a published task nobody applied to is "Objavljen", waits, and has no green action', () => {
+  it('a published task nobody applied to is "Objavljen" with "Još nema prijava", waits, and has no green action', () => {
     const waiting = view({ stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 });
     expect(word(waiting)).toBe('Objavljen');
     // The words are the list's own ("Moji zadaci" says the same under the card), so the page and the list cannot disagree.
-    expect(waiting.sentence).toBe(borrowed({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 }));
-    expect(waiting.sentence).toBeTruthy();
+    expect(waiting.line).toBe(borrowed({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 }));
+    expect(waiting.line).toBe(NO_APPLICATIONS);
+    expect(waiting.applicants).toBe(0);
     expect(waiting.primary).toBeNull();
     // An unknown count that the task has no applications for either says the same thing.
-    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: undefined }).sentence).toBe(waiting.sentence);
+    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: undefined }).line).toBe(waiting.line);
   });
 
   it('applications that exist but cannot be chosen are said, kept one quiet row away, and are no reason for a green action', () => {
     const none = view({ stanje: 'OBJAVLJENA', brojPrijava: 4, brojPrijavaZaIzbor: 0 });
-    expect(none.sentence).toBe(APPLICATION_PROMISE.noneToChoose);
+    expect(none.line).toBe(NOTHING_TO_CHOOSE);
     expect(none.primary).toBeNull();
     expect(none.rows).toEqual({ applications: true, agreements: false });
   });
 
-  it('an unknown count of choosable applications says the total and never "Uporedi" or a number it does not have', () => {
+  it('an unknown count of choosable applications says the total and never a word of comparing or a number it does not have', () => {
     const unknown = view({ stanje: 'OBJAVLJENA', brojPrijava: 5, brojPrijavaZaIzbor: undefined });
     expect(word(unknown)).toBe('Objavljen');
-    expect(unknown.sentence).toBe('Imaš 5 prijava. Pogledaj ih.');
+    expect([unknown.line, unknown.applicants]).toEqual(['5 prijava', 5]);
     expect(unknown.primary).toEqual({ kind: 'CANDIDATES', label: 'Pogledaj prijave', spoken: 'Pogledaj prijave, ukupno 5 prijava' });
-    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: undefined }).sentence).toBe('Imaš 1 prijavu. Pogledaj je.');
+    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: undefined }).line).toBe('1 prijava');
   });
 
-  it('applications to choose among: "Bira se · N", the sentence says compare and choose, and the one green action is "Uporedi prijave"', () => {
+  it('applications to choose among: "Bira se · N", the line counts them, and the one green action is "Pogledaj prijave"', () => {
     const choosing = view({ stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 });
     expect(word(choosing)).toBe('Bira se · 3');
     expect(choosing.chip).toEqual({ status: 'task.choosing', detail: '3' });
     expect(STATUS_CHIPS['task.choosing'].tone).toBe('attention');   // it waits for the owner: the orange one
-    expect(choosing.sentence).toBe(applicationsWaitSentence(3));
-    expect(choosing.sentence).toMatch(/^Imaš 3 prijave\. /);
-    expect(choosing.primary).toEqual({ kind: 'CANDIDATES', label: 'Uporedi prijave', spoken: 'Uporedi prijave, 3 prijave za izbor' });
+    expect(choosing.line).toBe(borrowed({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 }));
+    expect([choosing.line, choosing.applicants]).toEqual(['3 prijave', 3]);
+    expect(choosing.primary).toEqual({ kind: 'CANDIDATES', label: 'Pogledaj prijave', spoken: 'Pogledaj prijave, 3 prijave za izbor' });
     // The green action opens the list, so a row that opens the same list is not drawn.
     expect(choosing.rows.applications).toBe(false);
   });
 
-  it('one application is read and chosen, not compared', () => {
+  it('one application is looked at, in the singular', () => {
     const one = view({ stanje: 'CEKA_PRIJAVE', brojPrijava: 1, brojPrijavaZaIzbor: 1 });
-    expect(one.sentence).toBe(applicationsWaitSentence(1));
-    expect(one.sentence).toMatch(/^Imaš 1 prijavu\. /);
+    expect([one.line, one.applicants]).toEqual(['1 prijava', 1]);
     expect(one.primary).toMatchObject({ kind: 'CANDIDATES', label: 'Pogledaj prijavu' });
   });
 
-  it('a task that is partly agreed says how many; with applications left it is "Bira se", without them it is "Dogovoren · 1 od 2"', () => {
+  it('a task that is partly agreed: with applications left it is "Bira se" and the line counts them, without them the chip says "Dogovoren · 1 od 2" and nothing more', () => {
     const more = view({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijava: 2, brojPrijavaZaIzbor: 2 });
     expect(word(more)).toBe('Bira se · 2');
-    expect(more.sentence).toBe(borrowed({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijava: 2, brojPrijavaZaIzbor: 2 }));
-    expect(more.sentence).toBe(`Dogovoreno 1 od 2. ${applicationsWaitSentence(2)}`);
-    expect(more.primary).toMatchObject({ kind: 'CANDIDATES', label: 'Uporedi prijave' });
+    expect(more.line).toBe(borrowed({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijava: 2, brojPrijavaZaIzbor: 2 }));
+    expect(more.line).toBe('2 prijave');
+    expect(more.primary).toMatchObject({ kind: 'CANDIDATES', label: 'Pogledaj prijave' });
     // The Dogovor is still one quiet row away.
     expect(more.rows.agreements).toBe(true);
     const alone = view({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijavaZaIzbor: 0 });
     expect(word(alone)).toBe('Dogovoren · 1 od 2');
-    expect(alone.sentence).toBe(borrowed({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijavaZaIzbor: 0 }));
-    expect(alone.sentence).toMatch(/^Dogovoreno 1 od 2\./);
+    expect(alone.line).toBe(borrowed({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijavaZaIzbor: 0 }));
+    expect(alone.line).toBeNull();
     expect(alone.primary).toEqual({ kind: 'AGREEMENTS', label: 'Otvori Dogovor' });
   });
 
   it('every place agreed is "Dogovoren" and the one green action opens the Dogovor, in the plural when there are several', () => {
     const full = view({ stanje: 'POPUNJENA', pokrivenost: FULL });
     expect(word(full)).toBe('Dogovoren');
-    expect(full.sentence).toBe('Sva mesta su dogovorena.');
+    expect(full.line).toBeNull();
     expect(full.primary).toEqual({ kind: 'AGREEMENTS', label: 'Otvori Dogovor' });
     expect(full.rows.agreements).toBe(false);
     const two = view({ stanje: 'POPUNJENA', pokrivenost: FULL }, { search: { speaks: false, state: search({ status: 'ACTIVE', coveredSlots: 2, agreementCount: 2, activeAgreementCount: 2 }) } });
@@ -110,25 +110,21 @@ describe('state by state: one chip, one grey sentence, at most one green action'
     const fixed = { kind: 'FIXED_WINDOW' as const, startsAt: '2026-10-07T11:00:00Z', endsAt: '2026-10-07T13:00:00Z' };
     const now = view({ stanje: 'POPUNJENA', pokrivenost: FULL, schedule: fixed });
     expect(word(now)).toBe('U toku');
-    expect(now.sentence).toBe('Dogovoreni termin je počeo.');
+    expect(now.line).toBeNull();
     expect(now.primary?.label).toBe('Otvori Dogovor');
     // A flexible term is never "U toku": the Dogovor may carry another time that this page does not read.
     expect(word(view({ stanje: 'POPUNJENA', pokrivenost: FULL, schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } }))).toBe('Dogovoren');
   });
 
-  it.each([
-    ['COMPLETED', 'Završen', 'Zadatak je završen.'],
-    ['CANCELLED', 'Otkazan', borrowed({ stanje: 'ZATVORENA', kraj: 'CANCELLED' })],
-    ['EXPIRED', 'Istekao', borrowed({ stanje: 'ZATVORENA', kraj: 'EXPIRED' })],
-  ])('a task that ended %s is "%s", says so, and has no green action', (kraj, chip, sentence) => {
+  it.each([['COMPLETED', 'Završen'], ['CANCELLED', 'Otkazan'], ['EXPIRED', 'Istekao']])('a task that ended %s is "%s", the chip is all it says, and it has no green action', (kraj, chip) => {
     const ended = view({ stanje: 'ZATVORENA', kraj });
-    expect(word(ended)).toBe(chip); expect(ended.sentence).toBe(sentence); expect(ended.primary).toBeNull();
+    expect(word(ended)).toBe(chip); expect(ended.line).toBe(borrowed({ stanje: 'ZATVORENA', kraj })); expect(ended.line).toBeNull(); expect(ended.primary).toBeNull();
   });
 
-  it('a closed task whose ending was not carried, and an archived one, wear no chip rather than a wrong one', () => {
+  it('a closed task whose ending was not carried, and an archived one, wear no chip rather than a wrong one, and say what they are', () => {
     for (const kraj of [undefined, 'ARCHIVED']) {
       const ended = view({ stanje: 'ZATVORENA', ...(kraj ? { kraj } : {}) });
-      expect(ended.chip).toBeNull(); expect(ended.sentence).toBe(borrowed({ stanje: 'ZATVORENA', ...(kraj ? { kraj } : {}) })); expect(ended.primary).toBeNull();
+      expect(ended.chip).toBeNull(); expect(ended.line).toBe(borrowed({ stanje: 'ZATVORENA', ...(kraj ? { kraj } : {}) })); expect(ended.line).toBeTruthy(); expect(ended.primary).toBeNull();
     }
   });
 
@@ -137,28 +133,29 @@ describe('state by state: one chip, one grey sentence, at most one green action'
     expect(done.primary).toBeNull(); expect(done.rows).toEqual({ applications: true, agreements: true });
   });
 
-  it('never says "Čeka prijave", in any state', () => {
+  it('never says "Čeka prijave", or where the applications can be seen, in any state', () => {
     const everything = [
       view({ stanje: 'NACRT' }), view({ stanje: 'OBJAVLJENA' }), view({ stanje: 'CEKA_PRIJAVE', brojPrijava: 2, brojPrijavaZaIzbor: 2 }),
       view({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijavaZaIzbor: 0 }), view({ stanje: 'POPUNJENA', pokrivenost: FULL }),
       view({ stanje: 'ZATVORENA', kraj: 'CANCELLED' }), view({ stanje: 'ZATVORENA', kraj: 'EXPIRED' }),
     ];
-    for (const overview of everything) expect(JSON.stringify(overview)).not.toMatch(/Čeka prijave/);
+    for (const overview of everything) expect(JSON.stringify(overview)).not.toMatch(/Čeka prijave|zvonc|Uporedi|Imaš \d/);
   });
 });
 
 describe('the search continues after a Dogovor is cancelled (said only when it is certain)', () => {
   const cancelled = (patch: Partial<OverviewSearch> = {}) => search({ coveredSlots: 0, agreementCount: 1, activeAgreementCount: 0, ...patch });
 
-  it('a task that has Dogovori and covers no place has only cancelled ones, and says what it is doing now', () => {
+  it('a task that has Dogovori and covers no place has only cancelled ones: the page says so, and what it has now', () => {
     const again = view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 0 }, { search: { state: cancelled(), speaks: false } });
-    expect(again.sentence).toBe('Dogovor je otkazan. Tvoj zadatak opet prima prijave.');
+    expect(again.notice).toBe('Dogovor je otkazan');
+    expect(again.line).toBe(NOTHING_TO_CHOOSE);
     expect(word(again)).toBe('Objavljen'); expect(again.primary).toBeNull();
   });
 
   it('where applications still wait, the green action is "Izaberi drugu prijavu"', () => {
     const other = view({ stanje: 'CEKA_PRIJAVE', brojPrijava: 2, brojPrijavaZaIzbor: 2 }, { search: { state: cancelled(), speaks: false } });
-    expect(other.sentence).toBe(`Dogovor je otkazan. ${applicationsWaitSentence(2)}`);
+    expect([other.notice, other.line]).toEqual(['Dogovor je otkazan', '2 prijave']);
     expect(other.primary).toEqual({ kind: 'CANDIDATES', label: 'Izaberi drugu prijavu', spoken: 'Izaberi drugu prijavu, 2 prijave za izbor' });
     expect(word(other)).toBe('Bira se · 2');
   });
@@ -166,7 +163,7 @@ describe('the search continues after a Dogovor is cancelled (said only when it i
   it('a search the owner closed survives the cancellation: the page says the Dogovor ended and the closed search says the rest', () => {
     const closed = view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 1 },
       { remainingClosed: true, search: { state: cancelled({ searchAuthority: 'CLOSED' }), speaks: false } });
-    expect(closed.sentence).toBe('Dogovor je otkazan.');
+    expect([closed.notice, closed.line]).toEqual(['Dogovor je otkazan', null]);
     expect(closed.note).toBe('0 od 2 dogovoreno · preostala potraga je zatvorena');
     // A closed search takes no choice: not "Bira se", and no "Izaberi drugu prijavu".
     expect(word(closed)).toBe('Objavljen'); expect(closed.primary).toBeNull();
@@ -174,25 +171,25 @@ describe('the search continues after a Dogovor is cancelled (said only when it i
 
   it('while the screen\'s search section is drawn it says the search itself, and the page adds only what happened', () => {
     const speaking = view({ stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 }, { search: { state: cancelled({ searchTimeAdmitted: false }), speaks: true } });
-    expect(speaking.sentence).toBe('Dogovor je otkazan.');
+    expect([speaking.notice, speaking.line]).toEqual(['Dogovor je otkazan', null]);
     // Past its time the search does not "take applications again", with or without the section.
-    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 }, { search: { state: cancelled({ searchTimeAdmitted: false }), speaks: false } }).sentence)
-      .toBe('Dogovor je otkazan.');
+    const late = view({ stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 }, { search: { state: cancelled({ searchTimeAdmitted: false }), speaks: false } });
+    expect([late.notice, late.line]).toEqual(['Dogovor je otkazan', null]);
   });
 
   it('is not claimed when a place is covered (the counts cannot tell a cancelled Dogovor from a completed one), or when nothing was read', () => {
     const covered = view({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijavaZaIzbor: 0 },
       { search: { state: search({ coveredSlots: 1, agreementCount: 2, activeAgreementCount: 1 }), speaks: false } });
-    expect(covered.sentence).not.toMatch(/otkazan/);
-    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 0 }).sentence).not.toMatch(/otkazan/);
-    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 0 }, { search: { state: null, speaks: false } }).sentence).not.toMatch(/otkazan/);
+    expect(covered.notice).toBeNull();
+    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 0 }).notice).toBeNull();
+    expect(view({ stanje: 'OBJAVLJENA', brojPrijava: 1, brojPrijavaZaIzbor: 0 }, { search: { state: null, speaks: false } }).notice).toBeNull();
     // No Dogovor ever, nothing cancelled.
-    expect(view({ stanje: 'OBJAVLJENA' }, { search: { state: search(), speaks: false } }).sentence).not.toMatch(/otkazan/);
+    expect(view({ stanje: 'OBJAVLJENA' }, { search: { state: search(), speaks: false } }).notice).toBeNull();
   });
 
   it('is never said about a draft or a task that ended', () => {
     for (const patch of [{ stanje: 'NACRT' as const }, { stanje: 'ZATVORENA' as const, kraj: 'CANCELLED' }]) {
-      expect(view(patch, { search: { state: cancelled({ status: 'CANCELLED' }), speaks: false } }).sentence ?? '').not.toMatch(/Dogovor je otkazan/);
+      expect(view(patch, { search: { state: cancelled({ status: 'CANCELLED' }), speaks: false } }).notice).toBeNull();
     }
   });
 });
@@ -201,7 +198,7 @@ describe('the search closed by the owner', () => {
   it('is said once, word for word, and a closed search is never "Sva mesta su dogovorena"', () => {
     const early = view({ stanje: 'POPUNJENA', pokrivenost: HALF }, { remainingClosed: true });
     expect(early.note).toBe('1 od 2 dogovoreno · preostala potraga je zatvorena');
-    expect(early.sentence).toBeNull();
+    expect(early.line).toBeNull();
     expect(word(early)).toBe('Dogovoren · 1 od 2');
     expect(early.primary).toMatchObject({ kind: 'AGREEMENTS' });
     for (const stanje of ['OBJAVLJENA', 'CEKA_PRIJAVE', 'DELIMICNO_POPUNJENA'] as const) {
@@ -215,6 +212,7 @@ describe('the search closed by the owner', () => {
     const closed = view({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: HALF, brojPrijava: 2, brojPrijavaZaIzbor: 2 }, { remainingClosed: true });
     expect(word(closed)).toBe('Dogovoren · 1 od 2');
     expect(closed.primary).toMatchObject({ kind: 'AGREEMENTS' });
+    expect(closed.line).toBeNull();
   });
 });
 
@@ -225,7 +223,7 @@ describe('a draft the publication gate holds back', () => {
   it.each(['LOCATION_INCOMPLETE', 'COUNTRY_NOT_READY'])('%s is fixed in the conversation, so the one green action opens it', code => {
     const overview = draft(held(code));
     expect(overview.primary).toEqual({ kind: 'EDIT', label: 'Otvori razgovor i dopuni' });
-    expect(overview.waits).toBe(false); expect(overview.sentence).toBeNull();
+    expect(overview.waits).toBe(false); expect(overview.line).toBeNull();
   });
 
   it.each(['PUBLIC_MEDIA_NOT_READY', 'POLICY_NOT_READY', 'POLICY_CONTENT_NOT_READY', 'EVALUATOR_UNAVAILABLE'])(
@@ -240,7 +238,7 @@ describe('a draft the publication gate holds back', () => {
 
   it.each([undefined, null, { kind: 'UNKNOWN' } as const, { kind: 'READY' } as const])('with %j the draft simply reviews', readiness => {
     const overview = draft(readiness as NeedPublicationReadiness | null | undefined);
-    expect(overview.primary).toEqual({ kind: 'REVIEW', label: 'Pregledaj za objavu' }); expect(overview.sentence).toBe(DRAFT_NEXT); expect(overview.waits).toBe(false);
+    expect(overview.primary).toEqual({ kind: 'REVIEW', label: 'Pregledaj za objavu' }); expect(overview.line).toBeNull(); expect(overview.waits).toBe(false);
   });
 });
 
@@ -255,11 +253,11 @@ describe('the green action', () => {
     expect(without.primary).toBeNull(); expect(without.rows.agreements).toBe(false);
   });
 
-  it('is never offered for a task that ended or has nothing to wait for: the sentence says what it waits for instead', () => {
+  it('is never offered for a task that ended or has nothing to wait for: the chip or the line says where it stands instead', () => {
     for (const patch of [{ stanje: 'ZATVORENA' as const, kraj: 'COMPLETED', pokrivenost: FULL }, { stanje: 'ZATVORENA' as const, kraj: 'CANCELLED' },
       { stanje: 'ZATVORENA' as const, kraj: 'EXPIRED' }, { stanje: 'OBJAVLJENA' as const }]) {
       const overview = view(patch);
-      expect(overview.primary).toBeNull(); expect(overview.sentence).toBeTruthy();
+      expect(overview.primary).toBeNull(); expect(overview.chip || overview.line).toBeTruthy();
     }
   });
 });

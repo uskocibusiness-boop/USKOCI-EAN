@@ -2,6 +2,7 @@ import type { DogovorProjekcija } from '../../contracts/projections';
 import type { WorkerCalendarEvent } from '../../contracts/workerCalendar';
 import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
+import { inicijali } from '../../lib/inicijali';
 import { raspon, vreme } from '../../lib/vreme';
 import { overlapsInterval } from './calendarPresentation';
 import { serbianClock, serbianDayOf, serbianDayRange } from './serbianDays';
@@ -44,6 +45,9 @@ export type AgendaItem = Readonly<{
   amount: string | null;
   /** The other person's name, when known. */
   person: string | null;
+  /** The other person's public profile id (the one a photo is read by) and the letters that stand in for the photo; null when not said. */
+  personProfileId: string | null;
+  personInitials: string | null;
   /** Where, or '' when the Dogovor does not say. */
   place: string;
   /** A finished Dogovor that waits for my rating (the server's own flag, as the Dogovori list reads it). */
@@ -71,7 +75,10 @@ export function agendaFacts(agreement: AgendaAgreement) {
   const other = agreement.ucesnici?.find(person => !person.viSte);
   const title = typeof agreement.naslov === 'string' ? agreement.naslov.trim().replace(/\s+/g, ' ') : '';
   const place = agreement.rezim === 'DALJINSKI' ? 'Na daljinu' : agreement.putanjaTekst ?? '';
-  return { title: title || null, amount: agreement.cena?.prikaz ?? '', person: other?.ime?.trim() || null, place };
+  const person = other?.ime?.trim() || null;
+  return { title: title || null, amount: agreement.cena?.prikaz ?? '', person, place,
+    // The face is the other person's, read by their PUBLIC profile id (never the account id); the letters are the read's own, or the name's.
+    personProfileId: other?.profilId ?? null, personInitials: other?.inicijali?.trim() || inicijali(person) };
 }
 /**
  * The Dogovori the list may add: placed states, never cancelled, and never my own confirmed work, which only the
@@ -101,7 +108,8 @@ export function agendaItems({ events, agreements, from, to }: {
     return { key: `event:${event.eventId}`, agreementId: event.agreementId, startsAt: event.startsAt, endsAt: event.endsAt,
       state: match ? match.stanje as AgendaState : 'CONFIRMED', role: ROLE_WORKER, title: known?.title ?? null,
       // A waiting row without a title is not called confirmed (round-5c): only a confirmed term takes that name.
-      fallbackTitle: match && match.stanje !== 'CONFIRMED' ? LIST_FALLBACK_TITLE : SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null, place: known?.place ?? '',
+      fallbackTitle: match && match.stanje !== 'CONFIRMED' ? LIST_FALLBACK_TITLE : SCHEDULE_FALLBACK_TITLE, amount: known ? known.amount : null, person: known?.person ?? null,
+      personProfileId: known?.personProfileId ?? null, personInitials: known?.personInitials ?? null, place: known?.place ?? '',
       ratingDue: false, problem: match?.problemOtvoren === true };
   });
   if (agreements) {
@@ -112,7 +120,8 @@ export function agendaItems({ events, agreements, from, to }: {
       const known = agendaFacts(agreement);
       items.push({ key: `agreement:${agreement.id}`, agreementId: agreement.id, startsAt: window.pocetak, endsAt: window.kraj,
         state: agreement.stanje as AgendaState, role: agendaRole(agreement),
-        title: known.title, fallbackTitle: LIST_FALLBACK_TITLE, amount: known.amount, person: known.person, place: known.place,
+        title: known.title, fallbackTitle: LIST_FALLBACK_TITLE, amount: known.amount, person: known.person,
+        personProfileId: known.personProfileId, personInitials: known.personInitials, place: known.place,
         ratingDue: agreement.stanje === 'COMPLETED' && agreement.ocenaMoguca === true,
         problem: (ACTIVE as readonly string[]).includes(agreement.stanje) && agreement.problemOtvoren === true });
     }

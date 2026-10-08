@@ -22,6 +22,9 @@ jest.mock('expo-router', () => ({ useLocalSearchParams: () => ({ profileId: '222
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Photo', mediaAssetId: (value: string) => value.split('/')[2] }));
+// The letters that stand in the circle come from the profile's own name (a read of the requester profile, never of the stored photo).
+const mockWho = jest.fn();
+jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read: (...a: unknown[]) => mockWho(...a) } }));
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsAction: 'Action' }));
 import Route from '../../app/(app)/profil/fotografija';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
@@ -35,10 +38,13 @@ const profile = (avatarPath: string | null = null) => ({ profileId: PROFILE, acc
 let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<Route />); }); };
 const action = (label: string) => tree.root.findByProps({ label }).props;
+// The bar's "ⓘ" is an element in the screen's `right`: it is not text, and a React element cannot be stringified.
+const dump = () => JSON.stringify(tree.toJSON(), (key, value) => key === 'right' ? '[right]' : value);
 beforeEach(() => {
   jest.clearAllMocks(); mockJournal.clear();
   for (const m of [mockRead, mockReceipt, mockUpload, mockSet, mockPick, mockApply, mockDiscard]) m.mockReset();
   mockSession = { user: { id: OWNER }, accountRevision: 1 }; mockFocused = true; mockSelectionMessage = 'Nije pripremljeno.'; mockClear.mockReset();
+  mockWho.mockReset().mockResolvedValue(null);
   mockSet.mockImplementation(async (key: string, value: string) => { mockJournal.set(key, value); });
   mockRead.mockResolvedValue(ok(profile())); mockReceipt.mockResolvedValue(ok(asset()));
   mockUpload.mockResolvedValue(ok(asset())); mockPick.mockResolvedValue(photo); mockApply.mockResolvedValue(unknown());
@@ -68,7 +74,7 @@ it('retires a definitively rejected staged upload and never offers to apply it',
   await render();
   expect(mockJournal.size).toBe(0); expect(action('Izaberi iz galerije').disabled).toBe(false);
   expect(tree.root.findAllByProps({ label: 'Sačuvaj fotografiju' })).toHaveLength(0);
-  expect(JSON.stringify(tree.toJSON())).toContain('Fotografija nije dodata.');
+  expect(dump()).toContain('Fotografija nije dodata.');
   expect(mockApply).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
 });
 it('retires the staged choice without applying it and prevents a retained apply callback', async () => {
@@ -143,7 +149,7 @@ it('a denied camera leads to the phone settings and keeps the gallery it names o
 it('a picture over the size limit says so and keeps both ways to choose another', async () => {
   mockPick.mockRejectedValueOnce(new Error('size')); mockSelectionMessage = 'Izaberi fotografiju do 10 MB.'; await render();
   await act(async () => action('Izaberi iz galerije').onPress());
-  expect(JSON.stringify(tree.toJSON())).toContain('Izaberi fotografiju do 10 MB.');
+  expect(dump()).toContain('Izaberi fotografiju do 10 MB.');
   expect(tree.root.findAllByProps({ label: 'Podešavanja telefona' })).toHaveLength(0);
   expect(action('Izaberi iz galerije').disabled).toBe(false); expect(action('Fotografiši').disabled).toBe(false);
   expect(mockUpload).not.toHaveBeenCalled(); expect(mockSet).not.toHaveBeenCalled();
@@ -156,7 +162,7 @@ it('while a chosen picture is sent the screen says so, and never shows it as an 
   expect(mockJournal.size).toBe(1); expect(mockUpload).toHaveBeenCalledTimes(1);
   expect(action('Izaberi iz galerije').loading).toBe(true);
   expect(tree.root.findAllByProps({ label: 'Proveri sačuvanu fotografiju' })).toHaveLength(0);
-  expect(JSON.stringify(tree.toJSON())).toContain('Šaljemo fotografiju…');
+  expect(dump()).toContain('Šaljemo fotografiju…');
   await act(async () => finish(ok(asset())));
   expect(action('Sačuvaj fotografiju').disabled).toBe(false);
   // The staged picture carries an element as a prop, so the words are read from the text nodes, not a JSON of the tree.
@@ -185,7 +191,7 @@ it('a retried upload keeps its own button and spinner while it is sent', async (
   await act(async () => { void action('Pošalji promenu ponovo').onPress(); });
   expect(mockUpload).toHaveBeenCalledTimes(2);
   expect(action('Pošalji promenu ponovo').loading).toBe(true);
-  expect(JSON.stringify(tree.toJSON())).not.toContain('Proveri ishod pre novog izbora');
+  expect(dump()).not.toContain('Proveri ishod pre novog izbora');
   await act(async () => finish(ok(asset())));
 });
 it('while a change is unresolved nothing new can be picked and the retry is the one filled action', async () => {
@@ -195,4 +201,18 @@ it('while a change is unresolved nothing new can be picked and the retry is the 
   expect(tree.root.findAllByProps({ label: 'Fotografiši' })).toHaveLength(0);
   const filled = tree.root.findAll(node => String(node.type) === 'Action' && (node.props.kind ?? 'primary') === 'primary').map(node => node.props.label);
   expect(filled).toEqual(['Pošalji promenu ponovo']);
+});
+// J13, owner's phone 8 Oct 2026: the face is a circle with the person's letters while the picture is on its way, and the explanation of the photo is
+// behind the "ⓘ" in the bar, not a lock and a note under the buttons.
+const who = (profileId: string) => ({ accountId: OWNER, profileId, kind: 'REQUESTER', ime: 'Ana Petrović', grad: null, stanje: 'ACTIVE' });
+it("puts the letters of this profile's name in the circle when there is no picture, and the explanation behind the bar's ⓘ", async () => {
+  mockWho.mockResolvedValue(who(PROFILE)); await render();
+  expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('AP')).length).toBeGreaterThan(0);
+  const info = tree.root.findByType('Screen' as never).props.right;
+  expect(info.props.info).toEqual(['Najviše 10 MB.', 'Pre slanja uklanjamo podatke o mestu i vremenu snimanja.']);
+  expect(dump()).not.toContain('Do 10 MB');
+});
+it("the letters of another profile's name are never lent to this circle", async () => {
+  mockWho.mockResolvedValue(who('55555555-5555-4555-8555-555555555555')); await render();
+  expect(tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('AP'))).toHaveLength(0);
 });

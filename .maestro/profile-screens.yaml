@@ -57,12 +57,12 @@ appId: rs.uskoci.dev
 
 - scrollUntilVisible:
     element:
-      text: "Veštine, alat i tim"
+      text: "Radni profil"
     direction: UP
     timeout: 10000
     optional: true
 - tapOn:
-    text: "Veštine, alat i tim"
+    text: "Radni profil"
     optional: true
 - takeScreenshot: 06-radni-profil
 - back

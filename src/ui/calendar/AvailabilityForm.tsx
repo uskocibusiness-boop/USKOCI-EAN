@@ -16,6 +16,7 @@ import { useConfirmSheet } from '../system/ConfirmSheet';
 import { urgentBuilt } from '../../lib/needUrgency';
 import { useReducedMotion } from '../system/motion';
 import { useTextScale } from '../system/textScale';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { CalendarField, CivilField, calendarStyles } from './CalendarControls';
 import { civilClock, civilDay, civilInstant, scheduleZone, shiftDate, showScheduleZone, weekdays, zonedParts } from './calendarPresentation';
 import { copyDay, copyTakesAway, nightContinuation } from './weekCopy';
@@ -432,6 +433,9 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   // action was never offered: Android's scroll view keeps its own accessibility delegate, and VoiceOver does not focus it).
   const canReload = !!onRefresh && !dirty;
   const reload = () => { if (canEdit() && !dirty) onRefresh?.(); };
+  // The pull spinner is for a pull only: `refreshing` still locks every edit while the saved state is read, but a read the screen
+  // starts by itself must not raise Android's white disc at the top of the list (8 Oct 2026).
+  const pull = usePullRefresh(onRefresh ? reload : undefined, refreshing);
   // The hint says when the status starts to count: at once on its own, with the other edits while there are any, or with
   // the profile in the profile conversation.
   const hint = profileDraft
@@ -465,7 +469,7 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
   </FooterIn> : null;
   return <View style={s.fill}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}
-      refreshControl={onRefresh ? <RefreshControl enabled={!dirty} refreshing={refreshing} onRefresh={reload} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>
+      refreshControl={onRefresh ? <RefreshControl enabled={!dirty} refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>
       <View style={s.group}>
         {candidateMode ? <T variant="note" tone="muted">Promene ulaze u pregled profila. Profil čuvaš jednim završnim korakom.</T> : null}
         {/* A failed read says "…pokušaj ponovo", so the way to do it stands beside it while nothing is unsaved. */}
