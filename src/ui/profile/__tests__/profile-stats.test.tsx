@@ -5,8 +5,10 @@ import type { MyWorkStats } from '../../../data/workTrustClientService';
 /**
  * "Dolazi kako je dogovoreno" on the profile (PROFILE-TRUST, R30; the third of the three figures, owner's pick of 8 Oct 2026, "Lice i
  * tri broja"): the person's own reliability, as the server returned it, as one cell of the figures' row. It is there for an account with
- * a work profile only; a percentage that does not exist yet says so and is never drawn as zero; what it is made of is said to a screen
- * reader as its hint; and it reads nothing but `rpc_my_work_stats_v1` through the service. Disposable doubles only.
+ * a work profile only; a percentage that does not exist yet is NOT DRAWN (owner's phone, 8 Oct 2026: "Još nema procenta" stood there in two
+ * big lines, out of line with the other two figures; what is not there is not drawn, and the other two stand together in the middle), and
+ * neither is it drawn as zero; what it is made of is said to a screen reader as its hint; and it reads nothing but `rpc_my_work_stats_v1`
+ * through the service. Disposable doubles only.
  */
 const PROFILE = '30000000-0000-4000-8000-000000000001';
 let mockResource: { data: MyWorkStats | null; loading: boolean; error: boolean; refresh: jest.Mock };
@@ -51,11 +53,19 @@ describe('the reliability figure', () => {
     expect(texts().join(' ')).not.toMatch(/Moja statistika|Poslate prijave|Dogovoreno|Završeno/);
   });
 
-  it('does not draw a zero for a percentage that does not exist yet: it says so in words, and says what it waits for with the minimum the server named', async () => {
+  it('draws nothing for a percentage that does not exist yet: not a zero, not "Još nema procenta", not an empty cell that takes room', async () => {
     await draw(<ReliabilityFigure state={{ kind: 'ready', stats: stats({ reliabilityState: 'TOO_FEW', reliabilityPercent: null, reliabilityMinimum: 5 }) }} />);
-    expect(texts()).toEqual(['Još nema procenta', 'dolazi kako je dogovoreno']);
-    expect(texts().join(' ')).not.toMatch(/0 ?%/);
-    expect(cell().props.accessibilityHint).toBe('Procenat se pokazuje kad bar 5 Dogovora bude završeno ili ih otkažeš ti.');
+    expect(tree.toJSON()).toBeNull();
+    await act(async () => tree.update(<ReliabilityFigure state={{ kind: 'ready', stats: stats({ reliabilityState: 'HIDDEN' as never, reliabilityPercent: null }) }} />));
+    expect(tree.toJSON()).toBeNull();
+    // A state that says "available" without a figure is not a figure either.
+    await act(async () => tree.update(<ReliabilityFigure state={{ kind: 'ready', stats: stats({ reliabilityState: 'AVAILABLE', reliabilityPercent: null }) }} />));
+    expect(tree.toJSON()).toBeNull();
+  });
+
+  it('draws a percentage of zero when the server counted zero: a figure that exists is drawn, whatever it is', async () => {
+    await draw(<ReliabilityFigure state={{ kind: 'ready', stats: stats({ reliabilityPercent: 0 }) }} />);
+    expect(texts()).toEqual(['0 %', 'dolazi kako je dogovoreno']);
   });
 
   it('is not there at all for an account without a work profile: there is no work to count, and zeros would say a thing that is not so', async () => {
@@ -63,20 +73,16 @@ describe('the reliability figure', () => {
     expect(tree.toJSON()).toBeNull();
   });
 
-  it('says it is reading, as a progress the screen reader can name, and shows no figure meanwhile', async () => {
+  // The figure that may not exist takes no room while it reads and when it could not be read: the row of figures does not jump when the answer lands
+  // (most accounts have no percentage for a long time), and a figure with nothing to say is not drawn.
+  it('takes no room while it is reading, and draws no placeholder, no progress and no figure', async () => {
     await draw(<ReliabilityFigure state={{ kind: 'loading' }} />);
-    expect(texts()).toEqual([]);
-    expect(hosts('View').find(node => node.props.accessibilityRole === 'progressbar')!.props.accessibilityLabel).toBe('Učitavanje statistike');
+    expect(tree.toJSON()).toBeNull();
   });
 
-  it('says it could not be read, with one retry in the same place, and shows no figure', async () => {
-    const retry = jest.fn();
-    await draw(<ReliabilityFigure state={{ kind: 'error', onRetry: retry }} />);
-    expect(texts()).toEqual(['Procenat trenutno nije dostupan.', 'Osveži']);
-    const button = hosts('Press').find(node => node.props.accessibilityLabel === 'Osveži procenat')!;
-    expect(button.props.accessibilityRole).toBe('button');
-    await act(async () => button.props.onPress());
-    expect(retry).toHaveBeenCalledTimes(1);
+  it('takes no room when it could not be read, and draws no error, no retry and no figure: the other two figures say what they know', async () => {
+    await draw(<ReliabilityFigure state={{ kind: 'error', onRetry: jest.fn() }} />);
+    expect(tree.toJSON()).toBeNull();
   });
 
   it('keeps the wording free of anything it cannot promise', async () => {
@@ -99,16 +105,17 @@ describe('the reading', () => {
     await expect(mockLoad!()).rejects.toThrow('WORK_STATS_READ_INVALID');
   });
 
-  it('draws the figure once it is read, the still shape while it is read, and the retry when it failed', async () => {
+  it('draws the figure once it is read, and nothing while it is read or when it failed', async () => {
     await draw(<ProfileStats />);
     expect(texts()).toContain('85 %');
     mockResource = { ...mockResource, data: null, loading: true };
     await act(async () => tree.update(<ProfileStats />));
-    expect(hosts('View').some(node => node.props.accessibilityRole === 'progressbar')).toBe(true);
+    expect(tree.toJSON()).toBeNull();
     mockResource = { ...mockResource, loading: false, error: true };
     await act(async () => tree.update(<ProfileStats />));
-    expect(texts()).toContain('Procenat trenutno nije dostupan.');
-    await act(async () => hosts('Press').find(node => node.props.accessibilityLabel === 'Osveži procenat')!.props.onPress());
-    expect(mockResource.refresh).toHaveBeenCalledTimes(1);
+    expect(tree.toJSON()).toBeNull();
+    mockResource = { ...mockResource, data: stats({ reliabilityState: 'TOO_FEW', reliabilityPercent: null }), error: false };
+    await act(async () => tree.update(<ProfileStats />));
+    expect(tree.toJSON()).toBeNull();
   });
 });

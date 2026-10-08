@@ -12,6 +12,7 @@ import { FactArt } from '../system/FactArt';
 import { FactRow } from '../system/FactRow';
 import { FlowFooter } from '../system/FlowFooter';
 import { tick } from '../system/haptics';
+import { InfoButton } from '../system/InfoButton';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
@@ -34,7 +35,8 @@ import { V2Action } from './V2Action';
 /**
  * The worker's one application to someone else's task (R13, 2026-09-25; one frame and one rhythm since 2026-10-08, composition spec 4.7,
  * template T4): the task as a header without a line, then one section for each thing the person decides, 24 apart: "Tvoja ponuda" (the
- * amount, 72 high, the figure 28), "Koliko vas dolazi" (the people), "Termin" (a row that opens the exact time) and "Poruka" (optional).
+ * amount, 72 high, the figure 28), "Koliko vas dolazi" (the people), "Kada možeš" (a row that opens the exact time; the approved draft U7) and
+ * "Poruka" (optional). What the other side sees of all this is behind the small ⓘ in the bar, not in a sentence on the page.
  * No line stands between them: the space is the divider, and the only line on the screen is the one above the foot. The review and the
  * confirmed result use the same open receipt, including the exact message. White is the reading surface; ink, fact art and the amount
  * establish hierarchy. ONE green action stays in the foot and the foot says one thing above it: what the person is about to send ("4.500 RSD
@@ -117,12 +119,21 @@ function windowText(start: string | null | undefined, end: string | null | undef
 const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 /**
+ * What the person with the task sees of an application, as the lines of the ⓘ in the bar of the form (the approved draft U7): only what the
+ * card and the sheet of the candidate show (the name and photo, the rating, the total, the people, the term, the message, and the vehicle and the
+ * tools of the application), nothing the application does not carry.
+ */
+export const WHAT_THE_OTHER_SIDE_SEES = ['Osoba koja traži pomoć vidi tvoje ime i fotografiju, ocenu, iznos, broj ljudi, termin i poruku.',
+  'Vidi i vozilo i alat iz tvoje prijave.'] as const;
+
+/**
  * The screen's frame: the bar that says whose application this is, a keyboard-safe body that scrolls, and the pinned foot. The
  * confirmation replaces a possibly long draft, so the frame of a receipt is a new one (the caller keys it): it starts at its top and
- * shows the outcome, not the old scroll position in the note.
+ * shows the outcome, not the old scroll position in the note. `info` is the form's ⓘ, in the 48 dp column every control of the bar stands in.
  */
-function ComposerFrame({ back, children, footer }: { back: () => void; children: ReactNode; footer?: ReactNode }) {
-  return <Screen kind="flow" header={<ProductHeader title="Tvoja prijava" backLabel="Nazad na zadatak" back={back} />} footer={footer}>
+function ComposerFrame({ back, children, footer, info = false }: { back: () => void; children: ReactNode; footer?: ReactNode; info?: boolean }) {
+  return <Screen kind="flow" header={<ProductHeader title="Tvoja prijava" backLabel="Nazad na zadatak" back={back}
+    right={info ? <View style={s.infoSlot}><InfoButton title="Šta vidi druga strana" lines={WHAT_THE_OTHER_SIDE_SEES} /></View> : undefined} />} footer={footer}>
     {children}
   </Screen>;
 }
@@ -400,7 +411,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
     proposed={proposedTaskTime} />;
   const noteLeft = NOTE_LIMIT - draft.note.length;
   // The sent receipt ("Etiketa odlazi") is a moment with its own way on right under it, not a form with a foot: it has no pinned footer.
-  return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer}>
+  return <ComposerFrame key={confirmed ? 'receipt' : 'form'} back={back} footer={confirmed ? undefined : footer} info={!confirmed}>
     {/* A real confirmation is the first thing on the resulting screen, not below the old form's task summary. */}
     {confirmed ? <SentReceipt fresh={!confirmedAtMount} price={shownPrice} title={readableTitle(opportunity.naslov)}
       people={count !== null ? osoba(count) : 'Proveri broj ljudi'} time={time} error={error}
@@ -446,7 +457,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
             {placesText(need.pokrivenost, 'worker').text}</T>
         </View>
       </Section>
-      <Section title="Termin">
+      <Section title="Kada možeš">
         <ListRow title={time} subtitle={exact ? `Tvoj predlog termina${proposedTaskTime ? ` · termin zadatka je ${proposedTaskTime}` : ''}` : 'Termin zadatka. Možeš da predložiš drugi.'}
           testID="composer-term" accessibilityHint="Otvara izbor tačnog termina" disabled={disabled}
           onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} last />
@@ -535,6 +546,8 @@ const s = StyleSheet.create({
   reviewBody: { gap: layout.section },
   reviewTask: { gap: sys.space.sm },
   noteAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
+  // The bar's one control stands in a 48 dp column, so the mark lines up with the arrow and with every other bar's control.
+  infoSlot: { width: layout.touch, height: layout.touch, alignItems: 'center', justifyContent: 'center' },
   // One compact offer summary stays beside Review while the keyboard is hidden.
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm, rowGap: 2 },
   summary: { flexShrink: 1, fontVariant: ['tabular-nums'] },

@@ -74,7 +74,9 @@ function OwnedBlocks() {
   const askUnblock = (item: BlockedAccount) => confirmation.ask({ title: item.displayName ? `Odblokirati ${item.displayName}?` : 'Odblokirati osobu?',
     message: 'Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije.', confirmLabel: 'Odblokiraj',
     onConfirm: () => unblock(item) });
-  return <SettingsScreen title="Blokirane osobe" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
+  // The list is read again by pulling the screen (the spinner is the pull's own), not by a button on an empty screen.
+  return <SettingsScreen title="Blokirane osobe" onBack={() => router.canGoBack() ? router.back() : router.replace('/profil')}
+    refresh={{ onRefresh: () => { if (!editor.busy && !editor.loading && !pending) refresh(); }, busy: editor.loading }}>
     <BlockedAccountsList data={editor.data} loading={editor.loading} busy={editor.busy} error={editor.error} uncertain={editor.uncertain}
       cursor={cursor} pending={pending}
       onOpen={item => router.navigate({ pathname: '/bezbednost', params: { targetAccountId: item.targetAccountId } })}

@@ -10,10 +10,9 @@ import { sys } from '../../ui/system/tokens';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { useReducedMotion } from '../../ui/system/motion';
 import { PorukaHost, poruka } from '../../ui/system/Poruka';
-import { ChromeIconButton } from '../../ui/system/ScreenChrome';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementTabs, AgreementPersonBar, isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
+import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
 import { AgreementOverview } from '../../ui/agreements/AgreementOverview';
 import { ADDRESS_REQUEST_TEXT } from '../../ui/agreements/agreementContactModel';
@@ -104,7 +103,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const problemAttemptRef = useRef<string | null>(null);
   const [completionReview, setCompletionReview] = useState<CompletionReview | null>(null);
   const [completing, setCompleting] = useState(false);
-  // The "···" menu, and where the page's own sections stand so a menu entry can take the person to them.
+  // The "···" menu of the conversation (the overview has none: its actions are rows of the page, J15), and where the page's own sections
+  // stand so a menu entry can take the person to them.
   const [menuOpen, setMenuOpen] = useState(false);
   const scroller = useRef<ScrollView>(null);
   const anchors = useRef<{ problem: number | null; place: number | null }>({ problem: null, place: null });
@@ -374,7 +374,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   later.current = { sharePhone };
   /** Takes the person to a section of this page (the menu's way to the problem form and to the place). */
   const scrollToAnchor = (name: 'problem' | 'place') => {
-    // Chosen from the conversation (its bar has the same "···"): the section lives in the overview, so go there first and
+    // Chosen from the conversation (its bar has the "···"): the section lives in the overview, so go there first and
     // scroll when that section reports its place.
     if (tabRef.current !== 'pregled') { waitingAnchor.current = name; setTab('pregled'); return; }
     const y = anchors.current[name];
@@ -454,7 +454,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // The one place the state is said (round-1 critique A13); the words live beside the step card.
   const stepChange = { waits: !!changeWaits, mine: pendingChange ? pendingChange.moj : null };
   const quiet = brand ? null : agreementQuietLine({ state: dogovor.stanje, party: !!me, worker, otherName: other?.ime, change: stepChange, permissionsKnown: !!radnje });
-  // The "···" menu: the rare actions, each under the condition of its row on the page below.
+  // What can be changed or cancelled: the rows "Izmeni uslove" and "Otkaži Dogovor" of the overview, and the same entries of the conversation's menu.
   const canChange = active && !!me && !(requester && dogovor.stanje === 'AWAITING_REQUESTER');
   const toChanges = (start: 'propose' | 'cancel') => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id, start } }); };
   /** The form takes the place of the row that opens it, at the end of the page, and the page goes there once it has a place. */
@@ -476,6 +476,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   const reportNoShow = () => {
     if (formCurrent()) router.push({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: id.toLowerCase(), contextRevision: String(dogovor.verzija) } });
   };
+  // The conversation's "···" (T3c): the overview shows every one of these as a row of the page (J15), so the menu is for the person who is in Poruke.
   const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,
     phoneShared: dogovor.kontakt.mojTelefonPodeljen, accountHasNumber, hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
     problemFree: !dogovor.problemOtvoren && !report, enabled }, {
@@ -487,6 +488,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   });
   const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: stepChange,
     ownRating: dogovor.ownRating, problemOpen: dogovor.problemOtvoren, deadline });
+  // How a Dogovor goes is behind an "ⓘ" at its head, for a side of a Dogovor that is still open (J5: one sentence on the page, the rest one tap away).
+  const stepsInfo = active && me ? agreementStepsInfo({ worker }) : null;
   // The same step, said at the head of Poruke only when it is mine (review r4 rd): words, never an action.
   const waitingForMe = me ? agreementWaitsForMe({ state: dogovor.stanje, requester, change: stepChange, ownRating: dogovor.ownRating }) : null;
   // ---- a problem: the note about one that was reported (and the three ways on, R04), or the form that reports one ----
@@ -494,7 +497,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     ? <AgreementProblemNote mine={report.openedBy === accountId} openedAt={report.openedAt} narrative={report.narrative} active={active}
       keptFirst={!!problemAttempt && problemAttempt !== report.narrative} />
     : dogovor.problemOtvoren
-      ? <AgreementProblemUnknown legacy={dogovor.problemReportState === 'LEGACY_UNAVAILABLE'} active={active} disabled={!enabled}
+      ? <AgreementProblemUnknown legacy={dogovor.problemReportState === 'LEGACY_UNAVAILABLE'} disabled={!enabled}
         onRefresh={dogovor.problemReportState === 'UNAVAILABLE' ? () => void osvezi() : undefined} />
       : null;
   const problemExits = problemNote && active && me
@@ -521,7 +524,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
         waiting={waitingForMe} onOverview={() => setTab('pregled')}
-        // The same "···" as the overview's bar, so "Prijavi ili blokiraj osobu" and the rest are reachable while Poruke is shown.
+        // The conversation's own "···" (the overview has none, J15), so "Prijavi ili blokiraj osobu" and the rest are reachable while Poruke is shown.
         onMore={menuActions.length ? () => { if (ownsAccount()) setMenuOpen(true); } : undefined}
         onBack={fromInbox ? () => {
           if (renderedFormFocus !== null && formFocus.current === renderedFormFocus && ownsAccount() && activeRef.current && freshRef.current) {
@@ -538,15 +541,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           outbox, state: outboxState, photos,
           voiceScope: { accountId, accountRevision, agreementId: id, version: dogovor.verzija, isCurrent: chatCurrent },
           support: { canAct: formCurrent, navigate: action => { if (formCurrent()) { formFocus.current = null; action(); } } } }} /> : <>
-        {other ? <AgreementPersonBar person={other} back={backToAgreements}
-          right={menuActions.length ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema i otkazivanje"
-            onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />
+        {other ? <AgreementPersonBar person={other} back={backToAgreements} />
           : <ProductHeader back={backToAgreements} title="Dogovor" />}
         <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
         <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
-          <AgreementOverview agreement={dogovor} step={nextStep} party={!!me} enabled={enabled} concealed={resumeRequired} accountHasNumber={accountHasNumber}
-            steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, deadlineIso: dogovor.rokPotvrdeIso, problemOpen: dogovor.problemOtvoren,
-              cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
+          <AgreementOverview agreement={dogovor} step={nextStep} info={stepsInfo} party={!!me} enabled={enabled} concealed={resumeRequired} accountHasNumber={accountHasNumber}
+            steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
             headExtra={<>
               {active && me && !radnje ? <View style={s.stack}>
                 <T variant="note" tone="muted">Ne možemo da proverimo da li možeš da završiš zadatak. Osveži Dogovor.</T>
@@ -570,7 +570,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
               // done, the requester confirms or reports a problem (owner decision 2026-09-21), so nothing is left to change for them; a finished
               // or cancelled Dogovor has nothing left to change or cancel (emulator sweep, 2026-09-23).
               proposeTerm: needsTerm ? () => toChanges('propose') : undefined,
-              changeTerms: canChange ? () => toChanges('propose') : undefined,
               togglePhone: () => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); },
               openMessages, requestAddress,
               openTask,
@@ -578,7 +577,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
                 const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
                 router.push({ pathname: '/moje-prijave', params: { prijavaId } });
               } : undefined,
-              openChange: canChange ? () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); } : undefined,
+              // The rows of the actions (J15) open the form they name, as the conversation's menu does; the hub is for answering a proposal.
+              openChange: canChange ? () => toChanges('propose') : undefined,
+              openCancel: canChange ? () => toChanges('cancel') : undefined,
               openProblem: active && me && !problemNote && !problemOpen ? openProblemForm : undefined,
               openSafety: me && other ? () => { if (formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); } : undefined,
               placeLayout: event => { anchors.current.place = event.nativeEvent.layout.y; flushAnchor('place'); },

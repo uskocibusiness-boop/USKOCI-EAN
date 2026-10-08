@@ -3,6 +3,8 @@ import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',K='44444444-4444-4444-8444-444444444444';
 let mockAccount=A,mockRevision=1,mockFocused=true,mockParams:{conversationId?:string}={conversationId:C};
 let mockRealAvailability=false,mockRealManual=false,mockFontScale=1;
+// ONE NAME (owner, 8 Oct 2026): the profile is saved under the ACCOUNT's name; the hook is mocked (the real one reads the server). No name by default.
+let mockAccountName:{state:string;name?:string|null}={state:'ready',name:null};
 const mockListeners=new Set<(s:string)=>void>();
 const mockBackHandlers=new Set<()=>boolean>();
 const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
@@ -22,6 +24,7 @@ jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>true}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchParams:()=>mockParams,useFocusEffect:(fn:()=>void)=>require('react').useEffect(()=>mockFocused?fn():undefined,[fn,mockFocused])}));
 jest.mock('../../store/sesija',()=>({useSesija:()=>({user:{id:mockAccount},accountRevision:mockRevision}),sesijaSada:()=>({user:{id:mockAccount},accountRevision:mockRevision})}));
 jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
+jest.mock('../../ui/profile/useAccountName',()=>({useAccountName:()=>mockAccountName}));
 jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;}}));
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
@@ -65,7 +68,7 @@ const click=async(label:string)=>{await act(async()=>{action(label).props.onPres
 const sheets=()=>tree.root.findAllByType(ConfirmSheet);
 const answer=async(testID:'confirm-sheet-confirm'|'confirm-sheet-cancel')=>{await act(async()=>{tree.root.findByType(ConfirmSheet).findByProps({testID}).props.onPress();});};
 beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
- mockRealAvailability=false;mockRealManual=false;mockFontScale=1;mockBackHandlers.clear();
+ mockRealAvailability=false;mockRealManual=false;mockFontScale=1;mockAccountName={state:'ready',name:null};mockBackHandlers.clear();
  mockRouter.canGoBack.mockReturnValue(true);
  mockJournal.load.mockImplementation(async()=>mockStored);mockJournal.save.mockImplementation(async(i:unknown)=>{mockStored=i;});mockJournal.clear.mockImplementation(async()=>{mockStored=null;});
  mockApi.read.mockResolvedValue(ok(snapshot()));mockApi.open.mockResolvedValue(ok(snapshot()));mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery(),clientRequestId:key}));
@@ -200,7 +203,7 @@ it('a late departed turn and retained Back cannot update a reincarnated account'
  await act(async()=>{mockAccount=A;mockRevision++;tree.update(<Screen/>);});await act(async()=>oldBack());
  expect(mockRouter.back).toHaveBeenCalledTimes(1);expect(mockJournal.clear).not.toHaveBeenCalled();
 });
-const reviewed=()=>({...snapshot(),review:{reviewId:K,revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true}});
+const reviewed=()=>({...snapshot(),review:{reviewId:K,revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true,missingRequired:[]}});
 const enterPanel=async(panel:string)=>{
  if(panel==='review'){
   mockApi.prepare.mockResolvedValue(ok({}));mockApi.read.mockResolvedValue(ok(reviewed()));
@@ -233,7 +236,7 @@ it.each(['toolbar','hardware'])('%s manual Back asks before discarding, Continue
 });
 it.each(['toolbar','hardware'])('%s clean manual Back returns directly, including an edit reverted to its original value',async entry=>{
  mockRealManual=true;await render();await enterPanel('manual');
- editManual('Ime na profilu','Ana');editManual('Ime na profilu','');
+ editManual('O meni','Ana');editManual('O meni','');
  await manualBack(entry);expect(sheets()).toHaveLength(0);expect(shell()).toBeTruthy();
  expect(mockRouter.back).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
 });

@@ -24,7 +24,9 @@ export function fixedRange(startsAt: unknown, endsAt: unknown): string | undefin
 }
 
 /** What the card shows: public facts only, each already in the words the card draws. */
-export type Summary = { title: string | null; zone: string; schedule?: string; value: TaskValue | null; people: string | null };
+export type Summary = { title: string | null; zone: string; schedule?: string; value: TaskValue | null; people: string | null;
+  /** How many people, as a number: the card says how many only when it is more than one. */
+  peopleCount?: number | null };
 type SummaryFact = Pick<AiNeedV2Fact, 'key' | 'value' | 'privacyClass' | 'status'>;
 
 export function publicSummary(facts: readonly SummaryFact[]): Summary {
@@ -44,5 +46,5 @@ export function publicSummary(facts: readonly SummaryFact[]): Summary {
     // An amount with what it buys, or "Tražim ponude" as a quiet word. A price not reached yet is no slot at all.
     value: mode === 'OFFERS' ? { kind: 'offers' }
       : money ? { kind: 'amount', amount: money, basis: basis === 'TOTAL' ? 'ukupno' : basis === 'PER_PERSON' ? 'po osobi' : null } : null,
-    people: typeof people === 'number' ? osoba(people) : null };
+    people: typeof people === 'number' ? osoba(people) : null, peopleCount: typeof people === 'number' ? people : null };
 }

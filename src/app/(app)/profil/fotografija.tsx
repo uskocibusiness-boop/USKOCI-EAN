@@ -3,12 +3,16 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mediaClientService, type MediaAsset, type ProfileAvatar } from '../../../data/mediaClientService';
 import { PHOTO_PERMISSION_MESSAGE, pickPreparedPhoto, photoSelectionMessage, type PreparedPhoto, type PhotoSource } from '../../../features/media/nativePhotoPicker';
+import { ownProfileClientService } from '../../../data/ownProfileClientService';
+import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { inicijali } from '../../../lib/inicijali';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { failure, record, uuid } from '../../../data/serverReceipt';
 import type { Ishod } from '../../../data/ports';
 import { mediaAssetId } from '../../../ui/media/AuthorizedPhoto';
+import { ownPhotoCache } from '../../../ui/media/ownPhotoCache';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { ProfilePhotoEditor, type ProfilePhotoMode, type ProfilePhotoRunning, type ProfilePhotoStage } from '../../../ui/profile/ProfilePhotoPresentation';
 
@@ -18,6 +22,8 @@ type Running = ProfilePhotoRunning;
 type Intent = { phase: 'UPLOAD' | 'APPLY' | 'CLEAR' | 'DISCARD'; requestId: string | null; assetId: string | null; expectedPath: string | null };
 type Snapshot = { profile: ProfileAvatar; asset: MediaAsset | null; intent: Intent | null };
 const changed = () => failure('MEDIA_SCOPE_CHANGED', 'Ponovo otvori fotografiju za trenutni profil.');
+/** A saved change of the photograph makes what the app remembers of the old one (`ownPhotoCache`) of no use, whether or not this screen is still in front when the answer comes. */
+const saved = <T extends Ishod<unknown>>(result: T): T => { if (result.ok) ownPhotoCache.forget(); return result; };
 function decodeIntent(value: string | null): Intent | null {
   if (value === null) return null;
   const v = record(JSON.parse(value));
@@ -47,6 +53,10 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
   // Presentation only: the chosen picture is journaled and on its way, so the circle can say so while the spinner runs.
   const [sending, setSending] = useState(false);
   const confirm = useConfirmSheet();
+  // The letters that stand in the circle while the picture is on its way (J13): the name of the profile this screen is about. A read that
+  // fails, or a name that belongs to another profile, says nothing, and the circle draws a person.
+  const who = useFocusedResource(useCallback(() => ownProfileClientService.read(accountId ?? '', 'narucilac'), [accountId]));
+  const initials = who.data && who.data.profileId === profileId ? inicijali(who.data.ime) : null;
   const owns = useCallback(() => !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision,
     [accountId, accountRevision]);
   useFocusEffect(useCallback(() => { const token = {}; focus.current = token; navigating.current = false; setPickError(null);
@@ -76,6 +86,8 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
       const resolved = intent.current?.phase === 'CLEAR' ? profile.podatak.avatarPath === null
         : discarded || intent.current?.phase === 'APPLY' && asset?.state === 'READY' && profile.podatak.avatarPath === asset.ref;
       if (resolved || (intent.current?.phase === 'UPLOAD' && asset && (!asset.selected || asset.state === 'FAILED'))) {
+        // A change whose outcome was not known has now been confirmed: the old photograph is no longer the one to remember.
+        if (resolved && !discarded) ownPhotoCache.forget();
         await AsyncStorage.removeItem(key); if (!current()) return changed();
         intent.current = null; bytes.current = null; asset = null;
         setNotice(discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
@@ -136,7 +148,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     const next: Intent = { phase: 'APPLY', requestId: candidate.clientRequestId, assetId: candidate.assetId, expectedPath: snapshot.profile.avatarPath };
     await track('APPLY', () => editor.save(async () => {
       if (!(await persist(next))) return changed();
-      const result = await mediaClientService.applyAvatar({ profileId, assetId: candidate.assetId, expectedAvatarPath: next.expectedPath });
+      const result = saved(await mediaClientService.applyAvatar({ profileId, assetId: candidate.assetId, expectedAvatarPath: next.expectedPath }));
       if (!current()) return changed(); return result.ok ? finishCommand() : result;
     }));
   };
@@ -145,7 +157,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     const next: Intent = { phase: 'CLEAR', requestId: null, assetId: null, expectedPath: snapshot.profile.avatarPath };
     await track('CLEAR', () => editor.save(async () => {
       if (!(await persist(next))) return changed();
-      const result = await mediaClientService.clearAvatar({ profileId, expectedAvatarPath: next.expectedPath });
+      const result = saved(await mediaClientService.clearAvatar({ profileId, expectedAvatarPath: next.expectedPath }));
       if (!current()) return changed(); return result.ok ? finishCommand() : result;
     }));
   };
@@ -164,11 +176,13 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     await track('RETRY', () => editor.save(async () => {
       if (command.phase === 'UPLOAD') return bytes.current && readAttempted.current ? upload(command, bytes.current) : read();
       const result = command.phase === 'APPLY' && command.assetId
-        ? await mediaClientService.applyAvatar({ profileId, assetId: command.assetId, expectedAvatarPath: command.expectedPath })
+        ? saved(await mediaClientService.applyAvatar({ profileId, assetId: command.assetId, expectedAvatarPath: command.expectedPath }))
         : command.phase === 'DISCARD' && command.assetId ? await mediaClientService.discardAvatar({ assetId: command.assetId, profileId })
-        : await mediaClientService.clearAvatar({ profileId, expectedAvatarPath: command.expectedPath });
+        : saved(await mediaClientService.clearAvatar({ profileId, expectedAvatarPath: command.expectedPath }));
       if (!current()) return changed();
       if (!result.ok && result.kod === 'MEDIA_VERSION_CONFLICT' && key) {
+        // The profile was changed from somewhere else: what is remembered of its photograph cannot be believed either.
+        ownPhotoCache.forget();
         await AsyncStorage.removeItem(key); if (!current()) return changed(); intent.current = null; bytes.current = null;
         setNotice('Profil je promenjen. Pregledaj sadašnju fotografiju pre novog izbora.'); return read();
       }
@@ -188,7 +202,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     : staged ? { kind: 'photo', assetId: staged.assetId, staged: true }
       : existing ? { kind: 'photo', assetId: existing, staged: false } : { kind: 'none' };
   const error = editor.error ?? pickError;
-  return <ProfilePhotoEditor stage={stage} notice={notice} error={error} permissionDenied={error === PHOTO_PERMISSION_MESSAGE}
+  return <ProfilePhotoEditor stage={stage} notice={notice} error={error} permissionDenied={error === PHOTO_PERMISSION_MESSAGE} initials={initials}
     // A retry in flight keeps its own pressed button and spinner (review 5b): the upload it sends resets `readAttempted`,
     // which would otherwise swap it for a grey check with no reason. Display only; retry() and the editor keep every guard.
     mode={mode} retryable={running === 'RETRY'

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Modal, ScrollView, StyleSheet, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthorizedPhoto } from './AuthorizedPhoto';
@@ -23,9 +23,13 @@ export type PagePhoto = Readonly<{ assetId: string }>;
 
 /** The actual viewport owns a page's width, including narrow layouts and split-screen resizing.
  * Every image stays on the existing contextual reader: no URL, file copy, or persistent cache. */
-export function PhotoPages({ context, photos, index, onIndex, onOpen, full = false }: {
+export function PhotoPages({ context, photos, index, onIndex, onOpen, full = false, pending, unavailable }: {
   context: PhotoReadContext; photos: readonly PagePhoto[]; index: number; onIndex: (value: number) => void;
   onOpen?: (value: number) => void; full?: boolean;
+  /** What stands in a page while its photo is read: a picture of a place for it (never a spinner, never a bare grey plate). Inline pages only. */
+  pending?: ReactNode;
+  /** What stands in a page whose photo cannot be read; the gallery that draws pages for a task uses it to leave that page out (nothing grey, nothing broken). */
+  unavailable?: (assetId: string) => ReactNode;
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const scroll = useRef<ScrollView>(null);
@@ -48,6 +52,7 @@ export function PhotoPages({ context, photos, index, onIndex, onOpen, full = fal
       {photos.map((photo, i) => {
         const picture = <AuthorizedPhoto assetId={photo.assetId} {...context} label={`Fotografija ${i + 1} od ${photos.length}`}
           contentFit={full ? 'contain' : 'cover'} style={{ width: size.width, height: size.height, aspectRatio: undefined, borderRadius: 0 }}
+          pending={full ? undefined : pending} unavailable={full ? undefined : unavailable?.(photo.assetId)}
           open={full ? undefined : { label: `Otvori fotografiju ${i + 1} od ${photos.length}`,
             hint: 'Otvara fotografiju preko celog ekrana.', onPress: () => onOpen?.(i) }} />;
         return <View key={photo.assetId} accessibilityElementsHidden={i !== index} importantForAccessibility={i === index ? 'auto' : 'no-hide-descendants'}

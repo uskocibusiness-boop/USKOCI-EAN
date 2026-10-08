@@ -1,10 +1,12 @@
 /**
- * The Zadaci list sheet's three heights as plain numbers (UX plan 2.14, section O7 and P of the visual proposal, 2026-10-07).
+ * The Zadaci list sheet's three heights as plain numbers (UX plan 2.14, section O7 and P of the visual proposal, 2026-10-07;
+ * the owner's phone of 8 Oct 2026).
  *
- * The sheet rests lowered ("mapa je glavna": only its top line over the map), at half (map and list) or full ("lista je
- * glavna": the whole list under the search pill, with a thin strip of map above it). A drag of the handle, of the list header
- * or of the list moves between them, and a tap on the handle goes to the next one. Everything below is arithmetic on measured
- * pixels, so it can be tested without a phone; the screen only hands in what it has measured.
+ * The sheet rests lowered ("mapa je glavna": only its top line over the map, and the bottom navigation is away), at half (map and
+ * list, the navigation is back) or full ("lista je glavna": the whole list directly under the search pill and its row of capsules,
+ * which stay on top; no strip of map is left between). A drag of the handle, of the list header or of the list moves between
+ * them, and a tap on the handle goes to the next one. Everything below is arithmetic on measured pixels, so it can be tested
+ * without a phone; the screen only hands in what it has measured.
  */
 
 /** The three stops, in this order: the index Gorhom's `snapPoints` use. */
@@ -43,25 +45,33 @@ export type SheetHeightsInput = {
   cardShown: boolean;
   /** How much of the sheet's room the half stop leaves free below the full one at the least. */
   margin: number;
+  /**
+   * How tall the bottom navigation is while it stands over the lower part of the screen (it comes with the half and the full stop, and
+   * lies OVER the sheet, which reaches the bottom of the screen at every height). The half stop is half of what the navigation leaves,
+   * so the map above the sheet and the list between the sheet's top and the navigation are about as tall as each other. 0 where there
+   * is no such navigation (a gallery, a test).
+   */
+  bar?: number;
 };
 
 /**
  * The sheet's three snap points: the lowest, half and full, as heights from the bottom of the body (Gorhom's own unit). Before
- * the body is measured they are the percentages the sheet can start from. The half stop is half the body, never below the lowest
- * and never as tall as the full one, so the three are always apart.
+ * the body is measured they are the percentages the sheet can start from. The half stop is half what the navigation leaves of the
+ * body, never below the lowest and never as tall as the full one, so the three are always apart.
  */
-export function snapHeights({ bodyHeight, fullTop, collapsed, hidden, cardShown, margin }: SheetHeightsInput): [number | string, number | string, number | string] {
+export function snapHeights({ bodyHeight, fullTop, collapsed, hidden, cardShown, margin, bar = 0 }: SheetHeightsInput): [number | string, number | string, number | string] {
   const low = cardShown ? hidden : collapsed;
   if (!bodyHeight) return [low, '50%', '88%'];
   const full = Math.max(3, bodyHeight - fullTop);
   const clear = Math.max(3, full - margin);
-  return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(clear, Math.round(bodyHeight / 2)))), full];
+  const half = Math.round((bodyHeight + Math.max(0, bar)) / 2);
+  return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(clear, half))), full];
 }
 
 /**
  * How tall the list's own viewport is at the full stop: the full sheet less what stays pinned above the rows (the top line, unless
- * the header scrolls with the rows, and the row of chips, which never scrolls away).
+ * the header scrolls with the rows).
  */
-export function listViewport(full: number, pinnedHeader: number, stickyHeight: number): number {
-  return Math.max(0, full - pinnedHeader - stickyHeight);
+export function listViewport(full: number, pinnedHeader: number): number {
+  return Math.max(0, full - pinnedHeader);
 }

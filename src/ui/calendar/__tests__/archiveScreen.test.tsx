@@ -171,10 +171,13 @@ describe('an archive with nothing in it, one still loading, and one that failed'
 });
 
 describe('the pull and the words', () => {
-  it('re-reads on a pull and goes back by the arrow', async () => {
+  it('re-reads on a pull, raises the spinner for that pull only, and goes back by the arrow', async () => {
     const handlers = await draw({ refreshing: true });
-    const list = tree.root.findByType('List' as React.ElementType);
-    expect(list.props.refreshing).toBe(true); expect(list.props.onRefresh).toBe(handlers.onRefresh);
+    const list = () => tree.root.findByType('List' as React.ElementType);
+    // A read the screen runs for another reason (a focus, a retry) is not a pull: on Android the spinner would sit over the list's top.
+    expect(list().props.refreshing).toBe(false);
+    await act(async () => list().props.onRefresh());
+    expect(handlers.onRefresh).toHaveBeenCalledTimes(1); expect(list().props.refreshing).toBe(true);
     await act(async () => button('Nazad').props.onPress());
     expect(handlers.onBack).toHaveBeenCalledTimes(1);
   });

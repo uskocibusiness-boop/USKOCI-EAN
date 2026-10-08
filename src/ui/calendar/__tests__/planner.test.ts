@@ -2,25 +2,27 @@ import type { DogovorProjekcija } from '../../../contracts/projections';
 import { agendaItems } from '../agenda';
 import { shiftDate } from '../calendarPresentation';
 import {
-  ATTENTION_NOTE, EMPTY_DAY, NO_TERM_WORD, PROBLEM_NOTE, ROLE_APPLICANT, applicationEntry, buildPlanner, countsText, dayMarks, dogovorEntry,
-  entriesOnDay, entryTitle, filterEntries, looseDogovorEntry, looseOnWeek, markOf, overlapNotes, taskEntry, type PlannerEntry,
+  EMPTY_DAY, PROBLEM_NOTE, buildPlanner, dogovorEntry, entriesByDay, entriesOnDay, entryTitle, looseDogovorEntry, overlapNotes,
+  startOnlyDogovorEntry, termWord, type PlannerEntry,
 } from '../planner';
 import { plannerWindow, serbianDayRange } from '../serbianDays';
-import { agreementOf as agreement, applicationOf as application, eventOf as event, fixedWindow as fixed, needOf as need, NO_POSAO, taskFacts, windowOf as span,
-  workerAgreementOf as asWorker } from './fixtures';
+import { agreementOf as agreement, eventOf as event, NO_POSAO, windowOf as span, workerAgreementOf as asWorker } from './fixtures';
 
 // Jest runs with TZ=UTC, so a day cut at the phone's midnight would differ from the Serbian one by two hours in summer.
 const window = plannerWindow('2026-09-24');
 const NOW = new Date('2026-09-24T08:00:00Z');
 
 const planner = (input: Partial<Parameters<typeof buildPlanner>[0]> = {}) =>
-  buildPlanner({ events: [], agreements: [], needs: [], applications: [], from: window.from, to: window.to, now: NOW, ...input });
+  buildPlanner({ events: [], agreements: [], from: window.from, to: window.to, now: NOW, ...input });
 const entry = (patch: Partial<PlannerEntry> = {}): PlannerEntry => ({
-  key: 'e', kind: 'dogovor', id: 'e', choosing: 0, title: 'Naslov', fallbackTitle: 'Dogovor', startsAt: '2026-09-24T08:00:00Z', endsAt: '2026-09-24T10:00:00Z',
+  key: 'e', id: 'e', title: 'Naslov', fallbackTitle: 'Dogovor', startsAt: '2026-09-24T08:00:00Z', endsAt: '2026-09-24T10:00:00Z',
   exact: true, timeWord: null, status: { key: 'task.agreed' }, waits: false, done: false, term: true, commitsMe: true, note: null, role: 'Uskačeš',
-  person: null, amount: null, place: '', ...patch,
+  person: null, personProfileId: null, personInitials: null, amount: null, place: '', proposesTerm: false, ...patch,
 });
 const keys = (entries: readonly PlannerEntry[]) => entries.map(e => e.key);
+/** A Dogovor with an accepted start and no accepted end, as the Dogovori list gives it. */
+const started = (id: string, start: string, patch: Partial<DogovorProjekcija> = {}) =>
+  agreement(id, { tacanTermin: null, prihvacenPocetak: start, vremeTekst: 'Od 24. sep · 14:00 · kraj nije potvrđen', ...patch });
 
 describe('a Dogovor and where it stands', () => {
   const item = (patch: Partial<DogovorProjekcija> = {}, at = NOW) => {
@@ -52,66 +54,58 @@ describe('a Dogovor and where it stands', () => {
   it('is work I do only where I "Uskačeš"', () => {
     expect(item().commitsMe).toBe(false);
     const mine = agendaItems({ events: [event('e', 'w', '2026-09-24T10:00:00Z', '2026-09-24T12:00:00Z')], agreements: null, from: window.from, to: window.to });
-    expect(dogovorEntry(mine[0], NOW)).toMatchObject({ commitsMe: true, role: 'Uskačeš', exact: true, kind: 'dogovor', id: 'w' });
+    expect(dogovorEntry(mine[0], NOW)).toMatchObject({ commitsMe: true, role: 'Uskačeš', exact: true, id: 'w', proposesTerm: false });
   });
-  it('without an exact window stands in the loose list under its own words, or "Termin nije potvrđen"', () => {
-    expect(looseDogovorEntry(agreement('l', { vremeTekst: '12. okt · 10:00 · kraj nije potvrđen' }), NOW))
-      .toMatchObject({ exact: false, startsAt: null, endsAt: null, timeWord: '12. okt · 10:00 · kraj nije potvrđen', term: true, kind: 'dogovor', id: 'l' });
-    expect(looseDogovorEntry(agreement('l', { vremeTekst: '   ' }), NOW).timeWord).toBe(NO_TERM_WORD);
+  it('without an exact window and without a start stands in the loose list under its own words, or under none', () => {
+    expect(looseDogovorEntry(agreement('l', { vremeTekst: 'Do 12. okt · 10:00 · početak nije potvrđen' }), NOW))
+      .toMatchObject({ exact: false, startsAt: null, endsAt: null, timeWord: 'Do 12. okt · 10:00 · početak nije potvrđen', term: true, id: 'l', key: 'loose:l' });
+    // "Termin nije dogovoren" would only say what the heading over the section says.
+    expect(looseDogovorEntry(agreement('l', { vremeTekst: 'Termin nije dogovoren' }), NOW).timeWord).toBeNull();
+    expect(looseDogovorEntry(agreement('l', { vremeTekst: '   ' }), NOW).timeWord).toBeNull();
     expect(looseDogovorEntry(agreement('l', { problemOtvoren: true }), NOW)).toMatchObject({ waits: true, note: PROBLEM_NOTE });
   });
 });
 
-describe('my own task', () => {
-  it('stands on the day of its fixed window, "Objavljen" while nobody has applied', () => {
-    expect(taskEntry(need('n1'))).toMatchObject({ kind: 'zadatak', id: 'n1', exact: true, status: { key: 'task.published' }, waits: false,
-      startsAt: '2026-09-24T08:00:00Z', endsAt: '2026-09-24T10:00:00Z', role: 'Tvoj zadatak', term: false, commitsMe: false });
+describe('a Dogovor with an accepted start and no end', () => {
+  it('stands on the Serbian day of its start with the one bound it has, and is not listed as a Dogovor without a term', () => {
+    const result = planner({ agreements: [started('s', '2026-09-24T12:00:00Z')] });
+    expect(result.loose).toEqual([]);
+    expect(entriesOnDay(result.placed, '2026-09-24')).toEqual([expect.objectContaining({
+      key: 'agreement:s', id: 's', exact: true, startsAt: '2026-09-24T12:00:00Z', endsAt: null, timeWord: null, proposesTerm: false,
+      term: true, done: false, commitsMe: false, role: 'Tvoj zadatak', status: { key: 'task.agreed' } })]);
+    expect(keys(entriesOnDay(result.placed, '2026-09-25'))).toEqual([]);
   });
-  it('is "Bira se · N" and waits for me while applications wait for a choice', () => {
-    expect(taskEntry(need('n2', { stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 }))).toMatchObject({ status: { key: 'task.choosing', detail: '3' }, waits: true, choosing: 3 });
+  it('is a moment: the last second of a Serbian day is that day\'s, midnight is the next one\'s', () => {
+    const result = planner({ agreements: [started('in', '2026-09-24T21:59:59Z'), started('out', '2026-09-24T22:00:00Z')] });
+    expect(keys(entriesOnDay(result.placed, '2026-09-24'))).toEqual(['agreement:in']);
+    expect(keys(entriesOnDay(result.placed, '2026-09-25'))).toEqual(['agreement:out']);
   });
-  it('says how far a partly filled task is, and still asks for the choice when applications wait', () => {
-    const partly = { stanje: 'DELIMICNO_POPUNJENA' as const, pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } };
-    expect(taskEntry(need('n3', partly))).toMatchObject({ status: { key: 'task.published', detail: '1 od 2' }, waits: false });
-    expect(taskEntry(need('n3', { ...partly, brojPrijavaZaIzbor: 2 }))).toMatchObject({ status: { key: 'task.choosing', detail: '2' }, waits: true });
+  it('is my work when I "Uskačeš", and waits for me when it is mine to confirm', () => {
+    const mine = planner({ agreements: [started('w', '2026-09-24T12:00:00Z', { ucesnici: asWorker('x').ucesnici })] });
+    expect(mine.placed[0]).toMatchObject({ commitsMe: true, role: 'Uskačeš' });
+    const waiting = planner({ agreements: [started('c', '2026-09-24T12:00:00Z', { stanje: 'AWAITING_REQUESTER' })] });
+    expect(waiting.placed[0]).toMatchObject({ waits: true, status: { word: 'Čeka potvrdu', tone: 'attention' } });
+    expect(planner({ agreements: [started('p', '2026-09-24T12:00:00Z', { problemOtvoren: true })] }).placed[0]).toMatchObject({ waits: true, note: PROBLEM_NOTE });
   });
-  it('is not the planner\'s while it is a draft, filled (its Dogovori are) or closed (the archive has it)', () => {
-    for (const stanje of ['NACRT', 'POPUNJENA', 'ZATVORENA'] as const) expect([stanje, taskEntry(need('n', { stanje }))]).toEqual([stanje, null]);
+  it('is one bound and no length, so it never overlaps another term', () => {
+    const result = planner({ agreements: [started('s', '2026-09-24T09:30:00Z'),
+      agreement('d', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T11:00:00Z') })] });
+    expect(keys(entriesOnDay(result.placed, '2026-09-24'))).toEqual(['agreement:d', 'agreement:s']);
+    expect(overlapNotes(entriesOnDay(result.placed, '2026-09-24')).size).toBe(0);
   });
-  it('keeps one stored bound as one bound, and never invents the other', () => {
-    expect(taskEntry(need('s', { schedule: fixed('2026-09-24T12:00:00Z', null) }))).toMatchObject({ exact: true, startsAt: '2026-09-24T12:00:00Z', endsAt: null });
-    expect(taskEntry(need('e', { schedule: fixed(null, '2026-09-24T12:00:00Z') }))).toMatchObject({ exact: true, startsAt: null, endsAt: '2026-09-24T12:00:00Z' });
+  it('stays out of the planner when its start is outside the window read, or when the Dogovor is not active', () => {
+    expect(keys(planner({ agreements: [started('far', '2026-12-10T12:00:00Z')] }).placed)).toEqual([]);
+    expect(keys(planner({ agreements: [started('far', '2026-12-10T12:00:00Z')] }).loose)).toEqual([]);
+    const over = planner({ agreements: [started('f', '2026-09-24T12:00:00Z', { stanje: 'COMPLETED' }), started('c', '2026-09-24T12:00:00Z', { stanje: 'CANCELLED' })] });
+    expect([over.placed.length, over.loose.length]).toEqual([0, 0]);
   });
-  it('has no term of its own when it is flexible, is missing its schedule, or its bounds are the wrong way round', () => {
-    const flexible = taskEntry(need('f', { schedule: { kind: 'WEEK_FLEXIBLE', startsAt: '2026-09-21T22:00:00Z', endsAt: '2026-09-27T22:00:00Z' },
-      vremeTekst: 'Fleksibilan raspon · 22. sep – 27. sep' }));
-    expect(flexible).toMatchObject({ exact: false, timeWord: 'Fleksibilan raspon · 22. sep – 27. sep', startsAt: '2026-09-21T22:00:00Z' });
-    expect(taskEntry(need('m', { schedule: undefined, vremeTekst: 'Po dogovoru' }))).toMatchObject({ exact: false, timeWord: 'Po dogovoru', startsAt: null, endsAt: null });
-    expect(taskEntry(need('r', { schedule: fixed('2026-09-24T12:00:00Z', '2026-09-24T10:00:00Z') }))).toMatchObject({ exact: false, startsAt: null, endsAt: null });
-  });
-});
-
-describe('my application', () => {
-  it('says "Prijava poslata" (a ring: it waits for someone else) and "Prijava viđena", so the row needs no mark of its own', () => {
-    expect(applicationEntry(application('a1'))).toMatchObject({ kind: 'prijava', id: 'a1', status: { word: 'Prijava poslata', shape: 'ring', tone: 'neutral' },
-      role: ROLE_APPLICANT, term: true, commitsMe: true, waits: false, exact: false, timeWord: 'Fleksibilno' });
-    expect(applicationEntry(application('a2', { stanje: 'VIEWED' }))?.status).toEqual({ word: 'Prijava viđena', shape: 'dot', tone: 'neutral' });
-  });
-  it('says "U užem izboru", and "Zadatak je izmenjen" in orange while my review is needed', () => {
-    expect(applicationEntry(application('a3', { stanje: 'SHORTLISTED' }))?.status).toEqual({ word: 'U užem izboru', shape: 'dot', tone: 'neutral' });
-    for (const patch of [{ stanje: 'STALE_REVIEW_REQUIRED' as const }, { promenjenaPotreba: true }]) {
-      expect(applicationEntry(application('a4', patch))).toMatchObject({ waits: true, status: { word: 'Zadatak je izmenjen', shape: 'dot', tone: 'attention' }, note: null });
-    }
-  });
-  it('waits for me, and says so, when the server asks for my attention', () => {
-    expect(applicationEntry(application('a5', { traziPaznju: true }))).toMatchObject({ waits: true, note: ATTENTION_NOTE });
-  });
-  it('is not the planner\'s once it is chosen (a Dogovor), withdrawn or closed (the archive)', () => {
-    for (const stanje of ['SELECTED', 'WITHDRAWN', 'CLOSED'] as const) expect([stanje, applicationEntry(application('a', { stanje }))]).toEqual([stanje, null]);
-  });
-  it('stands on a day only when the read carried the task\'s exact window', () => {
-    const withFacts = application('a6', { zadatak: taskFacts(fixed('2026-09-24T08:00:00Z', '2026-09-24T10:00:00Z')) });
-    expect(applicationEntry(withFacts)).toMatchObject({ exact: true, startsAt: '2026-09-24T08:00:00Z', timeWord: null });
+  it('is nothing to place when the read did not say, or says an unreadable start, or the Dogovor has a whole window', () => {
+    expect(startOnlyDogovorEntry(agreement('a'), NOW)).toBeNull();
+    expect(startOnlyDogovorEntry(agreement('a', { prihvacenPocetak: null }), NOW)).toBeNull();
+    expect(startOnlyDogovorEntry(agreement('a', { prihvacenPocetak: 'sutra u podne' }), NOW)).toBeNull();
+    expect(startOnlyDogovorEntry(agreement('a', { prihvacenPocetak: '2026-09-24T12:00:00Z', tacanTermin: span('2026-09-24T12:00:00Z', '2026-09-24T13:00:00Z') }), NOW)).toBeNull();
+    // The one that is not placed is the loose one: a start the read did not say is not a start.
+    expect(keys(planner({ agreements: [agreement('a', { prihvacenPocetak: 'sutra u podne' })] }).loose)).toEqual(['loose:a']);
   });
 });
 
@@ -129,12 +123,10 @@ describe('the planner places by exact instants in Serbian time', () => {
   });
   it('splits at the winter midnight (UTC+1) as well', () => {
     const w = plannerWindow('2026-12-10');
-    const result = buildPlanner({ events: [event('e1', 'w1', '2026-12-10T22:30:00Z', '2026-12-10T23:30:00Z')], agreements: [], needs: [], applications: [],
-      from: w.from, to: w.to, now: NOW });
+    const result = buildPlanner({ events: [event('e1', 'w1', '2026-12-10T22:30:00Z', '2026-12-10T23:30:00Z')], agreements: [], from: w.from, to: w.to, now: NOW });
     expect(keys(entriesOnDay(result.placed, '2026-12-10'))).toEqual(['event:e1']);
     expect(keys(entriesOnDay(result.placed, '2026-12-11'))).toEqual(['event:e1']);
-    const late = buildPlanner({ events: [event('e2', 'w2', '2026-12-10T23:00:00Z', '2026-12-10T23:30:00Z')], agreements: [], needs: [], applications: [],
-      from: w.from, to: w.to, now: NOW });
+    const late = buildPlanner({ events: [event('e2', 'w2', '2026-12-10T23:00:00Z', '2026-12-10T23:30:00Z')], agreements: [], from: w.from, to: w.to, now: NOW });
     expect(keys(entriesOnDay(late.placed, '2026-12-10'))).toEqual([]);
     expect(keys(entriesOnDay(late.placed, '2026-12-11'))).toEqual(['event:e2']);
   });
@@ -145,7 +137,7 @@ describe('the planner places by exact instants in Serbian time', () => {
       const result = buildPlanner({ events: [], agreements: [
         agreement('first', { tacanTermin: span(from, new Date(Date.parse(from) + 60_000).toISOString()) }),
         agreement('last', { tacanTermin: span(new Date(Date.parse(to) - 60_000).toISOString(), to) }),
-      ], needs: [], applications: [], from: w.from, to: w.to, now: NOW });
+      ], from: w.from, to: w.to, now: NOW });
       expect([day, keys(entriesOnDay(result.placed, day))]).toEqual([day, ['agreement:first', 'agreement:last']]);
       // The neighbours start where this day ends and end where it starts: nothing is counted twice or lost.
       expect([day, keys(entriesOnDay(result.placed, shiftDate(day, -1)))]).toEqual([day, []]);
@@ -157,35 +149,26 @@ describe('the planner places by exact instants in Serbian time', () => {
     const result = buildPlanner({ events: [], agreements: [
       agreement('repeat', { tacanTermin: span('2026-10-25T00:30:00Z', '2026-10-25T01:30:00Z') }),
       agreement('after', { tacanTermin: span('2026-10-25T23:00:00Z', '2026-10-25T23:30:00Z') }),
-    ], needs: [], applications: [], from: w.from, to: w.to, now: NOW });
+    ], from: w.from, to: w.to, now: NOW });
     expect(keys(entriesOnDay(result.placed, '2026-10-25'))).toEqual(['agreement:repeat']);
     expect(keys(entriesOnDay(result.placed, '2026-10-26'))).toEqual(['agreement:after']);
   });
-  it('places a lone start on its day and a lone end on the day it is over by (an end at midnight belongs to the day before)', () => {
-    const result = planner({ needs: [
-      need('start-in', { schedule: fixed('2026-09-24T21:59:59Z', null) }), need('start-out', { schedule: fixed('2026-09-24T22:00:00Z', null) }),
-      need('end-in', { schedule: fixed(null, '2026-09-24T22:00:00Z') }), need('end-out', { schedule: fixed(null, '2026-09-24T22:00:01Z') }),
-    ] });
-    expect(keys(entriesOnDay(result.placed, '2026-09-24')).sort()).toEqual(['need:end-in', 'need:start-in']);
-    expect(keys(entriesOnDay(result.placed, '2026-09-25')).sort()).toEqual(['need:end-out', 'need:start-out']);
-  });
-  it('orders a day by start, my tasks and applications among the Dogovori', () => {
+  it('orders a day by start, whatever read a Dogovor came from', () => {
     const result = planner({
-      agreements: [agreement('d', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z') })],
-      needs: [need('n', { schedule: fixed('2026-09-24T07:00:00Z', '2026-09-24T08:00:00Z') })],
-      applications: [application('a', { zadatak: taskFacts(fixed('2026-09-24T08:30:00Z', '2026-09-24T09:30:00Z')) })],
+      events: [event('e', 'w', '2026-09-24T07:00:00Z', '2026-09-24T08:00:00Z')],
+      agreements: [agreement('d', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z') }), started('s', '2026-09-24T08:30:00Z')],
     });
-    expect(keys(entriesOnDay(result.placed, '2026-09-24'))).toEqual(['need:n', 'application:a', 'agreement:d']);
+    expect(keys(entriesOnDay(result.placed, '2026-09-24'))).toEqual(['event:e', 'agreement:s', 'agreement:d']);
   });
-  it('leaves out what lies outside the window, and lists what has no exact term instead of placing it', () => {
+  it('leaves out what lies outside the window, and lists what has no accepted time instead of placing it', () => {
     const result = planner({
-      agreements: [agreement('far', { tacanTermin: span('2026-12-10T09:00:00Z', '2026-12-10T10:00:00Z') }), agreement('loose', { tacanTermin: null })],
-      needs: [need('far-task', { schedule: fixed('2026-12-10T09:00:00Z', '2026-12-10T10:00:00Z') }), need('flex', { schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } })],
-      applications: [application('text-only')],
+      agreements: [agreement('far', { tacanTermin: span('2026-12-10T09:00:00Z', '2026-12-10T10:00:00Z') }), agreement('loose', { tacanTermin: null, prihvacenPocetak: null })],
     });
     expect(keys(result.placed)).toEqual([]);
-    expect(keys(result.loose)).toEqual(['loose:loose', 'need:flex']);
-    expect(keys(result.pending)).toEqual(['application:text-only']);
+    expect(keys(result.loose)).toEqual(['loose:loose']);
+  });
+  it('lists the Dogovori without a term in the order the list gave them', () => {
+    expect(keys(planner({ agreements: [agreement('b'), agreement('a'), agreement('c')] }).loose)).toEqual(['loose:b', 'loose:a', 'loose:c']);
   });
   it('does not list a Dogovor as loose that the schedule already places, or while the list is silent about its term', () => {
     const own = asWorker('mine', { tacanTermin: null });
@@ -193,67 +176,101 @@ describe('the planner places by exact instants in Serbian time', () => {
     expect(keys(planner({ agreements: [agreement('unsaid', { tacanTermin: undefined }), agreement('loose', { tacanTermin: null })] }).loose)).toEqual([]);
     expect(keys(planner({ agreements: null }).loose)).toEqual([]);
   });
-  it('never lists a cancelled or finished Dogovor without a term, or a draft, filled or closed task, or an answered application', () => {
-    const result = planner({
-      agreements: [agreement('c', { stanje: 'CANCELLED' }), agreement('f', { stanje: 'COMPLETED' })],
-      needs: [need('d', { stanje: 'NACRT' }), need('p', { stanje: 'POPUNJENA' }), need('z', { stanje: 'ZATVORENA' })],
-      applications: [application('s', { stanje: 'SELECTED' }), application('w', { stanje: 'WITHDRAWN' }), application('c', { stanje: 'CLOSED' })],
-    });
-    expect([result.placed, result.loose, result.pending].map(list => list.length)).toEqual([0, 0, 0]);
+  it('never lists a cancelled or finished Dogovor without a term', () => {
+    const result = planner({ agreements: [agreement('c', { stanje: 'CANCELLED' }), agreement('f', { stanje: 'COMPLETED' })] });
+    expect([result.placed, result.loose].map(list => list.length)).toEqual([0, 0]);
   });
 });
 
-describe('the "Bez tačnog termina" list of a week', () => {
-  const week = { from: serbianDayRange('2026-09-21').from, to: serbianDayRange('2026-09-27').to };
-  const built = planner({
-    agreements: [agreement('d', { tacanTermin: null })],
-    needs: [
-      need('this', { schedule: { kind: 'WEEK_FLEXIBLE', startsAt: '2026-09-20T22:00:00Z', endsAt: '2026-09-27T22:00:00Z' } }),
-      need('next', { schedule: { kind: 'WEEK_FLEXIBLE', startsAt: '2026-09-27T22:00:00Z', endsAt: '2026-10-04T22:00:00Z' } }),
-      need('open-end', { schedule: { kind: 'FLEXIBLE', startsAt: '2026-09-23T22:00:00Z', endsAt: null } }),
-      need('open-start', { schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-09-20T22:00:00Z' } }),
-      need('anytime', { schedule: { kind: 'REMOTE_ANYTIME', startsAt: null, endsAt: null } }),
-    ],
+describe('"Predloži termin", asked by the rule Početna asks it by', () => {
+  const loose = (patch: Partial<DogovorProjekcija> = {}) => looseDogovorEntry(agreement('l', { prihvacenPocetak: null, ...patch }), NOW);
+  it('is offered for an agreed Dogovor that has no accepted start, no window and no change waiting', () => {
+    expect(loose().proposesTerm).toBe(true);
+    // Whether it is mine or the other side's does not matter: either side may propose.
+    expect(looseDogovorEntry(asWorker('l', { prihvacenPocetak: null }), NOW).proposesTerm).toBe(true);
   });
-  it('holds what has no range and what reaches into the week, and not a range of another week', () => {
-    expect(keys(looseOnWeek(built, week, 'all'))).toEqual(['loose:d', 'need:this', 'need:open-end', 'need:anytime']);
+  it('is not offered while a change waits for an answer, while the Dogovor waits for a confirmation, or when the read did not say', () => {
+    expect(loose({ izmenaCeka: { predlogId: 'p', mojPredlog: true } }).proposesTerm).toBe(false);
+    expect(loose({ stanje: 'AWAITING_REQUESTER' }).proposesTerm).toBe(false);
+    expect(looseDogovorEntry(agreement('l'), NOW).proposesTerm).toBe(false);
   });
-  it('follows the chip', () => {
-    expect(keys(looseOnWeek(built, week, 'dogovor'))).toEqual(['loose:d']);
-    expect(keys(looseOnWeek(built, week, 'zadatak'))).toEqual(['need:this', 'need:open-end', 'need:anytime']);
-    expect(looseOnWeek(built, week, 'prijava')).toEqual([]);
+  it('is never a command of a Dogovor that stands on a day', () => {
+    expect(planner({ agreements: [started('s', '2026-09-24T12:00:00Z'), agreement('d', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z') })] })
+      .placed.map(e => e.proposesTerm)).toEqual([false, false]);
   });
 });
 
-describe('the week strip\'s marks', () => {
-  const on = (patch: Partial<PlannerEntry>) => [entry(patch)];
-  it('is an orange ring when something waits for me, over everything else on the day', () => {
-    expect(markOf([entry(), entry({ key: 'w', waits: true, kind: 'zadatak' })])).toBe('waiting');
+describe('the words a Dogovor without a term is listed by', () => {
+  it('leave out what the heading over them already says', () => {
+    for (const said of ['Termin nije dogovoren', 'Termin nije potvrđen', 'termin nije dogovoren.', '  Termin   nije dogovoren ', '', '   ', null, undefined, 7]) {
+      expect([said, termWord(said)]).toEqual([said, null]);
+    }
   });
-  it('is a green dot for a Dogovor that is not over', () => {
-    expect(markOf(on({ kind: 'dogovor' }))).toBe('active');
+  it('say "Fleksibilno" in the one word, however the task once said it', () => {
+    expect(termWord('Fleksibilan termin')).toBe('Fleksibilno');
+    expect(termWord('Fleksibilan raspon · 22. sep – 27. sep')).toBe('Fleksibilno · 22. sep – 27. sep');
+    expect(termWord('Fleksibilno')).toBe('Fleksibilno');
+    expect(termWord('fleksibilno · tokom sledeće nedelje')).toBe('Fleksibilno · tokom sledeće nedelje');
   });
-  it('is a dashed outline for my open task or application alone', () => {
-    expect(markOf(on({ kind: 'prijava' }))).toBe('open');
-    expect(markOf(on({ kind: 'zadatak', term: false }))).toBe('open');
-    expect(markOf([entry({ kind: 'prijava' }), entry({ key: 'd', kind: 'dogovor' })])).toBe('active');
+  it('write a day without the zero a phone\'s own date pattern puts in front of it', () => {
+    expect(termWord('Do 09. okt · 17:00 · početak nije potvrđen')).toBe('Do 9. okt · 17:00 · početak nije potvrđen');
+    expect(termWord('Fleksibilan raspon · 05. okt – 09. okt')).toBe('Fleksibilno · 5. okt – 9. okt');
+    expect(termWord('Do 12. okt · 10:00')).toBe('Do 12. okt · 10:00');
+    expect(termWord('Do 10. okt · 10:00')).toBe('Do 10. okt · 10:00');
   });
-  it('is a grey dot for finished work alone, and nothing for an empty day', () => {
-    expect(markOf(on({ done: true, term: false }))).toBe('finished');
-    expect(markOf([])).toBeNull();
+  it('keep every other word as it came', () => {
+    expect(termWord('Termin nije dostupan')).toBe('Termin nije dostupan');
+    expect(termWord('Do 12. okt · 10:00 · početak nije potvrđen')).toBe('Do 12. okt · 10:00 · početak nije potvrđen');
   });
-  it('marks the seven days by the chip that is on', () => {
+});
+
+describe('the Dogovori of each day of a view', () => {
+  it('lists what stands on each of the given days, a Dogovor with only a start among them, and an empty list for a day with nothing', () => {
     const days = ['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'];
     const result = planner({
       agreements: [agreement('g', { tacanTermin: span('2026-09-22T09:00:00Z', '2026-09-22T10:00:00Z') }),
-        agreement('done', { stanje: 'COMPLETED', tacanTermin: span('2026-09-23T09:00:00Z', '2026-09-23T10:00:00Z') })],
-      needs: [need('choose', { stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 2, schedule: fixed('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z') })],
-      applications: [application('mine', { zadatak: taskFacts(fixed('2026-09-25T09:00:00Z', '2026-09-25T10:00:00Z')) })],
+        agreement('done', { stanje: 'COMPLETED', tacanTermin: span('2026-09-23T09:00:00Z', '2026-09-23T10:00:00Z') }),
+        agreement('confirm', { stanje: 'AWAITING_REQUESTER', tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z') }),
+        started('from', '2026-09-25T09:00:00Z'), agreement('none', { prihvacenPocetak: null })],
     });
-    expect(dayMarks(result.placed, days, 'all')).toEqual({ '2026-09-21': null, '2026-09-22': 'active', '2026-09-23': 'finished', '2026-09-24': 'waiting',
-      '2026-09-25': 'open', '2026-09-26': null, '2026-09-27': null });
-    expect(dayMarks(result.placed, days, 'dogovor')).toMatchObject({ '2026-09-22': 'active', '2026-09-23': 'finished', '2026-09-24': null, '2026-09-25': null });
-    expect(dayMarks(result.placed, days, 'prijava')).toMatchObject({ '2026-09-22': null, '2026-09-25': 'open' });
+    const byDay = entriesByDay(result.placed, days);
+    expect(Object.keys(byDay)).toEqual(days);
+    expect(Object.fromEntries(days.map(day => [day, keys(byDay[day])]))).toEqual({ '2026-09-21': [], '2026-09-22': ['agreement:g'], '2026-09-23': ['agreement:done'],
+      '2026-09-24': ['agreement:confirm'], '2026-09-25': ['agreement:from'], '2026-09-26': [], '2026-09-27': [] });
+    expect(byDay['2026-09-24'][0]).toMatchObject({ waits: true });
+    expect(byDay['2026-09-23'][0]).toMatchObject({ done: true });
+  });
+  it('answers for a day with the same list `entriesOnDay` gives, so a day\'s dots, its name and its list can never disagree', () => {
+    const result = planner({ events: [event('e', 'w', '2026-09-24T07:00:00Z', '2026-09-24T08:00:00Z')], agreements: [started('s', '2026-09-24T08:30:00Z')] });
+    expect(entriesByDay(result.placed, ['2026-09-24'])['2026-09-24']).toEqual(entriesOnDay(result.placed, '2026-09-24'));
+  });
+});
+
+describe('the other person of a Dogovor', () => {
+  const person = (profilId: string | null, ime = 'Marko Marković', inicijali = 'MM') => [
+    { id: 'me', profilId: null, ime: 'Ti', inicijali: '', uloga: 'narucilac' as const, mesta: null, viSte: true, telefon: null },
+    { id: 'other', profilId, ime, inicijali, uloga: 'uskocer' as const, mesta: 1, viSte: false, telefon: null }];
+  it('is named with the public profile id a photo is read by and the letters that stand in for it, in every entry the planner makes', () => {
+    const result = planner({ agreements: [
+      agreement('exact', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z'), ucesnici: person('profile-1') }),
+      started('start', '2026-09-24T12:00:00Z', { ucesnici: person('profile-2', 'Ana Anić', 'AA') }),
+      agreement('loose', { prihvacenPocetak: null, ucesnici: person('profile-3', 'Jelena', '') })] });
+    expect(result.placed.map(e => [e.person, e.personProfileId, e.personInitials])).toEqual([['Marko Marković', 'profile-1', 'MM'], ['Ana Anić', 'profile-2', 'AA']]);
+    // The letters are the name's own when the read left them out.
+    expect(result.loose.map(e => [e.person, e.personProfileId, e.personInitials])).toEqual([['Jelena', 'profile-3', 'J']]);
+  });
+  it('has no photo to read when the read did not name a public profile, and no face at all without a name', () => {
+    const result = planner({ agreements: [agreement('a', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z'), ucesnici: person(null) })] });
+    expect(result.placed[0]).toMatchObject({ personProfileId: null, personInitials: 'MM' });
+    const nameless = planner({ agreements: [agreement('a', { tacanTermin: span('2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z'), ucesnici: person('p', '   ', '') })] });
+    expect(nameless.placed[0]).toMatchObject({ person: null, personInitials: null });
+  });
+  it('comes with my own work from the schedule only through the Dogovor it is the same version of', () => {
+    const own = asWorker('mine', { tacanTermin: null });
+    const placed = planner({ events: [event('e', 'mine', '2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z')], agreements: [own] }).placed[0];
+    expect(placed).toMatchObject({ person: 'Ana', personInitials: 'A' });
+    const unmatched = planner({ events: [event('e', 'elsewhere', '2026-09-24T09:00:00Z', '2026-09-24T10:00:00Z')], agreements: [own] }).placed[0];
+    expect(unmatched).toMatchObject({ person: null, personProfileId: null, personInitials: null });
   });
 });
 
@@ -261,7 +278,7 @@ describe('two terms that overlap', () => {
   const at = (key: string, from: string, to: string, patch: Partial<PlannerEntry> = {}) =>
     entry({ key, title: `Naslov ${key}`, startsAt: `2026-09-24T${from}:00Z`, endsAt: `2026-09-24T${to}:00Z`, ...patch });
   it('each name the other when one of them is work I do', () => {
-    const notes = overlapNotes([at('a', '08:00', '10:00'), at('b', '09:00', '11:00', { kind: 'prijava' })]);
+    const notes = overlapNotes([at('a', '08:00', '10:00'), at('b', '09:00', '11:00')]);
     expect(notes.get('a')).toBe('Preklapa se sa Naslov b');
     expect(notes.get('b')).toBe('Preklapa se sa Naslov a');
   });
@@ -278,8 +295,7 @@ describe('two terms that overlap', () => {
     expect(notes.get('a')).toBe('Preklapa se sa Naslov b i još 2');
     expect(notes.get('b')).toBe('Preklapa se sa Naslov a');
   });
-  it('leave out a task, a finished Dogovor and a term with only one bound', () => {
-    expect(overlapNotes([at('a', '08:00', '10:00'), at('t', '09:00', '11:00', { term: false, kind: 'zadatak' })]).size).toBe(0);
+  it('leave out a finished Dogovor and a term with only one bound', () => {
     expect(overlapNotes([at('a', '08:00', '10:00'), at('d', '09:00', '11:00', { term: false, done: true })]).size).toBe(0);
     expect(overlapNotes([at('a', '08:00', '10:00'), at('l', '09:00', '11:00', { endsAt: null })]).size).toBe(0);
   });
@@ -290,31 +306,9 @@ describe('two terms that overlap', () => {
   });
 });
 
-describe('the chips and the words under them', () => {
-  it('filter the entries by kind, and "Sve" keeps all', () => {
-    const all = [entry({ key: 'd', kind: 'dogovor' }), entry({ key: 'z', kind: 'zadatak' }), entry({ key: 'p', kind: 'prijava' })];
-    expect(keys(filterEntries(all, 'all'))).toEqual(['d', 'z', 'p']);
-    expect(keys(filterEntries(all, 'dogovor'))).toEqual(['d']);
-    expect(keys(filterEntries(all, 'zadatak'))).toEqual(['z']);
-    expect(keys(filterEntries(all, 'prijava'))).toEqual(['p']);
-  });
-  it('count each kind with the plural its noun needs', () => {
-    const many = (kind: PlannerEntry['kind'], count: number) => Array.from({ length: count }, (_, index) => entry({ key: `${kind}${index}`, kind }));
-    expect(countsText([...many('dogovor', 1), ...many('zadatak', 2), ...many('prijava', 5)])).toBe('1 Dogovor · 2 zadatka · 5 prijava');
-    expect(countsText(many('dogovor', 2))).toBe('2 Dogovora');
-    expect(countsText(many('dogovor', 11))).toBe('11 Dogovora');
-    expect(countsText(many('dogovor', 21))).toBe('21 Dogovor');
-    expect(countsText(many('zadatak', 3))).toBe('3 zadatka');
-    expect(countsText(many('zadatak', 12))).toBe('12 zadataka');
-    expect(countsText(many('zadatak', 22))).toBe('22 zadatka');
-    expect(countsText(many('prijava', 1))).toBe('1 prijava');
-    expect(countsText(many('prijava', 4))).toBe('4 prijave');
-    expect(countsText(many('prijava', 14))).toBe('14 prijava');
-    expect(countsText([])).toBe('');
-  });
-  it('say an empty day in the words of the chip, never "posao"', () => {
-    expect(Object.keys(EMPTY_DAY).sort()).toEqual(['all', 'dogovor', 'prijava', 'zadatak']);
-    expect(new Set(Object.values(EMPTY_DAY)).size).toBe(4);
-    for (const text of Object.values(EMPTY_DAY)) expect(text).not.toMatch(NO_POSAO);
+describe('an empty day', () => {
+  it('says so in one line, and never calls anything "posao"', () => {
+    expect(EMPTY_DAY).toBe('Ništa nije zakazano za ovaj dan.');
+    expect(EMPTY_DAY).not.toMatch(NO_POSAO);
   });
 });

@@ -48,11 +48,21 @@ const THREAD = [said('u1', false, 'Treba mi pomoć da prenesem orman i nekoliko 
   said('a2', true, 'Beležim: sutra posle podne, dve osobe. Da li imaš cenu na umu, ili da tražiš ponude?')];
 const FACTS = [fact('need.title', 'Prenos ormana i kutija sa trećeg sprata'), fact('need.people_needed', 2),
   fact('need.schedule_kind', 'TOMORROW_FLEXIBLE'), fact('need.price_mode', 'MY_PRICE'), fact('need.price_rsd', 5000), fact('need.price_basis', 'TOTAL')];
+/** The conversation that changes a published task ("Izmena zadatka"): the thread ends with the server's own fixed closing sentence, which the screen says as what it means here. */
+const EDIT_THREAD = [said('e1', false, 'Pomeri na petak posle podne i dodaj da treba još jedna osoba.'),
+  said('e2', true, 'Beležim: petak posle podne, dve osobe. Cenu ostavljam kakva je.'),
+  said('e3', true, 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.')];
+const EDIT_FACTS = [fact('need.title', 'Montaža police u hodniku'), fact('need.people_needed', 2), fact('need.schedule_kind', 'WEEK_FLEXIBLE'),
+  fact('need.price_mode', 'MY_PRICE'), fact('need.price_rsd', 3000), fact('need.price_basis', 'TOTAL'),
+  fact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Beograd', area: 'Vračar' } })];
+const editing = (patch: Partial<AiNeedV2Conversation> = {}): AiNeedV2Conversation => {
+  const base = conversation({ messages: EDIT_THREAD, facts: EDIT_FACTS, ...patch }); base.review.boundNeedId = 'dizajn-zadatak'; return base;
+};
 const LONG = 'Selidba kompletnog dvosobnog stana sa klavirom, dve garderobe i radnim stolom iz Novog Sada u Sremsku Kamenicu';
 
 // Review r4 ra items 4, 6, 8 and 9: no category is ever named as missing, a fixed window is written the app's one way in
 // Serbian time, the safety note stays on the compact card, and a task being changed says "Izmena".
-const DRAFTS: { title: string; summary: Summary; still: string | null; busy?: boolean; compact?: boolean; note?: string; editing?: boolean }[] = [
+const DRAFTS: { title: string; summary: Summary; still: string | null; busy?: boolean; compact?: boolean; note?: string; editing?: boolean; ended?: boolean }[] = [
   { title: 'Nacrt sa mestom i cenom', still: 'Opis', summary: { title: 'Prenos ormana i kutija sa trećeg sprata', zone: 'Novi Sad · Liman',
     schedule: 'Sutra', value: { kind: 'amount', amount: '5.000 RSD', basis: 'ukupno' }, people: '2 osobe' } },
   { title: 'Traži ponude, sve uneto', still: null, summary: { title: 'Montaža police u hodniku', zone: 'Beograd · Vračar',
@@ -68,6 +78,11 @@ const DRAFTS: { title: string; summary: Summary; still: string | null; busy?: bo
     summary: { title: 'Prevoz stvari do vikendice', zone: 'Na daljinu', value: { kind: 'offers' }, people: '2 osobe' } },
   { title: 'Izmena objavljenog zadatka', still: null, editing: true, summary: { title: 'Montaža police u hodniku', zone: 'Beograd · Vračar',
     schedule: 'Ove nedelje', value: { kind: 'amount', amount: '3.000 RSD', basis: 'ukupno' }, people: '1 osoba' } },
+  // How many people is said only when it is more than one, in words ("Treba 3 osobe"), never as "0/3".
+  { title: 'Treba troje, tražim ponude', still: 'Opis', summary: { title: 'Pomoć oko selidbe', zone: 'Novi Sad · Novo naselje', schedule: '14. okt · 09:00–13:00',
+    value: { kind: 'offers' }, people: '3 osobe', peopleCount: 3 } },
+  { title: 'Razgovor je završen: činjenice kao redovi, bez dugmeta', still: null, ended: true, summary: { title: 'Montaža police u hodniku', zone: 'Beograd · Vračar',
+    schedule: 'Ove nedelje', value: { kind: 'amount', amount: '3.000 RSD', basis: 'ukupno' }, people: '2 osobe', peopleCount: 2 } },
 ];
 
 const PROFILE: WorkerAiProfile = { displayName: 'Marko', bio: '', skills: ['Selidbe', 'Montaža nameštaja'], tools: ['Bušilica'], vehicles: ['Kombi'],
@@ -130,8 +145,22 @@ export default function DizajnAi() {
     { key: 'denied', title: 'Mikrofon nije dozvoljen', render: () => intake({ conversation: running, voice: voice(snapshot({ error: 'MIC_PERMISSION_DENIED' })) }) },
     { key: 'kept', title: 'Govor prekinut, sačuvan tekst', render: () => intake({ conversation: running,
       voice: voice(snapshot({ error: 'CAPTURE_FAILED', fallbackText: 'Moja cena je pet hiljada' })) }) },
-    { key: 'done', title: 'Završen razgovor (samo čitanje)', render: () => intake({ conversation: conversation({ status: 'COMPLETED', messages: THREAD, facts: FACTS }),
-      canEdit: false, voice: undefined, statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop }) },
+    // A conversation that is over takes no more words (the owner's phone, 8 Oct 2026): no field and no microphone, and where they stood is the one green action.
+    { key: 'done', title: 'Završen razgovor (bez polja, jedno zeleno dugme)', render: () => intake({ conversation: conversation({ status: 'COMPLETED', messages: THREAD, facts: FACTS }),
+      canReview: true, canEdit: false, voice: undefined, statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop }) },
+    { key: 'done-large', title: 'Završen razgovor, veliki tekst', render: () => <LayoutClassOverride.Provider value={LARGE_LAYOUT}>
+      {intake({ conversation: conversation({ status: 'COMPLETED', messages: THREAD, facts: FACTS }), canReview: true, canEdit: false, voice: undefined,
+        statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop })}</LayoutClassOverride.Provider> },
+    { key: 'abandoned', title: 'Napušten razgovor (bez polja, novi zadatak na ekranu)', render: () => intake({ conversation: conversation({ status: 'ABANDONED', messages: THREAD, facts: FACTS }),
+      canReview: true, canEdit: false, voice: undefined, statusCopy: 'Razgovor je napušten.', onNewTask: noop }) },
+    // The conversation about a task that is already published: the title says "Izmena zadatka", the review is "Pregledaj izmene", and the server's closing
+    // sentence ("Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.") is said as what it means here, since a change is not a publication.
+    { key: 'edit-thread', title: 'Izmena zadatka · razgovor', render: () => intake({ conversation: editing(), canReview: true, reviewLabel: 'Pregledaj izmene', onPhotos: noop }) },
+    { key: 'edit-done', title: 'Izmena zadatka · razgovor je završen', render: () => intake({ conversation: editing({ status: 'COMPLETED' }), canReview: true,
+      reviewLabel: 'Pregledaj izmene', canEdit: false, voice: undefined, statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop }) },
+    { key: 'edit-done-large', title: 'Izmena zadatka · završeno, veliki tekst', render: () => <LayoutClassOverride.Provider value={LARGE_LAYOUT}>
+      {intake({ conversation: editing({ status: 'COMPLETED' }), canReview: true, reviewLabel: 'Pregledaj izmene', canEdit: false, voice: undefined,
+        statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop })}</LayoutClassOverride.Provider> },
     { key: 'block', title: 'Zaustavljen zahtev (bezbednost)', render: () => intake({ conversation: conversation({ safety: 'BLOCK', messages: THREAD.slice(0, 1) }),
       canEdit: false, voice: undefined, showAbandon: true }) },
     { key: 'voice-idle', title: 'Glasovni režim · početak', render: () => <VoiceMode voice={voice()} prompt="Reci šta ti treba." answer={null} said={null}
@@ -164,8 +193,9 @@ export default function DizajnAi() {
     <ScrollView contentContainerStyle={s.content}>
       {DRAFTS.map(draft => <View key={draft.title} style={s.sample}>
         <T variant="meta" tone="muted">{draft.title}</T>
-        <DraftCard summary={draft.summary} stillNeeded={draft.still} open busy={!!draft.busy} compact={!!draft.compact}
-          canReview={!draft.busy} onReview={noop} note={draft.note ?? null} editing={!!draft.editing}
+        <DraftCard summary={draft.summary} stillNeeded={draft.still} open={!draft.ended} busy={!!draft.busy} compact={!!draft.compact}
+          canReview={!draft.busy} onReview={noop} note={draft.note ?? null} editing={!!draft.editing} ended={!!draft.ended}
+          reviewAtEnd={!draft.still && !draft.busy && !draft.ended}
           reviewLabel={draft.editing ? 'Pregledaj izmene' : 'Pregledaj zadatak'} />
       </View>)}
     </ScrollView>

@@ -1,7 +1,7 @@
 import type { AvailabilityRule, AvailabilityWindow } from '../../../contracts/workerAvailability';
-import { dayAvailability } from '../availabilityShade';
+import { availabilitySpans, dayAvailability } from '../availabilityShade';
 
-// The shade under a day number: "on this day I have said I can work", read from Dostupnost and cut by the SERBIAN day.
+// The shade behind a day of the month: "on this day I have said I can work", read from Dostupnost and cut by the SERBIAN day.
 let counter = 0;
 const rule = (weekdays: number[], startTime: string, endTime: string, patch: Partial<AvailabilityRule> = {}): AvailabilityRule =>
   ({ id: `rule-${++counter}`, weekdays, startTime, endTime, startsOn: '2026-01-01', endsOn: null, label: '', active: true, ...patch });
@@ -102,4 +102,28 @@ describe('an availability kept in another zone', () => {
 
 it('says nothing, and does not throw, for a zone that does not exist', () => {
   expect(dayAvailability({ timezone: 'Nema/Zone', rules: [rule([1], '09:00', '17:00')], windows: [] }, '2026-10-05')).toBeNull();
+  expect(availabilitySpans({ timezone: 'Nema/Zone', rules: [rule([1], '09:00', '17:00')], windows: [] }, '2026-10-05')).toEqual([]);
+});
+
+// The band beside the hours of a day: the same spans the shade of the month counts, as minutes of the Serbian clock.
+describe('the spans of a day, in minutes of its clock', () => {
+  it('are the hours the rules name, earliest first', () => {
+    expect(availabilitySpans(belgrade([rule([1], '14:00', '18:00'), rule([1], '08:00', '12:00')]), '2026-10-05')).toEqual([{ from: 480, to: 720 }, { from: 840, to: 1080 }]);
+    expect(availabilitySpans(belgrade([rule([1, 2, 3, 4, 5], '09:00:00.123456', '17:00:00')]), '2026-10-06')).toEqual([{ from: 540, to: 1020 }]);
+  });
+  it('are none for a day nothing is given on, and agree with the shade: a day has a span exactly when it has a shade', () => {
+    const week = belgrade([rule([1, 2, 3, 4, 5], '09:00', '17:00')]);
+    for (const day of ['2026-10-05', '2026-10-09', '2026-10-10', '2026-10-11']) {
+      expect([day, availabilitySpans(week, day).length > 0]).toEqual([day, dayAvailability(week, day) !== null]);
+    }
+  });
+  it('take an unavailable hour out and end a night at the end of the day, 1440, not at 00:00', () => {
+    const cut = belgrade([rule([1], '09:00', '17:00')], [window('UNAVAILABLE', '2026-10-05T10:00:00Z', '2026-10-05T11:00:00Z')]);
+    expect(availabilitySpans(cut, '2026-10-05')).toEqual([{ from: 540, to: 720 }, { from: 780, to: 1020 }]);
+    expect(availabilitySpans(belgrade([rule([5], '22:00:00', '24:00:00')]), '2026-10-09')).toEqual([{ from: 1320, to: 1440 }]);
+  });
+  it('count the part of an exception that lies on the day, in the Serbian clock, and move another zone\'s hours to where they fall', () => {
+    expect(availabilitySpans(belgrade([], [window('AVAILABLE', '2026-10-04T21:00:00Z', '2026-10-04T23:00:00Z')]), '2026-10-05')).toEqual([{ from: 0, to: 60 }]);
+    expect(availabilitySpans({ timezone: 'America/New_York', rules: [rule([1], '09:00', '17:00')], windows: [] }, '2026-10-05')).toEqual([{ from: 900, to: 1380 }]);
+  });
 });

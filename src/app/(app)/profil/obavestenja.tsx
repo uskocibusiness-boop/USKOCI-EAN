@@ -1,45 +1,33 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, StyleSheet, View } from 'react-native';
+import { BackHandler, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { INBOX_SET_LABEL } from '../../../ui/notifications/inboxCopy';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { PushPreferences } from '../../../ui/notifications/PushPreferences';
 import { useSesija, sesijaSada } from '../../../store/sesija';
-import { T } from '../../../ui/Text';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { DetailTopBar } from '../../../ui/system/DetailTopBar';
-import { layout } from '../../../ui/system/layout';
-import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
-// The two sets carry the names the inbox gives its two filters ("Zadaci", "Moje prijave"): one name, one set, everywhere.
-const SETS = [{ key: 'REQUESTER', label: INBOX_SET_LABEL.REQUESTER }, { key: 'WORKER', label: INBOX_SET_LABEL.WORKER }] as const;
-type SetKey = typeof SETS[number]['key'];
 type ActionScope = { accountId: string; revision: number; leaving: boolean };
-const CAPTION: Record<SetKey, string> = {
- REQUESTER: 'Obaveštenja o zadacima koje objavljuješ.',
- WORKER: 'Novi zadaci, tvoje prijave i Dogovori.',
-};
-const WAIT_FOR_WRITE = 'Sačekaj da se čuvanje završi.';
+
+/**
+ * The notification settings: ONE screen (the approved blueprint of 8 Oct 2026, P4). It used to have two tabs, "Moji zadaci" and "Moje
+ * prijave", one for each of the two sets of settings the server keeps for the account, and every global block (the phone, the app's own
+ * list, the quiet hours) stood in both. `PushPreferences` now reads and writes both sets, so there is nothing to choose here: no tab, no
+ * caption, no set to remember. The inbox still hands over the set it was filtered to (`skup`); it is not read, since every set is on the screen.
+ *
+ * The bar says "Podešavanja": the screen is opened from Profil and from the gear of Obaveštenja, and the name it had ("Podešavanja
+ * obaveštenja") wrapped to two lines on the owner's phone. Nothing here owns the data: this route owns only the leaving.
+ */
 export default function PushSettings() {
  const { user, accountRevision } = useSesija(); const accountId = user?.id;
- // The server keeps two sets of notification settings for one account: one for the tasks it
- // publishes and one for the work it applies to. Which set this screen edits used to follow the
- // mode the whole app was in; it is now chosen here, on the screen that edits it.
- // The inbox filtered to one set opens this screen on that set (`skup`); Profil names none, and anything else is ignored.
- const { skup } = useLocalSearchParams<{ skup?: string }>();
- const asked: SetKey | null = skup === 'REQUESTER' || skup === 'WORKER' ? skup : null;
- const [role, setRole] = useState<SetKey>(asked ?? 'REQUESTER');
- // This screen stays mounted between visits, so the named set is taken on every focus. Nothing unsaved is lost by it:
- // every focus starts the settings again from what was saved.
- useFocusEffect(useCallback(() => { if (asked) setRole(asked); }, [asked]));
- // Unsaved changes of the shown set. Switching the set or going back used to throw them away without a word.
+ // Unsaved changes. Going back used to throw them away without a word.
  const [dirty, setDirty] = useState(false);
- // A save, or the phone switched on or off, is running for the shown set: the set stays until its outcome is read back.
+ // A save, or the phone switched on or off, is running: the screen stays until its outcome is read back.
  const [writing, setWriting] = useState(false);
  const confirm = useConfirmSheet();
  const owner = useRef<ActionScope | null>(null);
  const [renderedOwner, setRenderedOwner] = useState<ActionScope | null>(null);
- const view = useMemo(() => ({ role, dirty, writing }), [role, dirty, writing]);
+ const view = useMemo(() => ({ dirty, writing }), [dirty, writing]);
  const latestView = useRef(view); latestView.current = view;
  const closeConfirm = confirm.close;
  useFocusEffect(useCallback(() => {
@@ -68,13 +56,6 @@ export default function PushSettings() {
    cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: () => { if (current()) proceed(); } });
  }
  const requestBack = () => discardThen(back);
- const requestRole = (next: SetKey) => {
-  if (!current() || next === role) return;
-  // A finger cannot reach the tabs while a write runs (they wait under `pointerEvents`), but a screen reader's double tap
-  // still does; it used to do nothing without a word. `Segmented` has no disabled state to draw yet.
-  if (writing) { AccessibilityInfo.announceForAccessibility(WAIT_FOR_WRITE); return; }
-  discardThen(() => { setDirty(false); setWriting(false); setRole(next); });
- };
  // Android's own Back asks the same question while something is unsaved; with nothing unsaved it leaves as always.
  const latestBack = useRef({ dirty, requestBack }); latestBack.current = { dirty, requestBack };
  useFocusEffect(useCallback(() => {
@@ -88,17 +69,11 @@ export default function PushSettings() {
   <Stack.Screen options={{ headerShown: false }} />
   {/* The arrow says only "Nazad": this screen is opened from Profil and from the gear in Obaveštenja, so naming one of
       them would be wrong for the other. */}
-  <DetailTopBar title="Podešavanja obaveštenja" onBack={requestBack} />
-  {/* While a write of the shown set runs, its tabs wait with every other control (the Save spinner says why). */}
-  <View style={s.sets} pointerEvents={writing ? 'none' : 'auto'}>
-   <Segmented appearance="underline" options={SETS} value={role} onChange={requestRole} />
-   <T variant="note" tone="muted">{CAPTION[role]}</T>
-  </View>
-  <PushPreferences key={role} role={role} onDirtyChange={setDirty} onWritingChange={setWriting} />
+  <DetailTopBar title="Podešavanja" onBack={requestBack} />
+  <PushPreferences onDirtyChange={setDirty} onWritingChange={setWriting} />
   {confirm.sheet}
  </SafeAreaView>;
 }
 const s = StyleSheet.create({
  screen: { flex: 1, backgroundColor: sys.color.ground },
- sets: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs, gap: sys.space.sm },
 });

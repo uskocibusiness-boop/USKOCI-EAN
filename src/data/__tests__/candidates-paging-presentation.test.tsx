@@ -31,7 +31,7 @@ jest.mock('../../ui/system/StateView', () => ({ StateView: 'StateView' }));
 jest.mock('../../ui/v2/CandidateFace', () => ({ CandidateCard: 'Card', CandidateCompareCard: 'CompareCard', CandidatePerson: 'Person',
   UNPRICED: '—', candidateChip: () => 'application.sent', candidateStatus: () => '', candidateTime: () => '', candidateValue: () => '' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
-import { CandidateListPresentation, type CandidatesPaging } from '../../ui/v2/ApplicationSelectionPresentation';
+import { CandidateListPresentation, type CandidateSort, type CandidatesPaging } from '../../ui/v2/ApplicationSelectionPresentation';
 import { prijava } from '../../ui/system/plural';
 
 /**
@@ -43,25 +43,33 @@ const need = { id: 'need-1', naslov: 'Unos ormara', pokrivenost: { ukupno: 3, pr
 const row = (id: string, patch: Partial<KandidatProjekcija> = {}): KandidatProjekcija => ({ prijavaId: id, radnikProfilId: `profile-${id}`, potrebaRevizija: 2, verzija: 1, hash: 'a'.repeat(64),
   ime: `Osoba ${id}`, inicijali: 'O', ocenaTekst: '—', recenzijeTekst: '0 završenih', cena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' }, pokrivaMesta: 1, preostaloMesta: 3,
   dolazakTekst: '', prevozTekst: '', napomena: '', stanje: 'SELECTABLE', mozeIzabrati: true, ...patch }) as unknown as KandidatProjekcija;
-const loadMore = jest.fn();
+const loadMore = jest.fn(), refresh = jest.fn();
 const makePaging = (patch: Partial<CandidatesPaging> = {}): CandidatesPaging => ({ total: 120, hasMore: true, loadingMore: false, moreError: false, onLoadMore: loadMore, ...patch });
-let candidates: KandidatProjekcija[], paging: CandidatesPaging | undefined;
+let candidates: KandidatProjekcija[], paging: CandidatesPaging | undefined, sort: CandidateSort | undefined;
 let tree: ReactTestRenderer;
-const element = () => <CandidateListPresentation need={need} candidates={candidates} open={jest.fn()} back={jest.fn()} refresh={jest.fn()} paging={paging} />;
+const element = () => <CandidateListPresentation need={need} candidates={candidates} open={jest.fn()} back={jest.fn()} refresh={refresh} paging={paging} sort={sort} />;
 const render = async () => act(async () => { tree = create(element()); });
 const rerender = async () => act(async () => tree.update(element()));
 const list = () => tree.root.findByType('List' as React.ElementType);
 const actions = () => tree.root.findAllByType('Action' as React.ElementType).map(node => node.props.label as string);
 const action = (label: string) => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === label)!;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
-beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); candidates = [row('a'), row('b'), row('c', { stanje: 'STALE', mozeIzabrati: false })]; paging = makePaging(); loadMore.mockClear(); });
+beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); candidates = [row('a'), row('b'), row('c', { stanje: 'STALE', mozeIzabrati: false })]; paging = makePaging(); sort = undefined; loadMore.mockClear(); refresh.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-test('without paging the list is the whole list: its own count with "za izbor", the refresh at its foot and no request for another page', async () => {
+test('without paging the list is the whole list: its own count with "za izbor", no button at its foot and no request for another page', async () => {
   paging = undefined; await render();
   expect(texts()).toContain(`${prijava(3)} · 2 za izbor`);
-  expect(actions()).toEqual(['Osveži prijave']);
+  expect(actions()).toEqual([]);
   expect(list().props.onEndReached).toBeUndefined();
+});
+
+test('the list is read again by pulling it down (no "Osveži prijave" button), and a read nobody pulled draws no spinner', async () => {
+  paging = undefined; await render();
+  expect(texts()).not.toContain('Osveži prijave'); expect(actions()).not.toContain('Osveži prijave');
+  expect(list().props.refreshing).toBe(false); expect(typeof list().props.onRefresh).toBe('function');
+  await act(async () => { list().props.onRefresh(); });
+  expect(refresh).toHaveBeenCalledTimes(1);
 });
 
 test('read a page at a time the count is the server\'s, never the number loaded, and nothing is said about how many can be chosen while some are not loaded', async () => {
@@ -75,19 +83,19 @@ test('read a page at a time the count is the server\'s, never the number loaded,
 
 test('the foot offers the next page, and the end of the list asks for it by itself once', async () => {
   await render();
-  expect(actions()).toEqual(['Prikaži još', 'Osveži prijave']);
+  expect(actions()).toEqual(['Prikaži još']);
   await act(async () => action('Prikaži još').props.onPress()); expect(loadMore).toHaveBeenCalledTimes(1);
   expect(list().props.onEndReached).toBe(loadMore); expect(list().props.onEndReachedThreshold).toBe(0.6);
 });
 
 test('while a page is read the foot says so, offers no second request and the end of the list asks for none', async () => {
   paging = makePaging({ loadingMore: true }); await render();
-  expect(texts()).toContain('Učitavamo još prijava…'); expect(actions()).toEqual(['Osveži prijave']); expect(list().props.onEndReached).toBeUndefined();
+  expect(texts()).toContain('Učitavamo još prijava…'); expect(actions()).toEqual([]); expect(list().props.onEndReached).toBeUndefined();
 });
 
 test('a page that failed keeps the list, says so, and offers the same call again - the end of the list never retries it by itself', async () => {
   paging = makePaging({ moreError: true }); await render();
-  expect(texts()).toContain('Ne možemo da učitamo ostale prijave.'); expect(actions()).toEqual(['Pokušaj ponovo', 'Osveži prijave']);
+  expect(texts()).toContain('Ne možemo da učitamo ostale prijave.'); expect(actions()).toEqual(['Pokušaj ponovo']);
   expect(list().props.onEndReached).toBeUndefined();
   await act(async () => action('Pokušaj ponovo').props.onPress()); expect(loadMore).toHaveBeenCalledTimes(1);
 });
@@ -95,8 +103,22 @@ test('a page that failed keeps the list, says so, and offers the same call again
 test('a complete set says what a whole list says - the count of what is loaded and how many can be chosen - and has no foot to ask for more', async () => {
   paging = makePaging({ total: 3, hasMore: false }); await render();
   expect(texts()).toContain(`${prijava(3)} · 2 za izbor`);
-  expect(actions()).toEqual(['Osveži prijave']); expect(list().props.onEndReached).toBeUndefined();
+  expect(actions()).toEqual([]); expect(list().props.onEndReached).toBeUndefined();
   expect(texts()).not.toContain('Učitavamo još prijava…');
+});
+
+test('the lowest price and the best rating are orders of the WHOLE list: while a page is still to come the control is not drawn, and a saved order is not applied', async () => {
+  const priced = (id: string, iznos: number) => row(id, { cena: { iznos, valuta: 'RSD', prikaz: `${iznos} RSD` } });
+  candidates = [priced('a', 9000), priced('b', 3000), priced('c', 5000)];
+  const order = () => tree.root.findAllByType('Card' as React.ElementType).map(node => node.props.candidate.prijavaId);
+  const control = () => tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Redosled prijava'));
+  // A page is still to come: the server orders by arrival only, so no other order is offered and a saved one is not applied to the part that is loaded.
+  sort = 'PRICE'; await render();
+  expect(control()).toHaveLength(0); expect(order()).toEqual(['a', 'b', 'c']); expect(texts().join(' ')).not.toMatch(/važi samo za učitane/);
+  // Whole: the control stands, in the draft's words, and the saved order is applied.
+  paging = makePaging({ total: 3, hasMore: false }); await rerender();
+  expect(control().map(node => node.props.accessibilityLabel)).toEqual(['Redosled prijava: Najniža cena']); expect(order()).toEqual(['b', 'c', 'a']);
+  sort = undefined; await rerender(); expect(control().map(node => node.props.accessibilityLabel)).toEqual(['Redosled prijava: Najranije']);
 });
 
 test('every loaded application is a row, in the order it was given, and the rows keep their identity when a page is appended', async () => {

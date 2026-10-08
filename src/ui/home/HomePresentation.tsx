@@ -19,6 +19,7 @@ import { V2Action } from '../v2/V2Action';
 import { materialControl, sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass, useTextScale } from '../system/textScale';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
 import { ListSkeleton } from '../notifications/ListSkeleton';
 import { HowItWorks } from './HowItWorks';
@@ -30,15 +31,19 @@ import { HowItWorks } from './HowItWorks';
  * apart; every block under the doors is a `Section` or a group of `ListRow`s, the next appointment is a `Surface` record, and no
  * line separates one block from another. Nothing here draws a divider of its own.
  *
- * Order (owner, 2026-10-07; "Danas u 14", the owner's pick of 2026-10-08): the two doors; for a brand-new account, one quiet row
- * "Kako radi" (three steps, hidden for good with "Sakrij"); "Raspored" when an accepted appointment lies ahead, as the one
- * record of the screen, directly under the doors: the TIME of the next Dogovor is the largest word on Početna ("Danas ·
- * 14:00–16:00", in the voice of money, 24/700) and the calendar stands small at the end of its line; then "Čeka te", always once
- * the reads answered (one grey line when nothing waits, and never when something does: a Dogovor without a term, a change to
- * answer, a draft to continue, a rating). With no appointment ahead the hero would vanish, so the first thing that waits takes
- * its place as the one record (its number first: "2 prijave"), and the Dogovori with no day to show them on (no exact term, or
- * an exact term that has passed unfinished) are one quiet line under "Čeka te", with "Ceo raspored" at the end of its heading;
- * and "Moji zadaci" / "Moje prijave" as one group of rows directly below. The doors and the header are the locked signature. */
+ * Order (owner, 2026-10-07; "Danas u 14", the owner's pick of 2026-10-08; the blueprint he approved on 8 Oct 2026, Z1): the two
+ * doors; for a brand-new account, one quiet row "Kako radi" (three steps, hidden for good with "Sakrij"); "Sledeće" when an accepted
+ * appointment lies ahead, as the one record of the screen, directly under the doors: the TIME of the next Dogovor is the largest word
+ * on Početna ("Danas · 14:00–16:00", in the voice of money, 24/700) and the calendar stands small at the end of its line, with no way
+ * into the whole schedule (that is reached from Dogovori only); then "Čeka te", always once the reads answered (one grey line when
+ * nothing waits, and never when something does: a Dogovor without a term, a change to answer, a draft to continue, a rating), at most
+ * three things and the rest as a count. With no appointment ahead the hero would vanish, so the first thing that waits takes its place
+ * as the one record (its number first: "2 prijave"); the Dogovori that have no day to show them on are NOT a block of their own (the
+ * owner's phone, 8 Oct 2026: "Raspored — 1 Dogovor bez tačnog termina" was a weak row): the one that needs a term is asked for under
+ * "Čeka te", and all of them stand in Raspored, under "Termin još nije dogovoren". Then "Moji zadaci" / "Moje prijave", each with its
+ * number, and, for an active work profile, "Mogu odmah", as one group of rows directly below. A row of "Čeka te" says the task and the
+ * action and nothing else: the sentence the phone or the server keeps under it ("Termin još nije dogovoren.") repeated the action, and
+ * a screen reader still hears it. The doors and the header are the locked signature. */
 export type HomePresentationProps = {
   home: HomeSnapshot | null; loading: boolean; refreshing: boolean; error: boolean;
   /**
@@ -55,15 +60,14 @@ export type HomePresentationProps = {
    */
   onRatings: (agreementId: string | null) => void;
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
-  /** "Ceo raspored": opens the planner. The route owns the guard and the navigation. */
-  onPlanner: () => void;
   /**
-   * R06, "Slobodan sam sada": the one switch of the work profile, drawn only for an account whose profile is active. The route
-   * saves it through the availability client and says whether it is at work or failed; without it the row is not drawn.
+   * R06, "Mogu odmah" (the name Dostupnost gives it, and without a gender): the one switch of the work profile, drawn only for an
+   * account whose profile is active. The route saves it through the availability client and says whether it is at work or failed;
+   * without it the row is not drawn.
    */
   availableNow?: { value: boolean; onChange: (value: boolean) => void; busy?: boolean; failed?: boolean };
   /**
-   * The face of the other person in the Raspored block. The route hands over the element that reads their photo (a data
+   * The face of the other person in the card of the next Dogovor. The route hands over the element that reads their photo (a data
    * client), exactly as it hands over the header's avatar; the presentation passes the stand-in it would draw itself
    * (their initials, or a drawn person). Without it, or without a profile id, the stand-in is the face.
    */
@@ -72,6 +76,8 @@ export type HomePresentationProps = {
 
 /** The picture of a front door. 64 dp sets both doors' height (owner, 2026-10-07: smaller doors, about 88 dp). */
 const DOOR_ART = 64;
+/** How many things "Čeka te" draws (the blueprint of 8 Oct 2026, T3): a list that is longer is counted, not scrolled. */
+export const WAITING_LIMIT = 3;
 
 /** Equal doors: original artwork leads, then the intention and one short line. */
 function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: () => void }) {
@@ -127,22 +133,23 @@ function Marked({ art, attention }: { art: FactArtKind; attention: boolean }) {
 const joined = (first: string, second: string) => `${first} · ${second.replace(/\.$/, '').replace(/^\p{Lu}/u, letter => letter.toLowerCase())}`;
 
 /**
- * One thing that waits for me. The subject leads (the task, in 16/24), the exact action is under it, and the reason last; a
- * row about a pile of applications keeps action and reason on one line. A row the server or the phone could not name a task for
- * leads with its action. The whole row is one stop for a screen reader and says the same words in the same order.
+ * One thing that waits for me. The subject leads (the task, in 16/24) and the exact action is under it, and that is all the eye is
+ * given: the reason the server or the phone keeps ("Termin još nije dogovoren.", "Nacrt još nije objavljen.") said the action a second
+ * time, and the owner's phone showed it as a third line (8 Oct 2026). A row about a pile of applications keeps count and action on one
+ * line ("2 prijave · čeka tvoj izbor"), because the count alone does not say what is asked. A row the server or the phone could not name
+ * a task for leads with its action and the reason under it. The whole row is one stop for a screen reader and says the same words in
+ * the same order, the reason included.
  */
 function WaitingRow({ row, onOpen, last }: { row: HomeAttention; onOpen: (target: HomeTarget) => void; last: boolean }) {
   const taskTitle = row.taskTitle === undefined ? null : readableTitle(row.taskTitle);
   const title = readableTitle(row.title);
   const compact = !!taskTitle && row.target.kind === 'CANDIDATES';
-  const words = taskTitle
-    ? { title: taskTitle, subtitle: compact ? joined(title, row.detail) : title, ...(compact ? {} : { meta: row.detail }) }
-    : { title, subtitle: row.detail };
+  const words = taskTitle ? { title: taskTitle, subtitle: compact ? joined(title, row.detail) : title } : { title, subtitle: row.detail };
   return <ListRow leading={<Marked art={artFor(row.target)} attention />} {...words} last={last} onPress={() => onOpen(row.target)}
     accessibilityLabel={[title, taskTitle, row.detail].filter(Boolean).join('. ')} />;
 }
 
-/** The width and height of the other person's face in the Raspored block. */
+/** The width and height of the other person's face in the card of the next Dogovor. */
 const FACE = 32;
 /** The calendar at the end of the time's line: small, so the time stays the largest thing on the screen. */
 const CALENDAR = 32;
@@ -152,9 +159,9 @@ const CALENDAR = 32;
  * time and from the accepted instant (`raspored.when`, never the display sentence), in the voice of money (`priceLarge`: ink, 700,
  * tabular figures, so the clocks line up), then what it is, who it is with, and the one quiet line about the rest. The calendar
  * stands at 32 at the end of the time's line (not larger: it would compete with the time) and says nothing the words do not say.
- * It is the same record a Dogovor is in Dogovori (one shadow, one corner, 16 inside); the whole card opens the Dogovor, and the
- * way into the whole schedule is the action at the end of the section's heading, never inside the card. The time is a fact: it is
- * never animated.
+ * It is the same record a Dogovor is in Dogovori (one shadow, one corner, 16 inside); the whole card opens the Dogovor. The whole
+ * schedule is not reached from here: Raspored has one door, Dogovori (the blueprint of 8 Oct 2026). The time is a fact: it is never
+ * animated.
  */
 function RasporedCard({ row, raspored, photo, onOpen }: {
   row: HomeRow; raspored: HomeRaspored; photo?: HomePresentationProps['photo']; onOpen: (target: HomeTarget) => void;
@@ -190,8 +197,10 @@ function RasporedCard({ row, raspored, photo, onOpen }: {
 
 /**
  * No appointment ahead: the first thing that waits for me is the one record of the screen, so the focus does not vanish ("Danas u 14",
- * the risk answered). Its number leads when it is a count ("2 prijave", in the voice of money), the task is under it and the reason last;
- * the picture with the orange dot is at the end. It is the same row as the others (same words, same target), only larger.
+ * the risk answered). Its number leads when it is a count ("2 prijave", in the voice of money), the task is under it and, for a count,
+ * what is asked of me ("Čeka tvoj izbor."); the picture with the orange dot is at the end. A thing that is not a count leads with the
+ * action, the task is under it, and the sentence that said the action again is not drawn (it is in the screen reader's label). It is the
+ * same row as the others (same words, same target), only larger.
  */
 function FirstWaiting({ row, onOpen }: { row: HomeAttention; onOpen: (target: HomeTarget) => void }) {
   const title = readableTitle(row.title), taskTitle = row.taskTitle === undefined ? null : readableTitle(row.taskTitle);
@@ -201,7 +210,7 @@ function FirstWaiting({ row, onOpen }: { row: HomeAttention; onOpen: (target: Ho
       <View style={s.appointmentWhen}>
         <T variant={counted ? 'priceLarge' : 'heading'} style={s.appointmentDay}>{title}</T>
         {taskTitle ? <T>{taskTitle}</T> : null}
-        <T variant="note" tone="muted">{row.detail}</T>
+        {counted || !taskTitle ? <T variant="note" tone="muted">{row.detail}</T> : null}
       </View>
       <Marked art={artFor(row.target)} attention />
     </View>
@@ -217,16 +226,16 @@ function MineRow({ art, title, detail, onPress, last = false }: {
 }
 
 /**
- * R06: one switch, for an account whose work profile is active. It says how long it holds ("Važi dok ga ne isključiš": the
- * server gives the status no expiry today, so nothing here promises one) and, while it saves or when saving failed, says that
- * instead; the route owns the save. The row is a row that tells and carries a control, so it is not a button itself.
+ * R06: one switch, for an account whose work profile is active. It is called what Dostupnost calls it, "Mogu odmah" (it was "Slobodan
+ * sam sada": a second name for one thing, and a masculine one, the owner's phone, 8 Oct 2026). The switch says whether it is on; the line
+ * under it says only what the switch cannot: that it is on, while it saves, or that saving failed. How long it holds is Dostupnost's to say.
+ * The route owns the save. The row is a row that tells and carries a control, so it is not a button itself.
  */
 function AvailableNowRow({ control, last }: { control: NonNullable<HomePresentationProps['availableNow']>; last: boolean }) {
-  const subtitle = control.failed ? 'Nije sačuvano. Pokušaj ponovo.' : control.busy ? 'Čuvamo…'
-    : control.value ? 'Uključeno. Važi dok ga ne isključiš.' : 'Uključi kad možeš da kreneš odmah.';
-  return <ListRow leading={<FactArt kind="clock" size={32} />} title="Slobodan sam sada" subtitle={subtitle} last={last}
+  const subtitle = control.failed ? 'Nije sačuvano. Pokušaj ponovo.' : control.busy ? 'Čuvamo…' : control.value ? 'Uključeno' : undefined;
+  return <ListRow leading={<FactArt kind="clock" size={32} />} title="Mogu odmah" subtitle={subtitle} last={last}
     trailing={<Switch value={control.value} disabled={control.busy} onValueChange={control.onChange}
-      accessibilityLabel="Slobodan sam sada" trackColor={{ true: sys.color.green, false: sys.color.control }} thumbColor={sys.color.surface} />} />;
+      accessibilityLabel="Mogu odmah" trackColor={{ true: sys.color.green, false: sys.color.control }} thumbColor={sys.color.surface} />} />;
 }
 
 /** Said once and quietly: a part of the overview that could not be read names itself, and the shared recovery above retries it. */
@@ -243,7 +252,11 @@ const HomeSkeleton = () => <ListSkeleton rows={2} heading label="Učitavanje" />
 // The two doors count what their lists hold, never what waits: that is said once, under "Čeka te", from the server's
 // own attention list (PKG-042: no inference fallback). A door that also said "1 čeka izbor" contradicted a known empty
 // "Čeka te", and stood in for it when that list could not be read.
-/** "2 aktivna · 1 nacrt" — the sets of "Moji zadaci", counted by the list's own filter. */
+/**
+ * "8 aktivnih · 1 nacrt" — the sets of "Moji zadaci", counted by the list's own filter, each with its number (the blueprint of 8 Oct
+ * 2026, Z1). A draft that "Čeka te" offers to continue is counted here too: the row is the count of the list it opens, and "Nastavi
+ * nacrt" is an action; the one does not stand in for the other.
+ */
 function tasksLine(section: HomeSection<OwnedTaskCounts>): string {
   if (section.kind === 'unavailable') return 'Trenutno nedostupno';
   const c = section.value;
@@ -252,15 +265,16 @@ function tasksLine(section: HomeSection<OwnedTaskCounts>): string {
   return parts.length ? parts.join(' · ') : c.total ? 'Nema aktivnih zadataka' : 'Još nemaš zadatak';
 }
 /**
- * "3 aktivne" — the "Aktivne" set of "Moje prijave", counted by the list's own tabs. An application that waits for me
- * sits in the list's own "Čeka te" set, not in "Aktivne", so a door with nothing active that is not all finished names
- * how many applications there are instead of saying "Nema aktivnih prijava" over one that waits.
+ * "1 čeka odgovor" — the applications that are open and wait for the other side's answer, counted by the list's own tabs (the blueprint
+ * of 8 Oct 2026, Z1 and U8: "Čeka odgovor" is the list's first group). An application that waits for me sits in the list's own "Čeka te"
+ * set, not among these, so a row with none waiting that is not all finished names how many applications there are instead of saying
+ * that none waits over one that does.
  */
 function applicationsLine(section: HomeSection<ApplicationCounts>): string {
   if (section.kind === 'unavailable') return 'Trenutno nedostupno';
   const c = section.value;
-  if (c.active) return plural(c.active, 'aktivna', 'aktivne', 'aktivnih');
-  return !c.total ? 'Još nemaš prijavu' : c.finished === c.total ? 'Nema aktivnih prijava' : prijava(c.total);
+  if (c.active) return plural(c.active, 'čeka odgovor', 'čekaju odgovor', 'čeka odgovor');
+  return !c.total ? 'Još nemaš prijavu' : c.finished === c.total ? 'Nijedna ne čeka odgovor' : prijava(c.total);
 }
 
 export function HomePresentation(p: HomePresentationProps) {
@@ -273,12 +287,11 @@ export function HomePresentation(p: HomePresentationProps) {
   if (p.loading && !home) sawSkeleton.current = true;
   const prompts = home?.prompts ?? [];
   waiting.settle([...(home?.attention ?? []), ...prompts].map(item => item.id), undefined, { afterLoading: sawSkeleton.current });
-  // Raspored holds the one next appointment that has its day-first words, as a card. With none ahead, an active Dogovor
-  // with no day to show it on (no exact term, or an exact term that has passed unfinished) is still not lost: the count
-  // stands alone as one quiet line (`quietLine`), without a card. What an active Dogovor asks of me is said under "Čeka te".
+  // Raspored holds the one next appointment that has its day-first words, as a card, and nothing else. With none ahead there is no block
+  // (the count of Dogovori with no day, `quietLine`, is no longer drawn here: a weak row, 8 Oct 2026); an active Dogovor is not lost for it,
+  // since what it asks of me is said under "Čeka te" and all of them stand in Raspored.
   const next = home?.agreements.kind === 'known' ? home.agreements.value.rows[0] ?? null : null;
   const raspored = next?.raspored;
-  const quietLine = home?.agreements.kind === 'known' && !raspored ? home.agreements.value.quietLine : undefined;
   agreements.settle(next && raspored ? [next.id] : []);
   const attentionUnavailable = home?.attentionState === 'unavailable';
   // "Ništa ne čeka tvoju odluku." is said only when the server's own attention answer is known and empty, and so is the
@@ -294,21 +307,28 @@ export function HomePresentation(p: HomePresentationProps) {
   // Before the first answer a front door has no line; after a failed read it says so, never "0".
   const tasksDetail = home ? tasksLine(home.mine.tasks) : p.error ? 'Trenutno nedostupno' : null;
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nedostupno' : null;
-  const more = home ? home.attentionMore + (home.promptsMore ?? 0) : 0;
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   const setupProfile = !!profile && (profile.state === 'NONE' || profile.state === 'DRAFT');
   const switchShown = !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
-  // The rows of "Čeka te", in the order they are drawn, so only the last one has no divider. With no appointment ahead the first of them is
-  // the one record of the screen (`FirstWaiting`, "Danas u 14": the focus must not vanish), and the rest stand under it as rows.
+  // The rows of "Čeka te", in the order they are drawn, so only the last one has no divider. At most WAITING_LIMIT of them (the server's
+  // things first, then what the phone itself found, then the ratings); what does not fit is counted in the line under them, together with
+  // what the server and the phone already said they left out. With no appointment ahead the first of them is the one record of the screen
+  // (`FirstWaiting`, "Danas u 14": the focus must not vanish), and the rest stand under it as rows.
   const ratings = home ? (home.ratingsDue === null ? 'unknown' as const : home.ratingsDue > 0 ? 'due' as const : null) : null;
-  const waits = home ? [...home.attention, ...prompts] : [];
+  const everyWait = home ? [...home.attention, ...prompts] : [];
+  const waits = everyWait.slice(0, WAITING_LIMIT);
+  const ratingsShown = ratings !== null && waits.length < WAITING_LIMIT;
+  const more = home ? home.attentionMore + (home.promptsMore ?? 0) + (everyWait.length - waits.length) + (ratings !== null && !ratingsShown ? 1 : 0) : 0;
   const lead = !raspored && !attentionUnavailable && waits.length > 0 ? waits[0] : null;
   const rows = lead ? waits.slice(1) : waits;
-  const rowCount = rows.length + (ratings ? 1 : 0);
+  const rowCount = rows.length + (ratingsShown ? 1 : 0);
   const underLead = rowCount > 0 || more > 0;
   const recovery = p.stale ? 'stale' as const : home?.partial ? 'partial' as const : p.error && !home ? 'failed' as const : null;
+  // The pull spinner is for a pull. "Osveži pregled" has a spinner of its own, and no read the route starts by itself may raise the white
+  // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
+  const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
-    refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
+    refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
 
     {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}
@@ -319,9 +339,9 @@ export function HomePresentation(p: HomePresentationProps) {
         : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proveri vezu i pokušaj ponovo.'}</T>
       <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
     </Surface> : null}
-    {/* Raspored, the hero: only an accepted appointment that is not over is "next", and its TIME is the largest word on the screen,
-        directly under the doors. */}
-    {next && raspored ? <Section title="Raspored" action={{ label: 'Ceo raspored', onPress: p.onPlanner }}>
+    {/* "Sledeće", the hero: only an accepted appointment that is not over is "next", and its TIME is the largest word on the screen,
+        directly under the doors. It has no command of its own beyond the card; Raspored is reached from Dogovori. */}
+    {next && raspored ? <Section title="Sledeće">
       <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
     </Section> : null}
 
@@ -336,22 +356,17 @@ export function HomePresentation(p: HomePresentationProps) {
       </Appear>)}
       {/* Dogovori/Aktivni lists a completed Dogovor until it is rated; Home names the same thing, verb first, and
           with exactly one it opens that rating in one tap instead of four (critique A1, 2026-09-24). */}
-      {ratings === 'unknown' ? <ListRow leading={<FactArt kind="star" size={32} />} title="Proveri ocene" subtitle="Nisu svi podaci o ocenama učitani."
+      {ratingsShown && ratings === 'unknown' ? <ListRow leading={<FactArt kind="star" size={32} />} title="Proveri ocene" subtitle="Nisu svi podaci o ocenama učitani."
         onPress={() => p.onRatings(null)} last accessibilityLabel="Proveri ocene u Dogovorima"
         accessibilityHint="Broj Dogovora za ocenjivanje trenutno nije potvrđen." />
-        : ratings === 'due' && home.ratingsDue ? <ListRow leading={<Marked art="star" attention />} title={oceniDogovore(home.ratingsDue)} last
+        : ratingsShown && ratings === 'due' && home.ratingsDue ? <ListRow leading={<Marked art="star" attention />} title={oceniDogovore(home.ratingsDue)} last
           onPress={() => p.onRatings(home.ratingDueAgreementId)} accessibilityLabel={oceniDogovore(home.ratingsDue)}
           accessibilityHint={home.ratingDueAgreementId ? 'Otvara ocenu saradnje.' : 'Otvara Dogovore.'} /> : null}
       {more > 0 ? <T variant="note" tone="muted" style={s.more}>I još {more} u tvojim zadacima, prijavama i Dogovorima.</T> : null}
     </Section> : null}
 
-    {/* With no appointment ahead, active Dogovori with no day to show them on (no confirmed term, or a term that passed unfinished)
-        are counted in one quiet line; with neither there is no block and no placeholder. A Dogovori read that failed says so
-        here, never as an empty schedule. */}
-    {home?.agreements.kind === 'unavailable' ? <Section title="Raspored"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section>
-      : !(next && raspored) && quietLine ? <Section title="Raspored" action={{ label: 'Ceo raspored', onPress: p.onPlanner }}>
-        <T variant="note" tone="muted">{quietLine}</T>
-      </Section> : null}
+    {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
+    {home?.agreements.kind === 'unavailable' ? <Section title="Sledeće"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section> : null}
 
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
     <View>

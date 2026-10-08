@@ -221,5 +221,5 @@ export default function Prijava() {
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
     submit={submit} back={back} refresh={refresh} reset={reset} pendingHelp={pendingHelp}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
-      router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId } }); }} />;
+      router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId, nova: '1' } }); }} />;
 }

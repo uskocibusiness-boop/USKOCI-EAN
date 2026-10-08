@@ -861,8 +861,9 @@ def s_route():
     check('MAP_MARKERS_VISIBLE_AT_PEEK', bool(ps) or st['full'], pills=len(ps), boxes=pill_boxes(ps), sheet=st)
     if not st['full']:
         check('P6_MAP_READER_CALLED', any(c.get('mode') == 'MAP' for c in calls), modes=sorted({c.get('mode') for c in calls}))
-    check('MAP_LAYER_SHOWS_A_MAP', bool(nodes(root, desc='Umanji mapu')) or bool(nodes(root, contains='Izvori mape')) or st['full'],
-          zoom=bool(nodes(root, desc='Umanji mapu')), credits=bool(nodes(root, contains='Izvori mape')))
+    # No + and - on the map any more (the owner's phone of 8 Oct 2026): the map's furniture is its sources and "Moja lokacija" (the screen's), in the row above the list.
+    check('MAP_LAYER_SHOWS_A_MAP', bool(nodes(root, desc='Moja lokacija')) or bool(nodes(root, contains='Izvori mape')) or st['full'],
+          locate=bool(nodes(root, desc='Moja lokacija')), credits=bool(nodes(root, contains='Izvori mape')))
 
 
 def s_open_full():
@@ -1037,10 +1038,11 @@ def s_filters():
     ensure_peek()
     ensure_chips()
     root, parent = dump()
-    remote, onsite = chip(root, 'Na daljinu'), chip(root, 'Na licu mesta')
-    if remote is None or onsite is None:
+    # The row of capsules is Za mene / Danas / Ovaj vikend / Na daljinu / Sa iznosom (the approved plan of 8 Oct 2026, U1); "Na licu mesta" is a choice of the filters, not a capsule.
+    remote = chip(root, 'Na daljinu')
+    if remote is None:
         raise RuntimeError(f'quick filter chips not visible: clickable={[n["desc"] for n in ui_inventory(root) if n["click"]][:12]}')
-    exp_remote, exp_onsite = EXPECTED.get('remote'), EXPECTED.get('onsite')
+    exp_remote = EXPECTED.get('remote')
     m = mark()
     note('FILTER_TAP', at=list(center_of(remote, parent)), chip=remote.attrib.get('bounds'), sheet=sheet_state(root))
     began = time.time()
@@ -1060,26 +1062,22 @@ def s_filters():
     tap_visible(chip(root, 'Na daljinu'), parent)
     _, root, parent = wait_count(TOTAL)
     check('FILTER_CLEARS_TO_ALL', count_value(root)[0] == TOTAL, ui=count_value(root)[0])
-    # Stale fencing: two intents in quick succession. The screen must end on the LAST one, whatever order the answers
+    # Stale fencing: two intents in quick succession (the capsule on, and at once off again). The screen must end on the LAST one, whatever order the answers
     # arrive in (the deterministic staleness injection is covered by the coordinator's own tests; this is the race probe).
-    p1, p2 = center_of(chip(root, 'Na daljinu'), parent), center_of(chip(root, 'Na licu mesta'), parent)
+    p1 = center_of(chip(root, 'Na daljinu'), parent)
     m2 = mark()
-    adb('shell', f'input tap {p1[0]} {p1[1]} ; input tap {p2[0]} {p2[1]}')
+    adb('shell', f'input tap {p1[0]} {p1[1]} ; input tap {p1[0]} {p1[1]}')
     time.sleep(1.0)
-    _, root, parent = wait_count(exp_onsite, 30)
+    _, root, parent = wait_count(TOTAL, 30)
     time.sleep(3)
     root, parent = dump()
     reqs = since(m2, 'PAGE')
     wheres = [(r.get('filter') or {}).get('where') for r in reqs]
-    check('RACE_ENDS_ON_LAST_INTENT', count_value(root)[0] == exp_onsite, ui=count_value(root)[0], expected=exp_onsite, wheres=wheres)
-    check('RACE_LAST_REQUEST_IS_LAST_INTENT', bool(wheres) and wheres[-1] == 'onsite', wheres=wheres)
-    onsite_now, remote_now = chip(root, 'Na licu mesta'), chip(root, 'Na daljinu')
-    check('RACE_SELECTED_CHIP_IS_LAST_INTENT', selected(onsite_now) and not selected(remote_now),
-          onsite=selected(onsite_now), remote=selected(remote_now))
+    check('RACE_ENDS_ON_LAST_INTENT', count_value(root)[0] == TOTAL, ui=count_value(root)[0], expected=TOTAL, wheres=wheres)
+    check('RACE_LAST_REQUEST_IS_LAST_INTENT', not wheres or wheres[-1] in (None, 'any'), wheres=wheres)
+    remote_now = chip(root, 'Na daljinu')
+    check('RACE_SELECTED_CHIP_IS_LAST_INTENT', not selected(remote_now), remote=selected(remote_now))
     snapshot('P6_11_filter_race')
-    tap_visible(onsite_now, parent)
-    _, root, _p = wait_count(TOTAL)
-    check('FILTERS_CLEARED_AFTER_RACE', count_value(root)[0] == TOTAL, ui=count_value(root)[0])
 
 
 def relaunch():
@@ -1438,8 +1436,8 @@ def area_width(area):
 
 
 def s_map_gestures():
-    """P6-11: a real pan and the zoom buttons on the map (a pinch cannot be sent through adb). Each settled move reads the MAP for the new area, the person's own move also reads
-    the list for it, and the screen keeps its top line and shows no error."""
+    """P6-11: a real pan and a double tap (zooms in) on the map; a pinch cannot be sent through adb, and the map has no + and - buttons any more (the owner's phone of 8 Oct 2026).
+    Each settled move reads the MAP for the new area, the person's own move also reads the list for it, and the screen keeps its top line and shows no error."""
     root = ensure_peek()
     snapshot('P6_30_before_gestures')
     w, _h = screen_size()
@@ -1458,21 +1456,18 @@ def s_map_gestures():
     root, _p = dump()
     check('PAN_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR', bool(count_nodes(root)) and not nodes(root, contains='nisu dostupni'), sheet=sheet_state(root))
     previous = panned
-    for label, wanted in (('Umanji mapu', 'wider'), ('Uvećaj mapu', 'narrower')):
-        root, parent = dump()
-        button = nodes(root, desc=label)
-        if not button:
-            raise RuntimeError(f'zoom control "{label}" not found')
-        tap_visible(button[0], parent)
-        after, seen = wait_new_map_area(seen)
-        snapshot('P6_32_' + ('zoom_out' if wanted == 'wider' else 'zoom_in'))
-        ratio = (area_width(after) / area_width(previous)) if after and previous and area_width(previous) else None
-        check('ZOOM_' + ('OUT_WIDENS' if wanted == 'wider' else 'IN_NARROWS') + '_THE_MAP_READ',
-              ratio is not None and (ratio > 1.4 if wanted == 'wider' else ratio < 0.75), before=previous, after=after, widthRatio=ratio)
-        previous = after or previous
-        root, _p = dump()
-        check('ZOOM_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR_' + wanted.upper(), bool(count_nodes(root)) and not nodes(root, contains='nisu dostupni'),
-              sheet=sheet_state(root))
+    # A double tap on the empty map zooms in by one level (the width the map reads narrows to about half).
+    root, _p = dump()
+    top, bottom = map_band(root)
+    y = (top + bottom) // 2
+    adb('shell', f'input tap {int(w * 0.5)} {y}; input tap {int(w * 0.5)} {y}')   # both taps in one shell, so they land inside the double-tap window
+    time.sleep(1.0)
+    after, seen = wait_new_map_area(seen)
+    snapshot('P6_32_zoom_in')
+    ratio = (area_width(after) / area_width(previous)) if after and previous and area_width(previous) else None
+    check('DOUBLE_TAP_ZOOM_IN_NARROWS_THE_MAP_READ', ratio is not None and ratio < 0.75, before=previous, after=after, widthRatio=ratio)
+    root, _p = dump()
+    check('ZOOM_KEEPS_THE_TOP_LINE_AND_SHOWS_NO_ERROR_NARROWER', bool(count_nodes(root)) and not nodes(root, contains='nisu dostupni'), sheet=sheet_state(root))
 
 
 def s_final():

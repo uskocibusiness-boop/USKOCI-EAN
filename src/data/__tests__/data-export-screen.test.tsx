@@ -32,13 +32,14 @@ const render = async () => { await act(async () => { tree = create(<ExportScreen
 const update = async () => { await act(async () => tree.update(<ExportScreen />)); };
 const button = (label: string) => tree.root.findByProps({ label });
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
-// UI/UX pass 2026-10-08 (F6): the refresh is one word at the end of the title of "Tvoja kopija" (a `Section` action, spoken as "Osveži stanje
-// izvoza"), and the two withdrawals are red `ListRow`s found by their title: a command, not a way onward.
-const refreshPress = () => tree.root.find(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje izvoza');
-const refreshWord = () => refreshPress().findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children).join('');
-/** The refresh wherever the screen has one: the word in the title of the card, or - when there is no card to draw - the failure state's own button. */
-const tapRefresh = async () => { await act(async () => { const word = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje izvoza')[0];
-  await (word ?? button('Osveži stanje')).props.onPress(); }); };
+// UI/UX pass 2026-10-08 (F6): the refresh is the PULL of the screen (J12; owner's phone: a standing "Osveži" in the title of the card was noise), the
+// `RefreshControl` the screen hands its scroll; the retry of a read that FAILED keeps its own button. The two withdrawals are red `ListRow`s found
+// by their title: a command, not a way onward.
+const pull = () => tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props as { refreshing: boolean; onRefresh: () => void };
+const refreshWords = () => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje izvoza');
+/** The refresh wherever the screen has one: the pull, or - when there is no card to draw - the failure state's own button. */
+const tapRefresh = async () => { await act(async () => { const retry = tree.root.findAll(node => node.props.label === 'Osveži stanje')[0];
+  await (retry ? retry.props.onPress() : pull().onRefresh()); }); };
 const redRows = (title: string) => tree.root.findAll(node => node.props.title === title && typeof node.props.onPress === 'function');
 const redRow = (title: string) => { expect(redRows(title)).toHaveLength(1); return redRows(title)[0]; };
 const tapRed = async (title: string) => { await act(async () => { await redRow(title).props.onPress(); }); };
@@ -245,9 +246,9 @@ it('says a saved copy above the button that saved it, in the confirmation colour
 it('says an unconfirmed copy as a failure, and a withdrawal is drawn apart from the harmless refresh', async () => {
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); mockDownload.mockResolvedValue(ok({ ...file(), sha256: 'c'.repeat(64) }));
   await render(); expect(redRow('Opozovi kopiju').props.tone).toBe('danger');
-  // A withdrawal has no arrow (it opens nothing, it asks) and is not the refresh, which is a word in the title.
+  // A withdrawal has no arrow (it opens nothing, it asks) and is not the refresh, which is the pull of the screen (no word in the title of the card any more).
   expect(redRow('Opozovi kopiju').findAll(node => node.props.name === 'caret-right')).toHaveLength(0);
-  expect(refreshPress().props.accessibilityLabel).toBe('Osveži stanje izvoza');
+  expect(refreshWords()).toHaveLength(0); expect(pull().onRefresh).toBeInstanceOf(Function);
   await tap('Preuzmi i sačuvaj');
   const line = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Preuzeta kopija nije potvrđena. Osveži stanje.');
   expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ tone: 'danger', accessibilityRole: 'alert' });
@@ -269,8 +270,15 @@ it('the step that waits for the person is spoken as next, never as running', asy
 });
 // UI/UX pass 2026-10-07 (team T4c): the state of the export is one chip word, and nothing implies a file where there is none.
 const chip = () => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel as string);
+it('with no request yet there is nothing to track: one sentence and the action, no chip "Nije traženo" and no three grey steps', async () => {
+  await render();
+  expect(texts()).toContain('Zatraži kopiju podataka svog naloga i preuzmi je kad bude spremna.');
+  expect(chip()).toEqual([]); expect(texts()).not.toContain('Nije traženo');
+  expect(tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && /^(Zahtev|Priprema kopije|Preuzimanje), /.test(node.props.accessibilityLabel))).toHaveLength(0);
+  expect(button('Zatraži izvoz')).toBeTruthy(); expect(refreshWords()).toHaveLength(0);
+});
 it.each([
-  ['no request yet', null, null, 'Nije traženo'], ['requested', 'REQUESTED', null, 'Zahtev poslat'], ['preparing', 'PROCESSING', null, 'U pripremi'],
+  ['requested', 'REQUESTED', null, 'Zahtev poslat'], ['preparing', 'PROCESSING', null, 'U pripremi'],
   ['ready and saveable', 'READY', descriptor(), 'Spremno'], ['ready but never verified', 'READY', null, 'Nije dostupno'],
   ['expired', 'EXPIRED', null, 'Isteklo'], ['failed', 'FAILED', null, 'Nije uspelo'], ['cancelled', 'CANCELLED', null, 'Otkazano'],
 ] as const)('the export that is %s is one chip word: %s', async (_name, state, fulfillment, word) => {
@@ -292,20 +300,20 @@ it('the sentence about keeping a copy is said only when there is a copy to keep'
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render();
   expect(texts()).toContain('Čuvaj kopiju na mestu'); expect(texts()).not.toContain('stvarna kopija');
 });
-it('a re-read keeps the card and the footer on screen: the action waits grey and says why, and only the first read is a skeleton', async () => {
+it('a re-read (the pull) keeps the card and the footer on screen: the action waits grey and says why, and only the first read is a skeleton', async () => {
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render();
   const again = deferred(); mockStatus.mockReturnValueOnce(again.promise);
-  expect(refreshWord()).toBe('Osveži');
-  await act(async () => { void refreshPress().props.onPress(); });
+  expect(pull().refreshing).toBe(false); expect(refreshWords()).toHaveLength(0);
+  await act(async () => { pull().onRefresh(); });
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavanje stanja izvoza' })).toHaveLength(0);
   expect(chip()).toEqual(['Spremno']);
   expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: true, reason: 'Učitavamo stanje…' });
-  // The word says it is at work, and a second press while it works asks for nothing more.
-  expect(refreshWord()).toBe('Osvežavamo…');
-  await act(async () => { void refreshPress().props.onPress(); }); expect(mockStatus).toHaveBeenCalledTimes(2);
+  // The spinner is the pull's own while the read it started runs, and a second pull while it works asks for nothing more.
+  expect(pull().refreshing).toBe(true);
+  await act(async () => { pull().onRefresh(); }); expect(mockStatus).toHaveBeenCalledTimes(2);
   await act(async () => button('Preuzmi i sačuvaj').props.onPress()); expect(mockDownload).not.toHaveBeenCalled();
   await act(async () => again.resolve(ok(status('READY', descriptor()))));
-  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: false, reason: null }); expect(refreshWord()).toBe('Osveži');
+  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: false, reason: null }); expect(pull().refreshing).toBe(false);
 });
 it('a read that fails says what happened with one retry, and offers no chip over a state that is not known', async () => {
   mockStatus.mockResolvedValue({ ok: false, kod: 'X', poruka: 'Stanje trenutno nije dostupno.' }); await render();

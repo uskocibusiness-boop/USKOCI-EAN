@@ -6,6 +6,7 @@ import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 import { revokePushBeforeLogout } from './pushDeviceClientService';
 import { forgetAgreementOutboxes } from './agreementOutbox';
+import { recentSearchesKey } from './recentSearchesKey';
 import { voiceMessagesBuilt } from './voiceMessagesGate';
 import { signupConfirmationRedirect } from './authSignupRedirect';
 import {
@@ -125,6 +126,8 @@ export const authClientService: AuthClientPort = {
     try {
       const storage = require('@react-native-async-storage/async-storage').default;
       await forgetAgreementOutboxes(expected.accountId, storage);
+      // The recent searches of Zadaci belong to this account too and go with its session.
+      await storage.removeItem(recentSearchesKey(expected.accountId));
     } catch { /* the text stays where it was; the session is gone either way */ }
     // Voice recordings and downloaded voice messages exist only as files in the private cache; every one of them goes with the session.
     // A build without the voice flag never loads the file module.

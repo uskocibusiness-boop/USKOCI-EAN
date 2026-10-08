@@ -8,7 +8,7 @@ import { Avatar } from '../ui/system/Avatar';
 import { PublicProfileSheet } from '../ui/system/PublicProfileSheet';
 import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
-import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable } from '../ui/v2/ApplicationSelectionPresentation';
+import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidatesPaging } from '../ui/v2/ApplicationSelectionPresentation';
 import { Press } from '../ui/Press';
 import { T } from '../ui/Text';
 
@@ -20,9 +20,10 @@ import { T } from '../ui/Text';
  * anything. Every command is a local stand-in (a choice "runs" for a moment and then says the Dogovor is made; the safety
  * entry "opens" and says the person is not available), so the states can be seen without touching an account.
  */
-type Scene = 'lista' | 'prazno' | 'ucitavanje' | 'greska' | 'dugacka' | 'veliki' | 'ponuda' | 'ponuda-veliki' | 'ne-moze' | 'izabrana' | 'ishod' | 'ponovi'
+type Scene = 'lista' | 'strane' | 'prazno' | 'ucitavanje' | 'greska' | 'dugacka' | 'veliki' | 'ponuda' | 'ponuda-veliki' | 'ne-moze' | 'izabrana' | 'ishod' | 'ponovi'
   | 'sklopljen' | 'sklopljen-dugo' | 'profil' | 'profil-ucitavanje' | 'profil-greska';
-const SCENES: [Scene, string][] = [['lista', 'Lista'], ['prazno', 'Prazno'], ['ucitavanje', 'Učitavanje'], ['greska', 'Greška'],
+// "Strana po strana": a list read a page at a time has no order by price or rating (the server orders by arrival only), so the control is not drawn (R4).
+const SCENES: [Scene, string][] = [['lista', 'Lista'], ['strane', 'Strana po strana'], ['prazno', 'Prazno'], ['ucitavanje', 'Učitavanje'], ['greska', 'Greška'],
   ['dugacka', 'Dugačka imena'], ['veliki', 'Veliki tekst (raspored)'], ['ponuda', 'Ponuda'], ['ponuda-veliki', 'Ponuda: veliki tekst'], ['ne-moze', 'Ne može izbor'],
   ['izabrana', 'Izabrana'], ['ishod', 'Ishod nepoznat'], ['ponovi', 'Ponovi izbor'], ['sklopljen', 'Dogovor sklopljen'], ['sklopljen-dugo', 'Dogovor sklopljen: dugi nazivi'],
   ['profil', 'Javni profil'], ['profil-ucitavanje', 'Profil: učitavanje'], ['profil-greska', 'Profil: greška']];
@@ -86,13 +87,15 @@ export default function DizajnKandidati() {
       pending={!!state.pending} uncertain={!!state.uncertain} refresh={() => {}} error={state.error ?? null} confirmed={!!state.confirmed || chosen}
       openAgreement={() => {}} reset={state.reset ? () => {} : undefined} readAgreement={async () => ({ ok: true, podatak: { dogovorId: 'galerija-dogovor' } })}
       openLinkedAgreement={() => {}} safety={safetyEntry} ownFace={<Avatar initials="MI" size={72} />} />;
-  const list = (candidates: KandidatProjekcija[], textScale?: number) =>
-    <CandidateListPresentation need={NEED} candidates={candidates} open={() => show('ponuda')} back={leave} refresh={() => {}} openTask={() => {}} textScale={textScale} />;
+  const PAGING: CandidatesPaging = { total: 120, hasMore: true, loadingMore: false, moreError: false, onLoadMore: () => {} };
+  const list = (candidates: KandidatProjekcija[], textScale?: number, paging?: CandidatesPaging) =>
+    <CandidateListPresentation need={NEED} candidates={candidates} open={() => show('ponuda')} back={leave} refresh={() => {}} openTask={() => {}} textScale={textScale} paging={paging} />;
   const body = scene === 'prazno' ? list([])
     : scene === 'ucitavanje' ? <SelectionUnavailable loading message="" back={leave} />
     : scene === 'greska' ? <SelectionUnavailable loading={false} message="Prijave trenutno nije moguće učitati. Proveri vezu i pokušaj ponovo." retry={() => {}} back={leave} />
     : scene === 'dugacka' ? list(LONG)
     : scene === 'veliki' ? list([...NORMAL, ...LONG], 1.3)
+    : scene === 'strane' ? list(NORMAL, undefined, PAGING)
     : list(NORMAL);
   const sheet = scene === 'ponuda' || scene === 'ponuda-veliki' ? offer(NORMAL[0])
     : scene === 'ne-moze' ? offer(NORMAL[2])

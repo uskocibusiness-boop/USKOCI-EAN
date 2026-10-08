@@ -7,7 +7,7 @@ import { Glyph } from '../system/Glyph';
 import { field, sys } from '../system/tokens';
 
 /**
- * A moment, corrected with the pickers the app already has. The zone is said in words because the
+ * A moment, corrected with the pickers the app already has. The zone is said in words, in the owner's own ("po vremenu u Srbiji"), because the
  * review states every moment in it, and a time with no zone beside it reads as the phone's.
  */
 export function FactTimestampEditor({ label, date, time, disabled, onChange }: {
@@ -16,7 +16,7 @@ export function FactTimestampEditor({ label, date, time, disabled, onChange }: {
   return <View style={s.stack}>
     <CivilField label={`${label}: datum`} mode="date" value={date} disabled={disabled} onChange={value => onChange(value, time)} />
     <CivilField label={`${label}: vreme`} mode="time" value={time} disabled={disabled} onChange={value => onChange(date, value.slice(0, 5))} />
-    <T style={s.note}>Vreme u Beogradu.</T>
+    <T style={s.note}>Po vremenu u Srbiji.</T>
   </View>;
 }
 
@@ -56,17 +56,17 @@ export function FactListEditor({ label, items, disabled, onChange }: {
 }
 
 const s = StyleSheet.create({
-  stack: { gap: 10 },
+  stack: { gap: sys.space.md },
   note: { ...sys.type.meta, color: sys.color.muted },
-  items: { gap: 6 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, borderRadius: sys.radius.control,
+  items: { gap: sys.space.sm },
+  item: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingLeft: sys.space.md, borderRadius: sys.radius.control,
     backgroundColor: sys.color.wash },
-  itemText: { ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, paddingVertical: 10 },
+  itemText: { ...sys.type.body, color: sys.color.ink, flex: 1, minWidth: 0, paddingVertical: sys.space.md },
   remove: { minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
-  addRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   input: { ...field, flex: 1, minWidth: 0 },
   // An action that is not the screen's primary: white with the green label, the field's height beside it.
-  add: { minHeight: field.minHeight, minWidth: 72, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
+  add: { minHeight: field.minHeight, minWidth: 72, paddingHorizontal: sys.space.base, alignItems: 'center', justifyContent: 'center',
     borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
   // Disabled is the quiet wash with muted words, never a faded ghost of the live control.
   addOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },

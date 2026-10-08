@@ -12,6 +12,7 @@ import { sesijaSada, useSesija } from '../../../store/sesija';
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
+import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
@@ -35,6 +36,8 @@ export default function WorkerConversationRoute(){
 }
 function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:boolean}){
   const {user,accountRevision}=useSesija(),accountId=user?.id;
+  // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, whatever the assistant proposed or the profile carried.
+  const account=useAccountName(),accountName=account.state==='ready'?account.name:null;
   const cid=useRef<string|null>(initialId??null),[openKey]=useState(noviUuidZahtevId);
   const focus=useRef<object|null>(null),active=useRef(!AppState.currentState||AppState.currentState==='active');
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
@@ -231,10 +234,18 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       // can retire the journal; an abort alone never means cancellation.
       return read();});
   };
+  // The proposal takes the account's name while it carries another (the assistant's own, or the profile's old one). Nothing is sent when they agree.
+  const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const review=async(activate=data?.profileStatus==='DRAFT')=>{
     if(!canAct()||!enabled||!writable||!data)return;
     await savePanel(async()=>{
-      const prepared=await api.prepare(data.conversationId,data.revision,activate);
+      // The review is made of the proposal as it stands, so the name goes into the proposal first (one patch, then the same prepare).
+      let at={conversationId:data.conversationId,revision:data.revision};
+      const name=rename(data);
+      if(name){const named=await api.patch(data.conversationId,data.revision,name);
+        if(!current())return unavailable();if(!named.ok)return named;
+        at={conversationId:named.podatak.conversationId,revision:named.podatak.revision};}
+      const prepared=await api.prepare(at.conversationId,at.revision,activate);
       if(!current())return unavailable();if(!prepared.ok)return prepared;
       const next=await read();if(next.ok&&current())showPanel('review');return next;
     });
@@ -244,7 +255,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const patch=async(value:WorkerAiPatch,thenReview=false)=>{
     if(!canAct()||!enabled||!writable||!data)return;
     const activate=data.review?.activate??data.profileStatus==='DRAFT';
-    await savePanel(async()=>{const result=await api.patch(data.conversationId,data.revision,value);
+    // Any change of the proposal puts the account's name into it too, while it carries another.
+    const body=value.displayName===undefined?{...value,...rename(data)}:value;
+    await savePanel(async()=>{const result=await api.patch(data.conversationId,data.revision,body);
       if(!current())return unavailable();
       if(!result.ok)return result;
       saveKey.current=null;
@@ -301,7 +314,10 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     {manualDraftConflict?<V2Action tone="neutral" label="Odbaci izmene i nastavi" kind="quiet" disabled={manualBackBlocked.current||panelWrite.current} onPress={back}/>:null}
     {busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
     <V2Action tone="neutral" label="Proveri razgovor" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
-  if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
+  if(panel==='review'&&data.review){const frozen=data.review,
+    // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
+    nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
+    expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
     // "Izmeni" at a part opens that part's editor and comes back to a fresh review (see `patch`).
     const editPart=(next:WorkerAiPart)=>{
       if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;
@@ -314,7 +330,8 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
-      <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}/>
+      <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
+        onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
       {/* Owner 2026-10-07: the interview ends by saying what it is for, as a fixed line (no extra AI call, no server change). */}
       {!data.saved?<WorkerAiNotificationsNote/>:null}
       {busyPanelCopy}

@@ -1,13 +1,14 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { NeedLocationInput } from '../../contracts/location';
-import type { LocationSlot, NeedFactV2Key } from '../../contracts/needFactsV2';
-import { factLabel, factReviewValue, geographyPlaceLines, slotLabel } from '../../data/aiNeedV2Ui';
+import { NEED_FACT_V2_DEFINITIONS, type LocationSlot, type NeedFactV2Key } from '../../contracts/needFactsV2';
+import { factLabel, factReviewValue, slotLabel } from '../../data/aiNeedV2Ui';
 import { REVIEW_FACT_COPY } from '../../data/reviewFactProblem';
+import { capabilityTerms } from '../../lib/capabilityTerms';
 import { dogovorenoVreme } from '../../lib/dogovorenoVreme';
-import { locationSlots, normalizeNeedLocation, normalizeTaskGeography } from '../../lib/location';
+import { locationSlots, normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { novac } from '../../lib/novac';
 import type { LocationOverviewPoint } from '../location/LocationOverviewMap.types';
-import { ownerPlaces } from '../location/placeText';
+import { normalizedPlaceText, ownerPlaces } from '../location/placeText';
 
 /** Owner-only review points in task order. Never use this for a public projection. */
 export function privateReviewMap(location: NeedLocationInput | null | undefined): {
@@ -39,22 +40,6 @@ export function ownerPlaceLines(location: NeedLocationInput | null | undefined):
   return ownerPlaces({ geography: value.geography, exactAddress: value.exactAddress, points: value.resolvedLocation.points })
     .filter(place => place.source !== 'GEOGRAPHY')
     .map(place => ({ slot: place.slot, title: slotLabel(place.slot, stationary), text: place.text }));
-}
-
-/**
- * The place lines of the PUBLIC half of the review: the stored words of the topology, which are what a stranger reads once the task is
- * published (never a confirmed point's address, and never a house number: those stay in the private half). A route names all its stops
- * (owner decision 2, 2026-09-24). One place or an area names its stops only when they say something the area line (`zone`) does not,
- * which is the rule the published detail applies (`routeAddsToArea`), so the review no longer shows less than the task will say: the
- * words of the first text ("Lenke Dunđerski") were invisible here and appeared only after publishing (owner, 2026-10-07).
- */
-export function publicPlaceLines(geography: unknown, zone: string | null): string[] {
-  const value = normalizeTaskGeography(geography);
-  if (!value || value.mode === 'REMOTE') return [];
-  const lines = geographyPlaceLines(value);
-  if (value.mode === 'POINT_TO_POINT' || value.mode === 'MULTI_STOP') return lines.map(place => place.line);
-  const area = zone ?? '';
-  return lines.length > 1 || lines.some(place => place.parts.some(part => !area.includes(part))) ? lines.map(place => place.line) : [];
 }
 
 /**
@@ -154,4 +139,112 @@ export const SUPPORT_HAS_DUTY_OPERATOR = false;
 export function manualCheckCopy(operatorOnDuty: boolean = SUPPORT_HAS_DUTY_OPERATOR): string {
   const held = 'Zadatak zahteva ručnu proveru i još nije objavljen.';
   return operatorOnDuty ? held : `${held} Podrška još nema dežurnog operatera, pa je najbrže da ga izmeniš i ponovo pošalješ.`;
+}
+
+/* ------------------------------------------------------------------------------------------------ the parts of the preview */
+
+/** What a part of the preview needs of a fact: where it is corrected (`id`), which fact it is and what it holds. */
+export type PartFactLike = Readonly<{ id: string | null; key: NeedFactV2Key; value: unknown }>;
+
+/**
+ * The facts that ONE line of the task is made of. The price is three facts (how it works, the amount, what it is for) and the
+ * time is three (what kind of time, the start, the end), but the task draws each as one line, so the line has one pencil and the
+ * others are one tap away inside the editor it opens (`groupedFacts`). Nothing about how a fact is corrected changes: each is
+ * still corrected one at a time, with its own editor and its own command.
+ */
+const PART_GROUPS = {
+  value: ['need.price_rsd', 'need.price_mode', 'need.price_basis'],
+  time: ['need.schedule_kind', 'need.starts_at', 'need.ends_at'],
+} as const satisfies Record<string, readonly NeedFactV2Key[]>;
+export type GroupedPart = keyof typeof PART_GROUPS;
+
+/** What each fact of a grouped line is called when a person chooses between them. */
+export const GROUPED_FACT_LABEL: Readonly<Partial<Record<NeedFactV2Key, string>>> = {
+  'need.price_rsd': 'Iznos', 'need.price_mode': 'Način cene', 'need.price_basis': 'Osnova cene',
+  'need.schedule_kind': 'Vrsta termina', 'need.starts_at': 'Početak', 'need.ends_at': 'Kraj',
+};
+
+/** The facts of a grouped line that can be corrected here (they have an id), in the group's own order. */
+export function groupedFacts<T extends PartFactLike>(part: GroupedPart, facts: readonly T[]): T[] {
+  return PART_GROUPS[part].flatMap(key => facts.filter(fact => fact.key === key && !!fact.id));
+}
+
+/**
+ * The fact the pencil of a grouped line opens first: what a person most likely means by "change it". Under "Moja cena" that is the
+ * amount and under "Ponude" the way the price works (there is no amount to change); for a fixed time it is the start, for any other
+ * time the kind of time. A fact with no id cannot be corrected here, so the pencil falls to whatever can be; none at all means no
+ * pencil (the conversation is the way then).
+ */
+export function partFact<T extends PartFactLike>(part: GroupedPart, facts: readonly T[]): T | undefined {
+  const editable = groupedFacts(part, facts);
+  const valueOf = (key: NeedFactV2Key) => facts.find(fact => fact.key === key)?.value;
+  const order: readonly NeedFactV2Key[] = part === 'value'
+    ? valueOf('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', 'need.price_mode', 'need.price_basis'] : ['need.price_mode', 'need.price_rsd', 'need.price_basis']
+    : valueOf('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at', 'need.schedule_kind', 'need.ends_at'] : ['need.schedule_kind', 'need.starts_at', 'need.ends_at'];
+  for (const key of order) {
+    const found = editable.find(fact => fact.key === key);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** The grouped line a fact belongs to, or null when it stands alone. */
+export function groupOf(key: NeedFactV2Key): GroupedPart | null {
+  return (Object.keys(PART_GROUPS) as GroupedPart[]).find(part => (PART_GROUPS[part] as readonly NeedFactV2Key[]).includes(key)) ?? null;
+}
+
+/**
+ * The requirement lines of the detail (`needRequirementRows`) and the fact each is corrected in. "Identitet" has no entry: its row is
+ * not a fact to correct, and its way out is its own block ("Ukloni uslov i nastavi").
+ */
+export const REQUIREMENT_FACT: Readonly<Record<string, NeedFactV2Key>> = {
+  'Veštine': 'need.required_skills', 'Alat': 'need.required_tools', 'Vozilo': 'need.required_vehicles', 'Dozvole': 'need.required_licenses',
+  'Bitni uslovi': 'need.critical_conditions', 'Najmanje iskustva': 'need.minimum_experience_years',
+};
+
+/** A list fact with nothing in it: the detail draws no line for it, so the review names it among what can still be added. */
+export function blankList(fact: Readonly<{ key: NeedFactV2Key; value: unknown }>): boolean {
+  return NEED_FACT_V2_DEFINITIONS[fact.key].valueType === 'TEXT_ARRAY' && (capabilityTerms(fact.value)?.length ?? 0) === 0;
+}
+
+/**
+ * The words of the application deadline, as the people who apply read them ("Prijave do 12. okt · 12:15", in Serbian time, named so on a
+ * phone in another zone). No deadline is "Bez posebnog roka" and no more: the part is named "Prijave", and what it means that there is none (the
+ * search goes on until the task is filled or its owner stops it) is a sentence the screen does not need (rule J5, one sentence of explanation).
+ */
+export function deadlineWords(responseDeadline: string | null): string {
+  return responseDeadline ? `Prijave do ${dogovorenoVreme(responseDeadline)}` : 'Bez posebnog roka';
+}
+
+/**
+ * What the owner reads in the frame of the exact address (his and nobody else's, until a Dogovor): the confirmed places in their short
+ * words, the address as it was stored when it says more than those lines, what he wrote about getting in, and how many of the points
+ * are still to be confirmed. The words of the places are the confirmed points' own (`ownerPlaceLines`), so a pin moved after the
+ * first text is what is read. Owner only; never a public surface.
+ */
+export type AddressFrame = {
+  places: { slot: LocationSlot; title: string; text: string }[];
+  /** The address as stored. It stays only when it is not the very line a confirmed point already says. */
+  fullAddress: string | null;
+  notes: { title: string | null; text: string }[];
+  /** Only while some of the points are confirmed and some are not. */
+  unconfirmed: { done: number; total: number } | null;
+};
+export function ownerAddressFrame(location: NeedLocationInput | null | undefined,
+  privateFacts: readonly Readonly<{ key: NeedFactV2Key; value: unknown }>[]): AddressFrame {
+  const places = ownerPlaceLines(location);
+  const read = (key: NeedFactV2Key): string | null => {
+    const value = privateFacts.find(fact => fact.key === key)?.value;
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  };
+  const stored = read('need.exact_address'), access = read('need.access_notes');
+  const fullAddress = stored && !places.some(place => normalizedPlaceText(place.text) === normalizedPlaceText(stored)) ? stored : null;
+  const value = normalizeNeedLocation(location);
+  const stationary = value?.geography.mode === 'STATIONARY';
+  const pointNotes = (value?.resolvedLocation?.points ?? []).flatMap(point => point.accessNotes?.trim() ? [{ slot: point.slot, text: point.accessNotes.trim() }] : [])
+    .filter(note => note.text !== access);
+  const notes = [...(access ? [{ title: null, text: access }] : []),
+    ...pointNotes.map(note => ({ title: access || pointNotes.length > 1 ? slotLabel(note.slot, stationary) : null, text: note.text }))];
+  const missing = value ? pointsMissing(value.geography, value.resolvedLocation) : null;
+  return { places, fullAddress, notes, unconfirmed: missing && missing.done > 0 && missing.done < missing.total ? missing : null };
 }

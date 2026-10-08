@@ -1,7 +1,7 @@
 import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import { dogovora, prijava, zadataka } from '../system/plural';
 import { ROLE_REQUESTER, agendaFacts, agendaRole } from './agenda';
-import { APPLICATION_FALLBACK_TITLE, ROLE_APPLICANT, TASK_FALLBACK_TITLE, type PlannerKind, type PlannerStatus } from './planner';
+import type { PlannerStatus } from './planner';
 
 /**
  * "Arhiva" (owner, 2026-10-07; plan 2.2): where the things of mine that are over are kept, read-only: finished and cancelled
@@ -17,6 +17,13 @@ import { APPLICATION_FALLBACK_TITLE, ROLE_APPLICANT, TASK_FALLBACK_TITLE, type P
  * Pure and dependency-light on purpose: no React and no native module.
  */
 
+/** What an entry of the archive is: a Dogovor, a task of mine, or an application of mine (Raspored holds only the Dogovori; the Arhiva keeps all three). */
+export type ArchiveKind = 'dogovor' | 'zadatak' | 'prijava';
+/** The words of a task and an application that have no title to go by, and what I am to an application. */
+export const TASK_FALLBACK_TITLE = 'Zadatak';
+export const APPLICATION_FALLBACK_TITLE = 'Prijava';
+export const ROLE_APPLICANT = 'Tvoja prijava';
+
 /** Why a thing is over, as far as the read says. `closed` is over for a reason the read does not keep. */
 export type ArchiveEnd = 'completed' | 'cancelled' | 'expired' | 'closed';
 /** The quiet chips of the archive: "Sve · Otkazani · Istekli · Završeni". */
@@ -27,7 +34,7 @@ export const ARCHIVE_FILTERS: readonly { key: ArchiveFilter; label: string }[] =
 
 export type ArchiveEntry = Readonly<{
   key: string;
-  kind: PlannerKind;
+  kind: ArchiveKind;
   /** What the row opens: the Dogovor's, the task's or the application's id. */
   id: string;
   title: string | null;
@@ -85,14 +92,14 @@ export const filterArchive = (entries: readonly ArchiveEntry[], filter: ArchiveF
 export const hasUnkeptReason = (entries: readonly ArchiveEntry[]): boolean => entries.some(entry => entry.end === 'closed');
 
 export type ArchiveGroup = Readonly<{
-  kind: PlannerKind;
+  kind: ArchiveKind;
   /** "Dogovori", "Zadaci", "Prijave". */
   heading: string;
   /** How many, with the plural its noun needs: "1 Dogovor", "2 zadatka", "5 prijava". */
   count: string;
   entries: readonly ArchiveEntry[];
 }>;
-const GROUPS: readonly { kind: PlannerKind; heading: string; say: (count: number) => string }[] = [
+const GROUPS: readonly { kind: ArchiveKind; heading: string; say: (count: number) => string }[] = [
   { kind: 'dogovor', heading: 'Dogovori', say: dogovora }, { kind: 'zadatak', heading: 'Zadaci', say: zadataka }, { kind: 'prijava', heading: 'Prijave', say: prijava },
 ];
 

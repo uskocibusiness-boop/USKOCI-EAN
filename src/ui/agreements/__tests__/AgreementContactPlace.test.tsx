@@ -21,6 +21,7 @@ jest.mock('../../system/motion', () => ({ useReducedMotion: () => true }));
 // The place is private and read through its own grant (its suite is `agreement-private-location`); here only that it stands where it should.
 jest.mock('../../AgreementPrivateLocation', () => ({ AgreementPrivateLocation: 'PrivateLocation' }));
 
+import { InfoButton } from '../../system/InfoButton';
 import { AgreementContactPlace } from '../AgreementContactPlace';
 
 const agreement = (patch: Partial<DogovorProjekcija> = {}, contact: Partial<DogovorProjekcija['kontakt']> = {}): DogovorProjekcija => ({
@@ -88,6 +89,33 @@ describe('the number', () => {
   });
 });
 
+/** The explanation of sharing is behind an "ⓘ" at the end of the title, where the number can be shared or taken back (the coordinator, 8 Oct 2026). */
+describe('how sharing the number works', () => {
+  const infos = () => tree.root.findAllByType(InfoButton).map(node => node.props.title);
+
+  it('is behind the ⓘ of the title while the number can be shared or taken back, and the rows carry no sentence of it', async () => {
+    await draw(agreement());
+    expect(infos()).toEqual(['Kako se deli broj']);
+    expect(tree.root.findAllByType(InfoButton)[0].props.lines).toEqual(['Deljenje je odvojeno u oba smera.', 'Kad podeliš svoj broj, druga strana ne deli automatski svoj.']);
+    expect(texts()).toContain('Kontakt i mesto'); expect(texts()).not.toContain('Deljenje je odvojeno u oba smera.');
+    expect(press('Podeli svoj broj').props.accessibilityHint).toBe('Deljenje je odvojeno u oba smera: druga strana ne deli automatski svoj broj.');
+    await act(async () => tree.unmount());
+    await draw(agreement({}, { mojTelefonPodeljen: true }));
+    expect(infos()).toEqual(['Kako se deli broj']); expect(texts()).toContain('Druga strana vidi tvoj broj.');
+  });
+
+  it('is not there when there is nothing to share: an account with no number, a finished Dogovor, or someone who is not a side of it', async () => {
+    await draw(agreement(), { accountHasNumber: false });
+    expect(infos()).toEqual([]); expect(texts()).toContain('Kontakt i mesto'); expect(texts()).toContain('Na tvom nalogu nema broja telefona.');
+    await act(async () => tree.unmount());
+    await draw(agreement({ stanje: 'COMPLETED' }, { njihovTelefon: '064 123 4567' }));
+    expect(infos()).toEqual([]);
+    await act(async () => tree.unmount());
+    await draw(agreement(), { canShare: false });
+    expect(infos()).toEqual([]);
+  });
+});
+
 describe('the place', () => {
   it('stands under the title of the section for a physical Dogovor, where the private location draws itself', async () => {
     await draw(agreement({}, { lokacijaPostoji: true }));
@@ -101,10 +129,15 @@ describe('the place', () => {
     expect(tree.root.findAll(node => String(node.type) === 'PrivateLocation')).toHaveLength(0);
   });
 
-  it('says that access to the place is closed once the Dogovor is over', async () => {
+  it('says that access to the place is closed once the Dogovor is over, as a quiet sentence and not as a section with a title of its own', async () => {
     await draw(agreement({ stanje: 'CANCELLED' }, { lokacijaPostoji: true }));
     expect(texts()).toContain('Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.');
+    expect(texts()).not.toContain('Kontakt i mesto');
     expect(tree.root.findAll(node => String(node.type) === 'PrivateLocation')).toHaveLength(0);
+    // A number the other side shared stays on the page of a Dogovor that is over, and then the section keeps its title.
+    await act(async () => tree.unmount());
+    await draw(agreement({ stanje: 'CANCELLED' }, { lokacijaPostoji: true, njihovTelefon: '064 123 4567' }));
+    expect(texts()).toContain('Kontakt i mesto'); expect(texts()).toContain('Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.');
   });
 
   it('draws the slot it was given in place of the private location, and reports where the section stands', async () => {

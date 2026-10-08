@@ -88,7 +88,8 @@ export function agreementInProgress(item: DogovorProjekcija, now: Date): boolean
 export type AgreementGroupKey = 'waiting' | 'past' | 'today' | 'tomorrow' | 'week' | 'later' | 'undated';
 export const AGREEMENT_GROUP_ORDER: readonly AgreementGroupKey[] = ['waiting', 'past', 'today', 'tomorrow', 'week', 'later', 'undated'];
 export const AGREEMENT_GROUP_TITLES: Readonly<Record<AgreementGroupKey, string>> = {
-  waiting: 'Čeka tebe', past: 'Ranije', today: 'Danas', tomorrow: 'Sutra', week: 'Ove nedelje', later: 'Kasnije', undated: 'Bez tačnog termina',
+  // The same words as the note of a Dogovor with no term ("Termin još nije dogovoren") and the card's own line: one name for one state (J2).
+  waiting: 'Čeka tebe', past: 'Ranije', today: 'Danas', tomorrow: 'Sutra', week: 'Ove nedelje', later: 'Kasnije', undated: 'Termin još nije dogovoren',
 };
 export type AgreementGroup = { key: AgreementGroupKey; title: string; items: DogovorProjekcija[] };
 

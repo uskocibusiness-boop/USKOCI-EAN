@@ -42,14 +42,18 @@ const askUnblock = async (name: string) => act(async () => person(name).props.ac
 beforeEach(() => { jest.clearAllMocks(); mockRouter.canGoBack.mockReturnValue(true); mockList.mockResolvedValue(ok([])); });
 afterEach(async () => { await act(async () => tree?.unmount()); poruka.hide(); });
 
-it('with nobody blocked, says how a block happens and offers a re-check instead of a bare "no data"', async () => {
+it('with nobody blocked, says it once and how a block happens; there is no button, the screen is read again by pulling it', async () => {
   await render();
-  expect(text()).toContain('Još nema blokiranih osoba.');
-  expect(text()).toContain('sa javnog profila osobe');
+  expect(text()).toContain('Nema blokiranih osoba.');
+  expect(text()).toContain('Osobu blokiraš ili prijaviš sa njenog profila, iz zadatka ili iz Dogovora.');
   expect(mockList).toHaveBeenCalledTimes(1);
-  await act(async () => action('Proveri ponovo').onPress());
-  expect(mockList).toHaveBeenCalledTimes(2);
+  // The good case has nothing to press: a "Proveri ponovo" that only looked again was the one action of an empty screen.
+  expect(actions('Proveri ponovo')).toHaveLength(0);
   expect(actions('Sledeće osobe')).toHaveLength(0); expect(actions('Početak liste')).toHaveLength(0);
+  const pull = () => tree.root.findByType('Screen' as React.ElementType).props.refresh as { onRefresh: () => void; busy: boolean };
+  expect(pull().busy).toBe(false);
+  await act(async () => pull().onRefresh());
+  expect(mockList).toHaveBeenCalledTimes(2);
   // No sentence explaining the screen: the bar says where you are.
   expect(text()).not.toContain('Korisnici koje trenutno blokiraš');
 });
@@ -57,7 +61,7 @@ it('with nobody blocked, says how a block happens and offers a re-check instead 
 it('names each blocked person or says honestly that the name is unknown, and opens them in safety', async () => {
   mockList.mockResolvedValue(ok([{ targetAccountId: B, displayName: 'Marko' }, { targetAccountId: C, displayName: null }]));
   await render();
-  expect(text()).not.toContain('Još nema blokiranih');
+  expect(text()).not.toContain('Nema blokiranih');
   expect(actions('Proveri ponovo')).toHaveLength(0);
   expect(people().map(node => node.props.name)).toEqual(['Marko', 'Ime nije dostupno']);
   // The letters come from the real name only; an unknown person is drawn, never given letters.
@@ -84,7 +88,7 @@ it('an empty later page offers the way back to the start, and Back with no histo
 it('an empty first page with more after it says nothing about nobody; an empty later page keeps "Početak liste"', async () => {
   mockList.mockResolvedValueOnce(ok([], C)).mockResolvedValueOnce(ok([], 'third'));
   await render();
-  expect(text()).not.toContain('Još nema blokiranih osoba.');
+  expect(text()).not.toContain('Nema blokiranih osoba.');
   // Round 5c: not a lone button either; the page says it is empty, and the way on follows (no way back to itself).
   expect(text()).toContain('Na ovoj stranici nema više osoba.');
   expect(actions('Sledeće osobe')).toHaveLength(1); expect(actions('Početak liste')).toHaveLength(0);

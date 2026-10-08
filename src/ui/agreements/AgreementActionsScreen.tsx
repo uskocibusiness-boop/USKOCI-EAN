@@ -17,7 +17,7 @@ type Form = AgreementActionForm;
 const initial: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
 export function AgreementActionsScreen({ agreementId, start }: {
   agreementId: string;
-  /** The form to open as soon as the terms in force have been read (the Dogovor's "···" menu names one); without it the hub opens. */
+  /** The form to open as soon as the terms in force have been read (the rows "Izmeni uslove" and "Otkaži Dogovor" of the Dogovor, and the conversation's "···", name one); without it the hub opens. */
   start?: Form['kind'];
 }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
@@ -60,7 +60,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
       startDate: start.date, startTime: start.time, endDate: end.date, endTime: end.time,
       priceChanged: false, scopeChanged: false, startChanged: false, endChanged: false }; formRef.current = next; setForm(next); setError(null);
   };
-  // Arriving from the menu's "Izmeni uslove" or "Otkaži Dogovor": the form it names opens once, when the terms have been read and
+  // Arriving from the row (or the conversation's menu entry) "Izmeni uslove" or "Otkaži Dogovor": the form it names opens once, when the terms have been read and
   // the command is permitted. `openForm` keeps every one of its own guards, so a command that is not allowed leaves the hub.
   const arrived = useRef(false);
   useEffect(() => {

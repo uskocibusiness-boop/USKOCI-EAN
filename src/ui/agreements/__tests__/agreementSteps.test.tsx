@@ -3,7 +3,7 @@ import { Animated, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { DogovorProjekcija } from '../../../contracts/projections';
 import { sys } from '../../system/tokens';
-import { agreementStepModel, deadlineNote, STEP_LABELS, stepsSummary, type OwnRating, type StepStatus } from '../agreementStepsModel';
+import { agreementStepModel, STEP_LABELS, stepsFitInRow, stepsSummary, type OwnRating, type StepStatus } from '../agreementStepsModel';
 
 let mockReduced = false;
 jest.mock('../../Text', () => ({ T: 'T' }));
@@ -11,18 +11,23 @@ jest.mock('../../system/motion', () => ({ useReducedMotion: () => mockReduced })
 import { AgreementSteps } from '../AgreementSteps';
 
 /**
- * The step bar says where a Dogovor STANDS (plan 2.6), whatever its history holds: Dogovoreno -> Zadatak je gotov -> Potvrđeno ->
- * Ocena. A step behind is a green check, the step it is at a filled green dot, the ones ahead a grey outline; a cancelled Dogovor is
- * grey as a whole and says so in one line. The deadline under the second step is the server's, never a number written in the code.
+ * The step bar says where a Dogovor STANDS (plan 2.6), whatever its history holds: Dogovoreno -> Gotovo -> Potvrđeno -> Ocena. A step
+ * behind is a green check, the step it is at a filled green dot, the ones ahead a grey outline; a cancelled Dogovor is grey as a whole
+ * and says so in one line. The words are one short word each and are never broken in the middle (phone, 2026-10-08): in one row when the
+ * four fit it, in a column when they do not.
  */
 type State = DogovorProjekcija['stanje'];
 const statuses = (state: State, rating?: OwnRating): StepStatus[] => agreementStepModel(state, rating).map(step => step.status);
 
 describe('the model: one answer for every state the Dogovor can be in', () => {
-  it('has the four steps of the plan, in their words', () => {
-    expect(agreementStepModel('CONFIRMED').map(step => step.label)).toEqual(['Dogovoreno', 'Zadatak je gotov', 'Potvrđeno', 'Ocena']);
-    expect(STEP_LABELS).toEqual({ agreed: 'Dogovoreno', done: 'Zadatak je gotov', confirmed: 'Potvrđeno', rated: 'Ocena' });
+  it('has the four steps of the plan, in their short words', () => {
+    expect(agreementStepModel('CONFIRMED').map(step => step.label)).toEqual(['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']);
+    expect(STEP_LABELS).toEqual({ agreed: 'Dogovoreno', done: 'Gotovo', confirmed: 'Potvrđeno', rated: 'Ocena' });
     expect(agreementStepModel('CONFIRMED').map(step => step.key)).toEqual(['agreed', 'done', 'confirmed', 'rated']);
+  });
+
+  it('is one word per step: nothing in a label can break anywhere but in the middle of a word', () => {
+    for (const label of Object.values(STEP_LABELS)) expect(label).toMatch(/^\S+$/);
   });
 
   it('stands at the second step while the work is agreed and the third while the confirmation is awaited', () => {
@@ -45,7 +50,7 @@ describe('the model: one answer for every state the Dogovor can be in', () => {
 
   it('is grey as a whole when the Dogovor is cancelled, whatever the rating read says', () => {
     for (const rating of ['DUE', 'GIVEN', 'CLOSED', 'UNKNOWN', 'NOT_APPLICABLE'] as const) expect(statuses('CANCELLED', rating)).toEqual(['cancelled', 'cancelled', 'cancelled', 'cancelled']);
-    expect(agreementStepModel('CANCELLED').map(step => step.label)).toEqual(['Dogovoreno', 'Zadatak je gotov', 'Potvrđeno', 'Ocena']);
+    expect(agreementStepModel('CANCELLED').map(step => step.label)).toEqual(['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']);
   });
 
   it('has at most one current step in any state', () => {
@@ -57,32 +62,35 @@ describe('the model: one answer for every state the Dogovor can be in', () => {
   });
 
   it('is spoken as each step and where it stands, and a cancelled Dogovor as one sentence', () => {
-    expect(stepsSummary(agreementStepModel('CONFIRMED'))).toBe('Dogovoreno: urađeno. Zadatak je gotov: trenutni korak. Potvrđeno: na redu. Ocena: na redu.');
+    expect(stepsSummary(agreementStepModel('CONFIRMED'))).toBe('Dogovoreno: urađeno. Gotovo: trenutni korak. Potvrđeno: na redu. Ocena: na redu.');
     expect(stepsSummary(agreementStepModel('CANCELLED'))).toBe('Dogovor je otkazan.');
   });
 });
 
-describe('the line under the second step', () => {
-  it('is the real deadline the server gave, in Serbian time, only while the confirmation is awaited', () => {
-    // The phone in Jest is in UTC, so the zone is named; on a phone in Serbia the note is the time alone.
-    const note = deadlineNote({ state: 'AWAITING_REQUESTER', deadlineIso: '2026-09-18T10:00:00Z', problemOpen: false });
-    expect(note).toMatch(/^Potvrda do 18\. sep( 2026)? · 12:00/);
-    expect(note).not.toMatch(/48/);
-    expect(deadlineNote({ state: 'CONFIRMED', deadlineIso: '2026-09-18T10:00:00Z', problemOpen: false })).toBeNull();
-    expect(deadlineNote({ state: 'COMPLETED', deadlineIso: '2026-09-18T10:00:00Z', problemOpen: false })).toBeNull();
-    expect(deadlineNote({ state: 'CANCELLED', deadlineIso: '2026-09-18T10:00:00Z', problemOpen: false })).toBeNull();
+describe('whether the four words stand in one row', () => {
+  const words = Object.values(STEP_LABELS);
+
+  it('does on the owner\'s phone (361 dp) at his text size, 1.15, with room left for the lines between the steps', () => {
+    expect(stepsFitInRow(words, { width: 361, scale: 1 })).toBe(true);
+    expect(stepsFitInRow(words, { width: 361, scale: 1.15 })).toBe(true);
+    expect(stepsFitInRow(words, { width: 361.14, scale: 1.15 })).toBe(true);
   });
 
-  it('says nothing about a deadline the server did not give', () => {
-    expect(deadlineNote({ state: 'AWAITING_REQUESTER', deadlineIso: null, problemOpen: false })).toBeNull();
-    expect(deadlineNote({ state: 'AWAITING_REQUESTER', deadlineIso: undefined, problemOpen: false })).toBeNull();
-    expect(deadlineNote({ state: 'AWAITING_REQUESTER', deadlineIso: 'tomorrow', problemOpen: false })).toBeNull();
+  it('does not at 1.3 on that phone, where the words would not leave 12 dp between two of them: the bar becomes a column', () => {
+    expect(stepsFitInRow(words, { width: 361, scale: 1.3 })).toBe(false);
+    expect(stepsFitInRow(words, { width: 361, scale: 1.5 })).toBe(false);
   });
 
-  it('says that the automatic completion is stopped while a problem is open', () => {
-    expect(deadlineNote({ state: 'AWAITING_REQUESTER', deadlineIso: '2026-09-18T10:00:00Z', problemOpen: true }))
-      .toBe('Automatski završetak je zaustavljen zbog prijavljenog problema.');
-    expect(deadlineNote({ state: 'AWAITING_REQUESTER', deadlineIso: null, problemOpen: true })).toBe('Automatski završetak je zaustavljen zbog prijavljenog problema.');
+  it('follows the room: a wider phone keeps the row at 1.3, and a narrower one gives it up at 1.15', () => {
+    expect(stepsFitInRow(words, { width: 412, scale: 1.3 })).toBe(true);
+    expect(stepsFitInRow(words, { width: 340, scale: 1.15 })).toBe(false);
+    expect(stepsFitInRow(words, { width: 320, scale: 1 })).toBe(true);
+  });
+
+  it('measures the words it is given, and claims nothing for a room that is not a measurement', () => {
+    expect(stepsFitInRow(['Zadatak je gotov', ...words.slice(1)], { width: 361, scale: 1.15 })).toBe(false);
+    expect(stepsFitInRow(words, { width: Number.NaN, scale: 1 })).toBe(false);
+    expect(stepsFitInRow(words, { width: 361, scale: Number.NaN })).toBe(false);
   });
 });
 
@@ -94,22 +102,26 @@ describe('the bar', () => {
   const bar = () => tree.root.findByProps({ accessibilityRole: 'progressbar' });
   const step = (key: string) => tree.root.findByProps({ testID: `agreement-step-${key}` });
   const texts = () => tree.root.findAll(node => String(node.type) === 'T').map(node => node.children.join(''));
+  const labelNodes = () => tree.root.findAll(node => String(node.type) === 'T' && Object.values(STEP_LABELS).includes(node.children.join('')));
+  // Host elements only: a View is two nodes.
+  const joins = () => tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('agreement-join-'));
   const checks = () => tree.root.findAll(node => String(node.type) === 'Check');
   const green = () => tree.root.findAll(node => typeof node.type === 'string' && [flat(node).backgroundColor, flat(node).borderColor].includes(sys.color.green));
+  const PHONE = { width: 361, scale: 1.15 }, LARGE = { width: 361, scale: 1.3 };
 
   it('draws the four steps as one thing for a screen reader, at the step the Dogovor is at', async () => {
-    await render(<AgreementSteps state="AWAITING_REQUESTER" ownRating="NOT_APPLICABLE" deadlineIso="2026-09-18T10:00:00Z" />);
+    await render(<AgreementSteps state="AWAITING_REQUESTER" ownRating="NOT_APPLICABLE" room={PHONE} />);
     // Not "Tok Dogovora": that is the name of the history row on the page, and two controls must not share a name.
     expect(bar().props.accessibilityLabel).toBe('Koraci Dogovora');
     expect(bar().props.accessibilityValue).toEqual({ min: 1, max: 4, now: 3,
-      text: 'Dogovoreno: urađeno. Zadatak je gotov: urađeno. Potvrđeno: trenutni korak. Ocena: na redu.' });
-    expect(texts().filter(text => Object.values(STEP_LABELS).includes(text))).toEqual(['Dogovoreno', 'Zadatak je gotov', 'Potvrđeno', 'Ocena']);
+      text: 'Dogovoreno: urađeno. Gotovo: urađeno. Potvrđeno: trenutni korak. Ocena: na redu.' });
+    expect(texts().filter(text => Object.values(STEP_LABELS).includes(text))).toEqual(['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']);
     // The marks are drawing only: a screen reader hears the summary, not each mark.
     expect(step('agreed').props).toMatchObject({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
   });
 
   it('draws a check behind the current step and none ahead of it', async () => {
-    await render(<AgreementSteps state="CONFIRMED" />);
+    await render(<AgreementSteps state="CONFIRMED" room={PHONE} />);
     expect(checks()).toHaveLength(1);
     expect(step('agreed').findAllByType('Check' as unknown as React.ElementType)).toHaveLength(1);
     expect(step('done').findAllByType('Check' as unknown as React.ElementType)).toHaveLength(0);
@@ -126,27 +138,17 @@ describe('the bar', () => {
   });
 
   it('draws a check on every step of a finished and rated Dogovor', async () => {
-    await render(<AgreementSteps state="COMPLETED" ownRating="GIVEN" />);
+    await render(<AgreementSteps state="COMPLETED" ownRating="GIVEN" room={PHONE} />);
     expect(checks()).toHaveLength(4);
     expect(bar().props.accessibilityValue.now).toBeUndefined();
   });
 
-  it('puts the real deadline under the second step, and no hard-coded hours anywhere', async () => {
-    await render(<AgreementSteps state="AWAITING_REQUESTER" deadlineIso="2026-09-18T10:00:00Z" />);
-    const note = tree.root.findByProps({ testID: 'agreement-steps-note' });
-    expect(note.props.children).toMatch(/^Potvrda do 18\. sep( 2026)? · 12:00/);
-    expect(texts().join(' ')).not.toMatch(/48\s?h/);
-    await act(async () => tree.update(<AgreementSteps state="CONFIRMED" />));
-    expect(tree.root.findAllByProps({ testID: 'agreement-steps-note' })).toHaveLength(0);
-  });
-
   it('is grey all through when cancelled, with one line that says so and invents no date, person or reason', async () => {
-    await render(<AgreementSteps state="CANCELLED" ownRating="DUE" deadlineIso="2026-09-18T10:00:00Z" />);
+    await render(<AgreementSteps state="CANCELLED" ownRating="DUE" room={PHONE} />);
     expect(checks()).toHaveLength(0);
     expect(green()).toHaveLength(0);
     expect(bar().props.accessibilityValue).toEqual({ text: 'Dogovor je otkazan.' });
     expect(tree.root.findByProps({ testID: 'agreement-steps-cancelled' }).props.children).toBe('Otkazano');
-    expect(tree.root.findAllByProps({ testID: 'agreement-steps-note' })).toHaveLength(0);
   });
 
   it('adds to the cancelled line exactly what the Dogovor carries, in the order date, person, reason', async () => {
@@ -158,6 +160,58 @@ describe('the bar', () => {
   it('draws no cancelled line for a Dogovor that is not cancelled', async () => {
     await render(<AgreementSteps state="COMPLETED" ownRating="DUE" cancellation={{ reason: 'ne' }} />);
     expect(tree.root.findAllByProps({ testID: 'agreement-steps-cancelled' })).toHaveLength(0);
+  });
+
+  it('adds no line about the deadline or a stopped completion: the head of the Dogovor says it once', async () => {
+    await render(<AgreementSteps state="AWAITING_REQUESTER" room={PHONE} />);
+    expect(tree.root.findAllByProps({ testID: 'agreement-steps-note' })).toHaveLength(0);
+    expect(texts().join(' ')).not.toMatch(/Potvrda do|Automatski završetak|48\s?h/);
+  });
+
+  describe('in one row, at the owner\'s phone and text size', () => {
+    it('gives every step the width of its own word, on one line, and joins the steps with the three lines that share what is left', async () => {
+      await render(<AgreementSteps state="CONFIRMED" room={PHONE} />);
+      expect(labelNodes().map(node => node.children.join(''))).toEqual(['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']);
+      // A word is never cut and never wrapped: one line each, and a step that does not shrink under its word.
+      for (const node of labelNodes()) expect(node.props.numberOfLines).toBe(1);
+      for (const key of ['agreed', 'done', 'confirmed', 'rated']) expect(flat(step(key)).flexShrink).toBe(0);
+      expect(joins()).toHaveLength(3);
+      for (const join of joins()) expect(flat(join)).toMatchObject({ flex: 1, minWidth: sys.space.md });
+    });
+
+    it('joins in green what is behind the current step, and in grey what is ahead', async () => {
+      await render(<AgreementSteps state="AWAITING_REQUESTER" room={PHONE} />);
+      const colours = joins().map(join => flat(join).backgroundColor);
+      expect(colours).toEqual([sys.color.green, sys.color.green, sys.color.line]);
+    });
+  });
+
+  describe('in a column, where the four words do not fit one row', () => {
+    it('puts each step on its own line, its mark first, and never cuts or wraps a word', async () => {
+      await render(<AgreementSteps state="CONFIRMED" room={LARGE} />);
+      expect(joins()).toHaveLength(0);
+      expect(labelNodes().map(node => node.children.join(''))).toEqual(['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']);
+      for (const node of labelNodes()) expect(node.props.numberOfLines).toBeUndefined();
+      expect(bar().props.accessibilityValue).toEqual({ min: 1, max: 4, now: 2, text: 'Dogovoreno: urađeno. Gotovo: trenutni korak. Potvrđeno: na redu. Ocena: na redu.' });
+    });
+
+    it('keeps the marks and the green of the row: a check behind, the dot where it stands, the line between them green only where it has been', async () => {
+      await render(<AgreementSteps state="AWAITING_REQUESTER" room={LARGE} />);
+      expect(checks()).toHaveLength(2);
+      const stackLines = tree.root.findAll(node => typeof node.type === 'string' && flat(node).width === 2 && flat(node).minHeight === sys.space.base);
+      expect(stackLines.map(line => flat(line).backgroundColor)).toEqual([sys.color.green, sys.color.green, sys.color.line]);
+      expect(tree.root.findByProps({ testID: 'agreement-step-dot' })).toBeTruthy();
+    });
+
+    it('is what a narrower window than the phone gets too', async () => {
+      await render(<AgreementSteps state="CONFIRMED" room={{ width: 320, scale: 1.3 }} />);
+      expect(joins()).toHaveLength(0);
+    });
+  });
+
+  it('chooses the row or the column from the window itself when the screen hands no room (the jest window is 750 dp wide)', async () => {
+    await render(<AgreementSteps state="CONFIRMED" />);
+    expect(joins()).toHaveLength(3);
   });
 });
 
@@ -188,7 +242,7 @@ describe('the dot of the current step moves only when the Dogovor moved on while
     // The dot that was current and is not any more is a check now; the one that is current starts at 0.6.
     const dot = tree.root.findByProps({ testID: 'agreement-step-dot' });
     expect(Number(JSON.stringify(dot.props.style.find((entry: { transform?: unknown }) => entry.transform).transform[0].scale))).toBeLessThanOrEqual(1);
-    await act(async () => tree.update(<AgreementSteps state="AWAITING_REQUESTER" deadlineIso="2026-09-18T10:00:00Z" />));
+    await act(async () => tree.update(<AgreementSteps state="AWAITING_REQUESTER" cancellation={null} />));
     expect(run).toHaveBeenCalledTimes(1);
   });
 

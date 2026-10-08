@@ -1,25 +1,35 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Press } from '../Press';
-import { SettingsGroup, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
+import { InlineNote } from '../privacy/InlineNote';
+import { SettingsAction, SettingsGroup, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
 import { FactArt } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
+import { InfoButton } from '../system/InfoButton';
+import { ChromeIconButton } from '../system/ScreenChrome';
 import { sys } from '../system/tokens';
+import type { NameSaveControl } from './DisplayNameForm';
 
 /** The photo at the size of the profile's own portrait (the hub draws the same 96). */
 export const EDIT_PHOTO = 96;
 
 /**
- * The parts of "Izmeni profil" that sit around the name (T4a, 2026-10-07). The pencil on the profile used to open only the name;
- * it now opens a screen that says what the profile is made of: the photo, the name, "O meni", the city and what other people can
- * see. Each part is only what the app already holds and can already save:
+ * The parts of "Lični podaci" that sit around the name (T4a, 2026-10-07; owner's phone, 8 Oct 2026: "natrpano"; the screen was "Izmeni profil" until the
+ * product draft the owner approved the same day, P2). The pencil on the profile opens a screen that says what the person is made of: the photo, the
+ * name, "O meni" and the city. Each part is only what the app already
+ * holds and can already save, and nothing on the screen explains itself:
  * - the photo opens the photo screen that already exists (nothing of it is rebuilt here);
- * - the name is the one form with the one green action;
- * - "O meni" is the text of the work profile (the only profile whose save carries a description); it is shown as written, never
- *   made up, and it opens the work profile, where it is written;
- * - the city is the work area's, shown as information, with a way to the screen where it changes;
- * - what is public and what is private is said in the words the privacy screen already uses.
+ * - the name is the one field, and its one green "Sačuvaj ime" is drawn only once the name has been changed (`DisplayNameForm`);
+ * - "O meni" is the text of the work profile (the only profile whose save carries a description); it is shown as written, never made up, and it
+ *   opens the work profile, where it is written;
+ * - the city is the work area's, said as its answer at the end of its row; the row opens the work area, where the city is changed, so the
+ *   sentence that used to say so is gone (a row with an arrow goes where the thing is changed, and says nothing more);
+ * - who sees what is ONE sentence, with its picture, and the other half (what they do not see) behind its "ⓘ". The row "Privatnost i podaci" is
+ *   not here any more: the profile has it.
  * Presentation only: the route reads, navigates and owns every guard.
+ *
+ * ONE NAME (owner, 8 Oct 2026): the name saved here is the name of the account AND of the work profile, if the account has one. When the second
+ * write did not take, `WorkNameNotice` says so, with its one way to try that write again; it is never left silent.
  */
 
 /** The longest stretch of "O meni" shown in a row; the whole text is on the work profile it opens. */
@@ -33,29 +43,31 @@ export const clipText = (text: string, max = ABOUT_CLIP): string => {
 export type AboutView = { kind: 'loading' } | { kind: 'error' } | { kind: 'none' } | { kind: 'empty' } | { kind: 'text'; text: string };
 export type CityView = { kind: 'loading' } | { kind: 'error' } | { kind: 'none' } | { kind: 'city'; city: string };
 
-/** What the "O meni" row says under its name: the text as written, or the honest reason there is none, and where it is written. */
+/** What the "O meni" row says under its name: the text as written, or the one word that invites the person to write it. */
 export function aboutDetail(view: AboutView): string {
   switch (view.kind) {
     case 'loading': return 'Učitavamo…';
-    case 'error': return 'Opis trenutno nije dostupan. Piše se u radnom profilu.';
-    case 'none': return 'Piše se u radnom profilu.';
-    case 'empty': return 'Još nije napisano. Dodaj ga u radnom profilu.';
+    case 'error': return 'Opis trenutno nije dostupan';
+    case 'none': case 'empty': return 'Dodaj opis';
     case 'text': return clipText(view.text);
   }
 }
-/** What the "Grad" row says: the city of the work area, or why there is none. */
+/** What the "Grad" row answers: the city of the work area, or why there is none. */
 export function cityDetail(view: CityView): string {
   switch (view.kind) {
     case 'loading': return 'Učitavamo…';
-    case 'error': return 'Grad trenutno nije dostupan.';
-    case 'none': return 'Još nije podešen.';
+    case 'error': return 'Nije dostupan';
+    case 'none': return 'Još nije podešen';
     case 'city': return view.city;
   }
 }
 
-/** The words about visibility, the second one exactly as the privacy screen has it. */
-export const VISIBLE_TO_OTHERS = 'Ime, fotografija, grad, „O meni“ i ocene vide druge osobe.';
+/** Who sees what, in ONE sentence: what the profile shows is public, and the profile says nothing more about it. */
+export const VISIBLE_TO_OTHERS = 'Ime, fotografija, grad, „O meni“ i ocene vide drugi.';
+/** The other half, behind the "ⓘ" of that sentence: what other people do not see unless the rules of the cooperation give them access. */
 export const SHARED_ONLY_BY_RULES = 'Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup.';
+/** The second write did not take: the name is on the account, and the work profile still carries what it had. */
+export const WORK_NAME_NOT_WRITTEN = 'Ime je sačuvano na nalogu, ali nije upisano u radni profil.';
 
 /** The photo, one control: the picture the way others see it, the camera mark on its edge, and under it what pressing does. */
 export function ProfilePhotoBlock({ photo, ready, onOpen }: { photo: ReactNode; ready: boolean; onOpen: () => void }) {
@@ -73,27 +85,45 @@ export function ProfilePhotoBlock({ photo, ready, onOpen }: { photo: ReactNode; 
 
 /** "O meni" and the city: two rows, each to the screen where it is written or changed. Neither is edited here. */
 export function ProfileFactRows({ about, city, onAbout, onCity }: { about: AboutView; city: CityView; onAbout: () => void; onCity: () => void }) {
-  return <SettingsGroup footer="Grad se menja u području rada.">
+  return <SettingsGroup>
     <SettingsRow label="O meni" detail={aboutDetail(about)} onPress={onAbout} />
-    <SettingsRow label="Grad" detail={cityDetail(city)} onPress={onCity} last />
+    <SettingsRow label="Grad" value={cityDetail(city)} onPress={onCity} last />
   </SettingsGroup>;
 }
 
-/** What other people see and what stays private, in one calm block with the way to the whole of it. */
-export function VisibilityNote({ onMore }: { onMore: () => void }) {
-  return <View style={s.visibility}>
-    <View style={s.visibilityRow}>
-      <FactArt kind="eye" size={24} />
-      <View style={s.visibilityCopy}>
-        <T variant="bodyStrong">Javno i privatno</T>
-        <T variant="note" tone="muted">{`${VISIBLE_TO_OTHERS} ${SHARED_ONLY_BY_RULES}`}</T>
-      </View>
-    </View>
-    <SettingsRow compact label="Privatnost i podaci" detail="Šta je javno, rokovi čuvanja, zatvaranje naloga." onPress={onMore} last />
+/**
+ * The bar's "Sačuvaj" (approved draft, P2: "Sačuvaj u zaglavlju tek kad se nešto promeni"): a green pill with the check and the word, drawn only while the name
+ * differs from the saved one (the form reports it, `NameSaveControl`). It is grey while the save cannot be pressed and says "Čuvamo…" while it runs.
+ */
+export function NameSaveButton({ control }: { control: NameSaveControl }) {
+  return <ChromeIconButton glyph="check" caption={control.loading ? 'Čuvamo…' : 'Sačuvaj'} label="Sačuvaj ime" tone="green"
+    disabled={control.disabled || control.loading} onPress={control.press} />;
+}
+
+/** What other people see, as one quiet line with its picture; the "ⓘ" at its end says the other half (what they do not see). Nothing else to press. */
+export function VisibilityNote() {
+  return <View testID="profile-visibility" style={s.visibility}>
+    <FactArt kind="eye" size={24} />
+    <T variant="note" tone="muted" style={s.visibilityCopy}>{VISIBLE_TO_OTHERS}</T>
+    <InfoButton testID="profile-visibility-info" title="Javno i privatno" lines={[VISIBLE_TO_OTHERS, SHARED_ONLY_BY_RULES]} />
+  </View>;
+}
+
+/**
+ * The name is saved on the account and the work profile did not take it. Said where the name is, with the one thing that can be done: write the
+ * name into the work profile again (the account's own save is done and is not repeated).
+ */
+export function WorkNameNotice({ retrying, onRetry }: { retrying: boolean; onRetry: () => void }) {
+  return <View testID="work-name-notice" style={s.workName}>
+    <InlineNote tone="warn" art="info" alert>{WORK_NAME_NOT_WRITTEN}</InlineNote>
+    <SettingsAction label="Pokušaj ponovo" loading={retrying} disabled={retrying} onPress={onRetry} />
   </View>;
 }
 
 const s = StyleSheet.create({
+  visibility: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  visibilityCopy: { flex: 1, minWidth: 0 },
+  workName: { gap: sys.space.md },
   photoBlock: { alignItems: 'center' },
   photoPress: { alignItems: 'center', gap: sys.space.md, minHeight: sys.touch.min },
   photoFrame: { width: EDIT_PHOTO, height: EDIT_PHOTO },
@@ -102,7 +132,4 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: sys.color.cardLine, alignItems: 'center', justifyContent: 'center' },
   photoWord: { color: sys.color.green },
   photoWordOff: { color: sys.color.muted },
-  visibility: { gap: sys.space.sm },
-  visibilityRow: { flexDirection: 'row', gap: sys.space.md, alignItems: 'flex-start' },
-  visibilityCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });

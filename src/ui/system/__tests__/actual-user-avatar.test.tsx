@@ -33,6 +33,7 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../Avatar', () => ({ Avatar: 'Avatar' }));
 
 import { ActualUserAvatar } from '../ActualUserAvatar';
+import { ownPhotoCache } from '../../media/ownPhotoCache';
 
 let tree: ReactTestRenderer;
 const open = jest.fn();
@@ -66,7 +67,8 @@ it('keeps profile navigation available before identity arrives and uses the auth
   expect(open).toHaveBeenCalledTimes(1);
   await act(async () => pending.resolve(identity()));
   expect(mockRead.mock.calls).toEqual([['account-a', 'narucilac']]);
-  expect(photos()[0].props).toMatchObject({ profileId: 'profile-account-a', size: 48 });
+  // The header shows the person's own face: it asks to be remembered in memory, so coming back to a tab never shows the letter in its place.
+  expect(photos()[0].props).toMatchObject({ profileId: 'profile-account-a', size: 48, own: true });
   expect(photos()[0].props.fallback.props.initials).toBe('AP');
   expect(button().props.accessibilityValue).toEqual({ text: 'Ana Petrović' });
 });
@@ -130,4 +132,15 @@ it('forgets the visible photo on background and ignores an older read after fore
   expect(photos()).toHaveLength(0);
   await act(async () => fresh.resolve(identity('account-a', 'Fresh identity')));
   expect(button().props.accessibilityValue).toEqual({ text: 'Fresh identity' });
+});
+
+it('forgets the photographs the app remembers when its account goes away, and forgets nothing when it is only drawn again for the same account', async () => {
+  const forget = jest.spyOn(ownPhotoCache, 'forget');
+  mockRead.mockResolvedValue(identity());
+  await render(); await act(async () => tree.unmount());
+  expect(forget).not.toHaveBeenCalled();
+  await render();
+  mockAccountId = 'account-b'; mockRevision++; await update();
+  expect(forget).toHaveBeenCalledTimes(1);
+  forget.mockRestore();
 });

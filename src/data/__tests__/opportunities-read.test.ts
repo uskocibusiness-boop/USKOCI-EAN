@@ -83,7 +83,7 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
     expect(publicProfile).toHaveBeenCalledWith('requester-1', expect.any(AbortSignal));
     expect(result).toEqual([{
       id: NEED1, naslov: 'Pomoć pri selidbi', statusTekst: 'Traži ponude',
-      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilan termin',
+      podrucjeTekst: 'Centar, Beograd', vremeTekst: 'Fleksibilno',
       // The description is not in the public list at all; the detail screen reads the one a person opens.
       opis: '',
       taskCountryCode: 'RS', taskTimezone: 'Europe/Belgrade', schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null },

@@ -144,10 +144,8 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
         : !granted && words.ask && onRequestAddress ? <V2Action label="Zatraži adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} /> : null}
-    <View style={s.refresh}>
-      <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
-      <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
-    </View>
+    {/* The permission is read when the section opens and when this is pressed: the button says it, so no sentence does (J3). */}
+    <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" disabled={editor.busy} style={quietStart} onPress={() => { void editor.refresh(); }} />
   </View>;
 }
 
@@ -180,5 +178,4 @@ function PrivatePoints({ value, scope, canUse }: { value: ExactLocationReveal; s
 const s = StyleSheet.create({
   stack: { paddingTop: sys.space.sm, gap: sys.space.md },
   point: { gap: sys.space.xs, paddingTop: sys.space.md },
-  refresh: { gap: sys.space.xs },
 });

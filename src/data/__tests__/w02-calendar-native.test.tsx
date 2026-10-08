@@ -2,9 +2,10 @@ import React from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { WorkerAvailability } from '../../contracts/workerAvailability';
 import { StyleSheet } from 'react-native';
-import { Circle } from 'react-native-svg';
-import { civilDay, civilInstant, displayTime, localDayRange, overlapsInterval, shiftDate, weekDates } from '../../ui/calendar/calendarPresentation';
-import { monthDistance } from '../../ui/calendar/months';
+import { civilDay, civilInstant, displayTime, localDayRange, overlapsInterval, weekDates } from '../../ui/calendar/calendarPresentation';
+import { dayLabel } from '../../ui/calendar/calendarViews';
+import { addMonths, monthDistance, monthName } from '../../ui/calendar/months';
+import { ROLE_TONES } from '../../ui/calendar/roleTone';
 
 let mockFontScale = 1, mockWidth = 390;
 jest.mock('react-native', () => {
@@ -24,7 +25,11 @@ jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() } }));
 let mockIntent = 'uskocer';
-jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent }));
+// Raspored reads the work profile the way Početna does (the source of the app's own reads), for one thing: whether the shade of the days is for an active profile.
+const mockIzvor = { mojRadnikProfil: jest.fn() };
+jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, useIzvor: () => mockIzvor }));
+// The other person's photo is read by the route's own element (a data client); here it is a host node that says which profile it was asked for.
+jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 jest.mock('../workerCalendarClientService', () => ({ workerCalendarClientService: { readRange: jest.fn() } }));
 jest.mock('../agreementClientService', () => ({ agreementClientService: { mojiDogovori: jest.fn() } }));
 jest.mock('../needClientService', () => ({ needClientService: { mojePotrebe: jest.fn() } }));
@@ -47,7 +52,7 @@ import { sys } from '../../ui/system/tokens';
 import Raspored from '../../app/(app)/raspored';
 import { AgendaScreen } from '../../ui/calendar/AgendaScreen';
 import { plannerWindow, serbianToday } from '../../ui/calendar/serbianDays';
-import { agreementOf, applicationOf, fixedWindow, needOf, serbian, taskFacts, workerAgreementOf } from '../../ui/calendar/__tests__/fixtures';
+import { agreementOf, serbian, workerAgreementOf } from '../../ui/calendar/__tests__/fixtures';
 import { workerCalendarClientService } from '../workerCalendarClientService';
 import { agreementClientService } from '../agreementClientService';
 import { needClientService } from '../needClientService';
@@ -372,9 +377,12 @@ describe('actual availability editor interactions', () => {
 });
 
 describe('actual agenda screen', () => {
-  // Raspored (owner, 2026-10-07): a day is a day of Serbian time and so is every clock on it, so these cases state their times in
-  // Serbian clocks and mean the same whatever zone the suite runs in. "Today" is the Serbian today, the day the route opens on.
+  // Raspored (owner, 2026-10-07; a calendar of three views since 8 Oct 2026): a day is a day of Serbian time and so is every clock on it, so
+  // these cases state their times in Serbian clocks and mean the same whatever zone the suite runs in. "Today" is the Serbian today, the day the
+  // route opens on, and the screen opens on the month.
   const today = () => serbianToday();
+  /** A day of this month that is not today, so the same case holds on any day it is run. */
+  const other = () => `${today().slice(0, 7)}-${today().endsWith('-15') ? '16' : '15'}`;
   const term = (clock: string, endClock: string) => ({ pocetak: serbian(today(), clock), kraj: serbian(today(), endClock) });
   const scheduleOf = (events: unknown[]) => (workerCalendarClientService.readRange as jest.Mock).mockImplementation((from, to) =>
     ({ ok: true, podatak: { from, to, authoritative: true, events } }));
@@ -382,51 +390,70 @@ describe('actual agenda screen', () => {
     startsAt: serbian(today(), clock).replace('.000', fraction), endsAt: serbian(today(), endClock).replace('.000', fraction), agreementStatus: 'CONFIRMED', source: 'AGREEMENT' });
   const cells = () => tree.root.findAll(node => node.type === 'Press' as React.ElementType
     && /^(Ponedeljak|Utorak|Sreda|Četvrtak|Petak|Subota|Nedelja), /.test(String(node.props.accessibilityLabel)));
-  const markOf = (cell: ReactTestInstance) => cell.findAllByType(Circle)[0]?.props;
+  const dotsOf = (cell: ReactTestInstance) => cell.findAll(node => node.props.testID === 'day-dot').map(node => StyleSheet.flatten(node.props.style).backgroundColor);
   const navigate = () => jest.requireMock('expo-router').router.navigate as jest.Mock;
+  const byId = (testID: string) => tree.root.findAll(node => node.props.testID === testID);
+  const view = async (label: string) => { await act(async () => tree.root.findAll(node => node.type === 'Press' as React.ElementType
+    && node.props.accessibilityRole === 'tab' && node.props.accessibilityLabel === label)[0].props.onPress()); };
+  /** A worker whose hours were read, with an active work profile unless it says otherwise. */
+  const worker = (stanje = 'ACTIVE') => {
+    (workerAvailabilityClientService.read as jest.Mock).mockReturnValue({ ok: true, podatak: { ...availability(), availableNow: true, rules: [{ id: ruleId, weekdays: [1, 2, 3, 4, 5],
+      startTime: '09:00:00', endTime: '17:00:00', startsOn: '2026-01-01', endsOn: null, label: '', active: true }] } });
+    mockIzvor.mojRadnikProfil.mockReturnValue({ id: 'profile', stanje });
+  };
   beforeEach(() => {
     mockIntent = 'narucilac'; mockRefreshes.length = 0;
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([]);
     (needClientService.mojePotrebe as jest.Mock).mockReturnValue([]);
     (applicationClientService.mojePrijave as jest.Mock).mockReturnValue([]);
     (workerAvailabilityClientService.read as jest.Mock).mockReturnValue({ ok: false, kod: 'WORKER_PROFILE_REQUIRED', poruka: 'Najpre sačuvaj svoj radni profil.' });
+    mockIzvor.mojRadnikProfil.mockReturnValue(null);
     scheduleOf([]);
   });
-  it('reads the schedule for the three months around the Serbian today, invents no bookings from empty data, and always offers the availability editor and the Arhiva', async () => {
+  it('reads the schedule for the five months around the Serbian today, invents no bookings from empty data, and always offers the Arhiva (the availability only to a worker)', async () => {
     await act(async () => { tree = create(<Raspored />); });
     expect(workerCalendarClientService.readRange).toHaveBeenCalledTimes(1);
     const [from, to] = (workerCalendarClientService.readRange as jest.Mock).mock.calls[0];
-    expect({ from, to }).toEqual({ from: plannerWindow(today(), 1).from, to: plannerWindow(today(), 1).to });
-    expect(Date.parse(to) - Date.parse(from)).toBeGreaterThanOrEqual(84 * 86_400_000);
-    // Updated deliberately (Raspored, 2026-10-07): the planner holds my tasks and applications as well, so an empty day is one
-    // quiet line that does not say "Dogovori"; the scope disclaimer and the button that repeated Back are gone.
+    expect({ from, to }).toEqual({ from: plannerWindow(today(), 2).from, to: plannerWindow(today(), 2).to });
+    expect(Date.parse(to) - Date.parse(from)).toBeGreaterThanOrEqual(140 * 86_400_000);
+    // An empty day is one quiet line; the screen opens on the month, with the three views to choose from.
     expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
-    expect(button('Otvori sve Dogovore')).toBeUndefined();
-    // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The row is spoken by its visible words.
+    expect(byId('month-grid')).toHaveLength(1);
+    expect(tree.root.findAll(node => node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel)).toEqual(['Mesec', 'Nedelja', 'Dan']);
+    // The hours a worker keeps are for someone with a work profile; the Arhiva is for everyone.
     const rows = (label: string) => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === label);
-    expect(rows('Moja dostupnost za rad')).toHaveLength(1);
+    expect(rows('Moja dostupnost')).toHaveLength(0);
     expect(rows('Arhiva')).toHaveLength(1);
   });
-  it('reads the schedule again only when the chosen day goes beyond the months already read, not for a week or a month on either side', async () => {
+  it('reads the schedule again only when the chosen day goes beyond the months already read, not for a month or two on either side', async () => {
     await act(async () => { tree = create(<Raspored />); });
     const windows = () => new Set((workerCalendarClientService.readRange as jest.Mock).mock.calls.map(([from, to]) => `${from}|${to}`)).size;
-    // Step a week at a time. The chosen day may move a month away and the schedule is not read again; two months away, it is.
-    for (let step = 1; step <= 14; step++) {
-      await press('Sledeća nedelja');
-      const far = monthDistance(shiftDate(today(), 7 * step).slice(0, 7), today().slice(0, 7)) > 1;
+    // Step a month at a time. The chosen day may move two months away and the schedule is not read again; three months away, it is.
+    for (let step = 1; step <= 3; step++) {
+      await press('Sledeći mesec');
+      const far = monthDistance(addMonths(today().slice(0, 7), step), today().slice(0, 7)) > 2;
       expect([step, windows()]).toEqual([step, far ? 2 : 1]);
-      if (far) break;
     }
     expect(windows()).toBe(2);
   });
-  it('reads my Dogovori, my tasks, my applications and my availability the way Početna and Dostupnost do, each once', async () => {
+  it('steps by a month with the arrow from the day it stands on, to the same day of the next month', async () => {
     await act(async () => { tree = create(<Raspored />); });
+    await press('Sledeći mesec');
+    expect(text()).toContain(monthName(addMonths(today().slice(0, 7), 1)));
+    await press('Prethodni mesec'); await press('Prethodni mesec');
+    expect(text()).toContain(monthName(addMonths(today().slice(0, 7), -1)));
+  });
+  it('reads the schedule and my Dogovori, the way Dogovori do, each once, and for a worker the hours she keeps and her work profile; never my tasks or my applications', async () => {
+    await act(async () => { tree = create(<Raspored />); });
+    expect(workerCalendarClientService.readRange).toHaveBeenCalledTimes(1);
     expect(agreementClientService.mojiDogovori).toHaveBeenCalledTimes(1);
     expect(agreementClientService.mojiDogovori).toHaveBeenCalledWith({ includeRatings: false });
-    expect(needClientService.mojePotrebe).toHaveBeenCalledTimes(1);
-    expect(needClientService.mojePotrebe).toHaveBeenCalledWith({ includeUrgency: false });
-    expect(applicationClientService.mojePrijave).toHaveBeenCalledTimes(1);
+    // The hours are the shade of the days and the band beside the hours of a day; the profile says whether the shade is for her.
     expect(workerAvailabilityClientService.read).toHaveBeenCalledTimes(1);
+    expect(mockIzvor.mojRadnikProfil).toHaveBeenCalledTimes(1);
+    // Raspored holds the Dogovori and nothing else: my tasks are in Moji zadaci, my applications in Moje prijave.
+    expect(needClientService.mojePotrebe).not.toHaveBeenCalled();
+    expect(applicationClientService.mojePrijave).not.toHaveBeenCalled();
   });
   it('does not show empty success or fabricated dates when the calendar receipt fails', async () => {
     (workerCalendarClientService.readRange as jest.Mock).mockReturnValue({ ok: false, poruka: 'Kalendar nije učitan.' });
@@ -439,7 +466,7 @@ describe('actual agenda screen', () => {
     mockFontScale = scale;
     scheduleOf([event('agreement-1', '09:15', '10:45', 2, fraction)]);
     await act(async () => { tree = create(<Raspored />); });
-    // An agreed term reads in Serbian time everywhere (rule 8.27), and the heading already names the day, so the row carries the
+    // An agreed term reads in Serbian time everywhere (rule 8.27), and the heading already names the day, so the card carries the
     // clocks alone - as ONE window on the first line of its card, with no clock rail beside it (composition spec 4.10).
     expect(text()).toContain('09:15–10:45');
     expect(text()).not.toContain('.123456');
@@ -456,18 +483,18 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('999'); expect(text()).not.toContain('Stari naslov');
   });
 
-  // The seventh day was cut off on the phone (2026-09-23): the strip scrolled sideways. Seven equal columns now always
-  // fit, and at a very large font the weekday shrinks to its letter while the spoken label keeps the whole name.
+  // The seventh day was cut off on the phone (2026-09-23): the strip scrolled sideways. Seven equal columns now always fit, and at a very
+  // large font the weekday shrinks to its letter while the spoken label keeps the whole name. The month is a grid of the same columns.
   it.each([[1, ['Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub', 'Ned']], [1.5, ['P', 'U', 'S', 'Č', 'P', 'S', 'N']]])(
     'lays the week out as seven equal columns that always fit (font scale %s)', async (scale, letters) => {
       mockFontScale = scale;
       await act(async () => { tree = create(<Raspored />); });
+      expect(cells().length).toBeGreaterThanOrEqual(28);
+      await view('Nedelja');
       expect(cells()).toHaveLength(7);
       for (const day of cells()) expect(day.props.style).toEqual(expect.objectContaining({ flex: 1, minWidth: 0 }));
-      // The chips scroll sideways on their own; no day is inside that scroll.
-      for (const scroll of tree.root.findAll(node => node.type === 'ScrollView' as React.ElementType && node.props.horizontal)) {
-        expect(scroll.findAll(node => cells().includes(node))).toHaveLength(0);
-      }
+      // There is no sideways scroll on the screen at all, and so no day can be inside one.
+      expect(tree.root.findAll(node => node.type === 'ScrollView' as React.ElementType && node.props.horizontal)).toHaveLength(0);
       expect(cells().map(day => day.findAllByType('T' as React.ElementType)[0].props.children)).toEqual(letters);
       expect(cells()[0].props.accessibilityLabel).toMatch(/^Ponedeljak, /);
     });
@@ -487,8 +514,8 @@ describe('actual agenda screen', () => {
     mockWidth = width; mockFontScale = scale;
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-2', { tacanTermin: term('12:00', '17:00') })]);
     await act(async () => { tree = create(<Raspored />); });
-    expect(text()).toContain('Pomoć oko krečenja stana'); expect(text()).toContain('Tvoj zadatak · Marko');
-    expect(text()).toContain('4.000 RSD'); expect(text()).toContain('Liman, Novi Sad');
+    expect(text()).toContain('Pomoć oko krečenja stana'); expect(text()).toContain('Tvoj zadatak'); expect(text()).toContain('Marko · Liman, Novi Sad');
+    expect(text()).toContain('4.000 RSD');
     expect(text()).not.toContain('Ništa nije zakazano');
     const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Otvori Dogovor Pomoć oko krečenja stana')[0];
     expect(row.props.accessibilityValue.text).toContain('Tvoj zadatak');
@@ -509,20 +536,22 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Otkazana selidba');
   });
 
-  it('marks a day with something active by a green dot, not orange', async () => {
-    const other = weekDates(today()).find(day => day !== today())!;
-    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-5', { tacanTermin: { pocetak: serbian(other, '12:00'), kraj: serbian(other, '13:00') } })]);
+  it('marks a day with a Dogovor of mine as the requester by a coral dot, and a day of my own work by a green one', async () => {
+    const day = (n: string) => `${today().slice(0, 7)}-${n}`;
+    const at = (n: string) => ({ pocetak: serbian(day(n), '12:00'), kraj: serbian(day(n), '13:00') });
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-5', { tacanTermin: at('20') }), workerAgreementOf('agreement-6', { naslov: 'Moje uskakanje' })]);
+    scheduleOf([{ eventId: 'event-6', agreementId: 'agreement-6', agreementVersion: 1, startsAt: serbian(day('21'), '12:00'), endsAt: serbian(day('21'), '13:00'),
+      agreementStatus: 'CONFIRMED', source: 'AGREEMENT' }]);
     await act(async () => { tree = create(<Raspored />); });
-    const marked = cells().filter(cell => / ima Dogovor$/.test(String(cell.props.accessibilityLabel)));
-    expect(marked).toHaveLength(1);
-    expect(markOf(marked[0])).toMatchObject({ fill: sys.color.green });
+    const cellOf = (n: string) => cells().find(cell => String(cell.props.accessibilityLabel).includes(`${Number(n)}. `))!;
+    expect(dotsOf(cellOf('20'))).toEqual([ROLE_TONES.requester.front]);
+    expect(dotsOf(cellOf('21'))).toEqual([ROLE_TONES.worker.front]);
     expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
   });
 
-  it('names the weekday in the day heading', async () => {
+  it('names the day in the heading of the list under the grid, today as "Danas"', async () => {
     await act(async () => { tree = create(<Raspored />); });
-    const { dayHeading } = jest.requireActual('../../ui/calendar/calendarPresentation') as typeof import('../../ui/calendar/calendarPresentation');
-    expect(text()).toContain(dayHeading(today()));
+    expect(text()).toContain(dayLabel(today(), today()));
     expect(text()).not.toContain('Dogovoreno za');
   });
 
@@ -544,15 +573,38 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Ništa nije zakazano'); expect(text()).toContain('Učitavamo raspored…');
   });
 
-  it('lists the active Dogovori without an exact time under "Bez tačnog termina", in their own words, and opens them', async () => {
-    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-6', { naslov: 'Košenje živice', vremeTekst: 'Termin nije potvrđen' }),
-      agreementOf('agreement-7', { stanje: 'COMPLETED', naslov: 'Završena bez termina' })]);
+  it('counts the active Dogovori with no accepted time in a bar, lists them in a sheet, opens them, and proposes a term from the form that does', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([
+      agreementOf('agreement-6', { naslov: 'Košenje živice', vremeTekst: 'Termin nije dogovoren', prihvacenPocetak: null }),
+      agreementOf('agreement-12', { naslov: 'Farbanje ograde', vremeTekst: 'Termin nije dogovoren', prihvacenPocetak: null }),
+      agreementOf('agreement-7', { stanje: 'COMPLETED', naslov: 'Završena bez termina', prihvacenPocetak: null })]);
     await act(async () => { tree = create(<Raspored />); });
-    expect(text()).toContain('Bez tačnog termina'); expect(text()).toContain('1 Dogovor'); expect(text()).toContain('Termin nije potvrđen');
+    // The bar says it once; a finished Dogovor is not waiting for a term, and the old heading over a section is gone.
+    expect(button('2 Dogovora bez termina')).toBeTruthy();
+    expect(text()).not.toContain('Termin još nije dogovoren'); expect(text()).not.toContain('Bez tačnog termina');
     expect(text()).not.toContain('Završena bez termina');
-    const row = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Otvori Dogovor Košenje živice')[0];
-    await act(async () => row.props.onPress());
-    expect(navigate()).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'agreement-6' } });
+    await press('2 Dogovora bez termina');
+    expect(text()).toContain('Košenje živice'); expect(text()).toContain('Farbanje ograde');
+    await press('Predloži termin. Košenje živice');
+    // The same form Početna's "Čeka te" and the Dogovor's own menu open, started on the term.
+    expect(navigate()).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: 'agreement-6', start: 'propose' } });
+  });
+
+  it('goes straight to the form that proposes a term when only one Dogovor has none', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-6', { naslov: 'Košenje živice', prihvacenPocetak: null })]);
+    await act(async () => { tree = create(<Raspored />); });
+    await press('1 Dogovor bez termina');
+    expect(navigate()).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: 'agreement-6', start: 'propose' } });
+  });
+
+  it('stands a Dogovor that has an accepted start and no end on its day as "od 14:00", never among the ones without a term', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([
+      agreementOf('agreement-11', { naslov: 'Čišćenje stana', tacanTermin: null, prihvacenPocetak: serbian(today(), '14:00'), vremeTekst: 'Od 14:00 · kraj nije potvrđen' })]);
+    await act(async () => { tree = create(<Raspored />); });
+    expect(text()).toContain('od 14:00'); expect(text()).toContain('Čišćenje stana');
+    expect(text()).not.toContain('bez termina'); expect(text()).not.toContain('Ništa nije zakazano');
+    expect(tree.root.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Predloži termin'))).toHaveLength(0);
+    expect(cells().filter(cell => dotsOf(cell).length > 0)).toHaveLength(1);
   });
 
   it('says it shows only my work while the list does not say which Dogovori have an exact time', async () => {
@@ -570,73 +622,91 @@ describe('actual agenda screen', () => {
     expect(button('Otvori Dogovor sa potvrđenim terminom')).toBeUndefined();
   });
 
-  it('marks a day with only finished work by the muted grey, which reads on white', async () => {
-    const other = weekDates(today()).find(day => day !== today())!;
+  it('marks a day with only finished work by the dot of its side, like any other day', async () => {
     (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-10', { stanje: 'COMPLETED',
-      tacanTermin: { pocetak: serbian(other, '12:00'), kraj: serbian(other, '13:00') } })]);
+      tacanTermin: { pocetak: serbian(other(), '12:00'), kraj: serbian(other(), '13:00') } })]);
     await act(async () => { tree = create(<Raspored />); });
-    const marked = cells().filter(cell => / ima završen Dogovor$/.test(String(cell.props.accessibilityLabel)));
-    expect(markOf(marked[0])).toMatchObject({ fill: sys.color.muted });
+    const marked = cells().filter(cell => dotsOf(cell).length > 0);
+    expect(marked).toHaveLength(1);
+    expect(dotsOf(marked[0])).toEqual([ROLE_TONES.requester.front]);
+    expect(marked[0].props.accessibilityLabel).toMatch(/1 Dogovor, Tvoj zadatak$/);
   });
 
-  it('puts my own task and my open application beside the Dogovori on their day, from the reads Početna makes', async () => {
-    (needClientService.mojePotrebe as jest.Mock).mockReturnValue([needOf('need-1', { naslov: 'Selidba ormara', stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 2,
-      schedule: fixedWindow(serbian(today(), '14:00'), serbian(today(), '16:00')) })]);
-    (applicationClientService.mojePrijave as jest.Mock).mockReturnValue([applicationOf('application-1', { naslov: 'Košenje trave',
-      zadatak: taskFacts(fixedWindow(serbian(today(), '09:00'), serbian(today(), '11:00'))) })]);
+  it('holds no task and no application of mine, whatever the other reads would say, and no chip to choose between them', async () => {
     await act(async () => { tree = create(<Raspored />); });
-    const labels = tree.root.findAll(node => node.type === 'Press' as React.ElementType && /^Otvori (Dogovor|zadatak|prijavu)/.test(String(node.props.accessibilityLabel)))
-      .map(node => node.props.accessibilityLabel);
-    expect(labels).toEqual(['Otvori prijavu Košenje trave', 'Otvori zadatak Selidba ormara']);
-    expect(text()).toContain('Bira se · 2'); expect(text()).toContain('Prijava poslata');
+    const labels = tree.root.findAll(node => node.type === 'Press' as React.ElementType && /^Otvori (zadatak|prijavu)/.test(String(node.props.accessibilityLabel)));
+    expect(labels).toHaveLength(0);
+    // The only tabs are the three views of the calendar.
+    expect(tree.root.findAll(node => node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel)).toEqual(['Mesec', 'Nedelja', 'Dan']);
+    for (const word of ['Moji zadaci', 'Moje prijave', 'Prijava poslata', 'Čekaju odgovor', 'Bira se']) expect(text()).not.toContain(word);
   });
 
-  it('opens the candidates of a task with applications to choose from, the task otherwise, and the application in Moje prijave', async () => {
-    (needClientService.mojePotrebe as jest.Mock).mockReturnValue([
-      needOf('need-1', { naslov: 'Prva', stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 2, schedule: fixedWindow(serbian(today(), '14:00'), serbian(today(), '15:00')) }),
-      needOf('need-2', { naslov: 'Druga', schedule: fixedWindow(serbian(today(), '15:00'), serbian(today(), '16:00')) })]);
-    (applicationClientService.mojePrijave as jest.Mock).mockReturnValue([applicationOf('application-1', { naslov: 'Treća',
-      zadatak: taskFacts(fixedWindow(serbian(today(), '17:00'), serbian(today(), '18:00'))) })]);
+  it('draws no shade and no "Moja dostupnost" for a person with no work profile, and no band of hours in the day', async () => {
     await act(async () => { tree = create(<Raspored />); });
-    const open = async (label: string) => act(async () => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === label)[0].props.onPress());
-    await open('Otvori zadatak Prva'); await open('Otvori zadatak Druga'); await open('Otvori prijavu Treća');
-    expect(navigate().mock.calls).toEqual([[{ pathname: '/potrebe/[id]/kandidati', params: { id: 'need-1' } }],
-      [{ pathname: '/potrebe/[id]/pregled', params: { id: 'need-2' } }], [{ pathname: '/moje-prijave', params: { prijavaId: 'application-1' } }]]);
+    expect(byId('day-shade')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Moja dostupnost')).toHaveLength(0);
+    await view('Dan');
+    expect(byId('day-band')).toHaveLength(0);
   });
 
-  it('shades the days of a worker from the availability the worker keeps, and draws nothing for a person with no work profile', async () => {
-    const shaded = () => tree.root.findAll(node => node.props.testID === 'day-shade' && StyleSheet.flatten(node.props.style)?.backgroundColor !== undefined);
+  it('tints the days a worker with an active work profile can work, and draws the band of her hours in the day', async () => {
+    worker();
     await act(async () => { tree = create(<Raspored />); });
-    expect(shaded()).toHaveLength(0);
-    await act(async () => tree.unmount());
-    (workerAvailabilityClientService.read as jest.Mock).mockReturnValue({ ok: true, podatak: { ...availability(), rules: [
-      { id: ruleId, weekdays: [0, 1, 2, 3, 4, 5, 6], startTime: '08:00:00', endTime: '16:00:00', startsOn: '2026-01-01', endsOn: null, label: '', active: true }] } });
+    expect(byId('day-shade').length).toBeGreaterThanOrEqual(20);
+    expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Moja dostupnost')).toHaveLength(1);
+    await view('Dan');
+    const weekday = new Date(`${today()}T12:00:00Z`).getUTCDay();
+    expect(byId('day-band')).toHaveLength(weekday >= 1 && weekday <= 5 ? 1 : 0);
+  });
+
+  it('keeps "Moja dostupnost" for a draft work profile, but tints no day: a draft profile offers nothing', async () => {
+    worker('DRAFT');
     await act(async () => { tree = create(<Raspored />); });
-    // Every day from today to the end of this week; the days before today are not shaded.
-    expect(shaded()).toHaveLength(weekDates(today()).filter(day => day >= today()).length);
+    expect(byId('day-shade')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Moja dostupnost')).toHaveLength(1);
+  });
+
+  it('says nothing about hours it could not read: no shade and no row, never a guess', async () => {
+    (workerAvailabilityClientService.read as jest.Mock).mockReturnValue({ ok: false, kod: 'WORKER_AVAILABILITY_READ_FAILED', poruka: 'Podaci nisu učitani.' });
+    mockIzvor.mojRadnikProfil.mockReturnValue({ id: 'profile', stanje: 'ACTIVE' });
+    await act(async () => { tree = create(<Raspored />); });
+    expect(byId('day-shade')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Moja dostupnost')).toHaveLength(0);
   });
 
   it('opens the availability editor and the Arhiva, and goes back', async () => {
+    worker();
     await act(async () => { tree = create(<Raspored />); });
-    await press('Moja dostupnost za rad'); await press('Arhiva'); await press('Nazad');
+    await press('Moja dostupnost'); await press('Arhiva'); await press('Nazad');
     expect(navigate().mock.calls).toEqual([['/profil/dostupnost'], ['/arhiva']]);
     expect(jest.requireMock('expo-router').router.back).toHaveBeenCalledTimes(1);
   });
 
-  it('reads everything again on a pull, keeping what is on screen, and only what failed on "Pokušaj ponovo"', async () => {
+  it('draws the other person\'s photo from the route, by their public profile id', async () => {
+    (agreementClientService.mojiDogovori as jest.Mock).mockReturnValue([agreementOf('agreement-13', { tacanTermin: term('12:00', '13:00'), ucesnici: [
+      { id: 'me', profilId: null, ime: 'Ti', inicijali: '', uloga: 'narucilac', mesta: null, viSte: true, telefon: null },
+      { id: 'other', profilId: 'profile-9', ime: 'Marko', inicijali: 'M', uloga: 'uskocer', mesta: 1, viSte: false, telefon: null }] })]);
+    await act(async () => { tree = create(<Raspored />); });
+    const faces = tree.root.findAllByType('ProfilePhoto' as React.ElementType);
+    expect(faces).toHaveLength(1);
+    expect(faces[0].props).toMatchObject({ profileId: 'profile-9', size: 32 });
+  });
+
+  it('reads all of its sources again on a pull, keeping what is on screen, and only what failed on "Pokušaj ponovo"', async () => {
     await act(async () => { tree = create(<Raspored />); });
     const refreshControl = tree.root.findAllByType('ScrollView' as React.ElementType)[0].props.refreshControl;
-    const latest = mockRefreshes.slice(-5);
+    const latest = mockRefreshes.slice(-4);
+    expect(latest).toHaveLength(4);
     await act(async () => refreshControl.props.onRefresh());
     for (const refresh of latest) expect(refresh).toHaveBeenCalledWith('keep');
     await act(async () => tree.unmount());
     mockRefreshes.length = 0;
-    (needClientService.mojePotrebe as jest.Mock).mockImplementation(() => { throw new Error('NEED_LIST_FAILED'); });
+    (agreementClientService.mojiDogovori as jest.Mock).mockImplementation(() => { throw new Error('AGREEMENT_LIST_FAILED'); });
     await act(async () => { tree = create(<Raspored />); });
-    const [calendar, agreements, needs, applications, hours] = mockRefreshes.slice(-5);
+    const [calendar, agreements] = mockRefreshes.slice(-4);
     await press('Pokušaj ponovo');
-    expect(needs).toHaveBeenCalledWith('keep');
-    for (const refresh of [calendar, agreements, applications, hours]) expect(refresh).not.toHaveBeenCalled();
+    expect(agreements).toHaveBeenCalledWith('keep');
+    expect(calendar).not.toHaveBeenCalled();
   });
 });
 
@@ -646,13 +716,13 @@ describe('the agenda screen', () => {
     const onRefresh = jest.fn();
     await act(async () => { tree = create(<AgendaScreen selected="2026-09-24" today="2026-09-24" schedule={{ state: 'ready', events: [] }}
       list={{ state: 'ready', agreements: [] }} refreshing={false} onSelect={jest.fn()} onBack={jest.fn()} onRefresh={onRefresh} onRetry={jest.fn()}
-      onRetryList={jest.fn()} onOpen={jest.fn()} onWithoutTerm={jest.fn()} onAvailability={jest.fn()} phoneZone="Europe/Belgrade" {...patch} />); });
+      onRetryList={jest.fn()} onOpen={jest.fn()} onProposeTerm={jest.fn()} onAvailability={jest.fn()} phoneZone="Europe/Belgrade" {...patch} />); });
     return onRefresh;
   };
 
-  // Round-5c: the action sat on the ScrollView, which TalkBack and VoiceOver never offer it on. It is on the day's heading,
+  // Round-5c: the action sat on the ScrollView, which TalkBack and VoiceOver never offer it on. It is on the period's heading,
   // a focusable element, under its own name, so the heading does not become a button.
-  it('lets a screen reader read the calendar again from the day heading, as the pull does', async () => {
+  it('lets a screen reader read the calendar again from the heading of the period, as the pull does', async () => {
     const onRefresh = await draw();
     expect(tree.root.findAllByType('ScrollView' as React.ElementType)[0].props.accessibilityActions).toBeUndefined();
     const heading = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityActions)[0];
@@ -664,23 +734,17 @@ describe('the agenda screen', () => {
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
-  it('lines "Danas" up with the week label when it moves under it', async () => {
-    mockFontScale = 1.3;
-    await draw({ selected: '2026-12-31', today: '2026-09-24' });
-    const today = tree.root.findAll(node => node.props.label === 'Danas' && typeof node.type !== 'string')[0];
-    expect(today.parent!.props.style).toEqual(expect.objectContaining({ marginLeft: -sys.space.base }));
-  });
-
-  it.each([[1, true], [1.3, false]])('never cuts the week label, and moves "Danas" under it on a narrow row (text size %s)', async (scale, beside) => {
+  it.each([[1, true], [1.3, false]])('never cuts the label of the week, and moves "Danas" under it on a narrow row (text size %s)', async (scale, beside) => {
     mockFontScale = scale;
-    await draw({ selected: '2026-12-31', today: '2026-09-24' });
-    // The week that crosses the new year, the longest label there is.
+    await draw({ selected: '2026-12-31', today: '2026-09-24', initialView: 'week' });
+    // The week that crosses the new year, the longest label there is: it wraps, it is never cut.
     const label = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === '28. dec 2026 – 3. jan 2027')[0];
-    // The name of the week is the press that opens the month, so it is a button; the day's heading is the header.
     expect(label.props.numberOfLines).toBeUndefined();
-    expect(label.parent!.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '28. dec 2026 – 3. jan 2027', accessibilityHint: 'Otvara mesec' });
-    const today = tree.root.findAll(node => node.props.label === 'Danas' && typeof node.type !== 'string')[0];
-    expect(today.parent!.findAll(node => node.props.label === 'Sledeća nedelja').length > 0).toBe(beside);
+    expect(label.props.accessibilityRole).toBe('header');
+    const header = tree.root.findAll(node => node.props.testID === 'period-header')[0];
+    // Beside the legend in the bar, or in the block of the period at a large text size, never both.
+    expect(header.findAll(node => node.props.label === 'Danas' || node.props.accessibilityLabel === 'Danas').length > 0).toBe(!beside);
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Danas')).toHaveLength(1);
   });
 });
 

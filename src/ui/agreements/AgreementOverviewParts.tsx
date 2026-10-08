@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { vreme } from '../../lib/vreme';
 import { Press } from '../Press';
@@ -7,21 +7,21 @@ import { FactArt } from '../system/FactArt';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { Section } from '../system/Section';
+import { InfoButton } from '../system/InfoButton';
 import { Screen } from '../system/Screen';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { field, sys } from '../system/tokens';
 import { ProductHeader } from '../product/ProductDetails';
 import { V2Action } from '../v2/V2Action';
-import { AgreementSection } from '../v2/AgreementPresentation';
-import { NextStepCard, type AgreementStep } from './AgreementWorkspace';
+import { NextStepCard, type AgreementInfo, type AgreementStep } from './AgreementWorkspace';
 import { AgreementSteps } from './AgreementSteps';
 
 /**
  * The pieces of a Dogovor's overview that the route and its gallery draw the same way (composition spec 4.9, template T3): the head with
- * the work's name and where the Dogovor stands, the note for a Dogovor without a term (R02), the rows that lead elsewhere, a reported
- * problem and the three ways on after it (R04). Presentation only: every press is the route's own command, behind its own guards, and
- * nothing here reads or writes anything.
+ * the work's name and where the Dogovor stands, the note for a Dogovor without a term (R02), the rows that lead elsewhere, the actions
+ * (J15: what can be done is SEEN on the page, never only behind a "···"), a reported problem and the three ways on after it (R04).
+ * Presentation only: every press is the route's own command, behind its own guards, and nothing here reads or writes anything.
  */
 
 /**
@@ -36,28 +36,30 @@ export const overviewContent = { paddingHorizontal: layout.gutter, paddingTop: s
  * the four steps of its way. When the next step waits for me, it is one tinted note and what it is about (a proposal's lines) stands in it.
  * `steps` is the step bar's own props, so the same state is read in one place (`agreementStepModel`).
  */
-export function AgreementHead({ title, step, steps, children }: {
+export function AgreementHead({ title, step, steps, info, children }: {
   /** The work's title, readable ("Prenos ormana do kombija"). */
   title: string; step: AgreementStep; steps: ComponentProps<typeof AgreementSteps>;
+  /** How the Dogovor goes, behind an "ⓘ" at the end of the state's line: the screen says one sentence, the rest is one tap away. */
+  info?: AgreementInfo | null;
   /** What a waiting step is about: the lines of a proposal, the way to read permissions again. Inside the step. */
   children?: ReactNode;
 }) {
   return <View style={s.head}>
     <T accessibilityRole="header" variant="pageTitle" style={s.title}>{title}</T>
-    <NextStepCard tone={step.tone} title={step.title} body={step.body}>{children}</NextStepCard>
-    <AgreementSteps {...steps} />
+    <NextStepCard tone={step.tone} title={step.title} body={step.body} aside={info ? <InfoButton title={info.title} lines={info.lines} /> : undefined}>{children}</NextStepCard>
+    <View style={s.steps}><AgreementSteps {...steps} /></View>
   </View>;
 }
 
 /**
  * A Dogovor with no term yet (idea R02): the one thing the two of them still have to do, said where the person reads what comes next.
- * One tinted sentence, never a card of its own, and "Predloži termin" at its end in the system's green words: the way to the existing
- * change of the terms, opened on the term. It stands until a proposal for the term is accepted.
+ * One tinted note, never a card of its own: what is missing, and "Predloži termin" under it in the system's green words - the way to the
+ * existing change of the terms, opened on the term. No sentence between the two (phone, 2026-10-08: the title and the button say it).
+ * It stands until a proposal for the term is accepted.
  */
 export function AgreementTermNote({ onPropose, disabled = false }: { onPropose: () => void; disabled?: boolean }) {
   return <Surface kind="note" tone="warn" testID="agreement-term-note" style={s.termNote}>
     <T accessibilityRole="header" variant="bodyStrong" style={s.title}>Termin još nije dogovoren</T>
-    <T variant="copy" tone="muted">Dogovorite tačno vreme u Porukama, pa ga upišite.</T>
     <Press accessibilityRole="button" accessibilityLabel="Predloži termin" accessibilityState={{ disabled }} disabled={disabled} haptic="select"
       onPress={onPropose} style={s.termAction}>
       <T variant="copy" tone="green" style={s.actionWord}>Predloži termin</T>
@@ -69,94 +71,129 @@ export function AgreementTermNote({ onPropose, disabled = false }: { onPropose: 
 type LinkRow = { onPress: () => void; disabled?: boolean };
 
 /**
- * The few things that lead elsewhere from a Dogovor, as ONE group of the one row: the source task, my application (the worker's), the
- * change and cancelling of the terms, a problem, safety, and the Dogovor's history. A row that leads somewhere has the arrow; the ones
- * needed once in a long while are quiet. Each row's spoken label is the one it always had.
+ * The few things that lead elsewhere from a Dogovor, as ONE group of the one row: the source task, my application (the worker's) and the
+ * Dogovor's history. A row that leads somewhere has the arrow, and a row says what it is and nothing else (J3, J4). Each row's spoken label
+ * is the one it always had.
  */
-export function AgreementLinks({ task, application, change, problem, safety, history }: {
+export function AgreementLinks({ task, application, history }: {
   /** "Otvori zadatak": only when the source task is known and the person may open it. The row says the title of the work and its coarse area (never the private address) to a screen reader only: the page already shows both. */
   task?: LinkRow & { title: string; place: string };
   /** "Tvoja prijava": the worker's own application. */
   application?: LinkRow;
-  /** "Izmene i otkazivanje": what can still be changed. */
-  change?: LinkRow;
-  /** "Prijavi problem": opens the form. */
-  problem?: LinkRow;
-  /** "Bezbednost i prijava": blocking and the private report to support. */
-  safety?: LinkRow;
   /** "Tok Dogovora": the saved events. */
   history?: readonly { vremeTekst: string; tekst: string }[];
 }) {
+  const events = history?.length ? history : null;
   const rows: ((last: boolean) => ReactNode)[] = [];
   if (task) rows.push(last => <ListRow key="task" leading={<FactArt kind="tasks" size={32} />} title="Otvori zadatak" last={last}
     accessibilityLabel={`Otvori zadatak: ${task.title}. ${task.place}`} accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
     disabled={task.disabled} onPress={task.onPress} />);
   if (application) rows.push(last => <ListRow key="application" leading={<FactArt kind="offers" size={32} />} title="Tvoja prijava" last={last}
     accessibilityLabel="Tvoja prijava" disabled={application.disabled} onPress={application.onPress} />);
-  if (change) rows.push(last => <ListRow key="change" leading={<FactArt kind="document" size={32} />} tone="quiet" title="Izmene i otkazivanje" last={last}
-    subtitle="Cena, obim, termin ili otkazivanje uz razlog" accessibilityLabel="Izmene i otkazivanje Dogovora"
-    accessibilityHint="Cena, obim, termin ili otkazivanje uz razlog" disabled={change.disabled} onPress={change.onPress} />);
-  if (problem) rows.push(last => <ListRow key="problem" leading={<FactArt kind="alert" size={32} />} tone="quiet" title="Prijavi problem" last={last}
-    subtitle="Zaustavlja automatski završetak, a druga strana vidi prijavu" accessibilityLabel="Prijavi problem" disabled={problem.disabled} onPress={problem.onPress} />);
-  if (safety) rows.push(last => <ListRow key="safety" leading={<FactArt kind="shield" size={32} />} tone="quiet" title="Bezbednost i prijava" last={last}
-    subtitle="Blokiranje i poverljiva prijava podršci" accessibilityLabel="Bezbednost i privatna prijava"
-    accessibilityHint="Blokiranje i poverljiva prijava podršci" disabled={safety.disabled} onPress={safety.onPress} />);
-  const events = history?.length ? history : null;
-  if (!rows.length && !events) return null;
+  if (events) rows.push(() => <AgreementHistory key="history" events={events} />);
+  if (!rows.length) return null;
+  return <View>{rows.map((row, index) => row(index === rows.length - 1))}</View>;
+}
+
+/** "Tok Dogovora": a row of the one list that opens its events under itself, in the words and the order they were saved in. */
+function AgreementHistory({ events }: { events: readonly { vremeTekst: string; tekst: string }[] }) {
+  const [open, setOpen] = useState(false);
   return <View>
-    {rows.map((row, index) => row(!events && index === rows.length - 1))}
-    {events ? <AgreementSection art="clock" label="Tok Dogovora" summary="Događaji u Dogovoru">
+    <ListRow leading={<FactArt kind="clock" size={32} />} title="Tok Dogovora" accessibilityLabel="Tok Dogovora" last={!open}
+      expanded={open} onPress={() => setOpen(current => !current)} />
+    {open ? <View style={s.events}>
       {events.map((event, index) => <View key={index} style={s.event}>
         <View style={s.eventLine} /><View style={s.eventCopy}><T variant="body">{event.tekst}</T><T variant="meta" tone="muted">{event.vremeTekst}</T></View>
       </View>)}
-    </AgreementSection> : null}
+    </View> : null}
   </View>;
 }
 
-/** The sentence under a reported problem while the Dogovor is still open: the automatic completion stops, the confirmation does not. */
-const STOPPED = 'Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijavljeni problem sam po sebi ne određuje krivicu ili dug.';
+/**
+ * What can be DONE in a Dogovor, as rows of the page (J15, owner, 2026-10-08, "jedva se nađu"): "Izmeni uslove" and "Prijavi problem", each
+ * with its picture, in ONE place and not again in a menu. A row is drawn only for a command the route gave, and every press is that command,
+ * behind its own guards and confirmations. The ones that end something or report someone are `AgreementDangerActions`, apart and in red.
+ */
+export function AgreementActions({ change, problem }: {
+  /** "Izmeni uslove": a proposal of a new price, scope or term. The other side has to accept it. */
+  change?: LinkRow;
+  /** "Prijavi problem": opens the form for it on the page. */
+  problem?: LinkRow;
+}) {
+  if (!change && !problem) return null;
+  return <View testID="agreement-actions">
+    {change ? <ListRow leading={<FactArt kind="document" size={32} />} title="Izmeni uslove" last={!problem} accessibilityLabel="Izmeni uslove"
+      accessibilityHint="Predlažeš novu cenu, obim ili termin. Druga strana mora da prihvati." disabled={change.disabled} onPress={change.onPress} /> : null}
+    {problem ? <ListRow leading={<FactArt kind="alert" size={32} />} title="Prijavi problem" last accessibilityLabel="Prijavi problem"
+      accessibilityHint="Zaustavlja automatski završetak, a druga strana vidi prijavu." disabled={problem.disabled} onPress={problem.onPress} /> : null}
+  </View>;
+}
+
+/**
+ * The two actions that end something or report someone: red words, a quiet picture, and a part of the page of their own (the screen's
+ * 24 between it and the calm actions above). Each opens its own flow with its own confirmation - the reason and the review of a
+ * cancellation, the safety screen - so each keeps its arrow.
+ */
+export function AgreementDangerActions({ cancel, safety }: {
+  /** "Otkaži Dogovor": opens the cancelling with its reason. */
+  cancel?: LinkRow;
+  /** "Prijavi ili blokiraj osobu": blocking and the private report to support. */
+  safety?: LinkRow;
+}) {
+  if (!cancel && !safety) return null;
+  return <View testID="agreement-danger-actions">
+    {cancel ? <ListRow leading={<FactArt kind="tasks" size={32} muted />} tone="danger" arrow title="Otkaži Dogovor" last={!safety} accessibilityLabel="Otkaži Dogovor"
+      accessibilityHint="Otkazivanje uz razlog. Pre slanja vidiš pregled." disabled={cancel.disabled} onPress={cancel.onPress} /> : null}
+    {safety ? <ListRow leading={<FactArt kind="shield" size={32} muted />} tone="danger" arrow title="Prijavi ili blokiraj osobu" last
+      accessibilityLabel="Prijavi ili blokiraj osobu" accessibilityHint="Blokiranje i poverljiva prijava podršci." disabled={safety.disabled} onPress={safety.onPress} /> : null}
+  </View>;
+}
 
 /**
  * A problem that was reported, as the one tinted note it is (a problem is what waits for both): who reported it and when, the words that
- * were written - both sides read them, and they are kept in Poruke - and, while the Dogovor is open, that the automatic completion has
- * stopped. `keptFirst`: this screen holds a second description that was NOT added (only the first one is stored).
+ * were written, and one sentence - both sides read them, and a problem alone decides nobody's guilt or debt. What it changes in a Dogovor that
+ * is still open - the automatic completion stops, the completion can still be confirmed, the words are kept in Poruke - is behind the "ⓘ" at the
+ * end of its title (`active`), and the head of the Dogovor says the stop once. `keptFirst`: this screen holds a second description that was NOT
+ * added (only the first one is stored).
  */
-export function AgreementProblemNote({ mine, openedAt, narrative, active, keptFirst = false }: {
+export function AgreementProblemNote({ mine, openedAt, narrative, active = false, keptFirst = false }: {
   mine: boolean; openedAt: string; narrative: string;
   /** The Dogovor is agreed or waiting for its confirmation. */
-  active: boolean; keptFirst?: boolean;
+  active?: boolean; keptFirst?: boolean;
 }) {
   return <Surface kind="note" tone="warn" testID="agreement-problem-note" style={s.problem}>
-    <T accessibilityRole="header" variant="bodyStrong" style={s.title}>{mine ? 'Problem je prijavljen sa tvog naloga.' : 'Problem je prijavila druga strana.'}</T>
+    <View style={s.noteHead}>
+      <T accessibilityRole="header" variant="bodyStrong" style={[s.title, s.noteTitle]}>{mine ? 'Problem je prijavljen sa tvog naloga.' : 'Problem je prijavila druga strana.'}</T>
+      {active ? <InfoButton title="Šta znači prijavljen problem" lines={PROBLEM_LINES} /> : null}
+    </View>
     <T variant="note" tone="muted">{vreme(openedAt)}</T>
     <T variant="body" style={s.title}>{narrative}</T>
-    <T variant="note" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
-    {keptFirst ? <T variant="note" tone="muted">Sačuvan je prvi opis problema. Tvoj novi opis nije dodat. Za dopunu koristi Poruke.</T> : null}
-    {active ? <T variant="note" tone="muted">{STOPPED}</T> : null}
+    <T variant="note" tone="muted">{keptFirst ? 'Sačuvan je prvi opis, a tvoj novi nije dodat. Za dopunu koristi Poruke.'
+      : 'Opis vide oba učesnika, a problem sam po sebi ne određuje krivicu ili dug.'}</T>
   </Surface>;
 }
+
+/** What a reported problem changes while the Dogovor is open: said behind the "ⓘ" of the note, once and in short lines. */
+const PROBLEM_LINES = ['Automatski završetak je zaustavljen.', 'Završetak se i dalje može potvrditi.', 'Opis je sačuvan u Porukama.'] as const;
 
 /**
  * A problem is open but its details could not be shown: an older report that this view cannot read (`legacy`: nothing to do about it), or
  * a read that did not answer (then `onRefresh` reads it again). The problem itself is certain either way: the Dogovor says it is open.
  */
-export function AgreementProblemUnknown({ legacy, active, onRefresh, disabled = false }: {
-  legacy: boolean; active: boolean; onRefresh?: () => void; disabled?: boolean;
+export function AgreementProblemUnknown({ legacy, onRefresh, disabled = false }: {
+  legacy: boolean; onRefresh?: () => void; disabled?: boolean;
 }) {
   return <Surface kind="note" tone="warn" testID="agreement-problem-note" style={s.problem}>
     <T accessibilityRole="header" variant="bodyStrong" style={s.title}>Problem je prijavljen</T>
-    <T variant="note" tone="muted">{legacy
-      ? 'Detalji ranije prijavljenog problema nisu dostupni. Problem ostaje sačuvan.'
-      : 'Detalji prijave trenutno nisu učitani. Osveži status Dogovora da pokušaš ponovo.'}</T>
-    {active ? <T variant="note" tone="muted">{STOPPED}</T> : null}
+    <T variant="note" tone="muted">{legacy ? 'Detalji ranije prijavljenog problema nisu dostupni. Problem ostaje sačuvan.' : 'Detalji prijave trenutno nisu učitani.'}</T>
     {onRefresh ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={disabled} onPress={onRefresh} /> : null}
   </Surface>;
 }
 
 /**
- * The form to report a problem in this Dogovor, in place of the row that opened it (it is the last thing on the page, where the person
- * pressed). What is written is seen by the other side in Poruke - this is not the private report to support - and once an attempt was
- * made the text is kept as it was (`kept`): only an explicit refresh may let a second one go, never a silent retry with other words.
+ * The form to report a problem in this Dogovor, in place of the row that opened it. What is written is seen by the other side in
+ * Poruke - this is not the private report to support - and once an attempt was made the text is kept as it was (`kept`): only an
+ * explicit refresh may let a second one go, never a silent retry with other words.
  */
 export function AgreementProblemForm({ value, onChange, editable, kept, busy, canSend, onSend, onCancel, disabled = false }: {
   value: string; onChange: (value: string) => void; editable: boolean;
@@ -178,20 +215,21 @@ export function AgreementProblemForm({ value, onChange, editable, kept, busy, ca
 /**
  * The three ways on after a problem was reported (idea R04), so that a report is never a dead end: agree in Poruke; cancel the Dogovor
  * (with a reason, and then look for people again); or report that the other side did not come, which opens support with this Dogovor
- * already chosen. Rows of the one list under their own title; the cancelling is the one that cannot be taken back, so its words are red.
+ * already chosen. Rows of the one list under their own title, each said by its title alone (what each does is spoken, J4); the cancelling is
+ * the one that cannot be taken back, so its words are red. It is the ONLY place of "Otkaži Dogovor" while it stands (J1).
  */
 export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled = false }: {
   onMessages: () => void; onCancel?: () => void; onNoShow: () => void; disabled?: boolean;
 }) {
   return <Section title="Šta dalje">
     <View>
-      <ListRow leading={<FactArt kind="chat" size={32} />} title="Dogovorite se u Porukama" subtitle="Napišite šta je ostalo nerešeno." onPress={onMessages} disabled={disabled}
-        accessibilityLabel="Dogovorite se u Porukama" last={false} />
+      <ListRow leading={<FactArt kind="chat" size={32} />} title="Dogovorite se u Porukama" onPress={onMessages} disabled={disabled}
+        accessibilityLabel="Dogovorite se u Porukama" accessibilityHint="Napišite šta je ostalo nerešeno." last={false} />
       {/* Red words are a command, but this one opens the cancelling with its reason, so it keeps the arrow of a way onward. */}
-      {onCancel ? <ListRow leading={<FactArt kind="tasks" size={32} />} tone="danger" arrow title="Otkaži Dogovor" subtitle="Uz razlog. Posle toga možeš ponovo da tražiš ljude."
-        onPress={onCancel} disabled={disabled} accessibilityLabel="Otkaži Dogovor" /> : null}
-      <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi nedolazak" subtitle="Otvara podršku sa ovim Dogovorom." onPress={onNoShow}
-        disabled={disabled} accessibilityLabel="Prijavi nedolazak" last />
+      {onCancel ? <ListRow leading={<FactArt kind="tasks" size={32} muted />} tone="danger" arrow title="Otkaži Dogovor" onPress={onCancel} disabled={disabled}
+        accessibilityLabel="Otkaži Dogovor" accessibilityHint="Uz razlog. Posle toga možeš ponovo da tražiš ljude." /> : null}
+      <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi nedolazak" onPress={onNoShow} disabled={disabled}
+        accessibilityLabel="Prijavi nedolazak" accessibilityHint="Otvara podršku sa ovim Dogovorom." last />
     </View>
   </Section>;
 }
@@ -212,14 +250,20 @@ export function AgreementStatusView({ loading = false, error = false, retry, bac
 }
 
 const s = StyleSheet.create({
-  head: { gap: sys.space.sm },
+  // The title, the state and the steps: 12 apart, and the steps 16 under the state's words (the 12 and 4 more) so the bar stands apart from them.
+  head: { gap: sys.space.md },
+  steps: { marginTop: sys.space.xs },
   title: { color: sys.color.ink },
   termNote: { gap: sys.space.xs },
   termAction: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },
   actionWord: { fontWeight: '600' },
   problem: { gap: sys.space.sm },
+  noteHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  noteTitle: { flexGrow: 1, flexShrink: 1 },
   form: { gap: sys.space.md },
   input: { ...field, minHeight: 100, textAlignVertical: 'top' },
+  // The events open under their row, from where the row's words begin (the picture's slot and the gap after it).
+  events: { paddingLeft: layout.slot + sys.space.md, paddingBottom: sys.space.md, gap: sys.space.md },
   event: { flexDirection: 'row', gap: sys.space.md },
   eventLine: { width: 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, marginVertical: sys.space.xs },
   eventCopy: { flex: 1, gap: sys.space.xs },

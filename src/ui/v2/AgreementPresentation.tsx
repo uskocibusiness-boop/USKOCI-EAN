@@ -152,16 +152,12 @@ export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): 
 
 /**
  * The accepted terms. In the overview (composition spec 4.9): the section "Uslovi", one row for each of Mesto (the coarse area or "Na daljinu", never the private address), Termin, Dogovoreno ukupno
- * (the one amount, large), Ljudi and Obim, parted by their inset lines and by nothing else; "Izmeni" at the end of the title opens the
- * change of the terms when the person can make one. A Dogovor without a saved amount says so in words and a Dogovor without an
- * exact term says that, in the words of the term and never as a value. In the chat's compact context (`compact`) the same facts stand
- * as the four small facts of the conversation's header, with no line between them.
+ * (the one amount, large), Ljudi and Obim, parted by their inset lines and by nothing else. Changing them is the action "Izmeni uslove" of
+ * the page's actions, in one place (J1, J15; the title used to carry a second "Izmeni"). A Dogovor without a saved amount says so in words
+ * and a Dogovor without an exact term says that, in the words of the term and never as a value. In the chat's compact context (`compact`)
+ * the same facts stand as the four small facts of the conversation's header, with no line between them.
  */
-export function AgreementTerms({ agreement: a, compact = false, onChange }: {
-  agreement: DogovorProjekcija; compact?: boolean;
-  /** The terms can be changed from here: the person is a side of an agreed Dogovor and nothing blocks a change. */
-  onChange?: () => void;
-}) {
+export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
   const people = osoba(a.pokrivenost.popunjeno);
   const scope = a.prihvacenObim;
   const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
@@ -184,7 +180,7 @@ export function AgreementTerms({ agreement: a, compact = false, onChange }: {
     </View>;
   }
   const price = /\d/.test(amount);
-  return <Section title="Uslovi" action={onChange ? { label: 'Izmeni', accessibilityLabel: 'Izmeni uslove', onPress: onChange } : undefined}>
+  return <Section title="Uslovi">
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
     <View>
       <KeyValueRow label="Mesto" value={agreementTaskPlace(a)} />

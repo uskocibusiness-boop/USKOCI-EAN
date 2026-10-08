@@ -36,8 +36,9 @@ test('the personal profile leads to AI setup and shows saved facts with one manu
   expect(labels()).not.toContain('Brzi izbor alata');
   await act(async () => byLabel('Uredi profil kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Izmeni: O meni').props.onPress());
-  expect(inputs()).toEqual(['Ime na radnom profilu', 'O meni']);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Ime na radnom profilu' }).props.value).toBe('Marko Marić');
+  // ONE NAME (owner, 8 Oct 2026): there is no field for the name here; it is the name of the account, said as the title.
+  expect(inputs()).toEqual(['O meni']);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime na radnom profilu' })).toHaveLength(0);
   await act(async () => byLabel('Izmeni: Alat i oprema').props.onPress());
   expect(inputs()).toEqual(['Nova stavka: Alat i oprema']);
   expect(labels()).toContain('Ukloni alat i oprema: Kolica');
@@ -48,7 +49,7 @@ test('the personal profile leads to AI setup and shows saved facts with one manu
 });
 test('status follows the server state and availability is a read-only summary, never a switch', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
-  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah · dostupnost');
+  expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost');
   expect(tree.root.findAllByType('Switch' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={draft()} status="SUSPENDED" />); });
@@ -136,5 +137,6 @@ test('unknown or absent profile state does not expose retired licenses or a capa
   await act(async () => tree.update(<WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={draft({ capacityRevision: null })} change={change}
     disabled={false} status={null} navigate={navigate} /></WorkerProfileFrame>));
   expect(texts()).not.toMatch(/Kapacitet profila|Sačuvaj profil da bi se broj ljudi potvrdio/);
-  expect(texts()).toContain('njihov broj navodiš u toj ponudi');
+  // The people count and the equipment note are behind the "ⓘ" in the bar, not on the screen.
+  expect(texts()).not.toContain('njihov broj navodiš u toj ponudi');
 });

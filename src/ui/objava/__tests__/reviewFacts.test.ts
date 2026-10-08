@@ -3,7 +3,8 @@ import type { NeedLocationInput } from '../../../contracts/location';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../../contracts/needFactsV2';
 import { factReviewValue } from '../../../data/aiNeedV2Ui';
 import { REVIEW_FACT_COPY } from '../../../data/reviewFactProblem';
-import { ownerPlaceLines, privateReviewMap, publicAnchorPoint, publicPlaceLines, reviewRowValue, reviewTodos, todoActionLabel } from '../reviewFacts';
+import { blankList, deadlineWords, groupOf, groupedFacts, ownerAddressFrame, ownerPlaceLines, partFact, privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos,
+  todoActionLabel } from '../reviewFacts';
 
 const fact = (key: NeedFactV2Key, value: unknown): AiNeedV2Fact => ({ id: key, key, value, displayValue: String(value),
   valueType: NEED_FACT_V2_DEFINITIONS[key].valueType, privacyClass: NEED_FACT_V2_DEFINITIONS[key].privacyClass,
@@ -94,9 +95,9 @@ describe('reviewTodos', () => {
 });
 
 /**
- * The place, said twice (owner, 2026-10-07: he moved the pin and the published task still named the street of the first text). The PRIVATE half
- * reads the confirmed points (`ownerPlaceLines`); the PUBLIC half reads the stored words of the topology, which are what a stranger will read
- * (`publicPlaceLines`), and never a point's address or a house number.
+ * The place the owner confirmed (owner, 2026-10-07: he moved the pin and the published task still named the street of the first text). The frame of
+ * the exact address reads the confirmed points (`ownerPlaceLines`), never the words of the first text; what a stranger reads of the place is the
+ * published page's own (`reviewAsTask.test`, `review-detail-parity.test`).
  */
 describe('the place in the review', () => {
   const ADDRESS = '6, Pavla Ivića, Jugovićevo, MZ Jugovićevo, Novi Sad, Grad Novi Sad, Južnobački upravni okrug, Vojvodina, 21137, Srbija';
@@ -128,30 +129,6 @@ describe('the place in the review', () => {
       expect(ownerPlaceLines({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null })).toEqual([]);
       const unbound = at(stationary, [START]); (unbound.resolvedLocation as { binding: { geography: unknown } }).binding.geography = { mode: 'STATIONARY', start: { city: 'Beograd' } };
       expect(ownerPlaceLines(unbound)).toEqual([]);
-    });
-  });
-
-  describe('publicPlaceLines', () => {
-    it('names a route’s stops as they are stored, which is what a stranger will read', () => {
-      expect(publicPlaceLines(route, 'Novi Sad')).toEqual(['Polazište: Lenke Dunđerski · Novi Sad', 'Odredište: Dositejeva · Novi Sad']);
-    });
-    it('names one place only when its words say something the area line does not, as the published detail does', () => {
-      expect(publicPlaceLines(stationary, 'Novi Sad')).toEqual(['Mesto: Lenke Dunđerski · Novi Sad']);
-      expect(publicPlaceLines({ mode: 'STATIONARY', start: { city: 'Novi Sad' } }, 'Novi Sad')).toEqual([]);
-      expect(publicPlaceLines({ mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Liman 2' } }, 'Novi Sad · Liman 2')).toEqual([]);
-      expect(publicPlaceLines({ mode: 'STATIONARY', start: { city: 'Novi Sad' } }, null)).toEqual(['Mesto: Novi Sad']);
-    });
-    it('names both places of an area task, which is what the detail does when there are two', () => {
-      expect(publicPlaceLines({ mode: 'AREA_BASED', start: { city: 'Novi Sad' }, serviceArea: { city: 'Novi Sad' } }, 'Novi Sad'))
-        .toEqual(['Polazište: Novi Sad', 'Područje: Novi Sad']);
-    });
-    it('says nothing for remote work, an unknown value or no value', () => {
-      expect(publicPlaceLines({ mode: 'REMOTE' }, 'Na daljinu')).toEqual([]);
-      expect(publicPlaceLines({ mode: 'NOWHERE' }, 'Novi Sad')).toEqual([]);
-      expect(publicPlaceLines(undefined, 'Novi Sad')).toEqual([]); expect(publicPlaceLines(null, null)).toEqual([]);
-    });
-    it('can only ever say the topology’s words: a house number or the street of a point is not in what it is given', () => {
-      for (const geography of [stationary, route]) expect(publicPlaceLines(geography, 'Novi Sad').join(' ')).not.toMatch(/Pavla|\b6\b|\b12\b/);
     });
   });
 });

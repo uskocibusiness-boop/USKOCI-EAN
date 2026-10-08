@@ -31,7 +31,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
-jest.mock('../../entry/BrandAssets', () => ({ BrandMark: 'BrandMark' }));
+jest.mock('../../system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
 
 let tree: ReactTestRenderer;
@@ -67,7 +67,10 @@ it('rounds all coarse native geometry before map/camera props and fits every con
   });
   expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456');
   expect(JSON.stringify(tree.toJSON())).not.toContain('19.654321');
-  expect(tree.root.findAllByType('BrandMark' as React.ElementType)).toHaveLength(2);
+  // The stops of a route are numbered pins: a small place pin beside each number, and never the app's own mark.
+  const pins = tree.root.findAllByType('FactArt' as React.ElementType);
+  expect(pins).toHaveLength(2); expect(pins.map(pin => pin.props.kind)).toEqual(['pin', 'pin']);
+  expect(markers().map(marker => marker.props.anchor)).toEqual(['center', 'center']);
 });
 
 it('groups coincident rounded stops without dropping numbers and uses one actual center', async () => {
@@ -78,10 +81,13 @@ it('groups coincident rounded stops without dropping numbers and uses one actual
   await act(async () => markers()[0].props.onPress()); expect(mockSelect).toHaveBeenCalledWith('b');
 });
 
-it.each([false, true])('shows only the brand for one valid displayed point (coarse=%s)', async coarse => {
+it.each([false, true])('shows only a plain place pin, standing on its point, for one valid displayed point (coarse=%s)', async coarse => {
   await render({ coarse, points: [{ ...first, latitude: NaN }, second] }); await ready();
   const marker = markers()[0];
-  expect(marker.findAllByType('BrandMark' as React.ElementType)).toHaveLength(1);
+  // The owner, 8 Oct 2026: "običan pin mesta" and not the app's mark. Its tip is the place, so it stands on the point (anchor bottom).
+  const pin = marker.findAllByType('FactArt' as React.ElementType);
+  expect(pin).toHaveLength(1); expect(pin[0].props.kind).toBe('pin'); expect(pin[0].props.size).toBe(40);
+  expect(marker.props.anchor).toBe('bottom');
   expect(marker.findAllByType('T' as React.ElementType)).toHaveLength(0);
   expect(marker.findByProps({ accessible: true }).props.accessibilityLabel).toContain('2. Isporuka');
   await act(async () => marker.props.onPress());
@@ -110,6 +116,18 @@ it('fills the bounded parent and refits the same map to actual resized geometry 
   mockFit.mockClear();
   await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 240, height: 120 } } }));
   expect(mockFit).not.toHaveBeenCalled();
+});
+
+it('keeps the OpenFreeMap credit as one small line inside the corner of a preview, not as a text under the map', async () => {
+  await render({ height: 280 }); await ready();
+  const frame = tree.root.findByProps({ testID: 'location-overview-frame' });
+  const credits = frame.findByProps({ testID: 'location-overview-credits' });
+  // Inside the map's own frame and over its corner, so the map is the last thing on the page; it takes no touch that is not on a link.
+  expect(credits.props.pointerEvents).toBe('box-none'); expect(StyleSheet.flatten(credits.props.style)).toMatchObject({ position: 'absolute' });
+  const links = credits.findAllByType('Press' as React.ElementType);
+  expect(links.map(link => link.props.accessibilityLabel)).toEqual(LOCATION_MAP_CREDITS.map(credit => credit.text));
+  // Fine print: it does not grow with the system's text size, so the three links stay on one line.
+  for (const text of credits.findAllByType('T' as React.ElementType)) expect(text.props.maxFontSizeMultiplier).toBe(1);
 });
 
 it('does not refit for equal refreshed rows and disables preview gestures and selection', async () => {

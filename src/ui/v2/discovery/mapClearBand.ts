@@ -42,15 +42,16 @@ export function clearBandBounds(bounds: PublicBounds, height: number, top: numbe
 }
 
 /**
- * The map's controls: the zoom buttons and "U blizini" stand in one row directly ABOVE the list sheet and move with it
- * (UX plan section P: "uvek iznad spiska, ili u traci mape kad je spisak do vrha; nikad ispod njega"). These are the numbers
- * that keep them there, as pure arithmetic: the sheet's position is a shared value on the UI thread, so `sheetEdge` and
- * `controlsTop` are worklets and run there frame by frame; nothing here waits for React.
+ * The map's furniture: the map's sources on the left and "moja lokacija" on the right stand in one row directly ABOVE the list sheet
+ * and move with it (UX plan section P: "uvek iznad spiska"; the owner's phone of 8 Oct 2026: no + and − buttons, the map is zoomed with
+ * two fingers, only "moja lokacija" stays). These are the numbers that keep the row there, as pure arithmetic: the sheet's position
+ * is a shared value on the UI thread, so `sheetEdge` and `controlsTop` are worklets and run there frame by frame; nothing here waits
+ * for React. When the list is full there is no map above it, and the row gives way (`controlsFade`).
  */
 
-/** The touch size of one control in the row: a full 44 (the owner's floor), drawn as a circle or half a capsule. */
+/** The touch size of one control in the row: a full 44 (the owner's floor), drawn as a circle. */
 export const CONTROL_SIZE = 44;
-/** The air between two controls of the row. */
+/** The air between the two things of the row. */
 export const CONTROL_GAP = 8;
 
 /**
@@ -73,21 +74,29 @@ export function controlsTop(edge: number, rowHeight: number, gap: number, minTop
 }
 
 /**
- * Where the list sheet's top edge rests at its FULL height, in pixels from the top of the body: under the search pill, with a
- * strip of map between them. The strip holds the row of controls (and the map's credits) when there is a map, or the
- * "U blizini" button to bring one up; with neither, the sheet stands one gap under the pill and nothing else.
+ * Where the list sheet's top edge rests at its FULL height, in pixels from the top of the body: directly under the floating tools (the
+ * search pill and its row of capsules, which stay on top of the list), one `gap` below them. There is no strip of map between the tools
+ * and the list (the owner, 8 Oct 2026: "lista ide do vrha"); the map's own row of furniture goes behind the list as it arrives.
  */
-export function fullSheetTop(pillBottom: number, gap: number, rowHeight: number, strip: boolean): number {
-  return strip ? pillBottom + gap + rowHeight + gap : pillBottom + gap;
+export function fullSheetTop(toolsBottom: number, gap: number): number {
+  return toolsBottom + gap;
 }
 
-/** The zoom capsule: its two halves side by side, 44 each, and the hairline between them. */
-export const ZOOM_WIDTH = 2 * CONTROL_SIZE + 1;
+/** How far over which the row of furniture fades as the list covers the map. */
+export const CONTROLS_FADE = 24;
 
 /**
- * How wide the row of controls is, from the right edge in: the zoom capsule, then (an air apart) the "U blizini" button. The
- * map's credits take the room that is left of it on the same row.
+ * How much of the row of furniture is on show (0 to 1). The row stands `gap` above `edge` (the list's top or a card's), never higher than
+ * `minTop`; where that would put it behind the list (the list is as high as it goes, so no map is left above it) it fades out over
+ * `CONTROLS_FADE` pixels instead of sinking under the list's edge.
  */
-export function controlsRowWidth(zoom: boolean, locate: boolean): number {
-  return (zoom ? ZOOM_WIDTH : 0) + (zoom && locate ? CONTROL_GAP : 0) + (locate ? CONTROL_SIZE : 0);
+export function controlsFade(edge: number, rowHeight: number, gap: number, minTop: number): number {
+  'worklet';
+  const free = edge - gap - rowHeight - minTop;
+  return free >= CONTROLS_FADE ? 1 : free <= 0 ? 0 : free / CONTROLS_FADE;
+}
+
+/** The row of the map's furniture: the sources on the left, "moja lokacija" on the right (the width of that control and its air). */
+export function controlsReserve(locate: boolean): number {
+  return locate ? CONTROL_SIZE + CONTROL_GAP : 0;
 }

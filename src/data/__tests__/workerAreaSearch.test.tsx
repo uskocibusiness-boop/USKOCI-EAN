@@ -44,6 +44,9 @@ const map = () => tree.root.findByType('PinMap' as React.ElementType);
 const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const press = async (label: string) => { await act(async () => { void button(label).props.onPress(); }); };
 const edit = async (label: string, value: string) => { await act(async () => field(label).props.onChangeText(value)); };
+// The radius is chosen from the distances, one tap each (owner's phone, 8 Oct 2026: it stood twice, as a field and as chips): there is no numeric field.
+const chip = (km: number) => tree.root.findByProps({ accessibilityLabel: `${km} km` });
+const choose = async (km: number) => { await act(async () => chip(km).props.onPress()); };
 async function render(overrides: Partial<Props> = {}) {
   props = { location, busy: false, uncertain: false, onSave: jest.fn(), ...overrides };
   await act(async () => { tree = create(<WorkerLocationForm {...props} />); });
@@ -75,12 +78,12 @@ it('sends only public city input and rounds candidates before Worker state/map, 
 });
 
 it('radius edits preserve the base while city A-B-A clears it and rejects old candidates', async () => {
-  await render({ resolver: resolver() });await edit('Radijus rada u kilometrima', '40');
+  await render({ resolver: resolver() });await choose(50);
   expect(map().props.position).toEqual(location.approximatePosition);
   await press('Pronađi područje za uneti grad');const old = button('Izaberi područje: Synthetic public city').props.onPress;
   await edit('Grad ili mesto rada', 'Beograd');await edit('Grad ili mesto rada', 'Novi Sad');await act(async () => old());
   expect(map().props.position).toBeNull();await press('Sačuvaj područje rada');
-  expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ city: 'Novi Sad', radiusKm: 40, approximatePosition: null }));
+  expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ city: 'Novi Sad', radiusKm: 50, approximatePosition: null }));
 });
 
 it('country A-B-A clears the base and discards a late lookup from the first country', async () => {
@@ -135,10 +138,12 @@ it('blur/refocus drops candidates and a retained click cannot select a point', a
 
 it('account/profile/revision changes remount Worker drafts and reject a previous account result', async () => {
   const late = pending(), search = resolver();search.search.mockReturnValueOnce(late.promise);
-  await render({ resolver: search });await edit('Radijus rada u kilometrima', '60');await press('Pronađi područje za uneti grad');
+  await render({ resolver: search });await choose(100);await press('Pronađi područje za uneti grad');
   await update({ location: { ...location, accountId: 'owner-B', profileId: 'worker-B', city: 'Mostar', operatingCountryCode: 'BA', radiusKm: 15, approximatePosition: null } });
   await act(async () => late.resolve(proposals));expect(button('Izaberi područje: Synthetic public city')).toBeUndefined();
-  expect(field('Grad ili mesto rada').props.value).toBe('Mostar');expect(field('Radijus rada u kilometrima').props.value).toBe('15');
+  expect(field('Grad ili mesto rada').props.value).toBe('Mostar');
+  // The new account's radius (15, not among the distances) has its own chip, selected; the old account's choice (100) did not carry over.
+  expect(chip(15).props.accessibilityState.checked).toBe(true);expect(chip(100).props.accessibilityState.checked).toBe(false);
   expect(map().props.position).toBeNull();
 });
 

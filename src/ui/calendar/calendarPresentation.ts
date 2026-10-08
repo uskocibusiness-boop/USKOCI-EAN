@@ -10,9 +10,24 @@ export function shiftDate(value: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
+/**
+ * One formatter per zone. A formatter is the expensive part of reading a clock in a zone, and the month view reads a few hundred of them
+ * at once (every day of the grid, every rule of the worker's hours, every instant of a Dogovor); a new one per call was slow enough on a
+ * phone to be felt (`messages/threadModel.ts` worked round it with a formatter of its own). A zone that does not exist throws, as it did,
+ * and is not kept.
+ */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+function formatterOf(timezone: string): Intl.DateTimeFormat {
+  const known = formatters.get(timezone);
+  if (known) return known;
+  const made = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, year: 'numeric', month: '2-digit',
+    day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  if (formatters.size >= 16) formatters.clear();
+  formatters.set(timezone, made);
+  return made;
+}
 export function zonedParts(value: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, year: 'numeric', month: '2-digit',
-    day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(value);
+  const parts = formatterOf(timezone).formatToParts(value);
   const get = (type: string) => parts.find(part => part.type === type)?.value ?? '';
   return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}:${get('second')}` };
 }

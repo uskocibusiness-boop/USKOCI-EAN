@@ -1,10 +1,12 @@
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import { STATUS_CHIPS } from '../../ui/system/StatusChip';
-import { APPLICATION_PROMISE, PUSH_SENDING_ON, applicationPromise, applicationsWaitSentence, ownTaskStanding } from '../ownTaskStanding';
+import * as standingModule from '../ownTaskStanding';
+import { NO_APPLICATIONS, NOTHING_TO_CHOOSE, noApplicationsLine, ownTaskStanding } from '../ownTaskStanding';
 
 /**
- * Where one of MY tasks stands, in the owner's eight words (2026-10-07), and the one next step in grey words. Pure, so the list, the
- * tests and a later Arhiva agree on what a task is called; and honest, so a word the read cannot support is simply not said.
+ * Where one of MY tasks stands, in the owner's eight words (2026-10-07), and the one line of data under them. Pure, so the list, the tests and a
+ * later Arhiva agree on what a task is called; and honest, so a word the read cannot support is simply not said. Since the owner's phone of 8 Oct
+ * 2026 the line is data and never an explanation: it says "Još nema prijava" or "3 prijave", and what the chip already says is not said again.
  */
 const NOW = new Date('2026-10-07T12:00:00Z');
 const task = (patch: Partial<PotrebaProjekcija> & { kraj?: string } = {}): PotrebaProjekcija => ({ id: 't1', revizija: 1, naslov: 'Krečenje zida', opis: '', stanje: 'OBJAVLJENA',
@@ -13,65 +15,57 @@ const task = (patch: Partial<PotrebaProjekcija> & { kraj?: string } = {}): Potre
 const stands = (patch: Parameters<typeof task>[0] = {}) => ownTaskStanding(task(patch), NOW);
 const word = (patch: Parameters<typeof task>[0]) => { const chip = stands(patch).chip; return chip ? STATUS_CHIPS[chip.status].word + (chip.detail ? ` · ${chip.detail}` : '') : null; };
 
-/**
- * What the app says it will do when an application arrives (R12, 2026-10-07). Push is the last item of the plan and every send is off, so
- * the app says where the applications can be seen and does not promise a notification it cannot send. One switch turns the promise back on.
- */
-describe('what the app promises when an application arrives', () => {
-  it('says where the applications are seen while nothing is sent, and never "Javićemo ti"', () => {
-    expect(PUSH_SENDING_ON).toBe(false);
-    expect(APPLICATION_PROMISE).toEqual({ waiting: 'Čekaš prijave. Vidiš ih ovde i u zvoncu.',
-      noneToChoose: 'Trenutno nema prijava za izbor. Nove vidiš ovde i u zvoncu.', published: 'Prijave vidiš ovde i u zvoncu.' });
-    expect(Object.values(APPLICATION_PROMISE).join(' ')).not.toContain('Javićemo');
-    expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 }).next).toBe(APPLICATION_PROMISE.waiting);
-  });
-
-  it('gets "Javićemo ti" back with the one switch', () => {
-    expect(applicationPromise(true)).toEqual({ waiting: 'Čekaš prijave. Javićemo ti.',
-      noneToChoose: 'Trenutno nema prijava za izbor. Javićemo ti kad stigne nova.', published: 'Prijave stižu ovde. Javićemo ti.' });
+describe('no sentence tells the owner where the applications can be seen', () => {
+  it('the promise that said "Vidiš ih ovde i u zvoncu" is gone from the module, and with it the switch that would have turned it into "Javićemo ti"', () => {
+    for (const gone of ['APPLICATION_PROMISE', 'applicationPromise', 'PUSH_SENDING_ON', 'applicationsWaitSentence']) expect(standingModule).not.toHaveProperty(gone);
+    for (const patch of [{ stanje: 'OBJAVLJENA' as const }, { stanje: 'CEKA_PRIJAVE' as const, brojPrijavaZaIzbor: 3 }, { stanje: 'NACRT' as const }]) {
+      expect(JSON.stringify(stands(patch))).not.toMatch(/zvonc|Javićemo|Vidiš ih|Uporedi ih|Čekaš prijave|Imaš \d/);
+    }
   });
 });
 
 describe('the eight words', () => {
-  it('a draft is "Nacrt" and says what to do with it', () => {
-    expect(stands({ stanje: 'NACRT' })).toEqual({ chip: { status: 'task.draft' }, next: 'Nacrt nije objavljen. Nastavi uređivanje.', toApplications: false });
+  it('a draft is "Nacrt" and says nothing more: the chip and the one action already say it', () => {
+    expect(stands({ stanje: 'NACRT' })).toEqual({ chip: { status: 'task.draft' }, next: null, toApplications: false });
   });
 
-  it('a published task nobody has applied to is "Objavljen" and says it waits; an unknown count says nothing, never "none"', () => {
-    expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })).toEqual({ chip: { status: 'task.published' }, next: 'Čekaš prijave. Vidiš ih ovde i u zvoncu.', toApplications: false });
+  it('a published task nobody has applied to is "Objavljen" with "Još nema prijava"; an unknown count says nothing, never "none"', () => {
+    expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })).toEqual({ chip: { status: 'task.published' }, next: NO_APPLICATIONS, toApplications: false });
+    expect(NO_APPLICATIONS).toBe('Još nema prijava');
     expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: null })).toEqual({ chip: { status: 'task.published' }, next: null, toApplications: false });
     expect(stands({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: undefined }).next).toBeNull();
   });
 
-  it('applications to choose among make it "Bira se · N", and the next step is the way to them', () => {
-    expect(stands({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })).toEqual({ chip: { status: 'task.choosing', detail: '3' },
-      next: 'Imaš 3 prijave. Uporedi ih i izaberi.', toApplications: true });
+  it('applications that exist but cannot be chosen are not "no applications": "Nema prijava za izbor"', () => {
+    expect(stands({ stanje: 'OBJAVLJENA', brojPrijava: 2, brojPrijavaZaIzbor: 0 }).next).toBe(NOTHING_TO_CHOOSE);
+    expect(NOTHING_TO_CHOOSE).toBe('Nema prijava za izbor');
+    expect([noApplicationsLine(0, 0), noApplicationsLine(0, 3), noApplicationsLine(2, 3), noApplicationsLine(null, 3)]).toEqual([NO_APPLICATIONS, NOTHING_TO_CHOOSE, null, null]);
+  });
+
+  it('applications to choose among make it "Bira se · N", and the line is how many, the way to them', () => {
+    expect(stands({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })).toEqual({ chip: { status: 'task.choosing', detail: '3' }, next: '3 prijave', toApplications: true });
     expect(word({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })).toBe('Bira se · 3');
     // The word is never "Čeka prijave" again: it said "has applications" and read as "has none".
     for (const patch of [{ stanje: 'CEKA_PRIJAVE' as const, brojPrijavaZaIzbor: 3 }, { stanje: 'OBJAVLJENA' as const }]) expect(JSON.stringify(stands(patch))).not.toMatch(/Čeka prijave/);
   });
 
-  it('says the application in the right case and number, and one application is read and chosen, not compared', () => {
-    expect([1, 2, 4, 5, 11, 12, 21, 22, 25].map(applicationsWaitSentence)).toEqual([
-      'Imaš 1 prijavu. Pogledaj je i izaberi.', 'Imaš 2 prijave. Uporedi ih i izaberi.', 'Imaš 4 prijave. Uporedi ih i izaberi.',
-      'Imaš 5 prijava. Uporedi ih i izaberi.', 'Imaš 11 prijava. Uporedi ih i izaberi.', 'Imaš 12 prijava. Uporedi ih i izaberi.',
-      // 21 takes the singular noun but is still many to compare: only exactly one is read and chosen without comparing.
-      'Imaš 21 prijavu. Uporedi ih i izaberi.', 'Imaš 22 prijave. Uporedi ih i izaberi.', 'Imaš 25 prijava. Uporedi ih i izaberi.']);
+  it('says the application in the right number', () => {
+    const lines = [1, 2, 4, 5, 11, 12, 21, 22, 25].map(count => stands({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: count }).next);
+    expect(lines).toEqual(['1 prijava', '2 prijave', '4 prijave', '5 prijava', '11 prijava', '12 prijava', '21 prijava', '22 prijave', '25 prijava']);
   });
 
-  it('a task with some places agreed says how many; with applications still to choose among it is "Bira se", otherwise "Dogovoren · 1 od 2"', () => {
+  it('a task with some places agreed says how many in the chip ("Dogovoren · 1 od 2"); with applications still to choose among it is "Bira se"', () => {
     const half = { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 };
     expect(stands({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: half, brojPrijavaZaIzbor: 2 })).toEqual({ chip: { status: 'task.choosing', detail: '2' },
-      next: 'Dogovoreno 1 od 2. Imaš 2 prijave. Uporedi ih i izaberi.', toApplications: true });
+      next: '2 prijave', toApplications: true });
     expect(stands({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: half, brojPrijavaZaIzbor: 0 })).toEqual({ chip: { status: 'task.agreed', detail: '1 od 2' },
-      next: 'Dogovoreno 1 od 2. Čekaš prijave za ostala mesta.', toApplications: false });
+      next: null, toApplications: false });
     expect(stands({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: half, brojPrijavaZaIzbor: null })).toEqual({ chip: { status: 'task.agreed', detail: '1 od 2' },
-      next: 'Dogovoreno 1 od 2.', toApplications: false });
+      next: null, toApplications: false });
   });
 
-  it('every place agreed is "Dogovoren"', () => {
-    expect(stands({ stanje: 'POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } })).toEqual({ chip: { status: 'task.agreed' },
-      next: 'Sva mesta su dogovorena. Dogovor vidiš u Dogovorima.', toApplications: false });
+  it('every place agreed is "Dogovoren", and the chip is all that is said', () => {
+    expect(stands({ stanje: 'POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 } })).toEqual({ chip: { status: 'task.agreed' }, next: null, toApplications: false });
   });
 });
 
@@ -82,7 +76,7 @@ describe('"U toku": the agreed time has come', () => {
 
   it('is the task\'s own fixed window containing now, while every place is agreed', () => {
     const during = at({ schedule: window('2026-10-07T11:00:00Z', '2026-10-07T13:00:00Z') });
-    expect(during).toEqual({ chip: { status: 'task.now' }, next: 'Dogovoreni termin je počeo. Dogovor vidiš u Dogovorima.', toApplications: false });
+    expect(during).toEqual({ chip: { status: 'task.now' }, next: null, toApplications: false });
     expect(word({ stanje: 'POPUNJENA', pokrivenost: full, schedule: window('2026-10-07T11:00:00Z', '2026-10-07T13:00:00Z') })).toBe('U toku');
     // The start counts (the moment it arrives), the end does not (the moment it is over).
     expect(at({ schedule: window('2026-10-07T12:00:00Z', '2026-10-07T13:00:00Z') }).chip?.status).toBe('task.now');
@@ -109,14 +103,13 @@ describe('"U toku": the agreed time has come', () => {
 });
 
 // The read folds the server's ACTIVE into POPUNJENA whatever the coverage is, and a search that was closed with places still open ("Ne traži
-// više nikoga") is ACTIVE with fewer places agreed than needed. "Sva mesta su dogovorena" is a fact only of full coverage.
+// više nikoga") is ACTIVE with fewer places agreed than needed. The chip then says how many are agreed; the line says the one thing it cannot.
 describe('a search closed with places still open', () => {
   const half = { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 }, full = { ukupno: 2, popunjeno: 2, preostalo: 0, udeo: 1 };
   const during = { kind: 'FIXED_WINDOW' as const, startsAt: '2026-10-07T11:00:00Z', endsAt: '2026-10-07T13:00:00Z' };
 
   it('says the search is closed and how many places are agreed, never that every place is', () => {
-    expect(stands({ stanje: 'POPUNJENA', pokrivenost: half })).toEqual({ chip: { status: 'task.agreed', detail: '1 od 2' },
-      next: 'Potraga je zatvorena. Dogovoreno 1 od 2.', toApplications: false });
+    expect(stands({ stanje: 'POPUNJENA', pokrivenost: half })).toEqual({ chip: { status: 'task.agreed', detail: '1 od 2' }, next: 'Potraga je zatvorena', toApplications: false });
     expect(word({ stanje: 'POPUNJENA', pokrivenost: half })).toBe('Dogovoren · 1 od 2');
     for (const pokrivenost of [half, { ukupno: 5, popunjeno: 3, preostalo: 2, udeo: 0.6 }, { ukupno: 3, popunjeno: 0, preostalo: 3, udeo: 0 }]) {
       expect(JSON.stringify(stands({ stanje: 'POPUNJENA', pokrivenost }))).not.toMatch(/Sva mesta/);
@@ -124,24 +117,20 @@ describe('a search closed with places still open', () => {
   });
 
   it('keeps the count when the agreed time has come ("U toku · 1 od 2"), and still says the search is closed', () => {
-    expect(stands({ stanje: 'POPUNJENA', pokrivenost: half, schedule: during })).toEqual({ chip: { status: 'task.now', detail: '1 od 2' },
-      next: 'Dogovoreni termin je počeo. Potraga je zatvorena. Dogovoreno 1 od 2.', toApplications: false });
+    expect(stands({ stanje: 'POPUNJENA', pokrivenost: half, schedule: during })).toEqual({ chip: { status: 'task.now', detail: '1 od 2' }, next: 'Potraga je zatvorena', toApplications: false });
     expect(word({ stanje: 'POPUNJENA', pokrivenost: half, schedule: during })).toBe('U toku · 1 od 2');
   });
 
-  it('is told apart from every place agreed by the coverage alone: full coverage keeps "Sva mesta su dogovorena" and has no count', () => {
-    expect(stands({ stanje: 'POPUNJENA', pokrivenost: full })).toEqual({ chip: { status: 'task.agreed' },
-      next: 'Sva mesta su dogovorena. Dogovor vidiš u Dogovorima.', toApplications: false });
-    expect(stands({ stanje: 'POPUNJENA', pokrivenost: full, schedule: during })).toEqual({ chip: { status: 'task.now' },
-      next: 'Dogovoreni termin je počeo. Dogovor vidiš u Dogovorima.', toApplications: false });
+  it('is told apart from every place agreed by the coverage alone: full coverage has no count and no line', () => {
+    expect(stands({ stanje: 'POPUNJENA', pokrivenost: full })).toEqual({ chip: { status: 'task.agreed' }, next: null, toApplications: false });
+    expect(stands({ stanje: 'POPUNJENA', pokrivenost: full, schedule: during })).toEqual({ chip: { status: 'task.now' }, next: null, toApplications: false });
   });
 });
 
 describe('the ending of a task that ended', () => {
-  it.each([['COMPLETED', 'Završen', null], ['CANCELLED', 'Otkazan', 'Otkazan zadatak ne prima prijave.'], ['EXPIRED', 'Istekao', 'Rok za prijave je istekao bez izbora.']] as const)
-  ('%s is "%s", from the ending the server sent', (kraj, said, next) => {
+  it.each([['COMPLETED', 'Završen'], ['CANCELLED', 'Otkazan'], ['EXPIRED', 'Istekao']] as const)('%s is "%s", from the ending the server sent, and the chip is all that is said', (kraj, said) => {
     expect(word({ stanje: 'ZATVORENA', kraj })).toBe(said);
-    expect(stands({ stanje: 'ZATVORENA', kraj }).next).toBe(next);
+    expect(stands({ stanje: 'ZATVORENA', kraj }).next).toBeNull();
     expect(stands({ stanje: 'ZATVORENA', kraj }).toApplications).toBe(false);
   });
 

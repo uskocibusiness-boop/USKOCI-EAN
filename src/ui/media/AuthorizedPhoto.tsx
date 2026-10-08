@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -11,6 +11,7 @@ import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
 // Bounded in-memory representation; no signed URL or persistent image cache.
 import { jpegDataUri } from './jpegDataUri';
+import { ownPhotoCache } from './ownPhotoCache';
 
 type PhotoAttempt = { visit: object; binding: string; abort: AbortController; phase: 'loading' | 'image' | 'failed' };
 type PhotoState = { attempt: PhotoAttempt; uri: string | null } | null;
@@ -19,9 +20,14 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
   /** Only a loaded image can open its viewer; failure recovery stays a separate target. */
   open?: { label: string; hint?: string; onPress: () => void };
   /** Optional decorative identity while authorization/image data is pending; never a retained photo. */ pending?: ReactNode;
-  /** Drawn instead of the failure sentence when the photo cannot be read, e.g. initials in a small avatar. */ unavailable?: ReactNode }) {
+  /** Drawn instead of the failure sentence when the photo cannot be read, e.g. initials in a small avatar. */ unavailable?: ReactNode;
+  /** The signed-in person's OWN photograph: it is remembered in memory for a while (`ownPhotoCache`) and drawn at once when the screen is entered again,
+   * instead of the stand-in that waits for the read. Anyone else's photograph is never remembered, whatever this says. */ own?: boolean }) {
   const { user, accountRevision } = useSesija();
   const binding = `${user?.id}:${accountRevision}:${p.assetId}:${p.needId ?? ''}:${p.profileId ?? ''}:${p.caseId ?? ''}:${p.agreementId ?? ''}:${p.messageId ?? ''}`;
+  // A remembered picture is kept under the exact account, revision, profile and asset that read it (null: nothing about this photograph is remembered).
+  const scope = useMemo(() => p.own && user?.id ? { accountId: user.id, accountRevision } : null, [p.own, user?.id, accountRevision]);
+  const profileKey = p.profileId ?? '';
   const renderedBinding = useRef(binding); renderedBinding.current = binding;
   const opening = useRef(p.open); opening.current = p.open;
   const [state, setState] = useState<PhotoState>(null);
@@ -34,8 +40,10 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     && attempt.binding === binding && ownsVisit(attempt.visit), [binding, ownsVisit]);
   const fail = useCallback((attempt: PhotoAttempt) => {
     if (!current(attempt) || attempt.phase === 'failed') return;
+    // A picture that could not be drawn is not kept for the next visit.
+    if (scope) ownPhotoCache.forgetImage(scope, profileKey, p.assetId);
     attempt.phase = 'failed'; setState({ attempt, uri: null });
-  }, [current]);
+  }, [current, scope, profileKey, p.assetId]);
   const read = useCallback((visit: object, retry?: PhotoAttempt) => {
     if (!ownsVisit(visit)) return;
     // Retained presses belong to one failed attempt. The synchronous reservation
@@ -43,7 +51,12 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     if (retry ? request.current !== retry || retry.phase !== 'failed' : request.current !== null) return;
     request.current?.abort.abort();
     const attempt: PhotoAttempt = { visit, binding, abort: new AbortController(), phase: 'loading' };
-    request.current = attempt; setState({ attempt, uri: null });
+    request.current = attempt;
+    // The person's own photograph, when it is remembered under this exact key, is the answer: nothing is read. Only a press on "Pokušaj ponovo" asks again.
+    const known = scope && !retry ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
+    if (known) { attempt.phase = 'image'; setState({ attempt, uri: known }); return; }
+    const mark = scope ? ownPhotoCache.mark() : 0;
+    setState({ attempt, uri: null });
     void (async () => {
       try {
         const result = await mediaClientService.readMedia(p.assetId, { ...(p.needId ? { needId: p.needId } : {}),
@@ -52,10 +65,11 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
         if (!current(attempt)) return;
         if (!result.ok) { fail(attempt); return; }
         const uri = jpegDataUri(result.podatak.bytes);
+        if (scope) ownPhotoCache.rememberImage(scope, profileKey, p.assetId, uri, mark);
         attempt.phase = 'image'; setState({ attempt, uri });
       } catch { fail(attempt); }
     })();
-  }, [binding, current, fail, ownsVisit, p.assetId, p.needId, p.profileId, p.caseId, p.agreementId, p.messageId]);
+  }, [binding, current, fail, ownsVisit, scope, profileKey, p.assetId, p.needId, p.profileId, p.caseId, p.agreementId, p.messageId]);
   useFocusEffect(useCallback(() => {
     const visit = {}; active.current = visit; setState(null); read(visit);
     return () => {
@@ -64,9 +78,13 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     };
   }, [read]));
   const shown = state && current(state.attempt) ? state : null;
-  const image = shown?.attempt.phase === 'image' && shown.uri ? <Image source={{ uri: shown.uri }} accessibilityLabel={p.label}
+  // Until this visit has decided anything (the very first render, or a screen that is out of focus) the person's own remembered picture of this exact key
+  // stands in for it. The key holds the account, its revision, the profile and the asset, so it can never be another face.
+  const remembered = scope && !shown ? ownPhotoCache.image(scope, profileKey, p.assetId) : undefined;
+  const uri = shown ? shown.attempt.phase === 'image' ? shown.uri : null : remembered ?? null;
+  const image = uri ? <Image source={{ uri }} accessibilityLabel={p.label}
     accessible={!p.open} contentFit={p.contentFit ?? 'contain'} cachePolicy="none" recyclingKey={binding}
-    onError={() => fail(shown.attempt)} transition={0} style={{ width: '100%', height: '100%' }} /> : null;
+    onError={() => { if (shown) fail(shown.attempt); }} transition={0} style={{ width: '100%', height: '100%' }} /> : null;
   return <View style={[{ aspectRatio: 4 / 3, backgroundColor: sys.color.wash, borderRadius: sys.radius.control, overflow: 'hidden',
     justifyContent: 'center', alignItems: 'center' }, p.style]}>
     {image ? p.open ? <Press accessibilityRole="button" accessibilityLabel={p.open.label} accessibilityHint={p.open.hint}

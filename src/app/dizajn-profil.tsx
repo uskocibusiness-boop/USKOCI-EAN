@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BackHandler, Image, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -12,9 +12,13 @@ import type { ReviewTag } from '../data/reviewsClientService';
 import type { MyWorkStats, PublicWorkTrust, ReceivedReview } from '../data/workTrustClientService';
 import { inicijali } from '../lib/inicijali';
 import { WorkerLocationForm } from './(app)/profil/lokacija';
-import { DisplayNameForm } from '../ui/profile/DisplayNameForm';
+import { DisplayNameForm, type NameSaveControl } from '../ui/profile/DisplayNameForm';
 import { GalleryLargeText } from '../ui/profile/GalleryLargeText';
+import { EDIT_PHOTO, NameSaveButton, ProfileFactRows, ProfilePhotoBlock, VisibilityNote, WorkNameNotice, type AboutView, type CityView } from '../ui/profile/ProfileEditPresentation';
+import { hubWords, versionWord, type HubWords } from '../ui/profile/hubStates';
+import { RatingLineView } from '../ui/profile/RatingLine';
 import { ProfileHub, PROFILE_AVATAR, type ProfileHubIdentity } from '../ui/profile/ProfileHubPresentation';
+import { workProfileSummary } from '../ui/profile/workProfileSummary';
 import { ReliabilityFigure, type ProfileStatsState } from '../ui/profile/ProfileStats';
 import { FinishedAgreements, type FinishedView } from '../ui/profile/ProfileWorkSummary';
 import { ProfilePhotoEditor, type ProfilePhotoMode, type ProfilePhotoRunning, type ProfilePhotoStage } from '../ui/profile/ProfilePhotoPresentation';
@@ -23,6 +27,7 @@ import { AgreementReviewPresentation, type ReviewPerson, type ReviewView } from 
 import { RatingsScreen, ReceivedRatings, GivenRatings, type GivenView, type RatingsTab, type ReceivedView } from '../ui/reviews/RatingsPresentation';
 import { ReceivedReviewsList, type ReceivedReviewsView } from '../ui/reviews/ReceivedReviewsList';
 import { ChangePasswordView, type ChangePasswordPhase } from '../ui/settings/ChangePasswordPresentation';
+import { HeaderInfo } from '../ui/settings/InfoTitle';
 import { SettingsScreen } from '../ui/settings/SettingsPresentation';
 import { Avatar } from '../ui/system/Avatar';
 import { useConfirmSheet } from '../ui/system/ConfirmSheet';
@@ -40,6 +45,7 @@ import { WorkerAiActivation, WorkerAiReviewDetails } from '../ui/workerProfile/W
 import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus,
   type WorkerActivationChecks } from '../ui/workerProfile/WorkerProfilePresentation';
 import { workerDraft, type WorkerDraft } from '../ui/workerProfile/workerProfileDraft';
+import { workerProfileInfoLines } from '../ui/workerProfile/workerProfileFacts';
 import { BrandSceneReview } from '../ui/entry/BrandSceneReview';
 
 /**
@@ -62,6 +68,10 @@ const WORKER_PHOTO = require('../../assets/brand/entry-v49/worker.jpg');
 const draft = (patch: Partial<WorkerDraft> = {}): WorkerDraft => ({ ...workerDraft(null), ime: 'Ana Petrović', grad: 'Novi Sad', radius: '20',
   vestine: ['Selidbe', 'Nošenje'], alati: ['Bušilica'], vozila: ['Kombi'], capacity: '2', capacityRevision: REVISION, dostupanOdmah: true, ...patch });
 const READY: WorkerActivationChecks = { basics: true, area: true, capacity: true };
+// A person with a lot of equipment (the owner's phone: "Alat · 10" and "Vozila · 12").
+const KIT_TOOLS = ['Bušilica', 'Aku šrafilica', 'Brusilica', 'Ubodna testera', 'Merdevine', 'Nivelir', 'Čekić', 'Klešta', 'Metar', 'Radna lampa'];
+const KIT_VEHICLES = ['Kombi', 'Kombi sa ceradom', 'Mali kamion', 'Kamion do 7,5 t', 'Putničko vozilo', 'Karavan', 'Pikap', 'Prikolica', 'Kolica za prevoz',
+  'Bicikl sa prikolicom', 'Skuter za dostavu', 'Električni bicikl'];
 const LONG = draft({ ime: 'Aleksandra Stefanović-Radosavljević',
   vestine: ['Selidbe stanova i kancelarija sa pakovanjem', 'Montaža i demontaža nameštaja po meri', 'Administrativna pomoć'],
   alati: ['Transportna kolica sa gumenim točkovima', 'Aku bušilica'], vozila: ['Kombi do 3,5 t sa ceradom'],
@@ -87,15 +97,17 @@ const REVIEW = { schemaVersion: 'WORKER_PROFILE_V1', reviewId: 'galerija', conve
 } as WorkerAiReview;
 
 type Scene = { key: string; label: string; draw: () => ReactNode;
-  /** Drawn at text scale 1.3 (the components are told "large"; the web lab also zooms the frame). */ large?: boolean };
+  /** Drawn at text scale 1.3 (the components are told "large"; the web lab also zooms the frame). */ large?: boolean;
+  /** Drawn at the owner's own text scale, 1.15 (the web lab zooms the frame; the layout class stays the regular one). */ owner?: boolean };
 type Group = { title: string; scenes: Scene[] };
 
-/** The hub with a stand-in photo and rating; nothing is read. */
-function Hub({ identity, capabilityDetail, capabilityNeedsAttention, workArea, busy = false, finished, stats, email }: { identity: ProfileHubIdentity;
-  capabilityDetail?: string; capabilityNeedsAttention?: boolean; workArea?: string; busy?: boolean; finished?: FinishedView; stats?: ProfileStatsState;
-  email?: string }) {
-  return <ProfileHub identity={identity} capabilityDetail={capabilityDetail} capabilityNeedsAttention={capabilityNeedsAttention} workArea={workArea} busy={busy}
-    email={email} open={noop} onBack={toList.current} onLogout={noop} logoutError={false}
+/** The hub with a stand-in photo and rating; nothing is read. The work profile's line is the real summary function over a fixture. */
+function Hub({ identity, capabilityDetail, capabilityNeedsAttention, busy = false, finished, stats, email, viewPublic = true, words = WORDS_A, version = VERSION }: {
+  identity: ProfileHubIdentity; capabilityDetail?: string; capabilityNeedsAttention?: boolean; busy?: boolean; finished?: FinishedView; stats?: ProfileStatsState;
+  email?: string; viewPublic?: boolean; words?: HubWords; version?: string }) {
+  return <ProfileHub identity={identity} capabilityDetail={capabilityDetail} capabilityNeedsAttention={capabilityNeedsAttention} busy={busy}
+    email={email} open={noop} onBack={toList.current} onLogout={noop} logoutError={false} onViewPublic={viewPublic ? noop : undefined}
+    words={words} version={version}
     workSummary={finished ? <FinishedAgreements view={finished} onOpen={noop} onRefresh={noop} /> : undefined}
     stats={stats ? <ReliabilityFigure state={stats} /> : undefined} />;
 }
@@ -104,6 +116,15 @@ const STATS = (patch: Partial<MyWorkStats> = {}): ProfileStatsState => ({ kind: 
   applicationsSent: 14, agreementsMade: 12, agreementsCompleted: 9, agreementsActive: 1, cancelledByMe: 1, cancelledByRequester: 1, cancelledSideUnknown: 0,
   reliabilityPercent: 90, reliabilityState: 'AVAILABLE', reliabilityMinimum: 5, memberSince: '2026-10-01', asOf: '2026-10-08T09:00:00+00:00', ...patch } });
 const FINISHED: FinishedView = { kind: 'ready', facts: [{ role: 'uskocer', count: 9 }, { role: 'narucilac', count: 3 }] };
+// What the work profile's row says, from the same function the profile uses; the city is typed as people type it ("Novi sad").
+const ACTIVE_LINE = workProfileSummary({ stanje: 'ACTIVE', vestine: ['Moleraj', 'Selidbe', 'Nošenje'], grad: 'Novi sad', radijusKm: 100 });
+const DRAFT_LINE = workProfileSummary({ stanje: 'DRAFT', vestine: ['Selidbe stanova i kancelarija sa pakovanjem'], grad: 'sremska kamenica', radijusKm: 20 });
+const SUSPENDED_LINE = workProfileSummary({ stanje: 'SUSPENDED', vestine: ['Moleraj'], grad: 'Novi Sad', radijusKm: 20 });
+const NO_PROFILE_LINE = workProfileSummary(null);
+// What the rows of the profile say about their own state, from the same functions the route uses over fixtures: open requests, blocked people, the export, the legal documents.
+const WORDS_A = hubWords({ support: 2, blocked: { count: 0, more: false }, exportPhase: 'NONE', legal: 'UNPUBLISHED' });
+const WORDS_B = hubWords({ support: 1, blocked: { count: 2, more: false }, exportPhase: 'READY_AVAILABLE', legal: 'ACCEPTED' });
+const VERSION = versionWord('1.0.0');
 const face = (name: string | null) => <Avatar initials={inicijali(name)} size={PROFILE_AVATAR} />;
 const ready = (name: string | null, place: string | null, reputation: ReactNode, photo: ReactNode = face(name)): ProfileHubIdentity =>
   ({ state: 'ready', name, place, photo, photoReady: true, openPhoto: noop, reputation });
@@ -157,13 +178,29 @@ function Password({ phase = 'form', values = { current: '', next: '', repeat: ''
 }
 const FILLED = { current: 'primer-stara-1', next: 'primer-nova-22', repeat: 'primer-nova-22' };
 
-/** The worker profile as the route composes it: the form edits a local copy; the footer shows one state. */
-function Worker({ initial, status, checks, readyToActivate = false, disabled = false, footer }: { initial: WorkerDraft; status: StanjeProfila | null;
-  checks?: WorkerActivationChecks; readyToActivate?: boolean; disabled?: boolean; footer: ReactNode }) {
+/**
+ * The worker profile as the route composes it: the form edits a local copy; the footer shows one state. `reading` is the saved profile read, as a
+ * finished profile is first drawn; `accountName` is the name of the ACCOUNT (the one name: it is the title, and while the profile carries another
+ * the difference is said with its button).
+ */
+function Worker({ initial, status, checks, readyToActivate = false, disabled = false, footer, reading = false, accountName = null, nameWorking = false,
+  switchState = 'idle', rated = true, openSection = null }: {
+  initial: WorkerDraft; status: StanjeProfila | null; checks?: WorkerActivationChecks; readyToActivate?: boolean; disabled?: boolean; footer?: ReactNode;
+  reading?: boolean; accountName?: string | null; nameWorking?: boolean;
+  /** The switch "Mogu odmah" of the read profile: at rest, saving, or the last save failed. */ switchState?: 'idle' | 'busy' | 'failed';
+  /** Whether the card shows a rating. */ rated?: boolean;
+  /** The editor opened on one part, as a row of the read profile opens it. */ openSection?: 'identity' | 'skills' | 'tools' | 'vehicles' | null }) {
   const [value, setValue] = useState(initial);
-  return <WorkerProfileFrame back={toList.current} footer={footer}>
+  const [now, setNow] = useState(initial.dostupanOdmah);
+  const opening = useMemo(() => openSection ? { section: openSection, token: 1 } : null, [openSection]);
+  return <WorkerProfileFrame back={toList.current} footer={footer}
+    right={<HeaderInfo title="Na šta utiče radni profil" info={workerProfileInfoLines(!reading)} />}>
     <WorkerProfileForm draft={value} change={setValue} disabled={disabled} status={status} navigate={noop} checks={checks}
-      readyToActivate={readyToActivate} openConversation={noop} profileExists={status !== null} />
+      readyToActivate={readyToActivate} openConversation={noop} profileExists={status !== null}
+      reading={reading} onEditPart={reading ? noop : undefined} openSection={opening}
+      face={<Avatar initials={inicijali(accountName ?? value.ime)} size={56} />} rating={rated ? <RatingLineView average={4.8} count={12} /> : undefined}
+      availableNow={status === 'ACTIVE' ? { value: now, onChange: setNow, busy: switchState === 'busy', failed: switchState === 'failed' } : undefined}
+      accountName={accountName} onUseAccountName={accountName ? noop : undefined} nameWorking={nameWorking} />
   </WorkerProfileFrame>;
 }
 const primary = (label: string, extra: { disabled?: boolean; loading?: boolean; success?: boolean } = {}) =>
@@ -172,11 +209,11 @@ const quiet = (label: string) => <V2Action label={label} kind="quiet" onPress={n
 
 /** The photo screen with the entry photograph standing in for a stored one. */
 function Photo({ stage, mode, error = null, notice = null, permission = false, retryable = false, running = null, sending = false, canAct = true,
-  hasPhoto = false }: {
+  hasPhoto = false, initials = null }: {
   stage: ProfilePhotoStage | null; mode: ProfilePhotoMode; error?: string | null; notice?: string | null; permission?: boolean; retryable?: boolean;
-  running?: ProfilePhotoRunning; sending?: boolean; canAct?: boolean; hasPhoto?: boolean }) {
+  running?: ProfilePhotoRunning; sending?: boolean; canAct?: boolean; hasPhoto?: boolean; initials?: string | null }) {
   const confirm = useConfirmSheet();
-  return <ProfilePhotoEditor onBack={toList.current} stage={stage} notice={notice} error={error} permissionDenied={permission} mode={mode}
+  return <ProfilePhotoEditor onBack={toList.current} stage={stage} notice={notice} error={error} permissionDenied={permission} mode={mode} initials={initials}
     retryable={retryable} running={running} sending={sending} canAct={canAct && !running} waiting={!!running} hasPhoto={hasPhoto}
     onLibrary={noop} onCamera={noop} onApply={noop} onDiscard={noop} onRetry={noop} onCheck={noop}
     onRemove={() => confirm.ask({ title: 'Ukloniti fotografiju profila?', message: 'Profil ostaje bez fotografije dok ne izabereš novu.',
@@ -197,9 +234,28 @@ const areaFrame = (children: ReactNode) => <WorkerProfileFrame title="Područje 
 
 function Name({ savedName, uncertain = false, error = null, saved = false, busy = false, reading = false }: { savedName: string; uncertain?: boolean;
   error?: string | null; saved?: boolean; busy?: boolean; reading?: boolean }) {
-  return <SettingsScreen title="Ime na profilu" onBack={toList.current}>
+  return <SettingsScreen title="Lični podaci" onBack={toList.current}>
     <DisplayNameForm savedName={savedName} busy={busy} uncertain={uncertain} saved={saved} error={error} checking={busy || reading} check={noop}
       save={async () => {}} />
+  </SettingsScreen>;
+}
+/**
+ * "Lični podaci" as the route lays it out: the photo, the name (its one green action only once the name has changed), "O meni" and the city, and the one
+ * sentence on who sees what, with its "ⓘ". `workName` says the name was saved on the account and the work profile did not take it.
+ */
+const ABOUT_TEXT: AboutView = { kind: 'text', text: 'Radim sa bratom već osam godina. Imamo kombi, trake i ćebad za zaštitu nameštaja; dolazimo tačno i ostavljamo čisto. Selidbe, montaža nameštaja, nošenje.' };
+const CITY_NS: CityView = { kind: 'city', city: 'Novi Sad' };
+function EditProfile({ name = 'Ana Petrović', about = ABOUT_TEXT, city = CITY_NS, saved = false, workName = null, uncertain = false, error = null, busy = false,
+  photo, typed }: { name?: string; about?: AboutView; city?: CityView; saved?: boolean; workName?: 'failed' | 'retrying' | null; uncertain?: boolean; error?: string | null;
+  busy?: boolean; photo?: ReactNode; /** The name already typed: the bar then has its "Sačuvaj". */ typed?: string }) {
+  const [save, setSave] = useState<NameSaveControl | null>(null);
+  return <SettingsScreen title="Lični podaci" onBack={toList.current} right={save ? <NameSaveButton control={save} /> : undefined}>
+    <ProfilePhotoBlock ready={!busy} photo={photo ?? <Avatar initials={inicijali(name)} size={EDIT_PHOTO} />} onOpen={noop} />
+    <DisplayNameForm savedName={name} typed={typed} busy={busy} uncertain={uncertain} saved={saved} error={error} checking={busy} check={noop} save={async () => {}}
+      onSaveControl={setSave} />
+    {workName ? <WorkNameNotice retrying={workName === 'retrying'} onRetry={noop} /> : null}
+    <ProfileFactRows about={about} city={city} onAbout={noop} onCity={noop} />
+    <VisibilityNote />
   </SettingsScreen>;
 }
 
@@ -227,28 +283,31 @@ const GROUPS: Group[] = [
   { title: 'Identitet', scenes: [{ key: 'brand-dimensional', label: 'USKOČI: dimenzionalni logo i animacija', draw: () => <BrandSceneReview /> }] },
   { title: 'Profil', scenes: [
     { key: 'hub-active', label: 'Profil: aktivan', draw: () => <Hub identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
-      capabilityDetail="Profil je aktivan." workArea="Novi Sad" finished={FINISHED} stats={STATS()} email="ana.petrovic@example.com" /> },
-    { key: 'hub-new', label: 'Profil: nov nalog', draw: () => <Hub identity={ready(null, null, rating(UNRATED))} capabilityNeedsAttention
-      capabilityDetail="Radni profil još nije podešen. Bez njega ne možeš da se prijaviš na zadatak." email="novi.nalog@example.com" /> },
+      capabilityDetail={ACTIVE_LINE} finished={FINISHED} stats={STATS()} email="ana.petrovic@example.com" /> },
+    // A new account: nothing is known about the rows' states, so no row says a word of its own, and the version is not recorded.
+    { key: 'hub-new', label: 'Profil: nov nalog', draw: () => <Hub identity={ready(null, null, rating(UNRATED))} capabilityNeedsAttention viewPublic={false}
+      capabilityDetail={NO_PROFILE_LINE} words={{}} version="" email="novi.nalog@example.com" /> },
     { key: 'hub-long', label: 'Profil: dugo ime', draw: () => <Hub identity={ready('Aleksandra Stefanović-Radosavljević', 'Sremska Kamenica, Novi Sad', rating('error'))}
-      capabilityNeedsAttention capabilityDetail="Profil je nacrt — dok je nacrt, zadaci ti se ne nude." workArea="Sremska Kamenica"
+      capabilityNeedsAttention capabilityDetail={DRAFT_LINE} words={WORDS_B}
       finished={{ kind: 'ready', facts: [{ role: 'uskocer', count: null }, { role: 'narucilac', count: 3 }] }}
       stats={STATS({ reliabilityPercent: null, reliabilityState: 'TOO_FEW', agreementsMade: 3, agreementsCompleted: 2, agreementsActive: 1, applicationsSent: 5 })}
       email="aleksandra.stefanovic.radosavljevic@example.com" /> },
     { key: 'hub-photo', label: 'Profil: sa fotografijom', draw: () => <Hub identity={ready('Marko Marić', 'Novi Sad', rating('loading'),
-      <Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.face} />)} capabilityDetail="Radni profil je suspendovan. Obrati se podršci."
-      workArea="Nije podešeno" finished={{ kind: 'loading' }} stats={{ kind: 'loading' }} email="marko@example.com" /> },
-    { key: 'hub-stats-error', label: 'Profil: statistika nije učitana', draw: () => <Hub identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
-      capabilityDetail="Profil je aktivan." workArea="Novi Sad" finished={FINISHED} stats={{ kind: 'error', onRetry: noop }} /> },
+      <Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.face} />)} capabilityDetail={SUSPENDED_LINE}
+      finished={{ kind: 'loading' }} stats={{ kind: 'loading' }} email="marko@example.com" /> },
+    { key: 'hub-stats-error', label: 'Profil: statistika nije učitana (tri broja postaju dva)', draw: () => <Hub identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
+      capabilityDetail={ACTIVE_LINE} finished={FINISHED} stats={{ kind: 'error', onRetry: noop }} /> },
     { key: 'hub-requester', label: 'Profil: samo zadaci (bez radnog profila)', draw: () => <Hub identity={ready('Jelena Ilić', 'Beograd', rating(UNRATED))}
-      capabilityNeedsAttention capabilityDetail="Radni profil još nije podešen. Bez njega ne možeš da se prijaviš na zadatak."
+      capabilityNeedsAttention capabilityDetail={NO_PROFILE_LINE}
       finished={{ kind: 'ready', facts: [{ role: 'narucilac', count: 2 }] }} email="jelena.ilic@example.com" /> },
     { key: 'hub-loading', label: 'Profil: učitavanje', draw: () => <Hub identity={{ state: 'loading' }} /> },
     { key: 'hub-error', label: 'Profil: greška', draw: () => <Hub identity={{ state: 'error', retry: noop }} /> },
     { key: 'hub-busy', label: 'Profil: radnja u toku', draw: () => <Hub busy identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
-      capabilityDetail="Profil je aktivan." workArea="Novi Sad" finished={FINISHED} stats={STATS()} /> },
+      capabilityDetail={ACTIVE_LINE} finished={FINISHED} stats={STATS()} /> },
     { key: 'hub-large', label: 'Profil: veliki tekst (1,3)', large: true, draw: () => <Hub identity={ready('Aleksandra Stefanović-Radosavljević', 'Novi Sad', rating(RATED))}
-      capabilityDetail="Profil je aktivan." workArea="Novi Sad" finished={FINISHED} stats={STATS()} email="aleksandra.stefanovic.radosavljevic@example.com" /> },
+      capabilityDetail={ACTIVE_LINE} finished={FINISHED} stats={STATS()} email="aleksandra.stefanovic.radosavljevic@example.com" /> },
+    { key: 'hub-owner', label: 'Profil: tekst 1,15 (vlasnikov telefon)', owner: true, draw: () => <Hub identity={ready('Ana Petrović', 'Novi Sad', rating(RATED))}
+      capabilityDetail={ACTIVE_LINE} finished={FINISHED} stats={STATS()} email="ana.petrovic@example.com" /> },
   ] },
   { title: 'Ocene', scenes: [
     { key: 'ratings-comments', label: 'Ocene: primljene, komentari i zvezdice u proseku', draw: () => <Ratings average={AVERAGE}
@@ -309,9 +368,12 @@ const GROUPS: Group[] = [
     { key: 'worker-first', label: 'Radni profil: prvi put', draw: () => <Worker initial={workerDraft(null)} status={null}
       checks={{ basics: false, area: false }} footer={<WorkerProfileFooter>{primary('Uredi kroz razgovor')}</WorkerProfileFooter>} /> },
     { key: 'worker-missing', label: 'Radni profil: nacrt, nedostaje', draw: () => <Worker initial={draft({ vestine: [], capacity: '' })} status="DRAFT"
-      checks={{ basics: false, area: true, capacity: false }}
-      footer={<WorkerProfileFooter error="Pre aktivacije unesi ime od najmanje 2 znaka i bar jednu veštinu.">
+      accountName="Ana Petrović" checks={{ basics: false, area: true, capacity: false }}
+      footer={<WorkerProfileFooter error="Pre aktivacije dodaj bar jednu veštinu.">
         {primary('Dopuni osnovne podatke')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
+    // The account has no name at all, so the one place it is written is the primary (the name is not typed in the work profile).
+    { key: 'worker-no-name', label: 'Radni profil: nacrt, nalog bez imena', draw: () => <Worker initial={draft({ ime: '' })} status="DRAFT"
+      checks={{ basics: false, area: true }} footer={<WorkerProfileFooter>{primary('Dodaj ime')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
     { key: 'worker-ready', label: 'Radni profil: spreman za aktivaciju', draw: () => <Worker initial={draft()} status="DRAFT" checks={READY} readyToActivate
       footer={<WorkerProfileFooter>{primary('Proveri i aktiviraj profil')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
     { key: 'worker-active', label: 'Radni profil: aktivan', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}
@@ -335,10 +397,61 @@ const GROUPS: Group[] = [
       footer={primary('Sačuvaj profil')}>
       <WorkerAiReviewDetails review={REVIEW} /><WorkerAiActivation activate={false} disabled={false} change={noop} />
     </WorkerProfileFrame> },
+    // The account has no name: the review says it needs one and leads to the one place it is written (the assistant does not ask for it).
+    { key: 'worker-review-no-name', label: 'Radni profil: pregled, nalog bez imena', draw: () => <WorkerProfileFrame back={toList.current}
+      footer={primary('Sačuvaj profil', { disabled: true })}>
+      <WorkerAiReviewDetails review={{ ...REVIEW, missingRequired: ['Ime'], canAccept: false }} onAddName={noop} />
+    </WorkerProfileFrame> },
+    // The saved profile, read: one name (the account's), one group of rows, the equipment as rows with a count.
+    { key: 'worker-read', label: 'Radni profil: pročitan, aktivan', draw: () => <Worker reading initial={draft({ biografija: 'Radim sa bratom već osam godina. Dolazimo tačno.' })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    { key: 'worker-read-kit', label: 'Radni profil: pročitan, mnogo alata i vozila', draw: () => <Worker reading initial={draft({ alati: KIT_TOOLS, vozila: KIT_VEHICLES })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    { key: 'worker-read-long', label: 'Radni profil: pročitan, dugački nazivi', draw: () => <Worker reading initial={LONG} status="ACTIVE" checks={READY}
+      accountName="Aleksandra Stefanović-Radosavljević" /> },
+    { key: 'worker-read-none', label: 'Radni profil: pročitan, bez alata i vozila', draw: () => <Worker reading initial={draft({ alati: [], vozila: [], dostupanOdmah: false })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    // A profile that has only just been activated: no kinds of work beyond one, no rating yet, nothing in the lists.
+    { key: 'worker-read-new', label: 'Radni profil: pročitan, tek aktiviran', draw: () => <Worker reading rated={false} initial={draft({ vestine: [], alati: [], vozila: [], dostupanOdmah: false, grad: '', radius: '' })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    { key: 'worker-read-no-rating', label: 'Radni profil: pročitan, bez ocene', draw: () => <Worker reading rated={false} initial={draft()}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    { key: 'worker-read-switch-busy', label: 'Radni profil: Mogu odmah se čuva', draw: () => <Worker reading switchState="busy" initial={draft()}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    { key: 'worker-read-switch-failed', label: 'Radni profil: Mogu odmah nije sačuvano', draw: () => <Worker reading switchState="failed" initial={draft()}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    // A row of the read profile opens the editor of its part (no field focused, so no keyboard).
+    { key: 'worker-edit-tools', label: 'Radni profil: izmena alata (iz reda „Alat“)', draw: () => <Worker openSection="tools" initial={draft({ alati: KIT_TOOLS })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+    { key: 'worker-edit-about', label: 'Radni profil: izmena opisa (iz „Lični podaci › O meni“)', draw: () => <Worker openSection="identity" initial={draft({ biografija: 'Radim sa bratom.' })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
+    { key: 'worker-read-suspended', label: 'Radni profil: pročitan, suspendovan', draw: () => <Worker reading initial={draft()} status="SUSPENDED" checks={READY}
+      accountName="Ana Petrović" /> },
+    // The name: "Pera peric" on the work profile and "Milos" on the account (the owner's own case, 8 Oct 2026), and what comes of the one button.
+    { key: 'worker-name-different', label: 'Radni profil: ime na radnom profilu je drugačije', draw: () => <Worker reading initial={draft({ ime: 'Pera peric' })}
+      status="ACTIVE" checks={READY} accountName="Milos" /> },
+    { key: 'worker-name-working', label: 'Radni profil: ime se upisuje', draw: () => <Worker reading disabled nameWorking initial={draft({ ime: 'Pera peric' })}
+      status="ACTIVE" checks={READY} accountName="Milos"
+      footer={<WorkerProfileFooter>{primary('Čuvamo profil…', { loading: true })}</WorkerProfileFooter>} /> },
+    { key: 'worker-name-saved', label: 'Radni profil: ime promenjeno', draw: () => <Worker reading initial={draft({ ime: 'Milos' })} status="ACTIVE" checks={READY}
+      accountName="Milos" footer={<WorkerProfileFooter message="Ime radnog profila je promenjeno.">{primary('Sačuvaj izmene', { success: true })}</WorkerProfileFooter>} /> },
+    { key: 'worker-name-failed', label: 'Radni profil: ime nije upisano', draw: () => <Worker reading disabled initial={draft({ ime: 'Pera peric' })} status="ACTIVE"
+      checks={READY} accountName="Milos"
+      footer={<WorkerProfileFooter error="Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što pokušaš ponovo." held>
+        {primary('Pogledaj sačuvani profil')}</WorkerProfileFooter>} /> },
+    { key: 'worker-edit-name-different', label: 'Radni profil: izmena, ime drugačije', draw: () => <Worker initial={draft({ ime: 'Pera peric' })} status="ACTIVE"
+      checks={READY} accountName="Milos" footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+    { key: 'worker-read-large', label: 'Radni profil: pročitan, veliki tekst (1,3)', large: true, draw: () => <Worker reading
+      initial={draft({ ime: 'Pera peric', alati: KIT_TOOLS, vozila: KIT_VEHICLES })} status="ACTIVE" checks={READY} accountName="Milos" /> },
+    { key: 'worker-read-owner', label: 'Radni profil: pročitan, tekst 1,15', owner: true, draw: () => <Worker reading
+      initial={draft({ ime: 'Pera peric', alati: KIT_TOOLS, vozila: KIT_VEHICLES })} status="ACTIVE" checks={READY} accountName="Milos" /> },
   ] },
   { title: 'Fotografija profila', scenes: [
     { key: 'photo-loading', label: 'Fotografija: učitavanje', draw: () => <Photo stage={{ kind: 'loading' }} mode="pick" canAct={false} /> },
     { key: 'photo-none', label: 'Fotografija: bez fotografije', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" /> },
+    // The letters of the name stand in the circle while the picture is on its way and when there is none (J13), always a circle.
+    { key: 'photo-loading-initials', label: 'Fotografija: učitavanje, slovo u krugu', draw: () => <Photo stage={{ kind: 'loading' }} mode="pick" canAct={false} initials="AP" /> },
+    { key: 'photo-none-initials', label: 'Fotografija: bez fotografije, slovo u krugu', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" initials="AP" /> },
     { key: 'photo-saved', label: 'Fotografija: sačuvana', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }} mode="pick" hasPhoto
       notice="Fotografija profila je sačuvana." /> },
     { key: 'photo-picking', label: 'Fotografija: slanje', draw: () => <Photo stage={{ kind: 'none' }} mode="pick" running="LIBRARY" sending /> },
@@ -358,6 +471,9 @@ const GROUPS: Group[] = [
       error="Ne znamo da li je fotografija sačuvana. Proveri to." /> },
     { key: 'photo-remove', label: 'Fotografija: uklanjanje (dodirni Ukloni)', draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}
       mode="pick" hasPhoto /> },
+    { key: 'photo-text-large', label: 'Fotografija: veliki tekst (1,3)', large: true, draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: false }}
+      mode="pick" hasPhoto notice="Fotografija profila je sačuvana." /> },
+    { key: 'photo-owner', label: 'Fotografija: tekst 1,15', owner: true, draw: () => <Photo stage={{ kind: 'photo', assetId: 'galerija', staged: true }} mode="staged" /> },
   ] },
   { title: 'Područje rada', scenes: [
     { key: 'area-loading', label: 'Područje rada: učitavanje', draw: () => areaFrame(<StateView kind="loading" title="Učitavamo područje rada…"
@@ -366,16 +482,41 @@ const GROUPS: Group[] = [
       body="Podaci nisu učitani. Proveri vezu i pokušaj ponovo." primary={{ label: 'Pokušaj ponovo', onPress: noop }} />) },
     { key: 'area-empty', label: 'Područje rada: prazno', draw: () => <Area location={PLACE({ operatingCountryCode: null, city: '', radiusKm: 15 })} /> },
     { key: 'area-saved', label: 'Područje rada: sačuvano', draw: () => <Area location={PLACE({ radiusKm: 50 })} saved /> },
+    // A radius saved earlier that is not among the distances (30 km) gets its own chip: nothing that was saved is hidden.
+    { key: 'area-radius-own', label: 'Područje rada: sačuvan radijus 30 km (svoj izbor)', draw: () => <Area location={PLACE({ radiusKm: 30 })} saved /> },
     { key: 'area-map', label: 'Područje rada: sa mapom', draw: () => <Area location={PLACE({ approximatePosition: { latitude: 45.25, longitude: 19.84 } })} /> },
     { key: 'area-saving', label: 'Područje rada: čuva se', draw: () => <Area location={PLACE()} busy /> },
     { key: 'area-reading', label: 'Područje rada: ponovno čitanje (potvrdi)', draw: () => <Area location={PLACE()} reading /> },
     { key: 'area-unknown', label: 'Područje rada: ishod nepoznat', draw: () => <Area location={PLACE()} uncertain
       error="Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja." /> },
+    { key: 'area-owner', label: 'Područje rada: tekst 1,15', owner: true, draw: () => <Area location={PLACE({ city: 'Petrovac na mlavi', radiusKm: 30 })} /> },
+    { key: 'area-large', label: 'Područje rada: veliki tekst (1,3)', large: true, draw: () => <Area location={PLACE()} /> },
   ] },
-  { title: 'Ime na profilu', scenes: [
-    { key: 'name-loading', label: 'Ime: učitavanje', draw: () => <SettingsScreen title="Ime na profilu" onBack={toList.current}>
+  { title: 'Lični podaci', scenes: [
+    { key: 'edit-profile', label: 'Lični podaci: sve popunjeno', draw: () => <EditProfile /> },
+    { key: 'edit-profile-empty', label: 'Lični podaci: bez opisa i grada', draw: () => <EditProfile about={{ kind: 'empty' }} city={{ kind: 'none' }} /> },
+    { key: 'edit-profile-no-work', label: 'Lični podaci: bez radnog profila', draw: () => <EditProfile name="Jelena Ilić" about={{ kind: 'none' }} city={{ kind: 'none' }} /> },
+    { key: 'edit-profile-reading', label: 'Lični podaci: čitanje opisa i grada', draw: () => <EditProfile about={{ kind: 'loading' }} city={{ kind: 'loading' }} /> },
+    { key: 'edit-profile-error', label: 'Lični podaci: opis i grad nisu dostupni', draw: () => <EditProfile about={{ kind: 'error' }} city={{ kind: 'error' }} /> },
+    { key: 'edit-profile-long', label: 'Lični podaci: dugi nazivi', draw: () => <EditProfile name="Aleksandra Stefanović-Radosavljević"
+      city={{ kind: 'city', city: 'Sremska Kamenica, Novi Sad' }} /> },
+    { key: 'edit-profile-photo', label: 'Lični podaci: sa fotografijom', draw: () => <EditProfile
+      photo={<Image source={WORKER_PHOTO} accessibilityIgnoresInvertColors resizeMode="cover" style={s.editFace} />} /> },
+    // The bar's "Sačuvaj" is there only once the name has changed; an emptied name cannot be saved and says why under the field.
+    { key: 'edit-profile-changed', label: 'Lični podaci: ime promenjeno (Sačuvaj u zaglavlju)', draw: () => <EditProfile typed="Ana Petrović-Ilić" /> },
+    { key: 'edit-profile-emptied', label: 'Lični podaci: ime obrisano', draw: () => <EditProfile typed="" /> },
+    { key: 'edit-profile-saving', label: 'Lični podaci: ime se čuva', draw: () => <EditProfile typed="Ana Petrović-Ilić" busy /> },
+    { key: 'edit-profile-saved', label: 'Lični podaci: ime sačuvano', draw: () => <EditProfile saved /> },
+    // The second write: the name is on the account and the work profile did not take it. Said, never silent, with its one way to try again.
+    { key: 'edit-profile-work-failed', label: 'Lični podaci: ime nije upisano u radni profil', draw: () => <EditProfile saved workName="failed" /> },
+    { key: 'edit-profile-work-retry', label: 'Lični podaci: ime se upisuje ponovo', draw: () => <EditProfile saved workName="retrying" /> },
+    { key: 'edit-profile-busy', label: 'Lični podaci: čuva se', draw: () => <EditProfile busy /> },
+    { key: 'edit-profile-unknown', label: 'Lični podaci: ishod nepoznat', draw: () => <EditProfile uncertain error="Čuvanje nije potvrđeno." /> },
+    { key: 'edit-profile-large', label: 'Lični podaci: veliki tekst (1,3)', large: true, draw: () => <EditProfile name="Aleksandra Stefanović-Radosavljević" saved workName="failed" /> },
+    { key: 'edit-profile-owner', label: 'Lični podaci: tekst 1,15', owner: true, draw: () => <EditProfile /> },
+    { key: 'name-loading', label: 'Ime: učitavanje', draw: () => <SettingsScreen title="Lični podaci" onBack={toList.current}>
       <StateView kind="loading" title="Učitavamo podatke…" skeleton={{ count: 1, rows: 1 }} /></SettingsScreen> },
-    { key: 'name-error', label: 'Ime: greška', draw: () => <SettingsScreen title="Ime na profilu" onBack={toList.current}>
+    { key: 'name-error', label: 'Ime: greška', draw: () => <SettingsScreen title="Lični podaci" onBack={toList.current}>
       <StateView kind="error" title="Ime nije učitano" body="Profil nije pronađen. Osveži prikaz." primary={{ label: 'Proveri sačuvane podatke', onPress: noop }} />
     </SettingsScreen> },
     { key: 'name-edit', label: 'Ime: izmena', draw: () => <Name savedName="Ana Petrović" /> },
@@ -408,7 +549,7 @@ export default function DizajnProfil() {
   if (current) {
     const drawn = <View style={s.grow}>{current.draw()}</View>;
     return <View style={s.screen}>
-      {current.large ? <GalleryLargeText>{drawn}</GalleryLargeText> : drawn}
+      {current.large ? <GalleryLargeText>{drawn}</GalleryLargeText> : current.owner ? <GalleryLargeText scale={1.15}>{drawn}</GalleryLargeText> : drawn}
       {/* Over the top bar's empty right side, not in a strip under the scene: a bottom strip added its own height and a
           second bottom inset, so every sticky footer sat higher than on the real screen. The scene's name is its hint. */}
       {scene !== fromAddress ? <SafeAreaView edges={['top']} pointerEvents="box-none" style={s.overlay}>
@@ -435,5 +576,6 @@ const s = StyleSheet.create({
     backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   backText: { color: sys.color.green },
   photo: { width: 160, height: 160, borderRadius: sys.radius.pill },
+  editFace: { width: EDIT_PHOTO, height: EDIT_PHOTO, borderRadius: sys.radius.pill },
   face: { width: PROFILE_AVATAR, height: PROFILE_AVATAR, borderRadius: sys.radius.pill },
 });

@@ -2,6 +2,8 @@ import React from 'react';
 import { Image, Linking, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { publicInitialBounds, type MarketplaceItem, type PublicViewport } from '../marketplaceView';
+// The map suites mount the whole native map stand-in many times under fake timers; on a loaded developer machine (Metro, other agents) one test can pass Jest's 5 s while the waits it pins are in fake time.
+jest.setTimeout(30000);
 let mockFocused = true, mockReduced = false, mockRendered: unknown[] = [], mockLeaves: unknown[] = [];
 const mockExpand = jest.fn(), mockEase = jest.fn(), mockJump = jest.fn(), mockZoom = jest.fn(), mockProject = jest.fn(), mockUnproject = jest.fn(), mockFit = jest.fn(), mockQuery = jest.fn();
 const mockAnnotationRefresh = jest.fn();
@@ -197,12 +199,13 @@ test('selecting a public pin from a regional view frames its neighborhood withou
   extra = { viewport, toolsBottom: 60, focusBottom: 300 };
   rows[0] = row('money', 44.81444, 20.46444);
   await render(); await measureFrame(800); await ready();
-  // Both an already-debounced pan and an immediately preceding zoom must not leak into selection's area intent.
+  // Both an already-debounced pan and an immediately preceding pinch must not leak into selection's area intent.
+  await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: true } }));
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
   selectedId = 'money'; await update();
+  // The pin is framed clear of the tools above (the pill and its capsules, 60) by half a pin, and above the card below (300) by a gap.
   expect(mockEase).toHaveBeenCalledWith({ center: [20.46, 44.81], zoom: 12,
-    padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: sys.motion.camera });
+    padding: { top: 86, right: 50, bottom: 324, left: 50 }, duration: sys.motion.camera });
   expect(mockProject).not.toHaveBeenCalled(); expect(mockUnproject).not.toHaveBeenCalled();
   expect(rows[0].priblizno).toEqual({ lat: 44.81444, lng: 20.46444 });
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.46, 44.81], zoom: 12,
@@ -246,15 +249,14 @@ test('the native fallback survives failed rich-pin discovery and fits under a su
   expect(source().props.hitbox).toEqual({ top: 24, right: 24, bottom: 24, left: 24 });
 });
 
-test.each(['saved', 'native', 'zoom-tap'])('a newly selected pin preserves a closer %s zoom', async kind => {
+test.each(['saved', 'native'])('a newly selected pin preserves a closer %s zoom', async kind => {
   extra = { viewport: { center: [19.83, 45.25], zoom: kind === 'saved' ? 15 : 6, bounds: [19.8, 45.2, 19.9, 45.3] } };
   await render(); await measureFrame(); await ready();
   if (kind !== 'saved') await act(async () => native().props.onRegionDidChange({ nativeEvent: {
     center: [20.45, 44.8], zoom: 14.5, bounds: [20.44, 44.79, 20.46, 44.81], userInteraction: false,
   } }));
-  if (kind === 'zoom-tap') await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
   selectedId = 'money'; await update();
-  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.46, 44.81], zoom: kind === 'saved' ? 15 : kind === 'native' ? 14.5 : 15.5 }));
+  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.46, 44.81], zoom: kind === 'saved' ? 15 : 14.5 }));
 });
 
 test('a stacked public point receives one neighborhood frame with bounded padding and no animation under Reduce Motion', async () => {
@@ -290,7 +292,7 @@ test('initial framing waits for native readiness, frame and measured overlays, t
   extra = { cameraLayoutReady: true, toolsBottom: 124, fitBottom: 467 }; await update();
   expect(mockFit).toHaveBeenCalledTimes(1);
   expect(mockFit).toHaveBeenCalledWith(publicInitialBounds(rows), {
-    padding: { top: 199, right: 50, bottom: 491, left: 50 }, duration: 0,
+    padding: { top: 150, right: 50, bottom: 491, left: 50 }, duration: 0, // half a pin clear of the tools (124) over the top, a gap and the row of furniture over the bottom
   });
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: false } }));
   await act(async () => { jest.advanceTimersByTime(2_000); });
@@ -334,7 +336,7 @@ test('returning to a narrow saved view restores its observed bounds once, not it
   expect(sourceData().features[0].geometry.coordinates).toEqual([20.46, 44.81]);
 });
 
-test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before layout wins over the pending first fit', async intent => {
+test.each(['pan', 'pinch', 'pin', 'nearby', 'fitTo'])('a deliberate %s before layout wins over the pending first fit', async intent => {
   extra = { cameraLayoutReady: false, toolsBottom: 124, fitBottom: 534 };
   await render(); await measureFrame(); await ready();
   const viewport = { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9] };
@@ -342,17 +344,19 @@ test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before lay
     await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
     await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: true } }));
   }
-  if (intent === 'zoom') {
-    await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, userInteraction: false } }));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
-    expect(mockZoom).toHaveBeenCalledTimes(1);
+  if (intent === 'pinch') {
+    await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
+    await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...viewport, zoom: 13, userInteraction: true } }));
   }
   if (intent === 'pin') {
     selectedId = 'money'; await update(); expect(mockEase).not.toHaveBeenCalled();
   }
   if (intent === 'nearby') {
     extra = { ...extra, centerNearby: { key: 8, center: [19.84, 45.26] } }; await update();
-    expect(mockEase).toHaveBeenCalledWith({ center: [19.84, 45.26], zoom: 12, duration: sys.motion.camera });
+    // "Moja lokacija": the person in the middle of the map that is left clear between the tools above and the list below, at the zoom of a neighbourhood.
+    expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [19.84, 45.26], zoom: 12, duration: sys.motion.camera }));
+    const { padding } = mockEase.mock.calls[0][0];
+    expect(padding.top).toBeGreaterThan(100); expect(790 - padding.top - padding.bottom).toBeGreaterThanOrEqual(96);
   }
   if (intent === 'fitTo') {
     extra = { ...extra, fitTo: { key: 9, bounds: [19.8, 45.2, 19.9, 45.3], bottom: 200 } }; await update();
@@ -367,7 +371,7 @@ test.each(['pan', 'zoom', 'pin', 'nearby', 'fitTo'])('a deliberate %s before lay
   if (intent === 'pin') expect(mockEase).toHaveBeenCalledTimes(1);
   await act(async () => { jest.advanceTimersByTime(2_000); });
   // The list reads what is seen below the tools; the map keeps the whole view.
-  if (intent === 'pan') expect(search).toHaveBeenCalledWith([20.4, 44.7, 20.5, 44.868653], viewport.bounds);
+  if (intent === 'pan' || intent === 'pinch') expect(search).toHaveBeenCalledWith([20.4, 44.7, 20.5, 44.868653], viewport.bounds);
   else expect(search).not.toHaveBeenCalled();
 });
 
@@ -382,15 +386,15 @@ test('a selection made before map readiness remains in charge when layout arrive
   expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.46, 44.81], zoom: 12, duration: sys.motion.camera }));
 });
 
-test.each(['pan', 'zoom', 'clear', 'dataset', 'remote', 'scope', 'blur', 'fitTo', 'nearby'])('a pending pin focus cannot take back the camera after %s', async reason => {
+test.each(['pan', 'pinch', 'clear', 'dataset', 'remote', 'scope', 'blur', 'fitTo', 'nearby'])('a pending pin focus cannot take back the camera after %s', async reason => {
   extra = { cameraLayoutReady: false };
   await render(); await ready(); selectedId = 'money'; await update();
   expect(mockEase).not.toHaveBeenCalled();
   if (reason === 'pan') await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
-  if (reason === 'zoom') {
+  if (reason === 'pinch') {
+    await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
     await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 14,
-      bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: false } }));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
+      bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: true } }));
   }
   if (reason === 'clear') selectedId = null;
   if (reason === 'dataset') rows = [...rows, row('later', 45.25, 19.83)];
@@ -416,66 +420,59 @@ test('only the latest explicit selection survives a wait for measured layout', a
   expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.41, 44.83], zoom: 12 }));
 });
 
-// UX plan section P (2026-10-07): the zoom buttons stand directly ABOVE the list sheet and move with it, lift above a pin's card, end in the
-// strip under the search at the full stop, and are never hidden. The sources keep their one place under the search.
-test.each([false, true])('the zoom row rides the sheet and the card and is never hidden; the sources keep their place (reduced motion: %s)', async reduced => {
+// UX plan section P and the owner's phone of 8 Oct 2026: the map's furniture (its sources on the left; "moja lokacija", which the screen draws, on the right; no + and −,
+// the map is zoomed with two fingers) stands directly ABOVE the list sheet and moves with it, lifts above a pin's card, and gives way where the list leaves no map.
+test.each([false, true])('the map\'s sources ride the sheet and the card on the row above the list, and fade where the list is all the way up (reduced motion: %s)', async reduced => {
   mockReduced = reduced;
   const sheetTop = { value: 600 };
-  // The row is one credit line high (48) and one gap (12) above the sheet; its highest place is the strip under the pill (72).
+  // The row is 44 high and one gap (12) above the sheet; its highest place is one gap under the tools (72).
   extra = { sheetTop, toolsBottom: 60, controlsMinTop: 72 };
   await render();
   const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
   await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
   await ready();
-  const zoomLayer = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom-layer' }));
-  const rideAt = () => (zoomLayer().transform as { translateY: number }[])[0].translateY;
+  const layer = () => flat(tree.root.findByProps({ testID: 'discovery-map-credits-layer' }));
+  const rideAt = () => (layer().transform as { translateY: number }[])[0].translateY;
+  const shown = () => (layer() as unknown as { opacity: number }).opacity;
   const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
   // The card's height reaches a shared value after the render (on a phone the UI thread follows it); here the style is
   // worked out on a render, so one more render reads it.
   const settle = async () => { await update(); await update(); };
-  expect(zoomLayer()).toMatchObject({ height: 48, position: 'absolute' });
-  expect(rideAt()).toBe(600 - 12 - 48);
-  const fixedCreditTop = 60 + sys.space.md;
-  expect(flat(credits())).toMatchObject({ top: fixedCreditTop, left: sys.space.base, right: sys.space.base });
-  expect(tree.root.findAllByProps({ testID: 'discovery-map-credits-ride' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Uvećaj mapu' })).not.toHaveLength(0);
-  // A card 250 high lifts the row above it; a card 460 high (the sheet is sunk behind it) lifts it further. It is never hidden.
+  expect(layer()).toMatchObject({ height: 44, position: 'absolute' });
+  expect(rideAt()).toBe(600 - 12 - 44); expect(shown()).toBe(1);
+  // No zoom buttons: the map is zoomed with two fingers.
+  for (const label of ['Uvećaj mapu', 'Umanji mapu']) expect(tree.root.findAllByProps({ accessibilityLabel: label })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'discovery-map-zoom' })).toHaveLength(0);
+  expect(flat(credits())).toMatchObject({ position: 'absolute', left: sys.space.base, right: sys.space.base });
+  // A card 250 high lifts the row above it; a card 460 high (the sheet is sunk behind it) lifts it further. A card does not hide it.
   extra = { ...extra, coverBottom: 250 }; await settle();
-  expect(rideAt()).toBe(800 - 250 - 12 - 48);
-  expect(flat(credits()).top).toBe(fixedCreditTop);
+  expect(rideAt()).toBe(800 - 250 - 12 - 44); expect(shown()).toBe(1);
   extra = { ...extra, coverBottom: 460 }; await settle();
-  expect(rideAt()).toBe(800 - 460 - 12 - 48);
-  expect(zoomLayer().opacity).toBeUndefined();
-  expect(flat(credits()).top).toBe(fixedCreditTop);
-  expect(flat(credits()).transform).toBeUndefined();
+  expect(rideAt()).toBe(800 - 460 - 12 - 44); expect(shown()).toBe(1);
   expect(credits().findAll(node => node.props.accessibilityRole === 'button')).toHaveLength(1);
   expect(credits().findByType('T' as React.ElementType).props.children).toBe('© OpenStreetMap · © OpenMapTiles');
   extra = { ...extra, coverBottom: 0 }; await settle();
-  expect(rideAt()).toBe(600 - 12 - 48);
-  // The sheet rises, and the row goes up with it, pixel for pixel, until it reaches the strip.
+  expect(rideAt()).toBe(600 - 12 - 44);
+  // The sheet rises, and the row goes up with it, pixel for pixel ...
   sheetTop.value = 280; await settle();
-  expect(rideAt()).toBe(280 - 12 - 48);
-  expect(flat(credits()).top).toBe(fixedCreditTop);
-  sheetTop.value = 132; await settle(); // the full stop: one strip (12 + 48 + 12) under the pill's edge at 60
-  expect(rideAt()).toBe(72);
-  sheetTop.value = 90; await settle(); // never above the strip, never behind the list
-  expect(rideAt()).toBe(72);
-  expect(zoomLayer().opacity).toBeUndefined();
+  expect(rideAt()).toBe(280 - 12 - 44); expect(shown()).toBe(1);
+  // ... and where the list leaves no map (the full stop is directly under the tools) it stays at its highest place and fades over the last 24 px, instead of sinking under the list.
+  sheetTop.value = 72 + 44 + 12 + 12; await settle(); expect(shown()).toBeCloseTo(0.5, 5);
+  sheetTop.value = 72; await settle(); expect(rideAt()).toBe(72); expect(shown()).toBe(0);
+  sheetTop.value = 64; await settle(); expect(rideAt()).toBe(72); expect(shown()).toBe(0);
   expect(select).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
 });
 
-test('the zoom capsule is two 44 halves side by side, with "U blizini" one control further right', async () => {
+test('the sources are one 44 high touch, and keep clear of "moja lokacija" at the right end of the row when the screen draws it', async () => {
   extra = { sheetTop: { value: 600 }, toolsBottom: 60, controlsMinTop: 72 };
   await render();
   await measureFrame(800); await ready();
-  const capsule = () => flat(tree.root.findByProps({ testID: 'discovery-map-zoom' }));
-  expect(capsule()).toMatchObject({ width: 89, height: 44, flexDirection: 'row', right: sys.space.base });
-  expect(capsule().top).toBe(2); // centred in the 48 high row
-  const plus = tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }), minus = tree.root.findByProps({ accessibilityLabel: 'Umanji mapu' });
-  for (const half of [plus, minus]) expect(flat(half)).toMatchObject({ width: 43, height: 42 });
-  expect(plus.props.hitSlop).toEqual({ left: 2, top: 2, bottom: 2 }); expect(minus.props.hitSlop).toEqual({ right: 2, top: 2, bottom: 2 });
+  const credits = () => flat(tree.root.findByProps({ testID: 'discovery-map-credits' }));
+  expect(credits()).toMatchObject({ position: 'absolute', left: sys.space.base, right: sys.space.base });
+  const link = tree.root.findByProps({ accessibilityLabel: 'Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap' });
+  expect(flat(link).minHeight).toBeGreaterThanOrEqual(44);
   extra = { ...extra, locateShown: true }; await update();
-  expect(capsule().right).toBe(sys.space.base + 44 + 8);
+  expect(credits().right).toBe(sys.space.base + 44 + 8);
 });
 
 test('with the list full the map is a strip: no gesture, hidden from a screen reader, a tap asks for the half height, and the controls still work', async () => {
@@ -491,32 +488,16 @@ test('with the list full the map is a strip: no gesture, hidden from a screen re
   expect(strip.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži više mape', accessibilityHint: 'Spušta listu do pola.' });
   await act(async () => strip.props.onPress());
   expect(stripPress).toHaveBeenCalledTimes(1);
-  // the strip lies under the controls and the credits in the tree, so they keep their own touches
+  // the strip lies under the sources in the tree, so they keep their own touch
   const order = (testID: string) => tree.root.findAll(node => node.props.testID === testID && typeof node.type === 'string')
     .map(node => tree.root.findAll(other => typeof other.type === 'string').indexOf(node))[0];
-  expect(order('discovery-map-strip')).toBeLessThan(order('discovery-map-zoom-layer'));
   expect(order('discovery-map-strip')).toBeLessThan(order('discovery-map-credits'));
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
-  expect(stripPress).toHaveBeenCalledTimes(1);
-  // the credits stop short of the buttons so the two share the strip's row
-  expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base + 89 + sys.space.md);
-  extra = { ...extra, locateShown: true }; await update();
-  expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base + 89 + 8 + 44 + sys.space.md);
-  extra = { ...extra, locked: false }; await update();
+  // the sources keep their place in the row whether the map is locked or not; "moja lokacija" has the right end of it
   expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base);
+  extra = { ...extra, locateShown: true }; await update();
+  expect(flat(tree.root.findByProps({ testID: 'discovery-map-credits' })).right).toBe(sys.space.base + 44 + 8);
+  extra = { ...extra, locked: false }; await update();
   expect(tree.root.findAllByProps({ testID: 'discovery-map-strip' })).toHaveLength(0);
-});
-
-test('credit height follows native content measurement and reaches the screen without changing the map query', async () => {
-  const measured = jest.fn(); extra = { onCreditsHeight: measured, sheetTop: { value: 300 }, toolsBottom: 150 };
-  await render(); await ready();
-  const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
-  expect(tree.root.findAll(node => node.props.persistentScrollbar)).toHaveLength(0);
-  await act(async () => credits().props.onLayout({ nativeEvent: { layout: { height: 63.2 } } }));
-  expect(measured).toHaveBeenLastCalledWith(64);
-  await act(async () => credits().props.onLayout({ nativeEvent: { layout: { height: Number.NaN } } }));
-  expect(measured).toHaveBeenCalledTimes(1);
-  expect(search).not.toHaveBeenCalled(); expect(setViewport).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
 });
 
 test('compact visible attribution opens all three original provider links without a scrolling rail', async () => {
@@ -652,7 +633,7 @@ test('a fit to a chosen place is the camera\'s own move, made once, and never an
   expect(mockFit).not.toHaveBeenCalled();
   await ready(); expect(mockFit).not.toHaveBeenCalled();
   await measureFrame(800);
-  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.47, 44.82], { padding: { top: 135, right: 50, bottom: 224, left: 50 }, duration: sys.motion.camera });
+  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.47, 44.82], { padding: { top: 86, right: 50, bottom: 224, left: 50 }, duration: sys.motion.camera });
   expect(fitted).toHaveBeenCalledWith(1);
   await update(); expect(mockFit).toHaveBeenCalledTimes(1);
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.43, 44.8], zoom: 13, bounds: [20.4, 44.78, 20.47, 44.82], userInteraction: false } }));
@@ -677,14 +658,14 @@ test('an explicit fit also waits for measured layout and retains a useful map wi
   await measureFrame(600); await update(); expect(mockFit).toHaveBeenCalledTimes(1);
 });
 
-// Review of V47 (coverage): a zoom tap marks the next settle as the person's. A fit the app makes right after it (a place
-// chosen in the search) is the camera's own move, and its settle must not become the list's area on the zoom's account.
-test('a zoom-button intent followed by a programmatic fit sets no area', async () => {
+// Review of V47 (coverage): a "moja lokacija" move marks the next settle as the person's (the list then holds the tasks around them). A fit the app makes right
+// after it (a place chosen in the search) is the camera's own move, and its settle must not become the list's area on the earlier move's account.
+test('a "moja lokacija" move followed at once by a programmatic fit sets no area', async () => {
   extra = { toolsBottom: 60, viewport: { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9] } };
   await render(); await measureFrame(800); await ready();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: false } }));
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uvećaj mapu' }).props.onPress());
-  expect(mockZoom).toHaveBeenCalledTimes(1);
+  extra = { ...extra, centerNearby: { key: 4, center: [19.84, 45.26] } }; await update();
+  expect(mockEase).toHaveBeenCalledTimes(1);
   extra = { ...extra, fitTo: { key: 7, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 200 } }; await update();
   expect(mockFit).toHaveBeenCalledTimes(1); expect(fitted).toHaveBeenCalledWith(7);
   // The fit settles (the map says: not the person's), well inside the time a zoom tap counts for.
@@ -811,7 +792,7 @@ test("a P6 cluster fits the camera to its members as the person's own move; a ta
   mockFit.mockClear(); mockEase.mockClear(); mockJump.mockClear();
   await act(async () => press('cluster:1'));
   expect(mockFit).toHaveBeenCalledTimes(1);
-  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: sys.motion.camera });
+  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 86, right: 50, bottom: 324, left: 50 }, duration: sys.motion.camera });
   expect(onSelect).toHaveBeenCalledWith(layerMarkers[0]);
   // The camera lands: opening the cluster was the person's move, so the area follows where it settled.
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.815], zoom: 12, bounds: [20.38, 44.7, 20.52, 44.9], userInteraction: false } }));
@@ -902,7 +883,7 @@ test('a P6 cluster under Reduce Motion fits at once, and a press before the map 
   expect(mockFit).not.toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], expect.anything()); expect(onSelect).not.toHaveBeenCalled();
   await ready(); mockFit.mockClear();
   await act(async () => press('cluster:1'));
-  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 135, right: 50, bottom: 324, left: 50 }, duration: 0 });
+  expect(mockFit).toHaveBeenCalledWith([20.4, 44.78, 20.5, 44.85], { padding: { top: 86, right: 50, bottom: 324, left: 50 }, duration: 0 });
   // A press that names no bucket of this read selects nothing.
   onSelect.mockClear();
   await act(async () => source().props.onPress({ nativeEvent: { features: [{ properties: { key: 'gone' } }] }, stopPropagation: jest.fn() }));

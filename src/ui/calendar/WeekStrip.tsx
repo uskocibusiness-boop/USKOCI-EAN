@@ -3,57 +3,35 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
-import type { DayAvailability } from './availabilityShade';
-import { civilDay, weekdayOf } from './calendarPresentation';
-import { DAY_MARK_SPOKEN, DayMark } from './DayMark';
-import type { DayMarkKind } from './planner';
+import { weekdayOf } from './calendarPresentation';
+import type { DayDots } from './calendarViews';
+import { DayNumber, RoleDots } from './DayCell';
 
-/** The width of the thin shade under a day number, and its height (owner: 4 dp). */
-const SHADE_WIDTH = 20;
-const SHADE_HEIGHT = 4;
+/** One day of the strip: the day, the dots it carries (null while the schedule is not read: no day is marked then, and none is called free), and its spoken name. */
+export type StripDay = Readonly<{ day: string; dots: DayDots | null; spoken: string }>;
 
 /**
- * The seven days of the week (owner, 2026-10-07). Seven equal columns that always fit, each a day: the weekday, its number, a thin
- * shade when the worker has said they can work that day, and one mark for what is on it (green dot, orange ring, dashed outline,
- * grey dot). The shade and the mark each keep their place whether there is one or not, so choosing another day or another week
- * moves nothing. Unselected days are not filled (B18); today wears a green ring; the chosen day is filled green.
- *
- * Each cell is 44 dp or more across on the owner's phone (361 dp) and no cell's touch overlaps its neighbour's (no hit slop); on a
- * 320 dp phone a cell is about 38 dp wide and 80 tall, the accepted exception to the 44 rule, with the full name spoken. At a very
- * large text size the weekday shrinks to its letter. Every day's name carries what its marks only draw, so nothing is colour or
- * shape alone.
+ * The seven days of the week in one row (owner's sketch, 8 Oct 2026): the weekday, its number and its dots, the way the month draws a
+ * day. Seven equal columns that always fit, each at least 44 dp across on the owner's phone (361 dp) with no hit slop reaching into its
+ * neighbour; at a very large text size the weekday shrinks to its letter. The chosen day is a green disc, today is ringed. The dots keep
+ * their row whether there are any or not, so choosing another day moves nothing. Every day's spoken name carries what its dots only draw.
  */
-export function WeekStrip({ days, selected, today, now, marks, shades, onSelect }: {
-  days: readonly string[]; selected: string; today: string; now?: Date;
-  /** The mark of each day. Null while the schedule is still being read: no day is marked then, and none is called empty. */
-  marks: Readonly<Record<string, DayMarkKind | null>> | null;
-  /** The worker's availability of each day, when there is any. */
-  shades: Readonly<Record<string, DayAvailability | null>>;
-  onSelect: (day: string) => void;
+export function WeekStrip({ days, selected, today, onSelect }: {
+  days: readonly StripDay[]; selected: string; today: string; onSelect: (day: string) => void;
 }) {
   const scale = useTextScale();
-  return <View style={s.strip}>{days.map(date => {
-    const mark = marks?.[date] ?? null, shade = shades[date] ?? null;
-    const chosen = selected === date, isToday = date === today;
-    const weekday = weekdayOf(date);
-    const spoken = `${weekday.name}, ${civilDay(date, now)}${isToday ? ', danas' : ''}${mark ? `, ${DAY_MARK_SPOKEN[mark]}` : ''}${shade ? `, dostupan ${shade.spoken}` : ''}`;
-    return <Press key={date} accessibilityRole="button" haptic="select" hitSlop={0} accessibilityLabel={spoken}
-      accessibilityState={{ selected: chosen }} onPress={() => onSelect(date)} style={{ flex: 1, minWidth: 0, minHeight: 72, marginHorizontal: 2,
-        paddingVertical: sys.space.sm, gap: sys.space.xs, alignItems: 'center', borderRadius: sys.radius.control, borderWidth: 1,
-        backgroundColor: chosen ? sys.color.green : 'transparent', borderColor: isToday && !chosen ? sys.color.green : 'transparent' }}>
-      <T variant="meta" tone={chosen ? 'onDark' : 'muted'} numberOfLines={1}>{scale >= 1.5 ? weekday.short.charAt(0) : weekday.short}</T>
-      <T variant="heading" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}
-        style={{ color: chosen ? sys.color.onDark : isToday ? sys.color.green : sys.color.ink }}>{Number(date.slice(-2))}</T>
-      <View testID="day-shade" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
-        style={[s.shade, shade ? { backgroundColor: chosen ? sys.color.onDark : sys.color.art.brand.light } : null]} />
-      <DayMark kind={mark} onGreen={chosen} />
+  return <View style={s.strip}>{days.map(({ day, dots, spoken }) => {
+    const weekday = weekdayOf(day), chosen = day === selected;
+    return <Press key={day} accessibilityRole="button" accessibilityLabel={spoken} accessibilityState={{ selected: chosen }}
+      haptic="select" scaleTo={1} hitSlop={0} onPress={() => onSelect(day)} style={s.cell}>
+      <T variant="meta" tone="muted" numberOfLines={1}>{scale >= 1.5 ? weekday.short.charAt(0) : weekday.short}</T>
+      <DayNumber day={day} selected={chosen} today={day === today} />
+      <RoleDots dots={dots} />
     </Press>;
   })}</View>;
 }
 
 const s = StyleSheet.create({
-  // The screen gives the strip a little more than its gutters (it reaches 8 dp past them), so each day has the room of a thumb;
-  // the chosen pill is inset by the cell's own margin, so its edge still sits close to the gutter.
-  strip: { flexDirection: 'row', marginTop: sys.space.md },
-  shade: { width: SHADE_WIDTH, height: SHADE_HEIGHT, borderRadius: sys.radius.pill },
+  strip: { flexDirection: 'row' },
+  cell: { flex: 1, minWidth: 0, minHeight: 80, alignItems: 'center', justifyContent: 'center', gap: sys.space.xs },
 });

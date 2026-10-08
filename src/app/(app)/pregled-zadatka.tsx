@@ -6,12 +6,12 @@ import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
 import { reviewFactProblem } from '../../data/reviewFactProblem';
-import { APPLICATION_PROMISE } from '../../data/ownTaskStanding';
 import { publishedTaskRoute, rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { choiceCorrectionText, editorCorrection, factChoiceValue, factChoices, factCorrectionValue, factEditorKind, factLabel,
-  factListItems, factReviewValue, factTimestampFields, listCorrectionText, priceAmountRowValue, timestampCorrectionText } from '../../data/aiNeedV2Ui';
+  factListItems, factTimestampFields, listCorrectionText, priceAmountRowValue, timestampCorrectionText } from '../../data/aiNeedV2Ui';
+import { needRequirementRows } from '../../data/needDetailPresentation';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import type { PotrebaProjekcija } from '../../contracts/projections';
@@ -36,7 +36,7 @@ import { tick } from '../../ui/system/haptics';
 import { layout } from '../../ui/system/layout';
 import { Surface } from '../../ui/system/Surface';
 import { brandAction, sys } from '../../ui/system/tokens';
-import { DOGOVORENA_ZONA, dogovorenoVreme } from '../../lib/dogovorenoVreme';
+import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
@@ -46,13 +46,17 @@ import { FactChoiceEditor } from '../../ui/v2/FactChoiceEditor';
 import { AmountField, AmountWithOffers } from '../../ui/v2/AmountField';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
-import { publicSummary } from '../../ui/v2/draftSummary';
-import { SUPPORT_HAS_DUTY_OPERATOR, manualCheckCopy, ownerPlaceLines, privateReviewMap, publicAnchorPoint, publicPlaceLines, reviewRowValue,
-  reviewTodos, todoActionLabel } from '../../ui/objava/reviewFacts';
+import { GROUPED_FACT_LABEL, REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankList, groupOf, groupedFacts, manualCheckCopy,
+  ownerAddressFrame, partFact, privateReviewMap, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
 import { PublishedMoment } from '../../ui/objava/PublishedMoment';
 import { LocationMapPreview } from '../../ui/location/LocationMapPreview';
-import { OwnerPlaces, PrivatePlace, PublicPlace, PublishButton, ReviewDeadline, ReviewEmptyFacts, ReviewFactRow, ReviewPhotos,
-  ReviewFrame, ReviewPreview, ReviewSection, ReviewStatus, ReviewTodoList, ReviewWaysOut, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
+import { PublishButton, ReviewCaption, ReviewCard, ReviewEditing, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus,
+  ReviewTodoList, ReviewWaysOut, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
+import { Segmented } from '../../ui/system/Segmented';
+import { AddPhotos, OwnerAddress, ReviewDetail, ReviewGallery, type PreviewPart, type ReviewDetailParts } from '../../ui/objava/ReviewDetail';
+import type { PartPencil } from '../../ui/objava/EditPencil';
+import { reviewAsTask } from '../../ui/objava/reviewAsTask';
+import { useReviewPerson } from '../../ui/objava/useReviewPerson';
 
 type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
   /** The task this review is bound to, when it reads as a private draft that was never published: then the review is its FIRST publication. */
@@ -83,9 +87,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
   const [edit, setEdit] = useState<Edit | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
-  // Facts with nothing in them are named in one line rather than given a row each, and that
-  // line opens them. Nothing is hidden; a wall of "Nema navedenih stavki" is just not a wall.
-  const [showEmpty, setShowEmpty] = useState(false);
+  // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
+  // a wall of "Nema navedenih stavki" is just not a wall.
+  const [showMore, setShowMore] = useState(false);
   const [deadlineEditor, setDeadlineEditor] = useState(false);
   // True only while the write in flight is the publish itself: every other save (a draft, a corrected fact, the place,
   // the deadline) also makes the editor busy, and "Objavi zadatak" must not spin for those.
@@ -192,6 +196,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const busyNow = useRef(false); busyNow.current = editor.busy || editor.loading || editor.uncertain;
   const lifecycleNow = useRef(false); lifecycleNow.current = lifecycleActive;
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
+  // Who asks, as the others read him (the name, the face, the rating of his public profile), read beside the review and never in front of it.
+  // The task as the people who will read it get it: the real card and the real page are drawn from this, made of the review's public facts alone.
+  const reviewer = useReviewPerson();
+  const need = useMemo(() => review ? reviewAsTask(review, reviewer) : null, [review, reviewer]);
   // `draftId` is the task this conversation is bound to. It is set exactly when the person came here from a task that exists: a private
   // draft opened from "Nacrti" (`draftNeed`: its FIRST publication, and it can be deleted) or a published task being changed (an edit).
   const bound = !!review?.draftId, draftNeed = snapshot?.draftNeed ?? null;
@@ -280,10 +288,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
     try { result = await needLocationClientService.read(conversationId); }
-    catch { if (current() && request.active) setOpenError('Mesto trenutno nije učitano. Pokušaj ponovo.'); return; }
+    catch { if (current() && request.active) { setOpenError('Mesto trenutno nije učitano. Pokušaj ponovo.'); showAtTop(); } return; }
     finally { if (locationOpening.current === request) { locationOpening.current = null; setOpening(false); } }
     if (!current() || !request.active) return;
-    if (!result.ok) { setOpenError(result.poruka); return; }
+    if (!result.ok) { setOpenError(result.poruka); showAtTop(); return; }
     const proposed = locationProposal.current ?? (review.location
       ? { expectedRevision: review.geographyRevision, value: review.location } : null);
     // Never relabel an old place with the freshly read revision: doing so would let
@@ -291,6 +299,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     if (proposed && proposed.expectedRevision !== result.podatak.revision) {
       locationProposal.current = null;
       setOpenError('Mesto se promenilo posle otvaranja pregleda. Proveri novu lokaciju pre izmene.');
+      showAtTop();
       await editor.refresh();
       return;
     }
@@ -333,8 +342,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     });
   };
   // "Izmeni zadatak" before publishing: back to the conversation this review was prepared from, which keeps the draft. It is the same way
-  // back as the arrow ("Nazad u razgovor"), with the same retained intake identity, now where the owner can see it (owner, 2026-10-07:
-  // "at least I do not see that function easily"). Nothing is sent; an open correction, the place or the deadline holds it like the others.
+  // back as the arrow ("Nazad u razgovor"), with the same retained intake identity, now where the owner can see it: the pencil of the card at the
+  // top of the review (owner, 2026-10-07: "at least I do not see that function easily"). Nothing is sent; an open correction, the place or the
+  // deadline holds it like the others.
   const editInConversation = () => { if (!busyNow.current && canAct() && !command && !edit && !locationEditor && !deadlineEditor) back(); };
   // "Obriši nacrt" (owner, 2026-10-07), in the two places a draft can be:
   // - A review that has not been accepted has no task yet: its draft is the conversation it was written in, and the one command the server
@@ -408,10 +418,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   }, [momentOpen]));
   // The server already knows the difference between publishing a new task and changing one that exists — accepting a bound review confirms
   // an edit instead of creating a draft — but the screen said "Objavi zadatak" either way, right after the conversation had offered
-  // "Pregledaj izmene". The button says what the tap does (`revising`, above): "Potvrdi izmene i objavi" for a published task being changed,
-  // and "Objavi zadatak" for a new task AND for a private draft that was never published (owner's phone, 2026-10-07: a draft opened from
-  // "Nacrti" read "Pregled izmena" and "Potvrdi izmene i objavi", words of an edit on a first publication).
-  const acceptLabel = revising ? 'Potvrdi izmene i objavi' : 'Objavi zadatak';
+  // "Pregledaj izmene". The button says what the tap does (`revising`, above): "Potvrdi izmene" for a published task being changed (it is
+  // already live, so there is nothing left to "objavi": the blueprint of 8 Oct 2026, R2), and "Objavi zadatak" for a new task AND for a private
+  // draft that was never published (owner's phone, 2026-10-07: a draft opened from "Nacrti" read "Pregled izmena" and "Potvrdi izmene i objavi",
+  // words of an edit on a first publication).
+  const acceptLabel = revising ? 'Potvrdi izmene' : 'Objavi zadatak';
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
   const factProblem = review && !published && !command ? reviewFactProblem(review) : null;
@@ -442,20 +453,18 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const publishWorking = editor.busy && publishing;
   // Everything else on the review waits while a save runs, another edit or the deadline is open, or an outcome is not read yet.
   const quietEdit = disabled || !!edit || !!locationEditor || deadlineEditor;
-  // One line ABOVE the publish button, in the foot: the first thing in its way, short (the full list is "Još treba" above), or what
-  // the tap does. A grey button always says why, and the reason stands over it, not under it, where it read as the next thing.
+  // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
+  // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
+  // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
   const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.'
     : edit ? 'Sačuvaj ili otkaži otvorenu izmenu.'
-      : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.'
-        : revising ? 'Objavljuješ izmenjenu verziju zadatka.'
-          : 'Objavljuješ ovu verziju zadatka.';
+      : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
   const reduced = useReducedMotion();
-  const EMPTY_VALUE = new Set(['—', 'Nema navedenih stavki', 'Bez fotografija', '']);
-  // An open correction scrolls its row into view, so its field is never left under the keyboard or the footer.
-  const scroll = useRef<ScrollView>(null), content = useRef<View>(null), rowRefs = useRef(new Map<string, View>());
+  // An open correction scrolls its part into view, so its field is never left under the keyboard or the footer; the card scrolls to the page it opens.
+  const scroll = useRef<ScrollView>(null), content = useRef<View>(null), rowRefs = useRef(new Map<string, View>()), detail = useRef<View>(null);
   useEffect(() => {
     const key = edit?.fact.key, row = key ? rowRefs.current.get(key) : undefined, host = content.current;
     if (!row || !host || typeof row.measureLayout !== 'function') return;
@@ -484,60 +493,65 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       ...(kind === 'choice' ? { choice } : {}) });
   };
   // People never see or choose a category (owner decision 2026-09-21, deep read 9.2). The AI still
-  // writes it for the server, which reads a kind of work from it only to match; it is not a row here.
-  // Facts with nothing in them are named in one line rather than given a row each, and that line opens them.
-  const rows = (all: readonly AiTaskReviewFact[]) => {
-    const items = all.filter(fact => fact.key !== 'need.category');
-    const blank = items.filter(fact => edit?.fact.id !== fact.id
-      && EMPTY_VALUE.has(factReviewValue(displayFact(fact)).trim()));
-    const carried = showEmpty ? items : items.filter(fact => !blank.includes(fact));
-    const emptyLine = blank.length > 0 && !showEmpty;
-    return <>
-      {carried.map((fact, index) => row(fact, index === carried.length - 1 && !emptyLine))}
-      {emptyLine ? <ReviewEmptyFacts labels={blank.map(fact => factLabel(fact.key))} onOpen={() => setShowEmpty(true)} /> : null}
-    </>;
-  };
-  const row = (fact: AiTaskReviewFact, last = false) => {
-    const shown = displayFact(fact), editing = edit?.fact.id === shown.id;
-    const kind = editing ? factEditorKind(edit.fact) : null;
+  // writes it for the server, which reads a kind of work from it only to match; it is no part of the page here.
+  const publicFacts = review?.publicProjection ?? [];
+  const factOf = (key: NeedFactV2Key) => publicFacts.find(item => item.key === key);
+  const editingFact = (item: AiTaskReviewFact | undefined) => !!item?.id && edit?.fact.id === item.id;
+  /** What a fact is called to a person on this page: the label of the fact, and "Broj ljudi" where its own is only "Ljudi". */
+  const factName = (key: NeedFactV2Key) => key === 'need.people_needed' ? 'Broj ljudi' : factLabel(key);
+  /**
+   * The editor of the correction that is open: exactly the editor a row opened before (a moment, a list, a choice, an amount or a text),
+   * with its two commands. A line made of several facts (the price, the time) says which of them is being corrected and moves between them,
+   * and nothing is saved by moving: each is still its own correction with its own command.
+   */
+  const editorBody = () => {
+    if (!edit) return null;
+    const kind = factEditorKind(edit.fact), label = factLabel(edit.fact.key);
     // Under "Ponude" the task carries no amount: its editor shows none and saves none, it only leads to the price mode.
     const amountWithOffers = kind === 'amount' && priceMode === 'OFFERS';
-    // While the screen cannot act (a save runs, another edit is open, an outcome is not read yet) a row says no "Izmeni": nothing is
-    // drawn that cannot be pressed, and the one open thing is the only thing left to press.
-    return <ReviewFactRow key={fact.key} label={factLabel(fact.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
-      system={fact.source === 'SYSTEM'} last={last}
-      edit={!command && fact.id && !quietEdit ? () => startEdit(fact) : undefined}
-      rowRef={node => { if (node) rowRefs.current.set(fact.key, node); else rowRefs.current.delete(fact.key); }}>
-      {editing ? <>
-        {kind === 'timestamp' ? <FactTimestampEditor label={factLabel(fact.key)} date={edit.date ?? ''} time={edit.time ?? ''}
-          disabled={disabled} onChange={(date, time) => { if (canAct()) setEdit({ ...edit, date, time, error: null,
-            text: timestampCorrectionText(edit.fact, date, time) }); }} />
-        : kind === 'list' ? <FactListEditor label={factLabel(fact.key)} items={edit.items ?? []} disabled={disabled}
-          onChange={(items, typed) => { if (!canAct()) return;
-            const pending = typed.trim();
-            setEdit({ ...edit, items, error: null,
-              text: listCorrectionText(pending && !items.includes(pending) ? [...items, pending] : items) }); }} />
-        : kind === 'choice' ? <FactChoiceEditor label={factLabel(fact.key)} options={factChoices(edit.fact)} value={edit.choice ?? null}
-          disabled={disabled} onChange={choice => { if (canAct()) setEdit({ ...edit, choice, error: null,
-            text: choiceCorrectionText(edit.fact, choice) }); }} />
-        : amountWithOffers ? <AmountWithOffers disabled={disabled}
-          onChooseMode={priceModeFact?.id ? () => startEdit(priceModeFact, true) : undefined} />
-        : kind === 'amount' ? <AmountField label={factLabel(fact.key)} digits={edit.text} disabled={disabled}
-          onChange={digits => { if (canAct()) setEdit({ ...edit, text: digits, error: null }); }} />
-        : <TextInput accessibilityLabel={`Nova vrednost: ${factLabel(fact.key)}`} value={edit.text} multiline
-          onChangeText={text => { if (canAct()) setEdit({ ...edit, text, error: null }); }} editable={!disabled} style={s.input} />}
-        {edit.error ? <T accessibilityRole="alert" style={s.error}>{edit.error}</T> : null}
-        {amountWithOffers ? null : <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />}
-        <V2Action label="Odustani od ispravke" kind="quiet" disabled={disabled} onPress={() => setEdit(null)} />
-      </> : undefined}
-    </ReviewFactRow>;
+    const group = groupOf(edit.fact.key), siblings = group ? groupedFacts(group, publicFacts) : [];
+    return <>
+      {siblings.length > 1 ? <Segmented options={siblings.map(item => ({ key: item.key, label: GROUPED_FACT_LABEL[item.key] ?? factLabel(item.key) }))}
+        value={edit.fact.key} onChange={key => { const next = siblings.find(item => item.key === key); if (next) startEdit(next, true); }} /> : null}
+      {kind === 'timestamp' ? <FactTimestampEditor label={label} date={edit.date ?? ''} time={edit.time ?? ''}
+        disabled={disabled} onChange={(date, time) => { if (canAct()) setEdit({ ...edit, date, time, error: null,
+          text: timestampCorrectionText(edit.fact, date, time) }); }} />
+      : kind === 'list' ? <FactListEditor label={label} items={edit.items ?? []} disabled={disabled}
+        onChange={(items, typed) => { if (!canAct()) return;
+          const pending = typed.trim();
+          setEdit({ ...edit, items, error: null,
+            text: listCorrectionText(pending && !items.includes(pending) ? [...items, pending] : items) }); }} />
+      : kind === 'choice' ? <FactChoiceEditor label={label} options={factChoices(edit.fact)} value={edit.choice ?? null}
+        disabled={disabled} onChange={choice => { if (canAct()) setEdit({ ...edit, choice, error: null,
+          text: choiceCorrectionText(edit.fact, choice) }); }} />
+      : amountWithOffers ? <AmountWithOffers disabled={disabled}
+        onChooseMode={priceModeFact?.id ? () => startEdit(priceModeFact, true) : undefined} />
+      : kind === 'amount' ? <AmountField label={label} digits={edit.text} disabled={disabled}
+        onChange={digits => { if (canAct()) setEdit({ ...edit, text: digits, error: null }); }} />
+      : <TextInput accessibilityLabel={`Nova vrednost: ${label}`} value={edit.text} multiline
+        onChangeText={text => { if (canAct()) setEdit({ ...edit, text, error: null }); }} editable={!disabled} style={s.input} />}
+      {edit.error ? <T accessibilityRole="alert" style={s.error}>{edit.error}</T> : null}
+      {amountWithOffers ? null : <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />}
+      <V2Action label="Odustani od ispravke" kind="quiet" disabled={disabled} onPress={() => setEdit(null)} />
+    </>;
   };
+  /**
+   * The same editor, framed by the name of what is corrected, standing in the place of the part of the page it corrects. A line made of several
+   * facts names what is corrected by its tabs, so it needs no name of its own.
+   */
+  const editorOf = () => {
+    if (!edit) return undefined;
+    const group = groupOf(edit.fact.key), tabbed = !!group && groupedFacts(group, publicFacts).length > 1;
+    return <ReviewEditing name={tabbed ? undefined : factName(edit.fact.key)}
+      rowRef={node => { if (node) rowRefs.current.set(edit.fact.key, node); else rowRefs.current.delete(edit.fact.key); }}>{editorBody()}</ReviewEditing>;
+  };
+  /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */
+  const showAtTop = () => scroll.current?.scrollTo({ y: 0, animated: !reduced });
 
   // The moment replaces the whole review: a finished publication has nothing left to change here. It continues to the task's own
   // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
   if (momentOpen && command && review) return <PublishedMoment
     title={revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.'}
-    line={revising ? 'Prijave stižu ovde.' : APPLICATION_PROMISE.published}
     onContinue={openPublished} />;
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
@@ -553,20 +567,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     </KeyboardAvoidingView>
   </SafeAreaView>;
 
-  const summary = review ? publicSummary(review.publicProjection) : null;
-  const geography = review?.publicProjection.find(fact => fact.key === 'need.task_geography');
+  // The exact points the owner CONFIRMED (private: the map of the frame of the exact address, never a public surface).
   const privateMap = privateReviewMap(review?.location);
-  // What the owner CONFIRMED, in the words of the confirmed points (a pin moved after the first text is what is read), private half only.
-  const confirmedPlaces = ownerPlaceLines(review?.location);
-  // What a stranger will read of the place once this is published: the stored words, never a point's address. A route names its stops
-  // (street and place, never a house number: owner decision 2, 2026-09-24); one place or an area adds a line when its words say
-  // something the area line does not, as the published detail does, so what is published no longer appears only after publishing.
-  const publicLines = summary ? publicPlaceLines(geography?.value, summary.zone || null) : [];
   const photoPaths = review?.publicProjection.find(fact => fact.key === 'need.public_photo_paths')?.value;
   const photoAssets = (Array.isArray(photoPaths) ? photoPaths.map(path => typeof path === 'string' ? mediaAssetId(path) : null) : [])
     .filter((assetId): assetId is string => !!assetId);
   const hasPhotos = Array.isArray(photoPaths) && photoPaths.length > 0;
-  const publicRows = review?.publicProjection.filter(fact => !PUBLIC_ELSEWHERE.includes(fact.key)) ?? [];
   // Each row is a way to its fix and says so in words (owner's phone, 2026-10-07: "Početak termina je već prošao" was a sentence with a faint arrow
   // beside a grey button): the time or the amount opens its editor right there, the place opens the place step, and a fact this screen
   // cannot edit (it has no row to open) goes back to the conversation instead of leaving a row that does nothing.
@@ -584,9 +590,43 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     {!command && unavailableIdentityFact.id ? <V2Action label="Ukloni uslov i nastavi" kind="quiet"
       disabled={quietEdit} onPress={removeUnavailableIdentityRequirement} /> : null}
   </View> : null;
-  // The place's one word, "Uredi mesto" / "Dodaj mesto", is not drawn while anything else is in flight; while the place itself is being read it
-  // says so ("Otvaramo mapu…"), because pressing it is what started that.
+  // The place's pencil is not drawn while anything else is in flight; while the place itself is being read it says so ("Otvaramo…"), because
+  // pressing it is what started that.
   const placeBusy = editor.busy || editor.loading || editor.uncertain || lifecycleActive || !!edit || deadlineEditor;
+
+  /* ---------------------------------------------------------------------------------------------- the pencils of the parts */
+  // A pencil is drawn only while the screen can act and nothing else is open (a stored command is read only, a save is running, another correction
+  // is open, an outcome is not read yet): nothing looks pressable that is not, and the one open thing is the only thing left to press.
+  const canEdit = !command && !quietEdit;
+  const pencil = (label: string, onPress: () => void, word?: string): PartPencil | undefined => canEdit ? { label, onPress, ...(word ? { word } : {}) } : undefined;
+  const systemNote = (item: AiTaskReviewFact | undefined) => item?.source === 'SYSTEM' ? 'Podrazumevana vrednost' : undefined;
+  /** A part that is one fact: its pencil opens that fact's editor, and an open correction of it stands in its place. */
+  const single = (key: NeedFactV2Key, name: string): PreviewPart => {
+    const item = factOf(key);
+    return { pencil: item?.id ? pencil(`Izmeni, ${name}`, () => startEdit(item)) : undefined, editor: editingFact(item) ? editorOf() : undefined, note: systemNote(item) };
+  };
+  /** A part made of several facts (the price, the time): its pencil opens the one a person most likely means, the others are a tap away inside the editor. */
+  const grouped = (group: GroupedPart, name: string): PreviewPart => {
+    const primary = partFact(group, publicFacts);
+    return { pencil: primary ? pencil(`Izmeni, ${name}`, () => startEdit(primary)) : undefined,
+      editor: edit && groupOf(edit.fact.key) === group ? editorOf() : undefined, note: systemNote(primary) };
+  };
+  const placeWord = opening ? 'Otvaramo…' : review?.location ? undefined : 'Dodaj';
+  const placeAt = (label: string): PartPencil | undefined => !command && !placeBusy
+    ? { label, ...(placeWord ? { word: placeWord } : {}), onPress: () => { void openLocation(); } } : undefined;
+  const placeLabel = review?.location ? 'Izmeni, Mesto' : 'Dodaj mesto';
+  const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmeni, Fotografije' : 'Dodaj fotografije', ...(hasPhotos ? {} : { word: 'Dodaj' }),
+    onPress: () => { if (!canAct() || !conversationId || edit || locationEditor || deadlineEditor) return;
+      navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined;
+  const peopleShown = (need?.pokrivenost.ukupno ?? 1) > 1;
+  // What the page of others draws no line for: lists with nothing in them, and how many people when it is one.
+  const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && (item.key === 'need.people_needed' ? !peopleShown : MORE_LISTS.includes(item.key) && blankList(item)));
+  /** The card opens the page: the owner is taken to it, as a touch on the card takes everybody else. */
+  const openDetail = () => {
+    const node = detail.current, host = content.current;
+    if (!node || !host || typeof node.measureLayout !== 'function') return;
+    node.measureLayout(host as never, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - sys.space.base), animated: !reduced }), () => undefined);
+  };
   // Which green action a stored command offers: its resume, or the way back to the conversation. With neither, the check is the one way forward
   // and wears the green itself.
   const resumeShown = !!command && !unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW'));
@@ -598,7 +638,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />;
   // The one foot. A review that is read has its reason ABOVE the green button; a stored command has none, because the note at the top says
   // what is known. The one quiet action under the green one is "Sačuvaj nacrt" (or the check, when an outcome is not known).
-  const footer = !review ? null : <FlowFooter reason={command ? undefined : caption}>
+  const footer = !review ? null : <FlowFooter reason={command ? undefined : caption ?? undefined}>
     {/* A draft opened from "Nacrti" is deleted by the lifecycle's own command, as on the draft's screen: its question, its sending and
         its outcome are drawn here, where the person is looking, and everything else on the screen waits while it is on. */}
     {draftNeed && !command ? <NeedLifecycleActions need={draftNeed} needId={draftNeed.id} menu={lifecycleMenu}
@@ -623,10 +663,26 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       </>}
   </FlowFooter>;
 
+  // The task as the people who will read it get it, and the owner's pencil on every part of it (the blueprint of 8 Oct 2026, R2). What the page
+  // of others draws is `need`; what is the owner's alone is the pencils, the frame of the exact address and the way to add what is not said yet.
+  const remote = need?.detalji?.rezimLokacije === 'REMOTE';
+  const frameOfAddress = review ? ownerAddressFrame(review.location, review.ownerPrivateProjection) : null;
+  const hasAddress = !remote && !!frameOfAddress && !!(frameOfAddress.places.length || frameOfAddress.fullAddress || frameOfAddress.notes.length || privateMap.points.length);
+  const parts: ReviewDetailParts = {
+    title: single('need.title', 'Naslov'), value: grouped('value', 'Cena'), place: { pencil: placeAt(placeLabel) }, time: grouped('time', 'Termin'),
+    people: single('need.people_needed', 'Broj ljudi'), description: single('need.description', 'Opis'),
+    map: { pencil: placeAt('Izmeni, Približno mesto') },
+    deadline: { pencil: pencil('Izmeni, Rok za prijave', () => { if (canAct()) setDeadlineEditor(true); }),
+      editor: deadlineEditor && review ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
+        apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} /> : undefined },
+    requirements: need ? Object.fromEntries(needRequirementRows(need).flatMap(row => REQUIREMENT_FACT[row.label]
+      ? [[row.label, single(REQUIREMENT_FACT[row.label], row.label)] as const] : [])) : {},
+  };
+
   return <>
     <ReviewFrame scrollRef={scroll} contentRef={content} footer={footer}
-      header={<DetailTopBar backLabel="Nazad u razgovor" onBack={back} title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled zadatka'} />}>
-        {!review || !summary ? editor.loading
+      header={<DetailTopBar backLabel="Nazad u razgovor" onBack={back} title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled pre objave'} />}>
+        {!review || !need ? editor.loading
           ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 3, variant: 'preview' }} />
           : <StateView kind="error" art="document" title={cannotLoad('pregled').title} body={editor.error ?? cannotLoad('pregled').copy}
             primary={{ label: OUTCOME_ACTION.retry, onPress: refresh, disabled: editor.busy || editor.loading }} />
@@ -638,46 +694,42 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Obrati se podršci"
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {command ? identityBlock : null}
-          <ReviewPreview summary={summary}
-            unpriced={review.publicProjection.some(fact => fact.key === 'need.price_mode' && fact.status !== 'UNKNOWN')} />
+          {/* What stands in the way comes first, because it is why the green action under the page is grey. */}
           {todoRows.length || (!command && unavailableIdentityFact) ? <ReviewTodoList items={todoRows} disabled={disabled || !!edit || deadlineEditor}>
             {identityBlock}
           </ReviewTodoList> : null}
-          <ReviewSection title="Mesto" spaced action={!command && !placeBusy
-            ? { label: opening ? 'Otvaramo mapu…' : review.location ? 'Uredi mesto' : 'Dodaj mesto', onPress: openLocation } : undefined}>
-            {openError ? <Surface kind="note" tone="danger"><T accessibilityRole="alert" style={s.error}>{openError}</T></Surface> : null}
-            {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
-              Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
-            </T></Surface> : null}
-            <PublicPlace zone={summary.zone || null} lines={publicLines} anchor={publicAnchorPoint(review.location)}
-              pointsConfirmed={!!review.location?.resolvedLocation?.points.length}
-              scopeKey={`${accountId}:${review.reviewId}:preview`} />
-            {review.ownerPrivateProjection.length || privateMap.points.length ? <PrivatePlace>
-              <OwnerPlaces places={confirmedPlaces} />
-              {privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
-                scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={200} /> : null}
-              {rows(review.ownerPrivateProjection)}
-            </PrivatePlace> : null}
-          </ReviewSection>
-          {publicRows.length ? <ReviewSection title="Detalji">
-            <View>{rows(publicRows)}</View>
-          </ReviewSection> : null}
-          <ReviewSection title="Fotografije" action={!command && !quietEdit ? { label: hasPhotos ? 'Uredi fotografije' : 'Dodaj fotografije',
-            onPress: () => { if (!canAct() || !conversationId || edit || locationEditor || deadlineEditor) return;
-              navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined}>
-            <ReviewPhotos assetIds={photoAssets} />
-          </ReviewSection>
-          <ReviewSection title="Prijave" action={!command && !quietEdit
-            ? { label: 'Uredi rok za prijave', onPress: () => { if (canAct()) setDeadlineEditor(true); } } : undefined}>
-            {deadlineEditor ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
-              apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} />
-              : <ReviewDeadline text={review.responseDeadline ? dogovorenoVreme(review.responseDeadline) : null} />}
-          </ReviewSection>
-          {/* The ways out, at the end of everything there is to change and in plain sight (owner, 2026-10-07): "Izmeni zadatak" returns to the
-              conversation, which keeps the draft; and, last and in the danger colour, "Obriši nacrt" (a new task, or a private draft opened
-              from "Nacrti"; the changes of a published task have no draft to delete). */}
-          {!command ? <ReviewWaysOut disabled={quietEdit} onEdit={editInConversation}
-            onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
+          {openError ? <Surface kind="note" tone="danger"><T accessibilityRole="alert" style={s.error}>{openError}</T></Surface> : null}
+          {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
+            Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
+          </T></Surface> : null}
+          {/* First half: the card, as the map and the list draw it. Second half: the page that opens from it. The card's pencil goes back to the
+              conversation, where the whole task is changed; every part of the page has its own. */}
+          <ReviewCard need={need} onOpen={openDetail} pencil={pencil('Izmeni zadatak', editInConversation)} portrait={reviewer?.photo(reviewer.profileId, 40)} />
+          <View ref={detail} collapsable={false}>
+            <ReviewCaption>Ovako izgleda kad ga otvore</ReviewCaption>
+            <ReviewDetail need={need} parts={parts} person={reviewer}
+              photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />
+                : <AddPhotos title={hasPhotos ? 'Fotografije' : undefined} pencil={photosAt} />}
+              map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
+                coarse height={184} scopeKey={`${accountId}:${review.reviewId}:preview`} /> : undefined}
+              address={hasAddress && frameOfAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: placeAt('Izmeni, Tačna adresa') }}
+                map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
+                  scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={160} /> : undefined} /> : undefined}
+              more={moreFacts.length ? <ReviewMoreFacts labels={moreFacts.map(item => factName(item.key))} disabled={quietEdit && !moreFacts.some(editingFact)}
+                open={showMore || moreFacts.some(editingFact)} onToggle={() => { if (!quietEdit) setShowMore(open => !open); }}>
+                {moreFacts.map((item, index) => {
+                  const shown = displayFact(item);
+                  return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
+                    system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => startEdit(item) : undefined}
+                    rowRef={node => { if (node) rowRefs.current.set(item.key, node); else rowRefs.current.delete(item.key); }}>
+                    {editingFact(item) ? editorBody() : undefined}
+                  </ReviewFactRow>;
+                })}
+              </ReviewMoreFacts> : undefined} />
+          </View>
+          {/* The way out at the end of everything there is to change and in plain sight (owner, 2026-10-07), in the danger colour: "Obriši nacrt"
+              (a new task, or a private draft opened from "Nacrti"; the changes of a published task have no draft to delete). */}
+          {!command ? <ReviewWaysOut disabled={quietEdit} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
         </>}
     </ReviewFrame>
     {confirmation.sheet}
@@ -686,9 +738,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
 
 /** Facts whose editor is the place step. */
 const PLACE_KEYS: readonly NeedFactV2Key[] = ['need.task_country_code', 'need.task_geography', 'need.exact_address', 'need.access_notes', 'need.resolved_location'];
-/** Public facts drawn elsewhere on the review (the value in the preview, the place in Mesto, the photos in Fotografije) or never shown (the
- *  category). The title is a row of "Detalji" like every other fact; its editor is that row's. */
-const PUBLIC_ELSEWHERE: readonly NeedFactV2Key[] = ['need.category', 'need.public_photo_paths', 'need.task_geography', 'need.task_country_code'];
+/** The lists of what a task asks of a person: with nothing in them the page of others draws no line for them, and the review offers them as "Dodaj još podataka". */
+const MORE_LISTS: readonly NeedFactV2Key[] = ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.critical_conditions'];
 
 /** The place step replaces the review with a whole step of its own (the form holds its scroll and its foot), so it has its own frame. */
 const frame = StyleSheet.create({

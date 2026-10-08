@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Easing, useWindowDimensions } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Animated, Easing, useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../../ui/system/TabBarItem';
@@ -9,6 +9,7 @@ import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { conversationInboxBuilt } from '../../data/conversationInboxGate';
+import { ZadaciBarContext, zadaciBarStyle } from '../../ui/v2/discovery/zadaciBar';
 
 /**
  * One shell for one account: Početna | Zadaci | Dogovori | Poruke (inbox paired with its DEV reader).
@@ -162,10 +163,16 @@ export default function TabLayout() {
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
   const REDIRECT = { ...FULL, animation: 'none' as const };
+  // The bar as every tab draws it, and what Zadaci does to it (the owner's phone of 8 Oct 2026): on that one tab it lies over the bottom of the
+  // screen and slides away while the list rests at its top line or a pin's card stands at the bottom (`ui/v2/discovery/zadaciBar`). The value that
+  // moves it, and the bar's whole height, go to that screen through the context; nothing else of the navigator is changed.
+  const barBase = { ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING), marginHorizontal: 0, marginTop: 0, marginBottom: Math.max(12, insets.bottom) };
+  const awayValue = useRef(new Animated.Value(0)).current;
+  const zadaciBar = useMemo(() => ({ hidden: awayValue, height: barBase.height + barBase.marginBottom }), [awayValue, barBase.height, barBase.marginBottom]);
   // Where the bar's top edge is, measured from the window's bottom: the one "Poruka" (the short outcome bar) floats above it
   // on every screen of this navigator, so it never covers the bar and, where the bar is hidden, clears a flow's own footer.
   const barClearance = tabBarHeight(labelHeight, TAB_BAR_PADDING) + Math.max(12, insets.bottom);
-  return <><Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
+  return <><ZadaciBarContext.Provider value={zadaciBar}><Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
     UNSTABLE_router={original => ({
       // Every replace is taken as a jump that leaves the screen it replaces (see `replacedAsJump`), and a retired entry
       // never stays in the history.
@@ -207,8 +214,7 @@ export default function TabLayout() {
       tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden',
         flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
       // The height follows the icon and the actual label height (`tabBarHeight`); no font shrinking or truncation.
-      tabBarStyle: { ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING),
-        marginHorizontal: 0, marginTop: 0, marginBottom: Math.max(12, insets.bottom) } }; }}>
+      tabBarStyle: route.name === 'zadaci' ? zadaciBarStyle(barBase, zadaciBar) : barBase }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />
@@ -254,7 +260,7 @@ export default function TabLayout() {
     <Tabs.Screen name="potrebe/[id]/pregled" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="prilike/[id]" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="prilike/[id]/prijava" options={{ href: null, ...FULL }} />
-  </Tabs>
+  </Tabs></ZadaciBarContext.Provider>
   {/* The host of the outcome bar for every screen of this navigator: screens call `poruka.show(...)` and render nothing, and it
       idles as nothing. The root stack's own screens (`dogovor/[id]`, `obavestenja`, `prijave`) lie ABOVE this navigator and
       cover it, so each of them mounts a host of its own. */}

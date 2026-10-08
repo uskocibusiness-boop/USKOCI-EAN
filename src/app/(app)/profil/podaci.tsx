@@ -7,19 +7,26 @@ import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { inicijali } from '../../../lib/inicijali';
 import { useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
-import { tidyPlaceLabel } from '../../../ui/location/placeText';
+import { cityLabel } from '../../../ui/profile/cityLabel';
 import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { SettingsScreen } from '../../../ui/settings/SettingsPresentation';
 import { Avatar } from '../../../ui/system/Avatar';
 import { StateView } from '../../../ui/system/StateView';
-import { DisplayNameForm } from '../../../ui/profile/DisplayNameForm';
-import { EDIT_PHOTO, ProfileFactRows, ProfilePhotoBlock, VisibilityNote, type AboutView, type CityView } from '../../../ui/profile/ProfileEditPresentation';
+import { DisplayNameForm, type NameSaveControl } from '../../../ui/profile/DisplayNameForm';
+import { EDIT_PHOTO, NameSaveButton, ProfileFactRows, ProfilePhotoBlock, VisibilityNote, WorkNameNotice, type AboutView, type CityView } from '../../../ui/profile/ProfileEditPresentation';
+import { writeWorkName } from '../../../ui/profile/writeWorkName';
 
 /**
- * Izmeni profil (T4a, 2026-10-07). The pencil on the profile opens this, and it is more than the name: the photo (the screen that
- * already exists), the name (the one form with the one green action), "O meni" and the city (the work profile's, shown as written
- * and opened where they are changed) and what other people can see. The name is the only thing saved HERE, by the same
- * revision-bound save as before; nothing else is written from this screen, and no text is made up for a part that is empty.
+ * Lični podaci (T4a, 2026-10-07; "Izmeni profil" until the product draft the owner approved on 8 Oct 2026, P2). The pencil on the profile opens this, and it
+ * is more than the name: the photo (the screen that already exists), the name (one field; its "Sačuvaj" stands in the bar and only once the name has changed),
+ * "O meni" and the city (the work profile's, shown as written and opened where they are changed) and, in one sentence, what other people can see. The name is
+ * the only thing saved HERE, by the same revision-bound save as before; nothing else is written from this screen, and no text is made up for a part that is
+ * empty.
+ *
+ * ONE NAME (owner, 8 Oct 2026, "Može, dobro vam jedno ime za sve."): this is the one place the person's name is changed, and a save writes it twice,
+ * in this order: the account's name (`rpc_save_requester_profile`, revision-bound, as before) and, only if that is confirmed and the account has a work
+ * profile, the same name into the work profile through its existing writer, read back (`writeWorkName`). If the second write does not take, the screen
+ * says so ("Ime je sačuvano na nalogu, ali nije upisano u radni profil.") with "Pokušaj ponovo", which repeats ONLY the second write.
  */
 export default function PersonalProfile() {
   const { user, accountRevision } = useSesija();
@@ -32,32 +39,48 @@ function OwnedPersonalProfile() {
   const leave = useUnsavedProfileBack({ dirty: !!editor.data && dirty, busy: editor.busy, uncertain: editor.uncertain,
     revision: editor.data?.revision ?? null, onBack: () => router.canGoBack() ? router.back() : router.replace('/profil') });
   const check = () => { void editor.refresh(); };
+  const [workNameFailed, setWorkNameFailed] = useState(false), [retrying, setRetrying] = useState(false), retryingRef = useRef(false);
+  // The bar's "Sačuvaj": reported by the name form, drawn here, there only while the name differs from the saved one.
+  const [nameSave, setNameSave] = useState<NameSaveControl | null>(null);
   // "O meni" and the work area's city belong to the work profile, so they are read the way the work profile screen reads it.
   const izvor = useIzvor();
   const work = useFocusedResource(useCallback(() => izvor.mojRadnikProfil(), [izvor]));
   const about: AboutView = work.loading ? { kind: 'loading' } : work.error ? { kind: 'error' } : !work.data ? { kind: 'none' }
     : work.data.biografija.trim() ? { kind: 'text', text: work.data.biografija } : { kind: 'empty' };
   const city: CityView = work.loading ? { kind: 'loading' } : work.error ? { kind: 'error' }
-    : work.data?.grad.trim() ? { kind: 'city', city: tidyPlaceLabel(work.data.grad.trim()) } : { kind: 'none' };
+    : work.data?.grad.trim() ? { kind: 'city', city: cityLabel(work.data.grad) } : { kind: 'none' };
   // One way onward at a time, and a fresh one on every visit.
   const going = useRef(false);
   useFocusEffect(useCallback(() => { going.current = false; }, []));
   const go = (action: () => void) => { if (going.current) return; going.current = true; action(); };
   const profile = editor.data;
-  return <SettingsScreen title="Izmeni profil" onBack={leave.back}>
+  // The account's name is saved; only the work profile's is written again (never the account's, which would need a new revision and request).
+  const retryWorkName = async () => {
+    if (!profile || retryingRef.current) return;
+    retryingRef.current = true; setRetrying(true);
+    try { setWorkNameFailed(await writeWorkName(izvor, profile.displayName) === 'failed'); }
+    finally { retryingRef.current = false; setRetrying(false); }
+  };
+  return <SettingsScreen title="Lični podaci" onBack={leave.back} right={profile && nameSave ? <NameSaveButton control={nameSave} /> : undefined}>
     {profile ? <>
       <ProfilePhotoBlock ready={!editor.busy}
-        photo={<ProfilePhoto profileId={profile.profileId} size={EDIT_PHOTO} fallback={<Avatar initials={inicijali(profile.displayName)} size={EDIT_PHOTO} />} />}
+        photo={<ProfilePhoto profileId={profile.profileId} size={EDIT_PHOTO} fallback={<Avatar initials={inicijali(profile.displayName)} size={EDIT_PHOTO} />} own />}
         onOpen={() => go(() => router.push({ pathname: '/profil/fotografija', params: { profileId: profile.profileId } }))} />
       <DisplayNameForm key={profile.revision} savedName={profile.displayName} busy={editor.busy} uncertain={editor.uncertain}
-        onDirtyChange={setDirty} saved={editor.saved} error={editor.error} checking={editor.busy || editor.loading} check={check}
+        onDirtyChange={setDirty} onSaveControl={setNameSave} saved={editor.saved} error={editor.error} checking={editor.busy || editor.loading} check={check}
         save={(name, requestId) => editor.save(async () => {
+          setWorkNameFailed(false);
           const result = await requesterProfileClientService.save({ displayName: name, clientRequestId: requestId, expectedRevision: profile.revision });
-          return result.ok ? { ok: true, podatak: result.podatak.identity } : result;
+          if (!result.ok) return result;
+          // The second write, after the first is confirmed: the same name into the work profile, if the account has one.
+          setWorkNameFailed(await writeWorkName(izvor, result.podatak.identity.displayName) === 'failed');
+          return { ok: true, podatak: result.podatak.identity };
         })} />
-      <ProfileFactRows about={about} city={city} onAbout={() => go(() => router.navigate('/profil/radnik'))}
+      {workNameFailed ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
+      {/* "O meni" is the work profile's text, written where the work profile is: its editor opens on that part. */}
+      <ProfileFactRows about={about} city={city} onAbout={() => go(() => router.navigate({ pathname: '/profil/radnik', params: { uredi: 'o-meni', n: String(Date.now()) } }))}
         onCity={() => go(() => router.navigate('/profil/lokacija'))} />
-      <VisibilityNote onMore={() => go(() => router.navigate('/profil/privatnost'))} />
+      <VisibilityNote />
     </>
       : editor.error && !editor.loading ? <StateView kind="error" title="Profil nije učitan" body={editor.error}
         primary={{ label: 'Proveri sačuvane podatke', onPress: check, disabled: editor.busy || editor.loading }} />

@@ -3,6 +3,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 let mockWindow = { width: 390, height: 844, scale: 1, fontScale: 1 };
+/** What the layout hands to Zadaci through the context (the navigator stand-in below reads it from where its screens would). */
+let mockBar: { hidden: { setValue: (to: number) => void }; height: number } | null = null;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
@@ -10,7 +12,7 @@ jest.mock('react-native', () => {
   } });
 });
 jest.mock('expo-router', () => { const React = require('react');
-  const Tabs = (props: object) => React.createElement('Tabs', props);
+  const Tabs = (props: object) => { mockBar = require('../../ui/v2/discovery/zadaciBar').useZadaciBar(); return React.createElement('Tabs', props); };
   Tabs.Screen = (props: object) => React.createElement('Screen', props); return { Tabs };
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ bottom: 24 }) }));
@@ -96,6 +98,32 @@ it('keeps the full-width rail and its tab surface aligned without nested rounded
   expect(options.tabBarStyle).toMatchObject({ borderRadius: 0, marginHorizontal: 0, marginTop: 0 });
   expect(capsule).toBe(TAB_CAPSULE);
   expect(options.tabBarItemStyle.borderRadius).toBe(capsule);
+});
+
+// The owner's phone of 8 Oct 2026: "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se lista digne na pola ili skroz". On Zadaci, and only there, the bar lies over the
+// bottom of the screen and slides by one value that the layout owns; the screen gets that value and the bar's whole height through a context and drives it from its list.
+it('draws the bar over the bottom of Zadaci and nowhere else, and gives that screen the one value that moves it', async () => {
+  await act(async () => { tree = create(<Tabs />); });
+  const zadaci = StyleSheet.flatten(optionsFor('zadaci', ['zadaci']).tabBarStyle) as Record<string, any>;
+  const others = ['index', 'dogovori'].map(name => StyleSheet.flatten(optionsFor(name, [name]).tabBarStyle) as Record<string, any>);
+  for (const other of others) {
+    expect(other.position).toBeUndefined(); expect(other.transform).toBeUndefined();
+    expect(other.marginBottom).toBe(24); // the system's inset (the window's 24), as it always was
+  }
+  const normal = others[0];
+  // Over the bottom of the screen, so the map and the list have the whole height; the margin under the bar becomes white padding inside it, so the bar still reaches the bottom.
+  expect(zadaci).toMatchObject({ position: 'absolute', left: 0, right: 0, bottom: 0, marginBottom: 0, paddingBottom: normal.marginBottom, borderRadius: 0 });
+  expect(zadaci.height).toBe(normal.height + normal.marginBottom);
+  const bar = mockBar!;
+  expect(bar).not.toBeNull();
+  expect(bar.height).toBe(normal.height + normal.marginBottom);
+  // The bar is where it always was while the value is 0, and is carried by its own height (and a pixel, for its shadow) off the bottom when the value is 1: a translation, never a change of size.
+  const away = () => zadaci.transform[0].translateY.__getValue() as number;
+  expect(away()).toBe(0);
+  bar.hidden.setValue(1);
+  expect(away()).toBe(bar.height + 1);
+  bar.hidden.setValue(0.5);
+  expect(away()).toBeCloseTo((bar.height + 1) / 2, 5);
 });
 
 it('the new tab surface preserves navigator press/long-press handlers and exposes the selected tab', async () => {

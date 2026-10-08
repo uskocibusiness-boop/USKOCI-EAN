@@ -42,12 +42,13 @@ function Applications({ rows, loading = false }: { rows: MojaPrijavaProjekcija[]
     onRefresh={noop} onExplore={noop} onProfile={noop} onBack={noop} onReview={noop} onClose={noop} onEdit={noop} onChange={noop} onCancelEdit={noop}
     onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />;
 }
-test('Moje prijave names no app mode, offers tabs with counts as real tabs, and gives each application the actions its state allows', async () => {
+test('Moje prijave names no app mode, parts its applications into groups with their counts instead of tabs, and gives each application the actions its state allows', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED'), application('b', 'SELECTED'), application('c', 'STALE_REVIEW_REQUIRED')]} />); });
   const copy = texts();
   expect(copy).toContain('Moje prijave'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
-  for (const tab of ['Sve', 'Čeka te', 'Aktivne', 'Završene']) expect(byLabel(tab).props.accessibilityRole).toBe('tab');
-  expect(byLabel('Sve').props.accessibilityState).toEqual({ selected: true });
+  // The approved draft U8: what waits for the other side, what was chosen, what is over - each group with its count, and no tabs.
+  expect(presses().filter(node => node.props.accessibilityRole === 'tab')).toHaveLength(0);
+  expect(copy).toContain('Čeka odgovor · 2'); expect(copy).toContain('Izabrana · 1'); expect(copy).not.toContain('Završene');
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Zadatak je izmenjen.'); expect(copy).toContain('6.000 RSD');
   expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene zadatka: Unos ormara c');
   // Review r4 item 1: the review foot's spoken name now starts with its visible words (WCAG 2.5.3); it was "Pregledaj izmene: …".
@@ -67,7 +68,8 @@ test('Prijave loading shows placeholders and a spoken status; the empty state ha
   await act(async () => { tree = create(<Applications rows={[]} />); });
   // Step 5c (2026-09-24) pinned the old first-run title "Tvoja sledeća prilika."; the empty state is now the one
   // StateView, in the words every list uses for its first run ("Još nemaš Dogovor", "Još nemaš Zadatak").
-  expect(texts()).toContain('Još nemaš prijavu'); expect(brand()).toEqual(['Istraži zadatke']);
+  // An object and the one way on ("Pronađi zadatak"); no sentence that teaches.
+  expect(texts()).toContain('Još nemaš prijavu'); expect(brand()).toEqual(['Pronađi zadatak']); expect(texts()).not.toContain('Kad se prijaviš');
 });
 
 // Review r4 item 5: the states of Moje prijave that a later change could silently break.
@@ -79,12 +81,39 @@ describe('Moje prijave states', () => {
     onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} {...patch} />;
   const tabs = () => presses().filter(node => node.props.accessibilityRole === 'tab');
 
-  test('with no application at all there are no tabs to switch between, only the first run', async () => {
+  test('with no application at all there is only the first run; with some there are groups, still no tabs', async () => {
     await act(async () => { tree = create(make()); });
     expect(tabs()).toHaveLength(0);
     expect(texts()).toContain('Još nemaš prijavu');
     await act(async () => tree.update(make({ rows: [application('a', 'SUBMITTED')] })));
-    expect(tabs().map(node => node.props.accessibilityLabel)).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']);
+    expect(tabs()).toHaveLength(0); expect(texts()).toContain('Čeka odgovor · 1');
+  });
+
+  // The groups are the states the read gives, in the draft's order; a group with nothing in it is not drawn; what asks for the person stands first in its
+  // group, and the application that was asked for (a notification, the receipt) stands before even that.
+  test('parts the applications by state, draws no empty group, and puts what asks for the person first in its group', async () => {
+    const heads = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.props.accessibilityRole === 'header' && / · \d+$/.test(String(node.props.children)))
+      .map(node => node.props.children);
+    const order = () => labels().filter(label => String(label).startsWith('Otvori zadatak: ')).map(label => String(label).slice('Otvori zadatak: '.length));
+    const rows = [application('sent', 'SUBMITTED'), application('seen', 'VIEWED'), application('stale', 'STALE_REVIEW_REQUIRED'), application('gone', 'WITHDRAWN', { mozePovuci: false }),
+      application('over', 'CLOSED', { mozePovuci: false }), application('won', 'SELECTED')];
+    await act(async () => { tree = create(make({ rows })); });
+    expect(heads()).toEqual(['Čeka odgovor · 3', 'Izabrana · 1', 'Završene · 2']);
+    // The changed task asks, so it leads its group; the others keep the order of the read.
+    expect(order()).toEqual(['Unos ormara stale', 'Unos ormara sent', 'Unos ormara seen', 'Unos ormara won', 'Unos ormara gone', 'Unos ormara over']);
+    await act(async () => tree.update(make({ rows, focusId: 'seen' })));
+    expect(order().slice(0, 3)).toEqual(['Unos ormara seen', 'Unos ormara stale', 'Unos ormara sent']);
+    await act(async () => tree.update(make({ rows: [application('won', 'SELECTED'), application('over', 'CLOSED', { mozePovuci: false })] })));
+    expect(heads()).toEqual(['Izabrana · 1', 'Završene · 1']);
+  });
+
+  test('marks the application that was just sent in its chip, for as long as it is named, and no other', async () => {
+    const chips = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'status-chip').map(node => node.props.accessibilityLabel);
+    await act(async () => { tree = create(make({ rows: [application('a', 'SUBMITTED'), application('b', 'SUBMITTED')], focusId: 'b', freshId: 'b' })); });
+    expect(chips()).toEqual(['Poslata, upravo', 'Poslata']);
+    expect(byLabel('Otvori zadatak: Unos ormara b').props.accessibilityValue.text).toMatch(/^Poslata, upravo, /);
+    await act(async () => tree.update(make({ rows: [application('a', 'SUBMITTED'), application('b', 'SUBMITTED')], focusId: 'b', freshId: null })));
+    expect(chips()).toEqual(['Poslata', 'Poslata']);
   });
 
   test.each([
@@ -144,9 +173,9 @@ test('the public Task leads with its title and four facts, offers the requester 
   // Recomposed from zero (owner, 2026-09-23): no status box repeating what the action already says ("Traži ponude" over
   // a fixed price of 9.000 RSD said the opposite of the price). Potrebno is heard as words, not as a slash.
   expect(copy).not.toContain('Traži ponude'); expect(copy).not.toContain('Prijave su otvorene');
-  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0/2');
-  // The facts are rows with one spoken sentence each (`FactRow`), in the order the page reads: the amount, where, when, how many.
-  for (const fact of ['Cena: 9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '2 osobe, 0/2 popunjeno']) {
+  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('Traži 2 osobe'); expect(copy).not.toMatch(/0\/2|popunjeno/);
+  // The facts are rows with one spoken sentence each (`FactRow`), in the order the page reads: what it pays, where, when, how many (in words, only because it is more than one).
+  for (const fact of ['Budžet 9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', 'Traži 2 osobe']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('4,8');
@@ -186,14 +215,16 @@ test('an open price is a word addressed to the person applying, never the amount
   await act(async () => { tree = create(<PublicNeedPresentation need={{ ...need, rezimCene: 'OFFERS', ponudjenaCena: undefined }} loading={false} error={false}
     missing={false} stale={false} busy={false} canApply canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication}
     back={noop} retry={noop} apply={apply} />); });
-  // The word is the poster's own ("Tražim ponude", the owner's words of 8 Oct 2026), in the heading type and never in the amount's.
+  // The word is the poster's own ("Tražim ponude", the owner's words of 8 Oct 2026), a fact like the others in the body type and never in the amount's.
   const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
-  expect(price.props.children).toBe('Tražim ponude'); expect(price.props.variant).toBe('heading');
+  expect(price.props.children).toBe('Tražim ponude'); expect(price.props.variant).toBe('body');
   // A task with no fixed price is answered with an offer.
   expect(brand()).toEqual(['Pošalji ponudu']);
   expect(texts()).not.toContain('RSD');
   expect(texts()).not.toContain('NaN');
-  expect(texts()).toContain('Ukupan iznos predlažeš u prijavi.');
+  // What it means is one tap away behind a small ⓘ (rule J5), not a sentence under the word.
+  expect(texts()).not.toContain('Ukupan iznos predlažeš u prijavi.');
+  expect(labels()).toContain('Objašnjenje: Tražim ponude');
 });
 test('closed applications remove the brand action and say so; the requester profile sheet shows loading, then only server facts, and closes', async () => {
   await act(async () => { tree = create(<Detail canApply={false} profile={{ loading: true, data: null }} />); });
@@ -215,12 +246,12 @@ test('closed applications remove the brand action and say so; the requester prof
 // standing in the other mode to go and change it in Profil.
 test('my own task offers my view of it, never an application to myself', async () => {
   await act(async () => { tree = create(<Detail relation={{ kind: 'OWNER' }} />); });
-  expect(texts()).toContain('Ovo je tvoj zadatak.'); expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu');
+  expect(texts()).not.toContain('Ovo je tvoj zadatak.'); expect(texts()).toContain('Tvoj zadatak'); expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu');
   await act(async () => byLabel('Otvori svoj zadatak').props.onPress()); expect(ownTask).toHaveBeenCalledTimes(1); expect(apply).not.toHaveBeenCalled();
 });
 test('a task I applied to offers my application, and my Dogovor once I am chosen', async () => {
   await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: null }} />); });
-  expect(texts()).toContain('Tvoja prijava na ovaj zadatak je već poslata.'); expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu');
+  expect(texts()).not.toContain('Tvoja prijava na ovaj zadatak je već poslata.'); expect(texts()).toContain('Prijava poslata'); expect(labels()).not.toContain('Pošalji prijavu'); expect(labels()).not.toContain('Pošalji ponudu');
   await act(async () => byLabel('Pogledaj svoju prijavu').props.onPress()); expect(ownApplication).toHaveBeenCalledTimes(1);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Detail relation={{ kind: 'APPLIED', applicationId: 'a1', agreementId: 'g1' }} />); });

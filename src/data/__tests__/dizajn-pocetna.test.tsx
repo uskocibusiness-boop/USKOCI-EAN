@@ -56,7 +56,7 @@ it.each([
   // card), `quiet` a working account with nothing waiting and nothing scheduled, `empty` a brand-new account.
   ['upcoming', 'Danas · 14:00–16:00', 'Jelena Nikolić'],
   ['long', 'Četvrtak, 15. okt · 22:00 – petak, 16. okt 06:00', 'Aleksandra Konstantinović-Radovanović'],
-  ['loose', '2 Dogovora bez tačnog termina · 1 Dogovor čeka završetak', '2 aktivna · 1 nacrt'],
+  ['loose', 'Predloži termin', '2 aktivna · 1 nacrt'],
   ['quiet', 'Ništa ne čeka tvoju odluku.', '2 aktivna · 1 nacrt'],
   ['empty', 'Još nemaš zadatak', 'Još nemaš prijavu'],
   ['unavailable', 'Ne možemo da učitamo Dogovore.', 'Ne možemo da učitamo ono što te čeka.'],
@@ -68,16 +68,18 @@ it.each([
   expect(tree.root.findAllByType('SafeAreaView' as React.ElementType)).toHaveLength(1);
   expect(tree.root.findAllByType('ScrollView' as React.ElementType)).toHaveLength(1);
   expect(text()).toContain(first); expect(text()).toContain(second);
-  // The block exists where an appointment lies ahead (a card), where an active Dogovor has no confirmed term (one quiet line)
-  // and where the read failed (its own words); the others draw none and no placeholder for it.
-  expect(text().includes('Raspored')).toBe(['upcoming', 'long', 'loose', 'unavailable'].includes(scene));
-  // Only an appointment ahead is a card; the quiet line of `loose` never shows the Dogovor's own title or its display sentence.
+  // The block ("Sledeće") exists where an appointment lies ahead (a card) and where the read failed (its own words); the others draw none and
+  // no placeholder for it. An active Dogovor with no confirmed term has no block any more (the owner's phone, 8 Oct 2026): it is asked for
+  // under "Čeka te". The word "Raspored" is not on Početna at all: the schedule has one door, Dogovori (the approved blueprint, Z5).
+  expect(text().includes('Sledeće')).toBe(['upcoming', 'long', 'unavailable'].includes(scene));
+  expect(text()).not.toContain('Raspored'); expect(text()).not.toContain('Ceo raspored');
+  // Only an appointment ahead is a card; `loose` never shows the Dogovor's own title as an appointment or its display sentence.
   expect(text().includes('Montaža police u hodniku') || text().includes('Prenos troseda')).toBe(scene === 'upcoming' || scene === 'long');
   if (scene === 'loose') {
-    expect(text()).not.toContain('Krečenje stana u belo'); expect(text()).not.toContain('Termin nije potvrđen');
+    expect(text()).not.toContain('Termin nije potvrđen'); expect(text()).not.toContain('bez tačnog termina');
     expect(presentation.props.home.agreements.value.rows[0]).not.toHaveProperty('raspored');
-    // "Početna ne laže": a Dogovor without a term is asked about under "Čeka te", so nothing there says that nothing waits.
-    expect(text()).toContain('Predloži termin'); expect(text()).toContain('Termin još nije dogovoren.');
+    // "Početna ne laže": a Dogovor without a term is asked about under "Čeka te" (the task and the action, once), so nothing there says that nothing waits.
+    expect(text()).toContain('Čišćenje posle renoviranja'); expect(text()).toContain('Predloži termin'); expect(text()).not.toContain('Termin još nije dogovoren.');
     expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
   }
   // The brand-new account's one quiet row (N4: "Kako radi", three steps, "Sakrij") stands in the empty scene and nowhere else.
@@ -85,8 +87,8 @@ it.each([
   if (scene === 'empty') for (const step of ['Objavi ili pronađi', 'Dogovori se', 'Oceni']) expect(text()).toContain(step);
   // What is counted is Dogovori, in every scene: never "zadatak" for an agreement.
   expect(text()).not.toMatch(/zadatak bez|zadatka bez|zadataka bez/);
-  if (scene === 'upcoming') expect(text()).toContain('Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina');
-  if (scene === 'long') expect(text()).toContain('Ove nedelje još 12 Dogovora · 21 Dogovor bez tačnog termina · 3 Dogovora čekaju završetak');
+  if (scene === 'upcoming') expect(text()).toContain('Ove nedelje još 2 Dogovora');
+  if (scene === 'long') expect(text()).toContain('Ove nedelje još 12 Dogovora');
   await act(async () => {
     for (const control of tree.root.findAll(node => ['Press', 'Action'].includes(String(node.type)))) control.props.onPress?.();
     tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.onRefresh();
@@ -96,13 +98,14 @@ it.each([
 });
 
 // 2026-10-08: the scenes that show what the phone adds to "Čeka te" and the states of the screen itself. Each is the real Home with its
-// own fixture and no live action: `waits` holds every kind of row it can hold (a choice of applications, a change to answer, a Dogovor
-// with no term, a draft, a rating) and the work profile still to be set up; `worker` the "Slobodan sam sada" switch of an active profile;
-// `stale` the last overview kept after a failed read; `loading` the first read on its way.
+// own fixture and no live action: `waits` has more than "Čeka te" holds (a choice of applications, a change to answer, a Dogovor with no
+// term, a draft, a rating): three are drawn and the rest is counted, and the work profile is still to be set up; `rated` is a choice and a
+// rating with room to spare; `worker` the "Mogu odmah" switch of an active profile; `stale` the last overview kept after a failed read;
+// `loading` the first read on its way.
 it.each([
-  ['waits', ['Pomoć pri selidbi', 'Odgovori na predlog izmene', 'Predloži termin', 'Termin još nije dogovoren.', 'Nastavi nacrt',
-    'Oceni 2 završena Dogovora', 'Podesi radni profil', 'Raspored']],
-  ['worker', ['Slobodan sam sada', 'Uključeno. Važi dok ga ne isključiš.', 'Ništa ne čeka tvoju odluku.']],
+  ['waits', ['Pomoć pri selidbi', 'Odgovori na predlog izmene', 'Predloži termin', 'Podesi radni profil', 'Sledeće']],
+  ['rated', ['Pomoć pri selidbi', 'Oceni 2 završena Dogovora']],
+  ['worker', ['Mogu odmah', 'Uključeno', 'Ništa ne čeka tvoju odluku.']],
   ['stale', ['Nema veze. Prikazano je poslednje učitano.', 'Pomoć pri selidbi', 'Danas · 14:00–16:00']],
   ['loading', ['Objavi zadatak', 'Moji zadaci', 'Moje prijave']],
 ])('renders the real Home for the scene %s with its own words and no live action', async (scene, words) => {
@@ -110,9 +113,14 @@ it.each([
   await render();
   expect(tree.root.findByType(HomePresentation).parent?.type).toBe(Gallery);
   for (const word of words) expect(text()).toContain(word);
+  // "Čeka te" holds three things at most (the approved blueprint, T3): in `waits` the draft and the ratings are the two it counts instead.
+  if (scene === 'waits') {
+    expect(text()).not.toContain('Nastavi nacrt'); expect(text()).not.toContain('Oceni 2 završena Dogovora');
+    expect(text()).toMatch(/I još\s+2\s+u tvojim zadacima, prijavama i Dogovorima\./);
+  } else expect(text()).not.toMatch(/I još\s+\d+\s+u tvojim/);
   // The profile's setup row stands only where the profile still has to be set up; the switch only where it is active.
   expect(text().includes('Podesi radni profil')).toBe(scene === 'waits');
-  expect(text().includes('Slobodan sam sada')).toBe(scene === 'worker');
+  expect(text().includes('Mogu odmah')).toBe(scene === 'worker'); expect(text()).not.toContain('Slobodan sam');
   expect(text().includes('Nema veze')).toBe(scene === 'stale');
   await act(async () => {
     for (const control of tree.root.findAll(node => ['Press', 'Action'].includes(String(node.type)))) control.props.onPress?.();
@@ -120,6 +128,24 @@ it.each([
   });
   expect(mockInbox).not.toHaveBeenCalled();
   for (const navigate of Object.values(mockRouter)) expect(navigate).not.toHaveBeenCalled();
+});
+
+// What the owner's phone showed on 8 Oct 2026, drawn by the real Home: the task and the action of each thing that waits, once; nothing of Raspored
+// (no appointment, and no line of counts); each list with its number (the draft that "Čeka te" offers is also counted in its list, as the
+// approved blueprint writes it: "8 aktivnih · 1 nacrt"); and "Mogu odmah".
+it('draws the owner\'s own overview as the task and the action of each thing that waits, with no Raspored block and no repeated sentence', async () => {
+  mockParams = { scene: 'owner' };
+  await render();
+  const copy = text();
+  for (const word of ['Predloži termin', 'Krečenje stana od 80 m² u belo', 'Nastavi nacrt', 'Prevoz od Petrovaradina do centra Novog Sada', 'Moji zadaci', '8 aktivnih · 1 nacrt', 'Moje prijave', '1 čeka odgovor', 'Mogu odmah', 'Uključeno'])
+    expect(copy).toContain(word);
+  for (const word of ['Raspored', 'Sledeće', 'bez tačnog termina', 'Termin još nije dogovoren.', 'Nacrt još nije objavljen.', 'Slobodan sam', 'Važi dok ga ne isključiš', 'aktivna']) expect(copy).not.toContain(word);
+});
+
+it.each(['1.15', '1.3'])('draws the owner\'s overview at the text size %s without changing what it says', async size => {
+  mockParams = { scene: 'owner', text: size };
+  await render();
+  expect(text()).toContain('Predloži termin'); expect(text()).toContain('Mogu odmah'); expect(text()).not.toContain('Raspored');
 });
 
 it.each([undefined, 'not-a-scene', ['flexible'], ['empty', 'upcoming']])('falls back to the fixed upcoming example for an unallowlisted query (%j)', async scene => {

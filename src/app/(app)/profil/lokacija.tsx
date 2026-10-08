@@ -18,6 +18,7 @@ import { CountryField, selectableCountry, useCountryOptions } from '../../../ui/
 import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
 import { displayedPinPosition } from '../../../ui/location/ResolvedPinMap.types';
 import { WorkerAreaSearch } from '../../../ui/location/WorkerAreaSearch';
+import { InfoTitle } from '../../../ui/settings/InfoTitle';
 import { WorkerProfileFrame } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import type { createConfiguredLocationResolver } from '../../../data/configuredLocationResolver';
 
@@ -46,8 +47,17 @@ function LiveWorkerLocationForm(props: WorkerLocationFormProps) {
   const countryOptions = useCountryOptions();
   return <ScopedWorkerLocationForm {...props} countryOptions={countryOptions} />;
 }
-/** Common distances, one tap each. They only fill the field; nothing stores them as a vocabulary. */
-const RADII = [5, 10, 20, 50, 100] as const;
+/**
+ * The distances, one tap each: the ONE control of the radius (owner's phone, 8 Oct 2026: the same radius stood twice, as a field with "100" and as chips).
+ * They span the whole range the server accepts (1 to 200 km). A radius saved earlier that is not among them (say 30) gets its own chip, selected, so
+ * nothing that was saved is lost or hidden; nothing stores them as a vocabulary.
+ */
+const RADII = [5, 10, 20, 50, 100, 200] as const;
+export function radiusChoices(radius: string): number[] {
+  const saved = /^\d{1,3}$/.test(radius) ? Number(radius) : NaN;
+  const own = Number.isInteger(saved) && saved >= 1 && saved <= 200 && !(RADII as readonly number[]).includes(saved) ? [saved] : [];
+  return [...RADII, ...own].sort((a, b) => a - b);
+}
 const stacked = ({ body, footer }: WorkerLocationParts) => <View style={{ gap: 24 }}>{body}{footer}</View>;
 const samePosition = (a: CoarsePosition | null, b: CoarsePosition | null) =>
   a === b || (!!a && !!b && a.latitude === b.latitude && a.longitude === b.longitude);
@@ -65,7 +75,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
     if (disabled) return;
     change(); setPosition(null); setMapEpoch(value => value + 1); setError(false);
   };
-  // Typing a radius and tapping a preset both prepare it; pressing save confirms the whole area.
+  // Choosing a distance prepares it; pressing save confirms the whole area.
   const changeRadius = (text: string) => { setRadius(text); setError(false); };
   // Right after a confirmed save the form is what was saved; until something changes the footer says so, instead of an
   // empty confirmation and a grey save that read as "confirm it again" (review of step 9, 2026-09-24).
@@ -95,10 +105,9 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
     <LocationField label="Grad ili mesto rada" value={city} maxLength={160} editable={!disabled}
       onChangeText={text => changePlace(() => setCity(text))} />
     <View style={s.radius}>
-      <LocationField label="Radijus rada u kilometrima" value={radius} keyboardType="number-pad" maxLength={3}
-        editable={!disabled} hint="Od 1 do 200 km oko sačuvanog područja." onChangeText={changeRadius} />
-      <View accessibilityRole="radiogroup" accessibilityLabel="Brzi izbor radijusa" style={s.pills}>
-        {RADII.map(km => { const checked = Number(radius) === km;
+      <T variant="meta" tone="muted">Radijus rada</T>
+      <View accessibilityRole="radiogroup" accessibilityLabel="Radijus rada" style={s.pills}>
+        {radiusChoices(String(location.radiusKm)).map(km => { const checked = Number(radius) === km;
           return <Press key={km} accessibilityRole="radio" accessibilityLabel={`${km} km`} accessibilityState={{ checked, disabled }}
             disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.97} onPress={() => { if (!disabled) changeRadius(String(km)); }}
             style={[s.pill, checked && s.pillOn]}>
@@ -107,8 +116,9 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
       </View>
     </View>
     {country && city.trim() ? <View style={locationStyles.section}>
-      <T variant="heading" accessibilityRole="header">Približno područje na mapi</T>
-      <T variant="note" tone="muted">Označi centar područja rada. Čuva se približna tačka, zaokružena na oko kilometar, bez kućne adrese.</T>
+      {/* The instruction stays; how precisely the point is kept is behind the "ⓘ" at the title (owner's phone, 8 Oct 2026: too much explaining text). */}
+      <InfoTitle title="Približno područje na mapi" testID="area-map-info" info={['Čuva se približna tačka, zaokružena na oko kilometar.']} />
+      <T variant="note" tone="muted">Označi centar područja.</T>
       <WorkerAreaSearch city={city} countryCode={country} disabled={disabled} resolver={resolver}
         scopeKey={`${location.accountId}:${location.profileId}:${location.revision}:${mapEpoch}:${searchEpoch}`}
         onChoose={next => { if (!disabled) { setPosition(next); setError(false); } }} />
@@ -122,7 +132,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
       {position ? <V2Action label="Ukloni približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
         onPress={() => { if (!disabled) { setPosition(null); setMapEpoch(value => value + 1); } }} /> : null}
     </View> : null}
-    {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada i ceo broj od 1 do 200 km.</T> : null}
+    {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada.</T> : null}
   </View>;
   // After an unknown outcome, or a read that failed while the form stayed, the read replaces the save: the editor refuses
   // any save until the saved state is read again.

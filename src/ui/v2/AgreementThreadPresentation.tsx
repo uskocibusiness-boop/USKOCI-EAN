@@ -20,9 +20,10 @@ type Props = {
   /** Inbox entry returns to the inbox; the task identity still opens accepted terms. */
   onBack?: () => void;
   /**
-   * The Dogovor's "···" menu, the same one the overview's bar opens (change terms, share the number, report a problem, cancel,
-   * and "Prijavi ili blokiraj osobu"). Absent when the Dogovor offers none. Drawn in the full bar only: with the keyboard up the
-   * bar keeps Back and "Uslovi", and the menu is one dismissal of the keyboard away.
+   * The Dogovor's "···" menu (change terms, share the number, report a problem, cancel, and "Prijavi ili blokiraj osobu"): the conversation's
+   * own, since the overview has none - its actions are rows of the page (J15) and the person is one tap from them, on the Pregled tab. Absent
+   * when the Dogovor offers none. Drawn in the full bar only: with the keyboard up the bar keeps Back and "Uslovi", and the menu is one
+   * dismissal of the keyboard away.
    */
   onMore?: () => void;
   waiting?: string | null;

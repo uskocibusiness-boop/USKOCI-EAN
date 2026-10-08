@@ -85,7 +85,7 @@ describe('the candidate row', () => {
     // The message is two lines of the row; the whole of it opens with the application (the spoken text says so).
     expect(row.findAll(node => node.props.children === '„Dolazimo sa trakama i kombijem.“')[0].props.numberOfLines).toBe(2);
     // No proposed interval: the task's own term is what applies, and it is on every card (a proposal says so: the next test).
-    expect(texts(row)).not.toContain('Predlog'); expect(texts(row)).toContain('20. sep · 10:00–11:00');
+    expect(texts(row)).not.toContain('Može:'); expect(texts(row)).toContain('20. sep · 10:00–11:00');
     // Essential facts remain available when the person has disabled screen-reader hints.
     expect(row.props.accessibilityValue.text).toBe('Poslata. Ocena 4,8, 11 ocena. Termin: 20. sep · 10:00–11:00. Ponuda: 4.500 RSD ukupno. 2 osobe. '
       + 'Ima: Kombi · Trake. Poruka: „Dolazimo sa trakama i kombijem.“. Otvori prijavu za celu poruku.');
@@ -95,10 +95,22 @@ describe('the candidate row', () => {
     await act(async () => row.props.onPress()); expect(opened).toEqual(['application-1']);
   });
 
+  it('has the foot "Izaberi" as a target of its own under the body, only for an application that can be chosen now, and it opens the application', async () => {
+    const opened: string[] = [];
+    await act(async () => { tree = create(<CandidateListPresentation need={need} candidates={[k(), k({ prijavaId: 'application-2', ime: 'Nikola Ilić', stanje: 'STALE', mozeIzabrati: false }),
+      k({ prijavaId: 'application-3', ime: 'Ana Jovanović', stanje: 'SELECTED', mozeIzabrati: false })]} open={candidate => opened.push(candidate.prijavaId)} back={noop} refresh={noop} />); });
+    const foot = pressNamed('Izaberi: Milan Petrović');
+    expect(foot).toBeDefined(); expect(texts(foot)).toBe('Izaberi');
+    expect(pressNamed('Izaberi: Nikola Ilić')).toBeUndefined(); expect(pressNamed('Izaberi: Ana Jovanović')).toBeUndefined();
+    // It is not inside the body (the body is one press; a press inside a press does nothing on a phone).
+    expect(pressNamed('Pogledaj prijavu: Milan Petrović').findAll(node => node === foot)).toHaveLength(0);
+    await act(async () => foot.props.onPress()); expect(opened).toEqual(['application-1']);
+  });
+
   it('shows a proposed interval in Serbian time as the person\'s own proposal, and says why an application that cannot simply be chosen cannot', async () => {
     await render(list([k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z', stanje: 'STALE', mozeIzabrati: false })]));
     const row = pressNamed('Pogledaj prijavu: Milan Petrović');
-    expect(texts(row)).toMatch(/Predlog: 20\. sep( 2026)? · 10:00–11:00/);
+    expect(texts(row)).toMatch(/Može: 20\. sep( 2026)? · 10:00–11:00/);
     // A sent application wears no chip; the reason the server gives is the card's one mark, a dot and the words in the warn colour.
     expect(texts(row)).not.toContain('Poslata'); expect(texts(row)).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
     const status = row.findAll(node => node.props.children === 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')[0];
@@ -130,13 +142,13 @@ describe('the candidate row', () => {
   });
 
   // "Ponude preko stola": one mark per card for what the whole list says by comparing, and only when it is true and the list is whole.
-  it('says "Najniža cena" and "Najviša ocena" only among the applications that can still be chosen, and only for a list that is whole', () => {
+  it('says "Najniža cena" and "Najbolja ocena" only among the applications that can still be chosen, and only for a list that is whole', () => {
     const cheap = k({ prijavaId: 'cheap', cena: { iznos: 3900, valuta: 'RSD', prikaz: '3.900 RSD' }, ocenaTekst: '—', recenzijeTekst: '' });
     const best = k({ prijavaId: 'best', ocenaTekst: '4,9', recenzijeTekst: '12 ocena' });
     const other = k({ prijavaId: 'other', ocenaTekst: '4,2', recenzijeTekst: '5 ocena', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
     const marks = candidateMeasures([cheap, best, other], true);
     expect([marks.get('cheap'), marks.get('best'), marks.get('other')]).toEqual([MEASURE_LOWEST_PRICE, MEASURE_BEST_RATING, undefined]);
-    expect([MEASURE_LOWEST_PRICE, MEASURE_BEST_RATING]).toEqual(['Najniža cena', 'Najviša ocena']);
+    expect([MEASURE_LOWEST_PRICE, MEASURE_BEST_RATING]).toEqual(['Najniža cena', 'Najbolja ocena']);
     // A list that is not whole says nothing: a lower price or a better rating may be on the page that was not read.
     expect(candidateMeasures([cheap, best, other], false).size).toBe(0);
     // One application is not the lowest of anything; one rating is not the best of anything; nobody is ranked who cannot be chosen.
@@ -189,7 +201,7 @@ describe('the candidate row', () => {
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: [], vozila: [], licence: [] } }))).toBeNull();
     expect(candidateTerm({ predlozeniPocetak: null, predlozeniKraj: null }, null, 'Sutra, fleksibilno')).toBe('Sutra, fleksibilno');
     expect(candidateTerm({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z' }, 'Europe/Belgrade', 'x'))
-      .toMatch(/^Predlog: 20\. sep( 2026)? · 10:00–11:00/);
+      .toMatch(/^Može: 20\. sep( 2026)? · 10:00–11:00/);
     // An interval that is not one (the end before the start) is no proposal: the task's own term applies.
     expect(candidateTerm({ predlozeniPocetak: '2026-09-20T09:00:00Z', predlozeniKraj: '2026-09-20T08:00:00Z' }, 'Europe/Belgrade', 'Sutra, fleksibilno')).toBe('Sutra, fleksibilno');
     expect(candidateSpoken(k({ napomena: '' }), 'Sutra, fleksibilno', 'Europe/Belgrade'))
@@ -266,14 +278,13 @@ describe('the candidate row', () => {
     expect(row.props.accessibilityValue.text).toContain('Ponuda: 125.000 RSD ukupno. 123 osobe');
   });
 
-  it('draws the empty list as the one empty state, saying what happens next without promising anyone will apply', async () => {
+  it('draws the empty list as the one empty state: a picture and the one fact, with no promise and no button', async () => {
     await render(list([]));
     expect(texts()).toContain('Još nema prijava');
-    // Review r4 rk item 8: comparing needs two applications, so the empty list no longer promises it ("… i moći ćeš da je
-    // uporediš pre izbora" was pinned here). It speaks of the application, not of "ponuda" (plan 2.12).
-    expect(texts()).toContain('Kad neko pošalje prijavu za ovaj zadatak, videćeš je ovde.');
-    expect(texts()).not.toContain('uporediš');
-    expect(pressNamed('Osveži prijave')).toBeDefined();
+    // Review r4 rk item 8: comparing needs two applications, so the empty list never promises it. The owner's phone, 8 Oct 2026: no sentence says what
+    // will happen next ("Kad neko pošalje prijavu…") and there is no "Osveži prijave": the list is read again by pulling it down.
+    expect(texts()).not.toMatch(/Kad neko|videćeš|uporediš/);
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Osveži prijave')).toHaveLength(0);
   });
 });
 
@@ -341,8 +352,8 @@ describe('the comparison', () => {
     expect(texts(nikola)).toContain('20. sep · 10:00–11:00');
     await act(async () => tree.update(list([k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z' }),
       k({ prijavaId: 'application-2', ime: 'Ana Jovanović' })])));
-    expect(texts(pressNamed('Otvori prijavu: Milan Petrović'))).toMatch(/Predlog: 20\. sep( 2026)? · 10:00–11:00/);
-    expect(texts(pressNamed('Otvori prijavu: Ana Jovanović'))).not.toContain('Predlog');
+    expect(texts(pressNamed('Otvori prijavu: Milan Petrović'))).toMatch(/Može: 20\. sep( 2026)? · 10:00–11:00/);
+    expect(texts(pressNamed('Otvori prijavu: Ana Jovanović'))).not.toContain('Može:');
   });
 
   it('gives a lone last offer the width of one column, not the whole row', async () => {
@@ -392,15 +403,15 @@ describe('the order of the applications', () => {
     expect(all.map(candidate => candidate.prijavaId)).toEqual(['a', 'b', 'c', 'd', 'e']);
   });
 
-  it('offers "Najbolje ocenjeni" beside the other two orders and orders the loaded list by it, without a new read', async () => {
+  it('offers "Najbolja ocena" beside the other two orders and orders the loaded list by it, without a new read', async () => {
     const refresh = jest.fn();
     await render(<CandidateListPresentation need={need} candidates={[a, b, c, d, e]} open={noop} back={noop} refresh={refresh} />);
     expect(names()).toEqual(['Ana', 'Bojan', 'Cvetko', 'Dragan', 'Emil']);
-    await act(async () => pressNamed('Redosled prijava: Redom pristizanja').props.onPress());
-    expect(['Redom pristizanja', 'Najniža cena', 'Najbolje ocenjeni'].map(label => pressNamed(label) !== undefined)).toEqual([true, true, true]);
-    await act(async () => pressNamed('Najbolje ocenjeni').props.onPress());
+    await act(async () => pressNamed('Redosled prijava: Najranije').props.onPress());
+    expect(['Najranije', 'Najniža cena', 'Najbolja ocena'].map(label => pressNamed(label) !== undefined)).toEqual([true, true, true]);
+    await act(async () => pressNamed('Najbolja ocena').props.onPress());
     expect(names()).toEqual(['Cvetko', 'Bojan', 'Ana', 'Emil', 'Dragan']);
-    expect(pressNamed('Redosled prijava: Najbolje ocenjeni')).toBeDefined(); expect(refresh).not.toHaveBeenCalled();
+    expect(pressNamed('Redosled prijava: Najbolja ocena')).toBeDefined(); expect(refresh).not.toHaveBeenCalled();
   });
 });
 
@@ -416,21 +427,21 @@ describe('the offer sheet', () => {
     const choose = jest.fn();
     await render(offer({ choose }));
     expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1);
-    expect(green()).toEqual(['Izaberi ovu prijavu']);
-    await act(async () => pressNamed('Izaberi ovu prijavu').props.onPress());
+    expect(green()).toEqual(['Izaberi osobu']);
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
     // A question (a verb and a question mark) and under it what is accepted and what follows (plan 2.3), in a centred dialog.
-    expect(choose).not.toHaveBeenCalled(); expect(texts()).toContain('Izabrati ovu prijavu?');
+    expect(choose).not.toHaveBeenCalled(); expect(texts()).toContain('Izabrati ovu osobu?');
     expect(texts()).toContain('Prihvataš: 4.500 RSD ukupno · 2 osobe · 20. sep · 10:00–11:00. Dogovor odmah važi za obe strane. Pri izboru proveravamo da li izabrana osoba i dalje ima slobodan termin.');
     expect(tree.root.findAll(node => node.props.testID === 'confirm-dialog')).toHaveLength(1);
     // Review r4 rk item 5: the confirm says the button's own words (it said "Izaberi ovu Prijavu").
-    expect(confirmButton().props.accessibilityLabel).toBe('Izaberi ovu prijavu');
+    expect(confirmButton().props.accessibilityLabel).toBe('Izaberi osobu');
     await act(async () => confirmButton().props.onPress());
     expect(choose).toHaveBeenCalledTimes(1);
   });
 
   it('names the term that applies in the question: the person\'s own proposal, or else the task\'s', async () => {
     await render(offer({ candidate: k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z' }) }));
-    await act(async () => pressNamed('Izaberi ovu prijavu').props.onPress());
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
     // On a phone that is not in Serbian time the term says so ("po vremenu u Srbiji"); in Serbian time it does not need to.
     expect(texts()).toMatch(/Prihvataš: 4\.500 RSD ukupno · 2 osobe · 20\. sep( 2026)? · 10:00–11:00( \(po vremenu u Srbiji\))?\. Dogovor odmah važi/);
   });
@@ -439,7 +450,7 @@ describe('the offer sheet', () => {
   it('retires an open question when the application changes, and the old question cannot choose', async () => {
     const choose = jest.fn();
     await render(offer({ choose }));
-    await act(async () => pressNamed('Izaberi ovu prijavu').props.onPress());
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
     const retained = confirmButton().props.onPress;
     await act(async () => tree.update(offer({ choose, candidate: k({ verzija: 3 }) })));
     expect(tree.root.findAll(node => node.props.testID === 'confirm-sheet-confirm')).toHaveLength(0);
@@ -560,7 +571,7 @@ describe('the offer sheet', () => {
     const full = tree.root.findAll(node => node.type === ('T' as unknown as React.ElementType) && node.props.children === note)[0];
     expect(full.props.selectable).toBe(true); expect(full.props.numberOfLines).toBeUndefined();
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Ukupno za 2 osobe: 4.500 RSD')).toHaveLength(1);
-    await act(async () => pressNamed('Izaberi ovu prijavu').props.onPress());
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
     expect(choose).not.toHaveBeenCalled();
     expect(texts()).toContain('Prihvataš: 4.500 RSD ukupno · 2 osobe · 20. sep · 10:00–11:00.');
     expect(texts()).toContain('Pri izboru proveravamo da li izabrana osoba i dalje ima slobodan termin.');

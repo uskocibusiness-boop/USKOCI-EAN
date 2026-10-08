@@ -59,6 +59,8 @@ export type PrijavaModel = {
   message: string | null;
   /** The application is over (withdrawn or not chosen). The chip says so; the words stay as readable as ever. */
   quiet?: boolean;
+  /** What the chip adds to its word, after a dot ("Poslata · upravo": the application that has just been sent). Never a second state. */
+  detail?: string;
 };
 
 /** The word of the model's state, as the chip says it. */
@@ -74,7 +76,7 @@ export const prijavaPriceSpoken = (price: PrijavaPrice) => price.kind === 'amoun
  */
 export function prijavaSpoken(model: PrijavaModel, options: { message?: string | null; messageLabel?: string } = {}): string {
   const message = options.message === undefined ? model.message : options.message;
-  return [prijavaStatusWord(model.status), model.reason?.text.replace(/\.$/, ''), model.term, `ponuda ${prijavaPriceSpoken(model.price)}`, model.people,
+  return [model.detail ? `${prijavaStatusWord(model.status)}, ${model.detail}` : prijavaStatusWord(model.status), model.reason?.text.replace(/\.$/, ''), model.term, `ponuda ${prijavaPriceSpoken(model.price)}`, model.people,
     message ? `${options.messageLabel ?? 'poruka'}: ${message}` : null].filter((part): part is string => typeof part === 'string' && part.trim().length > 0).join(', ');
 }
 
@@ -94,9 +96,9 @@ export function PrijavaPriceText({ price, large, people }: { price: PrijavaPrice
  * sentence (`prijavaSpoken`): the chip and the line are then not stops of their own. On a sheet, where nothing else says the state,
  * they are read.
  */
-export function PrijavaState({ status, reason, silent = false }: Pick<PrijavaModel, 'status' | 'reason'> & { silent?: boolean }) {
+export function PrijavaState({ status, reason, detail, silent = false }: Pick<PrijavaModel, 'status' | 'reason' | 'detail'> & { silent?: boolean }) {
   const state = <View style={s.state}>
-    <StatusChip status={status} />
+    <StatusChip status={status} detail={detail} />
     {reason ? <T variant="note" style={[s.reason, reason.tone === 'warn' && s.reasonWarn]}>{reason.text}</T> : null}
   </View>;
   return silent ? <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>{state}</View> : state;
@@ -116,7 +118,7 @@ export const PrijavaCard = memo(function PrijavaCard({ model, large, noteLines =
   const money = <PrijavaPriceText price={model.price} large={large} people={model.people} />;
   const term = model.showTerm === false ? null : <FactRow art="calendar" value={model.term} />;
   return <>
-    <PrijavaState status={model.status} reason={model.reason} silent />
+    <PrijavaState status={model.status} reason={model.reason} detail={model.detail} silent />
     {who.kind === 'person' ? <View style={s.head}>
       <View style={s.avatar}>{who.avatar}</View>
       <View style={s.person}><T variant="heading" style={s.title}>{who.name}</T>{who.trust}</View>

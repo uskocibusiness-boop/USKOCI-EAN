@@ -8,7 +8,7 @@ import { DetailTopBar } from '../system/DetailTopBar';
 import { FactArt } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { Glyph } from '../system/Glyph';
-import { tidyPlaceLabel } from '../location/placeText';
+import { cityLabel } from '../profile/cityLabel';
 import { layout, ruleWidth } from '../system/layout';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
@@ -18,8 +18,9 @@ import { ConversationArt } from '../system/ConversationArt';
 import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
-import { WorkerProfileSaved } from './WorkerProfileSaved';
-import { availabilityRowDetail, toolsAndVehiclesNote } from './workerProfileFacts';
+import { WorkerProfileSaved, type AvailableNowControl, type SavedProfilePart } from './WorkerProfileSaved';
+import { NameDifference, namesDiffer } from './NameDifference';
+import { availabilityRowDetail } from './workerProfileFacts';
 
 /**
  * Frame of the worker profile: back, title, keyboard-safe body, sticky footer. `/profil/razgovor` and `/profil/lokacija`
@@ -37,15 +38,16 @@ import { availabilityRowDetail, toolsAndVehiclesNote } from './workerProfileFact
  * sentence there, and hiding the whole footer made the tap look dead. Any other footer (the area confirmation, the AI
  * review) steps aside whole, because nothing in it answers a tap made while typing.
  */
-export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag }: {
+export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag, right }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
   scrollRef?: RefObject<ScrollView | null>; onScroll?: ScrollViewProps['onScroll']; onScrollBeginDrag?: ScrollViewProps['onScrollBeginDrag'];
+  /** At most one control in the bar's right place: the "ⓘ" with what the profile does with its data (`HeaderInfo`). */ right?: ReactNode;
 }) {
   const typing = useKeyboardShown();
   const keepsStatus = isValidElement(footer) && footer.type === WorkerProfileFooter;
   const aside = typing && !keepsStatus;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar backLabel={backLabel} title={title} onBack={back} />
+    <DetailTopBar backLabel={backLabel} title={title} onBack={back} right={right} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* The iOS number pad has no return key and iOS has no Back: dragging the body closes the keyboard (review 5b). */}
       <ScrollView ref={scrollRef} onScroll={onScroll} onScrollBeginDrag={onScrollBeginDrag} scrollEventThrottle={onScroll ? 16 : undefined}
@@ -180,8 +182,10 @@ function ProfileSummary({ text, label, muted = false }: { text: string; label: s
 
 /** Personal profile activation needs identity/capabilities and an area, never a permanent team. */
 export type WorkerActivationChecks = { basics: boolean; area: boolean; capacity?: boolean };
-const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Ime i bar jedna veština'], ['area', 'Područje rada']];
-export type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/profil/obavestenja' | '/podrska';
+// The name is not typed here any more (owner, 8 Oct 2026: one name for everything, and "Lični podaci" is where it is changed), so the first check says
+// what is still done here: the skills (and the account's name, which the work profile takes when it is activated).
+const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Veštine i ime naloga'], ['area', 'Područje rada']];
+export type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/profil/obavestenja' | '/profil/podaci' | '/podrska';
 
 /**
  * Whether tasks can be offered to you, first. Active is one line with a colored check. A draft is an open section with
@@ -217,42 +221,63 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   </View>;
 }
 
-export type WorkerProfileFocusRequest = { target: 'name' | 'skill' | 'tool' | 'vehicle'; token: number };
+export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; token: number };
 /**
  * AI is the main setup route. The same owned draft, save/readback and navigation guards govern manual corrections.
  *
- * `reading` (M3) draws the saved profile for reading: no pencil on any line, what the data does, and the two ways to
- * change it ("Izmeni razgovorom", and `onManual` for "Izmeni ručno", which the route answers by drawing this form again
- * without `reading`). `primaryTaken` says the route's footer already holds the screen's green primary.
+ * `reading` (M3; the product draft the owner approved on 8 Oct 2026, P3) draws the saved profile for reading (`WorkerProfileSaved`): the card others see, the
+ * rows "Šta radiš", "Gde", "Kada" and "Oprema", and the white "Popuni uz asistenta". A row that changes something answers with `onEditPart`, which the route
+ * turns into this form drawn again without `reading`, with that part's section open (`openSection`, which opens it without putting the keyboard up). `face`,
+ * `rating` and `availableNow` are the card's face and rating line and the switch "Mogu odmah" (the route saves it).
+ *
+ * ONE NAME (owner, 8 Oct 2026, "Može, dobro vam jedno ime za sve."): there is no field for the name here any more. The person's name is the
+ * account's (`accountName`), which "Lični podaci" changes, and the work profile takes it. It is said where it was typed, as a fact of the account;
+ * and while the work profile still carries another name, the difference is said quietly with its one button, "Koristi „<ime naloga>“"
+ * (`onUseAccountName`, the person's own action, never automatic), which goes by itself once the two agree.
  */
 export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true,
-  reading = false, onManual, primaryTaken = false }: {
+  reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
-  reading?: boolean; onManual?: () => void; primaryTaken?: boolean;
+  reading?: boolean;
+  /** Opens the editor of one part (a row of the read profile). */ onEditPart?: (part: SavedProfilePart) => void;
+  /** The face in the card of the read profile. */ face?: ReactNode;
+  /** The rating line in that card. */ rating?: ReactNode;
+  /** The switch "Mogu odmah" of the read profile. */ availableNow?: AvailableNowControl;
+  /** Opens one section of the editor, without a field to type in (a row of the read profile led here). */
+  openSection?: { section: 'identity' | 'skills' | 'tools' | 'vehicles'; token: number } | null;
+  /** The name of the account, when it could be read. */ accountName?: string | null;
+  /** Writes the account's name into the work profile; without it the difference is not offered a way out. */ onUseAccountName?: () => void;
+  /** That write is in flight. */ nameWorking?: boolean;
 }) {
   const [editing, setEditing] = useState<'identity' | 'skills' | 'tools' | 'vehicles' | null>(null);
   const { stacked } = useLayoutClass();
-  const nameRef = useRef<TextInput>(null), skillRef = useRef<TextInput>(null), toolRef = useRef<TextInput>(null), vehicleRef = useRef<TextInput>(null);
-  const focusSection = focusRequest ? { name: 'identity', skill: 'skills', tool: 'tools', vehicle: 'vehicles' }[focusRequest.target] as NonNullable<typeof editing> : null;
+  const skillRef = useRef<TextInput>(null), toolRef = useRef<TextInput>(null), vehicleRef = useRef<TextInput>(null);
+  const focusSection = focusRequest ? { skill: 'skills', tool: 'tools', vehicle: 'vehicles' }[focusRequest.target] as NonNullable<typeof editing> : null;
   useEffect(() => {
     if (!focusRequest || disabled) return;
     setEditing(focusSection);
   }, [focusRequest, focusSection, disabled]);
+  useEffect(() => { if (openSection) setEditing(openSection.section); }, [openSection]);
   useEffect(() => {
     if (!focusRequest || disabled || editing !== focusSection) return;
-    ({ name: nameRef, skill: skillRef, tool: toolRef, vehicle: vehicleRef }[focusRequest.target].current)?.focus?.();
+    ({ skill: skillRef, tool: toolRef, vehicle: vehicleRef }[focusRequest.target].current)?.focus?.();
   }, [editing, focusRequest, focusSection, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
   const toggle = (key: NonNullable<typeof editing>) => { if (!disabled) setEditing(editing === key ? null : key); };
-  const grad = draft.grad.trim() ? tidyPlaceLabel(draft.grad.trim()) : '';
+  const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Izaberi gde želiš da radiš';
   // Before a profile exists, the footer owns the single conversation action.
   // Required activation checks belong to the saved draft, not a warning before setup.
   const firstSetup = !profileExists && status === null && !!openConversation;
-  if (reading && onManual) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
-    onManual={onManual} primaryTaken={primaryTaken}
+  // The name this profile is read under: the account's, and the profile's own only while the account's cannot be read.
+  const name = accountName?.trim() || draft.ime.trim();
+  const difference = namesDiffer(draft.ime, accountName) && onUseAccountName
+    ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking} working={nameWorking} onUse={onUseAccountName} /> : null;
+  if (reading && onEditPart) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
+    onEditPart={onEditPart} face={face} rating={rating} availableNow={availableNow}
+    accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
     status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />} />;
   return <View style={s.form}>
     {firstSetup ? <View style={s.setupIntro}>
@@ -272,11 +297,11 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <View style={s.conversationBottom}><T variant="bodyStrong" style={s.ink}>Uredi kroz razgovor</T>
         <View style={s.arrow}><Glyph name="caret-right" /></View></View>
     </Surface> : null}
-    <ProfileSection title="O meni" summary={[draft.ime, draft.biografija].filter(Boolean).join('\n')}
-      summaryContent={draft.ime ? <View style={s.identityCopy}><T variant="title" accessibilityRole="header">{draft.ime}</T>
+    {difference}
+    <ProfileSection title="O meni" summary={[name, draft.biografija].filter(Boolean).join('\n')}
+      summaryContent={name ? <View style={s.identityCopy}><T variant="title" accessibilityRole="header">{name}</T>
         {draft.biografija ? <ProfileSummary text={draft.biografija} label="O meni" muted /> : null}</View> : undefined}
-      empty="Dodaj ime i nekoliko reči o svom iskustvu." open={editing === 'identity'} toggle={() => toggle('identity')} disabled={disabled}>
-      <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
+      empty="Dodaj nekoliko reči o svom iskustvu." open={editing === 'identity'} toggle={() => toggle('identity')} disabled={disabled}>
       <Field label="O meni" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
     </ProfileSection>
     <ProfileSection title="Veštine i usluge" summary={draft.vestine.join(' · ')}
@@ -290,7 +315,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')}
         detail={availabilityRowDetail(draft.dostupanOdmah)} />
-      <SettingsRow label="Obaveštenja o zadacima" detail="Novi zadaci i tihi sati" icon={<FactArt kind="bell" size={32} />}
+      <SettingsRow label="Obaveštenja o zadacima" icon={<FactArt kind="bell" size={32} />}
         disabled={disabled} last onPress={() => navigate('/profil/obavestenja')} />
     </SettingsGroup>
     <ProfileSection title="Alat i oprema" summary={draft.alati.join(' · ')}
@@ -303,8 +328,6 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <TermsEditor label="Vozila" placeholder="Dodaj vozilo" values={draft.vozila} pending={draft.newVehicle}
         setPending={newVehicle => patch({ newVehicle })} change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} inputRef={vehicleRef} />
     </ProfileSection>
-    <T variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
-    <T variant="note" tone="muted">Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.</T>
   </View>;
 }
 const s = StyleSheet.create({

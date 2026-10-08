@@ -10,99 +10,110 @@ jest.mock('react-native', () => {
 });
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-import { DiscoveryChipRow, SCOPE_OPTIONS, filtersSpoken, filtersWords, type QuickChip } from '../../ui/v2/discovery/DiscoveryChipRow';
-import { sys } from '../../ui/system/tokens';
+import { DiscoveryChipRow, FOR_ME, type QuickChip } from '../../ui/v2/discovery/DiscoveryChipRow';
+import { materialControl, sys } from '../../ui/system/tokens';
 
 /**
- * The one row of chips of the Zadaci screen (UX plan 2.13 and section P, variant B "filteri dole"): "Svi zadaci | Za mene" first
- * (built, not drawn), then "Filteri · N", then the quick filters that really exist. The same row stands over the map while the list is
- * lowered and in the list's sticky header from half height up; what is pinned here is what it says and what it never says.
+ * The one row of capsules over the map, under the search pill and the round filters button (UX plan 2.13 and section P; the owner's phone of 7 and 8 Oct 2026;
+ * the approved plan, U1: "Za mene · Danas · Ovaj vikend · Na daljinu · Sa iznosom"). "Za mene" is a capsule that is on or off (built, not drawn, until the switch says
+ * the server has it), then the quick filters that really exist. The filters are NOT a capsule any more: they have their own button beside the pill. It stands over the
+ * map at every height of the list; what is pinned here is what it says and what it never says.
  */
-const press = jest.fn(), filters = jest.fn(), scope = jest.fn();
+const press = jest.fn(), scope = jest.fn(), leave = jest.fn();
 const chips = (): QuickChip[] => [
-  { key: 'where:onsite', label: 'Na licu mesta', selected: true, onPress: () => press('onsite') },
-  { key: 'price:OFFERS', label: 'Prima ponude', selected: false, onPress: () => press('offers') },
+  { key: 'when:today', label: 'Danas', selected: true, onPress: () => press('today') },
+  { key: 'when:weekend', label: 'Ovaj vikend', selected: false, onPress: () => press('weekend') },
+  { key: 'where:remote', label: 'Na daljinu', selected: false, onPress: () => press('remote') },
+  { key: 'price:MY_PRICE', label: 'Sa iznosom', selected: false, onPress: () => press('amount') },
 ];
 let tree: ReactTestRenderer;
 const render = async (props: Partial<React.ComponentProps<typeof DiscoveryChipRow>> = {}) => act(async () => {
-  tree = create(<DiscoveryChipRow filtersCount={0} onFilters={filters} chips={chips()} {...props} />);
+  tree = create(<DiscoveryChipRow chips={chips()} {...props} />);
 });
 const labels = () => tree.root.findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string')
   .map(node => node.props.accessibilityLabel as string);
 const button = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0] as ReactTestInstance;
-const words = (node: ReactTestInstance) => node.findAllByType('T' as React.ElementType).flatMap(text => text.children.filter(child => typeof child === 'string')).join('');
 beforeEach(() => { jest.clearAllMocks(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-test('the row is "Filteri" and the quick filters, in that order, and "U blizini" is not among them', async () => {
+test('the row is the quick filters in the order they are given, and there is no "Filteri" capsule and no "moja lokacija" among them', async () => {
   await render();
-  expect(labels()).toEqual(['Filteri', 'Na licu mesta', 'Prima ponude']);
-  expect(labels()).not.toContain('U blizini'); // it moves the camera and filters nothing: it stands with the zoom buttons
-  expect(tree.root.findByProps({ accessibilityLabel: 'Brzi filteri' })).toBeTruthy();
+  expect(labels()).toEqual(['Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']);
+  // the filters have their own round button beside the pill; the capsule row never opens them
+  expect(labels()).not.toContain('Filteri');
+  expect(labels().filter(label => /^Filteri/.test(label))).toEqual([]);
+  expect(labels()).not.toContain('Moja lokacija'); // it moves the camera and filters nothing: it stands above the list
+  expect(labels()).not.toContain('U blizini');
+  const rail = tree.root.findByProps({ accessibilityLabel: 'Brzi filteri' });
+  expect(rail.props.testID).toBe('discovery-chips');
 });
 
-test('"Za mene" is built but not drawn: no scope, not even a lone "Svi zadaci", until the switch says the server has it', async () => {
+test('"Za mene" is built but not drawn: no capsule, and never a "Svi zadaci" beside it, until the switch says the server has it', async () => {
   await render();
-  expect(labels()).not.toContain('Svi zadaci'); expect(labels()).not.toContain('Za mene');
-  expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
-  await act(async () => tree.update(<DiscoveryChipRow forMeAvailable={false} filtersCount={0} onFilters={filters} chips={chips()} />));
-  expect(labels()).not.toContain('Za mene');
+  expect(labels()).not.toContain(FOR_ME); expect(labels()).not.toContain('Svi zadaci');
+  await act(async () => tree.update(<DiscoveryChipRow forMeAvailable={false} chips={chips()} />));
+  expect(labels()).not.toContain(FOR_ME);
 });
 
-test('with the switch on, the scope comes first as one capsule of two tabs, and a tap on the other one asks for it', async () => {
+test('with the switch on, "Za mene" is ONE capsule before the others: a tap turns it on, a tap on it turns it off, and "Svi zadaci" is nowhere', async () => {
   await render({ forMeAvailable: true, onScope: scope });
-  expect(labels()).toEqual(['Svi zadaci', 'Za mene', 'Filteri', 'Na licu mesta', 'Prima ponude']);
-  expect(SCOPE_OPTIONS.map(option => option.label)).toEqual(['Svi zadaci', 'Za mene']);
-  expect(button('Svi zadaci').props).toMatchObject({ accessibilityRole: 'tab', accessibilityState: { selected: true } });
-  expect(button('Za mene').props).toMatchObject({ accessibilityRole: 'tab', accessibilityState: { selected: false } });
+  expect(labels()).toEqual(['Za mene', 'Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']);
+  expect(labels()).not.toContain('Svi zadaci');
+  expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityRole: 'tab' })).toHaveLength(0);
+  expect(button('Za mene').props).toMatchObject({ testID: 'chip-for-me', accessibilityRole: 'button', accessibilityState: { selected: false } });
   await act(async () => button('Za mene').props.onPress());
-  expect(scope).toHaveBeenCalledWith('forMe');
-  await act(async () => tree.update(<DiscoveryChipRow forMeAvailable scope="forMe" onScope={scope} filtersCount={0} onFilters={filters} chips={chips()} />));
+  expect(scope).toHaveBeenLastCalledWith('forMe');
+  await act(async () => tree.update(<DiscoveryChipRow forMeAvailable scope="forMe" onScope={scope} chips={chips()} />));
   expect(button('Za mene').props.accessibilityState).toEqual({ selected: true });
+  // on, it has a tick and a recessed well, like every capsule that is on
+  expect(button('Za mene').findAll(node => String(node.type) === 'Check')).toHaveLength(1);
+  expect(StyleSheet.flatten(button('Za mene').props.style).boxShadow ?? StyleSheet.flatten(button('Za mene').props.style).elevation).toBeDefined();
   scope.mockClear();
-  await act(async () => button('Za mene').props.onPress()); // the chosen one asks nothing
-  expect(scope).not.toHaveBeenCalled();
+  await act(async () => button('Za mene').props.onPress());
+  expect(scope).toHaveBeenLastCalledWith('all'); // the capsule that is on takes itself away
 });
 
-test('"Filteri" always has its word, and the number of conditions that are on only when there are some', async () => {
-  expect([filtersWords(0), filtersWords(1), filtersWords(12)]).toEqual(['Filteri', 'Filteri · 1', 'Filteri · 12']);
-  expect([filtersSpoken(0), filtersSpoken(1), filtersSpoken(2), filtersSpoken(5)]).toEqual(['Filteri', 'Filteri, 1 aktivan', 'Filteri, 2 aktivna', 'Filteri, 5 aktivnih']);
+test('a quick capsule is a toggle: spoken as selected or not, with a tick on the chosen one, and its own callback', async () => {
   await render();
-  expect(words(button('Filteri'))).toBe('Filteri');
-  expect(button('Filteri').props.accessibilityState).toEqual({ selected: false });
-  await act(async () => tree.update(<DiscoveryChipRow filtersCount={2} onFilters={filters} chips={chips()} />));
-  expect(words(button('Filteri, 2 aktivna'))).toBe('Filteri · 2');
-  expect(button('Filteri, 2 aktivna').props.accessibilityState).toEqual({ selected: true });
-  expect(StyleSheet.flatten(button('Filteri, 2 aktivna').props.style)).toMatchObject({ backgroundColor: sys.color.wash, borderColor: sys.color.ink });
-  await act(async () => button('Filteri, 2 aktivna').props.onPress());
-  expect(filters).toHaveBeenCalledTimes(1);
-  expect(button('Filteri, 2 aktivna').props.accessibilityHint).toBe('Otvara pretragu: gde, kada i uslovi.');
+  expect(button('Danas').props.accessibilityState).toEqual({ selected: true });
+  expect(button('Na daljinu').props.accessibilityState).toEqual({ selected: false });
+  expect(button('Danas').findAll(node => String(node.type) === 'Check')).toHaveLength(1);
+  expect(button('Na daljinu').findAll(node => String(node.type) === 'Check')).toHaveLength(0);
+  await act(async () => button('Sa iznosom').props.onPress());
+  expect(press).toHaveBeenCalledWith('amount');
+  await act(async () => button('Na daljinu').props.onPress());
+  expect(press).toHaveBeenLastCalledWith('remote');
+  expect(StyleSheet.flatten(button('Danas').props.style).minHeight).toBeGreaterThanOrEqual(48);
 });
 
-test('a quick chip is a toggle: spoken as selected or not, with a check on the chosen one, and its own callback', async () => {
-  await render();
-  expect(button('Na licu mesta').props.accessibilityState).toEqual({ selected: true });
-  expect(button('Prima ponude').props.accessibilityState).toEqual({ selected: false });
-  expect(button('Na licu mesta').findAll(node => String(node.type) === 'Check')).toHaveLength(1);
-  expect(button('Prima ponude').findAll(node => String(node.type) === 'Check')).toHaveLength(0);
-  await act(async () => button('Prima ponude').props.onPress());
-  expect(press).toHaveBeenCalledWith('offers');
-  expect(StyleSheet.flatten(button('Na licu mesta').props.style).minHeight).toBeGreaterThanOrEqual(48);
+test('a capsule that is on and has its own ✕ ("Nisu na mapi") shows the ✕ instead of a tick, and a tap takes it away', async () => {
+  const off: QuickChip = { key: 'offMap', label: 'Nisu na mapi', selected: true, removable: true, hint: 'Isključuje ovaj izbor.', onPress: leave };
+  await render({ forMeAvailable: true, chips: [off, ...chips()] });
+  expect(labels()).toEqual(['Za mene', 'Nisu na mapi', 'Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']);
+  expect(button('Nisu na mapi').props).toMatchObject({ accessibilityState: { selected: true }, accessibilityHint: 'Isključuje ovaj izbor.' });
+  expect(button('Nisu na mapi').findAll(node => String(node.type) === 'X')).toHaveLength(1);
+  expect(button('Nisu na mapi').findAll(node => String(node.type) === 'Check')).toHaveLength(0);
+  await act(async () => button('Nisu na mapi').props.onPress());
+  expect(leave).toHaveBeenCalledTimes(1);
 });
 
-test('over the map the chips lift off the tiles; in the sheet\'s header they are flat with a hairline', async () => {
-  await render({ surface: 'map' });
-  expect(StyleSheet.flatten(button('Prima ponude').props.style).boxShadow ?? StyleSheet.flatten(button('Prima ponude').props.style).elevation).toBeTruthy();
-  await act(async () => tree.update(<DiscoveryChipRow surface="sheet" filtersCount={0} onFilters={filters} chips={chips()} />));
-  const flat = StyleSheet.flatten(button('Prima ponude').props.style);
-  expect(flat.boxShadow).toBeUndefined(); expect(flat.elevation).toBeUndefined();
-  expect(flat.borderColor).toBe(sys.color.lineStrong);
-  // the sheet's row lines up with the cards under it
-  expect(StyleSheet.flatten(tree.root.findByProps({ accessibilityLabel: 'Brzi filteri' }).props.contentContainerStyle).paddingHorizontal).toBe(sys.space.lg);
+test('every capsule lifts off the map tiles (white, raised) and is at least 48 high, whether it is on or not', async () => {
+  await render({ forMeAvailable: true, scope: 'forMe' });
+  for (const label of ['Za mene', 'Danas', 'Ovaj vikend', 'Na daljinu', 'Sa iznosom']) {
+    const style = StyleSheet.flatten(button(label).props.style);
+    expect([label, style.minHeight]).toEqual([label, 48]);
+    expect(style.borderRadius).toBe(sys.radius.pill);
+  }
+  const resting = StyleSheet.flatten(button('Sa iznosom').props.style);
+  expect(resting).toMatchObject({ backgroundColor: sys.color.surface });
+  expect(resting.boxShadow ?? resting.elevation).toEqual(materialControl.raised.boxShadow ?? materialControl.raised.elevation);
 });
 
-test('the row scrolls sideways and never takes a tap away from a chip (a keyboard over it does not swallow it)', async () => {
+test('the row scrolls sideways and never takes a tap away from a capsule (a keyboard over it does not swallow it)', async () => {
   await render();
   const rail = tree.root.findByProps({ accessibilityLabel: 'Brzi filteri' });
   expect(rail.props).toMatchObject({ horizontal: true, showsHorizontalScrollIndicator: false, keyboardShouldPersistTaps: 'handled' });
+  // it lines up with the edge of the map's tools (16), like the pill above it
+  expect(StyleSheet.flatten(rail.props.contentContainerStyle).paddingHorizontal).toBe(sys.space.base);
 });

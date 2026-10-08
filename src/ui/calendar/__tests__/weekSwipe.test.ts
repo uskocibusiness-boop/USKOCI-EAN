@@ -1,7 +1,7 @@
 import { SWIPE_DISTANCE, SWIPE_FLICK_DISTANCE, SWIPE_FLICK_SPEED, SWIPE_START, startsSwipe, swipeStep } from '../weekSwipe';
 
-// Swipe to change the week: a finger moving LEFT turns to the NEXT week, one moving RIGHT to the previous. Only a clearly sideways
-// move counts, so scrolling the day is never taken over and a tap on a day is never a swipe.
+// Swipe to change the period (a month, a week or a day, whichever view is open): a finger moving LEFT turns to the NEXT one, one moving
+// RIGHT to the previous. Only a clearly sideways move counts, so scrolling the page is never taken over and a tap on a day is never a swipe.
 describe('swipeStep', () => {
   it('turns to the next week on a long move to the left and to the previous on a long move to the right', () => {
     expect(swipeStep(-SWIPE_DISTANCE, 0, 0)).toBe(1);

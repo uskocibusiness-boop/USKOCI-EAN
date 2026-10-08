@@ -111,18 +111,44 @@ it('does not preserve an open native viewer after leaving the route', async () =
   expect(host('Modal')).toHaveLength(0); expect(host('AuthorizedPhoto')).toHaveLength(0);
 });
 
-it('distinguishes a real empty list from a read failure and retries without invented pictures', async () => {
+it('draws nothing for an empty list and nothing for a read that failed (no sentence, no grey plate), and reads again the next time it is asked', async () => {
   mockRead.mockResolvedValue(listing('need-a', [])); await render();
   expect(tree.toJSON()).toBeNull();
   await act(async () => tree.update(<NeedPhotos needId="need-a" owned />));
   expect(tree.toJSON()).toBeNull(); expect(host('AuthorizedPhoto')).toHaveLength(0);
+  // The owner's phone, 8 Oct 2026: a big grey plate with a dot stood where a photo that would not load should have been. A list that cannot be read is no gallery at all.
   mockRead.mockResolvedValue({ ok: false, kod: 'MEDIA_UNAVAILABLE', poruka: 'Nije dostupno.' });
   await act(async () => tree.update(<NeedPhotos needId="need-b" owned />));
-  expect(words()).toContain('Fotografije trenutno nisu učitane.'); expect(words()).not.toContain('Još nema fotografija');
-  mockRead.mockResolvedValue(listing('need-b'));
-  await act(async () => tree.root.findByProps({ label: 'Učitaj fotografije' }).props.onPress());
+  expect(tree.toJSON()).toBeNull(); expect(words()).not.toMatch(/nisu učitane|Još nema fotografija/); expect(tree.root.findAllByProps({ label: 'Učitaj fotografije' })).toHaveLength(0);
+  mockRead.mockImplementation(async (id: string) => listing(id));
+  await act(async () => tree.update(<NeedPhotos needId="need-c" owned />));
   await measure('task-photo-viewport'); expect(host('AuthorizedPhoto')).toHaveLength(2);
-  expect(words()).not.toContain('Fotografije trenutno nisu učitane.');
+});
+
+it('holds a picture of a photo in the page while the photo is read: never a spinner, never a bare grey plate', async () => {
+  await render(); await measure('task-photo-viewport');
+  for (const page of host('AuthorizedPhoto')) {
+    expect(page.props.pending.type).toBe('FactArt'); expect(page.props.pending.props.kind).toBe('photo');
+  }
+});
+
+it('leaves a page out when its photo cannot be read, and draws no gallery at all when no photo can be', async () => {
+  await render(); await measure('task-photo-viewport');
+  expect(host('AuthorizedPhoto')).toHaveLength(2); expect(words()).toContain('1 / 2');
+  // What a page whose photo could not be read draws is a probe that tells the gallery, once, and draws nothing itself.
+  const cannotRead = async (page: number) => act(async () => { create(host('AuthorizedPhoto')[page].props.unavailable); });
+  await cannotRead(1);
+  expect(host('AuthorizedPhoto').map(node => node.props.assetId)).toEqual(['photo-a']);
+  // One photo is "1 / 1", which says nothing: no counter.
+  expect(words()).not.toMatch(/\d \/ \d/);
+  await cannotRead(0);
+  expect(tree.toJSON()).toBeNull();
+});
+
+it('keeps the counter only for more than one photo', async () => {
+  mockRead.mockImplementation(async (id: string) => listing(id, [photos[0]]));
+  await render(); await measure('task-photo-viewport');
+  expect(host('AuthorizedPhoto')).toHaveLength(1); expect(words()).not.toMatch(/\d \/ \d/);
 });
 
 it('keeps ProfilePhoto on its original authorized portrait contract', async () => {

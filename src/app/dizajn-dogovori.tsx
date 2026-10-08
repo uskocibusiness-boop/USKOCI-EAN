@@ -10,7 +10,7 @@ import type { ReviewTag } from '../data/reviewsClientService';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
 import { AgreementThreadPresentation } from '../ui/v2/AgreementThreadPresentation';
-import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementWaitsForMe } from '../ui/agreements/AgreementWorkspace';
+import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe } from '../ui/agreements/AgreementWorkspace';
 import { AgreementOverview } from '../ui/agreements/AgreementOverview';
 import { AgreementProblemExits, AgreementProblemForm, AgreementProblemNote, AgreementStatusView, overviewContent } from '../ui/agreements/AgreementOverviewParts';
 import { addressWords } from '../ui/agreements/agreementContactModel';
@@ -21,6 +21,7 @@ import { FactArt } from '../ui/system/FactArt';
 import { layout } from '../ui/system/layout';
 import { ListRow } from '../ui/system/ListRow';
 import { ChromeIconButton, ScreenChrome } from '../ui/system/ScreenChrome';
+import { LARGE_LAYOUT, LayoutClassOverride, useWindowRoom } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../ui/v2/AgreementCollectionPresentation';
@@ -34,7 +35,9 @@ import { AgreementReviewPresentation, type ReviewView } from '../ui/reviews/Agre
  * screens writes to the server (the Poruke tab settles notifications). Reached only by its address
  * (uskociapp://dizajn-dogovori) in the internal build; the store package shows nothing. Nothing here reads or writes
  * data: no photo, inbox, group or profile read is drawn (every person has no public profile id, and the root bar's bell
- * is a still one), and every command is a no-op. Large text is the system's: set the font scale on the device.
+ * is a still one), and every command is a no-op. Large text is the system's: set the font scale on the device. The design lab (Expo web) has
+ * none, so a scene opened with `?scale=1.15` or `?scale=1.3` draws the step bar for that text size (and from 1.3 up the stacked layouts, as a phone
+ * does); the words themselves are enlarged by the lab's own driver.
  */
 const noop = () => {};
 const later = async () => {};
@@ -77,6 +80,14 @@ const LIST: DogovorProjekcija[] = [
 ];
 /** An agreed Dogovor with no term at all (R02), one with a problem reported (R04), and one where the other side's number was shared ("Pozovi"). */
 const NO_TERM_AGREEMENT = agreement('bez-termina-aktivan', { naslov: 'Pomoć oko računara', vremeTekst: 'Termin nije dogovoren', pocinje: null, putanjaTekst: 'Podbara, Novi Sad' });
+/**
+ * The Dogovor of the owner's phone picture of 2026-10-08 (12:57): the one who does the work, the work agreed, no term yet, and the server allows
+ * marking it done - "Zadatak je gotov" is the one green action. The name of the other person is the one on that picture.
+ */
+const WORKER_DONE = agreement('uskacem', { naslov: 'Krečenje stana od 80 m² u belo', vremeTekst: 'Termin nije dogovoren', pocinje: null, putanjaTekst: 'Novi Sad',
+  ucesnici: [ME_WORKER, requester('msljivic031', 'MS')], cena: { iznos: 62000, valuta: 'RSD', prikaz: '62.000 RSD' } });
+/** The same work with its term agreed: the one who does it may mark it done and the page has no note about a missing term. */
+const WORKER_TERM: DogovorProjekcija = { ...WORKER_DONE, id: 'uskacem-termin', vremeTekst: '9. okt · 17:00–19:00', pocinje: '2026-10-09T15:00:00Z' };
 const PROBLEM_AGREEMENT = agreement('problem', { naslov: 'Montaža nadstrešnice', problemOtvoren: true, vremeTekst: '25. sep · 08:00–12:00', putanjaTekst: 'Veternik, Novi Sad' });
 const SHARED_AGREEMENT = agreement('podeljen', { naslov: 'Pomoć pri preseljenju kancelarije',
   kontakt: { mojTelefonPodeljen: true, njihovTelefon: '064 123 4567', lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true } });
@@ -138,13 +149,14 @@ const PENDING_PHOTOS: AgreementPhotosController = { ...PHOTOS, hasSelection: tru
   items: [{ ref: { agreementId: 'zona', agreementVersion: 1, clientRequestId: 'galerija-fotografija' }, receipt: null }],
   message: 'Ne znamo da li je fotografija poslata. Osveži fotografije pre novog izbora.' };
 
-type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'recovery'
+type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'worker-done' | 'worker-term' | 'recovery'
   | 'no-term' | 'problem' | 'form' | 'shared' | 'no-number' | 'cancelled' | 'cancelled-me' | 'long-detail'
   | 'status-loading' | 'status-error' | 'status-unavailable' | 'review' | 'review-grey' | 'review-saved' | 'review-loading' | 'review-error'
   | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed' | 'chat-media' | 'chat-unknown';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'list', label: 'Lista' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
   { key: 'loading', label: 'Učitavanje' }, { key: 'error', label: 'Greška' }, { key: 'one', label: 'Pregled 1:1' }, { key: 'worker', label: 'Pregled · uskačem' },
+  { key: 'worker-done', label: 'Pregled · uskačem, može da završi' }, { key: 'worker-term', label: 'Pregled · uskačem, termin dogovoren' },
   { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'recovery', label: 'Pregled · provera ishoda' }, { key: 'done', label: 'Pregled · završen' },
   { key: 'no-term', label: 'Pregled · bez termina' }, { key: 'problem', label: 'Pregled · problem prijavljen' }, { key: 'form', label: 'Pregled · prijava problema' },
   { key: 'shared', label: 'Pregled · broj podeljen' }, { key: 'no-number', label: 'Pregled · nalog bez broja' }, { key: 'cancelled', label: 'Pregled · otkazan' },
@@ -187,22 +199,22 @@ function StillLocation({ requester }: { requester: boolean }) {
   return <View style={s.location}>
     <View><ListRow leading={<FactArt kind="lock" size={32} muted />} title={words.title} last /></View>
     {requester ? <V2Action label="Podeli lokaciju" onPress={noop} /> : words.ask ? <V2Action label="Zatraži adresu" onPress={noop} /> : null}
-    <View>
-      <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" style={s.quietStart} onPress={noop} />
-      <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
-    </View>
+    <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" style={s.quietStart} onPress={noop} />
   </View>;
 }
 
 /** The Dogovor as its route composes it: the person's bar, the tabs, the Pregled (`AgreementOverview`, the same component) and its footer, or the Poruke. */
-function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false, formOpen = false, accountHasNumber = true }: {
+function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false, formOpen = false, accountHasNumber = true, scale }: {
   item: DogovorProjekcija; me: UcesnikProjekcija; ownRating?: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE'; brand: string;
   initialTab?: AgreementTab; chat?: Omit<ComponentProps<typeof Chat>, 'thread'>; recovery?: boolean;
   /** The form that reports a problem is open (the row "Prijavi problem" was pressed). */
   formOpen?: boolean;
   /** The signed-in account has a number to share (R01a). */
   accountHasNumber?: boolean;
+  /** The text size the scene stands for (the lab has none): the step bar is drawn for it, and from 1.3 the layouts stack as on a phone. */
+  scale?: number;
 }) {
+  const room = useWindowRoom();
   const [tab, setTab] = useState<AgreementTab>(initialTab);
   const [opened, setOpened] = useState(formOpen), [text, setText] = useState('');
   const other = item.ucesnici.find(person => !person.viSte);
@@ -227,14 +239,14 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
     ? <AgreementProblemForm value={text} onChange={setText} editable kept={false} busy={false} canSend={!!text.trim()} onSend={noop} onCancel={() => setOpened(false)} /> : null;
   const needsTerm = item.stanje === 'CONFIRMED' && isNoTermText(item.vremeTekst) && canChange && !change.waits && !item.problemOtvoren;
   const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(CANCELLATIONS.get(item.id), other?.ime) : null;
-  return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke' || opened} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+  const body = <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke' || opened} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan}
       thread={{ agreement: item, person: other, waiting, onOverview: () => setTab('pregled') }} /> : <>
       {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
       <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
       <ScrollView contentContainerStyle={overviewContent}>
-        <AgreementOverview agreement={item} step={step} party enabled={!recovery} accountHasNumber={accountHasNumber}
-          steps={{ state: item.stanje, ownRating, deadlineIso: item.rokPotvrdeIso, problemOpen: item.problemOtvoren, cancellation: cancelled }}
+        <AgreementOverview agreement={item} step={step} info={active ? agreementStepsInfo({ worker: isWorker }) : null} party enabled={!recovery} accountHasNumber={accountHasNumber}
+          steps={{ state: item.stanje, ownRating, cancellation: cancelled, room: scale ? { width: room.width, scale } : undefined }}
           // The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
           // and why, and for one's own proposal the quiet way to look at it (the other side's is answered from the footer).
           headExtra={proposal ? <View style={s.stack}>
@@ -252,10 +264,11 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
           group={item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.</T> : null}
           location={<StillLocation requester={isRequester} />}
           on={{
-            proposeTerm: needsTerm ? noop : undefined, changeTerms: canChange ? noop : undefined,
+            proposeTerm: needsTerm ? noop : undefined,
             togglePhone: noop, openMessages: () => setTab('poruke'), requestAddress: () => setTab('poruke'),
             openTask: item.izvor?.zadatakId ? noop : undefined, openApplication: isWorker && item.izvor?.prijavaId ? noop : undefined,
-            openChange: canChange ? noop : undefined, openProblem: active && !note && !opened ? () => setOpened(true) : undefined, openSafety: other ? noop : undefined,
+            openChange: canChange ? noop : undefined, openCancel: canChange ? noop : undefined,
+            openProblem: active && !note && !opened ? () => setOpened(true) : undefined, openSafety: other ? noop : undefined,
           }} />
       </ScrollView>
       <WorkspaceFooter brand={footer ? { label: footer, disabled: recovery, onPress: noop } : null}
@@ -263,6 +276,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
         notice={recovery ? { message: 'Ne znamo da li je prethodna radnja uspela. Osveži Dogovor pa pokušaj ponovo.', refresh: noop, refreshing: false } : null} />
     </>}
   </KeyboardAvoidingView>;
+  return scale && scale >= 1.3 ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{body}</LayoutClassOverride.Provider> : body;
 }
 
 const REVIEW_CATALOG = { maxTags: 3, tags: ['AS_AGREED', 'CAREFUL', 'CLEAR_COMMUNICATION', 'ON_TIME', 'RELIABLE', 'RESPECTFUL'] as ReviewTag[] };
@@ -280,7 +294,7 @@ function ReviewScene({ mode }: { mode: 'eligible' | 'grey' | 'saved' | 'loading'
     notice={null} person={{ name: 'Marko Jovanović', initials: 'MJ', profileId: null, role: 'Uskače na tvoj zadatak', task: 'Prenos ormana do kombija' }} />;
 }
 
-function Scene({ scene }: { scene: SceneKey }) {
+function Scene({ scene, scale }: { scene: SceneKey; scale?: number }) {
   switch (scene) {
     case 'list': return <ListScene items={LIST} />;
     case 'history': return <ListScene items={LIST} initial="history" cancellations={CANCELLATIONS} />;
@@ -288,20 +302,22 @@ function Scene({ scene }: { scene: SceneKey }) {
     case 'empty': return <ListScene items={[]} />;
     case 'loading': return <ListScene items={LIST} loading />;
     case 'error': return <ListScene items={LIST} error />;
-    case 'one': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" />;
-    case 'worker': return <DogovorScene item={LIST[2]} me={ME_WORKER} brand="" />;
-    case 'group': return <DogovorScene item={LIST[4]} me={ME_REQUESTER} brand="" />;
-    case 'waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" />;
-    case 'recovery': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" recovery />;
-    case 'done': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" />;
-    case 'no-term': return <DogovorScene item={NO_TERM_AGREEMENT} me={ME_REQUESTER} brand="" />;
-    case 'problem': return <DogovorScene item={PROBLEM_AGREEMENT} me={ME_REQUESTER} brand="" />;
-    case 'form': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" formOpen />;
-    case 'shared': return <DogovorScene item={SHARED_AGREEMENT} me={ME_REQUESTER} brand="" />;
-    case 'no-number': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" accountHasNumber={false} />;
-    case 'cancelled': return <DogovorScene item={LIST[8]} me={ME_WORKER} brand="" />;
-    case 'cancelled-me': return <DogovorScene item={LIST[7]} me={ME_REQUESTER} brand="" />;
-    case 'long-detail': return <DogovorScene item={LONG[0]} me={ME_REQUESTER} brand="" />;
+    case 'one': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" scale={scale} />;
+    case 'worker': return <DogovorScene item={LIST[2]} me={ME_WORKER} brand="" scale={scale} />;
+    case 'worker-done': return <DogovorScene item={WORKER_DONE} me={ME_WORKER} brand="Zadatak je gotov" scale={scale} />;
+    case 'worker-term': return <DogovorScene item={WORKER_TERM} me={ME_WORKER} brand="Zadatak je gotov" scale={scale} />;
+    case 'group': return <DogovorScene item={LIST[4]} me={ME_REQUESTER} brand="" scale={scale} />;
+    case 'waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" scale={scale} />;
+    case 'recovery': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" recovery scale={scale} />;
+    case 'done': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" scale={scale} />;
+    case 'no-term': return <DogovorScene item={NO_TERM_AGREEMENT} me={ME_REQUESTER} brand="" scale={scale} />;
+    case 'problem': return <DogovorScene item={PROBLEM_AGREEMENT} me={ME_REQUESTER} brand="" scale={scale} />;
+    case 'form': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" formOpen scale={scale} />;
+    case 'shared': return <DogovorScene item={SHARED_AGREEMENT} me={ME_REQUESTER} brand="" scale={scale} />;
+    case 'no-number': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" accountHasNumber={false} scale={scale} />;
+    case 'cancelled': return <DogovorScene item={LIST[8]} me={ME_WORKER} brand="" scale={scale} />;
+    case 'cancelled-me': return <DogovorScene item={LIST[7]} me={ME_REQUESTER} brand="" scale={scale} />;
+    case 'long-detail': return <DogovorScene item={LONG[0]} me={ME_REQUESTER} brand="" scale={scale} />;
     case 'status-loading': return <AgreementStatusView loading back={noop} />;
     case 'status-error': return <AgreementStatusView error retry={noop} back={noop} />;
     case 'status-unavailable': return <AgreementStatusView back={noop} />;
@@ -323,16 +339,19 @@ function Scene({ scene }: { scene: SceneKey }) {
 
 export default function DizajnDogovori() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
-  const params = useLocalSearchParams<{ scene?: string | string[] }>();
+  const params = useLocalSearchParams<{ scene?: string | string[]; scale?: string | string[] }>();
   const requested = typeof params.scene === 'string' ? params.scene : undefined;
   const direct = SCENES.find(option => option.key === requested)?.key;
+  // The two text sizes the owner's phone and a larger one stand for; any other value is ignored.
+  const asked = typeof params.scale === 'string' ? Number(params.scale) : NaN;
+  const scale = asked === 1.15 || asked === 1.3 ? asked : undefined;
   const [scene, setScene] = useState<SceneKey>('list');
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
   // A known scene can occupy the real route's viewport for keyboard and large-text checks.
   // This remains the same inert internal fixture; arbitrary queries cannot select data or bypass the store guard.
   if (direct) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {/* No extra View: KeyboardAvoidingView must share the real route's SafeArea coordinate origin. */}
-    <Scene key={direct} scene={direct} />
+    <Scene key={direct} scene={direct} scale={scale} />
   </SafeAreaView>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title="Dogovori · galerija" onBack={() => router.back()} />

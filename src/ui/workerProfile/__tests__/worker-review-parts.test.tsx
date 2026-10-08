@@ -12,7 +12,7 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
 import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiProgress, WorkerAiReviewDetails } from '../WorkerAiPresentation';
-import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, toolsAndVehiclesTag, type WorkerAiPart } from '../workerProfileFacts';
+import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from '../workerProfileFacts';
 import { sys } from '../../system/tokens';
 
 /**
@@ -42,14 +42,14 @@ const groupIds = () => tree.root.findAll(node => typeof node.type === 'string' &
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('the review in parts (M2)', () => {
-  it('draws skills, area, time, tools and vehicles, then the name and "O meni", in that order', async () => {
+  it('draws skills, area, time, tools and vehicles, then "O meni" (the name is the account\'s and is no part of the review), in that order', async () => {
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} />); });
     expect(groupIds()).toEqual(['worker-review-skills', 'worker-review-area', 'worker-review-time', 'worker-review-tools', 'worker-review-identity']);
     const copy = texts();
     expect(copy).toContain('Montaža nameštaja'); expect(copy).toContain('Farbanje');
     expect(copy).toContain('Novi Beograd · RS · do 15 km');
     expect(copy).toContain('Bušilica · Merdevine'); expect(copy).toContain('Kombi');
-    expect(copy).toContain('Radim vikendom.'); expect(copy).toContain('Ana');
+    expect(copy).toContain('Radim vikendom.'); expect(copy).not.toContain('Ana'); expect(copy.split(' | ')).not.toContain('Ime');
     for (const title of ['Veštine', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
   });
 
@@ -80,20 +80,21 @@ describe('the review in parts (M2)', () => {
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} />); });
     const note = tree.root.findByProps({ testID: 'worker-tools-note' }).children.join('');
     expect(note).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
-    expect(texts()).toContain('samo informacija');
+    // One sentence says it, once: no chip "samo informacija" explains nothing next to the title (owner's phone, 8 Oct 2026).
+    expect(texts()).not.toContain('samo informacija');
     // The switch: the words are the owner's decision of 2026-10-07, drawn only while the server really treats the lists as information (a server without MATCH-V1 needs the old ones).
     expect(toolsAndVehiclesNote(true)).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
     expect(toolsAndVehiclesNote(false)).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
-    expect(toolsAndVehiclesTag(true)).toBe('samo informacija'); expect(toolsAndVehiclesTag(false)).toBeNull();
   });
 
   it('keeps the missing required fields on top and never invents a part that was not given', async () => {
     const missing = { ...review({ displayName: '', skills: [] }), missingRequired: ['Ime', 'Veštine'], canAccept: false } as WorkerAiReview;
     await act(async () => { tree = create(<WorkerAiReviewDetails review={missing} />); });
     const alert = tree.root.findAll(node => node.props.accessibilityRole === 'alert');
-    expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopuni: Ime, Veštine.');
+    // The server names the missing name "Ime"; it is the ACCOUNT's name now, which is what the person is told to add.
+    expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopuni: Ime naloga, Veštine.');
     expect(texts()).not.toMatch(/undefined|null|NaN/);
-    // The skills, the tools and vehicles, and the name: three parts with nothing in them, each said with the one word.
+    // The skills, the tools and vehicles, and "O meni": three parts with nothing in them, each said with the one word.
     expect(texts().split('Nije navedeno').length - 1).toBe(3);
   });
 
@@ -179,13 +180,14 @@ describe('the focused editors of "Izmeni" and "+" send only their own part', () 
     expect(apply.mock.calls[0][0]).toEqual({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } });
   });
 
-  it('identity: the name and "O meni", with the length limit of the review', async () => {
+  it('identity: only "O meni", with the length limit of the review; the name is not written here (it is the account\'s)', async () => {
     const apply = await open('identity');
+    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).toEqual(['O meni']);
     await act(async () => { box('O meni').props.onChangeText('x'.repeat(4001)); });
     await submit(); expect(apply).not.toHaveBeenCalled(); expect(texts()).toContain('O meni može imati do 4.000 znakova.');
     await act(async () => { box('O meni').props.onChangeText('Radim brzo.'); });
-    await act(async () => { box('Ime na profilu').props.onChangeText('Ana P.'); });
-    await submit(); expect(apply.mock.calls[0][0]).toEqual({ displayName: 'Ana P.', bio: 'Radim brzo.' });
+    await submit(); expect(apply.mock.calls[0][0]).toEqual({ bio: 'Radim brzo.' });
+    expect(apply.mock.calls[0][0]).not.toHaveProperty('displayName');
   });
 
   it('reports a word still in a list box as an unsaved change, so Back asks before dropping it', async () => {
@@ -201,6 +203,8 @@ describe('the focused editors of "Izmeni" and "+" send only their own part', () 
     const apply = jest.fn();
     await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={apply} />); });
     await submit();
-    expect(Object.keys(apply.mock.calls[0][0]).sort()).toEqual(['bio', 'displayName', 'location', 'skills', 'tools', 'vehicles']);
+    // The whole proposal except the name: the profile is saved under the name of the account, which the route puts into the proposal.
+    expect(Object.keys(apply.mock.calls[0][0]).sort()).toEqual(['bio', 'location', 'skills', 'tools', 'vehicles']);
+    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).not.toContain('Ime na profilu');
   });
 });

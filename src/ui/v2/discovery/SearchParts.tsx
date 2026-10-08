@@ -1,12 +1,10 @@
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
-import { PLACES_MAX } from '../../../data/marketplaceView';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { withInter } from '../../interFont';
 import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { Glyph } from '../../system/Glyph';
 import { layout } from '../../system/layout';
-import { osoba } from '../../system/plural';
 import { fieldBox, sys } from '../../system/tokens';
 
 /** The picture that leads a row which has no number (the map's area, the person's own position): the 2.5D sticker, as every fact's. */
@@ -29,33 +27,19 @@ export function Choice<K extends string>({ label, options, value, compact = fals
   </View>;
 }
 
-/** "Broj ljudi": − n +; minus stops at one person, plus at `PLACES_MAX`. Large text gets the whole row. */
-export function Stepper({ value, expanded, onChange }: { value: number; expanded: boolean; onChange: (value: number) => void }) {
-  const low = value <= 1, high = value >= PLACES_MAX;
-  return <View style={[s.stepper, expanded && s.stepperExpanded]}>
-    <Press accessibilityRole="button" accessibilityLabel="Smanji broj osoba" accessibilityHint={low ? 'Najmanje je jedna osoba.' : undefined}
-      accessibilityState={{ disabled: low }} disabled={low} haptic={low ? 'none' : 'select'} onPress={() => onChange(value - 1)} style={s.step}>
-      <Glyph name="minus" size={24} tone={low ? 'muted' : 'ink'} /></Press>
-    <T variant="bodyStrong" accessibilityLiveRegion="polite" style={s.stepValue}>{osoba(value)}</T>
-    <Press accessibilityRole="button" accessibilityLabel="Povećaj broj osoba" accessibilityHint={high ? `Najviše ${PLACES_MAX} osoba.` : undefined}
-      accessibilityState={{ disabled: high }} disabled={high} haptic={high ? 'none' : 'select'} onPress={() => onChange(value + 1)} style={s.step}>
-      <Glyph name="plus" size={24} tone={high ? 'muted' : 'ink'} /></Press>
-  </View>;
-}
-
 /**
  * The system's one text field, with the search glass before it and a clear button in it. The glass is a hint of what the
  * field does; the field's name is its `label`, spoken, and its placeholder is only the example.
  */
-export function SearchField({ value, onChangeText, label, placeholder, clearLabel, returnKeyType, onSubmit, testID, maxLength = 1000 }: {
+export function SearchField({ value, onChangeText, label, placeholder, clearLabel, returnKeyType, onSubmit, testID, autoFocus = false, maxLength = 1000 }: {
   value: string; onChangeText: (text: string) => void; label: string; placeholder: string; clearLabel: string;
-  returnKeyType?: TextInputProps['returnKeyType']; onSubmit?: () => void; testID?: string; maxLength?: number;
+  returnKeyType?: TextInputProps['returnKeyType']; onSubmit?: () => void; testID?: string; autoFocus?: boolean; maxLength?: number;
 }) {
   return <View style={s.field}>
     <Glyph name="search" tone="muted" />
     <TextInput testID={testID} accessibilityLabel={label} placeholder={placeholder} placeholderTextColor={sys.color.muted}
       value={value} onChangeText={text => onChangeText(text.slice(0, maxLength))} maxLength={maxLength} style={s.input}
-      returnKeyType={returnKeyType} onSubmitEditing={onSubmit} />
+      returnKeyType={returnKeyType} onSubmitEditing={onSubmit} autoFocus={autoFocus} />
     {value ? <Press accessibilityRole="button" accessibilityLabel={clearLabel} haptic="select" hitSlop={0} style={s.clear}
       onPress={() => onChangeText('')}><Glyph name="close" size={16} /></Press> : null}
   </View>;
@@ -108,11 +92,6 @@ const s = StyleSheet.create({
   chipOn: { backgroundColor: sys.color.wash, borderColor: sys.color.ink },
   chipText: { fontWeight: '500', color: sys.color.ink, flexShrink: 1 },
   chipTextOn: { color: sys.color.ink, fontWeight: '600' },
-  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.sm, width: sys.space.huge * 4 },
-  stepperExpanded: { width: '100%' },
-  step: { width: sys.touch.min, height: sys.touch.min, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
-    alignItems: 'center', justifyContent: 'center' },
-  stepValue: { color: sys.color.ink, fontVariant: ['tabular-nums'], flex: 1, minWidth: 0, textAlign: 'center' },
   // The one text field of the system, with the search glass before it and the clear button in it.
   field: { ...fieldBox, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: 0, paddingRight: sys.space.xs },
   input: withInter({ ...sys.type.body, color: sys.color.ink, flex: 1, minHeight: 48, paddingVertical: sys.space.sm }),

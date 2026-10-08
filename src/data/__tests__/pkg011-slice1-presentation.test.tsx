@@ -66,8 +66,8 @@ test('an owner draft continues its editing and never draws an application count;
   // Nothing is active: the groups say so once, and the one quiet row "Nacrti" is right under it.
   expect(texts()).toContain('Nema aktivnih zadataka');
   await act(async () => roleOf('Nacrti, 1 nacrt').onPress());
-  // One task card (step 5a, 2026-09-24): a draft draws no places and no application count; its one next step is to continue it.
-  const copy = texts(); expect(copy).toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 ?\/ ?2/);
+  // One task card (step 5a, 2026-09-24): a draft draws no places agreed and no application count, and no sentence that tells it to be continued (the press opens it).
+  const copy = texts(); expect(copy).not.toContain('Nastavi uređivanje'); expect(copy).not.toMatch(/prijava|0 ?\/ ?2|dogovoreno/);
   // The list of drafts says what it is (the bar's name), so its cards do not wear the state chip a second time; everywhere else the chip stands.
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.children === 'Nacrt')).toBe(false);
   expect(roleOf('Otvori zadatak Pomoć d')).toBeTruthy();

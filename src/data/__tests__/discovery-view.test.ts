@@ -1,8 +1,8 @@
 import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryItems, discoveryShown, discoveryStartSnap, happensBetween, happensIn,
   initialMarketplaceView, marketplaceItems, openPlaces, pinLabel, pinPlaces, placeSuggestions, pointKey, publicArea, publicFeatures, saysWhen,
   saysWorkMode, serbianToday, undatedCount, workMode, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
-import { NEWEST_FIRST, PRICE, WHERE, conditionsWords, countLineWords, countWords, datesWords, groupDigits, placesWords, removeWords, whenWords, whereWords }
-  from '../../ui/v2/discovery/discoveryWords';
+import { FILTER_GROUP, FILTER_WHEN, NEWEST_FIRST, PRICE, QUICK_WHEN, SEARCH_WORDS, WHERE, countLineWords, countWords, datesWords, groupDigits, offMapWords, placesWords,
+  searchWords, whenWords } from '../../ui/v2/discovery/discoveryWords';
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24): the pure rules under it. The four filter sections read only facts the
@@ -28,7 +28,8 @@ test('remote discovery ignores restored geographic scope but keeps every shared 
   const scope = view({ where: 'remote', place: 'Novi Sad', area: [19, 45, 20, 46], pinPlace: '45.25,19.83',
     query: 'Pomoć', when: 'today', price: 'OFFERS', places: 2 });
   expect(ids(discoveryItems(rows, scope, undefined, NOW))).toEqual(['yes']);
-  expect(whereWords(scope)).toBe('Na daljinu · „Pomoć“');
+  // the pill does not claim a place the list ignores: under the work done remotely only the words are searched
+  expect(searchWords(scope)).toBe('„Pomoć“');
   expect(scope.area).toEqual([19, 45, 20, 46]); // normalized view never mutates the remembered input
 });
 
@@ -312,27 +313,35 @@ describe('Discovery V47: Gde', () => {
 });
 
 describe('Discovery V47: the words of the search', () => {
-  it('the pill says where, then when and the conditions, or invites to add them', () => {
-    expect(whereWords(view())).toBe('Svi zadaci');
-    expect(whereWords(view({ area: [19, 45, 20, 46] }))).toBe('Ova oblast');
-    expect(whereWords(view({ query: ' farbanje ' }))).toBe('„farbanje“');
-    expect(whereWords(view({ place: 'Liman, Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe('Liman, Novi Sad · „selidba“');
-    expect(conditionsWords(view(), NOW)).toBe('Bilo kada');
-    expect(conditionsWords(view({ when: 'weekend', places: 2 }), NOW)).toBe('Ovaj vikend · Za 2 i više');
-    expect(conditionsWords(view({ where: 'remote', price: 'OFFERS' }), NOW)).toBe('Bilo kada · Na daljinu · Prima ponude');
-    expect(conditionsWords(view({ where: 'onsite', price: 'MY_PRICE' }), NOW)).toBe('Bilo kada · Na licu mesta · Navedena cena');
+  it('the pill says only what is searched, the words first and then the place, or nothing', () => {
+    // The pill (the owner's phone of 8 Oct 2026) is the SEARCH: it never says "Svi zadaci" or a condition, and says nothing while nothing is searched.
+    expect(searchWords(view())).toBeNull();
+    expect(searchWords(view({ where: 'remote', price: 'OFFERS', when: 'weekend', places: 2 }))).toBeNull();
+    expect(searchWords(view({ area: [19, 45, 20, 46] }))).toBe('Ova oblast');
+    expect(searchWords(view({ query: ' farbanje ' }))).toBe('„farbanje“');
+    // in the order of the pill's own "Šta tražiš · Gde" (the approved plan, U1)
+    expect(searchWords(view({ place: 'Liman, Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe('„selidba“ · Liman, Novi Sad');
+    expect(searchWords(view({ pinPlace: '44.79,20.45', query: 'selidba' }))).toBe('„selidba“ · Na ovom mestu');
     expect(placesWords(1)).toBe('Bilo koliko'); expect(placesWords(2)).toBe('Za 2 i više'); expect(placesWords(4)).toBe('Za 4 i više');
-    // One point of the map (a place's whole set) is said as such, before any searched words.
-    expect(whereWords(view({ pinPlace: '44.79,20.45', area: [19, 45, 20, 46] }))).toBe('Na ovom mestu');
-    expect(whereWords(view({ pinPlace: '44.79,20.45', query: 'selidba' }))).toBe('Na ovom mestu · „selidba“');
+    // One point of the map (a place's whole set) is said as such, before the area.
+    expect(searchWords(view({ pinPlace: '44.79,20.45', area: [19, 45, 20, 46] }))).toBe('Na ovom mestu');
+    // The work done remotely has no place: a place, an area or a point left over from before it is not claimed, the words are.
+    expect(searchWords(view({ where: 'remote', place: 'Novi Sad', area: [19, 45, 20, 46], pinPlace: '44.79,20.45' }))).toBeNull();
+    expect(searchWords(view({ where: 'remote', place: 'Novi Sad', query: 'selidba' }))).toBe('„selidba“');
   });
-  // Review of V47: the words are the app's own, and one reset and one "remove" are said the same way everywhere.
-  it('the work-mode and price words are the app\'s own, and a condition is removed by name', () => {
-    expect(WHERE.map(([, words]) => words)).toEqual(['Bilo gde', 'Na licu mesta', 'Na daljinu']);
-    // The person who looks for work reads the worker's words: a task that waits for offers is "Prima ponude" here ("Tražim ponude" is the requester's own voice).
-    expect(PRICE.map(([, words]) => words)).toEqual(['Sve', 'Navedena cena', 'Prima ponude']);
-    expect(removeWords('Vračar, Beograd')).toBe('Ukloni uslov: Vračar, Beograd');
+  // Review of V47: the words are the app's own, and one reset and one "remove" are said the same way everywhere. The approved plan of 8 Oct 2026 (U1, U5): "Svejedno" is the
+  // "everything" choice of a set, an amount is "Sa iznosom" or "Tražim ponude", and the days of the filters are three.
+  it('the work-mode, price and day words are the app\'s own, and a condition is removed by name', () => {
+    expect(WHERE.map(([, words]) => words)).toEqual(['Svejedno', 'Na licu mesta', 'Na daljinu']);
+    expect(PRICE.map(([, words]) => words)).toEqual(['Svejedno', 'Sa iznosom', 'Tražim ponude']);
+    expect(FILTER_WHEN.map(([, words]) => words)).toEqual(['Danas', 'Sutra', 'Ovaj vikend']);
+    expect(QUICK_WHEN).toEqual(['today', 'weekend']);
+    expect(FILTER_GROUP).toEqual({ when: 'Kada', where: 'Gde', amount: 'Iznos' });
+    expect(SEARCH_WORDS.what).toBe('Šta tražiš'); expect(SEARCH_WORDS.recent).toBe('Skorašnje pretrage');
   });
+  // The row under the list's count (the owner's phone of 8 Oct 2026, "lak pristup zadacima koji nisu na mapi"): the number leads, in the right Serbian plural.
+  it.each([[1, '1 nije na mapi'], [2, '2 nisu na mapi'], [4, '4 nisu na mapi'], [5, '5 nisu na mapi'], [11, '11 nisu na mapi'], [21, '21 nije na mapi'], [22, '22 nisu na mapi']])(
+    '%i not on the map: "%s"', (count, words) => { expect(offMapWords(count)).toBe(words); });
   it('the top line is never blank and counts in one format, every count through the plural', () => {
     const ready = { status: 'ready' as const, listed: 0, inArea: 0, withoutPoint: 0, pinless: 0, area: false, pinPlace: false };
     expect(countLineWords({ ...ready, status: 'loading' })).toEqual({ words: 'Učitavamo zadatke…', extra: '' });

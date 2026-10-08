@@ -70,12 +70,15 @@ export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena'>): Appl
   return { kind: 'amount', amount, basis: 'ukupno' };
 }
 
-/** The shared card's model for MY application: nothing here that the read did not carry. */
-export function workerPrijava(row: MojaPrijavaProjekcija): PrijavaModel {
+/**
+ * The shared card's model for MY application: nothing here that the read did not carry. `fresh` is the application I have just sent (the list was
+ * opened from its receipt): its chip adds "upravo" to "Poslata", for as long as the list is looked at in that visit (the approved draft U8).
+ */
+export function workerPrijava(row: MojaPrijavaProjekcija, fresh = false): PrijavaModel {
   const note = row.napomena?.trim();
   return { status: STATUS[row.stanje], reason: REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
     term: row.vremeTekst, price: applicationValue(row), people: osoba(row.pokrivaMesta), message: note ? `„${note}“` : null,
-    quiet: row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED' };
+    quiet: row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED', ...(fresh ? { detail: 'upravo' } : {}) };
 }
 
 /** The one action the foot holds, from the state alone. `null`: the state allows none, or it is already open. */
@@ -100,9 +103,9 @@ const FOOT: Record<ApplicationFootAction, { label: string; spoken: string; tone:
 export const applicationFootWords = (action: ApplicationFootAction) => FOOT[action];
 
 /** Everything the body shows, as one sentence after its command name, in the order it is drawn. Empty parts are left out. */
-export function applicationSpoken(row: MojaPrijavaProjekcija): string {
+export function applicationSpoken(row: MojaPrijavaProjekcija, fresh = false): string {
   // The message is my own words, said as such and without the quotation marks the card draws around them.
-  return prijavaSpoken(workerPrijava(row), { message: row.napomena?.trim(), messageLabel: 'tvoja poruka' });
+  return prijavaSpoken(workerPrijava(row, fresh), { message: row.napomena?.trim(), messageLabel: 'tvoja poruka' });
 }
 
 /* ------------------------------------------------------------------------------------------------ the parts */
@@ -113,8 +116,9 @@ export function applicationSpoken(row: MojaPrijavaProjekcija): string {
  * act under the next) re-render the thin interactive shell and not this text. The message is the only place my words to the
  * requester can be read again, so it is in quotes; a long one is clamped and has its own read-only control (`noteCollapsed`).
  */
-export const ApplicationSummary = memo(function ApplicationSummary({ row, large, noteCollapsed = false, disabled = false }: { row: MojaPrijavaProjekcija; large: boolean; noteCollapsed?: boolean; disabled?: boolean }) {
-  return <PrijavaCard model={workerPrijava(row)} large={large} noteLines={noteCollapsed ? 2 : 0} disabled={disabled} />;
+export const ApplicationSummary = memo(function ApplicationSummary({ row, large, noteCollapsed = false, disabled = false, fresh = false }: {
+  row: MojaPrijavaProjekcija; large: boolean; noteCollapsed?: boolean; disabled?: boolean; fresh?: boolean }) {
+  return <PrijavaCard model={workerPrijava(row, fresh)} large={large} noteLines={noteCollapsed ? 2 : 0} disabled={disabled} />;
 });
 
 /**
@@ -123,8 +127,9 @@ export const ApplicationSummary = memo(function ApplicationSummary({ row, large,
  * gives under the finger as one object, as the task card's does, and nothing moves under reduced motion. The handlers are the screen's
  * own guarded commands, handed in fresh on every render on purpose.
  */
-function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, expanded = false, disabled = false, large: forced, children }: {
+function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, expanded = false, disabled = false, large: forced, fresh = false, children }: {
   row: MojaPrijavaProjekcija; onTask: () => void; onAgreement: () => void; onWithdraw: () => void; onReview: () => void;
+  /** The application I have just sent: its chip says so ("Poslata · upravo"). */ fresh?: boolean;
   /** The review of the changed task is open under this card. */ expanded?: boolean;
   /** A command is in flight or waits for its readback: nothing on the card can be pressed. */ disabled?: boolean;
   /** The internal gallery shows the large-text layout without changing the phone's setting. */ large?: boolean;
@@ -161,10 +166,10 @@ function ApplicationCardBase({ row, onTask, onAgreement, onWithdraw, onReview, e
 
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={recordFlush}>
-      <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row) }}
+      <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityValue={{ text: applicationSpoken(row, fresh) }}
         accessibilityState={{ disabled }} disabled={disabled} onPress={onTask} onPressIn={lift.give} onPressOut={lift.settle} haptic="select" scaleTo={1}
         style={recordBody}>
-        <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} />
+        <ApplicationSummary row={row} large={large} disabled={disabled} noteCollapsed={longNote && !noteExpanded} fresh={fresh} />
       </Press>
       {/* A read-only sibling, never a nested press inside the task destination or the application command. */}
       {longNote ? <Press accessibilityRole="button" accessibilityLabel={noteLabel}

@@ -4,6 +4,10 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { DiscoveryV1OwnerRequest } from '../discoveryV1Owner';
 import { taskRelationIndex } from '../taskRelation';
 
+// These tests drive the real route, screen and coordinator through whole visits; one of them takes about 3 s alone and passes Jest's 5 s on a loaded developer machine (Metro, other agents).
+// What they pin is the order of the reads, not their speed, so the real-time limit is only a safety net and is widened (2026-10-08).
+jest.setTimeout(30000);
+
 // The P6 route unmounts its screen on blur and rebuilds it from the saved view on focus. This drives the REAL route, screen, coordinator and owners
 // over a fake server through that whole cycle: the return must show the same list (read depth restored) and never the error state. The fake server
 // answers the way the database does: it echoes a MAP request's bounds through double precision at 15 significant digits, while the map's own

@@ -92,7 +92,6 @@ describe.each([
     // one action applies them.
     if (discovery) {
       await act(async () => field('Pretraži zadatke').props.onPress());
-      await act(async () => field('Šta').props.onPress());
       await act(async () => field('Šta tražiš').props.onChangeText('Pomoć'));
       await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
     } else {

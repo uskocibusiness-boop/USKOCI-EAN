@@ -5,13 +5,12 @@ import type { SharedValue } from 'react-native-reanimated';
 import { SHEET_SPRING } from '../../product/ProductSheet';
 import { sheetLift, sys } from '../../system/tokens';
 
-/** The sheet's three heights, in this order: its top line only, half the map, the whole list under the search (a strip of map above it). */
+/** The sheet's three heights, in this order: its top line only, half the map, the whole list directly under the search pill and its capsules. */
 export const SNAP = { peek: 0, half: 1, full: 2 } as const;
 
 /**
- * The sheet's surface: white, with its corners, its hairline and its lift at EVERY height. At the full stop a strip of map still shows
- * above it (the zoom buttons and "U blizini" stand there), so the sheet is a sheet over the map to the end and never joins the
- * search surface as it did while it covered the map whole.
+ * The sheet's surface: white, with its corners, its hairline and its lift at EVERY height, so it is a sheet over the map to the end
+ * (at the full stop the map is behind it, covered, and only the tools stand above it).
  */
 const ListBackground = ({ style }: BottomSheetBackgroundProps) => <View testID="discovery-sheet-background" pointerEvents="none"
   accessible={false} importantForAccessibility="no" style={[style, s.background]} />;
@@ -24,25 +23,24 @@ const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
  * switch. It never closes; it rests at one of three heights ("mapa je glavna", half, "lista je glavna") and its top line (the
  * count, which is also the handle: a tap goes to the next height, a drag moves it) is there to take hold of, except while a
  * pin's card covers it: then the screen lowers the lowest height to a sliver behind the card and the sheet is `sunk`: its
- * background is not drawn (no hairline, no shadow peeking out under the card) and nothing in it reaches a screen reader. It
- * sits inside the screen, and the screen ends where the tab bar begins, so the sheet never slides under the bar and the bar
- * shows at every height.
+ * background is not drawn (no hairline, no shadow peeking out under the card) and nothing in it reaches a screen reader. It reaches
+ * the bottom of the screen at every height; the bottom navigation is away while it rests at its top line and lies over its lower part
+ * from half height up (the screen pads the list's end for it).
  *
- * Below the top line stands the `sticky` row of chips (from half height up it is what a thumb reaches), and under it the list.
- * It moves on ONE critically damped spring that cannot overshoot (`SHEET_SPRING`: clamped), and a drag past its first or last
- * stop does not stretch it (`enableOverDrag` is off): the sheet stops where its stops are and never bounces or shakes. There is
- * no dimming of the map behind it: the map's buttons stand directly above the sheet and move with it, and a veil over the map
- * would grey them while they rise. Under reduced motion it changes height at once.
+ * Below the top line stands the list: the filters are not here, they are the capsules over the map. It moves on ONE critically damped
+ * spring that cannot overshoot (`SHEET_SPRING`: clamped), and a drag past its first or last stop does not stretch it
+ * (`enableOverDrag` is off): the sheet stops where its stops are and never bounces or shakes. There is no dimming of the map behind
+ * it: the map's furniture stands directly above the sheet and moves with it, and a veil over the map would grey it while it rises.
+ * Under reduced motion it changes height at once.
  */
-export function DiscoveryListSheet({ index, snapPoints, position, reduced, animateOnMount = false, onIndex, onAnimate, header, sticky, sunk = false,
+export function DiscoveryListSheet({ index, snapPoints, position, reduced, animateOnMount = false, onIndex, onAnimate, header, sunk = false,
   children }: {
   index: number; snapPoints: readonly (number | string)[];
-  /** Where the sheet's top edge is, for the map's controls that ride on it. */ position?: SharedValue<number>;
+  /** Where the sheet's top edge is, for the map's furniture that rides on it. */ position?: SharedValue<number>;
   reduced: boolean; animateOnMount?: boolean; onIndex: (index: number) => void;
-  /** Native spring start; used only to decide whether a focus return can safely retain this exact mount. */
+  /** The sheet starts to move to another stop (a drag let go of, a tap, a command): the stop it goes to. */
   onAnimate?: (fromIndex: number, toIndex: number) => void;
   /** The top line: always visible, never scrolled away. */ header: ReactNode;
-  /** The row of chips under the top line: pinned, never scrolled away with the list. */ sticky?: ReactNode;
   /** A pin's card lies over the sheet's top line: the sheet steps out of sight and out of reach behind it. */ sunk?: boolean;
   /** The list itself (a `BottomSheetFlatList`). */ children: ReactNode;
 }) {
@@ -53,7 +51,7 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, anima
     accessible={false} accessibilityRole="none" accessibilityLabel={sunk ? null : 'Lista zadataka'}
     keyboardBehavior="extend" keyboardBlurBehavior="restore">
     <View testID="list-sheet-content" style={s.content} accessibilityElementsHidden={sunk}
-      importantForAccessibility={sunk ? 'no-hide-descendants' : 'auto'}>{header}{sticky}{children}</View>
+      importantForAccessibility={sunk ? 'no-hide-descendants' : 'auto'}>{header}{children}</View>
   </BottomSheet>;
 }
 

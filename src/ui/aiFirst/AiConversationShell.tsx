@@ -54,8 +54,13 @@ export type AiConversationShellProps = {
   /** History notes, each an ordinary item of the message list after the message it followed (owner, 2026-10-07: nothing
    *  stays docked at the bottom). A null anchor, or one no longer in the thread, places the note after the last message. */
   threadNotes?: readonly ConversationNote[];
-  /** The conversation's next primary step, shown above the composer when the draft is ready. */
+  /** The conversation's next primary step, shown above the composer when the draft is ready (or alone, where the composer stood, once `closed`). */
   footerAction?: ReactNode;
+  /**
+   * The conversation is over and takes no more words: the field, the microphone and the voice mode are not drawn (the owner's phone, 8 Oct 2026: a
+   * finished conversation still invited "Opiši šta ti treba"). Where they stood is `footerAction`, the one thing left to do, or nothing.
+   */
+  closed?: boolean;
   /** Speech: the microphone in the composer, the voice mode behind the waveform button. Left out when speech is closed. */
   voice?: VoiceInput;
   /** The "+" at the start of the composer (the task's photos). Left out when there is nothing to attach to. */
@@ -366,8 +371,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
       </View>
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
           is drawn under a conversation (`_layout`), so this is the composer's own inset on both conversations. */}
-      <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
+      {p.closed && !p.footerAction ? null : <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
         {p.footerAction ? <View testID="ai-footer-action">{p.footerAction}</View> : null}
+        {p.closed ? null : <>
         {/* The hold advice carries the way to speak without holding (review r4 ra item 7): once the field has text the
             waveform button gives way to send, and a person who cannot hold would otherwise have no speech at all. */}
         {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
@@ -420,7 +426,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
           </Press> : null}
           </View>
         </View>
-      </SafeAreaView>
+        </>}
+      </SafeAreaView>}
     </KeyboardAvoidingView>
     {voiceMode && p.voice ? <VoiceMode voice={p.voice} prompt={p.welcome} answer={answer} said={said}
       thinking={p.busy && !p.streamingText} reviewFirst={voiceReview}

@@ -2,7 +2,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../v2/V2Action', () => ({ V2Action: 'V2Action' }));
-import { agreementNextStep, agreementQuietLine, agreementWaitsForMe, RATING_WAITS_FOR_ME } from '../AgreementWorkspace';
+import { agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe, RATING_WAITS_FOR_ME } from '../AgreementWorkspace';
 
 /**
  * The words of the Dogovor's step and of its footer (plan 2.6, item 7): the app says "zadatak", never "posao"; the worker's
@@ -41,12 +41,18 @@ describe('the sentence that stands where no button does', () => {
     expect(line({ change: { waits: true, mine: false } })).toBe('Predlog izmene čeka odgovor.');
   });
 
-  it('says the end of a Dogovor in words: finished or cancelled', () => {
-    expect(line({ state: 'COMPLETED' })).toBe('Dogovor je završen.');
-    expect(line({ state: 'CANCELLED' })).toBe('Dogovor je otkazan.');
-    // A finished or cancelled Dogovor says it whether or not the permissions were read, and whatever a stale proposal says.
-    expect(line({ state: 'COMPLETED', permissionsKnown: false, change: { waits: true, mine: true } })).toBe('Dogovor je završen.');
-    expect(line({ state: 'CANCELLED', permissionsKnown: false })).toBe('Dogovor je otkazan.');
+  it('says nothing at the foot of a Dogovor that is over: the head of the page has said it, and the same words twice were a duplicate', () => {
+    expect(line({ state: 'COMPLETED' })).toBeNull();
+    expect(line({ state: 'CANCELLED' })).toBeNull();
+    // Whether or not the permissions were read, and whatever a stale proposal says.
+    expect(line({ state: 'COMPLETED', permissionsKnown: false, change: { waits: true, mine: true } })).toBeNull();
+    expect(line({ state: 'CANCELLED', permissionsKnown: false })).toBeNull();
+  });
+
+  it('says the end of a Dogovor once, in the title of the head, in one form of words (no full stop, as the rest of the app writes it)', () => {
+    const end = (state: 'COMPLETED' | 'CANCELLED') => agreementNextStep({ state, party: true, worker: true, change: none, ownRating: 'GIVEN', problemOpen: false, deadline: '' });
+    expect(end('COMPLETED').title).toBe('Dogovor je završen');
+    expect(end('CANCELLED').title).toBe('Dogovor je otkazan');
   });
 
   it('says nothing it cannot stand behind: unread permissions, or someone who is not a side of the Dogovor', () => {
@@ -71,13 +77,17 @@ describe('one pair of words for finishing the work', () => {
   const step = (patch: Partial<Parameters<typeof agreementNextStep>[0]> = {}) => agreementNextStep({ state: 'CONFIRMED', party: true, worker: true, change: none,
     ownRating: 'NOT_APPLICABLE', problemOpen: false, deadline: 'Do 18. sep · 12:00', ...patch });
 
-  it('tells the worker to pick "Zadatak je gotov" - the button\'s own words - and promises no hours', () => {
-    expect(step().body).toBe('Kada završiš, izaberi „Zadatak je gotov“. Druga strana tada potvrđuje završetak ili prijavljuje problem.');
+  it('tells the worker, in ONE sentence, to press "Zadatak je gotov" - the button\'s own words - and promises no hours', () => {
+    expect(step().body).toBe('Kad završiš, dodirni „Zadatak je gotov“.');
     expect(step().body).not.toMatch(/\d+\s?h|označi završetak/);
+    // One sentence (J5): what the other side then does is said by the review the button opens, not by a second one here.
+    expect(step().body?.match(/[.!?]/g)).toHaveLength(1);
   });
 
-  it('tells the requester that the confirmation is theirs once the task is done', () => {
-    expect(step({ worker: false }).body).toBe('Završetak potvrđuješ kada je zadatak obavljen.');
+  it('tells the requester nothing while the work is under way: the foot says whose move it is, in its own sentence', () => {
+    expect(step({ worker: false }).body).toBeNull();
+    expect(step({ worker: false, party: false }).body).toBeNull();
+    expect(step({ party: false }).body).toBeNull();
   });
 
   it('says the server\'s deadline, written for the person, and not a hard-coded one', () => {
@@ -96,5 +106,38 @@ describe('one pair of words for finishing the work', () => {
     }
     expect(RATING_WAITS_FOR_ME.toLowerCase()).not.toContain('posao');
     expect(agreementWaitsForMe({ state: 'AWAITING_REQUESTER', requester: true, change: none, ownRating: 'NOT_APPLICABLE' })).toBe('Završetak je označen i čeka tvoju potvrdu');
+  });
+});
+
+/**
+ * The "ⓘ" at the head of a Dogovor (the coordinator, 8 Oct 2026: one sentence on the page, the rest behind it): how a Dogovor goes, said to
+ * each side from its own place, in the words of the buttons, in the order it happens, with no hours and no word the app does not use.
+ */
+describe('how a Dogovor goes, behind the "ⓘ"', () => {
+  const lines = (worker: boolean) => agreementStepsInfo({ worker }).lines;
+
+  it('answers one question, as the heading of its sheet, and says it in four short lines for either side', () => {
+    for (const worker of [true, false]) {
+      expect(agreementStepsInfo({ worker }).title).toBe('Kako ide Dogovor');
+      expect(lines(worker)).toHaveLength(4);
+      for (const line of lines(worker)) expect(line.match(/[.!?]/g)).toHaveLength(1);
+    }
+  });
+
+  it('tells the worker to press "Zadatak je gotov", then what the other side does, what happens without an answer, and that the rating follows', () => {
+    expect(lines(true)).toEqual(['Kad završiš zadatak, dodirni „Zadatak je gotov“.', 'Druga strana potvrđuje završetak ili prijavljuje problem.',
+      'Ako nema odgovora u roku, Dogovor se zatvara sam.', 'Kad je završetak potvrđen, možeš da oceniš saradnju.']);
+  });
+
+  it('tells the one who asked for the work that the other reports it done and that the confirmation, or the problem, is theirs', () => {
+    expect(lines(false)).toEqual(['Osoba koja uskače javlja da je zadatak gotov.', 'Ti potvrđuješ završetak ili prijavljuješ problem.',
+      'Ako ne odgovoriš u roku, Dogovor se zatvara sam.', 'Kad je završetak potvrđen, možeš da oceniš saradnju.']);
+  });
+
+  it('names no hours, never says "posao", "Naručilac" or "Uskočer", and has no grammatical gender', () => {
+    for (const worker of [true, false]) {
+      const said = `${agreementStepsInfo({ worker }).title} ${lines(worker).join(' ')}`;
+      expect(said).not.toMatch(/\d+\s?h|\bsat(a|i)?\b|\bposao\b|\bposla\b|Naručilac|Uskočer|\bzavršio\b|\bzavršila\b/i);
+    }
   });
 });

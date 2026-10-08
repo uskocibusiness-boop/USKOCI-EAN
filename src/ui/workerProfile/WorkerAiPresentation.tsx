@@ -15,13 +15,13 @@ import { sys, field, brandAction } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { FactListEditor } from '../aiFirst/FactValueEditors';
 import { V2Action } from '../v2/V2Action';
-import { tidyPlaceLabel } from '../location/placeText';
+import { cityLabel } from '../profile/cityLabel';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { displayedPinPosition } from '../location/ResolvedPinMap.types';
 import { civilClock, civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { plural } from '../system/plural';
-import { WORKER_PART_TITLE, capturedParts, capturedSpeech, toolsAndVehiclesNote, toolsAndVehiclesTag, type WorkerAiPart } from './workerProfileFacts';
+import { WORKER_PART_TITLE, capturedParts, capturedSpeech, toolsAndVehiclesNote, type WorkerAiPart } from './workerProfileFacts';
 
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
@@ -36,7 +36,7 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
 }){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
-  const place = `${profile.location.city.trim() ? tidyPlaceLabel(profile.location.city.trim()) : 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
+  const place = `${profile.location.city.trim() ? cityLabel(profile.location.city) : 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
   const availability = profile.availability.availableNow ? 'Mogu odmah' : 'Mogu odmah: isključeno';
   const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
   return <Surface kind="panel" testID="worker-draft-summary"
@@ -109,13 +109,12 @@ function Fact({art,children,quiet=false}:{art:FactArtKind;children:string;quiet?
  * "Izmeni" is a 44 dp target that names the part it opens ("Izmeni: Veštine"); without `onEdit` (the design gallery) the
  * group is only read.
  */
-function ReviewGroup({part,tag,onEdit,editDisabled=false,children}:{part:WorkerAiPart;tag?:string|null;
+function ReviewGroup({part,onEdit,editDisabled=false,children}:{part:WorkerAiPart;
   onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean;children:ReactNode}){
   const title=WORKER_PART_TITLE[part];
   return <View testID={`worker-review-${part}`} style={s.group}>
     <View style={s.groupHead}>
       <T accessibilityRole="header" variant="bodyStrong" style={[s.grow,s.ink]}>{title}</T>
-      {tag?<View style={s.tag}><T variant="meta" style={s.muted}>{tag}</T></View>:null}
       {onEdit?<Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${title}`} accessibilityState={{disabled:editDisabled}}
         disabled={editDisabled} haptic={editDisabled?'none':'select'} onPress={()=>{if(!editDisabled)onEdit(part);}} style={s.edit}>
         <T variant="tab" style={editDisabled?s.muted:s.editText}>Izmeni</T>
@@ -131,21 +130,29 @@ export function WorkerAiNotificationsNote(){
   return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
     <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></Surface>;
 }
+/** The server names the missing name "Ime"; it is the name of the ACCOUNT now (owner, 8 Oct 2026), so that is what the person is told to add. */
+const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;
 /**
  * Frozen personal-profile review (M2): what the conversation understood, in parts, each with "Izmeni" at its side. Legacy
  * wire fields remain stored, but the personal-profile save no longer writes them. Nothing here is a location editor: the
  * map is the frozen approximate centre, and every correction goes through the part's own editor and a fresh review.
+ *
+ * There is no row for the name: the profile is saved under the name of the account (owner, 8 Oct 2026: one name for everything), which the route puts into
+ * the proposal before the review is made. Only when the account has no name at all does the review say so, with `onAddName` leading to the one place
+ * it is written ("Lični podaci").
  */
-export function WorkerAiReviewDetails({review,onEdit,editDisabled=false}:{review:WorkerAiReview;
+export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddName}:{review:WorkerAiReview;
   /** Opens the editor of one part. Absent (the design gallery): the review is only read. */
-  onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean}){
+  onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean;
+  /** The way to "Lični podaci" when the account has no name; without it the missing name is only said. */ onAddName?:()=>void}){
   const p=review.profile;
   const point=displayedPinPosition(p.location.approximatePosition,true);
-  const place=[p.location.city.trim()?tidyPlaceLabel(p.location.city.trim()):null,p.location.operatingCountryCode].filter(Boolean).join(' · ');
+  const place=[p.location.city.trim()?cityLabel(p.location.city):null,p.location.operatingCountryCode].filter(Boolean).join(' · ');
   const group={onEdit,editDisabled};
   return <View style={s.review}>
     {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
-      <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.join(', ')}.</T></View>:null}
+      <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.map(missingLabel).join(', ')}.</T></View>:null}
+    {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
     <ReviewGroup part="skills" {...group}>
       {p.skills.length?<View style={s.chips}>{p.skills.map((skill,index)=><View key={`${index}:${skill}`} style={s.chip}>
         <T selectable variant="note" style={s.chipText}>{skill}</T></View>)}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
@@ -172,16 +179,15 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false}:{review
       </View>:null}
       <T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Postojeći Dogovori ostaju obaveze.</T>
     </ReviewGroup>
-    <ReviewGroup part="tools" tag={toolsAndVehiclesTag()} {...group}>
+    <ReviewGroup part="tools" {...group}>
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
       {p.vehicles.length?<Fact art="vehicle">{list(p.vehicles)}</Fact>:null}
       {p.tools.length||p.vehicles.length?null:<T variant="body" tone="muted">{EMPTY}</T>}
       <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     </ReviewGroup>
     <ReviewGroup part="identity" {...group}>
-      <Row label="Ime" value={p.displayName||EMPTY} quiet={!p.displayName} />
-      {p.bio?<Row label="O meni" value={p.bio} />:null}
-      <T testID="worker-matching-explanation" variant="note" tone="muted">Ime i „O meni“ vide osobe koje otvore tvoj profil; ne menjaju koji ti zadaci stižu.</T>
+      {p.bio?<Row label="O meni" value={p.bio} />:<T variant="body" tone="muted">{EMPTY}</T>}
+      {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">„O meni“ vide osobe koje otvore tvoj profil.</T>:null}
     </ReviewGroup>
   </View>;
 }
@@ -190,7 +196,7 @@ function Field({label,value,change,disabled,numeric=false,multiline=false}:{labe
     value={value} editable={!disabled} onChangeText={v=>{if(!disabled)change(v);}} multiline={multiline} keyboardType={numeric?'number-pad':'default'} maxLength={numeric?3:multiline?25500:160}/></View>;
 }
 /** Manual correction of the proposal; applied to the proposal, saved only through the final review. */
-export type WorkerAiManualDraft={name:string;bio:string;city:string;country:string;radius:string;skills:string;tools:string;vehicles:string};
+export type WorkerAiManualDraft={bio:string;city:string;country:string;radius:string;skills:string;tools:string;vehicles:string};
 /** The part a focused editor corrects; the week has the calendar form of its own. */
 export type WorkerAiManualPart=Exclude<WorkerAiPart,'time'>;
 /** The patch is built field by field here; the wire type is read-only. */
@@ -208,13 +214,13 @@ type ListKey='skills'|'tools'|'vehicles';
  */
 export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChange,only}:{profile:WorkerAiProfile;disabled:boolean;apply:(patch:WorkerAiPatch)=>void;
   initialDraft?:WorkerAiManualDraft;onDraftChange?:(value:WorkerAiManualDraft,dirty:boolean)=>void;only?:WorkerAiManualPart}){
-  const initial=useRef({name:profile.displayName,bio:profile.bio,city:profile.location.city,country:profile.location.operatingCountryCode??'',
+  const initial=useRef({bio:profile.bio,city:profile.location.city,country:profile.location.operatingCountryCode??'',
     radius:String(profile.location.radiusKm),skills:profile.skills.join('\n'),tools:profile.tools.join('\n'),vehicles:profile.vehicles.join('\n')});
   const [values,setValues]=useState(initialDraft??initial.current),latest=useRef(values),notify=useRef(onDraftChange);notify.current=onDraftChange;
   const alive=useRef(true),editable=useRef(!disabled);editable.current=!disabled;
   // What was typed into a list's box and not yet added: the list editor reports it, and saving keeps it.
   const boxes=useRef<Record<ListKey,string>>({skills:'',tools:'',vehicles:''});
-  const {name,bio,city,country,radius,skills,tools,vehicles}=values;
+  const {bio,city,country,radius,skills,tools,vehicles}=values;
   // A fresh revision mounts a fresh form. Report edits synchronously so Back in
   // the same event batch cannot discard a keystroke before an effect runs.
   const dirty=(value:WorkerAiManualDraft)=>(Object.keys(value) as (keyof WorkerAiManualDraft)[]).some(field=>value[field]!==initial.current[field])
@@ -232,7 +238,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
   const [error,setError]=useState<string|null>(null);
   const submit=()=>{
     if(!alive.current||!editable.current)return;
-    const {name,bio,city,country,radius,skills,tools,vehicles}=latest.current;
+    const {bio,city,country,radius,skills,tools,vehicles}=latest.current;
     const all=!only,patch:Writable<WorkerAiPatch>={};
     const fail=(focused:string)=>{setError(all?'Proveri veštine, alat, vozila, državu i radijus (1–200 km). Tekst „O meni“ može imati do 4.000 znakova.':focused);};
     // Match the canonical ASCII btrim; Unicode whitespace is part of an authored term.
@@ -240,7 +246,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
       return capabilityTerms(word&&!base.includes(word)?[...base,word]:base);};
     if(all||only==='identity'){
       if(bio.length>4000)return fail('O meni može imati do 4.000 znakova.');
-      patch.displayName=name;patch.bio=bio;
+      patch.bio=bio;
     }
     if(all||only==='skills'){
       const list=terms('skills',skills);if(!list)return fail('Lista može imati do 50 stavki, do 500 znakova po stavci.');
@@ -267,15 +273,14 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
     <Field disabled={disabled} label="Radijus rada u km" value={radius} change={v=>change('radius',v)} numeric/></View>;
   const body=!only?<>
     <T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U polja sa više stavki upiši jednu stavku po redu.</T>
-    <View style={s.section}><T variant="heading" style={s.ink}>Ko si i šta radiš</T>
-      <Field disabled={disabled} label="Ime na profilu" value={name} change={v=>change('name',v)}/><Field disabled={disabled} label="Veštine i usluge" value={skills} change={v=>change('skills',v)} multiline/>
+    <View style={s.section}><T variant="heading" style={s.ink}>Šta radiš</T>
+      <Field disabled={disabled} label="Veštine i usluge" value={skills} change={v=>change('skills',v)} multiline/>
       <Field disabled={disabled} label="Alat i oprema" value={tools} change={v=>change('tools',v)} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={v=>change('vehicles',v)} multiline/>
       <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>
     {area}
   </>:<>
     <T variant="meta" tone="muted">Izmena ostaje u predlogu do završnog pregleda i čuvanja.</T>
     {only==='identity'?<View style={s.section}>
-      <Field disabled={disabled} label="Ime na profilu" value={name} change={v=>change('name',v)}/>
       <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>:null}
     {only==='skills'?listEditor('skills','Veštine i usluge',skills):null}
     {only==='tools'?<>{listEditor('tools','Alat i oprema',tools)}{listEditor('vehicles','Vozila',vehicles)}</>:null}
@@ -314,11 +319,11 @@ const s=StyleSheet.create({
   progressBar:{height:4,borderRadius:2,backgroundColor:sys.color.line},
   progressBarDone:{backgroundColor:sys.color.green},
   review:{gap:layout.section},
+  addName:{alignSelf:'flex-start'},
   // A part of the review: title and "Izmeni" on one line, the facts under it; the parts are parted by the gap between them, not by a line.
   group:{gap:sys.space.xs},
   groupHead:{flexDirection:'row',alignItems:'center',gap:sys.space.sm,minHeight:44},
   groupBody:{gap:sys.space.md},
-  tag:{flexShrink:0,minHeight:24,justifyContent:'center',paddingHorizontal:sys.space.sm,borderRadius:sys.radius.badge,backgroundColor:sys.color.wash},
   edit:{minWidth:44,minHeight:44,justifyContent:'center',alignItems:'flex-end',paddingLeft:sys.space.md},
   editText:{color:sys.color.green},
   fact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},

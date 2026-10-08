@@ -656,7 +656,9 @@ describe('D03 actual route and scoped resource integration', () => {
       { accountId: mockAccount, accountRevision: 0 });
     expect(texts()).toContain('Problem je prijavljen'); expect(texts()).toContain(narrative);
     expect(texts()).toContain('Problem je prijavljen sa tvog naloga.');
-    expect(texts()).toContain('Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi.');
+    // One sentence in the note (J5): who reads it, and that a problem alone decides nobody's guilt or debt. The stopped completion is the head's.
+    expect(texts()).toContain('Opis vide oba učesnika, a problem sam po sebi ne određuje krivicu ili dug.');
+    expect(texts()).not.toContain('Završetak se i dalje može potvrditi.');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Prijavi problem' })).toHaveLength(0);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
   });
@@ -674,7 +676,7 @@ describe('D03 actual route and scoped resource integration', () => {
     await act(async () => button('Pošalji prijavu problema').props.onPress());
     expect(texts()).toContain('Problem je prijavila druga strana.');
     expect(texts()).toContain('Opis prve prijave druge strane.');
-    expect(texts()).toContain('Tvoj novi opis nije dodat.');
+    expect(texts()).toContain('Sačuvan je prvi opis, a tvoj novi nije dodat. Za dopunu koristi Poruke.');
     expect(texts()).not.toContain('Moj drugačiji opis.');
   });
   it.each(['CONFIRMED', 'AWAITING_REQUESTER'])('preserves a legacy report on %s, chat and explicit completion without enabling an overwrite', async stanje => {

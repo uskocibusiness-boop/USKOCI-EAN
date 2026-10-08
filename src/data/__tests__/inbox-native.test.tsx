@@ -6,7 +6,8 @@ import { inboxEventArt } from '../../ui/notifications/InboxPresentation';
 import { Appear } from '../../ui/system/Appear';
 import { ConversationArt } from '../../ui/system/ConversationArt';
 import { FactArt } from '../../ui/system/FactArt';
-import { ListRow } from '../../ui/system/ListRow';
+import { Glyph } from '../../ui/system/Glyph';
+import { TimedRow } from '../../ui/notifications/TimedRow';
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 let mockIntent='narucilac';
@@ -178,12 +179,14 @@ test('unread is a dot and a picture in colour, never a tinted card or an orange 
   for(const node of rows){const style=StyleSheet.flatten(node.props.style);expect(style.backgroundColor).toBeUndefined();expect(style.borderRadius).toBeUndefined();expect(style.borderColor).not.toBe('#C9D6CF');}
   const fills=tree.root.findAll(node=>typeof node.type==='string').map(node=>StyleSheet.flatten(node.props.style)?.backgroundColor);
   expect(fills).not.toContain('#FFF5E9');
-  // The row is the system's one row (ListRow): the same type for both; what tells the two apart is the dot and the colour of the picture.
-  expect(row(`Pročitano. Pročitan naslov.`).findAllByType('T' as React.ElementType)[0].props.variant).toBe('bodyStrong');
+  // What tells the two apart is the dot and the weight of the name; the picture keeps its colour either way (it was grey once read, and the
+  // owner's phone called it "siva ikona razgovora").
+  expect(row(`Pročitano. Pročitan naslov.`).findAllByType('T' as React.ElementType)[0].props.variant).toBe('body');
   expect(unreadRow().findAllByType('T' as React.ElementType)[0].props.variant).toBe('bodyStrong');
-  expect(picture('Pročitano. Pročitan naslov.').props.muted).toBe(true); expect(picture(`Nepročitano. ${item.title}.`).props.muted).toBe(false);
-  // The row's arrow is the row's own (the system draws one on every row that is touched); the list adds none.
-  expect(tree.root.findAllByType(ListRow)).toHaveLength(3);
+  expect(picture('Pročitano. Pročitan naslov.').props.muted).toBeFalsy(); expect(picture(`Nepročitano. ${item.title}.`).props.muted).toBeFalsy();
+  // The three rows are the list's own `TimedRow`: the clock stands at the end of the name, and no row draws an arrow.
+  expect(tree.root.findAllByType(TimedRow)).toHaveLength(3);
+  expect(tree.root.findAllByType(Glyph).filter(node=>node.props.name==='caret-right')).toHaveLength(0);
 });
 test('"Označi sve" is the end of the first day\'s heading, reads everything once and shows its own spinner while it works',async()=>{
   mockState.page.items=[item];mockState.page.unreadCount=1;await render();
@@ -216,7 +219,9 @@ test('the row being opened turns its picture into a spinner; the others wait',as
 test('a new task for you leads with the task itself, the only row the data lets lead with the task',async()=>{
   const title='Nova prilika koja ti može odgovarati', body='Prenos ormana do kombija';
   mockState.page.items=[{...item,eventType:'OPPORTUNITY_AVAILABLE',family:'opportunities',title,body}];mockState.page.unreadCount=1;await render();
-  expect(strings(unreadRow(title,body)).slice(0,2)).toEqual([body,title]);
+  // The task, then the clock at the end of its line, then the event under it.
+  const words=strings(unreadRow(title,body));
+  expect([words[0],words[2]]).toEqual([body,title]);
 });
 test.each([
   ['CLARIFICATION_CREATED','narucilac',{kind:'OWN_NEED',id:'actual-need',role:'REQUESTER'}],
@@ -341,7 +346,7 @@ test('the three tabs carry the owner\'s words, exactly, and the old names are no
   expect(tabs.map(node=>node.props.accessibilityLabel)).toEqual(['Sve','Moji zadaci','Moje prijave']);
   expect(text()).not.toMatch(/Poslovi|poslov|posao/);
 });
-test('under every row, with the clock, the screen says where a tap goes; a screen reader hears it as the row\'s hint',async()=>{
+test('a row says the event and its clock, not where a tap goes: that is the row\'s hint, for a screen reader only',async()=>{
   const ago=(minutes:number)=>new Date(Date.parse(at)-minutes*60_000).toISOString();
   mockState.page.items=[
     {...item,id:'m',eventType:'MESSAGE_RECEIVED',family:'dogovor',title:'Nova poruka',body:'Imaš novu poruku u Dogovoru.',occurredAt:ago(1)},
@@ -350,23 +355,25 @@ test('under every row, with the clock, the screen says where a tap goes; a scree
     {...item,id:'x',eventType:'SOMETHING_NEW',family:'account',title:'Nešto novo',body:'Nešto se desilo.',occurredAt:ago(4)},
   ];mockState.page.unreadCount=4;await render();
   const clock=(minutes:number)=>trenutak(ago(minutes))!.sat;
-  expect(text()).toContain(`${clock(1)} · Otvara poruku u Dogovoru`);
-  expect(text()).toContain(`${clock(2)} · Otvara Dogovor`);
-  expect(text()).toContain(`${clock(3)} · Otvara zadatak`);
-  // An event the table does not know says only its clock: a destination is never made up.
-  expect(text()).toContain(clock(4));expect(text()).not.toContain(`${clock(4)} ·`);
+  // The owner's phone, 8 Oct 2026 ("18:54 · Otvara Dogovor"): nothing on the screen explains what a row does.
+  for(const minutes of [1,2,3,4])expect(text()).toContain(clock(minutes));
+  expect(text()).not.toMatch(/Otvara/);expect(text()).not.toContain(' · ');
+  // A screen reader hears where a tap goes; an event the table does not know says nothing: a destination is never made up.
   expect(row('Nepročitano. Nešto novo.').props.accessibilityHint).toBeUndefined();
   expect(row('Nepročitano. Nova prilika koja ti može odgovarati.').props.accessibilityHint).toBe('Otvara zadatak.');
   expect(row('Nepročitano. Nova poruka.').props.accessibilityHint).toBe('Otvara poruku u Dogovoru.');
+  expect(row('Nepročitano. Završetak čeka tvoju potvrdu.').props.accessibilityHint).toBe('Otvara Dogovor.');
 });
-test('an unread row has the dot and a picture in colour; both rows are the one row of the system, with one type scale',async()=>{
+test('an unread row has the dot and its name in the strong weight; a read row keeps its picture in colour and its name in the regular weight',async()=>{
   mockState.page.items=[{...item,id:'u',title:'Nepročitan',body:'Telo'},{...item,id:'r',title:'Pročitan',body:'Telo',readAt:at}];mockState.page.unreadCount=1;await render();
-  const variants=(prefix:string)=>row(prefix).findAllByType('T' as React.ElementType).slice(0,2).map(node=>[node.props.variant,node.props.tone]);
-  // The title is 16/24 in ink, the line under it 14/20 in grey, for every row; weight and tone no longer say read or unread (the dot and the picture do).
-  expect(variants('Nepročitano. Nepročitan.')).toEqual([['bodyStrong','ink'],['note','muted']]);
-  expect(variants('Pročitano. Pročitan.')).toEqual([['bodyStrong','ink'],['note','muted']]);
+  const variants=(prefix:string)=>row(prefix).findAllByType('T' as React.ElementType).filter(node=>typeof node.props.children==='string')
+    .map(node=>[node.props.variant,node.props.tone]);
+  // The name is 16/24 in ink (600 while it waits for you, 400 once you have seen it), the clock 13/18 and the words under it 14/20, both in grey.
+  expect(variants('Nepročitano. Nepročitan.')).toEqual([['bodyStrong','ink'],['meta','muted'],['note','muted']]);
+  expect(variants('Pročitano. Pročitan.')).toEqual([['body','ink'],['meta','muted'],['note','muted']]);
   expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(1);
-  expect(picture('Nepročitano. Nepročitan.').props.muted).toBe(false);expect(picture('Pročitano. Pročitan.').props.muted).toBe(true);
+  // The picture is the same colour read or not ("siva ikona razgovora" on the owner's phone): read is said by the dot that goes.
+  expect(picture('Nepročitano. Nepročitan.').props.muted).toBeFalsy();expect(picture('Pročitano. Pročitan.').props.muted).toBeFalsy();
 });
 
 const stamp='2026-09-10T12:05:00Z';
@@ -447,10 +454,8 @@ describe('settling one row without opening it',()=>{
   });
   test('a screen reader is offered the same command in the row\'s actions menu, only for an unread row',async()=>{
     await render();
-    // The list hands the actions to the system row (`ListRow`), which passes them on to the row's press once it takes them: this is
-    // what the list asks for. The row's own press is read in a device check, not here.
-    const rows=tree.root.findAllByType(ListRow);
-    const unread=rows.find(node=>String(node.props.accessibilityLabel).startsWith('Nepročitano. Prva.'))!, read=rows.find(node=>String(node.props.accessibilityLabel).startsWith('Pročitano. Pročitana.'))!;
+    // The actions are on the row's own press (`TimedRow`), the element a screen reader focuses; the system's `ListRow` never passed them on.
+    const unread=row('Nepročitano. Prva.'), read=row('Pročitano. Pročitana.');
     expect(unread.props.accessibilityActions).toEqual([{name:'markRead',label:'Označi kao pročitano'}]);
     expect(read.props.accessibilityActions).toBeUndefined();
     // Another action name does nothing; the named one does the same as the swipe.

@@ -28,6 +28,12 @@ const mockReactions = new Set<{ prepare: () => unknown; react: (next: unknown, p
 const mockRnDeliveries: (() => void)[] = [];
 const mockCellLayouts = new Map<string, jest.Mock>();
 const mockNearbyPermission = jest.fn(), mockNearbyWatch = jest.fn();
+// What was searched before is kept on the phone in the app's small storage, per account; this stands in for it.
+const mockRecentStore = new Map<string, string>();
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: async (key: string) => mockRecentStore.get(key) ?? null,
+  setItem: async (key: string, value: string) => { mockRecentStore.set(key, value); },
+}));
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 },
   requestForegroundPermissionsAsync: () => mockNearbyPermission(), hasServicesEnabledAsync: async () => true,
   watchPositionAsync: (...args: unknown[]) => mockNearbyWatch(...args) }) }));
@@ -58,7 +64,10 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
+// The provider's context is there too: the screen reaches the bottom of the window, so what stands at the bottom clears the inset that the context says.
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView', SafeAreaInsetsContext: require('react').createContext(null) }));
+const SafeAreaInsetsContext = (jest.requireMock('react-native-safe-area-context') as { SafeAreaInsetsContext: React.Context<{ top: number; left: number; right: number; bottom: number } | null> })
+  .SafeAreaInsetsContext;
 jest.mock('expo-router', () => ({ useIsFocused: () => mockFocused }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 // Evaluate the UI-thread styles at explicit sheet positions; native gesture/frame timing still needs device review.
@@ -85,6 +94,8 @@ import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS, REST
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { DiscoveryChipRow } from '../../ui/v2/discovery/DiscoveryChipRow';
+import { CONTROL_SIZE } from '../../ui/v2/discovery/mapClearBand';
+import { ZadaciBarContext } from '../../ui/v2/discovery/zadaciBar';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { Appear, ROWS_THAT_ARRIVE } from '../../ui/system/Appear';
@@ -110,6 +121,10 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
   ...patch } as unknown as MarketplaceItem);
 const at = (lat: number, lng: number) => ({ priblizno: { lat, lng } });
 let rows: MarketplaceItem[] = [], loading = false, refreshing = false, error = false, relations: TaskRelationIndex | undefined, scopeKey = 'a:1';
+/** The layout's bottom navigation (the one value that moves it and its height), or none (a gallery): a test hands it over to see the screen drive it. */
+let barValue: { hidden: Animated.Value; height: number } | undefined;
+/** The window's bottom inset (the gesture bar or the navigation keys), as the safe-area provider would say it. */
+let insetBottom = 0;
 let relationsPending = false, relationsError = false;
 let tracing = false;
 let publicationFocus: { token: string; id: string; kind: 'map' | 'list' } | undefined;
@@ -133,13 +148,15 @@ const open = jest.fn(), refresh = jest.fn(), newTask = jest.fn(), profile = jest
 const userIntent = jest.fn();
 function Screen() {
   const [view, setView] = useState(initial); snapshot = view;
-  return <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
+  const screen = <DiscoveryPresentation items={rows} loading={loading} refreshing={refreshing} error={error} scopeKey={scopeKey} view={view}
     collectionStatus={collectionStatus} p6Seam={p6Seam}
     publicationFocus={publicationFocus} publicationUnavailable={publicationUnavailable} onOpenPublishedTask={openPublished}
     trace={tracing ? nativeTrace : undefined} {...scopeProps} arriveAfterLoading={arrive}
     onUserIntent={userIntent}
     onView={next => { if (!navigated) setView(next); }}
     onOpen={open} onRefresh={refresh} onProfile={profile} onNew={newTask} relations={relations} relationsPending={relationsPending} relationsError={relationsError} />;
+  const withBar = barValue ? <ZadaciBarContext.Provider value={barValue}>{screen}</ZadaciBarContext.Provider> : screen;
+  return insetBottom ? <SafeAreaInsetsContext.Provider value={{ top: 0, left: 0, right: 0, bottom: insetBottom }}>{withBar}</SafeAreaInsetsContext.Provider> : withBar;
 }
 let tree: ReactTestRenderer;
 const scrollToOffset = jest.fn(), scrollToEnd = jest.fn();
@@ -173,6 +190,8 @@ const layerOf = (node: ReactTestInstance) => ancestorWith(node, at => typeof at.
 /** The whole label of the list card with this title: the command, the title, and the sentence of facts after it. */
 const cardLabel = (title: string) => String(listSheet().findAll(node => String(node.type) === 'Press' && CARD_LABEL.test(node.props.accessibilityLabel ?? '')
   && cardTitle(node) === title)[0].props.accessibilityLabel);
+/** The small marks of what the account is to a task, at the end of its amount's row ("Tvoj", "Prijava poslata"): not a label above the title (the approved plan, U2). */
+const marks = (root: ReactTestInstance = tree.root) => root.findAll(node => node.props.testID === 'task-face-mark').map(node => texts(node));
 // Discovery V47: the search is a panel opened from the pill over the map. Its words are a draft that "Prikaži N zadataka"
 // applies; the one green action is found by its label, which says the count (or that nothing is left).
 const panel = () => tree.root.findAllByType('Modal' as React.ElementType);
@@ -201,31 +220,32 @@ const layOutBody = async (height = 800) => act(async () => tree.root.findByProps
 const quick = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
   && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
 const removable = () => tree.root.findAll(node => /^Ukloni /.test(String(node.props.accessibilityLabel ?? '')));
-/** The row of chips as the list sheet's sticky header (always mounted), and the one over the map under the pill (only while the list is lowered). */
-const stickyChips = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'discovery-sheet-chips');
-const chipsOverMap = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'discovery-chips-over-map');
-/** The first "Filteri" there is: with the list lowered it stands over the map as well as in the sheet's header. */
+/** The one row of capsules over the map under the pill ("Filteri", "Za mene", the quick choices): the same row at every height of the list (the owner's phone, 8 Oct 2026). */
+const capsules = () => tree.root.findAll(node => String(node.type) === 'ScrollView' && node.props.testID === 'discovery-chips');
+const capsuleLabels = () => capsules()[0].findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string')
+  .map(node => String(node.props.accessibilityLabel));
+/** The capsule "Filteri" (which opens the filters and only them). */
 const filters = (label = 'Filteri') => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
 const tapFilters = async (label = 'Filteri') => act(async () => filters(label).props.onPress());
-/** The search pill's row reports its lower edge, from the top of the map: the chips and the notice below it are not part of it. */
-const pillBottom = async (height: number) => act(async () => tree.root.findByProps({ testID: 'discovery-search-row' }).props.onLayout(
+/** The pill and its row of capsules are measured as one stack, from the top of the map: the notice below them is not part of it. */
+const pillBottom = async (height: number) => act(async () => tree.root.findByProps({ testID: 'discovery-search-stack' }).props.onLayout(
   { nativeEvent: { layout: { x: 0, y: 0, width: 320, height } } }));
 const tomorrowFlexible = { schedule: { kind: 'TOMORROW_FLEXIBLE', startsAt: null, endsAt: null } };
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
 const radioOf = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === label)[0];
-// The words that find tasks are typed in "Šta" (owner, 2026-10-07); the letters typed in "Gde" only find places.
+// The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4); the green action applies them with the place chosen before.
 const search = async (words: string) => {
-  await tap('Pretraži zadatke'); await tap('Šta');
+  await tap('Pretraži zadatke');
   await act(async () => press('Šta tražiš').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
 beforeEach(() => {
-  tracing = false; nativeTrace.mockClear();
+  tracing = false; nativeTrace.mockClear(); barValue = undefined; insetBottom = 0;
   mockNativeSheetState.value = 0;
   mockNativeIndex.value = -1; mockNativePosition.value = 0; mockNativeDetents.value = { detents: [] };
   mockNativeAnimation.value = { status: 2 }; mockNativeContentGesture.value = mockNativeHandleGesture.value = 0;
   mockNativeTemporary.value = false; mockNativeScrollStatus.value = 1;
-  scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear();
+  scopeKey = 'a:1'; mockReactions.clear(); mockRnDeliveries.length = 0; mockCellLayouts.clear(); mockRecentStore.clear();
   jest.spyOn(console, 'error').mockImplementation(() => {});
   // The search panel's own motion (the sheet, its sections: the enter, exit and sheet-close timings and the sheet spring)
   // finishes the moment it starts: what a test reads is where it ends up. Every other animation (the loops of a skeleton, a
@@ -250,12 +270,37 @@ beforeEach(() => {
 const countLine = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'list-count')[0];
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-// The pill's lower edge, a gap, one row of map controls (the credits, the zoom buttons, "U blizini") and a gap again: the strip of map that the list
-// leaves above itself at its full height (UX plan section P, B3). Without a map and without "U blizini" the list stands one gap under the pill.
-const STRIP = 12 + 48 + 12;
-const fullTop = (pill: number, strip = true) => strip ? pill + STRIP : pill + 12;
+// The approved plan, U4: "skorašnje pretrage". A search that was made is kept on this phone for this account, and is one tap away the next time the search opens.
+test('what was searched is kept for this account and offered the next time the search opens, one tap away; another account sees none', async () => {
+  rows = [row('a', { podrucjeTekst: 'Liman, Novi Sad' }), row('b', { podrucjeTekst: 'Vračar, Beograd' })];
+  await render();
+  await tap('Pretraži zadatke');
+  expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(0);
+  await act(async () => press('Šta tražiš').props.onChangeText('pomoć'));
+  await act(async () => radioOf('Vračar, Beograd, 1 zadatak').props.onPress());
+  expect(snapshot).toMatchObject({ query: 'pomoć', place: 'Vračar, Beograd' }); expect(panel()).toHaveLength(0);
+  // kept under this account's own key, as the words and the place of the search and nothing else
+  expect([...mockRecentStore.keys()]).toEqual(['uskoci.zadaci.recent.v1.a']);
+  expect(JSON.parse(mockRecentStore.get('uskoci.zadaci.recent.v1.a')!)).toEqual([{ query: 'pomoć', place: 'Vračar, Beograd' }]);
+  await tap('Prikaži sve zadatke'); expect(snapshot).toMatchObject({ query: '', place: null });
+  // a filter changes no word and no place, so it keeps nothing
+  await tapFilters(); await act(async () => radioOf('Sa iznosom').props.onPress()); await act(async () => showAction().props.onPress());
+  expect(JSON.parse(mockRecentStore.get('uskoci.zadaci.recent.v1.a')!)).toHaveLength(1);
+  await tap('Pretraži zadatke');
+  expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(1);
+  await act(async () => press('Skorašnje pretrage: „pomoć“ · Vračar, Beograd').props.onPress());
+  expect(snapshot).toMatchObject({ query: 'pomoć', place: 'Vračar, Beograd' }); expect(panel()).toHaveLength(0);
+  // another account starts from nothing
+  await act(async () => tree.unmount()); scopeKey = 'b:1'; await render(); await tap('Pretraži zadatke');
+  expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(0);
+});
 
-test('a tap on the handle goes to the next height and round again; the full list stands under a strip of map below the search pill', async () => {
+// The list at its full height stands directly under the tools (the pill and its row of capsules): no strip of map is left between them (the owner's
+// phone, 8 Oct 2026: "lista ide do vrha"). The capsules already carry 8 of air under them, so the list stands a small gap (4) further down.
+const LIST_GAP = sys.space.xs;
+const fullTop = (tools: number) => tools + LIST_GAP;
+
+test('a tap on the handle goes to the next height and round again; the full list stands directly under the tools', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`join${i}`));
   await render(); await layOutBody(760);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(116));
@@ -275,7 +320,7 @@ test('a tap on the handle goes to the next height and round again; the full list
   expect(userIntent).toHaveBeenCalledTimes(3);
 });
 
-test('the sheet keeps its corners, its hairline and its lift at every height, the full one included: a strip of map shows above it', async () => {
+test('the sheet keeps its corners, its hairline and its lift at every height, the full one included: it is a sheet over the map, not a page', async () => {
   await render();
   const Background = listSheet().props.backgroundComponent;
   let background: ReactTestRenderer;
@@ -385,15 +430,15 @@ test('the remote quick filter clears an old point and place, keeps the camera an
   expect(snapshot).toMatchObject({ where: 'remote', area: null, place: null, pinPlace: null, viewport, price: 'OFFERS', query: 'Pomoć', sheet: 'full' });
   expect(cards()).toEqual(['online']);
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
-  expect(pressable('U blizini')).toHaveLength(0);
+  expect(pressable('Moja lokacija')).toHaveLength(0);
   expect(texts()).not.toContain('bez tačke na mapi');
   await layOutBody(800);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(112));
-  // no map and no "U blizini": there is no strip to keep, and the list stands one gap under the pill
-  expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(112, false));
+  // no map: the list stands one gap under the tools, as it does with a map (nothing of the map is left above a full list)
+  expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(112));
 });
 
-test('the full list stands under a strip of map: the map stays on show and locks while the list is full, and keeps its camera when returning', async () => {
+test('the full list stands directly under the tools: the map stays on show and locks while the list is full, and keeps its camera when returning', async () => {
   mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
   initial = { ...initial, viewport, sheet: 'half', listOffset: 160 };
@@ -402,9 +447,9 @@ test('the full list stands under a strip of map: the map stays on show and locks
   const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
   const top = fullTop(116);
   expect(listSheet().props.snapPoints[2]).toBe(760 - top);
-  // The map is told where the strip is: its controls end at the pill's edge and one gap, and "U blizini" stands beside them.
-  expect(map().props).toMatchObject({ locked: false, controlsMinTop: 116 + 12, locateShown: true });
-  // Nothing hides, dims or takes away the layer: the strip IS the map (no veil, no white backing behind the pill).
+  // The map is told where the tools end: its furniture (the sources, and "moja lokacija" beside it) rides the list but never goes above the tools' edge and one gap.
+  expect(map().props).toMatchObject({ locked: false, controlsMinTop: 116 + 12, locateShown: true, toolsBottom: 116 });
+  // Nothing hides, dims or takes away the layer: what shows of the map around the tools IS the map (no veil, no white backing behind the pill).
   expect(layer().props.pointerEvents).toBeUndefined(); expect(StyleSheet.flatten(layer().props.style).opacity).toBeUndefined();
   expect(listSheet().props.backdropComponent).toBeUndefined();
   expect(tree.root.findAllByProps({ testID: 'discovery-search-backing' })).toHaveLength(0);
@@ -418,7 +463,7 @@ test('the full list stands under a strip of map: the map stays on show and locks
   expect(press('Pretraži zadatke')).toBeTruthy();
   expect(map().props.items).toBe(pins);
   expect(snapshot.viewport).toEqual(viewport); expect(snapshot.listOffset).toBe(160);
-  // A tap on the strip lowers the list to half; "Mapa" lowers it to the map.
+  // A tap on what shows of the map lowers the list to half; "Mapa" lowers it to the map.
   await act(async () => map().props.onStripPress());
   expect(listSheet().props.index).toBe(1); expect(userIntent).toHaveBeenCalled();
   position.value = 760 - Number(listSheet().props.snapPoints[1]);
@@ -908,13 +953,13 @@ test('a retired sheet cannot save an old scroll, cancel the current restore or c
   } finally { jest.useRealTimers(); }
 });
 
-test('an accepted scroll still saves when the search pill is measured again, and the chips stay as the sheet\'s sticky header', async () => {
+test('an accepted scroll still saves when the tools are measured again, and the capsules stay where they are', async () => {
   jest.useFakeTimers();
   try {
     initial = { ...initial, sheet: 'full' };
     await render(); await readyList();
     await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 200 } } }));
-    expect(stickyChips()).toHaveLength(1); // scrolling folds nothing: the row is the sheet's, not the list's
+    expect(capsules()).toHaveLength(1); // scrolling folds nothing: the row is the tools', not the list's
     await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(71));
     await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
     expect(snapshot.listOffset).toBe(200);
@@ -1297,7 +1342,7 @@ test.each([100, -100])('return clamps against content %s dp longer than its owne
       });
     } else {
       expect(scrollToOffset).not.toHaveBeenCalled(); // all current rows fit; no native scroll event will arrive
-      expect(stickyChips()).toHaveLength(1);
+      expect(capsules()).toHaveLength(1);
     }
     expect(snapshot.listOffset).toBe(target);
     await act(async () => {
@@ -1323,7 +1368,7 @@ test('native return restores into an explicitly bounded viewport without waiting
     // second bounded onLayout after EXTENDED, so waiting for one leaves the list at zero.
     await readyList(2611.4, 2611.4);
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 313, animated: false });
-    const frame = listSheet().props.snapPoints[2] - 68 - 58; // compact grab/count header and the row of chips before native measurement
+    const frame = listSheet().props.snapPoints[2] - 68; // compact grab/count header before native measurement
     expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: frame, flexGrow: 0, flexShrink: 0 });
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
@@ -1382,14 +1427,17 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
   expect(listSheet().props).toMatchObject({ enablePanDownToClose: false, enableDynamicSizing: false });
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
-  // Discovery V47: the search over the map is one pill that says the search in one line and opens the panel; the words
-  // searched there narrow the list, and the chip under the count takes them away again, keeping everything else.
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Bilo kada' });
+  // Discovery V47: the search over the map is one pill that says what is SEARCHED in one line (nothing, until something is) and opens the panel; the words
+  // searched there narrow the list, and the pill's own × takes them away again, keeping everything else. The conditions are the capsules under it.
+  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+  expect(texts(press('Pretraži zadatke'))).toBe('Šta tražiš · Gde');
+  expect(pressable('Prikaži sve zadatke')).toHaveLength(0);
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await search('bb');
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“, Bilo kada' });
-  await tap('Ukloni uslov: „bb“'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“' });
+  await tap('Prikaži sve zadatke'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
 });
 
 test('portraits mount only for visible rows and unmount behind a pin, a collapsed sheet or an unfocused route', async () => {
@@ -1421,19 +1469,21 @@ test('confirmed own, applied, other and uncovered tasks stay visible with distin
   const relationOf = (id: string) => tree.root.findAllByType(CARD).find(node => node.props.item.id === id)!.props.relation;
   expect(relationOf('mine')).toBe('OWNED'); expect(relationOf('other')).toBeUndefined();
   expect(relationOf('applied')).toBe('APPLIED'); expect(relationOf('remote')).toBe('UNKNOWN');
-  expect(texts()).toContain('Tvoj zadatak'); expect(texts()).toContain('Prijava poslata'); expect(texts()).toContain('Tvoj status nije potvrđen');
+  // What the account is to a task is a small mark at the end of its amount's row, not a label above the title; the card's own sentence keeps the full words.
+  expect(marks()).toEqual(['Tvoj', 'Prijava poslata', 'Status nije potvrđen']);
+  expect(cardLabel('Pomoć mine')).toContain('Tvoj zadatak'); expect(cardLabel('Pomoć applied')).toContain('Prijava poslata'); expect(cardLabel('Pomoć remote')).toContain('Tvoj status nije potvrđen');
   // The top line stays a single glanceable count; its accessible name retains the map context.
   expect(texts()).toContain('4 zadatka');
   expect(countLine().props.accessibilityLabel).toBe('4 zadatka · 1 zadatak bez tačke na mapi');
   await act(async () => map().props.onSelect('mine'));
-  expect(texts(peek()!)).toContain('Tvoj zadatak');
+  expect(marks(peek()!)).toEqual(['Tvoj']);
   await tap('Zatvori pregled zadatka');
   relations = undefined; relationsError = true; await update();
   expect(cards()).toEqual(['mine', 'other', 'applied', 'remote']); expect(texts()).toContain('4 zadatka');
-  expect(texts()).not.toContain('Tvoj zadatak'); expect(texts()).not.toContain('Prijava poslata');
+  expect(marks()).toEqual(['Status nije potvrđen', 'Status nije potvrđen', 'Status nije potvrđen', 'Status nije potvrđen']);
   await tap('Proveri status zadataka'); expect(refresh).toHaveBeenCalledTimes(1);
   await act(async () => map().props.onSelect('mine'));
-  expect(texts(peek()!)).toContain('Tvoj status nije potvrđen');
+  expect(marks(peek()!)).toEqual(['Status nije potvrđen']);
 });
 
 test.each([
@@ -1745,10 +1795,12 @@ test('pin and discovery list keep the truthful task face without redundant surro
   const card = press('Otvori zadatak: Selidba klavira u Zemunu');
   const words = texts(peek()!);
   expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd'); expect(words).toContain('26. sep · 10:00–12:00');
-  expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('1/3'); expect(words).toContain('Mila');
+  expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('Mila');
+  // Who is needed is said in words and only where it is more than one (the owner, 8 Oct 2026: no "0/1"): the person who can come is told how many places are left.
+  expect(words).toContain('Još 2 od 3 mesta'); expect(words).not.toContain('1/3');
   // The card draws no word for what the amount is (the owner, 8 Oct 2026); a screen reader is told it is the budget.
   expect(card.props.accessibilityValue.text).toContain('Budžet 2.000 RSD ukupno');
-  expect(card.props.accessibilityValue.text).toContain('1 od 3 mesta popunjeno');
+  expect(card.props.accessibilityValue.text).toContain('Još 2 od 3 mesta');
   // Nothing in it is framed as a card of its own, and nothing is a photo or a place for one.
   const edged = card.findAll(node => String(node.type) === 'View' && (StyleSheet.flatten(node.props.style)?.borderWidth ?? 0) > 0);
   expect(edged).toHaveLength(0);
@@ -1798,7 +1850,7 @@ test('a crowded place lists its own tasks then point-free work, without widening
   // The map still draws every task.
   expect(map().props.items).toHaveLength(6);
   // It is said by the search pill, "Na ovom mestu", and the pill's × takes it away; nothing is added under the count.
-  expect(press('Pretraži zadatke').props.accessibilityValue.text).toMatch(/^Na ovom mestu, /);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Na ovom mestu' });
   expect(removable()).toHaveLength(0);
   await tap('Prikaži sve zadatke'); expect(snapshot).toMatchObject({ pinPlace: null, area: null }); expect(cards()).toHaveLength(6);
   // The next move of the map the person makes lets it go as well, and the list follows the map's area again.
@@ -1816,93 +1868,121 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
   const radio = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === label)[0];
   const choose = async (label: string) => act(async () => radio(label).props.onPress());
   const chip = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
-    && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
+    && node.props.accessibilityState && 'selected' in node.props.accessibilityState && !/^Filteri/.test(label))[0];
+  const clearAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Očisti')!;
 
   test('a draft applied at once with "Prikaži N zadataka", which counts what the list will show', async () => {
     await render(); await tapFilters();
     expect(panel()).toHaveLength(1);
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
     await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
-    // A choice that completes its question opens the next one: "Sutra" opened Šta, and the price closes with its choice said.
-    await tap('Cena'); await choose('Prima ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
-    expect(press('Cena').props.accessibilityValue).toEqual({ text: 'Prima ponude' });
-    await tap('Cena'); expect(radio('Prima ponude').props.accessibilityState).toEqual({ checked: true });
+    await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    expect(radio('Tražim ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
     await act(async () => showAction().props.onPress());
     expect(snapshot).toMatchObject({ when: 'tomorrow', price: 'OFFERS' }); expect(cards()).toEqual(['ponude']);
     expect(panel()).toHaveLength(0);
-    // "Filteri" always has its word and counts what is on: "Filteri · 2" (UX plan 2.13).
+    // The round button of the filters always has its word and counts what is on, in words and in a disc: "Filteri, 2 aktivna" and 2 (UX plan 2.13; the approved plan, U1).
     expect(press('Filteri, 2 aktivna')).toBeTruthy();
-    expect(texts(press('Filteri, 2 aktivna'))).toBe('Filteri · 2');
-    // The pill says them, and each one that is on is a chosen quick chip that takes itself away.
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Sutra · Prima ponude' });
+    expect(texts(tree.root.findByProps({ testID: 'filters-count' }))).toBe('2');
+    // The pill says what is SEARCHED, and the conditions are not that: it stays a place to start. Each condition that is on is a chosen capsule that takes itself away.
+    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
     expect(chip('Sutra').props.accessibilityState).toEqual({ selected: true });
     await act(async () => chip('Sutra').props.onPress()); expect(snapshot.when).toBe('any');
-    await act(async () => chip('Prima ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
+    await act(async () => chip('Tražim ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
     expect(press('Filteri')).toBeTruthy();
-    expect(texts(press('Filteri'))).toBe('Filteri');
+    expect(tree.root.findAllByProps({ testID: 'filters-count' })).toHaveLength(0);
   });
-  test('closing the panel any other way leaves the list exactly as it was; "Poništi filtere" empties the draft', async () => {
+  test('closing the panel any other way leaves the list exactly as it was; "Očisti" empties the draft', async () => {
     await render(); await tapFilters();
-    await choose('Danas'); await tap('Broj ljudi'); await act(async () => press('Povećaj broj osoba').props.onPress());
-    await tap('Zatvori pretragu');
+    await choose('Danas');
+    await tap('Zatvori filtere');
     expect(panel()).toHaveLength(0);
     expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
     await tapFilters();
-    expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true }); // the discarded draft is gone
-    await choose('Danas'); await tap('Cena'); await choose('Navedena cena');
-    await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Poništi filtere')!.props.onPress());
-    await tap('Cena'); // its own choice had closed it and opened the next question
-    expect(radio('Sve').props.accessibilityState).toEqual({ checked: true });
-    await tap('Kada');
-    expect(radio('Bilo kada').props.accessibilityState).toEqual({ checked: true });
+    expect(radio('Danas').props.accessibilityState).toEqual({ checked: false }); // the discarded draft is gone
+    await choose('Danas'); await choose('Sa iznosom');
+    await act(async () => clearAction().props.onPress());
+    expect(radio('Danas').props.accessibilityState).toEqual({ checked: false });
+    expect(radio('Svejedno').props.accessibilityState).toEqual({ checked: true });
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
   });
-  test('"Način rada" is offered only when a task says how it is done, in the panel and as quick chips', async () => {
+  test('"Gde" is offered only when a task says how the work is done, in the filters and as a quick capsule', async () => {
     await render(); await tapFilters();
-    expect(texts()).not.toContain('Način rada'); expect(texts()).toContain('Kada'); expect(texts()).toContain('Broj ljudi');
+    expect(texts(panel()[0])).not.toContain('Gde'); expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Iznos');
+    expect(texts(panel()[0])).not.toContain('Broj ljudi'); // the number of people is no choice of the filters any more
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Na daljinu')).toHaveLength(0);
-    await tap('Zatvori pretragu'); await act(async () => tree.unmount());
+    await tap('Zatvori filtere'); await act(async () => tree.unmount());
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tapFilters();
-    expect(texts()).toContain('Način rada');
-    await tap('Način rada'); await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
-    await tap('Zatvori pretragu');
+    expect(texts(panel()[0])).toContain('Gde');
+    await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await tap('Zatvori filtere');
     expect(chip('Na daljinu').props.accessibilityState).toEqual({ selected: false });
   });
-  // Discovery V47: the chips over the map toggle the very filters the panel sets, at once, and only those the loaded tasks
-  // can back (a task that says how it is done; a price mode some task uses; a task with two open places).
-  test('a quick chip toggles the same filter the panel sets, and only chips the tasks can back are offered', async () => {
-    // The three-person draft must match a real row so the apply action can actually be pressed.
-    rows = rows.map(item => item.id === 'ponude' ? { ...item, pokrivenost: { ukupno: 3, popunjeno: 0, preostalo: 3, udeo: 0 } } : item);
+  // Discovery V47: the capsules over the map toggle the very filters the filters set, at once, and only those the loaded tasks can back (a task that says how it is done; a day
+  // some task names; a stated amount). What is on and has no capsule of its own stands in the same row, with its own ✕.
+  test('a quick capsule toggles the same filter the filters set, and only capsules the tasks can back are offered', async () => {
     await render();
     const offered = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityState && 'selected' in node.props.accessibilityState
       && !/^Filteri|^Dodaj/.test(node.props.accessibilityLabel)).map(node => node.props.accessibilityLabel);
-    expect(offered()).toEqual(['Danas', 'Sutra', 'Ove nedelje', 'Navedena cena', 'Prima ponude', 'Za 2 i više']);
+    expect(offered()).toEqual(['Danas', 'Ovaj vikend', 'Sa iznosom']);
     await act(async () => chip('Danas').props.onPress());
     expect(snapshot.when).toBe('today'); expect(cards()).toEqual(['danas']);
     await tapFilters('Filteri, 1 aktivan');
     expect(radio('Danas').props.accessibilityState).toEqual({ checked: true });
-    // The panel's choice shows on the chip the same way.
+    // The filters' choice shows on the capsule the same way; "Sutra" has no capsule of its own, so it stands in the row as one that takes itself away.
     await choose('Sutra'); await act(async () => showAction().props.onPress());
+    expect(offered()).toEqual(['Sutra', 'Danas', 'Ovaj vikend', 'Sa iznosom']);
     expect(chip('Sutra').props.accessibilityState).toEqual({ selected: true }); expect(chip('Danas').props.accessibilityState).toEqual({ selected: false });
-    await act(async () => chip('Za 2 i više').props.onPress()); expect(snapshot.places).toBe(2);
-    await act(async () => chip('Za 2 i više').props.onPress()); expect(snapshot.places).toBe(1);
-    // The choice the panel can make beyond two people is said on the same chip, and removed by it.
+    await act(async () => chip('Sutra').props.onPress()); expect(snapshot.when).toBe('any');
+    // "Sa iznosom" is the filters' amount: the same choice from the other side.
+    await act(async () => chip('Sa iznosom').props.onPress());
+    expect(snapshot.price).toBe('MY_PRICE'); expect(cards()).toEqual(['danas', 'sutra']);
     await tapFilters('Filteri, 1 aktivan');
-    await tap('Broj ljudi');
-    for (const _ of [1, 2]) await act(async () => press('Povećaj broj osoba').props.onPress());
-    expect(showAction().props).toMatchObject({ label: 'Prikaži 1 zadatak', disabled: false });
-    await act(async () => showAction().props.onPress());
-    expect(snapshot.places).toBe(3); expect(chip('Za 3 i više').props.accessibilityState).toEqual({ selected: true });
+    expect(radio('Sa iznosom').props.accessibilityState).toEqual({ checked: true });
   });
-  test('a place chosen in "Gde" is said by the pill and under the count, and taken away there', async () => {
+  test('a place chosen in "Gde" applies at once, is said by the pill alone (no capsule repeats it), and is taken away there', async () => {
     rows = [row('a', { podrucjeTekst: 'Liman, Novi Sad' }), row('b', { podrucjeTekst: 'Vračar, Beograd' })];
     await render(); await tap('Pretraži zadatke');
-    await choose('Vračar, Beograd, 1 zadatak'); await act(async () => showAction().props.onPress());
+    await choose('Vračar, Beograd, 1 zadatak');
+    expect(panel()).toHaveLength(0);
     expect(snapshot.place).toBe('Vračar, Beograd'); expect(cards()).toEqual(['b']);
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd, Bilo kada' });
-    await tap('Ukloni uslov: Vračar, Beograd'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
+    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd' });
+    expect(removable()).toHaveLength(0);
+    await tap('Prikaži sve zadatke'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
+    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+  });
+
+  // The owner's phone of 8 Oct 2026: "filteri odvojeni od pretrage". The pill never leads into the filters, and the round button never into the search.
+  test('the pill opens the search (the words and Gde), the round button opens the filters (Kada, Gde, Iznos): two entrances, one draft', async () => {
+    rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
+    await render(); await tap('Pretraži zadatke');
+    expect(panel()).toHaveLength(1);
+    expect(pressable('Šta tražiš')).toHaveLength(1);
+    for (const filter of ['Kada', 'Iznos', 'Sa iznosom', 'Tražim ponude']) expect([filter, panel()[0].findAllByProps({ accessibilityLabel: filter }).length]).toEqual([filter, 0]);
+    expect(pressable('Zatvori pretragu')).toHaveLength(1); expect(pressable('Zatvori filtere')).toHaveLength(0);
+    expect(action('Očisti')).toBeDefined();
+    await tap('Zatvori pretragu'); expect(panel()).toHaveLength(0);
+    await tapFilters(); expect(panel()).toHaveLength(1);
+    expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Gde'); expect(texts(panel()[0])).toContain('Iznos');
+    expect(pressable('Šta tražiš')).toHaveLength(0);
+    expect(pressable('Zatvori filtere')).toHaveLength(1); expect(pressable('Zatvori pretragu')).toHaveLength(0);
+    expect(action('Očisti')).toBeDefined();
+  });
+
+  test('each panel takes away only its own: the search\'s "Očisti" leaves the days and the amount, the filters\' leaves the word and the place', async () => {
+    initial = { ...initial, query: 'sutra', place: 'Beograd', when: 'tomorrow', price: 'OFFERS' };
+    await render(); await tap('Pretraži zadatke');
+    await act(async () => clearAction().props.onPress());
+    await act(async () => showAction().props.onPress());
+    expect(snapshot).toMatchObject({ query: '', place: null, when: 'tomorrow', price: 'OFFERS' });
+    initial = { ...initial, query: 'sutra', place: 'Beograd', when: 'tomorrow', price: 'OFFERS' };
+    await act(async () => tree.unmount()); await render(); await tapFilters('Filteri, 2 aktivna');
+    // The empty list behind the panel offers the other words ("Poništi filtere" resets the view); the panel's own is "Očisti".
+    await act(async () => clearAction().props.onPress());
+    await act(async () => showAction().props.onPress());
+    expect(snapshot).toMatchObject({ query: 'sutra', place: 'Beograd', when: 'any', price: 'all' });
   });
 });
 
@@ -1938,7 +2018,7 @@ test('reading, not read and nothing in this view keep their meanings, through th
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(listSheet().props.index).toBe(0);
   // Words that find nothing: the panel's one action says so and cannot apply them; the list keeps what it had.
-  await tap('Pretraži zadatke'); await tap('Šta'); await act(async () => press('Šta tražiš').props.onChangeText('nema takvog'));
+  await tap('Pretraži zadatke'); await act(async () => press('Šta tražiš').props.onChangeText('nema takvog'));
   expect(showAction().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
   await tap('Zatvori pretragu'); expect(snapshot.query).toBe('');
   // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
@@ -1946,7 +2026,7 @@ test('reading, not read and nothing in this view keep their meanings, through th
   expect(texts()).toContain('Nema zadataka u ovom prikazu'); expect(listSheet().props.index).toBe(1);
   // What is about a view, not about the person's first day, keeps the picture at 96: no hero.
   expect(tree.root.findAll(node => node.props.hero === true)).toHaveLength(0);
-  // The one reset of the app: "Poništi filtere", on the empty list as in the panel.
+  // The one reset of the list: "Poništi filtere", on the empty list (the panels' own is "Očisti", and takes away only its half).
   expect(tree.root.findAll(node => node.props.label === 'Obriši uslove')).toHaveLength(0); // the name before 2026-10-08
   await click('Poništi filtere'); expect(snapshot.query).toBe(''); expect(cards()).toHaveLength(6);
 });
@@ -1975,10 +2055,18 @@ test.each(['loading','error'] as const)('an incomplete %s collection outside the
   expect(action('Prikaži sve zadatke')).toBeUndefined();
 });
 
-test('pull to refresh is the list\'s own; the list follows the area the map hands up, and the pill\'s × takes it away', async () => {
+test('pull to refresh is the list\'s own: the disc shows only for a pull, never for a read the screen makes on its own; the list follows the area the map hands up, and the pill\'s × takes it away', async () => {
+  // A list that reads again by itself (a tab switched back to) must not raise the disc (the owner's phone of 8 Oct 2026) ...
   refreshing = true; await render();
-  expect(list().props.refreshing).toBe(true);
+  expect(list().props.refreshing).toBe(false);
+  expect(refresh).not.toHaveBeenCalled();
+  // ... only the person's pull does, for as long as the read it started runs.
   await act(async () => list().props.onRefresh()); expect(refresh).toHaveBeenCalledTimes(1);
+  expect(list().props.refreshing).toBe(true);
+  refreshing = false; await update();
+  expect(list().props.refreshing).toBe(false);
+  refreshing = true; await update(); // a later read of the screen's own does not borrow the pull
+  expect(list().props.refreshing).toBe(false);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži ovu oblast' })).toHaveLength(0);
   await act(async () => map().props.onArea([20, 44, 21, 45])); expect(snapshot.area).toEqual([20, 44, 21, 45]);
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
@@ -1999,7 +2087,7 @@ test('a map area adds nothing under the count; the search pill says it, and its 
   const after = StyleSheet.flatten(press('Pretraži zadatke').props.style);
   expect([after.minHeight, after.paddingVertical, after.borderWidth]).toEqual([before.minHeight, before.paddingVertical, before.borderWidth]);
   expect(after.paddingRight).toBe(48);
-  expect(press('Pretraži zadatke').props.accessibilityValue.text).toMatch(/^Ova oblast, /);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
 });
@@ -2065,7 +2153,7 @@ test('choosing a place in the search brings its pins into view once, as the came
   await render();
   expect(map().props.fitTo).toBeNull();
   await tap('Pretraži zadatke'); await act(async () => radioOf('Liman, Novi Sad, 2 zadatka').props.onPress());
-  await act(async () => showAction().props.onPress());
+  expect(panel()).toHaveLength(0); // a place chosen in the search is applied at once
   expect(snapshot).toMatchObject({ place: 'Liman, Novi Sad', area: null });
   expect(map().props.fitTo).toMatchObject({ key: 1, bounds: [19.82, 45.22, 19.87, 45.27] });
   // The map says it brought them into view; the request is then gone, so a map mounted again does not fly there again.
@@ -2102,9 +2190,9 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
   } finally { jest.useRealTimers(); }
 });
 
-// Filters low (UX plan section P, variant B): the row of chips is the list sheet's STICKY header from half height up, and the list scrolls under it. It
-// never folds away as the old rail did while the list was scrolled, so there is no loop between its room and the list's window to guard any more.
-test('the row of chips is the sheet\'s sticky header: it stays through any scroll, and the list\'s viewport is the sheet less the top line and the row', async () => {
+// The row of capsules is the TOOLS' own (the owner's phone of 8 Oct 2026): it stands over the map under the pill at every height of the list and is never inside the sheet, so
+// the list scrolls under nothing of it and there is no loop between its room and the list's window to guard. The list, when it is up, stands directly under it.
+test('the capsules stay put through any scroll, and the list\'s viewport is the sheet less its top line', async () => {
   jest.useFakeTimers();
   try {
     mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
@@ -2112,16 +2200,17 @@ test('the row of chips is the sheet\'s sticky header: it stays through any scrol
     const scroll = async (y: number) => act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y } } }));
     await dragSheet(2); await readyList();
     await act(async () => list().props.onContentSizeChange(400, 3000));
-    for (const y of [30, 300, 1200, 4, 0]) { await scroll(y); expect(stickyChips()).toHaveLength(1); expect(press('Pretraži zadatke')).toBeTruthy(); }
-    // The row is a sibling above the list inside the sheet, not a part of what scrolls.
-    expect(list().findAllByProps({ testID: 'discovery-sheet-chips' })).toHaveLength(0);
-    expect(listSheet().findAll(node => node.props.testID === 'discovery-sheet-chips')).toHaveLength(1);
+    for (const y of [30, 300, 1200, 4, 0]) { await scroll(y); expect(capsules()).toHaveLength(1); expect(press('Pretraži zadatke')).toBeTruthy(); }
+    // The row is not in the sheet at all: nothing of it scrolls with the rows, and nothing of it is pinned above them.
+    expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
     const [, , full] = listSheet().props.snapPoints as number[];
-    expect(StyleSheet.flatten(list().props.style).height).toBe(full - 68 - 58);
-    // A taller row (larger text) shortens the viewport by exactly what it takes, and nothing else moves.
-    await act(async () => stickyChips()[0].props.onLayout({ nativeEvent: { layout: { height: 70 } } }));
-    expect(StyleSheet.flatten(list().props.style).height).toBe(full - 68 - 70);
-    expect(listSheet().props.snapPoints[2]).toBe(full);
+    // Until the tools are measured the list stands under their estimate: the pill's distance from the top (12), the pill (56), 8, and a row of capsules 58 high.
+    expect(full).toBe(800 - fullTop(12 + 56 + 8 + 58));
+    expect(StyleSheet.flatten(list().props.style).height).toBe(full - 68);
+    // Taller tools (larger text) lower the top of the list by exactly what they take, and nothing else moves.
+    await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(150));
+    expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(150));
+    expect(StyleSheet.flatten(list().props.style).height).toBe(800 - fullTop(150) - 68);
   } finally { jest.useRealTimers(); }
 });
 
@@ -2134,7 +2223,7 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   expect(cards()).toEqual(['prevod']);
   expect(listSheet().props.index).toBe(2);
   // A new filter with no map result also opens the usable list from half height.
-  await tap('Ukloni uslov: „prevod“'); await dragSheet(1);
+  await tap('Prikaži sve zadatke'); await dragSheet(1);
   await search('prevod'); expect(listSheet().props.index).toBe(2);
 });
 
@@ -2157,26 +2246,26 @@ test('camera layout is ready only after body and tools measurements replace whol
   rows = [row('one', at(45.25, 19.83)), row('two', at(45.26, 19.85))];
   await render();
   expect(map().props.cameraLayoutReady).toBe(false);
-  // The pins stay above where the sheet starts and above the row of map controls that stands on it (one row, 48).
-  expect(map().props.fitBottom).toBe(474 + 48);
+  // The pins stay above where the sheet starts and above the row of the map's furniture that stands on it (one row, 44): half the window, a gap, the row.
+  expect(map().props.fitBottom).toBe(Math.round(924 / 2) + sys.space.md + CONTROL_SIZE);
   await layOutBody(790);
   expect(map().props.cameraLayoutReady).toBe(false);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(124));
   expect(map().props.cameraLayoutReady).toBe(true);
-  expect(map().props.fitBottom).toBe(407 + 48);
+  expect(map().props.fitBottom).toBe(395 + sys.space.md + CONTROL_SIZE);
   expect(listSheet().props.snapPoints[1]).toBe(395);
 });
 
 test('the map is told where the sheet starts, so the first fit keeps the pins above it', async () => {
   const layOut = async () => layOutBody(800);
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOut();
-  // The pins stay above the sheet, a gap, and the row of map controls (zoom, "U blizini") that stands on it.
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md + 48);
+  // The pins stay above the sheet, a gap, and the row of the map's furniture (its sources, "moja lokacija") that stands on it.
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md + CONTROL_SIZE);
   await act(async () => tree.unmount());
   rows = rows.slice(0, 3); await render(); await layOut();
   expect(listSheet().props.index).toBe(1);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md + 48);
-  expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md + 48);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md + CONTROL_SIZE);
+  expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md + CONTROL_SIZE);
 });
 
 // DN-01: the same map fits every visible public pin before the labels arrive.
@@ -2193,7 +2282,7 @@ test('the map mounts without waiting for ownership and keeps the same pins after
   expect(map().props.items).toHaveLength(5);
   expect(map().props.items).toBe(publicPins);
   expect(listSheet().props.index).toBe(0);
-  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md + 48);
+  expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md + CONTROL_SIZE);
   // A later read of the labels (a new list) does not take the map away again.
   relationsPending = true; await update();
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
@@ -2324,10 +2413,11 @@ test('on iOS the new count is said once the list\'s area has stayed still for a 
 
 test('the search panel waits for public rows, but counts them while ownership is still pending', async () => {
   loading = true; rows = []; await render();
-  expect(press('Pretraži zadatke').props.accessibilityValue.text).not.toMatch(/\d+ zadat/);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined(); // the pill claims no number, ever
   await tapFilters();
   expect(action('Učitavamo zadatke…').props.disabled).toBe(true);
-  await tap('Gde'); expect(radioOf('Svi zadaci')).toBeDefined();
+  await tap('Zatvori filtere');
+  await tap('Pretraži zadatke'); expect(radioOf('Svi zadaci')).toBeDefined(); // the search opens at Gde
   await tap('Zatvori pretragu'); await act(async () => tree.unmount());
   loading = false; relationsPending = true; rows = [row('a'), row('bb')]; await render();
   await tap('Pretraži zadatke');
@@ -2372,67 +2462,69 @@ test('a time choice says under the list how many tasks it leaves out because the
 // R10: large text gets the whole search row, instead of four squeezed lines beside two tools.
 test('at large text the search stays one line with separate tools and the pin preview may use more room', async () => {
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
-  // One line: the text that holds where and, in quieter words, the rest carries the limit once.
+  // One line: the words of the pill (what is searched, or the place to start) carry the limit once.
   const lines = () => press('Pretraži zadatke').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
-  expect(lines()).toEqual([1, undefined]);
+  expect(lines()).toEqual([1]);
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.5);
   await act(async () => tree.unmount());
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1.3 }; await render();
-  expect(lines()).toEqual([1, undefined]);
-  // The filters are not beside the pill: the pill keeps its whole row, with only the menu, and "Filteri" is a chip low in the sheet.
+  expect(lines()).toEqual([1]);
+  // The filters are the round button beside the pill, in the pill's own row (the menu is in the pill); they are no capsule of the row under it.
   const searchRow = tree.root.findByProps({ testID: 'discovery-search-row' });
-  expect(searchRow.findAllByProps({ accessibilityLabel: 'Filteri' })).toHaveLength(0);
+  expect(searchRow.findAllByProps({ accessibilityLabel: 'Filteri' })).toHaveLength(1);
   expect(tree.root.findByProps({ testID: 'discovery-search-tools' }).findByProps({ accessibilityLabel: 'Još mogućnosti' })).toBeTruthy();
-  expect(stickyChips()[0].findAllByProps({ accessibilityLabel: 'Filteri' }).length).toBeGreaterThan(0);
+  expect(capsuleLabels()).not.toContain('Filteri');
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
 });
 
-// Material controls: the shared search surface owns its edge; quick filters use the approved raised/recessed treatment.
-// Selection stays explicit through the selected well, stronger edge, ink words, accessibility state and check.
-test('the chips lift off the map and lie flat in the sheet\'s header; selection stays visible in both', async () => {
+// Material controls: the shared search surface owns its edge; the capsules use the approved raised/recessed treatment, over the map at every height of the list.
+// Selection stays explicit through the recessed well, the stronger edge, ink words, the accessibility state and the tick.
+test('the capsules lift off the map at every height of the list; selection stays visible in more than colour', async () => {
   await render();
   expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderWidth).toBeUndefined();
-  // The list starts at half: the row is in the sheet's header, flat with a hairline.
-  const free = StyleSheet.flatten(quick('Navedena cena').props.style);
-  expect(free).toMatchObject({ backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.lineStrong });
-  expect(free.boxShadow).toBeUndefined(); expect(free.elevation).toBeUndefined();
-  expect(quick('Navedena cena').props.accessibilityState.selected).toBe(false);
+  const free = StyleSheet.flatten(quick('Sa iznosom').props.style);
+  expect(free).toMatchObject({ backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line });
+  expect(free.boxShadow ?? free.elevation).toEqual(materialControl.raised.boxShadow ?? materialControl.raised.elevation);
+  expect(quick('Sa iznosom').props.accessibilityState.selected).toBe(false);
   expect(free.minHeight).toBeGreaterThanOrEqual(48);
-  await act(async () => quick('Navedena cena').props.onPress());
-  const chosen = quick('Navedena cena'), style = StyleSheet.flatten(chosen.props.style);
-  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.ink });
+  await act(async () => quick('Sa iznosom').props.onPress());
+  const chosen = quick('Sa iznosom'), style = StyleSheet.flatten(chosen.props.style);
+  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.lineStrong, ...materialControl.inset });
   expect(chosen.props.accessibilityState.selected).toBe(true);
   expect(style.minHeight).toBeGreaterThanOrEqual(48);
   expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.ink);
   expect(StyleSheet.flatten(chosen.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
-  // Lowered, the same row stands over the map under the pill and lifts off the tiles.
-  await act(async () => tree.unmount()); initial = { ...initial, sheet: 'peek', price: 'MY_PRICE' }; await render();
-  expect(chipsOverMap()).toHaveLength(1);
-  const lifted = StyleSheet.flatten(chipsOverMap()[0].findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Navedena cena')[0].props.style);
-  expect(lifted).toMatchObject({ backgroundColor: sys.color.greenSoft, ...materialControl.inset });
-  // A condition under the count removes itself by name, and takes 48 to a finger.
+  // The same row at the lowest, the half and the full height: over the map under the pill, never in the sheet, and never faded away by it.
+  for (const sheet of ['peek', 'half', 'full'] as const) {
+    await act(async () => tree.unmount()); initial = { ...initial, sheet, price: 'MY_PRICE' }; await render();
+    expect([sheet, capsules().length]).toEqual([sheet, 1]);
+    expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
+    expect(StyleSheet.flatten(capsules()[0].props.style).opacity).toBeUndefined();
+    const lifted = StyleSheet.flatten(quick('Sa iznosom').props.style);
+    expect(lifted).toMatchObject({ backgroundColor: sys.color.greenSoft, ...materialControl.inset });
+  }
+  // The pill's own × (it takes the search away) is a full 48 to a finger.
   await act(async () => tree.unmount()); initial = { ...initial, sheet: 'half', query: 'Pomoć' }; await render();
-  const remove = press('Ukloni uslov: „Pomoć“');
-  expect(StyleSheet.flatten(remove.props.style).minHeight + remove.props.hitSlop.top + remove.props.hitSlop.bottom).toBeGreaterThanOrEqual(48);
+  expect(StyleSheet.flatten(press('Prikaži sve zadatke').props.style)).toMatchObject({ width: 48, minHeight: 48 });
 });
 
-test('full list uses the map band below search while a selected preview still reserves readable credits after resizing', async () => {
+test('the full list stands directly under the tools while a selected preview still leaves room for the map\'s furniture above it after resizing', async () => {
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 2 }; await render(); await layOutBody(500);
   await pillBottom(144);
-  await act(async () => map().props.onCreditsHeight(56));
-  // The list stands under the pill's edge (12 + 144), a gap, the strip's row (the credits, 56 high at this text size) and a gap.
-  const clearTop = 156;
-  expect(500 - listSheet().props.snapPoints[2]).toBe(clearTop + 12 + 56 + 12);
+  // The list stands under the tools' edge (12 + 144) and one small gap: no strip of map is left between them.
+  const toolsEdge = 156;
+  expect(500 - listSheet().props.snapPoints[2]).toBe(fullTop(toolsEdge));
   await act(async () => map().props.onSelect('bb'));
   const preview = () => tree.root.findByType(DiscoveryPeek);
   const cap = peek()!.props.maxDynamicContentSize;
   expect(cap).toBeLessThan(640 * 0.75);
   const body = preview().findAll(node => String(node.type) === 'View' && node.props.onLayout?.name === 'measureCard')[0];
   await act(async () => body.props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
-  const creditsEdge = () => 500 - HIDDEN - map().props.coverBottom;
-  expect(creditsEdge() - sys.space.md - 56).toBeGreaterThanOrEqual(156 + sys.space.md);
+  // The card takes what the map leaves between the tools above and the row of furniture over it: that row (44), a gap on each side, still fits.
+  const cardTop = () => 500 - HIDDEN - map().props.coverBottom;
+  expect(cardTop() - sys.space.md - CONTROL_SIZE).toBeGreaterThanOrEqual(toolsEdge + sys.space.md);
   // A larger map increases the cap even if the preview's long content needs no new layout.
   await layOutBody(600);
   expect(peek()!.props.maxDynamicContentSize).toBeGreaterThan(cap);
@@ -2445,38 +2537,40 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   initial = { ...initial, query: empty ? 'Nema takvog zadatka' : 'Pomoć', place: 'Beograd', when: 'next7',
     viewport: { center: [20.45, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.6, 44.9] } };
   rows = rows.map(item => ({ ...item, schedule: { kind: 'TODAY_FLEXIBLE', startsAt: null, endsAt: null } } as MarketplaceItem));
-  await render(); await layOutBody(430);
+  await render(); await layOutBody(340);
   await pillBottom(144);
-  await act(async () => map().props.onCreditsHeight(48));
   const header = () => tree.root.findByProps({ testID: 'discovery-list-header' });
   await act(async () => tree.root.findByProps({ testID: 'discovery-list-header-lead' }).props.onLayout({ nativeEvent: { layout: { height: 88 } } }));
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  // The pill's edge 156, a gap, the strip's row (48) and a gap put the full list's top at 228: it is 202 high. The chips (58) stay pinned above the rows.
-  expect(listSheet().props.snapPoints).toEqual([96, 190, 202]);
-  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 202 - 58, flexGrow: 0, flexShrink: 0 });
-  expect(430 - listSheet().props.snapPoints[2]).toBe(156 + 12 + 48 + 12);
-  expect(430 - listSheet().props.snapPoints[1]).toBe(156 + 12 + 48 + 12 + sys.space.md);
+  // The tools' edge 156 and a small gap put the full list's top at 160: it is 180 high. Nothing is pinned above the rows, the tall header scrolls with them.
+  expect(listSheet().props.snapPoints).toEqual([96, 168, 180]);
+  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 180, flexGrow: 0, flexShrink: 0 });
+  expect(340 - listSheet().props.snapPoints[2]).toBe(fullTop(156));
+  expect(340 - listSheet().props.snapPoints[1]).toBe(fullTop(156) + sys.space.md);
   expect(list().findByProps({ testID: 'discovery-scrolling-header' }).findByProps({ testID: 'discovery-list-header' })).toBe(header());
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
   expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-scrolling-header' }).props.style).marginHorizontal).toBe(-sys.space.lg);
-  expect(removable()).toHaveLength(3);
+  // What is searched is said by the pill once, and the one condition that is on by its capsule: no row of "Ukloni uslov" chips is repeated under the count.
+  expect(removable()).toHaveLength(0);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: empty ? '„Nema takvog zadatka“ · Beograd' : '„Pomoć“ · Beograd' });
+  expect(quick('Narednih 7 dana').props.accessibilityState).toEqual({ selected: true }); // a time with no capsule of its own says itself once, and removes itself
   // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  expect(listSheet().props.snapPoints[2]).toBe(202);
+  expect(listSheet().props.snapPoints[2]).toBe(180);
   await act(async () => listSheet().props.onChange(2));
   expect(listSheet().props.index).toBe(2);
-  expect(StyleSheet.flatten(list().props.style).height).toBe(202 - 58); // same highest-detent viewport at half and full
+  expect(StyleSheet.flatten(list().props.style).height).toBe(180); // same highest-detent viewport at half and full
   if (empty) expect(StyleSheet.flatten(press('Mapa').parent!.props.style).backgroundColor).toBe(sys.color.surface);
-  await tap('Ukloni uslov: Beograd');
-  expect(snapshot.place).toBeNull(); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
+  await tap('Prikaži sve zadatke');
+  expect(snapshot.place).toBeNull(); expect(snapshot.query).toBe(''); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
   // Once the map has room again the exact same header can return to the fixed slot.
   await layOutBody(700);
   expect(tree.root.findAllByProps({ testID: 'discovery-scrolling-header' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
-  expect(StyleSheet.flatten(list().props.style).height).toBe(listSheet().props.snapPoints[2] - 240 - 58);
+  expect(StyleSheet.flatten(list().props.style).height).toBe(listSheet().props.snapPoints[2] - 240);
 });
 
-describe('U blizini: an explicit camera-only location capture', () => {
+describe('Moja lokacija: an explicit camera-only location capture', () => {
   let receive: (value: { timestamp: number; coords: { latitude: number; longitude: number } }) => void;
   const remove = jest.fn();
   beforeEach(() => {
@@ -2484,58 +2578,77 @@ describe('U blizini: an explicit camera-only location capture', () => {
     mockNearbyWatch.mockReset().mockImplementation(async (_options, next) => { receive = next; return { remove }; });
     remove.mockClear();
   });
-  test('is a 44 dp control at the right end of the map\'s row above the list, asks only on tap, and keeps list/filter data unchanged', async () => {
+  test('is a 44 dp control at the right end of the map\'s row above the list, asks only on tap, shows the person\'s dot, and keeps list/filter data unchanged', async () => {
     rows = [row('a'), row('b')]; await render(); await layOutBody();
-    const chip = press('U blizini');
+    const chip = press('Moja lokacija');
     // A float of 44, round; the press fills it.
     expect(StyleSheet.flatten(chip.parent!.props.style)).toMatchObject({ width: 44, height: 44, borderRadius: sys.radius.pill });
     expect(chip.props.hitSlop).toBe(2);
-    // It moves the camera and filters nothing, so it is a map control beside the zoom buttons and not a chip of the row.
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Brzi filteri' }).flatMap(rail => rail.findAllByProps({ accessibilityLabel: 'U blizini' }))).toHaveLength(0);
+    // It moves the camera and filters nothing, so it is a map control and not a capsule of the row.
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Brzi filteri' }).flatMap(rail => rail.findAllByProps({ accessibilityLabel: 'Moja lokacija' }))).toHaveLength(0);
     expect(layerOf(chip).props.testID).toBe('discovery-locate-layer');
-    expect(map().props.locateShown).toBe(true);
+    expect(map().props.locateShown).toBe(true); expect(map().props.me).toBeNull();
     expect(mockNearbyPermission).not.toHaveBeenCalled(); expect(mockNearbyWatch).not.toHaveBeenCalled();
     const before = { ...snapshot }, beforeCards = cards();
-    await tap('U blizini'); expect(mockNearbyPermission).toHaveBeenCalledTimes(1); expect(press('U blizini').props.disabled).toBe(true);
+    await tap('Moja lokacija'); expect(mockNearbyPermission).toHaveBeenCalledTimes(1); expect(press('Moja lokacija').props.disabled).toBe(true);
     // Even an old native press callback cannot start a second attempt.
     await act(async () => chip.props.onPress()); expect(mockNearbyWatch).toHaveBeenCalledTimes(1);
     await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.812345, longitude: 20.412345 } }));
     expect(map().props.centerNearby).toEqual({ key: 1, center: [20.412345, 44.812345] }); expect(remove).toHaveBeenCalledTimes(1);
+    // The map is told where the person is (a dot for as long as this visit lasts), and the dot outlives the camera command that has been consumed.
+    expect(map().props.me).toEqual([20.412345, 44.812345]);
+    await act(async () => map().props.onNearbyConsumed(1));
+    expect(map().props.centerNearby).toBeNull(); expect(map().props.me).toEqual([20.412345, 44.812345]);
     expect(cards()).toEqual(beforeCards); expect(map().props.items).toEqual(rows);
     expect(snapshot).toMatchObject({ query: before.query, price: before.price, area: before.area, viewport: before.viewport, place: before.place });
     expect(JSON.stringify(snapshot)).not.toContain('20.412345'); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
   });
-  test('chosen in the search panel it is the same capture, asked for only when the draft is applied, and it filters nothing', async () => {
+  test('the list sinks to its top line and the card closes, so the map around the person is what shows; the list then follows the area the map settles in', async () => {
+    rows = [row('a'), row('b')]; initial = { ...initial, sheet: 'half' }; await render(); await layOutBody();
+    await act(async () => map().props.onSelect('a'));
+    expect(peek()).toBeDefined();
+    await tap('Moja lokacija');
+    expect(listSheet().props.index).toBe(0); expect(peek()).toBeUndefined(); expect(snapshot.selectedId).toBeNull();
+    expect(userIntent).toHaveBeenCalled();
+    // The map's own move settles in its area, and that is what the list holds (the map hands it up as it does after a drag).
+    await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
+    expect(snapshot.area).toEqual([20.3, 44.7, 20.5, 44.9]);
+    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
+  });
+  test('the search has no position of its own: "Moja lokacija" is the map\'s button, and applying a search asks nothing of the phone', async () => {
     rows = [row('a'), row('b')]; await render();
-    const before = { ...snapshot }, beforeCards = cards();
     await tap('Pretraži zadatke');
-    await act(async () => radioOf('U blizini').props.onPress());
-    // Choosing it is a draft like every choice: nothing is asked of the phone, and nothing reaches the list.
-    expect(mockNearbyPermission).not.toHaveBeenCalled(); expect(mockNearbyWatch).not.toHaveBeenCalled();
+    expect(pressable('U blizini')).toHaveLength(0); expect(tree.root.findAll(node => String(node.type) === 'Press' && /^U blizini/.test(node.props.accessibilityLabel ?? ''))).toHaveLength(0);
     await act(async () => showAction().props.onPress());
     await act(async () => undefined);
     expect(panel()).toHaveLength(0);
-    expect(mockNearbyPermission).toHaveBeenCalledTimes(1); expect(mockNearbyWatch).toHaveBeenCalledTimes(1);
+    expect(mockNearbyPermission).not.toHaveBeenCalled(); expect(mockNearbyWatch).not.toHaveBeenCalled();
+  });
+  test('once the person has said where they are, each task on the map says how far it is (place · distance); a task that is not on the map says none', async () => {
+    rows = [row('near', at(44.81, 20.41)), row('far', at(44.9, 20.6)), row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })]; await render(); await layOutBody();
+    // before "Moja lokacija" nothing is said of distance: the app does not know where the person is
+    expect(texts(listSheet())).not.toMatch(/ km/);
+    await tap('Moja lokacija');
     await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.812345, longitude: 20.412345 } }));
-    expect(map().props.centerNearby).toEqual({ key: 1, center: [20.412345, 44.812345] });
-    expect(cards()).toEqual(beforeCards); expect(map().props.items).toEqual(rows);
-    expect(snapshot).toMatchObject({ query: before.query, price: before.price, area: before.area, place: before.place, pinPlace: before.pinPlace });
-    expect(JSON.stringify(snapshot)).not.toContain('20.412345');
-    // Without choosing it, the draft's apply asks for nothing.
-    mockNearbyPermission.mockClear(); mockNearbyWatch.mockClear();
-    await tap('Pretraži zadatke'); await act(async () => showAction().props.onPress());
-    expect(mockNearbyPermission).not.toHaveBeenCalled();
+    expect(texts(listSheet())).toContain('Beograd · manje od 1 km'); expect(texts(listSheet())).toContain('Beograd · oko 18 km');
+    expect(cardLabel('Pomoć near')).toContain('Beograd, manje od 1 km'); expect(cardLabel('Pomoć far')).toContain('Beograd, oko 18 km');
+    // remote work has no place to be far from
+    expect(cardLabel('Pomoć online')).not.toMatch(/ km/);
+    expect(texts(listSheet()).match(/ km/g)).toHaveLength(2);
+    // the pin's card says it by the same words
+    await act(async () => map().props.onSelect('far'));
+    expect(texts(peek()!)).toContain('Beograd · oko 18 km');
   });
   test('permission refusal leaves the map usable and offers settings without starting a watch', async () => {
-    mockNearbyPermission.mockResolvedValue({ granted: false }); await render(); await layOutBody(); await tap('U blizini');
+    mockNearbyPermission.mockResolvedValue({ granted: false }); await render(); await layOutBody(); await tap('Moja lokacija');
     expect(mockNearbyWatch).not.toHaveBeenCalled(); expect(map()).toBeTruthy();
     expect(texts()).toContain('Dozvoli lokaciju u podešavanjima'); expect(press('Podešavanja lokacije')).toBeTruthy();
-    expect(press('U blizini').props.disabled).toBe(false);
+    expect(press('Moja lokacija').props.disabled).toBe(false); expect(map().props.me).toBeNull(); // no permission, no dot
   });
   test('consuming Nearby keeps an otherwise empty map mounted until its native viewport arrives', async () => {
     rows = []; await render(); await layOutBody(); expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
-    // With no map to show there is still the way to one: "U blizini" stands in the strip, and the list leaves the strip's room above it.
-    await tap('U blizini');
+    // With no map to show there is still the way to one: "Moja lokacija" stands above the list.
+    await tap('Moja lokacija');
     await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.8, longitude: 20.4 } }));
     const request = map().props.centerNearby;
     await act(async () => map().props.onNearbyConsumed(request.key));
@@ -2667,22 +2780,27 @@ describe('P6 quick chips follow the server availability, not the loaded page', (
     p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['OFFERS'] } };
     await render();
     // The loaded row names a price and no work mode; the server says every task is OFFERS and some name a work mode.
-    expect(chipLabels()).toEqual(['Na daljinu', 'Na licu mesta', 'Danas', 'Sutra', 'Ove nedelje', 'Prima ponude']);
+    // (no "Sa iznosom": the server says every task asks for offers, and the stated amount is a filter with nothing to show)
+    expect(chipLabels()).toEqual(['Na daljinu', 'Danas', 'Ovaj vikend']);
     // A pan: the new area holds nothing and its read has not answered yet. The rail does not move.
     rows = []; p6Seam = { ...p6Seam!, availability: null }; await update();
-    expect(chipLabels()).toEqual(['Na daljinu', 'Na licu mesta', 'Danas', 'Sutra', 'Ove nedelje', 'Prima ponude']);
+    expect(chipLabels()).toEqual(['Na daljinu', 'Danas', 'Ovaj vikend']);
     // The server says nothing names its days: the time chips are not offered, whatever the page holds.
     rows = [narrow(dated)]; p6Seam = { ...p6Seam!, availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: ['MY_PRICE', 'OFFERS'] } };
     await update();
-    expect(chipLabels()).toEqual(['Navedena cena', 'Prima ponude']);
+    expect(chipLabels()).toEqual(['Sa iznosom']);
   });
-  test('"Za 2 i više" stays once a read showed a task with room for two; the legacy reader still reads its rows', async () => {
-    rows = [narrow()]; p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: [] } };
+  test('a number of people the view already holds says itself in the row and takes itself away; it is never offered as a choice', async () => {
+    rows = [row('roomy')]; p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: [] } };
     await render(); expect(chipLabels()).toEqual([]);
-    rows = [row('roomy')]; await update(); expect(chipLabels()).toEqual(['Za 2 i više']);
-    rows = [narrow()]; await update(); expect(chipLabels()).toEqual(['Za 2 i više']);
     await act(async () => tree.unmount());
-    p6Seam = undefined; rows = [narrow()]; await render();
+    initial = { ...initial, places: 2 }; await render();
+    expect(chipLabels()).toEqual(['Za 2 i više']);
+    await act(async () => tree.root.findAllByType(DiscoveryChipRow)[0].props.chips[0].onPress());
+    expect(snapshot.places).toBe(1); expect(chipLabels()).toEqual([]);
+    // the legacy reader reads its rows, and still offers no such choice
+    await act(async () => tree.unmount());
+    initial = { ...initialMarketplaceView(), mode: 'map' }; p6Seam = undefined; rows = [row('roomy'), row('narrow', { pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } })]; await render();
     expect(chipLabels()).not.toContain('Za 2 i više');
   });
 });
@@ -2702,99 +2820,89 @@ test('P6: the area the map hands up reaches the seam with the whole view, and th
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
-// Zadaci composition (UX plan section P, variant B, and the owner's wishes of 2026-10-07): the list has three heights; the filters sit LOW
-// (over the map under the pill while the list is lowered, and the sheet's sticky header from half up); the zoom buttons and "U blizini" stand
-// directly above the list and move with it, ending in a strip of map when the list is full; a pin's card closes by a pull down.
+// Zadaci composition (UX plan section P, and the owner's phones of 7 and 8 Oct 2026): the list has three heights; the capsules (Filteri, Za mene, the quick
+// choices) float over the map under the pill at every height; the map's furniture ("moja lokacija" and the map's sources, no + and −) stands directly above
+// the list and moves with it, giving way when the list is all the way up; a pin's card closes by a pull down.
 // ---------------------------------------------------------------------------------------------------------------------------------------
-describe('Zadaci composition: three heights, filters low, controls above the list', () => {
+describe('Zadaci composition: three heights, capsules over the map, furniture above the list', () => {
   const six = () => Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
   const labelsIn = (root: ReactTestInstance) => root.findAll(node => String(node.type) === 'Press' && !!node.props.accessibilityLabel).map(node => String(node.props.accessibilityLabel));
 
-  /** Tasks that take offers, with the price condition applied: something is applied, so the row of chips stands over the map. */
+  /** Tasks that take offers, with the price condition applied: something is applied, so the row of capsules says it. */
   const withAppliedPrice = () => {
     rows = six().map(item => ({ ...item, rezimCene: 'OFFERS', ponudjenaCena: undefined }) as MarketplaceItem);
     initial = { ...initial, price: 'OFFERS' };
   };
 
-  test('lowered with nothing applied, the map has no row of chips over it: the one search pill is the way in, and the sheet keeps its own row', async () => {
+  test('lowered with nothing applied, the capsules already stand over the map under the pill, and the sheet has no row of its own', async () => {
     rows = six(); await render(); await layOutBody(800);
     expect(listSheet().props.index).toBe(0);
-    expect(chipsOverMap()).toHaveLength(0);
-    expect(stickyChips()).toHaveLength(1);
+    expect(capsules()).toHaveLength(1);
+    expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
+    // The filters are the round button beside the pill, not a capsule of the row.
+    expect(labelsIn(capsules()[0])).toEqual(['Sa iznosom']);
+    expect(filters().props.testID).toBe('filters-button');
+    // The pill and the capsules are one measured stack, the pill first.
+    const stack = tree.root.findByProps({ testID: 'discovery-search-stack' });
+    expect(stack.findAllByProps({ testID: 'discovery-chips' })).toHaveLength(1);
     await act(async () => press('Pretraži zadatke').props.onPress());
     expect(panel()).toHaveLength(1);
   });
 
-  test('lowered with a condition applied: the row of chips stands over the map under the pill, and the sheet\'s own copy is out of reach of a screen reader', async () => {
+  test('with a condition applied: the button says so ("Filteri, 1 aktivan" and the number), the row has the chosen capsule, and the pill stays a place to start', async () => {
     withAppliedPrice(); await render(); await layOutBody(800);
     expect(listSheet().props.index).toBe(0);
-    expect(chipsOverMap()).toHaveLength(1);
-    expect(stickyChips()).toHaveLength(1);
-    expect(stickyChips()[0].props).toMatchObject({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
-    // The same row in both places: the same chips in the same order, "Filteri" first.
-    expect(labelsIn(chipsOverMap()[0])).toEqual(labelsIn(stickyChips()[0]));
-    expect(labelsIn(chipsOverMap()[0])[0]).toBe('Filteri, 1 aktivan');
-    // It hangs below the pill and is not part of the pill's measured edge: the sheet's stops do not depend on it.
+    expect(capsules()).toHaveLength(1);
+    expect(filters('Filteri, 1 aktivan').props.accessibilityState).toEqual({ selected: true });
+    expect(texts(tree.root.findByProps({ testID: 'filters-count' }))).toBe('1');
+    expect(labelsIn(capsules()[0])[0]).toBe('Tražim ponude');
+    expect(quick('Tražim ponude').props.accessibilityState).toEqual({ selected: true });
+    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    // A notice hangs below the pill and its capsules, outside what is measured: the sheet's stops do not depend on it.
     const bar = tree.root.findByType(DiscoverySearchBar);
-    expect(bar.props.below).toBeTruthy();
-    const full = () => Number(listSheet().props.snapPoints[2]);
-    const before = full();
-    await act(async () => chipsOverMap()[0].props.onLayout({ nativeEvent: { layout: { height: 90 } } }));
-    expect(full()).toBe(before);
+    expect(bar.props.below).toBeTruthy(); expect(bar.props.chips).toBeTruthy();
   });
 
-  test.each([1, 2])('at height %i only the sheet\'s row of chips stands, within reach of a screen reader, and the map has none over it', async index => {
+  test.each([1, 2])('at height %i the same row of capsules stands over the map, and the sheet has none of its own', async index => {
     rows = six(); await render(); await layOutBody(800);
     await dragSheet(index);
     expect(listSheet().props.index).toBe(index);
-    expect(chipsOverMap()).toHaveLength(0);
-    expect(stickyChips()).toHaveLength(1);
-    expect(stickyChips()[0].props).toMatchObject({ accessibilityElementsHidden: false, importantForAccessibility: 'auto' });
-    // The pill stays at the top as the summary of the search.
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Svi zadaci, Bilo kada' });
-    // "Filteri" is one chip, in the header, and it opens the search at its conditions.
+    expect(capsules()).toHaveLength(1);
+    expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
+    // Nothing fades, hides or shields it: it is the tools' own, over the map and over the list.
+    expect(StyleSheet.flatten(capsules()[0].props.style).opacity).toBeUndefined();
+    expect(capsules()[0].props.accessibilityElementsHidden).toBeUndefined();
+    // The pill stays at the top as the place to start the search, never as a summary of the filters.
+    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    // "Filteri" opens the filters (and only them).
     await act(async () => filters().props.onPress());
-    expect(panel()).toHaveLength(1);
+    expect(panel()).toHaveLength(1); expect(pressable('Zatvori filtere')).toHaveLength(1);
   });
 
-  test('the chips over the map give way to the sheet\'s as it rises: opacity follows the sheet\'s position, and a row that is gone takes no touch', async () => {
-    withAppliedPrice(); await render(); await layOutBody(800);
-    const position = listSheet().props.animatedPosition;
-    const low = 800 - Number(listSheet().props.snapPoints[0]);
-    const style = () => StyleSheet.flatten(chipsOverMap()[0].props.style);
-    position.value = low; await update();
-    expect(style()).toMatchObject({ opacity: 1, transform: [{ translateY: 0 }] });
-    position.value = low - 24; await update();
-    expect(style().opacity).toBeCloseTo(0.5, 5);
-    position.value = low - 48; await update();
-    expect(style()).toMatchObject({ opacity: 0, transform: [{ translateY: -1600 }] });
-    position.value = low - 300; await update();
-    expect(style().opacity).toBe(0);
-    // coming back down brings it back
-    position.value = low - 12; await update();
-    expect(style().opacity).toBeCloseTo(0.75, 5);
-    expect(style().transform).toEqual([{ translateY: 0 }]);
-  });
-
-  test('the row of chips has one scope switch that is built and hidden, one "Filteri" with its count, and only the filters the tasks can back', async () => {
+  test('the row of capsules has "Za mene" built and hidden, the filters button has its count, and the row has only the filters the tasks can back', async () => {
     rows = six().map(item => ({ ...item, rezimCene: 'OFFERS', ponudjenaCena: undefined, ...tomorrowFlexible }) as MarketplaceItem);
     initial = { ...initial, when: 'tomorrow', price: 'OFFERS' };
     await render();
     const row_ = () => tree.root.findAllByType(DiscoveryChipRow)[0];
     expect(row_().props.forMeAvailable).toBeUndefined();
     expect(pressable('Za mene')).toHaveLength(0); expect(pressable('Svi zadaci')).toHaveLength(0);
-    expect(row_().props.filtersCount).toBe(2);
-    expect(texts(filters('Filteri, 2 aktivna'))).toBe('Filteri · 2');
-    expect(row_().props.chips.map((chip: { label: string }) => chip.label)).toEqual(['Danas', 'Sutra', 'Ove nedelje', 'Prima ponude', 'Za 2 i više']);
-    // "U blizini" is not a filter, and it is not a chip.
-    expect(labelsIn(row_())).not.toContain('U blizini');
+    expect(tree.root.findByType(DiscoverySearchBar).props.filters.count).toBe(2);
+    expect(texts(tree.root.findByProps({ testID: 'filters-count' }))).toBe('2');
+    expect(filters('Filteri, 2 aktivna')).toBeTruthy();
+    // what is on and has no capsule of its own stands first, with its ✕; then the quick choices the tasks can back (no "Na daljinu": no task says how it is done)
+    expect(row_().props.chips.map((chip: { label: string }) => chip.label)).toEqual(['Sutra', 'Tražim ponude', 'Danas', 'Ovaj vikend']);
+    // "Moja lokacija" is not a filter, and it is not a capsule.
+    expect(labelsIn(row_())).not.toContain('Moja lokacija'); expect(labelsIn(row_())).not.toContain('U blizini');
   });
 
-  test('when the server has "Za mene", the switch comes first, and its choice is the route\'s to make', async () => {
+  test('when the server has "Za mene", it is the first capsule of the row (no segment, no second "Svi zadaci"), and its choice is the route\'s to make', async () => {
     const onScope = jest.fn();
     scopeProps = { forMeAvailable: true, scope: 'all', onScope };
     await render();
-    expect(labelsIn(stickyChips()[0]).slice(0, 3)).toEqual(['Svi zadaci', 'Za mene', 'Filteri']);
+    expect(labelsIn(capsules()[0])[0]).toBe('Za mene');
+    expect(labelsIn(capsules()[0])).not.toContain('Filteri');
+    expect(pressable('Svi zadaci')).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
     await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Za mene')[0].props.onPress());
     expect(onScope).toHaveBeenCalledWith('forMe');
     // nothing is filtered by the presentation itself: the choice has no server key yet, so it is only handed on
@@ -2804,24 +2912,25 @@ describe('Zadaci composition: three heights, filters low, controls above the lis
   // R28 ("Za mene", DISCOVERY-ZAMENE): without a scope of the route's own, the switch is the view's own `forMe`, and it reaches the server as the filter's one optional key.
   describe('"Za mene" as the view\'s own scope', () => {
     const chip = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
-    const pill = () => texts(tree.root.findByType(DiscoverySearchBar));
+    const pill = () => texts(tree.root.findByProps({ testID: 'discovery-search-row' }));
 
-    test('the switch writes forMe into the view and takes it away again, and the pill says which tasks the list is about', async () => {
+    test('the capsule writes forMe into the view and takes it away again; the pill never says it and "Filteri" does not count it', async () => {
       scopeProps = { forMeAvailable: true };
       await render();
-      expect(chip('Svi zadaci').props.accessibilityState).toMatchObject({ selected: true });
       expect(chip('Za mene').props.accessibilityState).toMatchObject({ selected: false });
-      expect(pill()).toContain('Svi zadaci');
+      expect(pressable('Svi zadaci')).toHaveLength(0); expect(pill()).not.toContain('Svi zadaci');
       await act(async () => chip('Za mene').props.onPress());
       expect(snapshot.forMe).toBe(true);
       expect(userIntent).toHaveBeenCalled();
       expect(chip('Za mene').props.accessibilityState).toMatchObject({ selected: true });
-      expect(pill()).toContain('Za mene'); expect(pill()).not.toContain('Svi zadaci');
+      expect(pill()).not.toContain('Za mene'); expect(pressable('Svi zadaci')).toHaveLength(0);
       // a scope is not a condition: "Filteri" counts none
-      expect(tree.root.findAllByType(DiscoveryChipRow)[0].props.filtersCount).toBe(0);
-      await act(async () => chip('Svi zadaci').props.onPress());
+      expect(tree.root.findByType(DiscoverySearchBar).props.filters.count).toBe(0);
+      expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+      // the capsule that is on takes itself away
+      await act(async () => chip('Za mene').props.onPress());
       expect(snapshot.forMe).toBe(false);
-      expect(pill()).toContain('Svi zadaci');
+      expect(chip('Za mene').props.accessibilityState).toMatchObject({ selected: false });
     });
 
     test('the view\'s forMe is the switch when the route owns none, and a route that owns one decides alone', async () => {
@@ -2842,7 +2951,7 @@ describe('Zadaci composition: three heights, filters low, controls above the lis
       initial = { ...initial, forMe: true };
       await render();
       expect(pressable('Za mene')).toHaveLength(0); expect(pressable('Svi zadaci')).toHaveLength(0);
-      expect(chipsOverMap()).toHaveLength(0);
+      expect(capsuleLabels()).not.toContain('Za mene');
     });
 
     test('"Poništi filtere" takes the conditions away and leaves "Za mene" on: a scope is not a filter', async () => {
@@ -2895,25 +3004,28 @@ describe('Zadaci composition: three heights, filters low, controls above the lis
       const stops = JSON.stringify(listSheet().props.snapPoints);
       await pillBottom(56);
       expect(JSON.stringify(listSheet().props.snapPoints)).toBe(stops);
-      expect(tree.root.findByProps({ testID: 'discovery-search-row' }).findAllByProps({ testID: 'for-me-notice' })).toHaveLength(0);
+      expect(tree.root.findByProps({ testID: 'discovery-search-stack' }).findAllByProps({ testID: 'for-me-notice' })).toHaveLength(0);
     });
   });
 
-  test('"U blizini" stands directly above the list and rides it; it ends in the strip, and lifts over a pin\'s card', async () => {
+  test('"Moja lokacija" stands directly above the list and rides it; it gives way when the list is all the way up, and lifts over a pin\'s card', async () => {
     rows = six(); await render(); await layOutBody(800);
-    await pillBottom(56); // the pill's edge is 12 + 56
+    await pillBottom(56); // the tools' edge is 12 + 56
     const layer = () => StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-locate-layer' }).props.style);
     const ride = () => (layer().transform as { translateY: number }[])[0].translateY;
+    const shown = () => (layer() as unknown as { opacity: number }).opacity;
     const position = listSheet().props.animatedPosition;
     position.value = 732; await update(); // the lowest stop: the top line, 68 high
-    expect(layer()).toMatchObject({ position: 'absolute', height: 48 });
-    expect(ride()).toBe(732 - 12 - 48);
-    position.value = 400; await update(); expect(ride()).toBe(400 - 12 - 48);
-    // The full stop is the pill's edge, a gap, one row and a gap: 68 + 12 + 48 + 12. The row ends in the strip, one gap under the pill.
-    expect(800 - Number(listSheet().props.snapPoints[2])).toBe(140);
-    position.value = 140; await update(); expect(ride()).toBe(80);
-    position.value = 60; await update(); expect(ride()).toBe(80);
+    expect(layer()).toMatchObject({ position: 'absolute', height: CONTROL_SIZE });
+    expect(ride()).toBe(732 - 12 - CONTROL_SIZE); expect(shown()).toBe(1);
+    position.value = 400; await update(); expect(ride()).toBe(400 - 12 - CONTROL_SIZE); expect(shown()).toBe(1);
+    // The full stop is the tools' edge and one small gap, directly under them: no strip of map is left, so the row has nothing to stand on.
+    expect(800 - Number(listSheet().props.snapPoints[2])).toBe(fullTop(68));
+    position.value = fullTop(68); await update(); expect(ride()).toBe(80); expect(shown()).toBe(0);
+    position.value = 60; await update(); expect(ride()).toBe(80); expect(shown()).toBe(0);
     expect(map().props.controlsMinTop).toBe(80);
+    // It fades over the last 24 px of map the list takes, instead of sinking under the list's edge.
+    position.value = 80 + CONTROL_SIZE + 12 + 12; await update(); expect(shown()).toBeCloseTo(0.5, 5);
     // A pin's card lifts it above the card (the sheet sinks behind the card to a sliver).
     position.value = 732; await update();
     await act(async () => map().props.onSelect('t1'));
@@ -2921,28 +3033,28 @@ describe('Zadaci composition: three heights, filters low, controls above the lis
     await act(async () => card.findAll(node => String(node.type) === 'View' && node.props.onLayout?.name === 'measureCard')[0].props.onLayout({ nativeEvent: { layout: { height: 200 } } }));
     expect(map().props.coverBottom).toBe(200 + 12 + 12);
     position.value = 799; await update(); await update();
-    expect(ride()).toBe(800 - 224 - 12 - 48);
+    expect(ride()).toBe(800 - 224 - 12 - CONTROL_SIZE); expect(shown()).toBe(1);
   });
 
-  test('"U blizini" is a real 44 control with a spinner while it asks, and it is not offered for remote work', async () => {
+  test('"Moja lokacija" is a real 44 control with a spinner while it asks, and it is not offered for remote work', async () => {
     rows = six(); await render(); await layOutBody(800);
-    const locate = () => press('U blizini');
+    const locate = () => press('Moja lokacija');
     expect(StyleSheet.flatten(locate().parent!.props.style)).toMatchObject({ width: 44, height: 44 });
     expect(locate().props.accessibilityState).toEqual({ disabled: false, busy: false });
     expect(locate().findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(0);
     expect(locate().findAllByType('Crosshair' as React.ElementType)).toHaveLength(1);
     await act(async () => tree.unmount());
     initial = { ...initial, where: 'remote' }; await render(); await layOutBody(800);
-    expect(pressable('U blizini')).toHaveLength(0);
+    expect(pressable('Moja lokacija')).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'discovery-locate-layer' })).toHaveLength(0);
   });
 
-  test('a notice from "U blizini" hangs under the pill without moving the pill\'s edge or the sheet\'s stops', async () => {
+  test('a notice from "Moja lokacija" hangs under the pill without moving the pill\'s edge or the sheet\'s stops', async () => {
     mockNearbyPermission.mockResolvedValue({ granted: false });
     rows = six(); await render(); await layOutBody(800); await pillBottom(56);
     const stops = () => JSON.stringify(listSheet().props.snapPoints);
     const before = stops();
-    await tap('U blizini');
+    await tap('Moja lokacija');
     expect(tree.root.findAllByProps({ testID: 'nearby-notice' }).length).toBeGreaterThan(0);
     expect(stops()).toBe(before);
   });
@@ -2978,5 +3090,239 @@ describe('Zadaci composition: three heights, filters low, controls above the lis
     }
     await act(async () => pin.props.onPress());
     expect(open).toHaveBeenCalledTimes(1); expect(open.mock.calls[0][0].id).toBe('t1');
+  });
+});
+
+// The bottom navigation (the owner's phone of 8 Oct 2026: "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se lista digne na pola ili skroz"). The layout owns the bar and the
+// one value that moves it (0: on show, 1: away) and says how tall the bar is; the screen drives the value from the list and keeps clear what the bar lies over. Without a layout (a gallery)
+// there is no bar, and nothing is reserved and nothing moves.
+describe('the bottom navigation follows the list: away at the top line or behind a card, back at half and at full', () => {
+  const BAR = 72;
+  const makeBar = () => ({ hidden: new Animated.Value(0.5), height: BAR });
+  const hiddenNow = () => (barValue!.hidden as unknown as { __getValue: () => number }).__getValue();
+  const slides = () => (Animated.timing as jest.Mock).mock.calls.filter(([value]) => value === barValue!.hidden).map(([, config]) => config);
+
+  test('the first answer of a visit puts the bar in place at once: away at the top line, on show at half and full, and nothing slides', async () => {
+    for (const [sheet, hidden] of [['peek', 1], ['half', 0], ['full', 0]] as const) {
+      barValue = makeBar(); initial = { ...initial, sheet }; await render(); await layOutBody(800);
+      expect([sheet, hiddenNow()]).toEqual([sheet, hidden]);
+      expect(slides()).toEqual([]);
+      await act(async () => tree.unmount());
+    }
+  });
+
+  test('the sheet says where it is going the moment it starts to move, and the bar slides with it: in over the enter token, out over the exit token, on the native driver', async () => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
+    expect(hiddenNow()).toBe(1);
+    await act(async () => listSheet().props.onAnimate?.(0, 1)); // a drag let go of, towards half
+    expect(slides().at(-1)).toMatchObject({ toValue: 0, duration: sys.motion.enter, useNativeDriver: true });
+    expect(hiddenNow()).toBe(0);
+    const count = slides().length;
+    await act(async () => listSheet().props.onAnimate?.(1, 2)); // from half to full the bar stays where it is
+    expect(slides()).toHaveLength(count); expect(hiddenNow()).toBe(0);
+    await act(async () => listSheet().props.onAnimate?.(2, 0)); // down to the top line: the bar leaves with the sheet
+    expect(slides().at(-1)).toMatchObject({ toValue: 1, duration: sys.motion.exit, useNativeDriver: true });
+    expect(hiddenNow()).toBe(1);
+  });
+
+  test('a tap on the count (the handle) takes the bar with it, and a settled sheet that was already announced does not slide it again', async () => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
+    await act(async () => countLine().props.onPress()); // half
+    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
+    await act(async () => countLine().props.onPress()); // full
+    expect(hiddenNow()).toBe(0);
+    await act(async () => countLine().props.onPress()); // back to the top line
+    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
+    const count = slides().length;
+    await act(async () => listSheet().props.onChange(0));
+    expect(slides()).toHaveLength(count);
+  });
+
+  test('under reduced motion the bar is simply there and simply gone: nothing slides', async () => {
+    mockReduced = true; barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
+    await act(async () => countLine().props.onPress()); expect(hiddenNow()).toBe(0);
+    await act(async () => countLine().props.onPress()); await act(async () => countLine().props.onPress()); expect(hiddenNow()).toBe(1);
+    expect(slides()).toEqual([]);
+  });
+
+  test('a pin\'s card at the bottom keeps the bar away at every height, and closing it lets the list bring the bar back', async () => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
+    expect(hiddenNow()).toBe(0);
+    await act(async () => map().props.onSelect('bb')); // the list sinks to its top line and the card stands at the bottom
+    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
+    await act(async () => listSheet().props.onAnimate?.(0, 1)); // a sheet that starts to rise behind the card does not bring the bar
+    expect(hiddenNow()).toBe(1);
+    await tap('Zatvori pregled zadatka');
+    expect(hiddenNow()).toBe(1);
+    await act(async () => countLine().props.onPress());
+    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
+  });
+
+  test('a screen that is not in front does not move the bar, and one that comes back puts it in place at once', async () => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
+    expect(hiddenNow()).toBe(0);
+    mockFocused = false; await update();
+    await act(async () => listSheet().props.onAnimate?.(1, 0));
+    expect(hiddenNow()).toBe(0); // the other tab is in front and has the bar as it always had it
+    mockFocused = true; await update();
+    expect(hiddenNow()).toBe(0); // the list is at half again
+    expect(slides()).toEqual([]);
+  });
+
+  test('what the bar lies over is kept clear: the end of the list, the "Mapa" pill, the paging note, and the half stop is half of what the bar leaves', async () => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'full' }; await render(); await layOutBody(800);
+    expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.huge + sys.space.xxl + BAR);
+    expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).bottom).toBe(sys.space.base + BAR);
+    // half of the 800 the body is and the 72 the bar covers: the map above the sheet and the list between the sheet and the bar are about as tall as each other
+    expect(listSheet().props.snapPoints[1]).toBe(Math.round((800 + BAR) / 2));
+    // without a bar nothing is reserved
+    await act(async () => tree.unmount()); barValue = undefined; await render(); await layOutBody(800);
+    expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.huge + sys.space.xxl);
+    expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).bottom).toBe(sys.space.base);
+    expect(listSheet().props.snapPoints[1]).toBe(400);
+  });
+
+  test('the note of the next page stands above the "Mapa" pill and above the bar, in the list\'s own width', async () => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'full' };
+    p6Seam = { ...p6Seam_(), loadingMore: true, pageHasMore: true };
+    await render(); await layOutBody(800);
+    const note = tree.root.findByProps({ accessibilityLabel: 'Učitavamo još zadataka…' });
+    expect(StyleSheet.flatten(note.props.style).bottom).toBe(sys.space.base + BAR + 48 + sys.space.sm);
+  });
+});
+
+// The screen reaches the bottom of the window (the bottom navigation is drawn over it, and away while the list rests low), so what stands at the bottom clears the system's own inset itself.
+describe('the bottom of the window: the system\'s own inset is cleared by what stands there', () => {
+  test('the lowest stop of the list and the pin\'s card stand above the gesture bar', async () => {
+    insetBottom = 24; await render(); await layOutBody(800);
+    expect(listSheet().props.snapPoints[0]).toBe(68 + 24);
+    await act(async () => map().props.onSelect('bb'));
+    expect(peek()!.props.bottomInset).toBe(24);
+    const card = tree.root.findByType(DiscoveryPeek);
+    await act(async () => card.findAll(node => String(node.type) === 'View' && node.props.onLayout?.name === 'measureCard')[0].props.onLayout({ nativeEvent: { layout: { height: 200 } } }));
+    expect(map().props.coverBottom).toBe(200 + 24 + sys.space.md);
+  });
+
+  test('a small inset leaves the card where it always stood (12 above the bottom), and no provider at all reads as none', async () => {
+    insetBottom = 8; await render(); await layOutBody(800);
+    await act(async () => map().props.onSelect('bb'));
+    expect(peek()!.props.bottomInset).toBe(sys.space.md);
+    await act(async () => tree.unmount());
+    insetBottom = 0; await render(); await layOutBody(800);
+    expect(listSheet().props.snapPoints[0]).toBe(68);
+    await act(async () => map().props.onSelect('bb'));
+    expect(peek()!.props.bottomInset).toBe(sys.space.md);
+  });
+});
+
+// A pin's card stands at the very bottom (the bar is away while it is there), the list sinks behind it, and the map stays readable above it: the camera is told how much room the card
+// leaves it, and moves only when the pin would be under the card.
+test('a chosen pin\'s card is at the very bottom, and the map is told how much of its bottom the card takes and where the pin may stand above it', async () => {
+  mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
+  await render(); await layOutBody(800);
+  expect(map().props.focusBottom).toBe(sys.space.md + sys.space.md + Math.min(360, Math.round(844 / 2)));
+  expect(map().props.coverBottom).toBe(0);
+  await act(async () => map().props.onSelect('bb'));
+  expect(listSheet().props.snapPoints[0]).toBe(HIDDEN); // the list's top line is not a second strip under the card
+  expect(peek()!.props.bottomInset).toBe(sys.space.md);
+  const card = tree.root.findByType(DiscoveryPeek);
+  await act(async () => card.findAll(node => String(node.type) === 'View' && node.props.onLayout?.name === 'measureCard')[0].props.onLayout({ nativeEvent: { layout: { height: 180 } } }));
+  expect(map().props.coverBottom).toBe(180 + sys.space.md + sys.space.md);
+  // The camera does not jump: nothing in the view changes when the card comes up or goes (no area, no viewport)
+  expect(snapshot.viewport).toBeNull(); expect(snapshot.area).toBeNull();
+});
+
+// "Nisu na mapi" (the owner's phone of 8 Oct 2026: "lak pristup zadacima koji nisu na mapi"): a quiet row under the count says how many are not on the map, a tap shows only them, and the capsule
+// "Nisu na mapi ✕" is the way back. The number is the server's own count; the lens is a way of looking at the list and no filter the server has.
+describe('"Nisu na mapi": the way to the tasks that are not on the map, honest to the server', () => {
+  const mixed = () => [row('m1', at(44.81, 20.41)), row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }), row('m2', at(44.82, 20.42)),
+    row('nowhere', { priblizno: null }), row('m3', at(44.83, 20.43))];
+  const entry = () => tree.root.findAllByProps({ testID: 'off-map-entry' });
+  const counts = (withoutPoint: number, mapped = 120) => ({ kind: 'exact_live' as const, observedAt: AT_NOW, mapped, listed: mapped + withoutPoint, inArea: mapped, withoutPoint, undated: 0 });
+
+  test('a quiet row under the count says how many are not on the map, and is not there when none is (or when the work is remote anyway)', async () => {
+    rows = mixed(); await render();
+    expect(entry()).toHaveLength(1);
+    expect(texts(entry()[0])).toBe('2 nisu na mapi');
+    expect(entry()[0].props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '2 nisu na mapi. Prikaži samo te zadatke.' });
+    expect(StyleSheet.flatten(entry()[0].props.style).minHeight).toBeGreaterThanOrEqual(40);
+    // one is "nije", not "nisu"
+    rows = [row('m1', at(44.81, 20.41)), row('nowhere', { priblizno: null })]; await update();
+    expect(texts(entry()[0])).toBe('1 nije na mapi');
+    // none: no row
+    rows = [row('m1', at(44.81, 20.41)), row('m2', at(44.82, 20.42))]; await update();
+    expect(entry()).toHaveLength(0);
+    // the remote filter is the server's own and leaves no task without a point to be "not on the map"
+    await act(async () => tree.unmount());
+    rows = mixed(); initial = { ...initial, where: 'remote' }; await render();
+    expect(entry()).toHaveLength(0);
+  });
+
+  test('a tap shows only them: the list rises to half, the capsule "Nisu na mapi" is on first in the row, and nothing is filtered or forgotten', async () => {
+    rows = mixed(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
+    expect(cards()).toHaveLength(5);
+    await act(async () => entry()[0].props.onPress());
+    expect(userIntent).toHaveBeenCalled();
+    expect(listSheet().props.index).toBe(1);
+    expect(cards()).toEqual(['online', 'nowhere']);
+    expect(capsuleLabels()[0]).toBe('Nisu na mapi');
+    expect(quick('Nisu na mapi').props.accessibilityState).toEqual({ selected: true });
+    expect(quick('Nisu na mapi').findAll(node => String(node.type) === 'X')).toHaveLength(1); // a ✕ of its own
+    expect(entry()).toHaveLength(0); // the row has done its job
+    expect(texts(countLine())).toBe('2 zadatka');
+    expect(countLine().props.accessibilityLabel).toBe('2 zadatka · nisu na mapi');
+    // A way of looking, not a filter: the map still draws every task and the route's view carries nothing of it.
+    expect(map().props.items).toHaveLength(5);
+    expect(snapshot).toMatchObject({ query: '', price: 'all', where: 'any', area: null, pinPlace: null, place: null });
+    expect(JSON.stringify(snapshot)).not.toMatch(/nisu|offMap/i);
+    // The capsule takes it away again: every task is back, the row returns, and the filters button counted nothing in between.
+    expect(tree.root.findByType(DiscoverySearchBar).props.filters.count).toBe(0);
+    await act(async () => quick('Nisu na mapi').props.onPress());
+    expect(cards()).toHaveLength(5); expect(entry()).toHaveLength(1); expect(capsuleLabels()).not.toContain('Nisu na mapi');
+  });
+
+  test('P6: the number is the server\'s own count, the pages are read on until all of them are here, and no further', async () => {
+    rows = [row('m1', at(44.81, 20.41)), row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
+    p6Seam = { ...p6Seam_(), counts: counts(3), pageHasMore: true }; await render(); await layOutBody(800);
+    // three are not on the map, though only one of them is loaded: the row says what the server counted
+    expect(texts(entry()[0])).toBe('3 nisu na mapi');
+    await act(async () => entry()[0].props.onPress());
+    expect(cards()).toEqual(['online']);
+    expect(texts(countLine())).toMatch(/^3 zadatka/); // the top line is the server's count as well
+    expect(p6Seam!.onNextPage).toHaveBeenCalledTimes(1);
+    // the next page brings one more: asked again; the last brings the third: not asked again
+    rows = [...rows, row('nowhere', { priblizno: null })]; await update();
+    expect(p6Seam!.onNextPage).toHaveBeenCalledTimes(2);
+    rows = [...rows, row('nowhere2', { priblizno: null })]; await update();
+    expect(p6Seam!.onNextPage).toHaveBeenCalledTimes(2);
+    expect(cards()).toEqual(['online', 'nowhere', 'nowhere2']);
+    // there are no more pages to ask for: it stops (a page that is being read is not asked for twice)
+    rows = [...rows, row('nowhere3', { priblizno: null })]; p6Seam = { ...p6Seam!, counts: counts(5), pageHasMore: false }; await update();
+    expect(p6Seam!.onNextPage).toHaveBeenCalledTimes(2);
+  });
+
+  test('the lens goes by itself when nothing is left off the map, and with the scope of the account', async () => {
+    rows = mixed(); p6Seam = { ...p6Seam_(), counts: counts(2) }; await render(); await layOutBody(800);
+    await act(async () => entry()[0].props.onPress());
+    expect(capsuleLabels()).toContain('Nisu na mapi');
+    p6Seam = { ...p6Seam!, counts: counts(0) }; await update();
+    expect(capsuleLabels()).not.toContain('Nisu na mapi'); expect(entry()).toHaveLength(0);
+    p6Seam = { ...p6Seam!, counts: counts(2) }; await update();
+    expect(entry()).toHaveLength(1);
+    await act(async () => entry()[0].props.onPress());
+    expect(capsuleLabels()).toContain('Nisu na mapi');
+    scopeKey = 'b:2'; await update();
+    expect(capsuleLabels()).not.toContain('Nisu na mapi');
+  });
+
+  test('the row is not offered while the list is read or could not be, or while the rest of the collection is still coming', async () => {
+    rows = mixed(); loading = true; await render();
+    expect(entry()).toHaveLength(0);
+    loading = false; error = true; await update();
+    expect(entry()).toHaveLength(0);
+    error = false; collectionStatus = 'loading'; await update();
+    expect(entry()).toHaveLength(0);
+    collectionStatus = undefined; await update();
+    expect(entry()).toHaveLength(1);
   });
 });

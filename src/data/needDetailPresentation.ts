@@ -5,7 +5,8 @@ import { displayDate, zonedParts } from '../ui/calendar/calendarPresentation';
 import { novac } from '../lib/novac';
 
 const SCHEDULE: Record<NeedScheduleProjection['kind'], string> = {
-  FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilan termin', REMOTE_ANYTIME: 'Na daljinu, fleksibilno',
+  // One word for a flexible time everywhere (the owner's phone, 8 Oct 2026: "Fleksibilan termin", "Fleksibilan raspon" and "Fleksibilno" on one screen).
+  FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Na daljinu, fleksibilno',
   TODAY_FLEXIBLE: 'Danas, fleksibilno', TOMORROW_FLEXIBLE: 'Sutra, fleksibilno', WEEK_FLEXIBLE: 'Ove nedelje, fleksibilno',
 };
 const GEOGRAPHY = { STATIONARY: 'Na jednom mestu', POINT_TO_POINT: 'Od mesta do mesta', MULTI_STOP: 'Više stanica', AREA_BASED: 'Na području', REMOTE: 'Na daljinu' };
@@ -71,7 +72,7 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
     : tight ? (start!.time === end!.time ? start!.text : `${start!.text}–${endText}`)
     : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
     : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
-  const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilan raspon · ';
+  const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilno · ';
   // A zone the reader is already standing in does not need to be named; a different one does.
   // Naming it was not the problem — printing an instant in UTC and apologising for it was.
   // Serbian time is named the way the owner's rule says it (2026-09-21, deep read 8.27).

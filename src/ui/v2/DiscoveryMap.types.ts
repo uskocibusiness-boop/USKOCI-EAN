@@ -50,6 +50,11 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
    */
   fitTo?: { key: number; bounds: PublicBounds; bottom: number } | null;
   centerNearby?: NearbyCameraTarget | null;
+  /**
+   * Where the person is after "moja lokacija", as [longitude, latitude]: drawn as one dot for as long as this visit lasts, never stored, never
+   * a pin and never sent anywhere. Null (or absent) draws nothing.
+   */
+  me?: [longitude: number, latitude: number] | null;
   /** Retire this exact one-shot request after camera dispatch; later remounts restore the remembered viewport. */
   onNearbyConsumed?: (key: number) => void;
   onFitted?: (key: number) => void;
@@ -58,29 +63,27 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   /** The chosen place, drawn as the green pill that says how many tasks it holds. */
   selectedPlace?: string | null;
   /**
-   * The list sheet's top edge, in pixels from the map's top. The row of controls (the zoom buttons) stands directly above it and
+   * The list sheet's top edge, in pixels from the map's top. The row of the map's furniture (its sources) stands directly above it and
    * moves with it on the UI thread; without a sheet the row stands above the map's bottom edge.
    */
   sheetTop?: SharedValue<number>;
   /**
-   * The highest the row of controls may stand, in pixels from the map's top: the strip of map between the search pill and the list
-   * sheet at its full height. The row reaches it exactly when the sheet is full, so it is never behind the list. Without it, one gap
-   * under `toolsBottom`.
+   * The highest the row of furniture may stand, in pixels from the map's top: one gap under the tools (the search pill and its capsules).
+   * The row reaches it when the sheet is as high as it goes, and fades there: no map is left above the list. Without it, one gap under
+   * `toolsBottom`.
    */
   controlsMinTop?: number;
   /**
-   * The list sheet is at its full height and only a strip of map shows above it: the map takes no gesture and a screen reader skips
-   * it, and a tap on the strip (not on a control or the credits) asks `onStripPress`.
+   * The list sheet is at its full height and covers the map: the map takes no gesture and a screen reader skips it, and a tap on what is
+   * left of it (a gap by the tools) asks `onStripPress`.
    */
   locked?: boolean;
-  /** A tap on the strip of map above the full list: the list comes down to half. */
+  /** A tap on what is left of the map above the full list: the list comes down to half. */
   onStripPress?: () => void;
-  /** The screen draws "U blizini" at the right end of the row, so the zoom buttons stand one control further in. */
+  /** The screen draws "moja lokacija" at the right end of the row, so the map's sources keep clear of it. */
   locateShown?: boolean;
-  /** The floating search bar's bottom edge, in pixels from the map's top: fits and the credits keep clear of it. */
+  /** The floating tools' bottom edge (the search pill and its capsules), in pixels from the map's top: fits keep clear of it. */
   toolsBottom?: number;
-  /** Measured fixed attribution strip below search; lower sheet stops and selected previews keep it clear. */
-  onCreditsHeight?: (height: number) => void;
   /** How much of the map's bottom a chosen pin's card covers, so the camera brings the pin into the clear band. */
   focusBottom?: number;
   /**
@@ -91,7 +94,7 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
   /** False until the screen has measured its body and floating tools. Initial bounds fit must not freeze estimates. */
   cameraLayoutReady?: boolean;
   /**
-   * The height of a card resting on the sheet's top line (a chosen pin's card), gap included; 0 when there is none. The row of
-   * controls stands above the card then, and moves there without a bounce. Attribution keeps its position below search.
+   * The height of a card resting at the bottom of the screen (a chosen pin's card), its gap to the screen's edge included; 0 when there is
+   * none. The row of furniture stands above the card then, and moves there without a bounce.
    */
   coverBottom?: number };

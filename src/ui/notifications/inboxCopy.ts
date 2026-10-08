@@ -69,13 +69,14 @@ export const canMarkRead = (item: Pick<InboxItem, 'readAt'>, offered: boolean) =
 export const INBOX_SET_LABEL: Readonly<Record<'ALL' | InboxRole, string>> = { ALL: 'Sve', REQUESTER: 'Moji zadaci', WORKER: 'Moje prijave' };
 
 /**
- * R11, R15: the task an event is about, when the read says which one. The inbox read carries no task of its own today (`InboxItem` has
- * `title` and `body` only, and the resolver gives an id, not a name), so this is null for every event the server sends now, and the row
- * says what it said before. It is READY for the day the read does: `rpc_list_inbox` returns `taskTitle` beside each event (the task's
- * own title, no address, nothing for the lock screen: rule A20), the decoder keeps it, and every row then says which task it is about
- * without being opened. Nothing is invented from the words of the event or from another list.
+ * R11, R15: the task an event is about, when the read says which one. The client takes it since commit 6c78480e (`InboxItem.taskTitle`,
+ * kept by the decoder when the read carries it), so every row says which task it is about without being opened as soon as the server
+ * does: `rpc_list_inbox` returns `taskTitle` beside each event (the task's own title, no address, nothing for the lock screen: rule A20).
+ * The server package that adds it (INBOX-NASLOV) is proven apart and is not applied, so on a server that does not send it this is null
+ * and the row says what it said before. Nothing is invented from the words of the event or from another list.
  */
 export function inboxTaskTitle(item: object): string | null {
+  // Read as unknown on purpose: the decoder keeps only a string, but a row built by hand (a fixture, an older cache) is not trusted either.
   const title = (item as { taskTitle?: unknown }).taskTitle;
   return typeof title === 'string' && title.trim() ? title.trim().replace(/\s+/g, ' ') : null;
 }

@@ -22,13 +22,11 @@ const presses = () => tree.root.findAllByType('Press' as React.ElementType);
 const labels = () => presses().map(node => node.props.accessibilityLabel);
 const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
 const byLabel = (label: string) => presses().find(node => node.props.accessibilityLabel === label)!;
-// Owner step 5b (2026-09-24): what changes the task is rare, so it moved from the end of the screen into the bar's "···".
-// These read the menu the way a person does: open it, then read its rows. No "···" at all means nothing rare to do.
+// Owner, 8 Oct 2026 (rule J15): what changes the task is on the screen, not behind a "···" ("jedva se nađu"): the edit stands beside the state and what ends
+// something is a row at the end. These read what a person sees: the labels of the page's own buttons and rows. There is no "···" at all.
 const menuLabels = async (): Promise<string[]> => {
-  const more = presses().find(node => node.props.accessibilityLabel === 'Više radnji');
-  if (!more) return [];
-  await act(async () => more.props.onPress());
-  return presses().filter(node => node.props.accessibilityRole === 'menuitem').map(node => node.props.accessibilityLabel);
+  expect(labels()).not.toContain('Više radnji');
+  return labels().filter((label): label is string => typeof label === 'string');
 };
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 const need = (patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ id: 'need', revizija: 3, naslov: 'Prenos ormara', opis: 'Ormar sa trećeg sprata.', stanje: 'OBJAVLJENA',
@@ -38,19 +36,19 @@ const noop = () => {};
 
 test('PKG-035: task detail retains history without promising an unavailable selection', async () => {
   await act(async () => { tree = create(<Screen value={Object.assign(need({ brojPrijava: 7 }), { brojPrijavaZaIzbor: 0 })} />); });
-  expect(texts()).toContain('Trenutno nema prijava za izbor.');
+  expect(texts()).toContain('Nema prijava za izbor');
   expect(texts()).toContain('Ukupno 7 prijava');
   expect(texts()).not.toContain('Sledeće: izbor.');
-  expect(labels()).toContain('Otvori prijave. Trenutno nema prijava za izbor. Ukupno 7 prijava');
-  // Nothing is the owner's to choose, so there is no green action (plan 3.5): the sentence says what the task waits for, and the
-  // history of the applications stays one quiet row away.
-  expect(texts()).toContain('Trenutno nema prijava za izbor. Nove vidiš ovde i u zvoncu.');
+  expect(labels()).toContain('Otvori prijave. Ukupno 7 prijava');
+  // Nothing is the owner's to choose, so there is no green action (plan 3.5): the line says what the task has, and the
+  // history of the applications stays one quiet row away. No sentence says where new ones can be seen.
+  expect(texts()).not.toMatch(/zvonc|Nove vidiš/);
   expect(texts()).not.toContain('Pregledaj prijave · ');
   expect(brand()).toEqual([]);
 });
 test('PKG-035: when the server has not said how many can be chosen, the page counts the total and says so', async () => {
   await act(async () => { tree = create(<Screen value={need({ brojPrijava: 5 })} />); });
-  expect(texts()).toContain('Imaš 5 prijava. Pogledaj ih.');
+  expect(texts()).toContain('5 prijava'); expect(texts()).not.toMatch(/Imaš|Pogledaj ih/);
   expect(brand()).toEqual(['Pogledaj prijave, ukupno 5 prijava']);
 });
 function Screen({ value, loading = false, error = null, remainingClosed = false }: {
@@ -71,28 +69,28 @@ test('my own draft is mine to act on from wherever I opened it: no way across is
 test('a published Task leads with its state, title and the applications to choose among, retains work facts, and has one brand action', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })} />); });
   const copy = texts();
-  // ONE state (the chip every list wears, "Bira se · 3": it waits for the owner), the name, ONE grey sentence about what is next.
-  expect(copy).toContain('Bira se · 3'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD'); expect(copy).not.toContain('2 osobe');
-  expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('Imaš 3 prijave. Uporedi ih i izaberi.');
-  expect(copy).not.toContain('Čeka prijave');
+  // ONE state (the chip every list wears, "Bira se · 3": it waits for the owner), the name, ONE line of data about what the task has.
+  expect(copy).toContain('Bira se · 3'); expect(copy).toContain('Prenos ormara'); expect(copy).toContain('4.000 RSD');
+  expect(copy).toContain('Ormar sa trećeg sprata.'); expect(copy).toContain('3 prijave');
+  expect(copy).not.toMatch(/Čeka prijave|Imaš 3|Uporedi ih/);
   // The applications are the one green action; a row that opened the same list would be a second door, so it is not drawn.
   expect(labels()).not.toContain('Otvori prijave. 3 prijave za izbor');
-  expect(copy).toContain('Uporedi prijave'); expect(copy).not.toContain('Uporedi prijave · 3');
-  expect(brand()).toEqual(['Uporedi prijave, 3 prijave za izbor']);
-  // The edit is behind "···" now, and opening the menu adds no second brand action.
+  expect(copy).toContain('Pogledaj prijave'); expect(copy).not.toContain('Pogledaj prijave · 3');
+  expect(brand()).toEqual(['Pogledaj prijave, 3 prijave za izbor']);
+  // The edit is on the screen, beside the state, and adds no second brand action.
   expect(await menuLabels()).toContain('Izmeni zadatak');
-  expect(brand()).toEqual(['Uporedi prijave, 3 prijave za izbor']);
+  expect(brand()).toEqual(['Pogledaj prijave, 3 prijave za izbor']);
   // Recomposed from zero (2026-09-23): the place is one section, never a disclosure that repeats it.
   expect(labels()).not.toContain('Mesto izvršenja');
   // Required equipment is now readable immediately, before any disclosure is opened.
   expect(copy).toContain('Trake');
-  // Potrebno says how many places are taken; a price with no stated basis stays the bare amount, with no invented note.
-  expect(copy).toContain('0/2');
-  // The state is on top, the name under it, the next step under the name (the bar's hidden copy of the name comes first in the tree).
+  // How many people the task needs is said in words and only because it is more than one; "0/2" said nothing; a price with no stated basis stays the bare amount.
+  expect(copy).toContain('Treba 2 osobe'); expect(copy).not.toMatch(/0\/2|popunjeno/);
+  // The state is on top, the name under it, the block of state under the name (the bar's hidden copy of the name comes first in the tree).
   expect(copy.indexOf('Bira se · 3')).toBeLessThan(copy.lastIndexOf('Prenos ormara'));
-  expect(copy.lastIndexOf('Prenos ormara')).toBeLessThan(copy.indexOf('Imaš 3 prijave. Uporedi ih i izaberi.'));
-  // The next step is the owner's decision; the retained work facts follow.
-  expect(copy.indexOf('Imaš 3 prijave. Uporedi ih i izaberi.')).toBeLessThan(copy.indexOf('4.000 RSD'));
+  expect(copy.lastIndexOf('Prenos ormara')).toBeLessThan(copy.indexOf('3 prijave'));
+  // The block is the owner's decision; the retained work facts follow.
+  expect(copy.indexOf('3 prijave')).toBeLessThan(copy.indexOf('4.000 RSD'));
   expect(copy).not.toMatch(/Ukupno za ceo zadatak|Po osobi/);
 });
 test('V41 facts: the place, Termin as day and hours, Potrebno, and the price with what it covers', async () => {
@@ -107,28 +105,30 @@ test('V41 facts: the place, Termin as day and hours, Potrebno, and the price wit
   // as on the page of the task somebody else sees; the picture is decoration. What the old page prefixed ("Termin: ", "Lokacija: ") is said by the value.
   expect(spoken).toContain('20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
   expect(spoken).toContain('Novi Sad, Liman');
-  expect(spoken).toContain('Dogovoreno 0/2');
-  // The figure stays large and what it covers goes quietly beside it, in the words the rest of the app uses.
-  expect(texts()).toContain('3.000 RSD Po osobi · ukupno 6.000 RSD');
-  expect(spoken).toContain('Budžet: 3.000 RSD, Po osobi · ukupno 6.000 RSD');
+  expect(spoken).toContain('Treba 2 osobe');
+  // The sum is the first fact, with its picture, and what it covers goes quietly beside it, in the words the rest of the app uses.
+  expect(texts()).toContain('3.000 RSD po osobi · ukupno 6.000 RSD');
+  expect(spoken).toContain('Budžet 3.000 RSD po osobi · ukupno 6.000 RSD');
   await act(async () => tree.unmount());
   // A flexible range is never split into a day and an hour it does not have.
   await act(async () => { tree = create(<Screen value={need({ vremeTekst: 'Fleksibilan raspon · 13. sep 2026 – 14. sep 2026',
     schedule: { kind: 'FLEXIBLE', startsAt: '2026-09-12T22:00:00Z', endsAt: '2026-09-14T22:00:00Z' } })} />); });
   expect(texts()).toContain('Fleksibilan raspon · 13. sep 2026 – 14. sep 2026');
 });
-test('an open price is a word, not an amount, and the owner is told who names it; a draft has no places to fill yet', async () => {
+test('an open price is a word, not an amount, and the owner is told who names it behind a small ⓘ; a draft has no places to fill yet', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0, rezimCene: 'OFFERS', ponudjenaCena: undefined })} />); });
   const price = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === 'Tražim ponude')[0];
   expect(price.props.children).toBe('Tražim ponude');
   expect(texts()).not.toContain('RSD');
   expect(texts()).not.toContain('NaN');
-  expect(texts()).toContain('Svako u prijavi predlaže ukupan iznos.');
+  // The explanation is one tap away, not under the word (rule J5): the screen keeps the fact.
+  expect(texts()).not.toContain('Svako u prijavi predlaže ukupan iznos.');
+  expect(labels()).toContain('Objašnjenje: Tražim ponude');
   expect(texts()).not.toContain('popunjeno');
 });
 test('the footer leads somewhere with an arrow; while an action runs it says so, is disabled and points nowhere', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'CEKA_PRIJAVE', brojPrijavaZaIzbor: 3 })} />); });
-  expect(byLabel('Uporedi prijave, 3 prijave za izbor').findAllByType(ArrowRight)).toHaveLength(1);
+  expect(byLabel('Pogledaj prijave, 3 prijave za izbor').findAllByType(ArrowRight)).toHaveLength(1);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<NeedPresentation need={need()} loading={false} error={null} busy remainingClosed={false}
     onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} />); });
@@ -149,10 +149,10 @@ test('a server-authoritative recovery action replaces only the one footer CTA an
   expect(onReopen).toHaveBeenCalledTimes(1);
 });
 
-test('a private draft explains the next step and leads with the review; a closed remaining search is stated, not offered', async () => {
+test('a private draft leads with the review and says no more than its chip; a closed remaining search is stated, not offered', async () => {
   await act(async () => { tree = create(<Screen value={need({ stanje: 'NACRT', brojPrijava: 0 })} />); });
-  // The state is the chip on top ("Nacrt"), the sentence under the title says it is private and what the one action does.
-  expect(texts()).toContain('Nacrt'); expect(texts()).toContain('Nacrt je privatan. Pregledaj ga i objavi.');
+  // The state is the chip on top ("Nacrt"); no sentence under the title says it is private or what the one action does.
+  expect(texts()).toContain('Nacrt'); expect(texts()).not.toContain('Nacrt je privatan. Pregledaj ga i objavi.');
   expect(texts()).not.toContain('Privatan nacrt'); expect(texts()).not.toContain('Spremi zadatak za objavu'); expect(brand()).toEqual(['Pregledaj za objavu']);
   const draftMenu = await menuLabels();
   expect(draftMenu).toContain('Izmeni nacrt'); expect(draftMenu).not.toContain('Izmeni zadatak');
@@ -172,4 +172,32 @@ test('loading shows placeholder geometry with a spoken status; an error keeps on
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={null} error="Zadatak trenutno nije moguće učitati." />); });
   expect(texts()).toContain('Zadatak nije dostupan'); expect(byLabel('Pokušaj ponovo')).toBeTruthy(); expect(brand()).toEqual(['Pokušaj ponovo']);
+});
+
+// The approved draft R3: the edit stands in the bar of the page, in sight, and the block of state holds only the one green action; "Objavljen pre ..." is said
+// quietly at the end of the page, and only when the read carried the instant (the owner's read of a task does not yet: no age is ever invented).
+test('the edit stands in the bar before everything the page says, and it is not the green action', async () => {
+  await act(async () => { tree = create(<Screen value={need({ stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 })} />); });
+  const order = labels();
+  expect(order.indexOf('Izmeni zadatak')).toBeGreaterThan(-1);
+  expect(order.indexOf('Izmeni zadatak')).toBeLessThan(order.indexOf('Pogledaj prijave, 3 prijave za izbor'));
+  expect(brand()).toEqual(['Pogledaj prijave, 3 prijave za izbor']);
+  // The word beside the pencil is the control's own name, in the bar's captioned pill.
+  expect(byLabel('Izmeni zadatak').findAllByType('T' as React.ElementType).map(node => node.props.children)).toEqual(['Izmeni']);
+});
+test('says when it was published only when the read had the instant, quietly, after the place and before what ends the task', async () => {
+  const now = new Date('2026-10-08T12:00:00Z');
+  const view = (patch: Partial<React.ComponentProps<typeof NeedPresentation>> = {}, value: PotrebaProjekcija = need()) => <NeedPresentation need={value} loading={false} error={null}
+    busy={false} remainingClosed={false} onBack={noop} onRefresh={noop} onReview={noop} onEdit={noop} onCloseRemaining={noop} onCandidates={noop} now={now} {...patch} />;
+  await act(async () => { tree = create(view()); });
+  expect(texts()).not.toMatch(/Objavljen pre|Objavljen upravo/);
+  await act(async () => tree.update(view({ publishedAt: '2026-10-08T10:00:00Z' })));
+  expect(texts()).toContain('Objavljen pre 2 sata');
+  await act(async () => tree.update(view({ publishedAt: '2026-10-08T11:58:00Z' })));
+  expect(texts()).toContain('Objavljen upravo');
+  await act(async () => tree.update(view({ publishedAt: 'not a moment' })));
+  expect(texts()).not.toMatch(/Objavljen pre|Objavljen upravo/);
+  // A draft was never published, and a closed task is not "live": neither says it.
+  await act(async () => tree.update(view({ publishedAt: '2026-10-08T10:00:00Z' }, need({ stanje: 'NACRT', brojPrijava: 0 }))));
+  expect(texts()).not.toMatch(/Objavljen pre/);
 });

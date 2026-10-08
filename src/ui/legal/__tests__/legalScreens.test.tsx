@@ -157,18 +157,23 @@ const art96 = () => [...new Set(tree.root.findAll(node => node.props.size === 96
 /** A command of the page body (a `V2Action`), found by its words; the foot's `SettingsAction` and the rows are other things. */
 const command = (label: string) => tree.root.findAll(node => node.props.label === label && typeof node.props.onPress === 'function'
   && node.type !== ('SettingsAction' as React.ElementType) && node.type !== ('SettingsRow' as React.ElementType))[0];
-it('documents that are not published are ONE sentence and one way to look again: no row, no empty group, no second "not published"', async () => {
+// The pull of the screen (the mocked screen is a named element that keeps its props): the way to look again, with no word and no button.
+const pull = () => hosts('SettingsScreen')[0].props.refresh as { onRefresh: () => void; busy: boolean };
+it('documents that are not published are ONE calm line and no button: no row, no empty group, no picture, no second "not published"', async () => {
   mockRead.mockResolvedValue(ok(unpublished));
   await act(async () => { tree = create(<LegalRoute />); });
-  expect(centeredTitle()!.children.join('')).toBe('Uslovi korišćenja i Politika privatnosti još nisu objavljeni.');
-  expect(art96()).toEqual(['document']);
-  // The one way to look again is quiet; there is no green action on a screen with nothing to do.
-  expect(command('Proveri ponovo').props.kind).toBe('quiet'); expect(command('Pokušaj ponovo')).toBeUndefined();
+  // The owner's phone, 8 Oct 2026: a whole screen, a picture of 96 and a "Proveri ponovo" for one sentence. It is one line at the top now.
+  expect(renderedCopy().match(/Uslovi korišćenja i Politika privatnosti još nisu objavljeni\./g)).toHaveLength(1);
+  expect(centeredTitle()).toBeUndefined(); expect(art96()).toEqual([]);
+  expect(tree.root.findAll(node => node.props.art === 'document' && node.props.tone === 'neutral').length).toBeGreaterThan(0);
+  expect(command('Proveri ponovo')).toBeUndefined(); expect(command('Pokušaj ponovo')).toBeUndefined();
+  expect(renderedCopy()).not.toContain('Proveri ponovo'); expect(renderedCopy()).not.toContain('Osveži');
   expect(hosts('SettingsRow')).toHaveLength(0); expect(hosts('SettingsGroup')).toHaveLength(0); expect(hosts('SettingsInfo')).toHaveLength(0);
   expect(renderedCopy()).not.toContain('Mapa obrade'); expect(renderedCopy().match(/još nisu objavljeni/g)).toHaveLength(1);
   expect(action('Prihvati pregledane dokumente')).toBeUndefined();
+  // The screen is read again by pulling it.
   mockRead.mockClear(); mockRead.mockResolvedValue(ok(bundle()));
-  await act(async () => command('Proveri ponovo').props.onPress());
+  await act(async () => pull().onRefresh());
   expect(mockRead).toHaveBeenCalledTimes(1); expect(hosts('SettingsRow').map(row => row.props.label)).toEqual(['Uslovi korišćenja', 'Politika privatnosti']);
 });
 it('documents that cannot be read are an error with what happened and one retry, not a row that says "not available"', async () => {
@@ -177,7 +182,7 @@ it('documents that cannot be read are an error with what happened and one retry,
   expect(centeredTitle()!.children.join('')).toBe('Dokumenti nisu dostupni');
   expect(hosts('SettingsText').some(node => node.children.join('') === 'Dokumenti trenutno nisu dostupni. Pokušaj ponovo.')).toBe(true);
   expect(art96()).toEqual(['document']);
-  // The one green action is the retry; a quiet "Proveri ponovo" is only for documents that are not published.
+  // The one green action is the retry; a "Proveri ponovo" is not on this screen at all any more.
   expect(command('Pokušaj ponovo').props.kind).toBeUndefined(); expect(command('Proveri ponovo')).toBeUndefined(); expect(hosts('SettingsRow')).toHaveLength(0);
   mockRead.mockClear(); mockRead.mockResolvedValue(ok(bundle()));
   await act(async () => command('Pokušaj ponovo').props.onPress());
@@ -188,24 +193,24 @@ it('published documents with no published processor map say it once, as a line, 
   expect(renderedCopy()).toContain('Podaci o obrađivačima još nisu objavljeni.');
   expect(renderedCopy()).not.toContain('Mapa obrade'); expect(renderedCopy()).not.toContain('Obrađivači podataka'); expect(hosts('SettingsInfo')).toHaveLength(0);
 });
-it('a re-read keeps the documents on screen under the refresh at work, and nothing can be accepted meanwhile', async () => {
+it('a pull keeps the documents on screen under the pull\'s own spinner, and nothing can be accepted meanwhile; no word "Osveži" stands over the documents', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
-  // One word at the end of the title of the documents: "Osveži", spoken as "Osveži dokumente".
-  const refresh = () => hosts('SettingsGroup').find(node => node.props.title === 'Objavljeni dokumenti')!.props.action;
   const footReason = () => hosts('SettingsScreen')[0].props.footerReason;
-  expect(refresh()).toMatchObject({ label: 'Osveži', accessibilityLabel: 'Osveži dokumente' }); expect(footReason()).toBeNull();
+  expect(pull().busy).toBe(false); expect(footReason()).toBeNull();
+  expect(hosts('SettingsGroup').find(node => node.props.title === 'Objavljeni dokumenti')!.props.action).toBeUndefined();
+  expect(renderedCopy()).not.toContain('Osveži');
   let finish!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(done => { finish = done; }));
-  await act(async () => { refresh().onPress(); });
-  // Still the two rows, no skeleton over them; the refresh says it works, the acceptance waits grey and the foot says why.
+  await act(async () => { pull().onRefresh(); });
+  // Still the two rows, no skeleton over them; the pull says it works, the acceptance waits grey and the foot says why.
   expect(hosts('SettingsRow')).toHaveLength(2); expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavanje pravnih dokumenata' })).toHaveLength(0);
-  expect(refresh().label).toBe('Osvežavamo…');
+  expect(pull().busy).toBe(true);
   expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: true });
   expect(footReason()).toBe('Učitavamo dokumente…');
   await act(async () => action('Prihvati pregledane dokumente').props.onPress()); expect(mockAccept).not.toHaveBeenCalled();
-  // A second press while it works asks for nothing more.
-  await act(async () => { refresh().onPress(); }); expect(mockRead).toHaveBeenCalledTimes(2);
+  // A second pull while it works asks for nothing more.
+  await act(async () => { pull().onRefresh(); }); expect(mockRead).toHaveBeenCalledTimes(2);
   await act(async () => finish(ok(bundle())));
-  expect(refresh().label).toBe('Osveži'); expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: false }); expect(footReason()).toBeNull();
+  expect(pull().busy).toBe(false); expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: false }); expect(footReason()).toBeNull();
 });
 it('the first read is a skeleton and the invitation to read is only said when there is something to read', async () => {
   let finish!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(done => { finish = done; }));

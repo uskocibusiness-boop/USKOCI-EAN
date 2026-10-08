@@ -101,9 +101,11 @@ function PreviewSession({ points, scopeKey, coarse = false, route = false, heigh
   return <View>
     {!expanded ? <View>
       <LocationOverviewMap points={points} scopeKey={scopeKey} coarse={coarse} interactive={false} height={height} testID="location-preview-map" />
+      {/* The way to the big map is a small round control in the corner (the owner, 8 Oct 2026: the word "Otvori mapu" covered the map); the
+          words are for a screen reader, which hears what the drawing does. The touch is 48, the drawing 40. */}
       <Press accessibilityRole="button" accessibilityLabel="Otvori mapu" scaleTo={1}
-        onPress={() => { if (own() && !modalVisit.current) { const visit = {}; modalVisit.current = visit; setExpanded(visit); } }} style={s.openLabel}>
-        <Glyph name="expand" tone="green" /><T variant="bodyStrong">Otvori mapu</T>
+        onPress={() => { if (own() && !modalVisit.current) { const visit = {}; modalVisit.current = visit; setExpanded(visit); } }} style={s.openTarget}>
+        <View style={s.openDisc}><Glyph name="expand" size={20} tone="ink" /></View>
       </Press>
     </View> : null}
     {expanded ? <Modal visible transparent={false} presentationStyle="fullScreen" hardwareAccelerated
@@ -153,9 +155,9 @@ const s = StyleSheet.create({
   footer: { flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: '50%' },
   content: { paddingBottom: sys.space.lg },
   details: { paddingHorizontal: sys.space.lg, gap: sys.space.md },
-  openLabel: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, minHeight: 48,
-    paddingHorizontal: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
-    backgroundColor: sys.color.surface, borderRadius: sys.radius.control, borderWidth: 1, borderColor: sys.color.cardLine },
+  openTarget: { position: 'absolute', top: 0, right: 0, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  openDisc: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, ...sys.elevation.soft },
   stops: { gap: sys.space.xs },
   stop: { flexDirection: 'row', alignItems: 'center', minHeight: 52, gap: sys.space.sm, padding: sys.space.sm,
     borderWidth: 1, borderColor: sys.color.surface, borderRadius: sys.radius.control },

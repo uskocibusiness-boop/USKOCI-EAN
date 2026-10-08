@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Press } from '../Press';
 import { ProductHeader } from '../product/ProductDetails';
 import { Avatar } from '../system/Avatar';
@@ -11,8 +11,10 @@ import { Screen } from '../system/Screen';
 import { Section, type SectionAction } from '../system/Section';
 import { Surface } from '../system/Surface';
 import { brandAction, sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { ScrolledBar, useScrolledUnderBar } from './ScrolledBar';
 
 /**
  * Shared settings layer (UI/UX pass, 2026-10-08, F6): every profile / account / support / legal surface is built from these
@@ -27,16 +29,24 @@ export function SettingsText({ variant = 'body', ...props }: ComponentProps<type
   return <T {...props} variant={variant === 'display' ? 'pageTitle' : variant} />;
 }
 
-export function SettingsScreen({ title, onBack, backLabel, disabled = false, children, footer, footerReason, right }: {
+export function SettingsScreen({ title, onBack, backLabel, disabled = false, children, footer, footerReason, right, refresh }: {
   /** The bar names the screen; nothing explains where you are (no eyebrow, owner 2026-09-23). */
   title: string; onBack: () => void;
   /** What the arrow says when "Nazad" is not enough ("Nazad na profil"). */ backLabel?: string;
   disabled?: boolean; children: ReactNode; footer?: ReactNode;
   /** Why the green action of the foot cannot be pressed yet: a quiet line ABOVE it (the system foot's rule), not under the button. */
   footerReason?: string | null; right?: ReactNode;
+  /**
+   * Pull to read the screen again, in place of a standing "Osveži" or "Proveri ponovo" (J12: a screen is refreshed by pulling it). `busy` is
+   * the screen's own "a read is running": the spinner is the PULL's, and a read that starts by itself never raises it (`usePullRefresh`).
+   */
+  refresh?: { onRefresh: () => void; busy: boolean };
 }) {
-  return <Screen kind="detail" header={<ProductHeader title={title} back={onBack} backLabel={backLabel} disabled={disabled} right={right} />}
-    footer={footer ? <SettingsFooter reason={footerReason}>{footer}</SettingsFooter> : undefined}>{children}</Screen>;
+  const { scrolled, onScroll } = useScrolledUnderBar();
+  const pull = usePullRefresh(refresh?.onRefresh, refresh?.busy ?? false);
+  return <Screen kind="detail" header={<ScrolledBar scrolled={scrolled}><ProductHeader title={title} back={onBack} backLabel={backLabel} disabled={disabled} right={right} /></ScrolledBar>}
+    footer={footer ? <SettingsFooter reason={footerReason}>{footer}</SettingsFooter> : undefined} onScroll={onScroll}
+    refreshControl={refresh ? <RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} /> : undefined}>{children}</Screen>;
 }
 
 /** The band under a settings screen that holds its one green action: the system's foot, above the system's own bottom edge. */
@@ -73,8 +83,10 @@ export function SettingsGroup({ title, footer, action, children }: { title?: str
  * and at the edge without one; the divider inset). A row that cannot be opened now draws its picture quiet as well as its words.
  * The row speaks its label and, as the hint, its detail, as it always did.
  */
-export function SettingsRow({ label, detail, icon, onPress, disabled = false, last = false, compact = false, tone = 'default', accessory, attention = false }: {
-  label: string; detail?: string; icon?: ReactNode; onPress: () => void; disabled?: boolean; last?: boolean;
+export function SettingsRow({ label, detail, value, icon, onPress, disabled = false, last = false, compact = false, tone = 'default', accessory, attention = false }: {
+  label: string; detail?: string;
+  /** What is set, in grey at the end of the line before the arrow ("Novi Sad"): the row's own answer, never a sentence. */ value?: string;
+  icon?: ReactNode; onPress: () => void; disabled?: boolean; last?: boolean;
   /** A row for something needed once in a long while (legal, export, the blocked list): no picture, so it does not
    *  compete with the rows a person opens every day (owner rule, 2026-09-23). A group has pictures in all its rows or in none. */
   compact?: boolean;
@@ -85,9 +97,9 @@ export function SettingsRow({ label, detail, icon, onPress, disabled = false, la
   /** Something waits behind this row: an orange dot before the arrow, the app's one accent. */
   attention?: boolean;
 }) {
-  return <ListRow leading={icon && !compact ? icon : undefined} title={label} subtitle={detail} onPress={onPress} disabled={disabled} last={last}
+  return <ListRow leading={icon && !compact ? icon : undefined} title={label} subtitle={detail} value={value} onPress={onPress} disabled={disabled} last={last}
     tone={tone} trailing={accessory ?? (attention ? <View accessible={false} style={styles.dot} /> : undefined)}
-    arrow={accessory === undefined ? undefined : false} accessibilityLabel={label} accessibilityHint={detail} />;
+    arrow={accessory === undefined ? undefined : false} accessibilityLabel={label} accessibilityHint={detail ?? value} />;
 }
 
 /**

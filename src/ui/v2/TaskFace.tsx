@@ -102,6 +102,20 @@ export function placesText(places: Pokrivenost, audience: 'worker' | 'owner', di
 }
 
 /**
+ * The people a task needs, said to the one reading it on the card (the owner's phone of 8 Oct 2026: "bez 0/1 — ništa ne znači onome ko traži zadatak;
+ * broj potrebnih ljudi samo kad je više od jedne osobe, rečima 'Treba 3 osobe'"). A task for ONE person says nothing of it: the ordinary task has no
+ * count to read. A task for several says how many it needs, in words, and once some places are filled, how many are left (for a worker) or how far it
+ * is (for the owner); a task whose places are all taken says so, whatever its size. Nothing is invented: the numbers are the read's own.
+ */
+export function capacityWords(places: Pokrivenost, audience: 'worker' | 'owner'): { text: string; spoken: string } | null {
+  if (places.preostalo <= 0) return { text: 'Sva mesta su popunjena', spoken: 'Sva mesta su popunjena' };
+  if (places.ukupno <= 1) return null;
+  if (places.popunjeno <= 0) { const text = `Treba ${osobuAkuz(places.ukupno)}`; return { text, spoken: text }; }
+  return audience === 'owner' ? { text: `${places.popunjeno}/${places.ukupno} popunjeno`, spoken: filledSpoken(places) }
+    : { text: `Još ${places.preostalo} od ${places.ukupno} mesta`, spoken: `Još ${places.preostalo} od ${places.ukupno} mesta` };
+}
+
+/**
  * A rating is shown with how many reviews it stands on, so a 5,0 from one review never looks like one from fifty.
  * Zero reviews says so; an unknown count (the profile read did not say) shows the rating alone; no rating shows nothing.
  * The same honesty rule as the public profile sheet.

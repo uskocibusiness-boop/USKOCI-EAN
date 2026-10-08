@@ -95,16 +95,16 @@ async function reviewOffer() {
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu prijavu'); }
 async function offer() { await render(); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
-// Step 7 (2026-09-24): an offer opens as a sheet over the list and its one green action, "Izaberi ovu prijavu", asks in an
+// Step 7 (2026-09-24): an offer opens as a sheet over the list and its one green action, "Izaberi osobu", asks in an
 // in-app confirmation. It was a page with "Pregledaj povezivanje" and a review page behind it; these helpers pinned that
 // look. Android Back on the sheet (its Modal's request) is how an offer is closed now, where the offer page had its own
 // back arrow.
-async function selection() { await render(Candidates); await tap('Pogledaj prijavu: Milan'); await tap('Izaberi ovu prijavu'); }
-// Review r4 rk item 5: the confirmation's button now says the green button's own words, "Izaberi ovu prijavu" (it said
+async function selection() { await render(Candidates); await tap('Pogledaj prijavu: Milan'); await tap('Izaberi osobu'); }
+// Review r4 rk item 5: the confirmation's button now says the green button's own words, "Izaberi osobu" (it said
 // "Izaberi ovu Prijavu", two words for one command). The two share a label, so the confirm is the confirmation's own
 // button, found by its testID, and each lookup also checks its words.
 const confirmNode = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-confirm')[0];
-const confirmChoice = () => { const node = confirmNode(); if (node) expect(node.props.accessibilityLabel).toBe('Izaberi ovu prijavu'); return node?.props.onPress; };
+const confirmChoice = () => { const node = confirmNode(); if (node) expect(node.props.accessibilityLabel).toBe('Izaberi osobu'); return node?.props.onPress; };
 const tapConfirm = async () => { const fn = confirmChoice(); expect(fn).toBeDefined(); await act(async () => { fn(); }); };
 const sheets = () => tree!.root.findAll(node => String(node.type) === 'Modal');
 async function closeOffer() { const offerSheet = sheets()[0]; expect(offerSheet).toBeDefined(); await act(async () => offerSheet.props.onRequestClose()); }
@@ -163,6 +163,14 @@ it('reviews an offer without writing or sending and returns to the unchanged dra
   const note = tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Poruka uz prijavu')[0];
   expect(note.props.value).toBe('  Donosimo trake.  ');
 });
+it('the form says what the other side sees behind the ⓘ in its bar, asks "Kada možeš" for the term, and the sent receipt has no ⓘ', async () => {
+  await offer();
+  const info = () => tree!.root.findAll(node => node.props.accessibilityLabel === 'Objašnjenje: Šta vidi druga strana');
+  expect(info().length).toBeGreaterThan(0);
+  expect(text()).toContain('Kada možeš'); expect(text()).not.toMatch(/Osoba koja traži pomoć vidi/);
+  await sendOffer();
+  expect(info()).toHaveLength(0); expect(text()).toContain('Prijava je poslata.');
+});
 it('a retained review cannot send a later edited offer; a new review sends that exact offer once', async () => {
   await offer(); await tap('Pregledaj prijavu'); const oldSend = press('Pošalji ovu prijavu');
   await tap('Izmeni prijavu'); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '6500');
@@ -217,7 +225,7 @@ it('deduplicates pending double opens without blocking offer reading or selectin
   await act(async () => { open(); open(); });
   expect(mockViewed.mock.calls).toEqual([[k().prijavaId]]);
   expect(text()).toContain('Dolazimo sa trakama.');
-  expect(press('Izaberi ovu prijavu')).toBeDefined();
+  expect(press('Izaberi osobu')).toBeDefined();
   await closeOffer(); await tap('Pogledaj prijavu: Milan');
   expect(mockViewed).toHaveBeenCalledTimes(1);
   await act(async () => d.resolve({ ok: true, podatak: null }));
@@ -297,7 +305,8 @@ it('opens exactly the confirmed application once, without another submission', a
   const open = press('Otvori moje prijave');
   await act(async () => { open(); open(); });
   expect(mockRouter.replace).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: k().prijavaId } });
+  // The list is told this application was just sent ('nova'), so it can mark it once; a notification names the same application without it.
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: k().prijavaId, nova: '1' } });
   expect(mockSubmit).toHaveBeenCalledTimes(1);
 });
 // The receipt says the state the application will wear in "Moje prijave" from now on: the same chip, so the receipt and the list say one word.
@@ -371,8 +380,8 @@ it('shows the offer without skill labels, then confirms once and opens the exact
   await render(Candidates);
   expect(confirmChoice()).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
   await tap('Pogledaj prijavu: Milan'); expect(text()).not.toContain('Nošenje · Trake · Kombi');
-  expect(text()).not.toContain('Sposobnosti'); expect(text()).not.toContain('Sačuvana samoizjava'); await tap('Izaberi ovu prijavu');
-  expect(text()).toContain('Izabrati ovu prijavu?'); const choose = confirmChoice();
+  expect(text()).not.toContain('Sposobnosti'); expect(text()).not.toContain('Sačuvana samoizjava'); await tap('Izaberi osobu');
+  expect(text()).toContain('Izabrati ovu osobu?'); const choose = confirmChoice();
   await act(async () => { choose(); choose(); }); expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, prijavaVerzija: 2, prijavaHash: k().hash, mesta: 2 });
   // "Dogovoreno!" (owner's pick of 2026-10-08): the sheet gives way to a whole screen that ends in the one green way on; it was made while the
@@ -445,15 +454,15 @@ const brand = () => tree!.root.findAll(node => String(node.type) === 'Press' && 
   .map((style: { backgroundColor?: string }) => style.backgroundColor).filter(Boolean).pop() === sys.color.green).map(node => node.props.accessibilityLabel);
 it('choose reaches its confirmation with the exact words; a cancel sends nothing and one confirm sends the exact command once', async () => {
   await render(Candidates); expect(brand()).toEqual([]);
-  await tap('Pogledaj prijavu: Milan'); expect(brand()).toEqual(['Izaberi ovu prijavu']);
-  await tap('Izaberi ovu prijavu');
+  await tap('Pogledaj prijavu: Milan'); expect(brand()).toEqual(['Izaberi osobu']);
+  await tap('Izaberi osobu');
   // A question, and under it what is accepted (price, people, the term that applies: here the person's own proposal) and what follows.
-  expect(text()).toContain('Izabrati ovu prijavu?');
+  expect(text()).toContain('Izabrati ovu osobu?');
   expect(text()).toContain('Prihvataš: 4.500 RSD ukupno · 2 osobe · 20. sep · 10:00–11:00 (po vremenu u Srbiji). Dogovor odmah važi za obe strane. '
     + 'Pri izboru proveravamo da li izabrana osoba i dalje ima slobodan termin.');
   expect(mockSelect).not.toHaveBeenCalled();
   await tap('Odustani'); expect(confirmChoice()).toBeUndefined(); expect(mockSelect).not.toHaveBeenCalled();
-  await tap('Izaberi ovu prijavu'); const confirm = confirmChoice();
+  await tap('Izaberi osobu'); const confirm = confirmChoice();
   await act(async () => { confirm(); confirm(); });
   expect(mockSelect).toHaveBeenCalledTimes(1);
   expect(mockSelect.mock.calls[0][0]).toEqual({ potrebaId: mockId, potrebaRevizija: 3, prijavaId: k().prijavaId, prijavaVerzija: 2,
@@ -466,7 +475,7 @@ it('a question retained across a fresh read is retired and cannot choose; while 
   expect(confirmChoice()).toBeUndefined();
   await act(async () => retained()); expect(mockSelect).not.toHaveBeenCalled();
   const d = deferred(); mockSelect.mockReturnValueOnce(d.promise);
-  await tap('Pogledaj prijavu: Milan'); await tap('Izaberi ovu prijavu'); await tapConfirm();
+  await tap('Pogledaj prijavu: Milan'); await tap('Izaberi osobu'); await tapConfirm();
   // The confirm says it is at work and cannot be pressed again; Back on the offer underneath does nothing meanwhile.
   expect(confirmNode().props.accessibilityState)
     .toEqual({ disabled: true, busy: true });
@@ -486,20 +495,21 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   await render(Candidates);
   // PKG-035: the total names every application ever sent; the ones still open to choose are counted apart.
   // V41 (2026-09-23): the free places moved to the task row at the top, the counts stand above the cards.
-  expect(text()).toContain('2 prijave · 1 za izbor'); expect(text()).toContain('Slobodna mesta: 3 od 3');
+  expect(text()).toContain('2 prijave · 1 za izbor'); expect(text()).toContain('Još 3 od 3 mesta');
   // The card that cannot be chosen says why on its own bottom line, and the list says once what that means.
   const stale = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj prijavu: Ranija ponuda')[0];
   expect(stale.findAll(node => String(node.type) === 'T' && node.props.children === 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')).toHaveLength(1);
   expect(stale.props.accessibilityValue.text).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
-  expect(text()).toContain('Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš.');
+  // The card says why it cannot be chosen once, on its own line; the list does not say it a second time in a sentence of its own (the owner, 8 Oct 2026).
+  expect(text()).not.toContain('Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš.');
   expect(press('Pogledaj prijavu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj prijavu: Milan')).toBeDefined();
   await tap('Pogledaj prijavu: Ranija ponuda'); expect(text()).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
-  expect(press('Izaberi ovu prijavu')).toBeUndefined(); expect(confirmChoice()).toBeUndefined();
+  expect(press('Izaberi osobu')).toBeUndefined(); expect(confirmChoice()).toBeUndefined();
   expect(text()).not.toContain('Dogovor je sklopljen.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(0);
   expect(press('Otvori Dogovor')).toBeUndefined();
   // An offer that cannot be chosen says so and carries the refresh it names, instead of ending there.
   expect(press('Osveži prijave')).toBeDefined();
-  await closeOffer(); await tap('Pogledaj prijavu: Milan'); await tap('Izaberi ovu prijavu'); await tapConfirm();
+  await closeOffer(); await tap('Pogledaj prijavu: Milan'); await tap('Izaberi osobu'); await tapConfirm();
   expect(mockSelect).toHaveBeenCalledTimes(1); expect(mockSelect.mock.calls[0][0]).toMatchObject({ prijavaId: k().prijavaId, potrebaRevizija: 3 });
 });
 // Review r4 rk item 1: a fresh read takes the blocked offer away; the list's back arrow then goes back on its first press
@@ -507,7 +517,7 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
 it('after a blocked offer is refreshed away, one press on the list’s back arrow goes back', async () => {
   mockCandidates.mockResolvedValue([{ ...k(), stanje: 'STALE', mozeIzabrati: false }]);
   await render(Candidates); await tap('Pogledaj prijavu: Milan');
-  expect(sheets()).not.toHaveLength(0); expect(press('Izaberi ovu prijavu')).toBeUndefined();
+  expect(sheets()).not.toHaveLength(0); expect(press('Izaberi osobu')).toBeUndefined();
   await tap('Osveži prijave');
   expect(sheets()).toHaveLength(0); expect(mockCandidates).toHaveBeenCalledTimes(2);
   await tap('Nazad na zadatak');
@@ -657,12 +667,12 @@ it('orders the loaded offers by the lowest total without a new read, keeps ties 
     .map(node => String(node.props.accessibilityLabel).slice('Pogledaj prijavu: '.length));
   expect(order()).toEqual(['Prva', 'Druga', 'Treća']);
   const reads = mockCandidates.mock.calls.length;
-  await tap('Redosled prijava: Redom pristizanja'); await tap('Najniža cena');
+  await tap('Redosled prijava: Najranije'); await tap('Najniža cena');
   expect(order()).toEqual(['Druga', 'Treća', 'Prva']);
   expect(mockCandidates).toHaveBeenCalledTimes(reads); expect(mockViewed).not.toHaveBeenCalled();
   await tap('Pogledaj prijavu: Prva'); await closeOffer();
   expect(order()).toEqual(['Druga', 'Treća', 'Prva']); expect(press('Redosled prijava: Najniža cena')).toBeDefined();
-  await tap('Redosled prijava: Najniža cena'); await tap('Redom pristizanja');
+  await tap('Redosled prijava: Najniža cena'); await tap('Najranije');
   expect(order()).toEqual(['Prva', 'Druga', 'Treća']);
 });
 it('the task row at the top opens the Task itself, once', async () => {
@@ -680,21 +690,21 @@ it('retires an offer confirmation in the background and rereads before another s
   await act(async () => oldConfirm()); expect(mockSelect).not.toHaveBeenCalled();
   const late = deferred(); mockCandidates.mockReturnValueOnce(late.promise);
   await background('active');
-  expect(text()).toContain('Učitavamo prijave'); expect(press('Izaberi ovu prijavu')).toBeUndefined();
+  expect(text()).toContain('Učitavamo prijave'); expect(press('Izaberi osobu')).toBeUndefined();
   await act(async () => oldConfirm()); expect(mockSelect).not.toHaveBeenCalled();
   await act(async () => late.resolve([{ ...k(), stanje: 'WITHDRAWN', mozeIzabrati: false }]));
-  await tap('Pogledaj prijavu: Milan'); expect(press('Izaberi ovu prijavu')).toBeUndefined();
+  await tap('Pogledaj prijavu: Milan'); expect(press('Izaberi osobu')).toBeUndefined();
   expect(mockCandidates).toHaveBeenCalledTimes(2); expect(mockSelect).not.toHaveBeenCalled();
 });
 it('keeps comparison and sort across a foreground reread, scoped to the same task and account', async () => {
   mockCandidates.mockResolvedValue([k(), { ...k(), prijavaId: 'second', ime: 'Ana', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } }]);
-  await render(Candidates); await tap('Uporedi'); await tap('Redosled prijava: Redom pristizanja'); await tap('Najniža cena');
+  await render(Candidates); await tap('Uporedi'); await tap('Redosled prijava: Najranije'); await tap('Najniža cena');
   expect(text()).toContain('Uporedi prijave');
   await background('inactive'); await background('active');
   expect(text()).toContain('Uporedi prijave'); expect(press('Redosled prijava: Najniža cena')).toBeDefined();
   expect(mockCandidates).toHaveBeenCalledTimes(2);
   mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
-  expect(text()).not.toContain('Uporedi prijave'); expect(press('Redosled prijava: Redom pristizanja')).toBeDefined();
+  expect(text()).not.toContain('Uporedi prijave'); expect(press('Redosled prijava: Najranije')).toBeDefined();
   expect(mockSelect).not.toHaveBeenCalled();
 });
 it('ignores a read that settles after its foreground visit was retired', async () => {

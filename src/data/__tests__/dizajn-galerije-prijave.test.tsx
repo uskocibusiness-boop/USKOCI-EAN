@@ -75,12 +75,12 @@ it.each([['Moji zadaci', MojiZadaci], ['Moje prijave', Prijave], ['Kandidati', K
 describe('Moji zadaci', () => {
   it.each([
     // "Papir na stolu" (2026-10-08): the groups by phase with their numbers, the two quiet rows under them, no count line and no tabs.
-    ['lista', ['Moji zadaci', 'Čeka tvoj izbor · 2', 'Objavljeno · 2', 'Dogovoreno · 1', 'Montaža dve police u hodniku', 'Imaš 3 prijave. Uporedi ih i izaberi.', '2 nacrta', '3 zadatka']],
+    ['lista', ['Moji zadaci', 'Čeka tvoj izbor · 2', 'Objavljeno · 2', 'Dogovoreno · 1', 'Montaža dve police u hodniku', 'Treba 2 osobe', '3 prijave', '2 nacrta', '3 zadatka']],
     ['puno', ['Čeka tvoj izbor · 5', 'Objavljeno · 6', 'Dogovoreno · 1']],
     ['dugi', ['Čeka tvoj izbor · 1', 'Objavljeno · 2', 'Prenos starog trokrilnog ormara']],
     ['nacrti', ['Nacrti', 'Pomoć oko bašte', 'Prenos ormara']],
     ['istorija', ['Istorija', 'Farbanje ograde', 'Nošenje peska u dvorište']],
-    ['prazno', ['Još nemaš zadatak', 'Objavi prvi zadatak', 'Pogledaj zadatke']],
+    ['prazno', ['Još nemaš zadatak', 'Objavi zadatak', 'Pogledaj zadatke']],
     ['prazan-skup', ['Nema aktivnih zadataka', '2 nacrta', '3 zadatka']],
     ['ucitavanje', ['Učitavamo zadatke']],
     ['greska', ['Ne možemo da učitamo zadatke']],
@@ -103,7 +103,10 @@ describe('Moji zadaci', () => {
 
 describe('Moje prijave', () => {
   it.each([
-    ['lista', ['Moje prijave', 'Montaža police u hodniku', 'Poslata']],
+    ['lista', ['Moje prijave', 'Montaža police u hodniku', 'Poslata', 'Čeka odgovor · 4', 'Izabrana · 1', 'Završene · 2']],
+    // The approved draft U8: the application that was just sent is marked in its chip and stands first in its group; a set with a page still to come keeps the server's chips.
+    ['nova', ['Poslata · upravo', 'Montaža dve police u hodniku', 'Čeka odgovor · 5']],
+    ['strane', ['Sve', 'Čeka te', 'Aktivne', 'Završene', '40 prijava', 'Prikaži još']],
     ['dugi', ['Prenos starog trokrilnog ormara']],
     ['prazno', []],
     ['ucitava', ['Učitavamo tvoje prijave']],
@@ -116,16 +119,26 @@ describe('Moje prijave', () => {
   });
 });
 
+describe('Kandidati: the order is offered only for a whole list', () => {
+  const sortControl = () => tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Redosled prijava'));
+  it('draws the control in the draft\'s words for a whole list and not for a list with a page still to come', async () => {
+    await scene(Kandidati, 'lista');
+    expect(sortControl().map(node => node.props.accessibilityLabel)).toEqual(['Redosled prijava: Najranije']);
+    await scene(Kandidati, 'strane');
+    expect(sortControl()).toHaveLength(0); expect(text()).toContain('Prikaži još');
+  });
+});
+
 describe('Kandidati', () => {
   it.each([
-    ['lista', ['Milan Petrović', 'Ana Jovanović', '4.500 RSD', 'Ima: Kombi · Trake za nošenje', 'Slobodna mesta: 3 od 3']],
+    ['lista', ['Milan Petrović', 'Ana Jovanović', '4.500 RSD', 'Ima: Kombi · Trake za nošenje', 'Još 3 od 3 mesta']],
     ['dugacka', ['Aleksandra Stefanović-Radosavljević']],
     ['veliki', ['Milan Petrović']],
     ['prazno', ['Još nema prijava']],
     ['ucitavanje', ['Učitavamo prijave']],
     ['greska', ['Prijave trenutno nije moguće učitati']],
-    ['ponuda', ['Izaberi ovu prijavu', 'Poruka', 'Pogledaj profil']],
-    ['ponuda-veliki', ['Izaberi ovu prijavu', 'Poruka']],
+    ['ponuda', ['Izaberi osobu', 'Poruka', 'Pogledaj profil']],
+    ['ponuda-veliki', ['Izaberi osobu', 'Poruka']],
     ['ne-moze', ['Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.']],
     ['ishod', ['Proveri da li je izabrano']],
     ['ponovi', ['Pošalji izbor ponovo']],
@@ -140,7 +153,7 @@ describe('Kandidati', () => {
 
 describe('Forma prijave', () => {
   it.each([
-    ['prazna', ['Tvoja ponuda', 'Koliko vas dolazi', 'Termin', 'Poruka uz prijavu', 'Upiši svoju cenu da pregledaš prijavu.']],
+    ['prazna', ['Tvoja ponuda', 'Koliko vas dolazi', 'Kada možeš', 'Poruka uz prijavu', 'Upiši svoju cenu da pregledaš prijavu.']],
     ['ponuda', ['Pregledaj prijavu', '4.500 RSD ukupno']],
     ['veliko', ['Pregledaj prijavu']],
     ['pregled', ['Ovo šalješ', 'Pošalji ovu prijavu']],

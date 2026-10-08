@@ -40,7 +40,6 @@ import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { DraftCard, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import { WorkerAiCard } from '../../ui/workerProfile/WorkerAiPresentation';
-import { CardValue } from '../../ui/v2/TaskFace';
 
 let tree: ReactTestRenderer;
 const idle: VoiceSnapshot = { phase: 'IDLE', session: null, finalText: '', interimText: '', audioLevel: null, fallbackText: '', error: null };
@@ -441,41 +440,46 @@ describe('deliberate reading intent', () => {
 });
 
 
-it('shows a complete task in the thread with its decision facts, one review primary and a quiet edit entry', async () => {
+it('shows a complete task in the thread with its facts as rows and ONE green review, and nothing that names a state', async () => {
   const review = jest.fn(), p = props();
   p.card = compact => <DraftCard summary={{ title: 'Prenos ormara', value: { kind: 'amount', amount: '4.000 RSD', basis: 'ukupno' },
     zone: 'Novi Sad · Liman', schedule: '3. okt · 17:00–19:00', people: '2 osobe' }}
     stillNeeded={null} open busy={false} compact={compact} canReview onReview={review} note={null} reviewAtEnd />;
   p.cardPlacement = 'end';
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  expect(text()).toContain('Spremno za pregled');
+  // No "Spremno za pregled" and no "Nacrt" over the name (the owner's phone, 8 Oct 2026): the chrome's title says where the person is.
+  expect(text()).not.toMatch(/Spremno za pregled|\bNacrt\b/);
   expect(text()).toContain('Prenos ormara'); expect(text()).toContain('Novi Sad · Liman');
-  expect(text()).toContain('3. okt · 17:00–19:00'); expect(text()).toContain('2 osobe'); expect(text()).toContain('4.000 RSD');
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(1);
+  expect(text()).toContain('3. okt · 17:00–19:00'); expect(text()).toContain('Treba 2 osobe'); expect(text()).toContain('4.000 RSD ukupno');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
-  expect(tree.root.findAllByProps({ label: 'Pregledaj i objavi' })).toHaveLength(1);
-  await act(async () => tree.root.findByProps({ label: 'Pregledaj i objavi' }).props.onPress());
+  // The green action is the only way to the review on the card; a quiet one beside it would be a second door.
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
+  await act(async () => tree.root.findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
   expect(review).toHaveBeenCalledTimes(1);
 });
 
-it('keeps an incomplete draft collapsible and does not call it ready', async () => {
+it('keeps an incomplete draft as the name, the facts it has and what is still needed, and does not call it ready', async () => {
   const p = props();
   p.card = compact => <DraftCard summary={{ title: 'Prenos', value: null, zone: '', people: null }}
     stillNeeded="termin · mesto" open busy={false} compact={compact} canReview={false} onReview={jest.fn()} note={null} reviewAtEnd={false} />;
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  expect(text()).toContain('Nacrt'); expect(text()).not.toContain('Spremno za pregled');
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(1);
+  expect(text()).toContain('Prenos'); expect(text()).toContain('Još treba: termin · mesto');
+  expect(text()).not.toMatch(/Spremno za pregled|\bNacrt\b/);
+  // A draft with no fact yet has no row of facts at all; the way to the review is the quiet word, and it waits.
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-stickers' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(0);
+  expect(tree.root.findAllByType('Action' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'intake-draft-review' }).props.disabled).toBe(true);
 });
 
 it.each([
-  { width: 361, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno', brief: true },
-  { width: 361, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'po osobi' as const }, words: '5.000 RSD po osobi', brief: true },
-  { width: 361, scale: 1.15, value: { kind: 'offers' as const }, words: 'Tražim ponude', brief: true },
-  { width: 361, scale: 1.3, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno', brief: false },
-  { width: 320, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno', brief: false },
-])('keeps compact draft terms and review authority at $width dp / $scale ($words)', async ({ width, scale, value, words, brief }) => {
+  { width: 361, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno' },
+  { width: 361, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'po osobi' as const }, words: '5.000 RSD po osobi' },
+  { width: 361, scale: 1.15, value: { kind: 'offers' as const }, words: 'Tražim ponude' },
+  { width: 361, scale: 1.3, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno' },
+  { width: 320, scale: 1.15, value: { kind: 'amount' as const, amount: '5.000 RSD', basis: 'ukupno' as const }, words: '5.000 RSD ukupno' },
+])('keeps the draft terms whole beside a review that stays a finger high at $width dp / $scale ($words)', async ({ width, scale, value, words }) => {
   mockWidth = width; mockScale = scale;
   const p = props(), review = jest.fn(); let allowed = false;
   p.pending = true;
@@ -487,36 +491,29 @@ it.each([
   expect(read().props.accessibilityLabel).toBe('Pregledaj zadatak');
   expect(read().props.disabled).toBe(true); await act(async () => read().props.onPress());
   expect(review).not.toHaveBeenCalled();
-  const displayed = tree.root.findByProps({ testID: 'intake-draft-value' });
-  if (brief) {
-    expect(displayed.findAllByType(CardValue)).toHaveLength(0);
-    const terms = displayed.findByType('T' as React.ElementType);
-    expect(terms.props.children).toBe(words); expect(terms.props.numberOfLines).toBeUndefined();
-    expect(read().findByType('T' as React.ElementType).props.children).toBe('Pregledaj');
-  } else {
-    expect(displayed.findByType(CardValue).props.value).toEqual(value);
-    expect(StyleSheet.flatten(displayed.parent!.props.style).flexDirection).toBe('column');
-  }
+  // The terms are a picture with ALL their words, wrapping when they must and never cut, whatever the size of the text or the card.
+  const terms = tree.root.findByProps({ testID: 'intake-draft-stickers' }).findAllByType('T' as React.ElementType).find(node => node.props.children === words)!;
+  expect(terms).toBeDefined(); expect(terms.props.numberOfLines).toBeUndefined();
+  expect(StyleSheet.flatten(read().props.style).minHeight).toBeGreaterThanOrEqual(48);
   allowed = true; await act(async () => tree.update(<AiConversationShell {...p} />));
   await act(async () => read().props.onPress()); expect(review).toHaveBeenCalledTimes(1);
-  expect(tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.accessibilityValue.text).toContain(words);
+  expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toContain(words);
 });
 
-it('keeps a legal long amount complete in a constrained, wrapping value row at large text', async () => {
+it('keeps a legal long amount complete in a constrained, wrapping line at large text', async () => {
   mockScale = 2;
   const p = props();
   p.card = compact => <DraftCard summary={{ title: 'Veliki posao', value: { kind: 'amount', amount: '100.000.000 RSD', basis: 'ukupno' },
     zone: '', people: null }} stillNeeded={null} open busy={false} compact={compact} canReview onReview={jest.fn()} note={null} />;
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  const value = tree.root.findByProps({ testID: 'intake-draft-value' });
-  expect(StyleSheet.flatten(value.props.style)).toMatchObject({ minWidth: 0, maxWidth: '100%', width: '100%', flexShrink: 1 });
-  expect(StyleSheet.flatten(value.parent!.props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch' });
-  expect(value.findByType(CardValue).props.large).toBe(true);
-  const amount = value.findAll(node => node.type === 'T' as React.ElementType && node.props.children === '100.000.000 RSD')[0];
+  const line = tree.root.findByProps({ testID: 'intake-draft-stickers' });
+  expect(StyleSheet.flatten(line.props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+  const amount = line.findAll(node => node.type === 'T' as React.ElementType && node.props.children === '100.000.000 RSD ukupno')[0];
   expect(amount.props.numberOfLines).toBeUndefined();
-  expect(StyleSheet.flatten(amount.props.style)).toMatchObject({ flexShrink: 1, maxWidth: '100%' });
+  expect(StyleSheet.flatten(amount.props.style)).toMatchObject({ flexShrink: 1 });
+  expect(StyleSheet.flatten(amount.parent!.props.style)).toMatchObject({ flexShrink: 1, maxWidth: '100%' });
   expect(text()).toContain('100.000.000 RSD'); expect(text()).toContain('ukupno');
-  expect(tree.root.findByProps({ testID: 'intake-draft-disclosure' }).props.accessibilityValue.text).toContain('100.000.000 RSD ukupno');
+  expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toContain('100.000.000 RSD ukupno');
 });
 
 it('shows the small USKOČI mark once per consecutive group while retaining the identity of every accessible turn', async () => {
@@ -530,30 +527,48 @@ it('shows the small USKOČI mark once per consecutive group while retaining the 
   expect(tree.root.findByProps({ accessibilityLabel: 'USKOČI: Dopuna' }).props.accessibilityLiveRegion).toBe('none');
 });
 
-it.each(['intake', 'worker'] as const)('%s disclosure stays local, survives same-owner updates and resets with the stable ownership key', async kind => {
+it('worker disclosure stays local, survives same-owner updates and resets with the stable ownership key', async () => {
   const p = props(), review = jest.fn(); p.conversationKey = 'account:revision:opening-request';
   let disabled = true;
   const profile = { displayName: 'Ana', bio: '', skills: ['Selidbe'], tools: [], vehicles: [], licenses: [], teamCapacity: 2,
     location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null },
     availability: { timezone: 'Europe/Belgrade', availableNow: false, rules: [], windows: [] } };
-  p.card = compact => kind === 'intake'
-    ? <DraftCard summary={{ title: 'Selidba', value: null, zone: 'Novi Sad', schedule: 'Sutra', people: '2 osobe' }}
-        stillNeeded="tačka na mapi" open busy={disabled} compact={compact} canReview={!disabled} onReview={review} note="Proveri detalje pre objave." />
-    : <WorkerAiCard profile={profile} compact={compact} review={review} disabled={disabled} />;
+  p.card = compact => <WorkerAiCard profile={profile} compact={compact} review={review} disabled={disabled} />;
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  const prefix = kind === 'intake' ? 'intake' : 'worker';
-  const disclosure = () => tree.root.findByProps({ testID: `${prefix}-draft-disclosure` });
-  const details = () => tree.root.findAllByProps({ testID: `${prefix}-draft-details` });
-  const reviewTarget = () => tree.root.findByProps({ testID: `${prefix}-draft-review` });
+  const disclosure = () => tree.root.findByProps({ testID: 'worker-draft-disclosure' });
+  const details = () => tree.root.findAllByProps({ testID: 'worker-draft-details' });
+  const reviewTarget = () => tree.root.findByProps({ testID: 'worker-draft-review' });
   expect(details()).toHaveLength(0);
   await act(async () => { disclosure().props.onPress(); reviewTarget().props.onPress(); });
   expect(details()).toHaveLength(1); expect(disclosure().props.accessibilityState.expanded).toBe(true);
   expect(review).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
   await act(async () => tree.update(<AiConversationShell {...p} messages={[{ id: 'first-persisted', fromAi: true, body: 'Primljeno' }]} />));
   expect(details()).toHaveLength(1); // A server ID arriving does not replace the stable owned opening key.
-  if (kind === 'intake') { expect(text()).toContain('tačka na mapi'); expect(text()).toContain('Proveri detalje pre objave.'); }
   await act(async () => tree.update(<AiConversationShell {...p} conversationKey="account:new-revision:opening-request" />));
   expect(details()).toHaveLength(0);
+  disabled = false;
+  await act(async () => tree.update(<AiConversationShell {...p} conversationKey="account:new-revision:opening-request" />));
+  await act(async () => reviewTarget().props.onPress());
+  expect(review).toHaveBeenCalledTimes(1);
+});
+
+it('the intake card keeps no state of its own: a server id arriving or a new key changes nothing, what is needed stays, and the review waits until it is allowed', async () => {
+  const p = props(), review = jest.fn(); p.conversationKey = 'account:revision:opening-request';
+  let disabled = true;
+  p.card = compact => <DraftCard summary={{ title: 'Selidba', value: null, zone: 'Novi Sad', schedule: 'Sutra', people: '2 osobe' }}
+    stillNeeded="tačka na mapi" open busy={disabled} compact={compact} canReview={!disabled} onReview={review} note="Proveri detalje pre objave." />;
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const facts = () => tree.root.findAllByProps({ testID: 'intake-draft-stickers' });
+  const reviewTarget = () => tree.root.findByProps({ testID: 'intake-draft-review' });
+  // Nothing opens or closes: the facts are simply there, with their words, and the review is disabled until the screen allows it.
+  expect(facts()).toHaveLength(1); expect(text()).toContain('Novi Sad'); expect(text()).toContain('Sutra'); expect(text()).toContain('Treba 2 osobe');
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-disclosure' })).toHaveLength(0);
+  await act(async () => { reviewTarget().props.onPress(); });
+  expect(review).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+  await act(async () => tree.update(<AiConversationShell {...p} messages={[{ id: 'first-persisted', fromAi: true, body: 'Primljeno' }]} />));
+  expect(facts()).toHaveLength(1); expect(text()).toContain('tačka na mapi'); expect(text()).toContain('Proveri detalje pre objave.');
+  await act(async () => tree.update(<AiConversationShell {...p} conversationKey="account:new-revision:opening-request" />));
+  expect(facts()).toHaveLength(1); expect(text()).toContain('tačka na mapi');
   disabled = false;
   await act(async () => tree.update(<AiConversationShell {...p} conversationKey="account:new-revision:opening-request" />));
   await act(async () => reviewTarget().props.onPress());
@@ -733,24 +748,25 @@ describe('voice mode', () => {
   });
 });
 
-it('gives an active point question a compact draft while retaining disclosure, safety and review guards', async () => {
-  const p = props(), review = jest.fn();
+it('gives an active point question a compact draft while retaining safety and review guards', async () => {
+  const p = props(), review = jest.fn(); let asking = true;
   p.card = compact => <DraftCard summary={{ title: 'Pomoć oko selidbe iz Novog Sada', value: null, zone: 'Novi Sad', people: '1 osoba' }}
     stillNeeded="Cena · Termin · tačka na mapi" open busy={false} compact={compact} canReview={false}
-    onReview={review} note="Proveri detalje pre objave." locationEditing />;
+    onReview={review} note="Proveri detalje pre objave." locationEditing={asking} />;
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  const disclosure = () => tree.root.findByProps({ testID: 'intake-draft-disclosure' });
-  expect(text()).toContain('Nacrt'); expect(text()).toContain('Proveri detalje pre objave.');
-  expect(disclosure().props.accessibilityValue.text).toContain('Pomoć oko selidbe iz Novog Sada');
-  expect(text()).not.toContain('Još treba:');
+  const head = () => tree.root.findByProps({ testID: 'intake-draft-head' });
+  // While the place is asked, the card is only its name and the note: the question has the room.
+  expect(text()).toContain('Pomoć oko selidbe iz Novog Sada'); expect(text()).toContain('Proveri detalje pre objave.');
+  expect(head().props.accessibilityLabel).toBe('Pomoć oko selidbe iz Novog Sada');
+  expect(text()).not.toContain('Još treba:'); expect(text()).not.toContain('Novi Sad');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
-  await act(async () => disclosure().props.onPress());
-  expect(text()).toContain('Još treba: Cena · Termin · tačka na mapi');
-  expect(text()).toContain('Novi Sad'); expect(text()).toContain('1 osoba');
+  expect(tree.root.findAllByProps({ testID: 'intake-draft-stickers' })).toHaveLength(0);
+  // When it is answered or put away, the card is whole again: what is needed, the facts it has (one person is no fact), and the review that still waits.
+  asking = false;
+  await act(async () => tree.update(<AiConversationShell {...p} />));
+  expect(text()).toContain('Još treba: Cena · Termin · tačka na mapi'); expect(text()).toContain('Novi Sad'); expect(text()).not.toContain('1 osoba');
   const reviewTarget = tree.root.findByProps({ testID: 'intake-draft-review' });
   expect(reviewTarget.props.accessibilityState.disabled).toBe(true);
   await act(async () => reviewTarget.props.onPress());
-  expect(review).not.toHaveBeenCalled();
-  await act(async () => disclosure().props.onPress());
-  expect(text()).not.toContain('Još treba:'); expect(text()).toContain('Proveri detalje pre objave.');
+  expect(review).not.toHaveBeenCalled(); expect(text()).toContain('Proveri detalje pre objave.');
 });

@@ -37,7 +37,8 @@ it('names the brand with its mark, not with a second title, and keeps the words'
   expect(copy).toContain('Izaberi ko će pomoći.');
   expect(copy).toContain('Uskoči i zaradi');
   expect(copy).toContain('Pronađi zadatak za svoje veštine.');
-  expect(copy).toContain('AI pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.');
+  // "AI" is not written: in the screen's type its I is one stroke and it read "Al" (owner's phone, 8 Oct 2026).
+  expect(copy).toContain('Asistent pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.'); expect(copy).not.toMatch(/AI/);
   expect(tree.root.findAllByType('BuildIdentity' as React.ElementType)).toHaveLength(1);
 });
 
@@ -76,7 +77,7 @@ describe('the composition', () => {
     expect(factRows().map(row => [row.props.art, row.props.value, row.props.note, row.props.size])).toEqual([
       ['publish', 'Objavi zadatak', 'Reci šta ti treba. Izaberi ko će pomoći.', 'detail'], ['map', 'Uskoči i zaradi', 'Pronađi zadatak za svoje veštine.', 'detail']]);
     const copy = texts().flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
-    expect(copy.match(/AI pomaže da sastaviš zadatak\. Ti pregledaš i potvrđuješ\./g)).toHaveLength(1);
+    expect(copy.match(/Asistent pomaže da sastaviš zadatak\. Ti pregledaš i potvrđuješ\./g)).toHaveLength(1);
   });
 
   it('gives the two rows that lead on the same pictures the profile gives them, and nothing else on the screen is pressable but Back', async () => {
@@ -84,7 +85,8 @@ describe('the composition', () => {
     const rows = presses().filter(node => node.props.accessibilityLabel !== 'Nazad');
     expect(rows.map(node => node.props.accessibilityLabel)).toEqual(['Pravila i saglasnosti', 'Privatnost i podaci']);
     const art = (row: typeof rows[number]) => row.findAll(node => typeof node.props.kind === 'string' && node.props.size === 32).map(node => node.props.kind);
-    expect(art(rows[0])).toContain('document'); expect(art(rows[1])).toContain('lock');
+    // The lock is the password's and nothing else's (ten rows of the profile, ten different pictures): privacy is the eye.
+    expect(art(rows[0])).toContain('document'); expect(art(rows[1])).toContain('eye'); expect(art(rows[1])).not.toContain('lock');
     expect(tree.root.findAll(node => node.props.kind === 'primary')).toHaveLength(0);
   });
 

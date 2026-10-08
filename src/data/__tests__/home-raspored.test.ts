@@ -227,7 +227,8 @@ describe('composeHome: the Raspored of the featured appointment', () => {
     ]);
     const [featured] = rows(home);
     expect(featured).toMatchObject({ id: 'agreement:today', upcoming: true,
-      raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: 'Ove nedelje još 2 Dogovora · 3 Dogovora bez tačnog termina' },
+      // The card says the week and nothing about the Dogovori that have no day (8 Oct 2026): they are asked for under "Čeka te" and listed in Raspored.
+      raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: 'Ove nedelje još 2 Dogovora' },
       // The display sentence stays what the Dogovor says; the first line did not come from it.
       appointment: { timeText: 'Fleksibilno · tokom sledeće nedelje' } });
     expect(JSON.stringify(featured.raspored)).not.toContain('Fleksibilno');
@@ -239,13 +240,14 @@ describe('composeHome: the Raspored of the featured appointment', () => {
   it('puts the soonest appointment first, ahead of one that is later and of work with no time', () => {
     const home = compose([agreement('flex', { tacanTermin: null }), exact('later', '2026-10-09T08:00:00Z', '2026-10-09T09:00:00Z'),
       exact('sooner', '2026-10-08T08:00:00Z', '2026-10-08T09:00:00Z')]);
-    expect(rows(home)[0]).toMatchObject({ id: 'agreement:sooner', raspored: { when: 'Sutra · 10:00–11:00',
-      more: 'Ove nedelje još 1 Dogovor · 1 Dogovor bez tačnog termina' } });
+    expect(rows(home)[0]).toMatchObject({ id: 'agreement:sooner', raspored: { when: 'Sutra · 10:00–11:00', more: 'Ove nedelje još 1 Dogovor' } });
   });
 
   it('says a lone accepted start as "od", counts it once (without an exact term), and never counts the featured one twice', () => {
     const home = compose([agreement('lone', { prihvacenPocetak: '2026-10-08T08:00:00Z', tacanTermin: null }), agreement('flex', { tacanTermin: null })]);
-    expect(rows(home)[0]).toMatchObject({ id: 'agreement:lone', raspored: { when: 'Sutra · od 10:00', spoken: 'Sutra, od 10:00', more: '1 Dogovor bez tačnog termina' } });
+    expect(rows(home)[0]).toMatchObject({ id: 'agreement:lone', raspored: { when: 'Sutra · od 10:00', spoken: 'Sutra, od 10:00', more: null } });
+    // Counted once, and not said on the card: the planner counts it among the Dogovori with no exact term, and that is where it is listed.
+    expect(home.agreements).toMatchObject({ value: { more: 1 } });
   });
 
   it('has no quiet line when there is nothing to add', () => {
@@ -275,10 +277,10 @@ describe('composeHome: the Raspored of the featured appointment', () => {
     // 15:00 in Belgrade: it started at 14:00 and ends at 16:00; tomorrow's is still ahead, in this week.
     expect(rows(compose(slot, Date.parse('2026-10-07T13:00:00Z')))[0]).toMatchObject({ id: 'agreement:now', upcoming: true,
       raspored: { when: 'Danas · 14:00–16:00', more: 'Ove nedelje još 1 Dogovor' } });
-    // Exactly at the end it is over, and tomorrow's is next. The one that just ended has not been marked done, so the
-    // grey line says it waits to be finished (it keeps a place in Raspored; it does not vanish).
+    // Exactly at the end it is over, and tomorrow's is next. The one that just ended has not been marked done: it keeps its place in Raspored
+    // (and in `loose`, below); the card no longer says so (the owner's phone, 8 Oct 2026: a line of counts under the person was too much).
     expect(rows(compose(slot, Date.parse('2026-10-07T14:00:00Z')))[0]).toMatchObject({ id: 'agreement:later',
-      raspored: { when: 'Sutra · 10:00–11:00', more: '1 Dogovor čeka završetak' } });
+      raspored: { when: 'Sutra · 10:00–11:00', more: null } });
   });
 
   it('has no card for an active Dogovor that has no accepted appointment ahead (the quiet line below is all it gets)', () => {
@@ -368,14 +370,14 @@ describe('composeHome: the Raspored of the featured appointment', () => {
     expect(loose(compose([overdue('a'), unconfirmed('flex')], Number.NaN))).toBe('1 Dogovor bez tačnog termina');
   });
 
-  it('is said only when there is no card: with an appointment ahead the same counts ride in the card\'s own line', () => {
+  it('is said only when there is no card, and with an appointment ahead the card says the week alone, never the Dogovori that have no day', () => {
     const home = compose([exact('today', '2026-10-07T12:00:00Z', '2026-10-07T14:00:00Z'), unconfirmed('flex')]);
     expect(home.agreements.kind === 'known' && 'quietLine' in home.agreements.value).toBe(false);
-    expect(rows(home)[0].raspored?.more).toBe('1 Dogovor bez tačnog termina');
+    expect(rows(home)[0].raspored?.more).toBeNull();
     const all = compose([exact('today', '2026-10-07T12:00:00Z', '2026-10-07T14:00:00Z'), exact('thu', '2026-10-08T08:00:00Z', '2026-10-08T09:00:00Z'),
       unconfirmed('flex'), overdue('a'), overdue('b')]);
     expect(all.agreements.kind === 'known' && 'quietLine' in all.agreements.value).toBe(false);
-    expect(rows(all)[0].raspored?.more).toBe('Ove nedelje još 1 Dogovor · 1 Dogovor bez tačnog termina · 2 Dogovora čekaju završetak');
+    expect(rows(all)[0].raspored?.more).toBe('Ove nedelje još 1 Dogovor');
   });
 
   it('is not said when nothing is active without a term, or when the Dogovori could not be read', () => {

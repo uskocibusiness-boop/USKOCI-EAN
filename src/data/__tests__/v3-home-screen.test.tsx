@@ -73,7 +73,7 @@ const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && n
 const render = async () => { await act(async () => { tree = create(<Pocetna />); }); };
 /** The heading of a Section: its title, in the heading type, spoken as a header. */
 const heading = (name: string) => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.props.children === name);
-/** "Ceo raspored": the action at the end of the Raspored heading (a Section's own action, a 48 dp press). */
+/** "Ceo raspored" was the action at the end of the Raspored heading; since the blueprint of 8 Oct 2026 Raspored has one door, Dogovori, so Početna draws none. */
 const planner = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Ceo raspored');
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 
@@ -106,7 +106,7 @@ it('shows both sides of one account and gives an undated active Dogovor no card,
   await render();
   const copy = text();
   expect(copy).toContain('Moji zadaci'); expect(copy).toContain('1 aktivan');
-  expect(copy).toContain('Moje prijave'); expect(copy).toContain('1 aktivna');
+  expect(copy).toContain('Moje prijave'); expect(copy).toContain('1 čeka odgovor');
   expect(copy).not.toContain('Aktivni Dogovor'); expect(copy).not.toContain('Sledeći Dogovor'); expect(copy).not.toContain('Raspored');
   expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio si'); expect(copy).not.toContain('Svi Dogovori');
   expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Dogovor g-'))).toHaveLength(0);
@@ -120,7 +120,7 @@ it('names and opens the upcoming accepted appointment ahead of work awaiting com
     { ...agreement('tomorrow', 'uskocer'), prihvacenPocetak: '2026-09-28T08:00:00Z', vremeTekst: '28. sep · 10:00' },
   ]);
   await render();
-  expect(text()).toContain('Raspored'); expect(text()).not.toContain('Sledeći Dogovor'); expect(text()).not.toContain('Aktivni Dogovor');
+  expect(text()).toContain('Sledeće'); expect(text()).not.toContain('Raspored'); expect(text()).not.toContain('Sledeći Dogovor'); expect(text()).not.toContain('Aktivni Dogovor');
   // Sunday 27 September, 12:00 in Belgrade: the 28th is tomorrow, and the accepted start alone is "od", never an invented end.
   expect(text()).toContain('Sutra · od 10:00'); expect(text()).not.toContain('28. sep · 10:00'); expect(text()).not.toContain('Dogovor yesterday');
   expect(cards()).toHaveLength(1);
@@ -161,7 +161,7 @@ it.each([[390, 1], [320, 2]])('keeps the appointment day, task, person and role 
 /** The presentation on its own, with every callback a spy; `over` replaces any prop. */
 const direct = async (home: HomeSnapshot | null, over: Partial<ComponentProps<typeof HomePresentation>> = {}) => {
   const handlers = { onOpen: jest.fn(), onPublish: jest.fn(), onEarn: jest.fn(), onProfile: jest.fn(), onRatings: jest.fn(),
-    onMyTasks: jest.fn(), onMyApplications: jest.fn(), onRefresh: jest.fn(), onPlanner: jest.fn() };
+    onMyTasks: jest.fn(), onMyApplications: jest.fn(), onRefresh: jest.fn() };
   await act(async () => { tree = create(<HomePresentation home={home} loading={false} refreshing={false} error={false} {...handlers} {...over} />); });
   return handlers;
 };
@@ -179,23 +179,23 @@ it('draws no block for a row that carries no Raspored words, and never builds a 
   expect(cards()).toHaveLength(0); expect(planner()).toHaveLength(0);
 });
 
-describe('the Raspored block', () => {
+describe('the "Sledeće" block', () => {
   const planned = (patch: object = {}): HomeSnapshot => {
     const home = emptyHome();
     home.firstRun = false;
     home.agreements = { kind: 'known', value: { more: 0, rows: [{ id: 'agreement:soon', title: 'Montaža police u hodniku', detail: 'x', target: { kind: 'AGREEMENT', agreementId: 'soon' },
       upcoming: true, appointment: { timeText: '', counterpartName: 'Jelena Nikolić', roleLabel: 'Tvoj zadatak', counterpartProfileId: 'profile-j', counterpartInitials: 'JN' },
-      raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: 'Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina', zone: null }, ...patch }] } };
+      raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: 'Ove nedelje još 2 Dogovora', zone: null }, ...patch }] } };
     return home;
   };
 
-  it('is headed "Raspored" and reads day first, then the work, the person with their face, and the one grey line', async () => {
+  it('is headed "Sledeće" and reads day first, then the work, the person with their face, and the one grey line', async () => {
     await direct(planned(), { photo: (profileId, standIn) => React.createElement('ProfilePhoto', { profileId, size: 32, fallback: standIn }) });
     const card = cards()[0];
-    expect(heading('Raspored')).toHaveLength(1);
+    expect(heading('Sledeće')).toHaveLength(1); expect(heading('Raspored')).toHaveLength(0);
     expect(card.findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual([
-      'Danas · 14:00–16:00', 'Montaža police u hodniku', 'Jelena Nikolić', 'Tvoj zadatak', 'Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina']);
-    expect(card.props.accessibilityLabel).toBe('Danas, od 14:00 do 16:00. Montaža police u hodniku. Jelena Nikolić, Tvoj zadatak. Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina');
+      'Danas · 14:00–16:00', 'Montaža police u hodniku', 'Jelena Nikolić', 'Tvoj zadatak', 'Ove nedelje još 2 Dogovora']);
+    expect(card.props.accessibilityLabel).toBe('Danas, od 14:00 do 16:00. Montaža police u hodniku. Jelena Nikolić, Tvoj zadatak. Ove nedelje još 2 Dogovora');
     // The time is the black first line and the largest word of the screen, in the voice of money (never a grey note), and the calendar stands
     // small at the end of its line ("Danas u 14", the owner's pick of 2026-10-08).
     const first = card.findAll(node => String(node.type) === 'T')[0];
@@ -227,32 +227,28 @@ describe('the Raspored block', () => {
     expect(card.props.accessibilityLabel).toBe('Sutra, od 10:00. Montaža police u hodniku');
   });
 
-  it('has "Ceo raspored" at the end of the heading, never inside the card, and the card opens the Dogovor', async () => {
+  it('has no way into the whole schedule (Raspored has one door, Dogovori), and the card opens the Dogovor', async () => {
     const handlers = await direct(planned());
-    const link = planner();
-    expect(link).toHaveLength(1);
-    // The action is the heading's own (a 48 dp touch in green), not a row of its own under the card.
-    expect(StyleSheet.flatten(link[0].props.style).minHeight).toBeGreaterThanOrEqual(48);
-    expect(cards()[0].findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Ceo raspored')).toHaveLength(0);
-    await act(async () => link[0].props.onPress());
-    expect(handlers.onPlanner).toHaveBeenCalledTimes(1); expect(handlers.onOpen).not.toHaveBeenCalled();
+    expect(planner()).toHaveLength(0);
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && /raspored/i.test(String(node.props.accessibilityLabel)))).toHaveLength(0);
     await act(async () => cards()[0].props.onPress());
-    expect(handlers.onOpen).toHaveBeenCalledWith({ kind: 'AGREEMENT', agreementId: 'soon' }); expect(handlers.onPlanner).toHaveBeenCalledTimes(1);
+    expect(handlers.onOpen).toHaveBeenCalledWith({ kind: 'AGREEMENT', agreementId: 'soon' });
   });
 
-  it('is reached through the route: "Ceo raspored" opens the planner and the face is read by the route\'s own element', async () => {
+  it('is reached through the route: the card opens the Dogovor once, and the face is read by the route\'s own element', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
     const slot = { prihvacenPocetak: '2026-10-07T12:00:00Z', tacanTermin: { pocetak: '2026-10-07T12:00:00Z', kraj: '2026-10-07T14:00:00Z' } };
     const source = { ...agreement('today', 'narucilac'), ...slot };
     Object.assign(source.ucesnici[1], { profilId: 'profile-jelena', inicijali: 'J' });
     mockSource.mojiDogovori.mockResolvedValue([source, { ...agreement('flex', 'uskocer'), tacanTermin: null }]);
     await render();
-    expect(text()).toContain('Danas · 14:00–16:00'); expect(text()).toContain('1 Dogovor bez tačnog termina');
-    // With a card the count rides in its own grey line, once; the block has no second line of its own. Dogovori, never "zadatak".
-    expect(text().split('1 Dogovor bez tačnog termina')).toHaveLength(2); expect(text()).not.toMatch(/zadatak bez|zadatka bez|zadataka bez/);
+    expect(text()).toContain('Danas · 14:00–16:00');
+    // The card says the week and nothing about the Dogovori that have no day (they are listed in Raspored), and never "zadatak" for a Dogovor.
+    expect(text()).not.toContain('bez tačnog termina'); expect(text()).not.toMatch(/zadatak bez|zadatka bez|zadataka bez/);
     expect(tree.root.findByType('ProfilePhoto' as React.ElementType).props).toMatchObject({ profileId: 'profile-jelena', size: 32 });
-    await act(async () => planner()[0].props.onPress());
-    expect(mockRouter.navigate).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).toHaveBeenCalledWith('/raspored');
+    expect(planner()).toHaveLength(0);
+    await act(async () => cards()[0].props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: 'today' } });
     // One navigation per focus is the guard's rule: a second press on the same screen goes nowhere.
     await act(async () => cards()[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
@@ -278,94 +274,56 @@ describe('the Raspored block', () => {
     expect(text()).toContain('Danas · 14:00–16:00'); expect(text()).not.toContain('Po vremenu u Srbiji');
   });
 
-  // Coordinator, 2026-10-07: on the owner's account Početna showed "Aktivni Dogovor … Termin nije potvrđen"; an active Dogovor
-  // with no day to show it on must not vanish: one whose term is not confirmed, or a confirmed one whose exact term has passed
-  // and that nobody has marked done. With no appointment ahead the block is one quiet line and the way in, no card.
+  // The owner's phone, 8 Oct 2026: "Raspored — 1 Dogovor bez tačnog termina" under the doors was a weak row (and the Dogovor was asked about under
+  // "Čeka te" in the same breath). With no appointment ahead there is NO block: a Dogovor with no day is asked for where it waits ("Predloži
+  // termin") and listed in Raspored; Početna counts nothing of it.
   describe('without a card: an active Dogovor with no day to show it on', () => {
     const unconfirmed = (id: string, patch: object = {}) => ({ ...agreement(id, 'narucilac'), naslov: 'Krečenje stana u belo',
       vremeTekst: 'Termin nije potvrđen', prihvacenPocetak: null, tacanTermin: null, ...patch });
     const link = planner;
-
-    it('stays on Početna as one quiet grey line under "Raspored", with the way into the whole schedule and no card', async () => {
-      mockSource.mojiDogovori.mockResolvedValue([unconfirmed('krecenje')]);
-      await render();
-      expect(heading('Raspored')).toHaveLength(1);
-      const line = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === '1 Dogovor bez tačnog termina');
-      expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ variant: 'note', tone: 'muted' }); expect(line[0].props.numberOfLines).toBeUndefined();
-      // No card, no placeholder in Raspored: the display sentence of the Dogovor is never drawn, and the way in is the heading's own action.
-      // The Dogovor itself is named once, where it waits for me: under "Čeka te", asking for a term (R02), not as an appointment.
-      expect(cards()).toHaveLength(0); expect(text()).not.toContain('Termin nije potvrđen');
-      expect(text().split('Krečenje stana u belo')).toHaveLength(2); expect(text()).toContain('Predloži termin');
-      expect(text()).not.toContain('Aktivni Dogovor'); expect(text()).not.toContain('Sledeći Dogovor');
-      expect(link()).toHaveLength(1);
-      await act(async () => link()[0].props.onPress());
-      expect(mockRouter.navigate).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).toHaveBeenCalledWith('/raspored');
-    });
-
-    it.each([[2, '2 Dogovora bez tačnog termina'], [5, '5 Dogovora bez tačnog termina'], [21, '21 Dogovor bez tačnog termina']])(
-      'counts %i of them in its Serbian form', async (count, expected) => {
-        mockSource.mojiDogovori.mockResolvedValue(Array.from({ length: count }, (_, index) => unconfirmed(`n${index}`)));
-        await render();
-        expect(text()).toContain(expected); expect(cards()).toHaveLength(0);
-      });
-
-    // A confirmed Dogovor whose exact term ended on 6 October (the clock stands at 7 October, 11:00 in Belgrade) and that is not
-    // marked done: the helper's Dogovor is CONFIRMED.
+    // A confirmed Dogovor whose exact term ended on 6 October (the clock stands at 7 October, 11:00 in Belgrade) and that is not marked done.
     const overdue = (id: string, patch: object = {}) => ({ ...agreement(id, 'narucilac'), prihvacenPocetak: '2026-10-06T08:00:00Z',
       tacanTermin: { pocetak: '2026-10-06T08:00:00Z', kraj: '2026-10-06T09:00:00Z' }, ...patch });
+    const NO_LINE = /bez tačnog termina|čeka završetak|čekaju završetak/;
 
-    it('a confirmed Dogovor whose exact term has passed unfinished waits to be finished: one quiet line, the verb agreeing, no card', async () => {
-      jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
-      for (const [count, expected] of [[1, '1 Dogovor čeka završetak'], [2, '2 Dogovora čekaju završetak'], [5, '5 Dogovora čeka završetak']] as const) {
-        mockSource.mojiDogovori.mockResolvedValue(Array.from({ length: count }, (_, index) => overdue(`o${index}`)));
-        await render();
-        expect(heading('Raspored')).toHaveLength(1);
-        // The one grey line is exactly this, in Dogovori (the doors above it say "zadatak" of their own).
-        const line = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === expected);
-        expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ variant: 'note', tone: 'muted' });
-        expect(cards()).toHaveLength(0); expect(link()).toHaveLength(1);
-        await act(async () => tree.unmount());
-      }
-    });
-
-    it('joins what has no confirmed term to what waits to be finished in one grey line', async () => {
-      jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
-      mockSource.mojiDogovori.mockResolvedValue([unconfirmed('flex'), overdue('a'), overdue('b')]);
+    it('draws no block and no line of counts: the Dogovor is asked for once, under "Čeka te", and Raspored is not drawn', async () => {
+      mockSource.mojiDogovori.mockResolvedValue([unconfirmed('krecenje')]);
       await render();
-      const line = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === '1 Dogovor bez tačnog termina · 2 Dogovora čekaju završetak');
-      expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ variant: 'note', tone: 'muted' });
-      expect(cards()).toHaveLength(0);
+      expect(heading('Sledeće')).toHaveLength(0); expect(link()).toHaveLength(0); expect(cards()).toHaveLength(0);
+      expect(text()).not.toMatch(NO_LINE); expect(text()).not.toContain('Termin nije potvrđen');
+      expect(text().split('Krečenje stana u belo')).toHaveLength(2); expect(text()).toContain('Predloži termin');
+      expect(text()).not.toContain('Aktivni Dogovor'); expect(text()).not.toContain('Sledeći Dogovor');
     });
 
-    it('with an appointment ahead the same counts ride in the card\'s grey line, joined by " · "', async () => {
+    it.each([2, 5, 21])('counts none of %i of them, in any form', async count => {
+      mockSource.mojiDogovori.mockResolvedValue(Array.from({ length: count }, (_, index) => unconfirmed(`n${index}`)));
+      await render();
+      expect(text()).not.toMatch(NO_LINE); expect(cards()).toHaveLength(0); expect(link()).toHaveLength(0);
+    });
+
+    it('says nothing of a confirmed Dogovor whose exact term has passed unfinished: no card, no line, no block', async () => {
+      jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
+      mockSource.mojiDogovori.mockResolvedValue([overdue('a'), overdue('b')]);
+      await render();
+      expect(heading('Sledeće')).toHaveLength(0); expect(text()).not.toMatch(NO_LINE); expect(cards()).toHaveLength(0); expect(link()).toHaveLength(0);
+    });
+
+    it('with an appointment ahead the card says the week and nothing about the Dogovori that have no day', async () => {
       jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
       mockSource.mojiDogovori.mockResolvedValue([{ ...agreement('today', 'narucilac'), prihvacenPocetak: '2026-10-07T12:00:00Z',
         tacanTermin: { pocetak: '2026-10-07T12:00:00Z', kraj: '2026-10-07T14:00:00Z' } }, unconfirmed('flex'), overdue('a'), overdue('b')]);
       await render();
       expect(cards()).toHaveLength(1);
-      expect(text()).toContain('1 Dogovor bez tačnog termina · 2 Dogovora čekaju završetak');
-      expect(cards()[0].props.accessibilityLabel).toContain('1 Dogovor bez tačnog termina · 2 Dogovora čekaju završetak');
+      expect(text()).not.toMatch(NO_LINE); expect(cards()[0].props.accessibilityLabel).not.toMatch(NO_LINE);
     });
 
-    it('does not say it for a Dogovor already marked done or finished, nor for a lone start (no end to have passed)', async () => {
-      jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
-      mockSource.mojiDogovori.mockResolvedValue([overdue('marked-done', { stanje: 'AWAITING_REQUESTER' }), overdue('finished', { stanje: 'COMPLETED' }),
-        { ...agreement('lone', 'uskocer'), prihvacenPocetak: '2026-10-06T08:00:00Z', tacanTermin: null }]);
-      await render();
-      expect(text()).not.toContain('čeka završetak'); expect(text()).not.toContain('čekaju završetak');
-      // The lone start is counted where the planner counts it: among the Dogovori with no exact term.
-      expect(text()).toContain('1 Dogovor bez tačnog termina');
-    });
-
-    it('is drawn from the snapshot alone: the quiet line and its link, and the link goes to the planner', async () => {
+    it('draws nothing of the snapshot\'s quiet line: the snapshot may carry it, the screen has no place for it', async () => {
       const home = emptyHome();
       home.firstRun = false;
       home.agreements = { kind: 'known', value: { more: 0, quietLine: '2 Dogovora bez tačnog termina', rows: [{ id: 'agreement:krecenje', title: 'Krečenje stana u belo',
         detail: 'x', target: { kind: 'AGREEMENT', agreementId: 'krecenje' } }] } };
-      const handlers = await direct(home);
-      expect(text()).toContain('Raspored'); expect(text()).toContain('2 Dogovora bez tačnog termina'); expect(cards()).toHaveLength(0);
-      await act(async () => link()[0].props.onPress());
-      expect(handlers.onPlanner).toHaveBeenCalledTimes(1); expect(handlers.onOpen).not.toHaveBeenCalled();
+      await direct(home);
+      expect(text()).not.toContain('Raspored'); expect(text()).not.toContain('bez tačnog termina'); expect(cards()).toHaveLength(0); expect(link()).toHaveLength(0);
     });
 
     it('is not drawn at all when no active Dogovor has lost its day: not for a finished one, one whose term the list did not say, or none', async () => {
@@ -388,10 +346,10 @@ describe('the Raspored block', () => {
     });
   });
 
-  it('a Dogovori read that failed says so under "Raspored", never as an empty schedule', async () => {
+  it('a Dogovori read that failed says so under "Sledeće", never as an empty schedule', async () => {
     mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED'));
     await render();
-    expect(heading('Raspored')).toHaveLength(1);
+    expect(heading('Sledeće')).toHaveLength(1);
     expect(text()).toContain('Ne možemo da učitamo Dogovore.'); expect(cards()).toHaveLength(0);
     expect(planner()).toHaveLength(0);
   });
@@ -428,8 +386,10 @@ it.each([[390, 1], [320, 2]])('separates the real attention task from its action
   await render();
   const attention = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Zadatak je izmenjen'))[0];
   const facts = attention.findAll(node => String(node.type) === 'T');
-  expect(facts.map(node => node.props.children)).toEqual([taskTitle, 'Zadatak je izmenjen', 'Pregledaj izmene pre odluke o prijavi.']);
+  // The eye gets the task and the action; the sentence that said the action again is not drawn (8 Oct 2026), and a screen reader still hears it.
+  expect(facts.map(node => node.props.children)).toEqual([taskTitle, 'Zadatak je izmenjen']);
   expect(attention.props.accessibilityLabel).toBe(`Zadatak je izmenjen. ${taskTitle}. Pregledaj izmene pre odluke o prijavi.`);
+  expect(text()).not.toContain('Pregledaj izmene pre odluke o prijavi.');
   expect(text().split(taskTitle)).toHaveLength(2);
   for (const fact of facts) {
     expect(fact.props.numberOfLines).toBeUndefined(); expect(fact.props.allowFontScaling).not.toBe(false);
@@ -448,13 +408,13 @@ describe('what leads Početna', () => {
   const dots = () => tree.root.findAll(node => node.props.testID === 'attention-dot');
   const largest = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'priceLarge').map(node => node.props.children);
 
-  it('puts "Raspored" before "Čeka te" when an appointment lies ahead, and then every waiting thing is a row', async () => {
+  it('puts "Sledeće" before "Čeka te" when an appointment lies ahead, and then every waiting thing is a row', async () => {
     const home = waiting();
     home.agreements = { kind: 'known', value: { more: 0, rows: [{ id: 'agreement:soon', title: 'Montaža police u hodniku', detail: 'x', target: { kind: 'AGREEMENT', agreementId: 'soon' },
       upcoming: true, appointment: { timeText: '', counterpartName: 'Jelena Nikolić', roleLabel: 'Tvoj zadatak', counterpartProfileId: null, counterpartInitials: 'JN' },
       raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: null, zone: null } }] } };
     await direct(home);
-    expect(headings().filter(name => name === 'Raspored' || name === 'Čeka te')).toEqual(['Raspored', 'Čeka te']);
+    expect(headings().filter(name => name === 'Sledeće' || name === 'Čeka te')).toEqual(['Sledeće', 'Čeka te']);
     // The time is the one largest word; both waiting things are rows (the task leads, the action under it), each with the orange dot.
     expect(largest()).toEqual(['Danas · 14:00–16:00']);
     expect(row('2 prijave').accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
@@ -463,7 +423,7 @@ describe('what leads Početna', () => {
 
   it('with no appointment ahead the first thing that waits is the one record: its number first, the task under it, the reason last, the others rows', async () => {
     const handlers = await direct(waiting());
-    expect(headings().filter(name => name === 'Raspored')).toHaveLength(0);
+    expect(headings().filter(name => name === 'Sledeće')).toHaveLength(0);
     const lead = row('2 prijave');
     expect(lead.accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
     expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === lead.accessibilityLabel)[0]
@@ -480,6 +440,8 @@ describe('what leads Početna', () => {
     const home = waiting(); home.attention = [term];
     await direct(home);
     expect(largest()).toEqual([]);
+    // The action leads and the task is under it; the sentence that said the action again is not drawn (the label keeps it).
+    expect(text()).not.toContain('Termin još nije dogovoren.');
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'heading' && node.props.children === 'Predloži termin')).toHaveLength(1);
     await act(async () => tree.unmount());
     const failed = waiting(); failed.attentionState = 'unavailable'; failed.attention = []; failed.prompts = [];
@@ -489,6 +451,41 @@ describe('what leads Početna', () => {
     const quiet = emptyHome(); quiet.firstRun = false;
     await direct(quiet);
     expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(dots()).toHaveLength(0);
+  });
+
+  // The approved blueprint (8 Oct 2026, T3): "Čeka te" holds three things at most. What does not fit is counted, together with what the
+  // server and the phone already said they left out, in the one grey line; a rating is a thing like the others and is counted when it does not fit.
+  describe('holds three things at most', () => {
+    const change = { id: 'agreement:change', title: 'Odgovori na predlog izmene', taskTitle: 'Montaža police', detail: 'Druga strana predlaže izmenu uslova.',
+      target: { kind: 'AGREEMENT_CHANGE' as const, agreementId: 'change' } };
+    const draft = { id: 'need:draft', title: 'Nastavi nacrt', taskTitle: 'Prevoz ormana', detail: 'Nacrt još nije objavljen.', target: { kind: 'NEED' as const, needId: 'draft' } };
+    const moreLine = /I još\s+(\d+)\s+u tvojim zadacima, prijavama i Dogovorima\./;
+
+    it('draws the first three and counts the draft and the ratings that do not fit', async () => {
+      const home = waiting(); home.attention = [choice, term, change, draft]; home.ratingsDue = 2;
+      await direct(home);
+      expect(row('2 prijave')).toBeDefined(); expect(row('Predloži termin')).toBeDefined(); expect(row('Odgovori na predlog izmene')).toBeDefined();
+      expect(text()).not.toContain('Nastavi nacrt'); expect(text()).not.toContain('Oceni 2 završena Dogovora');
+      expect(text().match(moreLine)?.[1]).toBe('2');
+    });
+
+    it('draws a rating when there is room for it, and counts nothing', async () => {
+      const home = waiting(); home.attention = [choice]; home.ratingsDue = 2;
+      await direct(home);
+      expect(text()).toContain('Oceni 2 završena Dogovora'); expect(text()).not.toMatch(moreLine);
+    });
+
+    it('adds what the server and the phone left out to what did not fit', async () => {
+      const home = waiting(); home.attention = [choice, term, change, draft]; home.attentionMore = 5; home.prompts = []; home.promptsMore = 3;
+      await direct(home);
+      expect(text().match(moreLine)?.[1]).toBe(String(5 + 3 + 1));
+    });
+
+    it('counts a rating that did not fit as one thing, however many Dogovori it names', async () => {
+      const home = waiting(); home.attention = [choice, term, change]; home.ratingsDue = 7;
+      await direct(home);
+      expect(text()).not.toContain('Oceni 7'); expect(text().match(moreLine)?.[1]).toBe('1');
+    });
   });
 });
 
@@ -719,6 +716,7 @@ it('four failed reads are a failed screen, not an empty account, and the two doo
 it('one failed side says it is not loaded while the other is counted', async () => {
   mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman'), need('nacrt', { stanje: 'NACRT' })]);
   await render();
+  // The one draft is offered under "Čeka te" ("Nastavi nacrt") and still counted in its list: the row is the count of what it opens.
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 nacrt');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
 });
@@ -726,10 +724,10 @@ it('one failed side says it is not loaded while the other is counted', async () 
 // Serbian counts take three shapes by the last two digits (plural.ts): a final 1 but not 11, a final 2–4 but not
 // 12–14, and everything else. 1 is covered above; 2, 5, 11 and 21 are the other edges.
 it.each([
-  [2, 'Moji zadaci. 2 aktivna · 2 nacrta', 'Moje prijave. 2 aktivne', 'Moje prijave. 2 prijave'],
-  [5, 'Moji zadaci. 5 aktivnih · 5 nacrta', 'Moje prijave. 5 aktivnih', 'Moje prijave. 5 prijava'],
-  [11, 'Moji zadaci. 11 aktivnih · 11 nacrta', 'Moje prijave. 11 aktivnih', 'Moje prijave. 11 prijava'],
-  [21, 'Moji zadaci. 21 aktivan · 21 nacrt', 'Moje prijave. 21 aktivna', 'Moje prijave. 21 prijava'],
+  [2, 'Moji zadaci. 2 aktivna · 2 nacrta', 'Moje prijave. 2 čekaju odgovor', 'Moje prijave. 2 prijave'],
+  [5, 'Moji zadaci. 5 aktivnih · 5 nacrta', 'Moje prijave. 5 čeka odgovor', 'Moje prijave. 5 prijava'],
+  [11, 'Moji zadaci. 11 aktivnih · 11 nacrta', 'Moje prijave. 11 čeka odgovor', 'Moje prijave. 11 prijava'],
+  [21, 'Moji zadaci. 21 aktivan · 21 nacrt', 'Moje prijave. 21 čeka odgovor', 'Moje prijave. 21 prijava'],
 ])('the two doors write %i in its Serbian form', async (count, tasks, applications, waiting) => {
   const many = <Row,>(make: (index: number) => Row) => Array.from({ length: count }, (_, index) => make(index));
   mockSource.mojePotrebe.mockResolvedValue([...many(index => need(`a${index}`)), ...many(index => need(`d${index}`, { stanje: 'NACRT' }))]);
@@ -967,10 +965,10 @@ it('keeps the same launch targets mounted as the initial overview read completes
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
 });
 
-it('an account with a withdrawn application says no active applications, not no application history', async () => {
+it('an account with a withdrawn application says that none waits for an answer, not that it has no application history', async () => {
   mockSource.mojePrijave.mockResolvedValue([{ ...application('stara'), stanje: 'WITHDRAWN' }]);
   await render();
-  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Nema aktivnih prijava');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Nijedna ne čeka odgovor');
   expect(text()).not.toContain('Još nemaš prijavu');
 });
 
@@ -987,6 +985,29 @@ it('a failed refresh never claims an empty account: the last overview stays, one
   expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
   await act(async () => action('Uskoči i zaradi').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
+});
+
+// The white dot on the owner's phone (8 Oct 2026) was Android's pull spinner, raised by a read nobody pulled. Only a pull raises it.
+it('raises the pull spinner for a pull only: a read the screen runs for another reason does not draw it', async () => {
+  const handlers = await direct(emptyHome(), { refreshing: true });
+  const control = () => tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props;
+  expect(control().refreshing).toBe(false);
+  await act(async () => control().onRefresh());
+  expect(handlers.onRefresh).toHaveBeenCalledTimes(1);
+  expect(control().refreshing).toBe(true);
+  await act(async () => tree.update(<HomePresentation home={emptyHome()} loading={false} refreshing={false} error={false} {...handlers} />));
+  expect(control().refreshing).toBe(false);
+});
+
+it('through the route: a pull reads again under the spinner, and the spinner goes with the read', async () => {
+  await render();
+  const control = () => tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props;
+  expect(control().refreshing).toBe(false);
+  const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
+  await act(async () => control().onRefresh());
+  expect(control().refreshing).toBe(true);
+  await act(async () => wait.resolve([]));
+  expect(control().refreshing).toBe(false);
 });
 
 it('logout of A and login of B never shows A, and a late answer for A cannot paint over B', async () => {
@@ -1031,13 +1052,19 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     prihvacenPocetak: null, tacanTermin: null, izmenaCeka: null, ...patch });
   const week = { timezone: 'Europe/Belgrade', rules: [], windows: [] };
   const available = (value: boolean) => ({ ...week, availableNow: value, accountId: A, profileId: 'p1', revision: 'rev-1' });
-  const switchNode = () => tree.root.findAll(node => node.props.accessibilityLabel === 'Slobodan sam sada' && typeof node.props.onValueChange === 'function')[0];
+  const switchNode = () => tree.root.findAll(node => node.props.accessibilityLabel === 'Mogu odmah' && typeof node.props.onValueChange === 'function')[0];
 
   it('asks for a term where a confirmed Dogovor has none, opens the form that proposes one, and no longer says that nothing waits (R02)', async () => {
     mockSource.mojiDogovori.mockResolvedValue([termless('krecenje')]);
     await render();
     expect(heading('Čeka te')).toHaveLength(1);
-    expect(text()).toContain('Krečenje stana u belo'); expect(text()).toContain('Predloži termin'); expect(text()).toContain('Termin još nije dogovoren.');
+    expect(text()).toContain('Krečenje stana u belo'); expect(text()).toContain('Predloži termin');
+    // The action and the task, and nothing else the eye has to read twice (the owner's phone, 8 Oct 2026): the sentence that repeated the
+    // action is in the label a screen reader hears, and nowhere else. With no appointment ahead this is the one record that leads: the action
+    // first, as a heading.
+    expect(text()).not.toContain('Termin još nije dogovoren.');
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Predloži termin'))[0]
+      .findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual(['Predloži termin', 'Krečenje stana u belo']);
     expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
     expect(row('Predloži termin').accessibilityLabel).toBe('Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.');
     await act(async () => row('Predloži termin').onPress());
@@ -1074,8 +1101,24 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     await render();
     expect(row('Nastavi nacrt').accessibilityLabel).toBe('Nastavi nacrt. Prevoz ormana iz Novog Sada. Nacrt još nije objavljen.');
     expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Nastavi nacrt'))).toHaveLength(1);
+    // Two lines, not three: the task and "Nastavi nacrt" (the owner's phone said the draft twice, "Nastavi nacrt / Nacrt još nije objavljen.").
+    expect(text()).not.toContain('Nacrt još nije objavljen.');
+    // Two drafts here (one of them has no title to name it by), so the door says how many there are.
+    expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 2 nacrta');
     await act(async () => row('Nastavi nacrt').onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'n1' } });
+  });
+
+  it('counts the drafts in the door when there are more than the one that "Čeka te" offers, and when none is offered', async () => {
+    mockSource.mojePotrebe.mockResolvedValue([need('a'), need('n1', { stanje: 'NACRT', naslov: 'Prevoz ormana iz Novog Sada' }), need('n4', { stanje: 'NACRT', naslov: 'Drugi nacrt' })]);
+    await render();
+    expect(row('Nastavi nacrt')).toBeDefined(); expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 2 nacrta');
+    await act(async () => tree.unmount());
+    // A draft that nothing offers (it has no title to name it by) is still a draft of the list, and the door counts it.
+    mockSource.mojePotrebe.mockResolvedValue([need('a'), need('n2', { stanje: 'NACRT', naslov: '' })]);
+    await render();
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Nastavi nacrt'))).toHaveLength(0);
+    expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 nacrt');
   });
 
   it.each([['an account with no work profile', null], ['a profile that is still a draft', { stanje: 'DRAFT', dostupanOdmah: false }]])(
@@ -1100,18 +1143,21 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
       expect(text()).not.toContain('Podesi radni profil'); expect(text()).not.toContain('Deo pregleda');
     });
 
-  it('draws the "Slobodan sam sada" switch only for an active profile, saves the saved week with only the status changed, and says that it holds until switched off (R06)', async () => {
+  // The owner's phone, 8 Oct 2026: "Slobodan sam sada / Uključeno. Važi dok ga ne isključiš." was a masculine form and a second name for what
+  // Dostupnost calls "Mogu odmah". The row is called what Dostupnost calls it, and says "Uključeno" or nothing.
+  it('draws the "Mogu odmah" switch only for an active profile, saves the saved week with only the status changed, and says "Uključeno" once it is on (R06)', async () => {
     profileRead.mockResolvedValue({ stanje: 'ACTIVE', dostupanOdmah: false });
     mockAvailability.read.mockResolvedValue({ ok: true, podatak: available(false) });
     mockAvailability.save.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, availability: available(true) } });
     await render();
-    expect(text()).toContain('Slobodan sam sada'); expect(text()).toContain('Uključi kad možeš da kreneš odmah.');
+    expect(text()).toContain('Mogu odmah'); expect(text()).not.toContain('Slobodan sam'); expect(text()).not.toContain('Uključi kad možeš da kreneš odmah.');
+    expect(text()).not.toContain('Uključeno');
     expect(switchNode().props.value).toBe(false);
     await act(async () => switchNode().props.onValueChange(true));
     expect(mockAvailability.read).toHaveBeenCalledTimes(1);
     expect(mockAvailability.save).toHaveBeenCalledWith({ expectedRevision: 'rev-1', value: { ...week, availableNow: true } });
     expect(switchNode().props.value).toBe(true); expect(switchNode().props.disabled).toBeFalsy();
-    expect(text()).toContain('Uključeno. Važi dok ga ne isključiš.');
+    expect(text()).toContain('Uključeno'); expect(text()).not.toContain('Važi dok ga ne isključiš.');
   });
 
   it('shows the switch at work while it saves, ignores a second touch, and returns it to where it was, saying so, when the save is not confirmed', async () => {

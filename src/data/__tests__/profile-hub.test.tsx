@@ -8,8 +8,8 @@ let mockIntent: 'narucilac' | 'uskocer' = 'narucilac';
 const mockPostaviUlogu = jest.fn();
 const mockSignOut = jest.fn();
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
-const mockRefresh = jest.fn();
-type Row = { ime: string | null; grad: string | null; profileId?: string; stanje?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null };
+const mockRefresh = jest.fn(), mockWorkerProfile = jest.fn(), mockPublicProfile = jest.fn();
+type Row = { ime: string | null; grad: string | null; profileId?: string; kind?: string; stanje?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; vestine?: string[]; radijusKm?: number };
 const identity: Row = { ime: 'Ana Petrović', grad: 'Novi Sad' };
 let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 let mockResource = { data: { identity, capability: null } as { identity: Row | null; capability: Row | null } | null,
@@ -26,10 +26,21 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccountId, email: mockEmail }, accountRevision: mockAccountRevision }),
   sesijaSada: () => ({ user: { id: mockAccountId }, accountRevision: mockAccountRevision }) }));
-jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: (value: string) => mockPostaviUlogu(value) }));
+jest.mock('../../store/uloga', () => ({ useUloga: () => mockIntent, ulogaSada: () => mockIntent, postaviUlogu: (value: string) => mockPostaviUlogu(value),
+  useIzvor: () => ({ mojRadnikProfil: mockWorkerProfile }) }));
 jest.mock('../authClientService', () => ({ authClientService: { signOutLocal: (actor: unknown) => mockSignOut(actor) } }));
 jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read: jest.fn() } }));
+jest.mock('../publicProfileClientService', () => ({ publicProfileClientService: { javniProfil: (...args: unknown[]) => mockPublicProfile(...args) } }));
+// The public profile as a sheet is tested on its own (public-profile-sheet.test.tsx); here it is a named element, so the hub is tested for when it opens it.
+jest.mock('../../ui/system/PublicProfileSheet', () => ({ PublicProfileSheet: 'PublicProfileSheet' }));
 jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => mockResource }));
+// What the rows "Podrška", "Blokirane osobe", "Izvoz podataka" and "Pravila i saglasnosti" say about themselves is read apart from the profile (hub-states.test.ts and
+// use-hub-states.test.tsx test the mapping and the reads); here it is the value the screen is handed, so the hub is tested for the words it puts on its rows.
+let mockHubStates: Record<string, unknown> = {};
+jest.mock('../../ui/profile/useHubStates', () => ({ useHubStates: () => mockHubStates }));
+// The version "O aplikaciji" says is the one the build records; here the build is a value the test sets.
+let mockVersion: string | null = '1.4.2';
+jest.mock('../../data/buildIdentity', () => ({ readBuildIdentity: () => ({ version: mockVersion }) }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 // The reputation reads its own resource; here it is a named element, so the hub is tested for where it places it and the
@@ -42,11 +53,12 @@ jest.mock('../../ui/profile/ProfileWorkSummary', () => ({ ProfileWorkSummary: 'P
 
 import Profil from '../../app/(app)/profil';
 import { ProfileHub, type ProfileHubIdentity } from '../../ui/profile/ProfileHubPresentation';
+import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 
 let tree: ReactTestRenderer;
 async function render() { await act(async () => { tree = create(<Profil />); }); }
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props.onPress();
-const logoutRow = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'profile-logout')[0];
+const logoutRow = () => tree.root.findAll(node => String(node.type) === 'Press' && ['Odjavi se', 'Sačekaj…'].includes(node.props.accessibilityLabel))[0];
 const logout = () => logoutRow().props.onPress();
 /** The pin beside the place under the name (16 px); the rows draw theirs at 32. */
 const placePins = () => tree.root.findAll(node => node.props?.kind === 'pin' && node.props?.size === 16);
@@ -56,6 +68,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockAccountId = 'account-a'; mockAccountRevision = 1; mockIntent = 'narucilac'; mockEmail = 'ana@example.rs';
   mockResource = { data: { identity, capability: null }, loading: false, error: false, refresh: mockRefresh };
+  mockHubStates = {}; mockVersion = '1.4.2';
   mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
   mockRouter.canGoBack.mockReturnValue(true);
   mockSignOut.mockResolvedValue(undefined);
@@ -67,25 +80,25 @@ describe('real profile hub', () => {
   // value the retired app mode last had; the hub must be the same hub whichever it was.
   it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the one hub, whatever the app last was (%s)', async intent => {
     mockIntent = intent; await render();
-    const open = tree.root.findByProps({ label: 'Podešavanja obaveštenja' }).props.onPress;
+    const open = tree.root.findByProps({ label: 'Obaveštenja' }).props.onPress;
     await act(async () => { open(); open(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/obavestenja']]);
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  // T4a (2026-10-07): the planner is "Raspored" everywhere (the owner's answer to decision 3), also on the profile.
-  it.each([['Radni profil', '/profil/radnik'], ['Područje rada', '/profil/lokacija'], ['Dostupnost', '/profil/dostupnost'], ['Raspored', '/raspored']])
-    ('offers %s to every account, without entering any mode first', async (label, route) => {
-      mockIntent = 'narucilac'; await render();
-      await act(async () => tree.root.findByProps({ label }).props.onPress());
-      expect(mockRouter.navigate.mock.calls).toEqual([[route]]);
-    });
+  it('offers the work profile to every account, without entering any mode first', async () => {
+    mockIntent = 'narucilac'; await render();
+    await act(async () => tree.root.findByProps({ label: 'Radni profil' }).props.onPress());
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/radnik']]);
+  });
 
-  it('calls the planner "Raspored" with its sentence "Dogovoreni termini", and no longer "Kalendar obaveza"', async () => {
+  // 8 Oct 2026 (owner's phone, "ista stvar na više mesta"): the area and the week live in the work profile and the plan lives in Dogovori, so the
+  // profile does not repeat any of the three as a row of its own.
+  it('does not repeat the area, the week or the planner: they are in the work profile and in Dogovori', async () => {
     await render();
-    const row = tree.root.findByProps({ label: 'Raspored' });
-    expect(row.props.detail).toBe('Dogovoreni termini');
+    for (const label of ['Područje rada', 'Dostupnost', 'Raspored']) expect([label, tree.root.findAllByProps({ label })]).toEqual([label, []]);
     expect(visibleText()).not.toContain('Kalendar'); expect(tree.root.findAllByProps({ label: 'Kalendar obaveza' })).toHaveLength(0);
+    expect(visibleText()).not.toContain('Dogovoreni termini');
   });
 
   it.each(['narucilac', 'uskocer'] as const)('opens privacy once, whatever the app last was (%s)', async intent => {
@@ -179,13 +192,24 @@ describe('real profile hub', () => {
     expect(mockPostaviUlogu).not.toHaveBeenCalled();
   });
 
-  it('says in every state whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
+  // 8 Oct 2026: the one line under "Radni profil" is its state, its first skill (and how many more) and its area, and nothing that explains itself.
+  const detail = () => tree.root.findByProps({ label: 'Radni profil' }).props.detail;
+  it('says in one line whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
     // The not-set-up copy lost its grammatical gender ("nisi podesio", 2026-09-23); what it says is unchanged.
-    await render(); expect(visibleText()).toContain('Radni profil još nije podešen.'); expect(visibleText()).not.toContain('podesio');
-    for (const [stanje, copy] of [['DRAFT', 'Profil je nacrt'], ['ACTIVE', 'Profil je aktivan'], ['SUSPENDED', 'Radni profil je suspendovan. Obrati se podršci.']] as const) {
+    await render(); expect(detail()).toBe('Još nije podešen'); expect(visibleText()).not.toContain('podesio');
+    for (const [stanje, copy] of [['DRAFT', 'Nacrt · Novi Sad'], ['ACTIVE', 'Aktivan · Novi Sad'], ['SUSPENDED', 'Suspendovan. Obrati se podršci.']] as const) {
       mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje } } };
-      await act(async () => tree.update(<Profil />)); expect(visibleText()).toContain(copy);
+      await act(async () => tree.update(<Profil />)); expect(detail()).toBe(copy);
     }
+  });
+
+  it('names the skills and the area in that line: the first skill and how many more, the city and its radius', async () => {
+    mockResource.data = { identity, capability: { ime: 'Ana', grad: 'Novi sad', stanje: 'ACTIVE', vestine: ['Moleraj', 'Keramika', 'Parket'], radijusKm: 100 } };
+    await render();
+    expect(detail()).toBe('Aktivan · Moleraj +2 · Novi Sad, 100 km');
+    mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: '  ', stanje: 'DRAFT', vestine: [], radijusKm: 20 } } };
+    await act(async () => tree.update(<Profil />));
+    expect(detail()).toBe('Nacrt');
   });
 
   it('opens the capability editor from the one hub, and with no history Back goes to Početna', async () => {
@@ -251,12 +275,14 @@ describe('real profile hub', () => {
   });
 
   // 2026-09-24: the "Uredi" pill opened the same screen as the "Ime na profilu" row; one control per job.
-  // T4a (2026-10-07): the one control is "Izmeni profil", because the screen it opens is more than the name.
+  // T4a (2026-10-07): the one control opens more than the name. 8 Oct 2026 (the approved draft of the product, P1): it is named after the screen it opens,
+  // "Lični podaci", because the name is changed there and nowhere else ("jedno ime za sve").
   it('edits the profile through its one control, with no second edit control beside it', async () => {
     await render();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi ime na profilu' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ label: 'Izmeni ime' })).toHaveLength(0);
-    const pencil = tree.root.findByProps({ label: 'Izmeni profil' });
+    expect(tree.root.findAllByProps({ label: 'Izmeni profil' })).toHaveLength(0);
+    const pencil = tree.root.findByProps({ label: 'Lični podaci' });
     expect(pencil.props.hint).toBe('Otvara izmenu fotografije, imena i opisa.');
     await act(async () => pencil.props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podaci']]);
@@ -304,11 +330,19 @@ describe('real profile hub', () => {
     mockResource.data = { identity: { ime: 'Ana', grad: 'NovI SAD' }, capability: { ime: 'Ana', grad: 'NOVI SAD', stanje: 'ACTIVE' } };
     await render();
     expect(visibleText()).toContain('Novi Sad'); expect(visibleText()).not.toContain('NovI'); expect(visibleText()).not.toContain('NOVI');
-    expect(tree.root.findByProps({ label: 'Područje rada' }).props.detail).toBe('Novi Sad');
+    expect(detail()).toBe('Aktivan · Novi Sad');
     mockResource = { ...mockResource, data: { identity: { ime: 'Ana', grad: 'Sremska Kamenica' }, capability: { ime: 'Ana', grad: 'Beograd - Zemun', stanje: 'ACTIVE' } } };
     await act(async () => tree.update(<Profil />));
     expect(visibleText()).toContain('Sremska Kamenica');
-    expect(tree.root.findByProps({ label: 'Područje rada' }).props.detail).toBe('Beograd - Zemun');
+    expect(detail()).toBe('Aktivan · Beograd - Zemun');
+  });
+
+  // The owner's phone, 8 Oct 2026: the header said "Novi Sad" and the rows under it "Novi sad" (the work area's city was typed with a small "s").
+  it('shows "Novi sad" typed with a small "s" as "Novi Sad" in the header and in the work profile line alike', async () => {
+    mockResource.data = { identity: { ime: 'Ana', grad: 'Novi sad' }, capability: { ime: 'Ana', grad: 'Novi sad', stanje: 'ACTIVE' } };
+    await render();
+    expect(visibleText()).toContain('Novi Sad'); expect(visibleText()).not.toContain('Novi sad');
+    expect(detail()).toBe('Aktivan · Novi Sad');
   });
 
   // 8 Oct 2026 ("Lice i tri broja"): the face stands OVER the name, centred, whatever the window and the text size; nothing stacks differently.
@@ -344,18 +378,15 @@ describe('real profile hub', () => {
   it('says nothing about a work profile whose state it does not know, rather than calling it active', async () => {
     mockResource.data = { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: null } };
     await render();
-    expect(visibleText()).not.toContain('Profil je aktivan'); expect(visibleText()).not.toContain('Profil je nacrt');
-    expect(visibleText()).not.toContain('Radni profil još nije podešen');
+    expect(detail()).toBeUndefined();
+    expect(visibleText()).not.toContain('Aktivan'); expect(visibleText()).not.toContain('Nacrt'); expect(visibleText()).not.toContain('Još nije podešen');
   });
 
-  it('says the work area is not set when a work profile has none, and says nothing without a work profile', async () => {
-    mockResource.data = { identity, capability: { ime: 'Ana', grad: '  ', stanje: 'DRAFT' } };
-    await render();
-    const detail = () => tree.root.findByProps({ label: 'Područje rada' }).props.detail;
-    expect(detail()).toBe('Nije podešeno');
-    mockResource = { ...mockResource, data: { identity, capability: null } };
-    await act(async () => tree.update(<Profil />));
-    expect(detail()).toBeUndefined();
+  it('says nothing under the work profile while the read runs or failed: there is nothing true to say yet', async () => {
+    mockResource = { ...mockResource, data: null, loading: true };
+    await render(); expect(detail()).toBeUndefined();
+    mockResource = { ...mockResource, loading: false, error: true };
+    await act(async () => tree.update(<Profil />)); expect(detail()).toBeUndefined();
   });
 
   // Round 5c: the name is never cut (it used to stop at three lines, so a name over ~42 letters ended in "…"); it wraps, centred under the face.
@@ -405,18 +436,42 @@ describe('real profile hub', () => {
   });
 });
 
-// UI/UX pass 2026-10-08 (F6, composition spec 4.14): the profile is one calm list of three named sections, with the identity as a face
-// beside the name instead of a card, and every way onward a row of the one kind.
+// UI/UX pass 2026-10-08 (F6, composition spec 4.14): the profile is one calm list of named sections, with the identity as a face
+// over the name instead of a card, and every way onward a row of the one kind. The owner's phone the same day: "Uskakanje" holds only the
+// work profile, "Nalog" the sign-in and what belongs to the account, "Pomoć" support and the bug report, "Privatnost" what is public and kept;
+// nothing is said twice (the approved draft of the product, P1).
 describe('the profile composed as one calm list', () => {
   const headers = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
-  const SECTIONS = ['Kako mogu da uskočim', 'Nalog i pomoć', 'Privatnost'];
+  const SECTIONS = ['Uskakanje', 'Nalog', 'Pomoć', 'Privatnost'];
   /** The position of a node in the order the screen draws things from the top. */
   const order = (predicate: (node: ReactTestInstance) => boolean) => tree.root.findAll(() => true).findIndex(predicate);
   const heading = (title: string) => order(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.children.join('') === title);
 
-  it('names three sections, in the order a person needs them: how I can help, my account and help, privacy', async () => {
+  it('names four sections, in the order a person needs them: jumping in, the account, help, privacy', async () => {
     await render();
     expect(headers().filter(title => SECTIONS.includes(title))).toEqual(SECTIONS);
+  });
+
+  // The approved draft, P1: what stands in each section, row by row, in the order it is drawn.
+  it('puts in each section exactly the rows of the approved draft, and "O aplikaciji" alone after them', async () => {
+    mockResource.data = { identity: { ...identity, profileId: 'profile-r', kind: 'REQUESTER' }, capability: null };
+    await render();
+    const rows = tree.root.findAll(node => typeof node.props.label === 'string' && (typeof node.props.onPress === 'function' || node.props.value !== undefined))
+      .map(node => node.props.label as string);
+    const unique = rows.filter((label, at) => rows.indexOf(label) === at);
+    expect(unique.filter(label => ['Kako te drugi vide', 'Radni profil', 'E-pošta', 'Obaveštenja', 'Promeni lozinku', 'Podrška', 'Prijavi grešku',
+      'Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti', 'O aplikaciji'].includes(label))).toEqual([
+      'Kako te drugi vide', 'Radni profil', 'E-pošta', 'Obaveštenja', 'Promeni lozinku', 'Podrška', 'Prijavi grešku',
+      'Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti', 'O aplikaciji']);
+    // "Kako te drugi vide" belongs to the person, not to a setting: it stands under the figures, before the first section.
+    expect(heading('Uskakanje')).toBeGreaterThan(order(node => node.props.label === 'Kako te drugi vide'));
+    expect(order(node => node.props.label === 'Kako te drugi vide')).toBeGreaterThan(order(node => node.props.testID === 'profile-figures'));
+    // The sections are each other's neighbours in the draft's order.
+    const at = (label: string) => order(node => node.props.label === label && (typeof node.props.onPress === 'function' || node.props.value !== undefined));
+    expect(heading('Nalog')).toBeLessThan(at('E-pošta')); expect(at('Promeni lozinku')).toBeLessThan(heading('Pomoć'));
+    expect(heading('Pomoć')).toBeLessThan(at('Podrška')); expect(at('Prijavi grešku')).toBeLessThan(heading('Privatnost'));
+    expect(heading('Privatnost')).toBeLessThan(at('Privatnost i podaci')); expect(at('Pravila i saglasnosti')).toBeLessThan(at('O aplikaciji'));
+    expect(headers()).not.toContain('O aplikaciji');
   });
 
   it('puts the three figures, the rating, finished and reliability, in one row under the name and before the sections, for an account with a work profile', async () => {
@@ -429,9 +484,9 @@ describe('the profile composed as one calm list', () => {
     expect(rating).toBeGreaterThan(-1); expect(finished).toBeGreaterThan(-1); expect(stats).toBeGreaterThan(-1);
     expect(name).toBeLessThan(rating);
     expect(rating).toBeLessThan(finished); expect(finished).toBeLessThan(stats);
-    expect(stats).toBeLessThan(heading('Kako mogu da uskočim'));
-    expect(heading('Kako mogu da uskočim')).toBeLessThan(heading('Nalog i pomoć'));
-    expect(heading('Nalog i pomoć')).toBeLessThan(heading('Privatnost'));
+    expect(stats).toBeLessThan(heading('Uskakanje'));
+    expect(heading('Uskakanje')).toBeLessThan(heading('Nalog'));
+    expect(heading('Nalog')).toBeLessThan(heading('Privatnost'));
     const row = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'profile-figures')[0];
     const { StyleSheet } = jest.requireActual('react-native');
     expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
@@ -463,27 +518,79 @@ describe('the profile composed as one calm list', () => {
     expect(tree.root.findAll(node => String(node.type) === 'ProfileStats')).toHaveLength(0);
   });
 
-  it('says the email under "Promeni lozinku", opens the screen once, and says nothing under it when the account has no email', async () => {
+  // The sign-in is said ONCE, as a quiet row of "Nalog" (a label and its value, no arrow, no press); "Promeni lozinku" says nothing under it.
+  it('says the e-mail once, as a quiet row of the account, opens "Promeni lozinku" once, and draws no e-mail row when the account has none', async () => {
     await render();
     const row = () => tree.root.findByProps({ label: 'Promeni lozinku' });
-    expect(row().props.detail).toBe('ana@example.rs');
+    const email = () => tree.root.findAll(node => node.props.label === 'E-pošta' && node.props.value !== undefined);
+    expect(email().map(node => node.props.value)).toEqual(['ana@example.rs']);
+    expect(email()[0].props.onPress).toBeUndefined();
+    expect(row().props.detail).toBeUndefined();
     await act(async () => { row().props.onPress(); row().props.onPress(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/lozinka']]);
     await act(async () => { tree.unmount(); });
     mockEmail = undefined;
     await render();
-    expect(row().props.detail).toBeUndefined();
+    expect(email()).toHaveLength(0);
   });
 
-  it('offers "Prijavi grešku u aplikaciji" beside "Podrška", and says the version is written by itself', async () => {
+  it('offers "Prijavi grešku" beside "Podrška", in the section "Pomoć", with no sentence under it', async () => {
     await render();
-    const row = tree.root.findByProps({ label: 'Prijavi grešku u aplikaciji' });
-    expect(row.props.detail).toBe('Verzija aplikacije se upisuje sama.');
+    expect(tree.root.findAllByProps({ label: 'Prijavi grešku u aplikaciji' })).toHaveLength(0);
+    const row = tree.root.findByProps({ label: 'Prijavi grešku' });
+    expect(row.props.detail).toBeUndefined();
+    expect(visibleText()).not.toContain('upisuje sama');
     await act(async () => row.props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/prijava-greske']]);
     const labels = tree.root.findAll(node => typeof node.props.label === 'string' && typeof node.props.onPress === 'function').map(node => node.props.label);
-    expect(labels.indexOf('Podrška')).toBeLessThan(labels.indexOf('Prijavi grešku u aplikaciji'));
-    expect(labels.indexOf('Prijavi grešku u aplikaciji')).toBeLessThan(labels.indexOf('O aplikaciji'));
+    expect(labels.indexOf('Podrška')).toBeLessThan(labels.indexOf('Prijavi grešku'));
+    expect(labels.indexOf('Prijavi grešku')).toBeLessThan(labels.indexOf('O aplikaciji'));
+  });
+
+  // The approved draft, P1: "Podrška (broj otvorenih)", "Blokirane osobe (Nema / 2)", "Izvoz podataka (Nije tražen)", "Pravila i saglasnosti (Još nisu objavljena)",
+  // "O aplikaciji (Verzija 1.0.0)". A state that could not be read has no word, and no row says "nije dostupno" in its place (J4).
+  describe('the state some rows say about themselves', () => {
+    const value = (label: string) => tree.root.findByProps({ label }).props.value;
+    it('says, from what the app read, how many requests are open, how many people are blocked, where the export is and what the rules are', async () => {
+      mockHubStates = { support: 2, blocked: { count: 3, more: false }, exportPhase: 'READY_AVAILABLE', legal: 'PENDING' };
+      await render();
+      expect(value('Podrška')).toBe('2 otvorena zahteva');
+      expect(value('Blokirane osobe')).toBe('3');
+      expect(value('Izvoz podataka')).toBe('Spreman');
+      expect(value('Pravila i saglasnosti')).toBe('Čekaju tvoju saglasnost');
+      expect(value('O aplikaciji')).toBe('Verzija 1.4.2');
+    });
+
+    it('says "Nema" for nobody blocked, "Nije tražen" for an export nobody asked for, and the rules that are not published yet, and nothing for no open request', async () => {
+      mockHubStates = { support: 0, blocked: { count: 0, more: false }, exportPhase: 'NONE', legal: 'UNPUBLISHED' };
+      await render();
+      expect(value('Podrška')).toBeUndefined();
+      expect(value('Blokirane osobe')).toBe('Nema'); expect(value('Izvoz podataka')).toBe('Nije tražen'); expect(value('Pravila i saglasnosti')).toBe('Još nisu objavljena');
+    });
+
+    it('says a count with its Serbian shape, and "50+" when another page of the blocked follows', async () => {
+      mockHubStates = { support: 1, blocked: { count: 50, more: true } };
+      await render();
+      expect(value('Podrška')).toBe('1 otvoren zahtev'); expect(value('Blokirane osobe')).toBe('50+');
+      mockHubStates = { support: 5, blocked: { count: 1, more: false } };
+      await act(async () => tree.update(<Profil />));
+      expect(value('Podrška')).toBe('5 otvorenih zahteva'); expect(value('Blokirane osobe')).toBe('1');
+    });
+
+    it('says nothing on a row whose state could not be read, and invents no "nije dostupno" in its place', async () => {
+      mockHubStates = {}; mockVersion = null;
+      await render();
+      for (const label of ['Podrška', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti', 'O aplikaciji']) expect([label, value(label)]).toEqual([label, undefined]);
+      expect(visibleText()).not.toMatch(/nije dostupn/i);
+    });
+
+    it('opens each of those rows once, whatever it says', async () => {
+      mockHubStates = { support: 2, blocked: { count: 1, more: false }, exportPhase: 'PROCESSING', legal: 'ACCEPTED' };
+      await render();
+      const open = tree.root.findByProps({ label: 'Blokirane osobe' }).props.onPress;
+      await act(async () => { open(); open(); });
+      expect(mockRouter.navigate.mock.calls).toEqual([['/profil/blokirani']]);
+    });
   });
 
   it('marks the work profile with a dot while something waits for the person (not set up, a draft), and not otherwise', async () => {
@@ -500,22 +607,35 @@ describe('the profile composed as one calm list', () => {
     expect(attention()).toBe(false);
   });
 
-  it('keeps the needed-once rows quiet: the privacy pictures go grey', async () => {
+  // The owner's phone: the privacy rows had grey pictures and the password had a green one, "dve različite brave". Every row has the same kind of
+  // picture, and each of the eleven rows has its own, so the lock is the password's and nothing else's.
+  it('draws every row with its own picture in the same colour: no grey set, and one lock on the whole screen', async () => {
     await render();
-    for (const label of ['Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti']) {
-      expect([label, tree.root.findByProps({ label }).props.tone]).toEqual([label, 'quiet']);
-    }
-    for (const label of ['Radni profil', 'Podrška', 'Promeni lozinku']) expect([label, tree.root.findByProps({ label }).props.tone]).toEqual([label, 'default']);
+    const labels = ['Radni profil', 'Kako te drugi vide', 'Obaveštenja', 'Promeni lozinku', 'Podrška', 'Prijavi grešku', 'O aplikaciji',
+      'Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti'];
+    mockResource.data = { identity: { ...identity, profileId: 'profile-r', kind: 'REQUESTER' }, capability: null };
+    await act(async () => tree.update(<Profil />));
+    const kinds = labels.map(label => {
+      const row = tree.root.findByProps({ label });
+      expect([label, row.props.tone]).toEqual([label, undefined]);
+      return (row.props.icon as { props: { kind: string } }).props.kind;
+    });
+    expect(new Set(kinds).size).toBe(kinds.length);
+    expect(kinds.filter(kind => kind === 'lock')).toEqual(['lock']);
+    expect(kinds[labels.indexOf('Promeni lozinku')]).toBe('lock');
   });
 
-  it('ends with the red "Odjavi se" row, a command and not a way onward (no arrow), which waits while a row is opening', async () => {
+  it('ends with the red "Odjavi se" as a command across the whole width (no arrow: it opens nothing), which waits while a row is opening', async () => {
     await render();
-    const list = () => tree.root.findAll(node => node.props.testID === 'profile-logout' && node.props.tone === 'danger')[0];
-    expect(list().props.title).toBe('Odjavi se');
+    const { StyleSheet } = jest.requireActual('react-native');
+    expect(logoutRow().props.accessibilityLabel).toBe('Odjavi se');
     expect(logoutRow().findAll(node => node.props.name === 'caret-right')).toHaveLength(0);
+    expect(StyleSheet.flatten(logoutRow().props.style).alignSelf).toBe('stretch');
+    const word = logoutRow().findAll(node => String(node.type) === 'T')[0];
+    expect(StyleSheet.flatten(word.props.style).textAlign).toBe('center');
     await act(async () => tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress());
-    expect(list().props.title).toBe('Sačekaj…');
-    expect(list().props.disabled).toBe(true);
+    expect(logoutRow().props.accessibilityLabel).toBe('Sačekaj…');
+    expect(logoutRow().props.disabled).toBe(true);
   });
 
   it('says the sign-out failed above the row, as an alert in the danger colour, and does not draw it before', async () => {
@@ -547,5 +667,82 @@ describe('the profile composed as one calm list', () => {
     await render();
     const missing = tree.root.findAll(node => String(node.type) === 'T' && node.children.includes('Ime još nije uneto'))[0];
     expect(missing.props).toMatchObject({ variant: 'title', tone: 'muted' });
+  });
+});
+
+// "Kako te drugi vide" (Airbnb's standard, 8 Oct 2026): the person's own public profile, as the same sheet everyone else is shown, opened only by a press.
+describe('"Kako te drugi vide"', () => {
+  const sheet = () => tree.root.findAll(node => String(node.type) === 'PublicProfileSheet')[0];
+  const row = () => tree.root.findAllByProps({ label: 'Kako te drugi vide' })[0];
+  const ownRow = (patch: Partial<Row> = {}): Row => ({ ime: 'Ana Petrović', grad: 'Novi Sad', profileId: 'profile-r', kind: 'REQUESTER', ...patch });
+  const publicProfile = (profilId: string) => ({ profilId, uloga: 'narucilac', ime: 'Ana Petrović', avatarPutanja: null, grad: 'Novi Sad', naslov: null, biografija: null,
+    poverenje: { ocenaProsek: null, brojRecenzija: 0, zavrseniBroj: 0, identitetVerifikovan: false, ocenaDostupna: false, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: true } });
+
+  it('is a row of the account once the profile is read and there is a profile to open, and not before', async () => {
+    mockResource.data = { identity: ownRow(), capability: null };
+    await render(); expect(row()).toBeTruthy();
+    mockResource = { ...mockResource, data: { identity: { ime: 'Ana Petrović', grad: 'Novi Sad' }, capability: null } };
+    await act(async () => tree.update(<Profil />)); expect(row()).toBeUndefined();
+    mockResource = { ...mockResource, data: { identity: ownRow(), capability: null }, loading: true };
+    await act(async () => tree.update(<Profil />)); expect(row()).toBeUndefined();
+  });
+
+  it('opens the sheet at once, reads the public profile of the person once, and shows it when it arrives', async () => {
+    mockResource.data = { identity: ownRow(), capability: null };
+    mockPublicProfile.mockResolvedValue(publicProfile('profile-r'));
+    await render(); expect(sheet()).toBeUndefined();
+    await act(async () => { row().props.onPress(); });
+    expect(mockPublicProfile).toHaveBeenCalledTimes(1); expect(mockPublicProfile.mock.calls[0][0]).toBe('profile-r');
+    expect(sheet().props.state.loading).toBe(false); expect(sheet().props.state.data.profilId).toBe('profile-r');
+    // It is a sheet over the screen, not a way onward: nothing else on the hub is opened, and the hub stays usable under it.
+    expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(logoutRow().props.disabled).not.toBe(true);
+    await act(async () => { sheet().props.onClose(); });
+    expect(sheet()).toBeUndefined();
+  });
+
+  it('reads the work profile of an account whose work profile is active, because that is the person others look at', async () => {
+    mockResource.data = { identity: ownRow(), capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE', profileId: 'profile-w' } };
+    mockPublicProfile.mockResolvedValue(publicProfile('profile-w'));
+    await render(); await act(async () => { row().props.onPress(); });
+    expect(mockPublicProfile.mock.calls[0][0]).toBe('profile-w');
+    await act(async () => { sheet().props.onClose(); });
+    mockResource = { ...mockResource, data: { identity: ownRow(), capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'DRAFT', profileId: 'profile-w' } } };
+    mockPublicProfile.mockResolvedValue(publicProfile('profile-r'));
+    await act(async () => tree.update(<Profil />)); await act(async () => { row().props.onPress(); });
+    expect(mockPublicProfile.mock.calls[1][0]).toBe('profile-r');
+  });
+
+  it('says a profile that could not be read as an unavailable one, and ignores an answer that arrives after the sheet was closed', async () => {
+    mockResource.data = { identity: ownRow(), capability: null };
+    mockPublicProfile.mockRejectedValueOnce(new Error('transport'));
+    await render(); await act(async () => { row().props.onPress(); });
+    expect(sheet().props.state).toEqual({ loading: false, data: null });
+    await act(async () => { sheet().props.onClose(); });
+    let answer!: (value: unknown) => void;
+    mockPublicProfile.mockReturnValueOnce(new Promise(done => { answer = done; }));
+    await act(async () => { row().props.onPress(); });
+    expect(sheet().props.state.loading).toBe(true);
+    await act(async () => { sheet().props.onClose(); });
+    await act(async () => { answer(publicProfile('profile-r')); });
+    expect(sheet()).toBeUndefined();
+  });
+
+  it('does not open for a press kept from another account', async () => {
+    mockResource.data = { identity: ownRow(), capability: null };
+    await render(); const open = row().props.onPress;
+    mockAccountId = 'account-b'; mockAccountRevision = 2;
+    await act(async () => { open(); });
+    expect(mockPublicProfile).not.toHaveBeenCalled(); expect(sheet()).toBeUndefined();
+  });
+
+  // The face on the hub and the face in the sheet are the person's own, so the app remembers them in memory (ownPhotoCache): coming back to the profile
+  // draws the photograph at once instead of the letters that stand in for it while it is read.
+  it("draws the person's own photograph, on the hub and in the sheet, as one to be remembered", async () => {
+    mockResource.data = { identity: ownRow(), capability: null };
+    mockPublicProfile.mockResolvedValue(publicProfile('profile-r'));
+    await render();
+    expect(tree.root.findByType(ProfilePhoto).props).toMatchObject({ profileId: 'profile-r', own: true });
+    await act(async () => { row().props.onPress(); });
+    expect(sheet().props.photo('profile-r', 96).props).toMatchObject({ profileId: 'profile-r', size: 96, own: true });
   });
 });

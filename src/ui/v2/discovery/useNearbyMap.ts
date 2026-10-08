@@ -14,10 +14,14 @@ export const NEARBY_COPY: Partial<Record<NearbyStatus, string>> = {
   unsupported: 'U blizini je dostupno u mobilnoj aplikaciji. Ovde pomeri mapu ručno.',
 };
 
-/** The target lives only in this screen's memory. Account/focus/background retirement discards it and stops capture. */
+/**
+ * The target lives only in this screen's memory. Account/focus/background retirement discards it and stops capture. `me` is where the person was
+ * the one time they asked ("moja lokacija"), kept for as long as this visit lasts so the map can show a dot there: one point, never a track, never
+ * stored or sent, and gone with the same retirements as the target (the next capture replaces it).
+ */
 export function useNearbyMap(scopeKey: string, focused: boolean) {
   const [status, setStatus] = useState<NearbyStatus>('idle');
-  const [located, setLocated] = useState<{ scopeKey: string; owner: object; target: NearbyCameraTarget | null } | null>(null);
+  const [located, setLocated] = useState<{ scopeKey: string; owner: object; target: NearbyCameraTarget | null; me: [number, number] } | null>(null);
   const latest = useRef({ scopeKey, focused }); latest.current = { scopeKey, focused };
   const incarnation = useRef<object | null>(null), sequence = useRef(0);
   const capture = useRef<ReturnType<typeof createNearbyCapture> | null>(null);
@@ -29,7 +33,8 @@ export function useNearbyMap(scopeKey: string, focused: boolean) {
       && AppState.currentState !== 'background';
     const controller = createNearbyCapture({
       load: loadNearbyLocation, owns, onStatus: setStatus, beforePermission: askForLocation,
-      onPoint: point => { if (owns()) setLocated({ scopeKey, owner, target: { key: ++sequence.current, center: [point.longitude, point.latitude] } }); },
+      onPoint: point => { if (owns()) setLocated({ scopeKey, owner, target: { key: ++sequence.current, center: [point.longitude, point.latitude] },
+        me: [point.longitude, point.latitude] }); },
     });
     capture.current = controller;
     setStatus('idle'); setLocated(null);
@@ -67,6 +72,6 @@ export function useNearbyMap(scopeKey: string, focused: boolean) {
     });
   } : undefined;
   const mapRequested = focused && foreground && located?.scopeKey === scopeKey && located.owner === incarnation.current;
-  return { status, target: mapRequested ? located.target : null, mapRequested, start, consume, settings,
+  return { status, target: mapRequested ? located.target : null, me: mapRequested ? located.me : null, mapRequested, start, consume, settings,
     message: NEARBY_COPY[status], busy: status === 'locating' };
 }

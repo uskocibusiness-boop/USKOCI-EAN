@@ -31,7 +31,7 @@ export function ResponseDeadlineEditor(p: { value: string | null; timezone: stri
 
 // Read from `sys`, the one token surface (the conversation's own token file is a view onto it and is not needed here).
 const s = StyleSheet.create({
-  stack: { gap: 12 },
+  stack: { gap: sys.space.md },
   note: { ...sys.type.meta, color: sys.color.muted },
   error: { ...sys.type.meta, color: sys.color.danger },
 });

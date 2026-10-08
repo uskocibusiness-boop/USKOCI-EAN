@@ -31,6 +31,7 @@ jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown: 'CaretDown', Lightning: 'Lightning' }));
 import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
 import { TaskAgeContext } from '../../ui/v2/discovery/taskAge';
+import { DistanceFromContext } from '../../ui/v2/discovery/taskDistance';
 import { CardPlaces, ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
@@ -64,7 +65,7 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 describe('the face, in its order', () => {
   it('says title, amount with what it buys, where, when, who and the count of people, in that order, and nothing else', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Nikola Petrović', '4,8 (12)', '0/2']);
+    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Nikola Petrović', '4,8 (12)', 'Treba 2 osobe']);
     expect(facts()).toEqual(['money', 'pin', 'calendar', 'star', 'users']);
   });
 
@@ -180,21 +181,35 @@ describe('the value slot', () => {
     expect(style(foot()).flexDirection).toBe('row');
   });
 
-  it('tells the owner of a task found in discovery that offers are being asked for, not that they are taken', async () => {
+  it('says the same words to the owner of a task found in discovery as to everybody and as the page of the task does ("Tražim ponude"), never "Tražiš ponude"', async () => {
     await render(<TaskCard item={task({ rezimCene: 'OFFERS' })} relation="OWNED" onOpen={jest.fn()} />);
-    expect(texts()).toContain('Tražiš ponude'); expect(texts()).not.toContain('Tražim ponude');
+    expect(texts()).toContain('Tražim ponude'); expect(texts()).not.toContain('Tražiš ponude');
+    expect(presses()[0].props.accessibilityLabel).toMatch(/Tražim ponude/); expect(presses()[0].props.accessibilityLabel).not.toMatch(/Tražiš/);
   });
 });
 
 describe('the places and the person', () => {
-  it.each([[2, 0], [3, 1], [3, 2], [3, 3]])('show filled/total only (%s total, %s filled), while explaining it to a screen reader', async (ukupno, popunjeno) => {
-    const pokrivenost = { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno };
-    await render(<TaskCard item={task({ pokrivenost })} onOpen={jest.fn()} />);
-    expect(texts()).toContain(`${popunjeno}/${ukupno}`);
-    expect(texts().join(' ')).not.toMatch(/popunjeno|osob|mesta/);
-    expect(facts()).toContain('users');
-    // "popunjeno" agrees with the number of places filled: "2 od 3 mesta popunjena", but "1 od 3 mesta popunjeno" (text proposal 2026-10-07).
-    expect(presses()[0].props.accessibilityLabel).toContain(`${popunjeno} od ${ukupno} mesta ${popunjeno >= 2 && popunjeno <= 4 ? 'popunjena' : 'popunjeno'}`);
+  // The owner's phone of 8 Oct 2026: "bez 0/1 — ništa ne znači onome ko traži zadatak". The count of people is said in words, only for a task that needs more than one, and what is
+  // read is the same sentence a screen reader hears. For the one who can come: how many places are left; once all are taken, that.
+  it.each([[2, 0, 'Treba 2 osobe'], [3, 0, 'Treba 3 osobe'], [5, 0, 'Treba 5 osoba'], [3, 1, 'Još 2 od 3 mesta'], [3, 2, 'Još 1 od 3 mesta'], [3, 3, 'Sva mesta su popunjena']])(
+    'say the people a task needs in words (%s total, %s filled): "%s"', async (ukupno, popunjeno, words) => {
+      const pokrivenost = { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno };
+      await render(<TaskCard item={task({ pokrivenost })} onOpen={jest.fn()} />);
+      expect(texts()).toContain(words);
+      expect(texts().join(' ')).not.toMatch(/\d\/\d/);
+      expect(facts()).toContain('users');
+      expect(presses()[0].props.accessibilityLabel).toContain(words);
+    });
+
+  it('says nothing of the count for a task for one person ("0/1" meant nothing), and a face with neither a person nor a count has no foot at all', async () => {
+    const one = { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 };
+    await render(<TaskCard item={task({ pokrivenost: one })} onOpen={jest.fn()} />);
+    expect(texts().join(' ')).not.toMatch(/\d\/\d|osob|mesta/); expect(facts()).not.toContain('users');
+    expect(presses()[0].props.accessibilityLabel).not.toMatch(/mesta|osob/);
+    // the person is still there: the foot is
+    expect(tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-foot')).toHaveLength(1);
+    await act(async () => tree.update(<TaskCard item={task({ pokrivenost: one, narucilacIme: undefined, narucilacOcena: undefined, narucilacBrojOcena: undefined, narucilacProfilId: undefined })} onOpen={jest.fn()} />));
+    expect(tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-foot')).toHaveLength(0);
   });
 
   it('retains the full audience-specific count in the shared component used by the composer and preview', async () => {
@@ -208,7 +223,9 @@ describe('the places and the person', () => {
 
   it('show the owner the progress on a task of mine met in discovery, with no person', async () => {
     await render(<TaskCard item={task()} relation="OWNED" onOpen={jest.fn()} />);
-    expect(texts()).toContain('Tvoj zadatak'); expect(texts()).toContain('0/2');
+    expect(texts()).toContain('Tvoj'); expect(texts()).toContain('Treba 2 osobe');
+    await act(async () => tree.update(<TaskCard item={task({ pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 } })} relation="OWNED" onOpen={jest.fn()} />));
+    expect(texts()).toContain('1/3 popunjeno'); // the owner reads how far it is, the one who can come reads what is left
     expect(texts()).not.toContain('Nikola Petrović'); expect(tree.root.findAllByType('Avatar' as React.ElementType)).toHaveLength(0);
   });
 
@@ -309,13 +326,83 @@ describe('what my own task met in discovery still says', () => {
   });
 });
 
+// The approved plan of 8 Oct 2026 (U2, U3): "Tvoj zadatak" is no label above the title any more but a small mark in the amount's row ("Tvoj", "Prijava poslata"); the place says how
+// far the task is ("mesto · udaljenost") only when the app really knows where the person is and where the task is; "0/1" is gone, and the count of people is said only above one.
+describe('what this account is to the task, and how far it is', () => {
+  const mark = () => tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-mark');
+  const markWords = () => mark().flatMap(node => node.findAll(child => child.type === T_).flatMap(text => text.children.filter((child): child is string => typeof child === 'string')));
+
+  it.each([
+    ['OWNED', 'Tvoj', 'Tvoj zadatak'], ['APPLIED', 'Prijava poslata', 'Prijava poslata'],
+    ['UNKNOWN', 'Status nije potvrđen', 'Tvoj status nije potvrđen'], ['PENDING', 'Proveravamo…', 'Proveravamo…'],
+  ] as const)('%s is the mark "%s" at the end of the amount\'s row, and the card\'s sentence still says "%s"', async (relation, words, spoken) => {
+    await render(<TaskCard item={task()} relation={relation} onOpen={jest.fn()} />);
+    expect(markWords()).toEqual([words]);
+    // nothing stands above the title: the first words of the face are the title, and the mark comes after the amount
+    expect(texts()[0]).toBe('Farbanje dnevne sobe');
+    expect(texts().indexOf(words)).toBeGreaterThan(texts().indexOf('5.500 RSD'));
+    expect(texts().indexOf(words)).toBeLessThan(texts().indexOf('Liman, Novi Sad'));
+    expect(presses()[0].props.accessibilityLabel).toContain(spoken);
+    // the mark is the card's own state look: a dot and a word, and a state that is not known is quiet
+    expect(mark()[0].findAll(node => node.props.testID === 'card-status-dot')).toHaveLength(1);
+  });
+
+  it('is nothing for a task that is not mine and not applied to: no mark, no empty row', async () => {
+    await render(<TaskCard item={task()} onOpen={jest.fn()} />);
+    expect(mark()).toHaveLength(0);
+    await act(async () => tree.update(<TaskCard item={task()} relation={undefined} onOpen={jest.fn()} />));
+    expect(mark()).toHaveLength(0);
+  });
+
+  it('keeps HITNO and the life of a task above the title: a draft or a closed task is a state, not a relation', async () => {
+    await render(<TaskCard item={task({ urgency: LATER })} relation="APPLIED" onOpen={jest.fn()} />);
+    expect(markWords()).toEqual(['Prijava poslata']);
+    expect(texts()).not.toContain('Tvoj zadatak');
+    await act(async () => tree.update(<TaskCard item={mine({ stanje: 'NACRT' })} onOpen={jest.fn()} />));
+    expect(texts()[0]).toBe('Nacrt'); expect(mark()).toHaveLength(0);
+  });
+
+  it('puts the mark under the amount where the window is narrow or the text large', async () => {
+    mockWidth = 411; mockScale = 1;
+    await render(<TaskCard item={task()} relation="APPLIED" onOpen={jest.fn()} />);
+    const line = () => style(tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-value'));
+    expect(line().flexDirection).toBe('row');
+    for (const [width, scale] of [[320, 1], [361, 1.3], [411, 2]]) {
+      mockWidth = width; mockScale = scale; await act(async () => tree.update(<TaskCard item={task()} relation="OWNED" onOpen={jest.fn()} />));
+      expect([width, scale, line().flexDirection]).toEqual([width, scale, 'column']);
+      expect(style(mark()[0]).maxWidth).toBe('100%');
+    }
+  });
+
+  const NEAR: readonly [number, number] = [19.835, 45.255];
+  it('says how far the task is after the place, only once the person has said where they are and the task has a public point', async () => {
+    const at = (patch: Record<string, unknown> = {}) => task({ priblizno: { lat: 45.24, lng: 19.8 }, ...patch });
+    // nobody has asked for the position: no distance, and none is invented
+    await render(<TaskCard item={at()} onOpen={jest.fn()} />);
+    expect(texts()).toContain('Liman, Novi Sad'); expect(texts().join(' ')).not.toMatch(/ km/);
+    expect(presses()[0].props.accessibilityLabel).not.toMatch(/ km/);
+    // the person's position is known: "mesto · udaljenost", whole kilometres, and the sentence says it too
+    await act(async () => tree.update(<DistanceFromContext.Provider value={NEAR}><TaskCard item={at()} onOpen={jest.fn()} /></DistanceFromContext.Provider>));
+    expect(texts()).toContain('Liman, Novi Sad · oko 3 km');
+    expect(presses()[0].props.accessibilityLabel).toContain('Liman, Novi Sad, oko 3 km, 24. sep · 17:00');
+    expect(facts()).toContain('pin');
+    // a task close by says so in words, and one without a point on the map, or done remotely, says nothing of distance
+    await act(async () => tree.update(<DistanceFromContext.Provider value={NEAR}><TaskCard item={at({ priblizno: { lat: 45.26, lng: 19.84 } })} onOpen={jest.fn()} /></DistanceFromContext.Provider>));
+    expect(texts()).toContain('Liman, Novi Sad · manje od 1 km');
+    await act(async () => tree.update(<DistanceFromContext.Provider value={NEAR}><TaskCard item={at({ priblizno: null })} onOpen={jest.fn()} /></DistanceFromContext.Provider>));
+    expect(texts()).toContain('Liman, Novi Sad'); expect(texts().join(' ')).not.toMatch(/ km/);
+    await act(async () => tree.update(<DistanceFromContext.Provider value={NEAR}><TaskCard item={at({ detalji: detail({ rezimLokacije: 'REMOTE' }) })} onOpen={jest.fn()} /></DistanceFromContext.Provider>));
+    expect(texts()).toContain('Na daljinu'); expect(texts().join(' ')).not.toMatch(/ km/);
+  });
+});
+
 describe('what a screen reader hears', () => {
   // The card is heard once: its command name, then every fact it shows in order. Nothing inside it is a stop of its own.
   it('is one sentence after the command name, in the order the face is drawn', async () => {
     await render(<TaskCard item={task({ urgency: LATER, detalji: detail({}, { vozila: ['Kombi'] }) })} relation="APPLIED" onOpen={jest.fn()} />);
     const [card] = presses();
     expect(card.props.accessibilityLabel).toBe('Otvori zadatak Farbanje dnevne sobe. HITNO, Prijava poslata, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
-      + 'Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena');
+      + 'Potrebno vozilo: Kombi, Treba 2 osobe, Nikola Petrović, ocena 4,8, 12 ocena');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
     expect(presses()[0].props.accessibilityLabel).toMatch(/^Otvori zadatak Farbanje dnevne sobe\. Tražim ponude, /);
   });
@@ -359,7 +446,7 @@ describe('the face holds under a narrow window and large text', () => {
     expect(textNode('Pomoć pri selidbi stana sa trećeg sprata bez lifta i rasklapanje velikog ormara').props.numberOfLines).toBeUndefined();
     expect(textNode('Fleksibilan raspon · 24. sep – 30. sep').props.numberOfLines).toBeUndefined();
     expect(textNode('Aleksandra Stojanović-Petrović').props.numberOfLines).toBe(1);
-    expect(textNode('0/2').props.numberOfLines).toBeUndefined();
+    expect(textNode('Treba 2 osobe').props.numberOfLines).toBeUndefined();
   });
 });
 

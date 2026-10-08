@@ -263,12 +263,11 @@ describe('Raspored without a card: active Dogovori with no day to show them on',
       .toBe('1 Dogovor bez tačnog termina · 2 Dogovora čekaju završetak');
   });
 
-  it('is left to the card when an appointment lies ahead: the same counts ride in the card\'s own grey line', () => {
+  it('is left to the card when an appointment lies ahead, and the card says the week alone (the owner\'s phone, 8 Oct 2026: a line of counts was too much)', () => {
     const home = composeHome(reads({ agreements: known([agreement('soon', 'uskocer', { prihvacenPocetak: '2026-09-28T07:00:00Z',
       tacanTermin: { pocetak: '2026-09-28T07:00:00Z', kraj: '2026-09-28T08:00:00Z' } }), unconfirmed('krecenje'), overdue('a')]) }), undefined, now, 'Europe/Belgrade');
     expect(quietKey(home)).toBe(false);
-    expect(home.agreements.kind === 'known' ? home.agreements.value.rows[0].raspored : null).toMatchObject({
-      when: 'Sutra · 09:00–10:00', more: '1 Dogovor bez tačnog termina · 1 Dogovor čeka završetak' });
+    expect(home.agreements.kind === 'known' ? home.agreements.value.rows[0].raspored : null).toMatchObject({ when: 'Sutra · 09:00–10:00', more: null });
   });
 
   it('says nothing when no active Dogovor has lost its day, and a Dogovori read that failed is still unavailable', () => {

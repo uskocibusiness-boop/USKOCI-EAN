@@ -49,10 +49,10 @@ import { ConfirmSheet, confirmFormOf } from '../../ui/system/ConfirmSheet';
 import { brandAction, sys } from '../../ui/system/tokens';
 
 /**
- * A DRAFT, on its own screen (owner's phone, 2026-10-07: "there is no easy way to delete it or edit it"). The ways to change or delete a draft
- * lived only behind the bar's "···". They stay there, and the same two are now ALSO drawn in plain sight at the end of the page: "Izmeni nacrt"
- * (white, never green) and, last and in the danger colour, "Obriši nacrt". Both call exactly what the menu rows call: the guarded edit and the
- * lifecycle's own deletion, which asks first in the centred dialog. The footer's one green action stays the only one.
+ * A DRAFT, on its own screen (owner's phone, 2026-10-07: "there is no easy way to delete it or edit it"; 8 Oct 2026, rule J15: the "···" is gone). The ways
+ * to change or delete a draft are drawn in plain sight: "Izmeni nacrt" (white, never green) in the bar of the page (the approved draft R3) and, last and in
+ * the danger colour, "Obriši nacrt" at its end. Both call exactly what the menu rows called: the guarded edit and the lifecycle's own deletion, which
+ * asks first in the centred dialog. The one green action, at the head of the page, stays the only one.
  */
 const need = (stanje = 'NACRT', patch: Record<string, unknown> = {}) => ({ id: NEED, revizija: 7, stanje, naslov: 'Pregledani Zadatak',
   opis: 'Opis', podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, uslovi: [],
@@ -83,25 +83,28 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('a draft draws "Izmeni nacrt" and, last, "Obriši nacrt" (danger) as two rows in plain sight, under the footer\'s ONE green action', async () => {
+it('a draft draws "Izmeni nacrt" in the bar and, last, "Obriši nacrt" (danger) as a row at the end, around the page\'s ONE green action', async () => {
   await render();
   expect(row('Izmeni nacrt')).toHaveLength(1); expect(row('Obriši nacrt')).toHaveLength(1);
   const order = presses().map(node => node.props.accessibilityLabel);
-  // The edit, then the deletion, both after the content and before the footer's action; the deletion is the last of the page's own commands.
-  expect(order.indexOf('Izmeni nacrt')).toBeLessThan(order.indexOf('Obriši nacrt'));
-  expect(order.indexOf('Obriši nacrt')).toBeLessThan(order.indexOf('Pregledaj za objavu'));
-  // Two rows of the page's one list, no fill of their own: the words of the edit are ink and the words of the deletion are the danger colour.
-  expect(tone(row('Izmeni nacrt')[0])).toBe('ink'); expect(tone(row('Obriši nacrt')[0])).toBe('danger');
-  // The only green fill is the footer's one action.
+  // The edit stands in the bar, in sight; the one green action is at the head of the page; and the deletion is the last of the page's own commands.
+  expect(order.indexOf('Izmeni nacrt')).toBeLessThan(order.indexOf('Pregledaj za objavu'));
+  expect(order.indexOf('Pregledaj za objavu')).toBeLessThan(order.indexOf('Obriši nacrt'));
+  // The words of the deletion are the danger colour.
+  expect(tone(row('Obriši nacrt')[0])).toBe('danger');
+  // The only green fill is the one action.
   expect(brand()).toEqual(['Pregledaj za objavu']);
-  // Each is at least a full 48 touch target (a row's own 56 and 64).
-  for (const label of ['Izmeni nacrt', 'Obriši nacrt']) expect(StyleSheet.flatten(row(label)[0].props.style).minHeight).toBeGreaterThanOrEqual(48);
+  // Each is at least a full 48 touch target (the bar's control is 48 high, a row is 56).
+  for (const label of ['Izmeni nacrt', 'Obriši nacrt']) {
+    const box = StyleSheet.flatten(row(label)[0].props.style);
+    expect(box.minHeight ?? box.height).toBeGreaterThanOrEqual(48);
+  }
 });
 
-it('they are ALSO behind the "···", as before, and both reach the same callbacks', async () => {
+it('there is no "···" behind which they could hide, and no second way to either', async () => {
   await render();
-  await act(async () => { tree.root.findByProps({ accessibilityLabel: 'Više radnji' }).props.onPress(); });
-  expect(menuItems().map(item => item.props.accessibilityLabel)).toEqual(['Izmeni nacrt', 'Obriši nacrt']);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Više radnji' })).toHaveLength(0);
+  expect(menuItems()).toHaveLength(0);
 });
 
 it('"Obriši nacrt" in plain sight asks in the centred dialog of the menu row, sends nothing before the confirm, and "Odustani" sends nothing at all', async () => {
@@ -157,7 +160,7 @@ it('a draft the gate asks to complete in the conversation has that as its green 
 it.each([
   ['a published task', need('OBJAVLJENA')], ['a task with applications', need('CEKA_PRIJAVE', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })],
   ['a closed task', need('ZATVORENA')],
-])('%s has its own "···" and draws neither row', async (_name, shown) => {
+])('%s has its own commands and draws neither of the draft\'s rows', async (_name, shown) => {
   mockNeed.mockResolvedValue(shown);
   await render();
   expect(row('Izmeni nacrt')).toHaveLength(0); expect(row('Obriši nacrt')).toHaveLength(0);
