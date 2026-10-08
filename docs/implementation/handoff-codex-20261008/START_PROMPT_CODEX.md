@@ -1,0 +1,17 @@
+# Početni nalog za Codex — USKOČI, 8. oktobar 2026
+
+Zalepi ovo kao prvu poruku Codexu u checkout-u `C:\Users\user\Desktop\USKOCI_CANONICAL_WORKSPACE_2026-09-08\USKOCI-CLEAN-spoj-20261006` (grana `integration/spoj-20261006`, HEAD 4e0ea506, remote `novi` = github.com/uskocibusiness-boop/USKOCI-EAN). Pre toga: nijedna Claude sesija ne sme da radi u istom checkout-u („one agent per checkout“, AGENTS.md 3.3.3).
+
+---
+
+Ti nastavljaš rad na USKOČI (Expo/React Native + Supabase) posle Claude Code sesije od 8. 10. 2026. Vlasnik je nalogodavac; piše srpski (latinica, glasovni unos, mnogo grešaka) — odgovaraj mu kratko, na srpskom, sa oznakom dokaza (izvor / testovi / server / emulator / telefon).
+
+1. Pročitaj, ovim redom, ceo tekst: `AGENTS.md`; `docs/implementation/handoff-codex-20261008/FORENZICKI_PRESEK_20261008.md` (stanje, gde je šta, otvorene stavke, vlasnikova naređenja); `docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md` (odobreni nacrt svih ekrana i tokova) i `ANALIZA_EKRANA_TELEFON_20261008.md` (pravila J1–J15); `docs/control/README.md`.
+2. Samo čitanje pre bilo kakve izmene: `git status -sb`, `git log --oneline -15`, `git fetch novi`, zatim na DEV-u `leqcwgzvjsxugfgzdmth` (read-only SQL): `select count(*) from supabase_migrations.schema_migrations` mora biti **235** i `left(private.closure_source_digest_v5(),8)` mora biti **3a785d42**. Ako nije, neko je menjao server posle predaje — stani i pitaj vlasnika.
+3. Prvi posao: **dokaz na telefonu/emulatoru današnjeg talasa** (APK iz 4e0ea506 je na vlasnikovom HONOR-u, `rs.uskoci.preview`, versionCode 35). Vlasnik šalje primedbe po ekranu; svaka njegova primedba ima prednost nad nacrtom. Ekrane koje odbije vraćaj po fajlu (`git log -- <fajl>`, `git checkout <sha> -- <fajl>`) uz testove, ne ceo talas. Nativna proba ide na emulator `USKOCI_V5_TEST` (1264×2728, 560 dpi, font 1,15, Europe/Belgrade); telefon samo na vlasnikovu reč, `adb install -r`, nikad brisanje podataka/sesije/odjava, nikad objava/slanje/otkazivanje sa njegovog naloga.
+4. Drugi posao: osveži registar `docs/control/redovi.json` današnjim stanjem (odeljak 6B preseka), `node scripts/control/osvezi.mjs`, komit, republish table.
+5. Zatim redom: otvorene stavke iz odeljka 5 i 6 preseka (PUSH-KAPACITET pa prvi push na vlasnikovu reč; HITNO; `publishedAt`; redosled prijava; čišćenje mrtvog koda i zastarelih maestro fajlova; nov dokazni APK za P6 native journey na vlasnikovu reč).
+6. Pravila koja najviše bole: dokazani serverski paket smeš da primeniš sam (vlasnik: „DA, PRIMENJUJ DOKAZANE PAKETE SAM“), ali SAMO sa dokazom na jednokratnoj bazi (FAIL pre / PASS posle, tačan revert, sertifikat nepomaknut) i nikad: novac/cene, plaćeni ključevi, pravni tekstovi, brisanje pravih podataka, prodavnica, PUSH slanje, nove zavisnosti, paketi koji pomeraju sertifikat, privatnosni prekidači, Edge deploy. Svaka state-changing radnja na DEV-u van toga = prvo njegova reč. Nikad ne tvrdi „radi na telefonu“ bez slike sa telefona.
+7. Komitovi: eksplicitne putanje (`git add -A -- <dir>` + `&&`), poruka na engleskom sa objašnjenjem, `[skip ci]` osim kad baš hoćeš CI; push na `novi` obe grane (`work/uskoci-ui-unification-20260924` i `integration/spoj-20261006`); APK za telefon = push na granu `visual/phone-<datum>-<n>` bez `[skip ci]`, vlasnik ga sam skida sa GitHub Actions → Artifacts (ili ti instaliraš na njegovu reč).
+
+Počni tako što ćeš vlasniku u pet redova reći šta si pročitao, šta je stanje (ledger, HEAD, telefon) i šta ćeš prvo raditi.
