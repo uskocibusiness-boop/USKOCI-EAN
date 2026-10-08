@@ -8,6 +8,7 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { HomePresentation } from '../../ui/home/HomePresentation';
+import { writeAvailableNow } from '../../data/availableNowWrite';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 
 /**
@@ -87,17 +88,8 @@ function Home() {
     saving.current = true;
     setSwitching({ value, busy: true, failed: false });
     void (async () => {
-      let saved: boolean | null = null;
-      try {
-        // Loaded when the switch is touched, not with the screen: Početna's suites and its first paint never load a data client for it.
-        const { workerAvailabilityClientService: availability } = require('../../data/workerAvailabilityClientService') as typeof import('../../data/workerAvailabilityClientService');
-        const read = await availability.read();
-        if (read.ok) {
-          const { timezone, rules, windows, revision } = read.podatak;
-          const result = await availability.save({ expectedRevision: revision, value: { timezone, availableNow: value, rules, windows } });
-          if (result.ok) saved = result.podatak.availability.availableNow;
-        }
-      } catch { saved = null; }
+      // The one write of "Mogu odmah" (src/data/availableNowWrite.ts), shared with Radni profil.
+      const saved = await writeAvailableNow(value);
       saving.current = false;
       setSwitching(saved === null ? { value: null, busy: false, failed: true } : { value: saved, busy: false, failed: false });
     })();

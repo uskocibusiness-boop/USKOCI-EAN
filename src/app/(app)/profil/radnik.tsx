@@ -18,6 +18,7 @@ import { V2Action } from '../../../ui/v2/V2Action';
 import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus, type WorkerNavigation, type WorkerProfileFocusRequest } from '../../../ui/workerProfile/WorkerProfilePresentation';
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
 import { workerProfileInfoLines } from '../../../ui/workerProfile/workerProfileFacts';
+import { writeAvailableNow } from '../../../data/availableNowWrite';
 import type { AvailableNowControl, SavedProfilePart } from '../../../ui/workerProfile/WorkerProfileSaved';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
@@ -201,17 +202,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     switchSaving.current = true;
     setSwitching({ value: next, busy: true, failed: false });
     void (async () => {
-      let saved: boolean | null = null;
-      try {
-        // Loaded when the switch is touched, not with the screen: the screen's suites and its first paint never load the availability client for it.
-        const { workerAvailabilityClientService: availability } = require('../../../data/workerAvailabilityClientService') as typeof import('../../../data/workerAvailabilityClientService');
-        const read = await bounded(() => availability.read(), 15_000);
-        if (read.ok) {
-          const { timezone, rules, windows, revision } = read.podatak;
-          const result = await bounded(() => availability.save({ expectedRevision: revision, value: { timezone, availableNow: next, rules, windows } }), 30_000);
-          if (result.ok) saved = result.podatak.availability.availableNow;
-        }
-      } catch { saved = null; }
+      // The one write of "Mogu odmah" (src/data/availableNowWrite.ts), shared with Početna; each call is bounded as before.
+      const saved = await writeAvailableNow(next, call => bounded(call, 30_000));
       switchSaving.current = false;
       if (!owns()) return;
       setSwitching(saved === null ? { value: null, busy: false, failed: true } : { value: saved, busy: false, failed: false });
