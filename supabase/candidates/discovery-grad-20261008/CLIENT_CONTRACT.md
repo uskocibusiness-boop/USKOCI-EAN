@@ -28,6 +28,7 @@ For the owner of `src/data/discoveryV1Contract.ts`, `src/data/discoveryV1Spatial
 - With `groupBy: "CITY"`: `text` is the city as the tasks write it (for example `"Novi Sad"`), `count` is the number of tasks in that city under the current filter, and **choosing the row (sending `filter.place = text`) lists exactly `count` tasks** (proved for every row).
 - Two spellings of one place (`"Čačak"` / `"Cacak"`, `"Novi Sad"` / `"Нови Сад"`) are one row in both modes; the shown `text` is the most recently published spelling.
 - AREA rows that are a bare city name (`"Novi Sad"`) count the tasks that wrote exactly that text, while choosing them now lists the whole city (more). Use `groupBy: "CITY"` for city rows; keep AREA rows for the parts of a city.
+- The optional server part S3 (days computed only for a time filter) changes no answer at all (proved byte for byte); the client does nothing for it.
 
 ## Suggested client changes (owner of the screens decides)
 
