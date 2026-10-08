@@ -15,7 +15,7 @@ export const completionErrors: Readonly<Record<string, string>> = Object.freeze(
   EXECUTION_NOT_FOUND: 'Stanje izvršenja Dogovora nije dostupno. Osveži prikaz.',
   EXECUTION_VERSION_MISMATCH: 'Dogovor je promenjen. Osveži važeće uslove pre završetka.',
   ONLY_REQUESTER_CAN_CONFIRM_COMPLETION: 'Završetak potvrđuje osoba koja je objavila zadatak.',
-  ONLY_WORKER_CAN_MARK_DONE: 'Završetak označava radnik.',
+  ONLY_WORKER_CAN_MARK_DONE: 'Završetak može da označi samo osoba koja radi zadatak.',
   AGREEMENT_CANCELLED: 'Dogovor je otkazan. Završetak više nije moguć.',
   AGREEMENT_ALREADY_COMPLETED: 'Dogovor je već završen. Osveži njegov status.',
   AGREEMENT_NOT_ACTIVE: 'Dogovor više nije aktivan. Osveži njegov status.',

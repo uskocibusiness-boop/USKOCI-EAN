@@ -3,7 +3,7 @@ import { dogovorenoVreme } from '../../lib/dogovorenoVreme';
 
 /**
  * The step bar of a Dogovor (plan 2.6), computed from where the Dogovor STANDS, never from its history: the history of a
- * Dogovor holds one event ("Dogovor kreiran"), so a bar built from it would always stand at the start.
+ * Dogovor holds one event ("Dogovor je sklopljen"), so a bar built from it would always stand at the start.
  *
  *   Dogovoreno -> Zadatak je gotov -> Potvrđeno -> Ocena
  *

@@ -26,7 +26,7 @@ import { forgetAutoResendForTests } from '../../ui/messages/threadModel';
  * outbox's own `retry(clientMessageId)`: the same retained command with the same client message id. The server below behaves like
  * `rpc_send_agreement_message_v2` (a unique (sender, client message id) and the first message's id on every replay), so the proof
  * that no second message can appear is run against the REAL outbox, not a mock of it. Each message is tried automatically once;
- * the explicit "Pošalji ponovo" is the person's and stays.
+ * the explicit "Proveri" is the person's and stays.
  */
 const account = '10000000-0000-4000-8000-000000000001';
 const agreement = '20000000-0000-4000-8000-000000000001';
@@ -125,8 +125,8 @@ describe('a send the network never delivered', () => {
     expect(server.send).toHaveBeenCalledTimes(2);                                    // once automatically, never more
     expect(server.stored.size).toBe(0);
 
-    // The explicit "Pošalji ponovo" is the person's and still works, once the network is back: one message, the same id.
-    const retry = tree!.root.findByProps({ accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.' });
+    // The explicit "Proveri" is the person's and still works, once the network is back: one message, the same id.
+    const retry = tree!.root.findByProps({ accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.' });
     await act(async () => retry.props.onPress());
     await until(() => entries(outbox)[0].state === 'confirmed');
     expect(server.calls).toEqual(['poruka_00000001', 'poruka_00000001', 'poruka_00000001']);

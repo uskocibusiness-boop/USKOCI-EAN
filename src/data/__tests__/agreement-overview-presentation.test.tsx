@@ -35,16 +35,16 @@ afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined
 
 test('accepted terms retain their values and covered people, separate from source-task context', async () => {
   await render(<AgreementTerms agreement={agreement} />);
-  expect(facts()).toEqual(['Dogovoreno ukupno: 5.500 RSD', 'Dogovoreni broj osoba: 2 osobe',
-    'Termin: 26. sep · 17:00–19:00, Po vremenu u Srbiji']);
+  // The terms are the rows of the one list, in this order: the place (its coarse area, never the private address), the term with its
+  // zone in one sentence, the one amount, the people.
+  expect(facts()).toEqual(['Mesto: Liman, Novi Sad', 'Termin: 26. sep · 17:00–19:00 (po vremenu u Srbiji)', 'Dogovoreno ukupno: 5.500 RSD', 'Ljudi: 2 osobe']);
   expect(text()).toContain('Uslovi su izmenjeni.');
-  expect(text()).not.toContain('Liman');
   expect(text()).not.toContain('4 osobe');
   const open = jest.fn();
   await act(async () => tree!.update(<AgreementTaskLink agreement={agreement} onOpenTask={open} disabled />));
   const source = tree!.root.findByProps({ accessibilityRole: 'button' });
   expect(source.props).toMatchObject({ onPress: open, disabled: true, accessibilityState: { disabled: true } });
-  expect(source.props.accessibilityLabel).toBe('Otvori zadatak: Prenos troseda. Liman, Novi Sad');
+  expect(source.props.accessibilityLabel).toBe('Otvori zadatak: Prenos troseda');   // the compact link of the chat's context: the overview's own row is in AgreementLinks
   expect(text()).not.toContain('5.500 RSD');
 });
 
@@ -53,7 +53,7 @@ test('missing amount and terminal unscheduled terms stay explicit; remote contex
     cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, vremeTekst: 'Termin nije potvrđen',
     pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } };
   await render(<><AgreementTaskLink agreement={missing} /><AgreementTerms agreement={missing} /></>);
-  expect(facts()).toEqual([`Cena: ${BEZ_IZNOSA}`, 'Dogovoreni broj osoba: 1 osoba', 'Termin: Bez tačnog termina']);
+  expect(facts()).toEqual(['Mesto: Na daljinu', 'Termin: Bez tačnog termina', `Cena: ${BEZ_IZNOSA}`, 'Ljudi: 1 osoba']);
   expect(text()).toContain('Na daljinu');
   expect(text()).not.toContain('Liman');
   expect(text()).not.toContain('0 RSD');

@@ -9,20 +9,24 @@ import { sesijaSada, useSesija } from '../store/sesija';
 import { useIzvor } from '../store/uloga';
 import { sys } from './system/tokens';
 import { FactArt } from './system/FactArt';
+import { ListRow } from './system/ListRow';
+import { addressWords } from './agreements/agreementContactModel';
 import { vreme } from '../lib/vreme';
 import { V2Action } from './v2/V2Action';
 import { T } from './Text';
 import { LocationMapPreview } from './location/LocationMapPreview';
 import { locationSlots } from '../lib/location';
 
-type Props = { agreement: DogovorProjekcija; enabled: boolean };
+type Props = { agreement: DogovorProjekcija; enabled: boolean;
+  /** "Zatraži adresu" for the side that does not own it: the route writes the question into the conversation and takes the person there. */
+  onRequestAddress?: () => void };
 type Snapshot = { state: LocationGrantState; revealed: ExactLocationReveal | null };
 const activeGrant = (grant: LocationGrant | undefined) => !!grant && grant.status === 'GRANTED'
   && (grant.expiresAt === null || Date.parse(grant.expiresAt) > Date.now());
 const invalid = (): Ishod<never> => ({ ok: false, kod: 'LOCATION_SCOPE_CHANGED', poruka: 'Dozvola za lokaciju je promenjena. Osveži prikaz.' });
 
 /** Unmount the private session on background, account, revision, participant or terminal state changes. */
-export function AgreementPrivateLocation({ agreement, enabled }: Props) {
+export function AgreementPrivateLocation({ agreement, enabled, onRequestAddress }: Props) {
   const session = useSesija();
   const [foreground, setForeground] = useState(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
   const foregroundNow = useRef(foreground);
@@ -42,11 +46,12 @@ export function AgreementPrivateLocation({ agreement, enabled }: Props) {
   if (!visible) return null;
   return <LocationSession key={`${session.user!.id}:${session.accountRevision}:${agreement.id}:${agreement.verzija}:${agreement.stanje}:${requester.id}:${worker.id}`}
     agreementId={agreement.id} accountId={session.user!.id} accountRevision={session.accountRevision}
-    requesterId={requester.id} workerId={worker.id} appActive={appActive} />;
+    requesterId={requester.id} workerId={worker.id} appActive={appActive} onRequestAddress={onRequestAddress} />;
 }
 
-function LocationSession({ agreementId, accountId, accountRevision, requesterId, workerId, appActive }: {
+function LocationSession({ agreementId, accountId, accountRevision, requesterId, workerId, appActive, onRequestAddress }: {
   agreementId: string; accountId: string; accountRevision: number; requesterId: string; workerId: string; appActive: () => boolean;
+  onRequestAddress?: () => void;
 }) {
   const source = useIzvor();
   const mounted = useRef(true);
@@ -122,22 +127,21 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
   const lasts = !granted ? null : grant?.expiresAt ? `Važi do ${vreme(grant.expiresAt)}.`
     // Only the requester can revoke, so each side is told who can end it.
     : requester ? 'Važi dok je ne opozoveš ili dok se Dogovor ne završi.' : 'Važi dok je druga strana ne opozove ili dok se Dogovor ne završi.';
-  // The section above carries the title ("Lokacija i pristup"); this part starts with the state of the access.
+  // The section above carries the title ("Kontakt i mesto"); this part starts with the state of the access, in the words of the one list
+  // (idea R03): the side that owns the address is told to share it when they are ready, the side that does not is told it is not shared
+  // and given the one way to ask for it. The grant, its lease and its readback below are exactly what they were.
+  const words = addressWords({ requester, granted });
+  const accessWords = !requester && granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : words.title;
   return <View style={s.stack}>
-    <View style={s.status}>
-      <FactArt kind={granted ? 'eye' : 'lock'} size={24} muted={!granted} />
-      <View style={s.statusCopy}>
-        <T variant="bodyStrong">{requester
-          ? granted ? 'Lokacija je podeljena u ovom Dogovoru.' : 'Podeli potvrđenu adresu ili tačke na mapi sa osobom koja dolazi.'
-          : granted ? 'Prikaz lokacije je dozvoljen u ovom Dogovoru.' : 'Lokacija još nije podeljena sa tobom ili dozvola više ne važi.'}</T>
-        {lasts ? <T variant="meta" tone="muted">{lasts}</T> : null}
-      </View>
+    <View>
+      <ListRow leading={<FactArt kind={granted ? 'eye' : 'lock'} size={32} muted={!granted} />} title={accessWords} subtitle={lasts ?? undefined} last />
     </View>
     {editor.loading ? <T variant="meta" tone="muted">Proveravamo dozvolu…</T> : null}
     {editor.error ? <T variant="meta" tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
     {requester ? <V2Action label={granted ? 'Opozovi deljenje lokacije' : 'Podeli lokaciju'}
       kind={granted ? 'destructive' : 'secondary'} disabled={locked} loading={editor.busy} onPress={() => { void setGrant(!granted); }} />
-      : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} /> : null}
+      : granted && !privateData ? <V2Action label="Prikaži privatnu lokaciju" kind="secondary" disabled={locked} loading={editor.busy} onPress={() => { void show(); }} />
+        : !granted && words.ask && onRequestAddress ? <V2Action label="Zatraži adresu" kind="secondary" disabled={locked} onPress={onRequestAddress} /> : null}
     {privateData ? <PrivatePoints key={`${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} value={privateData}
       scope={`${accountId}:${agreementId}:${privateData.grantId}:${privateData.grantedAt}:${privateData.needRevision}`} canUse={canUsePrivateMap} /> : null}
     <View style={s.refresh}>
@@ -148,7 +152,7 @@ function LocationSession({ agreementId, accountId, accountRevision, requesterId,
 }
 
 /** A quiet action keeps to its own width beside the private details, as it always has. */
-const quietStart = { alignSelf: 'flex-start' } as const;
+const quietStart = { alignSelf: 'flex-start', marginLeft: -sys.space.base } as const;
 const slotLabel = (slot: string) => slot === 'start' ? 'Početno mesto' : slot === 'end' ? 'Završno mesto'
   : slot === 'serviceArea' ? 'Područje rada' : `Usputno mesto ${Number(slot.split('/')[1]) + 1}`;
 function PrivatePoints({ value, scope, canUse }: { value: ExactLocationReveal; scope: string; canUse: () => boolean }) {
@@ -163,7 +167,7 @@ function PrivatePoints({ value, scope, canUse }: { value: ExactLocationReveal; s
     {mapPoints.length ? <LocationMapPreview points={mapPoints} scopeKey={scope} route={route} height={220} canUse={canUse} /> : null}
     {value.adresa ? <T>{value.adresa}</T> : null}
     {value.accessNotes ? <T variant="meta">{value.accessNotes}</T> : null}
-    {/* Each point is a bare row parted by a hairline; the section around it is the only box. */}
+    {/* Each point is a bare row parted by space; the section around it is the only box, and nothing here draws a line. */}
     {points.map(item => <View key={item.slot} style={s.point}>
       <T variant="bodyStrong">{slotLabel(item.slot)}</T>
       {item.address ? <T>{item.address}</T> : null}
@@ -174,9 +178,7 @@ function PrivatePoints({ value, scope, canUse }: { value: ExactLocationReveal; s
 }
 
 const s = StyleSheet.create({
-  stack: { paddingVertical: sys.space.md, gap: sys.space.md },
-  status: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  statusCopy: { flex: 1, gap: 2 },
-  point: { gap: sys.space.xs, paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine },
+  stack: { paddingTop: sys.space.sm, gap: sys.space.md },
+  point: { gap: sys.space.xs, paddingTop: sys.space.md },
   refresh: { gap: sys.space.xs },
 });

@@ -92,10 +92,10 @@ describe('my own task', () => {
 });
 
 describe('my application', () => {
-  it('says "Poslata" and "Viđena" with the chip\'s own words', () => {
-    expect(applicationEntry(application('a1'))).toMatchObject({ kind: 'prijava', id: 'a1', status: { key: 'application.sent' }, role: ROLE_APPLICANT,
-      term: true, commitsMe: true, waits: false, exact: false, timeWord: 'Fleksibilno' });
-    expect(applicationEntry(application('a2', { stanje: 'VIEWED' }))?.status).toEqual({ key: 'application.seen' });
+  it('says "Prijava poslata" (a ring: it waits for someone else) and "Prijava viđena", so the row needs no mark of its own', () => {
+    expect(applicationEntry(application('a1'))).toMatchObject({ kind: 'prijava', id: 'a1', status: { word: 'Prijava poslata', shape: 'ring', tone: 'neutral' },
+      role: ROLE_APPLICANT, term: true, commitsMe: true, waits: false, exact: false, timeWord: 'Fleksibilno' });
+    expect(applicationEntry(application('a2', { stanje: 'VIEWED' }))?.status).toEqual({ word: 'Prijava viđena', shape: 'dot', tone: 'neutral' });
   });
   it('says "U užem izboru", and "Zadatak je izmenjen" in orange while my review is needed', () => {
     expect(applicationEntry(application('a3', { stanje: 'SHORTLISTED' }))?.status).toEqual({ word: 'U užem izboru', shape: 'dot', tone: 'neutral' });

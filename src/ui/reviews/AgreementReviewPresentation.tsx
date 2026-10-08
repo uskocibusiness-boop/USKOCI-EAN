@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Check, Star } from 'phosphor-react-native';
 import type { ReviewTag } from '../../data/reviewsClientService';
 import { Press } from '../Press';
 import { Avatar } from '../system/Avatar';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { FlowFooter } from '../system/FlowFooter';
+import { Screen } from '../system/Screen';
+import { Section } from '../system/Section';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
+import { Surface } from '../system/Surface';
 import { plural } from '../system/plural';
-import { brandAction, inset, sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { ReviewCommentField, type ReviewCommentFieldView } from './ReviewCommentField';
@@ -65,25 +68,28 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
   const tagsFull = view.kind === 'eligible' && view.tags.length >= view.catalog.maxTags;
   // `none` (no read has answered yet) is drawn as loading: never an empty screen without a way on.
   const loading = view.kind === 'loading' || view.kind === 'none';
+  // The foot is the system's `FlowFooter`: one green action, at most one quiet one, and why the green one is grey in a line ABOVE it.
+  const alert = notice ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" variant="body" style={s.ink}>{notice}</T></Surface> : null;
   const footer = loading || view.kind === 'error' ? null
     // A saved rating stays saved when a later read fails: the way back stays the green action, the check beside it.
-    : notice && view.kind === 'saved' ? <>
-      <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{notice}</T></View>
+    : notice && view.kind === 'saved' ? <FlowFooter>
+      {alert}
       <V2Action label={backLabel} onPress={onBack} style={brandAction} />
       <V2Action label={retry.label} kind="quiet" disabled={retry.disabled} onPress={retry.onPress} />
-    </>
-    : notice ? <>
-      <View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{notice}</T></View>
+    </FlowFooter>
+    : notice ? <FlowFooter>
+      {alert}
       <V2Action label={retry.label} disabled={retry.disabled} onPress={retry.onPress} style={brandAction} />
-    </>
-    : view.kind === 'saved' ? <V2Action label={backLabel} onPress={onBack} style={brandAction} />
-    : view.kind === 'eligible' ? <V2Action label={view.save.label} loading={view.save.loading} disabled={view.save.disabled}
-      reason={view.save.reason} onPress={view.save.onPress} style={brandAction} />
+    </FlowFooter>
+    : view.kind === 'saved' ? <FlowFooter><V2Action label={backLabel} onPress={onBack} style={brandAction} /></FlowFooter>
+    // Before "Sačuvaj" a person is told once what saving means (idea R29); while the button is grey, the line above it says why instead.
+    : view.kind === 'eligible' ? <FlowFooter reason={view.save.disabled && view.save.reason ? view.save.reason : undefined}>
+      {!(view.save.disabled && view.save.reason) ? <T variant="note" tone="muted" testID="review-save-warning">{SAVE_WARNING}</T> : null}
+      <V2Action label={view.save.label} loading={view.save.loading} disabled={view.save.disabled} onPress={view.save.onPress} style={brandAction} />
+    </FlowFooter>
     : null;
   const [errorTitle, errorBody] = view.kind === 'error' ? firstSentence(view.message) : ['', null];
-  const screen = <>
-    <DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />
-    <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps={keyboardAware ? 'handled' : undefined}>
+  return <Screen kind="flow" keyboardAvoiding={keyboardAware} header={<DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />} footer={footer}>
       {loading ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, variant: 'person' }} />
         : view.kind === 'error' ? <StateView kind="error" title={errorTitle} body={errorBody ?? undefined}
           primary={{ label: retry.label, onPress: retry.onPress, disabled: retry.disabled }} />
@@ -125,14 +131,12 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
                   <Star size={40} weight={value <= view.rating ? 'fill' : 'regular'} color={value <= view.rating ? sys.color.orange : sys.color.muted} />
                 </Press>)}
               </View>
-              <T accessibilityLiveRegion="polite" variant="bodyStrong" tone={view.rating ? 'ink' : 'muted'}>{ratingLabels[view.rating]}</T>
+              {/* The word for the chosen stars. Before any is chosen the foot says "Izaberi ocenu" once, so the line holds its place and stays quiet. */}
+              <T accessibilityLiveRegion="polite" variant="bodyStrong">{view.rating ? ratingLabels[view.rating] : '\u00A0'}</T>
             </View>
           </View>
-          <View style={s.section}>
-            <View style={s.sectionHead}>
-              <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Šta je obeležilo saradnju?</T>
-              <T variant="meta" tone="muted">{`Nije obavezno · najviše ${view.catalog.maxTags}`}</T>
-            </View>
+          <Section title="Šta je obeležilo saradnju?">
+            <T variant="note" tone="muted">{`Nije obavezno · najviše ${view.catalog.maxTags}`}</T>
             <View style={s.tags}>
               {view.catalog.tags.map(tag => {
                 const selected = view.tags.includes(tag), capped = !selected && tagsFull, disabled = !view.editable || capped;
@@ -145,20 +149,17 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
                 </Press>;
               })}
             </View>
-            {tagsFull && view.editable ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">{fullHint(view.catalog.maxTags)}</T> : null}
-          </View>
+            {tagsFull && view.editable ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">{fullHint(view.catalog.maxTags)}</T> : null}
+          </Section>
           {view.comment ? <ReviewCommentField field={view.comment} /> : null}
-          {view.attempt ? <T variant="meta" tone="muted">Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.</T> : null}
+          {view.attempt ? <T variant="meta" tone="muted">Čuvamo tvoju ocenu dok proveravaš da li je poslata.</T> : null}
         </> : view.kind === 'unavailable' ? <StateView kind="empty" art="star" title="Ocena još nije dostupna" body="Oceni saradnju kad Dogovor bude završen."
           primary={{ label: backLabel, onPress: onBack }} /> : null}
-    </ScrollView>
-    {footer ? <View style={s.footer}>{footer}</View> : null}
-  </>;
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    {/* The same bar, scroll and foot; with a comment field on screen they sit in one avoiding view, so the save is never under the keyboard. */}
-    {keyboardAware ? <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{screen}</KeyboardAvoidingView> : screen}
-  </SafeAreaView>;
+  </Screen>;
 }
+
+/** Said once, above "Sačuvaj": a saved rating cannot be changed (idea R29). */
+export const SAVE_WARNING = 'Ocenu posle čuvanja ne možeš da menjaš.';
 
 /** Why the other tags stopped taking a press once the most are chosen. */
 function fullHint(max: number): string {
@@ -171,17 +172,13 @@ function firstSentence(message: string): [string, string | null] {
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground },
   ink: { color: sys.color.ink }, grow: { flex: 1, minWidth: 0 },
-  content: { paddingHorizontal: SIDE, paddingTop: sys.space.base, paddingBottom: sys.space.xxl, gap: sys.space.lg },
   person: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   personCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   rating: { gap: sys.space.md },
   stars: { gap: sys.space.sm, alignItems: 'center' },
   starRow: { flexDirection: 'row', justifyContent: 'center' },
   star: { alignItems: 'center', justifyContent: 'center' },
-  section: { gap: sys.space.sm, marginTop: sys.space.xs },
-  sectionHead: { gap: sys.space.xs },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, paddingTop: sys.space.xs },
   tag: { minHeight: 48, paddingHorizontal: sys.space.base, flexDirection: 'row', alignItems: 'center', gap: sys.space.xs,
     borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
@@ -190,6 +187,4 @@ const s = StyleSheet.create({
   saved: { gap: sys.space.md, alignItems: 'flex-start', paddingTop: sys.space.sm },
   savedComment: { alignSelf: 'stretch', gap: sys.space.xs },
   savedPerson: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, alignSelf: 'stretch' },
-  notice: { ...inset, backgroundColor: sys.color.warnSoft },
-  footer: { backgroundColor: sys.color.surface, paddingHorizontal: SIDE, paddingVertical: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line, gap: sys.space.sm },
 });

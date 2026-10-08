@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-const mockRead = jest.fn(), mockNavigate = jest.fn();
+const mockRead = jest.fn(), mockNavigate = jest.fn(), mockCancellations = jest.fn();
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 let mockParams: { odeljak?: string } = {};
 const mockSource = { mojiDogovori: () => mockRead() };
@@ -16,6 +16,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 }); });
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
+jest.mock('../agreementCancellationClientService', () => ({ agreementCancellationService: { read: (...args: unknown[]) => mockCancellations(...args) } }));
 jest.mock('../../ui/v2/AgreementCollectionPresentation', () => ({ AgreementCollectionPresentation: 'Agreements' }));
 // This route suite isolates the whole presentation; its injected header/photo are separate UI leaves.
 jest.mock('../../ui/system/ScreenHeader', () => ({ ScreenHeader: 'ScreenHeader' }));
@@ -31,6 +32,7 @@ beforeEach(() => {
   mockSession = { user: { id: 'account-a' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockApp.currentState = 'active';
   mockParams = {};
   mockRead.mockReset().mockImplementation(async () => [{ id: 'owned', verzija: 1 }]); mockNavigate.mockReset();
+  mockCancellations.mockReset().mockResolvedValue({ ok: true, podatak: new Map() });
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
@@ -197,4 +199,47 @@ test('a blurred list refuses a chip press', async () => {
   await act(async () => old.onHistoryFilter('cancelled'));
   mockFocused = true; await update();
   expect(props().historyFilter).toBe('all');
+});
+
+// The empty list's two ways to a first Dogovor, and CANCEL-INFO (when, by whom and why a Dogovor was cancelled).
+test('the empty list leads to the tasks and to publishing one, behind the same guards as every other press', async () => {
+  await render(); const old = props();
+  await act(async () => old.onTasks());
+  expect(mockNavigate).toHaveBeenCalledWith('/zadaci'); mockNavigate.mockClear();
+  mockFocused = false; await update(); await act(async () => old.onPublish());
+  expect(mockNavigate).not.toHaveBeenCalled(); mockFocused = true; await update();
+  await act(async () => props().onPublish());
+  expect(mockNavigate).toHaveBeenCalledWith('/nova');
+});
+describe('who cancelled, when and why (CANCEL-INFO)', () => {
+  const cancelled = { id: '20000000-0000-4000-8000-0000000000c1', verzija: 1, stanje: 'CANCELLED' };
+  const answer = { agreementId: cancelled.id, cancelledAt: '2026-10-07T18:23:45+00:00', by: 'WORKER', byMe: true, reason: 'Promenio sam plan.', reasonState: 'KEPT' };
+  beforeEach(() => { mockRead.mockImplementation(async () => [{ id: 'live', verzija: 1, stanje: 'CONFIRMED' }, cancelled]); });
+
+  test('is asked for only when Istorija is on screen and holds a cancelled Dogovor, once, in one call, and handed to the list', async () => {
+    mockCancellations.mockResolvedValue({ ok: true, podatak: new Map([[cancelled.id, answer]]) });
+    await render();
+    expect(mockCancellations).not.toHaveBeenCalled(); expect(props().cancellations).toBeNull();
+    await act(async () => props().onSection('history'));
+    expect(mockCancellations).toHaveBeenCalledTimes(1);
+    expect(mockCancellations).toHaveBeenCalledWith([cancelled.id], { accountId: 'account-a', accountRevision: 1 });
+    expect(props().cancellations.get(cancelled.id)).toEqual(answer);
+    await act(async () => props().onHistoryFilter('cancelled')); await update();
+    expect(mockCancellations).toHaveBeenCalledTimes(1);
+  });
+
+  test('is not asked for when nothing in the list is cancelled', async () => {
+    mockRead.mockImplementation(async () => [{ id: 'live', verzija: 1, stanje: 'CONFIRMED' }]);
+    await render(); await act(async () => props().onSection('history'));
+    expect(mockCancellations).not.toHaveBeenCalled();
+  });
+
+  test('a read that fails, or throws, leaves the cards saying only "Otkazan": no cancellations are handed over', async () => {
+    mockCancellations.mockResolvedValue({ ok: false, kod: 'CANCELLATION_READ_FAILED', poruka: 'x' });
+    await render(); await act(async () => props().onSection('history'));
+    expect(mockCancellations).toHaveBeenCalledTimes(1); expect(props().cancellations).toBeNull();
+    mockCancellations.mockRejectedValue(new Error('boom'));
+    await act(async () => { props().onSection('active'); }); await act(async () => { props().onSection('history'); });
+    expect(props().cancellations).toBeNull();
+  });
 });

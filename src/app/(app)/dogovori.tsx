@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
+import { agreementCancellationService, type AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
@@ -94,7 +95,20 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     navigate(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: agreement.id, from: 'dogovori' } }));
   };
   const onProfile = () => navigate(() => router.navigate('/profil'));
+  // When, by whom and why the cancelled Dogovori were cancelled (CANCEL-INFO). It is asked only when Istorija is on screen and holds a
+  // cancelled one, in one call; a read that fails, or that has not come, leaves every card saying "Otkazan" and nothing more.
+  const cancelledIds = useMemo(() => (resource.data ?? []).filter(item => item.stanje === 'CANCELLED').map(item => item.id), [resource.data]);
+  const cancelledKey = cancelledIds.join('|');
+  const [cancellations, setCancellations] = useState<AgreementCancellations | null>(null);
+  useEffect(() => {
+    if (section !== 'history' || !cancelledIds.length || !user?.id) return;
+    let live = true;
+    void agreementCancellationService.read(cancelledIds, { accountId: user.id, accountRevision })
+      .then(result => { if (live && result.ok) setCancellations(result.podatak); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [section, cancelledKey, user?.id, accountRevision]); // eslint-disable-line react-hooks/exhaustive-deps
   return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    cancellations={cancellations}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter}
     onSection={value => { if (current()) onSection(value); }}
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
@@ -102,5 +116,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={onProfile}
-    onHome={() => navigate(() => router.navigate('/'))} />;
+    onHome={() => navigate(() => router.navigate('/'))}
+    // The two ways a first Dogovor begins, for the empty list: apply to a task, or publish one.
+    onTasks={() => navigate(() => router.navigate('/zadaci'))} onPublish={() => navigate(() => router.navigate('/nova'))} />;
 }

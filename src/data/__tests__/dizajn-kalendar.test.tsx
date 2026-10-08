@@ -7,6 +7,13 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get(target, key) {
     if (key === 'Platform') return { OS: 'web' };
     if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: 1 });
+    // The Arhiva is a list: one that draws every item, its header, its empty state and its footer, so what the gallery puts in them can be read.
+    if (key === 'FlatList') return ({ data, renderItem, keyExtractor, ListHeaderComponent, ListEmptyComponent, ListFooterComponent, ItemSeparatorComponent, ...props }: any) => {
+      const react = require('react');
+      return react.createElement('List', props, ListHeaderComponent, data.length
+        ? data.map((item: unknown, index: number) => react.createElement(react.Fragment, { key: keyExtractor(item, index) }, renderItem({ item, index })))
+        : ListEmptyComponent, ListFooterComponent, ItemSeparatorComponent ? react.createElement(ItemSeparatorComponent) : null);
+    };
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView', 'Switch', 'Modal', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -16,7 +23,7 @@ jest.mock('expo-constants', () => ({ expoConfig: { android: { package: 'rs.uskoc
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() } }));
+jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() }, useLocalSearchParams: () => ({}) }));
 jest.mock('../workerCalendarClientService', () => { throw new Error('the gallery must not reach a data service'); });
 jest.mock('../agreementClientService', () => { throw new Error('the gallery must not reach a data service'); });
 jest.mock('../workerAvailabilityClientService', () => { throw new Error('the gallery must not reach a data service'); });
@@ -34,10 +41,11 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 it('opens every scene by its visible label and comes back with "Nazad"', async () => {
   await act(async () => { tree = create(<DizajnKalendar />); });
-  const labels = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^(Kalendar|Dostupnost|List) · /.test(String(node.props.accessibilityLabel)))
+  const labels = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^(Kalendar|Dostupnost|List|Arhiva) · /.test(String(node.props.accessibilityLabel)))
     .map(node => String(node.props.accessibilityLabel));
-  // 21 since the review of step 10: the list that does not say the exact time, and availability without a work profile.
-  expect(labels).toHaveLength(21);
+  // 21 since the review of step 10 (the list that does not say the exact time, availability without a work profile); 27 since the UI pass of 2026-10-08:
+  // an empty day with chips, only Dogovori (no chips), the sections under the day, and the Arhiva in three states.
+  expect(labels).toHaveLength(27);
   for (const label of labels) {
     await pressHost(label);
     expect(text()).not.toContain('Kalendar · galerija');
@@ -95,6 +103,32 @@ it('draws a missing work profile as a step to take, not as a failed read', async
 it('shows the conversation check that the reason of the "razlog" scene names', async () => {
   await act(async () => { tree = create(<DizajnKalendar />); });
   await pressHost('Dostupnost · profil, dugme sa razlogom');
-  expect(tree.root.findAll(node => node.props.reason === 'Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.').length).toBeGreaterThan(0);
+  expect(tree.root.findAll(node => node.props.reason === 'Prvo proveri stanje razgovora. Ne znamo da li je izmena sačuvana.').length).toBeGreaterThan(0);
   expect(tree.root.findAll(node => node.props.label === 'Proveri stanje razgovora').length).toBeGreaterThan(0);
+});
+
+// The UI pass of 2026-10-08 (composition spec 4.10): the row of chips is the one control row over the day, and it is there only when there is
+// something to choose between.
+it('draws the chips only when the window holds two kinds, and the sections under the day with the group headings', async () => {
+  const chips = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel);
+  await act(async () => { tree = create(<DizajnKalendar />); });
+  await pressHost('Kalendar · dan sa Dogovorima');
+  expect(chips()).toEqual(['Sve', 'Dogovori', 'Moji zadaci', 'Moje prijave']);
+  await pressHost('Nazad na scene'); await pressHost('Kalendar · samo Dogovori, bez čipova');
+  expect(chips()).toEqual([]);
+  await pressHost('Nazad na scene'); await pressHost('Kalendar · prazan dan, ima čipove');
+  expect(chips()).toHaveLength(4); expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
+  await pressHost('Nazad na scene'); await pressHost('Kalendar · bez tačnog termina i prijave na čekanju');
+  expect(text()).toContain('Bez tačnog termina'); expect(text()).toContain('Čekaju odgovor'); expect(text()).toContain('Prijava poslata'); expect(text()).toContain('Prijava viđena');
+});
+
+it('draws the Arhiva in its states from the same fixtures, with its records under the group headings', async () => {
+  await act(async () => { tree = create(<DizajnKalendar />); });
+  await pressHost('Arhiva · završeno i otkazano');
+  expect(text()).toContain('Dogovori'); expect(text()).toContain('Zadaci'); expect(text()).toContain('Prijave');
+  expect(text()).toContain('Završen'); expect(text()).toContain('Otkazan'); expect(text()).toContain('Zatvoren'); expect(text()).toContain('Povučena');
+  await pressHost('Nazad na scene'); await pressHost('Arhiva · prazna');
+  expect(text()).toContain('Arhiva je prazna.');
+  await pressHost('Nazad na scene'); await pressHost('Arhiva · greška');
+  expect(text()).toContain('Arhiva nije učitana.');
 });

@@ -29,7 +29,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: (props: { context?: React.ReactNode }) => require('react').createElement('AgreementChat', props, props.context) }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
-jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 0 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 0 }) }));
+jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount, phone: '+381601234567' }, accountRevision: 0 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 0 }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: { reconcile: jest.fn().mockResolvedValue(undefined) }, state: { phase: 'ready', entries: [] } }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockAgreementId, loaded: true, busy: false, items: [] }) }));
@@ -45,6 +45,10 @@ jest.mock('../agreementMessageHistoryService', () => ({
   },
 }));
 jest.mock('../reviewsClientService', () => ({ reviewsClientService: { context: jest.fn().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } }) } }));
+jest.mock('../agreementCancellationClientService', () => ({
+  agreementCancellationService: { read: jest.fn().mockResolvedValue({ ok: true, podatak: new Map() }) },
+  cancellationOf: (all: Map<string, unknown> | null | undefined, id: string) => all?.get(id.toLowerCase()) ?? null,
+}));
 import Dogovor from '../../app/dogovor/[id]';
 
 /**

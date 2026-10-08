@@ -125,7 +125,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     problemOtvoren: Boolean(raw.problemOpened),
     // Only whether the Dogovor is finished; the list below asks the review read whether MY rating is still due.
     ocenaMoguca: status === 'COMPLETED',
-    hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor kreiran' }],
+    hronologija: [{ vremeTekst: formatTime(raw.createdAt), tekst: 'Dogovor je sklopljen' }],
     radnje: agreementActions(raw, uid),
     // PKG-023a. The workspace read has never carried either of these, so a null here means the
     // reader did not say, not that there is no term and no pending change.
@@ -190,7 +190,7 @@ function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActio
 
 function acceptedSchedule(terms: Record<string, unknown>): string {
   const start = terms.proposed_start_at, end = terms.proposed_end_at;
-  if (start == null && end == null) return 'Termin nije potvrđen';
+  if (start == null && end == null) return 'Termin nije dogovoren';
   if ((start != null && (typeof start !== 'string' || calendarInstant(start) === null)) ||
     (end != null && (typeof end !== 'string' || calendarInstant(end) === null))) return 'Termin nije dostupan';
   // The workspace returns accepted instants but no accepted display timezone. They were once shown
@@ -357,11 +357,11 @@ const changeErrors = {
   CHANGE_PROPOSAL_NOT_FOUND: 'Predlog izmene nije dostupan.', PROPOSER_CANNOT_RESPOND: 'Na predlog odgovara druga strana.',
   PROPOSAL_NOT_PENDING: 'Na ovaj predlog više nije moguće odgovoriti.', DECISION_REQUIRED: 'Izaberi odgovor na predlog.',
   AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj dogovorenog termina.',
-  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa potvrđenim Dogovorom. Osveži kalendar.',
+  WORKER_CALENDAR_CONFLICT: 'Termin se preklapa sa drugim Dogovorom. Proveri Raspored i izaberi drugi termin.',
   CALENDAR_RECHECK_REQUIRED: 'Raspored se upravo promenio. Osveži podatke pre ponovnog pokušaja.',
   // PKG-031a (owner decision 2026-09-21, deep read 7.16): after the worker says done, the requester
   // confirms or reports a problem; the server refuses a cancel from a screen that did not know yet.
-  AGREEMENT_WORK_REPORTED_DONE: 'Radnik je javio da je zadatak gotov. Potvrdi završetak ili prijavi problem.',
+  AGREEMENT_WORK_REPORTED_DONE: 'Druga strana je javila da je zadatak gotov. Potvrdi završetak ili prijavi problem.',
 };
 // Input refusal and malformed success receipt must never share a code: only the
 // former proves no command was accepted. The controller uses this same allowlist.

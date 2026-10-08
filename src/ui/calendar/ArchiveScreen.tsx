@@ -1,14 +1,19 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { GroupHeader } from '../agreements/GroupHeader';
 import { DetailTopBar } from '../system/DetailTopBar';
+import { layout } from '../system/layout';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
+import { Surface } from '../system/Surface';
 import { useTextScale } from '../system/textScale';
-import { cardCompact, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
+import { usePressLift } from '../system/usePressLift';
 import { V2Action } from '../v2/V2Action';
 import { ARCHIVE_FILTERS, DRAFTS_NOT_KEPT, EMPTY_ARCHIVE, REASON_NOT_KEPT, archiveEntries, archiveGroups, hasUnkeptReason,
   type ArchiveEntry, type ArchiveFilter, type ArchiveGroup } from './archive';
@@ -29,6 +34,7 @@ function nameOf(entry: ArchiveEntry): string {
  * "Arhiva" (owner, 2026-10-07; plan 2.2): the things of mine that are over, read-only, for both sides at once. Finished and cancelled
  * Dogovori, closed tasks, withdrawn and closed applications, in three groups, each row with the shared chip and a press that opens
  * the detail it belongs to. A quiet row of chips, "Sve · Otkazani · Istekli · Završeni", narrows it. It makes no command of its own.
+ * Each thing is a `record` (a card that is touched, the same one the Raspored draws) under a group heading of the one rhythm: 24 above it, 12 below.
  *
  * A read that failed is said and never drawn as a short archive: with one source down the others are drawn under a line that says
  * which, and "Nema …" is never claimed while a source is missing. Under the list stands the one sentence that tells where a deleted
@@ -72,15 +78,15 @@ export function ArchiveScreen({ agreements, needs, applications, refreshing, onB
   </View>;
 
   const header = <View style={s.header}>
-    <Segmented contentSized scroll value={filter} onChange={setFilter} options={ARCHIVE_FILTERS.map(({ key, label }) => ({ key, label }))} />
+    <Segmented value={filter} onChange={setFilter} options={ARCHIVE_FILTERS.map(({ key, label }) => ({ key, label }))} />
     {items.length && filter !== 'all' && hasUnkeptReason(entries) ? <T variant="note" tone="muted" style={s.reason}>{REASON_NOT_KEPT}</T> : null}
     {items.length ? notes : null}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Arhiva" onBack={onBack} />
     <FlatList data={items} keyExtractor={item => item.type === 'heading' ? `group:${item.group.kind}` : item.entry.key}
-      renderItem={({ item }) => item.type === 'heading'
-        ? <View style={s.groupHead}><T variant="bodyStrong" accessibilityRole="header">{item.group.heading}</T><T variant="note" tone="muted">{item.group.count}</T></View>
+      renderItem={({ item, index }) => item.type === 'heading'
+        ? <GroupHeader title={item.group.heading} count={item.group.count} first={index === 0} />
         : <ArchiveRow entry={item.entry} scale={scale} onOpen={onOpen} />}
       ListHeaderComponent={header} ListEmptyComponent={<View style={s.empty}>{empty}</View>}
       ListFooterComponent={everythingFailed || (loading && !items.length) ? null : <T variant="note" tone="muted" style={s.foot}>{DRAFTS_NOT_KEPT}</T>}
@@ -92,33 +98,38 @@ const Gap = () => <View style={s.gap} />;
 
 /** One thing that is over: its title, the shared chip with role · person, when and where it was. The whole card is the press. */
 function ArchiveRow({ entry, scale, onOpen }: { entry: ArchiveEntry; scale: number; onOpen: (entry: ArchiveEntry) => void }) {
+  const { style: lift, give, settle } = usePressLift();
   const others = [entry.role, entry.person].filter((part): part is string => !!part).join(' · ');
   const spoken = [statusSpoken(entry.status), entry.role, entry.timeText || null, entry.person, entry.place || null].filter((part): part is string => !!part).join(', ');
-  return <Press accessibilityRole="button" accessibilityLabel={nameOf(entry)} accessibilityValue={{ text: spoken }} haptic="select"
-    scaleTo={sys.motion.scale.row} onPress={() => onOpen(entry)} style={s.card}>
-    <T variant="cardTitleCompact" numberOfLines={scale >= 1.3 ? 3 : 2}>{entry.title ?? entry.fallbackTitle}</T>
-    <View style={s.facts}>
-      <PlannerChip status={entry.status} />
-      {others ? <T variant="note" style={s.factText}>{others}</T> : null}
-    </View>
-    {entry.timeText ? <T variant="note" style={s.factText}>{entry.timeText}</T> : null}
-    {entry.place ? <T variant="note" style={s.factText}>{entry.place}</T> : null}
-  </Press>;
+  return <Animated.View style={lift}>
+    <Surface kind="record">
+      <Press accessibilityRole="button" accessibilityLabel={nameOf(entry)} accessibilityValue={{ text: spoken }} haptic="select"
+        scaleTo={1} onPressIn={give} onPressOut={settle} onPress={() => onOpen(entry)} style={s.body}>
+        <T variant="cardTitleCompact" numberOfLines={scale >= 1.3 ? 3 : 2}>{entry.title ?? entry.fallbackTitle}</T>
+        <View style={s.facts}>
+          <PlannerChip status={entry.status} />
+          {others ? <T variant="note" style={s.factText}>{others}</T> : null}
+        </View>
+        {entry.timeText ? <T variant="note" style={s.factText}>{entry.timeText}</T> : null}
+        {entry.place ? <T variant="note" style={s.factText}>{entry.place}</T> : null}
+      </Press>
+    </Surface>
+  </Animated.View>;
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: sys.space.xxl },
-  header: { gap: sys.space.md, marginBottom: sys.space.base },
+  // The frame of every screen: the edge 20, 8 under the bar, 32 under the last thing (`Screen`; a FlatList cannot stand inside its scroll).
+  content: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.zone },
+  header: { gap: sys.space.md, marginBottom: layout.section },
   reason: { marginTop: sys.space.xs },
-  groupHead: { gap: sys.space.xs, marginTop: sys.space.base },
   gap: { height: sys.space.md },
-  card: { ...cardCompact, gap: sys.space.xs },
+  body: { gap: sys.space.xs },
   facts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm, rowGap: sys.space.xs },
   factText: { flexShrink: 1, color: sys.color.fact },
   empty: { paddingTop: sys.space.sm },
   none: { gap: sys.space.sm },
   notes: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.sm },
   noteLines: { flexShrink: 1, gap: sys.space.xs },
-  foot: { marginTop: sys.space.xl },
+  foot: { marginTop: layout.section },
 });

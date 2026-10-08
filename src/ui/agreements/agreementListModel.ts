@@ -1,4 +1,5 @@
 import type { DogovorProjekcija } from '../../contracts/projections';
+import type { AgreementCancellation } from '../../data/agreementCancellationClientService';
 import { calendarInstant } from '../../lib/calendarTime';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { raspon, vreme } from '../../lib/vreme';
@@ -178,12 +179,37 @@ export function agreementChip(item: DogovorProjekcija, now: Date): AgreementChip
 }
 
 /**
- * Who cancelled, when and why, as one line - only from what the Dogovor carries. The projection holds none of the three today,
- * so the line is "Otkazano" and nothing is invented; when the reader gives a time, a person or a reason, each joins the line
- * in this order and none is guessed. `by` is already a name ("Ti", "Marko"); `at` is an instant.
+ * Who cancelled, when and why, as one line - only from what the Dogovor carries. The projection holds none of the three, so
+ * the line is "Otkazano" and nothing is invented; when `rpc_agreement_cancellation_v1` answers (CANCEL-INFO, applied 2026-10-07,
+ * read by `agreementCancellationService`, turned into these words by `cancellationDetailsOf`), a time, a person and a reason join
+ * the line in this order and none is guessed. `by` is already a name ("Ti", "Marko"); `at` is an instant.
  */
 export function cancellationLine(details: { at?: string | null; by?: string | null; reason?: string | null } | null | undefined, now: Date = new Date()): string {
   const when = details?.at ? vreme(details.at, { zona: DOGOVORENA_ZONA, sada: now }) : '';
   const by = details?.by?.trim() ?? '', reason = details?.reason?.trim() ?? '';
   return ['Otkazano' + (when ? ` ${when}` : ''), by, reason].filter(part => part.length > 0).join(' · ');
+}
+
+/** What the line says of a reason that is not there: the pair was blocked or an account was closing at that moment (it never existed), or its text was erased when an account closed. */
+export const REASON_NEVER_SAVED = 'Razlog nije sačuvan';
+export const REASON_ERASED = 'Razlog je uklonjen';
+
+/**
+ * What the server said about one cancelled Dogovor, as the three parts of the line "Otkazano {datum} · {ko} · {razlog}".
+ *
+ * - {ko}: "Ti" when I cancelled; the other person's name when they did (their name stands as the subject of its own part, so it needs
+ *   no case ending; the app's stand-in for a missing name is "Druga strana"); nothing when the server no longer has the side. It is
+ *   never guessed, and never said in a form with a gender.
+ * - {razlog}: the canceller's own words when they were kept; otherwise one short sentence that says WHY there is none.
+ *
+ * Null when the server said nothing about this Dogovor: the screen then says only what it always said, "Otkazan".
+ */
+export function cancellationDetailsOf(cancellation: AgreementCancellation | null | undefined, otherName?: string | null):
+  { at: string; by: string; reason: string } | null {
+  if (!cancellation) return null;
+  const named = otherName?.trim();
+  const other = named && named !== 'Druga strana' ? named : 'Druga strana';
+  const by = cancellation.byMe === true ? 'Ti' : cancellation.byMe === false ? other : '';
+  const reason = cancellation.reasonState === 'KEPT' ? cancellation.reason ?? '' : cancellation.reasonState === 'REMOVED' ? REASON_ERASED : REASON_NEVER_SAVED;
+  return { at: cancellation.cancelledAt, by, reason };
 }

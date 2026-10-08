@@ -1,8 +1,9 @@
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../../contracts/projections';
 import {
   AGREEMENT_GROUP_ORDER, AGREEMENT_GROUP_TITLES, agreementAttention, agreementChip, agreementGroupOf, agreementInProgress, agreementWhen,
-  cancellationLine, filterHistory, groupActiveAgreements, isActiveAgreement, type AgreementGroupKey,
+  cancellationDetailsOf, cancellationLine, filterHistory, groupActiveAgreements, isActiveAgreement, REASON_ERASED, REASON_NEVER_SAVED, type AgreementGroupKey,
 } from '../agreementListModel';
+import type { AgreementCancellation } from '../../../data/agreementCancellationClientService';
 
 /**
  * The Dogovori list decides without drawing (plan 2.6): who waits for me, which group of Aktivni a Dogovor stands in, how its
@@ -250,5 +251,43 @@ describe('who cancelled, when and why - only from what the Dogovor carries', () 
     expect(cancellationLine({ by: 'Ti' })).toBe('Otkazano · Ti');
     expect(cancellationLine({ reason: 'Rešeno je drugačije' })).toBe('Otkazano · Rešeno je drugačije');
     expect(cancellationLine({ at: '2026-10-05T12:00:00Z' }, NOW)).toBe('Otkazano 5. okt · 14:00');
+  });
+});
+
+// CANCEL-INFO (applied to canonical DEV 2026-10-07): the three parts of the line come from rpc_agreement_cancellation_v1.
+describe('the line "Otkazano {datum} · {ko} · {razlog}" from what the server answered', () => {
+  const answered = (patch: Partial<AgreementCancellation> = {}): AgreementCancellation => ({ agreementId: 'a', cancelledAt: '2026-10-05T12:00:00Z',
+    by: 'WORKER', byMe: true, reason: 'Promenio sam plan.', reasonState: 'KEPT', ...patch });
+  const line = (cancellation: AgreementCancellation | null, other?: string | null) => cancellationLine(cancellationDetailsOf(cancellation, other), NOW);
+
+  it('says nothing more than "Otkazano" when the server said nothing about this Dogovor', () => {
+    expect(cancellationDetailsOf(null)).toBeNull(); expect(cancellationDetailsOf(undefined, 'Marko')).toBeNull();
+    expect(cancellationLine(cancellationDetailsOf(null), NOW)).toBe('Otkazano');
+  });
+
+  it('writes "Ti" for my own cancellation, with the time in Serbian time and the reason as the canceller wrote it', () => {
+    expect(line(answered())).toBe('Otkazano 5. okt · 14:00 · Ti · Promenio sam plan.');
+  });
+
+  it('names the other person when they cancelled, and falls back to "Druga strana" when there is no name', () => {
+    expect(line(answered({ by: 'REQUESTER', byMe: false, reason: 'Nisam stigao.' }), 'Marko Jovanović')).toBe('Otkazano 5. okt · 14:00 · Marko Jovanović · Nisam stigao.');
+    expect(line(answered({ by: 'REQUESTER', byMe: false }), '  ')).toBe('Otkazano 5. okt · 14:00 · Druga strana · Promenio sam plan.');
+    expect(line(answered({ by: 'REQUESTER', byMe: false }), 'Druga strana')).toBe('Otkazano 5. okt · 14:00 · Druga strana · Promenio sam plan.');
+    expect(line(answered({ by: 'REQUESTER', byMe: false }))).toBe('Otkazano 5. okt · 14:00 · Druga strana · Promenio sam plan.');
+  });
+
+  it('never guesses the side: when the server no longer has it, no person joins the line', () => {
+    expect(line(answered({ by: null, byMe: null, reason: null, reasonState: 'NOT_KEPT' }), 'Marko')).toBe('Otkazano 5. okt · 14:00 · Razlog nije sačuvan');
+  });
+
+  it('says why a reason is missing in one short sentence: it was never saved, or it was erased', () => {
+    expect(line(answered({ reason: null, reasonState: 'NOT_KEPT' }))).toBe('Otkazano 5. okt · 14:00 · Ti · ' + REASON_NEVER_SAVED);
+    expect(line(answered({ reason: null, reasonState: 'REMOVED' }))).toBe('Otkazano 5. okt · 14:00 · Ti · ' + REASON_ERASED);
+    expect([REASON_NEVER_SAVED, REASON_ERASED]).toEqual(['Razlog nije sačuvan', 'Razlog je uklonjen']);
+  });
+
+  it('uses no gendered verb and none of the two words the app never says for a person', () => {
+    const all = [line(answered()), line(answered({ by: 'REQUESTER', byMe: false }), 'Ana'), line(answered({ reason: null, reasonState: 'REMOVED' }))].join(' ');
+    expect(all).not.toMatch(/otkazao|otkazala|Naručilac|Uskočer/);
   });
 });

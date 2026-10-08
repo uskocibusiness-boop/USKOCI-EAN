@@ -6,7 +6,8 @@ import { AgreementChat } from '../AgreementChat';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { Press } from '../Press';
 import { Avatar } from '../system/Avatar';
-import { ChromeIconButton } from '../system/ScreenChrome';
+import { layout } from '../system/layout';
+import { chrome, ChromeIconButton } from '../system/ScreenChrome';
 import { useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
@@ -81,12 +82,14 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
         <Press accessibilityRole="button" accessibilityLabel={`Dogovor: ${title}${person ? `. ${person.ime}` : ''}`}
           accessibilityHint="Otvara pregled prihvaćenih uslova i narednih koraka."
           onPress={onOverview} haptic="select" hitSlop={0} style={s.threadIdentity}>
-          <View style={s.personCopy}>
-            <T accessibilityRole="header" variant="bodyStrong" numberOfLines={1}>{person?.ime || 'Poruke'}</T>
-            <T variant="note" tone="muted" numberOfLines={2}>{title}</T>
+          {/* The name in the type the bar of Pregled gives it (the chrome's title), and the task under it in the chrome's own second line, so the
+              bar does not change its look when the tab does. */}
+          <View style={s.identity}>
+            <T accessibilityRole="header" variant="title" numberOfLines={1}>{person?.ime || 'Poruke'}</T>
+            <T variant="meta" tone="muted" numberOfLines={1}>{title}</T>
           </View>
         </Press>
-        {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema, otkazivanje, prijava ili blokiranje osobe"
+        {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema, otkazivanje, blokiranje osobe"
           onPress={onMore} /> : null}
       </View>
       <View testID="agreement-thread-tabs" style={s.tabs}><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
@@ -98,16 +101,22 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
 
 const s = StyleSheet.create({
   frame: { flex: 1, minHeight: 0 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: sys.conversation.ground },
+  // The bar, the tabs and the sentence about what waits stand on the edge of every screen (`layout.gutter`, the chrome's own), so the arrow
+  // back is where it is on Pregled: it does not jump when the tab changes. The list of messages (16) and the composer (12) are the
+  // conversation's one recognised exception (`layout.chatList`, `layout.chatComposer`).
+  bar: { flexDirection: 'row', alignItems: 'center', gap: chrome.gap, paddingHorizontal: chrome.paddingHorizontal, paddingVertical: chrome.paddingVertical,
+    backgroundColor: sys.conversation.ground },
   barTitle: { flex: 1, minWidth: 0 },
-  tabs: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.sm, backgroundColor: sys.conversation.ground },
-  threadIdentity: { flex: 1, minWidth: 0, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  overview: { minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
-    paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
+  tabs: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.sm, backgroundColor: sys.conversation.ground },
+  identity: { flex: 1, minWidth: 0 },
+  threadIdentity: { flex: 1, minWidth: 0, minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  overview: { minHeight: layout.touch, minWidth: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs,
+    paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.warn },
-  waitingRow: { paddingHorizontal: 20, paddingBottom: 8 },
-  context: { gap: 16, paddingBottom: 24, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: sys.conversation.edge },
-  person: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  personCopy: { flex: 1, minWidth: 0, gap: 4 },
+  waitingRow: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.sm },
+  // The context joins the history's scroll at a large text size; it is parted from the first message by space, not by a line.
+  context: { gap: sys.space.base, paddingBottom: layout.section, marginBottom: sys.space.md },
+  person: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  personCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   waiting: { color: sys.color.warn },
 });

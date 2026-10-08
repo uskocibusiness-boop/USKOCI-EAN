@@ -447,14 +447,14 @@ export function AvailabilityForm({ availability, busy, uncertain, onSave, candid
     : past(a) ? (start(a) < start(b) ? 1 : start(a) > start(b) ? -1 : 0) : (start(a) < start(b) ? -1 : start(a) > start(b) ? 1 : 0));
   const saveLabel = candidateMode ? 'Primeni na pregled profila' : 'Sačuvaj dostupnost';
   const footer = uncertain && onReconcile ? <FooterIn key="reconcile" reduced={reduced}>
-    <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{problem ?? 'Ishod izmene još nije potvrđen.'}</T>
+    <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{problem ?? 'Ne znamo da li je izmena sačuvana.'}</T>
     {/* The explicit read bypasses the unsaved-changes gate on purpose: until it answers, nothing here can be trusted. */}
     <V2Action label="Učitaj sačuvano stanje" kind="secondary" disabled={busy || refreshing} onPress={onReconcile} />
   </FooterIn> : uncertain ? <FooterIn key="uncertain" reduced={reduced}>
     {/* Without a read of its own here, the reason names the way forward the surrounding screen offers: in the profile
         conversation that is its own check of the conversation (review of owner step 10). */}
     <V2Action label={saveLabel} style={brandAction} disabled onPress={save} reason={candidateMode
-      ? 'Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.' : 'Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.'} />
+      ? 'Prvo proveri stanje razgovora. Ne znamo da li je izmena sačuvana.' : 'Prvo učitaj sačuvano stanje. Ne znamo da li je izmena sačuvana.'} />
   </FooterIn> : statusSaving ? null : dirty || busy ? <FooterIn key="form" reduced={reduced}>
     {dirty ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Imaš nesačuvane izmene.</T> : null}
     <V2Action label={saveLabel} style={brandAction} loading={busy} disabled={blocked || sheetOpen} error={error} onPress={save} />

@@ -9,6 +9,8 @@ import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementPhotoComposer, AgreementPhotoSheet } from './media/AgreementPhotoComposer';
 import { PHOTO_WORDS } from './media/photoWords';
 import { Glyph } from './system/Glyph';
+import { tick } from './system/haptics';
+import { OUTCOME_ACTION } from './system/outcomeCopy';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { Press } from './Press';
 import { FactArt } from './system/FactArt';
@@ -69,16 +71,37 @@ type Props = {
 const errors: Record<OutboxError, string> = {
   STORAGE_UNAVAILABLE: 'Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.',
   STORAGE_INVALID: 'Poruke sačuvane na ovom telefonu nije moguće učitati. Prepiska je bezbedno sačuvana.',
-  CAPACITY: 'Imaš 50 nepotvrđenih poruka. Proveri njihovo slanje pre nove poruke.',
+  CAPACITY: 'Čeka 50 poruka koje nisu poslate. Proveri ih pre nove poruke.',
   INVALID_MESSAGE: 'Poruka može imati od 1 do 2.000 znakova. Proveri tekst.',
   READ_ONLY: 'Dogovor trenutno ne prihvata nove poruke. Osveži njegov status.',
   NOT_AVAILABLE: 'Više nemaš pristup slanju u ovom Dogovoru. Osveži njegov status.',
   AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Vrati se na Dogovore.',
-  CONFLICT: 'Ovaj pokušaj slanja ne odgovara sačuvanoj poruci. Tekst možeš kopirati.',
-  UNAVAILABLE: 'Veza je prekinuta. Slanje još nije potvrđeno.',
-  INVALID_RESPONSE: 'Potvrda slanja nije stigla. Pokušaj ponovo za istu poruku.',
+  CONFLICT: 'Ova poruka se razlikuje od sačuvane. Možeš da kopiraš tekst.',
+  UNAVAILABLE: 'Veza je prekinuta. Ne znamo da li je poruka stigla.',
+  // The words describe and the button ("Proveri", `outcomeCopy`) commands: the line does not say the verb of the button twice.
+  INVALID_RESPONSE: 'Ne znamo da li je poruka stigla. Neće se poslati dvaput.',
   NOT_READY: 'Sačekaj da se učitaju sačuvane poruke.',
 };
+
+/**
+ * A send that FAILED ticks once (haptic rule R5: a tick is an outcome, never a touch; `system/haptics`, kind `error`). Failed is the
+ * entry's own state, the one that says "Nije poslato": a send whose outcome is merely unknown ("Ne znamo da li je stigla") is a wait
+ * that retries itself, not a failure, and ticks nothing. What had already failed when the thread opened is not news and is not
+ * ticked; the same failed attempt is ticked once, and a new attempt that fails is a new failure. A tick is not movement, so this
+ * does not touch the conversation's rule of no motion.
+ */
+function useFailedSendTick(entries: readonly { command: { clientMessageId: string }; state: string; attempt: number }[], hydrated: boolean) {
+  const failed = entries.filter(entry => entry.state === 'failed').map(entry => `${entry.command.clientMessageId}:${entry.attempt}`).join('|');
+  const known = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    const now = failed ? failed.split('|') : [];
+    if (known.current === null) { known.current = new Set(now); return; }
+    let news = false;
+    for (const key of now) if (!known.current.has(key)) { known.current.add(key); news = true; }
+    if (news) tick('error');
+  }, [failed, hydrated]);
+}
 
 /** A command in the conversation (send, the "+", retry) is at least 48 high; the touch token is the 44 of a row. */
 const COMMAND = 48;
@@ -113,8 +136,8 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
     <ChatAction label="Osveži fotografije poruke" text="Proveri fotografije" refresh busy={busy} onPress={() => { void photos.refresh(); }} />
     {items.map((item, index) => <View key={item.ref.clientRequestId} style={s.details}>
       <T variant="meta">{`Fotografija ${index + 1}`}</T>
-      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je vezana za poruku. Prvo proveri ishod njenog slanja.</T> : <>
-        <T variant="meta" tone="muted">{item.receipt?.state === 'READY' ? 'Fotografija nije pridružena poruci.' : 'Ishod fotografije još nije potvrđen.'}</T>
+      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proveri da li je poslata.</T> : <>
+        <T variant="meta" tone="muted">{item.receipt?.state === 'READY' ? 'Fotografija nije pridružena poruci.' : 'Ne znamo da li je fotografija poslata.'}</T>
         <ChatAction label={`Ukloni pripremljenu fotografiju ${index + 1}`} text="Ukloni fotografiju" busy={busy}
           onPress={() => { void photos.remove(item.ref); }} />
       </>}
@@ -318,6 +341,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
     && !source.current.loading && !source.current.error && support.canAct();
   const ready = state.phase === 'ready';
   const entries = voice ? [...state.entries, ...voice.outboxState.entries] : state.entries;
+  useFailedSendTick(entries, ready && (!voice || voice.outboxState.phase === 'ready'));
   const voiceBusy = !!voice && voice.recording.phase !== 'idle';
   const hideEmptyTextForVoiceReview = voice?.recording.phase === 'review' && state.draft.length === 0;
   const length = Array.from(state.draft.trim()).length;
@@ -478,17 +502,17 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             stands under the empty state's words, as the error state's action does, not above its drawing (verify r4c
             item 2). */}
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
-          <View style={s.stateArt}><FactArt kind="chat" size={40} muted /></View>
-          <T accessibilityRole="alert" variant="bodyStrong" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
-          <T variant="note" tone="muted" style={s.centerText}>Proveri vezu. Tvoj tekst ostaje sačuvan.</T>
+          <View style={s.stateArt}><FactArt kind="chat" size={56} muted /></View>
+          <T accessibilityRole="alert" variant="title" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
+          <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>Proveri vezu. Tvoj tekst ostaje sačuvan.</T>
           <ChatAction label="Ponovo učitaj poruke" text="Pokušaj ponovo" onPress={() => void refresh()} center />
         </View> : null}
         {empty ? <View style={s.stateBlock}>
-          <View style={s.stateArt}><FactArt kind="chat" size={40} muted={terminal} /></View>
+          <View style={s.stateArt}><FactArt kind="chat" size={56} muted={terminal} /></View>
           {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
-          {terminal ? <T variant="copy" tone="muted" style={s.centerText}>U ovom Dogovoru nije bilo poruka.</T> : <>
+          {terminal ? <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>U ovom Dogovoru nije bilo poruka.</T> : <>
             <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napiši prvu poruku</T>
-            <T variant="copy" tone="muted" style={s.centerText}>Poruke vide samo učesnici ovog Dogovora.</T>
+            <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>Poruke vide samo učesnici ovog Dogovora.</T>
             {!refreshError ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}</>}
         </View> : null}
         {thread.map(entry => {
@@ -497,7 +521,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           const kind = readMark(message);
           const summary = { accessibilityRole: 'button' as const,
             accessibilityLabel: messageSpoken(message, moment, kind ? MARK_WORDS[kind].toLowerCase() : undefined),
-            accessibilityHint: 'Dugi pritisak nudi prijavu podršci.',
+            accessibilityHint: 'Dugim pritiskom prijavljuješ poruku podršci.',
             onLongPress: () => setChosen(current => current === message.id ? null : message.id), haptic: 'select' as const, scaleTo: 1 as const };
           const hasPhotos = !!photos && !!message.fotografije?.length;
           const common = { mine: message.moja, first: entry.first, last: entry.last, afterSeparator: entry.separator !== null, summary,
@@ -540,8 +564,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </View> : null}
         {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
             unconfirmed send may be older than today). */}
-        {/* Same shape, same single mark: a dot while it goes, a check once the server has acknowledged it. An unconfirmed or
-            refused send says so under its bubble (the red state) and offers "Pošalji ponovo" for that exact message. */}
+        {/* Same shape, same single mark: a dot while it goes, a check once the server has acknowledged it. A send whose outcome is not
+            known says so under its bubble and offers "Proveri"; a refused one goes red and offers "Pošalji ponovo", for that exact message. */}
         {local.map((entry, index) => {
           const failed = entry.state === 'failed';
           const kind = entryMark(entry);
@@ -556,10 +580,11 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
                 style={s.photo} />)} />
               : <TextBubble {...common} lines={[entry.command.body, entry.command.voice ? 'Glasovna poruka' : ''].filter(Boolean)} />}
             {entry.state === 'unknown' || failed ? <View style={s.pendingNote}>
-              <T variant="meta" tone={failed ? 'danger' : 'muted'} style={s.rightText} accessibilityLiveRegion="polite">{failed ? 'Nije poslato' : 'Slanje nije potvrđeno'}</T>
+              <T variant="meta" tone={failed ? 'danger' : 'muted'} style={s.rightText} accessibilityLiveRegion="polite">{MARK_WORDS[kind]}</T>
               {failed && entry.error ? <T variant="meta" tone="muted" style={s.rightText}>{errors[entry.error]}</T> : null}
-              <ChatAction label={entry.command.voice ? 'Pošalji glasovnu poruku ponovo' : `Ponovi slanje poruke ${entry.command.body}`} text="Pošalji ponovo" tone="ink"
-                end onPress={() => resend(entry)} />
+              {/* What is not known is checked, what was refused is sent again; both act on this exact message, with its own key, so it is never sent twice. */}
+              <ChatAction label={failed ? entry.command.voice ? 'Pošalji glasovnu poruku ponovo' : `Ponovi slanje poruke ${entry.command.body}` : `Proveri da li je stigla: ${what}`}
+                text={failed ? 'Pošalji ponovo' : OUTCOME_ACTION.check} tone="ink" end onPress={() => resend(entry)} />
             </View> : null}
           </View>;
         })}
@@ -652,9 +677,11 @@ const s = StyleSheet.create({
   listCentred: { justifyContent: 'center' },
   loading: { paddingVertical: 24 },
   center: { alignSelf: 'center' }, end: { alignSelf: 'flex-end' }, centerText: { textAlign: 'center' }, ink: { color: sys.color.ink },
-  stateBlock: { gap: 8, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16 },
+  // The states of the conversation are the system's empty and error column (T7): the picture, one title, one sentence of at most 280, the way forward.
+  stateBlock: { gap: sys.space.md, alignItems: 'center', paddingHorizontal: sys.space.xl, paddingVertical: sys.space.base },
+  stateCopy: { maxWidth: 280 },
   refreshNotice: { gap: 8, alignItems: 'center', paddingVertical: 12 },
-  stateArt: { width: 72, height: 72, borderRadius: sys.radius.card, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  stateArt: { width: 96, height: 96, borderRadius: sys.radius.card, backgroundColor: sys.conversation.iconWell, alignItems: 'center', justifyContent: 'center', marginBottom: sys.space.xs },
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
   refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,
     borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill },

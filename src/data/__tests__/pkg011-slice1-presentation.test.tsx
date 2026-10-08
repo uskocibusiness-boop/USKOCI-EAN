@@ -96,7 +96,8 @@ test('agreements are one list for both sides, keep the accepted facts, say the s
   expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && String(node.props.accessibilityLabel).includes('Dogovori')).length).toBeGreaterThan(0);
   // Each card wears one state chip (plan 2.2): "Dogovoren" for the agreed one, "Čeka potvrdu" for the one that waits for the confirmation.
   expect(copy).toContain('Dogovoren'); expect(copy).toContain('Čeka potvrdu'); expect(copy).not.toContain('Čeka se potvrda završetka');
-  expect(copy).toContain('Prijavljen je problem · pogledaj Dogovor');
+  // The open problem is said in words on the card (UI pass 2026-10-08: the line stands alone, the card itself leads to the Dogovor).
+  expect(copy).toContain('Prijavljen je problem');
   // Mila is the other side of this Dogovor, so the row says what Mila did, not what I did.
   expect(copy).toContain('Mila'); expect(copy).toContain('Uskače'); expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio');
   expect(roleOf('Aktivni').accessibilityRole).toBe('tab'); expect(labels()).toContain('Raspored'); expect(labels()).not.toContain('Kalendar obaveza');

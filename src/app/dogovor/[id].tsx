@@ -1,22 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, ScrollView, Platform, KeyboardAvoidingView, Keyboard, BackHandler, TextInput, AppState, StyleSheet } from 'react-native';
+import { View, ScrollView, Platform, KeyboardAvoidingView, Keyboard, BackHandler, AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import type { Ishod } from '../../data/ports';
 import { T } from '../../ui/Text';
-import { sys, field } from '../../ui/system/tokens';
-import { SkeletonCard } from '../../ui/system/Skeleton';
+import { layout } from '../../ui/system/layout';
+import { sys } from '../../ui/system/tokens';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { useReducedMotion } from '../../ui/system/motion';
 import { PorukaHost, poruka } from '../../ui/system/Poruka';
 import { ChromeIconButton } from '../../ui/system/ScreenChrome';
 import { V2Action } from '../../ui/v2/V2Action';
-import { AgreementTabs, AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement, type AgreementTab } from '../../ui/v2/AgreementPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementQuietLine, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
+import { AgreementTabs, AgreementPersonBar, isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
+import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
 import { AgreementCompletionReview } from '../../ui/agreements/AgreementCompletionReview';
-import { AgreementContactPlace } from '../../ui/agreements/AgreementContactPlace';
-import { AgreementSteps } from '../../ui/agreements/AgreementSteps';
+import { AgreementOverview } from '../../ui/agreements/AgreementOverview';
+import { ADDRESS_REQUEST_TEXT } from '../../ui/agreements/agreementContactModel';
+import { AgreementProblemExits, AgreementStatusView, AgreementProblemForm, AgreementProblemNote, AgreementProblemUnknown, overviewContent } from '../../ui/agreements/AgreementOverviewParts';
+import { cancellationDetailsOf } from '../../ui/agreements/agreementListModel';
 import { agreementMenuActions } from '../../ui/agreements/agreementMenu';
 import type { OwnRating } from '../../ui/agreements/agreementStepsModel';
 import { ProductHeader } from '../../ui/product/ProductDetails';
@@ -33,11 +35,11 @@ import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresenta
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';
+import { agreementCancellationService, cancellationOf, type AgreementCancellation } from '../../data/agreementCancellationClientService';
 import { reviewsClientService } from '../../data/reviewsClientService';
 import { knownLegacyRefusal } from '../../data/legacyRpcFailure';
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
-import { vreme } from '../../lib/vreme';
 
 /**
  * My rating of a finished Dogovor, from the review read the rating screen itself uses. `DUE` and `UNKNOWN` both keep
@@ -60,18 +62,7 @@ async function bounded<T>(operation: () => Promise<T>, ms = 15_000): Promise<T> 
   } finally { if (timer !== undefined) clearTimeout(timer); }
 }
 function backToAgreements() { if (router.canGoBack()) router.back(); else router.replace('/dogovori'); }
-function AgreementStatus({ loading = false, error = false, retry }: { loading?: boolean; error?: boolean; retry?: () => void }) {
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ProductHeader subtitle={loading ? 'Učitavamo' : error ? 'Nije učitano' : 'Nije dostupno'} title="Dogovor" back={backToAgreements} />
-    <View style={s.status} accessibilityLiveRegion="polite">
-      {loading ? <><SkeletonCard rows={2} /><T accessibilityLabel="Učitavanje Dogovora" variant="meta" tone="muted" style={s.center}>Učitavamo Dogovor…</T></> : <>
-        <T accessibilityRole="header" variant="title" style={s.ink}>{error ? 'Dogovor nije učitan' : 'Dogovor nije dostupan'}</T>
-        <T variant="body" tone="muted">{error ? 'Proveri internet vezu i pokušaj ponovo.' : 'Veza je zastarela ili nemaš pristup ovom Dogovoru.'}</T>
-        {retry ? <V2Action label="Ponovo učitaj Dogovor" onPress={retry} /> : null}
-      </>}
-    </View>
-  </SafeAreaView>;
-}
+function AgreementStatus(props: { loading?: boolean; error?: boolean; retry?: () => void }) { return <AgreementStatusView {...props} back={backToAgreements} />; }
 export default function Dogovor() {
   // A notification about a message opens the conversation itself, not the overview it lives behind.
   const { id, tab, messageId, from } = useLocalSearchParams<{ id: string | string[]; tab?: string | string[]; messageId?: string | string[]; from?: string | string[] }>();
@@ -85,6 +76,10 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string; fromInbox: boolean;
 }) {
   const izvor = useIzvor();
+  // "Podeli svoj broj" can succeed only for an account that has a number to share: the server reads it from the account, and an account
+  // made with an email has none (R01a). The session's user says so; anyone else is pointed to Poruke instead of to a command that fails.
+  const sessionPhone = useSesija().user?.phone;
+  const accountHasNumber = typeof sessionPhone === 'string' && sessionPhone.trim().length > 0;
   const [tab, updateTab] = useState<AgreementTab>(requestedTab);
   // A retained geometry callback from a prior Poruke visit cannot acknowledge a later visit.
   const chatVisit = useRef<object>({}), tabRef = useRef(tab);
@@ -210,6 +205,17 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   }, [foreground, resumeRequired, resumeEpoch, workspace.busy, workspace.refresh]);
   const messages = useAgreementHistory(accountId, accountRevision, id, chatReadingPosition);
   const dogovor = workspace.data;
+  // When, by whom and why a cancelled Dogovor was cancelled (CANCEL-INFO): asked once the read says it is cancelled, in one call. A read that
+  // fails, or has not come, leaves the step bar saying only "Otkazano" - nothing is guessed.
+  const cancelled = dogovor?.stanje === 'CANCELLED';
+  const [cancellation, setCancellation] = useState<AgreementCancellation | null>(null);
+  useEffect(() => {
+    if (!cancelled) return;
+    let live = true;
+    void agreementCancellationService.read([id], { accountId, accountRevision })
+      .then(result => { if (live && result.ok) setCancellation(cancellationOf(result.podatak, id)); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [cancelled, id, accountId, accountRevision]);
   // The adapter can only say "Ja" or "Sagovornik"; the workspace knows who the other person is, and a bubble
   // carries that name the way the header above it already does.
   const namedMessages = useMemo(() => (messages.data ?? []).map(message => {
@@ -329,12 +335,12 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       setProblemAttempt(narrative);
       const receipt = await agreementProblemService.submit(id, narrative, { accountId, accountRevision });
       if (!receipt.ok) return knownProblemRefusal(receipt.kod) ? receipt
-        : { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Prijava nije potvrđena. Proveri status Dogovora pre ponovnog pokušaja.' };
+        : { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osveži Dogovor pa pokušaj ponovo.' };
       const next = await read();
       if (!next.ok) return next;
       const stored = next.podatak?.problemReport;
       if (!stored || stored.openedBy !== receipt.podatak.problemOpenedBy || calendarInstant(stored.openedAt) !== calendarInstant(receipt.podatak.problemOpenedAt)) {
-        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Sačuvana prijava nije potvrđena. Osveži status Dogovora.' };
+        return { ok: false, kod: 'PROBLEM_REPORT_UNCONFIRMED', poruka: 'Ne znamo da li je problem prijavljen. Osveži Dogovor.' };
       }
       return next;
     });
@@ -347,7 +353,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       const result = await bounded(command);
       // A known refusal keeps its own sentence (deep read 8.4: "Podeli svoj broj" said only "nije potvrđena").
       if (!result.ok) return knownLegacyRefusal(result.kod) ? { ok: false as const, kod: result.kod, poruka: result.poruka }
-        : { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
+        : { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Ne znamo da li je promena sačuvana. Osveži Dogovor pa pokušaj ponovo.' };
       const next = await read();
       confirmed = next.ok;
       return next;
@@ -387,7 +393,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       completionDisplay.current = display; setCompleting(true);
       const result = await bounded<Ishod<unknown>>(() => worker ? izvor.oznaciZavrsetak(id) : izvor.potvrdiZavrsetak(id));
       // A known server denial keeps its own copy; anything else is an unconfirmed outcome.
-      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Promena nije potvrđena. Osveži Dogovor pre novog pokušaja.' };
+      if (!result.ok) return { ok: false as const, kod: result.kod, poruka: completionDenial(result.kod) ?? 'Ne znamo da li je promena sačuvana. Osveži Dogovor pa pokušaj ponovo.' };
       const next = await read();
       if (!next.ok) return next;
       // Only the server's own terminal readback confirms; an unchanged state stays unconfirmed.
@@ -395,7 +401,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       const confirmed = worker ? state === 'AWAITING_REQUESTER' || state === 'COMPLETED' : state === 'COMPLETED';
       // Said as what did not get written, never as the normal wait for the other side ("čeka potvrdu"; review r3b).
       if (!confirmed) return { ok: false as const, kod: 'COMPLETION_NOT_CONFIRMED', poruka: worker
-        ? 'Oznaka da je zadatak gotov nije upisana. Osveži status Dogovora.' : 'Potvrda završetka nije upisana. Osveži status Dogovora.' };
+        ? 'Nismo uspeli da zabeležimo da je zadatak gotov. Osveži Dogovor pa pokušaj ponovo.' : 'Nismo uspeli da zabeležimo potvrdu završetka. Osveži Dogovor pa pokušaj ponovo.' };
       return next;
     }); } finally {
       if (completionDisplay.current === display) { completionDisplay.current = null; setCompleting(false); }
@@ -451,51 +457,62 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // The "···" menu: the rare actions, each under the condition of its row on the page below.
   const canChange = active && !!me && !(requester && dogovor.stanje === 'AWAITING_REQUESTER');
   const toChanges = (start: 'propose' | 'cancel') => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id, start } }); };
+  /** The form takes the place of the row that opens it, at the end of the page, and the page goes there once it has a place. */
+  const openProblemForm = () => {
+    if (!formCurrent()) return;
+    if (problemOpen) { scrollToAnchor('problem'); return; }
+    waitingAnchor.current = 'problem'; setProblemOpen(true); setTab('pregled');
+  };
+  /** "Dogovorite se u Porukama": the conversation of this same screen. */
+  const openMessages = () => { if (formCurrent()) setTab('poruke'); };
+  /** "Zatraži adresu" (R03): the question is written into the conversation's draft - never sent for the person - and the conversation opens. */
+  const requestAddress = () => {
+    if (!formCurrent()) return;
+    // Only into an empty draft that has been read: a draft the person already wrote is not touched.
+    if (outboxState.phase === 'ready' && !outboxState.draft?.trim()) void outbox.setDraft(ADDRESS_REQUEST_TEXT);
+    setTab('poruke');
+  };
+  /** "Prijavi nedolazak" (R04): support opens with this Dogovor already chosen (the person picks the topic there). */
+  const reportNoShow = () => {
+    if (formCurrent()) router.push({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: id.toLowerCase(), contextRevision: String(dogovor.verzija) } });
+  };
   const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,
-    phoneShared: dogovor.kontakt.mojTelefonPodeljen, hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
+    phoneShared: dogovor.kontakt.mojTelefonPodeljen, accountHasNumber, hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
     problemFree: !dogovor.problemOtvoren && !report, enabled }, {
     onChange: () => toChanges('propose'), onCancel: () => toChanges('cancel'),
     onPhone: () => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); },
     onLocation: () => scrollToAnchor('place'),
-    onProblem: () => { if (!formCurrent()) return; setProblemOpen(true); scrollToAnchor('problem'); },
+    onProblem: openProblemForm,
     onSafety: () => { if (other && formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); },
   });
   const nextStep = agreementNextStep({ state: dogovor.stanje, party: !!me, worker, change: stepChange,
     ownRating: dogovor.ownRating, problemOpen: dogovor.problemOtvoren, deadline });
   // The same step, said at the head of Poruke only when it is mine (review r4 rd): words, never an action.
   const waitingForMe = me ? agreementWaitsForMe({ state: dogovor.stanje, requester, change: stepChange, ownRating: dogovor.ownRating }) : null;
-  const problemPanel = report ? <WorkspaceCard tone="warn">
-    <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
-    <T variant="meta" tone="muted">{report.openedBy === accountId ? 'Prijava je tvoja.' : 'Prijavila je druga strana.'}</T>
-    <T variant="meta" tone="muted">{vreme(report.openedAt)}</T>
-    <T variant="body" style={s.ink}>{report.narrative}</T>
-    <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
-    {problemAttempt && problemAttempt !== report.narrative ? <T variant="meta" tone="muted">Sačuvan je prvi opis prijave. Tvoj novi opis nije dodat. Za dopunu koristiš Poruke.</T> : null}
-    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
-  </WorkspaceCard> : dogovor.problemOtvoren ? <WorkspaceCard tone="warn">
-    <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
-    <T variant="meta" tone="muted">{dogovor.problemReportState === 'LEGACY_UNAVAILABLE'
-      ? 'Detalji starije prijave nisu dostupni u ovom prikazu. Postojeća prijava ostaje sačuvana.'
-      : 'Detalji prijave trenutno nisu učitani. Osveži status Dogovora da pokušaš ponovo.'}</T>
-    {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
-    {dogovor.problemReportState === 'UNAVAILABLE' ? <V2Action label="Osveži detalje prijave" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} /> : null}
-  </WorkspaceCard> : active && me ? <WorkspaceCard>
-    {!problemOpen ? <>
-      <T variant="bodyStrong" style={s.ink}>Nešto nije u redu?</T>
-      <T variant="meta" tone="muted">Prijava problema zaustavlja automatski završetak i vidi je druga strana.</T>
-      <V2Action label="Prijavi problem" kind="quiet" disabled={!enabled} onPress={() => { if (formCurrent()) setProblemOpen(true); }} />
-    </> : <>
-      <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem u Dogovoru</T>
-      <T variant="meta" tone="muted">Opis će videti druga strana u Porukama. Ovo nije poverljiva prijava podršci.</T>
-      <TextInput accessibilityLabel="Opiši problem" value={problemText}
-        onChangeText={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }} multiline maxLength={4000}
-        editable={enabled && !problemAttempt} placeholder="Šta je ostalo nerešeno?" placeholderTextColor={sys.color.muted} style={s.input} />
-      <V2Action label={workspace.busy ? 'Čuvamo prijavu…' : problemAttempt ? 'Pošalji ponovo' : 'Pošalji prijavu problema'}
-        disabled={!enabled || !(problemAttempt ?? problemText.trim())} onPress={() => { void reportProblem(); }} />
-      {!problemAttempt ? <V2Action label="Odustani od prijave problema" kind="quiet" disabled={!enabled}
-        onPress={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} /> : <T variant="meta" tone="muted">Opis je sačuvan na ovom ekranu. Pre ponavljanja osveži stanje Dogovora.</T>}
-    </>}
-  </WorkspaceCard> : null;
+  // ---- a problem: the note about one that was reported (and the three ways on, R04), or the form that reports one ----
+  const problemNote = report
+    ? <AgreementProblemNote mine={report.openedBy === accountId} openedAt={report.openedAt} narrative={report.narrative} active={active}
+      keptFirst={!!problemAttempt && problemAttempt !== report.narrative} />
+    : dogovor.problemOtvoren
+      ? <AgreementProblemUnknown legacy={dogovor.problemReportState === 'LEGACY_UNAVAILABLE'} active={active} disabled={!enabled}
+        onRefresh={dogovor.problemReportState === 'UNAVAILABLE' ? () => void osvezi() : undefined} />
+      : null;
+  const problemExits = problemNote && active && me
+    ? <AgreementProblemExits disabled={!enabled} onMessages={openMessages} onCancel={canChange ? () => toChanges('cancel') : undefined} onNoShow={reportNoShow} />
+    : null;
+  const problemForm = !problemNote && active && me && problemOpen
+    ? <AgreementProblemForm value={problemText} editable={enabled && !problemAttempt} kept={!!problemAttempt} busy={workspace.busy} disabled={!enabled}
+      onChange={value => { if (formCurrent() && !problemAttemptRef.current) setProblemText(value); }}
+      canSend={enabled && !!(problemAttempt ?? problemText.trim())} onSend={() => { void reportProblem(); }}
+      onCancel={() => { if (formCurrent() && !problemAttemptRef.current) setProblemOpen(false); }} />
+    : null;
+  /** A Dogovor with no term at all, agreed and with nothing else waiting: it says what is still to do, and where (R02). */
+  const needsTerm = dogovor.stanje === 'CONFIRMED' && isNoTermText(dogovor.vremeTekst) && !!me && canChange && !changeWaits && !dogovor.problemOtvoren;
+  const openTask = me && dogovor.izvor?.zadatakId ? () => {
+    const needId = dogovor.izvor?.zadatakId;
+    if (!needId || !formCurrent()) return;
+    router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } } : { pathname: '/prilike/[id]', params: { id: needId } });
+  } : undefined;
 
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {reviewingCompletion ? <AgreementCompletionReview agreement={completionReview!.agreement} worker={worker}
@@ -526,69 +543,52 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
             onPress={() => { if (ownsAccount()) setMenuOpen(true); }} /> : undefined} />
           : <ProductHeader back={backToAgreements} title="Dogovor" />}
         <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
-        <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-          {/* Where the Dogovor stands, from its state: Dogovoreno, Zadatak je gotov, Potvrđeno, Ocena. */}
-          <AgreementSteps state={dogovor.stanje} ownRating={dogovor.ownRating} deadlineIso={dogovor.rokPotvrdeIso} problemOpen={dogovor.problemOtvoren} />
-          <AgreementTaskLink agreement={dogovor} disabled={!enabled}
-            onOpenTask={me && dogovor.izvor?.zadatakId ? () => {
-              const needId = dogovor.izvor?.zadatakId;
-              if (!needId || !formCurrent()) return;
-              router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } }
-                : { pathname: '/prilike/[id]', params: { id: needId } });
-            } : undefined} />
-          {/* Identify the task first, then the next step, then the accepted snapshot. */}
-          <NextStepCard tone={nextStep.tone} title={nextStep.title} body={nextStep.body}>
-            {active && me && !radnje ? <View style={s.stack}>
-              <T variant="meta" tone="muted">Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.</T>
-              <V2Action label="Osveži dozvole za završetak" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
-            </View> : null}
-            {changeWaits ? <View style={s.stack}>
-              {pendingChange?.izmene.map(change => <View key={change.polje} style={s.change}>
-                <T variant="meta" tone="muted">{change.polje}</T>
-                <T variant="body" style={s.ink}>{change.sada} → {change.predlog}</T>
-              </View>)}
-              {pendingChange?.razlog ? <T variant="meta" tone="muted">Razlog: {pendingChange.razlog}</T> : null}
-              {pendingChange?.mozeOdgovoriti ? null
-                : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
-            </View> : null}
-          </NextStepCard>
-          <AgreementTerms agreement={dogovor} />
-          {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
-          {isGroupAgreement(dogovor) ? <AgreementPeople agreement={dogovor} /> : null}
-          {me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
-          {/* One open section for the number and the place (it was a closed "Kontakt" and a closed "Lokacija i pristup"). */}
-          <View onLayout={event => { anchors.current.place = event.nativeEvent.layout.y; flushAnchor('place'); }}>
-            <AgreementContactPlace agreement={dogovor} enabled={enabled} concealed={resumeRequired} canShare={!!me}
-              onTogglePhone={() => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); }} />
-          </View>
-          {me ? <WorkspaceRows>
-            {/* PKG-048 task source now belongs to the opening card; no duplicate destination row. */}
-            {/* The requester has no screen that opens one Prijava by its id, so no "Prijava" row is drawn for them. */}
-            {worker && dogovor.izvor?.prijavaId ? <WorkspaceRow art="offers" label="Tvoja prijava" disabled={!enabled}
-              onPress={() => { const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
-                router.push({ pathname: '/moje-prijave', params: { prijavaId } }); }} /> : null}
-            {/* Once the worker says done, the requester confirms or reports a problem (owner decision 2026-09-21);
-                there is nothing left behind this row for them, so it is not offered. */}
-            {/* A finished or cancelled Dogovor has nothing left to change or cancel: the row opened a screen with no
-                possible action (emulator sweep, 2026-09-23). */}
-            {!active || (requester && dogovor.stanje === 'AWAITING_REQUESTER') ? null
-              : <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" visibleLabel="Izmene i otkazivanje" quiet hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={!enabled}
-                onPress={() => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); }} />}
-            {other ? <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" visibleLabel="Bezbednost i prijava" quiet hint="Blokiranje i poverljiva prijava podršci" disabled={!enabled}
-              onPress={() => { if (formCurrent())
-                router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); }} /> : null}
-          </WorkspaceRows> : null}
-          {dogovor.hronologija.length ? <AgreementSection art="clock" label="Tok Dogovora" summary="Sačuvani događaji">
-            {dogovor.hronologija.map((event, index) => <View key={index} style={s.event}>
-              <View style={s.eventLine} /><View style={s.eventCopy}><T variant="body" style={s.ink}>{event.tekst}</T><T variant="meta" tone="muted">{event.vremeTekst}</T></View>
-            </View>)}
-          </AgreementSection> : null}
-          {problemPanel ? <View onLayout={event => { anchors.current.problem = event.nativeEvent.layout.y; flushAnchor('problem'); }}>{problemPanel}</View> : null}
+        <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
+          <AgreementOverview agreement={dogovor} step={nextStep} party={!!me} enabled={enabled} concealed={resumeRequired} accountHasNumber={accountHasNumber}
+            steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, deadlineIso: dogovor.rokPotvrdeIso, problemOpen: dogovor.problemOtvoren,
+              cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
+            headExtra={<>
+              {active && me && !radnje ? <View style={s.stack}>
+                <T variant="note" tone="muted">Ne možemo da proverimo da li možeš da završiš zadatak. Osveži Dogovor.</T>
+                <V2Action label="Osveži Dogovor" kind="quiet" disabled={!enabled} onPress={() => void osvezi()} />
+              </View> : null}
+              {changeWaits ? <View style={s.stack}>
+                {pendingChange?.izmene.map(change => <View key={change.polje} style={s.change}>
+                  <T variant="note" tone="muted">{change.polje}</T>
+                  <T variant="body" style={s.ink}>{change.sada}</T>
+                  <T variant="bodyStrong" style={s.ink}>{`→ ${change.predlog}`}</T>
+                </View>)}
+                {pendingChange?.razlog ? <T variant="note" tone="muted">Razlog: {pendingChange.razlog}</T> : null}
+                {pendingChange?.mozeOdgovoriti ? null
+                  : <V2Action label="Pogledaj predlog" kind="quiet" disabled={!enabled} onPress={openChanges} />}
+              </View> : null}
+            </>}
+            problem={{ note: problemNote, exits: problemExits, form: problemForm }}
+            group={me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
+            on={{
+              // The requester has no screen that opens one Prijava by its id, so no "Tvoja prijava" row is drawn for them; once the worker says
+              // done, the requester confirms or reports a problem (owner decision 2026-09-21), so nothing is left to change for them; a finished
+              // or cancelled Dogovor has nothing left to change or cancel (emulator sweep, 2026-09-23).
+              proposeTerm: needsTerm ? () => toChanges('propose') : undefined,
+              changeTerms: canChange ? () => toChanges('propose') : undefined,
+              togglePhone: () => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); },
+              openMessages, requestAddress,
+              openTask,
+              openApplication: worker && dogovor.izvor?.prijavaId ? () => {
+                const prijavaId = dogovor.izvor?.prijavaId; if (!prijavaId || !formCurrent()) return;
+                router.push({ pathname: '/moje-prijave', params: { prijavaId } });
+              } : undefined,
+              openChange: canChange ? () => { if (formCurrent()) router.push({ pathname: '/dogovor/[id]/izmene', params: { id } }); } : undefined,
+              openProblem: active && me && !problemNote && !problemOpen ? openProblemForm : undefined,
+              openSafety: me && other ? () => { if (formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); } : undefined,
+              placeLayout: event => { anchors.current.place = event.nativeEvent.layout.y; flushAnchor('place'); },
+              problemLayout: event => { anchors.current.problem = event.nativeEvent.layout.y; flushAnchor('problem'); },
+            }} />
         </ScrollView>
         <WorkspaceFooter brand={brand} quiet={quiet} loading={canComplete && workspace.busy && completing} statusText={footerStatus}
           onLayout={event => setFooterHeight(Math.round(event.nativeEvent.layout.height))}
           notice={workspace.error || workspace.uncertain ? {
-            message: workspace.error ?? 'Proveravamo ishod prethodne radnje.',
+            message: workspace.error ?? 'Proveravamo da li je prethodna radnja uspela.',
             refresh: () => void osvezi(), refreshing: workspace.busy || workspace.loading,
           } : null} />
       </>}
@@ -602,11 +602,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  status: { padding: 24, gap: 16 }, center: { textAlign: 'center' },
-  ink: { color: sys.color.ink }, danger: { color: sys.color.danger },
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
-  tabs: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.md },
-  stack: { gap: 8, marginTop: 4 }, change: { gap: 2 },
-  input: { ...field, minHeight: 100, textAlignVertical: 'top' },
-  event: { flexDirection: 'row', gap: 12 }, eventLine: { width: 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft, marginVertical: 4 }, eventCopy: { flex: 1, gap: 2 },
+  ink: { color: sys.color.ink },
+  // The tab strip stands on the same edge as the bar above it and the page below it (`layout.gutter`), so the arrow does not move between Pregled and Poruke.
+  tabs: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.md },
+  // What a step is about, inside the step: a proposal's lines, or the way to read the permissions again.
+  stack: { gap: sys.space.sm, marginTop: sys.space.xs }, change: { gap: sys.space.xs },
 });

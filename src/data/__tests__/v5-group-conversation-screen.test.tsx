@@ -74,7 +74,7 @@ it('has one send action, latches concurrent retained callbacks and persists no p
  await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=send('Pošalji poruku grupi').onPress;
  await act(async()=>{old();old();});expect(mockStorage.setItem).toHaveBeenCalledTimes(1);expect(mockService.send).not.toHaveBeenCalled();
  await act(async()=>gate.resolve());expect(mockService.send).toHaveBeenCalledTimes(1);expect(mockStorage.setItem.mock.calls[0][1]).not.toContain('Prvobitna poruka');
- expect(action('Proveri prvobitno slanje')).toBeDefined();expect(send('Pošalji poruku grupi')).toBeUndefined();
+ expect(action('Proveri da li je poruka stigla')).toBeDefined();expect(send('Pošalji poruku grupi')).toBeUndefined();
 });
 it('restart reads original key and requires exact re-entry before same-key retry',async()=>{
  mockStorage.getItem.mockResolvedValue(JSON.stringify(journal));await render();expect(mockService.send).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
@@ -91,7 +91,7 @@ it('read-only and bilateral contexts offer no composer or fabricated group membe
  // Round 6: a finished conversation offers no "Osveži poruke" (nothing new can arrive, as in Poruke); the pull-down refresh stays.
  expect(tree!.root.findAllByProps({label:'Osveži poruke'})).toHaveLength(0);
  mockService.context.mockResolvedValue(ok({...context(),available:false,group:null}));await act(async()=>tree!.root.findByType('List' as never).props.onRefresh());
- expect(text()).toContain('najmanje dva');expect(tree!.root.findAllByProps({label:'Učesnici razgovora'})).toHaveLength(0);
+ expect(text()).toContain('najmanje dve osobe');expect(tree!.root.findAllByProps({label:'Učesnici razgovora'})).toHaveLength(0);
 });
 it('marks only truly viewable rows and retains SafeArea/whole-screen keyboard avoidance with scalable input',async()=>{
  await render();expect(mockService.markRead).not.toHaveBeenCalled();const list=tree!.root.findByType('List' as never).props;
@@ -122,7 +122,7 @@ it('entry hides unsupported group and discards late availability after account t
  // blank. What this test is about is unchanged: the late answer for the old account is discarded,
  // no entry appears, and nothing navigates.
  await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});
- expect(text()).toBe('Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika.');
+ expect(text()).toBe('Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.');
  expect(mockPush).not.toHaveBeenCalled();
 });
 it('selects only an actually visible group message and preserves the read-only support exit',async()=>{

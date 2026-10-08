@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { StyleSheet, View } from 'react-native';
-import { CaretRight } from 'phosphor-react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { Press } from '../Press';
 import { ProfilePhoto } from '../media/ContextPhotos';
@@ -9,19 +8,22 @@ import { Avatar } from '../system/Avatar';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
+import { KeyValueRow } from '../system/KeyValueRow';
+import { ListRow } from '../system/ListRow';
 import { MoneyArt } from '../system/MoneyArt';
+import { Section } from '../system/Section';
 import { Segmented } from '../system/Segmented';
 import { sys } from '../system/tokens';
-import { useLayoutClass } from '../system/textScale';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { T } from '../Text';
 
 export type AgreementTab = 'pregled' | 'poruke';
-/** Named destinations keep the conversation discoverable without squeezing the person's header. */
+/** Named destinations keep the conversation discoverable without squeezing the person's header. Two sets of equal width, never a scroller. */
 export function AgreementTabs({ tab, onChange }: { tab: AgreementTab; onChange: (tab: AgreementTab) => void }) {
   return <Segmented options={[{ key: 'pregled', label: 'Pregled' }, { key: 'poruke', label: 'Poruke' }]}
-    value={tab} onChange={onChange} contentSized />;
+    value={tab} onChange={onChange} />;
 }
 
 const states: Record<DogovorProjekcija['stanje'], string> = {
@@ -38,21 +40,30 @@ export function agreementRole(person: Pick<UcesnikProjekcija, 'uloga'> | null | 
   return person?.uloga === 'narucilac' ? 'Traži pomoć' : person?.uloga === 'uskocer' ? 'Uskače na tvoj zadatak' : '';
 }
 
-/** The adapter's sentence for an accepted term with neither end (agreementClientService.acceptedSchedule). */
-const NO_TERM = 'Termin nije potvrđen';
+/**
+ * The adapter's sentence for an accepted term with neither end (agreementClientService.acceptedSchedule). "Nije potvrđen" read as if
+ * somebody's confirmation were awaited, when the term was simply never agreed (a flexible task): the words are "nije dogovoren"
+ * since 2026-10-08. A read from before then may still carry the older sentence, so both are known.
+ */
+export const NO_TERM = 'Termin nije dogovoren';
+const NO_TERM_OLD = 'Termin nije potvrđen';
 /** A Dogovor that is over never had an exact time, and is no longer waiting for one (round-1 critique A3). */
 export const NO_EXACT_TERM = 'Bez tačnog termina';
 const SERBIAN_TIME = /\s*\(po vremenu u Srbiji\)/;
+
+/** Whether the accepted term is the adapter's "no term at all" sentence, in either of its spellings. */
+export const isNoTermText = (text: string) => text.trim() === NO_TERM || text.trim() === NO_TERM_OLD;
 
 /**
  * The accepted term as a list and the overview draw it (round-1 critique A3, B15): the date as one line, and the zone
  * note, which a phone set outside Serbia carries, on a quiet line of its own instead of breaking the date over three.
  * The words are the adapter's, in Serbian time; only where they stand changes. A finished or cancelled Dogovor whose term
- * never had an end or a start says "Bez tačnog termina": "Termin nije potvrđen" read as a step still to come.
+ * never had an end or a start says "Bez tačnog termina": "Termin nije dogovoren" read as a step still to come.
  */
 export function agreementTerm({ vremeTekst, stanje }: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): { line: string; zone: string | null } {
   const text = vremeTekst.trim();
-  if (text === NO_TERM && (stanje === 'COMPLETED' || stanje === 'CANCELLED')) return { line: NO_EXACT_TERM, zone: null };
+  if (isNoTermText(text) && (stanje === 'COMPLETED' || stanje === 'CANCELLED')) return { line: NO_EXACT_TERM, zone: null };
+  if (isNoTermText(text)) return { line: NO_TERM, zone: null };
   const zone = SERBIAN_TIME.exec(text);
   if (!zone) return { line: text, zone: null };
   return { line: `${text.slice(0, zone.index)}${text.slice(zone.index + zone[0].length)}`.trim(), zone: 'Po vremenu u Srbiji' };
@@ -84,169 +95,160 @@ export function AgreementPersonBar({ person, back, right }: { person: UcesnikPro
 }
 
 /**
- * A fact keeps its spoken label and full value together. The overview also shows the label and promotes the saved
- * total; compact chat keeps its smaller values. No fixed height or line limit clips long terms or enlarged text.
- * It is heard as one sentence, "Termin: 24. sep · 17:00–19:00, Po vremenu u Srbiji". An amount wears the money colour
- * with its basis beside it; a word about money ("Iznos nije sačuvan") stays ink and has no basis.
+ * A fact of the compact context in the chat, its spoken label and its full value together ("Termin: 24. sep · 17:00–19:00, Po vremenu u
+ * Srbiji"). No fixed height or line limit clips long terms or enlarged text. An amount wears the money colour with its basis beside it;
+ * a word about money ("Iznos nije sačuvan") stays ink and has no basis. (The overview draws the same facts as rows: `AgreementTerms`.)
  */
-export function AgreementFact({ art, label, value, note, basis, money = false, labelVisible = false, prominent = false, supporting = false }: {
+export function AgreementFact({ art, label, value, note, basis, money = false }: {
   art: FactArtKind; label: string; value: string; note?: string | null; basis?: string | null; money?: boolean;
-  labelVisible?: boolean; prominent?: boolean; supporting?: boolean;
 }) {
   return <View accessible accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}`} style={s.fact}>
-    <View style={[s.factArt, labelVisible && s.labeledArt]}>{art === 'money' && money ? <MoneyArt size={24} /> : <FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} />}</View>
+    <View style={s.factArt}>{art === 'money' && money ? <MoneyArt size={24} /> : <FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} />}</View>
     <View style={s.factCopy}>
-      {labelVisible ? <T variant="meta" tone="muted">{label}</T> : null}
-      <T style={[money ? s.factMoney : s.factValue, supporting && s.supportingValue, prominent && s.prominentValue]}>{value}{money && basis ? <T style={s.factBasis}>{` ${basis}`}</T> : null}</T>
+      <T variant="note" style={money ? s.factMoney : s.factValue}>{value}{money && basis ? <T variant="note" tone="muted">{` ${basis}`}</T> : null}</T>
       {note ? <T variant="meta" tone="muted">{note}</T> : null}
     </View>
   </View>;
 }
 
-/** Source task context stays open on the white surface. Only its authoritative route makes it a link;
- * accepted terms live separately from this current task context. Compact history keeps its existing row. */
-export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false, compact = false }: {
+/** Where the work is, as every part of a Dogovor says it: "Na daljinu", the task's coarse area, or that it was never given. Never the private address. */
+export const agreementTaskPlace = (a: Pick<DogovorProjekcija, 'rezim' | 'putanjaTekst'>): string =>
+  a.rezim === 'DALJINSKI' ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno';
+
+/**
+ * The source task of a Dogovor as the chat's compact context draws it: its title, and one explicit way back to it when the
+ * authoritative source task id is available. The overview names the same task as the Dogovor's own title and as the row "Otvori zadatak".
+ */
+export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false }: {
   agreement: DogovorProjekcija;
   /** Only provided when the authoritative source task id is available. */
   onOpenTask?: () => void; disabled?: boolean;
-  /** The chat keeps its existing compact, scrollable context. */ compact?: boolean;
 }) {
   const title = readableTitle(a.naslov);
-  const remote = a.rezim === 'DALJINSKI';
-  const taskPlace = remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno';
-  const surface = compact ? s.heroCompact : s.hero;
-  const content = compact ? <View style={s.titleRow}>
+  const taskPlace = agreementTaskPlace(a);
+  const content = <View style={s.titleRow}>
     <FactArt kind="document" size={24} cut="art" />
     <View style={s.taskCopy}>
-      <T accessibilityRole="header" style={s.acceptedTitle}>{title}</T>
+      <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>{title}</T>
       <T variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
     </View>
-    {onOpenTask ? <CaretRight size={22} color={sys.color.muted} /> : null}
-  </View> : <View style={s.taskOverview}>
-    <T accessibilityRole="header" variant="cardTitle" style={s.ink}>{title}</T>
-    <View style={s.taskMeta}>
-      {/* Source-task area is coarse context, never the Agreement's private location. */}
-      <View style={s.taskPlace}><FactArt kind={remote ? 'remote' : 'pin'} size={24} cut="art" />
-        <T variant="note" tone="muted" style={s.taskPlaceCopy}>{taskPlace}</T></View>
-      <View style={s.taskDestination}>
-        <T style={s.taskDestinationLabel} variant="note" tone={onOpenTask ? 'ink' : 'muted'}>{onOpenTask ? 'Otvori zadatak' : 'Zadatak'}</T>
-        {onOpenTask ? <CaretRight size={18} color={sys.color.muted} /> : null}
-      </View>
-    </View>
+    {onOpenTask ? <Glyph name="caret-right" size={20} tone="muted" /> : null}
   </View>;
-  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}${compact ? '' : `. ${taskPlace}`}`}
+  return onOpenTask ? <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${title}`}
     accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
-    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={surface}>{content}</Press>
-    : <View style={surface}>{content}</View>;
+    accessibilityState={{ disabled }} disabled={disabled} haptic="select" onPress={onOpenTask} style={s.hero}>{content}</Press>
+    : <View style={s.hero}>{content}</View>;
 }
 
-/** Accepted facts remain a readable record, separate from the source task's current detail. */
-export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
-  const { stacked } = useLayoutClass();
-  // The overview states the accepted count even for one person; compact chat can omit that repeated fact.
-  const people = compact ? agreementPeople(a) : osoba(a.pokrivenost.popunjeno);
-  const scope = a.prihvacenObim;
-  const discloseScope = scope ? Array.from(scope).length > 180 || /[\r\n]/.test(scope) : false;
-  const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
-  const facts = <View style={compact ? s.facts : s.acceptedDetails}>
-    {compact ? <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} /> : null}
-    <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} labelVisible={!compact} supporting={!compact} />
-  </View>;
-  const amountFact = <AgreementFact art="money" label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA}
-    basis={compact && amount ? 'ukupno' : null} money={/\d/.test(amount)} labelVisible={!compact} prominent={!compact && /\d/.test(amount)} />;
-  const peopleFact = people ? <AgreementFact art="users" label={compact ? 'Ljudi' : 'Dogovoreni broj osoba'} value={people} supporting={!compact} /> : null;
-  // The accepted total leads. Missing amounts and large text keep a full-width record; no value is shortened.
-  const stackPrice = stacked || !/\d/.test(amount);
-  const price = compact ? <View style={s.acceptedPrice}>{amountFact}{peopleFact}</View>
-    : <View style={[s.overviewPrice, stackPrice && s.overviewPriceStacked]}>
-      <View style={[s.overviewAmount, stackPrice && s.overviewTermStacked]}>{amountFact}</View>
-      {peopleFact ? <View style={[s.overviewPeople, stackPrice && s.overviewTermStacked]}>{peopleFact}</View> : null}
-    </View>;
-  return <View style={s.terms}>
-    <View style={s.termsHeading}>
-      <T accessibilityRole="header" variant={compact ? 'bodyStrong' : 'heading'} style={s.ink}>Dogovoreni uslovi</T>
-      {a.verzija > 1 ? <T variant="meta" tone="muted">Uslovi su izmenjeni.</T> : null}
-    </View>
-    {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
-    {compact ? <>{facts}{price}</> : <>{price}{facts}</>}
-    {scope ? discloseScope
-      ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka" art="document" divider>
-        <T selectable>{scope}</T>
-      </Disclosure>
-      : <View accessible accessibilityLabel={`Obim zadatka: ${scope}`} style={s.acceptedScope}>
-        <T variant="meta" tone="muted">Obim zadatka</T>
-        <T selectable>{scope}</T>
-      </View> : null}
-  </View>;
-}
-
-/** Combined context for compact chat and historical previews; the live overview inserts its next step between these. */
-export function AgreementHero(props: Parameters<typeof AgreementTaskLink>[0]) {
-  return <View style={s.context}><AgreementTaskLink {...props} compact /><AgreementTerms agreement={props.agreement} compact /></View>;
+/** An accepted scope that does not fit a row: more than a short line, or one that was written on several lines. */
+const longScope = (scope: string) => Array.from(scope).length > 180 || /[\r\n]/.test(scope);
+/** The words a Termin row says: the term, with the zone said in the same sentence ("(po vremenu u Srbiji)") on a phone outside Serbia. */
+export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): string {
+  const term = agreementTerm(a);
+  // The row's label is the word "Termin"; its value does not say it again ("Termin: Termin nije dogovoren").
+  if (term.line === NO_TERM) return 'Nije dogovoren';
+  return term.zone ? `${term.line} (po vremenu u Srbiji)` : term.line;
 }
 
 /**
- * Both sides of a group Dogovor, each with role and seats; you are marked in words. Flat rows, no card. A 1:1 Dogovor
- * does not draw it: the bar names the one other person (round-1 critique A13).
+ * The accepted terms. In the overview (composition spec 4.9): the section "Uslovi", one row for each of Mesto (the coarse area or "Na daljinu", never the private address), Termin, Dogovoreno ukupno
+ * (the one amount, large), Ljudi and Obim, parted by their inset lines and by nothing else; "Izmeni" at the end of the title opens the
+ * change of the terms when the person can make one. A Dogovor without a saved amount says so in words and a Dogovor without an
+ * exact term says that, in the words of the term and never as a value. In the chat's compact context (`compact`) the same facts stand
+ * as the four small facts of the conversation's header, with no line between them.
  */
-export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija }) {
-  return <View style={s.people}>
-    {/* pkg024a: the read names each side's public profile, so the person you agreed to work with
-        has a face here. Without that id there is nothing to read a photograph by, and the initials
-        stay — an account id must never be handed to the media service in its place. */}
-    {agreement.ucesnici.map(person => <View key={person.id} style={s.person}>
-      {person.profilId
-        ? <ProfilePhoto profileId={person.profilId} size={56} fallback={<Avatar initials={person.inicijali} size={56} />} />
-        : <Avatar initials={person.inicijali} size={56} />}
-      <View style={s.grow}>
-        <T variant="bodyStrong" style={s.ink}>{person.ime}</T>
-        <T variant="note" tone="muted">{person.uloga === 'narucilac' ? (person.viSte ? 'Ti · tražiš pomoć' : 'Traži pomoć') : person.viSte ? 'Ti · uskačeš' : 'Uskače'}
-          {person.mesta !== null ? ` · ${osoba(person.mesta)}` : ''}</T>
-      </View>
-    </View>)}
-  </View>;
+export function AgreementTerms({ agreement: a, compact = false, onChange }: {
+  agreement: DogovorProjekcija; compact?: boolean;
+  /** The terms can be changed from here: the person is a side of an agreed Dogovor and nothing blocks a change. */
+  onChange?: () => void;
+}) {
+  const people = osoba(a.pokrivenost.popunjeno);
+  const scope = a.prihvacenObim;
+  const term = agreementTerm(a), remote = a.rezim === 'DALJINSKI', amount = a.cena.prikaz;
+  if (compact) {
+    // The overview states the accepted count even for one person; compact chat can omit that repeated fact.
+    const compactPeople = agreementPeople(a);
+    return <View style={s.facts}>
+      <AgreementFact art={remote ? 'remote' : 'pin'} label="Mesto" value={remote ? 'Na daljinu' : a.putanjaTekst || 'Mesto nije navedeno'} />
+      <AgreementFact art="calendar" label="Termin" value={term.line} note={term.zone} />
+      <AgreementFact art="money" label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA} basis={amount ? 'ukupno' : null} money={/\d/.test(amount)} />
+      {compactPeople ? <AgreementFact art="users" label="Ljudi" value={compactPeople} /> : null}
+      {scope ? longScope(scope)
+        ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka" art="document">
+          <T selectable>{scope}</T>
+        </Disclosure>
+        : <View accessible accessibilityLabel={`Obim zadatka: ${scope}`} style={s.acceptedScope}>
+          <T variant="meta" tone="muted">Obim zadatka</T>
+          <T selectable>{scope}</T>
+        </View> : null}
+    </View>;
+  }
+  const price = /\d/.test(amount);
+  return <Section title="Uslovi" action={onChange ? { label: 'Izmeni', accessibilityLabel: 'Izmeni uslove', onPress: onChange } : undefined}>
+    {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
+    <View>
+      <KeyValueRow label="Mesto" value={agreementTaskPlace(a)} />
+      <KeyValueRow label="Termin" value={termValue(a)} />
+      {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
+      <KeyValueRow label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA} emphasis={price ? 'price' : undefined} />
+      <KeyValueRow label="Ljudi" value={people} last={!scope} />
+      {scope ? longScope(scope)
+        ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka">
+          <T selectable>{scope}</T>
+        </Disclosure>
+        : <View accessible accessibilityLabel={`Obim zadatka: ${scope}`} style={s.scope}>
+          <T variant="meta" tone="muted">Obim zadatka</T>
+          <T selectable>{scope}</T>
+        </View> : null}
+    </View>
+  </Section>;
 }
 
-/** A row that opens in place under its hairline: the one `Disclosure`, closed until pressed; `expanded` is spoken. */
+/** Combined context for compact chat and historical previews; the live overview draws its own sections. */
+export function AgreementHero(props: Parameters<typeof AgreementTaskLink>[0]) {
+  return <View style={s.context}><AgreementTaskLink {...props} /><AgreementTerms agreement={props.agreement} compact /></View>;
+}
+
+/**
+ * Both sides of a group Dogovor, each with role and seats; you are marked in words. Rows of the one list (a face is the slot of
+ * every row of it), no card and no line but the rows' own. A 1:1 Dogovor does not draw it: the bar names the one other person
+ * (round-1 critique A13).
+ */
+export function AgreementPeople({ agreement }: { agreement: DogovorProjekcija }) {
+  return <Section title="Ko je u Dogovoru">
+    <View>
+      {/* pkg024a: the read names each side's public profile, so the person you agreed to work with
+          has a face here. Without that id there is nothing to read a photograph by, and the initials
+          stay — an account id must never be handed to the media service in its place. */}
+      {agreement.ucesnici.map((person, index) => <ListRow key={person.id} faceSlot last={index === agreement.ucesnici.length - 1}
+        leading={person.profilId
+          ? <ProfilePhoto profileId={person.profilId} size={56} fallback={<Avatar initials={person.inicijali} size={56} />} />
+          : <Avatar initials={person.inicijali} size={56} />}
+        title={person.ime}
+        subtitle={`${person.uloga === 'narucilac' ? (person.viSte ? 'Ti · tražiš pomoć' : 'Traži pomoć') : person.viSte ? 'Ti · uskačeš' : 'Uskače'}${person.mesta !== null ? ` · ${osoba(person.mesta)}` : ''}`} />)}
+    </View>
+  </Section>;
+}
+
+/** A row that opens in place: the one `Disclosure`, closed until pressed; `expanded` is spoken. */
 export function AgreementSection({ label, summary, art, children }: { label: string; summary?: string; art?: FactArtKind; children: ReactNode }) {
-  return <Disclosure label={label} hint={summary} art={art} divider>{children}</Disclosure>;
+  return <Disclosure label={label} hint={summary} art={art}>{children}</Disclosure>;
 }
 
 const s = StyleSheet.create({
-  grow: { flex: 1, minWidth: 0, gap: 2 }, ink: { color: sys.color.ink },
-  hero: { minHeight: 48, paddingVertical: sys.space.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: sys.color.line },
-  heroCompact: { minHeight: 48, justifyContent: 'center' },
+  ink: { color: sys.color.ink },
+  hero: { minHeight: 48, justifyContent: 'center' },
   context: { gap: sys.space.base },
-  terms: { gap: sys.space.sm, paddingVertical: sys.space.sm },
-  termsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   taskCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  taskOverview: { gap: sys.space.sm },
-  taskMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.xs },
-  taskPlace: { flexDirection: 'row', alignItems: 'flex-start', flexBasis: 160, flexGrow: 1, flexShrink: 1, minWidth: 0, gap: sys.space.sm },
-  taskPlaceCopy: { flex: 1, minWidth: 0 },
-  taskDestination: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, flexShrink: 0, maxWidth: '100%' },
-  taskDestinationLabel: { flexShrink: 1 },
-  acceptedTitle: { ...sys.type.bodyStrong, color: sys.color.ink },
-  facts: { gap: 4 },
-  acceptedPrice: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: 12 },
-  overviewPrice: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: sys.space.md, rowGap: sys.space.xs },
-  overviewPriceStacked: { flexDirection: 'column', alignItems: 'stretch' },
-  overviewAmount: { flexBasis: 176, flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
-  overviewPeople: { flexBasis: 100, flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: '100%' },
-  overviewTermStacked: { flexBasis: 'auto', flexGrow: 0, width: '100%' },
-  acceptedDetails: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },
-  acceptedScope: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line, paddingTop: sys.space.sm, gap: sys.space.xs },
-  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 36, paddingVertical: 6 },
+  facts: { gap: sys.space.xs },
+  changedNote: { marginBottom: sys.space.xs },
+  scope: { gap: sys.space.xs, paddingVertical: sys.space.md },
+  acceptedScope: { gap: sys.space.xs, paddingTop: sys.space.sm },
+  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: 36, paddingVertical: sys.space.xs },
   // The box is the drawing's own 24, so it does not spill 1 px over and under (review r4 rd, small note).
   factArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  labeledArt: { marginTop: sys.space.sm },
   factCopy: { flex: 1, minWidth: 0 },
-  factValue: { fontSize: 17, lineHeight: 22, fontWeight: '600', color: sys.color.ink },
-  factMoney: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.money, fontVariant: ['tabular-nums'] },
-  supportingValue: { ...sys.type.copy, color: sys.color.ink },
-  prominentValue: { ...sys.type.title },
-  factBasis: { fontSize: 14, lineHeight: 22, fontWeight: '500', color: sys.color.muted },
-  people: { borderTopWidth: 1, borderTopColor: sys.color.line },
-  person: { paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  factValue: { color: sys.color.ink },
+  factMoney: { color: sys.color.money, fontWeight: '700', fontVariant: ['tabular-nums'] },
 });

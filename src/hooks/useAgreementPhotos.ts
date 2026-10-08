@@ -42,7 +42,7 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     if (!current()) return;
     if (!inventory.ok) { apply({ loaded: false, items, saved: [], message: inventory.poruka }); return; }
     apply({ loaded: true, items, saved: inventory.podatak.filter(upload => !items.some(item => item.ref.clientRequestId === upload.clientRequestId)),
-      ...(unknown ? { message: 'Ishod fotografije nije učitan. Osveži fotografije pre novog izbora.' } : {}) });
+      ...(unknown ? { message: 'Ne znamo da li je fotografija poslata. Osveži fotografije pre novog izbora.' } : {}) });
   }
   useFocusEffect(useCallback(() => {
     const token = {}; focus.current = token; operation.current = token; navigate.current = false;

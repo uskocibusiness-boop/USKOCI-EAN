@@ -28,7 +28,7 @@ export type AgreementActionForm = { token: object; kind: 'PROPOSE' | 'CANCEL'; r
 
 /** The same zone the form types in, so the review and the fields cannot disagree: Serbian time for both parties
  * (owner decision 2026-09-21, deep read 8.27). */
-const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? 'Termin nije potvrđen'
+const schedule = (terms: AgreementChangeTerms) => terms.startsAt === null && terms.endsAt === null ? 'Termin nije dogovoren'
   : needScheduleText({ kind: 'FIXED_WINDOW', startsAt: terms.startsAt, endsAt: terms.endsAt }, DOGOVORENA_ZONA);
 const scopeText = (terms: AgreementChangeTerms) => terms.scopeNote || 'Nije dodat opis';
 /**
@@ -86,9 +86,9 @@ const WORDS: Record<string, { unconfirmed: string; confirmed: string; rejected: 
   PROPOSE: { unconfirmed: 'Predlog izmene još nije potvrđen', confirmed: 'Predlog je poslat', rejected: 'Predlog nije poslat', again: 'Ponovo pošalji predlog' },
   CANCEL: { unconfirmed: 'Otkazivanje još nije potvrđeno', confirmed: 'Otkazivanje je potvrđeno', rejected: 'Dogovor nije otkazan', again: 'Ponovo otkaži Dogovor' },
   WITHDRAW: { unconfirmed: 'Povlačenje predloga još nije potvrđeno', confirmed: 'Povlačenje je potvrđeno', rejected: 'Predlog nije povučen', again: 'Ponovo povuci predlog' },
-  RESPOND: { unconfirmed: 'Odgovor na predlog još nije potvrđen', confirmed: 'Odgovor je poslat', rejected: 'Odgovor nije prošao', again: 'Ponovo pošalji odgovor' },
+  RESPOND: { unconfirmed: 'Odgovor na predlog još nije potvrđen', confirmed: 'Odgovor je poslat', rejected: 'Odgovor nije poslat', again: 'Ponovo pošalji odgovor' },
 };
-const wordsFor = (kind: string | null) => (kind && WORDS[kind]) || { unconfirmed: 'Ishod još nije potvrđen', confirmed: 'Potvrđeno', rejected: 'Nije prošlo', again: 'Pošalji ponovo' };
+const wordsFor = (kind: string | null) => (kind && WORDS[kind]) || { unconfirmed: 'Ne znamo da li je uspelo', confirmed: 'Potvrđeno', rejected: 'Nije uspelo', again: 'Pošalji ponovo' };
 
 export type AgreementActionsPresentationProps = {
   phase: AgreementActionsState['phase']; snapshot: AgreementChangeSnapshot | null; accountId: string;
@@ -113,7 +113,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
   let chrome, body, footer;
   if (form) {
     chrome = <ScreenChrome variant="flow" onClose={p.onCloseForm} closeLabel="Odustani od unosa" disabled={busy}
-      title={form.reentry ? 'Ponovni unos prvobitnog zahteva' : form.kind === 'CANCEL' ? 'Otkazivanje Dogovora' : 'Predlog izmene'} step="Korak 1 od 2" />;
+      title={form.reentry ? 'Ponovno slanje' : form.kind === 'CANCEL' ? 'Otkazivanje Dogovora' : 'Predlog izmene'} step="Korak 1 od 2" />;
     body = <Form form={form} base={snapshot?.terms ?? null} busy={busy} onEdit={p.onEdit} />;
     // The step's one decision, pinned under the scroll; what stopped it is said right under the button it stopped. A cancellation
     // needs its reason: until one is chosen the decision is grey, with the reason why (plan 2.3), not a press that answers with an error.
@@ -146,11 +146,11 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
           <T variant="bodyStrong">{words.unconfirmed}</T>
           {p.error ? <T variant="copy">{p.error}</T> : null}
         </View>
-        <V2Action tone="neutral" label="Proveri ishod radnje" style={brandAction} onPress={p.onRefresh} />
+        <V2Action tone="neutral" label="Proveri da li je uspelo" style={brandAction} onPress={p.onRefresh} />
         {reentry
           ? <V2Action tone="neutral" label={p.journalKind === 'CANCEL' ? 'Ponovo unesi otkazivanje' : 'Ponovo unesi predlog'} disabled={!p.canRetry}
-            reason={p.canRetry ? null : 'Prvo proveri ishod radnje.'} onPress={() => p.onOpenForm(p.journalKind as 'PROPOSE' | 'CANCEL', true)} />
-          : <V2Action tone="neutral" label={words.again} disabled={!p.canRetry || p.needsReentry} reason={!p.canRetry || p.needsReentry ? 'Prvo proveri ishod radnje.' : null}
+            reason={p.canRetry ? null : 'Prvo proveri da li je prethodna radnja uspela.'} onPress={() => p.onOpenForm(p.journalKind as 'PROPOSE' | 'CANCEL', true)} />
+          : <V2Action tone="neutral" label={words.again} disabled={!p.canRetry || p.needsReentry} reason={!p.canRetry || p.needsReentry ? 'Prvo proveri da li je prethodna radnja uspela.' : null}
             onPress={p.onRetry} />}
       </View>;
     } else if (p.phase === 'CONFIRMED' || p.phase === 'REJECTED') {
@@ -264,7 +264,7 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
     {instead(before !== null && (mode === 'date' ? value !== before : civilClock(value) !== before), mode === 'date' ? civilDay(before ?? '') : before ?? '')}
   </View>;
   return <View style={s.stack}>
-    {form.reentry ? <T variant="copy" tone="muted">Sadržaj prethodnog zahteva nije sačuvan na uređaju. Ponovo unesi iste podatke iz tog pokušaja i isti razlog. Provera mora da potvrdi potpuno isti zahtev.</T> : null}
+    {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesi iste podatke i isti razlog kao prvi put da bismo proverili da li je već stiglo.</T> : null}
     {form.kind === 'PROPOSE' ? <>
       <View style={s.field}>
         <T variant="meta">Cena</T>

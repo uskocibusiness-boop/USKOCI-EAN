@@ -67,12 +67,30 @@ const busy = (): Props => ({
   applications: { state: 'ready', applications: [applicationOf('p1', { naslov: 'Košenje trave', zadatak: taskFacts(fixedWindow(serbian(DAY, '10:00'), serbian(DAY, '12:00'))) })] },
 });
 
+/** Two kinds of thing in the window, none of them on the chosen day: the chips have something to choose between, and the day itself is empty. */
+const twoKinds = (): Props => ({
+  list: { state: 'ready', agreements: [agreementOf('d9', { tacanTermin: { pocetak: serbian('2026-10-20', '09:00'), kraj: serbian('2026-10-20', '10:00') } })] },
+  applications: { state: 'ready', applications: [applicationOf('p9', { zadatak: taskFacts(fixedWindow(serbian('2026-10-21', '09:00'), serbian('2026-10-21', '10:00'))) })] },
+});
+/** Every chip that is on screen. */
+const chipLabels = () => presses().filter(node => node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel);
+
 describe('the day by the hour', () => {
   it('draws my Dogovori, my published tasks and my sent applications in one list, in the order of their start, each with its chip', async () => {
     await draw(busy());
     expect(rows()).toEqual(['Otvori Dogovor Montaža police', 'Otvori prijavu Košenje trave', 'Otvori zadatak Selidba ormara']);
-    expect(text()).toContain('Dogovoren'); expect(text()).toContain('Poslata'); expect(text()).toContain('Bira se · 3');
+    expect(text()).toContain('Dogovoren'); expect(text()).toContain('Prijava poslata'); expect(text()).toContain('Bira se · 3');
     expect(text()).toContain('Uskačeš · Ana'); expect(text()).toContain('2.000 RSD');
+  });
+  it('writes the time as the FIRST line of each card, and an application says what it is in its chip, not in a second line', async () => {
+    await draw(busy());
+    const firstLine = (label: string) => press(label).findAll(node => node.type === 'T' as React.ElementType)[0].children.join('');
+    expect(firstLine('Otvori Dogovor Montaža police')).toBe('09:00–11:00');
+    expect(firstLine('Otvori prijavu Košenje trave')).toBe('10:00–12:00');
+    expect(firstLine('Otvori zadatak Selidba ormara')).toBe('12:00–14:00');
+    // "Tvoja prijava" would say twice what "Prijava poslata" says; it stays in the spoken line.
+    expect(press('Otvori prijavu Košenje trave').findAll(node => node.type === 'T' as React.ElementType).map(node => node.children.join(''))).not.toContain('Tvoja prijava');
+    expect(press('Otvori prijavu Košenje trave').props.accessibilityValue.text).toContain('Tvoja prijava');
   });
   it('says "U toku" once the agreed time has arrived, and not before', async () => {
     await draw(busy());
@@ -81,18 +99,20 @@ describe('the day by the hour', () => {
     await draw({ ...busy(), now: new Date('2026-10-07T07:30:00Z') });
     expect(text()).toContain('U toku'); expect(text()).not.toContain('Dogovoren');
   });
-  it('draws an application with a dashed edge, since it is information and not an obligation, and a Dogovor with a solid one', async () => {
+  it('draws no dashed edge at all: an application is a card like the others, and its chip is the ring "Prijava poslata"', async () => {
     await draw(busy());
-    expect(flat(press('Otvori prijavu Košenje trave'))).toMatchObject({ borderStyle: 'dashed' });
-    expect(flat(press('Otvori Dogovor Montaža police')).borderStyle).toBeUndefined();
+    expect(tree.root.findAll(node => flat(node).borderStyle === 'dashed')).toHaveLength(0);
+    const chip = press('Otvori prijavu Košenje trave').findAll(node => node.props.testID === 'status-chip')[0];
+    expect(chip.props.accessibilityLabel).toBe('Prijava poslata');
   });
-  it('draws the rail with the clocks of Serbian time at a normal text size, and the window as the first line at a large one', async () => {
+  it('draws no clock rail and no line beside the card, at a normal text size or a large one: the window is the first line of the card', async () => {
     await draw(busy());
-    expect(text()).toContain('09:00'); expect(text()).toContain('11:00'); expect(text()).not.toContain('09:00–11:00');
+    // The start is written once: a rail would have said "09:00" beside the card and the card its own window again.
+    expect(text()).toContain('09:00–11:00'); expect(text().match(/09:00/g)).toHaveLength(1);
     await act(async () => tree.unmount());
     mockFontScale = 1.5;
     await draw(busy());
-    expect(text()).toContain('09:00–11:00');
+    expect(text()).toContain('09:00–11:00'); expect(text().match(/09:00/g)).toHaveLength(1);
   });
   it('names the other term in an orange line when two of my terms overlap, and leaves a task out of it', async () => {
     await draw(busy());
@@ -120,16 +140,18 @@ describe('the day by the hour', () => {
     expect(handlers.onOpenApplication).toHaveBeenCalledWith('p1');
   });
   it('is one quiet line for an empty day, by the chip that is on, never a box', async () => {
-    await draw();
+    await draw(twoKinds());
     expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
     for (const [label, line] of [['Dogovori', 'Nema Dogovora za ovaj dan.'], ['Moji zadaci', 'Nema tvojih zadataka za ovaj dan.'], ['Moje prijave', 'Nema prijava za ovaj dan.']]) {
       await act(async () => tab(label).props.onPress());
       expect(text()).toContain(line);
     }
   });
-  it('keeps the block of the day at least this tall, so choosing another day does not move what is under it', async () => {
+  it('gives an empty day no minimum height: the block is exactly its one line, and whatever follows stands the screen\'s own space under it', async () => {
     await draw();
-    expect(Number(flat(tree.root.findByProps({ testID: 'day-block' })).minHeight)).toBeGreaterThanOrEqual(160);
+    const block = tree.root.findByProps({ testID: 'day-block' });
+    expect(flat(block).minHeight).toBeUndefined();
+    expect(block.findAll(node => node.type === 'T' as React.ElementType).map(node => node.children.join(''))).toEqual(['Ništa nije zakazano za ovaj dan.']);
   });
   it('says the day in Serbian time, and says so in words only on a phone set to another zone', async () => {
     await draw(busy());
@@ -154,10 +176,28 @@ describe('the day by the hour', () => {
 
 describe('the chips "Sve · Dogovori · Moji zadaci · Moje prijave"', () => {
   it('are those four, in that order, as the tabs of one list', async () => {
-    await draw();
-    const labels = presses().filter(node => node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel);
-    expect(labels).toEqual(['Sve', 'Dogovori', 'Moji zadaci', 'Moje prijave']);
+    await draw(busy());
+    expect(chipLabels()).toEqual(['Sve', 'Dogovori', 'Moji zadaci', 'Moje prijave']);
     expect(tab('Sve').props.accessibilityState).toEqual({ selected: true });
+  });
+  it('are the one row of controls over the day, and are not there at all when everything is of one kind (nothing to choose between)', async () => {
+    await draw();
+    expect(chipLabels()).toEqual([]);                                                 // nothing at all
+    await act(async () => tree.unmount());
+    await draw({ list: twoKinds().list });
+    expect(chipLabels()).toEqual([]);                                                 // only Dogovori
+    await act(async () => tree.unmount());
+    await draw({ applications: { state: 'ready', applications: [applicationOf('p1', { zadatak: taskFacts(fixedWindow(serbian(DAY, '10:00'), serbian(DAY, '12:00'))) }), applicationOf('p2')] } });
+    expect(chipLabels()).toEqual([]);                                                 // placed and loose, but all applications
+    await act(async () => tree.unmount());
+    await draw(twoKinds());
+    expect(chipLabels()).toEqual(['Sve', 'Dogovori', 'Moji zadaci', 'Moje prijave']);  // two kinds, even though none of them is on this day
+  });
+  it('are a row of chips that scrolls on its own, not equal tabs that would cut a word: four options are chips', async () => {
+    await draw(busy());
+    const holder = tree.root.findAll(node => node.type === 'ScrollView' as React.ElementType && node.props.horizontal)[0];
+    expect(holder).toBeDefined();
+    expect(holder.findAll(node => node.props.accessibilityRole === 'tab')).toHaveLength(4);
   });
   it('show one kind of the day at a time, and "Sve" all of it again', async () => {
     await draw(busy());
@@ -439,11 +479,13 @@ describe('"Bez tačnog termina"', () => {
 });
 
 describe('"Čekaju odgovor"', () => {
-  const waiting = (): Props => ({ applications: { state: 'ready', applications: [applicationOf('a1', { naslov: 'Košenje trave' }), applicationOf('a2', { naslov: 'Pomoć pri selidbi', stanje: 'VIEWED' })] } });
+  // A Dogovor on another day is there so that the chips have two kinds to choose between.
+  const waiting = (): Props => ({ list: twoKinds().list,
+    applications: { state: 'ready', applications: [applicationOf('a1', { naslov: 'Košenje trave' }), applicationOf('a2', { naslov: 'Pomoć pri selidbi', stanje: 'VIEWED' })] } });
   it('lists my open applications that cannot be put on a day, with their own words for the time and their chip', async () => {
     await draw(waiting());
     expect(text()).toContain('Čekaju odgovor'); expect(text()).toContain('2 prijave'); expect(text()).toContain('Fleksibilno');
-    expect(text()).toContain('Poslata'); expect(text()).toContain('Viđena');
+    expect(text()).toContain('Prijava poslata'); expect(text()).toContain('Prijava viđena');
     expect(rows()).toEqual(['Otvori prijavu Košenje trave', 'Otvori prijavu Pomoć pri selidbi']);
     expect(text()).not.toContain('Bez tačnog termina');
   });
@@ -473,13 +515,14 @@ describe('a read that failed is said, and a day is never called empty for it', (
     }
   });
   it('does not wait for a read the chip does not show', async () => {
-    await draw({ applications: { state: 'loading' } });
+    await draw({ list: twoKinds().list, applications: { state: 'loading' },
+      needs: { state: 'ready', needs: [needOf('n9', { schedule: fixedWindow(serbian('2026-10-22', '09:00'), serbian('2026-10-22', '10:00')) })] } });
     await act(async () => tab('Dogovori').props.onPress());
     expect(text()).toContain('Nema Dogovora za ovaj dan.');
   });
   it('says the schedule failed with its own message and offers to read it again', async () => {
-    const handlers = await draw({ schedule: { state: 'error', message: 'Kalendar nije učitan.' } });
-    expect(text()).toContain('Raspored nije učitan.'); expect(text()).toContain('Kalendar nije učitan.'); expect(text()).not.toContain('Ništa nije zakazano');
+    const handlers = await draw({ schedule: { state: 'error', message: 'Nalog je promenjen. Ponovo otvori Raspored.' } });
+    expect(text()).toContain('Raspored nije učitan.'); expect(text()).toContain('Nalog je promenjen. Ponovo otvori Raspored.'); expect(text()).not.toContain('Ništa nije zakazano');
     await act(async () => button('Pokušaj ponovo').props.onPress());
     expect(handlers.onRetry).toHaveBeenCalledTimes(1);
   });
@@ -500,7 +543,7 @@ describe('a read that failed is said, and a day is never called empty for it', (
     expect(handlers.onRetryList).toHaveBeenCalledTimes(1);
   });
   it('says nothing about a failed read the chip does not show', async () => {
-    await draw({ needs: { state: 'error' } });
+    await draw({ ...twoKinds(), needs: { state: 'error' } });
     await act(async () => tab('Dogovori').props.onPress());
     expect(text()).not.toContain('Moji zadaci nisu učitani.'); expect(text()).toContain('Nema Dogovora za ovaj dan.');
     await act(async () => tab('Moji zadaci').props.onPress());
@@ -555,8 +598,10 @@ describe('the foot, the pull and the screen reader', () => {
       { schedule: { state: 'error', message: null } }, {}];
     for (const patch of states) {
       await draw(patch);
-      for (const label of ['Dogovori', 'Moji zadaci', 'Moje prijave', 'Sve']) {
-        await act(async () => tab(label).props.onPress());
+      // The chips are there only when the window holds two kinds: every one that is on screen is tried, and a state without chips is read as it is.
+      const labels = chipLabels().map(String);
+      for (const label of labels.length ? labels : [null]) {
+        if (label) await act(async () => tab(label).props.onPress());
         expect(text()).not.toMatch(NO_POSAO);
         expect(rows().concat(days().map(cell => String(cell.props.accessibilityLabel))).join(' ')).not.toMatch(NO_POSAO);
       }

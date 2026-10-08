@@ -14,6 +14,8 @@ jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 
 jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer', AgreementPhotoSheet: 'AgreementPhotoSheet' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
+jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest.fn() }));
+import { tick } from '../../ui/system/haptics';
 import { AgreementChat, CLOSED_SENTENCE, messageSpoken } from '../../ui/AgreementChat';
 import { forgetAutoResendForTests, takeAutoResend } from '../../ui/messages/threadModel';
 
@@ -104,7 +106,7 @@ describe('D03 actual message component', () => {
     expect(texts()).not.toContain('Stižem uskoro.'); expect(localBubbles()).toHaveLength(0); expect(marks('Poslato')).toHaveLength(0);
     const unknown = { command: { ...command, clientMessageId: 'another_send_attempt' }, state: 'unknown' as const, persisted: true, attempt: 1 };
     await act(async () => tree.update(<AgreementChat {...props} messages={[]} hasNewer state={{ ...state, entries: [confirmed, unknown] }} />));
-    expect(texts()).toContain('Slanje nije potvrđeno');
+    expect(texts()).toContain('Ne znamo da li je stigla');
   });
 
   it('recovers a missing saved anchor with one explicit latest action even without a newer cursor', async () => {
@@ -208,17 +210,17 @@ describe('D03 actual message component', () => {
     await render({ messages: history, photos, state: pending, refreshing: true });
     expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(true);
     expect(button('Osveži poruke').props.accessibilityState).toEqual({ busy: true, disabled: true });
-    expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Slanje nije potvrđeno');
+    expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
     expect(button('Napiši poruku').props.value).toBe('Nova poruka');
     expect(tree.root.findByType('AgreementPhotoComposer' as any).props.photos).toBe(photos);
     await act(async () => tree.update(<AgreementChat {...props} messages={history} photos={photos} state={pending} refreshError />));
     expect(texts()).toContain('Nove poruke nisu proverene.'); expect(texts()).not.toContain('Poruke nisu učitane');
-    expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Slanje nije potvrđeno');
+    expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
     expect(button('Napiši poruku').props.value).toBe('Nova poruka');
     expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(false);
     await act(async () => button('Ponovo proveri nove poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
     expect(photos.refresh).toHaveBeenCalledTimes(1);
   });
@@ -314,7 +316,7 @@ describe('D03 actual message component', () => {
     await render({ state: { ...state, error: 'STORAGE_UNAVAILABLE',
       entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
     expect(button('Napiši poruku').props.value).toBe(state.draft);
-    expect(button(`Ponovi slanje poruke ${command.body}`)).toBeTruthy();
+    expect(button(`Proveri da li je stigla: ${command.body}`)).toBeTruthy();
     await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
   });
@@ -326,12 +328,12 @@ describe('D03 actual message component', () => {
     const newPhotos = { ...oldPhotos, refresh: jest.fn().mockResolvedValue(undefined) };
     const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
     await render({ state: pending, photos: oldPhotos });
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
     await act(async () => tree.update(<AgreementChat {...props} state={pending} photos={newPhotos} />));
     await act(async () => settle());
     expect(oldPhotos.refresh).not.toHaveBeenCalled(); expect(newPhotos.refresh).toHaveBeenCalledTimes(1);
     outbox.retry.mockImplementationOnce(() => new Promise<void>(resolve => { settle = resolve; }));
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
     await act(async () => tree.unmount());
     await act(async () => settle());
     expect(newPhotos.refresh).toHaveBeenCalledTimes(1); expect(props.refresh).toHaveBeenCalledTimes(1);
@@ -381,10 +383,10 @@ describe('D03 actual message component', () => {
     await render({ messages: [read], terminal: true, writable: false, photos, state: { ...state, entries: [pending] } });
     const images = tree.root.findAllByType('AuthorizedPhoto' as React.ElementType);
     expect(images[0].props).toMatchObject({ assetId: photo.assetId, agreementId: agreement, messageId: read.id });
-    expect(texts()).toContain('Slanje nije potvrđeno');
+    expect(texts()).toContain('Ne znamo da li je stigla');
     await act(async () => tree.update(<AgreementChat {...props} photos={photos} messages={[read]} state={{ ...state,
       entries: [{ ...pending, command: { ...pending.command, photos: { ...pending.command.photos, agreementVersion: 3 } } }] }} />));
-    expect(texts()).not.toContain('Slanje nije potvrđeno');
+    expect(texts()).not.toContain('Ne znamo da li je stigla');
   });
   it('permits explicit support selection of a photo-only message without changing its canonical empty body', async () => {
     const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 3, clientMessageId: 'photo_message_key',
@@ -542,10 +544,18 @@ describe('D03 actual message component', () => {
   it('unknown delivery has exact-command retry and no invented sent/read state', async () => {
     state = { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] };
     await render({ state });
-    expect(texts()).toContain('Slanje nije potvrđeno'); expect(texts()).not.toContain('Poslato');
+    expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).not.toContain('Poslato');
     expect(texts()).not.toContain('Pročitano'); expect(texts()).not.toContain('Isporučeno');
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
+  });
+  it('an answer the app cannot read says what is not known, once, and the one button is the check (the word of `outcomeCopy`)', async () => {
+    state = { ...state, error: 'INVALID_RESPONSE', entries: [{ command, state: 'unknown', error: 'INVALID_RESPONSE', persisted: true, attempt: 1 }] };
+    await render({ state });
+    expect(texts()).toContain('Ne znamo da li je poruka stigla. Neće se poslati dvaput.');
+    // The line describes; the button commands ("Proveri"), and the line does not say the button's verb a second time.
+    expect(texts()).not.toContain('Proveri;'); expect(texts()).not.toContain('Pokušaj ponovo;');
+    expect(button(`Proveri da li je stigla: ${command.body}`).findByType('T' as React.ElementType).children).toEqual(['Proveri']);
   });
   it('an in-flight message does not block composing another message', async () => {
     await render({ state: { ...state, entries: [{ command, state: 'sending', persisted: true, attempt: 1 }] } });
@@ -560,7 +570,7 @@ describe('D03 actual message component', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(0);
     expect(texts()).toContain(CLOSED_SENTENCE);
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   });
   it('server reconciliation suppresses the local duplicate only for matching sender/key/body', async () => {
@@ -749,7 +759,7 @@ describe('D03 actual message component', () => {
     it('keeps a failed send in place with its reason and the retry of that exact message', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')],
         state: { ...state, entries: [{ command, state: 'failed', error: 'UNAVAILABLE', persisted: true, attempt: 2 }] } });
-      expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Slanje još nije potvrđeno.');
+      expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Ne znamo da li je poruka stigla.');
       await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
       expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId); expect(props.refresh).toHaveBeenCalledTimes(1);
     });
@@ -766,5 +776,48 @@ describe('D03 actual message component', () => {
     await act(async () => tree.update(<AgreementChat {...props} support={support} error messages={[{ id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 2,
       telo: 'Stale read', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null }]} />));
     expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
+  });
+});
+
+/**
+ * Haptics of the conversation (motion item M-03, rule R5: a tick is an outcome). A send that FAILED ticks once; a wait does not.
+ * Haptics are not motion, so `conversation-has-no-motion` stays true of this file's subject.
+ */
+describe('a failed send ticks once', () => {
+  const failed = (attempt: number, clientMessageId = command.clientMessageId) =>
+    ({ command: { ...command, clientMessageId }, state: 'failed' as const, error: 'UNAVAILABLE' as const, persisted: true, attempt });
+  const withEntries = (entries: OutboxSnapshot['entries']) => <AgreementChat {...props} state={{ ...state, entries }} />;
+  const ticks = () => (tick as jest.Mock).mock.calls.map(call => call[0]);
+
+  it('ticks `error` when a send fails after the thread was open, and not again for the same attempt', async () => {
+    await render();
+    expect(ticks()).toEqual([]);
+    await act(async () => tree.update(withEntries([failed(1)])));
+    expect(ticks()).toEqual(['error']);
+    await act(async () => tree.update(withEntries([failed(1)])));
+    await act(async () => tree.update(<AgreementChat {...props} messages={[]} refreshing state={{ ...state, entries: [failed(1)] }} />));
+    expect(ticks()).toEqual(['error']);
+  });
+
+  it('a new attempt that fails is a new failure, and another message that fails is one too', async () => {
+    await render();
+    await act(async () => tree.update(withEntries([failed(1)])));
+    await act(async () => tree.update(withEntries([failed(2)])));
+    await act(async () => tree.update(withEntries([failed(2), failed(1, 'druga_poruka_456')])));
+    expect(ticks()).toEqual(['error', 'error', 'error']);
+  });
+
+  it('what had already failed when the thread opened is not news, and a send that is only unconfirmed is a wait, not a failure', async () => {
+    await render({ state: { ...state, entries: [failed(1)] } });
+    expect(ticks()).toEqual([]);
+    await act(async () => tree.update(withEntries([failed(1), { command: { ...command, clientMessageId: 'unknown_send' }, state: 'unknown', persisted: true, attempt: 1 }])));
+    expect(ticks()).toEqual([]);
+  });
+
+  it('waits for the saved sends to be read before it counts anything', async () => {
+    await render({ state: { ...state, phase: 'loading', entries: [] } });
+    await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, phase: 'ready', entries: [failed(1)] }} />));
+    // The first ready state is the baseline: a failed send from an earlier visit is not a failure that just happened.
+    expect(ticks()).toEqual([]);
   });
 });

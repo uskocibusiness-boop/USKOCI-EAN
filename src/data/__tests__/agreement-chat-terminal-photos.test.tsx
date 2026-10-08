@@ -91,7 +91,7 @@ it('keeps terminal photo-read failure and refresh visible until an authoritative
 it('keeps outbox-reserved photo recovery visible without permitting removal or upload retry', async () => {
   photos = { ...photos, hasSelection: false, selected: [], reserved: () => true };
   await render(); await close();
-  expect(texts()).toContain('Fotografija je vezana za poruku. Prvo proveri ishod njenog slanja.');
+  expect(texts()).toContain('Fotografija je uz poruku. Prvo proveri da li je poslata.');
   expect(buttons('Osveži fotografije poruke')).toHaveLength(1);
   expect(buttons('Ukloni pripremljenu fotografiju 1')).toHaveLength(0);
   expect(buttons('Pošalji ponovo · fotografija 1')).toHaveLength(0);

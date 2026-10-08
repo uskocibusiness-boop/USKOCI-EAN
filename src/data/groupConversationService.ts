@@ -22,7 +22,7 @@ export function parseGroupJournal(raw:string):GroupJournal{
 }
 const options={errors:{AUTH_CONTEXT_CHANGED:'Nalog je promenjen.',GROUP_NOT_AVAILABLE:'Grupni razgovor nije dostupan.',
  GROUP_READ_ONLY:'Nove poruke trenutno nisu dostupne. Ranije dostupne poruke možeš pročitati.',GROUP_MESSAGE_INVALID:'Poruka može imati do 2.000 znakova.',
- GROUP_MESSAGE_KEY_REUSED:'Ovaj zahtev pripada prvobitnoj poruci.',GROUP_CURSOR_INVALID:'Ponovo osveži razgovor.',ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.'},
+ GROUP_MESSAGE_KEY_REUSED:'Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.',GROUP_CURSOR_INVALID:'Ponovo osveži razgovor.',ACCOUNT_CLOSING:'Nalog je u postupku zatvaranja.'},
  fallback:'GROUP_UNCONFIRMED',invalid:'GROUP_RECEIPT_INVALID'};
 function envelope(r:Record<string,unknown>|null,account:ReceiptAccount,groupId?:string){return !!r&&sameId(r.accountId,account.accountId)&&r.authoritative===true&&(!groupId||sameId(r.groupId,groupId));}
 function decodeReceipt(raw:unknown,j:GroupJournal,account:ReceiptAccount):GroupReceipt|null{
@@ -75,7 +75,7 @@ export const groupConversationService={
   }});},
  send(j:GroupJournal,body:string,account:ReceiptAccount){
   j={...j};account={...account};
-  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256)return Promise.resolve(failure('GROUP_MESSAGE_KEY_REUSED','Unesi prvobitnu poruku bez izmene.'));
+  if(!groupBody(body)||groupBodyHash(body)!==j.bodySha256)return Promise.resolve(failure('GROUP_MESSAGE_KEY_REUSED','Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.'));
   return readReceipt<GroupReceipt>({...options,account,write:true,rpc:'rpc_send_group_message_v5',args:{p_expected_user_id:account.accountId,p_group_id:j.groupId,p_client_request_id:j.clientRequestId,p_body:body},decode:raw=>decodeReceipt(raw,j,account)});
  },
  markRead(groupId:string,ids:string[],account:ReceiptAccount){

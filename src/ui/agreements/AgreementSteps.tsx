@@ -1,21 +1,42 @@
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
+import { useReducedMotion } from '../system/motion';
 import { sys } from '../system/tokens';
 import { cancellationLine } from './agreementListModel';
 import { agreementStepModel, deadlineNote, stepsSummary, type OwnRating, type StepStatus } from './agreementStepsModel';
 
 /** The drawn mark is 24 dp: a check, a dot or an outline. The connector between two marks is a 2 dp line. */
 const MARK = 24;
+/** Where the dot of a step that has just become the current one starts, and settles from (M-09): a fraction of its size. */
+const DOT_FROM = 0.6;
+
+/**
+ * The dot of the current step. It settles from `DOT_FROM` to its size once, over `enter` on `easeOut`, transform only and on the native
+ * driver, but ONLY when the step changed while the person was looking (`pop`): the first drawing, a return to the screen and reduced
+ * motion show it still. The mark is a state, never a number or a word, so it is the one thing here allowed to move.
+ */
+function CurrentDot({ pop }: { pop: boolean }) {
+  const reduced = useReducedMotion();
+  const scale = useRef(new Animated.Value(pop && !reduced ? DOT_FROM : 1)).current;
+  useEffect(() => {
+    if (!pop || reduced) return;
+    const run = Animated.timing(scale, { toValue: 1, duration: sys.motion.enter, easing: Easing.bezier(...sys.motion.easeOut), useNativeDriver: true });
+    run.start();
+    return () => run.stop();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- once, at the moment this dot comes to be the current step's
+  return <Animated.View testID="agreement-step-dot" style={[s.dot, { transform: [{ scale }] }]} />;
+}
 
 /**
  * One step's mark. Shape and colour together: a green check behind us, a filled green dot where we are, a grey outline ahead and
  * the same grey outline all along for a cancelled Dogovor.
  */
-function Mark({ status }: { status: StepStatus }) {
+function Mark({ status, pop }: { status: StepStatus; pop: boolean }) {
   if (status === 'done') return <View style={[s.mark, s.markDone]}><Glyph name="check" size={16} tone="onGreen" /></View>;
-  if (status === 'current') return <View style={[s.mark, s.markCurrent]}><View style={s.dot} /></View>;
+  if (status === 'current') return <View style={[s.mark, s.markCurrent]}><CurrentDot pop={pop} /></View>;
   return <View style={[s.mark, s.markAhead]} />;
 }
 
@@ -40,6 +61,10 @@ export function AgreementSteps({ state, ownRating, deadlineIso, problemOpen = fa
   now?: Date;
 }) {
   const steps = agreementStepModel(state, ownRating);
+  // A dot that comes to be the current one AFTER the first drawing is news (the Dogovor moved on while it was open); the first drawing is not.
+  const drawn = useRef(false);
+  const pop = drawn.current;
+  useEffect(() => { drawn.current = true; }, []);
   const cancelled = state === 'CANCELLED';
   const note = deadlineNote({ state, deadlineIso, problemOpen });
   const position = steps.findIndex(step => step.status === 'current');
@@ -52,7 +77,7 @@ export function AgreementSteps({ state, ownRating, deadlineIso, problemOpen = fa
         accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <View style={s.markRow}>
           <View style={[s.line, index === 0 && s.lineNone, index > 0 && steps[index - 1].status === 'done' && s.lineOn]} />
-          <Mark status={step.status} />
+          <Mark status={step.status} pop={pop} />
           <View style={[s.line, index === steps.length - 1 && s.lineNone, step.status === 'done' && s.lineOn]} />
         </View>
         <T variant="meta" style={[s.label, step.status === 'current' && s.labelCurrent, (step.status === 'upcoming' || cancelled) && s.labelAhead]}>{step.label}</T>
@@ -65,7 +90,8 @@ export function AgreementSteps({ state, ownRating, deadlineIso, problemOpen = fa
 }
 
 const s = StyleSheet.create({
-  wrap: { gap: sys.space.sm, paddingVertical: sys.space.xs },
+  // No padding of its own: the space around it is the screen's (the head of the Dogovor puts it 12 under what it belongs to).
+  wrap: { gap: sys.space.sm },
   row: { flexDirection: 'row', alignItems: 'flex-start' },
   step: { flex: 1, minWidth: 0, alignItems: 'center', gap: sys.space.xs },
   markRow: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center' },

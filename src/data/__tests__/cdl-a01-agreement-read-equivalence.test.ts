@@ -218,7 +218,7 @@ it('does not turn a missing historical agreed interval into a new obligation fro
   resetHappyAuth();
   mockRpc.mockResolvedValue({ data: { ...rawAgreement, terms: { ...rawAgreement.terms, proposed_start_at: null } }, error: null });
   const result = await agreementClientService.dogovor('agr-1');
-  expect(result?.vremeTekst).toBe('Termin nije potvrđen');
+  expect(result?.vremeTekst).toBe('Termin nije dogovoren');
 });
 
 it('shows both immutable accepted instants to the minute across midnight', async () => {

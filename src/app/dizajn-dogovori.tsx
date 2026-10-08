@@ -5,19 +5,28 @@ import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Bell } from 'phosphor-react-native';
 import type { DogovorProjekcija, PorukaProjekcija, PredlogIzmeneSazetak, UcesnikProjekcija } from '../contracts/projections';
+import type { AgreementCancellations } from '../data/agreementCancellationClientService';
+import type { ReviewTag } from '../data/reviewsClientService';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementChat } from '../ui/AgreementChat';
 import { AgreementThreadPresentation } from '../ui/v2/AgreementThreadPresentation';
-import { NextStepCard, WorkspaceCard, WorkspaceFooter, WorkspaceRow, WorkspaceRows, agreementNextStep, agreementWaitsForMe } from '../ui/agreements/AgreementWorkspace';
+import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementWaitsForMe } from '../ui/agreements/AgreementWorkspace';
+import { AgreementOverview } from '../ui/agreements/AgreementOverview';
+import { AgreementProblemExits, AgreementProblemForm, AgreementProblemNote, AgreementStatusView, overviewContent } from '../ui/agreements/AgreementOverviewParts';
+import { addressWords } from '../ui/agreements/agreementContactModel';
+import { cancellationDetailsOf } from '../ui/agreements/agreementListModel';
 import { Press } from '../ui/Press';
 import { ProductHeader } from '../ui/product/ProductDetails';
+import { FactArt } from '../ui/system/FactArt';
+import { layout } from '../ui/system/layout';
+import { ListRow } from '../ui/system/ListRow';
 import { ChromeIconButton, ScreenChrome } from '../ui/system/ScreenChrome';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../ui/v2/AgreementCollectionPresentation';
 import { V2Action } from '../ui/v2/V2Action';
-import { AgreementTabs, AgreementTaskLink, AgreementTerms, AgreementPeople, AgreementPersonBar, AgreementSection, isGroupAgreement,
-  type AgreementTab } from '../ui/v2/AgreementPresentation';
+import { AgreementTabs, AgreementPersonBar, isNoTermText, type AgreementTab } from '../ui/v2/AgreementPresentation';
+import { AgreementReviewPresentation, type ReviewView } from '../ui/reviews/AgreementReviewPresentation';
 
 /**
  * The Dogovori gallery (owner step 8): the real presentation of the Dogovori list, the Dogovor's Pregled and its Poruke,
@@ -55,13 +64,28 @@ const LIST: DogovorProjekcija[] = [
     putanjaTekst: 'Sremska Kamenica', izmenaCeka: { predlogId: 'predlog', mojPredlog: false }, pocinje: '2026-09-28T06:00:00Z' }),
   agreement('ocena', { stanje: 'COMPLETED', ocenaMoguca: true, naslov: 'Pomoć pri selidbi', vremeTekst: '20. sep · 10:00–14:00', chatDostupan: false,
     ucesnici: [ME_WORKER, requester('Milica Stojanović', 'MS')], pocinje: '2026-09-20T08:00:00Z' }),
-  agreement('grupa', { naslov: 'Prevod uputstva na engleski', rezim: 'DALJINSKI', putanjaTekst: '', vremeTekst: 'Termin nije potvrđen', pocinje: null,
+  agreement('grupa', { naslov: 'Prevod uputstva na engleski', rezim: 'DALJINSKI', putanjaTekst: '', vremeTekst: 'Termin nije dogovoren', pocinje: null,
     pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1, udeo: 2 / 3 }, verzija: 2, izmenaCeka: { predlogId: 'moj', mojPredlog: true }, problemOtvoren: true,
     ucesnici: [ME_REQUESTER, worker('Nikola Marković', 'NM', 2)] }),
-  agreement('bez-termina', { stanje: 'COMPLETED', vremeTekst: 'Termin nije potvrđen', chatDostupan: false, naslov: 'Čišćenje podruma' }),
+  agreement('bez-termina', { stanje: 'COMPLETED', vremeTekst: 'Termin nije dogovoren', chatDostupan: false, naslov: 'Čišćenje podruma' }),
   agreement('otkazan', { stanje: 'CANCELLED', cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, chatDostupan: false, naslov: 'Farbanje ograde',
     ucesnici: [ME_WORKER, requester('Druga strana', '')] }),
+  agreement('otkazan-ti', { stanje: 'CANCELLED', chatDostupan: false, naslov: 'Montaža rolo zavesa', vremeTekst: '30. sep · 09:00–11:00',
+    putanjaTekst: 'Telep, Novi Sad', pocinje: '2026-09-30T07:00:00Z' }),
+  agreement('otkazan-drugi', { stanje: 'CANCELLED', chatDostupan: false, naslov: 'Košenje živice', vremeTekst: '29. sep · 08:00–10:00',
+    putanjaTekst: 'Detelinara, Novi Sad', pocinje: '2026-09-29T06:00:00Z', ucesnici: [ME_WORKER, requester('Jelena Nikolić', 'JN')] }),
 ];
+/** An agreed Dogovor with no term at all (R02), one with a problem reported (R04), and one where the other side's number was shared ("Pozovi"). */
+const NO_TERM_AGREEMENT = agreement('bez-termina-aktivan', { naslov: 'Pomoć oko računara', vremeTekst: 'Termin nije dogovoren', pocinje: null, putanjaTekst: 'Podbara, Novi Sad' });
+const PROBLEM_AGREEMENT = agreement('problem', { naslov: 'Montaža nadstrešnice', problemOtvoren: true, vremeTekst: '25. sep · 08:00–12:00', putanjaTekst: 'Veternik, Novi Sad' });
+const SHARED_AGREEMENT = agreement('podeljen', { naslov: 'Pomoć pri preseljenju kancelarije',
+  kontakt: { mojTelefonPodeljen: true, njihovTelefon: '064 123 4567', lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true } });
+/** What `rpc_agreement_cancellation_v1` answers for the two cancelled ones of the list (CANCEL-INFO): the other side's words, and mine with no reason kept. */
+const CANCELLATIONS: AgreementCancellations = new Map([
+  ['otkazan', { agreementId: 'otkazan', cancelledAt: '2026-09-25T16:40:00Z', by: 'REQUESTER', byMe: false, reason: 'Ujutru je kiša, pomeramo za sledeću nedelju.', reasonState: 'KEPT' }],
+  ['otkazan-ti', { agreementId: 'otkazan-ti', cancelledAt: '2026-09-28T08:05:00Z', by: 'REQUESTER', byMe: true, reason: null, reasonState: 'NOT_KEPT' }],
+  ['otkazan-drugi', { agreementId: 'otkazan-drugi', cancelledAt: '2026-09-28T17:20:00Z', by: 'REQUESTER', byMe: false, reason: 'Živicu je u međuvremenu orezao komšija.', reasonState: 'KEPT' }],
+]);
 const LONG: DogovorProjekcija[] = [
   agreement('dugo', { naslov: 'Prenos trosed i dve fotelje sa trećeg sprata zgrade bez lifta do kombija ispred ulaza',
     vremeTekst: '26. sep · 22:00 – 27. sep · 06:00 (po vremenu u Srbiji)', putanjaTekst: 'Petrovaradinska tvrđava, Petrovaradin, Novi Sad',
@@ -96,7 +120,13 @@ const MESSAGES: PorukaProjekcija[] = [
 type ChatProps = ComponentProps<typeof AgreementChat>;
 const PENDING: ChatProps['state']['entries'] = [
   { command: { accountId: 'ja', agreementId: 'zona', clientMessageId: 'galerija-salje', body: 'Super, vidimo se.' }, state: 'sending', persisted: true, attempt: 1 },
+  // A message the phone could not keep is a real failure (the outbox settles a lost connection as "unknown", never as "failed"): red, with its reason.
   { command: { accountId: 'ja', agreementId: 'zona', clientMessageId: 'galerija-greska', body: 'Parking je iza zgrade.' }, state: 'failed',
+    error: 'STORAGE_UNAVAILABLE', persisted: false, attempt: 1 },
+];
+/** A send whose outcome is not known (a lost connection): the mark says "Ne znamo da li je stigla" and the one button is "Proveri" (the refused one above keeps "Pošalji ponovo"). */
+const UNKNOWN: ChatProps['state']['entries'] = [
+  { command: { accountId: 'ja', agreementId: 'zona', clientMessageId: 'galerija-nepoznato', body: 'Parking je iza zgrade.' }, state: 'unknown',
     error: 'UNAVAILABLE', persisted: true, attempt: 2 },
 ];
 /** A photo tool that can do nothing: the gallery shows the "+" and its panel, never a picker or an upload. */
@@ -106,30 +136,38 @@ const PHOTOS = { agreementId: 'zona', loaded: true, busy: false, ready: false, h
 /** No asset/receipt exists, so this pending-media fixture cannot initiate an authorized-photo read. */
 const PENDING_PHOTOS: AgreementPhotosController = { ...PHOTOS, hasSelection: true, canRetry: () => true,
   items: [{ ref: { agreementId: 'zona', agreementVersion: 1, clientRequestId: 'galerija-fotografija' }, receipt: null }],
-  message: 'Ishod fotografije nije potvrđen. Proveri pre novog pokušaja.' };
+  message: 'Ne znamo da li je fotografija poslata. Osveži fotografije pre novog izbora.' };
 
 type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'recovery'
-  | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed' | 'chat-media';
+  | 'no-term' | 'problem' | 'form' | 'shared' | 'no-number' | 'cancelled' | 'cancelled-me' | 'long-detail'
+  | 'status-loading' | 'status-error' | 'status-unavailable' | 'review' | 'review-grey' | 'review-saved' | 'review-loading' | 'review-error'
+  | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed' | 'chat-media' | 'chat-unknown';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'list', label: 'Lista' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
   { key: 'loading', label: 'Učitavanje' }, { key: 'error', label: 'Greška' }, { key: 'one', label: 'Pregled 1:1' }, { key: 'worker', label: 'Pregled · uskačem' },
   { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'recovery', label: 'Pregled · provera ishoda' }, { key: 'done', label: 'Pregled · završen' },
+  { key: 'no-term', label: 'Pregled · bez termina' }, { key: 'problem', label: 'Pregled · problem prijavljen' }, { key: 'form', label: 'Pregled · prijava problema' },
+  { key: 'shared', label: 'Pregled · broj podeljen' }, { key: 'no-number', label: 'Pregled · nalog bez broja' }, { key: 'cancelled', label: 'Pregled · otkazan' },
+  { key: 'cancelled-me', label: 'Pregled · otkazao si' }, { key: 'long-detail', label: 'Pregled · dugačka imena' },
+  { key: 'status-loading', label: 'Dogovor · učitavanje' }, { key: 'status-error', label: 'Dogovor · greška' }, { key: 'status-unavailable', label: 'Dogovor · nedostupan' },
+  { key: 'review', label: 'Ocena' }, { key: 'review-grey', label: 'Ocena · bez izabrane ocene' }, { key: 'review-saved', label: 'Ocena · sačuvana' },
+  { key: 'review-loading', label: 'Ocena · učitavanje' }, { key: 'review-error', label: 'Ocena · greška' },
   { key: 'chat', label: 'Poruke' }, { key: 'chat-waiting', label: 'Poruke · čeka te' }, { key: 'chat-empty', label: 'Poruke · prazne' }, { key: 'chat-loading', label: 'Poruke · učitavanje' },
   { key: 'chat-error', label: 'Poruke · greška' }, { key: 'chat-closed', label: 'Poruke · zatvoren' },
-  { key: 'chat-media', label: 'Poruke · fotografija na čekanju' },
+  { key: 'chat-media', label: 'Poruke · fotografija na čekanju' }, { key: 'chat-unknown', label: 'Poruke · ne znamo da li je stigla' },
 ];
 
 /** The root bar as the Dogovori tab draws it, with a bell that reads nothing. */
 const STILL_HEADER = <ScreenChrome variant="root" title="Dogovori" onProfile={noop}
   bell={<ChromeIconButton label="Obaveštenja" icon={Bell} tone="green" onPress={noop} />} />;
 
-function ListScene({ items, loading = false, error = false, initial = 'active' }: { items: DogovorProjekcija[]; loading?: boolean; error?: boolean;
-  initial?: AgreementCollectionSection }) {
+function ListScene({ items, loading = false, error = false, initial = 'active', cancellations }: { items: DogovorProjekcija[]; loading?: boolean; error?: boolean;
+  initial?: AgreementCollectionSection; cancellations?: AgreementCancellations }) {
   const [section, setSection] = useState<AgreementCollectionSection>(initial);
   const [only, setOnly] = useState(false);
   return <AgreementCollectionPresentation items={items} loading={loading} error={error} section={section} confirmationOnly={only}
     onSection={setSection} onConfirmationOnly={setOnly} onRefresh={noop} onOpen={noop} onRate={noop} onCalendar={noop} onProfile={noop}
-    onHome={noop} header={STILL_HEADER} />;
+    onHome={noop} onTasks={noop} onPublish={noop} header={STILL_HEADER} cancellations={cancellations} />;
 }
 
 function Chat({ messages = MESSAGES, entries = PENDING, loading = false, error = false, terminal = false, photos = PHOTOS, thread }: {
@@ -143,12 +181,30 @@ function Chat({ messages = MESSAGES, entries = PENDING, loading = false, error =
     refreshWorkspace: later, outbox, state: { phase: 'ready', draft, capturing: false, entries, error: null }, photos }} />;
 }
 
-/** The Dogovor as its route composes it: the person's bar, the tabs, the Pregled and its footer, or the Poruke. */
-function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false }: {
+/** The private location of the place section in its unshared state, as `AgreementPrivateLocation` draws it; the gallery reads no grant. */
+function StillLocation({ requester }: { requester: boolean }) {
+  const words = addressWords({ requester, granted: false });
+  return <View style={s.location}>
+    <View><ListRow leading={<FactArt kind="lock" size={32} muted />} title={words.title} last /></View>
+    {requester ? <V2Action label="Podeli lokaciju" onPress={noop} /> : words.ask ? <V2Action label="Zatraži adresu" onPress={noop} /> : null}
+    <View>
+      <V2Action label="Osveži dozvolu za lokaciju" kind="quiet" style={s.quietStart} onPress={noop} />
+      <T variant="meta" tone="muted">Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.</T>
+    </View>
+  </View>;
+}
+
+/** The Dogovor as its route composes it: the person's bar, the tabs, the Pregled (`AgreementOverview`, the same component) and its footer, or the Poruke. */
+function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false, formOpen = false, accountHasNumber = true }: {
   item: DogovorProjekcija; me: UcesnikProjekcija; ownRating?: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE'; brand: string;
   initialTab?: AgreementTab; chat?: Omit<ComponentProps<typeof Chat>, 'thread'>; recovery?: boolean;
+  /** The form that reports a problem is open (the row "Prijavi problem" was pressed). */
+  formOpen?: boolean;
+  /** The signed-in account has a number to share (R01a). */
+  accountHasNumber?: boolean;
 }) {
   const [tab, setTab] = useState<AgreementTab>(initialTab);
+  const [opened, setOpened] = useState(formOpen), [text, setText] = useState('');
   const other = item.ucesnici.find(person => !person.viSte);
   const isWorker = me.uloga === 'uskocer', isRequester = me.uloga === 'narucilac';
   const active = item.stanje === 'CONFIRMED' || item.stanje === 'AWAITING_REQUESTER';
@@ -157,90 +213,110 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
   // the footer's one action, as `dogovor/[id].tsx` decides; the requester has no change row once the worker said done.
   const change = { waits: active && !!item.izmenaCeka, mine: active && item.izmenaCeka ? item.izmenaCeka.mojPredlog : null };
   const footer = change.waits && change.mine === false ? 'Odgovori na predlog' : brand;
-  const changeRow = active && !(isRequester && item.stanje === 'AWAITING_REQUESTER');
+  const canChange = active && !(isRequester && item.stanje === 'AWAITING_REQUESTER');
   const step = agreementNextStep({ state: item.stanje, party: true, worker: isWorker, change, ownRating,
     problemOpen: item.problemOtvoren, deadline: 'Do 27. sep · 17:00' });
   const proposal = change.waits ? PROPOSALS[item.id] ?? null : null;
   // What waits for me, at the head of Poruke, as the route says it.
   const waiting = agreementWaitsForMe({ state: item.stanje, requester: isRequester, change, ownRating });
-  return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke'} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+  // The problem: the note about one that was reported and the three ways on, or the form that reports one.
+  const note = item.problemOtvoren
+    ? <AgreementProblemNote mine={false} openedAt="2026-09-25T16:40:00Z" narrative="Deo teksta nije bio u dogovorenom obimu." active={active} /> : null;
+  const exits = note && active ? <AgreementProblemExits disabled={recovery} onMessages={() => setTab('poruke')} onCancel={canChange ? noop : undefined} onNoShow={noop} /> : null;
+  const form = !note && active && opened
+    ? <AgreementProblemForm value={text} onChange={setText} editable kept={false} busy={false} canSend={!!text.trim()} onSend={noop} onCancel={() => setOpened(false)} /> : null;
+  const needsTerm = item.stanje === 'CONFIRMED' && isNoTermText(item.vremeTekst) && canChange && !change.waits && !item.problemOtvoren;
+  const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(CANCELLATIONS.get(item.id), other?.ime) : null;
+  return <KeyboardAvoidingView style={s.fill} enabled={tab === 'poruke' || opened} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     {tab === 'poruke' ? <Chat {...chat} terminal={chat?.terminal ?? !item.chatDostupan}
       thread={{ agreement: item, person: other, waiting, onOverview: () => setTab('pregled') }} /> : <>
       {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
       <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
-      <ScrollView contentContainerStyle={s.content}>
-        <AgreementTaskLink agreement={item} onOpenTask={item.izvor?.zadatakId ? noop : undefined} disabled={recovery} />
-        {/* The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
-            and why, and for one's own proposal the quiet way to look at it (the other side's is answered from the footer). */}
-        <NextStepCard tone={step.tone} title={step.title} body={step.body}>
-          {proposal ? <View style={s.stack}>
+      <ScrollView contentContainerStyle={overviewContent}>
+        <AgreementOverview agreement={item} step={step} party enabled={!recovery} accountHasNumber={accountHasNumber}
+          steps={{ state: item.stanje, ownRating, deadlineIso: item.rokPotvrdeIso, problemOpen: item.problemOtvoren, cancellation: cancelled }}
+          // The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
+          // and why, and for one's own proposal the quiet way to look at it (the other side's is answered from the footer).
+          headExtra={proposal ? <View style={s.stack}>
             {proposal.izmene.map(line => <View key={line.polje} style={s.change}>
-              <T variant="meta" tone="muted">{line.polje}</T>
-              <T variant="body" style={s.ink}>{line.sada} → {line.predlog}</T>
+              <T variant="note" tone="muted">{line.polje}</T>
+              <T variant="body" style={s.ink}>{line.sada}</T>
+              <T variant="bodyStrong" style={s.ink}>{`→ ${line.predlog}`}</T>
             </View>)}
-            {proposal.razlog ? <T variant="meta" tone="muted">Razlog: {proposal.razlog}</T> : null}
+            {proposal.razlog ? <T variant="note" tone="muted">Razlog: {proposal.razlog}</T> : null}
             {proposal.mozeOdgovoriti ? null : <V2Action label="Pogledaj predlog" kind="quiet" onPress={noop} />}
           </View> : null}
-        </NextStepCard>
-        <AgreementTerms agreement={item} />
-        {isGroupAgreement(item) ? <AgreementPeople agreement={item} /> : null}
-        {/* The route's GroupConversationEntry reads the group; still here, in the words it says when the task has fewer
-            than two independent people chosen, which is true of the group fixture (one worker for two places). */}
-        {item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika.</T> : null}
-        <AgreementSection art="phone" label="Kontakt" summary="Tvoj broj nije podeljen">
-          <T variant="meta" tone="muted">Deljenje je odvojeno u oba smera. Kada podeliš svoj broj, druga strana ne deli automatski svoj.</T>
-          <T variant="body" style={s.ink}>Broj druge strane: još nije podeljen</T>
-          {active ? <V2Action label="Podeli svoj broj" disabled={recovery} onPress={noop} /> : null}
-        </AgreementSection>
-        {/* The rest of the route's Pregled, still: the location section (its grant is not read here, so only its
-            closed-Dogovor sentence and the refresh note are drawn) and the problem card. */}
-        {item.rezim !== 'DALJINSKI' && item.kontakt.lokacijaPostoji ? <AgreementSection art="lock" label="Lokacija i pristup" summary="Precizni podaci samo uz dozvoljen pristup">
-          <T variant="note" tone="muted">{active ? 'Dozvolu proveravamo pri otvaranju i osvežavanju ovog prikaza.' : 'Pristup lokaciji je zatvoren kada se Dogovor završi ili otkaže.'}</T>
-        </AgreementSection> : null}
-        <WorkspaceRows>
-          {isWorker ? <WorkspaceRow art="offers" label="Tvoja prijava" onPress={noop} /> : null}
-          {changeRow ? <WorkspaceRow art="document" label="Izmene i otkazivanje Dogovora" hint="Cena, obim, termin ili otkazivanje uz razlog" disabled={recovery} onPress={noop} /> : null}
-          <WorkspaceRow art="shield" label="Bezbednost i privatna prijava" hint="Blokiranje i poverljiva prijava podršci" onPress={noop} />
-        </WorkspaceRows>
-        {item.problemOtvoren ? <WorkspaceCard tone="warn">
-          <T accessibilityRole="header" variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
-          <T variant="meta" tone="muted">Prijavila je druga strana.</T>
-          <T variant="meta" tone="muted">25. sep · 18:40</T>
-          <T variant="body" style={s.ink}>Deo teksta nije bio u dogovorenom obimu.</T>
-          <T variant="meta" tone="muted">Ovaj opis vide oba učesnika i sačuvan je u Porukama.</T>
-          {active ? <T variant="meta" tone="muted">Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi. Prijava sama ne određuje krivicu ili dug.</T> : null}
-        </WorkspaceCard> : active ? <WorkspaceCard>
-          <T variant="bodyStrong" style={s.ink}>Nešto nije u redu?</T>
-          <T variant="meta" tone="muted">Prijava problema zaustavlja automatski završetak i vidi je druga strana.</T>
-          <V2Action label="Prijavi problem" kind="quiet" disabled={recovery} onPress={noop} />
-        </WorkspaceCard> : null}
+          problem={{ note, exits, form }}
+          // The route's GroupConversationEntry reads the group; still here, in the words it says (`ui/groups/GroupConversationEntry`) when
+          // the task has fewer than two people chosen, which is true of the group fixture (one worker for two places).
+          group={item.pokrivenost.ukupno > 1 ? <T variant="meta" tone="muted">Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.</T> : null}
+          location={<StillLocation requester={isRequester} />}
+          on={{
+            proposeTerm: needsTerm ? noop : undefined, changeTerms: canChange ? noop : undefined,
+            togglePhone: noop, openMessages: () => setTab('poruke'), requestAddress: () => setTab('poruke'),
+            openTask: item.izvor?.zadatakId ? noop : undefined, openApplication: isWorker && item.izvor?.prijavaId ? noop : undefined,
+            openChange: canChange ? noop : undefined, openProblem: active && !note && !opened ? () => setOpened(true) : undefined, openSafety: other ? noop : undefined,
+          }} />
       </ScrollView>
-      <WorkspaceFooter brand={{ label: footer, disabled: recovery, onPress: footer === 'Otvori poruke' ? () => setTab('poruke') : noop }}
-        notice={recovery ? { message: 'Ishod prethodne radnje još nije potvrđen. Osveži status pre nego što nastaviš.', refresh: noop, refreshing: false } : null} />
+      <WorkspaceFooter brand={footer ? { label: footer, disabled: recovery, onPress: noop } : null}
+        quiet={footer ? null : agreementQuietLine({ state: item.stanje, party: true, worker: isWorker, otherName: other?.ime, change, permissionsKnown: true })}
+        notice={recovery ? { message: 'Ne znamo da li je prethodna radnja uspela. Osveži Dogovor pa pokušaj ponovo.', refresh: noop, refreshing: false } : null} />
     </>}
   </KeyboardAvoidingView>;
+}
+
+const REVIEW_CATALOG = { maxTags: 3, tags: ['AS_AGREED', 'CAREFUL', 'CLEAR_COMMUNICATION', 'ON_TIME', 'RELIABLE', 'RESPECTFUL'] as ReviewTag[] };
+/** The rating screen, drawn from its state (`AgreementReviewPresentation`): the stars and the tags answer, nothing is saved. */
+function ReviewScene({ mode }: { mode: 'eligible' | 'grey' | 'saved' | 'loading' | 'error' }) {
+  const [rating, setRating] = useState(mode === 'grey' ? 0 : 4);
+  const [tags, setTags] = useState<ReviewTag[]>(mode === 'grey' ? [] : ['ON_TIME']);
+  const view: ReviewView = mode === 'loading' ? { kind: 'loading' }
+    : mode === 'error' ? { kind: 'error', message: 'Ocenu trenutno nije moguće učitati. Proveri vezu.' }
+      : mode === 'saved' ? { kind: 'saved', rating: 4, tags: ['ON_TIME', 'RELIABLE'], fresh: false }
+        : { kind: 'eligible', catalog: REVIEW_CATALOG, rating, tags, editable: true, attempt: false, onRate: setRating,
+          onToggleTag: tag => setTags(current => current.includes(tag) ? current.filter(item => item !== tag) : [...current, tag]),
+          save: { label: 'Sačuvaj ocenu', loading: false, disabled: rating === 0, reason: rating === 0 ? 'Izaberi ocenu.' : null, onPress: noop } };
+  return <AgreementReviewPresentation backLabel="Nazad na Dogovor" onBack={noop} view={view} retry={{ label: 'Ponovo učitaj ocenu', disabled: false, onPress: noop }}
+    notice={null} person={{ name: 'Marko Jovanović', initials: 'MJ', profileId: null, role: 'Uskače na tvoj zadatak', task: 'Prenos ormana do kombija' }} />;
 }
 
 function Scene({ scene }: { scene: SceneKey }) {
   switch (scene) {
     case 'list': return <ListScene items={LIST} />;
-    case 'history': return <ListScene items={LIST} initial="history" />;
+    case 'history': return <ListScene items={LIST} initial="history" cancellations={CANCELLATIONS} />;
     case 'long': return <ListScene items={LONG} />;
     case 'empty': return <ListScene items={[]} />;
     case 'loading': return <ListScene items={LIST} loading />;
     case 'error': return <ListScene items={LIST} error />;
-    case 'one': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" />;
-    case 'worker': return <DogovorScene item={LIST[2]} me={ME_WORKER} brand="Otvori poruke" />;
-    case 'group': return <DogovorScene item={LIST[4]} me={ME_REQUESTER} brand="Otvori poruke" />;
+    case 'one': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" />;
+    case 'worker': return <DogovorScene item={LIST[2]} me={ME_WORKER} brand="" />;
+    case 'group': return <DogovorScene item={LIST[4]} me={ME_REQUESTER} brand="" />;
     case 'waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" />;
     case 'recovery': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" recovery />;
     case 'done': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" />;
+    case 'no-term': return <DogovorScene item={NO_TERM_AGREEMENT} me={ME_REQUESTER} brand="" />;
+    case 'problem': return <DogovorScene item={PROBLEM_AGREEMENT} me={ME_REQUESTER} brand="" />;
+    case 'form': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" formOpen />;
+    case 'shared': return <DogovorScene item={SHARED_AGREEMENT} me={ME_REQUESTER} brand="" />;
+    case 'no-number': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" accountHasNumber={false} />;
+    case 'cancelled': return <DogovorScene item={LIST[8]} me={ME_WORKER} brand="" />;
+    case 'cancelled-me': return <DogovorScene item={LIST[7]} me={ME_REQUESTER} brand="" />;
+    case 'long-detail': return <DogovorScene item={LONG[0]} me={ME_REQUESTER} brand="" />;
+    case 'status-loading': return <AgreementStatusView loading back={noop} />;
+    case 'status-error': return <AgreementStatusView error retry={noop} back={noop} />;
+    case 'status-unavailable': return <AgreementStatusView back={noop} />;
+    case 'review': return <ReviewScene mode="eligible" />;
+    case 'review-grey': return <ReviewScene mode="grey" />;
+    case 'review-saved': return <ReviewScene mode="saved" />;
+    case 'review-loading': return <ReviewScene mode="loading" />;
+    case 'review-error': return <ReviewScene mode="error" />;
     case 'chat': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" />;
     case 'chat-waiting': return <DogovorScene item={LIST[1]} me={ME_REQUESTER} brand="Potvrdi završetak" initialTab="poruke" />;
     case 'chat-empty': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ messages: [], entries: [] }} />;
     case 'chat-loading': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ messages: [], entries: [], loading: true }} />;
     case 'chat-error': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ error: true, entries: [] }} />;
     case 'chat-media': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ photos: PENDING_PHOTOS }} />;
+    case 'chat-unknown': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="Otvori poruke" initialTab="poruke" chat={{ entries: UNKNOWN }} />;
     case 'chat-closed': return <DogovorScene item={LIST[5]} me={ME_REQUESTER} ownRating="DUE" brand="Oceni saradnju" initialTab="poruke" chat={{ entries: [] }} />;
   }
 }
@@ -279,8 +355,9 @@ const s = StyleSheet.create({
   chip: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.greenSoft },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
-  tabs: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
-  content: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24, gap: 16 },
+  tabs: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.md },
   // The route's own proposal lines (`dogovor/[id].tsx`: stack, change).
-  stack: { gap: 8, marginTop: 4 }, change: { gap: 2 }, ink: { color: sys.color.ink },
+  stack: { gap: sys.space.sm, marginTop: sys.space.xs }, change: { gap: sys.space.xs }, ink: { color: sys.color.ink },
+  // The private location in its unshared state (`AgreementPrivateLocation`: stack).
+  location: { paddingTop: sys.space.sm, gap: sys.space.md }, quietStart: { alignSelf: 'flex-start', marginLeft: -sys.space.base },
 });

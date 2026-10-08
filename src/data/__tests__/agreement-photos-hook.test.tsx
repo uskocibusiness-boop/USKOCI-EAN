@@ -60,6 +60,12 @@ it('restores an unknown upload after remount without pixels, automatic upload or
   await act(async () => { await photos.remove(ref); }); expect(stored()).toEqual([]);
   expect(mockCancel).toHaveBeenCalledWith(ref, expect.objectContaining({ accountId: aid }));
 });
+it('says plainly that it is not known whether a photo was sent, when its receipt cannot be read', async () => {
+  await render(); await pick();
+  mockRead.mockResolvedValue({ ok: false, poruka: 'Nije potvrđeno.' });
+  await act(async () => { await photos.refresh(); });
+  expect(photos.message).toBe('Ne znamo da li je fotografija poslata. Osveži fotografije pre novog izbora.');
+});
 it('does not erase an opaque intent after cancellation uncertainty or retry a PROCESSING storage dispatch', async () => {
   mockRead.mockResolvedValue({ ok: true, podatak: { ...ready, state: 'PROCESSING', photo: null } });
   await render(); await pick();

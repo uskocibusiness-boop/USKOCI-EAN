@@ -61,6 +61,8 @@ it('reads actor/key receipt, checks hash, then accepts send only with exact payl
  expect(await service.recover(j,account)).toEqual({ok:true,podatak:{found:true,receipt:receipt()}});
  mockRpc.mockResolvedValue(ok(receipt()));expect((await service.send(j,'Zajednička poruka',account)).ok).toBe(true);
  mockRpc.mockClear();expect((await service.send(j,'Druga poruka',account)).ok).toBe(false);expect(mockRpc).not.toHaveBeenCalled();
+ // The same sentence the controller says for the same case (`GroupConversationController.retry`): one wording for a text that differs from the sent one.
+ expect(await service.send(j,'Druga poruka',account)).toMatchObject({ok:false,kod:'GROUP_MESSAGE_KEY_REUSED',poruka:'Tekst se razlikuje od poslate poruke. Upiši istu poruku, bez izmena.'});
 });
 it.each([{accountId:B},{groupId:ID},{clientRequestId:M},{bodySha256:'b'.repeat(64)},{sequence:'0'},{authoritative:false},{body:'PRIVATE'}])('rejects wrong command receipts %#',async patch=>{
  mockRpc.mockResolvedValue(ok({...receipt(),...patch}));expect((await service.send(j,'Zajednička poruka',account)).ok).toBe(false);

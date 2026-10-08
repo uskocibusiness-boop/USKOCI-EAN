@@ -1,11 +1,13 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { DogovorProjekcija } from '../../../contracts/projections';
 import { sys } from '../../system/tokens';
 import { agreementStepModel, deadlineNote, STEP_LABELS, stepsSummary, type OwnRating, type StepStatus } from '../agreementStepsModel';
 
+let mockReduced = false;
 jest.mock('../../Text', () => ({ T: 'T' }));
+jest.mock('../../system/motion', () => ({ useReducedMotion: () => mockReduced }));
 import { AgreementSteps } from '../AgreementSteps';
 
 /**
@@ -156,5 +158,45 @@ describe('the bar', () => {
   it('draws no cancelled line for a Dogovor that is not cancelled', async () => {
     await render(<AgreementSteps state="COMPLETED" ownRating="DUE" cancellation={{ reason: 'ne' }} />);
     expect(tree.root.findAllByProps({ testID: 'agreement-steps-cancelled' })).toHaveLength(0);
+  });
+});
+
+/**
+ * M-09 (motion spec 2026-10-07): the dot of the step the Dogovor has just come to stand at settles from 0.6 to its size over `enter`, on
+ * `easeOut`, but only when the state changed while the person was looking - never at the first drawing, never again on a repeat render,
+ * and never under reduced motion.
+ */
+describe('the dot of the current step moves only when the Dogovor moved on while it was open', () => {
+  let tree: ReactTestRenderer;
+  const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
+  const timing = () => jest.spyOn(Animated, 'timing');
+  afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); mockReduced = false; });
+
+  it('is still at the first drawing and on a repeat render of the same state', async () => {
+    const run = timing();
+    await render(<AgreementSteps state="CONFIRMED" />);
+    await act(async () => tree.update(<AgreementSteps state="CONFIRMED" />));
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('settles from 0.6 once, over the enter time on the one decelerating curve and on the native driver, when the state changes', async () => {
+    await render(<AgreementSteps state="CONFIRMED" />);
+    const run = timing();
+    await act(async () => tree.update(<AgreementSteps state="AWAITING_REQUESTER" />));
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0][1]).toMatchObject({ toValue: 1, duration: sys.motion.enter, useNativeDriver: true });
+    // The dot that was current and is not any more is a check now; the one that is current starts at 0.6.
+    const dot = tree.root.findByProps({ testID: 'agreement-step-dot' });
+    expect(Number(JSON.stringify(dot.props.style.find((entry: { transform?: unknown }) => entry.transform).transform[0].scale))).toBeLessThanOrEqual(1);
+    await act(async () => tree.update(<AgreementSteps state="AWAITING_REQUESTER" deadlineIso="2026-09-18T10:00:00Z" />));
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not move under reduced motion: the state changes at once', async () => {
+    mockReduced = true;
+    await render(<AgreementSteps state="CONFIRMED" />);
+    const run = timing();
+    await act(async () => tree.update(<AgreementSteps state="AWAITING_REQUESTER" />));
+    expect(run).not.toHaveBeenCalled();
   });
 });

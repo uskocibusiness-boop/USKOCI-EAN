@@ -148,12 +148,14 @@ describe('the small mark by my message', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${sending.command.body}` })).toHaveLength(0);
   });
 
-  it('an unconfirmed send keeps a quiet dot, says so under its bubble and offers "Pošalji ponovo" for that exact message', async () => {
+  it('an unconfirmed send keeps a quiet dot, says so under its bubble and offers the one "Proveri" for that exact message', async () => {
     const unknown = entry('unknown_00000001', 'unknown', { error: 'UNAVAILABLE' });
     await render({ state: { ...props.state, entries: [unknown] } });
-    expect(marks().map(mark => mark.props.accessibilityLabel)).toEqual(['Slanje nije potvrđeno']);
-    expect(texts()).toContain('Slanje nije potvrđeno'); expect(texts()).toContain('Pošalji ponovo');
-    await act(async () => button(`Ponovi slanje poruke ${unknown.command.body}`).props.onPress());
+    expect(marks().map(mark => mark.props.accessibilityLabel)).toEqual(['Ne znamo da li je stigla']);
+    expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).toContain('Proveri');
+    // One button, and it is not the one for a refused send: what is not known is checked, not sent as if it had failed.
+    expect(texts()).not.toContain('Pošalji ponovo'); expect(texts()).not.toContain('Nije poslato');
+    await act(async () => button(`Proveri da li je stigla: ${unknown.command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith('unknown_00000001');
   });
 
@@ -163,7 +165,7 @@ describe('the small mark by my message', () => {
     expect(marks()).toHaveLength(0);
     const bubble = stops('Ti')[0];
     expect(flat(bubble.props.style).backgroundColor).toBe(sys.color.dangerSoft);
-    expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Slanje još nije potvrđeno.'); expect(texts()).toContain('Pošalji ponovo');
+    expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Ne znamo da li je poruka stigla.'); expect(texts()).toContain('Pošalji ponovo');
     // The action keeps the long name a screen reader hears, with the visible words "Pošalji ponovo".
     expect(button(`Ponovi slanje poruke ${failed.command.body}`)).toBeTruthy();
   });

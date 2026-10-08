@@ -14,9 +14,9 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   RECORDING_INVALID: 'Snimak nije ispravan. Snimi ponovo.',
   NOT_AVAILABLE: 'U ovom Dogovoru trenutno ne možeš da šalješ poruke.',
   VERSION_CHANGED: 'Uslovi Dogovora su se promenili. Osveži Dogovor pa snimi ponovo.',
-  UPLOAD_UNCONFIRMED: 'Slanje nije potvrđeno. Pokušaj ponovo: isti snimak se neće poslati dvaput.',
+  UPLOAD_UNCONFIRMED: 'Ne znamo da li je snimak stigao. Pokušaj ponovo; neće se poslati dvaput.',
   SEND_NOT_STORED: 'Poruka nije sačuvana za slanje. Pokušaj ponovo.',
-  OUTCOME_UNKNOWN: 'Ishod slanja još nije potvrđen. Proveri vezu i pokušaj ponovo.',
+  OUTCOME_UNKNOWN: 'Ne znamo da li je snimak stigao. Proveri vezu i pokušaj ponovo.',
   PLAYBACK_FAILED: 'Glasovna poruka se ne može pustiti. Pokušaj ponovo.',
   PLAYBACK_UNAVAILABLE: 'Glasovna poruka trenutno nije dostupna.',
 };

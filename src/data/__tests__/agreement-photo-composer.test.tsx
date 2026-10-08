@@ -47,7 +47,7 @@ it('the "+" is the shared sheet: one photo per pick, the Dogovor limits sentence
   await act(async () => sheet().onPick('CAMERA')); expect(photos.pick).toHaveBeenCalledWith('CAMERA');
   photos = { ...photos, saved: [receipt], available: false, items: [{ ref, receipt: null }] };
   await act(async () => tree.update(<AgreementPhotoSheet photos={photos} capturing={false} onClose={onClose} onShowSaved={onShowSaved} />));
-  expect(sheet().disabledReason).toBe('Prvo sačekaj ishod fotografije koja se šalje.');
+  expect(sheet().disabledReason).toBe('Sačekaj da se fotografija pošalje.');
   expect(sheet().rows).toHaveLength(1); expect(sheet().rows[0].label).toBe('Ranije pripremljene fotografije (1)');
   await act(async () => sheet().rows[0].onPress()); expect(onShowSaved).toHaveBeenCalledTimes(1);
 });
@@ -65,12 +65,12 @@ it('an uncertain photo is a tile that says so; its X asks first, and only the an
   photos.items = [{ ref, receipt: null }]; photos.available = false; photos.message = 'Ishod nije potvrđen.';
   await draw(tray());
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.refresh).not.toHaveBeenCalled();
-  expect(texts()).toContain('Slanje nije potvrđeno'); expect(texts()).toContain('Ishod slanja fotografije još nije potvrđen.');
+  expect(texts()).toContain('Ne znamo da li je poslato'); expect(texts()).toContain('Ne znamo da li je fotografija poslata.');
   await act(async () => button('Ukloni pripremljenu fotografiju 1').props.onPress());
   expect(photos.remove).not.toHaveBeenCalled();
   expect(mockAsk.mock.calls[0][0]).toMatchObject({ title: 'Ukloniti fotografiju?', confirmLabel: 'Ukloni', tone: 'danger' });
   await act(async () => { await mockAsk.mock.calls[0][0].onConfirm(); }); expect(photos.remove).toHaveBeenCalledWith(ref);
-  await act(async () => button('Osveži fotografije poruke').props.onPress()); expect(photos.refresh).toHaveBeenCalledTimes(1);
+  await act(async () => button('Proveri fotografije poruke').props.onPress()); expect(photos.refresh).toHaveBeenCalledTimes(1);
 });
 
 it('a ready photo opens the shared full-screen viewer in the Dogovor context; a reserved one has no X and no resend', async () => {
@@ -83,7 +83,7 @@ it('a ready photo opens the shared full-screen viewer in the Dogovor context; a 
   expect(tree.root.findByType(PhotoViewer).props).toMatchObject({ context: { agreementId: gid }, photos: [{ assetId: asset }], title: 'Fotografije uz poruku' });
   photos = { ...photos, reserved: () => true };
   await act(async () => tree.update(tray()));
-  expect(texts()).toContain('Fotografija je vezana za poslatu poruku. Proveri njen ishod.');
+  expect(texts()).toContain('Fotografija je uz poruku. Prvo proveri da li je poslata.');
   expect(has('Ukloni pripremljenu fotografiju 1')).toBe(false); expect(has('Pošalji ponovo · fotografija 1')).toBe(false);
   expect(photos.remove).not.toHaveBeenCalled(); expect(photos.retry).not.toHaveBeenCalled();
 });
@@ -98,7 +98,7 @@ it('a photo whose sending was not started is sent again from its own tile', asyn
 it('shows a changed Dogovor without dropping the photo, and the denied camera keeps the gallery as the way forward', async () => {
   photos.items = [{ ref, receipt }]; photos.versionConflict = true; photos.reserved = () => true;
   await draw(tray());
-  expect(texts()).toContain('Uslovi Dogovora su promenjeni');
+  expect(texts()).toContain('Uslovi Dogovora su se promenili');
   expect(photos.remove).not.toHaveBeenCalled(); expect(photos.pick).not.toHaveBeenCalled();
   photos = { ...photos, versionConflict: false, items: [], message: PHOTO_PERMISSION_MESSAGE };
   await act(async () => tree.update(tray()));

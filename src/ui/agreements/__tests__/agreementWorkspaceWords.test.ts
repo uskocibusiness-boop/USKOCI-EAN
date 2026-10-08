@@ -23,9 +23,16 @@ describe('the sentence that stands where no button does', () => {
     expect(line({ state: 'AWAITING_REQUESTER', worker: true, change: { waits: true, mine: true } })).toBe('Čeka da Marko odgovori na tvoj predlog izmene.');
   });
 
+  it('tells the one who asked for the work whose move it is while the work is under way, not that completion is "not available"', () => {
+    // Nothing to press, and not a fault: the worker is to report the work done. Said only once the permissions were read, like the rest.
+    expect(line({ state: 'CONFIRMED' })).toBe('Čeka da Marko javi da je zadatak gotov.');
+    expect(line({ state: 'CONFIRMED', otherName: null })).toBe('Čeka da druga strana javi da je zadatak gotov.');
+    expect(line({ state: 'CONFIRMED', otherName: 'Druga strana' })).toBe('Čeka da druga strana javi da je zadatak gotov.');
+    expect(line({ state: 'CONFIRMED', permissionsKnown: false })).toBeNull();
+  });
+
   it('says the permission is not there when the server denied it, to the side whose move it would be', () => {
     expect(line({ state: 'AWAITING_REQUESTER' })).toBe('Završetak trenutno nije dostupan.');
-    expect(line({ state: 'CONFIRMED' })).toBe('Završetak trenutno nije dostupan.');
     expect(line({ state: 'CONFIRMED', worker: true })).toBe('Završetak trenutno nije dostupan.');
   });
 

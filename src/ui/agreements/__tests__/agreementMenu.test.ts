@@ -10,7 +10,7 @@ const commands = (): AgreementMenuCommands & Record<keyof AgreementMenuCommands,
   onChange: jest.fn(), onCancel: jest.fn(), onPhone: jest.fn(), onLocation: jest.fn(), onProblem: jest.fn(), onSafety: jest.fn(),
 });
 const input = (patch: Partial<AgreementMenuInput> = {}): AgreementMenuInput => ({
-  party: true, hasOther: true, active: true, requester: true, canChange: true, phoneShared: false, hasLocation: true, problemFree: true, enabled: true, ...patch });
+  party: true, hasOther: true, active: true, requester: true, canChange: true, phoneShared: false, accountHasNumber: true, hasLocation: true, problemFree: true, enabled: true, ...patch });
 const labels = (patch: Partial<AgreementMenuInput> = {}) => agreementMenuActions(input(patch), commands()).map(action => action.label);
 
 describe('the menu\'s entries and their order', () => {
@@ -30,6 +30,14 @@ describe('the menu\'s entries and their order', () => {
     expect(labels({ phoneShared: false })).toContain('Podeli svoj broj');
     expect(labels({ phoneShared: true })).toContain('Opozovi deljenje broja');
     expect(labels({ phoneShared: true })).not.toContain('Podeli svoj broj');
+  });
+
+  it('offers sharing the number only to an account that has one (R01a), and withdrawing it to whoever shared it', () => {
+    const none = labels({ accountHasNumber: false });
+    expect(none).not.toContain('Podeli svoj broj');
+    expect(none).toEqual(['Izmeni uslove', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+    // A number that was shared can always be taken back, whatever the account says now.
+    expect(labels({ accountHasNumber: false, phoneShared: true })).toContain('Opozovi deljenje broja');
   });
 
   it('offers sharing the location to the requester only, and only where a physical place exists', () => {

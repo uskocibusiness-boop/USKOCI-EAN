@@ -72,7 +72,7 @@ it('reviews actual entered terms and reason once, persists opaque metadata and d
  const raw=mockStorage.setItem.mock.calls[0][1];expect(raw).not.toMatch(/Novi privatni|Privatan razlog|4200/);
  await act(async()=>gate.resolve());expect(mockService.propose).toHaveBeenCalledTimes(1);
  expect(mockService.propose).toHaveBeenCalledWith({dogovorId:ID,ocekivanaVerzija:7,clientRequestId:KEY,izmena:{cenaIznos:4200,cenaValuta:'RSD',obim:'Novi privatni obim'},razlog:'Privatan razlog'},mockSessionAccount());
- expect(action('Proveri ishod radnje')).toBeDefined();expect(mockService.readCommand).toHaveBeenCalledTimes(1);
+ expect(action('Proveri da li je uspelo')).toBeDefined();expect(mockService.readCommand).toHaveBeenCalledTimes(1);
 });
 const mockSessionAccount=()=>({accountId:A,accountRevision:1});
 it('requires a positive bounded price and a real change before review',async()=>{
@@ -108,10 +108,10 @@ it('cancel reason is required and a transport ACK remains unknown until canonica
  await tap('Pregledaj otkazivanje');expect(text()).toContain('precizna lokacija se opozivaju');
  expect(text()).toContain('Prenos ormara');expect(text()).toContain('Sa kim: Bojan Petrović');expect(text()).toContain('Rešeno je drugačije');
  expect(text()).toContain('12:00–14:00');expect(mockService.cancel).not.toHaveBeenCalled();
- mockService.cancel.mockResolvedValue(ok({acknowledged:true}));await tap('Otkaži Dogovor');expect(action('Proveri ishod radnje')).toBeDefined();
+ mockService.cancel.mockResolvedValue(ok({acknowledged:true}));await tap('Otkaži Dogovor');expect(action('Proveri da li je uspelo')).toBeDefined();
  expect(mockService.cancel).toHaveBeenCalledWith(ID,'Rešeno je drugačije',mockSessionAccount());
  expect(text()).not.toContain('Dogovor je otkazan.');snapshot={...snapshot,agreementStatus:'CANCELLED'};
- await tap('Proveri ishod radnje');expect(text()).toContain('Dogovor je otkazan.');expect(mockService.cancel).toHaveBeenCalledTimes(1);
+ await tap('Proveri da li je uspelo');expect(text()).toContain('Dogovor je otkazan.');expect(mockService.cancel).toHaveBeenCalledTimes(1);
 });
 it.each([true,false])('reviews the exact other-party proposal before accepting=%s and confirms its immutable persisted status',async accept=>{
  snapshot={...snapshot,proposals:[proposal],actions:{...snapshot.actions,canProposeChange:false,canRespondChange:true}};
@@ -134,7 +134,7 @@ it('restores unknown proposal read-only and demands exact body re-entry under th
  const original:AgreementActionCommand={kind:'PROPOSE',value:{dogovorId:ID,ocekivanaVerzija:7,clientRequestId:KEY,izmena:{cenaIznos:4200},razlog:'Isti razlog'}};
  mockStorage.getItem.mockResolvedValue(JSON.stringify(journalFor(original)));await render();expect(mockService.propose).not.toHaveBeenCalled();
  await tap('Ponovo unesi predlog');expect(mockUuid).not.toHaveBeenCalled();await type('Predložena cena u RSD','4300');await type('Razlog predloga — opciono','Isti razlog');
- await tap('Pregledaj predlog');expect(text()).toContain('razlikuje od prvobitnog');expect(mockStorage.setItem).not.toHaveBeenCalled();
+ await tap('Pregledaj predlog');expect(text()).toContain('razlikuje od onoga što je ranije poslato');expect(mockStorage.setItem).not.toHaveBeenCalled();
  await type('Predložena cena u RSD','4200');await tap('Pregledaj predlog');await tap('Pošalji predlog izmene');
  expect(mockService.propose.mock.calls[0][0].clientRequestId).toBe(KEY);expect(mockUuid).not.toHaveBeenCalled();
 });
@@ -168,7 +168,7 @@ it('form and review are two steps of one flow whose X leaves the step without an
  await tap('Otkaži Dogovor');await reason('Razlog');await tap('Pregledaj otkazivanje');expect(text()).toContain('Korak 2 od 2');
  expect(text()).toContain('Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.');
  expect(action('Otkaži Dogovor').kind).toBe('destructive');
- expect(text()).toContain('Naziv Dogovora nije dostupan');expect(text()).toContain('Termin nije potvrđen');
+ expect(text()).toContain('Naziv Dogovora nije dostupan');expect(text()).toContain('Termin nije dogovoren');
  await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkaži Dogovor')).toBeDefined();
 });
 it('the system Back closes a step of the flow like its X, and leaves the screen only from the hub',async()=>{

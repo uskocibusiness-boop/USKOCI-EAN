@@ -82,7 +82,7 @@ describe('W02 worker calendar read', () => {
     resetRpc({ data: null, error: { message: 'CALENDAR_RANGE_INVALID', code: '22023' } });
     const result = await workerCalendarClientService.readRange(FROM, TO);
     expect(result).toMatchObject({ ok: false, kod: 'CALENDAR_RANGE_INVALID' });
-    if (!result.ok) expect(result.poruka).not.toContain('CALENDAR_RANGE_INVALID');
+    if (!result.ok) { expect(result.poruka).not.toContain('CALENDAR_RANGE_INVALID'); expect(result.poruka).not.toMatch(/kalendar/i); }
   });
 
   it.each([
@@ -139,8 +139,9 @@ describe('W02 account-safe receipt boundary', () => {
   it('rejects signed-out reads before transport', async () => {
     mockAccount = { user: null, accountRevision: 2 };
     mockRpc.mockReset();
+    // The product word is "Raspored", never "kalendar".
     await expect(workerCalendarClientService.readRange(FROM, TO)).resolves.toMatchObject({
-      ok: false, kod: 'AUTH_REQUIRED',
+      ok: false, kod: 'AUTH_REQUIRED', poruka: 'Prijavi se da otvoriš svoj Raspored.',
     });
     expect(mockRpc).not.toHaveBeenCalled();
   });
@@ -153,7 +154,7 @@ describe('W02 account-safe receipt boundary', () => {
     mockAccount = { user: { id: 'account-b' }, accountRevision: 2 };
     mockAccount = { user: { id: 'account-a' }, accountRevision: 3 };
     resolve({ data: range(), error: null });
-    await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
+    await expect(result).resolves.toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED', poruka: 'Nalog je promenjen. Ponovo otvori Raspored.' });
   });
 
   it('accepts the same account across token refresh', async () => {

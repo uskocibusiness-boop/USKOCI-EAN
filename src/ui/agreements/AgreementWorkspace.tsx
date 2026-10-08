@@ -1,36 +1,27 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Platform, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
-import { CaretRight } from 'phosphor-react-native';
+import { AccessibilityInfo, Platform, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
-import { Press } from '../Press';
-import { FactArt, type FactArtKind } from '../system/FactArt';
-import { brandAction, sys, inset } from '../system/tokens';
+import { FlowFooter } from '../system/FlowFooter';
+import { Surface } from '../system/Surface';
+import { brandAction, sys } from '../system/tokens';
 import { useTextScale } from '../system/textScale';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 
 /**
- * Presentation pieces of the Agreement workspace, recomposed from zero (owner, 2026-09-23: the HTML
- * prototypes document function, not layout). A Dogovor is read in one pass: the terms, where it
- * stands, the people, then everything that can be opened as flat rows under hairlines. A tint is
- * spent only where something waits for a person (a proposal, a confirmation, a problem); nothing
- * else is a box. No state lives here; the route owns reads, writes, journals and guards.
- * This module must stay free of reanimated hooks and inbox reads (route tests isolate those),
- * so it uses only Press/T/icons/V2Action.
+ * Presentation pieces of the Agreement workspace, recomposed from zero (owner, 2026-09-23: the HTML prototypes document function, not
+ * layout; composition spec 2026-10-07, 4.9). A Dogovor is read in one pass: where it stands and what comes next, the terms, the contact
+ * and the place, then the few things that can be opened. Sections are parted by space and rows by their own inset lines; a tint is spent
+ * only where something waits for a person (a proposal, a confirmation, a problem); nothing else is a box. No state lives here; the route
+ * owns reads, writes, journals and guards.
+ * This module must stay free of reanimated hooks and inbox reads (route tests isolate those), so it uses only Press/T/icons/V2Action.
  */
 
 export type WorkspaceTone = 'green' | 'warn' | 'muted' | 'danger';
 const toneColor: Record<WorkspaceTone, string> = { green: sys.color.green, warn: sys.color.warn, muted: sys.color.muted, danger: sys.color.danger };
-const toneSoft: Record<WorkspaceTone, string> = { green: sys.color.greenSoft, warn: sys.color.warnSoft, muted: sys.color.wash, danger: sys.color.dangerSoft };
 
 export const stateTone = (state: DogovorProjekcija['stanje']): WorkspaceTone =>
   state === 'CANCELLED' ? 'muted' : state === 'AWAITING_REQUESTER' ? 'warn' : 'green';
-
-/** A part of the workspace. A tone tints it only when it asks for attention (warn, danger); otherwise it is a hairline and air. */
-export function WorkspaceCard({ children, style, tone }: { children: ReactNode; style?: StyleProp<ViewStyle>; tone?: WorkspaceTone }) {
-  const tinted = tone === 'warn' || tone === 'danger';
-  return <View style={[tinted ? [inset, s.tinted, { backgroundColor: toneSoft[tone!] }] : s.flat, style]}>{children}</View>;
-}
 
 export type AgreementStep = { tone: WorkspaceTone; title: string; body: string | null };
 
@@ -89,9 +80,10 @@ export function agreementWaitsForMe({ state, requester, change, ownRating }: {
 }
 
 /**
- * Where the Dogovor stands and what comes next, said once: a dot in the state's colour and a sentence.
- * The eyebrow "Sledeći korak" is gone (owner, 2026-09-23: no copy explaining where you are); a soft
- * tint remains only when the step waits for someone.
+ * Where the Dogovor stands and what comes next, said once: a dot in the state's colour, the state, and the next step under it.
+ * The eyebrow "Sledeći korak" is gone (owner, 2026-09-23: no copy explaining where you are). When the step waits for someone, the
+ * whole of it is one tinted `note` (the sentence that has to stand out, never a card), with what the step is about (a proposal's
+ * lines) inside it; otherwise it is plain words on the white.
  */
 export function NextStepCard({ title, body, tone = 'green', children }: { title: string; body?: string | null; tone?: WorkspaceTone; children?: ReactNode }) {
   const previousTitle = useRef(title);
@@ -102,29 +94,16 @@ export function NextStepCard({ title, body, tone = 'green', children }: { title:
     if (title && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(title);
   }, [title]);
   const waits = tone === 'warn' || tone === 'danger';
-  return <View accessibilityRole="summary" style={waits ? [inset, s.tinted, { backgroundColor: toneSoft[tone] }] : s.next}>
+  const words = <>
     <View style={s.nextHead}><View style={[s.dot, { backgroundColor: toneColor[tone] }]} />
-      <T variant={waits ? "heading" : "bodyStrong"} accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
-    {body ? <T variant={waits ? "copy" : "note"} tone="muted" style={s.nextBody}>{body}</T> : null}
+      <T variant={waits ? 'heading' : 'bodyStrong'} accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T></View>
+    {body ? <T variant={waits ? 'copy' : 'note'} tone="muted" style={s.nextBody}>{body}</T> : null}
     {children}
+  </>;
+  return <View accessibilityRole="summary">
+    {waits ? <Surface kind="note" tone={tone === 'danger' ? 'danger' : 'warn'} style={s.nextWaiting}>{words}</Surface>
+      : <View style={s.next}>{words}</View>}
   </View>;
-}
-
-/** Contextual action as a row. A shorter visible title may quiet secondary destinations; the full spoken label stays intact. */
-export function WorkspaceRow({ label, visibleLabel, quiet = false, hint, art, disabled = false, onPress }: { label: string; visibleLabel?: string; quiet?: boolean; hint?: string; art?: FactArtKind; disabled?: boolean; onPress: () => void }) {
-  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} haptic="select" scaleTo={0.99}
-    onPress={onPress} style={[s.row, disabled && s.rowDisabled]}>
-    {art ? <View style={s.rowArt}><FactArt kind={art} size={26} /></View> : null}
-    <View style={s.rowCopy}><T variant={quiet ? "body" : "bodyStrong"} style={[s.rowLabel, disabled && s.rowLabelOff]}>{visibleLabel ?? label}</T>{hint ? <T variant="note" tone="muted">{hint}</T> : null}</View>
-    <CaretRight size={20} color={sys.color.muted} />
-  </Press>;
-}
-
-/** Rows one under the other, each under its own hairline; no card around them. */
-export function WorkspaceRows({ children }: { children: ReactNode }) { return <View>{children}</View>; }
-
-export function WorkspaceNote({ children, tone = 'muted' }: { children: ReactNode; tone?: WorkspaceTone }) {
-  return <View style={[s.note, { backgroundColor: toneSoft[tone] }]}>{children}</View>;
 }
 
 /** Native ScrollView has no useful intrinsic height here. Measure only the message; both commands stay outside it. */
@@ -146,7 +125,9 @@ function RecoveryMessage({ message, limit }: { message: string; limit: number })
  * state in words - "Čeka da Marko potvrdi završetak.". The route calls it only when it has no action to offer. Null when the
  * honest thing is to say nothing: the permissions could not be read, and the step card above already says how to read them again.
  *
- * - `worker`: I am the side that does the work; once it is reported done, the confirmation is the other side's.
+ * - `worker`: I am the side that does the work; once it is reported done, the confirmation is the other side's. Before that the move is
+ *   the worker's, and the one who asked for the work is told whose move it is ("Čeka da Marko javi da je zadatak gotov."), not that
+ *   completion "is not available": that sounded like a fault of the app on the most ordinary day of a Dogovor.
  * - `change`: a proposal waits; `mine` is null when its content could not be read.
  * - `permissionsKnown`: the server's own answer about completion (`radnje`) was read.
  */
@@ -162,13 +143,15 @@ export function agreementQuietLine({ state, party, worker, otherName, change, pe
   if (change.waits) return change.mine === true ? `Čeka da ${who} odgovori na tvoj predlog izmene.` : 'Predlog izmene čeka odgovor.';
   if (state === 'AWAITING_REQUESTER' && worker) return `Čeka da ${who} potvrdi završetak.`;
   if (!permissionsKnown) return null;
+  if (state === 'CONFIRMED' && !worker) return `Čeka da ${who} javi da je zadatak gotov.`;
   return 'Završetak trenutno nije dostupan.';
 }
 
 /**
- * Sticky footer: at most one brand action per state, and none when nothing waits for the person - then it is one grey sentence
- * of the state (`quiet`). The second button, "Otvori poruke", is gone: the Poruke tab stands at the top of the same screen, so
- * the footer said it twice and took a quarter of it. `statusText` is the quiet line above ("Osvežavamo…", "Čuvamo promenu…").
+ * The foot of the Dogovor: at most one brand action per state, and none when nothing waits for the person - then it is one grey sentence
+ * of the state (`quiet`). It is the system's `FlowFooter` (the one foot of every screen: the gutter across, 12 over and under, a line
+ * above), and the one green thing on the screen. The second button, "Otvori poruke", is gone: the Poruke tab stands at the top of the same
+ * screen, so the foot said it twice and took a quarter of it. `statusText` is the quiet line above ("Osvežavamo…", "Čuvamo promenu…").
  */
 export function WorkspaceFooter({ brand, quiet, loading = false, statusText, notice, onLayout }: {
   brand: { label: string; onPress: () => void; disabled?: boolean } | null;
@@ -194,36 +177,31 @@ export function WorkspaceFooter({ brand, quiet, loading = false, statusText, not
   }, [recoveryMessage]);
   // A footer with nothing to say draws nothing, so a finished Dogovor does not carry an empty padded bar.
   if (!brand && !quiet && !notice && !statusText) return null;
-  return <View testID="agreement-action-footer" onLayout={onLayout} style={s.footer}>
-    {notice ? <View style={s.feedback}>
-      <RecoveryMessage key={JSON.stringify([notice.message, width, textScale])} message={notice.message} limit={messageLimit} />
-      <V2Action label="Osveži status Dogovora" kind="quiet" loading={notice.refreshing}
-        disabled={notice.refreshing} onPress={notice.refresh} />
-    </View> : statusText ? <T variant="note" tone="muted" style={s.statusLine}>{statusText}</T> : null}
-    {brand ? <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}
-      onPress={brand.onPress} style={brandAction} />
-      : quiet ? <T testID="agreement-quiet-line" variant="note" tone="muted" style={s.quietLine}>{quiet}</T> : null}
+  return <View testID="agreement-action-footer" onLayout={onLayout} style={s.foot}>
+    <FlowFooter>
+      {notice ? <Surface kind="note" tone="warn">
+        <RecoveryMessage key={JSON.stringify([notice.message, width, textScale])} message={notice.message} limit={messageLimit} />
+        <V2Action label="Osveži status Dogovora" kind="quiet" loading={notice.refreshing}
+          disabled={notice.refreshing} onPress={notice.refresh} />
+      </Surface> : statusText ? <T variant="note" tone="muted" style={s.statusLine}>{statusText}</T> : null}
+      {brand ? <V2Action label={brand.label} disabled={brand.disabled} loading={loading && !!brand.disabled}
+        onPress={brand.onPress} style={brandAction} />
+        : quiet ? <T testID="agreement-quiet-line" variant="note" tone="muted" style={s.quietLine}>{quiet}</T> : null}
+    </FlowFooter>
   </View>;
 }
 
 const s = StyleSheet.create({
-  flat: { gap: 10, paddingTop: 18, borderTopWidth: 1, borderTopColor: sys.color.line },
-  tinted: { gap: 8, padding: 16 },
-  next: { gap: sys.space.sm, paddingVertical: sys.space.xs },
-  nextHead: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  // The foot is never squeezed by what stands above it: its message is bounded on its own, and the actions keep their full height.
+  foot: { flexShrink: 0 },
+  next: { gap: sys.space.sm },
+  nextWaiting: { gap: sys.space.sm },
+  nextHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill },
   nextTitle: { color: sys.color.ink, flexShrink: 1 },
-  nextBody: { paddingLeft: 17 },
-  row: { minHeight: 60, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14, borderTopWidth: 1, borderColor: sys.color.line },
-  rowArt: { width: 32, alignItems: 'center' },
-  rowDisabled: { backgroundColor: sys.color.wash },
-  rowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  rowLabel: { color: sys.color.ink },
-  rowLabelOff: { color: sys.color.muted },
-  note: { ...inset, padding: 16, gap: 8 },
-  footer: { flexShrink: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  // The words start where the title's start (the dot and its gap are 16).
+  nextBody: { paddingLeft: sys.space.base },
   feedbackScroll: { flexGrow: 0, flexShrink: 0 },
-  feedback: { padding: 12, gap: 4, borderRadius: sys.radius.control, backgroundColor: sys.color.warnSoft },
   feedbackText: { color: sys.color.ink },
   // The state in words where no action stands: grey, centred, as tall as the sentence needs - never a faded ghost of a button.
   quietLine: { textAlign: 'center', paddingVertical: sys.space.xs },

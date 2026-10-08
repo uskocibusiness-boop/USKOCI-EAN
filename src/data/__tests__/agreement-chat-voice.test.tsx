@@ -19,6 +19,8 @@ jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 
 jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer', AgreementPhotoSheet: 'AgreementPhotoSheet' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
+jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest.fn() }));
+import { tick } from '../../ui/system/haptics';
 import { AgreementChat, CLOSED_SENTENCE } from '../../ui/AgreementChat';
 import { sys } from '../../ui/system/tokens';
 import { forgetAutoResendForTests } from '../../ui/messages/threadModel';
@@ -103,8 +105,8 @@ describe('a voice message in the thread', () => {
     const command = { accountId: account, agreementId: agreement, clientMessageId: 'glas_00000009', body: '', voice: { agreementVersion: 2, assetId: glas.assetId } };
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [{ command, state: 'unknown', error: 'INVALID_RESPONSE', persisted: true, attempt: 1 }] };
     await render();
-    expect(texts()).toContain('Glasovna poruka'); expect(texts()).toContain('Slanje nije potvrđeno');
-    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
+    expect(texts()).toContain('Glasovna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
+    await act(async () => button('Proveri da li je stigla: glasovna poruka').props.onPress());
     // The explicit retry goes to the voice outbox, never the text one.
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000009');
     expect(outbox.retry).not.toHaveBeenCalled();
@@ -191,5 +193,70 @@ describe('the pill with a microphone', () => {
     await act(async () => button('Pošalji snimak').props.onPress());
     expect(mockVoice.send).toHaveBeenCalledTimes(1);
     expect(button('Napiši poruku').parent!.props.accessibilityElementsHidden).toBe(true);
+  });
+});
+
+/**
+ * The microphone's ticks (motion item M-04, rule R5; `system/haptics`): the recording REALLY began, the finger was released to send,
+ * the recording was called off. A tick is not movement, so none of this changes what the conversation draws.
+ */
+describe('the microphone ticks the three moments of a hold', () => {
+  const ticks = () => (tick as jest.Mock).mock.calls.map(call => call[0]);
+  const recording = () => { mockVoice.recording = { ...idle, phase: 'recording', elapsedMs: 300, canDiscard: true }; };
+
+  it('ticks `gestureStart` when the recording began, once, and again for the next recording', async () => {
+    await render();
+    expect(ticks()).toEqual([]);
+    await act(async () => { mockVoice.recording = { ...idle, phase: 'requesting' }; });
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    // Asking for the microphone is not yet a recording.
+    expect(ticks()).toEqual([]);
+    recording();
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    expect(ticks()).toEqual(['gestureStart']);
+    mockVoice.recording = { ...idle };
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    recording();
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    expect(ticks()).toEqual(['gestureStart', 'gestureStart']);
+  });
+
+  it('ticks `gestureEnd` on release to send, and nothing for a release that never held', async () => {
+    await render();
+    const mic = button('Drži za glasovnu poruku');
+    await act(async () => mic.props.onResponderRelease());
+    expect(ticks()).toEqual([]);
+    await act(async () => mic.props.onResponderGrant({ nativeEvent: { pageY: 300 } }));
+    await act(async () => mic.props.onResponderRelease());
+    expect(ticks()).toEqual(['gestureEnd']);
+    expect(mockVoice.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('ticks `cancel` when the finger is dragged away or the system takes the touch, and the release after it ticks nothing', async () => {
+    await render();
+    const mic = button('Drži za glasovnu poruku');
+    await act(async () => mic.props.onResponderGrant({ nativeEvent: { pageY: 300 } }));
+    await act(async () => mic.props.onResponderMove({ nativeEvent: { pageY: 296 } }));
+    expect(ticks()).toEqual([]);
+    await act(async () => mic.props.onResponderMove({ nativeEvent: { pageY: 200 } }));
+    expect(ticks()).toEqual(['cancel']); expect(mockVoice.cancel).toHaveBeenCalledTimes(1);
+    await act(async () => mic.props.onResponderRelease());
+    expect(ticks()).toEqual(['cancel']);
+    await act(async () => mic.props.onResponderGrant({ nativeEvent: { pageY: 300 } }));
+    await act(async () => mic.props.onResponderTerminate());
+    expect(ticks()).toEqual(['cancel', 'cancel']);
+  });
+
+  it('with a screen reader, stopping the recording is the release: it ticks `gestureEnd`, and starting one ticks only when it really began', async () => {
+    mockVoice.screenReader = true;
+    await render();
+    await act(async () => button('Snimi glasovnu poruku').props.onPress());
+    expect(ticks()).toEqual([]);
+    recording();
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    expect(ticks()).toEqual(['gestureStart']);
+    await act(async () => button('Zaustavi snimanje i pregledaj glasovnu poruku').props.onPress());
+    expect(ticks()).toEqual(['gestureStart', 'gestureEnd']);
   });
 });

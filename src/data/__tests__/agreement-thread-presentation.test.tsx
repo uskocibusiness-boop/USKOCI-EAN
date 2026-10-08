@@ -192,11 +192,11 @@ it('leaves a closed thread read-only while retaining exact unknown-outcome retry
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
   expect(tree.root.findAllByType('AgreementPhotoComposer' as any)).toHaveLength(0);
-  expect(text(history())).toContain('Slanje nije potvrđeno');
+  expect(text(history())).toContain('Ne znamo da li je stigla');
   // The closed sentence stands under the thread, where the field was (proposal R2), not inside the scroll.
   expect(text()).toContain(CLOSED_SENTENCE); expect(text(history())).not.toContain(CLOSED_SENTENCE);
   expect(tree.root.findByProps({ testID: 'agreement-chat-closed' })).toBeTruthy();
-  await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+  await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
   expect(props.chat.outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   expect(props.chat.photos!.refresh).toHaveBeenCalledTimes(1);
   await act(async () => button(`Uslovi Dogovora: ${agreement.naslov}`).props.onPress());

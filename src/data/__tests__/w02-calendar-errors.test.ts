@@ -22,7 +22,7 @@ it('connects the actual selection adapter to the same readable calendar error', 
   mockRpc.mockResolvedValue({ data: null, error: { message: 'WORKER_CALENDAR_CONFLICT' } });
   await expect(applicationSelectionClientService.izaberiPrijavu({ potrebaId: '10000000-0000-4000-8000-000000000001', potrebaRevizija: 1,
     prijavaId: '10000000-0000-4000-8000-000000000002', prijavaVerzija: 1, prijavaHash: 'a'.repeat(64), mesta: 1, clientRequestId: 'selection-key' })).resolves.toMatchObject({
-    ok: false, kod: 'WORKER_CALENDAR_CONFLICT', poruka: expect.stringContaining('Osveži kalendar'),
+    ok: false, kod: 'WORKER_CALENDAR_CONFLICT', poruka: expect.stringContaining('Proveri Raspored'),
   });
 });
 it('connects the actual agreement-change adapter without reporting success after overlap rejection', async () => {

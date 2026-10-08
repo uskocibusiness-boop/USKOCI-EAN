@@ -41,8 +41,8 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
         {agreement.problemOtvoren ? <View style={s.notice}>
           <T variant="bodyStrong" style={s.ink}>Problem je prijavljen</T>
           <T variant="body" tone="muted">{worker
-            ? 'Prijava ostaje sačuvana. Automatski završetak je zaustavljen.'
-            : 'Prijava ostaje sačuvana. Ovom potvrdom ipak završavaš Dogovor; ona sama ne određuje krivicu ili dug.'}</T>
+            ? 'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.'
+            : 'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavaš Dogovor; problem sam po sebi ne određuje krivicu ili dug.'}</T>
         </View> : null}
       </ScrollView>
       <View style={s.footer}>

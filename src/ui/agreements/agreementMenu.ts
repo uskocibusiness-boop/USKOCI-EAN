@@ -3,7 +3,7 @@ import type { SheetAction } from '../system/ActionSheet';
 /**
  * The "···" menu of a Dogovor (plan 2.6): the rare actions, out of the page and one tap from the top bar. In this order:
  *
- *   Izmeni uslove · Podeli svoj broj / Opozovi deljenje broja · Podeli lokaciju (only the requester) · Prijavi problem
+ *   Izmeni uslove · Podeli svoj broj (only an account that has a number) / Opozovi deljenje broja · Podeli lokaciju (only the requester) · Prijavi problem
  *   ----
  *   Otkaži Dogovor · Prijavi ili blokiraj osobu            (both in the danger colour)
  *
@@ -22,6 +22,8 @@ export type AgreementMenuInput = {
   /** The page offers "Izmene i otkazivanje" (not to the requester once the work is reported done, not on a finished Dogovor). */
   canChange: boolean;
   phoneShared: boolean;
+  /** The signed-in account has a phone number to share (R01a). Without one "Podeli svoj broj" cannot succeed, so it is not offered; withdrawing a number already shared is. */
+  accountHasNumber: boolean;
   /** A physical Dogovor with an exact location behind the grant. */
   hasLocation: boolean;
   /** No problem is open yet: an open one is shown on the page instead. */
@@ -43,7 +45,9 @@ export function agreementMenuActions(input: AgreementMenuInput, commands: Agreem
   const live = { disabled: off, reason: off ? MENU_WAIT_REASON : undefined };
   const rows: SheetAction[] = [];
   if (input.active && input.canChange) rows.push({ key: 'change', label: 'Izmeni uslove', icon: 'document', onPress: commands.onChange, ...live });
-  if (input.active) rows.push({ key: 'phone', label: input.phoneShared ? 'Opozovi deljenje broja' : 'Podeli svoj broj', icon: 'phone', onPress: commands.onPhone, ...live });
+  if (input.active && (input.phoneShared || input.accountHasNumber)) {
+    rows.push({ key: 'phone', label: input.phoneShared ? 'Opozovi deljenje broja' : 'Podeli svoj broj', icon: 'phone', onPress: commands.onPhone, ...live });
+  }
   if (input.active && input.requester && input.hasLocation) {
     // The share state is read inside the section it opens, so the entry takes the person there instead of guessing.
     rows.push({ key: 'location', label: 'Podeli lokaciju', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Kontakt i mesto.', ...live });

@@ -14,7 +14,7 @@ export function calendarFailure(error: unknown): Ishod<never> | null {
     } catch { /* Malformed details cannot manufacture a calendar diagnosis. */ }
   }
   if (calendarConflict) return { ok: false, kod: 'WORKER_CALENDAR_CONFLICT',
-    poruka: 'Termin se preklapa sa potvrđenim Dogovorom. Osveži kalendar i izaberi drugi termin.' };
+    poruka: 'Termin se preklapa sa drugim Dogovorom. Proveri Raspored i izaberi drugi termin.' };
   if (value.message === 'AGREEMENT_CALENDAR_INTERVAL_INVALID' || value.message === 'NEED_FIXED_INTERVAL_INVALID') {
     return { ok: false, kod: 'AGREEMENT_CALENDAR_INTERVAL_INVALID',
       poruka: 'Proveri uneti početak i kraj. Ako tačan termin još nije dogovoren, ostavi ga fleksibilnim.' };

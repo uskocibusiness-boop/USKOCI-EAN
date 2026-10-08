@@ -19,7 +19,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => true }));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), useReducedMotion: () => true }));
 // Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() } }));
@@ -284,7 +284,7 @@ describe('actual availability editor interactions', () => {
       expect(button(label).props.loading).toBe(true);
       expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === label)[0]
         .props.accessibilityState).toEqual({ disabled: true, busy: true });
-    } else expect(button(label).props.reason).toBe('Prvo učitaj sačuvano stanje. Ishod izmene još nije potvrđen.');
+    } else expect(button(label).props.reason).toBe('Prvo učitaj sačuvano stanje. Ne znamo da li je izmena sačuvana.');
     await press(label); expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -403,8 +403,9 @@ describe('actual agenda screen', () => {
     expect(text()).toContain('Ništa nije zakazano za ovaj dan.');
     expect(button('Otvori sve Dogovore')).toBeUndefined();
     // Owner decision 1 (2026-09-19): when I can work is mine to set whenever I like. The row is spoken by its visible words.
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Moja dostupnost za rad' })).toHaveLength(1);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Arhiva' })).toHaveLength(1);
+    const rows = (label: string) => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === label);
+    expect(rows('Moja dostupnost za rad')).toHaveLength(1);
+    expect(rows('Arhiva')).toHaveLength(1);
   });
   it('reads the schedule again only when the chosen day goes beyond the months already read, not for a week or a month on either side', async () => {
     await act(async () => { tree = create(<Raspored />); });
@@ -434,16 +435,15 @@ describe('actual agenda screen', () => {
     expect(text()).not.toContain('Ništa nije zakazano');
     expect(button('Pokušaj ponovo')).toBeTruthy();
   });
-  it.each([{ scale: 2, fraction: '.000', layout: 'column' }, { scale: 1, fraction: '.123456', layout: 'row' }])('writes the window to the minute, with the rail only at a normal font (scale $scale, precision $fraction)', async ({ scale, fraction, layout }) => {
+  it.each([{ scale: 2, fraction: '.000' }, { scale: 1, fraction: '.123456' }])('writes the window to the minute, as the first line of the card at any font (scale $scale, precision $fraction)', async ({ scale, fraction }) => {
     mockFontScale = scale;
     scheduleOf([event('agreement-1', '09:15', '10:45', 2, fraction)]);
     await act(async () => { tree = create(<Raspored />); });
     // An agreed term reads in Serbian time everywhere (rule 8.27), and the heading already names the day, so the row carries the
-    // clocks alone.
-    expect(text()).toContain('09:15'); expect(text()).toContain('10:45');
-    if (layout === 'column') expect(text()).toContain('09:15–10:45');
+    // clocks alone - as ONE window on the first line of its card, with no clock rail beside it (composition spec 4.10).
+    expect(text()).toContain('09:15–10:45');
     expect(text()).not.toContain('.123456');
-    expect(button('Otvori Dogovor sa potvrđenim terminom').parent?.props.style.flexDirection).toBe(layout);
+    expect(button('Otvori Dogovor sa potvrđenim terminom').parent?.props.style.flexDirection).toBeUndefined();
   });
 
   it('renders an exact receipt and never mixes an older Agreement version into it', async () => {
@@ -588,7 +588,7 @@ describe('actual agenda screen', () => {
     const labels = tree.root.findAll(node => node.type === 'Press' as React.ElementType && /^Otvori (Dogovor|zadatak|prijavu)/.test(String(node.props.accessibilityLabel)))
       .map(node => node.props.accessibilityLabel);
     expect(labels).toEqual(['Otvori prijavu Košenje trave', 'Otvori zadatak Selidba ormara']);
-    expect(text()).toContain('Bira se · 2'); expect(text()).toContain('Poslata');
+    expect(text()).toContain('Bira se · 2'); expect(text()).toContain('Prijava poslata');
   });
 
   it('opens the candidates of a task with applications to choose from, the task otherwise, and the application in Moje prijave', async () => {

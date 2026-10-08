@@ -15,7 +15,7 @@ import { instantMs, serbianDayRange } from './serbianDays';
  *
  * Nothing is invented. An entry is placed on a day only by exact instants the read gave (a Dogovor's accepted window, a task's
  * fixed window, an application's task window); a thing without them is listed in a section under its OWN words for its time
- * ("Fleksibilan raspon · …", "Termin nije potvrđen"), never parsed from a sentence and never put on a day. A task with one stored
+ * ("Fleksibilan raspon · …", "Termin nije dogovoren"), never parsed from a sentence and never put on a day. A task with one stored
  * bound keeps one bound, as Početna's "Raspored" does. Every day is a day of Serbian time (`serbianDays.ts`).
  *
  * Pure and dependency-light on purpose: no React and no native module, so the screens' pure helpers load in every suite.
@@ -40,7 +40,7 @@ export type PlannerStatus =
 export const ROLE_APPLICANT = 'Tvoja prijava';
 export const PROBLEM_NOTE = 'Prijavljen je problem u Dogovoru';
 export const ATTENTION_NOTE = 'Prijava traži tvoju pažnju';
-export const NO_TERM_WORD = 'Termin nije potvrđen';
+export const NO_TERM_WORD = 'Termin nije dogovoren';
 export const TASK_FALLBACK_TITLE = 'Zadatak';
 export const APPLICATION_FALLBACK_TITLE = 'Prijava';
 
@@ -159,7 +159,9 @@ export function applicationEntry(row: MojaPrijavaProjekcija): PlannerEntry | nul
   const stale = row.stanje === 'STALE_REVIEW_REQUIRED' || row.promenjenaPotreba;
   const status: PlannerStatus = stale ? { word: 'Zadatak je izmenjen', shape: 'dot', tone: 'attention' }
     : row.stanje === 'SHORTLISTED' ? { word: 'U užem izboru', shape: 'dot', tone: 'neutral' }
-      : { key: row.stanje === 'VIEWED' ? 'application.seen' : 'application.sent' };
+      // The row says what it IS in its chip ("Prijava poslata", a ring: sent and waiting for someone else), so an application needs no
+      // second mark of its own - no dashed edge, no role line (composition spec 4.10).
+      : row.stanje === 'VIEWED' ? { word: 'Prijava viđena', shape: 'dot', tone: 'neutral' } : { word: 'Prijava poslata', shape: 'ring', tone: 'neutral' };
   const bounds = readBounds(row.zadatak?.raspored);
   return { key: `application:${row.prijavaId}`, kind: 'prijava', id: row.prijavaId, choosing: 0, title: tidy(row.naslov), fallbackTitle: APPLICATION_FALLBACK_TITLE,
     ...bounds, timeWord: bounds.exact ? null : tidy(row.vremeTekst), status, waits: stale || row.traziPaznju, done: false, term: true, commitsMe: true,

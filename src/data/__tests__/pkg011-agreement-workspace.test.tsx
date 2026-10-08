@@ -42,7 +42,9 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: (props: { context?: React.ReactNode }) =>
   require('react').createElement('AgreementChat', props, props.context) }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
-jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 0 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 0 }) }));
+// The account has a phone number unless a test says otherwise ("Podeli svoj broj" is offered only to an account that has one).
+let mockAccountPhone: string | undefined = '+381601234567';
+jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount, phone: mockAccountPhone }, accountRevision: 0 }), sesijaSada: () => ({ user: { id: mockAccount, phone: mockAccountPhone }, accountRevision: 0 }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: { reconcile: jest.fn().mockResolvedValue(undefined) }, state: { phase: 'ready', entries: [] } }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockAgreementId, loaded: true, busy: false, items: [] }) }));
@@ -61,6 +63,12 @@ jest.mock('../agreementMessageHistoryService', () => ({
 // The own-review read behind "Oceni saradnju" (2026-09-23). Default: the rating is still due, as before.
 const mockReviewContext = jest.fn();
 jest.mock('../reviewsClientService', () => ({ reviewsClientService: { context: (...args: unknown[]) => mockReviewContext(...args) } }));
+// When and by whom a cancelled Dogovor was cancelled (CANCEL-INFO): the real module reaches supabaseClient, like the review read above. Default: the server says nothing.
+const mockCancellationRead = jest.fn();
+jest.mock('../agreementCancellationClientService', () => ({
+  agreementCancellationService: { read: (...args: unknown[]) => mockCancellationRead(...args) },
+  cancellationOf: (all: Map<string, unknown> | null | undefined, id: string) => all?.get(id.toLowerCase()) ?? null,
+}));
 import Dogovor from '../../app/dogovor/[id]';
 
 const base = (patch: Record<string, unknown> = {}, mine: 'narucilac' | 'uskocer' = 'narucilac') => ({
@@ -83,7 +91,8 @@ async function render(workspace: Record<string, unknown>, messageRows: unknown[]
 beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0);
   mockDisplayed.mockReset().mockResolvedValue({ ok: true, podatak: {} });
   mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
-  mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } }); });
+  mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } });
+  mockCancellationRead.mockReset().mockResolvedValue({ ok: true, podatak: new Map() }); mockAccountPhone = '+381601234567'; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 const quietLine = () => tree.root.findAllByProps({ testID: 'agreement-quiet-line' }).map(node => node.props.children);
@@ -91,7 +100,7 @@ test('a confirmed Agreement with nothing to do shows no green action - one grey 
   await render(base());
   // Plan 2.6: when nothing waits for the person there is no button, and the conversation is not offered a second time: it is the Poruke tab.
   expect(brand()).toEqual([]); expect(labels()).not.toContain('Otvori poruke');
-  expect(quietLine()).toEqual(['Završetak trenutno nije dostupan.']);
+  expect(quietLine()).toEqual(['Čeka da Marko javi da je zadatak gotov.']);
   const copy = texts();
   // Recomposed (2026-09-23): the step is one line with a dot in the state's colour; no "Sledeći korak" eyebrow over it.
   // Round-1 critique A13 (owner step 8): the state is the step's title and the next step its sentence; the title
@@ -101,7 +110,7 @@ test('a confirmed Agreement with nothing to do shows no green action - one grey 
   expect(labels()).toEqual(expect.arrayContaining(['Izmene i otkazivanje Dogovora', 'Bezbednost i privatna prijava', 'Tok Dogovora', 'Prijavi problem']));
   // The number and the place are ONE open section, not a closed "Kontakt" row and a closed "Lokacija i pristup" row.
   expect(copy).toContain('Kontakt i mesto'); expect(labels()).not.toContain('Kontakt'); expect(labels()).not.toContain('Lokacija i pristup');
-  expect(copy).toContain('Broj druge strane:'); expect(copy).toContain('još nije podeljen');
+  expect(copy).toContain('Broj druge strane'); expect(copy).toContain('Još nije podeljen.');
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tok Dogovora' }).props.onPress());
@@ -313,8 +322,8 @@ test('unconfirmed permissions keep completion closed and explain how to refresh,
   await render(base({ radnje: null }));
   // Nothing is offered and nothing is claimed: the footer stays silent, since the card above already says how to read the permissions again.
   expect(brand()).toEqual([]); expect(quietLine()).toEqual([]);
-  expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen. Osveži status Dogovora pre završetka.');
-  expect(labels()).toContain('Osveži dozvole za završetak');
+  expect(texts()).toContain('Ne možemo da proverimo da li možeš da završiš zadatak. Osveži Dogovor.');
+  expect(labels()).toContain('Osveži Dogovor');
 });
 
 // A pending change blocks both completions. It used to be one grey sentence on this screen with
@@ -352,8 +361,10 @@ const rowTexts = (label: string) => row(label).findAll(node => String(node.type)
 test('the requester reaches the Zadatak this Dogovor grew out of, and is offered no Prijava of their own', async () => {
   await render(base());
   expect(labels()).toContain('Otvori zadatak: Pomoć pri selidbi. Beograd');
-  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi. Beograd')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Beograd', 'Otvori zadatak']));
+  // The row only leads to the task; the work's name is the head of the page and its place is a row of the terms.
+  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi. Beograd')).toEqual(['Otvori zadatak']);
   expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Mesto: Beograd' })).toBeTruthy();
   expect(labels()).not.toContain('Zadatak');
   expect(labels()).not.toContain('Tvoja prijava'); expect(labels()).not.toContain('Prijava');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi. Beograd' }).props.onPress());
@@ -361,7 +372,7 @@ test('the requester reaches the Zadatak this Dogovor grew out of, and is offered
 });
 test('the worker reaches the Prilika and the offer they sent', async () => {
   await render(base({}, 'uskocer'));
-  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi. Beograd')).toEqual(expect.arrayContaining(['Pomoć pri selidbi', 'Beograd', 'Otvori zadatak']));
+  expect(rowTexts('Otvori zadatak: Pomoć pri selidbi. Beograd')).toEqual(['Otvori zadatak']);
   expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
   expect(labels()).not.toContain('Zadatak'); expect(rowTexts('Tvoja prijava')).toEqual(['Tvoja prijava']);
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi. Beograd' }).props.onPress());
@@ -504,30 +515,53 @@ describe('the overview of a 1:1 Dogovor says each thing once', () => {
   test('it omits a duplicated participants block but states accepted people; a group Dogovor keeps both', async () => {
     await render(base());
     expect(people()).toHaveLength(0); expect(texts()).toContain('1 osoba');
-    expect(tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Dogovoreni broj osoba: 1 osoba')).toHaveLength(1);
+    expect(tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Ljudi: 1 osoba')).toHaveLength(1);
     await act(async () => tree.unmount());
     await render(base({ pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1 } }));
     expect(people()).toEqual(['Ti · tražiš pomoć']); expect(texts()).toContain('Uskače');
-    expect(tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Dogovoreni broj osoba: 2 osobe')).toHaveLength(1);
+    expect(tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Ljudi: 2 osobe')).toHaveLength(1);
   });
-  test('the facts keep 24 px drawings and rows of at least 36, with supporting term text at 15/22 and its zone on a separate line', async () => {
+  test('the terms are rows of the one list: the term and its zone are one sentence, the place and the people have their own rows, and nothing is drawn twice', async () => {
+    await render(base({ vremeTekst: '26. sep · 10:00–12:00 (po vremenu u Srbiji)' }));
+    expect(tree.root.findByProps({ accessibilityLabel: 'Termin: 26. sep · 10:00–12:00 (po vremenu u Srbiji)' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mesto: Beograd' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Ljudi: 1 osoba' })).toBeTruthy();
+    expect(headers().filter(word => word === 'Uslovi')).toHaveLength(1);
+  });
+  test('the conversation\'s compact context keeps the facts at 24 px drawings and rows of at least 36, with the zone of the term on a separate line', async () => {
+    // At the owner's largest text the context joins the conversation's own scroll (it stands in the bar when there is room).
+    mockParams = { id: mockAgreementId, tab: 'poruke' }; mockWindow = { width: 320, height: 718, fontScale: 2, scale: 3 };
     await render(base({ vremeTekst: '26. sep · 10:00–12:00 (po vremenu u Srbiji)' }));
     const fact = tree.root.findAll(node => String(node.type) === 'View' && node.props.accessibilityLabel === 'Termin: 26. sep · 10:00–12:00, Po vremenu u Srbiji')[0];
     const flat = (style: unknown): Record<string, unknown> => Array.isArray(style) ? Object.assign({}, ...style.map(flat)) : (style as Record<string, unknown>) ?? {};
     expect(flat(fact.props.style).minHeight).toBe(36);
     expect(fact.findAll(node => node.props.kind === 'calendar' && typeof node.type !== 'string')[0].props.size).toBe(24);
     const lines = fact.findAll(node => String(node.type) === 'T').map(node => node.children.filter(child => typeof child === 'string').join(''));
-    expect(lines).toEqual(['Termin', '26. sep · 10:00–12:00', 'Po vremenu u Srbiji']);
-    const value = fact.findAll(node => String(node.type) === 'T' && node.children.join('') === '26. sep · 10:00–12:00')[0];
-    expect(flat(value.props.style)).toMatchObject({ fontSize: 15, lineHeight: 22 });
+    // The small label stays spoken only ("Termin: ..."); what is drawn is the value and, under it, the zone.
+    expect(lines).toEqual(['26. sep · 10:00–12:00', 'Po vremenu u Srbiji']);
   });
   test.each(['COMPLETED', 'CANCELLED'])('a %s Dogovor without a time says "Bez tačnog termina"', async state => {
     await render(base({ stanje: state, vremeTekst: 'Termin nije potvrđen' }));
-    expect(texts()).toContain('Bez tačnog termina'); expect(texts()).not.toContain('Termin nije potvrđen');
+    expect(texts()).toContain('Bez tačnog termina'); expect(texts()).not.toContain('Termin nije potvrđen'); expect(texts()).not.toContain('Termin još nije dogovoren');
   });
-  test('an active Dogovor without a time still says that the time is not confirmed', async () => {
-    await render(base({ vremeTekst: 'Termin nije potvrđen' }));
-    expect(texts()).toContain('Termin nije potvrđen');
+  // Both spellings of the adapter's sentence are understood: a read from before 2026-10-08 still says "nije potvrđen".
+  test.each(['Termin nije dogovoren', 'Termin nije potvrđen'])('an active Dogovor without a time says it was not agreed (%s) and offers to propose one (R02)', async spelling => {
+    await render(base({ vremeTekst: spelling }));
+    expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Nije dogovoren' })).toBeTruthy();
+    expect(texts()).not.toContain('Termin nije potvrđen');
+    expect(headers()).toContain('Termin još nije dogovoren');
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Predloži termin' }).props.onPress());
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId, start: 'propose' } });
+  });
+  test.each([
+    ['a Dogovor with a term', { vremeTekst: '26. sep · 10:00–12:00' }],
+    ['a finished one', { stanje: 'COMPLETED', vremeTekst: 'Termin nije dogovoren' }],
+    ['one with a change proposal waiting', { vremeTekst: 'Termin nije dogovoren', radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: false, izmenaNaCekanju: true, predlogIzmene: { id: 'p1', moj: true, mozeOdgovoriti: false, mozePovuci: true, razlog: null, izmene: [] } } }],
+    ['one with a problem open', { vremeTekst: 'Termin nije dogovoren', problemOtvoren: true }],
+  ])('%s does not show the note about the missing term', async (_label, patch) => {
+    await render(base(patch));
+    expect(tree.root.findAllByProps({ testID: 'agreement-term-note' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Predloži termin' })).toHaveLength(0);
   });
 });
 
@@ -724,7 +758,7 @@ describe('sharing the number asks nothing and says what happened once the server
     await render(base());
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.onPress());
     expect(poruka.current()).toBeNull();
-    expect(texts()).toContain('Promena nije potvrđena');
+    expect(texts()).toContain('Ne znamo da li je promena sačuvana');
     expect(texts()).not.toContain('adapter text');
   });
 

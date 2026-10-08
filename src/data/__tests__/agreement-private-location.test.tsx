@@ -206,3 +206,38 @@ describe('Agreement private location uses server grant and ephemeral focused sta
     await render(); expect(content()).toContain('Važi dok je ne opozoveš ili dok se Dogovor ne završi.'); expect(mockGrant).not.toHaveBeenCalled();
   });
 });
+
+// Idea R03 (UI pass 2026-10-08): the address is the requester's to share, and the worker has nowhere to ask for it but the conversation.
+describe('the address, said to each side (R03)', () => {
+  const draw = async (onRequestAddress?: () => void) => { await act(async () => { tree = create(<AgreementPrivateLocation agreement={agreement} enabled onRequestAddress={onRequestAddress} />); }); };
+
+  it('tells the worker the address is not shared yet and gives the one way to ask for it', async () => {
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: state(false) }));
+    const ask = jest.fn();
+    await draw(ask);
+    expect(content()).toContain('Adresa još nije podeljena.');
+    await press('Zatraži adresu');
+    expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws no question when the screen has no conversation to take it to', async () => {
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: state(false) }));
+    await draw();
+    expect(content()).toContain('Adresa još nije podeljena.'); expect(content()).not.toContain('Zatraži adresu');
+  });
+
+  it('tells the requester to share the address when they are ready, and never gives them a question to ask', async () => {
+    mockSession = { user: { id: ownerId }, accountRevision: 1 };
+    agreement = { ...agreement, ucesnici: [{ id: ownerId, uloga: 'narucilac', viSte: true }, { id: workerId, uloga: 'uskocer', viSte: false }] } as DogovorProjekcija;
+    mockRead.mockImplementation(async () => ({ ok: true, podatak: { ...state(false), accountId: ownerId } }));
+    await draw(jest.fn());
+    expect(content()).toContain('Podeli adresu kad budete spremni.'); expect(content()).not.toContain('Zatraži adresu');
+    expect(content()).toContain('Podeli lokaciju');
+  });
+
+  it('stops asking once the address is shared: the worker is told so and may look at it', async () => {
+    await draw(jest.fn());
+    expect(content()).toContain('Prikaz lokacije je dozvoljen u ovom Dogovoru.'); expect(content()).not.toContain('Zatraži adresu');
+    expect(content()).toContain('Prikaži privatnu lokaciju');
+  });
+});

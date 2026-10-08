@@ -73,7 +73,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (!actionCurrent() || busy || submitting.current || !snapshot || reviewRef.current || (!fromForm && formRef.current)) return;
     const normalized = normalizeAgreementCommand(command);
     if (state.journal && journalFor(normalized).payloadHash !== state.journal.payloadHash) {
-      setError('Unos se razlikuje od prvobitnog zahteva. Ponovo unesi iste izmenjene podatke i isti razlog.'); return;
+      setError('Ovo se razlikuje od onoga što je ranije poslato. Unesi iste podatke i isti razlog.'); return;
     }
     reviewBase.current = snapshot; reviewRef.current = normalized; setReview(normalized); formRef.current = null; setForm(null); setError(null);
   };
