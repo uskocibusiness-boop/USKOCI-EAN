@@ -337,11 +337,11 @@ export const CLIENT_MODULES = Object.freeze(['data/applicationSelectionClientSer
 export const SERBIAN_COPY = Object.freeze({
   /** src/data/applicationSelectionClientService.ts, applicationSelectionErrors: the new-offer and selection paths. */
   application: Object.freeze({
-    INVALID_PRICE: 'Unesi ceo pozitivan iznos u RSD.',
+    INVALID_PRICE: 'Unesi iznos u dinarima, bez decimala.',
     FIXED_PRICE_NOT_READY: 'Cena zadatka trenutno nije spremna. Ponovo otvori zadatak.',
-    FIXED_PRICE_MISMATCH: 'Cena prijave mora da prati cenu i obračun iz zadatka. Izmeni prijavu prema aktuelnim uslovima.',
+    FIXED_PRICE_MISMATCH: 'Cena u prijavi mora da bude ista kao cena u zadatku. Izmeni prijavu.',
     TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog zadatka važi za ceo zadatak, pa prijava mora da pokrije sva mesta.',
-    UNKNOWN_PRICE_BASIS: 'Način obračuna cene na ovom zadatku nije podržan u ovoj verziji aplikacije.',
+    UNKNOWN_PRICE_BASIS: 'Ova verzija aplikacije ne podržava način računanja cene na ovom zadatku. Ažuriraj aplikaciju.',
   }),
   /** src/data/legacyRpcFailure.ts, COPY: the reconfirmation path (ru4Production.resolveChangedApplication). */
   legacy: Object.freeze({
