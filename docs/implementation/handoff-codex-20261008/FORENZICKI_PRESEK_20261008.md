@@ -188,3 +188,7 @@ Vidi `DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md` u ovom folderu: šta je još reše
 ## 11. Iskrena ocena kvaliteta
 
 Vidi `OCENA_KVALITETA_20261008.md`: ocena po oblastima (klijent 3,5; server 4 bezbednost / 3 urednost; tokovi zaokruženi vs. isključeni), tehnički dug sa putanjama i redosled da bude „profesionalno do kraja“.
+
+## 12. Plan napred
+
+Vidi `PLAN_NAPRED_20261008.md`: četiri koraka (dokaz na telefonu → čišćenje i učvršćivanje → povezivanje i isključeni tokovi → izlazak), merilo „gotovo“ za svaki, vlasnikove odluke koje to traži, ko šta radi.
