@@ -108,7 +108,7 @@ it.each(['immediate','readback','retry'])('worker draft ownership: identical spo
  await act(async()=>expect(receive({text:'Radim vikendom.',isCurrent:()=>true,session:{mode:'hold'}})).toBe(true));
  const sent=mockApi.send.mock.calls[0].slice(0,3);
  if(outcome!=='immediate'){
-  succeedWorkerTurn();await click(outcome==='retry'?'Pošalji ponovo':'Proveri stanje razgovora');
+  succeedWorkerTurn();await click(outcome==='retry'?'Pošalji ponovo':'Proveri razgovor');
  }
  expect(shell().props.value).toBe('  Radim vikendom.  ');expect(shell().props.canEdit).toBe(true);
  expect(mockJournal.save.mock.calls[0][0]).toEqual({accountId:A,conversationId:C,clientRequestId:sent[2]});
@@ -164,7 +164,7 @@ it.each(['success','unknown'])('Back leaves a running worker turn immediately an
  await act(async()=>{mockFocused=false;tree.update(<Screen/>);});await act(async()=>{mockFocused=true;tree.update(<Screen/>);});
  expect(mockApi.recoverTurn).toHaveBeenCalledWith(C,requestId);expect(shell().props.pending).toBe(true);expect(shell().props.canSend).toBe(false);
  mockApi.recoverTurn.mockResolvedValue(ok({...recovery('SUCCEEDED',{providerDispatched:true,canCancel:false,retryAllowed:false}),clientRequestId:requestId}));
- mockApi.read.mockResolvedValue(ok(snapshot(turn('SUCCEEDED',requestId))));await click('Proveri stanje razgovora');
+ mockApi.read.mockResolvedValue(ok(snapshot(turn('SUCCEEDED',requestId))));await click('Proveri razgovor');
  expect(mockJournal.clear).toHaveBeenCalledWith({accountId:A,conversationId:C,clientRequestId:requestId});expect(shell().props.canEdit).toBe(true);
  expect(mockApi.send).toHaveBeenCalledTimes(1);
 });
@@ -250,7 +250,7 @@ it('manual fields survive privacy unmount and resume only within the same owner 
  expect(mockApi.patch).not.toHaveBeenCalled();
  await manualBack('toolbar');expect(sheets()).toHaveLength(1);await answer('confirm-sheet-cancel');
  mockApi.read.mockResolvedValue(ok({...snapshot(),revision:1,candidate:{...candidate(),bio:'Noviji predlog'}}));
- await click('Proveri stanje razgovora');
+ await click('Proveri razgovor');
  expect(manualField('O meni').props.value).toBe('Privatni lokalni opis');
  expect(manualField('O meni').props.editable).toBe(false);
  expect(action('Primeni na pregled profila').props.disabled).toBe(true);
@@ -271,7 +271,7 @@ it.each(['account','conversation'])('a retained manual discard and private draft
 it('a failed manual refresh preserves the private draft and a visible Back choice before retry',async()=>{
  mockRealManual=true;await render();await enterPanel('manual');editManual('O meni','Zadržan unos');
  mockApi.read.mockResolvedValueOnce({ok:false,kod:'READ_FAILED',poruka:'Profil nije učitan.'});
- await click('Proveri stanje razgovora');expect(tree.root.findAllByType('TextInput' as any)).toHaveLength(0);
+ await click('Proveri razgovor');expect(tree.root.findAllByType('TextInput' as any)).toHaveLength(0);
  await manualBack('hardware');expect(sheets()).toHaveLength(1);await answer('confirm-sheet-cancel');
  await act(async()=>tree.root.findByType('Status' as any).props.retry());
  expect(manualField('O meni').props.value).toBe('Zadržan unos');
@@ -289,7 +289,7 @@ it('manual processing and unknown patch outcomes block toolbar/hardware discard 
  await manualBack('toolbar');await manualBack('hardware');expect(sheets()).toHaveLength(0);
  expect(visibleText()).toContain('Prvo proveri ishod izmene');
  expect(manualField('O meni').props.value).toBe('Nepotvrđena ispravka');
- await click('Proveri stanje razgovora');await manualBack('toolbar');expect(sheets()).toHaveLength(1);
+ await click('Proveri razgovor');await manualBack('toolbar');expect(sheets()).toHaveLength(1);
  await answer('confirm-sheet-cancel');expect(mockApi.patch).toHaveBeenCalledTimes(1);
  expect(manualField('O meni').props.value).toBe('Nepotvrđena ispravka');
 });
@@ -329,7 +329,7 @@ it('P5: the worker calendar retires editing for the whole conversation read',asy
  mockRealAvailability=true;await render();await enterPanel('availability');
  const retainedChange=tree.root.findByType('Switch' as any).props.onValueChange;
  const reading=deferred();mockApi.read.mockReturnValueOnce(reading.promise);
- await click('Proveri stanje razgovora');
+ await click('Proveri razgovor');
  expect(tree.root.findByType('Switch' as any).props.disabled).toBe(true);
  await act(async()=>retainedChange(true));
  expect(tree.root.findByType('Switch' as any).props.value).toBe(false);
@@ -354,9 +354,9 @@ it.each([1,1.6])('worker availability has one Android vertical scroll path and r
  expect(mockApi.patch).toHaveBeenCalledWith(C,0,{availability:{timezone:'Europe/Belgrade',availableNow:true,ruleChanges:[],windowsUpsert:[],windowIdsRemove:[]}});
  await act(async()=>saving.resolve({ok:false,kod:'UNKNOWN',poruka:'Ishod čuvanja nije potvrđen.'}));
  expect(visibleText()).toContain('Ishod čuvanja nije potvrđen.');
- const reconcile=action('Proveri stanje razgovora');expect(reconcile.props.disabled).toBe(false);
+ const reconcile=action('Proveri razgovor');expect(reconcile.props.disabled).toBe(false);
  for(let ancestor=reconcile.parent;ancestor;ancestor=ancestor.parent)expect(ancestor.type).not.toBe('ScrollView');
- await click('Proveri stanje razgovora');expect(mockApi.patch).toHaveBeenCalledTimes(1);
+ await click('Proveri razgovor');expect(mockApi.patch).toHaveBeenCalledTimes(1);
  expect(tree.root.findAllByType('ScrollView' as any)).toHaveLength(1);
 });
 it.each(['manual','availability','review'])('Back from %s retires retained form writes before chat or route departure',async panel=>{
@@ -443,7 +443,7 @@ it('a sent message the read already holds is shown once, not again as still bein
  expect(shell().props.messages).toEqual([{id:'m1',fromAi:false,body:'Radim vikendom.'}]);
  // A read whose last message is something else keeps the sentence on screen as not yet read back.
  mockApi.read.mockResolvedValue(ok({...snapshot(turn('PROCESSING')),messages:[{id:'m0',role:'ASSISTANT',body:'Čime se baviš?',sequence:1}]}));
- await click('Proveri stanje razgovora');
+ await click('Proveri razgovor');
  expect(shell().props.pending).toBe(true);expect(shell().props.sentMessage).toBe('Radim vikendom.');
 });
 it('held speech that is empty or over the limit is refused without a send',async()=>{
@@ -481,7 +481,7 @@ it('a server without dispatched-exit capability cannot enable retry, cancellatio
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
  await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(await manualDisabled()).toBe(true);
  expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Pošalji ponovo'})).toHaveLength(0);
- await click('Proveri stanje razgovora');expect(mockApi.send).not.toHaveBeenCalled();expect(action('Novi razgovor')).toBeTruthy();
+ await click('Proveri razgovor');expect(mockApi.send).not.toHaveBeenCalled();expect(action('Novi razgovor')).toBeTruthy();
 });
 it('canonical completed history retires key after restart without a provider call',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok({...snapshot(turn('SUCCEEDED')),messages:[{id:B,role:'USER',body:'Canonical text',sequence:1}]}));
@@ -545,7 +545,7 @@ it('dispatched unknown exposes explicit exit with cost copy and requires canonic
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));
  mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:true,retryAllowed:false})));
  await render();expect(action('Odustani od odgovora').props.disabled).toBe(false);
- expect(visibleText()).toContain('poruka se ipak računa kao poslata');expect(shell().props.canEdit).toBe(false);
+ expect(visibleText()).toContain('poruka je ipak poslata');expect(shell().props.canEdit).toBe(false);
  mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('FAILED',{providerDispatched:true,cancelled:true,canCancel:false,retryAllowed:false});
   mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok(snapshot(turn('FAILED'))));return ok(value);});
  await click('Odustani od odgovora');expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
@@ -567,7 +567,7 @@ it('completion winning the exit race keeps the actual completed profile proposal
  mockApi.cancelTurn.mockImplementationOnce(async()=>{const value=recovery('SUCCEEDED',{providerDispatched:true,canCancel:false,retryAllowed:false});
   mockApi.recoverTurn.mockResolvedValue(ok(value));mockApi.read.mockResolvedValue(ok({...snapshot(turn('SUCCEEDED')),messages:[{id:B,role:'ASSISTANT',body:'Stvarni završen odgovor'}]}));return ok(value);});
  await click('Odustani od odgovora');expect(shell().props.messages).toEqual([{id:B,fromAi:true,body:'Stvarni završen odgovor'}]);
- expect(visibleText()).not.toContain('Odgovor je otkazan i podaci su ostali nepromenjeni');expect(mockJournal.clear).toHaveBeenCalledWith(intent());
+ expect(visibleText()).not.toContain('Odgovor je zaustavljen');expect(mockJournal.clear).toHaveBeenCalledWith(intent());
  expect(mockApi.send).not.toHaveBeenCalled();
 });
 it('late dispatched exit after account reincarnation cannot clear the old journal or update the new screen',async()=>{

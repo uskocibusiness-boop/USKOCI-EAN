@@ -1,40 +1,26 @@
-import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
-import { AuthSheet } from '../ui/auth/AuthSheet';
-import { authTheme as authColors } from '../ui/auth/authTheme';
-import { radius, type } from '../theme/tokens';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import {
-  ActivityIndicator,
-  BackHandler,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { BackHandler, KeyboardAvoidingView, Linking, Platform, StyleSheet, View, type ScrollView, type TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  ArrowLeft,
-  EnvelopeSimple,
-  LockKey,
-  MapPin,
-  Phone,
-  User,
-} from 'phosphor-react-native';
 
-import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
-import { AuthIntentLine } from '../ui/auth/AuthIntentLine';
+import { T } from '../ui/Text';
+import { AuthIntro } from '../ui/auth/AuthPresentation';
+import { AuthSheet } from '../ui/auth/AuthSheet';
+import { AuthFlowFrame } from '../ui/auth/AuthFlowFrame';
+import { AuthFormFooter, AuthFormStep, type AuthCheck } from '../ui/auth/AuthFormStep';
+import { OtpStep, PhoneStep, PhoneUnavailableStep, RecoverySentStep, RecoveryStep, SignupNextStep } from '../ui/auth/AuthStateSteps';
+import { PrimaryButton } from '../ui/auth/AuthControls';
 import { RestrictedAccountScreen } from '../ui/auth/RestrictedAccountPanel';
+import { authCopy } from '../ui/auth/authCopy';
+import { defaultAuthMethods } from '../ui/auth/authMethods';
+import {
+  authFieldMessages, firstInvalidField, isEmailAddress, tidyCity, validateAuthForm, type AuthFieldErrors, type AuthFieldName,
+} from '../ui/auth/authValidation';
 import { publicSupportMailto } from '../ui/auth/supportContact';
-import { Segmented, type SegmentedOption } from '../ui/system/Segmented';
 
 import { authClientService } from '../data/authClientService';
-import { isRestrictedAccountFailure } from '../data/authFailureClasses';
+import { PROVIDER_UNAVAILABLE_COPY, RATE_LIMITED_COPY, isRestrictedAccountFailure } from '../data/authFailureClasses';
+import type { AuthAvailability } from '../contracts/authAvailability';
 import { useAuthAvailability } from '../hooks/useAuthAvailability';
 import { useAuthFormCommand } from '../hooks/useAuthFormCommand';
 import { EntryWelcome, type EntryIntentSelection } from '../ui/entry/EntryWelcome';
@@ -44,38 +30,12 @@ import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT' | 'RESTRICTED';
-
-/** The two ways in on one screen, in the order of the design proposal (N2): creating an account leads, because the entry's choice opens it. */
-const WAYS: readonly SegmentedOption<Rezim>[] = [{ key: 'SIGNUP', label: 'Napravi nalog' }, { key: 'LOGIN', label: 'Prijava' }];
-/** Said instead of a tick that recorded nothing (owner rule PKG-031) while the legal documents are not published. */
-const LEGAL_LINE = 'Uslovi korišćenja i pravila privatnosti još nisu objavljeni.';
-
-/** Only ways in that work are drawn, so there is no unavailable state left to draw. */
-function MethodButton({ title, icon, onPress, disabled }: {
-  title: string;
-  icon: React.ReactNode;
-  onPress?: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={title}
-      accessibilityState={{ disabled: !!disabled }}
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [styles.method, pressed && !disabled && styles.methodPressed]}
-    >
-      <View style={styles.methodIcon} accessible={false} importantForAccessibility="no-hide-descendants">{icon}</View>
-      <View style={styles.methodCopy}>
-        <Text style={styles.methodText}>{title}</Text>
-      </View>
-    </Pressable>
-  );
-}
+/** Said above the grey command when the server has email sign-in switched off. */
+const EMAIL_OFF = 'Prijava emailom trenutno nije dostupna.';
+/** What a failure offers as its next step: to sign in (an account may exist already) or to send the confirmation again. */
+type FailureNext = 'HAVE_ACCOUNT' | 'RESEND' | null;
 
 export default function AuthScreen() {
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ form?: string }>();
   const [, refreshEntryFocus] = useState(0);
   const entryScope = useRef({ focused: true, revision: 0, form: params.form });
@@ -119,24 +79,42 @@ export default function AuthScreen() {
   // starts the moment an intent is chosen, so it overlaps the doorway and the write instead of
   // queueing behind them. Someone who never touches the entry still causes no read.
   const availability = useAuthAvailability(otvoren || !!preparedIntent);
-  const methods = availability.status === 'ready' ? availability.data : null;
+  // THE FORM NEVER WAITS FOR THIS READ. Email and password is the way in; what the read finds only refines it (the phone, a
+  // closed sign-up). A read that is slow or fails leaves the form fully usable and says so quietly, under the form, with a way to
+  // try again (owner, on the phone and on the emulator, 2026-10-07: "Ne možemo da proverimo dostupne načine prijave" locked it).
+  // While the read is made again (the app came back to the front) the last answer stands, so nothing flickers.
+  const lastRead = useRef<AuthAvailability | null>(null);
+  if (availability.status === 'ready') lastRead.current = availability.data;
+  const methods: AuthAvailability = availability.status === 'ready' ? availability.data : lastRead.current ?? defaultAuthMethods();
+  const check: AuthCheck = availability.status === 'error' ? 'failed' : availability.status === 'ready' || lastRead.current ? 'done' : 'loading';
+  /** What the commands may rely on: a fresh answer if there is one, otherwise what the form offers by default. */
+  const offered = () => availability.current() ?? defaultAuthMethods();
+
   const [greska, setGreska] = useState<string | null>(null);
   const [poruka, setPoruka] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
+  const [failureNext, setFailureNext] = useState<FailureNext>(null);
+  const clearFeedback = () => { setGreska(null); setPoruka(null); setFieldErrors({}); setFailureNext(null); };
   const signOutReason = useSesija().signOutReason;
   // Owner decision 2026-10-07: a restricted account is its own screen, not a line of red text under the form. Nobody is signed
-  // in then, so there is no private support to open; "Piši podršci" is drawn only when the owner has given a public address.
+  // in then, so there is no private support to open; "Obrati se podršci" is drawn only when the owner has given a public address.
   const supportUrl = publicSupportMailto();
+  const inputRefs: Record<AuthFieldName, RefObject<TextInput | null>> = {
+    ime: useRef<TextInput>(null), prezime: useRef<TextInput>(null), grad: useRef<TextInput>(null),
+    email: useRef<TextInput>(null), lozinka: useRef<TextInput>(null),
+  };
 
   // A session the provider ended because the account is restricted shows that screen, once.
   useEffect(() => {
     if (signOutReason?.kind !== 'RESTRICTED_ACCOUNT') return;
     const shown = commands.changeForm(() => {
       setPreparedIntent(null); setRezim('LOGIN'); setFaza('RESTRICTED');
-      setLozinka(''); setOtp(''); setGreska(null); setPoruka(null);
+      setLozinka(''); setOtp(''); clearFeedback();
       setOtvoren(true);
     });
     // While an Auth command runs the form cannot change; `radi` re-runs this once it has settled.
     if (shown) potvrdiRazlogOdjave(signOutReason.revision);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signOutReason?.kind, signOutReason?.revision, commands.changeForm, radi]);
 
   const handledRouteForm = useRef(params.form);
@@ -151,9 +129,10 @@ export default function AuthScreen() {
       setPreparedIntent(null);
       setRezim('LOGIN');
       setFaza(params.form === 'recovery' ? 'RECOVERY' : 'EMAIL');
-      setLozinka(''); setGreska(null); setPoruka(null);
+      setLozinka(''); clearFeedback();
       setOtvoren(true);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.form, commands.changeForm]);
 
   // One step back, for the arrow and for the phone's Back: any step after the form returns to the sign-in form, and the form
@@ -161,7 +140,7 @@ export default function AuthScreen() {
   const retreat = () => commands.changeForm(() => {
     if (faza !== 'EMAIL') { setFaza('EMAIL'); setRezim('LOGIN'); }
     else setOtvoren(false);
-    setGreska(null); setPoruka(null);
+    clearFeedback();
   });
   useEffect(() => {
     if (!otvoren) return;
@@ -179,8 +158,7 @@ export default function AuthScreen() {
       setPreparedIntent(null);
       setRezim(mode);
       setFaza('EMAIL');
-      setGreska(null);
-      setPoruka(null);
+      clearFeedback();
       setOtvoren(true);
     });
   }
@@ -189,19 +167,23 @@ export default function AuthScreen() {
     commands.changeForm(() => {
       setRezim('LOGIN');
       setFaza('EMAIL');
-      setGreska(null);
-      setPoruka(null);
+      clearFeedback();
     });
   }
 
-  function prijaviGresku(error: unknown) {
+  function prijaviGresku(error: unknown, where: 'signup' | 'signin' | 'other' = 'other') {
     if (isRestrictedAccountFailure(error)) {
       // Nothing typed was wrong, and typing it again changes nothing: the secrets are cleared, the email stays.
-      setLozinka(''); setOtp(''); setGreska(null); setPoruka(null);
+      setLozinka(''); setOtp(''); clearFeedback();
       setFaza('RESTRICTED');
       return;
     }
-    setGreska(error instanceof Error ? error.message : 'Zahtev trenutno nije uspeo. Pokušaj ponovo.');
+    const message = error instanceof Error ? error.message : authCopy.failed;
+    setGreska(message);
+    // The one next step a failure can offer: an email that is not confirmed yet can be sent again; a sign-up that did not go
+    // through may be an account that is already there (owner research R21), unless the provider was only too busy or away.
+    setFailureNext(where === 'signin' && (error as { failureClass?: unknown } | null)?.failureClass === 'EMAIL_NOT_CONFIRMED' ? 'RESEND'
+      : where === 'signup' && message !== RATE_LIMITED_COPY && message !== PROVIDER_UNAVAILABLE_COPY ? 'HAVE_ACCOUNT' : null);
   }
 
   /**
@@ -218,26 +200,34 @@ export default function AuthScreen() {
       if (!current()) return;
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       if (changing) return;
-      setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null); setOtvoren(true);
+      setRezim('SIGNUP'); setFaza('EMAIL'); clearFeedback(); setOtvoren(true);
     }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušaj ponovo.'); });
   }
 
   async function emailAkcija() {
-    const ready = availability.current();
-    if (!ready || !(rezim === 'SIGNUP' ? ready.emailSignup : ready.emailPassword)) return;
+    const ready = offered();
+    if (!(rezim === 'SIGNUP' ? ready.emailSignup : ready.emailPassword)) return;
+    // What is missing or wrong is said under the field it is about, before anything is sent; the first such field takes the focus.
+    const problems = validateAuthForm(rezim, { ime, prezime, grad, email, lozinka });
+    const first = firstInvalidField(problems);
+    if (first) {
+      clearFeedback();
+      setFieldErrors(problems);
+      inputRefs[first].current?.focus();
+      return;
+    }
+    setFieldErrors({});
     await commands.run(async () => {
       setGreska(null);
       setPoruka(null);
-      if (!email.trim() || !lozinka) throw new Error('Unesi email i lozinku.');
+      setFailureNext(null);
       if (rezim === 'LOGIN') {
         await authClientService.signInWithPassword({ email: email.trim(), password: lozinka });
         return true;
       }
-      if (!ime.trim() || !prezime.trim() || !grad.trim()) throw new Error('Unesi ime, prezime i grad.');
-      if (lozinka.length < 6) throw new Error('Lozinka mora imati najmanje 6 znakova.');
       const result = await authClientService.signUp({
         email: email.trim(), password: lozinka,
-        firstName: ime.trim(), lastName: prezime.trim(), city: grad.trim(),
+        firstName: ime.trim(), lastName: prezime.trim(), city: tidyCity(grad),
       });
       return result.hasSession;
     }, hasSession => {
@@ -246,27 +236,26 @@ export default function AuthScreen() {
         setConfirmationRequired(ready.emailConfirmationRequired);
         setFaza('SIGNUP_NEXT_STEP');
       }
-    }, prijaviGresku);
+    }, error => prijaviGresku(error, rezim === 'SIGNUP' ? 'signup' : 'signin'));
   }
 
   async function ponoviPotvrduEmaila() {
     if (!confirmationRequired || !email.trim()) return;
     await commands.run(async () => {
-      setGreska(null); setPoruka(null);
+      clearFeedback();
       await authClientService.resendSignupConfirmation(email.trim());
-    }, () => setPoruka('Zahtev za novu potvrdu je prihvaćen. Proveri email i neželjenu poštu.'), prijaviGresku);
+    }, () => setPoruka('Poslali smo novu poruku za potvrdu. Proveri email i neželjenu poštu.'), error => prijaviGresku(error));
   }
 
   async function posaljiTelefon() {
     if (!availability.current()?.phoneOtp) return;
     await commands.run(async () => {
-      setGreska(null);
-      setPoruka(null);
+      clearFeedback();
       await authClientService.sendPhoneOtp({ phone: telefon.trim() });
     }, () => {
       setFaza('OTP');
-      setPoruka('Zahtev za kod je prihvaćen.');
-    }, prijaviGresku);
+      setPoruka('Poslali smo ti kod.');
+    }, error => prijaviGresku(error));
   }
 
   async function potvrdiOtp() {
@@ -274,365 +263,129 @@ export default function AuthScreen() {
     await commands.run(async () => {
       setGreska(null);
       await authClientService.verifyPhoneOtp({ phone: telefon.trim(), token: otp.trim() });
-    }, () => {}, prijaviGresku);
+    }, () => {}, error => prijaviGresku(error));
   }
 
   async function zatraziOporavak() {
-    if (!availability.current()?.passwordRecovery) return;
+    if (!offered().passwordRecovery) return;
+    // The address is checked here, under its field; the service checks it again before it sends anything.
+    if (!email.trim() || !isEmailAddress(email)) {
+      clearFeedback();
+      setFieldErrors({ email: email.trim() ? authFieldMessages.emailInvalid : authFieldMessages.emailMissing });
+      inputRefs.email.current?.focus();
+      return;
+    }
+    setFieldErrors({});
     await commands.run(async () => {
       setGreska(null); setPoruka(null);
       await authClientService.requestPasswordRecovery(email);
     }, () => {
       setLozinka(''); setFaza('RECOVERY_SENT');
-    }, prijaviGresku);
+    }, error => prijaviGresku(error));
   }
 
-  // The form step is one calm screen for both ways in (N2): one greeting, the switch under it, nothing else named twice. The
-  // other steps keep their own title and one sentence.
-  const naslov =
-    faza === 'PHONE'
-      ? rezim === 'SIGNUP' ? 'Napravi nalog telefonom' : 'Prijavi se telefonom'
-      : faza === 'OTP'
-        ? 'Unesi kod'
-        : faza === 'RECOVERY'
-          ? 'Vrati pristup nalogu.'
-          : faza === 'RECOVERY_SENT' ? 'Proveri email'
-          : faza === 'SIGNUP_NEXT_STEP'
-            ? confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'
-            : 'Zdravo.';
-
-  const podnaslov =
-    faza === 'PHONE'
-      ? 'Unesi broj telefona.'
-      : faza === 'OTP'
-        ? 'Unesi kod kada stigne na tvoj broj.'
-        : faza === 'RECOVERY'
-          ? methods?.passwordRecovery ? 'Unesi email koji koristiš za USKOČI.' : 'Ova mogućnost još nije dostupna u aplikaciji.'
-          : faza === 'RECOVERY_SENT' ? 'Zahtev za oporavak je prihvaćen.'
-          : faza === 'SIGNUP_NEXT_STEP'
-            ? confirmationRequired ? 'Prati uputstvo za potvrdu registracije.' : 'Vrati se na prijavu.'
-            : undefined;
-
-  const recoveryStage = faza === 'RECOVERY' || faza === 'RECOVERY_SENT';
-  const stageComposition = recoveryStage || faza === 'SIGNUP_NEXT_STEP';
-  const formStyle = [styles.form, stageComposition && authStageForm];
   // Each way in starts at its own top: the switch scrolls the form back up, so the fields of the longer one are never hidden
   // above where the shorter one had been scrolled to (the form is one surface, so it is the same ScrollView that rewinds).
   const scroller = useRef<ScrollView>(null);
   const switchWay = (next: Rezim) => commands.changeForm(() => {
-    setRezim(next); setGreska(null); setPoruka(null);
+    setRezim(next); clearFeedback();
     scroller.current?.scrollTo?.({ y: 0, animated: false });
   });
-  const headerTitle = recoveryStage ? 'Oporavak pristupa' : faza === 'EMAIL' ? null : rezim === 'SIGNUP' ? 'Registracija' : 'Prijava';
-  const signUpOffered = faza === 'EMAIL' && !!methods?.emailPassword && !!methods.emailSignup;
+  const onValue = (name: AuthFieldName, value: string) => commands.changeForm(() => {
+    ({ ime: setIme, prezime: setPrezime, grad: setGrad, email: setEmail, lozinka: setLozinka })[name](value);
+    // What was said about a field is not true any more once it is edited; neither is the answer to the last command.
+    setFieldErrors(current => {
+      if (current[name] === undefined) return current;
+      const { [name]: _gone, ...rest } = current;
+      return rest;
+    });
+    if (name === 'email' || name === 'lozinka') { setGreska(null); setFailureNext(null); }
+  });
+
+  const failureAction = failureNext === 'HAVE_ACCOUNT' ? { note: 'Možda već imaš nalog.', label: authCopy.signIn, onPress: () => { switchWay('LOGIN'); } }
+    : failureNext === 'RESEND' ? { label: 'Pošalji ponovo potvrdu', onPress: () => { void ponoviPotvrduEmaila(); } } : null;
+  const signupClosed = rezim === 'SIGNUP' && !methods.emailSignup;
+  const toSignIn = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} busy={radi} />;
+
+  // What the step shows and the one green command that stands in the foot of the sheet. Every step has exactly one.
+  let content: ReactNode = null;
+  let footer: ReactNode = null;
+  let footerReason: string | undefined;
+  if (faza === 'EMAIL') {
+    if (signupClosed) {
+      content = <>
+        <AuthIntro title={authCopy.signUp} />
+        <T variant="copy" tone="muted">Otvaranje novih naloga trenutno nije dostupno.</T>
+      </>;
+      footer = toSignIn;
+    } else {
+      content = <AuthFormStep way={rezim} onWay={switchWay} emailOpen={methods.emailPassword} signUpOpen={methods.emailSignup}
+        phoneOpen={methods.phoneOtp} intent={selectedIntent} onIntentChange={next => { void izaberiNameru(next, undefined, true); }}
+        values={{ ime, prezime, grad, email, lozinka }} onValue={onValue}
+        onCityBlur={() => { const tidy = tidyCity(grad); if (tidy !== grad) commands.changeForm(() => setGrad(tidy)); }}
+        errors={fieldErrors} failure={greska} failureAction={failureAction} notice={poruka} confirmEmail={methods.emailConfirmationRequired}
+        busy={radi} check={check} onRetryCheck={() => void availability.retry()}
+        onForgot={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); clearFeedback(); })}
+        onPhone={() => commands.changeForm(() => { setFaza('PHONE'); clearFeedback(); })}
+        onSubmit={() => void emailAkcija()} inputRefs={inputRefs} />;
+      // The server has email sign-in switched off: the green command is there, grey, and the line above it says why (the system foot's reason).
+      footer = methods.emailPassword ? <AuthFormFooter way={rezim} busy={radi} onSubmit={() => void emailAkcija()} />
+        : <PrimaryButton title={authCopy.signIn} onPress={() => undefined} disabled />;
+      footerReason = methods.emailPassword ? undefined : EMAIL_OFF;
+    }
+  } else if (faza === 'PHONE' || faza === 'OTP') {
+    if (!methods.phoneOtp) {
+      content = <PhoneUnavailableStep />;
+      footer = toSignIn;
+    } else if (faza === 'PHONE') {
+      content = <PhoneStep signUp={rezim === 'SIGNUP'} phone={telefon} onChange={value => commands.changeForm(() => setTelefon(value))}
+        editable={!radi} error={null} failure={greska} onSubmit={() => void posaljiTelefon()} />;
+      footer = <PrimaryButton title="Pošalji kod" onPress={() => void posaljiTelefon()} busy={radi} />;
+    } else {
+      content = <OtpStep code={otp} onChange={value => commands.changeForm(() => setOtp(value))} editable={!radi} error={null}
+        notice={poruka} failure={greska} busy={radi} onSubmit={() => void potvrdiOtp()} onResend={() => void posaljiTelefon()}
+        onChangePhone={() => commands.changeForm(() => setFaza('PHONE'))} />;
+      footer = <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />;
+    }
+  } else if (faza === 'RECOVERY') {
+    content = <RecoveryStep available={methods.passwordRecovery} email={email} onChange={value => onValue('email', value)} editable={!radi}
+      error={fieldErrors.email ?? null} inputRef={inputRefs.email} failure={greska} onSubmit={() => void zatraziOporavak()} />;
+    footer = methods.passwordRecovery ? <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} /> : toSignIn;
+  } else if (faza === 'RECOVERY_SENT') {
+    content = <RecoverySentStep email={email} onChangeEmail={() => commands.changeForm(() => { setFaza('RECOVERY'); clearFeedback(); })} />;
+    footer = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} />;
+  } else if (faza === 'SIGNUP_NEXT_STEP') {
+    content = <SignupNextStep confirmationRequired={confirmationRequired} email={email} notice={poruka} failure={greska} busy={radi}
+      onResend={() => void ponoviPotvrduEmaila()} onChangeEmail={() => commands.changeForm(() => { setRezim('SIGNUP'); setFaza('EMAIL'); clearFeedback(); })} />;
+    footer = toSignIn;
+  }
 
   return (
-    <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.fill}>
     {/* While the restricted-account screen stands over it, what lies beneath is neither read aloud nor reachable. */}
-    <View style={{ flex: 1 }} importantForAccessibility={faza === 'RESTRICTED' ? 'no-hide-descendants' : 'auto'}
+    <View style={styles.fill} importantForAccessibility={faza === 'RESTRICTED' ? 'no-hide-descendants' : 'auto'}
       accessibilityElementsHidden={faza === 'RESTRICTED'}>
     {/* The sheet keeps one height while both ways are (or are about to be) offered, so switching between them never moves its edge. */}
-    <AuthSheet visible={otvoren} expanded={rezim === 'SIGNUP' || (faza === 'EMAIL' && (!methods || (methods.emailPassword && methods.emailSignup)))}
+    <AuthSheet visible={otvoren} expanded={faza === 'EMAIL' || rezim === 'SIGNUP'}
       backdrop={entrySeen ? <EntryWelcome
       onRequester={selection => izaberiNameru('REQUESTER', selection)} onWorker={selection => izaberiNameru('WORKER', selection)}
       onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>
-    <View onLayout={onFormLayout} style={styles.screen}>
+    <View onLayout={onFormLayout} style={styles.fill}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={radi}
-          onPress={() => { retreat(); }} style={({ pressed }) => [styles.backButton, pressed && styles.methodPressed]}><ArrowLeft size={22} color={authColors.ink} /></Pressable>
-        {headerTitle ? <View style={styles.headerTitles}>
-          <Text style={styles.headerTitle}>{headerTitle}</Text>
-        </View> : null}
-      </View>
-      <View style={{ flex: 1, minHeight: 0 }}>
-        <ScrollView ref={scroller} key={faza} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.sheetScroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
-          <View style={styles.formColumn}>
-            <AuthIntro composition={stageComposition ? 'stage' : 'hero'} title={naslov} copy={podnaslov} />
-            {signUpOffered ? <View style={styles.way}>
-              <Segmented options={WAYS} value={rezim} onChange={switchWay} />
-            </View> : null}
-            {/* What the person came to do stays as one sentence with its one command (N2). It is kept for either way in:
-                after signing in they land where they were going. */}
-            {faza === 'EMAIL' && selectedIntent ? <View style={styles.way}>
-              <AuthIntentLine intent={selectedIntent} disabled={radi} onChange={next => { void izaberiNameru(next, undefined, true); }} />
-            </View> : null}
-            {faza === 'EMAIL' && rezim === 'SIGNUP' && signUpOffered
-              ? <Text style={styles.oneAccount}>Jedan nalog. Možeš i da tražiš pomoć i da uskočiš drugima.</Text> : null}
-            {poruka ? <View style={[styles.banner, styles.bannerOk]}><Text style={styles.bannerOkText}>{poruka}</Text></View> : null}
-
-            {faza === 'RESTRICTED' ? null : availability.status === 'loading' ? (
-              <View accessibilityRole="progressbar" style={formStyle}>
-                <ActivityIndicator color={authColors.muted} />
-                <Text style={styles.stateCopy}>Proveravamo dostupne načine prijave…</Text>
-              </View>
-            ) : availability.status === 'error' ? (
-              <View style={formStyle}>
-                <Text style={styles.stateCopy}>Ne možemo da proverimo dostupne načine prijave. Proveri vezu i pokušaj ponovo.</Text>
-                <PrimaryButton title="Pokušaj ponovo" busy={radi} onPress={() => void availability.retry()} />
-              </View>
-            ) : null}
-
-            {faza === 'EMAIL' && methods ? (
-              <>
-                {methods.emailPassword ? <View style={formStyle}>
-                  {rezim === 'SIGNUP' && methods.emailSignup ? (
-                    <>
-                      <AuthField
-                        label="Ime"
-                        value={ime}
-                        onChangeText={(value) => commands.changeForm(() => setIme(value))}
-                        editable={!radi}
-                        autoCapitalize="words"
-                        placeholder="Ime"
-                        icon={<User size={21} color={authColors.muted} />}
-                      />
-                      <AuthField
-                        label="Prezime"
-                        value={prezime}
-                        onChangeText={(value) => commands.changeForm(() => setPrezime(value))}
-                        editable={!radi}
-                        autoCapitalize="words"
-                        placeholder="Prezime"
-                        icon={<User size={21} color={authColors.muted} />}
-                      />
-                      <AuthField
-                        label="Grad"
-                        value={grad}
-                        onChangeText={(value) => commands.changeForm(() => setGrad(value))}
-                        editable={!radi}
-                        autoCapitalize="words"
-                        placeholder="Tvoj grad"
-                        icon={<MapPin size={21} color={authColors.muted} />}
-                      />
-                    </>
-                  ) : null}
-
-                  <AuthField
-                    label="Email"
-                    value={email}
-                    onChangeText={(value) => commands.changeForm(() => setEmail(value))}
-                    editable={!radi}
-                    keyboardType="email-address"
-                    placeholder="ime@primer.rs"
-                    icon={<EnvelopeSimple size={21} color={authColors.muted} />}
-                  />
-                  <AuthField
-                    key={`password:${rezim}`}
-                    label="Lozinka"
-                    value={lozinka}
-                    onChangeText={(value) => commands.changeForm(() => setLozinka(value))}
-                    editable={!radi}
-                    placeholder="Unesi lozinku"
-                    secure
-                    newPassword={rezim === 'SIGNUP'}
-                    icon={<LockKey size={21} color={authColors.muted} />}
-                  />
-
-                  <View style={styles.feedback} accessibilityLiveRegion="polite">
-                    {greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
-                  </View>
-
-                  {rezim === 'LOGIN' ? (
-                    <Pressable accessibilityRole="button" disabled={radi} onPress={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); setGreska(null); setPoruka(null); })} style={styles.forgot}>
-                      <Text style={styles.forgotText}>Zaboravljena lozinka?</Text>
-                    </Pressable>
-                  ) : null}
-                </View> : <Text style={styles.stateCopy}>Prijava emailom trenutno nije dostupna.</Text>}
-
-
-
-                {methods.emailPassword && !methods.emailSignup ? (
-                  <Text style={styles.smallNote}>Otvaranje novih naloga trenutno nije dostupno.</Text>
-                ) : null}
-                {rezim === 'SIGNUP' && !methods.emailSignup ? (
-                  <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
-                ) : null}
-                {rezim === 'SIGNUP' && methods.emailSignup && methods.emailConfirmationRequired ? (
-                  <Text style={styles.smallNote}>Pre prve prijave potrebno je da potvrdiš email.</Text>
-                ) : null}
-                {/* Owner decision, 2026-09-18: a way in that does not work is not shown. Google and
-                    Apple wait on an OAuth client that server settings alone cannot make ready, and
-                    Telefon appears only when the server says it is on. Three dead buttons under
-                    "Drugi načini prijave" read as an app that is broken, not one that is early. */}
-                {methods.phoneOtp ? (
-                  <View style={styles.methods}>
-                    <Text style={styles.methodHeading}>Drugi načini prijave</Text>
-                    <MethodButton
-                      title="Telefon"
-                      icon={<Phone size={23} color={authColors.methodIcon} />}
-                      disabled={radi}
-                      onPress={() => commands.changeForm(() => { setFaza('PHONE'); setGreska(null); setPoruka(null); })}
-                    />
-                  </View>
-                ) : rezim === 'LOGIN' ? (
-                  // Said where the other ways in would stand; on the form that makes an account it would only be a second note.
-                  <Text style={styles.smallNote}>Za sada se ulazi email adresom i lozinkom.</Text>
-                ) : null}
-
-
-              </>
-            ) : null}
-
-            {faza === 'PHONE' && methods?.phoneOtp ? (
-              <View style={formStyle}>
-                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={nazadNaEmail} style={styles.backRow}>
-                  <ArrowLeft size={16} color={authColors.muted} />
-                  <Text style={styles.backText}>Nazad na prijavu</Text>
-                </Pressable>
-                <AuthField
-                  label="Broj telefona"
-                  value={telefon}
-                  onChangeText={(value) => commands.changeForm(() => setTelefon(value))}
-                  editable={!radi}
-                  keyboardType="phone-pad"
-                  placeholder="+381 6x xxx xxxx"
-                  icon={<Phone size={21} color={authColors.muted} />}
-                />
-                <Text style={styles.smallNote}>Poslaćemo ti jednokratni kod.</Text>
-                <PrimaryButton title="Pošalji kod" onPress={() => void posaljiTelefon()} busy={radi} />
-              </View>
-            ) : null}
-
-            {faza === 'OTP' && methods?.phoneOtp ? (
-              <View style={formStyle}>
-                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => commands.changeForm(() => setFaza('PHONE'))} style={styles.backRow}>
-                  <ArrowLeft size={16} color={authColors.muted} />
-                  <Text style={styles.backText}>Promeni broj</Text>
-                </Pressable>
-                <View style={styles.stateIcon}><Phone size={28} color={authColors.muted} /></View>
-                <Text style={styles.stateTitle}>Unesi kod</Text>
-                <Text style={styles.stateCopy}>Unesi primljeni kod. Ako ne stigne, možeš zatražiti novi.</Text>
-                <AuthField
-                  label="Kod"
-                  value={otp}
-                  onChangeText={(value) => commands.changeForm(() => setOtp(value))}
-                  editable={!radi}
-                  keyboardType="number-pad"
-                  placeholder="123456"
-                  icon={<LockKey size={21} color={authColors.muted} />}
-                />
-                <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />
-                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => void posaljiTelefon()} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Pošalji novi kod</Text>
-                </Pressable>
-              </View>
-            ) : null}
-
-            {(faza === 'PHONE' || faza === 'OTP') && methods && !methods.phoneOtp ? (
-              <View style={formStyle}>
-                <Text style={styles.stateCopy}>Prijava telefonom trenutno nije dostupna.</Text>
-                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
-              </View>
-            ) : null}
-
-            {faza === 'RECOVERY' && methods ? (
-              <View style={formStyle}>
-                <View style={styles.stateIcon}><LockKey size={28} color={authColors.muted} /></View>
-                {methods.passwordRecovery ? <>
-                  <AuthField label="Email" value={email} onChangeText={value => commands.changeForm(() => setEmail(value))}
-                    editable={!radi} keyboardType="email-address" placeholder="ime@primer.rs" />
-                  <Text style={styles.stateCopy}>Otvorićeš link iz emaila i izabrati novu lozinku. Tvoji zadaci i Dogovori ostaju na istom nalogu.</Text>
-                  <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} />
-                </> : <Text style={styles.stateCopy}>Oporavak lozinke još nije dostupan u aplikaciji. Možeš se vratiti na prijavu.</Text>}
-                <Pressable accessibilityRole="button" disabled={radi} style={styles.linkButton} onPress={nazadNaEmail}>
-                  <Text style={styles.linkText}>Nazad na prijavu</Text>
-                </Pressable>
-              </View>
-            ) : null}
-
-            {faza === 'RECOVERY_SENT' ? <View style={formStyle}>
-              <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
-              <Text style={styles.stateCopy}>Ako nalog sa ovim emailom postoji, dobićeš link za novu lozinku. Proveri i neželjenu poštu.</Text>
-              <Text style={styles.smallNote}>{email.trim()}</Text>
-              <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} />
-              <Pressable accessibilityRole="button" style={styles.linkButton} onPress={() => commands.changeForm(() => {
-                setFaza('RECOVERY'); setGreska(null); setPoruka(null);
-              })}><Text style={styles.linkText}>Izmeni email ili ponovi zahtev</Text></Pressable>
-            </View> : null}
-
-            {faza === 'SIGNUP_NEXT_STEP' ? (
-              <View style={formStyle}>
-                <View style={styles.stateIcon}><EnvelopeSimple size={28} color={authColors.muted} /></View>
-                <Text style={styles.stateTitle}>{confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'}</Text>
-                <Text style={styles.stateCopy}>{confirmationRequired
-                  ? 'Ako je registracija prihvaćena, potvrdi email preko poruke koju dobiješ. Link te vraća na USKOČI prijavu.'
-                  : 'Nalog još nije prijavljen. Vrati se na prijavu. Ako ti je stigla poruka za potvrdu emaila, prvo prati njeno uputstvo.'}</Text>
-                <PrimaryButton title="Nazad na prijavu" onPress={nazadNaEmail} busy={radi} />
-                {confirmationRequired ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi}
-                  onPress={() => void ponoviPotvrduEmaila()} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Pošalji ponovo potvrdu</Text>
-                </Pressable> : null}
-                <Pressable accessibilityRole="button" accessibilityState={{ disabled: radi }} disabled={radi} onPress={() => commands.changeForm(() => {
-                  setRezim('SIGNUP'); setFaza('EMAIL'); setGreska(null); setPoruka(null);
-                })} style={styles.linkButton}>
-                  <Text style={styles.linkText}>Izmeni email</Text>
-                </Pressable>
-              </View>
-            ) : null}
-            {faza !== 'EMAIL' && greska ? <Text accessibilityRole="alert" style={styles.bannerErrorText}>{greska}</Text> : null}
-          </View>
-        </ScrollView>
-        {faza === 'EMAIL' && methods?.emailPassword ? <View style={[styles.authFooter, { paddingBottom: Math.max(16, insets.bottom) }]}>
-          <View style={styles.footerColumn}>
-            <PrimaryButton
-              title={rezim === 'SIGNUP' ? 'Napravi nalog' : 'Prijavi se'}
-              disabled={rezim === 'SIGNUP' && !methods.emailSignup}
-              onPress={() => void emailAkcija()}
-              busy={radi}
-            />
-            {/* Deep read 8.2, owner decision 2026-09-21 (PKG-031): the tick asked to accept two documents that are not
-                published yet and recorded nothing. The screen says so instead, once, under the command that creates the
-                account; the recorded acceptance (profil/pravna) takes over once they are published. */}
-            {rezim === 'SIGNUP' && methods.emailSignup ? <Text style={styles.legal}>{LEGAL_LINE}</Text> : null}
-          </View>
-        </View> : null}
-      </View>
+      <AuthFlowFrame onBack={() => { retreat(); }} backDisabled={radi} scrollRef={scroller} scrollKey={faza} footer={footer} footerReason={footerReason}>
+        {content}
+      </AuthFlowFrame>
     </View>
     </AuthSheet>
     </View>
     {/* N3: a restricted account has a screen of its own, not a window over the entry. There is no bottom bar on /auth, and the
         one way out goes back to the sign-in form (nobody is signed in, so there is nothing to sign out of). */}
-    {faza === 'RESTRICTED' ? <RestrictedAccountScreen exitLabel="Nazad na prijavu" onExit={nazadNaEmail} busy={radi}
+    {faza === 'RESTRICTED' ? <RestrictedAccountScreen exitLabel={authCopy.backToSignIn} onExit={nazadNaEmail} busy={radi}
       onSupport={supportUrl ? () => Linking.openURL(supportUrl) : undefined} /> : null}
     </KeyboardAvoidingView></>
   );
 }
 
 const styles = StyleSheet.create({
-  authFooter: { borderTopWidth: 1, borderTopColor: authColors.divider, backgroundColor: authColors.surface, paddingTop: 12, paddingHorizontal: 22 },
-  footerColumn: { width: '100%', maxWidth: 412, alignSelf: 'center', gap: 8 },
-  legal: { ...type.note, fontWeight: '400', color: authColors.muted, textAlign: 'center' },
-  screen: { flex: 1, backgroundColor: 'transparent' },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
-  backButton: { width: 48, height: 48, borderRadius: radius.control, borderWidth: 1, borderColor: authColors.line, backgroundColor: authColors.input, alignItems: 'center', justifyContent: 'center' },
-  headerTitles: { flex: 1 },
-  headerTitle: { ...type.heading, textAlign: 'left', fontWeight: '600', color: authColors.ink },
-  sheetScroll: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 22, paddingTop: 4 },
-  formColumn: { width: '100%', maxWidth: 412 },
-  way: { marginBottom: 14 },
-  oneAccount: { ...type.note, fontWeight: '400', color: authColors.muted, marginBottom: 14 },
-  form: { gap: 14, backgroundColor: 'transparent', borderWidth: 0, padding: 0, marginTop: 0 },
-  feedback: { marginTop: -6 },
-  banner: { marginBottom: 12, borderRadius: radius.control, padding: 12 },
-  bannerOk: { backgroundColor: authColors.soft },
-  bannerOkText: { ...type.note, color: authColors.ink },
-  bannerErrorText: { ...type.note, color: authColors.error },
-  forgot: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-end', marginTop: -6 },
-  forgotText: { ...type.tab, color: authColors.accentLight },
-  methods: { marginTop: 20, gap: 10 },
-  methodHeading: { ...type.meta, fontWeight: '600', color: authColors.muted, marginBottom: 2 },
-  method: { minHeight: 56, borderRadius: radius.control, borderWidth: 1, borderColor: authColors.methodLine, backgroundColor: authColors.methodSurface, flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 14 },
-  methodPressed: { opacity: 0.76 },
-  methodIcon: { width: 24, height: 24, flexShrink: 0 },
-  methodCopy: { flex: 1, minWidth: 0, gap: 3 },
-  methodText: { ...type.bodyStrong, color: authColors.methodInk },
-  backRow: { flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 48 },
-  backText: { ...type.tab, color: authColors.accentLight },
-  smallNote: { ...type.meta, color: authColors.muted, marginVertical: 12 },
-  stateIcon: { width: 56, height: 56, borderRadius: radius.cardCompact, alignItems: 'center', justifyContent: 'center', backgroundColor: authColors.stateWell },
-  stateTitle: { ...type.title, color: authColors.ink },
-  stateCopy: { ...type.copy, color: authColors.muted },
-  linkButton: { minHeight: 48, justifyContent: 'center' },
-  linkText: { ...type.tab, color: authColors.accentLight },
+  fill: { flex: 1 },
 });

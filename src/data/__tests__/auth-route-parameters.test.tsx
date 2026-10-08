@@ -51,10 +51,10 @@ const textOf = (node: ReactTestInstance): string => node.children.map(child => t
 const isTab = (node: ReactTestInstance) => node.props.accessibilityRole === 'tab';
 const button = (label: string) => host('Pressable').find(node => !isTab(node) && textOf(node).trim() === label)!;
 const tab = (label: string) => host('Pressable').find(node => isTab(node) && textOf(node).trim() === label)!;
-const input = (placeholder: string) => host('TextInput').find(node => node.props.placeholder === placeholder)!;
+const input = (label: string) => host('TextInput').find(node => node.props.accessibilityLabel === label)!;
 async function press(label: string) { await act(async () => button(label).props.onPress()); }
 async function pressTab(label: string) { await act(async () => tab(label).props.onPress()); }
-async function fill(placeholder: string, value: string) { await act(async () => input(placeholder).props.onChangeText(value)); }
+async function fill(label: string, value: string) { await act(async () => input(label).props.onChangeText(value)); }
 function deferred<T>() {
   let resolve!: (value: T) => void; let reject!: (error: Error) => void;
   const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
@@ -71,12 +71,12 @@ it('says the legal documents are not published yet instead of asking to accept t
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
   await pressTab('Napravi nalog');
-  await fill('ime@primer.rs', 'ana@example.test');
+  await fill('Email', 'ana@example.test');
   expect(host('Pressable').filter(node => node.props.accessibilityRole === 'checkbox')).toHaveLength(0);
   expect(host('Text').filter(node => node.props.accessibilityRole === 'link')).toHaveLength(0);
   expect(host('LegalModal')).toHaveLength(0);
-  expect(textOf(tree.root)).toContain('Uslovi korišćenja i pravila privatnosti još nisu objavljeni.');
-  expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+  expect(textOf(tree.root)).toContain('Uslovi korišćenja i Politika privatnosti još nisu objavljeni.');
+  expect(input('Email').props.value).toBe('ana@example.test');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
 });
 
@@ -89,7 +89,7 @@ it('opens a cold native login destination whose query arrives after the Auth scr
   // An already displayed original entry stays behind the V5 sheet but is inaccessible.
   expect(tree.root.findAllByType('Hero' as React.ElementType)).toHaveLength(1);
   expect(host('View').some(node => node.props.importantForAccessibility === 'no-hide-descendants' && node.props.pointerEvents === 'none')).toBe(true);
-  expect(input('ime@primer.rs')).toBeDefined();
+  expect(input('Email')).toBeDefined();
   expect(button('Prijavi se')).toBeDefined();
   expect(mockSplashOptions).toHaveBeenLastCalledWith({ enabled: true });
   expect(host('View').some(node => node.props.onLayout === mockFormLayout)).toBe(true);
@@ -100,17 +100,18 @@ it('handles a later recovery destination without remounting or carrying an enter
   mockParams = { form: 'login' };
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   await act(async () => { tree = create(<AuthScreen />); });
-  await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'private-password');
+  await fill('Email', 'ana@example.test'); await fill('Lozinka', 'private-password');
   const oldLogin = button('Prijavi se').props.onPress;
   mockParams = { form: 'recovery' };
   await act(async () => tree.update(<AuthScreen />));
   expect(button('Pošalji link')).toBeDefined();
   expect(host('TextInput')).toHaveLength(1);
-  expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+  expect(input('Email').props.value).toBe('ana@example.test');
   await act(async () => oldLogin());
   expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
-  await press('Nazad na prijavu');
-  expect(input('Unesi lozinku').props.value).toBe('');
+  // The way back is the one arrow in the bar (the step has no second "Nazad" of its own).
+  await act(async () => host('Pressable').find(node => node.props.accessibilityLabel === 'Nazad')!.props.onPress());
+  expect(input('Lozinka').props.value).toBe('');
 });
 
 it('does not replay an unchanged route parameter over the user-selected registration form', async () => {
@@ -127,7 +128,7 @@ it('does not interrupt or silently queue a conflicting route during an in-flight
   mockParams = { form: 'login' };
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   await act(async () => { tree = create(<AuthScreen />); });
-  await fill('ime@primer.rs', 'ana@example.test'); await fill('Unesi lozinku', 'private-password');
+  await fill('Email', 'ana@example.test'); await fill('Lozinka', 'private-password');
   const pending = deferred<void>(); mockAuth.signInWithPassword.mockReturnValueOnce(pending.promise);
   await act(async () => button('Prijavi se').props.onPress());
   mockParams = { form: 'recovery' };
@@ -135,7 +136,7 @@ it('does not interrupt or silently queue a conflicting route during an in-flight
   expect(host('TextInput')).toHaveLength(2);
   expect(button('Pošalji link')).toBeUndefined();
   await act(async () => pending.reject(new Error('Prijava nije potvrđena.')));
-  expect(input('Unesi lozinku').props.value).toBe('private-password');
+  expect(input('Lozinka').props.value).toBe('private-password');
   expect(button('Pošalji link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
 });
@@ -143,10 +144,10 @@ it('does not interrupt or silently queue a conflicting route during an in-flight
 it('ignores an unknown or removed form parameter without discarding user input', async () => {
   mockParams = { form: 'login' };
   await act(async () => { tree = create(<AuthScreen />); });
-  await fill('ime@primer.rs', 'ana@example.test');
+  await fill('Email', 'ana@example.test');
   for (const form of ['untrusted', undefined]) {
     mockParams = { form }; await act(async () => tree.update(<AuthScreen />));
-    expect(input('ime@primer.rs').props.value).toBe('ana@example.test');
+    expect(input('Email').props.value).toBe('ana@example.test');
     expect(button('Prijavi se')).toBeDefined();
   }
 });

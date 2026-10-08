@@ -23,7 +23,7 @@ jest.mock('../../system/motion', () => ({ useReducedMotion: () => mockReduced })
 
 /**
  * Permissions in context (design proposal N, owner 2026-10-07): right before the system asks, a small dialog with a picture, ONE
- * question and "Dozvoli" / "Ne sada". The system window follows only on "Dozvoli"; "Ne sada" asks the system nothing.
+ * question and "Nastavi" / "Ne sada". The system window follows only on "Nastavi"; "Ne sada" asks the system nothing.
  */
 let tree: ReactTestRenderer | undefined;
 const mount = async (element: React.ReactElement = <PermissionAskHost />) => { await act(async () => { tree = create(element); }); };
@@ -51,7 +51,7 @@ describe('without a host to draw it', () => {
 });
 
 describe('the question', () => {
-  it.each(Object.keys(PERMISSION_ASK_COPY) as PermissionKind[])('%s: a picture, ONE question, one sentence, a green "Dozvoli" and a quiet "Ne sada"', async kind => {
+  it.each(Object.keys(PERMISSION_ASK_COPY) as PermissionKind[])('%s: a picture, ONE question, one sentence, a green "Nastavi" and a quiet "Ne sada"', async kind => {
     await mount();
     const { result } = ask(kind);
     await act(async () => {});
@@ -63,7 +63,7 @@ describe('the question', () => {
     expect([...new Set(art.map(node => node.props.kind))]).toEqual([copy.art]);
     expect(root().findAll(node => typeof node.type !== 'string' && node.props.kind !== undefined && node.props.size !== 64)).toHaveLength(0);
     // The only commands are the two answers (the dim behind the card is the tap-outside area, not a Press).
-    expect(root().findAllByType(Press).map(node => node.props.accessibilityLabel)).toEqual(['Dozvoli', 'Ne sada']);
+    expect(root().findAllByType(Press).map(node => node.props.accessibilityLabel)).toEqual(['Nastavi', 'Ne sada']);
     expect(flat(byTestId('permission-ask-allow').props.style)).toMatchObject({ backgroundColor: sys.color.green, minHeight: brandAction.minHeight, borderRadius: sys.radius.primary });
     expect(flat(byTestId('permission-ask-later').props.style).backgroundColor).toBeUndefined();
     expect(flat(byTestId('permission-ask-later').props.style).minHeight).toBeGreaterThanOrEqual(48);
@@ -80,7 +80,7 @@ describe('the question', () => {
       notifications: ['Da ti javimo kad stigne odgovor?', 'Samo o tvojim zadacima i Dogovorima.'],
     });
     for (const copy of Object.values(PERMISSION_ASK_COPY)) {
-      expect([copy.allow, copy.later]).toEqual(['Dozvoli', 'Ne sada']);
+      expect([copy.allow, copy.later]).toEqual(['Nastavi', 'Ne sada']);
       for (const sentence of [copy.title, copy.message]) {
         expect(sentence).not.toMatch(/naručilac|uskočer|posao|poslovi|server|aplikacija će/i);
         expect(sentence).not.toMatch(/\b(sam|bio|bila|uneo|unela|snimio|snimila|dodao|dodala)\b/i);
@@ -114,7 +114,7 @@ describe('the question', () => {
 });
 
 describe('the answer', () => {
-  it('"Dozvoli" lets the feature go on to the system\'s window, and the dialog is gone', async () => {
+  it('"Nastavi" lets the feature go on to the system\'s window, and the dialog is gone', async () => {
     await mount();
     const { result, settled } = ask('microphone'); await act(async () => {});
     await press(byTestId('permission-ask-allow')); await settled();
@@ -137,7 +137,7 @@ describe('the answer', () => {
     }
   });
 
-  it('is answered once: a second tap, or Back after "Dozvoli", does not answer the question that follows', async () => {
+  it('is answered once: a second tap, or Back after "Nastavi", does not answer the question that follows', async () => {
     await mount();
     const first = ask('microphone'), second = ask('location'); await act(async () => {});
     expect(texts()).toContain(PERMISSION_ASK_COPY.microphone.title); expect(texts()).not.toContain(PERMISSION_ASK_COPY.location.title);

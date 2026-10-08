@@ -3,8 +3,12 @@ import type { FactArtKind } from '../system/FactArt';
 /**
  * Permissions are asked in context (owner decisions 2026-09-16 and 2026-10-07, design proposal N): never at entry, and never
  * as a bare system window. Right before the system asks, a small dialog says in one question why, with a picture, a green
- * "Dozvoli" and a quiet "Ne sada". The system window follows only on "Dozvoli"; "Ne sada" leaves the app usable and says
+ * "Nastavi" and a quiet "Ne sada". The system window follows only on "Nastavi"; "Ne sada" leaves the app usable and says
  * nothing more.
+ *
+ * The green word is "Nastavi", not "Dozvoli" (F7, 2026-10-08): this dialog grants nothing, it only explains and goes on to the
+ * system's own question, and a person who taps "Dozvoli" believes the permission is given and is then asked again. The same rule
+ * as the platforms' own guidance for a question that comes before the system's (the word is Continue, never Allow).
  *
  * This module is the store the features talk to, in the same shape as `poruka` (ui/system/Poruka): a feature asks and awaits,
  * and the host (`PermissionAskHost`, mounted once at the root) draws the dialog. It holds no React and no native module, so the
@@ -18,7 +22,7 @@ export type PermissionAskAnswer = 'allow' | 'later';
 
 export type PermissionAskCopy = Readonly<{ art: FactArtKind; title: string; message: string; allow: string; later: string }>;
 
-const ALLOW = 'Dozvoli';
+const ALLOW = 'Nastavi';
 const LATER = 'Ne sada';
 
 /**

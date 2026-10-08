@@ -53,7 +53,7 @@ export const authClientService: AuthClientPort = {
 
   async signUp({ email, password, firstName, lastName, city }) {
     const emailRedirectTo = signupConfirmationRedirect();
-    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna u ovom okruženju.');
+    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušaj ponovo malo kasnije.');
     const { data, error } = await supabaseKlijent().auth.signUp({
       email, password,
       // The existing signup trigger reads full_name. Keep the split metadata
@@ -69,7 +69,7 @@ export const authClientService: AuthClientPort = {
     const owner = sesijaSada();
     if (owner.user) throw new Error('Potvrda registracije je namenjena neprijavljenom nalogu.');
     const emailRedirectTo = signupConfirmationRedirect();
-    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna u ovom okruženju.');
+    if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušaj ponovo malo kasnije.');
     const address = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesi ispravnu email adresu.');
     const { error } = await supabaseKlijent().auth.resend({ type: 'signup', email: address, options: { emailRedirectTo } });

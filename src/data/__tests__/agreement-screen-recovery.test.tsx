@@ -62,7 +62,9 @@ jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto',
 jest.mock('../../ui/AgreementChat', () => ({ AgreementChat: 'AgreementChat' }));
 // Keep the real private-location/session boundary; only the native map renderer is external to this route test.
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PrivateMap' }));
-jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: mockAccountRevision }) }));
+// The account has a phone number unless a test says otherwise ("Podeli svoj broj" is offered only to an account that has one).
+let mockAccountPhone: string | undefined = '+381601234567';
+jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount, phone: mockAccountPhone }, accountRevision: mockAccountRevision }), sesijaSada: () => ({ user: { id: mockAccount, phone: mockAccountPhone }, accountRevision: mockAccountRevision }) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../hooks/useAgreementOutbox', () => ({ useAgreementOutbox: () => ({ model: mockOutbox, state: mockOutboxState }) }));
 jest.mock('../../hooks/useAgreementPhotos', () => ({ useAgreementPhotos: () => ({ agreementId: mockId, loaded: true, busy: false, items: [] }) }));
@@ -83,6 +85,12 @@ jest.mock('../agreementMessageHistoryService', () => ({
 // answer below ("still due") keeps every existing expectation about a finished Dogovor unchanged.
 const mockReviewContext = jest.fn();
 jest.mock('../reviewsClientService', () => ({ reviewsClientService: { context: (...args: unknown[]) => mockReviewContext(...args) } }));
+// When and by whom a cancelled Dogovor was cancelled (CANCEL-INFO): the real module reaches supabaseClient, like the review read above. Default: the server says nothing.
+const mockCancellationRead = jest.fn();
+jest.mock('../agreementCancellationClientService', () => ({
+  agreementCancellationService: { read: (...args: unknown[]) => mockCancellationRead(...args) },
+  cancellationOf: (all: Map<string, unknown> | null | undefined, id: string) => all?.get(id.toLowerCase()) ?? null,
+}));
 import Dogovor from '../../app/dogovor/[id]';
 import { poruka } from '../../ui/system/Poruka';
 
@@ -130,6 +138,8 @@ beforeEach(() => {
   mockDisplayed.mockReset().mockResolvedValue({ ok: true, podatak: {} });
   mockGroupContext.mockReset().mockResolvedValue({ ok: true, podatak: { group: null } });
   mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } });
+  mockCancellationRead.mockReset().mockResolvedValue({ ok: true, podatak: new Map() });
+  mockAccountPhone = '+381601234567';
   mockOutboxState = { phase: 'loading', entries: [] };
   for (const name of ['oznaciZavrsetak', 'potvrdiZavrsetak', 'prijaviProblem', 'podeliTelefon', 'opoziviTelefon'] as const) {
     mockSource[name].mockReset().mockResolvedValue({ ok: true, podatak: null });
@@ -287,27 +297,23 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(mockBackListeners.size).toBe(0); expect(current()).toBe(false);
     expect(mockRouter.back).not.toHaveBeenCalled();
   });
-  it.each(['narucilac', 'uskocer'])('puts the linked task before the next step and accepted terms for %s', async role => {
+  it.each(['narucilac', 'uskocer'])('names the work first, then where the Dogovor stands and its terms; the linked task is one row of the links for %s', async role => {
     const taskId = '40000000-0000-4000-8000-000000000001';
     mockRead.mockResolvedValue({ ...workspace, izvor: { zadatakId: taskId, prijavaId: null },
       ucesnici: workspace.ucesnici.map(party => ({ ...party, uloga: party.viSte ? role : role === 'narucilac' ? 'uskocer' : 'narucilac' })) });
     await render();
     const open = button(`Otvori zadatak: ${workspace.naslov}. ${workspace.putanjaTekst}`);
     const taskCopy = open.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-    expect(taskCopy).toContain(workspace.naslov);
-    expect(taskCopy).toContain('Otvori zadatak');
-    expect(taskCopy).not.toContain('Dogovoreni uslovi');
-    expect(taskCopy).not.toContain('3.000 RSD');
-    const copy = texts();
-    // The step bar (its first step is also "Dogovoreno") stands first under the tabs; then the linked task, then the step card's
-    // title, then the accepted terms. The card's title is the header.
+    // The row only leads to the task: its words are "Otvori zadatak" (the work's name and place are on the page already, and in the row's spoken label).
+    expect(taskCopy).toBe('Otvori zadatak');
+    // The head is the work's own name (a header), then the state (a header), then the four steps of its way, then the accepted terms.
     const order = tree.root.findAll(node => String(node.type) === 'T')
       .map(node => ({ text: node.children.filter(child => typeof child === 'string').join(''), header: node.props.accessibilityRole === 'header' }));
     const at = (match: (word: { text: string; header: boolean }) => boolean) => order.findIndex(match);
-    const bar = at(word => word.text === 'Dogovoreno' && !word.header), task = at(word => word.text === workspace.naslov);
-    const step = at(word => word.text === 'Dogovoreno' && word.header), terms = at(word => word.text === 'Dogovoreni uslovi');
-    expect(bar).toBeGreaterThanOrEqual(0); expect(bar).toBeLessThan(task);
-    expect(task).toBeLessThan(step); expect(step).toBeLessThan(terms);
+    const title = at(word => word.text === workspace.naslov && word.header), step = at(word => word.text === 'Dogovoreno' && word.header);
+    const bar = at(word => word.text === 'Dogovoreno' && !word.header), terms = at(word => word.text === 'Uslovi' && word.header);
+    expect(title).toBeGreaterThanOrEqual(0); expect(title).toBeLessThan(step);
+    expect(step).toBeLessThan(bar); expect(bar).toBeLessThan(terms);
     expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
     await act(async () => open.props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: role === 'narucilac' ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: taskId } });
@@ -523,7 +529,7 @@ describe('D03 actual route and scoped resource integration', () => {
     await render();
     const complete = await completionConfirmation();
     await act(async () => complete());
-    expect(texts()).toContain('Promena nije potvrđena');
+    expect(texts()).toContain('Ne znamo da li je promena sačuvana');
     expect(texts()).not.toContain('secret upstream detail');
     await act(async () => complete());
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
@@ -538,7 +544,7 @@ describe('D03 actual route and scoped resource integration', () => {
     const footer = tree.root.findByProps({ testID: 'agreement-action-footer' });
     expect(footer.findByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toBeTruthy();
     expect(footer.findByProps({ testID: 'agreement-action-recovery' })
-      .findByProps({ accessibilityRole: 'alert' }).props.children).toContain('Promena nije potvrđena');
+      .findByProps({ accessibilityRole: 'alert' }).props.children).toContain('Ne znamo da li je promena sačuvana');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(1);
     mockRead.mockResolvedValue({ ...workspace, stanje: 'COMPLETED' });
     await act(async () => button('Osveži status Dogovora').props.onPress());
@@ -649,7 +655,7 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(mockProblemRead).toHaveBeenCalledWith(workspace.id, 1, workspace.ucesnici.map(party => party.id),
       { accountId: mockAccount, accountRevision: 0 });
     expect(texts()).toContain('Problem je prijavljen'); expect(texts()).toContain(narrative);
-    expect(texts()).toContain('Prijava je tvoja.');
+    expect(texts()).toContain('Problem je prijavljen sa tvog naloga.');
     expect(texts()).toContain('Automatski završetak je zaustavljen. Završetak se i dalje može potvrditi.');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Prijavi problem' })).toHaveLength(0);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
@@ -666,7 +672,7 @@ describe('D03 actual route and scoped resource integration', () => {
     await render(); act(() => button('Prijavi problem').props.onPress());
     act(() => button('Opiši problem').props.onChangeText('Moj drugačiji opis.'));
     await act(async () => button('Pošalji prijavu problema').props.onPress());
-    expect(texts()).toContain('Prijavila je druga strana.');
+    expect(texts()).toContain('Problem je prijavila druga strana.');
     expect(texts()).toContain('Opis prve prijave druge strane.');
     expect(texts()).toContain('Tvoj novi opis nije dodat.');
     expect(texts()).not.toContain('Moj drugačiji opis.');
@@ -676,8 +682,8 @@ describe('D03 actual route and scoped resource integration', () => {
     mockProblemRead.mockResolvedValue({ ok: true, podatak: { agreementId: workspace.id, agreementVersion: 1, state: 'LEGACY_UNAVAILABLE', report: null } });
     await render();
     expect(texts()).toContain(workspace.naslov);
-    expect(texts()).toContain('Detalji starije prijave nisu dostupni');
-    expect(texts()).not.toContain('Prijava je tvoja.');
+    expect(texts()).toContain('Detalji ranije prijavljenog problema nisu dostupni');
+    expect(texts()).not.toContain('Problem je prijavljen sa tvog naloga.');
     expect(texts()).not.toContain('sačuvan je u Porukama');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Prijavi problem' })).toHaveLength(0);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
@@ -703,7 +709,7 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(texts()).toContain(workspace.naslov);
     expect(texts()).toContain('Detalji prijave trenutno nisu učitani.');
     expect(texts()).not.toContain('private detail');
-    expect(texts()).not.toContain('Detalji starije prijave');
+    expect(texts()).not.toContain('Detalji ranije prijavljenog problema');
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Prijavi problem' })).toHaveLength(0);
     await act(async () => button('Osveži detalje prijave').props.onPress());
@@ -723,7 +729,7 @@ describe('D03 actual route and scoped resource integration', () => {
     await render(); act(() => button('Prijavi problem').props.onPress());
     act(() => button('Opiši problem').props.onChangeText('Opis mora biti potvrđen.'));
     await act(async () => button('Pošalji prijavu problema').props.onPress());
-    expect(texts()).toContain('Sačuvana prijava nije potvrđena.');
+    expect(texts()).toContain('Ne znamo da li je problem prijavljen. Osveži Dogovor.');
     expect(texts()).not.toContain('Problem je prijavljen');
     expect(button('Pošalji ponovo').props.disabled).toBe(true);
     await act(async () => button('Osveži status Dogovora').props.onPress());
@@ -765,7 +771,7 @@ describe('D03 actual route and scoped resource integration', () => {
     act(() => button('Opiši problem').props.onChangeText('Sačuvati opis.'));
     await act(async () => button('Pošalji prijavu problema').props.onPress());
     expect(texts()).not.toContain('Problem je prijavljen');
-    expect(texts()).toContain('Sačuvana prijava nije potvrđena');
+    expect(texts()).toContain('Ne znamo da li je problem prijavljen. Osveži Dogovor.');
     expect(button('Opiši problem').props.value).toBe('Sačuvati opis.');
     expect(button('Pošalji ponovo').props.disabled).toBe(true);
   });
@@ -865,7 +871,7 @@ describe('D03 actual route and scoped resource integration', () => {
     mockRead.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
     await act(async () => mockAppListeners.forEach(listener => listener('active')));
     // The read is on its way: the page is what it was, not a skeleton...
-    expect(texts()).toContain(workspace.naslov); expect(texts()).toContain('Dogovoreni uslovi'); expect(texts()).toContain('Osvežavamo…');
+    expect(texts()).toContain(workspace.naslov); expect(texts()).toContain('Uslovi'); expect(texts()).toContain('Osvežavamo…');
     expect(texts()).not.toContain('Učitavamo Dogovor');
     // ...with the private part held back until the fresh read has landed, and every command closed.
     expect(texts()).not.toContain('+38160111222'); expect(texts()).toContain('Proveravamo broj druge strane…');
@@ -988,18 +994,18 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     mockRead.mockResolvedValueOnce({ ...workspace, radnje });
     await render();
     absent('Potvrdi završetak'); absent('Zadatak je gotov');
-    expect(texts()).toContain('Još ne možemo da potvrdimo da je završetak dozvoljen');
-    await act(async () => button('Osveži dozvole za završetak').props.onPress());
+    expect(texts()).toContain('Ne možemo da proverimo da li možeš da završiš zadatak');
+    await act(async () => button('Osveži Dogovor').props.onPress());
     expect(mockRead).toHaveBeenCalledTimes(2);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
-    expect(texts()).not.toContain('Još ne možemo da potvrdimo da je završetak dozvoljen');
+    expect(texts()).not.toContain('Ne možemo da proverimo da li možeš da završiš zadatak');
   });
   it('a server-denied requester permission hides the action even without a pending change', async () => {
     mockRead.mockResolvedValue({ ...workspace, radnje: none });
     await render();
     absent('Potvrdi završetak');
     expect(texts()).not.toContain('Predlog izmene čeka odgovor');
-    expect(texts()).not.toContain('Još ne možemo da potvrdimo da je završetak dozvoljen');
+    expect(texts()).not.toContain('Ne možemo da proverimo da li možeš da završiš zadatak');
   });
   it.each([['narucilac', { ...none, mozeOznacitiZavrsetak: true }], ['uskocer', { ...none, mozePotvrditiZavrsetak: true }]])(
     'a permission granted to the other party does not enable the %s', async (role, radnje) => {
@@ -1015,7 +1021,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     expect(mockRead).toHaveBeenCalledTimes(2);
     // Review r3b: this pinned "Završetak nije potvrđen", which read like the normal wait for the other side. The line now
     // says what did not get written; the requester's is the confirmation.
-    expect(texts()).toContain('Potvrda završetka nije upisana. Osveži status Dogovora.');
+    expect(texts()).toContain('Nismo uspeli da zabeležimo potvrdu završetka. Osveži Dogovor pa pokušaj ponovo.');
     expect(texts()).not.toContain('Dogovor je završen');
     expect(button('Potvrdi završetak').props.disabled).toBe(true);
     await act(async () => button('Potvrdi završetak').props.onPress());
@@ -1034,7 +1040,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await render();
     await confirmCompletion();
     expect(texts()).toContain('Dogovor je završen');
-    expect(texts()).not.toContain('Potvrda završetka nije upisana');
+    expect(texts()).not.toContain('Nismo uspeli da zabeležimo potvrdu završetka');
     expect(button('Oceni saradnju')).toBeTruthy();
     absent('Potvrdi završetak');
   });
@@ -1059,7 +1065,7 @@ describe('PKG-007 server completion permissions and terminal readback', () => {
     await confirmCompletion(true);
     expect(mockSource.oznaciZavrsetak).toHaveBeenCalledWith(workspace.id);
     // Review r3b: the worker's line names the mark that did not get written ("Završetak nije potvrđen" before).
-    expect(texts()).toContain('Oznaka da je zadatak gotov nije upisana. Osveži status Dogovora.');
+    expect(texts()).toContain('Nismo uspeli da zabeležimo da je zadatak gotov. Osveži Dogovor pa pokušaj ponovo.');
     expect(button('Zadatak je gotov').props.disabled).toBe(true);
     mockRead.mockResolvedValue({ ...asWorker, stanje: 'AWAITING_REQUESTER', rokPotvrdeIso: '2026-09-18T10:00:00Z', radnje: none });
     await act(async () => button('Osveži status Dogovora').props.onPress());

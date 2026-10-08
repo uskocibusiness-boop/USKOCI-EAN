@@ -1,19 +1,35 @@
-import { AuthIntro, authStageForm } from '../ui/auth/AuthPresentation';
-import { authTheme as c } from '../ui/auth/authTheme';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { BackHandler, KeyboardAvoidingView, Platform, StyleSheet, View, type ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'expo-router';
-import { passwordRecoveryIntent } from '../store/passwordRecoveryIntent';
-import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft } from 'phosphor-react-native';
+import { passwordRecoveryIntent } from '../store/passwordRecoveryIntent';
 import { usePasswordRecovery } from '../hooks/usePasswordRecovery';
 import { useSesija } from '../store/sesija';
-import { AuthField, PrimaryButton } from '../ui/auth/AuthControls';
+import { sys } from '../ui/system/tokens';
+import { AuthFlowFrame } from '../ui/auth/AuthFlowFrame';
+import { RecoveryLinkContent, RecoveryLinkFooter, MISMATCH, type RecoveryLinkPhase, type RecoveryLinkValidation } from '../ui/auth/RecoveryLinkSteps';
 import { RestrictedAccountScreen } from '../ui/auth/RestrictedAccountPanel';
-import { BuildIdentity } from '../ui/BuildIdentity';
-import { radius, space, type } from '../theme/tokens';
+import { authCopy } from '../ui/auth/authCopy';
+import { MIN_PASSWORD_LENGTH, authFieldMessages } from '../ui/auth/authValidation';
 
+type RecoveryState = ReturnType<typeof usePasswordRecovery>['state'];
+/** What the hook knows, as the screen's own states (`ready` and `saving` are one: the fields, with the write in flight or not). */
+function phaseOf(state: RecoveryState): RecoveryLinkPhase {
+  switch (state.status) {
+    case 'verifying': return { kind: 'verifying' };
+    case 'ready': case 'saving': return { kind: 'form', email: state.identity.email, serverError: state.error?.message ?? null };
+    case 'success': return { kind: 'success' };
+    case 'error': return { kind: 'error', code: state.error.code, message: state.error.message };
+  }
+}
+
+/**
+ * The screen the password-recovery LINK opens (the request for the link is a step of the sign-in sheet, "Oporavak lozinke").
+ * It is the same frame as every step of that sheet: the system's top bar with the one arrow back and the flow's name, ONE title
+ * in the content, the fields, and in the foot the ONE green command; the second green button it had in an error, the second
+ * "Nazad" and the line with the build's version are gone. It never explains where you are: the title says what to do.
+ */
 export default function PasswordRecoveryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -22,13 +38,15 @@ export default function PasswordRecoveryScreen() {
   const link = intent?.link ?? null;
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
-  const [validation, setValidation] = useState<string | null>(null);
+  const [validation, setValidation] = useState<RecoveryLinkValidation>(null);
   const recovery = usePasswordRecovery(link, intent?.id ?? null);
   const busy = recovery.state.status === 'saving';
+  const scroller = useRef<ScrollView>(null);
   const back = () => {
     if (intent) passwordRecoveryIntent.clear(intent.id);
     router.replace(user ? '/' : { pathname: '/auth', params: { form: 'login' } });
   };
+  const newLink = () => router.replace({ pathname: '/auth', params: { form: 'recovery' } });
 
   useEffect(() => {
     setPassword(''); setConfirmation(''); setValidation(null);
@@ -40,7 +58,9 @@ export default function PasswordRecoveryScreen() {
       return true;
     });
     return () => subscription.remove();
-  }, [busy, router, user?.id]);
+    // `back` closes over exactly the values listed (the link that is open included: Back clears THAT one, also after a second link arrived).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, router, user?.id, intent?.id]);
 
   useEffect(() => {
     if (recovery.state.status === 'success' || recovery.state.status === 'error') {
@@ -50,8 +70,8 @@ export default function PasswordRecoveryScreen() {
 
   async function save() {
     if (busy) return;
-    if (password.length < 6) { setValidation('Lozinka mora imati najmanje 6 znakova.'); return; }
-    if (password !== confirmation) { setValidation('Lozinke se ne poklapaju.'); return; }
+    if (password.length < MIN_PASSWORD_LENGTH) { setValidation({ field: 'password', message: authFieldMessages.lozinkaShort }); return; }
+    if (password !== confirmation) { setValidation({ field: 'confirmation', message: MISMATCH }); return; }
     setValidation(null);
     await recovery.save(password);
   }
@@ -61,71 +81,26 @@ export default function PasswordRecoveryScreen() {
   // change nothing, so none is offered. The screen is the restricted-account screen with its one way back, not a state under
   // the greeting of a form that can no longer be used.
   if (state.status === 'error' && state.error.code === 'RESTRICTED_ACCOUNT') {
-    return <RestrictedAccountScreen exitLabel={user ? 'Nazad u aplikaciju' : 'Nazad na prijavu'} onExit={back} />;
+    return <RestrictedAccountScreen exitLabel={user ? 'Nazad u aplikaciju' : authCopy.backToSignIn} onExit={back} />;
   }
-  return <View style={[styles.screen, { paddingTop: insets.top }]}>
+
+  const phase = phaseOf(state);
+
+  return <View style={[s.screen, { paddingTop: insets.top }]}>
     <StatusBar style="dark" />
-    <View style={styles.header}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Nazad" disabled={busy} onPress={back} style={styles.back}>
-        <ArrowLeft size={22} color={c.ink} />
-      </Pressable>
-      <Text style={styles.headerLabel}>Oporavak naloga</Text>
-    </View>
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(32, insets.bottom + 24) }]}>
-        <View style={styles.column}>
-          <AuthIntro composition="stage" title={state.status === 'success' ? 'Lozinka je promenjena.' : 'Postavi novu lozinku.'}
-            copy={state.status === 'success' ? 'Isti nalog. Tvoji zadaci i Dogovori.' : 'Bezbedan povratak u isti USKOČI nalog.'} />
-          <View accessibilityLiveRegion="polite" style={[styles.content, authStageForm]}>
-            {state.status === 'verifying' ? <>
-              <ActivityIndicator accessibilityLabel="Provera linka" color={c.muted} />
-              <Text style={styles.copy}>Proveravamo link za oporavak…</Text>
-            </> : null}
-            {state.status === 'ready' || state.status === 'saving' ? <>
-              <Text style={styles.copy}>Postavi novu lozinku za nalog:</Text>
-              <Text selectable style={styles.email}>{state.identity.email}</Text>
-              <AuthField label="Nova lozinka" value={password} onChangeText={value => { setPassword(value); setValidation(null); }}
-                placeholder="Unesi novu lozinku" secure newPassword editable={!busy} />
-              <AuthField label="Potvrdi novu lozinku" value={confirmation} onChangeText={value => { setConfirmation(value); setValidation(null); }}
-                placeholder="Ponovi novu lozinku" secure newPassword editable={!busy} />
-              <Text style={styles.note}>Ne menjaju se tvoji zadaci, prijave ni Dogovori. Posle promene prijavi se novom lozinkom.</Text>
-              {validation || state.error ? <Text accessibilityRole="alert" style={styles.error}>{validation ?? state.error?.message}</Text> : null}
-              <PrimaryButton title="Sačuvaj novu lozinku" onPress={() => void save()} busy={busy} />
-            </> : null}
-            {state.status === 'success' ? <>
-              <Text style={styles.copy}>Možeš da nastaviš. Za ulazak koristiš novu lozinku.</Text>
-              <PrimaryButton title="Prijavi se" onPress={back} />
-            </> : null}
-            {state.status === 'error' ? <>
-              <Text accessibilityRole="alert" style={styles.error}>{state.error.message}</Text>
-              {state.error.code === 'VERIFY_UNAVAILABLE' ? <PrimaryButton title="Pokušaj ponovo" onPress={recovery.retry} /> : null}
-              {!user ? <PrimaryButton title="Zatraži novi link" onPress={() => router.replace({ pathname: '/auth', params: { form: 'recovery' } })} /> : null}
-              <Pressable accessibilityRole="button" style={styles.link} onPress={back}>
-                <Text style={styles.linkText}>{user ? 'Nazad u aplikaciju' : 'Nazad na prijavu'}</Text>
-              </Pressable>
-            </> : null}
-          </View>
-          <View style={styles.versionSurface}><BuildIdentity /></View>
-        </View>
-      </ScrollView>
+    <KeyboardAvoidingView style={s.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <AuthFlowFrame title={authCopy.recoveryName} onBack={back} backDisabled={busy} scrollRef={scroller} scrollKey={phase.kind}
+        footer={phase.kind === 'verifying' ? null
+          : <RecoveryLinkFooter phase={phase} signedIn={!!user} busy={busy} onSave={() => void save()} onBack={back} onNewLink={newLink} onRetry={recovery.retry} />}>
+        <RecoveryLinkContent phase={phase} signedIn={!!user} busy={busy} password={password} confirmation={confirmation} validation={validation}
+          onPassword={value => { setPassword(value); setValidation(null); }} onConfirmation={value => { setConfirmation(value); setValidation(null); }}
+          onSave={() => void save()} onNewLink={newLink} />
+      </AuthFlowFrame>
     </KeyboardAvoidingView>
   </View>;
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: c.surface },
-  flex: { flex: 1 },
-  header: { width: '100%', maxWidth: 460, alignSelf: 'center', flexDirection: 'row', minHeight: 72, alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 12 },
-  back: { width: 48, minHeight: 48, borderRadius: radius.control, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
-  headerLabel: { ...type.title, flex: 1, color: c.ink, textAlign: 'left', fontWeight: '700' },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, alignItems: 'center' },
-  column: { width: '100%', maxWidth: 412 },
-  content: { gap: space.base, backgroundColor: 'transparent', marginTop: 6 },
-  copy: { ...type.copy, color: c.muted },
-  email: { color: c.ink, ...type.bodyStrong, marginBottom: space.sm },
-  note: { color: c.muted, ...type.meta },
-  error: { color: c.error, ...type.body },
-  link: { minHeight: 48, justifyContent: 'center' },
-  linkText: { color: c.accentLight, ...type.action },
-  versionSurface: { backgroundColor: c.cream, borderRadius: radius.control, paddingHorizontal: 12, paddingVertical: 4, marginTop: 16 },
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: sys.color.surface },
+  fill: { flex: 1 },
 });

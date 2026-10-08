@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Press } from '../Press';
+import { T } from '../Text';
 import { FactArt } from '../system/FactArt';
+import { layout } from '../system/layout';
+import { sys } from '../system/tokens';
 import type { ClosureExecutionState } from '../../data/closureExecutionClientService';
 import type { AccountClosingStanding } from '../../data/accountClosingStanding';
 import type { Ishod } from '../../data/ports';
 import { vreme } from '../../lib/vreme';
-import { radius, type } from '../../theme/tokens';
 import { PrimaryButton } from './AuthControls';
-import { authTheme as c } from './authTheme';
 
 /** The signed-in account the check belongs to; null while signed out or on the public recovery link. */
 export type AccountClosingScope = { accountId: string; accountRevision: number } | null;
@@ -25,7 +27,7 @@ export const accountClosingCopy = {
   check: 'Proveri stanje',
   support: 'Otvori privatnu podršku',
   signOut: 'Odjavi se sa ovog uređaja',
-  checkFailed: 'Stanje trenutno nije provereno. Pokušaj ponovo.',
+  checkFailed: 'Ne možemo da proverimo stanje. Pokušaj ponovo.',
   signOutFailed: 'Odjava trenutno nije uspela. Pokušaj ponovo.',
 } as const;
 
@@ -110,22 +112,22 @@ export function AccountClosingScreen({ execution, working, message, onCheck, onS
   const closed = execution?.state === 'CLOSED';
   const busy = working !== null;
   const steps = !closed && execution?.totalSteps ? { done: execution.completedSteps ?? 0, total: execution.totalSteps } : null;
-  return <View testID="account-closing-screen" accessibilityViewIsModal style={[styles.screen, { paddingTop: insets.top }]}>
-    <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(28, insets.bottom + 16) }]}>
-      <View style={styles.column}>
-        <View style={styles.well} accessible={false} importantForAccessibility="no-hide-descendants">
+  return <View testID="account-closing-screen" accessibilityViewIsModal style={[s.screen, { paddingTop: insets.top }]}>
+    <ScrollView contentContainerStyle={[s.scroll, { paddingBottom: Math.max(layout.zone, insets.bottom + sys.space.base) }]}>
+      <View style={s.column}>
+        <View style={s.well} accessible={false} importantForAccessibility="no-hide-descendants">
           {/* The closure flow's own pictures (ClosurePresentation): a clock while it runs, a quiet check once closed. */}
           <FactArt kind={closed ? 'check' : 'clock'} size={48} muted={closed} />
         </View>
-        <Text accessibilityRole="header" style={styles.title}>{closed ? accountClosingCopy.closedTitle : accountClosingCopy.title}</Text>
-        <View accessibilityLiveRegion="polite" style={styles.status}>
-          <Text style={styles.body}>{closed ? accountClosingCopy.closedBody : accountClosingCopy.body}</Text>
-          {steps ? <Text style={styles.meta}>{accountClosingCopy.steps(steps.done, steps.total)}</Text> : null}
-          {closed && execution?.closedAt ? <Text style={styles.meta}>{accountClosingCopy.closedAt(execution.closedAt)}</Text> : null}
-          {!closed ? <Text style={styles.meta}>{accountClosingCopy.unavailable}</Text> : null}
+        <T accessibilityRole="header" variant="title">{closed ? accountClosingCopy.closedTitle : accountClosingCopy.title}</T>
+        <View accessibilityLiveRegion="polite" style={s.status}>
+          <T variant="copy">{closed ? accountClosingCopy.closedBody : accountClosingCopy.body}</T>
+          {steps ? <T variant="meta" tone="muted">{accountClosingCopy.steps(steps.done, steps.total)}</T> : null}
+          {closed && execution?.closedAt ? <T variant="meta" tone="muted">{accountClosingCopy.closedAt(execution.closedAt)}</T> : null}
+          {!closed ? <T variant="meta" tone="muted">{accountClosingCopy.unavailable}</T> : null}
         </View>
-        {message ? <Text accessibilityRole="alert" style={styles.error}>{message}</Text> : null}
-        <View style={styles.actions}>
+        {message ? <T accessibilityRole="alert" variant="note" tone="danger">{message}</T> : null}
+        <View style={s.actions}>
           {closed ? <PrimaryButton title={accountClosingCopy.signOut} busy={working === 'signOut'} disabled={busy} onPress={onSignOut} />
             : <>
               <PrimaryButton title={accountClosingCopy.check} busy={working === 'check'} disabled={busy} onPress={onCheck} />
@@ -139,26 +141,19 @@ export function AccountClosingScreen({ execution, working, message, onCheck, onS
 }
 
 function LinkAction({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled}
-    onPress={onPress} style={({ pressed }) => [styles.link, pressed && !disabled && styles.pressed, disabled && styles.disabled]}>
-    <Text style={styles.linkText}>{label}</Text>
-  </Pressable>;
+  return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={s.link}>
+    <T variant="action" tone={disabled ? 'muted' : 'green'}>{label}</T>
+  </Press>;
 }
 
-const styles = StyleSheet.create({
-  screen: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: c.surface },
-  scroll: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 28, alignItems: 'center' },
-  column: { width: '100%', maxWidth: 412, gap: 14 },
-  well: { width: 80, height: 80, borderRadius: radius.card, backgroundColor: c.soft, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 4 },
-  title: { ...type.pageTitle, color: c.ink },
-  status: { gap: 10 },
-  body: { ...type.copy, color: c.ink },
-  meta: { ...type.meta, color: c.muted },
-  error: { ...type.note, color: c.error },
-  actions: { gap: 4, marginTop: 10 },
-  link: { minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start' },
-  linkText: { ...type.tab, color: c.accentLight },
-  pressed: { opacity: 0.76 },
-  disabled: { opacity: 0.45 },
+// A state of the app, told the way the others are: the 80 well with its picture, the title (21), the sentences 12 apart, and the
+// actions 8 apart. The edge is the screen's own (20, it was 22) and the top is 24 under the status bar (it was 28).
+const s = StyleSheet.create({
+  screen: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: sys.color.surface },
+  scroll: { flexGrow: 1, paddingHorizontal: layout.gutter, paddingTop: layout.section, alignItems: 'center' },
+  column: { width: '100%', maxWidth: layout.maxWidth, gap: sys.space.base },
+  well: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
+  status: { gap: sys.space.sm },
+  actions: { gap: sys.space.sm, marginTop: sys.space.sm },
+  link: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },
 });

@@ -209,7 +209,7 @@ class FakeApp(Device):
 
         w = self.where
         if w == 'LOGIN':
-            text('Prijava'); text('Zdravo.'); field('Email'); field('Lozinka', True)
+            text('Prijava'); text('Prijavi se ili napravi nalog'); field('Email'); field('Lozinka', True)
             if self.validation:
                 text(self.validation)
             text('Zaboravljena lozinka?'); button('Prijavi se'); text('Napravi nalog')
@@ -225,29 +225,28 @@ class FakeApp(Device):
             text('Registracija'); text('Proveri email')
             if self.message:
                 text(self.message)
-            text('Ako je registracija prihvaćena, potvrdi email preko poruke koju dobiješ.')
-            button('Nazad na prijavu'); text('Pošalji ponovo potvrdu'); text('Izmeni email')
+            text('Poslaćemo ti poruku za potvrdu emaila. Kad je otvoriš, vraćaš se u aplikaciju.')
+            button('Nazad na prijavu'); text('Pošalji ponovo potvrdu'); text('Promeni email')
             if self.validation:
                 text(self.validation)
         elif w == 'RECOVERY_REQ':
-            text('Oporavak pristupa'); text('Vrati pristup nalogu.'); field('Email'); button('Pošalji link'); text('Nazad na prijavu')
+            text('Oporavak lozinke'); field('Email'); button('Pošalji link')
         elif w == 'RECOVERY_SENT':
-            text('Oporavak pristupa'); text('Proveri email'); text('Zahtev za oporavak je prihvaćen.'); button('Nazad na prijavu')
-            text('Izmeni email ili ponovi zahtev')
+            text('Proveri email'); text('Ako nalog sa ovim emailom postoji, dobićeš link za novu lozinku. Proveri i neželjenu poštu.'); button('Nazad na prijavu')
+            text('Promeni email ili pošalji ponovo')
         elif w == 'OPORAVAK_FORM':
-            text('Oporavak naloga'); text('Postavi novu lozinku.'); text('Postavi novu lozinku za nalog:')
+            text('Oporavak lozinke'); text('Postavi novu lozinku.'); text('Postavi novu lozinku za nalog:')
             text(self.recovery['email'] if self.recovery else '')
             field('Nova lozinka', True); field('Potvrdi novu lozinku', True)
             if self.validation:
                 text(self.validation)
             button('Sačuvaj novu lozinku')
         elif w == 'OPORAVAK_SUCCESS':
-            text('Oporavak naloga'); text('Lozinka je promenjena.'); button('Prijavi se')
+            text('Oporavak lozinke'); text('Lozinka je promenjena.'); button('Prijavi se')
         elif w == 'OPORAVAK_INVALID':
-            text('Oporavak naloga'); text('Link je nevažeći ili je istekao. Zatraži novi link.'); button('Zatraži novi link')
-            text('Nazad na prijavu')
+            text('Oporavak lozinke'); text('Link je nevažeći ili je istekao. Zatraži novi link.'); button('Zatraži novi link')
         elif w == 'OPORAVAK_SIGNED_IN':
-            text('Oporavak naloga')
+            text('Oporavak lozinke')
             text('Najpre se odjavi sa otvorenog naloga, pa ponovo otvori link za oporavak.')
             text('Nazad u aplikaciju')
         elif w == 'HOME':
@@ -301,7 +300,7 @@ class FakeApp(Device):
                 resp = self.gt.resend(email, core.SIGNUP_REDIRECT)
                 self.message = self.validation = None
                 if resp.status == 200:
-                    self.message = 'Zahtev za novu potvrdu je prihvaćen. Proveri email i neželjenu poštu.'
+                    self.message = 'Poslali smo novu poruku za potvrdu. Proveri email i neželjenu poštu.'
                 elif resp.status == 429:
                     self.validation = 'Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.'
                 else:
@@ -309,7 +308,7 @@ class FakeApp(Device):
             elif label == 'Nazad na prijavu':
                 self.where = 'LOGIN'
                 self.message = self.validation = None
-            elif label == 'Izmeni email':
+            elif label == 'Promeni email':
                 self.where = 'SIGNUP'
         elif w == 'RECOVERY_REQ':
             if label == 'Pošalji link':

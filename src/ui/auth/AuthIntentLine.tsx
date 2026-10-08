@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Press } from '../Press';
+import { T } from '../Text';
 import { FactArt } from '../system/FactArt';
-import { authTheme as c } from './authTheme';
-import { radius, type } from '../../theme/tokens';
+import { layout } from '../system/layout';
+import { sys } from '../system/tokens';
 
 /** The two things a person can come to do; the entry's two halves choose one of them. */
 export type AuthIntentName = 'REQUESTER' | 'WORKER';
@@ -15,29 +17,29 @@ export const authIntentSentence: Readonly<Record<AuthIntentName, string>> = { RE
 
 export const otherAuthIntent = (intent: AuthIntentName): AuthIntentName => intent === 'REQUESTER' ? 'WORKER' : 'REQUESTER';
 
-/** The sentence and its one command, "Promeni", which switches to the other of the two. One row, one touch target. */
+/**
+ * The sentence and its one command, "Promeni", which switches to the other of the two. One row, one touch target: 48 high, a
+ * fact picture at 24 and 12 between it and the words, a quiet well (the system's `inset` corner) and no border.
+ */
 export function AuthIntentLine({ intent, disabled = false, onChange }: {
   intent: AuthIntentName; disabled?: boolean; onChange: (next: AuthIntentName) => void;
 }) {
   const next = otherAuthIntent(intent);
-  return <Pressable testID="auth-intent" accessibilityRole="button" disabled={disabled}
+  return <Press testID="auth-intent" accessibilityRole="button" disabled={disabled} haptic="select"
     accessibilityLabel={`${authIntentSentence[intent]}. Promeni`} accessibilityHint={`Prebacuje na „${authIntentSentence[next]}“.`}
-    accessibilityState={{ disabled }} onPress={() => onChange(next)}
-    style={({ pressed }) => [styles.row, pressed && !disabled && styles.pressed, disabled && styles.disabled]}>
+    accessibilityState={{ disabled }} onPress={() => onChange(next)} style={s.row}>
     <View accessible={false} importantForAccessibility="no-hide-descendants">
       <FactArt kind={intent === 'REQUESTER' ? 'publish' : 'map'} size={24} />
     </View>
-    <Text style={styles.sentence}>{authIntentSentence[intent]}</Text>
-    <Text style={styles.change}>Promeni</Text>
-  </Pressable>;
+    <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.sentence}>{authIntentSentence[intent]}</T>
+    {/* The word is the command: green words inside a 48 dp-high area, not a second button drawn beside the sentence. */}
+    <T variant="action" tone={disabled ? 'muted' : 'green'} style={s.change}>Promeni</T>
+  </Press>;
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingLeft: 14, paddingRight: 6,
-    borderRadius: radius.cardCompact, backgroundColor: c.soft },
-  pressed: { opacity: 0.76 },
-  disabled: { opacity: 0.65 },
-  sentence: { ...type.bodyStrong, flex: 1, minWidth: 0, color: c.ink },
-  // The word is the command: a green label inside a 44 dp-high area, not a second button drawn beside the sentence.
-  change: { ...type.tab, color: c.accentLight, minHeight: 44, paddingHorizontal: 12, textAlignVertical: 'center', lineHeight: 44 },
+const s = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: layout.touch, paddingLeft: sys.space.base,
+    paddingRight: sys.space.xs, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
+  sentence: { flex: 1, minWidth: 0 },
+  change: { minHeight: layout.touch, paddingHorizontal: sys.space.md, textAlignVertical: 'center', lineHeight: layout.touch },
 });

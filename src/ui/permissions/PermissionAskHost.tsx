@@ -12,7 +12,7 @@ const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
 /**
  * The question before the system's window (design proposal N): a white card in the middle of the screen over a dimmed one,
- * with the kind's picture, ONE question, one sentence, a green "Dozvoli" and a quiet "Ne sada". It is the centred dialog of the
+ * with the kind's picture, ONE question, one sentence, a green "Nastavi" and a quiet "Ne sada". It is the centred dialog of the
  * app's own confirmations (ui/system/ConfirmSheet: same width, corner, shadow, opening scale and Modal), with the one thing that
  * dialog has no place for: the picture. Back, a tap outside and "Ne sada" are the same answer, "later".
  *
@@ -30,7 +30,7 @@ export function PermissionAskDialog({ open, onAnswer }: { open: PermissionAskOpe
     run.start();
     return () => run.stop();
   }, [reduced, scale]);
-  // One answer, once: a second tap, or Back after "Dozvoli", must not answer the next question in the queue.
+  // One answer, once: a second tap, or Back after "Nastavi", must not answer the next question in the queue.
   const answer = (value: PermissionAskAnswer) => { if (answered.current) return; answered.current = true; onAnswer(value); };
   return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={() => answer('later')}>
     <View testID="permission-ask" style={s.layer}>
@@ -79,7 +79,8 @@ const s = StyleSheet.create({
     paddingHorizontal: sys.space.xl, paddingTop: sys.space.xl, paddingBottom: sys.space.base, gap: sys.space.sm, ...sheetLift.detached },
   art: { alignItems: 'center', marginBottom: sys.space.xs },
   centred: { textAlign: 'center', color: sys.color.ink },
-  actions: { gap: sys.space.xs, marginTop: sys.space.md },
+  // Stacked, the green one over the quiet one, 8 apart (dialog template T6); 16 between the words and the answers.
+  actions: { gap: sys.space.sm, marginTop: sys.space.base },
   allow: { ...brandAction, paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, alignItems: 'center', justifyContent: 'center' },
   onFilled: { color: sys.color.onGreen, textAlign: 'center' },
   later: { minHeight: 48, borderRadius: sys.radius.primary, paddingHorizontal: sys.space.base, alignItems: 'center', justifyContent: 'center' },

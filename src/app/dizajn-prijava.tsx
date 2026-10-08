@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../contracts/projections';
 import type { ReviewTag } from '../data/reviewsClientService';
+import { AUTH_GALLERY_SCENES, AuthGalleryScene, isAuthGalleryScene, type AuthSceneKey } from '../ui/auth/AuthGallery';
 import { AgreementReviewPresentation, type ReviewPerson, type ReviewView } from '../ui/reviews/AgreementReviewPresentation';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { sys } from '../ui/system/tokens';
@@ -18,11 +19,15 @@ import { T } from '../ui/Text';
  * in every state the lead photographs. Reached only by its address (uskociapp://dizajn-prijava) in the internal build; the
  * store package shows nothing. The real presentation components draw fixture data: nothing here reads or writes anything.
  * Every command is a no-op; only the draft and the rating on screen follow the fingers, locally, so the fields can be tried.
+ *
+ * The first group of the list is the sign-in screens ("Ulaz i prijava na nalog", round of 2026-10-08, F7): "prijava" is also the
+ * word for signing in, and those scenes are drawn by `ui/auth/AuthGallery` with the real components. A scene can be opened
+ * directly by its key: `/dizajn-prijava?scene=ulaz-prijava`.
  */
 type Scene = 'ponude-prazno' | 'ponude' | 'neispravna' | 'previse' | 'po-osobi' | 'ukupno' | 'bez-cene' | 'profil' | 'zatvoren'
   | 'pregled' | 'termin' | 'slanje' | 'ishod' | 'ponovi' | 'odbijeno' | 'poslato' | 'ucitavanje' | 'greska' | 'dugacko'
   | 'ocena' | 'ocena-oznake' | 'ocena-cuvanje' | 'ocena-ishod' | 'ocena-sacuvana' | 'ocena-nedostupna' | 'ocena-bez-osobe'
-  | 'ocena-ucitavanje' | 'ocena-greska';
+  | 'ocena-ucitavanje' | 'ocena-greska' | AuthSceneKey;
 const SCENES: [Scene, string][] = [
   ['ponude-prazno', 'Ponuda: prazna'], ['ponude', 'Ponuda: popunjena'], ['neispravna', 'Ponuda: neispravna cena'],
   ['previse', 'Ponuda: previše ljudi'], ['po-osobi', 'Cena po osobi'], ['ukupno', 'Cena za ceo zadatak'], ['bez-cene', 'Zadatak bez cene'],
@@ -56,7 +61,8 @@ const CATALOG: { maxTags: number; tags: ReviewTag[] } = { maxTags: 3, tags: ['AS
 
 export default function DizajnPrijava() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
-  const [scene, setScene] = useState<Scene | null>(null);
+  const params = useLocalSearchParams<{ scene?: string }>();
+  const [scene, setScene] = useState<Scene | null>(typeof params.scene === 'string' && isAuthGalleryScene(params.scene) ? params.scene : null);
   const [draft, setDraft] = useState<ApplicationDraft>(EMPTY);
   const [rating, setRating] = useState(0), [tags, setTags] = useState<ReviewTag[]>([]);
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
@@ -77,10 +83,17 @@ export default function DizajnPrijava() {
   if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <DetailTopBar title="Prijava i ocena" onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }} />
     <ScrollView contentContainerStyle={s.list}>
+      <T variant="bodyStrong" style={s.group}>Ulaz i prijava na nalog</T>
+      {AUTH_GALLERY_SCENES.map(([key, label]) => <Press key={key} accessibilityRole="button" accessibilityLabel={`Galerija: ${label}`} haptic="select"
+        onPress={() => show(key)} style={s.row}><T variant="body" style={s.ink}>{label}</T></Press>)}
+      <T variant="bodyStrong" style={s.group}>Prijava na zadatak i ocena</T>
       {SCENES.map(([key, label]) => <Press key={key} accessibilityRole="button" accessibilityLabel={`Galerija: ${label}`} haptic="select"
         onPress={() => show(key)} style={s.row}><T variant="body" style={s.ink}>{label}</T></Press>)}
     </ScrollView>
   </SafeAreaView>;
+
+  // The sign-in scenes are whole screens of their own (a sheet over its backdrop, or a screen): no strip under them.
+  if (isAuthGalleryScene(scene)) return <AuthGalleryScene scene={scene} onBack={toList} />;
 
   const composer = (need: PotrebaProjekcija, state: { busy?: boolean; pending?: boolean; uncertain?: boolean; error?: string | null; confirmed?: boolean;
     reset?: boolean; canSubmit?: boolean; closed?: boolean; blocked?: { reason: string; actionLabel?: string; onAction?: () => void } | null; sheet?: 'review' | 'time' } = {}) =>
@@ -139,6 +152,7 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   grow: { flex: 1 },
   ink: { color: sys.color.ink },
+  group: { color: sys.color.ink, paddingTop: sys.space.base, paddingBottom: sys.space.xs },
   list: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.xxl },
   row: { minHeight: 52, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
   strip: { borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface, paddingHorizontal: sys.space.base },

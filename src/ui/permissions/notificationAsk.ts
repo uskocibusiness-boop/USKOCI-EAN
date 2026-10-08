@@ -9,7 +9,7 @@ import { permissionAsk } from './permissionAsk';
 export type NotificationPermissionPort = {
   /** The current state, read without asking. */
   read(): Promise<{ granted: boolean; canAskAgain: boolean }>;
-  /** The system's own window. Called only after the person said "Dozvoli". */
+  /** The system's own window. Called only after the person said "Nastavi". */
   request(): Promise<{ granted: boolean }>;
 };
 
