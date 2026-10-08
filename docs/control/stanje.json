@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T23:16:37Z",
+  "osvezeno": "2026-10-08T23:17:46Z",
   "grana": "integration/spoj-20261006",
-  "head": "93041f70",
-  "head_poruka": "merge: refresh control views and align snapshot counts",
+  "head": "a2ebd69f",
+  "head_poruka": "fix: order AI location confirmation before next question",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
