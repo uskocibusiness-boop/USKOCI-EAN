@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T23:30:04Z",
+  "osvezeno": "2026-10-08T23:31:13Z",
   "grana": "integration/spoj-20261006",
-  "head": "774d2a66",
-  "head_poruka": "merge: refresh generated control views",
+  "head": "774c540b",
+  "head_poruka": "fix: reconcile task navigation with physical sheet position",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
