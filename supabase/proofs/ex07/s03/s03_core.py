@@ -515,7 +515,9 @@ def classify_screen(nodes: list[Node], labels: Labels) -> str:
         return 'SIGNUP_FORM'
     if has('recovery.sent.again'):
         return 'RECOVERY_SENT'
-    if has('confirm.edit_email') or has('confirm.resend'):
+    # The confirmation stage has no password field. Since the UI pass of 2026-10-08 the LOGIN form offers the same "send the confirmation
+    # again" link under its message after a sign-in the provider refused because the email is not confirmed yet; that is still the login form.
+    if (has('confirm.edit_email') or has('confirm.resend')) and not has('login.field.password'):
         return 'CONFIRMATION_STAGE'
     if has('recovery.request.submit') and has('login.field.email'):
         return 'RECOVERY_REQUEST'

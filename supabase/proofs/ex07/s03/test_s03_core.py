@@ -315,6 +315,17 @@ class ScreenTests(unittest.TestCase):
         self.assertEqual(self._screen(node(text='Zadaci')), 'OTHER')
         self.assertEqual(self._screen(), 'OTHER')
 
+    def test_a_login_form_that_offers_to_send_the_confirmation_again_is_still_the_login_form(self):
+        # After a sign-in refused because the email is not confirmed, the login form stays (fields and button) and shows the message with a
+        # "send the confirmation again" link (UI pass 2026-10-08). The confirmation stage has no password field, so the two stay apart.
+        t = LABELS.text
+        refused = [field(t('login.field.email')), field(t('login.field.password')),
+                   node(text='Email još nije potvrđen. Otvori poruku za potvrdu (proveri i neželjenu poštu), pa se prijavi ponovo.'),
+                   node(text=t('confirm.resend')), node(text=t('login.forgot')), button(t('login.submit'))]
+        self.assertEqual(core.classify_screen(refused, LABELS), 'LOGIN_FORM')
+        stage = [node(text='Proveri email'), button(t('confirm.back')), node(text=t('confirm.resend')), node(text=t('confirm.edit_email'))]
+        self.assertEqual(core.classify_screen(stage, LABELS), 'CONFIRMATION_STAGE')
+
     def test_a_signup_form_is_not_mistaken_for_login(self):
         nodes = [field('Ime'), field('Prezime'), field('Email'), field('Lozinka')]
         self.assertEqual(core.classify_screen(nodes, LABELS), 'SIGNUP_FORM')
