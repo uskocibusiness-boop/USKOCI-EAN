@@ -8314,6 +8314,12 @@
         "invalid": [],
         "browserPreview": "BLOCKED: browser security policy forbids file URL. No alternate surface or workaround used.",
         "pass": true
+      },
+      "preview_startup_fix": {
+        "problem": "Owner screenshot: HTML shell visible, phone and screen selector empty. Global function top collides with browser window.top.",
+        "change": "Isolate sketch code in a strict IIFE; add loading/noscript copy. Application source unchanged.",
+        "evidence": "TEST: before fails with non-configurable window.top; after all 58 screens, initial Home and navigation controls pass in Node VM with inert DOM. Assets and links pass.",
+        "limits": "No browser rendering or native/phone acceptance. Owner must refresh the open HTML; existing acceptance lights unchanged."
       }
     }
   }

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T18:59:04Z",
+  "osvezeno": "2026-10-08T20:08:10Z",
   "grana": "integration/spoj-20261006",
-  "head": "f1ddd54d",
-  "head_poruka": "docs(handoff): preamble v2 for the Codex command, free analysis and recomposition, only owner decisions and server rules fixed, show before replace [skip ci]",
+  "head": "b7afc95d",
+  "head_poruka": "docs(design): audit current product and propose screen compositions [skip ci]",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2022,6 +2022,12 @@
     "invalid": [],
     "browserPreview": "BLOCKED: browser security policy forbids file URL. No alternate surface or workaround used.",
     "pass": true
+   },
+   "preview_startup_fix": {
+    "problem": "Owner screenshot: HTML shell visible, phone and screen selector empty. Global function top collides with browser window.top.",
+    "change": "Isolate sketch code in a strict IIFE; add loading/noscript copy. Application source unchanged.",
+    "evidence": "TEST: before fails with non-configurable window.top; after all 58 screens, initial Home and navigation controls pass in Node VM with inert DOM. Assets and links pass.",
+    "limits": "No browser rendering or native/phone acceptance. Owner must refresh the open HTML; existing acceptance lights unchanged."
    }
   }
  },
