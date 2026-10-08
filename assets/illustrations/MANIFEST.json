@@ -6,8 +6,8 @@
   },
   {
     "file": "uskoci-messages-v2.png",
-    "sha256": "7ae96e87cda0923e11e0a99e12c6a9a049531dede592be41ca2b7da0526e15cf",
-    "bytes": 964380
+    "sha256": "b8d367e2111cdcf535fab12874a6942c37f58e446a01a88b872f934feada6d1c",
+    "bytes": 824579
   },
   {
     "file": "uskoci-task-launch-v2.png",
@@ -66,23 +66,23 @@
   },
   {
     "file": "uskoci-people-v2.png",
-    "sha256": "014c40342a560b57072ca647d7e91ec58f6c72ee57ff4894a94b445d315b99e9",
-    "bytes": 1049535
+    "sha256": "358125798b07d5c1e95bb9fd26a41bd20b8df27a7aacb5103da25d6eef42e83c",
+    "bytes": 872948
   },
   {
     "file": "uskoci-pin-v1.png",
-    "sha256": "66c683ba3f9051b52f18124ec3741fc7eaf5da49e92f0f02e22d28bc62beaa50",
-    "bytes": 876037
+    "sha256": "fa2152dd2895e491e6fb2adbf32d11cc776465a7689e8a1cea4921ab3e317f25",
+    "bytes": 726579
   },
   {
     "file": "uskoci-remote-v1.png",
-    "sha256": "03e5cab68b41c40626c190041f9797190d0b97af7bdc2ff3cfaa064e0d7ed776",
-    "bytes": 991948
+    "sha256": "d3022b189691dbe9aece4592ae35aaed1ca74f53ffe15e0274efd9586f7f5d32",
+    "bytes": 817664
   },
   {
     "file": "uskoci-support-v1.png",
-    "sha256": "e4138de3a06dd6e9be0ceda54b7eb62457c248d43275452322fd8a8c52e580f0",
-    "bytes": 1342912
+    "sha256": "2706368ecfb768a00fb76b6ea0f3e223e7afeb4674a513d9afb6d47c7f53e9db",
+    "bytes": 1175627
   },
   {
     "file": "uskoci-tasks-v1.png",

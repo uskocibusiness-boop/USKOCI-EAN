@@ -372,7 +372,7 @@ const s = StyleSheet.create({
   bigOff: { backgroundColor: sys.color.wash, borderColor: sys.color.line },
   pillStage: { flex: 1, minWidth: 0, maxWidth: 120, marginRight: 'auto', height: 56, justifyContent: 'center' },
   // A faint blue glow; only measured speech adds movement. The idle surface remains still.
-  glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.location.front, opacity: 0.14 },
+  glow: { ...StyleSheet.absoluteFill, borderRadius: sys.radius.pill, backgroundColor: sys.color.artRole.ai.front, opacity: 0.14 },
   glowOn: { opacity: 0.22 },
   pillCore: { height: BIG, marginHorizontal: 4, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center',
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine },

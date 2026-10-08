@@ -36,7 +36,7 @@ const PRESS_LADDER = { button: 0.97, row: 0.985, none: 1 } as const;
 /**
  * Shared consumer UI system, owner takeover 2026-10-02. White reading surfaces;
  * ink for content and money, green for the primary action/confirmed success,
- * warm orange for attention. Blue communication/location, coral people and gold
+ * warm orange for attention. Emerald location (owner, 8 Oct 2026), blue for the AI, coral people and gold
  * time belong to selective artwork, not invented status. Small orange labels use
  * the contrast-safe orangeInk; orange surfaces use dark labels. Neutral wells are
  * controls, not a requirement to wrap every fact in another card. Entry artwork's
@@ -106,7 +106,8 @@ export const sys = {
     },
     /** Semantic artwork roles: restrained color for place, communication, people and time; never a status inferred from art. */
     artRole: {
-      location: artTone('#3979C4'),
+      // Owner, 8 Oct 2026 (picking board): the blue drawings became emerald, one family with the others; this is the recoloured pin.
+      location: artTone('#0F8C61'),
       ai: artTone('#3979C4'),
       skills: artTone('#168579'),
       people: artTone('#D76B5C'),

@@ -547,7 +547,7 @@ const s = StyleSheet.create({
   inputOff: { color: sys.color.muted },
   round: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   send: { backgroundColor: sys.color.ink },
-  voiceRound: { backgroundColor: sys.color.artRole.location.soft },
+  voiceRound: { backgroundColor: sys.color.artRole.ai.soft },
   // Disabled is a quiet wash with a muted glyph, never a faded ghost of the live control.
   roundOff: { backgroundColor: sys.color.wash },
 });
