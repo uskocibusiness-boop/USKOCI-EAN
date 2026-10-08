@@ -1,0 +1,86 @@
+{
+  "schema": "USKOCI_DEV_DISCOVERY_GRAD_APPLICATION_RECEIPT_V1",
+  "project": "leqcwgzvjsxugfgzdmth (canonical DEV/ALPHA)",
+  "package": "DISCOVERY-GRAD (owner decision d14, 2026-10-07): the place filter finds the task's CITY (\"Novi Sad\" lists every task of the city, a part such as \"Detelinara, Novi Sad\" still lists only that part; remote tasks and tasks without a place text never match), and words and places are found without regard to Serbian letters, case or script (cistim = čistim, Cacak = Čačak, Djordje = Đorđe, Нови Сад = Novi Sad). One NEW function public.discovery_fold_v1(text) (IMMUTABLE, SECURITY INVOKER, search_path pg_catalog, EXECUTE for authenticated only, body pure ASCII) and ONE REPLACED body, public.rpc_discovery_v1(jsonb) (DISCOVERY-ZAMENE postimage dc69802e -> a9b09859, nine anchored edits). An optional PLACES request key groupBy \"CITY\" lists cities with exact counts. filterKey, anchors and cursors are unchanged for every request except PLACES with groupBy CITY. No table, column, constraint, trigger, policy or grant on an existing object changed. The optional part S3 (days only for a time filter) is NOT applied.",
+  "sourceCommit": "715bca3c on candidate/discovery-grad-20261008 (remote novi), folder supabase/candidates/discovery-grad-20261008/ (copied byte-identical into this checkout with this receipt); final proof run 37704756107 on commit c96dedec (behaviour 21 checks and load 5 checks, all PASS, disposable database only, workflow .github/workflows/discovery-grad-proof.yml)",
+  "authorization": "2026-10-07 (owner, in chat, exact words, ~22:00 CEDT): \"DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000\" - the standing order to apply proven server packages myself (AGENTS.md section 3.1 rule 10). DISCOVERY-GRAD was proven on a disposable database (FAIL before / PASS after, exact revert, 18 request kinds without the new key byte-identical, the closure certificate unchanged, load numbers) and moves nothing the owner reserved: no money, keys, legal text, real-data deletion, store, push, dependency, certificate change or privacy switch. The README of the package, written before the standing order, still says the owner's exact word 'PRIMENI DISCOVERY-GRAD' is needed; the standing order replaced that default for proven packages. The optional part S3 has its own word in the README and is left unapplied.",
+  "method": {
+    "preflight": "Read-only preflight.readonly.sql on DEV just before the apply (2026-10-08 about 00:05 UTC): ledger 233, latest version 20261007230023, readerIsDiscoveryZamene true (md5 dc69802e...), the six dependencies true, helperAbsent true, collationReady true (sr-Latn-RS-x-icu), retriedLiteralFunctions 0, certificateReady true with closure digest 3a785d42... and erasure program digest 2027655d..., 6 open tasks, 0 tasks without a city whose area has a comma.",
+    "statement": "candidate.in-transaction.sql sent byte-exact through the connector's apply_migration (the connector adds its own transaction and the ledger insert). The statement was typed into the connector byte-exact (47,169 bytes, 547 lines, pure ASCII: every non-ASCII letter is chr(n); LF only) and the stored statement was read back from supabase_migrations.schema_migrations afterwards: 1 statement, 47169 characters (47169 bytes), md5 641c883108968f00c1396eaa646a8f3c, equal to the md5 of the file.",
+    "attemptsThatChangedNothing": [],
+    "insideTheStatement": "Pre-guards in the same transaction: certificate ready; the helper absent and the reader not already the postimage (DISCOVERY_GRAD_ALREADY_OR_PARTIALLY_APPLIED); the reader body pinned to the DISCOVERY-ZAMENE md5 dc69802e; six dependency body md5 pins (p6_discovery_key, _trim, _unquote, _area, discovery_for_me_state_v1, discovery_for_me_v1); the Serbian ICU collation present. Then the helper is created (revoke from public, anon, authenticated, service_role; grant execute to authenticated) and the reader replaced: preimage md5, md5 of the new body against the generator's value (a9b09859...), exactly one anchor of the old body in pg_get_functiondef, then the whole pg_proc row apart from the body and the function comment asserted unchanged. Post-guards: the helper pinned by md5 41353abe... with volatility immutable, SECURITY INVOKER, owner postgres, plpgsql, search_path=pg_catalog and ACL {postgres=X/postgres,authenticated=X/postgres}; a 26-row truth table of the fold (Latin with caron or acute, d with stroke, Cyrillic including the digraph letters, empty, null) all equal; the reader md5 and ACL; both closure digests equal before and after (a temporary table of the pre-apply digests) and the certificate ready. Any difference aborts and rolls back."
+  },
+  "ledger": {
+    "before": 233,
+    "after": 234,
+    "version": "20261008000839",
+    "name": "dev_alpha_discovery_grad_application",
+    "storedStatementChars": 47169,
+    "statements": 1,
+    "storedStatementMd5": "641c883108968f00c1396eaa646a8f3c",
+    "fileSha256": "805c67e012ad8319b4d28f68f8aafef66a5498d77627acae480c8c8d8bf51ab6",
+    "note": "md5(statements[1]) read back from supabase_migrations.schema_migrations equals the md5 of candidate.in-transaction.sql (641c883108968f00c1396eaa646a8f3c): read back after the apply (md5 641c883108968f00c1396eaa646a8f3c, 47169 chars / 47169 bytes, 1 statement)."
+  },
+  "certificate": {
+    "closureSourceDigestBefore": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "closureSourceDigestAfter": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "erasureProgramDigestBefore": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "erasureProgramDigestAfter": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+    "moved": false,
+    "note": "rpc_discovery_v1 is not among the 99 functions closure_source_digest_v5 hashes (DISCOVERY-ZAMENE replaced the same body with the certificate unchanged) and a new non-trigger function is not hashed. The same transaction asserted equality and the postflight read it again."
+  },
+  "postflight": {
+    "file": "postflight.readonly.sql",
+    "sha256": "efa9acda01fdff853bda1dcbce572b082f9e76d64d1bb22de2d39481c837c2b2",
+    "readerAfter": true,
+    "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+    "helper": true,
+    "foldTruthTableMismatches": 0,
+    "dependencies": true,
+    "retriedLiteralFunctions": 0,
+    "certificateReady": true,
+    "problems": []
+  },
+  "revert": {
+    "file": "supabase/candidates/discovery-grad-20261008/revert.sql",
+    "sha256": "155b421e8f0c78585b9c49083a6485779ec74d96de7c374f19180e894d741ad2",
+    "applied": false,
+    "effect": "revert.sql restores the DISCOVERY-ZAMENE body dc69802e of public.rpc_discovery_v1 byte for byte and drops public.discovery_fold_v1 (it refuses while S3 is applied and while any other function body calls the helper). Code rollback only: the package writes no data."
+  },
+  "notProven": [
+    "Speed on DEV: only CI hardware with 2,000 tasks was measured; DEV has 6 open tasks.",
+    "The client: nothing calls groupBy CITY yet (CLIENT_CONTRACT.md describes the change); the folding and the city filter need no client build because they work on the existing place and text filters.",
+    "More than 2,000 open tasks, and decomposed Unicode (NFD) input.",
+    "The optional part S3 (days only for a time filter, about 25 percent faster plain page) is not applied: it has its own owner word in the README."
+  ],
+  "followUps": [
+    "Owner decisions that do not block anything: (1) should 'd' without the stroke also find 'đ' ('Dorde' -> 'Đorđe'; today 'dj' is the rule he decided); (2) apply S3?; (3) when two spellings of one place merge, the list shows the most recently published spelling (today's rule for case).",
+    "Client: the 'Gde' list may use groupBy CITY (rows 'Novi Sad · 5'); see CLIENT_CONTRACT.md; F2 family of the 2026-10-08 UI wave.",
+    "The production Supabase project (a NEW project, decision R04) needs DISCOVERY-ZAMENE and DISCOVERY-GRAD in the same order before its first real user."
+  ],
+  "filesCopiedToThisCheckout": [
+    "body.diff",
+    "build_candidate.py",
+    "candidate.in-transaction.sql",
+    "candidate.sql",
+    "CLIENT_CONTRACT.md",
+    "live-functions.json",
+    "manifest.json",
+    "patches.json",
+    "postflight.readonly.sql",
+    "preflight.readonly.sql",
+    "README.md",
+    "revert.sql",
+    "s3-body.diff",
+    "s3-candidate.in-transaction.sql",
+    "s3-candidate.sql",
+    "s3-patches.json",
+    "s3-postflight.readonly.sql",
+    "s3-revert.sql"
+  ],
+  "measurement": {
+    "devSmokeReadOnly": "Read-only on DEV right after the apply, run as an authenticated test account inside a DO block that ended in a deliberate RAISE EXCEPTION so nothing was stored, over the 6 open tasks (4 in Novi Sad without an area, 1 Detelinara in Novi Sad, 1 in Beograd): PAGE place 'Novi Sad' = 5 tasks (the whole city); place 'Detelinara, Novi Sad' = 1; place in Cyrillic = 5; word 'ciscenje' = the 2 'Čišćenje stana' tasks; word 'MATEMATIK' = the maths-lessons task; plain PAGE = 6 (as before); PLACES by area = Novi Sad 4, Beograd 1, 'Detelinara, Novi Sad' 1 (as before); PLACES groupBy CITY = Novi Sad 5, Beograd 1; PLACES groupBy CITY prefix 'nov' = Novi Sad 5; groupBy 'STREET' refused with P6_INVALID_REQUEST.",
+    "ciMeasured": "On CI hardware, 2,000 open tasks, minimum of 11 warm calls: place filter 125 -> 38 ms, words 78 -> 97 ms, plain page 30 -> 30 ms, map with a place 105 -> 15 ms. Not measured on DEV (6 tasks)."
+  },
+  "orderWithOtherPackages": "Applied after DISCOVERY-ZAMENE (232) and MATCH-V1B (233); it touches no dispatch function. A later package that replaces rpc_discovery_v1 must pin the postimage a9b09859 (or 225edbb8 with S3). Revert order: s3-revert.sql (only if S3 was applied), then revert.sql."
+}

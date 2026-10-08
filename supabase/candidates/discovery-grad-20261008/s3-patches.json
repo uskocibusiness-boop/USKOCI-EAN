@@ -1,0 +1,12 @@
+[
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "   case when request_mode in ('MAP','PLACES') and when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,\n",
+    "after": "   -- DISCOVERY-GRAD S3 (optional): the days only for a time filter, in every mode; availability asks for them lazily below.\n   case when when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "'hasKnownSchedule',exists(select 1 from base where days is not null)",
+    "after": "'hasKnownSchedule',exists(select 1 from base b where coalesce(b.days,case when when_mode='any' and range_from is null\n     then public.p6_discovery_days(b.schedule_kind,b.starts_at,b.ends_at,b.task_timezone,time_at) end) is not null)"
+  }
+]

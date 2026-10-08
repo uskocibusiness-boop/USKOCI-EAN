@@ -1,0 +1,124 @@
+--- public.rpc_discovery_v1(jsonb) BEFORE (DEV, DISCOVERY-ZAMENE)
++++ public.rpc_discovery_v1(jsonb) AFTER (DISCOVERY-GRAD)
+@@ -8,6 +8,7 @@
+  west numeric; south numeric; east numeric; north numeric; point_lat numeric; point_lng numeric;
+  grid integer; grid_cells numeric; grid_w numeric; grid_e numeric; grid_s numeric; grid_n numeric; grid_width numeric;
+  prefix_text text; facet_area jsonb; before_count bigint; before_text text; before_key text;
++ fold_text text; fold_place text; fold_prefix text; place_level text:='AREA';
+  range_from text; range_to text; iso_pattern text:='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?(Z|[+-][0-9]{2}:[0-9]{2})$';
+ begin
+  if auth.uid() is null then raise exception 'AUTH_REQUIRED' using errcode='28000'; end if;
+@@ -30,12 +31,15 @@
+     or (r->>'grid')::numeric not between 1 and 24 then raise exception 'P6_INVALID_REQUEST' using errcode='22023'; end if;
+   grid:=(r->>'grid')::integer; f:=r->'filter'; scope:=jsonb_build_object('kind','AREA','bounds',r->'bounds'); page_limit:=1;
+  elsif request_mode='PLACES' then
+-  if r-array['mode','filter','anchor','prefix','facetArea','limit','after']<>'{}'
++  if r-array['mode','filter','anchor','prefix','facetArea','limit','after','groupBy']<>'{}'
+     or not(r?&array['mode','filter','anchor','prefix','facetArea','limit','after'])
++    or (r?'groupBy' and (jsonb_typeof(r->'groupBy') is distinct from 'string' or r->>'groupBy' not in ('AREA','CITY')))
+     or jsonb_typeof(r->'prefix') is distinct from 'string' or length(r->>'prefix')>500
+     or jsonb_typeof(r->'limit') is distinct from 'number' or (r->>'limit')::numeric<>trunc((r->>'limit')::numeric)
+     or (r->>'limit')::numeric not between 1 and 30 then raise exception 'P6_INVALID_REQUEST' using errcode='22023'; end if;
+   prefix_text:=public.p6_discovery_key(r->>'prefix'); f:=r->'filter'; page_limit:=(r->>'limit')::integer;
++  -- DISCOVERY-GRAD (owner 2026-10-07): the optional groupBy CITY lists cities instead of place texts; absent or AREA is the list of before.
++  place_level:=coalesce(r->>'groupBy','AREA'); fold_prefix:=public.discovery_fold_v1(prefix_text);
+   facet_area:=r->'facetArea';
+   scope:=case when facet_area='null'::jsonb then '{"kind":"ALL"}'::jsonb else jsonb_build_object('kind','AREA','bounds',facet_area) end;
+  else raise exception 'P6_MODE_NOT_IMPLEMENTED' using errcode='22023'; end if;
+@@ -76,12 +80,16 @@
+   locality:=null;
+   if request_mode<>'MAP' then scope:='{"kind":"ALL"}'; facet_area:='null'::jsonb; end if;
+  end if;
++ -- DISCOVERY-GRAD (owner 2026-10-07): words and places are FOUND through discovery_fold_v1 (Serbian letters and case do not
++ -- matter); what the request binds (filterKey, anchors, cursors) and every text that is shown stay exactly as before.
++ fold_text:=public.discovery_fold_v1(query_text); fold_place:=public.discovery_fold_v1(locality);
+  f:=jsonb_build_object('text',query_text,'price',price,'where',location_mode,'places',people,'when',when_mode,
+    'dates',case when range_from is null then null else jsonb_build_object('from',range_from,'to',range_to) end,'place',locality);
+  if for_me then f:=f||'{"forMe":true}'::jsonb; end if;
+  -- PLACES binds its prefix/area too; the documented count/text/key cursor
+  -- cannot be reused under another facet context without a fresh anchor.
+- filter_key:=md5(case when request_mode='PLACES' then jsonb_build_object('filter',f,'prefix',prefix_text,'facetArea',facet_area)::text else f::text end);
++ filter_key:=md5(case when request_mode='PLACES' then (jsonb_build_object('filter',f,'prefix',prefix_text,'facetArea',facet_area)
++   ||case when place_level='CITY' then '{"groupBy":"CITY"}'::jsonb else '{}'::jsonb end)::text else f::text end);
+  if request_mode in ('PAGE','MAP','PLACES') then
+   if r->'anchor'='null'::jsonb then
+    if request_mode<>'MAP' and r->'after'<>'null'::jsonb then raise exception 'P6_INVALID_CURSOR' using errcode='22023'; end if;
+@@ -205,18 +213,22 @@
+     public.p6_discovery_area(c.approximate_area,c.approximate_city,false) as area_text
+    from facet_raw_counts c join facet_raw_representatives r using(approximate_area,approximate_city)
+   ), facet_keys as materialized (
+-   select public.p6_discovery_key(area_text) as key,area_text as text,raw_count,id,published_at
+-   from facet_raw
++   -- DISCOVERY-GRAD: a row is a place text (AREA, as before) or, with groupBy CITY, the task's city: approximate_city, and
++   -- for a task that names no city the last part of its place text after a comma. The key stays p6_discovery_key(text).
++   select public.p6_discovery_key(p.shown) as key,p.shown as text,public.p6_discovery_key(area_text) as area_key,raw_count,id,published_at
++   from facet_raw cross join lateral (select case when place_level='CITY' then coalesce(public.p6_discovery_unquote(approximate_city),
++     nullif(public.p6_discovery_trim(substring(area_text from '[^,]*$')),''),area_text) else area_text end as shown) p
+   ), facet_members as materialized (
+-   select * from facet_keys
+-   where key not in ('na daljinu','lokacija nije navedena')
+-    and (prefix_text='' or strpos(key,prefix_text)>0)
++   -- One row per place as people find it: texts that differ only by Serbian letters or case are one place (discovery_fold_v1).
++   select k.key,k.text,k.raw_count,k.id,k.published_at,public.discovery_fold_v1(k.key) as fold_key from facet_keys k
++   where k.area_key not in ('na daljinu','lokacija nije navedena')
++    and (prefix_text='' or strpos(public.discovery_fold_v1(k.key),fold_prefix)>0)
+   ), facet_representatives as materialized (
+-   select distinct on(key) key,text from facet_members order by key,published_at desc,id desc
++   select distinct on(fold_key) fold_key,key,text from facet_members order by fold_key,published_at desc,id desc
+   ), facet_counts as materialized (
+-   select key,sum(raw_count)::bigint as count from facet_members group by key
++   select fold_key,sum(raw_count)::bigint as count from facet_members group by fold_key
+   ), facets as materialized (
+-   select c.key,r.text,c.count from facet_counts c join facet_representatives r using(key)
++   select r.key,r.text,c.count from facet_counts c join facet_representatives r using(fold_key)
+   ), facet_page as materialized (
+    select * from facets
+    where before_count is null or count<before_count or count=before_count and
+@@ -259,14 +271,29 @@
+    n.requester_price_rsd,n.price_basis,n.requester_profile_id,n.response_deadline,
+    case when people>1 then public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id))) else null::integer end as covered_now,
+    case when request_mode in ('MAP','PLACES') and when_mode='any' and range_from is null then null::text[] else public.p6_discovery_days(n.schedule_kind,n.starts_at,n.ends_at,n.task_timezone,time_at) end as days,
+-   case when request_mode='PLACES' or locality is not null
+-     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)=0
++   case when request_mode='PLACES'
++     or query_text<>''
+     then public.p6_discovery_area(n.approximate_area,n.approximate_city,n.execution_location_mode='REMOTE')
+     else null::text end as area_text,
+    case when n.execution_location_mode='REMOTE' or n.approximate_lat is null or n.approximate_lng is null then false else true end as has_point,
+    (time_at at time zone coalesce(n.task_timezone,'UTC'))::date as today
+   from public.needs n where n.status in ('PUBLISHED','SELECTION') and n.published_at is not null and n.remaining_search_closed_at is null
+    and (request_mode='EXACT_PUBLIC' and n.id=need_id or request_mode in ('PAGE','MAP','PLACES') and n.published_at<=through_at)
++ ), place_keys as materialized (
++  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that
++  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per
++  -- distinct (area, city) text of the rows base read (never once per task, never a second read of the tasks); a task then only
++  -- looks up its key (length-prefixed, so no two texts share one). OFFSET 0 fences: the test would otherwise be pushed below the
++  -- GROUP BY (it reads only grouping columns) and the place text repeated per use. A remote task and a task without a place text
++  -- never match a place; a task without a point but with a city does. Both columns are NOT NULL (default ''); coalesce only guards.
++  select length(p.place_area)::text||':'||p.place_area||p.place_city as place_key from (
++    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b
++    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2 offset 0) p
++   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label offset 0) l
++  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')
++   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place
++    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),
++      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)
+  ), shared as materialized (
+   select b.*,case when range_from is not null then array[range_from,range_to] else case when_mode
+    when 'today' then array[today::text,today::text] when 'tomorrow' then array[(today+1)::text,(today+1)::text]
+@@ -277,10 +304,11 @@
+    and (location_mode='any' or location_mode='remote' and b.execution_location_mode='REMOTE'
+      or location_mode='onsite' and b.execution_location_mode is not null and b.execution_location_mode<>'REMOTE')
+    and (people=1 or greatest(0,coalesce(nullif(b.required_slots,0),1)-coalesce(b.covered_now,0))>=people)
+-   and (locality is null or b.execution_location_mode is distinct from 'REMOTE' and public.p6_discovery_key(b.area_text)=locality
+-     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))
+-   and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0
+-    or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog."sr-Latn-RS-x-icu"),query_text)>0)
++   -- DISCOVERY-GRAD: the place (its key among place_keys) and the words, found in the title, the place text and the needed
++   -- skills, tools and vehicles through discovery_fold_v1, one fold per task (the title is the start of that text).
++   and (locality is null or b.execution_location_mode is distinct from 'REMOTE'
++     and length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'') in (select place_key from place_keys))
++   and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)
+    and (not for_me or fm_lat is null or fm_lng is null or b.execution_location_mode='REMOTE' or b.approximate_lat is null or b.approximate_lng is null
+       or 6371.0*2*asin(least(1,sqrt(power(sin(radians((b.approximate_lat-fm_lat)::double precision)/2),2)
+         +cos(radians(b.approximate_lat::double precision))*cos(radians(fm_lat::double precision))

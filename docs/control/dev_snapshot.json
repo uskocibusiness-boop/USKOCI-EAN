@@ -5,10 +5,10 @@
     "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
     "concurrencyAcceptance": false
   },
-  "generated_at": "2026-10-07T23:06:00Z",
-  "ledger_total": 233,
-  "ledger_dev_alpha": 84,
-  "ledger_last": "dev_alpha_match_v1b_application",
+  "generated_at": "2026-10-08T00:12:00Z",
+  "ledger_total": 234,
+  "ledger_dev_alpha": 85,
+  "ledger_last": "dev_alpha_discovery_grad_application",
   "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "cron": [
     {
@@ -696,6 +696,13 @@
         "name": "dev_alpha_match_v1b_application",
         "effect": "MATCH-V1B (applied 2026-10-08 00:00 CEDT): five new private functions (worker_notify_room_v1b, candidate_profile_ids_v1b, remote_wave_candidates_v1b, dispatch_config_v1b, dispatch_remote_wave_v1b), private.dispatch_next_wave replaced (MATCH-V1 0bd8b64a... -> d3cdfe2b...), eight new keys in the data row private.marketplace_config match_v1_dispatch (remote tasks in waves, notify budget of 1000 per transaction, daily cap OFF). No public RPC, table, grant or certificate change, so rpc_all / rpc_authenticated stay as above. A later guarded config UPDATE (ceiling 1000 -> 10000) is a data change without a ledger row, recorded in the receipt.",
         "receipt": "supabase/operations/dev-alpha/ledger/20261008_match_v1b_application.receipt.json"
+      },
+      {
+        "ledger": 234,
+        "version": "20261008000839",
+        "name": "dev_alpha_discovery_grad_application",
+        "effect": "DISCOVERY-GRAD (applied 2026-10-08 02:08 CEDT): one new public function public.discovery_fold_v1(text) (IMMUTABLE, EXECUTE for authenticated; no rpc_ prefix, so the rpc lists above stay as they are) and public.rpc_discovery_v1(jsonb) replaced (DISCOVERY-ZAMENE dc69802e -> a9b09859): the place filter finds the city, words and places ignore Serbian letters, case and script, optional PLACES key groupBy CITY. No table, grant or certificate change; the optional part S3 is not applied.",
+        "receipt": "supabase/operations/dev-alpha/ledger/20261008_discovery_grad_application.receipt.json"
       }
     ],
     "newPublicFunctions": {

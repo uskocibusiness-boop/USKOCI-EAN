@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-07T23:05:33Z",
+  "osvezeno": "2026-10-08T00:11:25Z",
   "grana": "integration/spoj-20261006",
-  "head": "f77300b2",
-  "head_poruka": "docs(rules,registry): the owner's standing order for proven server packages (rule 10, verbatim, with its limits), the five packages applied under it, the owner directive to perfect everything",
+  "head": "5b07356b",
+  "head_poruka": "docs(design-skills): motion rules and tokens follow the system pass of 2026-10-08 (push 240 with easeOut, dead tokens deleted, tickGap and haptics) [skip ci]",
   "server": {
-   "snimljeno": "2026-10-07T23:06:00Z",
-   "migracije": 233,
-   "dev_alpha": 84,
-   "poslednja": "dev_alpha_match_v1b_application",
+   "snimljeno": "2026-10-08T00:12:00Z",
+   "migracije": 234,
+   "dev_alpha": 85,
+   "poslednja": "dev_alpha_discovery_grad_application",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -112,6 +112,7 @@
   "owner_standing_order_20261007_apply_proven_packages": "7.10. oko 22:00, VLASNIK doslovno: „DA, PRIMENJUJ DOKAZANE PAKETE SAM. MATCH-V1: 5000“. Znači: DOKAZAN serverski paket (jednokratna baza: PAD pre / PROLAZ posle, tačan povratak, sertifikat isti) primenjuje sesija sama, uz čitanje nazad i izveštaj posle. Granice (posebna reč vlasnika): novac i cene, plaćeni ključevi i nalozi, pravni tekstovi, brisanje prave baze, prodavnica, push, nove zavisnosti, paket koji pomera sertifikat, prekidači privatnosti (npr. procenat pouzdanosti javno), Edge objava. Gola reč „PRIMENI“ i dalje ništa ne ovlašćuje.",
   "server_packages_applied_20261007": "7.10. na kanonski DEV primenjeno 5 dokazanih paketa po toj naredbi (dnevnik 227→232): ZONE-PERF 228 (Početna oko 10 puta brža), CANCEL-INFO 229 (razlog, ko i kada je otkazao Dogovor), PROFILE-TRUST 230 (pouzdanost, statistika, primljene ocene; privatnost na podrazumevanim OWN_ONLY i COMMENTED_ONLY), MATCH-V1 231 („Odgovara mi“ = vrsta posla + područje + vreme; alat, vozilo, iskustvo i cena nisu uslov; jedan talas svima), DISCOVERY-ZAMENE 232 (filter „Za mene“). Svaki pročitan nazad (sačuvani tekst = fajl), postflight zelen, sertifikat 3a785d42…/2027655d… nepomeren. Prag obaveštenja po zadatku: vlasnik 5000, pa „do 10.000“; postavljeno 10000, pa spušteno na 1000 (21:47 UTC) jer jedna transakcija ne može da obavesti više od oko 4.000 različitih radnika (tabela zaključavanja; nalaz dokaza MATCH-V1B); raste tek posle MATCH-V1B. Prvi talas na DEV: 3 obaveštenja za jedan zadatak. Klijent još ne zove nove funkcije (otkazivanje, pouzdanost, primljene ocene, „Za mene“). Naš push šalje 1 poruku u minuti: paket PUSH-KAPACITET pre uključivanja push-a. Priznanice: supabase/operations/dev-alpha/ledger/20261007_*_application.receipt.json.",
   "server_package_applied_20261008_match_v1b": "8.10. u 01:00 (CEDT) na kanonski DEV primenjen i šesti dokazan paket po istoj naredbi, MATCH-V1B (dnevnik 232→233, verzija 20261007230023, CI dokaz 37696505357: ponašanje 38 i opterećenje 20 provera): zadaci bez mesta (na daljinu ili bez tačke) idu u talasima — prvi 300 radnika, pa po 1.000 na svakih 30 minuta, najviše 10.000 po zadatku, dok ih ne pokrije 5 prijava; jedna transakcija obaveštava najviše 1.000 radnika (zaštita zajedničke tabele zaključavanja), pa veći talas zadatka sa mestom ide u komadima po 1.000 u minuti; dnevna zaštita radnika postoji ali je ISKLJUČENA (1000) i čeka njegov broj. Pročitano nazad (sačuvani tekst md5 5704ddb8… = fajl, 48.312 bajta), postflight zelen, sertifikat 3a785d42…/2027655d… nepomeren, prvi tick posle primene uspešan. Plafon po zadatku vraćen sa 1000 na 10000 (njegova odluka od 7.10.). Ostaje: naš push šalje 1 poruku u minuti, paket PUSH-KAPACITET mora pre uključivanja push-a; prvi talas na pravim podacima još nije viđen (na DEV nema otvorenog zadatka bez mesta). Priznanica: supabase/operations/dev-alpha/ledger/20261008_match_v1b_application.receipt.json.",
+  "server_package_applied_20261008_discovery_grad": "8.10. u 02:08 (CEDT) na kanonski DEV primenjen i sedmi dokazan paket po istoj naredbi, DISCOVERY-GRAD (dnevnik 233→234, verzija 20261008000839, CI dokaz 37704756107: ponašanje 21 i opterećenje 5 provera; njegova odluka d14): mesto je grad („Novi Sad“ daje sve zadatke grada, deo grada i dalje samo taj deo; zadaci na daljinu i bez mesta nikad), a kvačice, velika slova i ćirilica ne smetaju u rečima i mestima („cistim“ nalazi „čistim“, „Нови Сад“ = „Novi Sad“); nov neobavezan izbor groupBy CITY daje listu gradova sa brojem. Nova funkcija public.discovery_fold_v1 i zamenjeno telo rpc_discovery_v1 (dc69802e → a9b09859); sertifikat 3a785d42…/2027655d… nepomeren. Pročitano nazad (sačuvani tekst md5 641c8831… = fajl, 47.169 bajta), postflight zelen (26 slučajeva pretvaranja slova tačno, 0 pogrešnih), a na DEV podacima (6 otvorenih zadataka) probano bez upisa: grad 5, Detelinara 1, ćirilica 5, „ciscenje“ 2, gradovi Novi Sad 5 / Beograd 1, loš groupBy odbijen. NIJE primenjen deo S3 (ubrzanje obične strane; ima svoju reč). Ostaje: klijent još ne šalje groupBy CITY (CLIENT_CONTRACT.md, porodica F2), vlasnikove tri sitne odluke (d bez kvačice → đ, S3, spajanje dva pisanja mesta). Priznanica: supabase/operations/dev-alpha/ledger/20261008_discovery_grad_application.receipt.json.",
   "owner_directive_20261007_perfect_everything": "7.10. noću, VLASNIK (više poruka, preveo sam): „Radi neprekidno i odobravam primenu svega. Imaš odobrenje za primenu i usavršavanje svega.“ Cilj: ceo USKOČI (izgled, kompozicija, tokovi, tekstovi, dugmad, pokret) na nivou profesionalnog Airbnb i Apple tima, zasnovano na svetskim rešenjima i na potrebama korisnika; ne stajati dok on sam ne bude oduševljen izgledom i UI/UX-om celog USKOČI. Njegov utisak od 22:53 o probnoj gradnji na telefonu: izdeljeno, isprekidano, složeno bez reda, ranije bolje. Odgovor: dizajn-vođa (jedinstven sistem kompozicije i ritma), analiza potreba korisnika, revizija svih tekstova, pa implementacioni talasi po porodicama ekrana sa proverom u laboratoriji. Granice iz naredbe o paketima ostaju.",
   "owner_confirms_20261007_three_dev_packages": "7.10.: VLASNIK potvrđuje da je odobrio tri DEV paketa primenjena 3.10. (MESSAGES-INBOX-01 čitač prepiski, EX06b rečnik sinonima vrsta posla, WPP01 lični radni profil): „ne bi to išlo da ja to nisam odobrio“. Potvrda važi za ta tri; svaki budući paket i dalje traži njegovo „PRIMENI <ime>“.",
   "owner_decision_20261007_worker_review_note": "7.10.: rečenica na kraju intervjua radnika (pregled profila, pre „Sačuvaj“), crni tekst sa zvonom, ne sivi: „Podaci iz tvog radnog profila koriste se za obaveštenja o zadacima koji odgovaraju tvojim veštinama, području i vremenu.“ Vlasnik je tražio opušteno ali profesionalno, bez „da ti javimo“. Reč „postojećim i novim“ dodaje se tek kad se na serveru dokaže da i već otvoreni zadaci stižu.",
@@ -4197,7 +4198,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "2026-09-24: Dostupnost (vreme HH:MM, Po vremenu u Srbiji, čuvanje isključeno dok se ništa ne promeni) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Audit 24.09: DN-05: kopiranje dostupnosti može izbaciti termin iz dana sa kog se kopira; ponovljeno čistom funkcijom. DN-10/11: osvežavanje i bitno objašnjenje nisu pouzdano dostupni čitaču ekrana. → Ispravljeno u kodu (round 5c): DN-05, DN-10, DN-11. „Mogu odmah“ se čuva odmah (odluka vlasnika 2). 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
@@ -8941,7 +8942,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "158 test fajl(ova)"
+    "test": "160 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -9236,10 +9237,6 @@
   }
  ],
  "server_ume_aplikacija_ne_koristi": [
-  {
-   "rpc": "rpc_agreement_cancellation_v1",
-   "preko_edge": false
-  },
   {
    "rpc": "rpc_agreement_invalidation_visible_v1",
    "preko_edge": false

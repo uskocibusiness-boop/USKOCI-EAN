@@ -1,0 +1,47 @@
+[
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " prefix_text text; facet_area jsonb; before_count bigint; before_text text; before_key text;\n",
+    "after": " prefix_text text; facet_area jsonb; before_count bigint; before_text text; before_key text;\n fold_text text; fold_place text; fold_prefix text; place_level text:='AREA';\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "  if r-array['mode','filter','anchor','prefix','facetArea','limit','after']<>'{}'\n    or not(r?&array['mode','filter','anchor','prefix','facetArea','limit','after'])\n",
+    "after": "  if r-array['mode','filter','anchor','prefix','facetArea','limit','after','groupBy']<>'{}'\n    or not(r?&array['mode','filter','anchor','prefix','facetArea','limit','after'])\n    or (r?'groupBy' and (jsonb_typeof(r->'groupBy') is distinct from 'string' or r->>'groupBy' not in ('AREA','CITY')))\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "  prefix_text:=public.p6_discovery_key(r->>'prefix'); f:=r->'filter'; page_limit:=(r->>'limit')::integer;\n",
+    "after": "  prefix_text:=public.p6_discovery_key(r->>'prefix'); f:=r->'filter'; page_limit:=(r->>'limit')::integer;\n  -- DISCOVERY-GRAD (owner 2026-10-07): the optional groupBy CITY lists cities instead of place texts; absent or AREA is the list of before.\n  place_level:=coalesce(r->>'groupBy','AREA'); fold_prefix:=public.discovery_fold_v1(prefix_text);\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " f:=jsonb_build_object('text',query_text,'price',price,'where',location_mode,'places',people,'when',when_mode,\n",
+    "after": " -- DISCOVERY-GRAD (owner 2026-10-07): words and places are FOUND through discovery_fold_v1 (Serbian letters and case do not\n -- matter); what the request binds (filterKey, anchors, cursors) and every text that is shown stay exactly as before.\n fold_text:=public.discovery_fold_v1(query_text); fold_place:=public.discovery_fold_v1(locality);\n f:=jsonb_build_object('text',query_text,'price',price,'where',location_mode,'places',people,'when',when_mode,\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " filter_key:=md5(case when request_mode='PLACES' then jsonb_build_object('filter',f,'prefix',prefix_text,'facetArea',facet_area)::text else f::text end);\n",
+    "after": " filter_key:=md5(case when request_mode='PLACES' then (jsonb_build_object('filter',f,'prefix',prefix_text,'facetArea',facet_area)\n   ||case when place_level='CITY' then '{\"groupBy\":\"CITY\"}'::jsonb else '{}'::jsonb end)::text else f::text end);\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "  ), facet_keys as materialized (\n   select public.p6_discovery_key(area_text) as key,area_text as text,raw_count,id,published_at\n   from facet_raw\n  ), facet_members as materialized (\n   select * from facet_keys\n   where key not in ('na daljinu','lokacija nije navedena')\n    and (prefix_text='' or strpos(key,prefix_text)>0)\n  ), facet_representatives as materialized (\n   select distinct on(key) key,text from facet_members order by key,published_at desc,id desc\n  ), facet_counts as materialized (\n   select key,sum(raw_count)::bigint as count from facet_members group by key\n  ), facets as materialized (\n   select c.key,r.text,c.count from facet_counts c join facet_representatives r using(key)\n  ), facet_page as materialized (\n",
+    "after": "  ), facet_keys as materialized (\n   -- DISCOVERY-GRAD: a row is a place text (AREA, as before) or, with groupBy CITY, the task's city: approximate_city, and\n   -- for a task that names no city the last part of its place text after a comma. The key stays p6_discovery_key(text).\n   select public.p6_discovery_key(p.shown) as key,p.shown as text,public.p6_discovery_key(area_text) as area_key,raw_count,id,published_at\n   from facet_raw cross join lateral (select case when place_level='CITY' then coalesce(public.p6_discovery_unquote(approximate_city),\n     nullif(public.p6_discovery_trim(substring(area_text from '[^,]*$')),''),area_text) else area_text end as shown) p\n  ), facet_members as materialized (\n   -- One row per place as people find it: texts that differ only by Serbian letters or case are one place (discovery_fold_v1).\n   select k.key,k.text,k.raw_count,k.id,k.published_at,public.discovery_fold_v1(k.key) as fold_key from facet_keys k\n   where k.area_key not in ('na daljinu','lokacija nije navedena')\n    and (prefix_text='' or strpos(public.discovery_fold_v1(k.key),fold_prefix)>0)\n  ), facet_representatives as materialized (\n   select distinct on(fold_key) fold_key,key,text from facet_members order by fold_key,published_at desc,id desc\n  ), facet_counts as materialized (\n   select fold_key,sum(raw_count)::bigint as count from facet_members group by fold_key\n  ), facets as materialized (\n   select r.key,r.text,c.count from facet_counts c join facet_representatives r using(fold_key)\n  ), facet_page as materialized (\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "   case when request_mode='PLACES' or locality is not null\n     or query_text<>'' and strpos(lower(coalesce(n.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)=0\n",
+    "after": "   case when request_mode='PLACES'\n     or query_text<>''\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": " ), shared as materialized (\n",
+    "after": " ), place_keys as materialized (\n  -- DISCOVERY-GRAD (owner 2026-10-07): a place is the task's whole place text OR its city (approximate_city; for a task that\n  -- names no city, the last part of its place text after a comma), both compared through discovery_fold_v1. Decided once per\n  -- distinct (area, city) text of the rows base read (never once per task, never a second read of the tasks); a task then only\n  -- looks up its key (length-prefixed, so no two texts share one). OFFSET 0 fences: the test would otherwise be pushed below the\n  -- GROUP BY (it reads only grouping columns) and the place text repeated per use. A remote task and a task without a place text\n  -- never match a place; a task without a point but with a city does. Both columns are NOT NULL (default ''); coalesce only guards.\n  select length(p.place_area)::text||':'||p.place_area||p.place_city as place_key from (\n    select coalesce(b.approximate_area,'') as place_area,coalesce(b.approximate_city,'') as place_city from base b\n    where locality is not null and b.execution_location_mode is distinct from 'REMOTE' group by 1,2 offset 0) p\n   cross join lateral (select public.p6_discovery_area(p.place_area,p.place_city,false) as label offset 0) l\n  where public.p6_discovery_key(l.label) not in ('na daljinu','lokacija nije navedena')\n   and (public.discovery_fold_v1(public.p6_discovery_key(l.label))=fold_place\n    or public.discovery_fold_v1(public.p6_discovery_key(coalesce(public.p6_discovery_unquote(p.place_city),\n      nullif(public.p6_discovery_trim(substring(l.label from '[^,]*$')),''),l.label)))=fold_place)\n ), shared as materialized (\n"
+  },
+  {
+    "signature": "public.rpc_discovery_v1(jsonb)",
+    "before": "   and (locality is null or b.execution_location_mode is distinct from 'REMOTE' and public.p6_discovery_key(b.area_text)=locality\n     and public.p6_discovery_key(b.area_text) not in ('na daljinu','lokacija nije navedena'))\n   and (query_text='' or strpos(lower(coalesce(b.title,'') collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)>0\n    or strpos(lower((coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')) collate pg_catalog.\"sr-Latn-RS-x-icu\"),query_text)>0)\n",
+    "after": "   -- DISCOVERY-GRAD: the place (its key among place_keys) and the words, found in the title, the place text and the needed\n   -- skills, tools and vehicles through discovery_fold_v1, one fold per task (the title is the start of that text).\n   and (locality is null or b.execution_location_mode is distinct from 'REMOTE'\n     and length(coalesce(b.approximate_area,''))::text||':'||coalesce(b.approximate_area,'')||coalesce(b.approximate_city,'') in (select place_key from place_keys))\n   and (query_text='' or strpos(public.discovery_fold_v1(coalesce(b.title,'')||' '||b.area_text||' '||array_to_string(coalesce(b.required_skills,'{}')||coalesce(b.required_tools,'{}')||coalesce(b.required_vehicles,'{}'),' ')),fold_text)>0)\n"
+  }
+]

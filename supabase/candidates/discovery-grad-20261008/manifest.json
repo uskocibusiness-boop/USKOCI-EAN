@@ -1,0 +1,267 @@
+{
+  "id": "DISCOVERY-GRAD",
+  "status": "SOURCE_ONLY_NOT_APPLIED",
+  "target": "leqcwgzvjsxugfgzdmth",
+  "requiresOwnerWord": "PRIMENI DISCOVERY-GRAD",
+  "requiresApplied": "DISCOVERY-ZAMENE (and through it MATCH-V1)",
+  "devStateReadAt": "2026-10-08",
+  "devLedger": 232,
+  "devLatestVersion": "20261007204555",
+  "devClosureDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "devErasureProgramDigest": "2027655db33bc06d302376a09756f4b25962db20c25a31dabcc56354571a176f",
+  "certificateMoves": false,
+  "closureRoster": "closure_source_digest_v5 hashes a fixed list of 99 function signatures plus the schema digest and the erasure program digest; rpc_discovery_v1 is not in it (DISCOVERY-ZAMENE replaced the same body with the certificate unchanged) and a new non-trigger function is not hashed. The apply and the revert assert both digests unchanged.",
+  "functions": [
+    {
+      "signature": "public.rpc_discovery_v1(jsonb)",
+      "before_md5": "dc69802e3ba209232a8be095f60e9c9f",
+      "after_md5": "a9b0985991f4ebfe4e95143e5cf57222",
+      "language": "plpgsql",
+      "volatility": "STABLE",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    }
+  ],
+  "newFunctions": [
+    {
+      "signature": "public.discovery_fold_v1(text)",
+      "body_md5": "41353abe05d434d513495ae5974b9802",
+      "language": "plpgsql",
+      "volatility": "IMMUTABLE",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    }
+  ],
+  "dependencyPins": [
+    {
+      "signature": "public.p6_discovery_key(text)",
+      "body_md5": "ebfe1252f1798d89bbffb35b6eef6167"
+    },
+    {
+      "signature": "public.p6_discovery_trim(text)",
+      "body_md5": "40109e93b620146aa8d536907d28c91b"
+    },
+    {
+      "signature": "public.p6_discovery_unquote(text)",
+      "body_md5": "35706ddc2125e8cacf74ee370f82ff2f"
+    },
+    {
+      "signature": "public.p6_discovery_area(text,text,boolean)",
+      "body_md5": "041441c14c18230a8da05a97c53ab350"
+    },
+    {
+      "signature": "public.discovery_for_me_state_v1()",
+      "body_md5": "bd4dcf16863e7564a5d82ac22aca1418"
+    },
+    {
+      "signature": "public.discovery_for_me_v1(uuid)",
+      "body_md5": "60c104139cebbccfa16a570fc3386c0c"
+    }
+  ],
+  "collation": "sr-Latn-RS-x-icu",
+  "fold": {
+    "name": "SR_FOLD_V1",
+    "lower": "lower(value collate \"sr-Latn-RS-x-icu\")",
+    "twoLetters": {
+      "U+0111": "dj",
+      "U+0452": "dj",
+      "U+0459": "lj",
+      "U+045A": "nj",
+      "U+045F": "dz"
+    },
+    "oneLetter": {
+      "U+010D": "c",
+      "U+0107": "c",
+      "U+0161": "s",
+      "U+017E": "z",
+      "U+0430": "a",
+      "U+0431": "b",
+      "U+0432": "v",
+      "U+0433": "g",
+      "U+0434": "d",
+      "U+0435": "e",
+      "U+0436": "z",
+      "U+0437": "z",
+      "U+0438": "i",
+      "U+0458": "j",
+      "U+043A": "k",
+      "U+043B": "l",
+      "U+043C": "m",
+      "U+043D": "n",
+      "U+043E": "o",
+      "U+043F": "p",
+      "U+0440": "r",
+      "U+0441": "s",
+      "U+0442": "t",
+      "U+045B": "c",
+      "U+0443": "u",
+      "U+0444": "f",
+      "U+0445": "h",
+      "U+0446": "c",
+      "U+0447": "c",
+      "U+0448": "s"
+    }
+  },
+  "foldTruthTable": [
+    {
+      "input": "Čačak",
+      "expected": "cacak"
+    },
+    {
+      "input": "ČAČAK",
+      "expected": "cacak"
+    },
+    {
+      "input": "Đorđe",
+      "expected": "djordje"
+    },
+    {
+      "input": "Djordje",
+      "expected": "djordje"
+    },
+    {
+      "input": "Ђорђе",
+      "expected": "djordje"
+    },
+    {
+      "input": "čistim",
+      "expected": "cistim"
+    },
+    {
+      "input": "Novi Sad",
+      "expected": "novi sad"
+    },
+    {
+      "input": "Нови Сад",
+      "expected": "novi sad"
+    },
+    {
+      "input": "Šabac",
+      "expected": "sabac"
+    },
+    {
+      "input": "Žabalj",
+      "expected": "zabalj"
+    },
+    {
+      "input": "Ćuprija",
+      "expected": "cuprija"
+    },
+    {
+      "input": "Ћуприја",
+      "expected": "cuprija"
+    },
+    {
+      "input": "Љубовија",
+      "expected": "ljubovija"
+    },
+    {
+      "input": "Његош",
+      "expected": "njegos"
+    },
+    {
+      "input": "Џеп",
+      "expected": "dzep"
+    },
+    {
+      "input": "Džep",
+      "expected": "dzep"
+    },
+    {
+      "input": "  X  ",
+      "expected": "  x  "
+    },
+    {
+      "input": "ABC-123",
+      "expected": "abc-123"
+    },
+    {
+      "input": "абвгдђежзијклљмнњопрстћуфхцчџш",
+      "expected": "abvgddjezzijklljmnnjoprstcufhccdzs"
+    },
+    {
+      "input": "АБВГДЂЕЖЗИЈКЛЉМНЊОПРСТЋУФХЦЧЏШ",
+      "expected": "abvgddjezzijklljmnnjoprstcufhccdzs"
+    },
+    {
+      "input": "abcčćddžđefghijklljmnnjoprsštuvzž",
+      "expected": "abcccddzdjefghijklljmnnjoprsstuvzz"
+    },
+    {
+      "input": "",
+      "expected": ""
+    },
+    {
+      "input": null,
+      "expected": null
+    },
+    {
+      "input": "Niš",
+      "expected": "nis"
+    },
+    {
+      "input": "Inđija",
+      "expected": "indjija"
+    },
+    {
+      "input": "ššš",
+      "expected": "sss"
+    }
+  ],
+  "request": {
+    "newKeys": {
+      "PLACES.groupBy": [
+        "AREA",
+        "CITY"
+      ]
+    },
+    "filterKeyChangesOnlyFor": "PLACES with groupBy CITY"
+  },
+  "optionalParts": [
+    {
+      "id": "DISCOVERY-GRAD-S3",
+      "requiresOwnerWord": "PRIMENI DISCOVERY-GRAD S3",
+      "requiresApplied": "DISCOVERY-GRAD",
+      "what": "days of a task only for a time filter; availability.hasKnownSchedule by an EXISTS that stops at the first dated task",
+      "functions": [
+        {
+          "signature": "public.rpc_discovery_v1(jsonb)",
+          "before_md5": "a9b0985991f4ebfe4e95143e5cf57222",
+          "after_md5": "225edbb8e090395db004b256e7447269"
+        }
+      ],
+      "newFunctions": [],
+      "certificateMoves": false,
+      "files": [
+        "s3-candidate.sql",
+        "s3-candidate.in-transaction.sql",
+        "s3-revert.sql",
+        "s3-postflight.readonly.sql",
+        "s3-body.diff",
+        "s3-patches.json"
+      ],
+      "revertOrder": "s3-revert.sql before revert.sql (revert.sql refuses with DISCOVERY_GRAD_REVERT_REQUIRES_S3_REVERT_FIRST)"
+    }
+  ],
+  "artifact_sha256": {
+    "candidate.sql": "7a2b646c8ca2665d7a6b384c4beeaa0b6823b145ab014381a95b19a606cecff8",
+    "candidate.in-transaction.sql": "805c67e012ad8319b4d28f68f8aafef66a5498d77627acae480c8c8d8bf51ab6",
+    "revert.sql": "155b421e8f0c78585b9c49083a6485779ec74d96de7c374f19180e894d741ad2",
+    "preflight.readonly.sql": "9fae060a85b62579148aab84be4145d698c2472985e7c928c6e3e77f6e73f5e9",
+    "postflight.readonly.sql": "efa9acda01fdff853bda1dcbce572b082f9e76d64d1bb22de2d39481c837c2b2",
+    "body.diff": "4f16aa233e993ac7e74eb731e73feccdd9ddd9b492c6770941277f5739e932ab",
+    "patches.json": "3ab1077ebe48ff5e216e172c6c69401dbcd6673abdcdf0c77470542e6d4a1245",
+    "s3-candidate.sql": "db99e874f2d6c926064a79381730ae0a8de6ddc14baa2a403370dbda3b8820a1",
+    "s3-candidate.in-transaction.sql": "9cb0c82debcb51d3a5278c62e682a55a1fcf7ff06491e32eac79b8e33137fcd4",
+    "s3-revert.sql": "84eb543179f156ebf90638aa312a9460d246967f62b2534b0a322211340b60ca",
+    "s3-postflight.readonly.sql": "c30cc1991c1ccffacd5903885e3f4bb05e98dabb4c75dde5f4a189ae1b345029",
+    "s3-body.diff": "4f51b5f49e221461430fd105b80b00eef77abb53cac9b0fd0bce2576a6a8e5d0",
+    "s3-patches.json": "9d8ade8f8fffc5fffae629463cb4f1402f2ba25d5cc363d719c614a9c5ba17c0"
+  }
+}
