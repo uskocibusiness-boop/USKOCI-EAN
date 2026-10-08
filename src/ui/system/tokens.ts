@@ -1,6 +1,7 @@
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 import { elevation, palette, radius, space, touch, type } from '../../theme/tokens';
 import { withInter } from '../interFont';
+import { layout, ruleWidth } from './layout';
 
 /**
  * `sys` is the one surface screens and components read for colour, type, space, corners, touch and motion (2026-09-24:
@@ -12,6 +13,8 @@ import { withInter } from '../interFont';
 export { nested } from '../../theme/tokens';
 
 const WHITE = '#FFFFFF', BLACK = '#000000';
+/** The one divider colour: `sys.color.line` and `sys.rule.color` are this value. */
+const LINE = '#EBEBEB';
 /** The four colours the fact-picture tones in `sys.color.art` are derived from; `sys.color` spells the same values by name. */
 const GREEN = '#00845A', ORANGE = '#FF7A1A', MUTED = '#525252', DANGER = '#963F34';
 const hexChannels = (hex: string) => [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16));
@@ -58,7 +61,7 @@ export const sys = {
     onOrange: '#30200F',
     /** The label on the one primary action, which is green. */
     onGreen: '#FFFFFF',
-    line: '#EBEBEB',
+    line: LINE,
     lineStrong: '#CDCDCD',
     cardLine: '#DEDEDE',
     danger: DANGER,
@@ -292,6 +295,13 @@ export const sys = {
   },
   touch,
   elevation,
+  /**
+   * The grid every screen stands on (UI pass 2026-10-08, `layout.ts`): the edge of a screen 20, sections 24 apart, a group 12,
+   * a zone 32. Spaces between things are `sys.space` (4 8 12 16 24 32 48); `sys.space.lg` (20) is only the edge.
+   */
+  layout,
+  /** The one divider: 1 dp, never `StyleSheet.hairlineWidth` (one physical pixel, a different line on every phone). */
+  rule: { width: ruleWidth, color: LINE },
 } as const;
 
 /** Flat reading panels retain their original edge/padding. Navigable marketplace items explicitly opt into raisedItem. */

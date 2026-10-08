@@ -33,7 +33,7 @@ jest.mock('../passwordRecoveryClientService', () => ({ passwordRecoveryClientSer
 } }));
 import PasswordRecoveryScreen from '../../app/oporavak';
 let tree: ReactTestRenderer;
-const hosts = (type: string) => tree.root.findAll(node => node.type === type);
+const hosts = (type: string, within: ReactTestInstance = tree.root) => within.findAll(node => node.type === type);
 const textOf = (node: ReactTestInstance): string => node.children.map(child => typeof child === 'string' ? child : textOf(child)).join(' ');
 const text = () => textOf(tree.root);
 const button = (label: string) => hosts('Pressable').find(node => node.props.accessibilityLabel === label || textOf(node).trim() === label)!;
@@ -62,8 +62,10 @@ it('does not render password controls or success before server verification fini
   expect(text()).toContain('account-a@example.test');
   const title = hosts('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Postavi novu lozinku.')!;
   expect(StyleSheet.flatten(title.props.style).fontSize).toBe(type.pageTitle.fontSize);
-  const form = hosts('View').find(node => node.props.accessibilityLiveRegion === 'polite')!;
-  expect(StyleSheet.flatten(form.props.style)).toMatchObject({ backgroundColor: 'transparent', borderWidth: 0, paddingHorizontal: 0 });
+  // The fields stand on the screen itself: the block that holds them is not a card.
+  const form = hosts('View').filter(node => node.findAllByType('TextInput' as React.ElementType).length === 2).pop()!;
+  expect(StyleSheet.flatten(form.props.style) ?? {}).not.toHaveProperty('backgroundColor');
+  expect(StyleSheet.flatten(form.props.style) ?? {}).not.toHaveProperty('borderWidth');
   expect(field('Potvrdi novu lozinku').props.secureTextEntry).toBe(true);
   expect(mockSave).not.toHaveBeenCalled();
 });
@@ -192,4 +194,55 @@ it.each([false, true])('a restricted account is its own screen, not an expired l
   expect(hosts('TextInput')).toHaveLength(0);
   await press('Nazad na prijavu');
   expect(mockReplace).toHaveBeenCalledWith({ pathname: '/auth', params: { form: 'login' } });
+});
+
+// F7, 2026-10-08: the link screen is the same frame as every step of the sign-in sheet.
+describe('the frame of the link screen', () => {
+  const footer = () => hosts('View').find(node => node.props.testID === 'auth-footer')!;
+
+  it('names the flow ONCE ("Oporavak lozinke" in the bar), has one title in the content, and no line with the build\'s version', async () => {
+    await render();
+    expect(hosts('Text').filter(node => textOf(node) === 'Oporavak lozinke')).toHaveLength(1);
+    expect(text()).not.toMatch(/Oporavak naloga|Oporavak pristupa|Vrati pristup nalogu|Bezbedan povratak/);
+    expect(hosts('Text').filter(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Postavi novu lozinku.')).toHaveLength(1);
+    expect(text()).not.toMatch(/USKOČI ·|verzija/);
+    // The arrow in the bar is the only way back that is not a command of the step.
+    expect(hosts('Pressable').filter(node => node.props.accessibilityLabel === 'Nazad')).toHaveLength(1);
+  });
+
+  it('has exactly ONE command in the foot of the screen in every state, and it is the one green command', async () => {
+    const commands = () => hosts('Pressable', footer()).map(node => textOf(node).trim());
+    await render();
+    expect(commands()).toEqual(['Sačuvaj novu lozinku']);
+    await fill('Nova lozinka', 'new-password'); await fill('Potvrdi novu lozinku', 'new-password'); await press('Sačuvaj novu lozinku');
+    expect(commands()).toEqual(['Prijavi se']);
+    await act(async () => tree.unmount());
+    mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('INVALID_LINK')); await render();
+    expect(commands()).toEqual(['Zatraži novi link']);
+    await act(async () => tree.unmount());
+    mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('VERIFY_UNAVAILABLE')); await render();
+    // A link that could not be checked: try again is the green one, a new link is the other way, said in words in the content.
+    expect(commands()).toEqual(['Pokušaj ponovo']);
+    expect(button('Zatraži novi link')).toBeDefined();
+  });
+
+  it('says a short new password under its own field, and a mismatch under the confirmation, before anything is sent', async () => {
+    await render();
+    const block = (label: string) => field(label).parent!.parent!;
+    await fill('Nova lozinka', 'abc'); await fill('Potvrdi novu lozinku', 'abc'); await press('Sačuvaj novu lozinku');
+    expect(textOf(block('Nova lozinka'))).toContain('Lozinka mora imati najmanje 6 znakova.');
+    expect(textOf(block('Potvrdi novu lozinku'))).not.toContain('najmanje 6 znakova');
+    expect(mockSave).not.toHaveBeenCalled();
+    await fill('Nova lozinka', 'new-password');
+    expect(text()).not.toContain('Lozinka mora imati najmanje 6 znakova.');
+    await press('Sačuvaj novu lozinku');
+    expect(textOf(block('Potvrdi novu lozinku'))).toContain('Lozinke se ne poklapaju.');
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('draws a refused or unconfirmed step with a title that says what happened, never a code, and the contract\'s own sentence', async () => {
+    mockVerify.mockRejectedValueOnce(new PasswordRecoveryError('INVALID_LINK')); await render();
+    expect(hosts('Text').some(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Link ne važi')).toBe(true);
+    expect(hosts('Text').filter(node => node.props.accessibilityRole === 'alert').map(textOf)).toEqual(['Link je nevažeći ili je istekao. Zatraži novi link.']);
+  });
 });

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
 
 /**
@@ -49,14 +49,26 @@ export function layoutClassFor(width: number, textScale: number): LayoutClassRes
   return Number.isFinite(width) && width < NARROW_WIDTH ? NARROW : COMPACT;
 }
 
+/** The answer a screen gets at text scale 1.3 and more: stack. The one the galleries hand to `LayoutClassOverride`. */
+export const LARGE_LAYOUT: LayoutClassResult = LARGE;
+
+/**
+ * For the internal galleries only (`dizajn-*`, UI/UX pass 2026-10-08): a screen drawn inside this provider gets THIS class from
+ * `useLayoutClass`, whatever the window says. A gallery cannot change the system's font, and the design lab (Expo web) has no text
+ * scale at all, so without it the large layout of a component could not be drawn at the phone's own text size to be looked at.
+ * Nothing in the app provides one, so in a store build the value is always `null` and the window decides, as it always did.
+ */
+export const LayoutClassOverride = createContext<LayoutClassResult | null>(null);
+
 /**
  * The layout class of the current window. THE one place the window width is read: a component asks this, never
  * `useWindowDimensions().width`, and `__tests__/one-token-source.test.ts` fails when a file that is not on its shrinking
- * list reads the width itself.
+ * list reads the width itself. A gallery may force the answer (`LayoutClassOverride`); nothing else does.
  */
 export function useLayoutClass(): LayoutClassResult {
+  const forced = useContext(LayoutClassOverride);
   const { width, fontScale } = useWindowDimensions();
-  return layoutClassFor(width, fontScale);
+  return forced ?? layoutClassFor(width, fontScale);
 }
 
 /** The room itself: the window width in dp and the rounded text scale it was measured at. */

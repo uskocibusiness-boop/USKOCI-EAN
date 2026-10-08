@@ -22,15 +22,14 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 
 import { PeekSheet } from '../PeekSheet';
 import { DiscoveryPeek } from '../../v2/discovery/DiscoveryPeek';
-import { CardTitle, CardDecision, CardFact } from '../../v2/TaskFace';
 
+/** A stranger's task, as the discovery read maps it (a task of mine would carry its own state and no person to introduce). */
 const task = (id = 'one'): MarketplaceItem => ({
-  id, revizija: 1, naslov: 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu', opis: '', stanje: 'OBJAVLJENA',
+  id, naslov: 'Pomoć pri prenošenju i raspoređivanju nameštaja u Novom Sadu', opis: '', statusTekst: 'Otvoren',
   podrucjeTekst: 'Novi Sad, Petrovaradin, Podgrađe', vremeTekst: '25. sep · 12:00–19:00', uslovi: [],
   rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 25_000, valuta: 'RSD', prikaz: '25.000 RSD' },
   pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 },
-  narucilacIme: 'Nikola Petrović', narucilacOcena: '4.8', narucilacBrojOcena: 12,
-  brojPrijava: 0, brojPrijavaZaIzbor: 0, priblizno: null,
+  narucilacProfilId: 'profil-1', narucilacIme: 'Nikola Petrović', narucilacOcena: '4.8', narucilacBrojOcena: 12, priblizno: null,
 } as MarketplaceItem);
 const onClose = jest.fn(), onOpen = jest.fn(), onHeight = jest.fn(), onShowPlace = jest.fn();
 let tree: ReactTestRenderer;
@@ -58,12 +57,12 @@ test.each([1, 2])('the pin body can scroll within its existing cap while close s
   expect(StyleSheet.flatten(close.props.style)).toMatchObject({ width: 48, height: 48 });
   const overlay = tree.root.findAll(node => node.props.pointerEvents === 'box-none' && StyleSheet.flatten(node.props.style)?.position === 'absolute');
   expect(overlay).toHaveLength(1); expect(under(close, overlay[0])).toBe(true);
-  const heading = scroll.findByType(CardTitle);
-  expect(heading.props.title).toBe(pin.naslov);
-  expect(heading.find(node => String(node.type) === 'T' && node.props.children === pin.naslov).props.numberOfLines).toBeUndefined();
-  expect(scroll.findByType(CardDecision).props.value).toMatchObject({ kind: 'amount', amount: '25.000 RSD' });
-  expect(scroll.findAllByType(CardFact)).toHaveLength(2);
-  expect(scroll.findAll(node => String(node.type) === 'T' && node.props.children === 'Nikola Petrović')).toHaveLength(1);
+  // The pin card is the list card's face (`TaskRecordBody`): the whole title, the amount, where, when and who, each said once in the scrollable.
+  const said = (value: string) => scroll.findAll(node => String(node.type) === 'T' && node.props.children === value);
+  expect(said(pin.naslov)).toHaveLength(1); expect(said(pin.naslov)[0].props.numberOfLines).toBeUndefined();
+  expect(said('25.000 RSD')).toHaveLength(1); expect(said('25.000 RSD')[0].props.variant).toBe('priceRow');
+  expect(said(pin.podrucjeTekst)).toHaveLength(1); expect(said(pin.vremeTekst)).toHaveLength(1);
+  expect(said('Nikola Petrović')).toHaveLength(1);
   // Feed an overflow measurement: the map clears the visible cap, while all facts remain in the registered scrollable.
   await act(async () => card.parent!.props.onLayout({ nativeEvent: { layout: { height: 560 } } }));
   expect(onHeight).toHaveBeenLastCalledWith(cap);

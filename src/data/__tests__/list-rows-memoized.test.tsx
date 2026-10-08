@@ -55,13 +55,16 @@ const drawn = (prefix: string) => (Press as jest.Mock).mock.calls.filter(([props
 const written = (text: string) => (T as unknown as jest.Mock).mock.calls.filter(([props]) => props.children === text).length;
 const list = () => tree.root.findByType('List' as React.ElementType);
 const field = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
+/** A task's row by its command and title: a card in Zadaci goes on to say everything it shows ("Otvori zadatak Pomoć two. 2.000 RSD, ..."), a row in Moji zadaci does not. */
+const rowOf = (root: { findAll: (test: (node: any) => boolean) => any[] }, prefix: string, title: string) => root.findAll(node => String(node.type) === 'Press'
+  && (node.props.accessibilityLabel === `${prefix} ${title}` || String(node.props.accessibilityLabel).startsWith(`${prefix} ${title}. `)))[0];
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); (Press as jest.Mock).mockClear(); (T as unknown as jest.Mock).mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
 // Zadaci has been DiscoveryPresentation (the map under a list sheet) since owner step 4, 2026-09-24, and Moji zadaci is
 // what MarketplacePresentation still draws. Both lists keep the same three guards, each on the screen that now has it.
 describe.each([
-  ['Zadaci', 'Otvori priliku'],
+  ['Zadaci', 'Otvori zadatak'],
   ['Moji zadaci', 'Otvori zadatak'],
 ] as const)('%s', (screen, prefix) => {
   const discovery = screen === 'Zadaci';
@@ -84,21 +87,22 @@ describe.each([
     await act(async () => { tree = create(<Screen pass={0} />); });
     expect(drawn(prefix)).toBe(3);
     await act(async () => tree.update(<Screen pass={1} />));
-    // Moji zadaci opens its search from the header. Zadaci opens its search panel from the pill over the map (Discovery
-    // V47): the words are a draft there, and the list takes them when the panel's one action applies them.
+    // Moji zadaci keeps its search in the Filteri sheet (it is one of the filters, 2026-10-08). Zadaci opens its search panel from the
+    // pill over the map (Discovery V47): the words are a draft in both, and the list takes them when the one action applies them.
     if (discovery) {
       await act(async () => field('Pretraži zadatke').props.onPress());
       await act(async () => field('Šta').props.onPress());
       await act(async () => field('Šta tražiš').props.onChangeText('Pomoć'));
       await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
     } else {
-      await act(async () => field('Pretraga').props.onPress());
+      await act(async () => field('Filteri').props.onPress());
       await act(async () => field('Pretraži zadatke').props.onChangeText('Pomoć'));
+      await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
     }
     expect(snapshot.query).toBe('Pomoć');
     expect(drawn(prefix)).toBe(3);
     // The stable function still reaches the route's latest closure with the very row that was pressed.
-    await act(async () => field(`${prefix} Pomoć two`).props.onPress());
+    await act(async () => rowOf(tree.root, prefix, 'Pomoć two').props.onPress());
     expect(open).toHaveBeenCalledWith(rows[1]);
   });
 
@@ -109,7 +113,7 @@ describe.each([
     expect(drawn(prefix)).toBe(4);
     const entering = tree.root.findAll(node => typeof node.type === 'string' && !!node.props.entering);
     expect(entering).toHaveLength(1);
-    expect(entering[0].findByProps({ accessibilityLabel: `${prefix} Pomoć four` })).toBeTruthy();
+    expect(rowOf(entering[0], prefix, 'Pomoć four')).toBeTruthy();
   });
 
   test('the list is virtualised for a phone screen with a stable key per task', async () => {

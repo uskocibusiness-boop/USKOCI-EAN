@@ -4,6 +4,7 @@ import { BrandLockup } from '../entry/BrandAssets';
 import { Press, type HapticKind } from '../Press';
 import { T } from '../Text';
 import { GLYPH_COLOUR, Glyph, type GlyphIcon, type GlyphName } from './Glyph';
+import { layout } from './layout';
 import { useReducedMotion } from './motion';
 import { materialControl, sys } from './tokens';
 
@@ -26,7 +27,8 @@ import { materialControl, sys } from './tokens';
 export const chrome = {
   /** 48 px controls (an important command is never under 48) with 8 px above and below. */
   minHeight: 64,
-  paddingHorizontal: sys.space.lg,
+  /** The edge of the screen: the one every screen has (`layout.gutter`, 20), so the arrow and the first line of content stand on one line. */
+  paddingHorizontal: layout.gutter,
   paddingVertical: sys.space.sm,
   gap: sys.space.md,
   /** The touch area of every chrome control. */

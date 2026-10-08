@@ -414,7 +414,7 @@ describe('an account in its closing stage', () => {
     await act(async () => button('Proveri stanje').props.onPress());
     expect(mockClosingRead).toHaveBeenCalledTimes(2);
     expect(closingScreen()).toHaveLength(1);
-    expect(text()).toContain('Stanje trenutno nije provereno. Pokušaj ponovo.');
+    expect(text()).toContain('Ne možemo da proverimo stanje. Pokušaj ponovo.');
     mockClosingRead.mockResolvedValueOnce({ ok: true, podatak: { closing: false } });
     await act(async () => button('Proveri stanje').props.onPress());
     expect(closingScreen()).toHaveLength(0);

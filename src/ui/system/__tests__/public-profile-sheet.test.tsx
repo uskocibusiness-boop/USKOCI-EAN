@@ -3,11 +3,11 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import type { JavniProfilPoverenje, JavniProfilProjekcija } from '../../../contracts/projections';
 
 /**
- * A person's public profile (T4/T5, 2026-10-07), in every state it can be in. It shows only what the server really carries
- * today: the name, the city, "O meni" when the person wrote one, the rating with the count it stands on, "Završeno N
- * zadataka" and, only when it is true, "Identitet je potvrđen"; the safety entry is last. What the server does not carry
- * yet (the reliability percentage, "Na USKOČI-ju od", the latest ratings, skills) is not drawn, has no control and no
- * placeholder, and waits behind one switch.
+ * A person's public profile (T4/T5, 2026-10-07; UI/UX pass 2026-10-08, F6), in every state it can be in. It shows only what the server really
+ * carries: the name, the city, "O meni" when the person wrote one, the facts as the system's `FactRow`s (the rating with the count it stands
+ * on, "Završeno N zadataka" and, only when it is true, "Identitet je potvrđen"), then what the trust read (PROFILE-TRUST, R30) returned for
+ * this viewer; the safety entry is last. What the server does not return - a HIDDEN trust block, a part it left out - is not drawn: no row, no
+ * control, no placeholder and no word about what is hidden.
  */
 let mockWidth = 390, mockFontScale = 1;
 jest.mock('react-native', () => {
@@ -25,13 +25,18 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
 
-import { PublicProfileSheet, PUBLIC_PROFILE_SERVER_FACTS_BUILT, SAFETY_LABEL, finishedPhrase, memberSinceFact, publicRating, reliabilityFact } from '../PublicProfileSheet';
-import { sys } from '../tokens';
+import type { PublicWorkTrust } from '../../../data/workTrustClientService';
+import { PublicProfileSheet, SAFETY_LABEL, finishedPhrase, memberSinceFact, publicRating } from '../PublicProfileSheet';
 
 const trust = (patch: Partial<JavniProfilPoverenje> = {}): JavniProfilPoverenje => ({ ocenaProsek: 4.8, brojRecenzija: 12, zavrseniBroj: 14, identitetVerifikovan: false,
   ocenaDostupna: true, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: true, ...patch });
 const person = (patch: Partial<JavniProfilProjekcija> = {}, poverenje: Partial<JavniProfilPoverenje> = {}): JavniProfilProjekcija => ({ profilId: 'profile-1', uloga: 'uskocer',
   ime: 'Marija Marić', avatarPutanja: null, grad: 'Beograd', naslov: null, biografija: null, poverenje: trust(poverenje), ...patch } as JavniProfilProjekcija);
+
+const PROFILE = '30000000-0000-4000-8000-000000000001';
+const workTrust = (patch: Partial<PublicWorkTrust> = {}): PublicWorkTrust => ({ profileId: PROFILE, self: false, visibility: 'PUBLIC', completedCount: 14, agreedCount: 16,
+  reliabilityPercent: 88, reliabilityState: 'AVAILABLE', reliabilityMinimum: 5, memberSince: '2026-03-01', ...patch });
+const hiddenTrust = (): PublicWorkTrust => workTrust({ visibility: 'OWN_ONLY', agreedCount: null, reliabilityPercent: null, reliabilityState: 'HIDDEN', memberSince: null });
 
 let tree: ReactTestRenderer;
 const noop = () => {};
@@ -42,7 +47,11 @@ const textOf = (node: ReactTestInstance | string): string => typeof node === 'st
 const labelled = (label: string) => tree.root.findAll(node => node.props.accessibilityLabel === label && typeof node.type === 'string');
 const all = () => tree.root.findAll(node => String(node.type) === 'T').map(node => textOf(node)).join(' | ');
 const facts = () => tree.root.findByProps({ testID: 'public-profile-facts' });
-const factLabels = () => facts().findAll(node => node.props.accessible === true).map(node => node.props.accessibilityLabel as string);
+/** The fact rows of the sheet, in the order they are drawn: each is a `FactRow` (a host view with a test id), spoken as its sentence. */
+const factRows = () => facts().findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('public-profile-fact-'));
+const factLabels = () => factRows().map(node => node.props.accessibilityLabel as string);
+const factIds = () => factRows().map(node => (node.props.testID as string).replace('public-profile-fact-', ''));
+const factRow = (name: string) => facts().findAll(node => node.props.testID === `public-profile-fact-${name}` && typeof node.type === 'string')[0];
 afterEach(async () => { await act(async () => tree?.unmount()); mockWidth = 390; mockFontScale = 1; });
 
 describe('the states of the sheet', () => {
@@ -78,11 +87,11 @@ describe('the states of the sheet', () => {
 describe('the rating', () => {
   it('is the number the Serbian way with the count it stands on: "4,8 · 12 ocena"', async () => {
     await show(person());
-    expect(labelled('Ocena: 4,8, 12 ocena')).toHaveLength(1);
-    const row = labelled('Ocena: 4,8, 12 ocena')[0];
-    expect(textOf(row)).toBe('4,8 · 12 ocena');
+    const row = factRow('rating');
+    expect(row.props.accessibilityLabel).toBe('4,8 · 12 ocena'); expect(textOf(row)).toBe('4,8 · 12 ocena');
+    expect(row.findAllByType('FactArt' as never)[0].props.kind).toBe('star');
     // The row is not a control: no read of another person's ratings exists, so nothing opens.
-    expect(row.props.onPress).toBeUndefined(); expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Ocena'))).toHaveLength(0);
+    expect(row.props.onPress).toBeUndefined(); expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('4,8'))).toHaveLength(0);
   });
 
   it.each([[5, '5,0'], [4.75, '4,75'], [3, '3,0'], [4.8, '4,8']])('writes %s as "%s"', (value, written) => {
@@ -94,22 +103,21 @@ describe('the rating', () => {
       expect(publicRating(trust({ brojRecenzija: count }))).toEqual({ kind: 'rated', value: '4,8', count: written });
     });
 
-  it('says "Još nema ocena" when there are no reviews, without a number or a star in colour', async () => {
+  it('says "Još nema ocena" when there are no reviews, without a number and without the star that stands for a rating', async () => {
     await show(person({}, { ocenaProsek: null, brojRecenzija: 0, ocenaDostupna: false, recenzijeDostupne: true }));
-    expect(labelled('Ocena: još nema ocena')).toHaveLength(1); expect(textOf(labelled('Ocena: još nema ocena')[0])).toBe('Još nema ocena');
-    const star = labelled('Ocena: još nema ocena')[0].findAllByType('FactArt' as never)[0];
-    expect(star.props.kind).toBe('star'); expect(star.props.muted).toBe(true);
+    expect(textOf(factRow('rating'))).toBe('Još nema ocena');
+    expect(factRow('rating').findAllByType('FactArt' as never)[0].props.kind).toBe('info');
   });
 
   it('says it is not available when the server does not know, and never shows a number it was not given', async () => {
     await show(person({}, { ocenaProsek: 4.9, brojRecenzija: 27, ocenaDostupna: false, recenzijeDostupne: false }));
-    expect(labelled('Ocena: nije dostupna')).toHaveLength(1); expect(textOf(labelled('Ocena: nije dostupna')[0])).toBe('Ocena nije dostupna');
+    expect(textOf(factRow('rating'))).toBe('Ocena nije dostupna');
     expect(all()).not.toContain('4,9'); expect(all()).not.toContain('27');
   });
 
   it('shows a rating alone when only the rating is known, never a made-up count', async () => {
     await show(person({}, { brojRecenzija: null, recenzijeDostupne: false }));
-    expect(textOf(labelled('Ocena: 4,8')[0])).toBe('4,8');
+    expect(textOf(factRow('rating'))).toBe('4,8');
   });
 });
 
@@ -119,7 +127,7 @@ describe('"Završeno N zadataka"', () => {
     'says %s as "%s", in the row and to a screen reader', async (count, written) => {
       expect(finishedPhrase(count)).toBe(written);
       await show(person({}, { zavrseniBroj: count }));
-      expect(labelled(written)).toHaveLength(1); expect(textOf(labelled(written)[0])).toBe(written);
+      expect(factRow('finished').props.accessibilityLabel).toBe(written); expect(textOf(factRow('finished'))).toBe(written);
     });
 
   it('replaces "Završeni Dogovori" everywhere, and never names a side of the task', async () => {
@@ -166,14 +174,18 @@ describe('the safety entry', () => {
     await show(person({ biografija: 'Radim brzo.' }), { safety: { onPress, busy: false, error: null } });
     const entry = labelled(`${SAFETY_LABEL}: Marija Marić`)[0];
     expect(textOf(entry)).toContain(SAFETY_LABEL); expect(textOf(entry)).toContain('Osoba koju prijavljuješ ne vidi prijavu.');
+    // A command with red words that does open the report: it keeps its arrow.
     const label = entry.findAll(node => String(node.type) === 'T' && textOf(node) === SAFETY_LABEL)[0];
-    expect(StyleSheetFlat(label.props.style).color).toBe(sys.color.danger);
+    expect(label.props.tone).toBe('danger');
+    expect(entry.findAll(node => node.props.name === 'caret-right').length).toBeGreaterThan(0);
+    expect(entry.props.accessibilityHint).toContain('Otvara prijavu ili blokiranje osobe.');
     // Everything else on the sheet is read: the only Press besides the sheet's own close is this entry.
     const presses = tree.root.findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel);
     expect(presses.filter(label => label !== 'Zatvori javni profil')).toEqual([`${SAFETY_LABEL}: Marija Marić`]);
     // Last: after the facts and "O meni".
     const order = tree.root.findAll(node => String(node.type) === 'T').map(node => textOf(node));
     expect(order.indexOf(SAFETY_LABEL)).toBeGreaterThan(order.indexOf('Radim brzo.')); expect(order.indexOf(SAFETY_LABEL)).toBeGreaterThan(order.indexOf('O meni'));
+    expect(order.indexOf(SAFETY_LABEL)).toBeGreaterThan(order.indexOf('Završeno 14 zadataka'));
     await act(async () => { entry.props.onPress(); }); expect(onPress).toHaveBeenCalledTimes(1);
   });
 
@@ -186,33 +198,51 @@ describe('the safety entry', () => {
   });
 });
 
-describe('what the server does not carry yet (traži server)', () => {
-  it('is not drawn, has no control and no placeholder, by default', async () => {
-    expect(PUBLIC_PROFILE_SERVER_FACTS_BUILT).toBe(false);
-    await show(person({}, { zavrseniBroj: 41 }), { serverFacts: { agreedCount: 43, memberSince: '2026-10-02' } });
-    expect(all()).not.toMatch(/Dolazi kako je dogovoreno|Na USKOČI|procenat|%|Poslednje ocene|Sve ocene|Veštine/);
-    expect(factLabels()).toEqual(['Ocena: 4,8, 12 ocena', 'Završeno 41 zadatak']);
+// PROFILE-TRUST (R30): the sheet draws exactly what the server returned for this viewer, and nothing about what it did not.
+describe('the trust block of a worker profile', () => {
+  const base = ['rating', 'finished'];
+
+  it('is not drawn without a trust read: the sheet is what it was', async () => {
+    await show(person({}, { zavrseniBroj: 41 }));
+    expect(factIds()).toEqual(base); expect(factLabels()).toEqual(['4,8 · 12 ocena', 'Završeno 41 zadatak']);
+    expect(all()).not.toMatch(/Dolazi kako je dogovoreno|Na USKOČI|procenat|%|Dogovoreno/);
   });
 
-  it('draws the reliability and the member-since rows the day the switch is on, and only with data', async () => {
-    await show(person({}, { zavrseniBroj: 41 }), { showServerFacts: true, serverFacts: { agreedCount: 43, memberSince: '2026-10-02' } });
-    expect(factLabels()).toEqual(['Ocena: 4,8, 12 ocena', 'Završeno 41 zadatak', 'Dolazi kako je dogovoreno: 95%, 41 od 43 dogovorenih', 'Na USKOČI-ju od oktobra 2026']);
-    await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data: person({}, { zavrseniBroj: 41 }) }} onClose={noop} onRetry={noop} showServerFacts />));
-    expect(factLabels()).toEqual(['Ocena: 4,8, 12 ocena', 'Završeno 41 zadatak']);
+  it.each([['a HIDDEN block (the default for a visitor today)', hiddenTrust()], ['a "nothing here" answer', null], ['no answer at all', undefined]])(
+    'draws NOTHING for %s: no row, no placeholder, no word about what is hidden', async (_name, value) => {
+      await show(person({}, { zavrseniBroj: 41 }), { trust: value });
+      expect(factIds()).toEqual(base);
+      expect(all()).not.toMatch(/skriven|sakriven|privatn|nije vidljiv|samo ti|samo on|Dogovoreno|Dolazi kako je dogovoreno|Na USKOČI|procenat|%/i);
+    });
+
+  it('adds the agreed tasks, the reliability and the month, in that order after what the profile already carries, when the server lets this viewer have them', async () => {
+    await show(person({}, { zavrseniBroj: 14 }), { trust: workTrust() });
+    expect(factIds()).toEqual([...base, 'agreed', 'reliability', 'since']);
+    expect(factLabels()).toEqual(['4,8 · 12 ocena', 'Završeno 14 zadataka', 'Dogovoreno 16 zadataka', 'Dolazi kako je dogovoreno: 88%', 'Na USKOČI-ju od marta 2026']);
   });
 
-  it('gives a new person a quiet sentence, never "0%" or "100%"', async () => {
-    await show(person({}, { zavrseniBroj: 3 }), { showServerFacts: true, serverFacts: { agreedCount: 3, memberSince: null } });
-    expect(factLabels()).toContain('Još nema dovoljno zadataka za procenat'); expect(all()).not.toMatch(/\d+%/);
-    expect(reliabilityFact(0, 0)).toEqual({ kind: 'few' }); expect(reliabilityFact(4, 4)).toEqual({ kind: 'few' });
+  it('says there are not enough Dogovori for a percentage, as a sentence about the person, and never draws "0%" or "100%"', async () => {
+    await show(person({}, { zavrseniBroj: 3 }), { trust: workTrust({ completedCount: 3, agreedCount: 4, reliabilityPercent: null, reliabilityState: 'TOO_FEW' }) });
+    expect(factLabels()).toEqual(['4,8 · 12 ocena', 'Završeno 3 zadatka', 'Dogovoreno 4 zadatka', 'Još nema dovoljno Dogovora za procenat', 'Na USKOČI-ju od marta 2026']);
+    expect(all()).not.toMatch(/\d+%/);
   });
 
-  it('computes finished over agreed from five Dogovori, and refuses numbers that cannot be true', () => {
-    expect(reliabilityFact(5, 5)).toEqual({ kind: 'percent', percent: 100, detail: '5 od 5 dogovorenih' });
-    expect(reliabilityFact(41, 43)).toEqual({ kind: 'percent', percent: 95, detail: '41 od 43 dogovorenih' });
-    expect(reliabilityFact(0, 10)).toEqual({ kind: 'percent', percent: 0, detail: '0 od 10 dogovorenih' });
-    for (const bad of [[3, 2], [-1, 5], [1.5, 5]] as const) expect(reliabilityFact(bad[0], bad[1])).toBeNull();
-    expect(reliabilityFact(3, null)).toBeNull(); expect(reliabilityFact(3, undefined)).toBeNull(); expect(reliabilityFact(3, Number.NaN)).toBeNull();
+  it('leaves out a part the server did not return, and a month it cannot read', async () => {
+    await show(person({}, { zavrseniBroj: 14 }), { trust: workTrust({ agreedCount: null, memberSince: null }) });
+    expect(factIds()).toEqual([...base, 'reliability']);
+    await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data: person({}, { zavrseniBroj: 14 }) }} onClose={noop} onRetry={noop}
+      trust={workTrust({ memberSince: 'oktobar' })} />));
+    expect(factIds()).toEqual([...base, 'agreed', 'reliability']);
+  });
+
+  it('shows the person themself what the server returns for them, on the same rows', async () => {
+    await show(person({}, { zavrseniBroj: 14 }), { trust: workTrust({ self: true, visibility: 'OWN_ONLY' }) });
+    expect(factIds()).toEqual([...base, 'agreed', 'reliability', 'since']);
+  });
+
+  it('promises nothing about who sees what, and never names a side of the task', async () => {
+    await show(person({}, { zavrseniBroj: 14 }), { trust: workTrust() });
+    expect(all()).not.toMatch(/anonim|garant|sigurno|Naručilac|naručilac|Uskočer|uskočer|posao|poslova/);
   });
 
   it('writes "Na USKOČI-ju od" with the Serbian month, and nothing for a date it cannot read', () => {
@@ -224,18 +254,23 @@ describe('what the server does not carry yet (traži server)', () => {
 });
 
 describe('layout resilience', () => {
-  it.each([[320, 1], [361, 1.15], [390, 1.2999999523], [390, 2]])('keeps the facts as full-width rows of at least 52 dp at width %s and scale %s', async (width, scale) => {
+  it.each([[320, 1], [361, 1.15], [390, 1.2999999523], [390, 2]])('keeps the facts as full-width rows that wrap, and the safety entry a touch of 48 dp, at width %s and scale %s', async (width, scale) => {
     mockWidth = width; mockFontScale = scale;
-    await show(person({ naslov: 'Selidbe i montaža u Beogradu i okolini', biografija: 'Radim sa bratom. '.repeat(20) }, { identitetVerifikovan: true }));
-    for (const row of facts().findAll(node => node.props.accessible === true)) {
-      expect(StyleSheetFlat(row.props.style)).toMatchObject({ flexDirection: 'row' }); expect(StyleSheetFlat(row.props.style).minHeight).toBeGreaterThanOrEqual(52);
+    await show(person({ naslov: 'Selidbe i montaža u Beogradu i okolini', biografija: 'Radim sa bratom. '.repeat(20) }, { identitetVerifikovan: true }),
+      { trust: workTrust(), safety: { onPress: noop, busy: false, error: null } });
+    for (const row of factRows()) {
+      expect(StyleSheetFlat(row.props.style)).toMatchObject({ flexDirection: 'row' });
+      // The fact is the line and it wraps: no ellipsis anywhere in it.
+      for (const line of row.findAll(node => String(node.type) === 'T')) expect(line.props.numberOfLines).toBeUndefined();
     }
+    const entry = labelled(`${SAFETY_LABEL}: Marija Marić`)[0];
+    expect(StyleSheetFlat(entry.props.style).minHeight).toBeGreaterThanOrEqual(48);
     const portrait = tree.root.findByProps({ testID: 'public-profile-portrait' });
     expect(StyleSheetFlat(portrait.props.style)).toMatchObject({ width: 96, height: 96 });
   });
 
   it('keeps every text at 12 px or more', async () => {
-    await show(person({ biografija: 'Radim.' }, { identitetVerifikovan: true }), { safety: { onPress: noop, busy: false, error: null } });
+    await show(person({ biografija: 'Radim.' }, { identitetVerifikovan: true }), { trust: workTrust(), safety: { onPress: noop, busy: false, error: null } });
     for (const node of tree.root.findAll(node => String(node.type) === 'T')) {
       const size = StyleSheetFlat(node.props.style).fontSize;
       if (typeof size === 'number') expect(size).toBeGreaterThanOrEqual(12);

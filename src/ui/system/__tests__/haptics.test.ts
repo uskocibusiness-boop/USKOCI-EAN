@@ -251,12 +251,11 @@ describe('every tick in the app goes through this file', () => {
   const read = (path: string) => readFileSync(join(repo, path), 'utf8');
 
   /**
-   * TODAY'S direct callers of `expo-haptics` besides the wrapper: the outcome bar and the success mark tick the success tick
-   * on their own, so on Android they still buzz as a vibrator waveform. They move onto `tick('success')` with their own items
-   * (spec M-05 and the outcome bar's) and then lose their entry. A CEILING, not an equality: a file that has moved may go on
-   * being listed here, so moving it never needs a change to this file; a file that is not listed and calls the package fails.
+   * The only file that calls `expo-haptics`. The outcome bar (`Poruka`) and the success mark (`SuccessMark`), the last two that
+   * ticked the success tick on their own (and so, on Android, buzzed as a vibrator waveform and ignored the gap), moved onto
+   * `tick('success')` with the UI/UX pass of 2026-10-08 and lost their entry; the ceiling is the wrapper alone now.
    */
-  const DIRECT = new Set(['src/ui/system/haptics.ts', 'src/ui/system/Poruka.tsx', 'src/ui/system/SuccessMark.tsx']);
+  const DIRECT = new Set(['src/ui/system/haptics.ts']);
 
   it('no other file imports the haptics package: a new tick is `tick(kind)`, not a call of its own', () => {
     const callers = sourceFiles('src').filter(path => /['"]expo-haptics['"]/.test(read(path)));
@@ -268,6 +267,15 @@ describe('every tick in the app goes through this file', () => {
   it('Press ticks through it, and does not know the package', () => {
     expect(read('src/ui/Press.tsx')).toMatch(/from '\.\/system\/haptics'/);
     expect(read('src/ui/Press.tsx')).not.toMatch(/expo-haptics/);
+  });
+
+  it('the outcome bar and the success mark tick a confirmed outcome through it too: tick(\'success\'), the system\'s own Confirm on Android', () => {
+    for (const path of ['src/ui/system/Poruka.tsx', 'src/ui/system/SuccessMark.tsx']) {
+      expect([path, /from '\.\/haptics'/.test(read(path))]).toEqual([path, true]);
+      expect([path, /expo-haptics|Haptics\./.test(read(path))]).toEqual([path, false]);
+    }
+    expect(read('src/ui/system/Poruka.tsx')).toMatch(/playTick\('success'\)/);
+    expect(read('src/ui/system/SuccessMark.tsx')).toMatch(/tick\('success'\)/);
   });
 
   it('does not read the reduced-motion store: a tick is not movement, and a person who asked for less motion has not asked for less feedback (R5, R7)', () => {

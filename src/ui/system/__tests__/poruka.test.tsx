@@ -2,6 +2,7 @@ import React from 'react';
 import { AccessibilityInfo, Animated, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import * as Haptics from 'expo-haptics';
+import { forgetTicks } from '../haptics';
 import { PORUKA_MAX_WIDTH, PORUKA_MS, PorukaHost, poruka } from '../Poruka';
 import { sheetLift, sys } from '../tokens';
 
@@ -34,7 +35,9 @@ const action = () => tree.root.findAll(node => typeof node.type !== 'string' && 
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const timings = (spy: jest.SpyInstance) => spy.mock.calls.map(([, config]) => config as { toValue: number; duration: number; useNativeDriver: boolean });
 
-beforeEach(() => { jest.useFakeTimers(); poruka.hide(); jest.mocked(Haptics.notificationAsync).mockClear(); });
+// The tick goes through `system/haptics`, which holds two ticks closer than `sys.motion.tickGap` to one; the cases of this file
+// do not share a past, so each starts with none (and a test that ticks twice says so below).
+beforeEach(() => { jest.useFakeTimers(); forgetTicks(); poruka.hide(); jest.mocked(Haptics.notificationAsync).mockClear(); });
 afterEach(async () => { await act(async () => tree?.unmount()); poruka.hide(); mockReduced = false; jest.useRealTimers(); jest.restoreAllMocks(); });
 
 describe('Poruka: what is drawn', () => {
@@ -176,7 +179,9 @@ describe('Poruka: what a person and a screen reader get', () => {
     await show({ text: 'Dostupnost je sačuvana.', confirmed: true });
     expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
     expect(Haptics.notificationAsync).toHaveBeenLastCalledWith('success');
-    // A haptic that is not there is silence, never a crash.
+    // A haptic that is not there is silence, never a crash. (The second outcome comes in the same instant, so the gap of the
+    // wrapper is forgotten first: what is checked here is the failure, not the gap, which `haptics.test.ts` pins.)
+    forgetTicks();
     jest.mocked(Haptics.notificationAsync).mockImplementationOnce(() => { throw new Error('no haptics'); });
     await show({ text: 'Opet.', confirmed: true });
     expect(texts()).toEqual(['Opet.']);

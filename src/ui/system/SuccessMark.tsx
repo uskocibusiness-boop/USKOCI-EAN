@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { Check } from 'phosphor-react-native';
-import * as Haptics from 'expo-haptics';
+import { tick } from './haptics';
 import { useReducedMotion } from './motion';
 import { sys } from './tokens';
 
@@ -23,8 +23,8 @@ export function SuccessMark({ fresh = false, tone = 'green', size = 64, children
   const scale = useRef(new Animated.Value(fresh ? 0.6 : 1)).current;
   const opacity = useRef(new Animated.Value(fresh ? 0 : 1)).current;
   useEffect(() => {
-    if (!fresh) return;
-    try { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)?.catch?.(() => undefined); } catch { /* no haptics here */ }
+    // The tick of an outcome that has JUST happened; how it is made, and that it never throws, is `system/haptics`.
+    if (fresh) tick('success');
   }, [fresh]);
   useEffect(() => {
     if (!fresh || reduced) { scale.setValue(1); opacity.setValue(1); return; }

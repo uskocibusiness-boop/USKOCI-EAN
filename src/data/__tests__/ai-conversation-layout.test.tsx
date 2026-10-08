@@ -20,7 +20,9 @@ jest.mock('react-native', () => {
 // own views with `createAnimatedComponent` when it loads. The harness hands that component back unchanged.
 jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   FadeIn: { duration: (duration: number) => ({ duration }) },
-  FadeInDown: { duration: (duration: number) => ({ duration, withInitialValues: () => ({ duration }) }) },
+  // An entrance is a chain (`duration`, `easing`, `withInitialValues`), and its curve comes from Reanimated's own `Easing`.
+  FadeInDown: { duration: (duration: number) => { const chain: Record<string, unknown> = { duration, easing: () => chain, withInitialValues: () => chain }; return chain; } },
+  Easing: { bezier: () => (value: number) => value },
   useReducedMotion: () => false, useSharedValue: (value: number) => ({ value, get: () => value, set: (next: number) => { value = next; } }), cancelAnimation: jest.fn(),
   useAnimatedStyle: () => ({}), withDelay: (_d: number, value: unknown) => value,
   withRepeat: (value: unknown) => value, withTiming: (value: number) => value }));
@@ -36,7 +38,7 @@ import { AiConversationShell, type AiConversationShellProps } from '../../ui/aiF
 import { HOLD_HINT, VoiceMode } from '../../ui/aiFirst/VoiceComposer';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import { DraftCard } from '../../ui/v2/IntakePresentation';
+import { DraftCard, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
 import { WorkerAiCard } from '../../ui/workerProfile/WorkerAiPresentation';
 import { CardValue } from '../../ui/v2/TaskFace';
 
@@ -59,7 +61,7 @@ it('keeps recovery scrollable and composer reachable, without discarding a pendi
   expect(thread.findByProps({testID:'ai-recovery-in-thread'})).toBeDefined();
   const footer=tree.root.findByProps({testID:'ai-composer-footer'});
   expect(footer.findAllByProps({testID:'ai-recovery-in-thread'})).toHaveLength(0);
-  expect(footer.findByProps({accessibilityLabel:'Poruka za AI'}).props.value).toBe('Sačuvana poruka');
+  expect(footer.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.value).toBe('Sačuvana poruka');
   expect(p.card).toHaveBeenLastCalledWith(true);
   expect(StyleSheet.flatten(thread.props.style).minHeight).toBe(0);
   expect(p.onSend).not.toHaveBeenCalled();
@@ -79,7 +81,7 @@ it.each([
   expect(tree.root.findAllByProps({ testID: 'ai-assistant-mark' })).toHaveLength(marks);
   if (patch.streamingText) expect(text()).toContain(patch.streamingText);
   else if (patch.busy) expect(tree.root.findAllByProps({ accessibilityLabel: 'USKOČI piše odgovor' })).toHaveLength(1);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props.value).toBe(p.value);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.value).toBe(p.value);
   expect(p.onSend).not.toHaveBeenCalled(); expect(p.onChange).not.toHaveBeenCalled();
   await act(async () => tree.update(<AiConversationShell {...p} />));
   expect(text()).toContain(p.welcome);
@@ -115,6 +117,22 @@ it('offers a way in before the first word, and one tap puts it in the message',a
   expect(p.onChange).toHaveBeenCalledWith('Treba mi prevoz ');
   expect(p.onSend).not.toHaveBeenCalled();
 });
+// UX needs R18, composition 4.6: the openings are sentences in rows of one section, parted by the system's one divider, not boxes with an edge each.
+it('draws the openings as the rows of one section named "Na primer", a sentence each and no box of its own',async()=>{
+  const p=props();p.openings=['Treba mi pomoć oko selidbe u subotu, 2 osobe, Novi Sad.','Treba mi neko da sastavi ormar u petak popodne.'];
+  await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+  expect(text()).toContain('Na primer');
+  const rows=tree.root.findAll(node=>node.type==='Press'as React.ElementType&&(p.openings as string[]).includes(node.props.accessibilityLabel));
+  expect(rows).toHaveLength(2);
+  for(const row of rows){const style=StyleSheet.flatten(row.props.style);expect(style.borderWidth).toBeUndefined();expect(style.minHeight).toBeGreaterThanOrEqual(48);}
+  expect(text()).toContain(p.openings[0]);
+});
+// Rule R6: a spinner lives only inside a button. The opening of a conversation shows the shape of what is coming and one quiet sentence.
+it('the opening of a conversation is a skeleton and one quiet sentence, never a spinner',async()=>{
+  await act(async()=>{tree=create(<IntakeUnavailable loading error="" back={jest.fn()}/>);});
+  expect(text()).toContain('Otvaramo razgovor');
+  expect(tree.root.findAllByType('ActivityIndicator'as React.ElementType)).toHaveLength(0);
+});
 it('hides the pinned area entirely when there is nothing yet to pin',async()=>{
   const p=props();p.card=jest.fn(()=>null);
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
@@ -129,7 +147,7 @@ it.each([{height:844,scale:2},{height:420,scale:1}])('keeps one reachable review
   expect(tree.root.findAllByProps({testID:'review-target'})).toHaveLength(1);
   await act(async()=>thread.findByProps({testID:'review-target'}).props.onTouchEnd());
   expect(review).toHaveBeenCalledTimes(1);
-  expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.editable).toBe(true);
+  expect(tree.root.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.editable).toBe(true);
   expect(p.onSend).not.toHaveBeenCalled();
 });
 it('does not offer openings once the conversation has started, or while it cannot be edited',async()=>{
@@ -181,7 +199,7 @@ it.each([{height:640,scale:1},{height:844,scale:2}])('compacts without disabling
   mockHeight=height;mockScale=scale;const p=props();
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
   expect(p.card).toHaveBeenLastCalledWith(true);
-  expect(tree.root.findByProps({accessibilityLabel:'Poruka za AI'}).props.editable).toBe(true);
+  expect(tree.root.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.editable).toBe(true);
 });
 
 describe('deliberate reading intent', () => {
@@ -583,8 +601,8 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     const send = tree.root.findByProps({ testID: 'ai-send' });
     expect(send.props).toMatchObject({ accessibilityLabel: 'Pošalji ponovo', disabled: true, accessibilityState: { disabled: true },
-      accessibilityHint: 'Prethodna poruka čeka ishod. Proveri ga u razgovoru.' });
-    expect(tree.root.findByProps({ testID: 'ai-send-reason' }).props.children).toBe('Prethodna poruka čeka ishod. Proveri ga u razgovoru.');
+      accessibilityHint: 'Prethodna poruka još nije poslata. Proveri razgovor.' });
+    expect(tree.root.findByProps({ testID: 'ai-send-reason' }).props.children).toBe('Prethodna poruka još nije poslata. Proveri razgovor.');
     const busy = { ...p, busy: true };
     await act(async () => tree.update(<AiConversationShell {...busy} />));
     expect(tree.root.findByProps({ testID: 'ai-send' }).props.accessibilityHint).toBe('Poruka se šalje.');
@@ -615,7 +633,7 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
     await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
     expect(text()).toContain(HOLD_HINT);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruka za AI' }).props.onChangeText('T'));
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.onChangeText('T'));
     expect(text()).not.toContain(HOLD_HINT);
   });
   // Review r4 ra item 7: once the field has text the waveform gives way to send, so the advice after a tap carries the

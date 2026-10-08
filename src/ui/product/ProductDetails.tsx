@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { ArrowRight, CaretRight, DotsThree } from 'phosphor-react-native';
+import { ArrowRight, DotsThree } from 'phosphor-react-native';
 import { needPriceBasisNote, needPriceText } from '../../data/needDetailPresentation';
 import { ActionSheet, type SheetAction } from '../system/ActionSheet';
-import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { brandAction, sys } from '../system/tokens';
-import { ChromeIconButton, ScreenChrome, chrome, useChromeTitleOnScroll } from '../system/ScreenChrome';
+import { ChromeIconButton, ScreenChrome, useChromeTitleOnScroll } from '../system/ScreenChrome';
 import { T } from '../Text';
 import { Press } from '../Press';
 
@@ -15,7 +14,7 @@ import { Press } from '../Press';
  *
  * `ScreenChrome`'s detail bar, as DetailTopBar is: the arrow, the screen's name when it has one that
  * is not already the content's own title, an optional line under it, one action on the right. A task
- * screen draws the task's name large with ProductTitle below (owner, 2026-09-23) and hands the same name
+ * screen draws the task's name large (`TaskDecisionTitle`, owner 2026-09-23) and hands the same name
  * here with `titleVisible`, so the bar says it only once the large title has scrolled away
  * (`useDetailScrollTitle`). `right` holds the "···" of rare actions (`useDetailMenu`).
  */
@@ -26,10 +25,6 @@ export function ProductHeader({ title, subtitle, back, backLabel = 'Nazad', disa
     right={right} titleVisible={titleVisible} />;
 }
 
-export function ProductTitle({ children, onLayout }: { children: ReactNode; onLayout?: (event: LayoutChangeEvent) => void }) {
-  return <T accessibilityRole="header" onLayout={onLayout} style={s.title}>{children}</T>;
-}
-
 /**
  * The task's name in the bar once its large title has gone (V46 detailChrome; owner step 5b, 2026-09-24). At the owner's
  * large font the title is two or three lines and leaves the screen after a third of it; from there on the map, the
@@ -38,7 +33,7 @@ export function ProductTitle({ children, onLayout }: { children: ReactNode; onLa
  * (`ScreenChrome`'s one short fade, nothing under reduced motion); the name is a fact and never moves on its own.
  *
  * Pass `onScroll` to the ScrollView with `scrollEventThrottle={16}`, `onHeroLayout` to the block that holds the title
- * (a direct child of the scrolled content) and `onTitleLayout` to `ProductTitle`.
+ * (a direct child of the scrolled content) and `onTitleLayout` to the title itself (`TaskDecisionTitle`).
  */
 export function useDetailScrollTitle(): {
   titleVisible: boolean; onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
@@ -110,52 +105,15 @@ export function ProductFacts({ children }: { children: ReactNode }) {
  */
 
 /**
- * One fact of a task as a row: its art, the value and, when there is one, a quiet line under it.
- * A screen reader hears the whole row as one sentence, "Potrebno: 2 osobe, popunjeno 0 od 2 mesta".
- * Money wears the money colour only when it is an amount; a word about money stays ink.
+ * A part of a detail screen: a hairline and air above it, and a heading when the part needs one. (`DetailFact`, `DetailFacts`
+ * and `DetailLink`, the fact and the row that led somewhere, had no user and are gone with the UI/UX pass of 2026-10-08: a fact
+ * is a `FactRow` now, and a row that leads somewhere is a `ListRow`.)
  */
-export function DetailFact({ art, label, value, note, spokenNote, money = false }: {
-  art: FactArtKind; label: string; value: string; note?: string | null;
-  /** The note as it should be heard; "0 / 2" read aloud is a slash. */ spokenNote?: string; money?: boolean;
-}) {
-  const heard = spokenNote ?? note;
-  return <View accessible accessibilityLabel={`${label}: ${value}${heard ? `, ${heard}` : ''}`} style={s.detailFact}>
-    <View style={s.detailArt}><FactArt kind={art} size={28} /></View>
-    <View style={s.factCopy}>
-      <T style={money ? s.detailMoney : s.detailValue}>{value}</T>
-      {note ? <T variant="note" tone="muted">{note}</T> : null}
-    </View>
-  </View>;
-}
-
-/** The facts of a task, one under the other. */
-export function DetailFacts({ children }: { children: ReactNode }) {
-  return <View style={s.detailFacts}>{children}</View>;
-}
-
-/** A part of a detail screen: a hairline and air above it, and a heading when the part needs one. */
 export function DetailSection({ title, children }: { title?: string; children: ReactNode }) {
   return <View style={s.section}>
     {title ? <T accessibilityRole="header" variant="heading" style={s.sectionTitle}>{title}</T> : null}
     {children}
   </View>;
-}
-
-/** A row that leads somewhere: its art, what it is, a quiet line, and the caret. */
-export function DetailLink({ art, label, detail, accessibilityLabel, onPress, disabled = false, trailing }: {
-  art: FactArtKind; label: string; detail?: string | null; accessibilityLabel?: string; onPress: () => void; disabled?: boolean;
-  /** A count or a mark that belongs beside the caret. */ trailing?: ReactNode;
-}) {
-  return <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityState={{ disabled }}
-    disabled={disabled} onPress={onPress} haptic="select" scaleTo={0.99} style={[s.link, disabled && s.disabled]}>
-    <View style={s.detailArt}><FactArt kind={art} size={28} /></View>
-    <View style={s.factCopy}>
-      <T variant="bodyStrong" style={s.ink}>{label}</T>
-      {detail ? <T variant="note" tone="muted">{detail}</T> : null}
-    </View>
-    {trailing}
-    <CaretRight size={20} color={sys.color.muted} />
-  </Press>;
 }
 
 /**
@@ -229,70 +187,8 @@ export function ProductFooterAction({ label, count, accessibilityLabel, onPress,
   </Press>;
 }
 
-/** A bulleted list ("• a" lines) as ["a", "b"]; anything that is not a bulleted list stays text (null). */
-const BULLET = /^[•\-–]\s*/;
-function listItems(value: string): string[] | null {
-  const lines = value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  if (!lines.length || !lines.every(line => BULLET.test(line))) return null;
-  return lines.map(line => line.replace(BULLET, '')).filter(Boolean);
-}
-
-/**
- * What a task asks of the person who takes it, readable at once: none of it hides behind a disclosure.
- * A list is a row of quiet chips under its label; a sentence stays a sentence. No panel around it —
- * the section's hairline is the only frame.
- */
-export function ProductRequirements({ rows, title = 'Važno za ovaj zadatak' }: {
-  rows: { label: string; value: string }[]; title?: string;
-}) {
-  // Nothing to say, nothing drawn: a heading over "Nema dodatih uslova." was a section of noise
-  // on the one screen where a person decides whether to apply.
-  if (!rows.length) return null;
-  return <DetailSection title={title}>
-    <View style={s.requirements}>{rows.map((row, index) => {
-      const items = listItems(row.value);
-      return <View key={`${row.label}:${index}`} style={s.requirement}>
-        <T variant="meta" tone="muted">{row.label}</T>
-        {items ? <View style={s.chips}>{items.map((item, at) => <View key={`${item}:${at}`} style={s.chip}>
-          <T selectable variant="copy" style={s.chipText}>{item}</T></View>)}</View>
-          : <T selectable variant="body" style={s.ink}>{row.value}</T>}
-      </View>;
-    })}
-    </View>
-  </DetailSection>;
-}
-
-/**
- * The person behind a task, as one more row of its facts (owner step 5b, 2026-09-24: who posts a task is a trust fact and
- * belongs beside where, when and how much, not at the end of the screen). The 32 px face sits in the facts' art column,
- * the name reads like a fact's value, and one quiet line says what the person is to the task and their rating. The
- * caller supplies the photo by verified profile ID; this component never reads an account. A person without a photo is
- * the one Avatar, with the letters of their name or, without a name, a drawn person.
- *
- * A screen reader hears who it is, then what a press does: the name, not "Pogledaj javni profil" alone.
- */
-export function ProductPerson({ name, caption, photo, initials, onPress, disabled = false, hint = 'Otvara javni profil' }: {
-  name: string; /** What the person is to the task and their rating, in one line ("Traži pomoć · Ocena 4,8"). */ caption?: string;
-  photo?: ReactNode; /** From `inicijali(name)`; null draws a person. */ initials: string | null; onPress?: () => void;
-  disabled?: boolean; hint?: string;
-}) {
-  const unavailable = disabled || !onPress;
-  // The dot between the parts is for the eye; a screen reader pauses at a comma instead of reading the dot.
-  const spoken = caption ? `${name}, ${caption.split(' · ').join(', ')}` : name;
-  return <Press accessibilityRole="button" accessibilityLabel={spoken} accessibilityHint={onPress ? hint : undefined}
-    accessibilityState={{ disabled: unavailable }} disabled={unavailable} onPress={onPress} haptic="select" scaleTo={0.99} style={s.person}>
-    <View style={s.detailArt}>{photo ?? <Avatar initials={initials} size={32} />}</View>
-    <View style={s.factCopy}>
-      <T numberOfLines={2} style={s.detailValue}>{name}</T>
-      {caption ? <T variant="note" tone="muted">{caption}</T> : null}
-    </View>
-    {onPress ? <View style={s.personCaret}><CaretRight size={20} color={sys.color.muted} /></View> : null}
-  </Press>;
-}
-
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  title: { ...sys.type.hero, color: sys.color.ink, letterSpacing: -0.8 },
   facts: { gap: 4 },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 8 },
   factCopy: { flex: 1, minWidth: 0, gap: 2 },
@@ -300,33 +196,13 @@ const s = StyleSheet.create({
   price: { marginTop: 8, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: sys.color.line },
   priceValue: { ...sys.type.priceLarge, color: sys.color.money },
   priceLabel: { ...sys.type.title, color: sys.color.ink },
-  detailFacts: { gap: 18 },
-  detailFact: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
-  // The art sits on the first line of the value, whatever size the reader has chosen for text.
-  detailArt: { width: 32, alignItems: 'center', paddingTop: 1 },
-  detailValue: { fontSize: 17, lineHeight: 24, fontWeight: '600', color: sys.color.ink },
-  detailMoney: { ...sys.type.priceSmall, color: sys.color.money },
   section: { gap: 14, paddingTop: 24, borderTopWidth: 1, borderTopColor: sys.color.line },
   sectionTitle: { color: sys.color.ink },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 56 },
-  disabled: { opacity: 0.5 },
   description: { gap: 6 },
   route: { gap: 2 },
   descriptionText: { color: sys.color.ink, lineHeight: 26 },
   more: { alignSelf: 'flex-start', minHeight: sys.touch.min, justifyContent: 'center' },
   moreText: { color: sys.color.green },
-  requirements: { gap: 16 },
-  requirement: { gap: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
-  chipText: { color: sys.color.ink, fontWeight: '500' },
-  // A row of the facts list: the same art column and gap, and a full touch height because it opens the profile. The face
-  // sits on the first line of the name like every other fact's picture, also when a large text size wraps the name and
-  // the caption (review of step 5b, 2026-09-24); the caret, which belongs to the whole row, stays centred on it. A row
-  // that opens something is a command, so it is never under 48 (it was the 44 of `sys.touch.min`): the command height
-  // of the chrome, `chrome.control`.
-  person: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, minHeight: chrome.control },
-  personCaret: { alignSelf: 'center' },
   footerAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm },
   footerText: { flexShrink: 1, textAlign: 'center', color: sys.color.onGreen, fontVariant: ['tabular-nums'] },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, StyleSheet, Text } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockReduced = false;
@@ -10,13 +10,13 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
 jest.mock('../../media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 
 import { Disclosure } from '../Disclosure';
-import { DisclosureGroup, DisclosureRow } from '../Detail';
 import { AgreementSection } from '../../v2/AgreementPresentation';
 import { sys } from '../tokens';
 
 /**
  * One "open in place" row (master design plan, 2026-09-24). Its state is spoken, its caret turns on a real change only,
- * and the two rows the detail screens already had (DisclosureRow, AgreementSection) are this one row now.
+ * and the second row the detail screens had (`AgreementSection`) is this one row now. (The other, `DisclosureRow` of `system/Detail`, had no user
+ * outside this file and went with that file in the UI/UX pass of 2026-10-08, F8b: its test draws `Disclosure` itself, with the same two props.)
  */
 let tree: ReactTestRenderer;
 afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; jest.restoreAllMocks(); });
@@ -94,12 +94,13 @@ it('keeps its spacing on the sys.space scale; a list inside a card is inset by t
   expect(flat(body)).toMatchObject({ paddingHorizontal: sys.space.lg, paddingBottom: sys.space.base, gap: sys.space.md });
 });
 
-it('draws the detail screens\' DisclosureRow through it, with the hairline between rows but not above the first', async () => {
+it('draws a list of its rows in a plain column, with the hairline between rows but not above the first (`divider`, `inset`)', async () => {
   const toggle = jest.fn();
-  await render(<DisclosureGroup>
-    <DisclosureRow first label="Opis" detail="Šta treba uraditi" expanded={false} onPress={toggle}><Text>opis</Text></DisclosureRow>
-    <DisclosureRow label="Uslovi" expanded onPress={toggle}><Text>uslovi</Text></DisclosureRow>
-  </DisclosureGroup>);
+  // (`DisclosureGroup`, the card these rows once stood in, had no user and is gone; a plain column holds them.)
+  await render(<View>
+    <Disclosure label="Opis" hint="Šta treba uraditi" expanded={false} onToggle={toggle} divider={false} inset><Text>opis</Text></Disclosure>
+    <Disclosure label="Uslovi" expanded onToggle={toggle} divider inset><Text>uslovi</Text></Disclosure>
+  </View>);
   expect(tree.root.findAllByType(Disclosure)).toHaveLength(2);
   const [first, second] = tree.root.findAllByType(Disclosure);
   expect(first.props).toMatchObject({ label: 'Opis', hint: 'Šta treba uraditi', expanded: false, divider: false, inset: true });
@@ -112,9 +113,10 @@ it('draws the detail screens\' DisclosureRow through it, with the hairline betwe
   expect(flat(first.children[0] as ReactTestInstance).borderTopWidth).toBeUndefined();
 });
 
-it('draws the Dogovor\'s AgreementSection through it: closed until pressed, under a hairline', async () => {
+it('draws the Dogovor\'s AgreementSection through it: closed until pressed, and with no line above it (sections are separated by space, UI pass 2026-10-08)', async () => {
   await render(<AgreementSection art="phone" label="Kontakt" summary="Tvoj broj je podeljen"><Text>broj</Text></AgreementSection>);
-  expect(tree.root.findByType(Disclosure).props).toMatchObject({ label: 'Kontakt', hint: 'Tvoj broj je podeljen', art: 'phone', divider: true });
+  expect(tree.root.findByType(Disclosure).props).toMatchObject({ label: 'Kontakt', hint: 'Tvoj broj je podeljen', art: 'phone' });
+  expect(tree.root.findByType(Disclosure).props.divider).toBeFalsy();
   expect(row('Kontakt').props.accessibilityState).toEqual({ expanded: false });
   expect(texts()).not.toContain('broj');
   await tap('Kontakt');

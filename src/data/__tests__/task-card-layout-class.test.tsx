@@ -38,7 +38,6 @@ jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown: 'CaretDown', Lightning: 'Lightning' }));
 import { TaskCard } from '../../ui/v2/TaskCard';
-import { CardDecision } from '../../ui/v2/TaskFace';
 import { ApplicationCard } from '../../ui/v2/ApplicationFace';
 import { PrijavaPriceText } from '../../ui/v2/PrijavaCard';
 
@@ -70,7 +69,8 @@ const textNode = (value: string) => tree.root.find(node => node.type === T_ && n
 const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const presses = () => tree.root.findAll(node => node.type === PRESS);
 const spoken = () => presses().map(node => [node.props.accessibilityLabel, node.props.accessibilityValue?.text ?? null, node.props.accessibilityHint ?? null]);
-const decision = () => tree.root.findByType(CardDecision).findAllByType(VIEW)[0];
+/** The row of the amount (or its word) and the count of people: the row that stacks. */
+const decisionOf = (amount: string) => textNode(amount).parent!.parent!;
 const offerRow = () => tree.root.findByType(PrijavaPriceText).findAllByType(VIEW)[0];
 beforeEach(() => { mockScale = 1; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
@@ -120,13 +120,13 @@ describe('the task card stacks only in the resilience cases', () => {
     await render(<TaskCard item={task({ naslov: 'Montaža police' })} onOpen={jest.fn()} />);
     expect(style(textNode('Montaža police')).flex).toBeUndefined();
     expect(textNode('Montaža police').props.numberOfLines).toBeUndefined();
-    expect(style(decision()).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(style(decisionOf('5.500 RSD')).flexDirection).toBe(stacked ? 'column' : 'row');
   });
 
-  it.each(WINDOWS)('my own task, width %s dp, text scale %s: value and capacity share a row unless stacked', async (width, scale, stacked) => {
+  it.each(WINDOWS)('my own task met in discovery, width %s dp, text scale %s: value and capacity share a row unless stacked', async (width, scale, stacked) => {
     mockWidth = width; mockScale = scale;
     await render(<TaskCard item={mine({ brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
-    expect(style(decision()).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(style(decisionOf('2.000 RSD')).flexDirection).toBe(stacked ? 'column' : 'row');
     expect(textNode('0/2')).toBeTruthy();
   });
 
@@ -163,18 +163,16 @@ describe('my application\'s face stacks its offer only in the resilience cases',
 
 describe('what a screen reader hears does not depend on the layout', () => {
   const HEARD_TASK = 'HITNO, 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, Potrebno vozilo: Kombi, 0 od 2 mesta popunjeno, Nikola Petrović, ocena 4,8, 12 ocena';
-  const HEARD_MINE = '2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno, 3 prijave čekaju izbor';
+  const HEARD_MINE = '2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, 0 od 2 mesta popunjeno';
   const HEARD_APPLICATION = 'Poslata, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.';
 
   it.each(WINDOWS)('width %s dp, text scale %s: the command name and every word are the same sentence', async (width, scale) => {
     mockWidth = width; mockScale = scale;
+    // The task card says all of it as its own label: the command name, then every fact (one press, no value apart).
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(spoken()).toEqual([['Otvori priliku Farbanje dnevne sobe', HEARD_TASK, null]]);
+    expect(spoken()).toEqual([[`Otvori zadatak Farbanje dnevne sobe. ${HEARD_TASK}`, null, null]]);
     await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} />));
-    expect(spoken()).toEqual([['Otvori zadatak Montaža dve police', HEARD_MINE, null]]);
-    await act(async () => tree.update(<TaskCard item={mine()} onOpen={jest.fn()} onApplications={jest.fn()} />));
-    expect(spoken()).toEqual([['Otvori zadatak Montaža dve police', HEARD_MINE.replace(', 3 prijave čekaju izbor', ''), null],
-      ['3 prijave čekaju izbor, Montaža dve police', null, 'Otvara prijave za izbor.']]);
+    expect(spoken()).toEqual([[`Otvori zadatak Montaža dve police. ${HEARD_MINE}`, null, null]]);
     await act(async () => tree.update(<ApplicationCard row={application()} {...handlers()} />));
     expect(spoken()).toEqual([['Otvori zadatak: Unos ormara', HEARD_APPLICATION, null], ['Povuci prijavu: Unos ormara', null, 'Pre povlačenja te pitamo da potvrdiš.']]);
   });

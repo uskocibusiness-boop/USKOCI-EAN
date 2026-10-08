@@ -1,8 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { tick as playTick } from './haptics';
 import { useReducedMotion } from './motion';
 import { sheetLift, sys } from './tokens';
 
@@ -90,9 +90,12 @@ const RISE = sys.space.sm;
 /** The widest the bar gets: on a tablet it is a capsule in the middle, not a band across the screen. */
 export const PORUKA_MAX_WIDTH = 560;
 
+/**
+ * The tick of a confirmed outcome. How it is made (the system's own `Confirm` on Android, the Taptic success on iOS, silence
+ * when there is no engine and never a crash) is `system/haptics`; this file only says when.
+ */
 function tick() {
-  // A haptic is an outcome, and it is never worth a crash: no haptics on this device, or in this test double, is silence.
-  try { void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)?.catch?.(() => undefined); } catch { /* none here */ }
+  playTick('success');
 }
 
 /**

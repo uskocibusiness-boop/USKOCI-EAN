@@ -8,7 +8,7 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 
 import { Segmented, type SegmentedOption } from '../Segmented';
-import { sys } from '../tokens';
+import { nested, sys } from '../tokens';
 
 type Key = 'active' | 'history';
 const options: SegmentedOption<Key>[] = [{ key: 'active', label: 'Aktivni', badge: 3, badgeLabel: '3 Dogovora' },
@@ -96,15 +96,19 @@ test('reduced motion places the underline at the measured target and updated wid
   expect(tab('Istorija').props.accessibilityState.selected).toBe(true);
 });
 
-test('content-sized capsules keep labels intact and move selection to the measured unequal-width tab', async () => {
+// UI/UX pass 2026-10-08 (F8a), ON PURPOSE: up to three options share the width EQUALLY and `contentSized` is accepted and ignored.
+// This case used to pin the content-sized capsule (`flexBasis: 'auto'`, `flexShrink: 0`, 8 padding, a pill corner), which is what cut
+// "Istorija 7" at the owner's text size; what it still pins is that the pill follows whatever width the tab is MEASURED to have.
+test('contentSized is accepted and ignored: equal shares, 48 high, and the pill moves to the measured tab', async () => {
   await render(control('active', { appearance: 'pill', contentSized: true }));
   expect(StyleSheet.flatten(tab('Aktivni').props.style)).toMatchObject({
-    flexBasis: 'auto', flexGrow: 1, flexShrink: 0, minHeight: 48, paddingHorizontal: 8, borderRadius: sys.radius.pill,
+    flexBasis: 0, flexGrow: 1, minHeight: 48, paddingHorizontal: sys.space.sm, borderRadius: nested(sys.radius.control, sys.space.xs),
   });
+  expect(StyleSheet.flatten(tab('Aktivni').props.style).flexShrink).toBeUndefined();
   await measure('Aktivni', 4, 118); await measure('Istorija', 125, 97);
   await update(control('history', { appearance: 'pill', contentSized: true }));
   expect(tab('Istorija').props.accessibilityState.selected).toBe(true);
-  expect(flatIndicator()).toMatchObject({ width: 97, borderRadius: sys.radius.pill });
+  expect(flatIndicator()).toMatchObject({ width: 97, borderRadius: nested(sys.radius.control, sys.space.xs) });
   expect(tab('Istorija').props.haptic).toBe('none');
   mockReduced = true;
   await update(control('active', { appearance: 'pill', contentSized: true }));

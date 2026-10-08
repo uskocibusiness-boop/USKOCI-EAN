@@ -21,6 +21,7 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { ArrowLeft, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X } from 'phosphor-react-native';
 import { GLYPH_NAMES } from '../Glyph';
+import { layout } from '../layout';
 import { chrome, ChromeIconButton, SCROLL_TITLE_MAX_SCALE, ScreenChrome, useChromeTitleOnScroll } from '../ScreenChrome';
 import { HeaderIconButton, ScreenHeader } from '../ScreenHeader';
 import { ActualUserAvatar } from '../ActualUserAvatar';
@@ -64,6 +65,18 @@ describe('one bar for every kind of screen', () => {
       expect(flat(bar())).toMatchObject({ paddingHorizontal: sys.space.lg, paddingVertical: sys.space.sm, gap: sys.space.md });
       const target = lead === 'Moj profil' ? 56 : 48;
       expect(flat(control(lead))).toMatchObject({ width: target, height: target });
+      await act(async () => tree.unmount());
+    }
+  });
+
+  // UI/UX pass 2026-10-08 (F8a): the edge of the bar is the grid's, so the arrow and the first line of content stand on one line.
+  it('has the edge of the grid: `layout.gutter`, which is the edge of every screen, for each of the three bars', async () => {
+    expect(chrome.paddingHorizontal).toBe(layout.gutter);
+    expect(layout.gutter).toBe(20);
+    for (const element of [<ScreenHeader title="Dogovori" onProfile={noop} />, <DetailTopBar title="Raspored" onBack={noop} />,
+      <ScreenChrome variant="flow" title="Novi zadatak" onClose={noop} />]) {
+      await render(element);
+      expect(flat(bar()).paddingHorizontal).toBe(layout.gutter);
       await act(async () => tree.unmount());
     }
   });
