@@ -56,8 +56,8 @@ export function aboutDetail(view: AboutView): string {
 export function cityDetail(view: CityView): string {
   switch (view.kind) {
     case 'loading': return 'Učitavamo…';
-    case 'error': return 'Nije dostupan';
-    case 'none': return 'Još nije podešen';
+    case 'error': return 'Trenutno nedostupno';
+    case 'none': return 'Još nije podešeno';
     case 'city': return view.city;
   }
 }
@@ -83,11 +83,11 @@ export function ProfilePhotoBlock({ photo, ready, onOpen }: { photo: ReactNode; 
   </View>;
 }
 
-/** "O meni" and the city: two rows, each to the screen where it is written or changed. Neither is edited here. */
+/** About and work area: the city is the existing work-profile area, not a separate home address. */
 export function ProfileFactRows({ about, city, onAbout, onCity }: { about: AboutView; city: CityView; onAbout: () => void; onCity: () => void }) {
   return <SettingsGroup>
     <SettingsRow label="O meni" detail={aboutDetail(about)} onPress={onAbout} />
-    <SettingsRow label="Grad" value={cityDetail(city)} onPress={onCity} last />
+    <SettingsRow label="Područje rada" value={cityDetail(city)} valuePlacement="below" onPress={onCity} last />
   </SettingsGroup>;
 }
 

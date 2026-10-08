@@ -76,9 +76,9 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
       </Disclosure>
       <View pointerEvents="none" style={s.rule} />
     </View>
-    <SettingsRow compact label="Izvoz podataka" value={words.export} onPress={() => onOpen('/profil/izvoz')} />
-    <SettingsRow compact label="Blokirane osobe" value={words.blocked} onPress={() => onOpen('/profil/blokirani')} />
-    <SettingsRow compact label="Pravila i saglasnosti" value={words.legal} onPress={() => onOpen('/profil/pravna')} />
+    <SettingsRow compact valuePlacement="below" label="Izvoz podataka" value={words.export} onPress={() => onOpen('/profil/izvoz')} />
+    <SettingsRow compact valuePlacement="below" label="Blokirane osobe" value={words.blocked} onPress={() => onOpen('/profil/blokirani')} />
+    <SettingsRow compact valuePlacement="below" label="Pravila i saglasnosti" value={words.legal} onPress={() => onOpen('/profil/pravna')} />
     {closure}
   </SettingsGroup>;
 }

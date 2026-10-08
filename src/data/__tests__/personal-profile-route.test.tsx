@@ -167,7 +167,7 @@ describe('Lični podaci is more than the name', () => {
     await render();
     const all = texts();
     expect(all).toContain('Lični podaci'); expect(all).not.toContain('Izmeni profil');
-    const order = ['Promeni fotografiju', 'Ime za prikaz', 'O meni', 'Grad', 'Ime, fotografija, grad'].map(word => all.indexOf(word));
+    const order = ['Promeni fotografiju', 'Ime za prikaz', 'O meni', 'Područje rada', 'Ime, fotografija, grad'].map(word => all.indexOf(word));
     expect(order.every(at => at >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // The name is the only thing written here: one field, and its action is drawn (in the bar) only once the name has changed, and that action is the name's.
@@ -218,8 +218,8 @@ describe('Lični podaci is more than the name', () => {
 
   it('shows the city of the work area as the answer of its row, with no sentence under it, and opens that screen', async () => {
     await render();
-    expect(detailOf('Grad')).toBe('Novi Sad'); expect(texts()).not.toContain('Grad se menja u području rada.');
-    await act(async () => rowPress('Grad').props.onPress());
+    expect(detailOf('Područje rada')).toBe('Novi Sad'); expect(texts()).not.toContain('Grad se menja u području rada.');
+    await act(async () => rowPress('Područje rada').props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/lokacija']]);
   });
 
@@ -238,7 +238,7 @@ describe('Lični podaci is more than the name', () => {
 
   it('one way onward at a time: a second row pressed while the first is opening opens nothing', async () => {
     await render();
-    await act(async () => { rowPress('Grad').props.onPress(); rowPress('O meni').props.onPress(); rowPress('Promeni fotografiju').props.onPress(); });
+    await act(async () => { rowPress('Područje rada').props.onPress(); rowPress('O meni').props.onPress(); rowPress('Promeni fotografiju').props.onPress(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/lokacija']]); expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
@@ -259,19 +259,19 @@ describe('Lični podaci is more than the name', () => {
   });
 
   it.each([
-    ['no work profile', null, 'Dodaj opis', 'Još nije podešen'],
-    ['an empty description', work({ biografija: '   ', grad: '' }), 'Dodaj opis', 'Još nije podešen'],
+    ['no work profile', null, 'Dodaj opis', 'Još nije podešeno'],
+    ['an empty description', work({ biografija: '   ', grad: '' }), 'Dodaj opis', 'Još nije podešeno'],
   ])('says honestly what there is when there is %s, and invents nothing', async (_name, profile, about, city) => {
     mockWork.mockResolvedValue(profile);
     await render();
-    expect(detailOf('O meni')).toBe(about); expect(detailOf('Grad')).toBe(city);
+    expect(detailOf('O meni')).toBe(about); expect(detailOf('Područje rada')).toBe(city);
   });
 
   it('says that the description and the city are not available when the work profile cannot be read, and the name still works', async () => {
     mockWork.mockRejectedValue(new Error('WORKER_PROFILE_READ_FAILED'));
     await render();
     expect(detailOf('O meni')).toBe('Opis trenutno nije dostupan');
-    expect(detailOf('Grad')).toBe('Nije dostupan');
+    expect(detailOf('Područje rada')).toBe('Trenutno nedostupno');
     expect(field().props.value).toBe('Ana Petrović'); expect(barSave()).toBeUndefined();
     await type('Ana P.'); expect(barSave()).toBeDefined();
   });
@@ -279,7 +279,7 @@ describe('Lični podaci is more than the name', () => {
   it('says "Učitavamo…" while the work profile is read, not an empty description', async () => {
     mockWork.mockReturnValue(new Promise(() => undefined));
     await render();
-    expect(detailOf('O meni')).toBe('Učitavamo…'); expect(detailOf('Grad')).toBe('Učitavamo…');
+    expect(detailOf('O meni')).toBe('Učitavamo…'); expect(detailOf('Područje rada')).toBe('Učitavamo…');
   });
 
   it('the photo waits while the name is being saved', async () => {

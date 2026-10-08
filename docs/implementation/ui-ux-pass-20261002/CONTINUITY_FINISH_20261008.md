@@ -39,3 +39,16 @@ Tačan emulator/phone APK ovog paketa → instalacija-r uz isti potpis i podatke
 **NIJE DOKAZANO:** neprekinuti native gest na APK-u sa ovom naknadnom izmenom. Buildovi37846681465 (emulator) i37846682483 (telefon) pripadaju ranijem source6dbd38e0; ne sadrže ovu dopunu. Map/tablet/performance/whole-app/store tvrdnje nisu zatvorene. Posebno proveriti važnu lokacijsku/Za mene poruku na FULL, floating Mapa preko srednjih redova i pojavu tabova tokom zadržanog draga.
 
 **SLEDEĆE:** tačan novi APK uz postojeći redosled build→slika/snimak→kritika→korekcija. Native proba: HALF→FULL→scroll, scroll→vrh→spuštanje, kratka/prazna lista, detalj→Back, font1.15, reduced motion i dostupnost poslednje kartice. Nova autonomija ne menja oznake nivoa dokaza.
+
+
+## Dopuna — jasni duboki redovi profila i privatnosti
+
+**URADIO / SOURCE:** „Grad“ u Ličnim podacima zove se „Područje rada“, jer postojeći reader čita work.data.grad i postojeća radnja otvara /profil/lokacija. Sačuvani su isti podaci, read/retry stanja i navigacijska zaštita. Vrednost stoji ispod naziva; isti raspored dobili su Izvoz podataka, Blokirane osobe i Pravila i saglasnosti u Privatnosti. Nema novih privatnosnih opcija niti promene njihove semantike. U ovom paketu nisu konsolidovani duplirani ulazi sa Profila; to ostaje pitanje kompozicije narednog vizuelnog pregleda.
+
+**DOKAZAO / TEST:** postojeće tri grupe (personal-profile-route, profile-edit-render, privacy-retention-screen)93/93 PASS nakon usaglašavanja selektora sa novim nazivom. Zadržane provere navigacije, ponovnog ulaza, nedostupnih/nepročitanih podataka i retention prikaza. Nisu dodati paralelni rendereri ni novi testni framework.
+
+**NIJE DOKAZANO:** native prikaz ove naknadne dopune. Aktivni buildovi37848305665 /37848305939 su source dce7c463 i sadrže gesture fix; ne sadrže ovu kasniju doradu dubokih redova. Raniji6dbd buildovi ne dokazuju ni novi gesture fix.
+
+**SLEDEĆE:** uključiti ove uske vizuelne korekcije u sledeći objedinjeni APK i pregledati iste deep-screen scene pri1.15 fontu. Fizičke i sintetičke probe ostaju odvojeno označene.
+
+Nezavisni SOURCE pregled ove dopune pronašao je gramatičko slaganje fallback-a sa novim nazivom: sada „Trenutno nedostupno“ / „Još nije podešeno“. Ponovna provera route + postojećeg formattera39/39 PASS (preklapa se sa gore navedenih93; ne sabirati kao nove testove). TypeScript PASS.

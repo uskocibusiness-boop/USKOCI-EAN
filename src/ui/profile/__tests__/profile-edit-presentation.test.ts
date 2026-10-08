@@ -41,8 +41,8 @@ describe('what the "O meni" row says', () => {
 describe('what the "Grad" row answers', () => {
   it('is the city of the work area, or why there is none, in the row\'s own words and never a sentence', () => {
     expect(cityDetail({ kind: 'city', city: 'Novi Sad' })).toBe('Novi Sad');
-    expect(cityDetail({ kind: 'none' })).toBe('Još nije podešen');
-    expect(cityDetail({ kind: 'error' })).toBe('Nije dostupan');
+    expect(cityDetail({ kind: 'none' })).toBe('Još nije podešeno');
+    expect(cityDetail({ kind: 'error' })).toBe('Trenutno nedostupno');
     expect(cityDetail({ kind: 'loading' })).toBe('Učitavamo…');
   });
 });

@@ -5177,6 +5177,12 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
           "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
           "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
+        },
+        "deep_settings_clarity_20261008": {
+          "state": "SOURCE / TEST93 PASS / NATIVE PENDING",
+          "scope": "Work-area row correctly named; longer values below titles in personal data and privacy. Existing reads, actions and access semantics unchanged.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "boundary": "Later than dce7c463 APK jobs; no exact native acceptance yet."
         }
       }
     },
@@ -5705,6 +5711,12 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md §16.8",
           "state": "REFERENCE ANALYZED / UX-VISUAL CRITERIA / NOT NATIVE ACCEPTANCE",
           "scope": "Owner screenshots14395–14424: hierarchy, composition, controls, flat settings rows, honest empty states and sheet motion adapted to USKOCI."
+        },
+        "deep_settings_clarity_20261008": {
+          "state": "SOURCE / TEST93 PASS / NATIVE PENDING",
+          "scope": "Work-area row correctly named; longer values below titles in personal data and privacy. Existing reads, actions and access semantics unchanged.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "boundary": "Later than dce7c463 APK jobs; no exact native acceptance yet."
         }
       },
       "native_e572_account_readonly_20261003": {

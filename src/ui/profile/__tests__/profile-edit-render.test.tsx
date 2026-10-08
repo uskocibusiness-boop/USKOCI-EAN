@@ -42,19 +42,19 @@ it('does not offer the camera mark or a press while the photo cannot be changed'
 it('draws "O meni" and the city as two rows of at least 56 dp, each a button that goes where the thing is changed, and says nothing about where', async () => {
   const about = jest.fn(), city = jest.fn();
   await draw(<ProfileFactRows about={{ kind: 'text', text: 'Radim sa bratom.' }} city={{ kind: 'city', city: 'Novi Sad' }} onAbout={about} onCity={city} />);
-  const rows = tree.root.findAll(node => node.props.accessibilityRole === 'button' && ['O meni', 'Grad'].includes(node.props.accessibilityLabel));
-  expect([...new Set(rows.map(node => node.props.accessibilityLabel))]).toEqual(['O meni', 'Grad']);
+  const rows = tree.root.findAll(node => node.props.accessibilityRole === 'button' && ['O meni', 'Područje rada'].includes(node.props.accessibilityLabel));
+  expect([...new Set(rows.map(node => node.props.accessibilityLabel))]).toEqual(['O meni', 'Područje rada']);
   for (const row of rows) expect(StyleSheet.flatten(row.props.style).minHeight).toBeGreaterThanOrEqual(56);
   expect(words()).toContain('Radim sa bratom.'); expect(words()).toContain('Novi Sad');
   // The owner's phone, 8 Oct 2026: a row with an arrow that says in a sentence under it that the city is changed somewhere else.
   expect(words()).not.toContain('Grad se menja u području rada.');
-  await act(async () => { rows.find(node => node.props.accessibilityLabel === 'Grad')!.props.onPress(); });
+  await act(async () => { rows.find(node => node.props.accessibilityLabel === 'Područje rada')!.props.onPress(); });
   expect(city).toHaveBeenCalledTimes(1); expect(about).not.toHaveBeenCalled();
 });
 
-it('draws the city as the ANSWER of its row, at the end of the line, not as a second line under the name', async () => {
+it('draws the actual work-area city as the value below its correctly named row', async () => {
   await draw(<ProfileFactRows about={{ kind: 'none' }} city={{ kind: 'city', city: 'Novi Sad' }} onAbout={jest.fn()} onCity={jest.fn()} />);
-  const row = tree.root.findAll(node => node.props.title === 'Grad' && typeof node.props.onPress === 'function')[0];
+  const row = tree.root.findAll(node => node.props.title === 'Područje rada' && typeof node.props.onPress === 'function')[0];
   expect(row.props.value).toBe('Novi Sad'); expect(row.props.subtitle).toBeUndefined();
   expect(words()).toContain('Dodaj opis');
 });
