@@ -104,7 +104,8 @@ export function dogovorenoRedovi(k: KandidatProjekcija, need: PotrebaProjekcija)
   const termin = candidateTime(k, need.taskTimezone) ?? need.vremeTekst;
   return {
     ljudi: `Ti i ${k.ime}`,
-    termin: `${termin} · po vremenu u Srbiji`,
+    // The time text already says "(po vremenu u Srbiji)" when it comes from the app's formatter; it is added only when it is missing.
+    termin: /po vremenu u Srbiji/.test(termin) ? termin : `${termin} · po vremenu u Srbiji`,
     iznos: value.kind === 'amount' ? `${value.amount} ${value.basis}` : 'Cena nije navedena',
     ima: has ? has.text.replace(/^Ima: /, '') : null,
   };
