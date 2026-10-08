@@ -10,7 +10,7 @@ set local search_path=pg_catalog;
 do $ib_pre$
 declare r record;
 begin
- if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)'))='f1daee8c0f4f77c24398707644e1d731'
+ if (select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)'))='bd46f06fba17b28c5f5ed30ae61a1ee9'
   or (select strpos(prosrc,'taskTitle')>0 or strpos(prosrc,'INBOX-NASLOV')>0 from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)'))
  then raise exception 'INBOX_NASLOV_ALREADY_OR_PARTIALLY_APPLIED' using errcode='55000'; end if;
  if not (select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='b7928c5040ff715ea2af15e1f745c285'
@@ -101,7 +101,8 @@ begin
   -- worker of that application, a party of that Dogovor or, for a NEED event, the worker it offered the task to
   -- (OPPORTUNITY_AVAILABLE: its body already names the task) or who applied to it. Null for every other entity kind, a missing
   -- row, a task an account closure erased (private.closure_redaction_patch_v5 writes 'Obrisan zadatak' and 'OBRISANO') and
-  -- anyone without that right. The title only: no address, no other field. Primary-key lookups for at most p_limit+1 rows.
+  -- anyone without that right. The title only: no address, no other field. At most p_limit+1 rows reach this join: primary-key
+  -- lookups, and for 'applied to it' one index range over the applications of that one task (marketplace_responses_need_idx).
   left join lateral (
     select x.title as task_title from (
       select n.title,n.category from public.needs n
@@ -128,7 +129,7 @@ begin
  if o is null then raise exception 'INBOX_NASLOV_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
  if md5(body) is distinct from 'b7928c5040ff715ea2af15e1f745c285' then raise exception 'INBOX_NASLOV_PREIMAGE_DRIFT' using errcode='55000'; end if;
- if md5(new_body) is distinct from 'f1daee8c0f4f77c24398707644e1d731' then raise exception 'INBOX_NASLOV_PAYLOAD_DRIFT' using errcode='55000'; end if;
+ if md5(new_body) is distinct from 'bd46f06fba17b28c5f5ed30ae61a1ee9' then raise exception 'INBOX_NASLOV_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
  if md5(def) is distinct from '4a9f079ac2fde1bb80dd8a6e552fa958' then raise exception 'INBOX_NASLOV_DEFINITION_DRIFT' using errcode='55000'; end if;
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'INBOX_NASLOV_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
@@ -136,15 +137,15 @@ begin
  if (select p.prosrc from pg_proc p where p.oid=o) is distinct from new_body
   or (select to_jsonb(p)-'prosrc' from pg_proc p where p.oid=o) is distinct from meta
   or obj_description(o,'pg_proc') is distinct from comment_before
-  or md5(pg_get_functiondef(o)) is distinct from 'ac85e8179b7e1f46e5b4adb2ed0f17b9'
+  or md5(pg_get_functiondef(o)) is distinct from '4897d93c094b6f6d3fe244e8cd0824cf'
  then raise exception 'INBOX_NASLOV_POSTIMAGE_OR_METADATA_DRIFT' using errcode='55000'; end if;
 end
 $ib_replace$;
 do $ib_post$
 declare r record;
 begin
- if not (select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='f1daee8c0f4f77c24398707644e1d731'
-     and md5(pg_get_functiondef(p.oid))='ac85e8179b7e1f46e5b4adb2ed0f17b9' and p.prosecdef and p.provolatile='s'
+ if not (select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='bd46f06fba17b28c5f5ed30ae61a1ee9'
+     and md5(pg_get_functiondef(p.oid))='4897d93c094b6f6d3fe244e8cd0824cf' and p.prosecdef and p.provolatile='s'
      and p.proowner='postgres'::regrole and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='jsonb'::regtype
      and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}' and obj_description(p.oid,'pg_proc') is null)=1
  then raise exception 'INBOX_NASLOV_READER_DRIFT' using errcode='55000'; end if;

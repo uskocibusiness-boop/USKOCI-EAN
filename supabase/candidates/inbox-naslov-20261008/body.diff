@@ -14,7 +14,7 @@
      from public.user_activity_events e
      where e.recipient_user_id=v_uid and (p_role is null or e.recipient_role=p_role)
        and exists(select 1 from public.notification_deliveries visible
-@@ -35,7 +36,29 @@
+@@ -35,7 +36,30 @@
      select nd.title,nd.body from public.notification_deliveries nd
      where nd.event_id=q.id and nd.recipient_user_id=v_uid and nd.channel='IN_APP' and nd.state<>'SUPPRESSED'
      order by nd.created_at,nd.id limit 1
@@ -25,7 +25,8 @@
 +  -- worker of that application, a party of that Dogovor or, for a NEED event, the worker it offered the task to
 +  -- (OPPORTUNITY_AVAILABLE: its body already names the task) or who applied to it. Null for every other entity kind, a missing
 +  -- row, a task an account closure erased (private.closure_redaction_patch_v5 writes 'Obrisan zadatak' and 'OBRISANO') and
-+  -- anyone without that right. The title only: no address, no other field. Primary-key lookups for at most p_limit+1 rows.
++  -- anyone without that right. The title only: no address, no other field. At most p_limit+1 rows reach this join: primary-key
++  -- lookups, and for 'applied to it' one index range over the applications of that one task (marketplace_responses_need_idx).
 +  left join lateral (
 +    select x.title as task_title from (
 +      select n.title,n.category from public.needs n

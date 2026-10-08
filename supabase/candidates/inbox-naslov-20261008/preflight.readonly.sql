@@ -8,7 +8,7 @@ select jsonb_build_object(
      and md5(pg_get_functiondef(p.oid))='4a9f079ac2fde1bb80dd8a6e552fa958' and p.prosecdef and p.provolatile='s'
      and p.proowner='postgres'::regrole and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='jsonb'::regtype
      and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}' and obj_description(p.oid,'pg_proc') is null)=1,
- 'alreadyApplied',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)'))='f1daee8c0f4f77c24398707644e1d731',
+ 'alreadyApplied',(select md5(prosrc) from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)'))='bd46f06fba17b28c5f5ed30ae61a1ee9',
  'readerAcl',(select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)')),
  'dependencies',(select bool_and(md5(p.prosrc) is not distinct from x.body_md5) from (values
   ('private.category_of_event(text)','85389285506a1f5801ad204f60dfa2a1')) x(signature,body_md5) left join pg_proc p on p.oid=to_regprocedure(x.signature)),

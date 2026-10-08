@@ -15,11 +15,11 @@
     {
       "signature": "public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)",
       "before_md5": "b7928c5040ff715ea2af15e1f745c285",
-      "after_md5": "f1daee8c0f4f77c24398707644e1d731",
+      "after_md5": "bd46f06fba17b28c5f5ed30ae61a1ee9",
       "before_definition_md5": "4a9f079ac2fde1bb80dd8a6e552fa958",
-      "after_definition_md5": "ac85e8179b7e1f46e5b4adb2ed0f17b9",
+      "after_definition_md5": "4897d93c094b6f6d3fe244e8cd0824cf",
       "before_chars": 2310,
-      "after_chars": 4050,
+      "after_chars": 4181,
       "language": "plpgsql",
       "volatility": "STABLE",
       "securityDefiner": true,
@@ -164,19 +164,19 @@
     "RESPONSE/RESPONSE_WITHDRAWN": 1
   },
   "artifact_sha256": {
-    "candidate.sql": "ed80952e5816d99575b9fc3e85c83f98c74c51dada542e2ad93ab519a1d559b2",
-    "candidate.in-transaction.sql": "7e1f4681d56f733d9d2bae2b2afa75cfd2f580b677addd7cf7809822c5b2d42b",
-    "revert.sql": "9d69ed79d64f80ca1cfed190ae1371d1bb83e5851c2bfd9a05ed696d4e9b4055",
-    "preflight.readonly.sql": "88f7bcb2b958b57bfba4128140ef928ca9993b62a4712100860ec2fa16ccf8e2",
-    "postflight.readonly.sql": "99be03f85b082525f4c373b6af8108d459a793f7861e4fa390be773343e4006a",
-    "body.diff": "11651bb3ce0b8c5b004a3ba61bb10259705fea1775039af639d02b9ee7ffa3fe",
-    "patches.json": "46b215e0c1398acc90aae15b3f2a422653c62f3610a2cc961198d58667d4aff7"
+    "candidate.sql": "6951d250ed536eaff91acc95e40f27380e4e1c61f66947a76eb8aa64278136e0",
+    "candidate.in-transaction.sql": "0bd676d5893c09ef3701f48f037557ab0a64fe1cf73c153505e3fc4b45a3860c",
+    "revert.sql": "0c482cf5a33f87d5edddee474de227c4713a6ed9d5685432742a9acc3c4cb9a3",
+    "preflight.readonly.sql": "3fb205950c55e94fcf4aa439fd169eed7be58f5e42045377828c93ea70228474",
+    "postflight.readonly.sql": "faae108768f02bd8234f0b73521d814593efe51dba258acc2a2bc359e48775ea",
+    "body.diff": "e451dedf7bb9568de61d783894c0379255cc55fb8b4f59eaa81e244b36b4196f",
+    "patches.json": "8a26e8a292ed353eca52b43c9dd4cc850047586f7c91948c48c49e884b6f61d5"
   },
   "artifact_md5": {
-    "candidate.sql": "1f455a06dddd1be5c3b1330c938203a9",
-    "candidate.in-transaction.sql": "56569a4081062813955595cf05d25e9e",
-    "revert.sql": "8b1ca1199206cf4676a8323c00a9fa9d",
-    "preflight.readonly.sql": "ca734524a9cfaf92db93a92f3dc690c9",
-    "postflight.readonly.sql": "639312c3a1013b690f758b21876af436"
+    "candidate.sql": "a74e45bef7c4828ff017b18543afb734",
+    "candidate.in-transaction.sql": "daf74018ea60c8716f13ebe234b89293",
+    "revert.sql": "97be7afad735fd4bc1b4b5a3d232dcf0",
+    "preflight.readonly.sql": "28e53e1312281eabf58e8e1306625b73",
+    "postflight.readonly.sql": "8648be05ca3444be468fd199a133c574"
   }
 }

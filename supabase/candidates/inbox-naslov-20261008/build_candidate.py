@@ -61,7 +61,8 @@ change("    'family',private.category_of_event(q.event_type)\n"
 # 2) the page of events carries what the event is about (two columns of the same row, same order, same limit)
 change("    select e.id,e.event_type,e.recipient_role,e.created_at,e.read_at\n",
        "    select e.id,e.event_type,e.recipient_role,e.created_at,e.read_at,e.entity_type,e.entity_id\n")
-# 3) the title: one lateral lookup per listed event (at most p_limit+1 = 101), primary keys only, at most one row
+# 3) the title: one lateral lookup per listed event (at most p_limit+1 = 101), at most one row: primary keys, and for a NEED event
+#    to someone who is neither its requester nor offered it, one index range over the applications of that task
 change("    order by nd.created_at,nd.id limit 1\n"
        "  ) d on true;\n",
        "    order by nd.created_at,nd.id limit 1\n"
@@ -71,7 +72,8 @@ change("    order by nd.created_at,nd.id limit 1\n"
        "  -- worker of that application, a party of that Dogovor or, for a NEED event, the worker it offered the task to\n"
        "  -- (OPPORTUNITY_AVAILABLE: its body already names the task) or who applied to it. Null for every other entity kind, a missing\n"
        "  -- row, a task an account closure erased (private.closure_redaction_patch_v5 writes 'Obrisan zadatak' and 'OBRISANO') and\n"
-       "  -- anyone without that right. The title only: no address, no other field. Primary-key lookups for at most p_limit+1 rows.\n"
+       "  -- anyone without that right. The title only: no address, no other field. At most p_limit+1 rows reach this join: primary-key\n"
+       "  -- lookups, and for 'applied to it' one index range over the applications of that one task (marketplace_responses_need_idx).\n"
        "  left join lateral (\n"
        "    select x.title as task_title from (\n"
        "      select n.title,n.category from public.needs n\n"

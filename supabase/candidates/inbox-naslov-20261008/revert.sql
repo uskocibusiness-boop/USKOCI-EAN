@@ -11,8 +11,8 @@ set local statement_timeout='120s';
 set local search_path=pg_catalog;
 do $ib_revert_pre$
 begin
- if not (select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='f1daee8c0f4f77c24398707644e1d731'
-     and md5(pg_get_functiondef(p.oid))='ac85e8179b7e1f46e5b4adb2ed0f17b9' and p.prosecdef and p.provolatile='s'
+ if not (select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='bd46f06fba17b28c5f5ed30ae61a1ee9'
+     and md5(pg_get_functiondef(p.oid))='4897d93c094b6f6d3fe244e8cd0824cf' and p.prosecdef and p.provolatile='s'
      and p.proowner='postgres'::regrole and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='jsonb'::regtype
      and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}' and obj_description(p.oid,'pg_proc') is null)=1
  then raise exception 'INBOX_NASLOV_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
@@ -73,10 +73,10 @@ begin
  o:=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)');
  if o is null then raise exception 'INBOX_NASLOV_REVERT_MISSING_FUNCTION' using errcode='55000'; end if;
  select p.prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict body,meta,comment_before from pg_proc p where p.oid=o;
- if md5(body) is distinct from 'f1daee8c0f4f77c24398707644e1d731' then raise exception 'INBOX_NASLOV_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
+ if md5(body) is distinct from 'bd46f06fba17b28c5f5ed30ae61a1ee9' then raise exception 'INBOX_NASLOV_REVERT_PREIMAGE_DRIFT' using errcode='55000'; end if;
  if md5(new_body) is distinct from 'b7928c5040ff715ea2af15e1f745c285' then raise exception 'INBOX_NASLOV_REVERT_PAYLOAD_DRIFT' using errcode='55000'; end if;
  def:=pg_get_functiondef(o);
- if md5(def) is distinct from 'ac85e8179b7e1f46e5b4adb2ed0f17b9' then raise exception 'INBOX_NASLOV_REVERT_DEFINITION_DRIFT' using errcode='55000'; end if;
+ if md5(def) is distinct from '4897d93c094b6f6d3fe244e8cd0824cf' then raise exception 'INBOX_NASLOV_REVERT_DEFINITION_DRIFT' using errcode='55000'; end if;
  if (length(def)-length(replace(def,body,'')))/length(body)<>1 then raise exception 'INBOX_NASLOV_REVERT_BODY_ANCHOR_DRIFT' using errcode='55000'; end if;
  execute replace(def,body,new_body);
  if (select p.prosrc from pg_proc p where p.oid=o) is distinct from new_body

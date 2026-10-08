@@ -1,8 +1,8 @@
 -- INBOX-NASLOV read-only postflight. No write. Expected: readerAfter, dependencies, columns, erasureMarkers and certificateReady
 -- true, retriedLiteralFunctions 0, the certificate equal to the preflight.
 select jsonb_build_object(
- 'readerAfter',(select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='f1daee8c0f4f77c24398707644e1d731'
-     and md5(pg_get_functiondef(p.oid))='ac85e8179b7e1f46e5b4adb2ed0f17b9' and p.prosecdef and p.provolatile='s'
+ 'readerAfter',(select count(*) from pg_proc p where p.oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)') and md5(p.prosrc)='bd46f06fba17b28c5f5ed30ae61a1ee9'
+     and md5(pg_get_functiondef(p.oid))='4897d93c094b6f6d3fe244e8cd0824cf' and p.prosecdef and p.provolatile='s'
      and p.proowner='postgres'::regrole and p.prolang=(select oid from pg_language where lanname='plpgsql') and p.prorettype='jsonb'::regtype
      and p.proconfig=array['search_path=pg_catalog'] and p.proacl::text='{postgres=X/postgres,authenticated=X/postgres}' and obj_description(p.oid,'pg_proc') is null)=1,
  'readerAcl',(select proacl::text from pg_proc where oid=to_regprocedure('public.rpc_list_inbox(text,integer,timestamp with time zone,uuid)')),

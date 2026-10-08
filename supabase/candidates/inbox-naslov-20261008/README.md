@@ -1,13 +1,14 @@
 # INBOX-NASLOV — ime zadatka u svakom obaveštenju (vlasnik, 8. 10. 2026)
 
-**Status: SAMO IZVORNI KOD, NIJE PRIMENJENO.** Kanonski DEV `leqcwgzvjsxugfgzdmth` primenjuje integrator po vlasnikovom stalnom nalogu za dokazane pakete, tek posle zelenog dokaza. Dokaz: `.github/workflows/inbox-naslov-proof.yml` (jednokratna baza, nikad DEV) — rezultat se upisuje ovde kad se run završi.
+**Status: SAMO IZVORNI KOD, NIJE PRIMENJENO.** Kanonski DEV `leqcwgzvjsxugfgzdmth` primenjuje integrator po vlasnikovom stalnom nalogu za dokazane pakete. Dokaz: `.github/workflows/inbox-naslov-proof.yml` (jednokratna baza, nikad DEV); zeleno pokretanje **37782930670** (commit `f0e0d025`): ponašanje **14/14 PASS**, opterećenje **2/2 PASS**.
 
 ## Ukratko za vlasnika
 
 - **Svako obaveštenje nosi ime svog zadatka.** „Dogovor je otkazan“ sada kaže i koji je („Montaža police u hodniku“). Aplikacija je već spremna i to pokazuje kao drugi red; nova verzija aplikacije nije potrebna, a stare verzije novo polje samo preskaču.
 - **Ime vidi samo ko sme:** naručilac tog zadatka, radnik te prijave, obe strane Dogovora, radnik kome je zadatak ponuđen (ime je već u tekstu ponude) i radnik koji se na taj zadatak prijavio. Svi ostali, i svako obaveštenje o zadatku koji je obrisan ili izbrisan zatvaranjem naloga, dobijaju prazno (`null`) i red izgleda kao danas.
 - **Samo ime zadatka:** bez adrese, opisa, cene i imena osobe. Zaključan ekran (push) se ne menja (pravilo A20).
-- **Sve ostalo je isto, bajt po bajt:** tekst, redosled, stranice, broj nepročitanih i greške.
+- **Sve ostalo je isto, bajt po bajt:** tekst, redosled, stranice, broj nepročitanih i greške (dokazano na 174 stranice, 5 naloga, 3 filtera, 4 veličine stranice).
+- **Brzina:** stranica od 100 obaveštenja (čita se 101) kod radnika sa 10.000 obaveštenja: oko 8,2 → 9,6 ms; podrazumevana stranica od 30: 6,5 → 6,8 ms (CI, medijana od 11 poziva). Najgori veštački slučaj (100 otkazivanja tuđih zadataka sa po 200 prijava, na koje se nije prijavio): 3,3 → 10,5 ms.
 - **Bezbednost:** menja se samo telo jedne funkcije čitanja; nema nove tabele, kolone, okidača, politike, indeksa ni prava. Sertifikat zatvaranja se ne pomera (proverava se u istoj transakciji). Tačan povratak: `revert.sql`.
 - **Tvoje odluke (nijedna ne blokira primenu):** (1) obaveštenja o pitanjima (CLARIFICATION) ostaju bez imena zadatka (ugovor ih ne navodi; na DEV-u ih danas nema); (2) prikazuje se današnje ime zadatka, i kad ga je naručilac posle izmenio.
 
@@ -17,13 +18,13 @@ One function body, by three anchored edits (`body.diff`, `patches.json`) of the 
 
 1. every item gets the key **`taskTitle`** (string or `null`); every other key and value is built by the same expression as before (jsonb orders the keys, so the text of an item without `taskTitle` is the old text);
 2. the page of events also carries `entity_type` and `entity_id` of the same row (same filter, order and `limit p_limit+1`);
-3. one `left join lateral` per listed event (at most 101 rows): primary-key lookups only, at most one row, `limit 1`:
+3. one `left join lateral` per listed event (at most 101 rows), at most one row (`limit 1`): primary-key lookups, and for a NEED event to someone who is neither its requester nor offered it, one index range over the applications of that one task (`marketplace_responses_need_idx`):
    - **NEED** → that need, when the caller is its requester, or the event is `OPPORTUNITY_AVAILABLE` (the offer already names the task), or the caller applied to it (any application row of his on that need, any status — every Dogovor comes from an application, so this also covers the worker of a Dogovor; DEV sends `NEED_CANCELLED` exactly to such workers);
    - **RESPONSE** → the need of that application, when the caller is its worker or the requester of its need;
    - **AGREEMENT** → the need of that Dogovor, when the caller is its requester or its worker;
    - **anything else is `null`**: another entity kind (`CLARIFICATION`), a missing row (deleted task, unknown id), a task an account closure erased (the certified `private.closure_redaction_patch_v5` writes title `Obrisan zadatak` and category `OBRISANO`; either marker hides the title), and every caller without that right.
 
-Unchanged and asserted: signature, `plpgsql`, `STABLE`, `SECURITY DEFINER`, `search_path=pg_catalog`, owner `postgres`, ACL `{postgres=X/postgres,authenticated=X/postgres}`, no comment, every pg_proc field but `prosrc` (`to_jsonb(p)-'prosrc'`), the guards and their errors (`AUTH_REQUIRED` 28000, `INVALID_ROLE` / `INVALID_PAGE` 22023), the unread count, paging, `hasMore`, `asOf`. After: `md5(prosrc)` `f1daee8c…`, `md5(pg_get_functiondef)` `ac85e817…`.
+Unchanged and asserted: signature, `plpgsql`, `STABLE`, `SECURITY DEFINER`, `search_path=pg_catalog`, owner `postgres`, ACL `{postgres=X/postgres,authenticated=X/postgres}`, no comment, every pg_proc field but `prosrc` (`to_jsonb(p)-'prosrc'`), the guards and their errors (`AUTH_REQUIRED` 28000, `INVALID_ROLE` / `INVALID_PAGE` 22023), the unread count, paging, `hasMore`, `asOf`. After: `md5(prosrc)` `bd46f06f…`, `md5(pg_get_functiondef)` `4897d93c…`.
 
 Difference to row security, on purpose: the reader is `SECURITY DEFINER` (as before), so the rights are written out in it. Under the table policies a worker who only applied can no longer read a task once it is cancelled (`needs_participant_read` wants a confirmed Dogovor); the inbox now names such a task to him — its title only — because the contract asks for exactly that case ("Dogovor je otkazan", "Zadatak je otkazan"). Blocks are not consulted: a person keeps seeing, in his own inbox, the title of a task he shares with the other side.
 
@@ -45,13 +46,34 @@ Difference to row security, on purpose: the reader is `SECURITY DEFINER` (as bef
 3. `postflight.readonly.sql` → `readerAfter`, `dependencies`, `columns`, `erasureMarkers`, `certificateReady` true; certificate equal to the preflight; receipt in `supabase/operations/dev-alpha/ledger/`.
 4. The app needs no new build (`src/data/inboxClientService.ts` already reads `taskTitle`, `src/ui/notifications/inboxCopy.ts` `inboxTaskTitle` shows it).
 
-Revert: `revert.sql`. A later package that replaces `rpc_list_inbox` must pin the postimage `f1daee8c…`.
+Revert: `revert.sql`. A later package that replaces `rpc_list_inbox` must pin the postimage `bd46f06f…`.
 
 ## Dokaz
 
 Workflow `.github/workflows/inbox-naslov-proof.yml`, two jobs from their own fresh disposable chain each (the chain of the DISCOVERY-GRAD proof: live79 → source147 → … → EX06e R3, then ZONE-PERF, MATCH-V1 and DISCOVERY-ZAMENE with their DEV files; `supabase/proofs/match-v1/chain.mjs`, `fidelity.mjs` and `supabase/proofs/discovery-grad/predecessors.mjs` byte-identical to `candidate/discovery-grad-20261008`), then `supabase/proofs/inbox-naslov/predecessors.mjs` admits only the DEV body of the reader, its dependency, the 15 columns, the required indexes and the erasure markers. Real Auth and PostgREST, loopback only, no DEV access, no provider, no push.
 
-(Results are written here after the run.)
+- **Green run 37782930670** (commit `f0e0d025`): `behavior` **14/14 PASS**, `load` **2/2 PASS**. Earlier run 37781816542 (commit `faecdfba`): load green, behaviour stopped at its first query (`operator is not unique: text || "char"` in the proof's own schema fingerprint, not in the package; fixed by a cast).
+- Chain admission (`predecessor-fidelity.json`): reader `b7928c50…` / definition `4a9f079a…`, metadata, `category_of_event` `85389285…`, the 15 columns, all 15 DEV indexes of the five tables and the erasure markers equal DEV; `emit_event`, `notification_copy_v5`, `rpc_mark_activity_event_read` and `rpc_resolve_activity_event` equal DEV too (observed); `closure_redaction_patch_v5` differs from DEV on the chain (later DEV re-certifications), its two markers are present.
+- **FAIL before:** on the DEV body none of the 41 listed notifications of 5 real accounts carries `taskTitle`.
+- **PASS after:** every item carries `taskTitle`, equal to an independent oracle of the contract over the stored rows and to a hand-written table of 33 cases: each of the 11 (entity, event) pairs DEV holds shown with its title (incl. "Dogovor je otkazan" to both sides), the requester's own task, a worker who applied (`NEED_REVISED`, `NEED_CANCELLED`), an offer to a worker who never applied; `null` for no right (5 cases: cancellation, application and Dogovor of others; the Dogovor and the selected application of another worker on the task he applied to), an unknown row of each kind, a `CLARIFICATION`, a task erased by the certified `closure_redaction_patch_v5` (5 cases over NEED, RESPONSE and AGREEMENT) and a deleted task; a suppressed in-app delivery stays unlisted. The 9 notifications the product flows wrote themselves (`rpc_submit_response` x5, `rpc_select_response` x2, `rpc_withdraw_response`, `rpc_cancel_need`) agree with the oracle.
+- **Byte identity:** 60 walks (5 accounts x role null / REQUESTER / WORKER x page size 1, 2, 7, 100), 174 pages: the jsonb text of every page without `asOf` and without `taskTitle` equal before and after; the same through PostgREST for every account; errors identical (`22023 INVALID_ROLE`, `22023 INVALID_PAGE` x5, `28000 AUTH_REQUIRED`, `42501` for anon in SQL and over HTTP); today's client decoder and the one with `taskTitle` both accept every answer.
+- **Isolation:** every account lists exactly its own visible events; of this proof's tasks the outsider sees only the one offered to him; nobody sees the deleted or the erased title; an account without events gets an empty page.
+- **Refusals (atomic, catalog, schema fingerprint and certificate unchanged after each):** revert before apply, predecessor drift (a changed DEV body), dependency drift, schema drift (`needs.category` nullable), erasure-marker drift, certificate not ready, payload drift, repeated application, another variant that already carries `taskTitle`, revert twice; the wrapper variant applies and rolls back whole.
+- **Apply:** only the reader changed in the catalog of `public`/`private` (its pg_proc metadata unchanged), tables/columns/constraints/indexes/policies/triggers/grants unchanged, postflight green, certificate unchanged; **revert** restores body, definition, catalog, schema fingerprint, certificate and every BEFORE page byte for byte; apply → revert cycle closes; retried-literal count unchanged.
+- **Load**, 10,000 notifications of one worker (14,006 in all, 3,001 tasks, 7,501 applications, 601 Dogovori), server time of one call as the signed-in person, median (minimum) of 11 warm calls after a discarded warm-up round, ms (CI runner; DEV hardware differs):
+
+| request | items (with title) | DEV body | INBOX-NASLOV | after revert |
+|---|---|---|---|---|
+| worker, 30 (the app default) | 30 (28) | 6.45 (5.97) | 6.84 (6.09) | 12.38 (7.06) |
+| worker, 100 (101 rows read) | 100 (95) | 8.19 (7.81) | 9.64 (8.45) | 6.41 (6.35) |
+| worker, role WORKER, 100 | 100 (95) | 8.65 (8.40) | 10.01 (9.26) | 7.28 (6.88) |
+| worker, 100 from the middle (cursor) | 100 (95) | 9.14 (8.85) | 10.59 (9.82) | 13.51 (10.06) |
+| requester, 100 | 100 (100) | 3.27 (2.91) | 7.59 (3.60) | 5.13 (4.50) |
+| worst case: 100 cancellations of tasks with 200 applications each, never applied to | 100 (0) | 3.28 (2.99) | 10.54 (8.66) | 3.05 (2.90) |
+
+HTTP (PostgREST, worker, 100 items, median of 5): 14.2 → 16.3 ms. The title costs about 6–15 µs per listed item; the worst case pays the check "did he apply" over every application of a crowded task (`marketplace_responses_need_idx`), which the product never triggers (it sends task cancellations and revisions only to those who applied, where the check stops at their row). Every answer was byte-identical to the DEV body's without `taskTitle`. Medians on a shared runner are noisy (see "after revert"); the minima are the steadier figure.
+
+**Not proven:** DEV timings (only CI hardware); the app showing the second line on a phone (the client is ready, not part of this package); PostgREST at scale beyond 10,000 notifications of one person; an account closure run end to end (the erased task was written with the certified patch function, not by a full closure).
 
 ## Files
 
