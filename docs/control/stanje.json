@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T22:01:21Z",
+  "osvezeno": "2026-10-08T22:02:07Z",
   "grana": "integration/spoj-20261006",
-  "head": "29414e32",
-  "head_poruka": "merge: reconcile generated tracker with profile clarity",
+  "head": "0037e659",
+  "head_poruka": "fix(discovery): keep map credits fixed below overlays",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
