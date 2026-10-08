@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T00:11:25Z",
+  "osvezeno": "2026-10-08T04:31:59Z",
   "grana": "integration/spoj-20261006",
-  "head": "5b07356b",
-  "head_poruka": "docs(design-skills): motion rules and tokens follow the system pass of 2026-10-08 (push 240 with easeOut, dead tokens deleted, tickGap and haptics) [skip ci]",
+  "head": "609603fd",
+  "head_poruka": "ops(dev): DISCOVERY-GRAD applied to canonical DEV (ledger 234) under the owner's standing order; receipt, package copy, registry, snapshot [skip ci]",
   "server": {
    "snimljeno": "2026-10-08T00:12:00Z",
    "migracije": 234,
@@ -113,6 +113,8 @@
   "server_packages_applied_20261007": "7.10. na kanonski DEV primenjeno 5 dokazanih paketa po toj naredbi (dnevnik 227→232): ZONE-PERF 228 (Početna oko 10 puta brža), CANCEL-INFO 229 (razlog, ko i kada je otkazao Dogovor), PROFILE-TRUST 230 (pouzdanost, statistika, primljene ocene; privatnost na podrazumevanim OWN_ONLY i COMMENTED_ONLY), MATCH-V1 231 („Odgovara mi“ = vrsta posla + područje + vreme; alat, vozilo, iskustvo i cena nisu uslov; jedan talas svima), DISCOVERY-ZAMENE 232 (filter „Za mene“). Svaki pročitan nazad (sačuvani tekst = fajl), postflight zelen, sertifikat 3a785d42…/2027655d… nepomeren. Prag obaveštenja po zadatku: vlasnik 5000, pa „do 10.000“; postavljeno 10000, pa spušteno na 1000 (21:47 UTC) jer jedna transakcija ne može da obavesti više od oko 4.000 različitih radnika (tabela zaključavanja; nalaz dokaza MATCH-V1B); raste tek posle MATCH-V1B. Prvi talas na DEV: 3 obaveštenja za jedan zadatak. Klijent još ne zove nove funkcije (otkazivanje, pouzdanost, primljene ocene, „Za mene“). Naš push šalje 1 poruku u minuti: paket PUSH-KAPACITET pre uključivanja push-a. Priznanice: supabase/operations/dev-alpha/ledger/20261007_*_application.receipt.json.",
   "server_package_applied_20261008_match_v1b": "8.10. u 01:00 (CEDT) na kanonski DEV primenjen i šesti dokazan paket po istoj naredbi, MATCH-V1B (dnevnik 232→233, verzija 20261007230023, CI dokaz 37696505357: ponašanje 38 i opterećenje 20 provera): zadaci bez mesta (na daljinu ili bez tačke) idu u talasima — prvi 300 radnika, pa po 1.000 na svakih 30 minuta, najviše 10.000 po zadatku, dok ih ne pokrije 5 prijava; jedna transakcija obaveštava najviše 1.000 radnika (zaštita zajedničke tabele zaključavanja), pa veći talas zadatka sa mestom ide u komadima po 1.000 u minuti; dnevna zaštita radnika postoji ali je ISKLJUČENA (1000) i čeka njegov broj. Pročitano nazad (sačuvani tekst md5 5704ddb8… = fajl, 48.312 bajta), postflight zelen, sertifikat 3a785d42…/2027655d… nepomeren, prvi tick posle primene uspešan. Plafon po zadatku vraćen sa 1000 na 10000 (njegova odluka od 7.10.). Ostaje: naš push šalje 1 poruku u minuti, paket PUSH-KAPACITET mora pre uključivanja push-a; prvi talas na pravim podacima još nije viđen (na DEV nema otvorenog zadatka bez mesta). Priznanica: supabase/operations/dev-alpha/ledger/20261008_match_v1b_application.receipt.json.",
   "server_package_applied_20261008_discovery_grad": "8.10. u 02:08 (CEDT) na kanonski DEV primenjen i sedmi dokazan paket po istoj naredbi, DISCOVERY-GRAD (dnevnik 233→234, verzija 20261008000839, CI dokaz 37704756107: ponašanje 21 i opterećenje 5 provera; njegova odluka d14): mesto je grad („Novi Sad“ daje sve zadatke grada, deo grada i dalje samo taj deo; zadaci na daljinu i bez mesta nikad), a kvačice, velika slova i ćirilica ne smetaju u rečima i mestima („cistim“ nalazi „čistim“, „Нови Сад“ = „Novi Sad“); nov neobavezan izbor groupBy CITY daje listu gradova sa brojem. Nova funkcija public.discovery_fold_v1 i zamenjeno telo rpc_discovery_v1 (dc69802e → a9b09859); sertifikat 3a785d42…/2027655d… nepomeren. Pročitano nazad (sačuvani tekst md5 641c8831… = fajl, 47.169 bajta), postflight zelen (26 slučajeva pretvaranja slova tačno, 0 pogrešnih), a na DEV podacima (6 otvorenih zadataka) probano bez upisa: grad 5, Detelinara 1, ćirilica 5, „ciscenje“ 2, gradovi Novi Sad 5 / Beograd 1, loš groupBy odbijen. NIJE primenjen deo S3 (ubrzanje obične strane; ima svoju reč). Ostaje: klijent još ne šalje groupBy CITY (CLIENT_CONTRACT.md, porodica F2), vlasnikove tri sitne odluke (d bez kvačice → đ, S3, spajanje dva pisanja mesta). Priznanica: supabase/operations/dev-alpha/ledger/20261008_discovery_grad_application.receipt.json.",
+  "owner_direction_20261008_airbnb_look_and_creativity": "8.10. ujutru, VLASNIK (više poruka, preveo sam; poslao 11 snimaka Airbnb aplikacije sa telefona): (1) vrati 2.5D ikonice (urađeno: FactRow 28 dp); (2) od Airbnb-a uzeti SAMO izgled kartica i ekrana, lepotu i jasnoću, ne funkcije ni sadržaj ni slike 1:1; (3) pogledati i ZAŠTO je tako osmišljeno spram svrhe aplikacije i onoga što korisniku treba, pa isto za USKOČI; (4) svaki ekran dizajniran, usklađen i UI/UX osmišljen za svoju svrhu do detalja, raspored (kartice ili ne) i pokret po svrsi; (5) slobodno tražiti svetska rešenja i šta kaže struka, u bilo kojim poznatim aplikacijama bez obzira na svrhu, ne 1:1 nego ideja pa unaprediti i kombinovati (Airbnb, Airtasker…); najveći problem je što ekrani ispadnu generički, treba kreativnost; (6) ODOBRAVA Fable 5.1 samo za sintezu i varijante, doslovno: „Može odobravam za sintezu i varijante, ovaj odobravam taj Fable 5.1.“ (ostali agenti ostaju na Sonnet 5.5). Odgovor: istraživanja R1–R4 i spec Airbnb-osećaja (docs/implementation/ui-ux-pass-20261002/ISTRAZIVANJE_R*_20261008.md, AIRBNB_OSECAJ_SPEC_20261008.md), pa kreativni pravac i 2–3 varijante ključnih ekrana u laboratoriji da bira gledajući slike, pa primena.",
+  "ui_wave_20261008_families_integrated": "8.10. integrisan talas ritma i reda: porodice F1–F8 + B0 (pokret i haptika), izvor + laboratorija + testovi; tsc 0 grešaka, pun Jest 568 grupa / 12.523 testa, 0 palih; NIJE proveravano na telefonu ni emulatoru. Izveštaj sa otvorenim stavkama i odlukama vlasnika: docs/implementation/ui-ux-pass-20261002/TALAS_RITMA_20261008_IZVESTAJ.md; pravilo mreže: AGENTS.md 3.6.9; sistem: src/ui/system/layout.ts i primitivi.",
   "owner_directive_20261007_perfect_everything": "7.10. noću, VLASNIK (više poruka, preveo sam): „Radi neprekidno i odobravam primenu svega. Imaš odobrenje za primenu i usavršavanje svega.“ Cilj: ceo USKOČI (izgled, kompozicija, tokovi, tekstovi, dugmad, pokret) na nivou profesionalnog Airbnb i Apple tima, zasnovano na svetskim rešenjima i na potrebama korisnika; ne stajati dok on sam ne bude oduševljen izgledom i UI/UX-om celog USKOČI. Njegov utisak od 22:53 o probnoj gradnji na telefonu: izdeljeno, isprekidano, složeno bez reda, ranije bolje. Odgovor: dizajn-vođa (jedinstven sistem kompozicije i ritma), analiza potreba korisnika, revizija svih tekstova, pa implementacioni talasi po porodicama ekrana sa proverom u laboratoriji. Granice iz naredbe o paketima ostaju.",
   "owner_confirms_20261007_three_dev_packages": "7.10.: VLASNIK potvrđuje da je odobrio tri DEV paketa primenjena 3.10. (MESSAGES-INBOX-01 čitač prepiski, EX06b rečnik sinonima vrsta posla, WPP01 lični radni profil): „ne bi to išlo da ja to nisam odobrio“. Potvrda važi za ta tri; svaki budući paket i dalje traži njegovo „PRIMENI <ime>“.",
   "owner_decision_20261007_worker_review_note": "7.10.: rečenica na kraju intervjua radnika (pregled profila, pre „Sačuvaj“), crni tekst sa zvonom, ne sivi: „Podaci iz tvog radnog profila koriste se za obaveštenja o zadacima koji odgovaraju tvojim veštinama, području i vremenu.“ Vlasnik je tražio opušteno ali profesionalno, bez „da ti javimo“. Reč „postojećim i novim“ dodaje se tek kad se na serveru dokaže da i već otvoreni zadaci stižu.",
@@ -2388,7 +2390,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "11 test fajl(ova)"
+    "test": "12 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -3223,7 +3225,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "3 test fajl(ova)"
+    "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Izbor uz potvrdu 100 RSD/1 osoba napravio Dogovor. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac izabrao ponudu na telefonu → Dogovor f14625e8 CONFIRMED, RESPONSE_SELECTED izvođaču. Dogovor viđen sa strane izvođača na emulatoru.",
    "problem": "R18-V02 prikaz potvrde popravljen i viđen u lokalnoj galeriji na emulatoru ba3f7dc3 pri fontu 1 i 1,3. Ponovljeni stvarni tok i fizički telefon za ovu verziju nisu provereni.",
@@ -4098,7 +4100,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "11 test fajl(ova)"
+    "test": "12 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Početna kamera povezana sa postojećim owned radnim područjem. Lično mesto je zaseban ugovor; current APK nije potvrđen.",
@@ -4325,7 +4327,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "36 test fajl(ova)"
+    "test": "37 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "P6 čitač (rpc_discovery_v1) je na kanonskom DEV-u (ledger 212) i uključen u DEV APK; P6 je zatvoren sa granicama L1–L10 (P6_CLOSURE_RECEIPT.md). Na telefonu (Round 74) su feedback i sporih frejmova ispunjeni, a pin→kartica (p95 1503 ms, uključuje tačno čitanje) i povratak (p95 822 ms) su iznad cilja; produkcioni backend, iOS, scale (jit=off L4) i lične liste bez straničenja (EX-04) nisu dokazani.",
@@ -4793,7 +4795,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "29 test fajl(ova)"
+    "test": "30 test fajl(ova)"
    },
    "telefon_dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni.",
    "problem": "Filteri i pretraga rade preko P6 čitača na DEV-u (serverski brojevi, facet-i, PLACES); na telefonu (Round 74) provereni: filter „Na daljinu“ (0) i „Na licu mesta“ (7) sa vraćanjem na 7, pretraga mesta (broj u predlogu = broj u listi, stanje vraćeno). Straničenje nije proverljivo na 7 zadataka (CI journey pokriva 100 redova); scale i produkcija nisu dokazani.",
@@ -5428,7 +5430,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "13 test fajl(ova)"
+    "test": "14 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
@@ -5937,7 +5939,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "EX-04 S3 (ROUND_77, 2026-10-01, APK 93e48799 / izvor bf48a5db, fizički HONOR): lista Dogovora (Aktivni i Istorija 5/5) ima isti skup, redosled i sadržaj kao stari build, 0 čitanja ocena po Dogovoru; pozitivan put (ratingDue = true) NIJE proveren, stanje DELIMIČNO. Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-24: lista Dogovora i jedno zeleno „Oceni saradnju“ samo dok ocena čeka, viđeno na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno.",
    "problem": "RC-03 ublažen: četiri paralelne provere ocena i četiri sekunde posle čitanja strana; ukupan broj i dalje P+C. R18-E04 ima ispravku u R19 i test, a potvrda na uređaju sledi.",
@@ -6051,7 +6053,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md",
    "problem": "",
@@ -6182,7 +6184,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "15 test fajl(ova)"
+    "test": "16 test fajl(ova)"
    },
    "telefon_dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md Ranije dvosmerno slanje: docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md 03.10: source97926fef, run37075515466, physical HONOR inbox read-only screenshot inspected; reciprocal account/task/preview/times/four tabs. Keyboard/Back inspection is emulator-only, not phone delivery evidence. docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md 03.10 f305/37079547884+37079547731: one owner QA text sent through HONOR UI; focused emulator inbox updated text/time/Danas without refresh. No group/reconnect/voice or provider proof. Local receipts native-w2/realtime-*; see INBOX_AND_NATIVE_20261003.md.",
    "problem": "Current f305: one real private phone-to-emulator message updated the focused inbox without refresh. Group arrival, reconnect, deep history/ACK and actual voice recording/playback remain unverified on this APK. Voice client is now included and enabled in DEV builds; older flag-off notes below are historical.",
@@ -6442,7 +6444,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "7 test fajl(ova)"
+    "test": "8 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Stari status „nije provereno” je zastareo: posebni group controller/screen/service testovi sada prolaze. I dalje nema aktuelnog stvarnog multi-member native dokaza.",
@@ -6541,7 +6543,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -6648,7 +6650,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -6834,7 +6836,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Stari tracker je bio iza aktuelnog source-a: problem-report tok i authority/readback zaštite sada postoje. Ostaje native dokaz na tačnom kandidatu.",
@@ -6925,7 +6927,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: „Završio sam“ nije pritisnuto — naručilac je završio Dogovor pre toga; put izvođač-javlja-završetak ostaje neproveren na uređaju.",
    "problem": "Source više nema neobrađen završetak; otvoren je native dokaz tačnog kandidata.",
@@ -7019,7 +7021,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "27 test fajl(ova)"
+    "test": "28 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Potvrda završetka prošla uz pregled uslova. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac potvrdio završetak na telefonu (server COMPLETED 08:38, bez prethodnog „Završio sam“ izvođača); izvođač na emulatoru vidi „Završeno“, „Dogovor je završen“ i „Oceni saradnju“ (zavrseno-08). Automatsko završavanje viđeno na jučerašnjem stvarnom Dogovoru („Rok za potvrdu je istekao…“, 22.09 12:41) u obaveštenjima (zavrseno-12). Ekran naručioca nije snimljen.",
    "problem": "Aktuelni source već ima review, authoritative receipt i readback. Automatsko završavanje se ne simulira u klijentu.",
@@ -7113,7 +7115,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "18 test fajl(ova)"
+    "test": "19 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Ocena 5/5 sačuvana na telefonu i zasebno emulatoru. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: ",
    "problem": "Zvezdasta ocena je implementirana i dokazano testirana. Pisani komentar: SERVER PRIMENJEN na canonical DEV 2.10.2026 (vlasnikova reč „PRIMENI D12 PISANI KOMENTAR“; ledger 221, sertifikat 58447d77 → 0579191d, 0 komentara, revert postoji i NIJE primenjen). KLIJENT je u kodu iza isključene zastavice EXPO_PUBLIC_D12_REVIEW_COMMENT (commit 72564945; jest 561, snimak ekrana sa isključenom zastavicom snimljen PRE izmene); BEZ CI, BEZ DEV poziva, BEZ uređaja, bez nezavisne revizije.",
@@ -8942,7 +8944,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "160 test fajl(ova)"
+    "test": "168 test fajl(ova)"
    },
    "telefon_dokaz": "9286fdeb / APK35775425984 instaliran uz očuvanu sesiju. Stvarna prijava, otvaranje njenog završenog Dogovora i povratak provereni. docs/implementation/functional-audit-20260922/PRODUCT_EXECUTION_RECEIPT.json",
    "problem": "",
@@ -9275,14 +9277,6 @@
   },
   {
    "rpc": "rpc_list_my_agreements",
-   "preko_edge": false
-  },
-  {
-   "rpc": "rpc_my_work_stats_v1",
-   "preko_edge": false
-  },
-  {
-   "rpc": "rpc_public_work_trust_v1",
    "preko_edge": false
   },
   {
