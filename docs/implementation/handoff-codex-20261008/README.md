@@ -8,3 +8,4 @@ Dva fajla:
 Prethodna predaja (2. 10.) je u `../handoff-codex-20261002/`; važi samo tamo gde je ovaj presek ne menja. Jedini registar statusa ostaje `docs/control/redovi.json` (zastareo za 8. 10.; prva stavka za Codex).
 
 - Lista za Codex: `CODEX_LISTA_20261008.md` (A odmah, B server, C čišćenje, D izlazak, vlasnikove reči, šta ne radi).
+- Uvod koji ide ispred vlasnikove velike komande za Codex: `UVOD_ZA_VELIKU_KOMANDU_CODEX.md` (razrešava pet razlika između komande i odobrenog nacrta).
