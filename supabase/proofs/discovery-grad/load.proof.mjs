@@ -8,6 +8,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import * as rt from '../pre_v3/closure_runtime.mjs';
 import {createFixtures} from '../ex06/lib/fixtures.mjs';
+import {proveAreaDedup, areaExperimentSummary} from './area-dedup.proof.mjs';
 
 const {assert, sql, q, ok, env} = rt;
 const DB = env.DB_URL;
@@ -290,6 +291,11 @@ try {
   pass('DISCOVERY_GRAD_LOAD_SEEDED', {openTasks: open});
   if (BASELINE) {
     await deployedBaseline(viewer, R, open);
+    if (env.DG_AREA_EXPERIMENT) await proveAreaDedup({env, run, sql, q, viewer, requester: R,
+      requests: {...REQUESTS, ...NEW_ONLY, pageRemote: {...REQUESTS.pageDefault, filter: {...FILTER, where: 'remote'}},
+        mapCityDense: {...REQUESTS.mapDefault, bounds: [19.7, 45.15, 19.95, 45.4], grid: 16}},
+      measure, httpMs, profile, report, write, pass});
+    if (report.areaExperiment) fs.appendFileSync(path.join(out, 'load-summary.md'), areaExperimentSummary(report.areaExperiment));
   } else {
   // per-call costs that explain the numbers: the days helper (every PAGE row computes it; the S3 proposal), the key helper (place filter)
   report.load.micro = {

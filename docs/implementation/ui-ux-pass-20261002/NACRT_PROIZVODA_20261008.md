@@ -1526,3 +1526,6 @@ Izvori: [Airbnb pretraga i filteri](https://www.airbnb.com/help/article/39) slu�
 Telefon66275774 pokazao je navigaciju preko spuštenog sheet-a. Korekcija određuje vidljivost tek iz stvarnog položaja: PEEK skrivena, HALF/FULL vidljiva, pin kartica skriva. Predviđena meta animacije ne sme biti autoritet, jer prekinut povratak nema nužno završni callback. Sačuvani ukupan okvir i korisnički izbor. Native potvrda korekcije još sledi.
 
 Izolovani profil run37858643191 je potvrdio40.000 formatiranja lokacije čak i uz filter grad+tekst. Sledeći eksperiment deduplikuje formatter po lokaciji unutar zahteva uz identičan odgovor i nezavisno poređenje na jedinstvenim lokacijama. To nije primenjena optimizacija niti dokaz40.000 istovremenih korisnika.
+
+
+Eksperiment deduplikacije lokacije je sada pripremljen za izolovani CI: kompletan JSON baseline/candidate/revert, uključujući vreme i završne cursore, ponovljene i jedinstvene lokacije. Offline provere su prošle, runtime i brzina još nisu dokazani. Vizuelna ispravka mapine navigacije je u objedinjenom APK source44e8eaff (phone37859900972/emulator37859901389); instalacija i novi native dokaz slede. Detaljan receipt ostaje CONTINUITY_FINISH_20261008.md.

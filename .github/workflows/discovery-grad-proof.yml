@@ -43,6 +43,7 @@ jobs:
       DISCOVERY_GRAD_ARTIFACT_DIR: /tmp/discovery-grad-artifacts
       DG_LOAD_TASKS: '40000'
       DG_LOAD_MODE: deployed-baseline
+      DG_AREA_EXPERIMENT: DISPOSABLE_AREA_DEDUP
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -118,6 +119,18 @@ jobs:
           assert.equal(report.population.simultaneousRequests, 1);
           assert.equal(report.baseline.readerMd5, 'a9b0985991f4ebfe4e95143e5cf57222');
           assert.equal(report.baseline.foldMd5, '41353abe05d434d513495ae5974b9802');
+          assert.equal(report.areaExperiment.state, 'SEMANTICS_PASS_PERFORMANCE_REPORTED');
+          assert.equal(report.areaExperiment.finalReaderMd5, report.baseline.readerMd5);
+          assert.equal(report.areaExperiment.s3Applied, false);
+          assert.equal(report.areaExperiment.corpusRows, 27);
+          assert.deepEqual(report.areaExperiment.nullKeyCorpus, {cases: 27, distinctKeys: 27, mismatches: 0});
+          for (const fixture of ['repeatedLocations', 'uniqueLocations']) {
+            const result = report.areaExperiment.fixtures[fixture];
+            assert.ok(result.exact.fullResponseComparisons > 0);
+            assert.equal(result.exact.timestampMasking, false);
+            assert.deepEqual(result.exact.terminalPages, {corpus0: 14, placesCorpus: 3});
+            for (const stage of ['baseline', 'candidate', 'revertedBaseline']) assert.equal(Object.keys(result.stages[stage]).length, 16);
+          }
           for (const file of ['chain/chain-fidelity.json', 'predecessor-fidelity.json'])
             assert.equal(JSON.parse(readFileSync(dir + '/' + file, 'utf8')).result, 'PASS');
           const required = ['DISCOVERY_GRAD_LOAD_SEEDED', 'DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE',

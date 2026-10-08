@@ -171,3 +171,35 @@ for kept in ("'items',coalesce((select jsonb_agg(jsonb_build_object('key',key,'t
              "'counts',jsonb_build_object('kind','exact_live','observedAt',now_at,\n    'everywhere'"):
     assert kept in after and kept in live[READER], kept
 print(f"PASS DISCOVERY-GRAD offline: generators exact, {checked} SQL/PLpgSQL units parsed, fold oracle {len(manifest['foldTruthTable'])} probes, reader boundaries hold; runtime proof pending")
+
+# Parse the SQL actually assembled by the new disposable runner, including its nested apply/revert DO.
+# The injected adapters capture strings only. They cannot connect to a database or measure anything.
+capture = subprocess.run(['node', '--input-type=module', '-'], cwd=ROOT, check=True, capture_output=True, encoding='utf-8', input=r'''
+import assert from 'node:assert/strict';
+import {areaExperiment} from './supabase/proofs/discovery-grad/area-dedup.mjs';
+import {proveAreaDedup} from './supabase/proofs/discovery-grad/area-dedup.proof.mjs';
+const e=areaExperiment(), statements=[e.apply,e.revert];
+const stop=Symbol('captured'), filter={text:'',price:'all',where:'any',places:1,when:'any',dates:null,place:null};
+const requests={pageDefault:{mode:'PAGE',filter,anchor:null,scope:{kind:'ALL'},limit:50,after:null},
+mapDefault:{mode:'MAP',filter,anchor:null,bounds:[18,42,23,47],grid:12},
+placesDefault:{mode:'PLACES',filter,anchor:null,prefix:'',facetArea:null,limit:30,after:null}};
+let exactCaptured=false;
+try {
+await proveAreaDedup({env:{DB_URL:'postgresql://postgres:postgres@127.0.0.1:54322/postgres',DG_AREA_EXPERIMENT:'DISPOSABLE_AREA_DEDUP'},
+ q:s=>"'"+String(s).replaceAll("'","''")+"'", viewer:{id:'00000000-0000-0000-0000-000000000001'},
+ requester:{id:'00000000-0000-0000-0000-000000000002'},requests,report:{},
+ sql:s=>s.includes('count(*)')?'27':e.hashes.baseline,
+ run:s=>{statements.push(s);if(s.includes('do $area_exact$')) {exactCaptured=true;throw stop;}
+ return {ok:true,output:JSON.stringify({cases:27,distinctKeys:27,mismatches:0})};},
+ write:()=>{},pass:()=>{throw Error('offline pass forbidden')},measure:()=>{throw Error('offline measure forbidden')}});
+} catch(error) {if(error!==stop) throw error;}
+assert.ok(exactCaptured);
+process.stdout.write(JSON.stringify({candidate:e.candidate,statements}));
+''')
+generated = json.loads(capture.stdout)
+parse_plpgsql_json("create function f(p_request jsonb) returns jsonb language plpgsql as $syntax$" + generated['candidate'] + "$syntax$")
+for statement in generated['statements']:
+    pglast.parse_sql(statement)
+    for found in re.finditer(r"\bdo\s+(\$[a-z0-9_]+\$)(.*?)\1;", statement, re.S):
+        parse_plpgsql_json("create function f() returns void language plpgsql as $syntax$" + found.group(2) + "$syntax$")
+print(f"PASS AREA-DEDUPE offline: candidate and {len(generated['statements'])} captured SQL statements parsed; runtime NOT proven")

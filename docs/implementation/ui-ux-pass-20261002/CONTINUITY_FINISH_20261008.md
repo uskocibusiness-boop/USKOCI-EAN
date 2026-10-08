@@ -143,3 +143,13 @@ Run37858643191 SUCCESS, source774d2a669b14deb3bca4b4077f9ff400a5947768, teardown
 Završno ponavljanje posle HALF/PEEK threshold korekcije:3 grupe/250 testova PASS (89,9s). Raniji250 se ne sabiraju sa ovim istim ponovljenim proverama.
 
 Završni TypeScript nakon svih threshold izmena PASS.
+
+## Dopuna — area formatter A/B/revert eksperiment
+
+**URADIO:** izolovan reader eksperiment: formatiranje po jedinstvenom sirovom JSONB ključu area/city/remote umesto po svakom zadatku. Telo baseline a9b0985991f4ebfe4e95143e5cf57222; kandidat46d4baf9d6ce391710b9d428654763d4. Jedan spoljašnji DO poredi kompletan JSON baseline→candidate→baseline sa istim statement_timestamp i istim cursorima.27 task corpus redova,27 direktnih NULL/empty/boolean key/helper proba, cross-field fraze, license-only zabrana, tekst na mapi, terminal14 PAGE i3 PLACES strane. Dva fixture-a: ponovljene lokacije i skoro svaka lokacija jedinstvena; sva16 merenja u tri faze sa5 toplih SQL i3 HTTP uzorka. Izveštaj čuva i regresije, bez automatskog performance PASS-a.
+
+**DOKAZAO / OFFLINE:** generatori i postojeća22 SQL/PLpgSQL tela PASS; novi kandidat i5 stvarno sastavljenih SQL statementa, uključujući ugnježden apply/revert i exact DO, parsirani bez baze. Node syntax PASS. Dva nezavisna read-only pregleda nisu našla bloker; dopunjene ranije rupe za MAP text, PLACES terminal i NULL ključ. Dokumentacija [PostgreSQL CTE](https://www.postgresql.org/docs/current/queries-with.html) korišćena za materijalizaciju; ponašanje mora dokazati stvarni runtime. Supabase changelog.md nije bio dostupan web alatu (unsupported text/markdown), bez pretpostavke da zato promena nema.
+
+**NIJE DOKAZANO:** runtime novog eksperimenta, ubrzanje, DEV promotion,40k korisničkih lifecycle tokova. Nema server/helper/šema/sertifikat promene, S3 nije uključen. Bulk fixtures i dalje koriste isključene triggere samo u disposable bazi;2 Auth naloga,1 istovremeni zahtev.
+
+**SLEDEĆE:** jedan CI run sa tačnim izvorom; pročitati i semantiku i negativni unique-location slučaj. Novi objedinjeni APK source44e8eaff: phone37859900972, emulator37859901389 u izradi pri poslednjoj proveri. Posle potpisa/install-r potvrditi mapu nativno. Za lifecycle sledeći mali product-RPC driver mora zadržati pozadinske radnike aktivnim: postojeći EX06 parkForeign bi ih suspendovao i učinio load lažno lakim. Discovery replay nema pun chat lanac; ne predstavljati ga kao whole-app stanje235.
