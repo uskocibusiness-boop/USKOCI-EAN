@@ -8581,6 +8581,15 @@
         "40k concurrent users and actual lifecycle RPC load",
         "Bounded push delivery and store gates"
       ]
+    },
+    "discovery_baseline_40k_20261009": {
+      "state": "SOURCE_PREPARED / OFFLINE_PASS / RUNTIME_NOT_RUN",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+      "tasks": 40000,
+      "authAccounts": 2,
+      "simultaneousRequests": 1,
+      "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+      "scope": "Disposable SQL/PostgREST read baseline with relevant function fidelity. No DEV load, no S3, no lifecycle or 40000-concurrent-user proof."
     }
   }
 }

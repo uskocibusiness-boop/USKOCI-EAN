@@ -83,3 +83,13 @@ Nezavisni read-only agentski pregled našao je dodatno učitavanje iste fotograf
 **NIJE DOKAZANO:** novi native izgled/glasovno slanje; jedinstveni zapis zadatka na glavnoj listi Dogovora; redosled AI lokacija→sledeće pitanje;40.000 istovremenih korisnika ili lifecycle RPC workload; push dostava; App Store/Play spremnost. DEV, Edge, sertifikat i zavisnosti nisu menjani ovim paketom. Buildovi37850899130/37850899422 uspešno sadrže raniji787a337d, ne ovaj paket.
 
 **SLEDEĆE:** push objedinjene promene na obe kanonske grane, novi objedinjeni APK, vizuelna provera i korekcija. Paralelno razraditi uzročni AI location gate i izolovani SQL load harness uz tačan dokaz primenjenih funkcija. Postojeći heartbeat za nastavak rada osvežen poslednjim vlasnikovim zahtevima, bez duplikata. Lokalno generisanje kontrolne table ne znači objavu spoljnog Claude artefakta.
+
+## Dopuna — izolovani Discovery baseline40k (priprema)
+
+**URADIO:** vraćen postojeći izvršni harness iz istorijskog c96dedec (7 proof/workflow fajlova); aktuelni SQL kandidati nisu prepisani. Novi režim deployed-baseline primenjuje samo već primenjeni DISCOVERY-GRAD postimage na disposable bazi. S3 se u tom režimu ne primenjuje.40.000 zadataka u srpskim gradovima,2 sintetička Auth naloga, serijski SQL i PostgREST upiti; proveravaju se PAGE/MAP/PLACES, tekst, grad, daljina i ograničenja odgovora. Loopback admission, tačni hash-evi, ACL, zavisnosti, closure i teardown ostaju obavezni. Ne koristi DEV kredencijale.
+
+**DOKAZAO:** offline generator/SQL provere PASS (22 DISCOVERY-GRAD i46 prethodničkih SQL/PLpgSQL jedinica), fold oracle26 i Node syntax checks. Raniji receipt potvrđuje reader a9b0985991f4ebfe4e95143e5cf57222 i fold41353abe05d434d513495ae5974b9802; runtime ih proverava pre i posle opterećenja. Read-only agentski pregled prethodnika razdvojio relevantnih23 funkcija od pune baze.
+
+**NIJE DOKAZANO:** ovaj40k runtime još nije izvršen. Seed direktno stvara zadatke sa isključenim triggerima samo radi čitanja; ne dokazuje objavu/izbor/otkazivanje/chat, niti40k simultanih korisnika.11 toplih SQL i3 HTTP uzorka nisu p95 kapacitet. Lokalno nema Docker/psql/CLI/WSL; koristi se postojeći GitHub disposable runner.
+
+**SLEDEĆE:** pokrenuti jednim push-em na proof/discovery-baseline-40k-20261009; čitati stvarni rezultat i granicu, ne povećavati timeout radi PASS-a. Zatim stvarni lifecycle runner sa triggerima/RLS i eksplicitnom konkurentnošću. UI paket804cedd2 spojen je u66275774 i poslat na obe kanonske grane; novi phone run37855571775 i emulator37855571254 su od66275774.
