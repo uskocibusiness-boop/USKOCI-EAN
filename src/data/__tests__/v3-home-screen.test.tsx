@@ -39,6 +39,9 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('../../ui/home/HomeLaunchArt', () => ({ HomeLaunchArt: 'HomeLaunchArt' }));
+// "Slobodan sam sada" saves through the availability client, which the route loads only when the switch is touched.
+const mockAvailability = { read: jest.fn(), save: jest.fn() };
+jest.mock('../workerAvailabilityClientService', () => ({ workerAvailabilityClientService: mockAvailability }));
 jest.mock('../../lib/vreme', () => ({ ...jest.requireActual('../../lib/vreme'), zonaTelefona: () => mockPhoneZone }));
 // The device's own memory of what was hidden ("Kako radi"): in memory here, and able to fail like a device that cannot read or write.
 const mockStored = new Map<string, string>();
@@ -68,6 +71,10 @@ const row = (start: string) => tree.root.findAll(node => String(node.type) === '
 /** The Raspored card: the one press that opens the next Dogovor (a Dogovor row of any other kind has its own hint). */
 const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityHint === 'Otvara Dogovor.');
 const render = async () => { await act(async () => { tree = create(<Pocetna />); }); };
+/** The heading of a Section: its title, in the heading type, spoken as a header. */
+const heading = (name: string) => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.props.children === name);
+/** "Ceo raspored": the action at the end of the Raspored heading (a Section's own action, a 48 dp press). */
+const planner = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Ceo raspored');
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 
 beforeEach(() => {
@@ -103,7 +110,7 @@ it('shows both sides of one account and gives an undated active Dogovor no card,
   expect(copy).not.toContain('Aktivni Dogovor'); expect(copy).not.toContain('Sledeći Dogovor'); expect(copy).not.toContain('Raspored');
   expect(copy).not.toContain('Objavio si'); expect(copy).not.toContain('Uskočio si'); expect(copy).not.toContain('Svi Dogovori');
   expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Dogovor g-'))).toHaveLength(0);
-  expect(cards()).toHaveLength(0); expect(tree.root.findAllByProps({ label: 'Ceo raspored' })).toHaveLength(0);
+  expect(cards()).toHaveLength(0); expect(planner()).toHaveLength(0);
 });
 
 it('names and opens the upcoming accepted appointment ahead of work awaiting completion, day first in Serbian time', async () => {
@@ -169,7 +176,7 @@ it('draws no block for a row that carries no Raspored words, and never builds a 
     detail: 'Jelena · vreme još nije određeno', target, upcoming: true }] } };
   await direct(home);
   expect(text()).not.toContain('Raspored'); expect(text()).not.toContain('Dogovor legacy'); expect(text()).not.toContain('vreme još nije određeno');
-  expect(cards()).toHaveLength(0); expect(tree.root.findAllByProps({ label: 'Ceo raspored' })).toHaveLength(0);
+  expect(cards()).toHaveLength(0); expect(planner()).toHaveLength(0);
 });
 
 describe('the Raspored block', () => {
@@ -185,7 +192,7 @@ describe('the Raspored block', () => {
   it('is headed "Raspored" and reads day first, then the work, the person with their face, and the one grey line', async () => {
     await direct(planned(), { photo: (profileId, standIn) => React.createElement('ProfilePhoto', { profileId, size: 32, fallback: standIn }) });
     const card = cards()[0];
-    expect(tree.root.findByProps({ accessibilityLabel: 'Raspored' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
+    expect(heading('Raspored')).toHaveLength(1);
     expect(card.findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual([
       'Danas · 14:00–16:00', 'Montaža police u hodniku', 'Jelena Nikolić', 'Tvoj zadatak', 'Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina']);
     expect(card.props.accessibilityLabel).toBe('Danas, od 14:00 do 16:00. Montaža police u hodniku. Jelena Nikolić, Tvoj zadatak. Ove nedelje još 2 Dogovora · 1 Dogovor bez tačnog termina');
@@ -218,12 +225,14 @@ describe('the Raspored block', () => {
     expect(card.props.accessibilityLabel).toBe('Sutra, od 10:00. Montaža police u hodniku');
   });
 
-  it('has its own quiet "Ceo raspored" action beside the card, never inside it, and the card opens the Dogovor', async () => {
+  it('has "Ceo raspored" at the end of the heading, never inside the card, and the card opens the Dogovor', async () => {
     const handlers = await direct(planned());
-    const link = tree.root.findByProps({ label: 'Ceo raspored' });
-    expect(link.props).toMatchObject({ kind: 'quiet', compact: true });
-    expect(cards()[0].findAllByProps({ label: 'Ceo raspored' })).toHaveLength(0);
-    await act(async () => link.props.onPress());
+    const link = planner();
+    expect(link).toHaveLength(1);
+    // The action is the heading's own (a 48 dp touch in green), not a row of its own under the card.
+    expect(StyleSheet.flatten(link[0].props.style).minHeight).toBeGreaterThanOrEqual(48);
+    expect(cards()[0].findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Ceo raspored')).toHaveLength(0);
+    await act(async () => link[0].props.onPress());
     expect(handlers.onPlanner).toHaveBeenCalledTimes(1); expect(handlers.onOpen).not.toHaveBeenCalled();
     await act(async () => cards()[0].props.onPress());
     expect(handlers.onOpen).toHaveBeenCalledWith({ kind: 'AGREEMENT', agreementId: 'soon' }); expect(handlers.onPlanner).toHaveBeenCalledTimes(1);
@@ -240,7 +249,7 @@ describe('the Raspored block', () => {
     // With a card the count rides in its own grey line, once; the block has no second line of its own. Dogovori, never "zadatak".
     expect(text().split('1 Dogovor bez tačnog termina')).toHaveLength(2); expect(text()).not.toMatch(/zadatak bez|zadatka bez|zadataka bez/);
     expect(tree.root.findByType('ProfilePhoto' as React.ElementType).props).toMatchObject({ profileId: 'profile-jelena', size: 32 });
-    await act(async () => tree.root.findByProps({ label: 'Ceo raspored' }).props.onPress());
+    await act(async () => planner()[0].props.onPress());
     expect(mockRouter.navigate).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).toHaveBeenCalledWith('/raspored');
     // One navigation per focus is the guard's rule: a second press on the same screen goes nowhere.
     await act(async () => cards()[0].props.onPress());
@@ -273,18 +282,20 @@ describe('the Raspored block', () => {
   describe('without a card: an active Dogovor with no day to show it on', () => {
     const unconfirmed = (id: string, patch: object = {}) => ({ ...agreement(id, 'narucilac'), naslov: 'Krečenje stana u belo',
       vremeTekst: 'Termin nije potvrđen', prihvacenPocetak: null, tacanTermin: null, ...patch });
-    const link = () => tree.root.findAllByProps({ label: 'Ceo raspored' });
+    const link = planner;
 
     it('stays on Početna as one quiet grey line under "Raspored", with the way into the whole schedule and no card', async () => {
       mockSource.mojiDogovori.mockResolvedValue([unconfirmed('krecenje')]);
       await render();
-      expect(tree.root.findByProps({ accessibilityLabel: 'Raspored' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
+      expect(heading('Raspored')).toHaveLength(1);
       const line = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === '1 Dogovor bez tačnog termina');
       expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ variant: 'note', tone: 'muted' }); expect(line[0].props.numberOfLines).toBeUndefined();
-      // No card, no placeholder: neither the title nor the display sentence of the Dogovor is drawn, and nothing is pressable but the way in.
-      expect(cards()).toHaveLength(0); expect(text()).not.toContain('Krečenje stana u belo'); expect(text()).not.toContain('Termin nije potvrđen');
+      // No card, no placeholder in Raspored: the display sentence of the Dogovor is never drawn, and the way in is the heading's own action.
+      // The Dogovor itself is named once, where it waits for me: under "Čeka te", asking for a term (R02), not as an appointment.
+      expect(cards()).toHaveLength(0); expect(text()).not.toContain('Termin nije potvrđen');
+      expect(text().split('Krečenje stana u belo')).toHaveLength(2); expect(text()).toContain('Predloži termin');
       expect(text()).not.toContain('Aktivni Dogovor'); expect(text()).not.toContain('Sledeći Dogovor');
-      expect(link()).toHaveLength(1); expect(link()[0].props).toMatchObject({ kind: 'quiet', compact: true });
+      expect(link()).toHaveLength(1);
       await act(async () => link()[0].props.onPress());
       expect(mockRouter.navigate).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).toHaveBeenCalledWith('/raspored');
     });
@@ -306,7 +317,7 @@ describe('the Raspored block', () => {
       for (const [count, expected] of [[1, '1 Dogovor čeka završetak'], [2, '2 Dogovora čekaju završetak'], [5, '5 Dogovora čeka završetak']] as const) {
         mockSource.mojiDogovori.mockResolvedValue(Array.from({ length: count }, (_, index) => overdue(`o${index}`)));
         await render();
-        expect(tree.root.findByProps({ accessibilityLabel: 'Raspored' }).props.accessibilityRole).toBe('header');
+        expect(heading('Raspored')).toHaveLength(1);
         // The one grey line is exactly this, in Dogovori (the doors above it say "zadatak" of their own).
         const line = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === expected);
         expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ variant: 'note', tone: 'muted' });
@@ -371,16 +382,16 @@ describe('the Raspored block', () => {
     it('names a failed Dogovori read instead of a count', async () => {
       mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED'));
       await render();
-      expect(text()).toContain('Dogovori trenutno nisu učitani.'); expect(text()).not.toContain('bez tačnog termina'); expect(link()).toHaveLength(0);
+      expect(text()).toContain('Ne možemo da učitamo Dogovore.'); expect(text()).not.toContain('bez tačnog termina'); expect(link()).toHaveLength(0);
     });
   });
 
   it('a Dogovori read that failed says so under "Raspored", never as an empty schedule', async () => {
     mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED'));
     await render();
-    expect(tree.root.findByProps({ accessibilityLabel: 'Raspored' }).props.accessibilityRole).toBe('header');
-    expect(text()).toContain('Dogovori trenutno nisu učitani.'); expect(cards()).toHaveLength(0);
-    expect(tree.root.findAllByProps({ label: 'Ceo raspored' })).toHaveLength(0);
+    expect(heading('Raspored')).toHaveLength(1);
+    expect(text()).toContain('Ne možemo da učitamo Dogovore.'); expect(cards()).toHaveLength(0);
+    expect(planner()).toHaveLength(0);
   });
 });
 
@@ -483,11 +494,11 @@ it('says the doors in "zadatak" and never "posao", in the hints too', async () =
   await render();
   expect(text()).toContain('Opiši šta ti treba.'); expect(text()).toContain('Pronađi zadatak.');
   const hints = ['Objavi zadatak', 'Uskoči i zaradi'].map(label => action(label).accessibilityHint);
-  expect(hints).toEqual(['Opiši šta ti treba.', 'Nađi zadatak blizu.']);
+  expect(hints).toEqual(['Opiši šta ti treba.', 'Pronađi zadatak.']);
   expect(`${text()} ${hints.join(' ')}`).not.toMatch(/posao|poslov/i);
 });
 
-it('puts "Moji zadaci" and "Moje prijave" in one group under what is above, without the old large gap', async () => {
+it('puts "Moji zadaci" and "Moje prijave" in one group of rows, with the screen\'s own gap above it and no heading or line of its own', async () => {
   await render();
   const mine = ['Moji zadaci', 'Moje prijave'].map(label => tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith(label))[0]);
   // The nearest drawn View above a row is its group; both rows must stand in the same one. (Booleans only: a failing
@@ -495,7 +506,10 @@ it('puts "Moji zadaci" and "Moje prijave" in one group under what is above, with
   const groupOf = (press: ReactTestInstance) => { let node = press.parent; while (node && String(node.type) !== 'View') node = node.parent; return node; };
   const group = groupOf(mine[0]);
   expect(!!group && group === groupOf(mine[1])).toBe(true);
-  expect(StyleSheet.flatten(group!.props.style).marginTop).toBe(20);
+  // The space above a block is the Screen's (24 between blocks), so the group has no margin, no border and no title of its own.
+  const style = StyleSheet.flatten(group!.props.style) ?? {};
+  expect(style.marginTop).toBeUndefined(); expect(style.borderTopWidth).toBeUndefined();
+  expect(group!.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')).toHaveLength(0);
 });
 
 it('keeps personal-list targets generous while their counts remain independently named', async () => {
@@ -552,7 +566,7 @@ it.each([[5, 'Oceni 5 završenih Dogovora'], [21, 'Oceni 21 završen Dogovor'], 
 it('a section that failed says so and offers the read again; it is never drawn as nothing', async () => {
   mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();
-  expect(text()).toContain('Dogovori trenutno nisu učitani.'); expect(text()).not.toContain('Nemaš aktivan Dogovor.');
+  expect(text()).toContain('Ne možemo da učitamo Dogovore.'); expect(text()).not.toContain('Nemaš aktivan Dogovor.');
   expect(text()).toContain('1 aktivan');
   await act(async () => action('Osveži pregled').onPress()); expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
 });
@@ -564,11 +578,11 @@ it('offers one shared recovery for multiple unavailable sections and rejects dup
   mockSource.mojePotrebe.mockResolvedValue([need('known')]);
   await render();
   expect(text()).toContain('Deo pregleda trenutno nije učitan.');
-  expect(text()).toContain('Dogovori trenutno nisu učitani.');
-  expect(text()).toContain('Podaci o obavezama trenutno nisu učitani.');
+  expect(text()).toContain('Ne možemo da učitamo Dogovore.');
+  expect(text()).toContain('Ne možemo da učitamo ono što te čeka.');
   // A read that failed is named where it failed; nothing here may read as "nothing waits".
   expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
-  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
   expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.label === 'Osveži pregled')).toHaveLength(1);
   expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo' })).toHaveLength(0);
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
@@ -611,7 +625,7 @@ it('a failed foreground read can be retried while an abandoned older retry still
     await act(async () => {
       mockAppState = 'active'; mockAppStateListeners.forEach(listener => listener('active'));
     });
-    expect(text()).toContain('Pregled trenutno nije učitan.');
+    expect(text()).toContain('Pregled nije učitan. Proveri vezu i pokušaj ponovo.');
     expect(action('Osveži pregled')).toMatchObject({ loading: false, disabled: false });
     mockSource.mojePotrebe.mockReturnValueOnce(currentRetry.promise);
     const retry = action('Osveži pregled').onPress;
@@ -632,9 +646,9 @@ it('a failed foreground read can be retried while an abandoned older retry still
 it('four failed reads are a failed screen, not an empty account, and the two doors never say zero', async () => {
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   await render();
-  expect(text()).toContain('Pregled trenutno nije učitan.');
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Trenutno nisu učitani');
-  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
+  expect(text()).toContain('Pregled nije učitan. Proveri vezu i pokušaj ponovo.');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Trenutno nedostupno');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
   expect(text()).not.toMatch(/\b0\b/); expect(text()).not.toContain('Još nemaš');
   // No answer at all: neither "Čeka te" with its quiet "nothing" nor the steps of a new account may stand in for it.
   expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Čeka te');
@@ -646,7 +660,7 @@ it('one failed side says it is not loaded while the other is counted', async () 
   mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman'), need('nacrt', { stanje: 'NACRT' })]);
   await render();
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 nacrt');
-  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
 });
 
 // Serbian counts take three shapes by the last two digits (plural.ts): a final 1 but not 11, a final 2–4 but not
@@ -678,7 +692,7 @@ it('PKG-042: server attention and remaining rows stay visible without a misleadi
   // The independent rating read is unknown; its recovery action shares this section.
   // Keep all server rows and its "12 more", without implying that 13 counts every action.
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka te: 13 stavki' })).toHaveLength(0);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka te' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
+  expect(heading('Čeka te')).toHaveLength(1);
 
   await act(async () => row('Zadatak je izmenjen').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'server' } });
@@ -688,7 +702,7 @@ it('PKG-042: attention failure is explicit and never replaced with conclusions f
   mockSource.mojePotrebe.mockResolvedValue([need('old', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]);
   mockSource.paznjaZaPocetnu.mockRejectedValue(new Error('PRIVATE_BACKEND_ERROR'));
   await render();
-  expect(text()).toContain('Podaci o obavezama trenutno nisu učitani.');
+  expect(text()).toContain('Ne možemo da učitamo ono što te čeka.');
   expect(text()).not.toContain('čeka tvoj izbor'); expect(text()).not.toContain('PRIVATE_BACKEND_ERROR');
   // "Čeka te" stays unavailable, and the door does not stand in for it: it counts the list, never what waits.
   expect(text()).not.toContain('čeka izbor');
@@ -720,13 +734,13 @@ it('PKG-042: a late private attention result from the previous account cannot ap
   await act(async () => late.resolve({ rows: [{ id: 'private-a', title: 'PRIVATE_A_TASK', detail: '',
     target: { kind: 'NEED', needId: A } }], more: 0, asOf: '2026-09-22T10:00:00Z' }));
   expect(text()).not.toContain('PRIVATE_A_TASK');
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš Zadatak');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
 });
 
 it('a known empty account names both empty lists without invented zero statistics', async () => {
   await render();
   expect(text()).not.toMatch(/\b0\b/);
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš Zadatak');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Još nemaš prijavu');
 });
 
@@ -735,11 +749,11 @@ it('a known empty account names both empty lists without invented zero statistic
 it('"Čeka te" is always there when the reads answered: nothing waiting is one quiet row, not a missing section', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]); // an account that already works
   await render();
-  expect(tree.root.findByProps({ accessibilityLabel: 'Čeka te' }).props).toMatchObject({ accessible: true, accessibilityRole: 'header' });
+  expect(heading('Čeka te')).toHaveLength(1);
   const quiet = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === 'Ništa ne čeka tvoju odluku.');
-  expect(quiet).toHaveLength(1); expect(quiet[0].props.tone).toBe('muted'); expect(quiet[0].props.numberOfLines).toBeUndefined();
-  // The check is FactArt's own `check` in its grey tone, and the row is a statement, not a button.
-  expect(tree.root.findAllByProps({ kind: 'check', tone: 'quiet' }).length).toBeGreaterThan(0);
+  expect(quiet).toHaveLength(1); expect(quiet[0].props.numberOfLines).toBeUndefined();
+  // The check is FactArt's own `check` in its quiet form (the row's tone), and the row is a statement, not a button.
+  expect(tree.root.findAllByProps({ kind: 'check', muted: true }).length).toBeGreaterThan(0);
   expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Ništa ne čeka'))).toHaveLength(0);
   // It carries no count, no rating strip and no "I još".
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka te: 1 stavka' })).toHaveLength(0);
@@ -756,7 +770,7 @@ it('says "nothing waits" only from answers that are known: a missing attention a
   mockSource.mojiDogovori.mockResolvedValue([]); mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
   await render();
   expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('Deo pregleda trenutno nije učitan.');
-  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nisu učitane');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
 });
 
 it('what waits is still said, and the quiet row is not drawn beside it', async () => {
@@ -776,20 +790,20 @@ it('what waits is still said, and the quiet row is not drawn beside it', async (
 // never returns.
 describe('a brand-new account', () => {
   const how = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'how-it-works');
-  const steps = () => tree.root.findAll(node => String(node.type) === 'View' && String(node.props.accessibilityLabel).startsWith('1. Objavi ili nađi'));
+  const steps = () => tree.root.findAll(node => String(node.type) === 'View' && String(node.props.accessibilityLabel).startsWith('1. Objavi ili pronađi'));
   const hide = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Sakrij')[0];
-  const STEP_WORDS = ['Objavi ili nađi', 'Zadatak', 'Dogovorite se', 'Prijava i poruke', 'Oceni', 'Posle završetka'];
+  const STEP_WORDS = ['Objavi ili pronađi', 'Zadatak', 'Dogovori se', 'Prijava i poruke', 'Oceni', 'Posle završetka'];
   it('sees one row "Kako radi" under the two doors, and no "Čeka te" (nothing could wait yet)', async () => {
     await render();
     expect(how()).toHaveLength(1);
-    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.props.children === 'Kako radi')).toHaveLength(1);
+    expect(heading('Kako radi')).toHaveLength(1);
     for (const word of STEP_WORDS) expect(text()).toContain(word);
     expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
     // The old unlabelled steps are gone with their words.
     for (const old of ['Opiši zadatak', 'Izaberi prijavu', 'Dogovor i ocena']) expect(text()).not.toContain(old);
     expect(steps()).toHaveLength(1);
     expect(steps()[0].props).toMatchObject({ accessible: true,
-      accessibilityLabel: '1. Objavi ili nađi, Zadatak. 2. Dogovorite se, Prijava i poruke. 3. Oceni, Posle završetka.' });
+      accessibilityLabel: '1. Objavi ili pronađi, Zadatak. 2. Dogovori se, Prijava i poruke. 3. Oceni, Posle završetka.' });
     expect(StyleSheet.flatten(steps()[0].props.style).flexDirection).toBe('row');
     // Three pictures of 32 dp, one per step; the only thing that can be pressed in the row is "Sakrij", and the doors stay.
     expect([...new Set(steps()[0].findAllByProps({ size: 32 }).filter(node => typeof node.type !== 'string').map(node => node.props.kind))])
@@ -799,13 +813,13 @@ describe('a brand-new account', () => {
     expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
   });
 
-  it('keeps every word at 12 px or more and "Sakrij" at 44 dp, and never names the sides of a task', async () => {
+  it('keeps every word at 12 px or more and "Sakrij" at 48 dp, and never names the sides of a task', async () => {
     await render();
     const styled = how()[0].findAll(node => String(node.type) === 'T');
     expect(styled.length).toBeGreaterThan(0);
-    for (const node of styled) expect(node.props.variant === undefined || ['heading', 'note', 'meta'].includes(node.props.variant)).toBe(true);
+    for (const node of styled) expect(node.props.variant === undefined || ['heading', 'copy', 'note', 'meta'].includes(node.props.variant)).toBe(true);
     const style = StyleSheet.flatten(hide().props.style);
-    expect(style.minHeight).toBeGreaterThanOrEqual(44); expect(style.minWidth).toBeGreaterThanOrEqual(44);
+    expect(style.minHeight).toBeGreaterThanOrEqual(48); expect(style.minWidth).toBeGreaterThanOrEqual(48);
     expect(hide().props.accessibilityRole).toBe('button');
     for (const word of ['Naručilac', 'Uskočer', 'posao', 'poslovi']) expect(text()).not.toContain(word);
   });
@@ -874,8 +888,8 @@ describe('a brand-new account', () => {
 
 it('while the first read is on its way it shows the doors, the heading and one row of what will come, and the two lists without a count', async () => {
   const handlers = await direct(null, { loading: true });
-  const skeleton = tree.root.findByProps({ accessibilityLabel: 'Učitavanje' });
-  expect(skeleton.children).toHaveLength(2);
+  // The skeleton has the geometry of what is coming: the heading and two rows (picture slot, two lines), breathing as one.
+  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Učitavanje' && node.props.accessible === true).length).toBeGreaterThan(0);
   expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Opiši zadatak');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci'); expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave');
   await act(async () => action('Objavi zadatak').onPress()); expect(handlers.onPublish).toHaveBeenCalledTimes(1);
@@ -890,7 +904,7 @@ it('keeps the same launch targets mounted as the initial overview read completes
   await act(async () => wait.resolve([]));
   before.forEach((entry, index) => expect(tree.root.findAll(node => String(node.type) === 'Press'
     && node.props.accessibilityLabel === ['Objavi zadatak', 'Uskoči i zaradi'][index])[0]).toBe(entry));
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš Zadatak');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
 });
 
 it('an account with a withdrawn application says no active applications, not no application history', async () => {
@@ -900,13 +914,15 @@ it('an account with a withdrawn application says no active applications, not no 
   expect(text()).not.toContain('Još nemaš prijavu');
 });
 
-it('a failed refresh never claims an empty account and keeps both new start tiles available', async () => {
+it('a failed refresh never claims an empty account: the last overview stays, one line says so, and both start tiles stay available (R31)', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   const refresh = tree.root.findByType('ScrollView' as React.ElementType).props.refreshControl.props.onRefresh;
   await act(async () => refresh());
-  expect(text()).toContain('Pregled trenutno nije učitan.');
+  // What was read before is still what is shown; the line says it is the last one, and the one action reads again.
+  expect(text()).toContain('Nema veze. Prikazano je poslednje učitano.'); expect(text()).toContain('1 aktivan');
+  expect(text()).not.toContain('Pregled nije učitan'); expect(action('Osveži pregled')).toBeDefined();
 
   expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
   await act(async () => action('Uskoči i zaradi').onPress());
@@ -939,4 +955,121 @@ it('returning Home enables current navigation while its silent refresh waits, wi
   } finally {
     await act(async () => wait.resolve([]));
   }
+});
+
+// UI/UX pass, 2026-10-08 (F1): "Početna ne laže". What waits for me that only the Dogovori and own-task reads can tell stands in "Čeka te" after the
+// server's rows, each one opens the place that settles it, and the calm sentence is never said over any of them.
+describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and what it asks of the work profile (R20, R06)', () => {
+  const profileRead = jest.fn();
+  beforeEach(() => {
+    (mockSource as Record<string, unknown>).mojRadnikProfil = profileRead;
+    profileRead.mockReset(); profileRead.mockResolvedValue(null);
+    mockAvailability.read.mockReset(); mockAvailability.save.mockReset();
+  });
+  afterEach(() => { delete (mockSource as Record<string, unknown>).mojRadnikProfil; });
+  const termless = (id: string, patch: object = {}) => ({ ...agreement(id, 'narucilac'), naslov: 'Krečenje stana u belo', vremeTekst: 'Termin nije potvrđen',
+    prihvacenPocetak: null, tacanTermin: null, izmenaCeka: null, ...patch });
+  const week = { timezone: 'Europe/Belgrade', rules: [], windows: [] };
+  const available = (value: boolean) => ({ ...week, availableNow: value, accountId: A, profileId: 'p1', revision: 'rev-1' });
+  const switchNode = () => tree.root.findAll(node => node.props.accessibilityLabel === 'Slobodan sam sada' && typeof node.props.onValueChange === 'function')[0];
+
+  it('asks for a term where a confirmed Dogovor has none, opens the form that proposes one, and no longer says that nothing waits (R02)', async () => {
+    mockSource.mojiDogovori.mockResolvedValue([termless('krecenje')]);
+    await render();
+    expect(heading('Čeka te')).toHaveLength(1);
+    expect(text()).toContain('Krečenje stana u belo'); expect(text()).toContain('Predloži termin'); expect(text()).toContain('Termin još nije dogovoren.');
+    expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
+    expect(row('Predloži termin').accessibilityLabel).toBe('Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.');
+    await act(async () => row('Predloži termin').onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: 'krecenje', start: 'propose' } });
+  });
+
+  it('puts the change the other side proposed before the term, and opens the changes screen for it', async () => {
+    mockSource.mojiDogovori.mockResolvedValue([termless('a'), termless('b', { naslov: 'Montaža police', izmenaCeka: { predlogId: 'p', mojPredlog: false } })]);
+    await render();
+    const labels = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Odgovori na predlog')
+      || String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Predloži termin')).map(node => String(node.props.accessibilityLabel));
+    expect(labels).toEqual(['Odgovori na predlog izmene. Montaža police. Druga strana predlaže izmenu uslova.',
+      'Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.']);
+    await act(async () => row('Odgovori na predlog izmene').onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: 'b' } });
+  });
+
+  it('never says what it cannot know: a Dogovor the list did not read the terms of, one with a start, a finished one, or my own waiting proposal', async () => {
+    mockSource.mojiDogovori.mockResolvedValue([agreement('unread', 'uskocer'), termless('lone', { prihvacenPocetak: '2026-10-07T12:00:00Z' }),
+      termless('done', { stanje: 'COMPLETED', ocenaMoguca: false }), termless('mine', { izmenaCeka: { predlogId: 'p', mojPredlog: true } })]);
+    await render();
+    expect(text()).not.toContain('Predloži termin'); expect(text()).not.toContain('Odgovori na predlog');
+    expect(text()).toContain('Ništa ne čeka tvoju odluku.');
+  });
+
+  it('does not say that nothing waits while the Dogovori could not be read: only they can tell whether a term is missing', async () => {
+    mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENT_LIST_FAILED'));
+    await render();
+    expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('Ne možemo da učitamo Dogovore.');
+  });
+
+  it('offers the draft to continue and opens it (R18); a draft without a title, and a published task, are not offered', async () => {
+    mockSource.mojePotrebe.mockResolvedValue([need('n1', { stanje: 'NACRT', naslov: 'Prevoz ormana iz Novog Sada' }), need('n2', { stanje: 'NACRT', naslov: '' }), need('n3')]);
+    await render();
+    expect(row('Nastavi nacrt').accessibilityLabel).toBe('Nastavi nacrt. Prevoz ormana iz Novog Sada. Nacrt još nije objavljen.');
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Nastavi nacrt'))).toHaveLength(1);
+    await act(async () => row('Nastavi nacrt').onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'n1' } });
+  });
+
+  it.each([['an account with no work profile', null], ['a profile that is still a draft', { stanje: 'DRAFT', dostupanOdmah: false }]])(
+    'says what the work profile is for and opens its conversation for %s (R20)', async (_name, profile) => {
+      profileRead.mockResolvedValue(profile);
+      await render();
+      expect(row('Podesi radni profil').accessibilityLabel).toBe('Podesi radni profil. Dobijaš zadatke koji ti odgovaraju.');
+      expect(text()).toContain('Dobijaš zadatke koji ti odgovaraju.');
+      expect(switchNode()).toBeUndefined();
+      await act(async () => row('Podesi radni profil').onPress());
+      expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor');
+    });
+
+  it.each([['an active profile', { stanje: 'ACTIVE', dostupanOdmah: false }], ['a suspended one', { stanje: 'SUSPENDED', dostupanOdmah: false }]])(
+    'asks nothing about the work profile of %s, and a profile that could not be read is not said to be missing', async (_name, profile) => {
+      profileRead.mockResolvedValue(profile);
+      await render();
+      expect(text()).not.toContain('Podesi radni profil');
+      await act(async () => tree.unmount());
+      profileRead.mockRejectedValue(new Error('PROFILE_FAILED'));
+      await render();
+      expect(text()).not.toContain('Podesi radni profil'); expect(text()).not.toContain('Deo pregleda');
+    });
+
+  it('draws the "Slobodan sam sada" switch only for an active profile, saves the saved week with only the status changed, and says that it holds until switched off (R06)', async () => {
+    profileRead.mockResolvedValue({ stanje: 'ACTIVE', dostupanOdmah: false });
+    mockAvailability.read.mockResolvedValue({ ok: true, podatak: available(false) });
+    mockAvailability.save.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, availability: available(true) } });
+    await render();
+    expect(text()).toContain('Slobodan sam sada'); expect(text()).toContain('Uključi kad možeš da kreneš odmah.');
+    expect(switchNode().props.value).toBe(false);
+    await act(async () => switchNode().props.onValueChange(true));
+    expect(mockAvailability.read).toHaveBeenCalledTimes(1);
+    expect(mockAvailability.save).toHaveBeenCalledWith({ expectedRevision: 'rev-1', value: { ...week, availableNow: true } });
+    expect(switchNode().props.value).toBe(true); expect(switchNode().props.disabled).toBeFalsy();
+    expect(text()).toContain('Uključeno. Važi dok ga ne isključiš.');
+  });
+
+  it('shows the switch at work while it saves, ignores a second touch, and returns it to where it was, saying so, when the save is not confirmed', async () => {
+    profileRead.mockResolvedValue({ stanje: 'ACTIVE', dostupanOdmah: true });
+    const read = deferred<unknown>(); mockAvailability.read.mockReturnValue(read.promise);
+    await render();
+    expect(switchNode().props.value).toBe(true);
+    await act(async () => switchNode().props.onValueChange(false));
+    expect(switchNode().props.value).toBe(false); expect(switchNode().props.disabled).toBe(true); expect(text()).toContain('Čuvamo…');
+    await act(async () => switchNode().props.onValueChange(true));
+    expect(mockAvailability.read).toHaveBeenCalledTimes(1);
+    await act(async () => read.resolve({ ok: false, kod: 'WORKER_AVAILABILITY_READ_FAILED', poruka: 'x' }));
+    expect(switchNode().props.value).toBe(true); expect(switchNode().props.disabled).toBeFalsy();
+    expect(text()).toContain('Nije sačuvano. Pokušaj ponovo.'); expect(mockAvailability.save).not.toHaveBeenCalled();
+    // A conflict or a refusal at the save says the same, and the next read of the screen is the truth again.
+    mockAvailability.read.mockResolvedValue({ ok: true, podatak: available(true) });
+    mockAvailability.save.mockResolvedValue({ ok: false, kod: 'AVAILABILITY_VERSION_CONFLICT', poruka: 'x' });
+    await act(async () => switchNode().props.onValueChange(false));
+    expect(switchNode().props.value).toBe(true); expect(text()).toContain('Nije sačuvano. Pokušaj ponovo.');
+  });
 });

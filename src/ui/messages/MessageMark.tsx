@@ -11,7 +11,7 @@ import { MARK_WORDS, type MarkKind } from './threadModel';
  *   seen      two checks, mint   drawn ONLY when the read says `procitano === true` (today the server returns null, so this state
  *                                is built and tested but dormant)
  *   pending   a quiet dot        the send is on its way
- *   unconfirmed  the same dot    the outcome is not known; the bubble's own line below says so and offers "Pošalji ponovo"
+ *   unconfirmed  the same dot    the outcome is not known; the bubble's own line below says so and offers "Proveri"
  *
  * The shape, not the colour, tells sent from seen (two checks against one). It carries no clock and no text; its spoken name is
  * the state, as one word (`MARK_WORDS`). A mark that can still change (the send of this phone: pending to sent) is `live`, so

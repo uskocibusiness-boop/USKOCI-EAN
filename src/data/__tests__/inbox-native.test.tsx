@@ -5,6 +5,8 @@ import { trenutak } from '../../lib/trenutak';
 import { inboxEventArt } from '../../ui/notifications/InboxPresentation';
 import { Appear } from '../../ui/system/Appear';
 import { ConversationArt } from '../../ui/system/ConversationArt';
+import { FactArt } from '../../ui/system/FactArt';
+import { ListRow } from '../../ui/system/ListRow';
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 let mockIntent='narucilac';
@@ -51,6 +53,10 @@ const drawn=(kind:string)=>tree.root.findAll(node=>typeof node.type!=='string'&&
 const headers=()=>tree.root.findAllByType('T' as React.ElementType).filter(node=>node.props.accessibilityRole==='header').map(node=>node.children.join(''));
 const render=async()=>act(async()=>{tree=create(<Inbox/>);});
 const openItem=async()=>act(async()=>unreadRow().props.onPress());
+// "Označi sve" is the action at the end of the first day's heading; a screen reader hears it with how many it settles.
+const readAllPress=()=>presses().find(node=>typeof node.props.accessibilityLabel==='string'&&node.props.accessibilityLabel.startsWith('Označi sve kao pročitano'));
+/** The picture of a row: the app's own illustration of its kind, quiet once the row is read. */
+const picture=(prefix:string)=>row(prefix).findAll(node=>typeof node.type!=='string'&&node.props?.kind!==undefined&&node.props?.size===32)[0];
 beforeEach(()=>{jest.clearAllMocks();mockIntent='narucilac';mockModel.canNavigate.mockReturnValue(true);mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'WORKER'});
   mockState={page:{items:[],unreadCount:0,hasMore:false,asOf:at},loading:false,paging:false,acting:null,error:null,unavailable:false};});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
@@ -70,7 +76,7 @@ test('the gear of a filtered list opens the settings on that set; "Sve" names no
 });
 test('a filtered empty list names what it is empty of, without the settings shortcut',async()=>{
   await render();
-  await act(async()=>press('Zadaci').props.onPress());
+  await act(async()=>press('Moji zadaci').props.onPress());
   expect(text()).toContain('Još nema obaveštenja o tvojim zadacima');expect(text()).not.toContain('Nove Prijave, poruke');
   expect(presses().filter(node=>node.props.accessibilityLabel==='Podesi obaveštenja')).toHaveLength(1);
   await act(async()=>press('Moje prijave').props.onPress());
@@ -83,7 +89,7 @@ test('the first read shows the breathing placeholders under the tabs, not a bare
 });
 test.each(['load','action','page'])('%s failure preserves last data without asserting a successful empty state',async error=>{
   mockState={...mockState,error,page:error==='load'?null:{...mockState.page,items:[item],unreadCount:1}};await render();
-  expect(text()).not.toContain('Još nema obaveštenja');expect(text()).toContain(error==='load'?'pokušaj ponovo da učitaš obaveštenja.':'Poslednje učitano stanje ostaje prikazano.');
+  expect(text()).not.toContain('Još nema obaveštenja');expect(text()).toContain(error==='load'?'pokušaj ponovo da učitaš obaveštenja.':'Do tada vidiš poslednja učitana obaveštenja.');
   if(error!=='load')expect(text()).toContain(item.title);
 });
 test('a failed page of older events is said next to the button that loads them, not at the top',async()=>{
@@ -91,13 +97,13 @@ test('a failed page of older events is said next to the button that loads them, 
   const copy=text();
   expect(copy).toContain('Starija obaveštenja nisu učitana.');
   expect(copy.indexOf('Starija obaveštenja nisu učitana.')).toBeGreaterThan(copy.indexOf(item.title));
-  expect(copy).not.toContain('Radnja nije potvrđena.');expect(copy).not.toContain('Obaveštenja nisu osvežena.');
+  expect(copy).not.toContain('Ne znamo da li je radnja uspela.');expect(copy).not.toContain('Obaveštenja nisu osvežena.');
   await act(async()=>press('Učitaj starija obaveštenja').props.onPress());
   expect(mockModel.more).toHaveBeenCalledTimes(1);expect(mockModel.refresh).not.toHaveBeenCalled();
 });
 test('an action that failed with a page offers a re-read in the notice, drawn on the quiet wash, never orange',async()=>{
   mockState={...mockState,error:'action',page:{...mockState.page,items:[item],unreadCount:1}};await render();
-  expect(text()).toContain('Radnja nije potvrđena.');
+  expect(text()).toContain('Ne znamo da li je radnja uspela.');
   // The button reads the list again; "Pokušaj ponovo" promised to repeat the action (round-5 review, 2026-09-24).
   expect(presses().filter(node=>node.props.accessibilityLabel==='Pokušaj ponovo')).toHaveLength(0);
   await act(async()=>press('Osveži obaveštenja').props.onPress());expect(mockModel.refresh).toHaveBeenCalledTimes(1);
@@ -120,7 +126,7 @@ test('only an event newer than the list moves; an older page and a new filter\'s
   expect(moving()).toEqual([]);
   // Another filter is another list: its first page, even with an event newer than anything shown before, is not news.
   mockState={...mockState,page:{...mockState.page,items:[{...item,id:'requester',occurredAt:minutesAgo(0)},{...item,id:'r2',occurredAt:minutesAgo(30)}]}};
-  await act(async()=>press('Zadaci').props.onPress());
+  await act(async()=>press('Moji zadaci').props.onPress());
   expect(moving()).toEqual([]);
 });
 // Round 5c (2026-09-24): the list stays mounted across a filter switch. Keying it by the filter threw away the tab a
@@ -161,7 +167,7 @@ test('events are grouped under their day, the day said once',async()=>{
   const moment=trenutak(old)!;
   expect(presses().some(node=>node.props.accessibilityLabel===`Nepročitano. ${item.title}. ${item.body}. ${moment.dan}, ${moment.sat}`)).toBe(true);
 });
-test('unread is a dot and a heavier title, never a tinted card or an orange icon well',async()=>{
+test('unread is a dot and a picture in colour, never a tinted card or an orange icon well',async()=>{
   mockState.page.items=[{...item,id:'a'},{...item,id:'b',readAt:at,title:'Pročitan naslov'},{...item,id:'c'}];mockState.page.unreadCount=2;await render();
   expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(2);
   const rows=presses().filter(node=>/^(Nepročitano|Pročitano)\. /.test(node.props.accessibilityLabel??''));
@@ -169,30 +175,40 @@ test('unread is a dot and a heavier title, never a tinted card or an orange icon
   for(const node of rows){const style=StyleSheet.flatten(node.props.style);expect(style.backgroundColor).toBeUndefined();expect(style.borderRadius).toBeUndefined();expect(style.borderColor).not.toBe('#C9D6CF');}
   const fills=tree.root.findAll(node=>typeof node.type==='string').map(node=>StyleSheet.flatten(node.props.style)?.backgroundColor);
   expect(fills).not.toContain('#FFF5E9');
-  const read=row(`Pročitano. Pročitan naslov.`).findAllByType('T' as React.ElementType)[0];expect(read.props.variant).toBe('body');
+  // The row is the system's one row (ListRow): the same type for both; what tells the two apart is the dot and the colour of the picture.
+  expect(row(`Pročitano. Pročitan naslov.`).findAllByType('T' as React.ElementType)[0].props.variant).toBe('bodyStrong');
   expect(unreadRow().findAllByType('T' as React.ElementType)[0].props.variant).toBe('bodyStrong');
-  // No second arrow: the whole row is the button.
-  expect(tree.root.findAllByType('CaretRight' as React.ElementType)).toHaveLength(0);
+  expect(picture('Pročitano. Pročitan naslov.').props.muted).toBe(true); expect(picture(`Nepročitano. ${item.title}.`).props.muted).toBe(false);
+  // The row's arrow is the row's own (the system draws one on every row that is touched); the list adds none.
+  expect(tree.root.findAllByType(ListRow)).toHaveLength(3);
 });
-test('"Označi sve kao pročitano" reads everything once and shows its own spinner while it works',async()=>{
+test('"Označi sve" is the end of the first day\'s heading, reads everything once and shows its own spinner while it works',async()=>{
   mockState.page.items=[item];mockState.page.unreadCount=1;await render();
-  const readAll=press('Označi sve kao pročitano');expect(readAll).toBeDefined();
+  const readAll=readAllPress()!;expect(readAll).toBeDefined();
+  // Said as the action it is, with how many it settles; the word on the screen is the short one, and it is a 48 dp touch.
+  expect(readAll.props.accessibilityLabel).toBe('Označi sve kao pročitano, 1 nepročitano');
+  expect(StyleSheet.flatten(readAll.props.style).minHeight).toBeGreaterThanOrEqual(48);
+  expect(strings(readAll)).toEqual(['Označi sve']);
+  // It stands in the heading of the first day, not in a row of its own: the heading's own line holds the day and the action.
+  expect(readAll.parent!.findAllByType('T' as React.ElementType).some(node=>node.props.accessibilityRole==='header')).toBe(true);
   await act(async()=>readAll.props.onPress());expect(mockModel.readAll).toHaveBeenCalledTimes(1);
   mockState={...mockState,acting:'all'};await act(async()=>tree.update(<Inbox/>));
-  expect(press('Označi sve kao pročitano').props.accessibilityState).toEqual({disabled:true,busy:true});
-  // Every row waits too, and none claims to be at work itself.
-  expect(unreadRow().props.disabled).toBe(true);expect(unreadRow().props.accessibilityState).toEqual({disabled:true,busy:false});
+  expect(readAllPress()!.props.accessibilityState).toEqual({disabled:true,busy:true});
+  // The rows stay as they are while it works (the model ignores a press meanwhile), and none claims to be at work itself.
+  expect(unreadRow().props.accessibilityState).toEqual({disabled:false});
   mockState={...mockState,acting:null,page:{...mockState.page,items:[{...item,readAt:at}],unreadCount:0}};
   await act(async()=>tree.update(<Inbox/>));
   expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Nema nepročitanih obaveštenja.');
-  expect(presses().filter(node=>node.props.accessibilityLabel==='Označi sve kao pročitano')).toHaveLength(0);
+  expect(readAllPress()).toBeUndefined();
 });
 test('the row being opened turns its picture into a spinner; the others wait',async()=>{
   mockState={...mockState,acting:'b',page:{...mockState.page,items:[{...item,id:'a'},{...item,id:'b',title:'Druga'}],unreadCount:2}};await render();
   expect(row('Nepročitano. Druga.').findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(1);
-  expect(row('Nepročitano. Druga.').props.accessibilityState).toEqual({disabled:true,busy:true});
+  // The row at work is the one that waits (its words go grey, nothing can be pressed on it); the others are as they were, and the model
+  // ignores a press on them while it works.
+  expect(row('Nepročitano. Druga.').props.accessibilityState).toEqual({disabled:true});
   expect(unreadRow().findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(0);
-  expect(unreadRow().props.disabled).toBe(true);
+  expect(unreadRow().props.accessibilityState).toEqual({disabled:false});
 });
 test('a new task for you leads with the task itself, the only row the data lets lead with the task',async()=>{
   const title='Nova prilika koja ti može odgovarati', body='Prenos ormana do kombija';
@@ -315,11 +331,12 @@ test('a task change, a cancellation and a question are drawn as what they are, n
 // ---------------------------------------------------------------------------------------------------------------------
 test('the three tabs carry the owner\'s words, exactly, and the old names are nowhere on the screen',async()=>{
   const {INBOX_FILTERS}=require('../../ui/notifications/InboxPresentation');
-  expect(INBOX_FILTERS.map((filter:{label:string})=>filter.label)).toEqual(['Sve','Zadaci','Moje prijave']);
+  expect(INBOX_FILTERS.map((filter:{label:string})=>filter.label)).toEqual(['Sve','Moji zadaci','Moje prijave']);
   mockState.page.items=[item];mockState.page.unreadCount=1;await render();
   const tabs=presses().filter(node=>node.props.accessibilityRole==='tab');
-  expect(tabs.map(node=>node.props.accessibilityLabel)).toEqual(['Sve','Zadaci','Moje prijave']);
-  expect(text()).not.toMatch(/Moji zadaci|Poslovi|poslov|posao/);
+  // "Zadaci" is the tab of OTHER people's tasks, so it is not also the name of a set here (2026-10-08).
+  expect(tabs.map(node=>node.props.accessibilityLabel)).toEqual(['Sve','Moji zadaci','Moje prijave']);
+  expect(text()).not.toMatch(/Poslovi|poslov|posao/);
 });
 test('under every row, with the clock, the screen says where a tap goes; a screen reader hears it as the row\'s hint',async()=>{
   const ago=(minutes:number)=>new Date(Date.parse(at)-minutes*60_000).toISOString();
@@ -339,12 +356,14 @@ test('under every row, with the clock, the screen says where a tap goes; a scree
   expect(row('Nepročitano. Nova prilika koja ti može odgovarati.').props.accessibilityHint).toBe('Otvara zadatak.');
   expect(row('Nepročitano. Nova poruka.').props.accessibilityHint).toBe('Otvara poruku u Dogovoru.');
 });
-test('an unread row is heavier in its title and its words than a read one',async()=>{
+test('an unread row has the dot and a picture in colour; both rows are the one row of the system, with one type scale',async()=>{
   mockState.page.items=[{...item,id:'u',title:'Nepročitan',body:'Telo'},{...item,id:'r',title:'Pročitan',body:'Telo',readAt:at}];mockState.page.unreadCount=1;await render();
   const variants=(prefix:string)=>row(prefix).findAllByType('T' as React.ElementType).slice(0,2).map(node=>[node.props.variant,node.props.tone]);
-  // The title is always ink (the default tone, none passed); the line under it is ink while unread and grey once read.
-  expect(variants('Nepročitano. Nepročitan.')).toEqual([['bodyStrong',undefined],['note','ink']]);
-  expect(variants('Pročitano. Pročitan.')).toEqual([['body',undefined],['note','muted']]);
+  // The title is 16/24 in ink, the line under it 14/20 in grey, for every row; weight and tone no longer say read or unread (the dot and the picture do).
+  expect(variants('Nepročitano. Nepročitan.')).toEqual([['bodyStrong','ink'],['note','muted']]);
+  expect(variants('Pročitano. Pročitan.')).toEqual([['bodyStrong','ink'],['note','muted']]);
+  expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(1);
+  expect(picture('Nepročitano. Nepročitan.').props.muted).toBe(false);expect(picture('Pročitano. Pročitan.').props.muted).toBe(true);
 });
 
 const stamp='2026-09-10T12:05:00Z';
@@ -363,10 +382,10 @@ describe('settling one row without opening it',()=>{
     expect(swipeActions()).toHaveLength(1);
   });
   test('the row reads as read, the count above the list goes down by one, and the outcome is said once after the server answered',async()=>{
-    await render();expect(text()).toContain('2 nepročitana');
+    await render();expect(readAllPress()!.props.accessibilityLabel).toContain('2 nepročitana');
     await act(async()=>swipeActions()[0].props.onPress());await settle();
     expect(row('Pročitano. Prva.')).toBeDefined();expect(unreadRow('Prva','Telo prve.')).toBeUndefined();
-    expect(text()).toContain('1 nepročitano');
+    expect(readAllPress()!.props.accessibilityLabel).toContain('1 nepročitano');
     expect(mockPoruka.mock.calls).toEqual([[{text:'Označeno kao pročitano.',confirmed:true}]]);
     expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(1);
   });
@@ -374,7 +393,7 @@ describe('settling one row without opening it',()=>{
     mockState.page.items=[{...item,id:'a',title:'Prva',body:'Telo prve.'}];mockState.page.unreadCount=1;await render();
     await act(async()=>swipeActions()[0].props.onPress());await settle();
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Nema nepročitanih obaveštenja.');
-    expect(presses().filter(node=>node.props.accessibilityLabel==='Označi sve kao pročitano')).toHaveLength(0);
+    expect(readAllPress()).toBeUndefined();
   });
   test('nothing shows as read before the server answered, and the row at work is the only one that spins',async()=>{
     let answer!:(value:string)=>void;mockReadOne.mockReturnValueOnce(new Promise<string>(resolve=>{answer=resolve;}));
@@ -382,10 +401,10 @@ describe('settling one row without opening it',()=>{
     await act(async()=>swipeActions()[0].props.onPress());
     expect(unreadRow('Prva','Telo prve.')).toBeDefined();expect(mockPoruka).not.toHaveBeenCalled();
     expect(unreadRow('Prva','Telo prve.').findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(1);
-    // The others wait with their command, as with any running command.
-    expect(unreadRow('Druga','Telo druge.').props.disabled).toBe(true);
+    // The others do not spin, and their command waits with the one that runs (one command at a time, below).
+    expect(unreadRow('Druga','Telo druge.').findAllByType('ActivityIndicator' as React.ElementType)).toHaveLength(0);
     await act(async()=>{answer(stamp);});await settle();
-    expect(unreadRow('Druga','Telo druge.').props.disabled).toBe(false);expect(row('Pročitano. Prva.')).toBeDefined();
+    expect(row('Pročitano. Prva.')).toBeDefined();
   });
   test('one command at a time: a second press while the first is running sends nothing',async()=>{
     let answer!:(value:string)=>void;mockReadOne.mockReturnValueOnce(new Promise<string>(resolve=>{answer=resolve;}));
@@ -400,9 +419,9 @@ describe('settling one row without opening it',()=>{
     await render();
     await act(async()=>swipeActions()[0].props.onPress());await settle();
     expect(unreadRow('Prva','Telo prve.')).toBeDefined();expect(mockPoruka).not.toHaveBeenCalled();
-    expect(text()).toContain('Radnja nije potvrđena.');expect(text()).toContain('2 nepročitana');
+    expect(text()).toContain('Ne znamo da li je radnja uspela.');expect(readAllPress()!.props.accessibilityLabel).toContain('2 nepročitana');
     await act(async()=>press('Osveži obaveštenja').props.onPress());
-    expect(mockModel.refresh).toHaveBeenCalledTimes(1);expect(text()).not.toContain('Radnja nije potvrđena.');
+    expect(mockModel.refresh).toHaveBeenCalledTimes(1);expect(text()).not.toContain('Ne znamo da li je radnja uspela.');
   });
   test('a screen that is no longer the person\'s sends nothing',async()=>{
     await render();mockModel.canNavigate.mockReturnValue(false);
@@ -423,9 +442,12 @@ describe('settling one row without opening it',()=>{
     await act(async()=>swipeActions()[0].props.onPress());await settle();
     expect(mockReadOne.mock.calls).toEqual([['m']]);expect(mockModel.open).not.toHaveBeenCalled();
   });
-  test('a screen reader gets the same command in the row\'s actions menu, only for an unread row',async()=>{
+  test('a screen reader is offered the same command in the row\'s actions menu, only for an unread row',async()=>{
     await render();
-    const unread=unreadRow('Prva','Telo prve.'),read=row('Pročitano. Pročitana.');
+    // The list hands the actions to the system row (`ListRow`), which passes them on to the row's press once it takes them: this is
+    // what the list asks for. The row's own press is read in a device check, not here.
+    const rows=tree.root.findAllByType(ListRow);
+    const unread=rows.find(node=>String(node.props.accessibilityLabel).startsWith('Nepročitano. Prva.'))!, read=rows.find(node=>String(node.props.accessibilityLabel).startsWith('Pročitano. Pročitana.'))!;
     expect(unread.props.accessibilityActions).toEqual([{name:'markRead',label:'Označi kao pročitano'}]);
     expect(read.props.accessibilityActions).toBeUndefined();
     // Another action name does nothing; the named one does the same as the swipe.

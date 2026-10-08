@@ -12,6 +12,7 @@ import { useInboxReads } from '../ui/notifications/useInboxReads';
 import { DetailTopBar } from '../ui/system/DetailTopBar';
 import { PorukaHost, poruka } from '../ui/system/Poruka';
 import { ChromeIconButton } from '../ui/system/ScreenChrome';
+import { layout } from '../ui/system/layout';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
@@ -126,6 +127,7 @@ export default function Obavestenja() {
 
 const styles=StyleSheet.create({
   screen:{flex:1,backgroundColor:sys.color.ground},
-  opening:{paddingHorizontal:24,paddingBottom:16,gap:8},
-  openingLine:{flexDirection:'row',alignItems:'center',gap:12},
+  // The notice of a message being opened stands on the same edge as the list under it (20), and 8 and 12 apart like everything else.
+  opening:{paddingHorizontal:layout.gutter,paddingBottom:sys.space.base,gap:sys.space.sm},
+  openingLine:{flexDirection:'row',alignItems:'center',gap:sys.space.md},
 });

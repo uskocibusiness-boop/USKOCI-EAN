@@ -9,6 +9,7 @@ import type { NotificationRole, NotificationSettings } from '../contracts/notifi
 import type { MyBlockedAccounts } from '../data/safetyClientService';
 import type { PushReadiness } from '../data/pushReadinessClientService';
 import { InboxList, type InboxView } from '../ui/notifications/InboxPresentation';
+import { INBOX_SET_LABEL } from '../ui/notifications/inboxCopy';
 import { PushPreferencesView, type PushPreferencesViewProps } from '../ui/notifications/PushPreferences';
 import { BlockedAccountsList } from '../ui/settings/BlockedAccountsList';
 import { SettingsGroup, SettingsInfo, SettingsPersonRow, SettingsRow, SettingsScreen, SettingsSwitchRow } from '../ui/settings/SettingsPresentation';
@@ -48,6 +49,17 @@ const ITEMS: InboxItem[] = [
   inbox('g7', 'REVIEW_RECEIVED', 'dogovor', 60 * 24 * 4, 'Nova ocena', 'Stigla je ocena za završen Dogovor.', true),
   inbox('g8', 'RESPONSE_SELECTED', 'responses', 60 * 24 * 400, 'Tvoja prijava je izabrana', 'Otvori Dogovor za detalje zadatka.', true),
 ];
+/**
+ * R11 / R15, as the list looks the day the read says which task an event is about (`taskTitle`, not in the inbox read yet): the event
+ * leads and the task is the line under it. The read does not return it today, so this scene is the only place it can be seen.
+ */
+const named = (source: InboxItem, taskTitle: string): InboxItem => Object.assign({}, source, { taskTitle });
+const TASK_ITEMS: InboxItem[] = [
+  named(ITEMS[2], 'Montaža police u hodniku'),
+  named(inbox('t2', 'RESPONSE_SELECTED', 'responses', 130, 'Tvoja prijava je izabrana', 'Otvori Dogovor za detalje zadatka.'), 'Krečenje stana u belo'),
+  named(ITEMS[4], 'Prenos ormana i dve komode sa trećeg sprata zgrade bez lifta do kombija ispred ulaza'),
+  named(ITEMS[5], 'Montaža police u hodniku'),
+];
 const page = (items: InboxItem[], hasMore = false) => ({ items, hasMore, unreadCount: items.filter(item => !item.readAt).length, asOf: ago(0) });
 const base: InboxView = { page: page(ITEMS, true), loading: false, paging: false, acting: null, error: null, unavailable: false };
 
@@ -67,6 +79,7 @@ const NO_BLOCKS: MyBlockedAccounts = { accountId: 'g', authoritative: true, next
 type Scene = { key: string; label: string; group: string };
 const SCENES: Scene[] = [
   { key: 'inbox', label: 'Obaveštenja · spisak', group: 'Obaveštenja' },
+  { key: 'inbox-task', label: 'Obaveštenja · uz naziv zadatka', group: 'Obaveštenja' },
   { key: 'inbox-loading', label: 'Obaveštenja · učitavanje', group: 'Obaveštenja' },
   { key: 'inbox-empty', label: 'Obaveštenja · prazno', group: 'Obaveštenja' },
   { key: 'inbox-empty-worker', label: 'Obaveštenja · prazno, Moje prijave', group: 'Obaveštenja' },
@@ -135,7 +148,8 @@ export default function DizajnObavestenja() {
 
 function render(key: string, back: () => void): ReactNode {
   if (key.startsWith('inbox')) {
-    const state: InboxView = key === 'inbox-loading' ? { ...base, page: null, loading: true }
+    const state: InboxView = key === 'inbox-task' ? { ...base, page: page(TASK_ITEMS) }
+      : key === 'inbox-loading' ? { ...base, page: null, loading: true }
       : key === 'inbox-empty' || key === 'inbox-empty-worker' ? { ...base, page: page([]) }
         : key === 'inbox-failed' ? { ...base, page: null, error: 'load' }
           : key === 'inbox-action' ? { ...base, error: 'action' }
@@ -183,7 +197,7 @@ function PushScene({ scene, back }: { scene: string; back: () => void }) {
     <DetailTopBar title="Podešavanja obaveštenja" onBack={back} />
     <View style={s.sets}>
       <Segmented appearance="underline" value={role} onChange={setRole}
-        options={[{ key: 'REQUESTER', label: 'Zadaci' }, { key: 'WORKER', label: 'Moje prijave' }]} />
+        options={[{ key: 'REQUESTER', label: INBOX_SET_LABEL.REQUESTER }, { key: 'WORKER', label: INBOX_SET_LABEL.WORKER }]} />
       <T variant="note" tone="muted">{role === 'REQUESTER' ? 'Obaveštenja o zadacima koje objavljuješ.' : 'Novi zadaci, tvoje prijave i Dogovori.'}</T>
     </View>
     <PushPreferencesView {...props} />
@@ -216,11 +230,11 @@ function RowsScene({ back }: { back: () => void }) {
       <SettingsRow compact label="Izvoz podataka" detail="Nije dostupno dok traje drugi zahtev." onPress={noop} disabled />
       <SettingsRow label="Zatvori nalog" detail="Trajno, posle potvrde." tone="danger" icon={<FactArt kind="lock" size={26} />} onPress={noop} last />
     </SettingsGroup>
-    <SettingsGroup title="Izbori" footer="Isključena kategorija ne stiže ni u aplikaciju ni na telefon.">
-      <SettingsSwitchRow label="Dogovor i poruke" help="Dogovor, poruke, pristup i ocene." value={on} onChange={setOn} />
-      <SettingsSwitchRow label="Oporavak" help="Kad neka radnja ostane nedovršena i treba je proveriti." value={false} onChange={noop} />
+    <SettingsGroup title="Izbori" footer="Ono što isključiš ne stiže ni u aplikaciju ni na telefon.">
+      <SettingsSwitchRow label="Prijave i poruke" help="Promene tvoje prijave, Dogovor, poruke i završetak zadatka." value={on} onChange={setOn} />
+      <SettingsSwitchRow label="Sve ostalo" help="Nedovršene radnje koje treba proveriti, tvoj nalog i bezbednost." value={false} onChange={noop} />
       <SettingsSwitchRow label="Hitno može i tokom tihih sati" help="Važi samo za hitne događaje." value={false} disabled
-        reason="Prvo sačuvaj izmene kategorija i tihih sati." onChange={noop} last />
+        reason="Prvo sačuvaj izmene." onChange={noop} last />
     </SettingsGroup>
     <SettingsGroup title="Stanje i osobe">
       <SettingsInfo title="Obaveštenja na telefon su uključena" icon={<FactArt kind="phone" size={26} />}>Važi za Moje zadatke. Ovaj telefon je povezan sa tvojim nalogom.</SettingsInfo>

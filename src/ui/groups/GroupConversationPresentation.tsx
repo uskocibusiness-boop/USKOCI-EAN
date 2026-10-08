@@ -103,7 +103,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         </View> : null}
       </View> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
-      body="Grupni razgovor se otvara kada su u ovom zadatku izabrana najmanje dva nezavisna učesnika. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
+      body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
     {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={p.onOlder} /> : null}
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
@@ -137,7 +137,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
               sender={!item.mine && entry.first ? name(item) : null} mark={mark ? <MessageMark kind={mark} /> : null}
               summary={{ accessibilityRole: p.support ? 'button' : 'text',
                 accessibilityLabel: messageSpoken({ moja: item.mine, posiljalacIme: name(item), telo: item.body }, entry.moment, mark ? MARK_WORDS[mark].toLowerCase() : undefined),
-                accessibilityHint: p.support ? 'Dodir nudi prijavu podršci.' : undefined, haptic: p.support ? 'select' : 'none', scaleTo: 1,
+                accessibilityHint: p.support ? 'Dodirom prijavljuješ poruku podršci.' : undefined, haptic: p.support ? 'select' : 'none', scaleTo: 1,
                 disabled: !p.support, onPress: p.support ? () => toggle(item.messageId) : undefined,
                 onLongPress: p.support ? () => toggle(item.messageId) : undefined,
                 accessibilityActions: p.support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined,
@@ -147,10 +147,10 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         }}
         ListFooterComponent={<View style={[s.stack, s.gutter]}>
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekamo potvrdu slanja…</T> : null}
-          {state.phase === 'UNKNOWN' ? <V2Action label="Proveri prvobitno slanje" style={brandAction} onPress={p.onRefresh} /> : null}
+          {state.phase === 'UNKNOWN' ? <V2Action label="Proveri da li je poruka stigla" style={brandAction} onPress={p.onRefresh} /> : null}
           {state.phase === 'CONFIRMED' ? <V2Action label="Prikaži razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
         </View>} />
-      {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Unesi prvobitnu poruku' : 'Poruka grupi'}
+      {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upiši istu poruku' : 'Poruka grupi'}
         placeholder={retry ? 'Prvobitna poruka…' : 'Napiši poruku grupi…'} sendLabel={retry ? 'Ponovi slanje iste poruke' : 'Pošalji poruku grupi'}
         canSend={p.draftSendable} reason={length === 0 ? 'Upiši poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : null}
         onSend={p.onSend} maxLength={4000}

@@ -44,11 +44,16 @@ const publicInboxCopies = Object.freeze([
  * `supabase/functions/_shared/pushNotificationCopy.mjs` to exactly these pairs in any order of roll-out, and an old build
  * keeps recognising the old ones until it is retired. No pair here names a person, a task or a place (rule A20: nothing of
  * the task on the lock screen). Nothing in this file sends, registers or enables a push.
+ *
+ * A fourth pair is not a break of those rules but of the owner's one word for a task (UI/UX pass, 2026-10-08; R15): a new task for
+ * you was "a new opportunity" ("nova prilika") in its body, while everything else in the app says "zadatak". The title stays; the old
+ * pair above stays too, until the old builds are retired.
  */
 export const PLANNED_PUBLIC_INBOX_COPIES = Object.freeze([
  ['Tvoja prijava je izabrana', 'Otvori Dogovor.'],
  ['Potvrdi završetak', 'Zadatak je označen kao gotov.'],
  ['Prijavljen je problem u Dogovoru', 'Otvori Dogovor da vidiš prijavljeni problem.'],
+ ['Novi zadatak za tebe', 'Pojavio se novi zadatak koji može da ti odgovara.'],
 ].map(([title, body]) => Object.freeze({ title, body })));
 
 export function isPublicInboxCopy(title: unknown, body: unknown): boolean {

@@ -1,5 +1,5 @@
 import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from '../../contracts/projections';
-import { composeHome, type HomeReads } from '../homeSnapshot';
+import { HOME_WAITING_LIMIT, composeHome, draftIsFresh, needsTerm, type HomeReads } from '../homeSnapshot';
 
 const ME = 'me', OTHER = 'other';
 const need = (id: string, patch: Partial<PotrebaProjekcija> = {}): PotrebaProjekcija => ({ id, revizija: 1, naslov: `Zadatak ${id}`, opis: '',
@@ -286,5 +286,102 @@ describe('Raspored without a card: active Dogovori with no day to show them on',
     expect(quiet(composeHome(reads({ agreements: known([agreement('lone', 'uskocer', { prihvacenPocetak: '2026-09-26T07:00:00Z', tacanTermin: null })]) }), undefined, now)))
       .toBe('1 Dogovor bez tačnog termina');
     expect(quietKey(composeHome(reads({ agreements: known([overdue('a')]) }), undefined, Number.NaN))).toBe(false);
+  });
+});
+
+// UI/UX pass, 2026-10-08 (F1): "Početna ne laže". Things that wait for me and that only the reads Home already makes can tell
+// (R02 a Dogovor with no term, a change the other side proposed, R18 a draft) join the server's rows in "Čeka te", after them.
+describe('what the phone adds to "Čeka te" (R02, a change to answer, R18)', () => {
+  const now = Date.parse('2026-09-27T10:00:00Z');
+  /** A confirmed Dogovor whose accepted terms say neither a window nor a start. */
+  const termless = (id: string, patch: Partial<DogovorProjekcija> = {}) => agreement(id, 'narucilac', { naslov: `Krečenje ${id}`,
+    prihvacenPocetak: null, tacanTermin: null, ...patch });
+  const prompts = (home: ReturnType<typeof composeHome>) => (home.prompts ?? []).map(row => [row.id, row.title, row.taskTitle, row.detail, row.target]);
+
+  it('names a confirmed Dogovor with no term and opens the form that proposes one (R02), for either side', () => {
+    for (const mine of ['narucilac', 'uskocer'] as const) {
+      const home = composeHome(reads({ agreements: known([agreement('k', mine, { naslov: 'Krečenje stana', prihvacenPocetak: null, tacanTermin: null })]) }), undefined, now);
+      expect(prompts(home)).toEqual([['agreement:k:term', 'Predloži termin', 'Krečenje stana', 'Termin još nije dogovoren.', { kind: 'AGREEMENT_TERM', agreementId: 'k' }]]);
+      expect(home.promptsMore).toBeUndefined();
+    }
+  });
+
+  it('says nothing about a term it cannot know: a list that did not read the terms, a lone start, a finished or marked-done Dogovor', () => {
+    for (const row of [agreement('unread', 'uskocer'), termless('lone', { prihvacenPocetak: '2026-09-28T07:00:00Z' }),
+      termless('window', { prihvacenPocetak: '2026-09-28T07:00:00Z', tacanTermin: { pocetak: '2026-09-28T07:00:00Z', kraj: '2026-09-28T08:00:00Z' } }),
+      termless('done', { stanje: 'COMPLETED' }), termless('marked', { stanje: 'AWAITING_REQUESTER' }), termless('cancelled', { stanje: 'CANCELLED' })]) {
+      expect([row.id, needsTerm(row), composeHome(reads({ agreements: known([row]) }), undefined, now).prompts]).toEqual([row.id, false, undefined]);
+    }
+    expect(needsTerm(termless('yes'))).toBe(true);
+  });
+
+  it('a change that is already waiting gives the term to that change: no second row, and the other side\'s proposal is a row of its own', () => {
+    const mine = termless('mine', { izmenaCeka: { predlogId: 'p1', mojPredlog: true } });
+    expect(composeHome(reads({ agreements: known([mine]) }), undefined, now).prompts).toBeUndefined();
+    const theirs = termless('theirs', { naslov: 'Montaža police', izmenaCeka: { predlogId: 'p2', mojPredlog: false } });
+    expect(prompts(composeHome(reads({ agreements: known([theirs]) }), undefined, now))).toEqual([
+      ['agreement:theirs:change', 'Odgovori na predlog izmene', 'Montaža police', 'Druga strana predlaže izmenu uslova.', { kind: 'AGREEMENT_CHANGE', agreementId: 'theirs' }]]);
+  });
+
+  it('offers one draft with a title to continue (R18); a draft with no title, and a published task, are not offered', () => {
+    const draft = (id: string, patch: Partial<PotrebaProjekcija> = {}) => need(id, { stanje: 'NACRT', naslov: `Nacrt ${id}`, ...patch });
+    const home = composeHome(reads({ needs: known([draft('a'), draft('b'), need('published')]) }), undefined, now);
+    expect(prompts(home)).toEqual([['need:a:draft', 'Nastavi nacrt', 'Nacrt a', 'Nacrt još nije objavljen.', { kind: 'NEED', needId: 'a' }]]);
+    expect(composeHome(reads({ needs: known([draft('empty', { naslov: '   ' })]) }), undefined, now).prompts).toBeUndefined();
+    expect(composeHome(reads({ needs: known([need('published')]) }), undefined, now).prompts).toBeUndefined();
+  });
+
+  it('applies the seven days as soon as the read says when the draft was last changed, and an age it cannot read is not an old one', () => {
+    const day = 86_400_000, at = (days: number) => new Date(now - days * day).toISOString();
+    expect([draftIsFresh(at(1), now), draftIsFresh(at(7), now), draftIsFresh(at(8), now)]).toEqual([true, true, false]);
+    for (const unknown of [undefined, null, 'not a date']) expect(draftIsFresh(unknown, now)).toBe(true);
+    expect(draftIsFresh(at(30), Number.NaN)).toBe(true);
+    const old = Object.assign(need('old', { stanje: 'NACRT', naslov: 'Stari nacrt' }), { azurirano: at(30) });
+    const fresh = Object.assign(need('fresh', { stanje: 'NACRT', naslov: 'Svež nacrt' }), { azurirano: at(2) });
+    expect(prompts(composeHome(reads({ needs: known([old]) }), undefined, now))).toEqual([]);
+    expect(prompts(composeHome(reads({ needs: known([fresh]) }), undefined, now)).map(row => row[0])).toEqual(['need:fresh:draft']);
+  });
+
+  it('puts the waiting change first, then the term, then the draft, behind the server\'s own rows, four rows together at most', () => {
+    const rows = [termless('t1'), termless('t2'), termless('c', { izmenaCeka: { predlogId: 'p', mojPredlog: false } })];
+    const needs = known([need('d', { stanje: 'NACRT', naslov: 'Nacrt d' })]);
+    const alone = composeHome(reads({ agreements: known(rows), needs }), undefined, now);
+    expect((alone.prompts ?? []).map(row => row.id)).toEqual(['agreement:c:change', 'agreement:t1:term', 'agreement:t2:term', 'need:d:draft']);
+    expect(alone.promptsMore).toBeUndefined();
+    // With two of the server's rows there are two places left, and what did not fit is counted, never dropped silently.
+    const server = { kind: 'known' as const, value: { rows: [0, 1].map(index => ({ id: `s${index}`, title: 'Potvrdi završetak', detail: 'x',
+      target: { kind: 'AGREEMENT' as const, agreementId: `s${index}` } })), more: 0, asOf: '2026-09-27T09:00:00Z' } };
+    const crowded = composeHome(reads({ agreements: known(rows), needs }), server, now);
+    expect(HOME_WAITING_LIMIT).toBe(4);
+    expect((crowded.prompts ?? []).map(row => row.id)).toEqual(['agreement:c:change', 'agreement:t1:term']);
+    expect(crowded.promptsMore).toBe(2);
+    expect(crowded.attention).toHaveLength(2); expect(crowded.attentionMore).toBe(0);
+  });
+
+  it('a prompt is not a count of the server: attention, its "more" and the first run are what they were', () => {
+    const home = composeHome(reads({ agreements: known([termless('t')]) }), undefined, now);
+    expect(home.attention).toEqual([]); expect(home.attentionMore).toBe(0); expect(home.firstRun).toBe(false);
+  });
+});
+
+describe('the work profile (R20, R06)', () => {
+  const now = Date.parse('2026-09-27T10:00:00Z');
+  const profile = (patch: object) => composeHome(reads({ workerProfile: known({ stanje: 'ACTIVE', dostupanOdmah: false, ...patch } as never) }), undefined, now).workerProfile;
+
+  it('is absent when it was not read, and says "none" for an account that has no profile', () => {
+    expect(composeHome(reads(), undefined, now)).not.toHaveProperty('workerProfile');
+    expect(composeHome(reads({ workerProfile: known(null) }), undefined, now).workerProfile).toEqual(known({ state: 'NONE', availableNow: false }));
+  });
+
+  it('carries the state and the status of a profile that exists', () => {
+    expect(profile({ stanje: 'DRAFT' })).toEqual(known({ state: 'DRAFT', availableNow: false }));
+    expect(profile({ stanje: 'ACTIVE', dostupanOdmah: true })).toEqual(known({ state: 'ACTIVE', availableNow: true }));
+    expect(profile({ stanje: 'SUSPENDED' })).toEqual(known({ state: 'SUSPENDED', availableNow: false }));
+  });
+
+  it('a profile that could not be read is unavailable, and it never makes the screen partial', () => {
+    const home = composeHome(reads({ workerProfile: { kind: 'unavailable' } }), { kind: 'known', value: { rows: [], more: 0, asOf: '2026-09-27T09:00:00Z' } }, now);
+    expect(home.workerProfile).toEqual({ kind: 'unavailable' });
+    expect(home.partial).toBe(false); expect(home.firstRun).toBe(true);
   });
 });

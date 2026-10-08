@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, AppState, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { AuthAccountScope } from '../../contracts/auth';
 import type { NotificationPreferences, NotificationRole, NotificationSettings } from '../../contracts/notificationPreferences';
@@ -12,11 +12,13 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { CivilField } from '../calendar/CalendarControls';
 import { SettingsFooter, SettingsGroup, SettingsInfo, SettingsSwitchRow } from '../settings/SettingsPresentation';
+import { ListSkeleton } from './ListSkeleton';
 import { FactArt } from '../system/FactArt';
 import { Disclosure } from '../system/Disclosure';
 import { StateView } from '../system/StateView';
 import { SystemSettingsAction } from '../system/SystemSettingsAction';
-import { useTextScale } from '../system/textScale';
+import { layout, ruleWidth } from '../system/layout';
+import { useLayoutClass } from '../system/textScale';
 import { brandAction, sys } from '../system/tokens';
 import { vreme } from '../../lib/vreme';
 import { urgentBuilt } from '../../lib/needUrgency';
@@ -144,7 +146,9 @@ export function PushPreferences({ role, onDirtyChange, onWritingChange }: { role
  function edit<K extends keyof NotificationSettings>(key: K, value: NotificationSettings[K]) {
   const scope = scopeRef.current;
   if (!scope || !settings || draft?.owner !== scope || scope.busy || scope.generation !== renderedGeneration || !snapshot || view?.owner !== scope) return;
-  setValidation(null); setDraft({ owner: scope, settings: { ...settings, [key]: value } });
+  // On what the draft holds NOW, not on the render this call came from: a choice that stands for several categories changes them one
+  // after the other, and each change must keep the ones before it.
+  setValidation(null); setDraft(held => held && held.owner === scope ? { owner: scope, settings: { ...held.settings, [key]: value } } : held);
  }
  function saveSettings() {
   const scope = scopeRef.current;
@@ -164,8 +168,8 @@ export function PushPreferences({ role, onDirtyChange, onWritingChange }: { role
  const dirty = !!snapshot && !!settings && !sameSettings(snapshot.preferences.settings, settings);
  latest.current = { snapshot, busy, dirty };
  // While "Sačuvaj podešavanja" runs the changes are on their way, so Back must not offer to throw them away. After an
- // unconfirmed outcome it is not known whether they were saved, so Back must not say they were not: until "Proveri
- // stanje" reads the state again, every control is locked and nothing on screen is a draft worth keeping.
+ // unconfirmed outcome it is not known whether they were saved, so Back must not say they were not: until "Pokušaj
+ // ponovo" reads the state again, every control is locked and nothing on screen is a draft worth keeping.
  const unsaved = dirty && !busy && !error;
  useEffect(() => { onDirtyChange?.(unsaved); }, [unsaved, onDirtyChange]);
  const writing = busy && (working === 'save' || working === 'enable' || working === 'disable');
@@ -181,15 +185,45 @@ export function PushPreferences({ role, onDirtyChange, onWritingChange }: { role
   onEdit={change} onSave={saveSettings} onEnable={enable} onDisable={disable} onRefresh={refresh} />;
 }
 
-/** The copy of each category, per set. The REQUESTER set has no "new task" switch: that event is only sent to WORKER. */
+/** The copy of the category that has a switch of its own under "Napredno". */
 const CATEGORY_HELP = {
- opportunities: 'Kad se pojavi zadatak koji ti može odgovarati.',
  responses: { REQUESTER: 'Nove i izmenjene prijave i pitanja o tvojim zadacima.',
   WORKER: 'Promene tvoje prijave i zadatka, odgovori na tvoja pitanja.' } as Record<NotificationRole, string>,
 };
+
+/**
+ * R33 (UI/UX pass, 2026-10-08): six categories were named for the engine ("Izvršenje i završetak", "Oporavak"). A person chooses among
+ * THREE things, and the categories stay under "Napredno" for the one who wants each of them. The server already keeps the categories; a
+ * choice is a view over them. It is ON when every category it stands for is on, OFF when none is, and "mixed" when they differ (it
+ * then reads as off and says that the details are under "Napredno"); a touch sets all of its categories to the same value.
+ * - "Novi zadaci": a task that may suit you (only the set that receives them: the REQUESTER set has no such choice, that event is
+ *   sent to WORKER only).
+ * - "Prijave i poruke": applications and answers, the Dogovor and its messages, and the completion of a task (what goes on in your work).
+ * - "Sve ostalo": unfinished actions to check, and the account and its safety.
+ */
+export type NotificationChoice = 'tasks' | 'talk' | 'other';
+export const CHOICE_CATEGORIES: Record<NotificationChoice, readonly (keyof NotificationSettings)[]> = {
+ tasks: ['opportunities_enabled'],
+ talk: ['responses_enabled', 'dogovor_enabled', 'execution_enabled'],
+ other: ['recovery_enabled', 'account_enabled'],
+};
+/** `on` when every category of the choice is on, `off` when none is, `mixed` when they differ. */
+export function choiceState(settings: NotificationSettings, choice: NotificationChoice): 'on' | 'off' | 'mixed' {
+ const values = CHOICE_CATEGORIES[choice].map(key => settings[key] === true);
+ return values.every(Boolean) ? 'on' : values.some(Boolean) ? 'mixed' : 'off';
+}
+const CHOICES: readonly NotificationChoice[] = ['tasks', 'talk', 'other'];
+const CHOICE_LABEL: Record<NotificationChoice, string> = { tasks: 'Novi zadaci', talk: 'Prijave i poruke', other: 'Sve ostalo' };
+const CHOICE_HELP: Record<NotificationChoice, string | Record<NotificationRole, string>> = {
+ tasks: 'Kad se pojavi zadatak koji ti može odgovarati.',
+ talk: { REQUESTER: 'Prijave i pitanja o tvojim zadacima, Dogovor, poruke i završetak zadatka.',
+  WORKER: 'Promene tvoje prijave, Dogovor, poruke i završetak zadatka.' },
+ other: 'Nedovršene radnje koje treba proveriti, tvoj nalog i bezbednost.',
+};
+const MIXED = 'Delimično uključeno. Pojedinosti su u Naprednom.';
 const PRIVACY = 'Na zaključanom ekranu prikazujemo samo da imaš novo obaveštenje. Poruke i privatne lokacije ostaju u aplikaciji.';
-const SAVE_FIRST = 'Prvo sačuvaj izmene kategorija i tihih sati.';
-const CHECK_FIRST = 'Prvo proveri stanje.';
+const SAVE_FIRST = 'Prvo sačuvaj izmene.';
+const CHECK_FIRST = 'Prvo pokušaj ponovo.';
 /** Said once a save has been read back, in place of the reason the grey button otherwise gives. */
 const SAVED = 'Podešavanja su sačuvana.';
 /** Each set by the name its underlined tab shows ("Zadaci", "Moje prijave"), in the form that follows "za" ("za Moje zadatke",
@@ -216,15 +250,18 @@ export type PushPreferencesViewProps = {
  */
 export function PushPreferencesView({ role, signedIn, data, busy, error, locked, dirty, validation, working, justSaved,
  onEdit, onSave, onEnable, onDisable, onRefresh, onOpenSystemSettings, deviceZone: fixedZone }: PushPreferencesViewProps) {
- const large = useTextScale() >= 1.3;
- const narrow = useWindowDimensions().width < 360;
+ const { stacked } = useLayoutClass();
  if (!signedIn) return <View style={styles.fill}><ScrollView contentContainerStyle={styles.content}>
   <StateView kind="error" title="Prijavi se da urediš obaveštenja." />
  </ScrollView></View>;
  if (!data) return <View style={styles.fill}><ScrollView contentContainerStyle={styles.content}>
-  {error ? <StateView kind="error" title="Podešavanja nisu učitana" body="Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja."
-   primary={{ label: 'Proveri stanje', onPress: onRefresh, disabled: busy }} />
-   : <StateView kind="loading" title="Učitavamo podešavanja obaveštenja…" skeleton={{ count: 3, rows: 2, variant: 'plain' }} />}
+  {error ? <StateView kind="error" title="Podešavanja nisu učitana" body="Ne možemo da učitamo podešavanja. Pokušaj ponovo."
+   primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
+   // The rows that are coming, in their geometry (a title, its words, a switch), and the one sentence a screen reader hears.
+   : <View accessibilityLiveRegion="polite" style={styles.loading}>
+    <ListSkeleton rows={4} heading switches />
+    <T variant="meta" tone="muted" style={styles.loadingText}>Učitavamo podešavanja obaveštenja…</T>
+   </View>}
  </ScrollView></View>;
  const { settings, native, enabled, registered, readiness } = data;
  const zone = fixedZone === undefined ? deviceZone() : fixedZone;
@@ -246,31 +283,30 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
  if (deviceCanAsk && (!registered || !enabled)) phoneActions.push({ label: enabled ? 'Poveži ovaj telefon' : 'Uključi obaveštenja na telefonu',
   kind: 'secondary', onPress: onEnable, working: 'enable', guarded: true });
  if (enabled && deviceKnowsPush) phoneActions.push({ label: `Isključi za ${FOR_SET[role].toLocaleLowerCase('sr-Latn-RS')}`, kind: 'quiet', onPress: onDisable, working: 'disable', guarded: true });
- // Reading again is offered only where it can change something, and not beside "Proveri stanje", which already does it.
- if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži stanje', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
+ // Reading again is offered only where it can change something, and not beside "Pokušaj ponovo", which already does it.
+ if (deviceKnowsPush && !error) phoneActions.push({ label: 'Osveži', kind: 'quiet', onPress: onRefresh, working: 'read', guarded: true });
  // A denied permission already has its immediate SystemSettingsAction. Otherwise connect/enable leads,
  // or the connected set can be switched off directly. Refresh and the remaining command stay nearby.
  const primaryPhoneAction = native === 'DENIED' ? null : phoneActions.find(action => action.working !== 'read') ?? null;
  const secondaryPhoneActions = phoneActions.filter(action => action !== primaryPhoneAction);
- // While the state is unconfirmed the alert and "Proveri stanje" stand directly above the phone buttons, and Save says
- // "Prvo proveri stanje." already; a second copy here was spoken twice in a row.
+ // While the state is unconfirmed the alert and "Pokušaj ponovo" stand directly above the phone buttons, and Save says
+ // "Prvo pokušaj ponovo." already; a second copy here was spoken twice in a row.
  const waitReason = dirty && !error ? SAVE_FIRST : null;
  const showZone = settings.quiet_timezone !== zone && (settings.quiet_hours_enabled || !settings.quiet_timezone.trim());
  // Reading clean settings needs no disabled action blocking the categories. Preserve the footer throughout a save,
  // uncertain readback and validation; a phone-only refresh never announces an irrelevant Save state.
  const showSave = dirty || working === 'save' || !!validation || error || justSaved;
  const saveReason = error ? CHECK_FIRST : null;
- const stackTimes = large || narrow;
  return <View style={styles.fill}>
   <SavedAnnouncement justSaved={justSaved} />
-  <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+  <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, showSave && styles.contentAboveFoot]}>
    {busy && working !== 'save' ? <View style={styles.checking}>
     <ActivityIndicator size="small" accessibilityLabel="Provera obaveštenja na telefonu" color={sys.color.green} />
     <T variant="note" tone="muted">Proveravamo stanje…</T>
    </View> : null}
    {error ? <View style={styles.block} accessibilityLiveRegion="polite">
-    <T tone="danger" accessibilityRole="alert">Stanje nije potvrđeno. Proveri ga pre ponovnog pokušaja.</T>
-    <V2Action label="Proveri stanje" kind="secondary" onPress={onRefresh} disabled={busy} />
+    <T tone="danger" accessibilityRole="alert">Ne možemo da učitamo podešavanja. Pokušaj ponovo.</T>
+    <V2Action label="Pokušaj ponovo" kind="secondary" onPress={onRefresh} disabled={busy} />
    </View> : null}
 
    <View style={styles.block}>
@@ -282,9 +318,10 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       {deliveryNotice ? <T variant="copy" tone="muted">{deliveryNotice}</T> : null}
      </View>
     </View>
+    {native === 'PERMISSION_REQUIRED' ? <T variant="note" tone="muted">{phone.body}</T> : null}
     {native === 'DENIED' ? <SystemSettingsAction open={onOpenSystemSettings} /> : null}
     {primaryPhoneAction ? <V2Action label={primaryPhoneAction.label} kind={primaryPhoneAction.kind} onPress={primaryPhoneAction.onPress}
-     compact={primaryPhoneAction.kind === 'quiet'} tone="neutral" style={styles.phoneConnect}
+     compact={primaryPhoneAction.kind === 'quiet'} tone="neutral" style={primaryPhoneAction.kind === 'quiet' ? styles.phoneQuiet : styles.phoneConnect}
      loading={!!primaryPhoneAction.working && working === primaryPhoneAction.working}
      disabled={primaryPhoneAction.guarded ? locked || dirty : false} reason={waitReason} /> : null}
     {/* A closed disclosure must never hide why its commands are waiting. The error recovery above is always visible. */}
@@ -303,27 +340,17 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
        the block is not faded a second time on top of that. The phone's state and the footer are not touched. */}
    <View style={styles.groups}>
     <SettingsGroup>
-     <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Isključivanje ne briše spisak obaveštenja."
+     <SettingsSwitchRow label="Obaveštenja u aplikaciji" help="Isključivanje ne briše listu obaveštenja."
       value={settings.in_app_enabled} disabled={locked} onChange={value => onEdit('in_app_enabled', value)} last />
     </SettingsGroup>
-    {/* The note covers every category, so it stands under the first of them, not under the last. */}
-    <SettingsGroup title="Zadaci i prijave" footer="Isključena kategorija ne stiže ni u aplikaciju ni na telefon. Promena kategorije ne menja dozvolu za obaveštenja na telefonu.">
-     {role === 'WORKER' ? <SettingsSwitchRow label="Novi zadaci" help={CATEGORY_HELP.opportunities}
-      value={settings.opportunities_enabled} disabled={locked} onChange={value => onEdit('opportunities_enabled', value)} /> : null}
-     <SettingsSwitchRow label="Prijave i odgovori" help={CATEGORY_HELP.responses[role]}
-      value={settings.responses_enabled} disabled={locked} onChange={value => onEdit('responses_enabled', value)} last />
-    </SettingsGroup>
-    <SettingsGroup title="Dogovori">
-     <SettingsSwitchRow label="Dogovor i poruke" help="Dogovor, poruke, pristup i ocene."
-      value={settings.dogovor_enabled} disabled={locked} onChange={value => onEdit('dogovor_enabled', value)} />
-     <SettingsSwitchRow label="Izvršenje i završetak" help="Tok zadatka i potvrda završetka."
-      value={settings.execution_enabled} disabled={locked} onChange={value => onEdit('execution_enabled', value)} last />
-    </SettingsGroup>
-    <SettingsGroup title="Ostalo">
-     <SettingsSwitchRow label="Oporavak" help="Nedovršene radnje koje treba proveriti."
-      value={settings.recovery_enabled} disabled={locked} onChange={value => onEdit('recovery_enabled', value)} />
-     <SettingsSwitchRow label="Nalog i ostalo" help="Obaveštenja o tvom nalogu i bezbednosti."
-      value={settings.account_enabled} disabled={locked} onChange={value => onEdit('account_enabled', value)} last />
+    {/* Three choices, as a person thinks of them. The note covers every one of them, so it stands under the group. */}
+    <SettingsGroup title="Šta ti šaljemo" footer="Ono što isključiš ne stiže ni u aplikaciju ni na telefon. Dozvolu za obaveštenja na telefonu ovo ne menja.">
+     {CHOICES.filter(choice => choice !== 'tasks' || role === 'WORKER').map((choice, index, shown) => {
+      const state = choiceState(settings, choice), help = CHOICE_HELP[choice];
+      return <SettingsSwitchRow key={choice} label={CHOICE_LABEL[choice]} help={state === 'mixed' ? MIXED : typeof help === 'string' ? help : help[role]}
+       value={state === 'on'} disabled={locked} last={index === shown.length - 1}
+       onChange={value => CHOICE_CATEGORIES[choice].forEach(key => onEdit(key, value))} />;
+     })}
     </SettingsGroup>
     <SettingsGroup title="Tihi sati">
      <SettingsSwitchRow label="Uključi tihe sate" help={urgentBuilt()
@@ -331,7 +358,7 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
       : 'Bez obaveštenja na telefon u ovom periodu. Period može da prelazi preko ponoći.'}
       value={settings.quiet_hours_enabled} disabled={locked} onChange={value => onEdit('quiet_hours_enabled', value)}
       last={!settings.quiet_hours_enabled && !showZone} />
-     {settings.quiet_hours_enabled ? <View style={[styles.times, stackTimes && styles.timesStacked]}>
+     {settings.quiet_hours_enabled ? <View style={[styles.times, stacked && styles.timesStacked]}>
       <View style={styles.time}><CivilField label="Početak tihih sati" mode="time" value={settings.quiet_start ?? ''} disabled={locked}
        onChange={value => onEdit('quiet_start', value || null)} /></View>
       <View style={styles.time}><CivilField label="Kraj tihih sati" mode="time" value={settings.quiet_end ?? ''} disabled={locked}
@@ -349,22 +376,41 @@ export function PushPreferencesView({ role, signedIn, data, busy, error, locked,
     </SettingsGroup>
    </View>
 
-   <Disclosure label="Detalji telefona i slanja" hint="Dozvola, privatnost i poslednja provera slanja." divider>
-    <T variant="note" tone="muted">{phone.body}</T>
-    <View style={styles.block}>
-     <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Privatnost</T>
-     <T variant="note" tone="muted">{PRIVACY}</T>
-    </View>
-    <View style={styles.readiness}>
-     <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Poslednja provera slanja</T>
-     <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Sistem za slanje je radio pri poslednjoj proveri.'
-      : readiness?.state === 'DEGRADED' ? 'Zabeležene su poteškoće ili kašnjenje u slanju.'
-       : readiness?.state === 'NOT_READY' ? 'Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.'
-        : 'Rad sistema za slanje još nije potvrđen.'}</T>
-     {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
-     <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.</T>
-    </View>
-   </Disclosure>
+   {/* Two rows of one kind, parted by the one rule. "Napredno" holds the categories one by one for the person who wants each of them;
+       a choice above is a view over these, so they change together. "Novi zadaci" is not here: it is the one category of its choice. */}
+   <View>
+    <Disclosure label="Napredno" hint="Svaka vrsta obaveštenja posebno.">
+     <SettingsGroup>
+      <SettingsSwitchRow label="Prijave i odgovori" help={CATEGORY_HELP.responses[role]}
+       value={settings.responses_enabled} disabled={locked} onChange={value => onEdit('responses_enabled', value)} />
+      <SettingsSwitchRow label="Dogovor i poruke" help="Dogovor, poruke, pristup i ocene."
+       value={settings.dogovor_enabled} disabled={locked} onChange={value => onEdit('dogovor_enabled', value)} />
+      <SettingsSwitchRow label="Završetak zadatka" help="Tok zadatka i potvrda završetka."
+       value={settings.execution_enabled} disabled={locked} onChange={value => onEdit('execution_enabled', value)} />
+      <SettingsSwitchRow label="Nedovršeno" help="Nedovršene radnje koje treba proveriti."
+       value={settings.recovery_enabled} disabled={locked} onChange={value => onEdit('recovery_enabled', value)} />
+      <SettingsSwitchRow label="Nalog i ostalo" help="Obaveštenja o tvom nalogu i bezbednosti."
+       value={settings.account_enabled} disabled={locked} onChange={value => onEdit('account_enabled', value)} last />
+     </SettingsGroup>
+    </Disclosure>
+
+    <Disclosure label="Detalji telefona i slanja" hint="Dozvola, privatnost i poslednja provera slanja." divider>
+     {native === 'PERMISSION_REQUIRED' ? null : <T variant="note" tone="muted">{phone.body}</T>}
+     <View style={styles.block}>
+      <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Privatnost</T>
+      <T variant="note" tone="muted">{PRIVACY}</T>
+     </View>
+     <View style={styles.readiness}>
+      <T variant="bodyStrong" style={styles.ink} accessibilityRole="header">Poslednja provera slanja</T>
+      <T variant="note" tone="muted">{readiness?.state === 'OPERATIONAL' ? 'Slanje obaveštenja je radilo pri poslednjoj proveri.'
+       : readiness?.state === 'DEGRADED' ? 'Zabeležene su poteškoće ili kašnjenje u slanju.'
+        : readiness?.state === 'NOT_READY' ? 'Slanje iz aplikacije trenutno nije uključeno, čak i ako je telefon povezan.'
+         : 'Ne znamo da li slanje obaveštenja radi.'}</T>
+      {readiness ? <T variant="meta" tone="muted">Provereno: {vreme(readiness.checkedAt)}</T> : null}
+      <T variant="meta" tone="muted">Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.</T>
+     </View>
+    </Disclosure>
+   </View>
 
   </ScrollView>
   {showSave ? <SettingsFooter>
@@ -416,24 +462,28 @@ const zoneLabel = (zone: string): string => zone === 'Europe/Belgrade' ? 'Vreme 
 
 const styles = StyleSheet.create({
  fill: { flex: 1, backgroundColor: sys.color.surface },
- content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, gap: 20, flexGrow: 1 },
- block: { gap: 8 },
+ // The edge of every screen, the first block 8 under the bar, 24 between blocks, 32 under the last (24 above the foot).
+ content: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.zone, gap: layout.section, flexGrow: 1 },
+ contentAboveFoot: { paddingBottom: layout.section },
+ block: { gap: sys.space.sm },
+ loading: { gap: sys.space.base },
+ loadingText: { textAlign: 'center' },
  ink: { color: sys.color.ink },
  phoneStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
  phoneCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
- phoneActions: { gap: 4 },
+ phoneActions: { gap: sys.space.xs },
  phoneQuiet: { alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 0 },
  phoneConnect: { width: '100%' },
  phoneTitle: { ...sys.type.bodyStrong, fontWeight: '500', color: sys.color.ink },
- groups: { gap: 24 },
- checking: { flexDirection: 'row', alignItems: 'center', gap: 8 },
- times: { flexDirection: 'row', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line },
+ groups: { gap: layout.section },
+ checking: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+ times: { flexDirection: 'row', gap: sys.space.md, paddingVertical: sys.space.md, borderBottomWidth: ruleWidth, borderBottomColor: sys.color.line },
  timesStacked: { flexDirection: 'column' },
  time: { flex: 1, minWidth: 0 },
  // The zone sits between the times and the last switch, so it keeps the rows' hairline under it.
- zone: { borderBottomWidth: 1, borderBottomColor: sys.color.line, paddingBottom: 4 },
+ zone: { borderBottomWidth: ruleWidth, borderBottomColor: sys.color.line, paddingBottom: sys.space.xs },
  inline: { paddingHorizontal: 0, alignSelf: 'flex-start' },
- readiness: { gap: 4, paddingTop: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line },
+ readiness: { gap: sys.space.xs, paddingTop: sys.space.md },
 });
 
 async function readTransport(): Promise<PushReadiness | null> {

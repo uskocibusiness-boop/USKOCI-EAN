@@ -26,6 +26,9 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/ScreenHeader', () => ({ ScreenHeader: 'ScreenHeader' }));
+// R17: which of my Dogovori are over comes from the Dogovori read; here it is whatever the test says (null: not known).
+let mockClosed: ReadonlySet<string> | null = null;
+jest.mock('../../ui/messages/useClosedAgreements', () => ({ useClosedAgreements: () => mockClosed }));
 jest.mock('../../ui/system/ActualUserAvatar', () => ({ ActualUserAvatar: 'ActualUserAvatar' }));
 jest.mock('../../ui/system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../ui/system/StateView', () => ({ StateView: 'StateView' }));
@@ -47,7 +50,7 @@ let tree: ReactTestRenderer;
 const rows = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'button');
 const render = async () => { await act(async () => { tree = create(<Poruke />); }); };
 beforeEach(() => {
-  jest.clearAllMocks(); mockBuilt = true; mockAppState = 'active'; mockCanOpen = true;
+  jest.clearAllMocks(); mockBuilt = true; mockAppState = 'active'; mockCanOpen = true; mockClosed = null;
   mockState = { page: { items: [personal, shared], nextCursor: null }, loading: false, refreshing: false, paging: false, stale: false, error: null };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -109,5 +112,31 @@ describe('the build without the paired reader', () => {
     expect(state.props).toMatchObject({ title: 'Razgovori su u Dogovorima', body: 'Otvori Dogovor da nastaviš dopisivanje.' });
     await act(async () => state.props.primary.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith('/dogovori');
+  });
+});
+
+describe('the list and its bar (UI/UX pass, 2026-10-08)', () => {
+  it('has the root bar of Početna and Dogovori: the mark, the bell and the face, with no name drawn (the tab bar says where you are)', async () => {
+    await render();
+    const header = tree.root.findByType('ScreenHeader' as never);
+    expect(header.props.title).toBe('Poruke'); expect(header.props.showTitle).toBeUndefined();
+    expect(tree.root.findByType('List' as never).props.contentContainerStyle).toBeDefined();
+  });
+
+  it('hands the Dogovori that are over to the list, and a conversation is still opened by the row the model admitted', async () => {
+    mockClosed = new Set([shared.routeAgreementId]);
+    await render();
+    const list = tree.root.findAll(node => node.props.closedAgreements !== undefined && typeof node.props.onOpen === 'function')[0];
+    expect(list.props.closedAgreements).toBe(mockClosed);
+    // The default set is "Aktivni": the private conversation is shown, the group of the closed Dogovor waits under "Završeni".
+    expect(rows()).toHaveLength(1);
+    await act(async () => rows()[0].props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: personal.routeAgreementId, tab: 'poruke', from: 'poruke' } });
+  });
+
+  it('shows one list while it is not known which Dogovori are over', async () => {
+    mockClosed = null;
+    await render();
+    expect(rows()).toHaveLength(2);
   });
 });

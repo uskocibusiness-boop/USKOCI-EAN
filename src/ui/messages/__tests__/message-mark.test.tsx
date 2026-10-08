@@ -75,7 +75,7 @@ describe('the mark is spoken, never written', () => {
 
   it('has the five words, with diacritics', () => {
     expect(MARK_WORDS.sent).toBe('Poslato'); expect(MARK_WORDS.seen).toBe('Viđeno');
-    expect(MARK_WORDS.pending).toBe('Šalje se'); expect(MARK_WORDS.unconfirmed).toBe('Slanje nije potvrđeno'); expect(MARK_WORDS.failed).toBe('Nije poslato');
+    expect(MARK_WORDS.pending).toBe('Šalje se'); expect(MARK_WORDS.unconfirmed).toBe('Ne znamo da li je stigla'); expect(MARK_WORDS.failed).toBe('Nije poslato');
   });
 
   it('has no clock: the drawing is a 18 by 12 box', () => {

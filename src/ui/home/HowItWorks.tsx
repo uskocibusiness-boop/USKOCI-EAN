@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StyleSheet, View } from 'react-native';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { Press } from '../Press';
+import { Section } from '../system/Section';
 import { T } from '../Text';
 import { sys } from '../system/tokens';
 
@@ -19,8 +19,8 @@ export const HOW_IT_WORKS_KEY = 'uskoci.home.how-it-works-hidden.v1';
 
 /** The steps, in the order of a task's life. The words are the proposal's own; the pictures are the app's own fact pictures. */
 export const HOW_IT_WORKS_STEPS: readonly { art: FactArtKind; title: string; note: string }[] = [
-  { art: 'publish', title: 'Objavi ili nađi', note: 'Zadatak' },
-  { art: 'agreements', title: 'Dogovorite se', note: 'Prijava i poruke' },
+  { art: 'publish', title: 'Objavi ili pronađi', note: 'Zadatak' },
+  { art: 'agreements', title: 'Dogovori se', note: 'Prijava i poruke' },
   { art: 'star', title: 'Oceni', note: 'Posle završetka' },
 ];
 
@@ -62,18 +62,14 @@ export function useHowItWorks() {
   return { visible: known === 'shown', hide };
 }
 
-/** The row. `stacked` puts the three steps in a column when there is no room for three beside each other (large text, narrow window). */
+/**
+ * The row. `stacked` puts the three steps in a column when there is no room for three beside each other (large text, narrow window).
+ * It is a `Section` like every other block of Početna: its heading, then the steps, and "Sakrij" at the end of the heading's line.
+ */
 export function HowItWorks({ stacked }: { stacked: boolean }) {
   const { visible, hide } = useHowItWorks();
   if (!visible) return null;
-  return <View testID="how-it-works" style={s.row}>
-    <View style={s.head}>
-      <T accessibilityRole="header" variant="heading" style={s.title}>Kako radi</T>
-      <Press accessibilityRole="button" accessibilityLabel="Sakrij" accessibilityHint="Red se više ne prikazuje." haptic="select"
-        onPress={hide} style={s.hide}>
-        <T variant="note" tone="muted">Sakrij</T>
-      </Press>
-    </View>
+  return <Section testID="how-it-works" title="Kako radi" action={{ label: 'Sakrij', onPress: hide }}>
     <View accessible accessibilityLabel={HOW_IT_WORKS_STEPS.map((step, index) => `${index + 1}. ${step.title}, ${step.note}`).join('. ') + '.'}
       style={[s.steps, stacked && s.stepsStacked]}>
       {HOW_IT_WORKS_STEPS.map(step => <View key={step.title} style={[s.step, stacked && s.stepStacked]}>
@@ -84,20 +80,15 @@ export function HowItWorks({ stacked }: { stacked: boolean }) {
         </View>
       </View>)}
     </View>
-  </View>;
+  </Section>;
 }
 
 const s = StyleSheet.create({
-  row: { marginTop: sys.space.xl },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.sm, minHeight: 44 },
-  title: { flexShrink: 1, color: sys.color.ink },
-  // A 44 dp-high quiet command: the word is small and grey, the area is not.
-  hide: { minHeight: 44, minWidth: 44, paddingLeft: sys.space.base, justifyContent: 'center', alignItems: 'flex-end' },
-  steps: { flexDirection: 'row', gap: sys.space.base, marginTop: sys.space.xs },
+  steps: { flexDirection: 'row', gap: sys.space.base },
   stepsStacked: { flexDirection: 'column', gap: sys.space.md },
   step: { flex: 1, alignItems: 'center', gap: sys.space.sm },
   stepStacked: { flex: 0, flexDirection: 'row', gap: sys.space.md, minHeight: 48 },
-  words: { alignItems: 'center', gap: 2 },
+  words: { alignItems: 'center', gap: sys.space.xs },
   wordsStacked: { alignItems: 'flex-start', flexShrink: 1 },
   stepTitle: { color: sys.color.ink, fontWeight: '600' },
   centred: { textAlign: 'center' },

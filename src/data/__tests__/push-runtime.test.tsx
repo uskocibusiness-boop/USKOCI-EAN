@@ -192,13 +192,17 @@ const LEGACY_BREAKS_THE_RULE = ['Izabran si', 'označila posao', 'Oporavak nalog
 it('the planned copy replaces exactly the three Edge pairs that break the owner\'s rules, and breaks none of them itself', () => {
  const broken = transportContract.copies.filter(copy => LEGACY_BREAKS_THE_RULE.some(piece => `${copy.title} ${copy.body}`.includes(piece)));
  expect(broken.map(copy => copy.eventType).sort()).toEqual(['COMPLETION_REQUIRED', 'RECOVERY_OPENED', 'RESPONSE_SELECTED'].flatMap(type => [type, type]).sort());
- expect(PLANNED_PUBLIC_INBOX_COPIES).toHaveLength(3);
+ // Three replace the pairs that break the rules; the fourth (R15, 2026-10-08) says "zadatak" where the Edge body still says "prilika".
+ expect(PLANNED_PUBLIC_INBOX_COPIES).toHaveLength(4);
  for (const copy of PLANNED_PUBLIC_INBOX_COPIES) {
-  expect(`${copy.title} ${copy.body}`).not.toMatch(/posa[ol]|poslov|Izabran si|označila|Oporavak naloga|Naručilac|Uskočer/i);
+  expect(`${copy.title} ${copy.body}`).not.toMatch(/posa[ol]|poslov|Izabran si|označila|Oporavak naloga|Naručilac|Uskočer|prilik/i);
   // Nothing of a person, a task or a place on the lock screen (rule A20): no pair here has a variable part.
   expect(`${copy.title} ${copy.body}`).not.toMatch(/[{}$]/);
  }
- expect(PLANNED_PUBLIC_INBOX_COPIES.map(copy => copy.title)).toEqual(['Tvoja prijava je izabrana', 'Potvrdi završetak', 'Prijavljen je problem u Dogovoru']);
+ expect(PLANNED_PUBLIC_INBOX_COPIES.map(copy => copy.title)).toEqual(['Tvoja prijava je izabrana', 'Potvrdi završetak', 'Prijavljen je problem u Dogovoru', 'Novi zadatak za tebe']);
+ expect(PLANNED_PUBLIC_INBOX_COPIES[3].body).toBe('Pojavio se novi zadatak koji može da ti odgovara.');
+ // The old body stays accepted from an older Edge formatter: a roll-out in either order loses nothing.
+ expect(transportContract.copies.some(copy => copy.title === 'Novi zadatak za tebe' && copy.body.includes('prilika'))).toBe(true);
 });
 it.each(['android', 'ios'] as const)('shows the planned copy while the app is open on %s, exactly as a pair and nothing around it', async platform => {
  jest.replaceProperty(Platform, 'OS', platform); await mount();

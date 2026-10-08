@@ -2,7 +2,8 @@ import React from 'react';
 import { sys } from '../../ui/system/tokens';
 import Renderer, { act } from 'react-test-renderer';
 import { AccessibilityInfo, AppState, Linking, Platform, StyleSheet } from 'react-native';
-import { PushPreferences, PushPreferencesView } from '../../ui/notifications/PushPreferences';
+import { PushPreferences, PushPreferencesView, CHOICE_CATEGORIES, choiceState } from '../../ui/notifications/PushPreferences';
+import { ListSkeleton } from '../../ui/notifications/ListSkeleton';
 const mockRead = jest.fn(), mockSave = jest.fn(), mockNative = jest.fn(), mockGet = jest.fn(), mockSet = jest.fn(), mockReadiness = jest.fn();
 let mockAccount = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
 let mockBlur: (() => void) | undefined;
@@ -33,6 +34,17 @@ const openPhoneManagement = async () => {
  await act(async () => { control('Upravljanje telefonom').props.onPress(); });
  expect(control('Upravljanje telefonom').props.accessibilityState.expanded).toBe(true);
 };
+/** "Napredno" is closed on arrival (R33): the categories one by one are inside it. */
+const openAdvanced = async () => {
+ if (control('Napredno').props.accessibilityState.expanded) return;
+ await act(async () => { control('Napredno').props.onPress(); });
+ expect(control('Napredno').props.accessibilityState.expanded).toBe(true);
+};
+/** Opens "Napredno" if it is closed and presses one of the categories in it. */
+const pressCategory = async (label: string) => { await openAdvanced(); act(() => control(label).props.onPress()); };
+/** The labels of every switch on the screen, in the order they are drawn. */
+const switchLabels = () => tree.root.findAll(node => node.props.accessibilityRole === 'switch' && !!node.props.accessibilityLabel, { deep: false })
+ .map(node => node.props.accessibilityLabel as string);
 async function mount(role: 'REQUESTER' | 'WORKER' = 'REQUESTER', onDirtyChange?: (dirty: boolean) => void) {
  await act(async () => { tree = Renderer.create(<PushPreferences role={role} onDirtyChange={onDirtyChange} />); await flush(); });
 }
@@ -56,25 +68,35 @@ afterEach(() => { act(() => tree?.unmount()); jest.useRealTimers(); });
 it('focus reads state without prompting, registering or changing consent', async () => { await mount(); expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function)); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
 it('a failed initial read can be retried without prompting or writing preferences', async () => {
  mockRead.mockRejectedValueOnce(Error('offline')); await mount();
- expect(button('Proveri stanje').props.disabled).toBe(false);
- await act(async () => { button('Proveri stanje').props.onPress(); await flush(); });
+ expect(button('Pokušaj ponovo').props.disabled).toBe(false);
+ await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
  expect(mockRead).toHaveBeenCalledTimes(2);
- expect(button('Proveri stanje')).toBeUndefined();
+ expect(button('Pokušaj ponovo')).toBeUndefined();
  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(false);
  expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function));
  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
+it('while the first read is on its way the screen shows the rows that are coming, not a stack of cards, and says so in words', async () => {
+ let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
+ await mount();
+ expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(1);
+ expect(tree.root.findByType(ListSkeleton).props).toMatchObject({ switches: true, heading: true });
+ expect(screenText()).toContain('Učitavamo podešavanja obaveštenja…');
+ await act(async () => { answer(preferences); await flush(); });
+ expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(0);
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(true);
+});
 it('after an uncertain save only readback is available, and repeated retry taps start one read', async () => {
- await mount(); act(() => control('Dogovor i poruke').props.onPress());
+ await mount(); await pressCategory('Dogovor i poruke');
  mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  expect(control('Početak tihih sati').props.accessibilityState.disabled).toBe(true);
- expect(button('Proveri stanje').props.disabled).toBe(false);
+ expect(button('Pokušaj ponovo').props.disabled).toBe(false);
  let done!: (value: unknown) => void;
  mockRead.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
- const retry = button('Proveri stanje').props.onPress;
+ const retry = button('Pokušaj ponovo').props.onPress;
  await act(async () => { retry(); retry(); await flush(); });
  expect(mockRead).toHaveBeenCalledTimes(2);
  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
@@ -96,7 +118,7 @@ it('unknown registration clears action and requires readback; retained callback 
  await mount(); const old = button('Uključi obaveštenja na telefonu').props.onPress; mockSet.mockResolvedValue({ ok: false });
  // The settings are no longer wiped off the screen by an unconfirmed outcome, so the control is
  // still there — locked until the state is read back, which is what it was protecting.
- await act(async () => { old(); await flush(); }); expect(button('Proveri stanje')).toBeDefined();
+ await act(async () => { old(); await flush(); }); expect(button('Pokušaj ponovo')).toBeDefined();
  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  await act(async () => { old(); await flush(); }); expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
 });
@@ -127,21 +149,21 @@ it('reads actual transport evidence independently and never turns a healthy tick
  mockReadiness.mockResolvedValue({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } });
  await mount(); expect(mockReadiness).toHaveBeenCalledTimes(1);
  expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(false);
- expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(true);
- expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(true);
+ expect(screenText()).not.toContain('Slanje obaveštenja je radilo pri poslednjoj proveri.');
  await toggleDetails();
  expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(true);
- expect(screenText()).toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ expect(screenText()).toContain('Slanje obaveštenja je radilo pri poslednjoj proveri.');
  expect(screenText()).toContain('Ova provera ne potvrđuje da je obaveštenje stiglo na tvoj telefon.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
  await toggleDetails();
  expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(false);
- expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.');
+ expect(screenText()).not.toContain('Slanje obaveštenja je radilo pri poslednjoj proveri.');
  expect(mockReadiness).toHaveBeenCalledTimes(1); expect(mockRead).toHaveBeenCalledTimes(1);
  expect(mockNative).not.toHaveBeenCalledWith(true, expect.any(Function));
  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 it('transport failure preserves available device controls with honest missing evidence', async () => {
- mockReadiness.mockRejectedValue(Error('offline')); await mount(); await toggleDetails(); expect(screenText()).toContain('Rad sistema za slanje još nije potvrđen.');
+ mockReadiness.mockRejectedValue(Error('offline')); await mount(); await toggleDetails(); expect(screenText()).toContain('Ne znamo da li slanje obaveštenja radi.');
  expect(button('Uključi obaveštenja na telefonu')).toBeDefined(); expect(mockSet).not.toHaveBeenCalled();
 });
 it('late transport result cannot replace a new account snapshot', async () => {
@@ -150,15 +172,15 @@ it('late transport result cannot replace a new account snapshot', async () => {
  await act(async () => { tree.update(<PushPreferences role="REQUESTER" />); await flush(); });
  await act(async () => { done({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } }); await flush(); });
  await toggleDetails(); // Inspect the new account's evidence, rather than merely a closed disclosure.
- expect(screenText()).not.toContain('Sistem za slanje je radio pri poslednjoj proveri.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ expect(screenText()).not.toContain('Slanje obaveštenja je radilo pri poslednjoj proveri.'); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
 });
 
 it('exposes category controls and saves an explicit opt-out without silently enabling push', async () => {
  await mount();
- act(() => control('Prijave i odgovori').props.onPress());
+ await pressCategory('Prijave i odgovori');
  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  // The phone waits for the change to be saved first, and says so.
- expect(button('Uključi obaveštenja na telefonu').props.reason).toBe('Prvo sačuvaj izmene kategorija i tihih sati.');
+ expect(button('Uključi obaveštenja na telefonu').props.reason).toBe('Prvo sačuvaj izmene.');
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).toHaveBeenCalledTimes(1);
  // The REQUESTER set has no "Novi zadaci" switch, and the value it would hold is written back unchanged.
@@ -184,19 +206,19 @@ it('saves overnight quiet hours, timezone and explicit HITNO override through th
 it('enabled quiet hours refuse incomplete or malformed local times before any write', async () => {
  // A time can no longer be typed; a malformed one can still come back from the server, and it is never written on.
  mockRead.mockResolvedValue({ ...preferences, settings: { ...settings, quiet_start: '25:99' } }); await mount();
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).not.toHaveBeenCalled(); expect(screenText()).toContain('Vreme tihih sati nije ispravno');
 });
 it('enabled quiet hours without an end are refused with a sentence that says what to pick', async () => {
  mockRead.mockResolvedValue({ ...preferences, settings: { ...settings, quiet_end: null } }); await mount();
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(mockSave).not.toHaveBeenCalled(); expect(screenText()).toContain('Za tihe sate izaberi početak i kraj.');
 });
 it('a preference write with unknown outcome requires authoritative readback instead of a blind second write', async () => {
  await mount(); let done!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { done = resolve; }));
- act(() => control('Dogovor i poruke').props.onPress()); const save = button('Sačuvaj podešavanja').props.onPress;
+ await pressCategory('Dogovor i poruke'); const save = button('Sačuvaj podešavanja').props.onPress;
  await act(async () => { save(); await flush(); });
  expect(mockSave).toHaveBeenCalledTimes(1);
  mockAccount = { user: { id: preferences.userId }, accountRevision: 3 };
@@ -214,9 +236,91 @@ it('shows the "Novi zadaci" switch only in the set that receives new tasks', asy
  expect(tree.root.findAllByProps({ accessibilityLabel: 'Novi zadaci' })).toHaveLength(0);
  expect(screenText()).not.toContain('Nove prilike');
 });
+// R33 (UI/UX pass, 2026-10-08): six categories named for the engine became three choices a person understands, and the categories
+// one by one are under a closed "Napredno". A choice is a view over its categories; the server still keeps the categories.
+const ADVANCED = ['Prijave i odgovori', 'Dogovor i poruke', 'Završetak zadatka', 'Nedovršeno', 'Nalog i ostalo'];
+it('offers three choices, keeps the categories one by one under a closed "Napredno", and draws no category twice', async () => {
+ await mount('WORKER');
+ expect(switchLabels()).toEqual(expect.arrayContaining(['Obaveštenja u aplikaciji', 'Novi zadaci', 'Prijave i poruke', 'Sve ostalo']));
+ for (const label of ADVANCED) expect(switchLabels()).not.toContain(label);
+ expect(control('Napredno').props.accessibilityState.expanded).toBe(false);
+ expect(control('Napredno').props.accessibilityHint).toBe('Svaka vrsta obaveštenja posebno.');
+ await openAdvanced();
+ expect(switchLabels()).toEqual(expect.arrayContaining(ADVANCED));
+ // "Novi zadaci" is the one category of its choice, so it is not drawn a second time under "Napredno".
+ expect(switchLabels().filter(label => label === 'Novi zadaci')).toHaveLength(1);
+ // The engine's names are gone from everything a person reads.
+ for (const word of ['Oporavak', 'Izvršenje i završetak', 'Zadaci i prijave']) expect(screenText()).not.toContain(word);
+});
+it('the set that receives no new tasks has two choices, not three', async () => {
+ await mount('REQUESTER');
+ expect(switchLabels()).toEqual(expect.arrayContaining(['Prijave i poruke', 'Sve ostalo']));
+ expect(switchLabels()).not.toContain('Novi zadaci');
+ expect(screenText()).toContain('Šta ti šaljemo');
+});
+it('one touch on a choice switches every category it stands for, and one save writes them all', async () => {
+ await mount('WORKER');
+ act(() => control('Prijave i poruke').props.onPress());
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(false);
+ await openAdvanced();
+ // The three categories were changed one after the other and none of them undid the one before it.
+ for (const label of ['Prijave i odgovori', 'Dogovor i poruke', 'Završetak zadatka']) expect([label, control(label).props.accessibilityState.checked]).toEqual([label, false]);
+ for (const label of ['Nedovršeno', 'Nalog i ostalo', 'Novi zadaci']) expect([label, control(label).props.accessibilityState.checked]).toEqual([label, true]);
+ await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+ expect(mockSave).toHaveBeenCalledTimes(1);
+ expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'WORKER', { ...settings, responses_enabled: false, dogovor_enabled: false, execution_enabled: false }, 2);
+ expect(mockSet).not.toHaveBeenCalled();
+});
+it('"Sve ostalo" stands for the unfinished actions and the account, and "Novi zadaci" for the new tasks alone', async () => {
+ await mount('WORKER');
+ act(() => control('Sve ostalo').props.onPress()); act(() => control('Novi zadaci').props.onPress());
+ await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+ expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'WORKER', { ...settings, recovery_enabled: false, account_enabled: false, opportunities_enabled: false }, 2);
+});
+it('a choice whose categories differ reads as off, says the details are under "Napredno", and one touch makes them all the same', async () => {
+ mockRead.mockResolvedValue({ ...preferences, settings: { ...settings, dogovor_enabled: false } }); await mount();
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(false);
+ expect(control('Prijave i poruke').props.accessibilityHint).toContain('Delimično uključeno. Pojedinosti su u Naprednom.');
+ expect(control('Sve ostalo').props.accessibilityHint).not.toContain('Delimično');
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
+ act(() => control('Prijave i poruke').props.onPress());
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(true);
+ await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+ expect(mockSave).toHaveBeenCalledWith(preferences.userId, 'REQUESTER', { ...settings }, 2);
+});
+it('a category changed under "Napredno" moves its choice to the middle and back, and back at what is saved nothing waits to be saved', async () => {
+ await mount(); await pressCategory('Dogovor i poruke');
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(false);
+ expect(control('Prijave i poruke').props.accessibilityHint).toContain('Delimično uključeno.');
+ expect(button('Sačuvaj podešavanja')).toBeDefined();
+ act(() => control('Dogovor i poruke').props.onPress());
+ expect(control('Prijave i poruke').props.accessibilityState.checked).toBe(true);
+ expect(control('Prijave i poruke').props.accessibilityHint).not.toContain('Delimično');
+ expect(button('Sačuvaj podešavanja')).toBeUndefined();
+});
+it('the three choices cover the six categories exactly once, and a choice is on, off or in the middle by its categories', () => {
+ const covered = Object.values(CHOICE_CATEGORIES).flat();
+ expect([...covered].sort()).toEqual(['account_enabled', 'dogovor_enabled', 'execution_enabled', 'opportunities_enabled', 'recovery_enabled', 'responses_enabled']);
+ expect(new Set(covered).size).toBe(covered.length);
+ expect(choiceState(settings, 'talk')).toBe('on');
+ expect(choiceState({ ...settings, responses_enabled: false }, 'talk')).toBe('mixed');
+ expect(choiceState({ ...settings, responses_enabled: false, dogovor_enabled: false, execution_enabled: false }, 'talk')).toBe('off');
+ expect(choiceState({ ...settings, opportunities_enabled: false }, 'tasks')).toBe('off');
+ expect(choiceState({ ...settings, recovery_enabled: false }, 'other')).toBe('mixed');
+});
+it('the sentence before the phone\'s permission stands above the button it speaks about, once, and not in the closed details', async () => {
+ mockNative.mockResolvedValue({ kind: 'PERMISSION_REQUIRED' }); await mount();
+ expect(control('Detalji telefona i slanja').props.accessibilityState.expanded).toBe(false);
+ const order = () => tree.root.findAll(node => (node.type as unknown) === 'Text' || (node.type as unknown) === 'Button').map(node => String(node.props.children ?? node.props.label));
+ const sentence = order().findIndex(line => line.startsWith('Dugme ispod traži dozvolu za obaveštenja i povezuje ovaj telefon.'));
+ expect(sentence).toBeGreaterThan(order().indexOf('Potrebna je dozvola telefona'));
+ expect(sentence).toBeLessThan(order().indexOf('Uključi obaveštenja na telefonu'));
+ await toggleDetails();
+ expect(order().filter(line => line.startsWith('Dugme ispod traži dozvolu'))).toHaveLength(1);
+});
 it('a switch row is one focus stop, spoken as a switch, drawn green on white instead of the platform teal', async () => {
  await mount();
- const row = control('Dogovor i poruke');
+ const row = control('Prijave i poruke');
  expect(row.props.accessibilityRole).toBe('switch');
  expect(row.props.accessibilityState).toEqual({ checked: true, disabled: false });
  const drawn = row.findByProps({ importantForAccessibility: 'no-hide-descendants' });
@@ -229,7 +333,7 @@ it('clean settings leave the categories visible; one sticky Save appears after a
  await mount();
  expect(button('Sačuvaj podešavanja')).toBeUndefined();
  expect(tree.root.findAllByProps({ testID: 'settings-primary-footer' })).toHaveLength(0);
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  const save = button('Sačuvaj podešavanja');
  expect(StyleSheet.flatten(save.props.style).backgroundColor).toBe(sys.color.green);
  expect(save.props.disabled).toBe(false);
@@ -241,7 +345,7 @@ it('clean settings leave the categories visible; one sticky Save appears after a
 it('reports unsaved changes to the route, and shows the check only once the saved values are read back', async () => {
  const dirty = jest.fn(); await mount('REQUESTER', dirty);
  expect(dirty).toHaveBeenLastCalledWith(false);
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  expect(dirty).toHaveBeenLastCalledWith(true);
  let answer!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
@@ -259,14 +363,14 @@ it('reports unsaved changes to the route, and shows the check only once the save
  const saved = tree.root.findAllByType('Text' as never).find(node => node.props.children === 'Podešavanja su sačuvana.')!;
  expect(saved.props.tone).toBe('success'); expect(saved.props.accessibilityLiveRegion).toBe('polite');
  expect(button('Sačuvaj podešavanja').props.reason).toBeNull();
- act(() => control('Izvršenje i završetak').props.onPress());
+ await pressCategory('Završetak zadatka');
  expect(button('Sačuvaj podešavanja').props.success).toBe(false);
  expect(screenText()).not.toContain('Podešavanja su sačuvana.');
 });
 it('an emulator is told honestly that it cannot receive notifications, with nothing to press', async () => {
  mockNative.mockResolvedValue({ kind: 'UNSUPPORTED' }); await mount();
  expect(screenText()).toContain('Nije dostupno na ovom uređaju');
- for (const label of ['Uključi obaveštenja na telefonu', 'Isključi za moje zadatke', 'Podešavanja telefona', 'Osveži stanje']) expect(button(label)).toBeUndefined();
+ for (const label of ['Uključi obaveštenja na telefonu', 'Isključi za moje zadatke', 'Podešavanja telefona', 'Osveži']) expect(button(label)).toBeUndefined();
 });
 it('a phone that refuses notifications says so first and reads again when the person comes back from its settings', async () => {
  const listeners: ((state: string) => void)[] = [];
@@ -288,7 +392,7 @@ it('failed OS settings launch leaves notification edits intact and never writes 
  const open = jest.spyOn(Linking, 'openSettings').mockRejectedValueOnce(Error('unavailable')).mockResolvedValue(undefined);
  try {
   mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
-  act(() => control('Dogovor i poruke').props.onPress());
+  await pressCategory('Dogovor i poruke');
   await act(async () => { button('Podešavanja telefona').props.onPress(); await flush(); });
   expect(button('Podešavanja telefona').props.error).toContain('Otvaranje podešavanja nije potvrđeno.');
   expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(false);
@@ -306,7 +410,7 @@ it('coming back to the app never reads over unsaved changes', async () => {
   listeners.push(handler); return { remove: jest.fn() }; }) as never);
  try {
   mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
-  act(() => control('Dogovor i poruke').props.onPress());
+  await pressCategory('Dogovor i poruke');
   await act(async () => { listeners.forEach(listener => listener('active')); await flush(); });
   expect(mockRead).toHaveBeenCalledTimes(1);
   expect(control('Dogovor i poruke').props.accessibilityState.checked).toBe(false);
@@ -343,7 +447,7 @@ it('on a device without notifications there is still nothing to press, and a set
  expect(screenText()).toContain('Nije dostupno na ovom uređaju');
  await toggleDetails();
  expect(screenText()).toContain('Obaveštenja na telefon su uključena za Moje zadatke.');
- for (const label of ['Uključi obaveštenja na telefonu', 'Poveži ovaj telefon', 'Isključi za moje zadatke', 'Osveži stanje']) expect(button(label)).toBeUndefined();
+ for (const label of ['Uključi obaveštenja na telefonu', 'Poveži ovaj telefon', 'Isključi za moje zadatke', 'Osveži']) expect(button(label)).toBeUndefined();
 });
 it('a phone that refuses notifications keeps the switch-off for a set that is on, under a headline that says so', async () => {
  mockRead.mockResolvedValue(on); mockNative.mockResolvedValue({ kind: 'DENIED' }); await mount();
@@ -353,26 +457,26 @@ it('a phone that refuses notifications keeps the switch-off for a set that is on
  await openPhoneManagement();
  expect(button('Isključi za moje zadatke')).toBeDefined();
 });
-it('an unconfirmed state offers one re-read, and says "Prvo proveri stanje." once, on Save', async () => {
- await mount(); await openPhoneManagement(); act(() => control('Dogovor i poruke').props.onPress());
+it('an unconfirmed state offers one re-read, and says "Prvo pokušaj ponovo." once, on Save', async () => {
+ await mount(); await openPhoneManagement(); await pressCategory('Dogovor i poruke');
  mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
- expect(button('Proveri stanje').props.disabled).toBe(false);
- expect(button('Osveži stanje')).toBeUndefined();
+ expect(button('Pokušaj ponovo').props.disabled).toBe(false);
+ expect(button('Osveži')).toBeUndefined();
  // The save cannot be the way forward (it is locked too), so the wait points at the check. Round 5c: only Save says it;
- // the phone button stands right under the alert and "Proveri stanje", and a second copy was spoken twice in a row.
+ // the phone button stands right under the alert and "Pokušaj ponovo", and a second copy was spoken twice in a row.
  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
  expect(button('Uključi obaveštenja na telefonu').props.reason).toBeNull();
- expect(button('Sačuvaj podešavanja').props.reason).toBe('Prvo proveri stanje.');
+ expect(button('Sačuvaj podešavanja').props.reason).toBe('Prvo pokušaj ponovo.');
 });
 // Round 5c (2026-09-24): after an unconfirmed save it is not known whether the changes were saved.
 it('after an unconfirmed save the route is not told the changes are unsaved, so Back does not claim they are', async () => {
  const dirty = jest.fn(); await mount('REQUESTER', dirty);
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  expect(dirty).toHaveBeenLastCalledWith(true);
  mockSave.mockRejectedValueOnce(Error('lost acknowledgement'));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
- expect(button('Proveri stanje')).toBeDefined();
+ expect(button('Pokušaj ponovo')).toBeDefined();
  expect(dirty).toHaveBeenLastCalledWith(false);
 });
 // Round 5c (2026-09-24): a reason that disappears while a command runs comes back afterwards and is spoken again.
@@ -380,30 +484,30 @@ it('a clean phone refresh does not introduce a Save action or repeat an irreleva
  await mount(); await openPhoneManagement();
  expect(button('Sačuvaj podešavanja')).toBeUndefined();
  let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
- await act(async () => { button('Osveži stanje').props.onPress(); await flush(); });
- expect(button('Osveži stanje').props.loading).toBe(true);
+ await act(async () => { button('Osveži').props.onPress(); await flush(); });
+ expect(button('Osveži').props.loading).toBe(true);
  expect(button('Sačuvaj podešavanja')).toBeUndefined();
  await act(async () => { answer(preferences); await flush(); });
  expect(button('Sačuvaj podešavanja')).toBeUndefined();
  // While Save itself runs it has no reason: the spinner is the answer.
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  mockSave.mockReturnValueOnce(new Promise(() => undefined));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(button('Sačuvaj podešavanja').props.reason).toBeNull();
 });
 it('a retained press that is refused while another command runs does not take that command\'s spinner', async () => {
  await mount(); await openPhoneManagement();
- const refresh = button('Osveži stanje').props.onPress;
- act(() => control('Dogovor i poruke').props.onPress());
+ const refresh = button('Osveži').props.onPress;
+ await pressCategory('Dogovor i poruke');
  let answer!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(button('Sačuvaj podešavanja').props.loading).toBe(true);
  const reads = mockRead.mock.calls.length;
  await act(async () => { refresh(); await flush(); });
  expect(mockRead).toHaveBeenCalledTimes(reads);
- // It used to move the spinner to "Osveži stanje" and bring back "Proveravamo stanje…" in the middle of the save.
+ // It used to move the spinner to "Osveži" and bring back "Proveravamo stanje…" in the middle of the save.
  expect(button('Sačuvaj podešavanja').props.loading).toBe(true);
- expect(button('Osveži stanje').props.loading).toBe(false);
+ expect(button('Osveži').props.loading).toBe(false);
  expect(screenText()).not.toContain('Proveravamo stanje');
  await act(async () => { answer({ ...preferences, revision: 3 }); await flush(); });
  expect(mockSave).toHaveBeenCalledTimes(1);
@@ -412,7 +516,7 @@ it('tells the route while a write runs, and never while it only reads', async ()
  const writing = jest.fn();
  await act(async () => { tree = Renderer.create(<PushPreferences role="REQUESTER" onWritingChange={writing} />); await flush(); });
  expect(writing).toHaveBeenLastCalledWith(false); expect(writing).not.toHaveBeenCalledWith(true);
- act(() => control('Dogovor i poruke').props.onPress());
+ await pressCategory('Dogovor i poruke');
  let answer!: (value: unknown) => void; mockSave.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(writing).toHaveBeenLastCalledWith(true);
@@ -420,18 +524,18 @@ it('tells the route while a write runs, and never while it only reads', async ()
  expect(writing).toHaveBeenLastCalledWith(false);
 });
 it('while a command runs, the choices wait in muted words and are not faded a second time', async () => {
- await mount(); act(() => control('Dogovor i poruke').props.onPress());
+ await mount(); await pressCategory('Dogovor i poruke');
  mockSave.mockReturnValueOnce(new Promise(() => undefined));
  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
  expect(control('Dogovor i poruke').props.accessibilityState.disabled).toBe(true);
  const faded = tree.root.findAll(node => (node.type as unknown) === 'View' && (StyleSheet.flatten(node.props.style)?.opacity ?? 1) < 1);
  expect(faded).toHaveLength(0);
 });
-it('the note about every category stands under the first category group, and the send check is a heading', async () => {
+it('the note about what is switched off stands under the three choices, before the quiet hours, and the send check is a heading', async () => {
  await mount();
  const copy = screenText();
- const note = copy.indexOf('Isključena kategorija ne stiže ni u aplikaciju ni na telefon.');
- expect(note).toBeGreaterThan(copy.indexOf('Prijave i odgovori')); expect(note).toBeLessThan(copy.indexOf('Dogovor i poruke'));
+ const note = copy.indexOf('Ono što isključiš ne stiže ni u aplikaciju ni na telefon.');
+ expect(note).toBeGreaterThan(copy.indexOf('Sve ostalo')); expect(note).toBeLessThan(copy.indexOf('Tihi sati'));
  await toggleDetails();
  expect(tree.root.findAllByType('Text' as never).find(node => node.props.children === 'Poslednja provera slanja')!.props.accessibilityRole).toBe('header');
 });

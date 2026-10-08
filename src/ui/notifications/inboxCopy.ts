@@ -61,5 +61,35 @@ export function applyLocalReads<S extends { page: InboxPage | null }>(state: S, 
 /** Whether a row can be marked read on its own: it is unread, and the screen offers the command at all. */
 export const canMarkRead = (item: Pick<InboxItem, 'readAt'>, offered: boolean) => offered && !item.readAt;
 
-/** Which set of notifications a tab shows, in the owner's words (also the names of the sets in the notification settings). */
-export const INBOX_SET_LABEL: Readonly<Record<'ALL' | InboxRole, string>> = { ALL: 'Sve', REQUESTER: 'Zadaci', WORKER: 'Moje prijave' };
+/**
+ * Which set of notifications a tab shows, in the owner's words (also the names of the sets in the notification settings). The set
+ * of a requester is "Moji zadaci", as the card on Početna is: "Zadaci" is the name of the tab of OTHER people's tasks, and one word
+ * must not name two things (UI/UX pass, 2026-10-08).
+ */
+export const INBOX_SET_LABEL: Readonly<Record<'ALL' | InboxRole, string>> = { ALL: 'Sve', REQUESTER: 'Moji zadaci', WORKER: 'Moje prijave' };
+
+/**
+ * R11, R15: the task an event is about, when the read says which one. The inbox read carries no task of its own today (`InboxItem` has
+ * `title` and `body` only, and the resolver gives an id, not a name), so this is null for every event the server sends now, and the row
+ * says what it said before. It is READY for the day the read does: `rpc_list_inbox` returns `taskTitle` beside each event (the task's
+ * own title, no address, nothing for the lock screen: rule A20), the decoder keeps it, and every row then says which task it is about
+ * without being opened. Nothing is invented from the words of the event or from another list.
+ */
+export function inboxTaskTitle(item: object): string | null {
+  const title = (item as { taskTitle?: unknown }).taskTitle;
+  return typeof title === 'string' && title.trim() ? title.trim().replace(/\s+/g, ' ') : null;
+}
+
+/** The forms of "zadatak" that the server's stored words write with a capital in the middle of a sentence ("za Zadatak"). */
+const CAPITAL_TASK = /(\S) (Zadatak|Zadatka|Zadatku|Zadatkom|Zadaci|Zadataka)(?![\p{L}])/gu;
+
+/**
+ * The stored words of an event as the sentence they are. Three of the server's stored texts spell "zadatak" with a capital in the
+ * middle of the sentence ("Imaš novu prijavu za Zadatak.": a mistake that reads like a wrong name; `pkg027c_notification_ti_copy.sql`
+ * lines 66, 78, 84), and the stored rows keep it until a migration rewrites them. The rule of the app is "zadatak" in the lower case
+ * inside a sentence, so the row shows it that way; at the start of a sentence (after a full stop) it keeps its capital. Once the server
+ * says it right this changes nothing, so it can stay.
+ */
+export function readableServerCopy(text: string): string {
+  return text.replace(CAPITAL_TASK, (match, before: string, word: string) => /[.!?:…]/.test(before) ? match : `${before} ${word.charAt(0).toLowerCase()}${word.slice(1)}`);
+}

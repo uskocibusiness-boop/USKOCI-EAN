@@ -151,7 +151,7 @@ export function messageSpoken(message: Pick<PorukaProjekcija, 'moja' | 'posiljal
 /** What stands by one of my messages. Seen is drawn only when the read says so; a pending or unconfirmed send is never "sent". */
 export type MarkKind = 'sent' | 'seen' | 'pending' | 'unconfirmed' | 'failed';
 export const MARK_WORDS: Readonly<Record<MarkKind, string>> = {
-  sent: 'Poslato', seen: 'Viđeno', pending: 'Šalje se', unconfirmed: 'Slanje nije potvrđeno', failed: 'Nije poslato',
+  sent: 'Poslato', seen: 'Viđeno', pending: 'Šalje se', unconfirmed: 'Ne znamo da li je stigla', failed: 'Nije poslato',
 };
 
 /**

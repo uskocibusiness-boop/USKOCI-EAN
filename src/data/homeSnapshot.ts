@@ -1,5 +1,6 @@
-import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija } from '../contracts/projections';
+import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija, RadnikProfilProjekcija } from '../contracts/projections';
 import { prijava } from '../ui/system/plural';
+import { readableTitle } from './needDetailPresentation';
 import { hasNeedAttention, ownedTaskCounts, type OwnedTaskCounts } from './marketplaceView';
 import { applicationCounts, type ApplicationCounts } from './myApplicationsView';
 import { acceptedTerm, awaitingFinishCount, looseLine, notOver, rasporedOf, withoutTermCount, type HomeRaspored } from '../ui/home/raspored';
@@ -24,10 +25,21 @@ import { zonaTelefona } from '../lib/vreme';
  * quiet line (`quietLine`), so an agreement never vanishes from Početna for want of a day to show it on.
  */
 export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable' };
+/**
+ * What Početna asks of the account's own work profile (R20, R06): `null` is "this account has none". A caller that does not read
+ * it leaves `workerProfile` out of the reads, and the profile is then unknown: no row is drawn and nothing is said about it.
+ */
+export type HomeWorkProfileRead = Pick<RadnikProfilProjekcija, 'stanje' | 'dostupanOdmah'>;
 export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications: HomeSection<MojaPrijavaProjekcija[]>;
-  agreements: HomeSection<DogovorProjekcija[]> };
+  agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null> };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
-  | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string };
+  | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string }
+  /** R02: the Dogovor has no term yet. The row opens the form that proposes one (Izmene Dogovora, "Predloži termin"). */
+  | { kind: 'AGREEMENT_TERM'; agreementId: string }
+  /** The other side proposed a change of the terms and it waits for my answer: the row opens that proposal. */
+  | { kind: 'AGREEMENT_CHANGE'; agreementId: string }
+  /** R20: the work profile still has to be set up. The row opens its conversation. */
+  | { kind: 'WORKER_PROFILE' };
 export type HomeAttention = { id: string; title: string; detail: string; target: HomeTarget;
   /** Structured by the live attention decoder. Legacy proof/gallery rows retain their combined detail. */
   taskTitle?: string };
@@ -62,7 +74,18 @@ type Preview<Row> = { rows: Row[]; more: number };
  * done ("2 Dogovora bez tačnog termina · 1 Dogovor čeka završetak"). Absent otherwise.
  */
 export type HomeAgreements = Preview<HomeRow> & { quietLine?: string };
+/** The account's own work profile as Početna uses it: whether it still has to be set up, and whether the person says they can start now. */
+export type HomeWorkProfile = { state: 'NONE' | RadnikProfilProjekcija['stanje']; availableNow: boolean };
 export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; agreements: HomeSection<HomeAgreements>;
+  /**
+   * Things that wait for me and that the phone knows from the reads it already makes, not from the server's attention list: a
+   * Dogovor with no term (R02), a change the other side proposed, a draft to continue (R18). They follow the server's rows in
+   * "Čeka te", up to `HOME_WAITING_LIMIT` rows together; `promptsMore` counts those that did not fit. Both are absent when there
+   * is none, so a snapshot without them is exactly the one it was before.
+   */
+  prompts?: HomeAttention[]; promptsMore?: number;
+  /** R20, R06: absent when the profile was not read; `unavailable` when its read failed (nothing is then said about it). */
+  workerProfile?: HomeSection<HomeWorkProfile>;
   /** The two front doors. A side that could not be read is unavailable, never zero. */
   mine: { tasks: HomeSection<OwnedTaskCounts>; applications: HomeSection<ApplicationCounts> };
   partial: boolean; attentionState?: 'known' | 'unavailable';
@@ -90,6 +113,28 @@ export async function readHomeSection<T>(read: () => Promise<T>): Promise<HomeSe
 
 // One next Dogovor (2026-09-23): the rest are one tab away, in Dogovori.
 const HOME_ATTENTION_LIMIT = 3, HOME_AGREEMENT_LIMIT = 1;
+/** "Čeka te" holds the server's rows (three at most) and the phone's own prompts together: four rows, never a list that crowds out Raspored. */
+export const HOME_WAITING_LIMIT = 4;
+/** A draft older than this is no longer offered on Početna (R18). */
+export const DRAFT_FRESH_DAYS = 7;
+
+/**
+ * Whether a draft is recent enough to be offered as "Nastavi nacrt" (R18). The own-task read carries no timestamp today
+ * (`PotrebaProjekcija` has none), so a draft of unknown age is offered, and the seven days apply as soon as the read says when the
+ * draft was last changed. An age that cannot be read is an unknown age, not an old one.
+ */
+export function draftIsFresh(updatedAt: string | null | undefined, now: number): boolean {
+  if (typeof updatedAt !== 'string') return true;
+  const at = Date.parse(updatedAt);
+  return Number.isFinite(at) && Number.isFinite(now) ? now - at <= DRAFT_FRESH_DAYS * 86_400_000 : true;
+}
+
+/**
+ * R02: a confirmed Dogovor whose accepted terms say neither a window nor even a start, with no change waiting to give it one.
+ * Both fields have to be there and be empty: a list that did not read the terms leaves them out, and that is not "no term".
+ */
+export const needsTerm = (row: DogovorProjekcija): boolean => row.stanje === 'CONFIRMED' && row.tacanTermin === null
+  && row.prihvacenPocetak === null && !row.izmenaCeka;
 
 const activeApplication = (row: MojaPrijavaProjekcija) => ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'STALE_REVIEW_REQUIRED'].includes(row.stanje);
 const staleApplication = (row: MojaPrijavaProjekcija) => row.stanje === 'STALE_REVIEW_REQUIRED' || row.promenjenaPotreba;
@@ -173,6 +218,27 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   // appointment ahead those Dogovori are counted in one quiet line (with a card, the same counts ride in the card's own
   // grey line).
   const quietLine = raspored ? null : looseLine(loose(null));
+  // What waits for me that the phone knows from the reads it already makes (R02, R18). They follow the server's own rows and
+  // never replace them: the server's aggregate stays the answer about applications, completions and problems.
+  const subject = (title: string) => { const text = readableTitle(title); return text ? { taskTitle: text } : {}; };
+  const prompts: HomeAttention[] = [
+    ...(agreements ?? []).filter(row => activeAgreement(row) && row.izmenaCeka && !row.izmenaCeka.mojPredlog).map(row => ({
+      id: `agreement:${row.id}:change`, title: 'Odgovori na predlog izmene', ...subject(row.naslov), detail: 'Druga strana predlaže izmenu uslova.',
+      target: { kind: 'AGREEMENT_CHANGE' as const, agreementId: row.id } })),
+    ...(agreements ?? []).filter(needsTerm).map(row => ({
+      id: `agreement:${row.id}:term`, title: 'Predloži termin', ...subject(row.naslov), detail: 'Termin još nije dogovoren.',
+      target: { kind: 'AGREEMENT_TERM' as const, agreementId: row.id } })),
+    ...(needs ?? []).filter(row => row.stanje === 'NACRT' && readableTitle(row.naslov)
+      && draftIsFresh((row as { azurirano?: string | null }).azurirano, now)).slice(0, 1).map(row => ({
+      id: `need:${row.id}:draft`, title: 'Nastavi nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
+      target: { kind: 'NEED' as const, needId: row.id } })),
+  ];
+  const room = Math.max(0, HOME_WAITING_LIMIT - Math.min(attention.length, HOME_ATTENTION_LIMIT));
+  const profileRead = reads.workerProfile;
+  const workerProfile: HomeSnapshot['workerProfile'] = profileRead === undefined ? undefined
+    : profileRead.kind === 'unavailable' ? { kind: 'unavailable' }
+      : { kind: 'known', value: profileRead.value ? { state: profileRead.value.stanje, availableNow: profileRead.value.dostupanOdmah }
+        : { state: 'NONE', availableNow: false } };
   const due = (agreements ?? []).filter(ratingDue);
   const serverRatings = serverAttention?.kind === 'known' ? serverAttention.value.ratings : undefined;
   // The server's aggregate is the whole answer when it is there: a failed or slow Dogovori read then withholds the Dogovori, never the number of ratings.
@@ -183,6 +249,8 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     attention: attention.slice(0, HOME_ATTENTION_LIMIT), attentionMore: serverAttention
       ? serverAttention.kind === 'known' ? serverAttention.value.more : 0 : Math.max(0, attention.length - HOME_ATTENTION_LIMIT),
     ...(serverAttention ? { attentionState: serverAttention.kind } : {}),
+    ...(prompts.length ? { prompts: prompts.slice(0, room), ...(prompts.length > room ? { promptsMore: prompts.length - room } : {}) } : {}),
+    ...(workerProfile ? { workerProfile } : {}),
     agreements: agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT), ...(quietLine ? { quietLine } : {}) } } : { kind: 'unavailable' },
     mine: { tasks: needs ? { kind: 'known', value: ownedTaskCounts(needs) } : { kind: 'unavailable' },

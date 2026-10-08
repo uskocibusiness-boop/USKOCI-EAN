@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { AccessibilityInfo, ActivityIndicator, FlatList, StyleSheet, View, type TextStyle } from 'react-native';
-import { Check } from 'phosphor-react-native';
+import { AccessibilityInfo, ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import type { InboxItem, InboxRole } from '../../contracts/inbox';
 import type { InboxState } from '../../data/inboxModel';
 import { trenutak, type Trenutak } from '../../lib/trenutak';
@@ -10,23 +9,27 @@ import { V2Action } from '../v2/V2Action';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ConversationArt } from '../system/ConversationArt';
+import { ListRow } from '../system/ListRow';
+import { layout } from '../system/layout';
 import { neprocitanih } from '../system/plural';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
-import { useTextScale } from '../system/textScale';
-import { inset, sys } from '../system/tokens';
-import { INBOX_SET_LABEL, canMarkRead, inboxDestination } from './inboxCopy';
+import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
+import { INBOX_SET_LABEL, canMarkRead, inboxDestination, inboxTaskTitle, readableServerCopy } from './inboxCopy';
+import { ListSkeleton } from './ListSkeleton';
 import { SwipeToRead, type SwipeableRowHandle } from './SwipeToRead';
 
 /**
- * Chronological events, grouped by the server moment. Each event keeps its actual semantic illustration,
- * full-width title, supporting body and quiet clock. The unread dot shares the illustration footprint instead
- * of consuming a separate text gutter. An event has no actor/avatar contract: none is invented here.
- * The route/model still own read acknowledgment, target resolution and exact navigation.
+ * Chronological events, grouped by the server moment, on the one rhythm of the app (UI/UX pass, 2026-10-08, composition spec 4.13):
+ * the edge is 20, a day is a group heading (16/24, grey) with 24 above it and 12 under it, and "Označi sve" is the action at the end of
+ * the first day's heading, not a row of its own. An event is a `ListRow`: the picture (32, in a 40 slot) with the unread dot on it, the
+ * event in 16/24, the words under it, and one quiet line, "14:05 · Otvara Dogovor", that says when and where a tap goes. Rows of a day
+ * are parted by the inset line, days by space; no card, no band, no box.
  *
- * T4a, 2026-10-07: an unread row is heavier in its words as well as marked by the dot; under every row, with the clock, it
- * says where a tap goes ("Otvara Dogovor"); and a finger can pull a row to the left to show "Pročitano", which settles that
- * one notification without opening it (the same command is offered to a screen reader as a custom action).
+ * The route/model still own read acknowledgment, target resolution and exact navigation. An event has no actor/avatar contract: none is
+ * invented here. An unread row is the one with the dot (and its picture in colour); a pull to the left shows "Pročitano", which settles
+ * that one notification without opening it (T4a, 2026-10-07).
  */
 export type InboxView = Pick<InboxState, 'page' | 'loading' | 'paging' | 'acting' | 'error' | 'unavailable'>;
 
@@ -38,6 +41,10 @@ export const INBOX_FILTERS: { label: string; role: InboxRole | null }[] = [
 /** The command of the swipe, in its own word and for a screen reader. */
 export const MARK_READ_LABEL = 'Pročitano';
 const MARK_READ_HINT = 'Označava obaveštenje kao pročitano.';
+/** "Označi sve", the word at the end of the first day's heading; the screen reader says the whole of it, and how many that is. */
+const READ_ALL_LABEL = 'Označi sve';
+const readAllSpoken = (unread: number) => `Označi sve kao pročitano, ${neprocitanih(unread)}`;
+/** The same command, in the actions menu of a screen reader (a swipe is never the only way). */
 const MARK_READ_ACTION = 'markRead';
 const MARK_READ_ACTIONS = [{ name: MARK_READ_ACTION, label: 'Označi kao pročitano' }];
 
@@ -46,7 +53,7 @@ const EMPTY_TITLE: Record<'ALL' | InboxRole, string> = {
   REQUESTER: 'Još nema obaveštenja o tvojim zadacima',
   WORKER: 'Još nema obaveštenja o tvojim prijavama',
 };
-const AGAIN = 'Proveri vezu i pokušaj ponovo. Poslednje učitano stanje ostaje prikazano.';
+const AGAIN = 'Proveri vezu i pokušaj ponovo. Do tada vidiš poslednja učitana obaveštenja.';
 
 type DayRow = { kind: 'day'; id: string; label: string; first: boolean };
 type EventRow = { kind: 'event'; id: string; item: InboxItem; moment: Trenutak | null; last: boolean };
@@ -93,18 +100,25 @@ export function inboxEventArt(eventType: string, family: string): FactArtKind {
     : family === 'recovery' ? 'shield' : family === 'opportunities' ? 'tasks' : 'bell';
 }
 
-/** Lead and second line of a row: the task first where the data has it (a new task for you), the event otherwise. */
+/**
+ * Lead and second line of a row. A new task for you leads with the task itself (the data has it: its own title is the body). For
+ * every other event the event leads, and the second line is its words — or the TASK, when the read says which one (R11): "Nova
+ * prijava" over "Montaža police u hodniku" says more than "Imaš novu prijavu za zadatak." says. The server's stored words have a
+ * capital in the middle of a sentence in three places ("za Zadatak"); they are shown as the sentence they are.
+ */
 function rowCopy(item: InboxItem): { primary: string; secondary: string } {
-  return item.eventType === 'OPPORTUNITY_AVAILABLE' && item.body.trim()
-    ? { primary: item.body, secondary: item.title } : { primary: item.title, secondary: item.body };
+  if (item.eventType === 'OPPORTUNITY_AVAILABLE' && item.body.trim()) return { primary: item.body, secondary: item.title };
+  const task = inboxTaskTitle(item);
+  return { primary: readableServerCopy(item.title), secondary: task ?? readableServerCopy(item.body) };
 }
 
-type RowProps = { item: InboxItem; moment: Trenutak | null; last: boolean; acting: boolean; disabled: boolean;
-  large: boolean; onOpen: (item: InboxItem) => void;
+type RowProps = { item: InboxItem; moment: Trenutak | null; last: boolean; acting: boolean;
+  /** Another command is running: the revealed swipe command waits. */ busy: boolean;
+  onOpen: (item: InboxItem) => void;
   /** Settles this one notification without opening it. Absent: the row cannot be swiped. */ onMarkRead?: (item: InboxItem) => void;
   /** A swiped row opened: the list closes the one that was open before. */ onSwipeOpen?: (row: SwipeableRowHandle) => void };
 
-function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen, onMarkRead, onSwipeOpen }: RowProps) {
+function InboxRowBase({ item, moment, last, acting, busy, onOpen, onMarkRead, onSwipeOpen }: RowProps) {
   const unread = !item.readAt;
   const art = inboxEventArt(item.eventType, item.family);
   const { primary, secondary } = rowCopy(item);
@@ -113,50 +127,56 @@ function InboxRowBase({ item, moment, last, acting, disabled, large, onOpen, onM
   const where = inboxDestination(item);
   const meta = [moment?.sat, where].filter(Boolean).join(' · ');
   const markable = canMarkRead(item, !!onMarkRead);
-  const row = <Press accessibilityRole="button" accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${item.title}. ${item.body}${when}`}
-    accessibilityHint={where ? `${where}.` : undefined}
-    // The swipe is never the only way: a screen reader offers the same command in its actions menu.
-    accessibilityActions={markable ? MARK_READ_ACTIONS : undefined}
-    onAccessibilityAction={markable ? event => { if (event.nativeEvent.actionName === MARK_READ_ACTION) onMarkRead!(item); } : undefined}
-    accessibilityState={{ disabled, busy: acting }} disabled={disabled} haptic="select" scaleTo={1}
-    onPress={() => onOpen(item)} style={[s.row, last && s.rowLast]}>
-    <View style={s.art} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-      {acting ? <ActivityIndicator size="small" color={sys.color.green} />
-        : art === 'chat' ? <ConversationArt size={32} /> : <FactArt kind={art} size={32} />}
-      {unread ? <View testID="inbox-unread-dot" style={s.dot} /> : null}
-    </View>
-    <View style={s.copy}>
-      <T variant={unread ? 'bodyStrong' : 'body'} numberOfLines={large ? 3 : 2} style={s.primary}>{primary}</T>
-      {secondary ? <T variant="note" tone={unread ? 'ink' : 'muted'} numberOfLines={2}>{secondary}</T> : null}
-      {meta ? <T variant="meta" tone="muted" numberOfLines={2} style={s.clock}>{meta}</T> : null}
-    </View>
-  </Press>;
+  // One picture, 32: the event's own, a spinner while this row is being opened, and the unread dot on its corner (the dot shares the
+  // picture's footprint instead of taking a gutter of its own). A read row's picture goes quiet; the speech bubble has only its colour.
+  const leading = <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.art}>
+    {acting ? <ActivityIndicator size="small" color={sys.color.green} />
+      : art === 'chat' ? <ConversationArt size={32} /> : <FactArt kind={art} size={32} muted={!unread} />}
+    {unread ? <View testID="inbox-unread-dot" style={s.dot} /> : null}
+  </View>;
+  // The swipe is never the only way: a screen reader is offered the same command in the row's actions menu, for an unread row only.
+  // `ListRow` hands these on to the row's press as soon as it takes them (a request to the system layer); until then they are inert.
+  const menu: object = markable ? { accessibilityActions: MARK_READ_ACTIONS,
+    onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => { if (event.nativeEvent.actionName === MARK_READ_ACTION) onMarkRead!(item); } } : {};
+  const row = <ListRow leading={leading} title={primary} subtitle={secondary || undefined} meta={meta || undefined} last={last} disabled={acting}
+    onPress={() => onOpen(item)} {...menu}
+    accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${readableServerCopy(item.title)}. ${readableServerCopy(item.body)}${when}`}
+    accessibilityHint={where ? `${where}.` : undefined} />;
   // Decided when the row mounts and never switched (a stable handler is handed down): a row that is read keeps its element type
   // and slides back, instead of being rebuilt under the finger.
-  return onMarkRead ? <SwipeToRead enabled={markable} label={MARK_READ_LABEL} hint={MARK_READ_HINT} busy={disabled}
+  return onMarkRead ? <SwipeToRead enabled={markable} label={MARK_READ_LABEL} hint={MARK_READ_HINT} busy={busy}
     onRead={() => onMarkRead(item)} onOpen={onSwipeOpen}>{row}</SwipeToRead> : row;
 }
 const InboxRow = memo(InboxRowBase);
 
-function DayHeader({ label, first }: { label: string; first: boolean }) {
-  return <T variant="meta" tone="muted" accessibilityRole="header" style={[s.day, first && s.dayFirst]}>{label}</T>;
+/** The heading of a day. The first one may carry "Označi sve" at its end: a 48 dp touch, so the line is as high as the touch. */
+function DayHeader({ label, first, readAll }: { label: string; first: boolean;
+  readAll?: { unread: number; busy: boolean; disabled: boolean; onPress: () => void } }) {
+  return <View style={[s.day, first ? s.dayFirst : s.dayLater]}>
+    <T variant="bodyStrong" tone="muted" accessibilityRole="header" style={s.dayLabel}>{label}</T>
+    {readAll ? <Press accessibilityRole="button" accessibilityLabel={readAllSpoken(readAll.unread)} accessibilityState={{ disabled: readAll.disabled, busy: readAll.busy }}
+      disabled={readAll.disabled} haptic="select" scaleTo={sys.motion.scale.button} onPress={readAll.onPress} style={s.readAll}>
+      {readAll.busy ? <ActivityIndicator size="small" color={sys.color.green} /> : null}
+      <T variant="copy" tone="green" style={s.readAllText}>{READ_ALL_LABEL}</T>
+    </Press> : null}
+  </View>;
 }
 
 /**
- * One quiet notice at the top of the list; never an orange fill. Only an error offers a way forward, and its button says
+ * One quiet notice at the top of the list: a flat tint, never an orange fill. Only an error offers a way forward, and its button says
  * what it does: after an unconfirmed action it reads the list again, it does not repeat the action.
  */
 function Banner({ title, sentence, retry, retryLabel = 'Pokušaj ponovo', disabled }: {
   title: string; sentence: string; retry?: () => void; retryLabel?: string; disabled: boolean;
 }) {
-  return <View style={s.banner}>
+  return <Surface kind="note" style={s.banner}>
     <FactArt kind="info" size={24} muted />
     <View style={s.bannerCopy}>
       <T variant="bodyStrong" accessibilityRole="alert">{title}</T>
       <T variant="note" tone="muted">{sentence}</T>
       {retry ? <V2Action kind="quiet" compact label={retryLabel} disabled={disabled} onPress={retry} style={s.inlineAction} /> : null}
     </View>
-  </View>;
+  </Surface>;
 }
 
 /** An event's moment in milliseconds, or null when it cannot be read (such an event is never treated as new). */
@@ -198,7 +218,6 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
 }) {
   const { page, loading, paging, acting, error, unavailable } = state;
   const busy = loading || paging || !!acting;
-  const large = useTextScale() >= 1.3;
   const items = page?.items;
   const rows = useMemo(() => inboxRows(items ?? [], { zona, sada }), [items, zona, sada]);
   // At most one row stays pulled open: when another opens, the earlier one slides back.
@@ -215,36 +234,34 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
   useReadAllAnnouncement(unreadCount);
 
   const banner = unavailable ? <Banner title="Sadržaj više nije dostupan." sentence="Možda je uklonjen ili mu više nemaš pristup." disabled={busy} />
-    : error === 'action' ? <Banner title="Radnja nije potvrđena." sentence={AGAIN} retry={onRefresh} retryLabel="Osveži obaveštenja" disabled={busy} />
+    : error === 'action' ? <Banner title="Ne znamo da li je radnja uspela." sentence={AGAIN} retry={onRefresh} retryLabel="Osveži obaveštenja" disabled={busy} />
       : error === 'load' && page ? <Banner title="Obaveštenja nisu osvežena." sentence={AGAIN} retry={onRefresh} disabled={busy} /> : null;
+
+  // "Označi sve" stands at the end of the heading of the first day. A list whose first row is not a day (an event that has no readable
+  // moment) has no heading to carry it, and then it stands alone above the rows, so it is never missing while something is unread.
+  const hasUnread = !!page && page.unreadCount > 0;
+  const readAll = hasUnread ? { unread: page.unreadCount, busy: acting === 'all', disabled: busy, onPress: onReadAll } : undefined;
+  const firstIsDay = rows[0]?.kind === 'day';
 
   const header = <View style={s.header}>
     <Segmented appearance="underline" value={role ?? 'ALL'} onChange={key => onRole(key === 'ALL' ? null : key as InboxRole)}
       options={INBOX_FILTERS.map(filter => ({ key: filter.role ?? 'ALL', label: filter.label }))} />
-    {page && page.unreadCount > 0 ? <View style={[s.summary, large && s.summaryLarge]}>
-      <T variant="meta" tone="muted" accessibilityLiveRegion="polite">{neprocitanih(page.unreadCount)}</T>
-      <V2Action kind="quiet" compact label="Označi sve kao pročitano" icon={<Check size={18} color={sys.color.green} />}
-        loading={acting === 'all'} disabled={busy} onPress={onReadAll} style={s.inlineAction} />
-    </View> : null}
     {banner}
+    {readAll && !firstIsDay && rows.length > 0 ? <DayHeader label="Obaveštenja" first readAll={readAll} /> : null}
   </View>;
 
   const empty = loading || (!page && !error)
-    ? <StateView kind="loading" title="Učitavamo obaveštenja…" skeleton={{ count: 5, rows: 2, variant: 'plain' }} />
+    ? <View accessibilityLiveRegion="polite" style={s.loading}>
+        <ListSkeleton rows={5} heading />
+        <T variant="meta" tone="muted" style={s.loadingText}>Učitavamo obaveštenja…</T>
+      </View>
     : !page ? <StateView kind="error" title="Obaveštenja nisu učitana" body="Proveri vezu i pokušaj ponovo da učitaš obaveštenja."
         primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
       // The last loaded list always stays: an error with an empty page is the banner above, never "nothing here".
       : error ? null
-        : <View style={s.empty} accessibilityLiveRegion="polite">
-            <ConversationArt size={large ? 112 : 136} />
-            <View style={s.emptyCopy}>
-              <T variant="title" accessibilityRole="header" style={s.emptyText}>{EMPTY_TITLE[role ?? 'ALL']}</T>
-              {!role ? <T variant="copy" tone="muted" style={s.emptyText}>
-                Nove prijave, poruke i važne promene stižu ovde — uz zadatak ili Dogovor na koji se odnose.
-              </T> : null}
-            </View>
-            {!role ? <V2Action kind="quiet" tone="neutral" compact label="Podesi obaveštenja" onPress={onSettings} /> : null}
-          </View>;
+        : <StateView kind="empty" art="chat" title={EMPTY_TITLE[role ?? 'ALL']}
+            body={!role ? 'Nove prijave, poruke i važne promene stižu ovde — uz zadatak ili Dogovor na koji se odnose.' : undefined}
+            quiet={!role ? { label: 'Podesi obaveštenja', onPress: onSettings } : undefined} />;
 
   const footer = error === 'page' || page?.hasMore ? <View style={s.footer}>
     {error === 'page' ? <>
@@ -256,11 +273,12 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
 
   // One stable row renderer while nothing a row draws has changed, so a switch of the filter or a refresh does not
   // re-render every row the list already holds.
-  const renderItem = useCallback(({ item: row }: { item: InboxRowModel }) => row.kind === 'day' ? <DayHeader label={row.label} first={row.first} />
+  const renderItem = useCallback(({ item: row }: { item: InboxRowModel }) => row.kind === 'day'
+    ? <DayHeader label={row.label} first={row.first} readAll={row.first ? readAll : undefined} />
     : <Appear animate={appear.isNew(row.item.id)}>
-      <InboxRow item={row.item} moment={row.moment} last={row.last} acting={acting === row.item.id} disabled={busy}
-        large={large} onOpen={onOpen} onMarkRead={onMarkRead} onSwipeOpen={onSwipeOpen} />
-    </Appear>, [appear, acting, busy, large, onOpen, onMarkRead, onSwipeOpen]);
+      <InboxRow item={row.item} moment={row.moment} last={row.last} acting={acting === row.item.id} busy={busy}
+        onOpen={onOpen} onMarkRead={onMarkRead} onSwipeOpen={onSwipeOpen} />
+    </Appear>, [appear, acting, busy, unreadCount, onOpen, onMarkRead, onSwipeOpen, onReadAll]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <FlatList data={rows} keyExtractor={rowKey}
     contentContainerStyle={s.content} showsVerticalScrollIndicator={false}
@@ -270,7 +288,7 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
 }
 const rowKey = (row: InboxRowModel) => row.id;
 
-/** Said once when the last unread notification is read while the list is open: the count row and the dots leave quietly. */
+/** Said once when the last unread notification is read while the list is open: the dots and the "Označi sve" leave quietly. */
 function useReadAllAnnouncement(unreadCount: number | undefined) {
   const before = useRef(unreadCount);
   useEffect(() => {
@@ -279,30 +297,28 @@ function useReadAllAnnouncement(unreadCount: number | undefined) {
   }, [unreadCount]);
 }
 
-const tabular: TextStyle = { fontVariant: ['tabular-nums'] };
-
 const s = StyleSheet.create({
-  content: { paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  header: { gap: 12, paddingTop: 4 },
-  summary: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, minHeight: 48 },
-  summaryLarge: { flexDirection: 'column', alignItems: 'flex-start' },
-  // A text action at the content's own edge: the label lines up with the rows, the touch area keeps 48 px.
+  // The edge of every screen, the end of the scroll 32 from the last row; a column on a tablet.
+  content: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.zone, flexGrow: 1, width: '100%', maxWidth: layout.maxWidth, alignSelf: 'center' },
+  header: { gap: layout.group },
+  // The note of a failed read, on its quiet tint; its picture, words and one action 12 apart.
+  banner: { flexDirection: 'row', gap: sys.space.md },
+  bannerCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   inlineAction: { paddingHorizontal: 0, alignSelf: 'flex-start' },
-  banner: { ...inset, backgroundColor: sys.color.wash, flexDirection: 'row', gap: 12 },
-  bannerCopy: { flex: 1, minWidth: 0, gap: 4 },
-  day: { fontWeight: '600', paddingTop: 20, paddingBottom: 4 },
-  dayFirst: { paddingTop: 8 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, minHeight: 64, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  rowLast: { borderBottomWidth: 0 },
-  dot: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  // One footprint for the event illustration, working indicator and actual unread marker.
-  art: { width: 44, minHeight: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
-  copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  primary: { minWidth: 0, color: sys.color.ink },
-  clock: { ...tabular, marginTop: 2 },
-  empty: { alignItems: 'center', gap: 16, paddingTop: 32, paddingBottom: 24 },
-  emptyCopy: { width: '100%', maxWidth: 360, gap: 8 },
-  emptyText: { textAlign: 'center' },
-  footer: { paddingTop: 16, gap: 8 },
+  // A day: 24 above, and 12 under it before the first row's own 12; the first one stands 12 under the sets and is as high as its action.
+  day: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
+  dayLater: { paddingTop: layout.section, paddingBottom: layout.group },
+  dayFirst: { paddingTop: layout.group, minHeight: layout.touch + layout.group },
+  dayLabel: { flexShrink: 1 },
+  readAll: { minWidth: layout.touch, minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: sys.space.sm,
+    paddingLeft: sys.space.md },
+  readAllText: { fontWeight: '600' },
+  // One footprint for the event picture, the working indicator and the unread dot; the dot sits on the corner of the picture.
+  art: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  dot: { position: 'absolute', top: 0, right: 0, width: sys.space.sm, height: sys.space.sm, borderRadius: sys.radius.pill, backgroundColor: sys.color.green,
+    borderWidth: 1, borderColor: sys.color.surface },
+  footer: { paddingTop: sys.space.base, gap: sys.space.sm },
+  // The first read: the rows that are coming, breathing, and the one sentence a screen reader hears.
+  loading: { gap: sys.space.base },
+  loadingText: { textAlign: 'center' },
 });

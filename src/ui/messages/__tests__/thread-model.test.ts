@@ -169,7 +169,7 @@ describe('the small mark by my message', () => {
   });
 
   it('has one plain word per state, with diacritics, for the screen reader', () => {
-    expect(MARK_WORDS).toEqual({ sent: 'Poslato', seen: 'Viđeno', pending: 'Šalje se', unconfirmed: 'Slanje nije potvrđeno', failed: 'Nije poslato' });
+    expect(MARK_WORDS).toEqual({ sent: 'Poslato', seen: 'Viđeno', pending: 'Šalje se', unconfirmed: 'Ne znamo da li je stigla', failed: 'Nije poslato' });
   });
 });
 

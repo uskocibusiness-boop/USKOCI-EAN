@@ -7,6 +7,7 @@ import { conversationInboxBuilt } from '../../data/conversationInboxGate';
 import { useConversationInbox } from '../../hooks/useConversationInbox';
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { ConversationInboxPresentation } from '../../ui/messages/ConversationInboxPresentation';
+import { useClosedAgreements } from '../../ui/messages/useClosedAgreements';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
@@ -25,6 +26,8 @@ export default function Poruke() {
 
 function ConversationInbox() {
   const { state, model } = useConversationInbox();
+  // R17: which of my Dogovori are over, so the list can tell the active conversations from the finished ones (null: not known, one list).
+  const closedAgreements = useClosedAgreements();
   const { user, accountRevision } = useSesija();
   const accountId = user?.id;
   const visit = useRef<object | null>(null), navigating = useRef(false);
@@ -49,9 +52,11 @@ function ConversationInbox() {
   return <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: sys.color.surface }}>
     <ConversationInboxPresentation items={state.page?.items ?? null} loading={state.loading} refreshing={state.refreshing}
       error={(!state.page && !!state.error) || state.error === 'load' || state.error === 'refresh'} paging={state.paging} pageError={state.error === 'page'}
-      hasMore={!!state.page?.nextCursor} openingDisabled={state.stale} onOpen={onOpen}
+      hasMore={!!state.page?.nextCursor} openingDisabled={state.stale} onOpen={onOpen} closedAgreements={closedAgreements}
       onRefresh={() => { if (active()) void model.refresh(); }} onLoadMore={() => { if (active()) void model.more(); }}
       onAgreements={() => navigate(() => router.push('/dogovori'))}
-      titleInHeader header={<ScreenHeader showTitle title="Poruke" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} />
+      // The root bar like Početna's and Dogovori's: the mark, the bell and the face. The tab bar says where you are, so no name is drawn
+      // (a screen reader still hears "USKOČI, Poruke"); the list begins under it.
+      titleInHeader header={<ScreenHeader title="Poruke" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} />
   </SafeAreaView>;
 }

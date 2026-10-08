@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
 import type { InboxItem, InboxPage } from '../../contracts/inbox';
-import { INBOX_SET_LABEL, applyLocalReads, canMarkRead, inboxDestination } from '../../ui/notifications/inboxCopy';
+import { INBOX_SET_LABEL, applyLocalReads, canMarkRead, inboxDestination, inboxTaskTitle, readableServerCopy } from '../../ui/notifications/inboxCopy';
 
 /**
  * The words and the small pure rules of the inbox (T4a, 2026-10-07): where a tap goes, in the owner's vocabulary, and the
@@ -56,7 +56,8 @@ describe('where a tap goes', () => {
 
 describe('the names of the sets', () => {
   it('are the three words of the owner, and the settings use the same two', () => {
-    expect(INBOX_SET_LABEL).toEqual({ ALL: 'Sve', REQUESTER: 'Zadaci', WORKER: 'Moje prijave' });
+    // "Zadaci" is the tab of OTHER people's tasks; the set of a requester is "Moji zadaci", as the card on Početna says it (2026-10-08).
+    expect(INBOX_SET_LABEL).toEqual({ ALL: 'Sve', REQUESTER: 'Moji zadaci', WORKER: 'Moje prijave' });
   });
 });
 
@@ -97,5 +98,28 @@ describe('what was settled one row at a time, laid over the model\'s page', () =
     expect(canMarkRead({ readAt: null }, true)).toBe(true);
     expect(canMarkRead({ readAt: '2026-10-07T09:00:00Z' }, true)).toBe(false);
     expect(canMarkRead({ readAt: null }, false)).toBe(false);
+  });
+});
+
+describe('the task an event is about (R11, R15) and the words the server stored (UI/UX pass, 2026-10-08)', () => {
+  it('names the task only when the read does: a title, trimmed and on one line; nothing is made up from the event\'s own words', () => {
+    expect(inboxTaskTitle({ title: 'Nova prijava', body: 'Imaš novu prijavu za zadatak.' })).toBeNull();
+    expect(inboxTaskTitle({ taskTitle: '  Montaža   police\n u hodniku ' })).toBe('Montaža police u hodniku');
+    for (const bad of [undefined, null, '', '   ', 7, {}]) expect(inboxTaskTitle({ taskTitle: bad })).toBeNull();
+  });
+
+  it('writes "zadatak" in the lower case in the middle of a sentence, where the server stored it with a capital (the three texts of pkg027c)', () => {
+    expect(readableServerCopy('Imaš novu prijavu za Zadatak.')).toBe('Imaš novu prijavu za zadatak.');
+    expect(readableServerCopy('Stiglo je anonimno pitanje o Zadatku.')).toBe('Stiglo je anonimno pitanje o zadatku.');
+    expect(readableServerCopy('Jedna prijava za tvoj Zadatak je povučena.')).toBe('Jedna prijava za tvoj zadatak je povučena.');
+  });
+
+  it('keeps a capital at the start of a sentence, leaves what is already right and every other word alone, and is idempotent', () => {
+    for (const same of ['Zadatak je otkazan.', 'Prijava je izmenjena. Zadatak je promenjen.', 'Imaš novu prijavu za zadatak.', 'Nova Prijava za Dogovor.',
+      'Otvori Dogovor za detalje zadatka.', 'Zadatak', '']) expect(readableServerCopy(same)).toBe(same);
+    const once = readableServerCopy('Tvoj Zadatak i drugi Zadaci');
+    expect(once).toBe('Tvoj zadatak i drugi zadaci'); expect(readableServerCopy(once)).toBe(once);
+    // A longer word that merely begins like it is not touched.
+    expect(readableServerCopy('Pogledaj Zadatkovnik')).toBe('Pogledaj Zadatkovnik');
   });
 });
