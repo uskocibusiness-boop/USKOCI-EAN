@@ -24,7 +24,8 @@ it('answers null, never a change, when the read or the save does not go through'
 it('lets a screen bound each call', async () => {
   mockRead.mockResolvedValue({ ok: true, podatak: week });
   mockSave.mockResolvedValue({ ok: true, podatak: { availability: { ...week, availableNow: false } } });
-  const bound = jest.fn(<T,>(call: () => Promise<T>) => call());
+  let calls = 0;
+  const bound = <T,>(call: () => Promise<T>) => { calls++; return call(); };
   await expect(writeAvailableNow(false, bound)).resolves.toBe(false);
-  expect(bound).toHaveBeenCalledTimes(2);
+  expect(calls).toBe(2);
 });

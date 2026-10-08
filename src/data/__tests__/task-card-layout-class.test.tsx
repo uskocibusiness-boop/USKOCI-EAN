@@ -10,7 +10,7 @@ import { LARGE_TEXT_SCALE, NARROW_WIDTH, layoutClassFor } from '../../ui/system/
 /** Current visual composition: full-width titles; value/capacity and offers stack for larger text.
  * Keep facts, commands and accessible descriptions across window sizes. Historical title/price adjacency
  * no longer describes TaskCard (CardHead has no production consumer). The font-table guard remains
- * because ownTaskTabs still uses textWidth for its capsule geometry.
+ * because the discovery card head (cardHeadFit) and the calendar steps still use textWidth for their geometry.
  * Native8d22 evidence at361dp/115%/130% is recorded separately; these are structural safeguards only.
  */
 let mockScale = 1, mockWidth = 411;
@@ -190,7 +190,7 @@ test.each(WINDOWS)('long monetary values retain the complete amount and basis at
   expect(style(offerRow()).flexWrap).toBe('wrap');
 });
 
-// Preserve the independent bundled-font guard used by ownTaskTabs. This is arithmetic, not native pixel-fit proof.
+// Preserve the independent bundled-font guard of textWidth (ownTaskTabs, its first user, was retired on 8 Oct 2026 with the phase groups of Moji zadaci). This is arithmetic, not native pixel-fit proof.
 type Face = { upm: number; advance: (character: string) => number };
 const font = (file: string): Face => {
   const bytes = readFileSync(join(__dirname, '../../../assets/fonts/inter', file));
