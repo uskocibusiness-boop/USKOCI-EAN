@@ -114,15 +114,15 @@ export default function DizajnAi() {
       placeholder="Opiši šta radiš" card={() => null}
       messages={[]} value={value} onChange={setValue} canEdit canSend={!!value.trim()} pending={false} busy={false} onSend={noop}
       onBack={back} voice={voice()} /> },
-    { key: 'thread', title: 'Novi zadatak · razgovor i živa kartica', render: () => intake({ conversation: running, canReview: true, showAbandon: true,
+    { key: 'thread', title: 'Novi zadatak · razgovor bez prerane kartice', render: () => intake({ conversation: running, canReview: true, showAbandon: true,
       onPhotos: noop }) },
     { key: 'ready', title: 'Spremno za pregled (traži ponude)', render: () => intake({ canReview: true, showAbandon: true, onPhotos: noop,
       conversation: conversation({ messages: [said('ready-user', false, 'Treba mi prevod kratkog uputstva na engleski, do kraja nedelje. Može na daljinu, tražim ponude.'),
-        said('ready-assistant', true, 'Sve je tu. Pregledaj zadatak, pa ga objavi kad ti odgovara.')], facts: [fact('need.title', 'Prevod kratkog uputstva na engleski'), fact('need.price_mode', 'OFFERS'),
+        said('ready-assistant', true, 'Sve je tu. Pregledaj zadatak, pa ga objavi kad ti odgovara.')], facts: [fact('need.title', 'Prevod kratkog uputstva na engleski'), fact('need.description', 'Prevod uputstva na engleski.'), fact('need.category', 'Prevod'), fact('need.task_country_code', 'RS'), fact('need.price_mode', 'OFFERS'),
         fact('need.people_needed', 1), fact('need.schedule_kind', 'WEEK_FLEXIBLE'), fact('need.task_geography', { mode: 'REMOTE' })] }) }) },
     { key: 'ready-large', title: 'Spremno za pregled, veliki tekst', render: () => <LayoutClassOverride.Provider value={LARGE_LAYOUT}>
       {intake({ canReview: true, showAbandon: true, onPhotos: noop, conversation: conversation({ messages: [said('rl-user', false, 'Treba mi prevod kratkog uputstva na engleski, do kraja nedelje.'),
-        said('rl-assistant', true, 'Sve je tu. Pregledaj zadatak, pa ga objavi kad ti odgovara.')], facts: [fact('need.title', 'Prevod kratkog uputstva na engleski'),
+        said('rl-assistant', true, 'Sve je tu. Pregledaj zadatak, pa ga objavi kad ti odgovara.')], facts: [fact('need.title', 'Prevod kratkog uputstva na engleski'), fact('need.description', 'Prevod uputstva na engleski.'), fact('need.category', 'Prevod'), fact('need.task_country_code', 'RS'),
         fact('need.price_mode', 'OFFERS'), fact('need.people_needed', 1), fact('need.schedule_kind', 'WEEK_FLEXIBLE'), fact('need.task_geography', { mode: 'REMOTE' })] }) })}
     </LayoutClassOverride.Provider> },
     { key: 'ai-down', title: 'AI nedostupan, nacrt sačuvan', render: () => intake({ conversation: running, canReview: true, onPhotos: noop,

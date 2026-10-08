@@ -133,8 +133,11 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
     {notice}
   </View>;
 
-  const emptyTitle = !closedKnown ? 'Još nema razgovora' : set === 'closed' ? 'Još nema završenih razgovora' : 'Nema aktivnih razgovora';
-  const emptyBody = !closedKnown ? 'Čim nastane Dogovor, ovde je razgovor.'
+  const incomplete = hasMore || pageError || paging;
+  const emptyTitle = incomplete ? closedKnown ? set === 'closed' ? 'Nema završenih među učitanim razgovorima' : 'Nema aktivnih među učitanim razgovorima'
+    : 'Razgovori još nisu učitani do kraja'
+    : !closedKnown ? 'Još nema razgovora' : set === 'closed' ? 'Još nema završenih razgovora' : 'Nema aktivnih razgovora';
+  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : !closedKnown ? 'Čim nastane Dogovor, ovde je razgovor.'
     : set === 'closed' ? 'Razgovori završenih Dogovora stoje ovde, da ih možeš pročitati.' : 'Završene razgovore vidiš pod „Završeni“.';
   const empty = items === null
     ? error && !reading
@@ -200,6 +203,7 @@ const ConversationRow = memo(function ConversationRow({ item, moment, last, clos
     {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={FACE} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={FACE} />)}
   </View>;
   return <TimedRow leading={face} slot={FACE} title={title} titleLines={stacked ? 2 : 1} time={stacked ? null : stamp} last={last} disabled={off}
+    interactionDisabled={openDisabled}
     onPress={() => { if (!openDisabled) onOpen(item); }} accessibilityLabel={label}
     accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}>
     <View style={s.line}>

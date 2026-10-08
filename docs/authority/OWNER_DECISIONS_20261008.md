@@ -36,3 +36,14 @@ Vlasnik precizira da reference prvenstveno određuju nivo kvaliteta stila, jasno
 ### Oznaka izvora mape — ostaje dole levo
 
 Najnovije pojašnjenje vlasnika: mali natpis izvora ostaje dole levo na samoj mapi. Ne podiže se uz listu niti izabranu karticu samo da bi ostao vidljiv; te površine smeju da ga prekriju. Ovo prevazilazi ranije pravilo da attribution prati sheet. Izvori/linkovi ostaju; nije promena kamere ili ponašanja dugmeta Moja lokacija.
+
+### Naknadne naredbe za razgovore, AI i nastavak rada (09.10)
+
+Čitanje poslednjih vlasnikovih poruka u istom razgovoru, bez pretvaranja namere u dokaz implementacije:
+
+- Jedan zadatak sa više odabranih ljudi ima zajednički pregled učesnika i zajedničku prepisku. Osoba koja traži pomoć bira i privatnu prepisku sa svakim odabranim; učesnici mogu privatno samo sa tom osobom, ne jedni sa drugima. Bilateralni uslovi ne postaju javni grupi.
+- Ime i avatar identifikuju pošiljaoca i u privatnim i u grupnim prepiskama.
+- U oba AI unosa ostaje mikrofon drži–govori–pusti. Poseban ulaz koji pokreće glasovni razgovor sa AI se za sada uklanja. Stvarni govor/transkript i razmišljanje moraju biti vidljivi; ne simulirati odgovor. Fotografije pripadaju unosu zadatka, ne unosu radnog profila.
+- Završna kartica zadatka pojavljuje se tek kada postoje svi obavezni podaci. Lokacija ili sve tačke rute rešavaju se pre sledećeg običnog pitanja; mapa ne treba da se pojavi ispod pitanja o drugoj temi.
+- Traži izolovane testove sa hiljadama zadataka po gradovima Srbije i scenarijima za 40.000 korisnika. Broj sintetičkih redova nije dokaz broja istovremeno aktivnih korisnika; potrebni su stvarni RPC tokovi i merenja.
+- Poslednja poruka: vlasnik odlazi da spava, izričito ponavlja autonomiju, korišćenje telefona/emulatora, push izmena i nastavak rada bez čekanja. Postojeći automatski nastavak je aktivan. Ne ponavljati zahtev za istu dozvolu; čuvati podatke/sesije, raditi preflight/rollback i vezivati dokaz za tačan izvor i APK. Spremnost za prodavnicu nije obećana ovim odobrenjem.

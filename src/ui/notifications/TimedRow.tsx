@@ -20,7 +20,7 @@ import { sys } from '../system/tokens';
  * `time` is the word at the end of the name's line ("18:42", "Juče"); a caller that has no room for it at a large text size leaves it out
  * and says it in a line of its own. What a screen reader hears is the caller's `accessibilityLabel`, always the whole of the row.
  */
-export function TimedRow({ leading, slot, title, titleLines = 1, strong = true, time, last = false, disabled = false, onPress,
+export function TimedRow({ leading, slot, title, titleLines = 1, strong = true, time, last = false, disabled = false, interactionDisabled = false, onPress,
   accessibilityLabel, accessibilityHint, accessibilityActions, onAccessibilityAction, testID, children }: {
   /** Whatever stands in the slot (a picture, a face): the row gives it `slot` wide and as high as the words. */
   leading: ReactNode;
@@ -34,6 +34,8 @@ export function TimedRow({ leading, slot, title, titleLines = 1, strong = true, 
   time?: string | null;
   last?: boolean;
   disabled?: boolean;
+  /** A temporary navigation/read gate blocks interaction without fading authoritative content. */
+  interactionDisabled?: boolean;
   onPress: () => void;
   accessibilityLabel: string;
   accessibilityHint?: string;
@@ -44,9 +46,10 @@ export function TimedRow({ leading, slot, title, titleLines = 1, strong = true, 
   /** The lines under the name. */
   children?: ReactNode;
 }) {
+  const blocked = disabled || interactionDisabled;
   return <Press testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint}
-    accessibilityState={{ disabled }} accessibilityActions={accessibilityActions} onAccessibilityAction={onAccessibilityAction}
-    disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row} onPress={onPress} style={s.row}>
+    accessibilityState={{ disabled: blocked }} accessibilityActions={accessibilityActions} onAccessibilityAction={onAccessibilityAction}
+    disabled={blocked} haptic={blocked ? 'none' : 'select'} scaleTo={sys.motion.scale.row} onPress={onPress} style={s.row}>
     <View style={[s.slot, { width: slot }]}>{leading}</View>
     <View style={s.copy}>
       <View style={s.line}>

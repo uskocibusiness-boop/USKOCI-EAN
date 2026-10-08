@@ -54,6 +54,7 @@ type Props = {
   support?: { canAct: () => boolean; navigate: (action: () => void) => void };
   /** The surrounding frame moves identity/accepted terms into history when the keyboard or text needs the space. */
   context?: ReactNode;
+  sender?: (message: ThreadMessage) => ReactNode;
   compact?: boolean;
   readingPosition?: { current: AgreementReadingPosition };
   hasOlder?: boolean;
@@ -176,7 +177,7 @@ function VoiceEnabledAgreementChat(props: Props & { voiceScope: AgreementVoiceSc
   return <AgreementChatContent {...props} voice={voice} />;
 }
 function AgreementChatContent({ messages, loading, error, writable, terminal, refresh, refreshWorkspace, outbox, state, support, photos, voice,
-  context, compact = false, refreshing = false, refreshError = false, readingPosition,
+  context, sender, compact = false, refreshing = false, refreshError = false, readingPosition,
   hasOlder = false, hasNewer = false, loadingOlder = false, loadingNewer = false, historyError = false,
   historyErrorDirection, onLoadOlder, onLoadNewer, onShowLatest, onDisplayedMessageIds }: Props & { voice?: AgreementVoiceController }) {
   const textScale = useTextScale();
@@ -531,6 +532,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             rowPositions.current.set(message.id, nativeEvent.layout.y); restoreReading(); reportDisplayed();
           }}>
             {entry.separator ? <T accessibilityRole="header" style={s.day}>{entry.separator}</T> : null}
+            {entry.first && sender ? sender(message) : null}
             <View testID={`agreement-message-bubble-${message.id}`} onLayout={({ nativeEvent }) => {
               if (!mounted.current || source.current.messages !== messages) return;
               bubblePositions.current.set(message.id, { y: nativeEvent.layout.y, height: nativeEvent.layout.height }); reportDisplayed();

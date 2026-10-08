@@ -5,6 +5,15 @@ const markers:any[]=[
  {kind:'PLACE',key:'place:a',point:{lat:45.26,lng:19.84},taskCount:3},
  {kind:'CLUSTER',key:'cluster:a',point:{lat:45.3,lng:19.9},taskCount:9,distinctPointCount:5,memberBounds:[19.8,45.2,20,45.4]},
 ];
+it('keeps a dense 32000-task server response bounded to 256 independently selectable buckets',()=>{
+ const dense=Array.from({length:256},(_,i)=>({kind:'CLUSTER',key:`cluster:${i}`,point:{lat:43+(i%16)*0.18,lng:19+Math.floor(i/16)*0.18},taskCount:125}));
+ expect(dense.reduce((sum,marker)=>sum+marker.taskCount,0)).toBe(32000);
+ for(const selected of [null,'cluster:0','cluster:127','cluster:255']){
+  const specs=discoveryV1ServerMarkerSpecs(dense as any,selected);
+  expect(specs).toHaveLength(256);expect(new Set(specs.map(spec=>spec.order)).size).toBe(256);
+  expect(specs.every(spec=>spec.pin.count==='125')).toBe(true);
+ }
+});
 
 it('projects server TASK PLACE CLUSTER buckets without task-card payload',()=>{
  const specs=discoveryV1ServerMarkerSpecs(markers as any,'place:a');

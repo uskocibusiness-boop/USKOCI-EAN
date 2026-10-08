@@ -127,8 +127,15 @@ describe('a tap opens that conversation', () => {
     expect(flat(rows()[0].props.style).minHeight).toBeGreaterThanOrEqual(64);
     await act(async () => rows()[0].props.onPress());
     expect(p.onOpen).not.toHaveBeenCalled();
-    // Only the row at work, and a conversation that cannot be opened, go grey; the others wait without changing.
+    // A temporary gate blocks touch and announces it honestly, without fading the name.
+    expect(rows()[0].props.accessibilityState).toEqual({ disabled: true });
+    expect(rows()[0].props.disabled).toBe(true);
+    expect(rows()[0].props.haptic).toBe('none');
+    expect(rows()[0].findAll(node => String(node.type) === 'T' && node.props.children === 'Jovana')[0].props.tone).toBe('ink');
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} openingDisabled={false} />));
     expect(rows()[0].props.accessibilityState).toEqual({ disabled: false });
+    await act(async () => rows()[0].props.onPress());
+    expect(p.onOpen).toHaveBeenCalledTimes(1);
   });
 
   it('says it is opening, and says when a conversation is not available or did not open', async () => {
@@ -193,6 +200,21 @@ describe('what the server does not carry stays undrawn', () => {
 });
 
 describe('the states of the list', () => {
+  it('does not claim a filtered set is empty before older pages have been read', async () => {
+    const active = row({ id: A, at: '2026-10-07T11:00:00Z', closed: false });
+    const closed = row({ id: B, at: '2026-10-05T11:00:00Z', closed: true });
+    const p = props([active], { hasMore: true });
+    await draw(p);
+    await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Završeni')[0].props.onPress());
+    expect(tree.root.findByType('StateView' as never).props.title).toBe('Nema završenih među učitanim razgovorima');
+    await act(async () => tree.root.findByProps({ label: 'Učitaj starije razgovore' }).props.onPress());
+    expect(p.onLoadMore).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} items={[active, closed]} hasMore={false} />));
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0].props.accessibilityLabel).toContain('Dogovor je zatvoren');
+    await act(async () => tree.update(<ConversationInboxPresentation {...p} hasMore={false} />));
+    expect(tree.root.findByType('StateView' as never).props.title).toBe('Još nema završenih razgovora');
+  });
   it('shows the first read, a failure that can be tried again, and an empty inbox with the way to the Dogovori', async () => {
     await draw(props(null, { loading: true }));
     // The rows that are coming, in their geometry (a face in its slot, three lines), and one sentence a screen reader hears.

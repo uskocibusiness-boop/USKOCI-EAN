@@ -18,6 +18,7 @@ import { brandAction, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import type { GroupState } from './GroupConversationController';
+import { ConversationChannels } from './ConversationChannels';
 
 type Group = NonNullable<NonNullable<GroupState['context']>['group']>;
 type Member = Group['members'][number];
@@ -35,6 +36,8 @@ export type GroupConversationPresentationProps = {
   viewability: { viewAreaCoveragePercentThreshold: number; minimumViewTime: number };
   onVisible: (info: { viewableItems: ViewToken<GroupMessage>[] }) => void;
   onBack: () => void; onTogglePeople: () => void; onRefresh: () => void; onOlder: () => void; onManagementNext: () => void;
+  backLabel?: string;
+  onPrivate?: (id: string) => void;
   onOpenAgreement: (id: string) => void; onDraft: (value: string) => void; onSend: () => void; onAcknowledge: () => void;
   /** The member's photo, drawn by the screen (it reads media); the gallery leaves it out and the initials stand. */
   photo?: (member: Member, fallback: ReactNode) => ReactNode;
@@ -119,9 +122,11 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title={group?.title ?? 'Grupni razgovor'} subtitle={group ? 'Grupni razgovor' : undefined}
-      backLabel="Nazad na Dogovor" onBack={p.onBack}
+      backLabel={p.backLabel ?? 'Nazad na Dogovor'} onBack={p.onBack}
       right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={p.onTogglePeople} /> : undefined} />
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {state.context?.group && p.onPrivate ? <View style={s.gutter}><ConversationChannels context={state.context} selected="group" disabled={!ready}
+        onGroup={() => undefined} onPrivate={p.onPrivate} onMore={p.onManagementNext} /></View> : null}
       <FlatList key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
         onViewableItemsChanged={p.onVisible} viewabilityConfig={p.viewability} refreshing={pull.refreshing} onRefresh={pull.onRefresh}
         ListHeaderComponent={header}
@@ -130,13 +135,18 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
           if (!entry) return null;
           // Mine carries the one small mark: sent, because the group's read holds it. A group has no single reader, so it is never "seen".
           const mark = item.mine ? 'sent' as const : null;
+          const sender = group?.members.find(member => member.accountId === item.senderAccountId);
           return <Appear index={index} animate={appear.isNew(item.messageId)}>
             {entry.separator ? <T accessibilityRole="header" variant="label" tone="muted" style={s.day}>{entry.separator}</T> : null}
+            {entry.first ? <View testID={`group-message-sender-${item.messageId}`} style={[s.member, item.mine && s.supportMine]}>
+              <Avatar initials={sender ? inicijali(sender.displayName) : null} size={40} />
+              <T variant="note" tone="muted">{sender?.displayName ?? name(item)}</T>
+            </View> : null}
             {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood
                 under every message is one step away, never behind a gesture alone (review r6). Without support the
                 bubble is text, not a button. */}
             <TextBubble lines={[item.body]} mine={item.mine} first={entry.first} last={entry.last} afterSeparator={entry.separator !== null}
-              sender={!item.mine && entry.first ? name(item) : null} mark={mark ? <MessageMark kind={mark} /> : null}
+              sender={null} mark={mark ? <MessageMark kind={mark} /> : null}
               summary={{ accessibilityRole: p.support ? 'button' : 'text',
                 accessibilityLabel: messageSpoken({ moja: item.mine, posiljalacIme: name(item), telo: item.body }, entry.moment, mark ? MARK_WORDS[mark].toLowerCase() : undefined),
                 accessibilityHint: p.support ? 'Dodirom prijavljuješ poruku podršci.' : undefined, haptic: p.support ? 'select' : 'none', scaleTo: 1,

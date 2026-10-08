@@ -18,7 +18,7 @@ import { useReducedMotion } from '../system/motion';
 import { useLayoutClass, useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import { HOLD_HINT, VoiceComposer, VoiceMode, VoiceNotice, type VoiceInput } from './VoiceComposer';
+import { HOLD_HINT, VoiceComposer, VoiceNotice, VoiceTranscript, type VoiceInput } from './VoiceComposer';
 import { useConversationArrival } from './useConversationArrival';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
@@ -61,7 +61,7 @@ export type AiConversationShellProps = {
    * finished conversation still invited "Opiši šta ti treba"). Where they stood is `footerAction`, the one thing left to do, or nothing.
    */
   closed?: boolean;
-  /** Speech: the microphone in the composer, the voice mode behind the waveform button. Left out when speech is closed. */
+  /** Hold-to-talk in the composer; the owner retired the separate voice-mode entry on 9 Oct. */
   voice?: VoiceInput;
   /** The "+" at the start of the composer (the task's photos). Left out when there is nothing to attach to. */
   attach?: { label: string; hint?: string; onPress: () => void; disabled?: boolean };
@@ -103,10 +103,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // The up-right arrow at the end of an opening only fits beside the words; at a large text size the row would put it under them.
   const { stacked: stackedRows } = useLayoutClass();
   const [keyboard, setKeyboard] = useState(false);
-  const [voiceMode, setVoiceMode] = useState(false);
-  // Voice mode opened from the hold advice while the field has a draft starts with the review on, so what is said joins
-  // the draft instead of going out as a message of its own.
-  const [voiceReview, setVoiceReview] = useState(false);
+  const [tapToTalk, setTapToTalk] = useState(false);
+  // An accessibility alternative uses this same microphone as start/stop with review, never a second conversation screen.
   const [holdHint, setHoldHint] = useState(false);
   const [readingEarlier, setReadingEarlier] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -133,7 +131,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const interactiveContext = useRef<View>(null);
   const geometry = useRef({ offset: 0, content: 0, viewport: 0 });
   const followFrame = useRef<number | null>(null);
-  const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText);
+  const liveSpeech = p.voice?.state.phase === 'LISTENING' || p.voice?.state.phase === 'FINALIZING';
+  const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText || liveSpeech);
   const activity = useRef(hasActivity); activity.current = hasActivity;
   const cancelFollow = useCallback(() => {
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
@@ -205,7 +204,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // The advice after a tap goes as soon as the microphone does anything.
   useEffect(() => { if (phase !== 'IDLE') setHoldHint(false); }, [phase]);
   // Speech that closes (the conversation ended, or it cannot take speech any more) takes voice mode with it.
-  useEffect(() => { if (!p.voice) setVoiceMode(false); }, [p.voice]);
+  useEffect(() => { setTapToTalk(false); }, [p.conversationKey]);
   useEffect(() => {
     cancelFollow(); followLatest.current = true; userScrolling.current = false; momentumAllowed.current = false;
     historyOffset.current = 0; setReadingEarlier(false);
@@ -240,15 +239,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
       : !voiceIdle ? 'Završi govor pa pošalji.' : p.busy ? 'Sačekaj da stigne odgovor.' : 'Poruku sada ne možeš da pošalješ.');
   const privacy = () => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null });
 
-  // Voice mode shows the last exchange: what the person said last and the answer to it, or the answer being written.
-  const last = p.messages.at(-1), beforeLast = p.messages.at(-2);
-  const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText;
+  const last = p.messages.at(-1);
+  const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText && !liveSpeech;
   const openings = p.openings ?? [];
   // History notes are not messages: no entrance, no speaker, and nothing about them is docked outside the thread.
   const notes = p.threadNotes ?? [], anchored = new Set(p.messages.map(message => message.id));
   const drawNote = (note: ConversationNote) => <View key={`note:${note.key}`} testID="ai-thread-note">{note.node}</View>;
-  const answer = p.streamingText || (!p.sentMessage && last?.fromAi ? last.body : null);
-  const said = p.sentMessage ?? (last && !last.fromAi ? last.body : last?.fromAi && beforeLast && !beforeLast.fromAi ? beforeLast.body : null);
 
   return <DraftDisclosure.Provider value={{ expanded, toggle: () => setDisclosure({ key: p.conversationKey, expanded: !expanded }) }}>
   <SafeAreaView edges={['top']} style={s.canvas}>
@@ -344,6 +340,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
             not yet part of the record. */}
+        {liveSpeech && p.voice ? <View style={s.person}><VoiceTranscript state={p.voice.state} /></View> : null}
         {p.sentMessage ? <View accessibilityLabel={`Ti, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{p.sentMessage}</T>
         </View> : null}
@@ -374,11 +371,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {p.closed && !p.footerAction ? null : <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
         {p.footerAction ? <View testID="ai-footer-action">{p.footerAction}</View> : null}
         {p.closed ? null : <>
-        {/* The hold advice carries the way to speak without holding (review r4 ra item 7): once the field has text the
-            waveform button gives way to send, and a person who cannot hold would otherwise have no speech at all. */}
-        {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
+        {/* A person who cannot hold uses the same microphone in start/stop mode with explicit review. */}
+        {p.voice ? <VoiceNotice {...p.voice} transcriptInThread hint={holdHint ? HOLD_HINT : null}
           hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
-            Keyboard.dismiss(); setHoldHint(false); setVoiceReview(hasText); setVoiceMode(true); } } : undefined} /> : null}
+            Keyboard.dismiss(); setHoldHint(false); setTapToTalk(true); } } : undefined} /> : null}
         {/* When the thread's own recovery note already explains the wait, the line here would say it twice; the send
             button still says it to a screen reader. The same holds while the message is being sent: the thread shows the
             answer arriving, so no line is docked above the composer for it. */}
@@ -411,27 +407,18 @@ export function AiConversationShell(p: AiConversationShellProps) {
             // A field that cannot be edited now says so in its ink: the words in it are held, not a draft to change.
             style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />
           <View testID="ai-composer-tools" style={[s.composerTools, stackedComposer && s.toolsBelow]}>
-            {p.voice ? <VoiceComposer {...p.voice} size={52} onTooShort={() => setHoldHint(true)} /> : null}
+            {p.voice ? <VoiceComposer {...p.voice} size={52} tapToTalk={tapToTalk} onTooShort={() => setHoldHint(true)} /> : null}
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
             <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
               <Glyph name="send" size={24} on tone={p.canSend ? 'onGreen' : 'muted'} /></View>
-          </Press> : p.voice ? <Press testID="ai-voice-mode" accessibilityRole="button" accessibilityLabel="Razgovaraj glasom"
-            accessibilityHint="Govoriš umesto da kucaš; odgovor stiže kao tekst."
-            accessibilityState={{ disabled: p.voice.disabled || !voiceIdle }} disabled={p.voice.disabled || !voiceIdle}
-            haptic="select" hitSlop={0} onPress={() => { Keyboard.dismiss(); setVoiceReview(false); setVoiceMode(true); }} style={s.target}>
-            <View style={[s.round, s.voiceRound, (p.voice.disabled || !voiceIdle) && s.roundOff]}>
-              <Glyph name="wave" size={24} strong tone={p.voice.disabled || !voiceIdle ? 'muted' : 'ink'} /></View>
           </Press> : null}
           </View>
         </View>
         </>}
       </SafeAreaView>}
     </KeyboardAvoidingView>
-    {voiceMode && p.voice ? <VoiceMode voice={p.voice} prompt={p.welcome} answer={answer} said={said}
-      thinking={p.busy && !p.streamingText} reviewFirst={voiceReview}
-      onClose={reason => { setVoiceMode(false); if (reason === 'review') requestAnimationFrame(() => input.current?.focus()); }} /> : null}
     {p.children}
     {notice.sheet}
   </SafeAreaView></DraftDisclosure.Provider>;

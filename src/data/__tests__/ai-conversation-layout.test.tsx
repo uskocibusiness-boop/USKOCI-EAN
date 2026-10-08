@@ -589,12 +589,12 @@ it('explains speech privacy in an in-app notice with one button, not a system al
 });
 
 describe('the floating composer (owner step 6, Gemini reference)', () => {
-  it('empty: the microphone and the voice-mode button, no send; text: the round send instead', async () => {
+  it('empty: one held microphone and no voice-mode entry; text: the round send', async () => {
     const p = props(); p.value = ''; p.voice = voice();
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     const composer = tree.root.findByProps({ testID: 'ai-composer' });
     expect(composer.findAllByProps({ testID: 'voice-mic' }).length).toBeGreaterThan(0);
-    expect(composer.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(1);
+    expect(composer.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'ai-send' })).toHaveLength(0);
     const typed = { ...p, value: 'Treba mi prevoz', canSend: true };
     await act(async () => tree.update(<AiConversationShell {...typed} />));
@@ -609,7 +609,7 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     const p = props(); p.value = '   '; p.voice = voice();
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     expect(tree.root.findAllByProps({ testID: 'ai-send' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(0);
   });
   it('pending: the send is the same message again, disabled, and says why to the eye and to a screen reader', async () => {
     const p = props(); p.pending = true; p.canSend = false; p.voice = voice({ disabled: true });
@@ -654,14 +654,15 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
   // Review r4 ra item 7: once the field has text the waveform gives way to send, so the advice after a tap carries the
   // way to speak without holding; with a draft it opens voice mode with the review on, so speech joins the draft.
   it.each([['with a draft', 'Treba mi prevoz', true], ['with an empty field', '', false]] as const)(
-    'the advice after a tap opens voice mode without holding %s', async (_name, value, review) => {
+    'the advice switches the same microphone to accessible start/stop %s', async (_name, value, review) => {
       const p = props(); p.value = value; p.canSend = !!value; p.voice = voice();
       await act(async () => { tree = create(<AiConversationShell {...p} />); });
       expect(tree.root.findAllByProps({ label: 'Govori bez držanja' })).toHaveLength(0);
       const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
       await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
       await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
-      expect(tree.root.findByType(VoiceMode).props.reviewFirst).toBe(review);
+      expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
+      expect(tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPress === 'function').length).toBeGreaterThan(0);
       expect(text()).not.toContain(HOLD_HINT);
       // Opening voice mode starts nothing: the one capture is the tap on the held microphone that brought the advice.
       expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).toHaveBeenCalledTimes(1);
@@ -677,7 +678,8 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     expect(text()).toContain(HOLD_HINT);
     expect(p.voice!.controller.begin).not.toHaveBeenCalled();
     await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
-    expect(tree.root.findByType(VoiceMode).props.reviewFirst).toBe(true);
+    expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
+    expect(tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPress === 'function').length).toBeGreaterThan(0);
     expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).not.toHaveBeenCalled();
   });
   it('the advice offers no voice mode while the screen cannot take a message', async () => {
@@ -694,79 +696,27 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
   });
 });
 
-describe('voice mode', () => {
-  it('opens from the waveform, shows the last exchange as text, and closes without touching the microphone', async () => {
+describe('one microphone, no separate AI voice conversation', () => {
+  it('shows real live speech in the thread once, then the sent message and thinking state', async()=>{
+    const p=props();p.value='';p.voice=voice({state:{...idle,phase:'LISTENING',interimText:'Treba mi prevoz',audioLevel:0.6}});
+    await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+    expect(tree.root.findByProps({testID:'ai-conversation-thread'}).findAllByProps({testID:'voice-live-transcript'}).length).toBeGreaterThan(0);
+    expect(tree.root.findByProps({testID:'ai-composer-footer'}).findAllByProps({testID:'voice-live-transcript'})).toHaveLength(0);
+    expect(text().split('Treba mi prevoz')).toHaveLength(2);
+    expect(text()).not.toContain('Šta ti treba?');
+    await act(async()=>tree.update(<AiConversationShell {...p} voice={voice()} sentMessage="Treba mi prevoz" busy pending/>));
+    expect(tree.root.findAllByProps({testID:'voice-live-transcript'})).toHaveLength(0);
+    expect(text().split('Treba mi prevoz')).toHaveLength(2);
+    expect(text()).toContain('Stiže odgovor…');expect(p.onSend).not.toHaveBeenCalled();
+  });
+  it.each([false, true])('keeps the mode entry absent with reduced motion %s, without starting capture', async reduced => {
+    mockReduced = reduced;
     const p = props(); p.value = ''; p.voice = voice();
-    p.messages = [{ id: 'u', fromAi: false, body: 'Treba mi prevoz.' }, { id: 'a', fromAi: true, body: 'Odakle i dokle?' }];
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    expect(tree.root.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(0);
     expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
-    await act(async () => tree.root.findByProps({ testID: 'ai-voice-mode' }).props.onPress());
-    const mode = tree.root.findByType(VoiceMode);
-    expect(mode.props).toMatchObject({ answer: 'Odakle i dokle?', said: 'Treba mi prevoz.', thinking: false });
-    expect(text()).toContain('Odakle i dokle?');
-    await act(async () => tree.root.findByProps({ testID: 'voice-mode-close' }).props.onPress());
-    expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
-    expect(p.voice.controller.cancel).not.toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ testID: 'voice-mic' }).length).toBeGreaterThan(0);
+    expect(p.voice.controller.begin).not.toHaveBeenCalled();
     expect(p.onSend).not.toHaveBeenCalled();
   });
-  it('the waveform is disabled while the screen cannot take a message', async () => {
-    const p = props(); p.value = ''; p.voice = voice({ disabled: true });
-    await act(async () => { tree = create(<AiConversationShell {...p} />); });
-    expect(tree.root.findByProps({ testID: 'ai-voice-mode' }).props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
-  });
-  it('opens voice mode without capture, using the reduced-motion modal policy', async () => {
-    const p = props(); p.value = ''; p.voice = voice();
-    mockReduced = true;
-    await act(async () => { tree = create(<AiConversationShell {...p} />); });
-    await act(async () => tree.root.findByProps({ testID: 'ai-voice-mode' }).props.onPress());
-    expect(tree.root.findByType(VoiceMode).findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('none');
-    expect(tree.root.findByProps({ testID: 'voice-glow' }).props.importantForAccessibility).toBe('no-hide-descendants');
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Razgovor glasom').length).toBeGreaterThan(0);
-    await act(async () => tree.unmount());
-    mockReduced = false;
-    await act(async () => { tree = create(<AiConversationShell {...p} />); });
-    await act(async () => tree.root.findByProps({ testID: 'ai-voice-mode' }).props.onPress());
-    expect(tree.root.findByType(VoiceMode).findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('fade');
-    expect(p.voice!.controller.begin).not.toHaveBeenCalled();
-    expect(p.voice!.controller.release).not.toHaveBeenCalled();
-    expect(p.onSend).not.toHaveBeenCalled();
-    // Measured level / idle / background / reduced-motion resets are covered in voice-composer-controls.
-  });
-  it('a reviewed capture lands in the field and voice mode steps aside for it', async () => {
-    const p = props(); p.value = ''; const v = voice(); p.voice = v;
-    await act(async () => { tree = create(<AiConversationShell {...p} />); });
-    await act(async () => tree.root.findByProps({ testID: 'ai-voice-mode' }).props.onPress());
-    await act(async () => tree.root.findAll(node => node.props.accessibilityLabel === 'Pregledaj tekst pre slanja' && node.props.onPress)[0].props.onPress());
-    await act(async () => tree.root.findAll(node => node.props.testID === 'voice-mode-mic' && node.props.onPress)[0].props.onPress());
-    expect(v.controller.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
-    const session = { accountId: 'a', accountRevision: 1, conversationId: 'c', generation: 1, gestureId: 'GESTURE_SYNTHETIC', startedAt: 0, mode: 'accessible' as const };
-    for (const phase of ['LISTENING', 'FINALIZING'] as const)
-      await act(async () => tree.update(<AiConversationShell {...p} voice={{ ...v, state: { ...idle, phase, session } }} />));
-    expect(tree.root.findAllByType(VoiceMode)).toHaveLength(1);
-    await act(async () => tree.update(<AiConversationShell {...p} value="Treba mi prevoz." voice={{ ...v, state: { ...idle, session } }} />));
-    expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
-  });
-});
-
-it('gives an active point question a compact draft while retaining safety and review guards', async () => {
-  const p = props(), review = jest.fn(); let asking = true;
-  p.card = compact => <DraftCard summary={{ title: 'Pomoć oko selidbe iz Novog Sada', value: null, zone: 'Novi Sad', people: '1 osoba' }}
-    stillNeeded="Cena · Termin · tačka na mapi" open busy={false} compact={compact} canReview={false}
-    onReview={review} note="Proveri detalje pre objave." locationEditing={asking} />;
-  await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  const head = () => tree.root.findByProps({ testID: 'intake-draft-head' });
-  // While the place is asked, the card is only its name and the note: the question has the room.
-  expect(text()).toContain('Pomoć oko selidbe iz Novog Sada'); expect(text()).toContain('Proveri detalje pre objave.');
-  expect(head().props.accessibilityLabel).toBe('Pomoć oko selidbe iz Novog Sada');
-  expect(text()).not.toContain('Još treba:'); expect(text()).not.toContain('Novi Sad');
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-stickers' })).toHaveLength(0);
-  // When it is answered or put away, the card is whole again: what is needed, the facts it has (one person is no fact), and the review that still waits.
-  asking = false;
-  await act(async () => tree.update(<AiConversationShell {...p} />));
-  expect(text()).toContain('Još treba: Cena · Termin · tačka na mapi'); expect(text()).toContain('Novi Sad'); expect(text()).not.toContain('1 osoba');
-  const reviewTarget = tree.root.findByProps({ testID: 'intake-draft-review' });
-  expect(reviewTarget.props.accessibilityState.disabled).toBe(true);
-  await act(async () => reviewTarget.props.onPress());
-  expect(review).not.toHaveBeenCalled(); expect(text()).toContain('Proveri detalje pre objave.');
 });

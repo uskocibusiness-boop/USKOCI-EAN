@@ -7,6 +7,7 @@ import { useSesija,sesijaSada } from '../../store/sesija';
 import { groupBody,normalizeGroupBody,type GroupMessage } from '../../data/groupConversationService';
 import { GroupConversationController,initialGroupState } from './GroupConversationController';
 import { GroupConversationPresentation } from './GroupConversationPresentation';
+import { privateConversationChoices } from './ConversationChannels';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { SupportContextEntry } from '../support/SupportContextEntry';
 export function GroupConversationScreen({agreementId,fromInbox=false}:{agreementId:string;fromInbox?:boolean}){
@@ -51,14 +52,16 @@ export function GroupConversationScreen({agreementId,fromInbox=false}:{agreement
   if(renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller)void controller?.markVisible(viewableItems.filter(x=>x.isViewable).map(x=>x.item.messageId));
  },[renderedOwner,controller]);
  const viewability=useRef({viewAreaCoveragePercentThreshold:60,minimumViewTime:600}).current;
- const openAgreement=(id:string)=>{if(current())router.push({pathname:'/dogovor/[id]',params:{id}});};
+ const allowedPrivate=(id:string)=>current()&&!!state.context&&privateConversationChoices(state.context).some(choice=>choice.id===id);
+ const openAgreement=(id:string)=>{if(allowedPrivate(id))router.push({pathname:'/dogovor/[id]',params:{id}});};
+ const openPrivate=(id:string)=>{if(allowedPrivate(id))router.push({pathname:'/dogovor/[id]',params:{id,tab:'poruke'}});};
  // The conversation was opened from its Dogovor: back returns there, and only a cold start (no stack) opens it anew.
  const back=()=>{if(!current())return;if(router.canGoBack())router.back();else if(fromInbox)router.replace('/poruke');else router.replace({pathname:'/dogovor/[id]',params:{id:agreementId}});};
  const ready=state.phase==='READY',group=state.context?.group;
  const body=normalizeGroupBody(draft);
  return <GroupConversationPresentation state={state} draft={draft} draftLength={Array.from(body).length} draftSendable={!!groupBody(body)} showPeople={showPeople} listKey={generation} viewability={viewability} onVisible={onVisible}
-  onBack={back} onTogglePeople={()=>{if(current())setShowPeople(x=>!x);}} onRefresh={()=>invoke('refresh')} onOlder={()=>invoke('older')}
-  onManagementNext={()=>invoke('managementNext')} onOpenAgreement={openAgreement} onDraft={change} onAcknowledge={()=>invoke('acknowledge')}
+  onBack={back} backLabel={fromInbox?'Nazad na Poruke':'Nazad na Dogovor'} onTogglePeople={()=>{if(current())setShowPeople(x=>!x);}} onRefresh={()=>invoke('refresh')} onOlder={()=>invoke('older')}
+  onManagementNext={()=>invoke('managementNext')} onOpenAgreement={openAgreement} onPrivate={openPrivate} onDraft={change} onAcknowledge={()=>invoke('acknowledge')}
   onSend={()=>{if(current()){if(retry)void controller?.retry(input.current);else void controller?.send(input.current);}}}
   photo={(member,fallback)=><ProfilePhoto profileId={member.profileId} size={40} fallback={fallback}/>}
   support={group?item=><SupportContextEntry reference={{kind:'GROUP_MESSAGE',id:item.messageId,revision:null}} previewText={item.body}

@@ -30,7 +30,7 @@ import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
 import { confirmedPlaceEntries } from '../location/placeText';
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
-import { publicSummary, type Summary } from './draftSummary';
+import { completeDraftProposal, publicSummary, type Summary } from './draftSummary';
 import type { PhotoSource } from '../../features/media/nativePhotoPicker';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PhotoAttachSheet } from '../media/PhotoAttachSheet';
@@ -341,8 +341,10 @@ export function IntakePresentation(props: Props) {
   // At the start nothing is filled, so the full list is eight items long; the card names the first few and counts the rest.
   const stillNeededText = !stillNeeded.length ? null : stillNeeded.length <= 3 ? stillNeeded.join(' · ')
     : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
-  const readyForReview = open && reviewAllowed && conversation.safety !== 'BLOCK'
+  const completeProposal = completeDraftProposal(conversation.facts) && !!place && gap.done === gap.total;
+  const readyForReview = completeProposal && open && reviewAllowed && conversation.safety !== 'BLOCK'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
+  const showSummary = readyForReview || (completed && completeProposal && conversation.safety !== 'BLOCK' && !busy && !pending && !props.error);
   // Current facts belong in the live card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
   // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).
@@ -394,7 +396,7 @@ export function IntakePresentation(props: Props) {
         disabled={photosOff} onGallery={() => props.onPhotoSource?.('LIBRARY')} /> }));
   }
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
-    cardPlacement={readyForReview || ended ? 'end' : 'top'} closed={ended}
+    cardPlacement="end" closed={ended}
     footerAction={footerAction}
     interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
@@ -418,13 +420,13 @@ export function IntakePresentation(props: Props) {
       onPress: outsidePlace(() => { Keyboard.dismiss(); setPanel('photos'); }), disabled: photosOff }
       : props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
         onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
-    // Nothing is pinned until the conversation has said or taken something: an empty card at the
-    // top of a fresh screen states a draft that does not exist yet and buries the invitation.
-    card={compact => !conversation.facts.length && !messages.length ? null : <DraftCard summary={summary}
+    // The conversation gathers facts; only the complete proposal becomes a card at its end (owner, 9 Oct).
+    // Partial and abandoned drafts remain reachable through the existing review menu, never a premature card.
+    card={compact => !showSummary ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended} appear={landed} />}
-    actions={(!attach && photoAssets.length) || (safetyCopy && conversation.safety === 'BLOCK') ? <>
+    actions={(!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"
           disabled={props.photosDisabled || editingPlace} accessibilityState={{ disabled: !!props.photosDisabled || editingPlace }} onPress={outsidePlace(props.onPhotos)}
@@ -436,7 +438,8 @@ export function IntakePresentation(props: Props) {
             label={`Fotografija zadatka ${index + 1}`} contentFit="cover" style={s.photoTile} />)}
         </ScrollView>
       </View> : null}
-      {safetyCopy && conversation.safety === 'BLOCK' ? <T accessibilityRole="alert" variant="note" style={s.danger}>{safetyCopy}</T> : null}
+      {safetyCopy && (!showSummary || conversation.safety === 'BLOCK') ? <T accessibilityRole="alert" variant="note"
+        style={conversation.safety === 'BLOCK' ? s.danger : s.muted}>{safetyCopy}</T> : null}
     </> : undefined}
     // The point being asked for (or explicitly reopened) is task context on the white reading surface, at the end of the
     // thread. A confirmed place is not context: it is the line above. Nothing is passed when there is nothing to show, so no

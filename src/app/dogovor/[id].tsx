@@ -32,6 +32,8 @@ import { agreementMessageHistoryService } from '../../data/agreementMessageHisto
 import { useSesija, sesijaSada } from '../../store/sesija';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
 import { GroupConversationEntry } from '../../ui/groups/GroupConversationEntry';
+import { useGroupContext } from '../../ui/groups/useGroupContext';
+import { ConversationChannels, privateConversationChoices } from '../../ui/groups/ConversationChannels';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';
 import { agreementCancellationService, cancellationOf, type AgreementCancellation } from '../../data/agreementCancellationClientService';
@@ -225,6 +227,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   }), [messages.data, dogovor?.ucesnici]);
   const enabled = foreground && !resumeRequired && !workspace.loading && !workspace.error && !workspace.busy && !workspace.uncertain;
   const writable = enabled && dogovor?.chatDostupan === true;
+  const groupModel = useGroupContext(id, enabled && !!dogovor && dogovor.pokrivenost.ukupno > 1
+    && dogovor.ucesnici.some(party => party.viSte && party.id === accountId));
   const refreshIncoming = useCallback(() => messages.refresh('silent'), [messages.refresh]);
   useAgreementIncomingRefresh({ accountId, accountRevision, agreementId: id, source: izvor,
     enabled: enabled && tab === 'poruke' && dogovor?.chatDostupan === true
@@ -517,12 +521,24 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     router.push(requester ? { pathname: '/potrebe/[id]/pregled', params: { id: needId } } : { pathname: '/prilike/[id]', params: { id: needId } });
   } : undefined;
 
+  const openPrivateConversation = (targetId: string) => {
+    if (!formCurrent() || !groupModel.current() || !groupModel.context
+      || !privateConversationChoices(groupModel.context).some(choice => choice.id === targetId)) return;
+    if (targetId === id) setTab('poruke');
+    else router.push({ pathname: '/dogovor/[id]', params: { id: targetId, tab: 'poruke' } });
+  };
+  const channels = groupModel.context?.group ? <ConversationChannels context={groupModel.context} selected="private"
+    error={groupModel.error}
+    disabled={!enabled || groupModel.loadingMore} onPrivate={openPrivateConversation} onMore={() => void groupModel.more()}
+    onGroup={() => { if (formCurrent() && groupModel.current()) router.push({ pathname: '/dogovor/[id]/grupa', params: { id } }); }} /> : null;
+
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     {reviewingCompletion ? <AgreementCompletionReview agreement={completionReview!.agreement} worker={worker}
       confirm={confirmCompletionReview} back={dismissCompletionReview} /> : null}
     {/* Keyboard screenY and this full-screen parent share the same origin. */}
     <KeyboardAvoidingView style={s.screen} enabled={tab === 'poruke' || problemOpen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {tab === 'poruke' ? <AgreementThreadPresentation key={requestedMessageId ?? 'history'} agreement={dogovor} person={other}
+        channels={channels}
         waiting={waitingForMe} onOverview={() => setTab('pregled')}
         // The conversation's own "···" (the overview has none, J15), so "Prijavi ili blokiraj osobu" and the rest are reachable while Poruke is shown.
         onMore={menuActions.length ? () => { if (ownsAccount()) setMenuOpen(true); } : undefined}
@@ -564,7 +580,8 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
               </View> : null}
             </>}
             problem={{ note: problemNote, exits: problemExits, form: problemForm }}
-            group={me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} /> : null}
+            groupReady={!!groupModel.context?.group} privatePartyName={other?.ime}
+            group={me && enabled && dogovor.pokrivenost.ukupno > 1 ? <GroupConversationEntry agreementId={id} model={groupModel} onPrivate={openPrivateConversation} /> : null}
             on={{
               // The requester has no screen that opens one Prijava by its id, so no "Tvoja prijava" row is drawn for them; once the worker says
               // done, the requester confirms or reports a problem (owner decision 2026-09-21), so nothing is left to change for them; a finished

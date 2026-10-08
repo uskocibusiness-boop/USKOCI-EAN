@@ -262,6 +262,21 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Task terminalni composer već rešen; uskladiti worker, ne prepisivati engine.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "conversation_channels_ai_finish_20261009": {
+          "state": "SOURCE_TARGETED_TESTS_PASS / CURRENT_NATIVE_PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "source_base": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+          "checks": "12 suites / 486 tests PASS; TypeScript PASS; 5 design guard suites / 121 tests PASS",
+          "native": "Previous 6dbd38e0 installed with -r on both devices; bounded physical inbox/private-chat/keyboard read-only review. Does not prove this source package.",
+          "open": [
+            "Current APK visual and real voice delivery",
+            "Top-level task grouping in Agreements",
+            "AI location-before-next-question ordering",
+            "40k concurrent users and actual lifecycle RPC load",
+            "Bounded push delivery and store gates"
+          ],
+          "scope": "Complete final task card; no partial draft card. Location ordering remains OPEN."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -393,6 +408,21 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Animacija prati stvarni capture, ne lažni slušam.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "conversation_channels_ai_finish_20261009": {
+          "state": "SOURCE_TARGETED_TESTS_PASS / CURRENT_NATIVE_PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "source_base": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+          "checks": "12 suites / 486 tests PASS; TypeScript PASS; 5 design guard suites / 121 tests PASS",
+          "native": "Previous 6dbd38e0 installed with -r on both devices; bounded physical inbox/private-chat/keyboard read-only review. Does not prove this source package.",
+          "open": [
+            "Current APK visual and real voice delivery",
+            "Top-level task grouping in Agreements",
+            "AI location-before-next-question ordering",
+            "40k concurrent users and actual lifecycle RPC load",
+            "Bounded push delivery and store gates"
+          ],
+          "scope": "One hold/release mic; no separate fullscreen AI voice entry; real transcript in thread. Native speech delivery remains OPEN."
         }
       },
       "native_e444_compact_summary_20261003": {
@@ -496,6 +526,21 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Ne dodavati200 izbora ni zelenih potvrda za svaku poruku; route overview ne glumi drumsku putanju.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "conversation_channels_ai_finish_20261009": {
+          "state": "SOURCE_TARGETED_TESTS_PASS / CURRENT_NATIVE_PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "source_base": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+          "checks": "12 suites / 486 tests PASS; TypeScript PASS; 5 design guard suites / 121 tests PASS",
+          "native": "Previous 6dbd38e0 installed with -r on both devices; bounded physical inbox/private-chat/keyboard read-only review. Does not prove this source package.",
+          "open": [
+            "Current APK visual and real voice delivery",
+            "Top-level task grouping in Agreements",
+            "AI location-before-next-question ordering",
+            "40k concurrent users and actual lifecycle RPC load",
+            "Bounded push delivery and store gates"
+          ],
+          "scope": "No ordering fix in this package; preserve OPEN until canonical all-slot gate and native proof."
         }
       }
     },
@@ -3741,6 +3786,21 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Ne mešati sve task razgovore iste osobe; unread1:1 ne izmišljati.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "conversation_channels_ai_finish_20261009": {
+          "state": "SOURCE_TARGETED_TESTS_PASS / CURRENT_NATIVE_PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "source_base": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+          "checks": "12 suites / 486 tests PASS; TypeScript PASS; 5 design guard suites / 121 tests PASS",
+          "native": "Previous 6dbd38e0 installed with -r on both devices; bounded physical inbox/private-chat/keyboard read-only review. Does not prove this source package.",
+          "open": [
+            "Current APK visual and real voice delivery",
+            "Top-level task grouping in Agreements",
+            "AI location-before-next-question ordering",
+            "40k concurrent users and actual lifecycle RPC load",
+            "Bounded push delivery and store gates"
+          ],
+          "scope": "Authorized shared roster/private channel picker and initials+names; pagination/retry; no peer DM route. Top-level grouping remains OPEN."
         }
       }
     },
@@ -8507,6 +8567,20 @@
         "acceptance_lights_changed": false,
         "hosted_dashboard_republished": false
       }
+    },
+    "conversation_channels_ai_finish_20261009": {
+      "state": "SOURCE_TARGETED_TESTS_PASS / CURRENT_NATIVE_PENDING",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+      "source_base": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+      "checks": "12 suites / 486 tests PASS; TypeScript PASS; 5 design guard suites / 121 tests PASS",
+      "native": "Previous 6dbd38e0 installed with -r on both devices; bounded physical inbox/private-chat/keyboard read-only review. Does not prove this source package.",
+      "open": [
+        "Current APK visual and real voice delivery",
+        "Top-level task grouping in Agreements",
+        "AI location-before-next-question ordering",
+        "40k concurrent users and actual lifecycle RPC load",
+        "Bounded push delivery and store gates"
+      ]
     }
   }
 }

@@ -27,6 +27,8 @@ jest.mock('../../ui/Text',()=>({T:'T'}));jest.mock('../../ui/v2/V2Action',()=>({
 jest.mock('../../ui/support/SupportContextEntry',()=>({SupportContextEntry:'SupportContextEntry'}));
 import {GroupConversationScreen} from '../../ui/groups/GroupConversationScreen';
 import {GroupConversationEntry} from '../../ui/groups/GroupConversationEntry';
+import {ConversationChannels,privateConversationChoices} from '../../ui/groups/ConversationChannels';
+import type {GroupContext} from '../groupConversationService';
 import {groupBodyHash} from '../groupConversationService';
 const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'GROUP_UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
 const context=(role='PARTICIPANT')=>({accountId:A,agreementId:ID,needId:ID,available:true,authoritative:true,group:{groupId:G,title:'Zajednički Zadatak',canSend:true,terminal:false,role,
@@ -54,12 +56,54 @@ beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService
 afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mockListeners.size).toBe(0);mockListeners.clear();});
 it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
  await render();expect(text()).toContain(message.body);expect(text()).toContain('svom privatnom Dogovoru');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
- expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Vaši pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
+ expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Tvoji pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
  // Round 6: the block is the requester's own, so the finish waits on "tvoju" confirmation (it said the impersonal "Čeka potvrdu završetka").
  mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo ti');expect(text()).toContain('Bojana · Čeka tvoju potvrdu završetka');
  await tap('Otvori pojedinačni Dogovor');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+});
+it('offers a participant only the requester privately, never another participant', async()=>{
+ await render();
+ expect(privateConversationChoices(context() as GroupContext)).toEqual([{id:ID,name:'Osoba koja traži pomoć'}]);
+ const channels=tree!.root.findByType(ConversationChannels).props;
+ await act(async()=>channels.onPrivate(B));expect(mockPush).not.toHaveBeenCalled();
+ await act(async()=>channels.onPrivate(ID));expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID,tab:'poruke'}});
+});
+it('keeps two authorized private Agreements distinct even for the same person', async()=>{
+ const c=context('REQUESTER');c.group.management!.push({...c.group.management![0],agreementId:KEY});
+ mockService.context.mockResolvedValue(ok(c));await render();
+ expect(privateConversationChoices(c as GroupContext)).toEqual([{id:ID,name:'Bojana · Dogovor 1'},{id:KEY,name:'Bojana · Dogovor 2'}]);
+ await act(async()=>tree!.root.findByType(ConversationChannels).props.onPrivate(KEY));
+ expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:KEY,tab:'poruke'}});
+});
+it.each(['blur','background','ABA'])('rejects a retained private-channel choice after %s',async kind=>{
+ await render();const choose=tree!.root.findByType(ConversationChannels).props.onPrivate;
+ await act(async()=>{if(kind==='blur')mockFocused=false;else if(kind==='ABA')mockSession={user:{id:A},accountRevision:3};
+ else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
+ await act(async()=>choose(ID));expect(mockPush).not.toHaveBeenCalled();
+});
+it('shows sender identity with the message before opening the people panel',async()=>{
+ await render();expect(tree!.root.findByProps({testID:`group-message-sender-${M}`})).toBeDefined();
+ expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(0); // no photo fetch per message run
+ expect(text()).toContain('Bojana');expect(text()).toContain(message.body);
+});
+it('the overview lists the authoritative roster and only the allowed private target',async()=>{
+ entry=true;await render();expect(text()).toContain('Učesnici zadatka');expect(text()).toContain('Bojana');
+ expect(tree!.root.findAllByProps({label:'Privatno: Bojana'})).toHaveLength(0);
+ await tap('Privatno: Osoba koja traži pomoć');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID,tab:'poruke'}});
+});
+it('pages requester choices once, deduplicates IDs and keeps prior choices on a failed next read',async()=>{
+ entry=true;const c=context('REQUESTER');const first={...c,group:{...c.group,managementNextId:ID}};
+ mockService.context.mockResolvedValueOnce(ok(first));await render();
+ const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise);
+ const more=action('Još privatnih razgovora').onPress;await act(async()=>{more();more();});
+ expect(mockService.context).toHaveBeenCalledTimes(2);
+ await act(async()=>gate.resolve(ok({...c,group:{...c.group,management:[c.group.management![0],{...c.group.management![0],agreementId:KEY}],managementNextId:KEY}})));
+ expect(tree!.root.findAllByProps({label:'Privatno: Bojana · Dogovor 1'})).toHaveLength(1);
+ expect(tree!.root.findAllByProps({label:'Privatno: Bojana · Dogovor 2'})).toHaveLength(1);
+ mockService.context.mockResolvedValueOnce(unknown);await tap('Još privatnih razgovora');
+ expect(text()).toContain('Nisu učitani svi privatni razgovori');expect(action('Privatno: Bojana · Dogovor 2')).toBeDefined();
 });
 it('marks the reader in the people panel and anchors the thread to the composer, a state to the middle, as Poruke does',async()=>{
  const me={accountId:A,profileId:A,displayName:'Ana',role:'REQUESTER'};

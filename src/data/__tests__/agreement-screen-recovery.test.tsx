@@ -380,7 +380,9 @@ describe('D03 actual route and scoped resource integration', () => {
   it('opens the server-admitted group for this owned Agreement with its unread count', async () => {
     // A group joins the Dogovori of one Zadatak that needs more than one person; requiredSlots is that Zadatak's size.
     mockRead.mockResolvedValue({ ...workspace, pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1 } });
-    mockGroupContext.mockResolvedValue({ ok: true, podatak: { group: { groupId: '30000000-0000-4000-8000-000000000001', unreadCount: 2 } } });
+    mockGroupContext.mockResolvedValue({ ok: true, podatak: { accountId: mockAccount, agreementId: workspace.id, needId: workspace.id,
+      available: true, authoritative: true, group: { groupId: '30000000-0000-4000-8000-000000000001', title: workspace.naslov,
+        canSend: true, terminal: false, role: 'PARTICIPANT', members: [], management: null, managementNextId: null, unreadCount: 2 } } });
     await render();
     expect(mockGroupContext).toHaveBeenCalledWith(workspace.id, { accountId: mockAccount, accountRevision: 0 });
     await act(async () => button('Grupni razgovor · 2 nepročitana').props.onPress());

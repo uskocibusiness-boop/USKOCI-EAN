@@ -43,7 +43,7 @@ jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options
     state: { phase: mockVoicePhase } }; } }));
 // The voice module has three parts since 2026-09-24 (the composer's microphone, its notice line and voice mode); the
 // harness stands each in as a host element. Their own behaviour is in voice-composer-controls.test.tsx.
-jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice', VoiceMode: 'VoiceMode',
+jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice', VoiceMode: 'VoiceMode', VoiceTranscript: 'VoiceTranscript',
   HOLD_HINT: 'Drži mikrofon dok govoriš, pa pusti da pošalješ.' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'AppState') return { currentState: mockAppState, addEventListener: (_name: string, listener: (state: string) => void) => {
@@ -128,6 +128,56 @@ function publicFact(key: NeedFactV2Key, value: unknown): AiNeedV2Conversation['f
   return { id: key, key, value, displayValue: 'public display', valueType: definition.valueType, privacyClass: 'PUBLIC',
     requiredForDraft: definition.requiredForDraft, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null };
 }
+function completeFacts(title = 'Prenos ormara'): AiNeedV2Conversation['facts'] {
+  return [publicFact('need.title', title), publicFact('need.description', 'Prevod kratkog uputstva.'), publicFact('need.category', 'Prevod'),
+    publicFact('need.price_mode', 'OFFERS'), publicFact('need.people_needed', 1), publicFact('need.schedule_kind', 'WEEK_FLEXIBLE'),
+    publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', { mode: 'REMOTE' })];
+}
+const noSummary = () => expect(tree.root.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
+it('shows one complete proposed task at the end, before explicit review confirmation', async () => {
+  const facts = completeFacts().map(f => ({ ...f, status: 'NEEDS_CONFIRMATION' as const }));
+  const data = conversation({ facts }); data.review.missingRequired = facts.map(f => f.key);
+  mockLoad.mockResolvedValue(data); await resume();
+  expect(tree.root.findAllByProps({ testID: 'ai-pinned-card' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'ai-end-card' }).findAll(node => typeof node.type === 'string' && node.props.testID === 'intake-task-summary')).toHaveLength(1);
+  expect(data.review.canSaveDraft).toBe(false);
+  expect(mockSend).not.toHaveBeenCalled();
+});
+it.each([
+  ['amount missing', { 'need.price_mode': 'MY_PRICE' }, false],
+  ['retired price mode', { 'need.price_mode': 'FASTEST' }, false],
+  ['single person price', { 'need.price_mode': 'MY_PRICE', 'need.price_rsd': 3000 }, true],
+  ['group basis missing', { 'need.price_mode': 'MY_PRICE', 'need.price_rsd': 3000, 'need.people_needed': 2 }, false],
+  ['group price complete', { 'need.price_mode': 'MY_PRICE', 'need.price_rsd': 3000, 'need.people_needed': 2, 'need.price_basis': 'TOTAL' }, true],
+  ['time missing', { 'need.schedule_kind': 'FIXED_WINDOW', 'need.starts_at': '2026-10-12T08:00:00Z' }, false],
+  ['time reversed', { 'need.schedule_kind': 'FIXED_WINDOW', 'need.starts_at': '2026-10-12T08:00:00Z', 'need.ends_at': '2026-10-12T07:00:00Z' }, false],
+  ['point missing', { 'need.task_geography': { mode: 'STATIONARY', start: { city: 'Novi Sad' } } }, false],
+] as const)('waits for conditional data: %s', async (_label, patch, visible) => {
+  const keys = Object.keys(patch);
+  const facts = [...completeFacts().filter(f => !keys.includes(f.key)), ...Object.entries(patch).map(([key, value]) => publicFact(key as NeedFactV2Key, value))];
+  mockLoad.mockResolvedValue(conversation({ facts })); await resume();
+  expect(tree.root.findAllByProps({ testID: 'ai-end-card' }).length > 0).toBe(visible);
+});
+it.each([{ city: 'Novi Sad' }, { label: 'Novi Sad' }])('keeps private data out of a complete local summary: %j', async start => {
+  const geography = { mode: 'STATIONARY', start }, address = 'Privatna 42';
+  const facts = [...completeFacts().filter(f => f.key !== 'need.task_geography'), publicFact('need.task_geography', geography),
+    { ...publicFact('need.exact_address', address), privacyClass: 'PRIVATE' as const },
+    { ...publicFact('need.resolved_location', { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress: address },
+      points: [{ slot: 'start', latitudeE6: 45255123, longitudeE6: 19841234, origin: { kind: 'MANUAL_PIN' } }] }), privacyClass: 'PRIVATE' as const }];
+  mockLoad.mockResolvedValue(conversation({ facts })); await resume();
+  const summary = tree.root.findByProps({ testID: 'intake-task-summary' });
+  const words = summary.findAll(node => node.type === ('T' as React.ElementType)).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
+  expect(words).toContain('Novi Sad'); expect(words).not.toContain(address); expect(words).not.toContain('45255123');
+});
+it.each(['COMPLETED', 'ABANDONED'] as const)('does not restore a partial card for %s', async status => {
+  mockLoad.mockResolvedValue(conversation({ status, facts: [publicFact('need.title', 'Prenos')] })); await resume(); noSummary();
+});
+it('keeps a complete finished task at the end with only one footer review action', async () => {
+  mockLoad.mockResolvedValue(conversation({ status: 'COMPLETED', facts: completeFacts() })); await resume();
+  expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'ai-footer-action' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
+});
 function turn(requestId: string, state: string, retryAllowed = false) { return ok({ conversationId: id, clientRequestId: requestId,
   state, retryAllowed, turnId: state === 'ABSENT' ? null : other, receipt: state === 'SUCCEEDED' ? {
     userMessageId: id, assistantMessageId: other, proposedCount: 0, safety: 'ALLOW', schemaVersion: 'NEED_FACT_V2', authoritative: true } : null }); }
@@ -692,7 +742,7 @@ it('does not expose abandonment for an edit conversation bound to a Zadatak', as
   expect(menuItems('Napusti razgovor')).toHaveLength(0);
 });
 
-it('keeps the complete conversation in its own scroll area beneath the pinned card', async () => {
+it('keeps the complete conversation without a premature pinned card', async () => {
   const messages = [
     { id: 'old-ai', fromAi: true, body: 'Ranije pitanje' }, { id: 'old-user', fromAi: false, body: 'Raniji odgovor' },
     { id: 'new-ai', fromAi: true, body: 'Koliko ljudi je potrebno?' }, { id: 'new-user', fromAi: false, body: 'Dve osobe.' },
@@ -703,7 +753,7 @@ it('keeps the complete conversation in its own scroll area beneath the pinned ca
   const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
   expect(thread.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
   // The card is a `Surface` panel: the component and the view it draws both carry the testID, so only the drawn view is counted.
-  expect(tree.root.findByProps({ testID: 'ai-pinned-card' }).findAll(node => typeof node.type === 'string' && node.props.testID === 'intake-task-summary')).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'ai-pinned-card' })).toHaveLength(0); noSummary();
   expect(mockSend).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
 });
 
@@ -717,8 +767,8 @@ it('keeps current facts in the card and review instead of attaching changed valu
   expect(text()).toContain('Kada ti treba pomoć?');
   expect(text()).not.toContain(fact.displayValue);
   expect(thread.findAll(node => String(node.props.accessibilityLabel ?? '').startsWith('Iz ovoga je uzeto:'))).toHaveLength(0);
-  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' });
-  await act(async () => review.props.onPress());
+  noSummary(); await options();
+  await act(async () => menuItem('Pregledaj zadatak').onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
 
@@ -726,8 +776,7 @@ it('does not present UNKNOWN facts as completed answers', async () => {
   const title = publicFact('need.title', 'Nepotvrđen naslov'); title.status = 'UNKNOWN';
   const draft = conversation({ facts: [title] }); draft.review.missingRequired = ['need.title'];
   mockLoad.mockResolvedValue(draft); await resume();
-  expect(text()).toContain('Još treba: Naslov');
-  expect(text()).toContain('Zadatak u nastajanju');
+  noSummary(); expect(text()).not.toContain('Zadatak u nastajanju');
   expect(text()).not.toContain('Nepotvrđen naslov');
 });
 
@@ -741,23 +790,21 @@ it('keeps private address and resolved coordinates out of the compact live card 
       requiredForDraft: false, status: 'CONFIRMED', source: 'EXPLICIT_USER_ANSWER', evidence: null },
   ];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  expect(text()).toContain('Unos ormara'); expect(text()).not.toMatch(/Spremno za pregled|\bNacrt\b/);
+  noSummary(); expect(text()).not.toMatch(/Spremno za pregled|\bNacrt\b/);
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
   // Only the title is public here: no row is drawn for a fact that is not there, and a private one is never a row.
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(0);
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna 42'); expect(text()).not.toContain('45255123');
-  const review = tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' });
-  // The green action is the card's only review; a quiet one beside it would be a second door.
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
+  noSummary();
   await options(); expect(menuItems('Pregledaj zadatak')).toHaveLength(1);
-  await closeMenu();
-  await act(async () => { review.props.onPress(); review.props.onPress(); });
+  const review = menuItem('Pregledaj zadatak');
+  await act(async () => { review.onPress(); review.onPress(); });
   expect(mockRouter.push).toHaveBeenCalledTimes(1);
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
 });
 
-it('names the first few missing things and counts the rest instead of a wall that gets cut', async () => {
+it('keeps partial proposals out of the conversation card while facts are gathered', async () => {
   // Nothing is filled at the start, so the full list is eight items — longest exactly when it helps
   // least, and it was being cut mid-word to fit two lines. The AI asks for them one at a time.
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
@@ -767,7 +814,7 @@ it('names the first few missing things and counts the rest instead of a wall tha
   mockLoad.mockResolvedValue(eight); await resume();
   // Review r4 ra item 4: people never see a category (owner, PKG-031), so it is never named as missing. These lines
   // pinned "Kategorija" among the missing things before.
-  expect(text()).toContain('Još treba: Naslov · Opis · Cena · i još 4');
+  noSummary();
   expect(text()).not.toContain('Država zadatka'); expect(text()).not.toContain('Kategorija');
 
   // Three or fewer are all named: there is nothing to count.
@@ -775,7 +822,7 @@ it('names the first few missing things and counts the rest instead of a wall tha
   const three = conversation({ messages: said });
   three.review.missingRequired = ['need.category', 'need.price_mode', 'need.people_needed', 'need.description'];
   mockLoad.mockResolvedValue(three); await resume();
-  expect(text()).toContain('Još treba: Cena · Ljudi · Opis');
+  noSummary();
   expect(text()).not.toContain('i još'); expect(text()).not.toContain('Kategorija');
 
   // A title the AI has already proposed is the card's own heading. Listing it underneath as still
@@ -784,7 +831,7 @@ it('names the first few missing things and counts the rest instead of a wall tha
   const titled = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
   titled.review.missingRequired = ['need.title', 'need.description'];
   mockLoad.mockResolvedValue(titled); await resume();
-  expect(text()).toContain('Još treba: Opis');
+  noSummary();
   expect(text()).not.toContain('Još treba: Naslov');
 });
 
@@ -797,9 +844,9 @@ it('never names a category and does not call the draft ready while only the cate
   mockLoad.mockResolvedValue(hidden); await resume();
   expect(text()).not.toContain('Kategorija'); expect(text()).not.toContain('Još treba');
   expect(text()).not.toContain('Sve traženo je uneto.');
-  expect(tree.root.findByProps({ testID: 'intake-draft-review' }).props.disabled).toBe(false);
+  noSummary(); await options(); expect(menuItem('Pregledaj zadatak').disabled).toBe(false);
   await act(async () => tree.unmount());
-  const done = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });
+  const done = conversation({ messages: said, facts: completeFacts() });
   mockLoad.mockResolvedValue(done); await resume();
   expect(text()).toContain('Pregledaj zadatak');
   expect(tree.root.findAllByProps({ testID: 'ai-footer-action' })).toHaveLength(0);
@@ -812,7 +859,7 @@ it('never names a category and does not call the draft ready while only the cate
 it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through ready review, return, edit and review again: %s', async kind => {
   mockParams = kind === 'resumed' ? { conversationId: id } : kind === 'new-entry' ? { entryKey: other } : {};
   const originalParams = { ...mockParams };
-  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos ormara')] }));
+  mockLoad.mockResolvedValue(conversation({ facts: completeFacts() }));
   mockSend.mockImplementation((_id: string, _body: string, key: string) => Promise.resolve(turn(key, 'SUCCEEDED')));
   mockTurn.mockImplementation((_id: string, key: string) => Promise.resolve(turn(key, 'SUCCEEDED')));
   if (kind === 'resumed') await render(); else await start();
@@ -826,7 +873,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
   const retained = readIntakeReviewReturn(first.intakeReturn, first.conversationId)!;
   expect(retained.params).toEqual(originalParams);
   // A manual correction saved in the review must come back through the normal canonical read.
-  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos dva ormara')] }));
+  mockLoad.mockResolvedValue(conversation({ facts: completeFacts('Prenos dva ormara') }));
   mockParams = { ...retained.params }; await focus();
   expect(readIntakeReviewReturn(first.intakeReturn, id)).toBeNull();
   expect(input().value).toBe('Dopuna koju još nisam poslao.');
@@ -843,7 +890,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
 });
 
 it('retires the review return when the original intake unmounts', async () => {
-  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.title', 'Prenos ormara')] }));
+  mockLoad.mockResolvedValue(conversation({ facts: completeFacts() }));
   await resume();
   await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
   const token = mockRouter.push.mock.calls.at(-1)![0].params.intakeReturn;
@@ -855,7 +902,7 @@ it('retires the review return when the original intake unmounts', async () => {
 // Review r4 ra item 9: a conversation that changes a published task says so on its card, in the menu's own words.
 it('the card of a task being changed names its review the way the menu does and says "Izmena" in the title and to a screen reader, not over its name', async () => {
   const said = [{ id: other, body: 'Promeni vreme.', fromAi: false, safety: null, proposedFactIds: [] }];
-  const bound = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] }); bound.review.boundNeedId = other;
+  const bound = conversation({ messages: said, facts: completeFacts() }); bound.review.boundNeedId = other;
   mockLoad.mockResolvedValue(bound); await resume();
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
   expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
@@ -863,23 +910,16 @@ it('the card of a task being changed names its review the way the menu does and 
   expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toBe('Izmena zadatka, Prenos ormara');
 });
 
-// Review r4 ra item 6: the REVIEW/CLARIFY note describes the draft, so it stays on the card when the card is compact.
-it('keeps the complete safety note visible on the compact card during a pending turn', async () => {
+// Safety remains visible even while the incomplete card is absent.
+it('keeps the complete safety note visible outside a hidden card during a pending turn', async () => {
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
-  const flagged = conversation({ messages: said, safety: 'REVIEW', facts: [publicFact('need.title', 'Prenos ormara')] });
-  mockLoad.mockResolvedValue(flagged); await resume();
-  const card = () => tree.root.findByProps({ testID: 'intake-task-summary' });
-  const noteOf = () => card().findAll(node => node.type === ('T' as React.ElementType) && node.props.variant === 'note' && node.props.tone === 'muted'
-    && typeof node.props.children === 'string' && !String(node.props.children).startsWith('Još treba') && node.props.children !== 'Sve traženo je uneto.' && node.props.children !== 'Mesto nije određeno');
-  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
-  // A sent message makes the card compact (the shell's rule while a turn is pending).
+  mockLoad.mockResolvedValue(conversation({ messages: said, safety: 'REVIEW', facts: [publicFact('need.title', 'Prenos ormara')] }));
+  await resume(); noSummary();
+  const alerts = () => tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.accessibilityRole === 'alert');
+  expect(alerts()).toHaveLength(1); const safety = alerts()[0].props.children;
+  expect(alerts()[0].props.numberOfLines).toBeUndefined();
   await type('Dodaj da je treći sprat.'); await act(async () => submit().onPress());
-  expect(card().props.style).toEqual(expect.arrayContaining([expect.objectContaining({ paddingVertical: 8 })]));
-  expect(noteOf()).toHaveLength(1); expect(noteOf()[0].props.numberOfLines).toBeUndefined();
-  const review = tree.root.findByProps({ testID: 'intake-draft-review' });
-  expect(review.props.disabled).toBe(true);
-  await act(async () => review.props.onPress());
-  expect(mockRouter.push).not.toHaveBeenCalled();
+  noSummary(); expect(text()).toContain(safety); expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
 const plus = () => tree.root.findByProps({ accessibilityLabel: 'Dodaj fotografije' }).props;
@@ -952,7 +992,7 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
   await resume(); await type('Još jedna napomena');
   const send = submit().onPress;
   const photos = plus().onPress;
-  const review = tree.root.findByProps({ testID: 'intake-draft-review' }).props.onPress;
+  await options(); const review = menuItem('Pregledaj zadatak').onPress; await closeMenu();
   const point = tree.root.findByType('PointAsk' as React.ElementType).props;
   await act(async () => point.onEditingChange(true));
   expect(input().value).toBe('Još jedna napomena');
@@ -1093,7 +1133,7 @@ it('does not treat old city coordinates as confirmed for a new city with the sam
   await resume();
   expect(text()).not.toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
   expect(tree.root.findByType('PointAsk' as React.ElementType).props.conversationId).toBeDefined();
-  expect(text()).toContain('tačka na mapi');
+  noSummary();
 });
 
 it('respects reduced motion for screen entry and the options panel', async () => {
@@ -1106,7 +1146,7 @@ it('respects reduced motion for screen entry and the options panel', async () =>
 });
 
 it('shows actual typed fixed dates and times in Serbian time, in the app’s one format', async () => {
-  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),
+  mockLoad.mockResolvedValue(conversation({ facts: [...completeFacts().filter(f => f.key !== 'need.schedule_kind'), publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z'), publicFact('need.ends_at', '2026-09-10T17:00:00Z')] }));
   // Review r4 ra item 8: the card writes the window as every agreed term is written (src/lib/vreme.ts), read in Serbian
   // time and named so on a phone set elsewhere (the suite runs in UTC). It said "(vreme u Beogradu)" in a format of its own.
@@ -1115,13 +1155,13 @@ it('shows actual typed fixed dates and times in Serbian time, in the app’s one
   expect(text()).not.toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
 });
 it('omits an incomplete fixed interval without inventing an end time', async () => {
-  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.schedule_kind', 'FIXED_WINDOW'),
+  mockLoad.mockResolvedValue(conversation({ facts: [...completeFacts().filter(f => f.key !== 'need.schedule_kind'), publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z')] }));
   await resume();
   expect(text()).not.toContain('18:00'); expect(text()).not.toContain('Tačan termin');
 });
 it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])('uses the correct people label for %s', async (count, label) => {
-  mockLoad.mockResolvedValue(conversation({ facts: [publicFact('need.people_needed', count)] }));
+  mockLoad.mockResolvedValue(conversation({ facts: [...completeFacts().filter(f => f.key !== 'need.people_needed'), publicFact('need.people_needed', count)] }));
   await resume();
   expect(text()).toContain(label as string);
 });
@@ -1320,7 +1360,7 @@ describe('conversation and current facts have separate presentation', () => {
 
   it('shows the typed title in the card without repeating its display label under the reply', async () => {
     mockLoad.mockResolvedValue(conversation({
-      facts: [publicFact('need.title', 'Krečenje stana')],
+      facts: completeFacts('Krečenje stana'),
       messages: [said('Zabeležio sam krečenje stana.', ['need.title'])],
     }));
     await resume();
@@ -1345,7 +1385,7 @@ describe('conversation and current facts have separate presentation', () => {
 
   it('says nothing under a turn that took nothing, and under the person\u2019s own words', async () => {
     mockLoad.mockResolvedValue(conversation({
-      facts: [publicFact('need.title', 'Krečenje stana')],
+      facts: completeFacts('Krečenje stana'),
       messages: [said('Pitanje bez izdvojenih podataka.', []),
         { id: 'mine', fromAi: false, body: 'Treba mi krečenje.', safety: null, proposedFactIds: ['need.title'] }],
     }));

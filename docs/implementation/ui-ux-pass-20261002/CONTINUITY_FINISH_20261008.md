@@ -65,3 +65,21 @@ Nezavisni SOURCE pregled ove dopune pronašao je gramatičko slaganje fallback-a
 **NIJE DOKAZANO:** poslednja kompozicija oznake i dubokih redova na native APK-u. Raniji6dbd artefakti ne sadrže ove dopune ni gesture fix. Dce7 buildovi sadrže samo raniji gesture fix. Nema nove serverske primene, dostave push-a ili dokaza spremnosti za prodavnicu.
 
 **SLEDEĆE:** objedinjeni APK sa ovom izmenom i profilom/privatnošću; proveriti COMPACT/HALF/FULL i pin karticu, zatim nativni gest i povratak. Instalacija isključivo preko postojećeg paketa uz očuvane podatke.
+
+## Dopuna — učesnici, AI mikrofon i kompletna kartica (09.10)
+
+**URADIO / SOURCE:** ovlašćeni spisak učesnika na Pregledu višestrukog zadatka; izbor grupne/privatne prepiske sa management straničenjem, retry-jem i zaštitom od zastarelih callbackova. Učesnik nema ulaz u privatni razgovor sa drugim učesnikom. Ime i inicijali uz prvi oblačić niza u oba tipa razgovora. Bilateralni uslovi ostaju bilateralni. Segmentirane kontrole poštuju disabled stanje bez haptike ili navigacije. Privremeno blokiran red poruka ostaje čitljiv, a delimično učitana lista ne prikazuje lažnu konačnu prazninu.
+
+AI završna kartica se pojavljuje tek sa svim potrebnim činjenicama i potvrđenim lokacijama. Poseban ulaz u fullscreen glasovni AI razgovor je uklonjen iz oba unosa; ostaje jedan mikrofon sa hold/release i pristupačnim tap načinom. Stvarni transkript ulazi u razgovor tokom slušanja, bez dupliranja u statusu. Postojeće slanje, dozvole, greške, account scope i follow-scroll ugovori ostaju.
+
+**DOKAZAO / TEST:** završno izvršavanje 12 grupa / 486 testova PASS: ai-conversation-layout, ai-owned-intake-screen, v5-group-conversation-screen, agreement-screen-recovery, agreement-chat-thread, agreement-chat-tab-glue, AgreementOverview, segmented, discovery-view, discovery-v1-server-marker-layer, conversation-inbox-presentation i voice-composer-controls. TypeScript PASS. Pet dizajn guard grupa / 121 test PASS. Raniji crveni međukoraci uključivali su nepotpunu group mock strukturu, uklonjenu last promenljivu i VoiceTranscript mock; ispravljeni, završna provera pokriva iste putanje.
+
+Nezavisni read-only agentski pregled našao je dodatno učitavanje iste fotografije po nizu poruka i nevidljivu paging grešku u privatnom chatu. Oba nalaza korigovana: inicijali uz niz, postojeća fotografija u zaglavlju; paging greška i retry u kanalskoj kontroli. Provereni stale account/focus/background callbackovi i učitavanje dodatnih ovlašćenih ID-eva.
+
+**DOKAZAO / OGRANIČENA NATIVE PROBA:** raniji source6dbd38e0 instaliran na telefonu i emulatoru preko postojećeg preview35, sa istim prethodno potvrđenim potpisom, bez brisanja ili odjave. Telefon: postojeći Inbox → postojeća privatna prepiska → prazna tastatura; zaglavlje se sažima, composer ostaje iznad tastature. Privatne slike su van Git-a u C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6dbd-{inbox,chat,keyboard}.png. Nije slata poruka. Emulator preview je ostao odjavljen kao pre instalacije; drugi dev paket nije migriran niti su kopirani tokeni. Ovo NIJE dokaz novih kanala, avatara ili AI izmena.
+
+**DOKAZAO / SINTETIČKI KLIJENT:** test40.000 zadataka obuhvata osam gradova po4.000,4.000 remote i4.000 bez tačke; svi zadaci pojedinog grada dostupni kroz grupisanje. Zaseban test obrađuje256 simuliranih serverskih grupa ukupno32.000 zadataka kroz stvarni marker adapter. Prva putanja je lokalni gallery/legacy model, druga ograničen odgovor; nema stvarne baze ni native FPS merenja.
+
+**NIJE DOKAZANO:** novi native izgled/glasovno slanje; jedinstveni zapis zadatka na glavnoj listi Dogovora; redosled AI lokacija→sledeće pitanje;40.000 istovremenih korisnika ili lifecycle RPC workload; push dostava; App Store/Play spremnost. DEV, Edge, sertifikat i zavisnosti nisu menjani ovim paketom. Buildovi37850899130/37850899422 uspešno sadrže raniji787a337d, ne ovaj paket.
+
+**SLEDEĆE:** push objedinjene promene na obe kanonske grane, novi objedinjeni APK, vizuelna provera i korekcija. Paralelno razraditi uzročni AI location gate i izolovani SQL load harness uz tačan dokaz primenjenih funkcija. Postojeći heartbeat za nastavak rada osvežen poslednjim vlasnikovim zahtevima, bez duplikata. Lokalno generisanje kontrolne table ne znači objavu spoljnog Claude artefakta.

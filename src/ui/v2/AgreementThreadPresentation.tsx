@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
@@ -19,6 +19,7 @@ type Props = {
   onOverview: () => void;
   /** Inbox entry returns to the inbox; the task identity still opens accepted terms. */
   onBack?: () => void;
+  channels?: ReactNode;
   /**
    * The Dogovor's "···" menu (change terms, share the number, report a problem, cancel, and "Prijavi ili blokiraj osobu"): the conversation's
    * own, since the overview has none - its actions are rows of the page (J15) and the person is one tap from them, on the Pregled tab. Absent
@@ -38,7 +39,7 @@ type Props = {
  * With room, the bar is the person, the task and "···", and the same Pregled | Poruke tabs as the overview stand under it
  * (proposal R1), so the two halves of a Dogovor are one tap apart from either side.
  */
-export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, onMore, waiting = null, chat }: Props) {
+export function AgreementThreadPresentation({ agreement, person, onOverview, onBack = onOverview, onMore, channels, waiting = null, chat }: Props) {
   const { height } = useWindowDimensions();
   const scale = useTextScale();
   const [availableHeight, setAvailableHeight] = useState<number | null>(null);
@@ -96,7 +97,15 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
       <View testID="agreement-thread-tabs" style={s.tabs}><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
-    <AgreementChat {...chat} compact={compact} context={context} />
+    {channels ? <View style={s.tabs}>{channels}</View> : null}
+    <AgreementChat {...chat} compact={compact} context={context} sender={message => {
+      const member = agreement.ucesnici.find(item => message.posiljalacAccountId ? item.id === message.posiljalacAccountId : item.viSte === message.moja);
+      const fallback = <Avatar initials={member?.inicijali ?? null} size={40} />;
+      return <View style={[s.sender, message.moja && s.senderMine]}>
+        {fallback}
+        <T variant="note" tone="muted">{member?.ime || (message.moja ? 'Ti' : message.posiljalacIme || 'Sagovornik')}</T>
+      </View>;
+    }} />
   </View>;
 }
 
@@ -118,6 +127,8 @@ const s = StyleSheet.create({
   // The context joins the history's scroll at a large text size; it is parted from the first message by space, not by a line.
   context: { gap: sys.space.base, paddingBottom: layout.section, marginBottom: sys.space.md },
   person: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  sender: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.xs },
+  senderMine: { alignSelf: 'flex-end' },
   personCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   waiting: { color: sys.color.warn },
 });

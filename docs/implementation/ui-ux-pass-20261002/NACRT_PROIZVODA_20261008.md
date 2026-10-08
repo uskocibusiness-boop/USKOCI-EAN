@@ -1490,3 +1490,27 @@ Vlasnik je naknadno odobrio samostalnu implementaciju i pregled na oba uređaja;
 ### 16.9 Mirna oznaka izvora mape
 
 Vlasnikova dopuna posle §16.8: attribution je mala jedna linija dole levo, fiksirana uz donji mapin prostor iznad osnovne spuštene liste. HALF/FULL i pin kartica ga prirodno prekriju; oznaka ne putuje nagore, nema svoje animacije ili stalnog plutajućeg panela. Visina početnog spusta rezerviše mesto samo dok je mapa otvorena; trenutna visina sheet-a i visina kartice ne određuju položaj oznake. Prekrivena kontrola isključena je iz dodira i accessibility fokusa. Izvori ostaju dostupni po vraćanju na mapu. Moja lokacija, clear-band kamere i pinovi imaju zasebno postojeće ponašanje. Ovo je izričit izuzetak ranijoj zajedničkoj vožnji svih mapinih kontrola.
+
+### 16.10 Učesnici i izbor razgovora
+
+Pregled višestrukog zadatka počinje stvarnim ovlašćenim spiskom učesnika, zatim jasno označenim bilateralnim Dogovorom i njegovim uslovima. Razgovor ima izbor „Svi učesnici / Privatno“. Privatni izbor za osobu koja traži pomoć vodi samo na ID-eve iz autoritativnog management readera; za učesnika samo na sopstveni Dogovor sa tražiocem. Sačuvana poruka u grupi ostaje vidljiva grupi; promena kanala ne menja publiku već poslate poruke.
+
+Imena i inicijali uz početak niza poruka identifikuju pošiljaoca; fotografije ostaju u postojećem zaglavlju/spisku učesnika. Ne učitavati istu zaštićenu fotografiju ponovo za svaki oblačić. Dodatni privatni razgovori imaju straničenje, retry i zadržane prethodne izbore. Zastareli callback posle promene naloga, povratka u pozadinu ili napuštanja ekrana ne otvara drugi razgovor.
+
+**Obim implementacije:** detalj Dogovora i prelaz između razgovora. Glavna lista Dogovora još čita bilateralne zapise; njeno grupisanje u jedan zapis po zadatku ostaje otvoreno. Ovo nije tvrdnja da je kompletan zahtev „jedan Dogovor“ zatvoren. Native kompozicija novih kontrola, uključujući tastaturu, zahteva tačan novi APK.
+
+### 16.11 AI — jedan mikrofon i završna kartica
+
+Oba unosa koriste isti mikrofon: zadržavanje počinje slušanje, puštanje završava unos; pomeranje nagore otkazuje prema postojećem ugovoru. Pristupačan način „Govori bez držanja“ menja ponašanje istog mikrofona, bez zasebnog ekrana za glasovni razgovor. Transkript prikazuje stvarne delimične/završne reči u razgovoru; ne duplira ih u statusnom redu. Završeni unos prelazi u korisničku poruku i stvarno stanje čekanja/odgovora. Worker tok nema fotografije.
+
+Kartica na kraju razgovora zahteva obavezne potvrđene činjenice, važeću cenu/osnovicu kada su potrebne, termine, pozitivan broj ljudi i sve potvrđene lokacijske tačke; bez greške, obrade ili blokade bezbednosti. Nepotpuni i napušteni razgovor ne prikazuju završnu karticu. Ručni pregled/uređivanje ostaje dostupan kroz postojeći meni.
+
+**Još otvoreno:** redosled mapa → potvrđena lokacija → sledeće pitanje. Potrebna je veza sa ID-em činjenice/poruke i kanonskim readback-om, ne prepoznavanje teksta pitanja. Delimična ruta, „Kasnije“, skrivanje editora ili izgubljena potvrda servera ne smeju osloboditi sledeće pitanje. Trenutni paket kartice/mikrofona nije dokaz da je ovaj redosled već rešen.
+
+### 16.12 Veliki skupovi i dokaz opterećenja
+
+Klijentski test pokriva 40.000 sintetičkih zadataka: po 4.000 u osam gradova Srbije, 4.000 na daljinu i 4.000 bez pina. Odvojeni test stvarnog adaptera proverava ograničen odgovor sa 256 grupa za 32.000 zadataka. Prvi proverava lokalni prikaz/grupisanje, drugi obradu serverskih markera; nijedan ne meri Supabase kapacitet, životni ciklus ili FPS.
+
+Sledeći nivo koristi izolovanu bazu i stvarne ovlašćene RPC pozive za objavu, prijave, izbor, izmene, otkazivanje i prepisku. Izveštaj mora odvojiti populaciju od konkurentnosti, zahteve/s, p50/p95/p99, greške, čekanje na brave i granicu samog generatora. Ne opterećivati zajednički DEV sa 40.000 sintetičkih aktivnih korisnika. Postojeći Discovery-GRAD SQL harness iz istorije služi početnoj proveri čitanja; direktni seed sa isključenim triggerima nije lifecycle dokaz.
+
+Izvori: [Airbnb pretraga i filteri](https://www.airbnb.com/help/article/39) služe kao referenca povezivanja izbora i rezultata. [k6 arrival-rate i dodela VU](https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/arrival-rate-vu-allocation/) obrazlaže zašto brzina dolaska zahteva i broj potrebnih virtuelnih korisnika nisu ista mera. [Supabase performance](https://supabase.com/docs/guides/platform/performance) daje polazne provere upita i konekcija; ne potvrđuje kapacitet ove aplikacije.

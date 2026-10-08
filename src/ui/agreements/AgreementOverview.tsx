@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
+import { T } from '../Text';
 import { AgreementPeople, AgreementTerms, agreementTaskPlace, isGroupAgreement } from '../v2/AgreementPresentation';
 import { AgreementContactPlace } from './AgreementContactPlace';
 import { AgreementActions, AgreementDangerActions, AgreementHead, AgreementLinks, AgreementTermNote } from './AgreementOverviewParts';
@@ -40,6 +41,9 @@ export type AgreementOverviewProps = {
   problem?: { note?: ReactNode; exits?: ReactNode; form?: ReactNode };
   /** The entry to the conversation of a group Dogovor (it reads the group, so the route owns it). */
   group?: ReactNode;
+  /** Fresh group roster is shown above the bilateral conditions, which remain explicitly private. */
+  groupReady?: boolean;
+  privatePartyName?: string;
   /** Replaces the private location of the place section. For a gallery that must read nothing; the route leaves it out. */
   location?: ReactNode;
   /**
@@ -59,18 +63,20 @@ export type AgreementOverviewProps = {
   };
 };
 
-export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, location, on }: AgreementOverviewProps) {
+export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {
   const title = readableTitle(agreement.naslov);
   const link = (command: (() => void) | undefined) => command ? { disabled: !enabled, onPress: command } : undefined;
   return <>
+    {groupReady ? group : null}
+    {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Tvoj Dogovor: ${privatePartyName}` : 'Tvoj pojedinačni Dogovor'}</T> : null}
     <AgreementHead title={title} step={step} steps={steps} info={info}>{headExtra}</AgreementHead>
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}
     {problem?.note}
     {problem?.exits}
     <AgreementTerms agreement={agreement} />
     {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
-    {isGroupAgreement(agreement) ? <AgreementPeople agreement={agreement} /> : null}
-    {group}
+    {isGroupAgreement(agreement) && !groupReady ? <AgreementPeople agreement={agreement} /> : null}
+    {!groupReady ? group : null}
     {/* One open section for the number and the place (it was a closed "Kontakt" and a closed "Lokacija i pristup"). */}
     <AgreementContactPlace agreement={agreement} enabled={enabled} concealed={concealed} canShare={party} accountHasNumber={accountHasNumber}
       locationSlot={location} onLayout={on.placeLayout} onTogglePhone={on.togglePhone} onOpenMessages={on.openMessages} onRequestAddress={on.requestAddress} />

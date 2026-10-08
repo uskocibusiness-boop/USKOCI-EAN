@@ -63,6 +63,33 @@ test('1000 local fixture tasks preserve area counts and remote independence when
   expect(discoveryItems(rows, view({ where: 'remote', query: 'Pomoć remote-199' }), undefined, NOW)).toEqual([remote[199]]);
 });
 
+test('40000 synthetic tasks across eight Serbian cities keep dense public points reachable and remote filters independent', () => {
+  // Pure client/gallery proof. This does not exercise the server reader, concurrent users or native FPS.
+  const cities = [
+    ['Beograd',44.81,20.46],['Novi Sad',45.25,19.83],['Niš',43.32,21.90],['Kragujevac',44.01,20.91],
+    ['Subotica',46.10,19.66],['Čačak',43.89,20.35],['Zrenjanin',45.38,20.39],['Novi Pazar',43.14,20.52],
+  ] as const;
+  const local = cities.flatMap(([city,lat,lng],cityIndex)=>Array.from({length:4000},(_,index)=>item(`city-${cityIndex}-${index}`,{
+    podrucjeTekst:city,priblizno:{lat:lat+(index%40)*0.001,lng:lng+(index%40)*0.001},
+    detalji:{rezimLokacije:'STATIONARY'} as MarketplaceItem['detalji'],
+  })));
+  const remote=Array.from({length:4000},(_,index)=>item(`remote-${index}`,{priblizno:null,detalji:{rezimLokacije:'REMOTE'} as MarketplaceItem['detalji']}));
+  const unmapped=Array.from({length:4000},(_,index)=>item(`unmapped-${index}`,{priblizno:null}));
+  const rows=[...local,...remote,...unmapped];expect(rows).toHaveLength(40000);
+  for(const [cityIndex,[,lat,lng]] of cities.entries()){
+    const area:[number,number,number,number]=[lng-0.08,lat-0.08,lng+0.08,lat+0.08];
+    const shown=discoveryShown(rows,view({area}),undefined,NOW);
+    expect(shown.inArea).toHaveLength(4000);expect(shown.inArea.every(row=>row.id.startsWith(`city-${cityIndex}-`))).toBe(true);
+    expect(shown.withoutPoint).toHaveLength(8000);expect(shown.listed).toHaveLength(12000);
+    const places=[...pinPlaces(shown.inArea).values()];
+    expect(places.length).toBeLessThan(10);expect(places.some(place=>place.ids.length>500)).toBe(true);
+    const reachable=places.flatMap(place=>place.ids);
+    expect(new Set(reachable).size).toBe(4000);expect(reachable.length).toBe(4000);
+    const offMap=discoveryShown(rows,view({where:'remote',area,place:cities[cityIndex][0]}),undefined,NOW);
+    expect(offMap.listed).toHaveLength(4000);expect(publicFeatures(offMap.listed).features).toHaveLength(0);
+  }
+},30000);
+
 describe('Kada, read in the task\'s own zone', () => {
   const today = item('today', window('2026-09-24T14:00:00+02:00', '2026-09-24T16:00:00+02:00'));
   const tomorrow = item('tomorrow', window('2026-09-25T09:00:00+02:00', '2026-09-25T11:00:00+02:00'));

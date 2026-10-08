@@ -26,6 +26,11 @@ const indicator = () => tree.root.findByType(Animated.View);
 const flatIndicator = () => StyleSheet.flatten(indicator().props.style);
 
 beforeEach(() => { jest.useFakeTimers(); change.mockClear(); });
+test('an unavailable channel has no selection action or haptic and announces why it cannot be pressed', async()=>{
+ await render(control('active',{options:[options[0],{...options[1],disabled:true}]}));
+ expect(tab('Istorija').props).toMatchObject({disabled:true,haptic:'none',accessibilityState:{disabled:true,selected:false}});
+ await act(async()=>tab('Istorija').props.onPress());expect(change).not.toHaveBeenCalled();
+});
 afterEach(async () => {
   await act(async () => tree?.unmount());
   mockReduced = false; jest.restoreAllMocks(); jest.useRealTimers();

@@ -64,11 +64,11 @@ function useScreenReader(): boolean {
 const reviewing = (state: VoiceSnapshot, reader: boolean) => state.session ? state.session.mode === 'accessible' : reader;
 
 /** The microphone keeps its gesture; the ordinary AI pill uses a practical 52 px target. */
-export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 52 | 60 }) {
+export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 52 | 60; tapToTalk?: boolean }) {
   const reader = useScreenReader();
   const reduced = useReducedMotion();
   const gesture = useRef<string | null>(null), startY = useRef(0);
-  const explicit = reader;
+  const explicit = reader || !!p.tapToTalk;
   const { phase } = p.state;
   const active = voiceActive(p.state);
   const occupied = phase !== 'IDLE' && !active;
@@ -146,7 +146,7 @@ function Levels({ level }: { level: number }) {
  * The line above the composer: what the microphone is doing and what it heard, or what went wrong and the way out.
  * `hint` is the composer's own quiet advice, shown only while the microphone has nothing to say.
  */
-export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?: { label: string; onPress: () => void } }) {
+export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?: { label: string; onPress: () => void }; transcriptInThread?: boolean }) {
   const reader = useScreenReader();
   const { state } = p;
   const active = voiceActive(state), listening = state.phase === 'LISTENING';
@@ -155,9 +155,9 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
     const line = listening ? reviewing(state, reader) ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.'
       : 'Pusti da pošalješ, povuci nagore da odustaneš.' : PHASE_WORDS[state.phase] ?? '';
     return <View testID="voice-notice" style={s.notice}>
-      {words ? <T selectable numberOfLines={3} style={s.heard}>{words}</T> : null}
+      {words && !p.transcriptInThread ? <T selectable numberOfLines={3} style={s.heard}>{words}</T> : null}
       <View style={s.noticeRow}>
-        {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
+        {listening && state.audioLevel !== null && !p.transcriptInThread ? <Levels level={state.audioLevel} /> : null}
         <T accessibilityLiveRegion="polite" variant="note" style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
         {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkaži govor" onPress={() => p.controller.cancel('gesture')} /> : null}
       </View>
@@ -177,6 +177,20 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
   return <View style={s.hintRow}>
     <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.hintText}>{p.hint}</T>
     {p.hintAction ? <V2Action tone="neutral" kind="quiet" compact label={p.hintAction.label} onPress={p.hintAction.onPress} /> : null}
+  </View>;
+}
+
+/** Live recognition only: neither a stored message nor an invented transcription. */
+export function VoiceTranscript({ state }: { state: VoiceSnapshot }) {
+  if (state.phase !== 'LISTENING' && state.phase !== 'FINALIZING') return null;
+  const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
+  return <View testID="voice-live-transcript" style={{ gap: sys.space.sm }}>
+    <View style={s.noticeRow}>
+      <Microphone size={20} color={sys.color.green} />
+      <T variant="note" tone="muted" accessibilityLiveRegion="polite">{state.phase === 'LISTENING' ? 'Slušam…' : 'Završavamo tekst…'}</T>
+      {state.phase === 'LISTENING' && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
+    </View>
+    {words ? <T selectable variant="body">{words}</T> : null}
   </View>;
 }
 

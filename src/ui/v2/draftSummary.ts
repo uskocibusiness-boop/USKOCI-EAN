@@ -1,5 +1,5 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
-import type { NeedTaskGeography } from '../../contracts/needFactsV2';
+import { REQUIRED_NEED_FACT_V2_KEYS, type NeedTaskGeography } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
 import { raspon } from '../../lib/vreme';
 import { DOGOVORENA_ZONA, napomenaZone } from '../../lib/dogovorenoVreme';
@@ -29,6 +29,23 @@ export type Summary = { title: string | null; zone: string; schedule?: string; v
   peopleCount?: number | null };
 type SummaryFact = Pick<AiNeedV2Fact, 'key' | 'value' | 'privacyClass' | 'status'>;
 
+/** Display readiness of already decoded proposals, not permission to save or publish. Confirmation stays in review. */
+export function completeDraftProposal(facts: readonly SummaryFact[]): boolean {
+  const proposed = new Map(facts.filter(fact => fact.privacyClass === 'PUBLIC' && fact.status !== 'UNKNOWN').map(fact => [fact.key, fact.value]));
+  if (REQUIRED_NEED_FACT_V2_KEYS.some(key => {
+    const value = proposed.get(key);
+    return value == null || (typeof value === 'string' && !value.trim());
+  })) return false;
+  const summary = publicSummary(facts);
+  if (!summary.title || !summary.value || !summary.schedule || !summary.peopleCount || summary.peopleCount < 1) return false;
+  if (proposed.get('need.price_mode') === 'MY_PRICE') {
+    const amount = proposed.get('need.price_rsd'), basis = proposed.get('need.price_basis');
+    if (typeof amount !== 'number' || !Number.isInteger(amount) || amount <= 0) return false;
+    if (summary.peopleCount > 1 && basis !== 'TOTAL' && basis !== 'PER_PERSON') return false;
+  }
+  return true;
+}
+
 export function publicSummary(facts: readonly SummaryFact[]): Summary {
   // A compact public projection has an explicit field allowlist. Never use the
   // private exact address, access notes, resolved points or arbitrary displayValue.
@@ -37,8 +54,9 @@ export function publicSummary(facts: readonly SummaryFact[]): Summary {
   const mode = value('need.price_mode'), amount = value('need.price_rsd'), people = value('need.people_needed');
   const basis = value('need.price_basis');
   const schedule = value('need.schedule_kind');
-  const zone = geography?.mode === 'REMOTE' ? 'Na daljinu' : [geography?.start?.city ?? geography?.serviceArea?.city,
-    geography?.start?.area ?? geography?.serviceArea?.area].filter(item => typeof item === 'string' && item.trim()).join(' · ');
+  const publicPlace = geography?.start ?? geography?.serviceArea;
+  const zone = geography?.mode === 'REMOTE' ? 'Na daljinu' : [publicPlace?.city, publicPlace?.area]
+    .filter(item => typeof item === 'string' && item.trim()).join(' · ') || publicPlace?.label || '';
   const money = mode === 'MY_PRICE' && typeof amount === 'number' ? novac(amount) : '';
   return { title: typeof title === 'string' && title.trim() ? title : null, zone,
     schedule: schedule === 'FIXED_WINDOW' ? fixedRange(value('need.starts_at'), value('need.ends_at'))

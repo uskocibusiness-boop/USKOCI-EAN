@@ -7,6 +7,7 @@ import { useReducedMotion } from './motion';
 import { nested, sys } from './tokens';
 
 export type SegmentedOption<K extends string> = { key: K; label: string;
+  disabled?: boolean;
   /**
    * A count beside the label. It is DRAWN only with `badgeTone="attention"`: a number belongs to what waits for the person ("Čeka
    * te", "Aktivni 3"), and every other count is noise on a control that has to stay readable (UI/UX pass 2026-10-08). A count
@@ -110,16 +111,17 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
     const selected = option.key === value;
     // Only what waits for the person is counted on the control; a count with no tone is spoken (below) and not drawn.
     const count = option.badgeTone === 'attention' && option.badge !== undefined && option.badge !== null ? String(option.badge) : null;
-    return <Press key={option.key} accessibilityRole="tab" accessibilityLabel={option.label} accessibilityState={{ selected }}
+    return <Press key={option.key} accessibilityRole="tab" accessibilityLabel={option.label}
+      disabled={option.disabled} accessibilityState={{ selected, ...(option.disabled !== undefined ? { disabled: option.disabled } : {}) }}
       // Android must receive an explicit empty text to retire a previously spoken count.
       accessibilityValue={{ text: option.badge != null && option.badgeLabel ? option.badgeLabel : '' }}
       // The tick follows the change, so it comes on release with it, in a fixed control and in a rail alike: a finger that lands
       // on a segment and turns into a page scroll commits nothing and so ticks nothing. The chosen segment changes nothing and
       // says nothing. In a rail that scrolls the segment also waits out the press delay before it gives, as a row does.
-      haptic={selected ? 'none' : 'select'} scaleTo={sys.motion.scale.button} unstable_pressDelay={inRail ? PRESS_DELAY : undefined}
+      haptic={selected || option.disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.button} unstable_pressDelay={inRail ? PRESS_DELAY : undefined}
       // The chips are 8 apart: each keeps to its own 48, with no reach into the next.
       hitSlop={chips ? 0 : undefined}
-      onPress={() => { if (!selected) onChange(option.key); }} onLayout={measure(option.key)}
+      onPress={() => { if (!selected && !option.disabled) onChange(option.key); }} onLayout={measure(option.key)}
       style={chips ? [s.chip, selected && s.chipSelected]
         : [s.segment, hugging && s.segmentInline, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && !target && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>
