@@ -2,6 +2,8 @@ export type InboxRole = 'REQUESTER' | 'WORKER';
 export type InboxItem = {
   id: string; eventType: string; role: InboxRole; occurredAt: string;
   readAt: string | null; title: string; body: string; family: string;
+  /** The title of the task the event is about, when the read carries it (INBOX-NASLOV); absent on a server that does not. */
+  taskTitle?: string;
 };
 export type InboxCursor = { at: string; id: string };
 export type InboxPage = { items: InboxItem[]; hasMore: boolean; unreadCount: number; asOf: string };

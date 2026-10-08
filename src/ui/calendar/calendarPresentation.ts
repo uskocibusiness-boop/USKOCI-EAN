@@ -50,8 +50,17 @@ export function localDayRange(day: string) {
   // Calendar navigation follows the device zone, including 23/25-hour local days.
   return { from: new Date(`${day}T00:00:00`).toISOString(), to: new Date(`${shiftDate(day, 1)}T00:00:00`).toISOString() };
 }
+const SHORT_MONTHS = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'avg', 'sep', 'okt', 'nov', 'dec'] as const;
+/**
+ * "9. okt", never "09. okt". The day and the month are spelled here, not by the locale: the date data on the owner's Android phone writes this
+ * Serbian pattern with a two-digit day ("Od 09. okt", "Četvrtak, 08. okt", "05. okt" on his screenshots of 8 Oct 2026) while Node writes "9. okt",
+ * so the tests never saw it.
+ */
 export function displayDate(day: string): string {
-  return new Date(`${day}T12:00:00Z`).toLocaleDateString('sr-Latn-RS', { timeZone: 'UTC', day: 'numeric', month: 'short' });
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(day);
+  const month = match ? SHORT_MONTHS[Number(match[2]) - 1] : undefined;
+  if (!match || !month) return new Date(`${day}T12:00:00Z`).toLocaleDateString('sr-Latn-RS', { timeZone: 'UTC', day: 'numeric', month: 'short' });
+  return `${Number(match[3])}. ${month}`;
 }
 export function overlapsInterval(start: string, end: string, from: string, to: string): boolean {
   const starts = calendarInstant(start), ends = calendarInstant(end), rangeStart = calendarInstant(from), rangeEnd = calendarInstant(to);

@@ -15,6 +15,7 @@ import { PillComposer, PillNote } from '../system/PillComposer';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { brandAction, sys } from '../system/tokens';
+import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import type { GroupState } from './GroupConversationController';
 
@@ -57,6 +58,8 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   // As in Poruke: a thread is anchored to the composer, a state (the first read, an error, nothing to show) to the middle.
   const centred = first || (state.phase === 'ERROR' && !olderUnavailable) || (ready && (!group || state.messages.length === 0));
   const me = state.context?.accountId;
+  // The pull spinner answers a pull only; a read of its own does not raise it (the owner's "dot", 8 Oct 2026).
+  const pull = usePullRefresh(p.onRefresh, state.phase === 'LOADING' && state.messages.length > 0);
   // In a conversation the arrival IS the message. The history that was already there settles silently, "Starije poruke"
   // does not replay the thread, and only a message that has just landed moves.
   const appear = useAppear();
@@ -120,7 +123,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
       right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={p.onTogglePeople} /> : undefined} />
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <FlatList key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
-        onViewableItemsChanged={p.onVisible} viewabilityConfig={p.viewability} refreshing={state.phase === 'LOADING' && state.messages.length > 0} onRefresh={p.onRefresh}
+        onViewableItemsChanged={p.onVisible} viewabilityConfig={p.viewability} refreshing={pull.refreshing} onRefresh={pull.onRefresh}
         ListHeaderComponent={header}
         renderItem={({ item }) => {
           // The position is read from the page itself, so the run is right whatever index the list hands in.

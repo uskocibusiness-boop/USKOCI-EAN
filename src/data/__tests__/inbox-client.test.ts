@@ -5,6 +5,20 @@ const at='2026-09-07T07:00:00Z';
 const event={id,eventType:'RESPONSE_SELECTED',role:'WORKER',occurredAt:at,readAt:null,
   title:'Vaša prijava je izabrana',body:'Otvori Dogovor.',family:'responses'};
 describe('Inbox production adapter',()=>{
+  // INBOX-NASLOV (owner's phone, 8 Oct 2026: "Dogovor je otkazan" twice and no word of which task): the read may carry the task's title.
+  it('keeps the task title the read carries, and reads a row without one as before',async()=>{
+    const titled={...event,id:'12345678-1234-1234-1234-123456789013',taskTitle:'Krečenje stana od 80 m²'};
+    const untitled={...event,id:'12345678-1234-1234-1234-123456789014',taskTitle:null};
+    const blank={...event,id:'12345678-1234-1234-1234-123456789015',taskTitle:'   '};
+    const rpc=jest.fn().mockResolvedValue({data:{items:[titled,untitled,blank,event],unreadCount:0,hasMore:false,asOf:at},error:null});
+    const result=await createInboxService(rpc).list(null);
+    expect(result.items.map(item=>item.taskTitle)).toEqual(['Krečenje stana od 80 m²',undefined,undefined,undefined]);
+    expect('taskTitle' in result.items[1]).toBe(false);
+  });
+  it('refuses a task title that is not text',async()=>{
+    const rpc=jest.fn().mockResolvedValue({data:{items:[{...event,taskTitle:7}],unreadCount:0,hasMore:false,asOf:at},error:null});
+    await expect(createInboxService(rpc).list(null)).rejects.toThrow('INBOX_INVALID_PROJECTION');
+  });
   it('sends paired cursor and role and returns only a validated projection',async()=>{
     const rpc=jest.fn().mockResolvedValue({data:{items:[event],unreadCount:1,hasMore:false,asOf:at},error:null});
     const result=await createInboxService(rpc).list('WORKER',{id,at},20);

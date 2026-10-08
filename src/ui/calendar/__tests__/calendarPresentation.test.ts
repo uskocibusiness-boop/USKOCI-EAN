@@ -1,4 +1,18 @@
-import { civilClock, civilDay, dayHeading, scheduleZone, showScheduleZone, weekDates, weekLabel } from '../calendarPresentation';
+import { civilClock, civilDay, dayHeading, displayDate, scheduleZone, showScheduleZone, weekDates, weekLabel } from '../calendarPresentation';
+
+// The owner's phone wrote "Od 09. okt" and "Četvrtak, 08. okt" (8 Oct 2026): Android's Serbian date pattern has a two-digit day, Node's has not, so
+// the day and the month are spelled by the app itself. These expectations do not depend on the locale data of the machine that runs them.
+describe('displayDate', () => {
+  it('writes the day without a leading zero', () => {
+    expect(displayDate('2026-10-09')).toBe('9. okt');
+    expect(displayDate('2026-10-08')).toBe('8. okt');
+    expect(displayDate('2026-01-05')).toBe('5. jan');
+  });
+  it('writes every month in its short Serbian form', () => {
+    expect(Array.from({ length: 12 }, (_, at) => displayDate(`2026-${String(at + 1).padStart(2, '0')}-24`)))
+      .toEqual(['24. jan', '24. feb', '24. mar', '24. apr', '24. maj', '24. jun', '24. jul', '24. avg', '24. sep', '24. okt', '24. nov', '24. dec']);
+  });
+});
 
 // Fixed expectations for the civil forms Dostupnost shows (review of plan step 0, 2026-09-24). The screen tests build
 // their expected text with these same functions, so a fault in them would pass there; it cannot pass here.

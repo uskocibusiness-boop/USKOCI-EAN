@@ -8,9 +8,12 @@ function invalid(): never { throw new Error('INBOX_INVALID_PROJECTION'); }
 function item(v: unknown): InboxItem {
   if (!isObject(v) || !isId(v.id) || !isDate(v.occurredAt) || !(v.readAt === null || isDate(v.readAt))
     || !['REQUESTER','WORKER'].includes(String(v.role)) || typeof v.title !== 'string'
-    || typeof v.body !== 'string' || typeof v.eventType !== 'string' || typeof v.family !== 'string') return invalid();
+    || typeof v.body !== 'string' || typeof v.eventType !== 'string' || typeof v.family !== 'string'
+    // The task's own title (INBOX-NASLOV): optional, null or absent when the read has none; anything else is not a projection we know.
+    || !(v.taskTitle === undefined || v.taskTitle === null || typeof v.taskTitle === 'string')) return invalid();
+  const taskTitle = typeof v.taskTitle === 'string' && v.taskTitle.trim() ? v.taskTitle : undefined;
   return { id:v.id, occurredAt:v.occurredAt, readAt:v.readAt, role:v.role as InboxItem['role'],
-    title:v.title, body:v.body, eventType:v.eventType, family:v.family };
+    title:v.title, body:v.body, eventType:v.eventType, family:v.family, ...(taskTitle ? { taskTitle } : {}) };
 }
 export function createInboxService(rpc: Rpc): InboxPort {
   async function call(name: string, args: Record<string, unknown>): Promise<unknown> {

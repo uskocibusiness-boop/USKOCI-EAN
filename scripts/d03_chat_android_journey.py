@@ -268,13 +268,14 @@ try:
     checkpoint('MANUAL_RETRY_AND_REFRESH_ONE_ACKNOWLEDGED_ROW')
 
     if CORE106:
-        tap(desc='Pregled');scroll_to(desc='Završio sam');tap(desc='Završio sam')
+        # The worker's step is "Zadatak je gotov" with its review sheet (since the UI waves of Oct 2026), not the old "Završio sam".
+        tap(desc='Pregled');scroll_to(desc='Zadatak je gotov');tap(desc='Zadatak je gotov');tap(desc='Da, zadatak je gotov')
         until=time.monotonic()+40
         while psql(f"select state from public.agreement_execution where agreement_id='{AGREEMENT_ID}'")!='AWAITING_REQUESTER':
             if time.monotonic()>until:raise AssertionError('Native worker completion did not persist')
             time.sleep(.3)
         assert psql(f"select status from public.agreements where id='{AGREEMENT_ID}'")=='CONFIRMED'
-        wait_visible(text='Čeka se potvrda završetka');shot('CORE_worker_done');checkpoint('WORKER_MARKED_DONE_REAL_UI')
+        wait_visible(text='Čeka se potvrda druge strane');shot('CORE_worker_done');checkpoint('WORKER_MARKED_DONE_REAL_UI')
         tap(desc='Poruke')
     switch_account(os.environ['RU5_DEVICE_REQUESTER_EMAIL'],'worker')
     for body in (WORKER_BODY,REQUESTER_BODY,OFFLINE_BODY):assert_body_once(body)
@@ -283,6 +284,7 @@ try:
     tap(desc='Pregled')
     scroll_to(desc='Potvrdi završetak')
     tap(desc='Potvrdi završetak')
+    tap(desc='Da, potvrdi završetak')
     deadline=time.monotonic()+40
     while psql(f"select status from public.agreements where id='{AGREEMENT_ID}'")!='COMPLETED':
         if time.monotonic()>deadline:raise AssertionError('Real requester completion did not persist')
