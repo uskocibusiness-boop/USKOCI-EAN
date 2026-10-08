@@ -33,47 +33,26 @@ const sourceFiles = (dir: string): string[] => readdirSync(join(repo, dir), { wi
   return /\.(?:ts|tsx)$/.test(entry.name) && !/\.test\.(?:ts|tsx)$/.test(entry.name) ? [path] : [];
 });
 
-/** TODAY'S importers (41 files). It only shrinks. */
+/** TODAY'S importers (30 files). It only shrinks. */
 const PHOSPHOR_IMPORTERS = new Set([
-  'src/app/auth.tsx',
   'src/app/dizajn-dodaci.tsx',
   'src/app/dizajn-dogovori.tsx',
   'src/app/dizajn-kalendar.tsx',
   'src/app/dizajn-obavestenja.tsx',
-  'src/app/dizajn-pocetna.tsx',
   'src/app/obavestenja.tsx',
-  'src/app/oporavak.tsx',
   'src/ui/agreements/AgreementActionsPresentation.tsx',
-  'src/ui/agreements/AgreementWorkspace.tsx',
-  'src/ui/aiFirst/AiConversationShell.tsx',
   'src/ui/aiFirst/VoiceComposer.tsx',
-  'src/ui/auth/AuthControls.tsx',
   'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
   'src/ui/groups/GroupConversationPresentation.tsx',
-  'src/ui/location/LocationControls.tsx',
-  'src/ui/location/LocationMapPreview.tsx',
-  'src/ui/media/ContextPhotos.tsx',
-  'src/ui/notifications/InboxPresentation.tsx',
-  'src/ui/objava/ReviewPresentation.tsx',
   'src/ui/product/ProductDetails.tsx',
-  'src/ui/profile/ProfileHubPresentation.tsx',
-  'src/ui/qa/TaskQaPresentation.tsx',
   'src/ui/reviews/AgreementReviewPresentation.tsx',
-  'src/ui/system/Detail.tsx',
   'src/ui/system/Disclosure.tsx',
   'src/ui/system/PillComposer.tsx',
   'src/ui/system/SuccessMark.tsx',
-  'src/ui/v2/AgreementPresentation.tsx',
-  'src/ui/v2/ApplicationComposerPresentation.tsx',
-  'src/ui/v2/ApplicationSelectionPresentation.tsx',
-  'src/ui/v2/CandidateFace.tsx',
   'src/ui/v2/DiscoveryPresentation.tsx',
-  'src/ui/v2/IntakePresentation.tsx',
-  'src/ui/v2/MarketplacePresentation.tsx',
   'src/ui/v2/NeedUrgencyBadge.tsx',
   'src/ui/v2/TaskFace.tsx',
   'src/ui/v2/V2Action.tsx',
-  'src/ui/v2/detail/TaskDecision.tsx',
   'src/ui/v2/discovery/DateRangeGrid.tsx',
   'src/ui/v2/discovery/PricePill.tsx',
 ]);
@@ -103,7 +82,7 @@ describe('one place for a control icon: only Glyph imports the Phosphor package'
   });
 
   it('the list has the size it says, never lists Glyph itself, and Glyph really is the importer', () => {
-    expect(PHOSPHOR_IMPORTERS.size).toBe(41);
+    expect(PHOSPHOR_IMPORTERS.size).toBe(20);
     expect(PHOSPHOR_IMPORTERS.has(THE_GLYPH_FILE)).toBe(false);
     expect(importsPhosphor(read(THE_GLYPH_FILE))).toBe(true);
   });

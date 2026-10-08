@@ -47,7 +47,7 @@ const MOTION_SCOPE = [
 ];
 /** Held hand-written colours until 2026-09-24. */
 const COLOUR_SCOPE = [
-  'src/ui/home/HomePresentation.tsx', 'src/ui/home/HomeIllustration.tsx', 'src/ui/system/Detail.tsx', 'src/ui/Text.tsx',
+  'src/ui/home/HomePresentation.tsx', 'src/ui/home/HomeIllustration.tsx', 'src/ui/Text.tsx',
   'src/ui/v2/TaskCard.tsx', 'src/ui/v2/ApplicationComposerPresentation.tsx', 'src/ui/reviews/AgreementReviewScreen.tsx',
   'src/ui/reviews/AgreementReviewPresentation.tsx', 'src/app/dizajn-prijava.tsx',
 ];
@@ -149,7 +149,7 @@ it('the corner scale is 12 / 24 / 28 / pill, and a control and the primary actio
   expect(check).toBe(6);
   // The filter checkbox retains its small corner. Saving a place is now the confirmation itself;
   // location forms intentionally have no extra checkbox (owner decision, 2026-09-24).
-  expect(read('src/ui/v2/MarketplacePresentation.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
+  expect(read('src/ui/v2/offer/ChoiceRow.tsx')).toMatch(/borderRadius: sys\.radius\.check/);
   expect(brandAction.borderRadius).toBe(fieldBox.borderRadius);
 });
 
@@ -384,14 +384,9 @@ const WINDOW_WIDTH_READERS = new Set([
   'src/ui/calendar/AgendaScreen.tsx', // 360
   'src/ui/calendar/AvailabilityForm.tsx', // 360
   'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
-  'src/ui/home/HomePresentation.tsx', // 340 and 375
-  'src/ui/notifications/PushPreferences.tsx', // 360
   'src/ui/referenceEntry/ReferenceEntryHero.tsx', // LOCKED entry
   'src/ui/reviews/AgreementReviewPresentation.tsx',
   'src/ui/system/PickerTile.tsx', // 360
-  'src/ui/system/PublicProfileSheet.tsx', // 360
-  'src/ui/v2/ApplicationComposerPresentation.tsx', // 390
-  'src/ui/v2/ApplicationSelectionPresentation.tsx', // 360
   'src/ui/v2/DiscoveryPresentation.tsx',
   'src/ui/v2/discovery/DiscoverySearchPanel.tsx', // 360 and 380
 ]);
@@ -480,28 +475,15 @@ const motionLiterals = (source: string): Partial<Record<MotionFamily, number>> =
  */
 const MOTION_LITERALS_ALLOWED: Record<string, Partial<Record<MotionFamily, number>>> = {
   'src/app/(app)/profil/lokacija.tsx': { scale: 1 },
-  'src/ui/agreements/AgreementWorkspace.tsx': { scale: 1 },
-  'src/ui/aiFirst/AiConversationShell.tsx': { duration: 1 }, // typing dots, 520
-  'src/ui/calendar/AgendaScreen.tsx': { scale: 1 },
   'src/ui/calendar/AvailabilityForm.tsx': { scale: 4 },
   'src/ui/calendar/CalendarControls.tsx': { scale: 1 },
   'src/ui/entry/entryV49Math.ts': { duration: 1 }, // LOCKED entry
-  'src/ui/home/HomePresentation.tsx': { scale: 3 },
-  'src/ui/location/LocationControls.tsx': { scale: 2 },
-  'src/ui/objava/ReviewPresentation.tsx': { scale: 1 },
-  'src/ui/product/ProductDetails.tsx': { scale: 3 },
-  'src/ui/profile/ProfileHubPresentation.tsx': { scale: 2 },
+  'src/ui/product/ProductDetails.tsx': { scale: 1 }, // DetailDescription's "Prikaži ceo opis"; DetailLink and ProductPerson (2 of 3) are gone
   'src/ui/reviews/AccountReputation.tsx': { scale: 1 },
-  'src/ui/settings/SettingsPresentation.tsx': { scale: 2 },
-  'src/ui/support/SupportPresentation.tsx': { scale: 2 },
+  'src/ui/support/SupportPresentation.tsx': { scale: 1 },
   'src/ui/system/Disclosure.tsx': { scale: 1 },
-  'src/ui/system/PublicProfileSheet.tsx': { scale: 1 },
   'src/ui/system/SuccessMark.tsx': { spring: 2 }, // damping 13, stiffness 240
-  'src/ui/v2/ApplicationComposerPresentation.tsx': { scale: 1 },
-  'src/ui/v2/ApplicationSelectionPresentation.tsx': { scale: 2 },
-  'src/ui/v2/CandidateFace.tsx': { scale: 3 },
   'src/ui/v2/TaskCard.tsx': { scale: 1 }, // CARD_PRESS_SCALE = 0.986
-  'src/ui/v2/detail/TaskDecision.tsx': { scale: 1 },
 };
 const TOKEN_FILE = 'src/ui/system/tokens.ts';
 
