@@ -31,6 +31,7 @@ import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
 import { confirmedPlaceEntries } from '../location/placeText';
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import { completeDraftProposal, publicSummary, type Summary } from './draftSummary';
+import { intakeLocationMemory, orderIntakeLocation, type IntakeTurnRole } from './intakeLocationOrder';
 import type { PhotoSource } from '../../features/media/nativePhotoPicker';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PhotoAttachSheet } from '../media/PhotoAttachSheet';
@@ -49,6 +50,7 @@ const ConversationPointAsk = lazy(() => import('../location/ConversationPointAsk
  */
 type PlaceAnchor = Readonly<{ identity: string; after: string | null; points: Readonly<Record<string, string>>; acknowledged: readonly LocationSlot[] }>;
 const placeAnchors = new Map<string, PlaceAnchor>();
+let anchorGeneration: number | null = null;
 const fingerprint = (value: string): string => {
   let hash = 0x811c9dc5;
   for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 0x01000193); }
@@ -57,9 +59,12 @@ const fingerprint = (value: string): string => {
 const pointFingerprint = (point: ConfirmedLocationPoint) => fingerprint(JSON.stringify([point.latitudeE6, point.longitudeE6,
   point.address ?? null, point.origin.kind]));
 /** `live`: this visit had the place's editor open, so a newly confirmed point was confirmed just now. */
-function anchorPlace(conversationId: string, placeKey: string, points: readonly ConfirmedLocationPoint[], after: string | null, live: boolean): PlaceAnchor {
+function anchorPlace(conversationId: string, placeKey: string, points: readonly ConfirmedLocationPoint[], after: string | null, live: boolean, ordered = false): PlaceAnchor {
   const identity = fingerprint(placeKey), previous = placeAnchors.get(conversationId);
-  if (previous?.identity === identity) return previous;
+  if (previous?.identity === identity) {
+    if (!ordered || previous.after === after) return previous;
+    const next = { ...previous, after }; placeAnchors.set(conversationId, next); return next;
+  }
   const ids = Object.fromEntries(points.map(point => [point.slot, pointFingerprint(point)]));
   // A pin the person placed or moved by hand and confirmed in this visit is acknowledged as the new place.
   const acknowledged = live ? points.filter(point => point.origin.kind === 'MANUAL_PIN' && previous?.points[point.slot] !== ids[point.slot])
@@ -102,6 +107,8 @@ function groupPhotos(items: readonly TaskPhotoItem[], anchors: Map<string, strin
 type Props = {
   /** Stable through first-send server ID assignment; replaced only when the owned route changes. */
   conversationKey?: string;
+  conversationOwnerKey?: string;
+  turnRoles?: Readonly<Record<string, IntakeTurnRole>>;
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
   /** Separate route authority from the temporary speech/semantic interaction lock. */
@@ -308,6 +315,7 @@ export function IntakePresentation(props: Props) {
     geography: held('need.task_geography') ?? null, exactAddress: held('need.exact_address') ?? null,
     accessNotes: held('need.access_notes') ?? null, resolvedLocation: held('need.resolved_location') ?? null };
   const place = normalizeNeedLocation(placeFacts);
+  const requestedPlace = normalizeNeedLocation({ ...placeFacts, resolvedLocation: null });
   const placeKey = `${conversation.conversationId}:${JSON.stringify(placeFacts)}`;
   const pointAskHidden = hiddenPlace === placeKey;
   const gap = pointsMissing(placeFacts.geography, place?.resolvedLocation);
@@ -323,8 +331,24 @@ export function IntakePresentation(props: Props) {
   const editingSavedPlace = placeComplete && savedPlaceEdit === placeKey;
   const askOpen = showPlace && (placeComplete ? editingSavedPlace : !pointAskHidden);
   if (askOpen) askSeen.current = true;
-  const anchor = placeComplete ? anchorPlace(conversation.conversationId, placeKey, confirmedPoints,
-    conversation.messages.at(-1)?.id ?? null, askSeen.current) : null;
+  // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
+  const orderScope = conversation.conversationId || props.conversationKey || '';
+  const orderMemory = intakeLocationMemory(props.conversationOwnerKey ?? orderScope);
+  if (anchorGeneration !== orderMemory.generation) {
+    placeAnchors.clear(); photoAnchors.clear(); anchorGeneration = orderMemory.generation;
+  }
+  const geographyId = conversation.facts.find(fact => fact.key === 'need.task_geography')?.id;
+  const ordered = orderIntakeLocation(orderMemory.read(orderScope), {
+    scope: orderScope, messages: conversation.messages, roles: props.turnRoles ?? {},
+    causalMessageId: geographyId ? [...conversation.messages].reverse().find(message => message.fromAi && message.proposedFactIds.includes(geographyId))?.id : undefined,
+    pendingLocation: needsPoint && !!requestedPlace,
+    confirmedLocation: !!place && gap.done === gap.total,
+    canRelease: !busy && !pending && !props.error,
+    preserveHistory: !open || conversation.safety === 'BLOCK', confirmationKey: fingerprint(placeKey),
+  });
+  orderMemory.write(orderScope, ordered.state);
+  const anchor = placeComplete && ordered.state.active === null ? anchorPlace(conversation.conversationId, placeKey, confirmedPoints,
+    ordered.placement ? ordered.placement.after : conversation.messages.at(-1)?.id ?? null, askSeen.current, !!ordered.placement) : null;
   const contextualReply = !!props.locationDialogueEnabled && askOpen && !!promptToken && !placeDisabled;
   const send = () => { if (!editingPlaceNow.current || contextualReply) props.onSend(); };
   const reviewAllowed = props.canReview && !editingPlace;
@@ -349,7 +373,7 @@ export function IntakePresentation(props: Props) {
   // old replies with today's fact values repeated the summary and rewrote history.
   // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).
   // The words are the server's fixed ones (`uskoci-ai-interview`, the answer of its REVIEW step), and they are said as what they mean here; the stored message is not touched.
-  const messages = conversation.review.boundNeedId ? conversation.messages.map(message => message.fromAi ? { ...message, body: editEnding(message.body) } : message) : conversation.messages;
+  const messages = conversation.review.boundNeedId ? ordered.messages.map(message => message.fromAi ? { ...message, body: editEnding(message.body) } : message) : ordered.messages;
   // The "···" of this conversation. Each row runs once the menu has gone, so a navigation or the next sheet never starts
   // underneath it. Photos are the composer's "+", not a row here. Before the first word there is no conversation to act
   // on, so there is no menu either.

@@ -420,46 +420,37 @@ test('only the latest explicit selection survives a wait for measured layout', a
   expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.41, 44.83], zoom: 12 }));
 });
 
-// UX plan section P and the owner's phone of 8 Oct 2026: the map's furniture (its sources on the left; "moja lokacija", which the screen draws, on the right; no + and −,
-// the map is zoomed with two fingers) stands directly ABOVE the list sheet and moves with it, lifts above a pin's card, and gives way where the list leaves no map.
-test.each([false, true])('the map\'s sources ride the sheet and the card on the row above the list, and fade where the list is all the way up (reduced motion: %s)', async reduced => {
+// Latest owner decision: attribution stays fixed at bottom-left; raised sheet/card may cover it.
+test.each([false, true])('keeps map sources fixed while the sheet/card move and excludes the covered control (reduced motion: %s)', async reduced => {
   mockReduced = reduced;
   const sheetTop = { value: 600 };
-  // The row is 44 high and one gap (12) above the sheet; its highest place is one gap under the tools (72).
-  extra = { sheetTop, toolsBottom: 60, controlsMinTop: 72 };
+  extra = { sheetTop, toolsBottom: 60, controlsMinTop: 72, creditsBottom: 88 };
   await render();
   const frame = tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function');
   await act(async () => frame.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
   await ready();
   const layer = () => flat(tree.root.findByProps({ testID: 'discovery-map-credits-layer' }));
-  const rideAt = () => (layer().transform as { translateY: number }[])[0].translateY;
-  const shown = () => (layer() as unknown as { opacity: number }).opacity;
   const credits = () => tree.root.findByProps({ testID: 'discovery-map-credits' });
-  // The card's height reaches a shared value after the render (on a phone the UI thread follows it); here the style is
-  // worked out on a render, so one more render reads it.
   const settle = async () => { await update(); await update(); };
-  expect(layer()).toMatchObject({ height: 44, position: 'absolute' });
-  expect(rideAt()).toBe(600 - 12 - 44); expect(shown()).toBe(1);
+  expect(layer()).toMatchObject({ height: 44, position: 'absolute', bottom: 88 + sys.space.xs });
+  expect(layer().transform).toBeUndefined();
   // No zoom buttons: the map is zoomed with two fingers.
   for (const label of ['Uvećaj mapu', 'Umanji mapu']) expect(tree.root.findAllByProps({ accessibilityLabel: label })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'discovery-map-zoom' })).toHaveLength(0);
   expect(flat(credits())).toMatchObject({ position: 'absolute', left: sys.space.base, right: sys.space.base });
-  // A card 250 high lifts the row above it; a card 460 high (the sheet is sunk behind it) lifts it further. A card does not hide it.
   extra = { ...extra, coverBottom: 250 }; await settle();
-  expect(rideAt()).toBe(800 - 250 - 12 - 44); expect(shown()).toBe(1);
+  expect(layer().bottom).toBe(88 + sys.space.xs);
   extra = { ...extra, coverBottom: 460 }; await settle();
-  expect(rideAt()).toBe(800 - 460 - 12 - 44); expect(shown()).toBe(1);
+  expect(layer().bottom).toBe(88 + sys.space.xs);
   expect(credits().findAll(node => node.props.accessibilityRole === 'button')).toHaveLength(1);
   expect(credits().findByType('T' as React.ElementType).props.children).toBe('© OpenStreetMap · © OpenMapTiles');
   extra = { ...extra, coverBottom: 0 }; await settle();
-  expect(rideAt()).toBe(600 - 12 - 44);
-  // The sheet rises, and the row goes up with it, pixel for pixel ...
   sheetTop.value = 280; await settle();
-  expect(rideAt()).toBe(280 - 12 - 44); expect(shown()).toBe(1);
-  // ... and where the list leaves no map (the full stop is directly under the tools) it stays at its highest place and fades over the last 24 px, instead of sinking under the list.
-  sheetTop.value = 72 + 44 + 12 + 12; await settle(); expect(shown()).toBeCloseTo(0.5, 5);
-  sheetTop.value = 72; await settle(); expect(rideAt()).toBe(72); expect(shown()).toBe(0);
-  sheetTop.value = 64; await settle(); expect(rideAt()).toBe(72); expect(shown()).toBe(0);
+  expect(layer().bottom).toBe(88 + sys.space.xs);
+  extra = { ...extra, creditsCovered: true }; await settle();
+  expect(tree.root.findByProps({ testID: 'discovery-map-credits-layer' }).props).toMatchObject({ pointerEvents: 'none', accessibilityElementsHidden: true });
+  sheetTop.value = 64; await settle(); expect(layer().bottom).toBe(88 + sys.space.xs);
+  expect(layer().transform).toBeUndefined();
   expect(select).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled();
 });
 

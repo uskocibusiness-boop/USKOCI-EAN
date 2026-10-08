@@ -17,6 +17,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 
 
 import { IntakePresentation, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
+import type { IntakeTurnRole } from '../../ui/v2/intakeLocationOrder';
 import { SEND_UNCONFIRMED_CODE, conversationErrorLine } from '../../ui/aiFirst/aiDownLine';
 import { useHoldToTalk } from '../../features/voice/useHoldToTalk';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
@@ -55,6 +56,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const dialogueEnabled = locationDialogueEnabled();
   const locationPrompt = useRef<LocationReplyPrompt | null>(null);
   const locationFlight = useRef<LocationReplyLease | null>(null);
+  const turnRoles = useRef<Record<string, IntakeTurnRole>>({});
   const speechPrompt = useRef<{ generation: number; lease: LocationReplyLease | null; blocked: boolean } | null>(null);
   const registerLocationPrompt = useCallback((prompt: LocationReplyPrompt | null) => { locationPrompt.current = prompt; }, []);
   const retireLocation = useCallback(() => {
@@ -226,14 +228,22 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
           if (!resolved.ok) result = resolved;
           else {
             result = { ok: true, podatak: resolved.podatak.turn };
+            if (resolved.podatak.turn.state === 'SUCCEEDED' && resolved.podatak.location
+              && isCurrent() && request.current === command && !abort.signal.aborted)
+              turnRoles.current[resolved.podatak.turn.receipt.assistantMessageId] = resolved.podatak.location.action;
             // A recovered/retried receipt without this live lease updates the conversation but never presses a map button.
             if (resolved.podatak.turn.state === 'SUCCEEDED' && resolved.podatak.location && pointLease
               && isCurrent() && request.current === command && !abort.signal.aborted && pointLease.isCurrent()) {
               await pointLease.apply(resolved.podatak.location);
             }
           }
-        } else result = await aiNeedV2Izvor.sendMessage(id, command.body, command.id, { signal: abort.signal,
-          onText: delta => { if (isCurrent() && !abort.signal.aborted && request.current === command) setStreamingText(previous => previous + delta); } });
+        } else {
+          // The answer can introduce a location AND ask the next question. Wait for its canonical facts before presenting it;
+          // otherwise that next question flashes above the map. Worker-profile streaming has no such location phase.
+          result = await aiNeedV2Izvor.sendMessage(id, command.body, command.id, { signal: abort.signal, onText: () => {} });
+          if (result.ok && result.podatak.state === 'SUCCEEDED' && isCurrent() && request.current === command && !abort.signal.aborted)
+            turnRoles.current[result.podatak.receipt.assistantMessageId] = 'ordinary';
+        }
       } finally {
         if (streamAbort.current === abort) { streamAbort.current = null; if (isCurrent()) setStreamingText(''); }
       }
@@ -412,6 +422,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
           ? 'Asistent nije uzeo u obzir prethodnu poruku. Izmeni je i pošalji ponovo.' : null;
 
   return <><IntakePresentation conversationKey={`${accountId}:${accountRevision}:${resumeId ?? openRequestId}`}
+    conversationOwnerKey={`${accountId}:${accountRevision}`}
+    turnRoles={turnRoles.current}
     conversation={stanje} value={unos} busy={radi} error={conversationErrorLine(greska, { hasDraft: stanje.facts.length > 0, unconfirmedSend: unconfirmedSend.current, statusCopy })}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}

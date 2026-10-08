@@ -147,34 +147,38 @@ async function httpMs(client, request, runs = 3, expected = null) {
   }
   return median(times);
 }
-/**
- * Where one call spends its time: track_functions profile (calls and self time per function) of ONE reader call as the viewer.
- * The function counters accumulate per database and each backend flushes its own when it exits, so the profile is the DIFFERENCE
- * of two snapshots around a separate psql session that makes the call.
+/** One instrumented reader call. Transaction-local counters avoid cross-session flush races.
+ * Keep overload identities and every observed helper. Total time includes children; never sum it across functions.
  */
-function funcStats() {
-  const r = run(`select coalesce(jsonb_object_agg(k, jsonb_build_object('calls', c, 'self', s)),'{}'::jsonb) from
-    (select funcname as k, sum(calls) as c, sum(self_time) as s from pg_stat_user_functions group by funcname) x;`);
-  return r.ok ? JSON.parse(lastLine(r.output)) : {};
-}
-const sleepSync = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 function profile(viewerId, request) {
-  sleepSync(1200);
-  const before = funcStats();
   const claims = JSON.stringify({sub: viewerId, role: 'authenticated'});
-  const r = run(`set track_functions='all';
-    begin;
+  const r = run(`begin; set local track_functions='all';
     select set_config('request.jwt.claims', ${q(claims)}, true);
     select set_config('request.jwt.claim.sub', ${q(viewerId)}, true);
     set local role authenticated;
     select length(public.rpc_discovery_v1(${q(JSON.stringify(request))}::jsonb)::text);
+    reset role;
+    select jsonb_build_object('trackFunctions',current_setting('track_functions'),
+      'readerOid','public.rpc_discovery_v1(jsonb)'::regprocedure::oid,
+      'functions',coalesce((select jsonb_agg(jsonb_build_object(
+        'oid',s.funcid,'schema',s.schemaname,'name',s.funcname,
+        'signature',s.funcid::regprocedure::text,'calls',s.calls,
+        'selfMs',s.self_time,'totalMs',s.total_time) order by s.self_time desc,s.funcid)
+        from pg_stat_xact_user_functions s where s.calls>0),'[]'::jsonb));
     rollback;`);
-  sleepSync(1200);
-  const after = funcStats();
-  const rd = v => Math.round(v * 10) / 10;
-  const top = Object.entries(after).map(([name, a]) => ({name, calls: a.calls - (before[name]?.calls ?? 0), selfMs: rd(a.self - (before[name]?.self ?? 0))}))
-    .filter(x => x.calls > 0).sort((x, y) => y.selfMs - x.selfMs).slice(0, 8);
-  return r.ok ? top : {error: r.error};
+  assert.ok(r.ok, 'PROFILE_QUERY_FAILED:' + r.error);
+  const result = JSON.parse(lastLine(r.output));
+  assert.equal(result.trackFunctions, 'all');
+  assert.ok(Array.isArray(result.functions));
+  const reader = result.functions.find(f => f.oid === result.readerOid);
+  assert.ok(reader, 'PROFILE_READER_MISSING');
+  assert.equal(reader.calls, 1, 'PROFILE_NOT_ONE_READER_CALL');
+  for (const f of result.functions) {
+    assert.ok(Number.isSafeInteger(f.calls) && f.calls > 0);
+    assert.ok(Number.isFinite(f.selfMs) && f.selfMs >= 0);
+    assert.ok(Number.isFinite(f.totalMs) && f.totalMs >= 0);
+  }
+  return result;
 }
 function micro(label, inner, calls) {
   const r = run(`do $t$ declare t0 timestamptz:=clock_timestamp(); n bigint; begin ${inner}
@@ -250,6 +254,11 @@ async function deployedBaseline(viewer, requester, open) {
   pass('DEPLOYED_BASELINE_COUNTS_FILTERS_RESPONSE_BOUNDS', measured);
   report.load.DEPLOYED_BASELINE_HTTP = http;
   pass('DEPLOYED_BASELINE_AUTHENTICATED_HTTP', http);
+  report.load.DEPLOYED_BASELINE_PROFILE = {};
+  for (const key of ['pageDefault', 'pageTextCiscenje', 'pageTextNoHit', 'pagePlaceAndText']) {
+    report.load.DEPLOYED_BASELINE_PROFILE[key] = profile(viewer.id, requests[key]); write();
+  }
+  pass('DEPLOYED_BASELINE_FOUR_REQUEST_PROFILES');
   report.baseline.after = verify();
   pass('DEPLOYED_BASELINE_POSTLOAD_FIDELITY');
   for (const relative of ['chain/chain-fidelity.json', 'predecessor-fidelity.json']) {
@@ -261,6 +270,11 @@ async function deployedBaseline(viewer, requester, open) {
     '| Request | Cold SQL ms | Warm SQL median ms | Warm maximum ms | HTTP median ms | Rows | Count |', '|---|---:|---:|---:|---:|---:|---:|'];
   for (const [key, m] of Object.entries(measured)) lines.push(`| ${key} | ${m.coldMs} | ${m.medianMs} | ${m.maxMs} | ${http[key]} | ${m.rows} | ${m.counted} |`);
   lines.push('', '11 warm SQL samples and 3 HTTP samples per request; no concurrent-user or p95 capacity claim. S3 NOT applied. Provider calls=0, push sends=0.');
+  lines.push('', '#### Transaction-local profiles', '', 'One extra instrumented call per request; not latency medians. Full function list is in JSON. Unobserved helpers are not assumed to cost zero.');
+  for (const [key, profile] of Object.entries(report.load.DEPLOYED_BASELINE_PROFILE)) {
+    lines.push('', '##### ' + key, '', '| Function | Calls | Self ms | Total ms (includes children) |', '|---|---:|---:|---:|');
+    for (const f of profile.functions.slice(0, 8)) lines.push(`| ${f.signature} | ${f.calls} | ${f.selfMs} | ${f.totalMs} |`);
+  }
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
 }
 
@@ -349,7 +363,7 @@ try {
   const m = report.load.micro;
   lines.push('', `Per call: discovery_fold_v1 ${m.foldPerCall?.usPerCall} us, fold(p6_discovery_key) ${m.placeKeyFoldPerCall?.usPerCall} us, p6_discovery_key ${m.keyPerCall?.usPerCall} us; `
     + `p6_discovery_days ${m.daysPerOpenTask?.usPerCall} us per open task (${m.daysPerOpenTask?.ms} ms for all ${open}: what every PAGE pays today without a time filter, the S3 proposal).`);
-  const prof = (state, key) => (Array.isArray(report.load.profile?.[state]?.[key]) ? report.load.profile[state][key] : []).slice(0, 5).map(x => `${x.name} ${x.calls}x ${x.selfMs} ms`).join(', ');
+  const prof = (state, key) => (report.load.profile?.[state]?.[key]?.functions ?? []).slice(0, 5).map(x => `${x.name} ${x.calls}x ${x.selfMs} ms`).join(', ');
   lines.push('', 'Function profile of ONE call (calls and self time, track_functions):', '',
     `- place "Novi Sad", OLD: ${prof('OLD', 'pagePlaceCity')}`, `- place "Novi Sad", NEW: ${prof('NEW', 'pagePlaceCity')}`,
     `- words "ciscenje", OLD: ${prof('OLD', 'pageTextCiscenje')}`, `- words "ciscenje", NEW: ${prof('NEW', 'pageTextCiscenje')}`,

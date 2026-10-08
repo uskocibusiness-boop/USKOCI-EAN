@@ -1,0 +1,3 @@
+PASS DISCOVERY-GRAD 1 body replacement (9 anchored edits), 1 helper, 6 dependency pins, 26 fold probes; generated files checked
+PASS DISCOVERY-ZAMENE 1 body replacement, 2 helpers, 3 MATCH-V1 pins; generated files checked
+PASS DISCOVERY-GRAD offline: generators exact, 22 SQL/PLpgSQL units parsed, fold oracle 26 probes, reader boundaries hold; runtime proof pending

@@ -1,0 +1,52 @@
+{
+  "result": "PASS",
+  "applied": [
+    {
+      "name": "zone-perf",
+      "sha256": "98288b1d377722d761b20c091f6dbfa850a40114a9b087b36c7c48f8515efab2"
+    },
+    {
+      "name": "match-v1",
+      "sha256": "e850897851f7609f1283f56e36ff6f11263a7f4c697c84c150a5018cf2dbb4e0"
+    },
+    {
+      "name": "discovery-zamene",
+      "sha256": "554faa74f2149d8624e0f867464e19e9be55bd4778ff1169f7909f969f7fbbb1"
+    }
+  ],
+  "pins": 7,
+  "mismatched": [],
+  "observed": {
+    "public.p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)": {
+      "devMd5": "e1c81ce573875504d60e025c07573ee6",
+      "chainMd5": "e1c81ce573875504d60e025c07573ee6",
+      "equal": true,
+      "equalAfterLf": true
+    },
+    "public.p6_discovery_civil(text)": {
+      "devMd5": "cee687f43419dfb2fa9cc9233e8bea34",
+      "chainMd5": "cee687f43419dfb2fa9cc9233e8bea34",
+      "equal": true,
+      "equalAfterLf": true
+    },
+    "public.covered_slots(public.needs)": {
+      "devMd5": "ac09f84c85ff8ae237c8db463a43d547",
+      "chainMd5": "cbeb8f2a3da7d08965ef0386cfc437ba",
+      "equal": false,
+      "equalAfterLf": true
+    },
+    "private.worker_need_match_v1(uuid,uuid)": {
+      "devMd5": "ef94ef7de07a347824ace68789f08c41",
+      "chainMd5": "ef94ef7de07a347824ace68789f08c41",
+      "equal": true,
+      "equalAfterLf": true
+    }
+  },
+  "certificateUnchanged": true,
+  "certificate": {
+    "ready": true,
+    "digest": "a025bb7c756b853c3a8bb6b8903de059466a5debee9609b5fef6227e715b2f7f",
+    "program": "1ea6b62b8b213eb7cf247624a0d6510a19730b953c1b28c5057cdf143fab6652"
+  },
+  "scope": "ZONE-PERF, MATCH-V1 and DISCOVERY-ZAMENE applied with their DEV files on the chain whose 23 relevant bodies equal DEV (fidelity.mjs); then the reader and the 6 bodies DISCOVERY-GRAD calls equal the DEV md5. Not global DEV equivalence."
+}

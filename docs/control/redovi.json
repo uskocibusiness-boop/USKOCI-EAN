@@ -277,6 +277,13 @@
             "Bounded push delivery and store gates"
           ],
           "scope": "Complete final task card; no partial draft card. Location ordering remains OPEN."
+        },
+        "ai_location_order_20261009": {
+          "state": "SOURCE_FOCUSED_PASS / NATIVE_PROVIDER_PENDING",
+          "checks": "212 tests across 3 suites PASS; full regression in progress, earlier attribution expectations corrected; Firebase config timeout needs isolated retest.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "scope": "Known continuation waits for all canonical points; contextual clarifications visible; scoped ID-only memory survives new/resumed route. Task response buffered until facts, worker streaming unchanged.",
+          "open": "Exact APK/provider proof; cold subtype reconstruction; phase-aware task streaming."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -541,6 +548,13 @@
             "Bounded push delivery and store gates"
           ],
           "scope": "No ordering fix in this package; preserve OPEN until canonical all-slot gate and native proof."
+        },
+        "ai_location_order_20261009": {
+          "state": "SOURCE_FOCUSED_PASS / NATIVE_PROVIDER_PENDING",
+          "checks": "212 tests across 3 suites PASS; full regression in progress, earlier attribution expectations corrected; Firebase config timeout needs isolated retest.",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+          "scope": "Known continuation waits for all canonical points; contextual clarifications visible; scoped ID-only memory survives new/resumed route. Task response buffered until facts, worker streaming unchanged.",
+          "open": "Exact APK/provider proof; cold subtype reconstruction; phase-aware task streaming."
         }
       }
     },
@@ -8583,13 +8597,57 @@
       ]
     },
     "discovery_baseline_40k_20261009": {
-      "state": "SOURCE_PREPARED / OFFLINE_PASS / RUNTIME_NOT_RUN",
+      "state": "DISPOSABLE_RUNTIME_PASS / SERIAL_READ_BASELINE / TEXT_LATENCY_OPEN",
       "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
       "tasks": 40000,
       "authAccounts": 2,
       "simultaneousRequests": 1,
       "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
-      "scope": "Disposable SQL/PostgREST read baseline with relevant function fidelity. No DEV load, no S3, no lifecycle or 40000-concurrent-user proof."
+      "scope": "Disposable SQL/PostgREST read baseline with relevant function fidelity. No DEV load, no S3, no lifecycle or 40000-concurrent-user proof.",
+      "run": 37856499413,
+      "source": "93041f70280af0a6ae1a489ca23f2386cfaeabc1",
+      "teardownExit": 0,
+      "providerCalls": 0,
+      "pushSends": 0,
+      "warmSqlMedianMs": {
+        "page": 569.6,
+        "map": 460.6,
+        "city": 366.2,
+        "text": 1986.2
+      },
+      "evidenceArtifacts": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-baseline-40k-37856499413",
+      "nextProfile": "Prepared transaction-local pg_stat_xact_user_functions for4 requests, full overload identities and strict readerCalls=1. Node/SQL offline PASS; new disposable runtime pending. No server optimization applied."
+    },
+    "ai_location_order_20261009": {
+      "state": "SOURCE_FOCUSED_PASS / FULL_FAILURES_RESOLVED / NATIVE_PROVIDER_PENDING",
+      "checks": "212 tests across 3 suites PASS; full regression in progress, earlier attribution expectations corrected; Firebase config timeout needs isolated retest.",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+      "scope": "Known continuation waits for all canonical points; contextual clarifications visible; scoped ID-only memory survives new/resumed route. Task response buffered until facts, worker streaming unchanged.",
+      "open": "Exact APK/provider proof; cold subtype reconstruction; phase-aware task streaming.",
+      "verification": "Focused final: 4 suites /225 tests PASS (intake-location-order, ai-owned-intake-screen, discovery-map-pills, firebase-config); final TypeScript PASS. Whole regression:598/600 suites,13326 passed,3 failed,9 skipped; all3 failures resolved in focused rerun. Whole suite not rerun on immutable final head."
+    },
+    "native_66275774_20261009": {
+      "state": "PHYSICAL_BOUNDED_PASS / GROUP_AI_PENDING",
+      "source": "66275774407b2cb4ccebafac508ea237aa59e930",
+      "phoneRun": 37855571775,
+      "apkSha256": "105d2a0877829f6eb171925327a0ce6b58d561a04f0f29ded21f59ed577e244d",
+      "package": "rs.uskoci.preview",
+      "versionCode": 35,
+      "installation": "adb install -r; same signing certificate; authenticated session preserved",
+      "observed": [
+        "Home",
+        "Inbox active list",
+        "existing private conversation, outgoing initials and sender name",
+        "empty keyboard: compact header, composer above keyboard"
+      ],
+      "notProven": [
+        "group channel/roster native",
+        "incoming avatar native",
+        "AI location-order package (newer source)",
+        "push delivery",
+        "store readiness"
+      ],
+      "privateEvidence": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-{home,inbox-ready,chat,keyboard}.png"
     }
   }
 }

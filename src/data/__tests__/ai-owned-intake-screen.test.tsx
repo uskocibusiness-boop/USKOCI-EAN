@@ -115,6 +115,9 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { ProductSheet } from '../../ui/product/ProductSheet';
 import { AiConversationShell } from '../../ui/aiFirst/AiConversationShell';
 import { TASK_OPENINGS } from '../../ui/v2/IntakePresentation';
+import { intakeLocationMemory } from '../../ui/v2/intakeLocationOrder';
+
+beforeEach(() => { intakeLocationMemory('between-tests'); });
 
 const id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', other = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const ok = <T,>(podatak: T) => ({ ok: true as const, podatak });
@@ -578,7 +581,8 @@ it.each(['first send', 'existing conversation'] as const)('shows no unknown-outc
   };
   expect(text()).toContain('Stiže odgovor…'); settledOnly();
   await act(async () => mockSend.mock.calls[0][3].onText('Evo, '));
-  expect(text()).toContain('Evo, '); settledOnly();
+  // Task intake waits for canonical geography before exposing a potentially premature next question.
+  expect(text()).not.toContain('Evo, '); expect(text()).toContain('Stiže odgovor…'); settledOnly();
   await act(async () => held.resolve(unknown()));
   expect(text()).toContain('Ne znamo da li je poruka poslata.');
   expect(box()).toHaveLength(1); expect(button('Proveri').disabled).toBe(false);
@@ -1012,7 +1016,7 @@ it('keeps a typed draft but prevents competing send, review and photo navigation
 describe('the confirmed place is a line of the conversation', () => {
   const geography = { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Rotkvarija' } };
   const provider = '65, Bulevar oslobođenja, MZ Žitni trg, Rotkvarija, Novi Sad, Grad Novi Sad, Južnobački okrug, Srbija';
-  const message = (messageId: string, fromAi: boolean, body: string) => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
+  const message = (messageId: string, fromAi: boolean, body: string): AiNeedV2Conversation['messages'][number] => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
   const before = [message('m1', true, 'Gde treba da se dođe?'), message('m2', false, 'Bulevar oslobođenja 65, Novi Sad')];
   const later = [message('m3', false, 'Sutra u deset.'), message('m4', true, 'Zapisao sam termin.')];
   type Pin = { latitudeE6: number; longitudeE6: number; origin: { kind: 'MANUAL_PIN' } | { kind: 'PROVIDER_CANDIDATE'; providerHint: string; candidateHint: string | null }; address?: string };
@@ -1082,6 +1086,35 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(mockSend).not.toHaveBeenCalled();
   });
 
+  it.each(['new', 'resumed'])('keeps the next question after location confirmation through %s conversation and later resume', async entry => {
+    const question = { ...message('next-price', true, 'Koliki iznos nudiš?'), proposedFactIds: ['need.task_geography'] };
+    const initial = [...before, question];
+    mockLoad.mockResolvedValue(placed(null, initial));
+    if (entry === 'resumed') await resume();
+    else {
+      mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+      mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+      await render(); await type('Bulevar oslobođenja 65, Novi Sad'); await act(async () => submit().onPress());
+    }
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad']);
+    expect(asks()).toHaveLength(1);
+    // Closing or saving without a confirmed canonical point cannot uncover the future question.
+    await act(async () => ask().onSaved());
+    expect(text()).not.toContain('Koliki iznos nudiš?');
+    const withClarification = [...initial, message('place-reply', false, 'Kod ulaza.'), message('clarify-place', true, 'Pomeraj tačku do ulaza.')];
+    mockLoad.mockResolvedValue(placed(null, withClarification));
+    await act(async () => ask().onSaved());
+    expect(text()).not.toContain('Koliki iznos nudiš?');
+    mockLoad.mockResolvedValue(placed(fromProvider, withClarification));
+    await act(async () => ask().onSaved());
+    const expected = ['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'Ti: Kod ulaza.',
+      'USKOČI: Pomeraj tačku do ulaza.', 'PLACE', 'USKOČI: Koliki iznos nudiš?'];
+    expect(order()).toEqual(expected);
+    expect(asks()).toHaveLength(0);
+    await act(async () => tree.unmount()); await resume();
+    expect(order()).toEqual(expected);
+  });
+
   it('acknowledges a pin the person moved with one local line at the point it happened, without an AI call', async () => {
     mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
     mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
@@ -1101,6 +1134,22 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad',
       'Ti: Sutra u deset.', 'USKOČI: Zapisao sam termin.', 'PLACE']);
     expect(mockSend).toHaveBeenCalledTimes(sends); expect(docked()).toHaveLength(0);
+  });
+
+  it('waits for both canonical route endpoints before releasing the next question', async () => {
+    const route = { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } };
+    const messages = [...before, { ...message('route-next', true, 'Koliko osoba treba?'), proposedFactIds: ['need.task_geography'] }];
+    const state = (complete: boolean) => conversation({ messages, facts: [publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', route),
+      { ...publicFact('need.resolved_location', { version: 1, binding: { taskCountryCode: 'RS', geography: route, exactAddress: null },
+        points: [{ slot: 'start', latitudeE6: 45258900, longitudeE6: 19832700, origin: { kind: 'MANUAL_PIN' } },
+          ...(complete ? [{ slot: 'end', latitudeE6: 44820000, longitudeE6: 20460000, origin: { kind: 'MANUAL_PIN' } }] : [])] }), privacyClass: 'PRIVATE' }] });
+    mockLoad.mockResolvedValue(state(false)); await resume();
+    expect(asks()).toHaveLength(1); expect(text()).not.toContain('Koliko osoba treba?');
+    await act(async () => ask().onSaved());
+    expect(text()).not.toContain('Koliko osoba treba?');
+    mockLoad.mockResolvedValue(state(true)); await act(async () => ask().onSaved());
+    expect(asks()).toHaveLength(0);
+    expect(order().slice(-2)).toEqual(['PLACE', 'USKOČI: Koliko osoba treba?']);
   });
 
   it('closes a reopened editor once its save is confirmed, even when the same place was confirmed again', async () => {
