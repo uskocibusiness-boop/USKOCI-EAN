@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T21:46:15Z",
+  "osvezeno": "2026-10-08T21:47:52Z",
   "grana": "integration/spoj-20261006",
-  "head": "dce7c463",
-  "head_poruka": "merge: reconcile generated tracker with discovery gesture fix",
+  "head": "c6036e67",
+  "head_poruka": "fix(profile): clarify work area and deep privacy rows",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
