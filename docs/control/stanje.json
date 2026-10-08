@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T22:45:19Z",
+  "osvezeno": "2026-10-08T22:46:00Z",
   "grana": "integration/spoj-20261006",
-  "head": "787a337d",
-  "head_poruka": "merge: reconcile generated tracker with fixed map credits",
+  "head": "804cedd2",
+  "head_poruka": "feat: clarify conversation channels and complete AI intake",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
