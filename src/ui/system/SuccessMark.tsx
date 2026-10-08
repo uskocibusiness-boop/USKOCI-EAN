@@ -29,7 +29,9 @@ export function SuccessMark({ fresh = false, tone = 'green', size = 64, children
   useEffect(() => {
     if (!fresh || reduced) { scale.setValue(1); opacity.setValue(1); return; }
     const settle = Animated.parallel([
-      Animated.spring(scale, { toValue: 1, damping: 13, stiffness: 240, mass: 0.8, useNativeDriver: true }),
+      // No overshoot (the owner's board, 8 Oct 2026: a bounce in moments = NE): damping 13 at stiffness 240 and mass 0.8 is under-damped and
+      // crossed 1 once before settling. overshootClamping stops the value at 1 the first time it gets there; the spring still eases in.
+      Animated.spring(scale, { toValue: 1, damping: 13, stiffness: 240, mass: 0.8, overshootClamping: true, useNativeDriver: true }),
       Animated.timing(opacity, { toValue: 1, duration: sys.motion.toggle, useNativeDriver: true }),
     ]);
     settle.start();
