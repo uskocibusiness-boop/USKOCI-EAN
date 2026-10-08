@@ -3,8 +3,8 @@
   "projectRef": "leqcwgzvjsxugfgzdmth",
   "proofRun": 37077621475,
   "sourceSha": "74cdca32bc48b9dfb95622bdd26920878797b805",
-  "capturedAt": "2026-10-02 23:38:43.781829+00",
-  "certificateCheckedAt": "2026-10-02T23:40:02.776532Z",
+  "capturedAt": "2026-10-08T23:46:03.268797+00:00",
+  "certificateCheckedAt": "2026-10-08T23:48:25.63288+00:00",
   "priorDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
   "roster": {
     "prior": 99,
@@ -19,9 +19,9 @@
   "admissionCreated": false,
   "flagsEnabled": false,
   "files": {
-    "candidate.sql": "f069ba97a2ce3d6b459404dcb74593cdc54b6d651a2869e70a789d22271f227c",
+    "candidate.sql": "239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac",
     "revert-before-admission.sql": "f1c5b0e0db3e2719d98e8d40d2f2aef8e1c27cf253e50ce33dd6d7bd644afb28",
-    "preflight.readonly.sql": "ec4b9a35d788f5cf9043d3e44078bd2d5b07c98e7f5611fefd95d43a493137e9",
+    "preflight.readonly.sql": "33c9c5bb82dbd67a3a8d4bf43fe5f339f5ea3182745975fc2000ccde566fe81b",
     "postflight.readonly.sql": "1161a0440b780b34ccec6cbdfb4a099bd65b19caa4b28efbbfacb07241e72ce9",
     "surface.readonly.sql": "2730979e8ca2720513d3cf3a4ee217467bfadbdc591675f84a96cf7a1eb9a08c",
     "build-promotion.mjs": "78297f8f984a80df8abd07641e2cacc26e18f9870e2adcbb505218a051d14c7b",

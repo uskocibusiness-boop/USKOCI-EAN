@@ -1,5 +1,16 @@
 # Bounded source review and isolated execution status
 
+## Current recapture — 09.10.2026 (DEV235)
+
+Read-only captures at23:44–23:50UTC08.10 confirm ledger235, readytrue and unchanged full digest3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23. All13 function bodies and metadata, certificate rows, dataset/export catalogs, three table surfaces and Edgev22 assets match the prior225 captures. One pg_get_functiondef header prints public.notification_deliveries under explicit pg_catalog; it is a catalog rendering difference, not a changed body. The local exact capture uses the same search_path and admits both qualified and legacy public signatures.
+
+Regenerated candidate SHA256239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac differs from the preceding candidate only in its ledger guard225→235. This guard was changed AFTER full recapture and comparison. Fresh regenerated preflight returns problems[]. Revert/postflight/Edge candidate hashes stay unchanged.22DO blocks and outerSQL parse;6offline Edge testsPASS. A Windows working-tree LF/CRLF mismatch initially failed byte comparison; the unchanged Git blob was materialized as declared LF and all6 reranPASS. No test assertion was weakened.
+
+New isolated current99 wrapper proof remains pending; prior37085434332 is historical evidence. This chain verifies the relevant certified99-function predecessor and exact17AI+13push/certificate functions, not an entire replica of everyDEV235 lifecycle function. CLI2.119.0 secrets listing succeeds; EXPO_PUSH_TRANSPORT_ENABLED digest matches SHA256('false'), single-target flag absent. This proves metadata/default-off state, not provider execution or set/deploy authority. No DEV write, certificate update, Edge deployment, admission or provider call occurred.
+
+## Historical source review (02.10)
+
+
 Current candidate SHA256: `f069ba97a2ce3d6b459404dcb74593cdc54b6d651a2869e70a789d22271f227c`.
 
 The earlier independent review by `/root/review_ci` covered the generator, candidate/preflight/postflight/revert, isolated current99 proof and workflow. It identified the encoded inverse-probe GUC defect, which was corrected before encoding. That source review was not DEV application acceptance.

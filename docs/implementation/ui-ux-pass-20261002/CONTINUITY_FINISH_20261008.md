@@ -153,3 +153,13 @@ Završni TypeScript nakon svih threshold izmena PASS.
 **NIJE DOKAZANO:** runtime novog eksperimenta, ubrzanje, DEV promotion,40k korisničkih lifecycle tokova. Nema server/helper/šema/sertifikat promene, S3 nije uključen. Bulk fixtures i dalje koriste isključene triggere samo u disposable bazi;2 Auth naloga,1 istovremeni zahtev.
 
 **SLEDEĆE:** jedan CI run sa tačnim izvorom; pročitati i semantiku i negativni unique-location slučaj. Novi objedinjeni APK source44e8eaff: phone37859900972, emulator37859901389 u izradi pri poslednjoj proveri. Posle potpisa/install-r potvrditi mapu nativno. Za lifecycle sledeći mali product-RPC driver mora zadržati pozadinske radnike aktivnim: postojeći EX06 parkForeign bi ih suspendovao i učinio load lažno lakim. Discovery replay nema pun chat lanac; ne predstavljati ga kao whole-app stanje235.
+
+## Dopuna — push preflight235 i aktuelni izolovani test
+
+**URADIO:** svež read-only DEV capture13 funkcija,3 table surface-a, punih sertifikacionih redova/kataloga i Edgev22. Ledger235; digest3a785d42/readytrue. Stari wrapper se razlikuje samo po225 guard-u; regenerisan tek posle poređenja. Candidate239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac. Revert/postflight/Edge ostaju isti. Preflight novog paketa problems[].0activeleases/0SEND_STARTED/1TICKET_PENDING/0closureExecuting; stari pokušaj nije diran.
+
+**DOKAZAO:** svih13 tela/metapodataka isti, table/cert/catalog/Edge isti; public. kvalifikacija jednog argumenta je pg_get_functiondef prikaz pod pg_catalog.22DO i četiri outerSQL parsirani;6EdgeofflinePASS. Lokalni prvi test je pao zbog LF/CRLF radne kopije; vraćeni deklarisani GitLF bajtovi bez semantičke promene i svih6 ponovoPASS. CLI2.119.0 listmetapodataka radi; global transportflag digest odgovara SHA256('false'), single-target flag ne postoji (defaultoff). Izvor/tačne granice: promotion/SOURCE_REVIEW.md i recapture-20261009.
+
+**NIJE DOKAZANO:** novi current99 runtime, SET/deploy prava, stvarna push dostava/banner/deeplink. Nije bilo DEV/Edge/sertifikat izmene, admission-a ili provider poziva. Current99 je relevantna certifiedchain, nije puna kopija svih235 funkcionalnih migracija.
+
+**SLEDEĆE:** novi izolovani wrapper apply/revert/reapply+13behavior groups; tek po stvarnom rezultatu pripremiti tačan live paket. Area-dedup run37861199898 sada je aktivan na sourcee526ad5d, pokrenut jednim push-em bez duplog dispatch-a.

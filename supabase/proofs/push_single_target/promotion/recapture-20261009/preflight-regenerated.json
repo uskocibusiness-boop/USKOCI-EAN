@@ -1,0 +1,12 @@
+{
+  "package": "PUSH_SINGLE_TARGET_V1",
+  "problems": [],
+  "checkedAt": "2026-10-08T23:50:17.042064+00:00",
+  "sourceSha": "74cdca32bc48b9dfb95622bdd26920878797b805",
+  "ledgerRows": 235,
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "sourceRoster": 99,
+  "storedDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "candidateAbsent": true,
+  "admissionCreated": false
+}

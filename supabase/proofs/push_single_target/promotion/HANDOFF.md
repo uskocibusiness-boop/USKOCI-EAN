@@ -36,3 +36,8 @@ Required acceptance is a successful new report `single-target-current99-promotio
 Before any admission, disable both lanes, stop dispatchers, drain, verify the installed postflight, then use `revert-before-admission.sql` atomically and restore the captured Edgev22 assets/configuration. Revert refuses any admitted attempt and any body/certificate/schema drift; it restores exact old definitions, both full certificate rows and prior readiness digest. Rerun old preflight; if the migration runner added a ledger row, the225 ledger check intentionally flags that difference for an explicit receipt, not a pin edit.
 
 After any admission, do not drop these columns/functions or erase evidence; use flags off and a separately reviewed forward repair. Existing trusted service_role direct table DML privileges remain. This proves the exact Edge action path, not a database boundary against a malicious service credential. No ACL hardening, retention policy, matching algorithm, backlog mutation or global activation is included.
+
+
+## Recapture235 — 09.10.2026
+
+Current bounded facts supersede the old225 guard: see SOURCE_REVIEW.md and recapture-20261009/preflight-regenerated.json. Candidate239ccd18 has ledger235 guard backed by13-body/metadata, table-surface, catalog/certificate and Edge comparison. New isolated wrapper run is pending. No live state changed. CLI2.119.0 can list secret metadata; global flag digest equals SHA256('false'), target flag absent. Write/deploy permission still not proven; do not infer it from GET. One existing TICKET_PENDING remains untouched. Old current99 run37085434332 remains historical evidence.

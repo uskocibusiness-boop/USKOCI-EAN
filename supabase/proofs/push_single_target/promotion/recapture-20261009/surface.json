@@ -1,0 +1,640 @@
+{
+  "surface": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}",
+      "rls": true,
+      "kind": "r",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "event_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "recipient_user_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "recipient_role",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "priority",
+          "type": "text",
+          "default": "'NORMAL'::text",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "suppression_reason",
+          "type": "text",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "dedupe_key",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "queued_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "delivered_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "push_started_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX delivery_inbox_copy_idx ON public.notification_deliveries USING btree (event_id, created_at, id) WHERE (channel = 'IN_APP'::text)",
+        "CREATE UNIQUE INDEX notification_deliveries_dedupe_key_key ON public.notification_deliveries USING btree (dedupe_key)",
+        "CREATE UNIQUE INDEX notification_deliveries_pkey ON public.notification_deliveries USING btree (id)",
+        "CREATE INDEX notification_queue_idx ON public.notification_deliveries USING btree (state, priority, created_at) WHERE (state = ANY (ARRAY['CREATED'::text, 'QUEUED'::text, 'FAILED_RETRYABLE'::text]))",
+        "CREATE INDEX notification_recipient_idx ON public.notification_deliveries USING btree (recipient_user_id, recipient_role, state, created_at DESC)"
+      ],
+      "forceRls": false,
+      "policies": [
+        {
+          "polcmd": "r",
+          "polname": "notification_deliveries_owner_read",
+          "polqual": "{OPEXPR :opno 2972 :opfuncid 2956 :opresulttype 16 :opretset false :opcollid 0 :inputcollid 0 :args ({VAR :varno 1 :varattno 3 :vartype 2950 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 3 :location -1} {SUBLINK :subLinkType 4 :subLinkId 0 :testexpr <> :operName <> :subselect {QUERY :commandType 1 :querySource 0 :canSetTag true :utilityStmt <> :resultRelation 0 :hasAggs false :hasWindowFuncs false :hasTargetSRFs false :hasSubLinks false :hasDistinctOn false :hasRecursive false :hasModifyingCTE false :hasForUpdate false :hasRowSecurity false :isReturn false :cteList <> :rtable <> :rteperminfos <> :jointree {FROMEXPR :fromlist <> :quals <>} :mergeActionList <> :mergeTargetRelation 0 :mergeJoinCondition <> :targetList ({TARGETENTRY :expr {FUNCEXPR :funcid 16542 :funcresulttype 2950 :funcretset false :funcvariadic false :funcformat 0 :funccollid 0 :inputcollid 0 :args <> :location -1} :resno 1 :resname uid :ressortgroupref 0 :resorigtbl 0 :resorigcol 0 :resjunk false}) :override 0 :onConflict <> :returningList <> :groupClause <> :groupDistinct false :groupingSets <> :havingQual <> :windowClause <> :distinctClause <> :sortClause <> :limitOffset <> :limitCount <> :limitOption 0 :rowMarks <> :setOperations <> :constraintDeps <> :withCheckOptions <> :stmt_location -1 :stmt_len -1} :location -1}) :location -1}",
+          "polroles": [
+            "16485"
+          ],
+          "polwithcheck": null,
+          "polpermissive": true
+        },
+        {
+          "polcmd": "r",
+          "polname": "v5_closed_account_visibility",
+          "polqual": "{FUNCEXPR :funcid 23212 :funcresulttype 16 :funcretset false :funcvariadic false :funcformat 0 :funccollid 0 :inputcollid 0 :args <> :location -1}",
+          "polroles": [
+            "16485"
+          ],
+          "polwithcheck": null,
+          "polpermissive": false
+        }
+      ],
+      "relation": "public.notification_deliveries",
+      "triggers": [
+        {
+          "name": "pre_v3_closure_delivery",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER pre_v3_closure_delivery BEFORE INSERT ON public.notification_deliveries FOR EACH ROW EXECUTE FUNCTION private.closure_guard_delivery()"
+        },
+        {
+          "name": "pre_v3_safety_delivery",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER pre_v3_safety_delivery BEFORE INSERT ON public.notification_deliveries FOR EACH ROW EXECUTE FUNCTION private.safety_guard_delivery()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "notification_deliveries_channel_check",
+          "validated": true,
+          "definition": "CHECK ((channel = ANY (ARRAY['IN_APP'::text, 'PUSH'::text])))"
+        },
+        {
+          "name": "notification_deliveries_check",
+          "validated": true,
+          "definition": "CHECK (((state <> 'SUPPRESSED'::text) OR (suppression_reason IS NOT NULL)))"
+        },
+        {
+          "name": "notification_deliveries_dedupe_key_key",
+          "validated": true,
+          "definition": "UNIQUE (dedupe_key)"
+        },
+        {
+          "name": "notification_deliveries_event_id_fkey",
+          "validated": true,
+          "definition": "FOREIGN KEY (event_id) REFERENCES public.user_activity_events(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "notification_deliveries_pkey",
+          "validated": true,
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_deliveries_priority_check",
+          "validated": true,
+          "definition": "CHECK ((priority = ANY (ARRAY['NORMAL'::text, 'HIGH'::text])))"
+        },
+        {
+          "name": "notification_deliveries_recipient_role_check",
+          "validated": true,
+          "definition": "CHECK ((recipient_role = ANY (ARRAY['REQUESTER'::text, 'WORKER'::text])))"
+        },
+        {
+          "name": "notification_deliveries_recipient_user_id_fkey",
+          "validated": true,
+          "definition": "FOREIGN KEY (recipient_user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "notification_deliveries_state_check",
+          "validated": true,
+          "definition": "CHECK ((state = ANY (ARRAY['CREATED'::text, 'QUEUED'::text, 'SENT'::text, 'DELIVERED'::text, 'FAILED_RETRYABLE'::text, 'FAILED_FINAL'::text, 'EXPIRED'::text, 'READ'::text, 'SUPPRESSED'::text])))"
+        }
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "delivery_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "device_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "attempt_no",
+          "type": "integer",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "default": "'EXPO_PUSH'::text",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "provider_ticket_id",
+          "type": "text",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "error_code",
+          "type": "text",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "transport_state",
+          "type": "text",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "device_revision",
+          "type": "bigint",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "send_count",
+          "type": "integer",
+          "default": "0",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "lease_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "ticket_received_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "receipt_checked_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "last_claimed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "rejected_ticket_ids",
+          "type": "text[]",
+          "default": "'{}'::text[]",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_push_attempts_delivery_id_attempt_no_key ON public.notification_push_attempts USING btree (delivery_id, attempt_no)",
+        "CREATE UNIQUE INDEX notification_push_attempts_pkey ON public.notification_push_attempts USING btree (id)",
+        "CREATE INDEX notification_transport_claim_rate ON public.notification_push_attempts USING btree (last_claimed_at) WHERE (last_claimed_at IS NOT NULL)",
+        "CREATE UNIQUE INDEX notification_transport_device_once ON public.notification_push_attempts USING btree (delivery_id, device_id) WHERE (transport_state IS NOT NULL)",
+        "CREATE INDEX notification_transport_leases ON public.notification_push_attempts USING btree (lease_until) WHERE (lease_until IS NOT NULL)",
+        "CREATE INDEX notification_transport_ready ON public.notification_push_attempts USING btree (transport_state, next_attempt_at) WHERE (transport_state = ANY (ARRAY['PENDING'::text, 'RETRYABLE'::text, 'TICKET_PENDING'::text, 'SEND_LEASED'::text, 'SEND_STARTED'::text, 'RECEIPT_LEASED'::text]))",
+        "CREATE UNIQUE INDEX notification_transport_ticket_once ON public.notification_push_attempts USING btree (provider, provider_ticket_id) WHERE ((transport_state IS NOT NULL) AND (provider_ticket_id IS NOT NULL))"
+      ],
+      "forceRls": false,
+      "policies": [
+        {
+          "polcmd": "r",
+          "polname": "push_attempts_none",
+          "polqual": "{CONST :consttype 16 :consttypmod -1 :constcollid 0 :constlen 1 :constbyval true :constisnull false :location -1 :constvalue 1 [ 0 0 0 0 0 0 0 0 ]}",
+          "polroles": [
+            "16485"
+          ],
+          "polwithcheck": null,
+          "polpermissive": true
+        },
+        {
+          "polcmd": "r",
+          "polname": "v5_closed_account_visibility",
+          "polqual": "{FUNCEXPR :funcid 23212 :funcresulttype 16 :funcretset false :funcvariadic false :funcformat 0 :funccollid 0 :inputcollid 0 :args <> :location -1}",
+          "polroles": [
+            "16485"
+          ],
+          "polwithcheck": null,
+          "polpermissive": false
+        }
+      ],
+      "relation": "public.notification_push_attempts",
+      "triggers": null,
+      "constraints": [
+        {
+          "name": "notification_push_attempts_attempt_no_check",
+          "validated": true,
+          "definition": "CHECK ((attempt_no >= 1))"
+        },
+        {
+          "name": "notification_push_attempts_delivery_id_attempt_no_key",
+          "validated": true,
+          "definition": "UNIQUE (delivery_id, attempt_no)"
+        },
+        {
+          "name": "notification_push_attempts_delivery_id_fkey",
+          "validated": true,
+          "definition": "FOREIGN KEY (delivery_id) REFERENCES public.notification_deliveries(id) ON DELETE CASCADE"
+        },
+        {
+          "name": "notification_push_attempts_device_id_fkey",
+          "validated": true,
+          "definition": "FOREIGN KEY (device_id) REFERENCES public.notification_push_devices(id) ON DELETE SET NULL"
+        },
+        {
+          "name": "notification_push_attempts_outcome_check",
+          "validated": true,
+          "definition": "CHECK ((outcome = ANY (ARRAY['QUEUED'::text, 'OK'::text, 'RETRYABLE'::text, 'FATAL'::text])))"
+        },
+        {
+          "name": "notification_push_attempts_pkey",
+          "validated": true,
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_push_attempts_rejected_ticket_ids_check",
+          "validated": true,
+          "definition": "CHECK (((cardinality(rejected_ticket_ids) <= 2) AND (array_position(rejected_ticket_ids, NULL::text) IS NULL)))"
+        },
+        {
+          "name": "notification_push_attempts_send_count_check",
+          "validated": true,
+          "definition": "CHECK (((send_count >= 0) AND (send_count <= 3)))"
+        },
+        {
+          "name": "notification_push_attempts_transport_state_check",
+          "validated": true,
+          "definition": "CHECK ((transport_state = ANY (ARRAY['PENDING'::text, 'SEND_LEASED'::text, 'SEND_STARTED'::text, 'TICKET_PENDING'::text, 'RECEIPT_LEASED'::text, 'PROVIDER_ACCEPTED'::text, 'RETRYABLE'::text, 'FINAL'::text, 'UNKNOWN'::text, 'SUPPRESSED'::text])))"
+        }
+      ]
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}",
+      "rls": true,
+      "kind": "r",
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "default": "extensions.gen_random_uuid()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "expo_push_token",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "default": null,
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "statement_timestamp()",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "revision",
+          "type": "bigint",
+          "default": "0",
+          "notNull": true,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "bound_session_id",
+          "type": "uuid",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        },
+        {
+          "name": "bound_revision",
+          "type": "bigint",
+          "default": null,
+          "notNull": false,
+          "identity": "",
+          "generated": ""
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX notification_push_devices_pkey ON public.notification_push_devices USING btree (id)",
+        "CREATE UNIQUE INDEX notification_push_devices_user_id_expo_push_token_key ON public.notification_push_devices USING btree (user_id, expo_push_token)",
+        "CREATE UNIQUE INDEX push_device_active_token_owner_idx ON public.notification_push_devices USING btree (expo_push_token) WHERE active",
+        "CREATE INDEX push_devices_user_idx ON public.notification_push_devices USING btree (user_id) WHERE active"
+      ],
+      "forceRls": false,
+      "policies": [
+        {
+          "polcmd": "r",
+          "polname": "push_devices_owner_read",
+          "polqual": "{OPEXPR :opno 2972 :opfuncid 2956 :opresulttype 16 :opretset false :opcollid 0 :inputcollid 0 :args ({VAR :varno 1 :varattno 2 :vartype 2950 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 2 :location -1} {SUBLINK :subLinkType 4 :subLinkId 0 :testexpr <> :operName <> :subselect {QUERY :commandType 1 :querySource 0 :canSetTag true :utilityStmt <> :resultRelation 0 :hasAggs false :hasWindowFuncs false :hasTargetSRFs false :hasSubLinks false :hasDistinctOn false :hasRecursive false :hasModifyingCTE false :hasForUpdate false :hasRowSecurity false :isReturn false :cteList <> :rtable <> :rteperminfos <> :jointree {FROMEXPR :fromlist <> :quals <>} :mergeActionList <> :mergeTargetRelation 0 :mergeJoinCondition <> :targetList ({TARGETENTRY :expr {FUNCEXPR :funcid 16542 :funcresulttype 2950 :funcretset false :funcvariadic false :funcformat 0 :funccollid 0 :inputcollid 0 :args <> :location -1} :resno 1 :resname uid :ressortgroupref 0 :resorigtbl 0 :resorigcol 0 :resjunk false}) :override 0 :onConflict <> :returningList <> :groupClause <> :groupDistinct false :groupingSets <> :havingQual <> :windowClause <> :distinctClause <> :sortClause <> :limitOffset <> :limitCount <> :limitOption 0 :rowMarks <> :setOperations <> :constraintDeps <> :withCheckOptions <> :stmt_location -1 :stmt_len -1} :location -1}) :location -1}",
+          "polroles": [
+            "16485"
+          ],
+          "polwithcheck": null,
+          "polpermissive": true
+        },
+        {
+          "polcmd": "r",
+          "polname": "v5_closed_account_visibility",
+          "polqual": "{FUNCEXPR :funcid 23212 :funcresulttype 16 :funcretset false :funcvariadic false :funcformat 0 :funccollid 0 :inputcollid 0 :args <> :location -1}",
+          "polroles": [
+            "16485"
+          ],
+          "polwithcheck": null,
+          "polpermissive": false
+        }
+      ],
+      "relation": "public.notification_push_devices",
+      "triggers": [
+        {
+          "name": "pre_v3_closure_device",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER pre_v3_closure_device BEFORE INSERT OR UPDATE ON public.notification_push_devices FOR EACH ROW EXECUTE FUNCTION private.closure_guard_owned_write('ACCOUNT', 'user_id')"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "notification_push_devices_pkey",
+          "validated": true,
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "name": "notification_push_devices_platform_check",
+          "validated": true,
+          "definition": "CHECK ((platform = ANY (ARRAY['IOS'::text, 'ANDROID'::text, 'WEB'::text])))"
+        },
+        {
+          "name": "notification_push_devices_revision_check",
+          "validated": true,
+          "definition": "CHECK ((revision >= 0))"
+        },
+        {
+          "name": "notification_push_devices_user_id_expo_push_token_key",
+          "validated": true,
+          "definition": "UNIQUE (user_id, expo_push_token)"
+        },
+        {
+          "name": "notification_push_devices_user_id_fkey",
+          "validated": true,
+          "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+        }
+      ]
+    }
+  ],
+  "surface_md5": "a71670bea0420c1223f3d094fe56e089"
+}

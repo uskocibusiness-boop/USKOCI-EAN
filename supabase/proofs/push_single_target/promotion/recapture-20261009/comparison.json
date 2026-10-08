@@ -1,0 +1,26 @@
+{
+  "state": "READ_ONLY_PREFLIGHT_PASS / REGENERATED_SOURCE / RUNTIME_PENDING",
+  "checkedAt": "2026-10-08T23:50:17.042064+00:00",
+  "ledger": 235,
+  "functionBodiesAndMetadataCompared": 13,
+  "allBodiesAndMetadataUnchanged": true,
+  "definitionRenderingOnly": [
+    "private.push_suppression argument public qualification"
+  ],
+  "tableSurfacesUnchanged": 3,
+  "certificateAndCatalogsUnchanged": true,
+  "edgeVersion": 22,
+  "edgeAssetsUnchanged": true,
+  "activeLeases": 0,
+  "sendStarted": 0,
+  "ticketPendingUntouched": 1,
+  "closureExecuting": 0,
+  "globalTransportFlag": "SHA256_METADATA_MATCH_FALSE",
+  "singleTargetFlag": "ABSENT_DEFAULT_OFF",
+  "flagsWritePrivilege": "NOT_PROVEN",
+  "sourceChecks": "22DO+4outerSQL parsed;6offlineEdgePASS",
+  "liveWrites": 0,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "candidateSha256": "239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac"
+}
