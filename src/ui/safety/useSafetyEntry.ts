@@ -44,7 +44,7 @@ export function useSafetyEntry(profileId: string | null | undefined,
       router.navigate({ pathname: '/bezbednost', params: { targetAccountId: target.targetAccountId,
         ...(safetyTargetNameBuilt() ? { profileId } : {}),
         ...(needId ? { needId } : {}), ...(agreementId ? { agreementId } : {}) } });
-    }, () => { if (!current()) return; settle(); setError('Nismo uspeli da otvorimo bezbednost. Pokušaj ponovo.'); });
+    }, () => { if (!current()) return; settle(); setError('Ne možemo da otvorimo Bezbednost. Pokušaj ponovo.'); });
   }, [profileId, needId, agreementId]);
   return profileId ? { onPress, busy, error } : undefined;
 }

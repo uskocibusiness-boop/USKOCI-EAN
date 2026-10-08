@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import { closureBlockerLabels, closureClassLabels, erasureAdapter, erasureExceptionLabels, type ClosureExecutionReview,
   type ClosureExecutionState } from '../../data/closureExecutionClientService';
 import { vreme } from '../../lib/vreme';
 import { InlineNote, PlainRow } from '../privacy/InlineNote';
 import { SettingsAction, SettingsGroup, SettingsInfo, SettingsRow, SettingsText as T } from '../settings/SettingsPresentation';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FlowFooter } from '../system/FlowFooter';
 import { plural } from '../system/plural';
+import { Screen } from '../system/Screen';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
@@ -24,9 +25,9 @@ export const closureDuration = (n: number) => n % 86400 === 0 ? plural(n / 86400
  * preparation is there to check (round 5c review); without one it is a failure.
  */
 export const closureUnconfirmedCopy = {
-  START: 'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.',
-  PREPARE: 'Priprema još nema potvrdu. Možeš ponoviti isti zahtev.',
-  CAUGHT: 'Stanje zahteva nije potvrđeno. Sačuvani zahtev ostaje za proveru.',
+  START: 'Ne znamo da li je zahtev za zatvaranje poslat. Sačuvan je na telefonu; možeš da ga pošalješ ponovo.',
+  PREPARE: 'Ne znamo da li je priprema počela. Možeš da pokušaš ponovo.',
+  CAUGHT: 'Ne znamo stanje zahteva. Proveri ga ponovo.',
 } as const;
 
 /** Where a blocker can be resolved. A blocker with no place of its own is a plain line. */
@@ -34,9 +35,9 @@ export type ClosureBlockerPlace = 'dogovori' | 'zadaci' | 'prijave';
 const blockerPlace: Readonly<Record<string, ClosureBlockerPlace>> = { ACTIVE_AGREEMENT: 'dogovori', OPEN_TASK: 'zadaci', ACTIVE_APPLICATION: 'prijave' };
 
 /**
- * The frame of the closure flow: one job, one way out (the X), the flow's name, the scroll and an optional pinned footer
- * with the SettingsScreen footer's own measure. SettingsScreen has no flow variant and belongs to another unit, so the
- * flow draws its frame here from the same system pieces.
+ * The frame of the closure flow: one job, one way out (the X), the flow's name, the scroll and an optional pinned foot. It is the
+ * system's flow screen (`Screen kind="flow"`: the edge of 20, the blocks 24 apart) and the system's foot (`FlowFooter`, the one line
+ * above it); SettingsScreen has no flow variant, so the flow draws its bar here.
  *
  * The X is spoken "Zatvori pregled": a bare "Zatvori" inside "Zatvaranje naloga" could be heard as the closing itself
  * (round 5 review). It only leaves the flow.
@@ -44,11 +45,9 @@ const blockerPlace: Readonly<Record<string, ClosureBlockerPlace>> = { ACTIVE_AGR
 export function ClosureFrame({ onClose, closeDisabled = false, footer, children }: {
   onClose: () => void; closeDisabled?: boolean; footer?: ReactNode; children: ReactNode;
 }) {
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvori pregled" disabled={closeDisabled} onClose={onClose} />
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>{children}</ScrollView>
-    {footer ? <View testID="closure-footer" style={s.footer}>{footer}</View> : null}
-  </SafeAreaView>;
+  return <Screen kind="flow" keyboardAvoiding={false}
+    header={<ScreenChrome variant="flow" title="Zatvaranje naloga" closeLabel="Zatvori pregled" disabled={closeDisabled} onClose={onClose} />}
+    footer={footer ? <FlowFooter testID="closure-footer">{footer}</FlowFooter> : undefined}>{children}</Screen>;
 }
 
 /**
@@ -108,7 +107,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   // Before anything is started the first words under the title are what happens (the consequence), so the header says no
   // sentence of its own there: an orientation line above the consequence only delays it.
   const header = <View style={s.header}>
-    <View style={s.well}><FactArt kind={art} size={56} muted={terminal} /></View>
+    <FactArt kind={art} size={64} muted={terminal} />
     <T variant="title" accessibilityRole="header">{terminal ? 'Nalog je zatvoren.' : state ? 'Zahtev je pokrenut.' : 'Pregled pre zatvaranja.'}</T>
     {terminal || state ? <T variant="copy" tone="muted">{terminal ? 'Pristup nalogu je ugašen. Potvrda ispod opisuje završene radnje i podatke koji se čuvaju.'
       : 'Zahtev je u redu za obradu. Pristup je ograničen dok se pokrenuti zahtev proverava i završava.'}</T> : null}
@@ -123,13 +122,14 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       {`Ograničeno čuvanje: ${closureDuration(d.retentionSeconds)} od pokretanja zahteva.`}
     </SettingsInfo>)}
   </SettingsGroup> : null;
-  const exceptions = erasure && pendingExceptions.length > 0 ? <View style={s.block}>
-    <T variant="heading" accessibilityRole="header">Pre konačnog zatvaranja</T>
-    <T variant="copy">Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>
-    <View style={s.list}>{pendingExceptions.map((code, index) =>
-      <PlainRow key={code} label={erasureExceptionLabels[code]} last={index === pendingExceptions.length - 1} />)}</View>
-    <SettingsAction label="Otvori privatnu podršku" kind="secondary" disabled={busy} onPress={commands.onSupport} />
-  </View> : null;
+  const exceptions = erasure && pendingExceptions.length > 0 ? <SettingsGroup title="Pre konačnog zatvaranja">
+    <View style={s.block}>
+      <T variant="copy">Ovi izdvojeni podaci još zahtevaju rešavanje. Nepovezani obični podaci mogu se ukloniti dok ta provera traje.</T>
+      <View>{pendingExceptions.map((code, index) =>
+        <PlainRow key={code} label={erasureExceptionLabels[code]} last={index === pendingExceptions.length - 1} />)}</View>
+      <SettingsAction label="Otvori privatnu podršku" kind="secondary" disabled={busy} onPress={commands.onSupport} />
+    </View>
+  </SettingsGroup> : null;
 
   if (state) {
     const steps = erasure && !terminal && state.totalSteps ? { done: state.completedSteps ?? 0, total: state.totalSteps } : null;
@@ -141,8 +141,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
       <SettingsAction label="Odjavi se sa ovog uređaja" kind="quiet" disabled={busy} loading={working === 'logout'} onPress={commands.onLogout} />
     </>}>
       {header}{note}
-      <View style={s.block}>
-        <T variant="heading" accessibilityRole="header">{terminal ? 'Završene radnje' : 'Obrada je u toku'}</T>
+      <SettingsGroup title={terminal ? 'Završene radnje' : 'Obrada je u toku'}><View style={s.block}>
         <T variant="copy">{terminal ? 'Podaci za prijavu su uklonjeni i sesije su završene. Fotografije i datoteke naloga su obrisane.'
           : 'Zatvaranje još nije završeno. Nepotvrđen mrežni odgovor ne znači da su podaci obrisani.'}</T>
         {erasure ? <T variant="copy">{terminal ? 'Obični lični i privatni podaci aplikacije su uklonjeni. Ostaju minimalni pseudonimni zapisi potrebni za potvrde radnji i tehničku evidenciju.'
@@ -157,7 +156,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
           <T variant="note" tone="muted">{`Provereni koraci: ${steps.done} od ${steps.total}.`}</T>
         </View> : null}
         {terminal ? <T variant="note" tone="muted">{`Završeno: ${vreme(state.closedAt)}`}</T> : null}
-      </View>
+      </View></SettingsGroup>
       {exceptions}
       {retention}
     </ClosureFrame>;
@@ -201,11 +200,10 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
   return <ClosureFrame onClose={commands.onClose}>
     {header}{note}
     {/* The consequence comes first, in the owner's words; everything that can be done instead (keep a copy) and the command itself follow it. */}
-    <View style={s.block}>
-      <T variant="heading" accessibilityRole="header">Posle pokretanja</T>
+    <SettingsGroup title="Posle pokretanja"><View style={s.block}>
       <T variant="copy">{erasure ? 'Pristup običnim funkcijama se ograničava. Uklanjaju se nezaštićene datoteke, obični lični i privatni podaci, pa podaci za prijavu i sesije. Minimalni pseudonimni zapisi potvrda ostaju. Izdvojeni dokazi se zasebno rešavaju; ako postoje, konačno zatvaranje čeka njihovu proveru. Pokrenuto uklanjanje ne možeš poništiti iz aplikacije.'
         : 'Pristup nalogu se gasi. Podaci za prijavu, aktivne sesije i datoteke naloga biće uklonjeni. Identifikator i evidencije iz pregleda ostaju u skladu sa pravilima čuvanja. Pokrenuto zatvaranje ne možeš otkazati iz aplikacije.'}</T>
-    </View>
+    </View></SettingsGroup>
     {exceptions}{retention}
     <SettingsGroup title="Tvoji podaci">
       <SettingsRow compact last label="Izvoz podataka" detail="Pogledaj zahtev, pripremu i dostupnost svoje kopije." disabled={busy}
@@ -221,18 +219,11 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground },
-  content: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.xxl, gap: sys.space.base, flexGrow: 1 },
-  footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, borderTopWidth: 1, borderTopColor: sys.color.line,
-    backgroundColor: sys.color.surface, gap: sys.space.sm },
-  header: { gap: sys.space.sm, paddingBottom: sys.space.xs },
-  well: { width: 80, height: 80, borderRadius: sys.radius.card, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center',
-    marginBottom: sys.space.xs },
+  header: { gap: sys.space.sm },
   block: { gap: sys.space.sm },
-  list: { borderTopWidth: 1, borderTopColor: sys.color.line },
   progress: { gap: sys.space.sm, paddingTop: sys.space.xs },
-  track: { height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.control, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  end: { gap: sys.space.sm, marginTop: sys.space.sm },
+  track: { height: sys.space.sm, borderRadius: sys.radius.pill, backgroundColor: sys.color.control, overflow: 'hidden' },
+  fill: { height: sys.space.sm, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
+  end: { gap: sys.space.sm },
   danger: { minHeight: 54, borderRadius: sys.radius.primary, borderWidth: 1, backgroundColor: sys.color.surface },
 });

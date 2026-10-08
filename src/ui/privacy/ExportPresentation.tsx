@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { DataExportPreparation, DataExportStatus } from '../../contracts/dataExport';
 import { vreme } from '../../lib/vreme';
-import { SettingsAction, SettingsPanel, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
+import { SettingsGroup, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { Glyph } from '../system/Glyph';
+import { ListRow } from '../system/ListRow';
 import { SkeletonList } from '../system/Skeleton';
 import { StateView } from '../system/StateView';
 import { STATUS_TONES, StatusMark, type StatusShape, type StatusTone } from '../system/StatusChip';
@@ -143,9 +144,11 @@ export function ExportNoticeLine({ text, tone }: { text: string; tone: NoticeTon
 }
 
 /**
- * Izvoz podataka (round 5, owner step 11b): the copy's state as one card of steps, the one action for this state pinned
- * in the footer with the outcome line right above it, and the rare withdrawals in the scroll. Presentation only: the
- * route owns every read, command, fence and label of the footer action.
+ * Izvoz podataka (round 5, owner step 11b; UI/UX pass 2026-10-08, F6, composition spec 4.15): the copy's state as the content of one
+ * section, with no card around it: its status chip and the steps of the copy as one track, "Osveži" as the one word at the end of the
+ * section's title; the one action for this state pinned in the foot with the outcome line right above it; and the rare withdrawals in
+ * the scroll as red rows (a command, not a way onward). Presentation only: the route owns every read, command, fence and label of the
+ * foot's action.
  */
 export function ExportScreenView({ onBack, loading, failure, status, preparation, now, busy, notice, primary,
   onCancel, onRevoke, onRefresh, refreshDisabled }: {
@@ -159,41 +162,46 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
   const request = status?.request;
   const noticeLine = notice ? <ExportNoticeLine text={notice.text} tone={notice.tone} /> : null;
   const phase = exportPhase(status, now);
+  // A re-read keeps what was read on screen: the word at the end of the title says it is at work, and does nothing meanwhile.
+  const refresh = { label: loading ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži stanje izvoza',
+    onPress: () => { if (!busy && !loading && !refreshDisabled) onRefresh(); } };
   return <SettingsScreen title="Izvoz podataka" onBack={onBack} footer={primary ? <>{noticeLine}{primary}</> : null}>
     {notice && !primary ? noticeLine : null}
-    {/* The skeleton is for the first read. A re-read keeps the card on screen: the refresh at the end shows it works. */}
+    {/* The skeleton is for the first read. A re-read keeps the steps on screen: the word at the end of the title shows it works. */}
     {loading && !status ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
+      // The sentences of a failure end in "Osveži stanje.", so the one retry says the same words.
       : failure ? <StateView kind="error" art="download" title={failure.title} body={failure.body}
         primary={{ label: 'Osveži stanje', onPress: onRefresh, disabled: refreshDisabled }} />
       : <>
-        <SettingsPanel style={s.card}>
-          <ExportStatusChip phase={phase} />
-          <ExportStepper steps={exportSteps(phase, status)} />
-        </SettingsPanel>
+        <SettingsGroup title="Tvoja kopija" action={refresh}>
+          <View style={s.track}>
+            <ExportStatusChip phase={phase} />
+            <ExportStepper steps={exportSteps(phase, status)} />
+          </View>
+        </SettingsGroup>
         {preparation?.kind === 'NOT_READY' ? <InlineNote tone="warn" alert>{exportPreparationCopy[preparation.code ?? 'NOT_AVAILABLE']}</InlineNote> : null}
         {/* About keeping a copy: said only when there is a copy to keep. */}
         {phase === 'READY_AVAILABLE' ? <QuietLine art="shield">Izvoz je vezan za tvoj nalog. Čuvaj kopiju na mestu kome samo ti imaš pristup.</QuietLine> : null}
-        <View style={s.actions}>
-          {request?.status === 'REQUESTED' ? <SettingsAction label="Otkaži zahtev" kind="destructive" disabled={busy} onPress={onCancel} /> : null}
+        {request?.status === 'REQUESTED' || (request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED') ? <View>
+          {request?.status === 'REQUESTED' ? <ListRow title="Otkaži zahtev" tone="danger" disabled={busy} onPress={onCancel} last /> : null}
           {/* A copy whose availability has run out is not there to withdraw: no command is offered over a file that does not exist. */}
-          {request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED' ? <SettingsAction label="Opozovi kopiju" kind="destructive" disabled={busy} onPress={onRevoke} /> : null}
-          <SettingsAction label="Osveži stanje" kind="quiet" disabled={busy} loading={loading} onPress={onRefresh} />
-        </View>
+          {request?.status === 'READY' && status?.fulfillment && phase !== 'EXPIRED' ? <ListRow title="Opozovi kopiju" tone="danger" disabled={busy} onPress={onRevoke} last /> : null}
+        </View> : null}
       </>}
   </SettingsScreen>;
 }
 
 const s = StyleSheet.create({
-  card: { marginBottom: 0, gap: sys.space.base },
+  track: { gap: sys.space.base },
   // The shared chip's measure (StatusChip): the mark, then the word, on the tone's soft ground; never a touch target.
   chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingVertical: sys.space.xs,
     paddingLeft: sys.space.sm, paddingRight: sys.space.md, borderRadius: sys.radius.pill },
   chipWord: { letterSpacing: 0 },
   step: { flexDirection: 'row', gap: sys.space.md },
   rail: { width: 24, alignItems: 'center' },
-  connector: { width: 2, flex: 1, minHeight: 16, marginVertical: 2, backgroundColor: sys.color.line, borderRadius: sys.radius.pill },
+  connector: { width: 2, flex: 1, minHeight: 16, marginVertical: sys.space.xs, backgroundColor: sys.color.line, borderRadius: sys.radius.pill },
   connectorDone: { backgroundColor: sys.color.green },
-  stepCopy: { flex: 1, minWidth: 0, gap: 2 },
+  stepCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   stepGap: { paddingBottom: sys.space.base },
   marker: { width: 24, height: 24, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   markerDone: { backgroundColor: sys.color.green },
@@ -201,5 +209,4 @@ const s = StyleSheet.create({
   markerPending: { backgroundColor: sys.color.surface, borderWidth: 2, borderColor: sys.color.lineStrong },
   markerStopped: { backgroundColor: sys.color.iconWell },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
-  actions: { gap: sys.space.sm, marginTop: sys.space.sm },
 });

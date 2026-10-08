@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { decodeSupportSnapshot } from '../../data/supportCaseReadDecoders';
 import { factLabel } from '../../data/aiNeedV2Ui';
 import { isNeedFactV2Key } from '../../contracts/needFactsV2';
@@ -6,7 +6,9 @@ import { record, uuid } from '../../data/serverReceipt';
 import type { SupportSnapshot } from '../../data/supportCaseTypes';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import { SettingsText as T } from '../settings/SettingsPresentation';
-import { SupportNotice, supportStyles as styles, supportTime } from './SupportPresentation';
+import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
+import { SupportNotice, supportTime } from './SupportPresentation';
 
 export const supportReferenceNames: Record<SupportSnapshot['kind'], string> = { TASK: 'Zadatak', AGREEMENT: 'Dogovor',
   AGREEMENT_MESSAGE: 'Izabrana poruka iz Dogovora', GROUP_MESSAGE: 'Izabrana grupna poruka',
@@ -26,7 +28,7 @@ export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot
   const evaluation = record(content.evaluation);
   // A block on the quiet wash, as a quoted thing: its name, when it was, and only the decoded words. The revision is
   // machinery (it still travels with the reference); a person reads the name and the time.
-  return <View style={styles.summary}><T variant="bodyStrong">{supportReferenceNames[snapshot.kind]}</T>
+  return <Surface kind="note" style={s.quote}><T variant="bodyStrong">{supportReferenceNames[snapshot.kind]}</T>
     {typeof content.createdAt === 'string' ? <T variant="meta" tone="muted">{supportTime(content.createdAt)}</T> : null}
     {['title', 'description', 'body'].map(key => typeof content[key] === 'string' && content[key]
       ? <T key={key}>{content[key] as string}</T> : null)}
@@ -40,5 +42,7 @@ export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot
       ? <T>{outcomes[evaluation.outcome]}</T> : null}
     {media.map((raw, index) => { const m = record(raw); return m && uuid(m.assetId)
       ? <AuthorizedPhoto key={m.assetId} assetId={m.assetId} caseId={caseId} label={`Izabrani fotografski dokaz ${index + 1}`} /> : null; })}
-  </View>;
+  </Surface>;
 }
+
+const s = StyleSheet.create({ quote: { gap: sys.space.sm } });

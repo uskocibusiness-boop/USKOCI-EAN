@@ -2,11 +2,12 @@ import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
+import { tidyPlaceLabel } from '../location/placeText';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { Glyph } from '../system/Glyph';
-import { brandAction, materialControl, sys } from '../system/tokens';
-import { SettingsRow } from '../settings/SettingsPresentation';
+import { brandAction, sys } from '../system/tokens';
+import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
 import { availabilityRowDetail, profileEffects, toolsAndVehiclesNote, toolsAndVehiclesTag } from './workerProfileFacts';
@@ -26,7 +27,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   openConversation?: () => void; onManual: () => void; primaryTaken?: boolean;
 }) {
-  const grad = draft.grad.trim();
+  const grad = draft.grad.trim() ? tidyPlaceLabel(draft.grad.trim()) : '';
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Izaberi gde želiš da radiš';
   const tag = toolsAndVehiclesTag();
   const hasKit = draft.alati.length > 0 || draft.vozila.length > 0;
@@ -40,12 +41,13 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       ? <View testID="worker-profile-skills" style={s.chips}>{draft.vestine.map((skill, index) => <View key={`${index}:${skill}`} style={s.chip}>
         <T selectable variant="note" style={s.chipText}>{skill}</T></View>)}</View>
       : <T variant="body" tone="muted">Koje zadatke možeš da preuzmeš?</T>}
-    <View style={[s.rows, materialControl.raised]}>
-      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} cut="art" />} disabled={disabled}
+    {/* The two ways onward are rows of a group, not a card with a border around a list of rows. */}
+    <SettingsGroup>
+      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} last onPress={() => navigate('/profil/dostupnost')}
         detail={availabilityRowDetail(draft.dostupanOdmah)} />
-    </View>
+    </SettingsGroup>
     <View testID="worker-profile-kit" style={s.kit}>
       {tag ? <View style={s.tag}><T variant="meta" tone="muted">{tag}</T></View> : null}
       {draft.alati.length ? <Fact art="tool">{draft.alati.join(' · ')}</Fact> : null}
@@ -53,8 +55,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       {hasKit ? null : <T variant="body" tone="muted">Alat i vozilo nisu navedeni.</T>}
       <T testID="worker-profile-kit-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     </View>
-    <View testID="worker-profile-effects" style={s.effects}>
-      <T variant="heading" accessibilityRole="header" style={s.ink}>Na šta utiče</T>
+    <View testID="worker-profile-effects"><SettingsGroup title="Na šta utiče">
       {profileEffects().map(effect => {
         const copy = <View style={s.effectCopy}>
           <T variant="bodyStrong" style={s.ink}>{effect.title}</T>
@@ -70,7 +71,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
             <FactArt kind={effect.art} size={32} cut="art" />{copy}
           </View>;
       })}
-    </View>
+    </SettingsGroup></View>
     <View testID="worker-profile-actions" style={s.actions}>
       {openConversation ? <V2Action label="Izmeni razgovorom" disabled={disabled} onPress={openConversation}
         tone={primaryTaken ? 'neutral' : 'brand'} style={primaryTaken ? undefined : brandAction} /> : null}
@@ -104,17 +105,15 @@ const s = StyleSheet.create({
   showMore: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   showMoreText: { color: sys.color.ink, textDecorationLine: 'underline' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
-  chip: { minHeight: 36, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: 14, paddingVertical: sys.space.xs,
+  chip: { minHeight: 36, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
     borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   chipText: { color: sys.color.ink, flexShrink: 1 },
-  rows: { borderRadius: sys.radius.card, paddingHorizontal: 16, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line },
   kit: { gap: sys.space.md },
   tag: { alignSelf: 'flex-start', minHeight: 24, justifyContent: 'center', paddingHorizontal: sys.space.sm,
     borderRadius: sys.radius.badge, backgroundColor: sys.color.wash },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   factText: { flex: 1, minWidth: 0, color: sys.color.ink },
-  effects: { gap: sys.space.xs },
   effect: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.sm },
-  effectCopy: { flex: 1, minWidth: 0, gap: 2 },
+  effectCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   actions: { gap: sys.space.sm },
 });

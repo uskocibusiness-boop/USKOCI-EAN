@@ -284,15 +284,16 @@ function SupportFormSheet({ action, targetId, detail, model, onClose }: {
 
 const s = StyleSheet.create({
   head: { alignItems: 'flex-start' },
-  summary: { gap: sys.space.md, paddingBottom: sys.space.base, marginBottom: sys.space.xs, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  fact: { gap: 2 },
-  evidence: { maxWidth: '82%', gap: 4, marginTop: 4 },
+  // The request's own words and what it points at, parted from the thread under it by the space and not by a line.
+  summary: { gap: sys.space.md, paddingBottom: sys.space.base },
+  fact: { gap: sys.space.xs },
+  evidence: { maxWidth: '82%', gap: sys.space.xs, marginTop: sys.space.xs },
   mineSide: { alignSelf: 'flex-end' },
   theirsSide: { alignSelf: 'flex-start' },
-  orphan: { marginTop: 12 },
-  appeal: { gap: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: sys.color.line },
-  operator: { gap: sys.space.sm, marginTop: sys.space.base, paddingTop: sys.space.base, borderTopWidth: 1, borderTopColor: sys.color.line },
+  orphan: { marginTop: sys.space.md },
+  appeal: { gap: sys.space.xs, paddingTop: sys.space.sm },
+  operator: { gap: sys.space.sm, marginTop: sys.space.xl },
   operatorActions: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
   sheet: { gap: sys.space.base },
-  hint: { marginTop: -12 },
+  hint: { marginTop: -sys.space.md },
 });

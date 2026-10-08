@@ -30,7 +30,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 } }); });
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
-jest.mock('../../settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsText: 'T', SettingsAction: 'Action' }));
+jest.mock('../../settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsGroup: 'Group', SettingsText: 'T', SettingsAction: 'Action' }));
 import { SafetyScreen } from '../SafetyScreen';
 import { poruka } from '../../system/Poruka';
 

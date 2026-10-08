@@ -8,10 +8,10 @@ import { InlineNote } from '../privacy/InlineNote';
 import { ProductSheet } from '../product/ProductSheet';
 import { SettingsAction, SettingsGroup, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
-import { FactArt } from '../system/FactArt';
+import { FactArt, type FactArtKind } from '../system/FactArt';
 import { SkeletonList } from '../system/Skeleton';
-import { StateView } from '../system/StateView';
-import { sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
+import { V2Action } from '../v2/V2Action';
 import { boundedLegalRead, legalHttpsUrl, reviewedDocuments, type LegalReviewState } from './legalReview';
 
 const legalTitle = (kind: LegalDocumentKind) => kind === 'TERMS' ? 'Uslovi korišćenja' : 'Politika privatnosti';
@@ -20,19 +20,36 @@ export const processorRoles: Record<ProcessorLegalRole, string> = { PROCESSOR: '
 export const LEGAL_NOT_PUBLISHED = 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.';
 const LEGAL_UNAVAILABLE = 'Dokumenti trenutno nisu dostupni.';
 
-export function LegalDocumentRows({ bundle, onOpen, disabled = false }: {
+export function LegalDocumentRows({ bundle, onOpen, disabled = false, refresh }: {
   bundle: LegalBundleStatus | null; onOpen: (document: LegalDocument) => void; disabled?: boolean;
+  /** One word at the end of the title ("Osveži"): the whole screen's re-read, said where its documents are. */
+  refresh?: { label: string; onPress: () => void; accessibilityLabel?: string };
 }) {
   const documents = reviewedDocuments(bundle);
-  return documents ? <SettingsGroup title="Objavljeni dokumenti">{documents.map((document, index) =>
-    <SettingsRow key={document.kind} label={legalTitle(document.kind)} detail="Otvara se u pregledaču"
-      icon={<FactArt kind={document.kind === 'TERMS' ? 'document' : 'shield'} size={32} muted={disabled} />}
+  // The documents are rows with no picture, like the providers' rows under them: one edge for the words of the whole screen.
+  return documents ? <SettingsGroup title="Objavljeni dokumenti" action={refresh}>{documents.map((document, index) =>
+    <SettingsRow compact key={document.kind} label={legalTitle(document.kind)} detail="Otvara se u pregledaču"
       onPress={() => onOpen(document)} disabled={disabled} last={index === 1} />)}</SettingsGroup>
     // Not green: "not published" and "not available" are not good news, so they sit on the quiet wash.
-    : <InlineNote tone="neutral" art={null}>
-      <View style={s.status}><FactArt kind="document" size={32} muted />
-        <T style={s.grow}>{bundle ? LEGAL_NOT_PUBLISHED : LEGAL_UNAVAILABLE}</T></View>
-    </InlineNote>;
+    : <InlineNote tone="neutral" art="document" artMuted>{bundle ? LEGAL_NOT_PUBLISHED : LEGAL_UNAVAILABLE}</InlineNote>;
+}
+
+/**
+ * The state of a screen that has nothing to read (composition spec T7): a column on the screen's own centre line, a picture of 96,
+ * one title, one sentence, at most one green action and one quiet one, about a third of the way down. The system's `StateView` is
+ * this shape's home; until it draws it (a 56 dp picture, at the left), the rules draw it themselves so the screen is right now.
+ */
+function CenteredState({ art, title, body, primary, quiet }: {
+  art: FactArtKind; title: string; body?: string;
+  primary?: { label: string; onPress: () => void; disabled?: boolean }; quiet?: { label: string; onPress: () => void; disabled?: boolean };
+}) {
+  return <View style={s.centered} accessibilityLiveRegion="polite">
+    <FactArt kind={art} size={96} />
+    <T variant="title" accessibilityRole="header" style={s.centerText}>{title}</T>
+    {body ? <T variant="copy" tone="muted" style={[s.centerText, s.centerBody]}>{body}</T> : null}
+    {primary ? <V2Action label={primary.label} onPress={primary.onPress} disabled={primary.disabled} style={[brandAction, s.centerAction]} /> : null}
+    {quiet ? <V2Action label={quiet.label} onPress={quiet.onPress} disabled={quiet.disabled} kind="quiet" style={s.centerAction} /> : null}
+  </View>;
 }
 
 /** An error line where the thing that failed is: under the documents for a link, above the button for a command. */
@@ -64,9 +81,10 @@ function ProviderDisclosure({ provider, onOpenUrl, divider = true }: { provider:
  * the footer's, with its error right above it. Presentation only: the route owns the controller, the fences and the
  * link opening; every legal word is the owner's, verbatim.
  */
-export function LegalReviewView({ state, onBack, action, linkError, onOpen, onOpenUrl, onRefresh }: {
+export function LegalReviewView({ state, onBack, action, actionReason = null, linkError, onOpen, onOpenUrl, onRefresh }: {
   state: LegalReviewState; onBack: () => void;
   /** The footer command for this state, or null (documents not published, or already accepted). */ action: ReactNode;
+  /** Why that command cannot be pressed yet: a quiet line above it, in the system foot (never under the button). */ actionReason?: string | null;
   linkError: string | null; onOpen: (document: LegalDocument) => void; onOpenUrl: (url: string) => void; onRefresh: () => void;
 }) {
   const documents = reviewedDocuments(state.bundle);
@@ -78,27 +96,27 @@ export function LegalReviewView({ state, onBack, action, linkError, onOpen, onOp
   const processorGroup = processors ? <SettingsGroup title="Obrađivači podataka">
     {processors.providers.map((provider, index) => <ProviderDisclosure key={provider.providerCode} provider={provider} onOpenUrl={onOpenUrl} divider={index > 0} />)}
   </SettingsGroup> : null;
-  return <SettingsScreen title="Pravila i saglasnosti" onBack={onBack} footer={action ? <>{state.error ? <ErrorLine>{state.error}</ErrorLine> : null}{action}</> : null}>
+  return <SettingsScreen title="Pravila i saglasnosti" onBack={onBack} footerReason={actionReason}
+    footer={action ? <>{state.error ? <ErrorLine>{state.error}</ErrorLine> : null}{action}</> : null}>
     {firstRead ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
       {!action && state.error && documents ? <InlineNote tone="danger">{state.error}</InlineNote> : null}
       {/* A record, not a celebration: the state of the acceptance stands above what it is about. */}
-      {confirmed ? <View style={s.status}><FactArt kind="check" size={22} />
-        <T style={s.grow} accessibilityLiveRegion="polite">Prihvaćene su aktuelne verzije dokumenata.</T></View>
-        : state.receipt ? <View style={s.status}><FactArt kind="info" size={22} />
-          <T style={s.grow}>Prethodno prihvatanje je potvrđeno. Učitaj aktuelne dokumente ponovo.</T></View> : null}
+      {confirmed ? <InlineNote tone="neutral" art="check" alert>Prihvaćene su trenutne verzije dokumenata.</InlineNote>
+        : state.receipt ? <InlineNote tone="neutral" art="info">Prethodno prihvatanje je potvrđeno. Učitaj trenutne dokumente ponovo.</InlineNote> : null}
       {documents ? <>
         <View style={s.documents}>
-          <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={onOpen} />
+          <LegalDocumentRows bundle={state.bundle} disabled={state.busy} onOpen={onOpen}
+            refresh={{ label: state.loading ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži dokumente',
+              onPress: () => { if (!state.busy && !state.loading) onRefresh(); } }} />
           {linkError ? <ErrorLine>{linkError}</ErrorLine> : null}
         </View>
         {processorGroup ?? <InlineNote tone="quiet" art={null}>{state.processorError ?? 'Podaci o obrađivačima još nisu objavljeni.'}</InlineNote>}
-        <SettingsAction label="Osveži stanje" kind="quiet" disabled={state.busy} loading={state.loading} onPress={onRefresh} />
       </> : <>
         {/* Nothing to read: ONE honest sentence and the one way to look again. No row for a document that does not exist, no empty
             group for who processes the data, and no accept action (the route draws none without documents). */}
         {state.bundle
-          ? <StateView kind="empty" art="document" title={LEGAL_NOT_PUBLISHED} quiet={{ label: 'Proveri ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />
-          : <StateView kind="error" art="document" title="Dokumenti nisu dostupni" body={state.error ?? LEGAL_UNAVAILABLE}
+          ? <CenteredState art="document" title={LEGAL_NOT_PUBLISHED} quiet={{ label: 'Proveri ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />
+          : <CenteredState art="document" title="Dokumenti nisu dostupni" body={state.error ?? LEGAL_UNAVAILABLE}
             primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: state.busy || state.loading }} />}
         {processorGroup}
       </>}
@@ -149,7 +167,7 @@ export function PublicLegalBody({ loading, bundle, error, onOpen, onRefresh }: {
 }) {
   return <View style={s.sheet}>
     {/* The invitation to read is only said when there is something to read. */}
-    {!loading && reviewedDocuments(bundle) ? <T variant="copy" tone="muted">Otvori objavljene dokumente. Posle čitanja možeš nastaviti svoj formular.</T> : null}
+    {!loading && reviewedDocuments(bundle) ? <T variant="copy" tone="muted">Otvori objavljene dokumente. Kad ih pročitaš, nastavi sa popunjavanjem.</T> : null}
     {loading ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={1} /></View>
       : <LegalDocumentRows bundle={bundle} onOpen={onOpen} />}
     {error ? <ErrorLine>{error}</ErrorLine> : null}
@@ -158,9 +176,12 @@ export function PublicLegalBody({ loading, bundle, error, onOpen, onRefresh }: {
 }
 
 const s = StyleSheet.create({
-  fact: { gap: 2 },
-  status: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  grow: { flex: 1, minWidth: 0 },
+  fact: { gap: sys.space.xs },
   documents: { gap: sys.space.sm },
   sheet: { gap: sys.space.base },
+  // Composition spec T7: a column on the centre line, about a third of the way down.
+  centered: { alignItems: 'center', gap: sys.space.base, paddingTop: sys.space.huge, paddingBottom: sys.space.xxl },
+  centerText: { textAlign: 'center' },
+  centerBody: { maxWidth: 280 },
+  centerAction: { alignSelf: 'stretch' },
 });

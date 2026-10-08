@@ -359,7 +359,7 @@ describe('leaving Dostupnost', () => {
   it('shows a first read that failed as the shared error state, with the read again as its one action', async () => {
     mockEditor = editor({ data: null, error: 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.' }); await screen();
     expect(text()).toContain('Dostupnost nije učitana.'); expect(text()).toContain('Podaci nisu učitani.');
-    await press('Učitaj sačuvano stanje');
+    await press('Pokušaj ponovo');
     expect(mockEditor.refresh).toHaveBeenCalledTimes(1);
   });
 
@@ -383,7 +383,7 @@ describe('leaving Dostupnost', () => {
     expect(text().split('Najpre sačuvaj svoj radni profil.')).toHaveLength(2);
     expect(tree.root.findAll(node => node.props.kind === 'empty' && node.props.title === 'Najpre sačuvaj svoj radni profil.').length).toBeGreaterThan(0);
     expect(tree.root.findAll(node => node.props.kind === 'error')).toHaveLength(0);
-    expect(all('Učitaj sačuvano stanje')).toHaveLength(0);
+    expect(all('Pokušaj ponovo')).toHaveLength(0);
     await press('Dopuni radni profil');
     expect(router.navigate).toHaveBeenCalledWith('/profil/radnik'); expect(mockEditor.refresh).not.toHaveBeenCalled();
     // The screen matches the words of the availability read's WORKER_PROFILE_REQUIRED; the two copies stay one.
@@ -542,7 +542,7 @@ describe('what a screen reader hears', () => {
 describe('the profile conversation', () => {
   it('names the way forward that screen has when the outcome of a change is not confirmed', async () => {
     await form(availability(), { uncertain: true, candidateMode: true });
-    expect(all('Primeni na pregled profila')[0].props.reason).toBe('Prvo proveri stanje razgovora. Ishod izmene još nije potvrđen.');
+    expect(all('Primeni na pregled profila')[0].props.reason).toBe('Prvo proveri stanje razgovora. Ne znamo da li je izmena sačuvana.');
     expect(text()).toContain('Važi kada sačuvaš profil');
   });
 });

@@ -72,7 +72,7 @@ function OwnedAvailability() {
         {editor.error === PROFILE_REQUIRED
           ? <StateView kind="empty" art="clock" title={PROFILE_REQUIRED} primary={{ label: 'Dopuni radni profil', onPress: () => router.navigate('/profil/radnik') }} />
           : <StateView kind="error" art="clock" title="Dostupnost nije učitana." body={editor.error}
-            primary={{ label: 'Učitaj sačuvano stanje', onPress: () => void editor.refresh(), disabled: editor.loading }} />}
+            primary={{ label: 'Pokušaj ponovo', onPress: () => void editor.refresh(), disabled: editor.loading }} />}
       </View> : null}
     {confirm.sheet}
   </CalendarScreen>;

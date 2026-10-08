@@ -6,7 +6,9 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
  "props": {
   "edges": [
    "top",
-   "bottom"
+   "bottom",
+   "left",
+   "right"
   ]
  },
  "children": [
@@ -17,1020 +19,37 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
     "backLabel": "Nazad na Dogovor"
    },
    "children": null
-  },
-  {
-   "type": "ScrollView",
-   "props": {
-    "contentContainerStyle": {
-     "paddingHorizontal": 20,
-     "paddingTop": 16,
-     "paddingBottom": 32,
-     "gap": 20
-    }
-   },
-   "children": [
-    {
-     "type": "View",
-     "props": {
-      "accessible": true,
-      "accessibilityLabel": "Nikola Petrović, Traži pomoć, Unos ormara"
-     },
-     "children": [
-      {
-       "type": "View",
-       "props": {
-        "accessible": false,
-        "importantForAccessibility": "no-hide-descendants",
-        "accessibilityElementsHidden": true
-       },
-       "children": [
-        {
-         "type": "T",
-         "props": {
-          "variant": "label",
-          "maxFontSizeMultiplier": 1,
-          "numberOfLines": 1
-         },
-         "children": [
-          "N"
-         ]
-        }
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "T",
-         "props": {
-          "accessible": false,
-          "variant": "title",
-          "numberOfLines": 2
-         },
-         "children": [
-          "Nikola Petrović"
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "variant": "meta",
-          "tone": "muted"
-         },
-         "children": [
-          "Traži pomoć"
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "variant": "meta",
-          "tone": "muted",
-          "numberOfLines": 2
-         },
-         "children": [
-          "Unos ormara"
-         ]
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "T",
-       "props": {
-        "accessibilityRole": "header",
-        "variant": "heading"
-       },
-       "children": [
-        "Kako je prošla saradnja?"
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "View",
-         "props": {
-          "accessibilityRole": "radiogroup",
-          "accessibilityLabel": "Ocena od 1 do 5"
-         },
-         "children": [
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 1 od 5",
-            "accessibilityHint": "Loše",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "fill",
-              "color": "#FF7A1A"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 2 od 5",
-            "accessibilityHint": "Ispod očekivanja",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "fill",
-              "color": "#FF7A1A"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 3 od 5",
-            "accessibilityHint": "Dobro",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "fill",
-              "color": "#FF7A1A"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 4 od 5",
-            "accessibilityHint": "Vrlo dobro",
-            "accessibilityState": {
-             "checked": true,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "fill",
-              "color": "#FF7A1A"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 5 od 5",
-            "accessibilityHint": "Odlično",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "regular",
-              "color": "#525252"
-             },
-             "children": null
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "accessibilityLiveRegion": "polite",
-          "variant": "bodyStrong",
-          "tone": "ink"
-         },
-         "children": [
-          "Vrlo dobro"
-         ]
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "T",
-         "props": {
-          "accessibilityRole": "header",
-          "variant": "bodyStrong"
-         },
-         "children": [
-          "Šta je obeležilo saradnju?"
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "variant": "meta",
-          "tone": "muted"
-         },
-         "children": [
-          "Nije obavezno · najviše 3"
-         ]
-        }
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Po dogovoru",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Po dogovoru"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Pažljivo",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Pažljivo"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Jasna komunikacija",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Jasna komunikacija"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Na vreme",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Na vreme"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Pouzdano",
-          "accessibilityState": {
-           "checked": true,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "Check",
-           "props": {
-            "size": 16,
-            "weight": "bold",
-            "color": "#00845A"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Pouzdano"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Uz poštovanje",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Uz poštovanje"
-           ]
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   ]
   },
   {
    "type": "View",
    "props": {},
    "children": [
     {
-     "type": "Action",
+     "type": "ScrollView",
      "props": {
-      "label": "Sačuvaj ocenu",
-      "loading": false,
-      "disabled": false,
-      "reason": null
-     },
-     "children": null
-    }
-   ]
-  }
- ]
-}"
-`;
-
-exports[`with the flag off the rating screen is the legacy screen draws the same tree before a choice, with a choice, and once saved: eligible, nothing chosen 1`] = `
-"{
- "type": "SafeAreaView",
- "props": {
-  "edges": [
-   "top",
-   "bottom"
-  ]
- },
- "children": [
-  {
-   "type": "DetailTopBar",
-   "props": {
-    "title": "Ocena saradnje",
-    "backLabel": "Nazad na Dogovor"
-   },
-   "children": null
-  },
-  {
-   "type": "ScrollView",
-   "props": {
-    "contentContainerStyle": {
-     "paddingHorizontal": 20,
-     "paddingTop": 16,
-     "paddingBottom": 32,
-     "gap": 20
-    }
-   },
-   "children": [
-    {
-     "type": "View",
-     "props": {
-      "accessible": true,
-      "accessibilityLabel": "Nikola Petrović, Traži pomoć, Unos ormara"
+      "contentContainerStyle": [
+       {
+        "width": "100%",
+        "maxWidth": 640,
+        "alignSelf": "center",
+        "paddingHorizontal": 20,
+        "paddingTop": 8,
+        "gap": 24
+       },
+       {
+        "paddingBottom": 24
+       },
+       null
+      ],
+      "keyboardShouldPersistTaps": "handled"
      },
      "children": [
       {
        "type": "View",
        "props": {
-        "accessible": false,
-        "importantForAccessibility": "no-hide-descendants",
-        "accessibilityElementsHidden": true
+        "accessible": true,
+        "accessibilityLabel": "Nikola Petrović, Traži pomoć, Unos ormara"
        },
-       "children": [
-        {
-         "type": "T",
-         "props": {
-          "variant": "label",
-          "maxFontSizeMultiplier": 1,
-          "numberOfLines": 1
-         },
-         "children": [
-          "N"
-         ]
-        }
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "T",
-         "props": {
-          "accessible": false,
-          "variant": "title",
-          "numberOfLines": 2
-         },
-         "children": [
-          "Nikola Petrović"
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "variant": "meta",
-          "tone": "muted"
-         },
-         "children": [
-          "Traži pomoć"
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "variant": "meta",
-          "tone": "muted",
-          "numberOfLines": 2
-         },
-         "children": [
-          "Unos ormara"
-         ]
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "T",
-       "props": {
-        "accessibilityRole": "header",
-        "variant": "heading"
-       },
-       "children": [
-        "Kako je prošla saradnja?"
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "View",
-         "props": {
-          "accessibilityRole": "radiogroup",
-          "accessibilityLabel": "Ocena od 1 do 5"
-         },
-         "children": [
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 1 od 5",
-            "accessibilityHint": "Loše",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "regular",
-              "color": "#525252"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 2 od 5",
-            "accessibilityHint": "Ispod očekivanja",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "regular",
-              "color": "#525252"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 3 od 5",
-            "accessibilityHint": "Dobro",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "regular",
-              "color": "#525252"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 4 od 5",
-            "accessibilityHint": "Vrlo dobro",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "regular",
-              "color": "#525252"
-             },
-             "children": null
-            }
-           ]
-          },
-          {
-           "type": "Press",
-           "props": {
-            "accessibilityRole": "radio",
-            "accessibilityLabel": "Ocena 5 od 5",
-            "accessibilityHint": "Odlično",
-            "accessibilityState": {
-             "checked": false,
-             "disabled": false
-            },
-            "disabled": false,
-            "haptic": "select",
-            "scaleTo": 1,
-            "hitSlop": 0
-           },
-           "children": [
-            {
-             "type": "Star",
-             "props": {
-              "size": 40,
-              "weight": "regular",
-              "color": "#525252"
-             },
-             "children": null
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "accessibilityLiveRegion": "polite",
-          "variant": "bodyStrong",
-          "tone": "muted"
-         },
-         "children": [
-          "Izaberi ocenu"
-         ]
-        }
-       ]
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "T",
-         "props": {
-          "accessibilityRole": "header",
-          "variant": "bodyStrong"
-         },
-         "children": [
-          "Šta je obeležilo saradnju?"
-         ]
-        },
-        {
-         "type": "T",
-         "props": {
-          "variant": "meta",
-          "tone": "muted"
-         },
-         "children": [
-          "Nije obavezno · najviše 3"
-         ]
-        }
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Po dogovoru",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Po dogovoru"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Pažljivo",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Pažljivo"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Jasna komunikacija",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Jasna komunikacija"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Na vreme",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Na vreme"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Pouzdano",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Pouzdano"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "checkbox",
-          "accessibilityLabel": "Uz poštovanje",
-          "accessibilityState": {
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false,
-          "haptic": "select",
-          "hitSlop": 0
-         },
-         "children": [
-          {
-           "type": "T",
-           "props": {
-            "variant": "note"
-           },
-           "children": [
-            "Uz poštovanje"
-           ]
-          }
-         ]
-        }
-       ]
-      }
-     ]
-    }
-   ]
-  },
-  {
-   "type": "View",
-   "props": {},
-   "children": [
-    {
-     "type": "Action",
-     "props": {
-      "label": "Sačuvaj ocenu",
-      "loading": false,
-      "disabled": true,
-      "reason": "Izaberi ocenu od 1 do 5 pre slanja."
-     },
-     "children": null
-    }
-   ]
-  }
- ]
-}"
-`;
-
-exports[`with the flag off the rating screen is the legacy screen draws the same tree before a choice, with a choice, and once saved: saved 1`] = `
-"{
- "type": "SafeAreaView",
- "props": {
-  "edges": [
-   "top",
-   "bottom"
-  ]
- },
- "children": [
-  {
-   "type": "DetailTopBar",
-   "props": {
-    "title": "Ocena saradnje",
-    "backLabel": "Nazad na Dogovor"
-   },
-   "children": null
-  },
-  {
-   "type": "ScrollView",
-   "props": {
-    "contentContainerStyle": {
-     "paddingHorizontal": 20,
-     "paddingTop": 16,
-     "paddingBottom": 32,
-     "gap": 20
-    }
-   },
-   "children": [
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "SuccessMark",
-       "props": {
-        "fresh": true,
-        "size": 64
-       },
-       "children": null
-      },
-      {
-       "type": "T",
-       "props": {
-        "accessibilityRole": "header",
-        "variant": "title"
-       },
-       "children": [
-        "Ocena je sačuvana."
-       ]
-      },
-      {
-       "type": "View",
-       "props": {},
        "children": [
         {
          "type": "View",
@@ -1054,115 +73,1190 @@ exports[`with the flag off the rating screen is the legacy screen draws the same
          ]
         },
         {
-         "type": "T",
-         "props": {
-          "variant": "bodyStrong",
-          "numberOfLines": 2
-         },
+         "type": "View",
+         "props": {},
          "children": [
-          "Nikola Petrović"
+          {
+           "type": "T",
+           "props": {
+            "accessible": false,
+            "variant": "title",
+            "numberOfLines": 2
+           },
+           "children": [
+            "Nikola Petrović"
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "variant": "meta",
+            "tone": "muted"
+           },
+           "children": [
+            "Traži pomoć"
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "variant": "meta",
+            "tone": "muted",
+            "numberOfLines": 2
+           },
+           "children": [
+            "Unos ormara"
+           ]
+          }
          ]
         }
        ]
       },
       {
        "type": "View",
-       "props": {
-        "accessible": false,
-        "importantForAccessibility": "no-hide-descendants",
-        "accessibilityElementsHidden": true
-       },
+       "props": {},
        "children": [
         {
-         "type": "Star",
+         "type": "T",
          "props": {
-          "size": 28,
-          "weight": "fill",
-          "color": "#FF7A1A"
+          "accessibilityRole": "header",
+          "variant": "heading"
          },
-         "children": null
+         "children": [
+          "Kako je prošla saradnja?"
+         ]
         },
         {
-         "type": "Star",
-         "props": {
-          "size": 28,
-          "weight": "fill",
-          "color": "#FF7A1A"
-         },
-         "children": null
-        },
-        {
-         "type": "Star",
-         "props": {
-          "size": 28,
-          "weight": "fill",
-          "color": "#FF7A1A"
-         },
-         "children": null
-        },
-        {
-         "type": "Star",
-         "props": {
-          "size": 28,
-          "weight": "fill",
-          "color": "#FF7A1A"
-         },
-         "children": null
-        },
-        {
-         "type": "Star",
-         "props": {
-          "size": 28,
-          "weight": "regular",
-          "color": "#525252"
-         },
-         "children": null
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "View",
+           "props": {
+            "accessibilityRole": "radiogroup",
+            "accessibilityLabel": "Ocena od 1 do 5"
+           },
+           "children": [
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 1 od 5",
+              "accessibilityHint": "Loše",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "fill",
+                "color": "#FF7A1A"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 2 od 5",
+              "accessibilityHint": "Ispod očekivanja",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "fill",
+                "color": "#FF7A1A"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 3 od 5",
+              "accessibilityHint": "Dobro",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "fill",
+                "color": "#FF7A1A"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 4 od 5",
+              "accessibilityHint": "Vrlo dobro",
+              "accessibilityState": {
+               "checked": true,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "fill",
+                "color": "#FF7A1A"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 5 od 5",
+              "accessibilityHint": "Odlično",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "regular",
+                "color": "#525252"
+               },
+               "children": null
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "accessibilityLiveRegion": "polite",
+            "variant": "bodyStrong"
+           },
+           "children": [
+            "Vrlo dobro"
+           ]
+          }
+         ]
         }
        ]
       },
       {
-       "type": "T",
-       "props": {
-        "variant": "body"
-       },
+       "type": "View",
+       "props": {},
        "children": [
-        "Tvoja ocena: 4 od 5"
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "heading",
+            "accessibilityRole": "header"
+           },
+           "children": [
+            "Šta je obeležilo saradnju?"
+           ]
+          }
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted"
+         },
+         "children": [
+          "Nije obavezno · najviše 3"
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Po dogovoru",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Po dogovoru"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Pažljivo",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Pažljivo"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Jasna komunikacija",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Jasna komunikacija"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Na vreme",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Na vreme"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Pouzdano",
+            "accessibilityState": {
+             "checked": true,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "Check",
+             "props": {
+              "size": 16,
+              "weight": "bold",
+              "color": "#00845A"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Pouzdano"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Uz poštovanje",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Uz poštovanje"
+             ]
+            }
+           ]
+          }
+         ]
+        }
        ]
-      },
+      }
+     ]
+    },
+    {
+     "type": "View",
+     "props": {},
+     "children": [
       {
-       "type": "T",
+       "type": "View",
        "props": {
-        "variant": "note",
-        "tone": "muted"
+        "testID": "flow-footer"
        },
        "children": [
-        "Pouzdano"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "meta",
-        "tone": "muted"
-       },
-       "children": [
-        "Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja."
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted",
+          "testID": "review-save-warning"
+         },
+         "children": [
+          "Ocenu posle čuvanja ne možeš da menjaš."
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Sačuvaj ocenu",
+          "loading": false,
+          "disabled": false
+         },
+         "children": null
+        }
        ]
       }
      ]
     }
    ]
+  }
+ ]
+}"
+`;
+
+exports[`with the flag off the rating screen is the legacy screen draws the same tree before a choice, with a choice, and once saved: eligible, nothing chosen 1`] = `
+"{
+ "type": "SafeAreaView",
+ "props": {
+  "edges": [
+   "top",
+   "bottom",
+   "left",
+   "right"
+  ]
+ },
+ "children": [
+  {
+   "type": "DetailTopBar",
+   "props": {
+    "title": "Ocena saradnje",
+    "backLabel": "Nazad na Dogovor"
+   },
+   "children": null
   },
   {
    "type": "View",
    "props": {},
    "children": [
     {
-     "type": "Action",
+     "type": "ScrollView",
      "props": {
-      "label": "Nazad na Dogovor"
+      "contentContainerStyle": [
+       {
+        "width": "100%",
+        "maxWidth": 640,
+        "alignSelf": "center",
+        "paddingHorizontal": 20,
+        "paddingTop": 8,
+        "gap": 24
+       },
+       {
+        "paddingBottom": 24
+       },
+       null
+      ],
+      "keyboardShouldPersistTaps": "handled"
      },
-     "children": null
+     "children": [
+      {
+       "type": "View",
+       "props": {
+        "accessible": true,
+        "accessibilityLabel": "Nikola Petrović, Traži pomoć, Unos ormara"
+       },
+       "children": [
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "importantForAccessibility": "no-hide-descendants",
+          "accessibilityElementsHidden": true
+         },
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "label",
+            "maxFontSizeMultiplier": 1,
+            "numberOfLines": 1
+           },
+           "children": [
+            "N"
+           ]
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "accessible": false,
+            "variant": "title",
+            "numberOfLines": 2
+           },
+           "children": [
+            "Nikola Petrović"
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "variant": "meta",
+            "tone": "muted"
+           },
+           "children": [
+            "Traži pomoć"
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "variant": "meta",
+            "tone": "muted",
+            "numberOfLines": 2
+           },
+           "children": [
+            "Unos ormara"
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "View",
+       "props": {},
+       "children": [
+        {
+         "type": "T",
+         "props": {
+          "accessibilityRole": "header",
+          "variant": "heading"
+         },
+         "children": [
+          "Kako je prošla saradnja?"
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "View",
+           "props": {
+            "accessibilityRole": "radiogroup",
+            "accessibilityLabel": "Ocena od 1 do 5"
+           },
+           "children": [
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 1 od 5",
+              "accessibilityHint": "Loše",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "regular",
+                "color": "#525252"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 2 od 5",
+              "accessibilityHint": "Ispod očekivanja",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "regular",
+                "color": "#525252"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 3 od 5",
+              "accessibilityHint": "Dobro",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "regular",
+                "color": "#525252"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 4 od 5",
+              "accessibilityHint": "Vrlo dobro",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "regular",
+                "color": "#525252"
+               },
+               "children": null
+              }
+             ]
+            },
+            {
+             "type": "Press",
+             "props": {
+              "accessibilityRole": "radio",
+              "accessibilityLabel": "Ocena 5 od 5",
+              "accessibilityHint": "Odlično",
+              "accessibilityState": {
+               "checked": false,
+               "disabled": false
+              },
+              "disabled": false,
+              "haptic": "select",
+              "scaleTo": 1,
+              "hitSlop": 0
+             },
+             "children": [
+              {
+               "type": "Star",
+               "props": {
+                "size": 40,
+                "weight": "regular",
+                "color": "#525252"
+               },
+               "children": null
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "accessibilityLiveRegion": "polite",
+            "variant": "bodyStrong"
+           },
+           "children": [
+            " "
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "View",
+       "props": {},
+       "children": [
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "heading",
+            "accessibilityRole": "header"
+           },
+           "children": [
+            "Šta je obeležilo saradnju?"
+           ]
+          }
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted"
+         },
+         "children": [
+          "Nije obavezno · najviše 3"
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Po dogovoru",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Po dogovoru"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Pažljivo",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Pažljivo"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Jasna komunikacija",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Jasna komunikacija"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Na vreme",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Na vreme"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Pouzdano",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Pouzdano"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "checkbox",
+            "accessibilityLabel": "Uz poštovanje",
+            "accessibilityState": {
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false,
+            "haptic": "select",
+            "hitSlop": 0
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "note"
+             },
+             "children": [
+              "Uz poštovanje"
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "View",
+     "props": {},
+     "children": [
+      {
+       "type": "View",
+       "props": {
+        "testID": "flow-footer"
+       },
+       "children": [
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted",
+          "testID": "flow-footer-reason",
+          "accessibilityLiveRegion": "polite"
+         },
+         "children": [
+          "Izaberi ocenu od 1 do 5 pre slanja."
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Sačuvaj ocenu",
+          "loading": false,
+          "disabled": true
+         },
+         "children": null
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}"
+`;
+
+exports[`with the flag off the rating screen is the legacy screen draws the same tree before a choice, with a choice, and once saved: saved 1`] = `
+"{
+ "type": "SafeAreaView",
+ "props": {
+  "edges": [
+   "top",
+   "bottom",
+   "left",
+   "right"
+  ]
+ },
+ "children": [
+  {
+   "type": "DetailTopBar",
+   "props": {
+    "title": "Ocena saradnje",
+    "backLabel": "Nazad na Dogovor"
+   },
+   "children": null
+  },
+  {
+   "type": "View",
+   "props": {},
+   "children": [
+    {
+     "type": "ScrollView",
+     "props": {
+      "contentContainerStyle": [
+       {
+        "width": "100%",
+        "maxWidth": 640,
+        "alignSelf": "center",
+        "paddingHorizontal": 20,
+        "paddingTop": 8,
+        "gap": 24
+       },
+       {
+        "paddingBottom": 24
+       },
+       null
+      ],
+      "keyboardShouldPersistTaps": "handled"
+     },
+     "children": [
+      {
+       "type": "View",
+       "props": {},
+       "children": [
+        {
+         "type": "SuccessMark",
+         "props": {
+          "fresh": true,
+          "size": 64
+         },
+         "children": null
+        },
+        {
+         "type": "T",
+         "props": {
+          "accessibilityRole": "header",
+          "variant": "title"
+         },
+         "children": [
+          "Ocena je sačuvana."
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "View",
+           "props": {
+            "accessible": false,
+            "importantForAccessibility": "no-hide-descendants",
+            "accessibilityElementsHidden": true
+           },
+           "children": [
+            {
+             "type": "T",
+             "props": {
+              "variant": "label",
+              "maxFontSizeMultiplier": 1,
+              "numberOfLines": 1
+             },
+             "children": [
+              "N"
+             ]
+            }
+           ]
+          },
+          {
+           "type": "T",
+           "props": {
+            "variant": "bodyStrong",
+            "numberOfLines": 2
+           },
+           "children": [
+            "Nikola Petrović"
+           ]
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {
+          "accessible": false,
+          "importantForAccessibility": "no-hide-descendants",
+          "accessibilityElementsHidden": true
+         },
+         "children": [
+          {
+           "type": "Star",
+           "props": {
+            "size": 28,
+            "weight": "fill",
+            "color": "#FF7A1A"
+           },
+           "children": null
+          },
+          {
+           "type": "Star",
+           "props": {
+            "size": 28,
+            "weight": "fill",
+            "color": "#FF7A1A"
+           },
+           "children": null
+          },
+          {
+           "type": "Star",
+           "props": {
+            "size": 28,
+            "weight": "fill",
+            "color": "#FF7A1A"
+           },
+           "children": null
+          },
+          {
+           "type": "Star",
+           "props": {
+            "size": 28,
+            "weight": "fill",
+            "color": "#FF7A1A"
+           },
+           "children": null
+          },
+          {
+           "type": "Star",
+           "props": {
+            "size": 28,
+            "weight": "regular",
+            "color": "#525252"
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "body"
+         },
+         "children": [
+          "Tvoja ocena: 4 od 5"
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted"
+         },
+         "children": [
+          "Pouzdano"
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "meta",
+          "tone": "muted"
+         },
+         "children": [
+          "Ova ocena ulazi u reputaciju naloga. Sačuvana ocena se ne menja."
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "View",
+     "props": {},
+     "children": [
+      {
+       "type": "View",
+       "props": {
+        "testID": "flow-footer"
+       },
+       "children": [
+        {
+         "type": "Action",
+         "props": {
+          "label": "Nazad na Dogovor"
+         },
+         "children": null
+        }
+       ]
+      }
+     ]
     }
    ]
   }

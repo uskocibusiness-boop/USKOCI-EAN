@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { RetentionExecutionStatus, RetentionPolicyStatus, RetentionRule } from '../../contracts/retentionPolicy';
-import { SettingsAction, SettingsGroup, SettingsText as T } from '../settings/SettingsPresentation';
+import { SettingsGroup, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
-import { FactArt } from '../system/FactArt';
+import { ListRow } from '../system/ListRow';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { InlineNote, PlainSection } from './InlineNote';
@@ -27,14 +27,18 @@ export const ruleKey = (policyVersion: string, rule: RetentionRule) => `${policy
 export type PrivacyRead<T> = { loading: boolean; error: boolean; data: T | null; refreshing?: boolean; refreshError?: boolean };
 
 /**
- * Privatnost i podaci, drawn from what the two readers hold (round 5, owner step 11b). Calm and in the order a person
- * asks: who sees what, the two account-data actions, how long each kind is kept and whether abandoned AI conversations
- * are removed on their own. It has no primary action: nothing here is done every day.
+ * Privatnost i podaci, drawn from what the two readers hold (round 5, owner step 11b; UI/UX pass 2026-10-08, F6, composition spec
+ * 4.15). Calm and in the order a person asks: who sees what, the two account-data actions, how long each kind is kept and whether
+ * abandoned AI conversations are removed on their own. It has no primary action: nothing here is done every day.
+ *
+ * ONE EDGE for the words of the whole screen (the picture-less edge): what only TELLS is a line of text with no picture and no arrow
+ * ("Ko šta vidi" are two such lines), what LEADS somewhere is a row with its arrow (the two data rows), and what opens in place is a row
+ * with its caret (the retention rules). Nothing that only tells looks like a link any more.
  *
  * The two actions sit right under the visibility (round 5 review): support's "Izvoz i zatvaranje naloga" leads here, and
- * under up to fourteen retention rows they were below the fold. A failed read has its retry right under its own note.
- * A re-read the person asks for leaves the rules on screen and shows the refresh at work; a re-read that failed says so
- * above the rules it could not renew.
+ * under up to fourteen retention rows they were below the fold. The refresh is one word at the end of the title of the section it
+ * renews ("Rokovi čuvanja"). A failed read has its note under its own title. A re-read the person asks for leaves the rules on screen
+ * and shows the refresh at work; a re-read that failed says so above the rules it could not renew.
  *
  * Presentation only. The route owns the reads, the focus fence and every navigation; `dataRows` are its two rows.
  */
@@ -45,31 +49,30 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
   onRefresh: () => void; dataRows: ReactNode;
 }) {
   const published = policy.data?.ready ? policy.data : null;
-  const reading = policy.loading || execution.loading || !!policy.refreshing || !!execution.refreshing;
+  const refreshing = !!policy.refreshing || !!execution.refreshing;
+  const reading = policy.loading || execution.loading || refreshing;
   // A re-read that failed leaves the last answer in `data`, but the claim it makes is no longer confirmed: it is said as not confirmed.
   const executionFailed = execution.error || !!execution.refreshError;
-  const refresh = <SettingsAction label="Osveži stanje" kind="quiet" disabled={reading} loading={!!policy.refreshing || !!execution.refreshing} onPress={onRefresh} />;
+  // One word at the end of the title of what it renews. Not while the first read runs (nothing to renew); a re-read at work says so.
+  const refresh = policy.loading || execution.loading ? undefined
+    : { label: refreshing ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži rokove čuvanja', onPress: () => { if (!reading) onRefresh(); } };
   return <>
     <SettingsGroup title="Ko šta vidi">
-      <VisibilityFact title="Javni podaci zadatka" icon={<FactArt kind="eye" size={26} />}>
-        Opis objavljenog zadatka i njegova približna lokacija dostupni su drugim korisnicima.
-      </VisibilityFact>
-      <VisibilityFact title="Lokacija i kontakt" last icon={<FactArt kind="lock" size={26} />}>
-        Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni pin.
-      </VisibilityFact>
+      <ListRow title="Javni podaci zadatka" subtitle="Opis objavljenog zadatka i njegovo približno mesto vide druge osobe." />
+      <ListRow last title="Lokacija i kontakt"
+        subtitle="Tačna privatna lokacija i kontakt dele se samo kada pravila saradnje daju pristup. Zadaci na daljinu nemaju adresu ni oznaku na mapi." />
     </SettingsGroup>
 
     <SettingsGroup title="Tvoji podaci">{dataRows}</SettingsGroup>
 
     {policy.loading ? <PlainSection title="Rokovi čuvanja">
       <StateView kind="loading" title="Učitavamo rokove čuvanja…" skeleton={{ count: 1, rows: 3 }} />
-    </PlainSection> : policy.error ? <PlainSection title="Rokovi čuvanja">
+    </PlainSection> : policy.error ? <PlainSection title="Rokovi čuvanja" action={refresh}>
       <InlineNote tone="danger">Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.</InlineNote>
-      {refresh}
     </PlainSection> : published ? <>
-      {/* The last answer stays on screen; this says it could not be renewed, and the refresh below is the retry. */}
-      {policy.refreshError ? <InlineNote tone="danger">Rokovi čuvanja nisu osveženi. Prikazano je ono što je poslednji put učitano.</InlineNote> : null}
-      <SettingsGroup title="Rokovi čuvanja">
+      {/* The last answer stays on screen; this says it could not be renewed, and the word at the end of the title is the retry. */}
+      <SettingsGroup title="Rokovi čuvanja" action={refresh}>
+        {policy.refreshError ? <View style={s.above}><InlineNote tone="danger">Rokovi čuvanja nisu osveženi. Prikazano je ono što je poslednji put učitano.</InlineNote></View> : null}
         {published.rules.map((rule, index) => {
           const key = ruleKey(published.policyVersion, rule);
           return <Disclosure key={key} label={retentionLabels[rule.dataClass] ?? rule.purpose} divider={index > 0}
@@ -82,37 +85,20 @@ export function PrivacyBody({ policy, execution, admitted, expandedRule, onToggl
           </Disclosure>;
         })}
       </SettingsGroup>
-    </> : <PlainSection title="Rokovi čuvanja">
-      <InlineNote tone="quiet">Potpun raspored rokova čuvanja još nije dostupan.</InlineNote>
+    </> : <PlainSection title="Rokovi čuvanja" action={refresh}>
+      <InlineNote tone="quiet" art={null}>Potpun raspored rokova čuvanja još nije dostupan.</InlineNote>
     </PlainSection>}
 
     {/* Not green: the line under it may say the feature is off or not confirmed, and green would read "all good". A read
-        that failed takes the one look for "failed", the danger note (round 5 review); every other state is the wash. */}
-    <InlineNote tone={executionFailed ? 'danger' : 'neutral'} art={null}>
-      <View style={s.executionHead}>
-        <View style={s.executionIcon}><FactArt kind="clock" size={22} muted={executionFailed} /></View>
-        <T variant="bodyStrong" style={s.visibilityTitle}>Automatsko brisanje napuštenih razgovora</T>
-      </View>
-      {execution.loading ? <T variant="note" tone="muted">Proveravamo dostupnost…</T>
+        that failed takes the one look for "failed", the danger note (round 5 review); every other state is plain words. */}
+    <SettingsGroup title="Automatsko brisanje napuštenih razgovora">
+      {execution.loading ? <T variant="copy" tone="muted">Proveravamo dostupnost…</T>
         : executionFailed || (execution.data?.executionAdmitted && !admitted)
-          ? <T variant="note" tone={executionFailed ? 'danger' : 'ink'} accessibilityRole="alert">Dostupnost automatskog brisanja nije potvrđena.</T>
-          : admitted ? <T variant="note" tone="muted">Automatsko brisanje je omogućeno samo za napuštene AI razgovore bez zadatka i sačuvanih podataka. Primenjuju se objavljena pravila i izuzeci. Ovo nije potvrda da je određeni razgovor obrisan.</T>
-            : <T variant="note" tone="muted">Automatsko brisanje napuštenih AI razgovora trenutno nije dostupno.</T>}
-    </InlineNote>
-    {/* The retry of a failed retention read stands under its note above; one refresh on the screen at a time. */}
-    {policy.error && !policy.loading ? null : refresh}
+          ? <InlineNote tone={executionFailed ? 'danger' : 'neutral'} art={null} alert>Dostupnost automatskog brisanja nije potvrđena.</InlineNote>
+          : admitted ? <T variant="copy" tone="muted">Automatsko brisanje je omogućeno samo za napuštene AI razgovore bez zadatka i sačuvanih podataka. Primenjuju se objavljena pravila i izuzeci. Ovo nije potvrda da je određeni razgovor obrisan.</T>
+            : <T variant="copy" tone="muted">Automatsko brisanje napuštenih AI razgovora trenutno nije dostupno.</T>}
+    </SettingsGroup>
   </>;
-}
-
-/** Keep the illustration with its heading; privacy paragraphs use the full reading width. */
-function VisibilityFact({ title, icon, children, last = false }: { title: string; icon: ReactNode; children: ReactNode; last?: boolean }) {
-  return <View style={[s.visibility, last && s.visibilityLast]}>
-    <View style={s.visibilityHead}>
-      <View style={s.visibilityIcon}>{icon}</View>
-      <T variant="bodyStrong" style={s.visibilityTitle}>{title}</T>
-    </View>
-    <T variant="note" tone="muted">{children}</T>
-  </View>;
 }
 
 /** One published fact of a rule: the name above, the owner's text under it, in reading size (it was 13 px meta). */
@@ -124,12 +110,6 @@ function Fact({ label, value }: { label: string; value: string }) {
 }
 
 const s = StyleSheet.create({
-  visibility: { minHeight: 56, paddingVertical: sys.space.md, gap: sys.space.sm, borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  visibilityLast: { borderBottomWidth: 0 },
-  visibilityHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  visibilityIcon: { width: 32, minHeight: 32, alignItems: 'center', justifyContent: 'center' },
-  visibilityTitle: { flex: 1, minWidth: 0 },
-  executionHead: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  executionIcon: { paddingTop: 1 },
-  fact: { gap: 2 },
+  fact: { gap: sys.space.xs },
+  above: { marginBottom: sys.space.sm },
 });

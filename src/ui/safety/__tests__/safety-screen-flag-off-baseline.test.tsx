@@ -6,6 +6,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
  * EXPO_PUBLIC_EX07_SAFETY_TARGET_NAME uses the same service methods, never reads a safety target, and adds no target-name UI.
  * The 2026-10-03 approved safety presentation adds five decorative radio markers in every state. Snapshots explicitly include
  * those markers; all previous text, controls, block/read-error states and flag-off behavior remain checked without filtering.
+ * UI/UX pass 2026-10-08 (F6) re-recorded the three snapshots: the blocks are named by the system's section (a `title` instead of a text
+ * line) and two sentences follow the text revision ("Izaberi vrstu prijave i upiši kratak razlog.", one sentence about who receives the
+ * report). The same 27 words, controls and states are drawn, and the flag-off behaviour is asserted exactly as before.
  */
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', K = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const P = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
@@ -29,7 +32,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 } }); });
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
-jest.mock('../../settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsText: 'T', SettingsAction: 'Action' }));
+jest.mock('../../settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsGroup: 'Group', SettingsText: 'T', SettingsAction: 'Action' }));
 import { SafetyScreen } from '../SafetyScreen';
 
 let tree: ReactTestRenderer;

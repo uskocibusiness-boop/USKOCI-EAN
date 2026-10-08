@@ -14,7 +14,9 @@ import { TurningCaret } from '../system/Disclosure';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { STATUS_TONES, StatusMark, type StatusShape, type StatusTone } from '../system/StatusChip';
-import { cardCompact, field, inset, sys } from '../system/tokens';
+import { layout, ruleWidth } from '../system/layout';
+import { Surface } from '../system/Surface';
+import { field, sys } from '../system/tokens';
 
 const supportLabels = {
   // The five states of a request, in the words of its chip (the same on the list and on the request). A request nobody has taken
@@ -106,12 +108,12 @@ export function SupportRecovery({ busy, absent, working = null, onRead, onCancel
   return <View style={supportStyles.recovery}>
     <InlineNote tone="warn" alert>
       <T variant="bodyStrong" accessibilityRole="header">Najpre proveri prethodno slanje</T>
-      <T variant="note">{absent ? 'Potvrda još nije pronađena. Prethodni zahtev i dalje može da stigne.'
-        : 'Ishod prethodne radnje nije potvrđen. Novo slanje je zaustavljeno dok ne proveriš stanje.'}</T>
-      <T variant="note" tone="muted">Provera ne šalje ponovo tekst. Zaustavljanje važi samo za ovu radnju; ne briše ranije primljen predmet.</T>
+      <T variant="note">{absent ? 'Ne znamo da li je zahtev stigao. Moguće je da će ipak stići.'
+        : 'Ne znamo da li je prethodno slanje uspelo. Novo slanje čeka da proveriš.'}</T>
+      <T variant="note" tone="muted">Provera ništa ne šalje ponovo. Ako zaustaviš slanje, ranije primljen zahtev ostaje.</T>
     </InlineNote>
     <View style={supportStyles.recoveryActions}>
-      <SettingsAction kind="secondary" label="Proveri ishod" disabled={busy} loading={working === 'read'} onPress={onRead} />
+      <SettingsAction kind="secondary" label="Proveri da li je uspelo" disabled={busy} loading={working === 'read'} onPress={onRead} />
       <SettingsAction label="Zaustavi prethodno slanje" kind="quiet" disabled={busy} loading={working === 'cancel'} onPress={onCancel} />
       {onReplay || working === 'replay' ? <SettingsAction label="Pošalji ponovo" kind="quiet" disabled={busy || !onReplay}
         loading={working === 'replay'} onPress={onReplay ?? (() => {})} /> : null}
@@ -153,9 +155,9 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
   disabled: boolean; last: boolean; onPress: () => void;
 }) {
   return <Press accessibilityRole="button" accessibilityLabel={`${topic}, ${supportLabel(status)}${unread ? ', novo' : ''}, ${time}, zahtev #${caseNumber}`}
-    accessibilityState={{ disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99} onPress={onPress}
-    style={[supportStyles.caseRow, !last && supportStyles.rowLine]}>
-    <View style={supportStyles.caseArt}><FactArt kind={channelArt[channel] ?? 'support'} size={24} cut="art" muted={disabled} /></View>
+    accessibilityState={{ disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row} onPress={onPress}
+    style={supportStyles.caseRow}>
+    <View style={supportStyles.caseArt}><FactArt kind={channelArt[channel] ?? 'support'} size={32} muted={disabled} /></View>
     <View style={supportStyles.caseCopy}>
       {/* A row that cannot be opened now (a read is running) draws its words in the muted ink, readable at 5:1, never as a faded ghost. */}
       <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} numberOfLines={2}>{topic}</T>
@@ -167,8 +169,9 @@ export function SupportCaseRow({ topic, status, channel, time, caseNumber, unrea
     </View>
     <View style={supportStyles.caseEnd}>
       {unread ? <View style={supportStyles.unread} /> : null}
-      <Glyph name="caret-right" tone="muted" />
+      <Glyph name="caret-right" size={20} tone="muted" />
     </View>
+    {last ? null : <View pointerEvents="none" style={supportStyles.rule} />}
   </Press>;
 }
 
@@ -181,9 +184,10 @@ export function SupportTopicDisclosure({ selectedLabel, expanded, disabled, onTo
       accessibilityHint={expanded ? 'Zatvori izbor teme.' : 'Prikaži teme zahteva.'}
       accessibilityState={{ expanded, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row}
       onPress={() => { if (!disabled) onToggle(); }}
-      style={[supportStyles.topicToggle, expanded && supportStyles.rowLine]}>
+      style={supportStyles.topicToggle}>
       <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={supportStyles.grow}>{selectedLabel}</T>
       <TurningCaret open={expanded} />
+      {expanded ? <View pointerEvents="none" style={supportStyles.ruleFull} /> : null}
     </Press>
     {expanded ? children : null}
   </View>;
@@ -199,7 +203,7 @@ export function SupportChoiceRow({ kind, label, detail, selected, disabled = fal
   const radio = kind === 'radio';
   return <Press accessibilityRole={radio ? 'radio' : 'checkbox'} accessibilityLabel={label} accessibilityHint={detail}
     accessibilityState={{ checked: selected, disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={0.99}
-    onPress={onPress} style={[supportStyles.choice, !last && supportStyles.rowLine]}>
+    onPress={onPress} style={supportStyles.choice}>
     <View style={[radio ? supportStyles.radio : supportStyles.check, selected && (radio ? supportStyles.radioOn : supportStyles.checkOn)]}>
       {selected ? radio ? <View style={supportStyles.radioDot} /> : <Glyph name="check" size={16} tone="onGreen" /> : null}
     </View>
@@ -207,6 +211,7 @@ export function SupportChoiceRow({ kind, label, detail, selected, disabled = fal
       <T variant={selected ? 'bodyStrong' : 'body'} tone={disabled ? 'muted' : 'ink'}>{label}</T>
       {detail ? <T variant="note" tone="muted">{detail}</T> : null}
     </View>
+    {last ? null : <View pointerEvents="none" style={supportStyles.ruleFull} />}
   </Press>;
 }
 
@@ -235,8 +240,8 @@ export function SupportSystemLine({ children }: { children: string }) {
 export function SupportDecisionBlock({ reconsideration, outcome, explanation, time, children }: {
   reconsideration: boolean; outcome: string; explanation: string; time: string; children?: ReactNode;
 }) {
-  return <View style={supportStyles.decision}>
-    <View style={supportStyles.decisionHead}><FactArt kind="document" size={22} />
+  return <Surface kind="panel" style={supportStyles.decision}>
+    <View style={supportStyles.decisionHead}><FactArt kind="document" size={24} />
       <T variant="bodyStrong" accessibilityRole="header" style={supportStyles.grow}>{reconsideration ? 'Odluka posle ponovnog pregleda' : 'Odluka o zahtevu'}</T></View>
     <T variant="bodyStrong">{supportLabel(outcome)}</T>
     <T selectable>{explanation}</T>
@@ -244,7 +249,7 @@ export function SupportDecisionBlock({ reconsideration, outcome, explanation, ti
     {reconsideration ? <T variant="note" tone="muted">Ponovni pregled u okviru podrške. Originalna odluka ostaje u istoriji.</T> : null}
     <T variant="note" tone="muted">Ova odluka o zahtevu sama ne menja zadatak, Dogovor, novčani iznos ili ocenu.</T>
     {children}
-  </View>;
+  </Surface>;
 }
 
 /**
@@ -277,58 +282,62 @@ export function SupportComposer({ value, onChange, placeholder, editable, canSen
 export const supportStyles = StyleSheet.create({
   fill: { flex: 1 }, grow: { flex: 1, minWidth: 0 }, center: { textAlign: 'center' },
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  strip: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingBottom: 8 },
-  thread: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, flexGrow: 1, justifyContent: 'flex-end', gap: 0 },
-  composerArea: { paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: sys.space.sm,
-    backgroundColor: sys.color.surface, borderTopWidth: 1, borderTopColor: sys.color.line },
-  field: { gap: 8, marginBottom: 20 },
+  strip: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: layout.gutter, paddingBottom: sys.space.sm },
+  // The one place a screen has its own edge: a conversation's list of messages stands 16 from the edge and its composer 12.
+  thread: { paddingHorizontal: layout.chatList, paddingTop: sys.space.sm, paddingBottom: sys.space.md, flexGrow: 1, justifyContent: 'flex-end', gap: 0 },
+  composerArea: { paddingHorizontal: layout.chatComposer, paddingTop: sys.space.sm, paddingBottom: sys.space.md, gap: sys.space.sm,
+    backgroundColor: sys.color.surface, borderTopWidth: ruleWidth, borderTopColor: sys.color.line },
+  field: { gap: sys.space.sm },
   input: { ...field },
   inputDisabled: { backgroundColor: sys.color.wash },
   multiline: { minHeight: 144 }, invalid: { borderColor: sys.color.danger },
-  recovery: { gap: 8 },
-  recoveryActions: { gap: 4 },
+  recovery: { gap: sys.space.sm },
+  recoveryActions: { gap: sys.space.xs },
   // The shared chip's measure (StatusChip): the mark, then the word, on the tone's soft ground; never a touch target.
   chip: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingVertical: sys.space.xs,
     paddingLeft: sys.space.sm, paddingRight: sys.space.md, borderRadius: sys.radius.pill },
   chipText: { letterSpacing: 0 },
   tabular: { fontVariant: ['tabular-nums'] },
-  caseRow: { minHeight: 72, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  rowLine: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  caseArt: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  caseCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
+  // A row of the list: the rhythm of a `ListRow` (the picture in a slot of 40, the words 52 from the edge, 12 above and under, a divider
+  // of 1 dp that begins where the words begin), with the state chip among the words.
+  caseRow: { minHeight: layout.rowMin, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
+  caseArt: { width: layout.slot, alignItems: 'center', justifyContent: 'center' },
+  caseCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // Topic, current state, then reference/time: each has a stable reading line instead of an accidental wrap.
   caseMeta: { alignItems: 'flex-start', gap: sys.space.xs },
-  caseEnd: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  unread: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
-  topicToggle: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  choice: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  choiceCopy: { flex: 1, minWidth: 0, gap: 2 },
+  caseEnd: { minHeight: layout.slot, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  unread: { width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
+  rule: { position: 'absolute', left: layout.slot + sys.space.md, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },
+  ruleFull: { position: 'absolute', left: 0, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },
+  topicToggle: { minHeight: layout.rowMinPlain, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  choice: { minHeight: layout.rowMinPlain, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  choiceCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   radio: { width: 22, height: 22, borderRadius: sys.radius.pill, borderWidth: 2, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center' },
   radioOn: { borderColor: sys.color.green },
   radioDot: { width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
   check: { width: 22, height: 22, borderRadius: sys.radius.check, borderWidth: 2, borderColor: sys.color.lineStrong, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: sys.color.green, borderColor: sys.color.green },
-  bubbleColumn: { maxWidth: '82%', gap: 4 },
+  bubbleColumn: { maxWidth: '82%', gap: sys.space.xs },
   mineColumn: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   theirsColumn: { alignSelf: 'flex-start', alignItems: 'flex-start' },
-  sender: { paddingHorizontal: 4 },
+  sender: { paddingHorizontal: sys.space.xs },
   bubble: { borderRadius: sys.radius.card, paddingHorizontal: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.sm, gap: sys.space.xs },
-  mine: { backgroundColor: sys.color.greenSoft, borderBottomRightRadius: 8 },
-  theirs: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderBottomLeftRadius: 8 },
+  mine: { backgroundColor: sys.color.greenSoft, borderBottomRightRadius: sys.space.sm },
+  theirs: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine, borderBottomLeftRadius: sys.space.sm },
   bubbleText: { ...sys.type.body, color: sys.color.ink, lineHeight: 22 },
   // The meta token (13 px), not a raw size: the time is a one-word label (round 5 review).
   bubbleTime: { ...sys.type.meta, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
-  system: { textAlign: 'center', marginVertical: 8 },
-  decision: { ...cardCompact, gap: 8, marginTop: 12 },
+  system: { textAlign: 'center', marginVertical: sys.space.sm },
+  decision: { gap: sys.space.sm, marginTop: sys.space.md },
   decisionHead: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  summary: { ...inset, backgroundColor: sys.color.wash, gap: 8, marginBottom: 4 },
-  pill: { flexDirection: 'row', alignItems: 'flex-end', padding: 4, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
-  pillInput: withInter({ flex: 1, minHeight: 48, maxHeight: 140, paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md,
+  pill: { flexDirection: 'row', alignItems: 'flex-end', padding: sys.space.xs, borderRadius: sys.radius.sheet, backgroundColor: sys.color.wash },
+  pillInput: withInter({ flex: 1, minHeight: layout.touch, maxHeight: 140, paddingHorizontal: sys.space.md, paddingTop: sys.space.md, paddingBottom: sys.space.md,
     ...sys.type.body, lineHeight: 22, color: sys.color.ink }),
-  sendArea: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  send: { width: 40, height: 40, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
+  sendArea: { width: layout.touch, height: layout.touch, alignItems: 'center', justifyContent: 'center' },
+  send: { width: layout.slot, height: layout.slot, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   sendOn: { backgroundColor: sys.color.green },
   sendOff: { backgroundColor: sys.color.control },
-  pager: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
-  list: { borderTopWidth: 1, borderTopColor: sys.color.line },
+  pager: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, justifyContent: 'space-between' },
+  // The rows of a group of choices are rows, not a boxed list: they stand on the screen with their own dividers.
+  list: { gap: 0 },
 });

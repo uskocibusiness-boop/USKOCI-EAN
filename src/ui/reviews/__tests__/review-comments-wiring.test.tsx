@@ -103,11 +103,12 @@ describe('what the profile screen hands the reputation', () => {
   beforeEach(() => { mockRealReputation = false; mockUseFocused.mockImplementation(() => mockResource); });
   const render = async () => { await act(async () => { tree = create(<Profil />); }); };
 
-  it('the account, centred in the identity, and a way in to "Ocene"; the comments are no longer handed down', async () => {
+  it('the account, on the identity\'s own edge, and a way in to "Ocene"; the comments are no longer handed down', async () => {
     await render();
     const reputations = hosts('AccountReputation');
     expect(reputations).toHaveLength(1);
-    expect(reputations[0].props).toMatchObject({ accountId: A, centered: true });
+    expect(reputations[0].props).toMatchObject({ accountId: A });
+    expect(reputations[0].props.centered).toBeUndefined();
     expect(typeof reputations[0].props.onOpen).toBe('function');
     expect(reputations[0].props.commentsProfileId).toBeUndefined(); expect(reputations[0].props.commentPhoto).toBeUndefined();
     await act(async () => reputations[0].props.onOpen());

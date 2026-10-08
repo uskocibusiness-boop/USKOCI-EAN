@@ -82,8 +82,8 @@ export function ReviewCommentField({ field: view }: { field: ReviewCommentFieldV
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  // The same open section with a hairline above it as the tags section above it draws.
-  section: { gap: sys.space.sm, paddingTop: sys.space.sm, borderTopWidth: 1, borderColor: sys.color.line },
+  // An open section, parted from the one above it by the screen's gap and not by a line (composition spec 2026-10-07, B).
+  section: { gap: sys.space.sm, paddingTop: sys.space.sm },
   row: { minHeight: 48, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: sys.space.md },
   add: { color: sys.color.green },
   // 120 high at least and 240 at most: it grows with the text, then scrolls inside itself, so the screen's own save never leaves.

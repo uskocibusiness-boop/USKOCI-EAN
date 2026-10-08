@@ -94,7 +94,7 @@ function OwnedExport() {
         started = true; setWorking(replay ? 'replay' : 'request');
         const result = await exports.requestExport(key);
         if (!current()) return changed(); if (!result.ok) return result;
-        if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Zahtev nije potvrđen. Osveži stanje.');
+        if (result.podatak.clientRequestId !== key) return failure('EXPORT_INVALID_RECEIPT', 'Ne znamo da li je zahtev poslat. Osveži stanje.');
         pendingKey.current = null; setNotice('Zahtev za izvoz je zabeležen.', 'success'); return read();
       });
     } finally { if (started) setWorking(null); }
@@ -107,9 +107,9 @@ function OwnedExport() {
         started = true; setWorking('prepare');
         const result = await exports.prepareExport(request.receiptId);
         if (!current()) return changed(); if (!result.ok) return result;
-        if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Priprema nije potvrđena. Osveži stanje.');
+        if (!sameId(result.podatak.receiptId, request.receiptId)) return failure('EXPORT_INVALID_RECEIPT', 'Ne znamo da li je priprema počela. Osveži stanje.');
         if (result.podatak.kind === 'NOT_READY') return { ok: true, podatak: { ...editor.data!, preparation: result.podatak } };
-        setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je potvrđena. Proveravamo dostupnost kopije.', 'success');
+        setNotice(result.podatak.kind === 'PROCESSING' ? 'Priprema kopije je pokrenuta.' : 'Priprema je počela. Proveravamo da li je kopija spremna.', 'success');
         return read();
       });
     } finally { if (started) setWorking(null); }
@@ -152,12 +152,12 @@ function OwnedExport() {
       // only that warning survives expiry, never a saved claim or a result from a retired operation.
       if (!ownsDownload() || (Date.now() >= expires && !(saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED'))) return;
       const copy = saved.status === 'SAVED' ? 'Kopija je sačuvana u izabranoj fascikli.'
-        : saved.status === 'DOWNLOAD_STARTED' ? 'Preuzimanje je pokrenuto u pregledaču. Proveri gde je fajl sačuvan.'
+        : saved.status === 'DOWNLOAD_STARTED' ? 'Preuzimanje je počelo u pregledaču. Fajl potraži u preuzetim datotekama.'
           : saved.status === 'CANCELLED' ? 'Čuvanje je otkazano. Kopija nije sačuvana.'
             : saved.status === 'UNSUPPORTED' ? 'Čuvanje fajla nije podržano na ovom uređaju.'
               : saved.status === 'BUSY' ? 'Završi prethodni izbor fascikle pre novog pokušaja.'
                 : saved.status === 'FAILED' && saved.code === 'EXISTS' ? 'Ova kopija već postoji u izabranoj fascikli. Izaberi drugu fasciklu.'
-                  : saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED' ? 'Čuvanje nije potvrđeno. U izabranoj fascikli može biti nepotpun fajl.'
+                  : saved.status === 'FAILED' && saved.code === 'CLEANUP_FAILED' ? 'Ne znamo da li je kopija sačuvana. U izabranoj fascikli može biti nepotpun fajl.'
                     : 'Čuvanje nije potvrđeno. Proveri stanje pa pokušaj ponovo.';
       setNotice(copy, saved.status === 'SAVED' ? 'success'
         : saved.status === 'DOWNLOAD_STARTED' || saved.status === 'CANCELLED' || saved.status === 'BUSY' ? 'ink' : 'danger');

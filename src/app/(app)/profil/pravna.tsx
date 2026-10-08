@@ -67,16 +67,16 @@ function OwnedLegal() {
     setWorking(kind); void command().finally(() => setWorking(value => value === kind ? null : value));
   };
   const shown = state.busy ? working : null;
-  // A grey action says why: while the documents are being read again nothing can be accepted.
+  // A grey action says why, in the foot's own line above it: while the documents are being read again nothing can be accepted.
   const reading = state.loading ? 'Učitavamo dokumente…' : null;
-  const action = state.pending ? <SettingsAction label={shown === 'accept' ? 'Prihvati pregledane dokumente' : shown === 'read' ? 'Proveri ishod prihvatanja'
-    : shown === 'replay' ? 'Prihvati ponovo' : state.pending === 'READ_REQUIRED' ? 'Proveri ishod prihvatanja' : 'Prihvati ponovo'}
-    loading={state.busy} disabled={state.busy || state.loading} reason={reading}
+  const action = state.pending ? <SettingsAction label={shown === 'accept' ? 'Prihvati pregledane dokumente' : shown === 'read' ? 'Proveri da li je prihvaćeno'
+    : shown === 'replay' ? 'Prihvati ponovo' : state.pending === 'READ_REQUIRED' ? 'Proveri da li je prihvaćeno' : 'Prihvati ponovo'}
+    loading={state.busy} disabled={state.busy || state.loading}
     onPress={() => { if (!current()) return; if (state.pending === 'READ_REQUIRED') press('read', () => controller.readOutcome());
       else press('replay', () => controller.accept(state.bundle)); }} />
-    : documents && !confirmed ? <SettingsAction label="Prihvati pregledane dokumente" loading={state.busy} disabled={state.busy || state.loading} reason={reading}
+    : documents && !confirmed ? <SettingsAction label="Prihvati pregledane dokumente" loading={state.busy} disabled={state.busy || state.loading}
       onPress={() => { if (current()) press('accept', () => controller.accept(state.bundle)); }} /> : null;
-  return <LegalReviewView state={state} onBack={back} action={action} linkError={linkError}
+  return <LegalReviewView state={state} onBack={back} action={action} actionReason={action ? reading : null} linkError={linkError}
     onOpen={(doc: LegalDocument) => { void openUrl(doc.url); }} onOpenUrl={url => { void openUrl(url); }}
     onRefresh={() => { if (current()) void controller.refresh(); }} />;
 }

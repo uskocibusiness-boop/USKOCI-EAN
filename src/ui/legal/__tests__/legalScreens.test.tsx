@@ -128,13 +128,13 @@ it('the single action accepts exact displayed hashes once', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
   await act(async () => action('Prihvati pregledane dokumente').props.onPress());
   expect(mockAccept).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333', 'a'.repeat(64), 'b'.repeat(64));
-  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
+  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su trenutne verzije dokumenata.');
 });
 it('unknown acceptance offers an owned readback and confirms its exact receipt', async () => {
   mockAccept.mockResolvedValue({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
   await act(async () => { tree = create(<LegalRoute />); });
   await act(async () => action('Prihvati pregledane dokumente').props.onPress());
-  await act(async () => action('Proveri ishod prihvatanja').props.onPress());
+  await act(async () => action('Proveri da li je prihvaćeno').props.onPress());
   expect(mockOutcome).toHaveBeenCalledWith('33333333-3333-4333-8333-333333333333'); expect(mockAccept).toHaveBeenCalledTimes(1);
 });
 it('old account callbacks cannot accept, open documents or navigate', async () => {
@@ -149,30 +149,39 @@ it('unpublished documents never display an accept action', async () => {
   expect(hosts('SettingsRow')).toHaveLength(0); expect(action('Prihvati pregledane dokumente')).toBeUndefined();
 });
 // UI/UX pass 2026-10-07 (team T4c): when the documents are not published the screen says ONE honest sentence and has no dead row.
-const stateViews = () => tree.root.findAll(node => typeof node.type === 'function' && node.type.name === 'StateView');
 const unpublished = { ready: false, acceptedCurrentBundle: false, reason: 'LEGAL_DOCUMENTS_NOT_PUBLISHED', documents: [] };
+/** The title of a screen that has nothing to read (composition spec T7): the one header of the page, spoken as a heading. */
+const centeredTitle = () => hosts('SettingsText').find(node => node.props.accessibilityRole === 'header');
+/** The picture of 96 that stands over the one title of such a screen: a `FactArt` is found by what it is asked to draw. */
+const art96 = () => [...new Set(tree.root.findAll(node => node.props.size === 96 && typeof node.props.kind === 'string').map(node => node.props.kind as string))];
+/** A command of the page body (a `V2Action`), found by its words; the foot's `SettingsAction` and the rows are other things. */
+const command = (label: string) => tree.root.findAll(node => node.props.label === label && typeof node.props.onPress === 'function'
+  && node.type !== ('SettingsAction' as React.ElementType) && node.type !== ('SettingsRow' as React.ElementType))[0];
 it('documents that are not published are ONE sentence and one way to look again: no row, no empty group, no second "not published"', async () => {
   mockRead.mockResolvedValue(ok(unpublished));
   await act(async () => { tree = create(<LegalRoute />); });
-  expect(stateViews()).toHaveLength(1);
-  expect(stateViews()[0].props).toMatchObject({ kind: 'empty', title: 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.' });
-  expect(stateViews()[0].props.primary).toBeUndefined(); expect(stateViews()[0].props.quiet.label).toBe('Proveri ponovo');
+  expect(centeredTitle()!.children.join('')).toBe('Uslovi korišćenja i Politika privatnosti još nisu objavljeni.');
+  expect(art96()).toEqual(['document']);
+  // The one way to look again is quiet; there is no green action on a screen with nothing to do.
+  expect(command('Proveri ponovo').props.kind).toBe('quiet'); expect(command('Pokušaj ponovo')).toBeUndefined();
   expect(hosts('SettingsRow')).toHaveLength(0); expect(hosts('SettingsGroup')).toHaveLength(0); expect(hosts('SettingsInfo')).toHaveLength(0);
   expect(renderedCopy()).not.toContain('Mapa obrade'); expect(renderedCopy().match(/još nisu objavljeni/g)).toHaveLength(1);
   expect(action('Prihvati pregledane dokumente')).toBeUndefined();
   mockRead.mockClear(); mockRead.mockResolvedValue(ok(bundle()));
-  await act(async () => stateViews()[0].props.quiet.onPress());
+  await act(async () => command('Proveri ponovo').props.onPress());
   expect(mockRead).toHaveBeenCalledTimes(1); expect(hosts('SettingsRow').map(row => row.props.label)).toEqual(['Uslovi korišćenja', 'Politika privatnosti']);
 });
 it('documents that cannot be read are an error with what happened and one retry, not a row that says "not available"', async () => {
   mockRead.mockResolvedValue({ ok: false, kod: 'LEGAL_READ_UNAVAILABLE', poruka: 'Dokumenti trenutno nisu dostupni. Pokušaj ponovo.' });
   await act(async () => { tree = create(<LegalRoute />); });
-  expect(stateViews()).toHaveLength(1);
-  expect(stateViews()[0].props).toMatchObject({ kind: 'error', title: 'Dokumenti nisu dostupni', body: 'Dokumenti trenutno nisu dostupni. Pokušaj ponovo.' });
-  expect(stateViews()[0].props.primary.label).toBe('Pokušaj ponovo'); expect(hosts('SettingsRow')).toHaveLength(0);
+  expect(centeredTitle()!.children.join('')).toBe('Dokumenti nisu dostupni');
+  expect(hosts('SettingsText').some(node => node.children.join('') === 'Dokumenti trenutno nisu dostupni. Pokušaj ponovo.')).toBe(true);
+  expect(art96()).toEqual(['document']);
+  // The one green action is the retry; a quiet "Proveri ponovo" is only for documents that are not published.
+  expect(command('Pokušaj ponovo').props.kind).toBeUndefined(); expect(command('Proveri ponovo')).toBeUndefined(); expect(hosts('SettingsRow')).toHaveLength(0);
   mockRead.mockClear(); mockRead.mockResolvedValue(ok(bundle()));
-  await act(async () => stateViews()[0].props.primary.onPress());
-  expect(mockRead).toHaveBeenCalledTimes(1); expect(stateViews()).toHaveLength(0); expect(hosts('SettingsRow')).toHaveLength(2);
+  await act(async () => command('Pokušaj ponovo').props.onPress());
+  expect(mockRead).toHaveBeenCalledTimes(1); expect(centeredTitle()).toBeUndefined(); expect(hosts('SettingsRow')).toHaveLength(2);
 });
 it('published documents with no published processor map say it once, as a line, not as a group with a dead row', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
@@ -181,15 +190,22 @@ it('published documents with no published processor map say it once, as a line, 
 });
 it('a re-read keeps the documents on screen under the refresh at work, and nothing can be accepted meanwhile', async () => {
   await act(async () => { tree = create(<LegalRoute />); });
+  // One word at the end of the title of the documents: "Osveži", spoken as "Osveži dokumente".
+  const refresh = () => hosts('SettingsGroup').find(node => node.props.title === 'Objavljeni dokumenti')!.props.action;
+  const footReason = () => hosts('SettingsScreen')[0].props.footerReason;
+  expect(refresh()).toMatchObject({ label: 'Osveži', accessibilityLabel: 'Osveži dokumente' }); expect(footReason()).toBeNull();
   let finish!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(done => { finish = done; }));
-  await act(async () => { action('Osveži stanje').props.onPress(); });
-  // Still the two rows, no skeleton over them; the refresh works, the acceptance waits grey and says why.
+  await act(async () => { refresh().onPress(); });
+  // Still the two rows, no skeleton over them; the refresh says it works, the acceptance waits grey and the foot says why.
   expect(hosts('SettingsRow')).toHaveLength(2); expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavanje pravnih dokumenata' })).toHaveLength(0);
-  expect(action('Osveži stanje').props).toMatchObject({ loading: true });
-  expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: true, reason: 'Učitavamo dokumente…' });
+  expect(refresh().label).toBe('Osvežavamo…');
+  expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: true });
+  expect(footReason()).toBe('Učitavamo dokumente…');
   await act(async () => action('Prihvati pregledane dokumente').props.onPress()); expect(mockAccept).not.toHaveBeenCalled();
+  // A second press while it works asks for nothing more.
+  await act(async () => { refresh().onPress(); }); expect(mockRead).toHaveBeenCalledTimes(2);
   await act(async () => finish(ok(bundle())));
-  expect(action('Osveži stanje').props.loading).toBe(false); expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: false, reason: null });
+  expect(refresh().label).toBe('Osveži'); expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: false }); expect(footReason()).toBeNull();
 });
 it('the first read is a skeleton and the invitation to read is only said when there is something to read', async () => {
   let finish!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(done => { finish = done; }));
@@ -236,7 +252,7 @@ it('the screen is named as the entries that open it, and a running acceptance ke
   expect(action('Prihvati pregledane dokumente').props).toMatchObject({ loading: true, disabled: true });
   expect(mockAccept).toHaveBeenCalledTimes(1);
   await act(async () => resolve(ok(receipt)));
-  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
+  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(renderedCopy()).toContain('Prihvaćene su trenutne verzije dokumenata.');
 });
 // Round 5 review: the read and the replay keep their own words while they run, as the first acceptance does.
 it('a running readback and a running replay each keep their words with a spinner', async () => {
@@ -244,16 +260,16 @@ it('a running readback and a running replay each keep their words with a spinner
   let found!: (value: unknown) => void; mockOutcome.mockReturnValueOnce(new Promise(done => { found = done; }));
   await act(async () => { tree = create(<LegalRoute />); });
   await act(async () => action('Prihvati pregledane dokumente').props.onPress());
-  await act(async () => { action('Proveri ishod prihvatanja').props.onPress(); });
-  expect(action('Proveri ishod prihvatanja').props).toMatchObject({ loading: true, disabled: true });
+  await act(async () => { action('Proveri da li je prihvaćeno').props.onPress(); });
+  expect(action('Proveri da li je prihvaćeno').props).toMatchObject({ loading: true, disabled: true });
   expect(action('Prihvati ponovo')).toBeUndefined();
   await act(async () => found(ok({ found: false, receipt: null })));
   let accepted!: (value: unknown) => void; mockAccept.mockReturnValueOnce(new Promise(done => { accepted = done; }));
   await act(async () => { action('Prihvati ponovo').props.onPress(); });
   expect(action('Prihvati ponovo').props).toMatchObject({ loading: true, disabled: true });
-  expect(action('Proveri ishod prihvatanja')).toBeUndefined(); expect(mockAccept).toHaveBeenCalledTimes(2);
+  expect(action('Proveri da li je prihvaćeno')).toBeUndefined(); expect(mockAccept).toHaveBeenCalledTimes(2);
   await act(async () => accepted(ok(receipt)));
-  expect(renderedCopy()).toContain('Prihvaćene su aktuelne verzije');
+  expect(renderedCopy()).toContain('Prihvaćene su trenutne verzije dokumenata.');
 });
 it('an acceptance failure is said right above the button that failed', async () => {
   mockAccept.mockResolvedValue({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
@@ -262,5 +278,5 @@ it('an acceptance failure is said right above the button that failed', async () 
   // Once, as an alert beside the readback it now offers, and not a second time under the intro.
   const alerts = tree.root.findAll(node => node.type === ('SettingsText' as React.ElementType) && [node.props.children].flat().includes('Ishod nije potvrđen.'));
   expect(alerts).toHaveLength(1); expect(alerts[0].props.accessibilityRole).toBe('alert');
-  expect(action('Proveri ishod prihvatanja')).toBeDefined();
+  expect(action('Proveri da li je prihvaćeno')).toBeDefined();
 });

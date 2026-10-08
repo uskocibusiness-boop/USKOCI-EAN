@@ -47,7 +47,7 @@ export class SupportController {
     if (!this.current() || this.busy) return;
     this.busy = true;
     try { await work(); }
-    catch { this.update({ phase: 'ERROR', message: 'Stanje podrške nije potvrđeno. Proveri ponovo pre slanja.' }); }
+    catch { this.update({ phase: 'ERROR', message: 'Ne možemo da učitamo stanje zahteva. Pokušaj ponovo pre slanja.' }); }
     finally { this.busy = false; }
   }
   private consume(command: SupportCommand) {

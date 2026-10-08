@@ -9,10 +9,13 @@ import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { Glyph } from '../system/Glyph';
 import { useLayoutClass } from '../system/textScale';
-import { sys, card, inset, field, brandAction } from '../system/tokens';
+import { layout } from '../system/layout';
+import { Surface } from '../system/Surface';
+import { sys, field, brandAction } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { FactListEditor } from '../aiFirst/FactValueEditors';
 import { V2Action } from '../v2/V2Action';
+import { tidyPlaceLabel } from '../location/placeText';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { displayedPinPosition } from '../location/ResolvedPinMap.types';
 import { civilClock, civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
@@ -33,10 +36,10 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
 }){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
-  const place = `${profile.location.city || 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
+  const place = `${profile.location.city.trim() ? tidyPlaceLabel(profile.location.city.trim()) : 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
   const availability = profile.availability.availableNow ? 'Mogu odmah' : 'Mogu odmah: isključeno';
   const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
-  return <View testID="worker-draft-summary"
+  return <Surface kind="panel" testID="worker-draft-summary"
     style={[s.card,compact&&s.cardCompact]}>
     <WorkerAiProgress profile={profile}/>
     <Press testID="worker-draft-disclosure" accessibilityRole="button"
@@ -66,7 +69,7 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
         {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
-  </View>;
+  </Surface>;
 }
 function ReviewCue({disabled}:{disabled:boolean}){
   return <View style={[s.reviewCue,disabled&&s.reviewCueDisabled]}>
@@ -125,8 +128,8 @@ function ReviewGroup({part,tag,onEdit,editDisabled=false,children}:{part:WorkerA
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
 export function WorkerAiNotificationsNote(){
-  return <View style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
-    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></View>;
+  return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
+    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></Surface>;
 }
 /**
  * Frozen personal-profile review (M2): what the conversation understood, in parts, each with "Izmeni" at its side. Legacy
@@ -138,7 +141,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false}:{review
   onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean}){
   const p=review.profile;
   const point=displayedPinPosition(p.location.approximatePosition,true);
-  const place=[p.location.city.trim()||null,p.location.operatingCountryCode].filter(Boolean).join(' · ');
+  const place=[p.location.city.trim()?tidyPlaceLabel(p.location.city.trim()):null,p.location.operatingCountryCode].filter(Boolean).join(' · ');
   const group={onEdit,editDisabled};
   return <View style={s.review}>
     {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
@@ -183,7 +186,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false}:{review
   </View>;
 }
 function Field({label,value,change,disabled,numeric=false,multiline=false}:{label:string;value:string;change:(v:string)=>void;disabled:boolean;numeric?:boolean;multiline?:boolean}){
-  return <View style={{gap:6}}><T variant="meta" tone="muted">{label}</T><TextInput accessibilityLabel={label} style={[s.input,multiline&&s.multiline]}
+  return <View style={{gap:sys.space.sm}}><T variant="meta" tone="muted">{label}</T><TextInput accessibilityLabel={label} style={[s.input,multiline&&s.multiline]}
     value={value} editable={!disabled} onChangeText={v=>{if(!disabled)change(v);}} multiline={multiline} keyboardType={numeric?'number-pad':'default'} maxLength={numeric?3:multiline?25500:160}/></View>;
 }
 /** Manual correction of the proposal; applied to the proposal, saved only through the final review. */
@@ -231,7 +234,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
     if(!alive.current||!editable.current)return;
     const {name,bio,city,country,radius,skills,tools,vehicles}=latest.current;
     const all=!only,patch:Writable<WorkerAiPatch>={};
-    const fail=(focused:string)=>{setError(all?'Proveri liste, državu i radijus 1–200 km. O meni može imati do 4.000 znakova.':focused);};
+    const fail=(focused:string)=>{setError(all?'Proveri veštine, alat, vozila, državu i radijus (1–200 km). Tekst „O meni“ može imati do 4.000 znakova.':focused);};
     // Match the canonical ASCII btrim; Unicode whitespace is part of an authored term.
     const terms=(key:ListKey,text:string)=>{const base=lines(text),word=boxes.current[key].trim();
       return capabilityTerms(word&&!base.includes(word)?[...base,word]:base);};
@@ -263,7 +266,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
     <Field disabled={disabled} label="Grad ili mesto rada" value={city} change={v=>change('city',v)}/>
     <Field disabled={disabled} label="Radijus rada u km" value={radius} change={v=>change('radius',v)} numeric/></View>;
   const body=!only?<>
-    <T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U liste unesi jednu stavku po redu.</T>
+    <T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U polja sa više stavki upiši jednu stavku po redu.</T>
     <View style={s.section}><T variant="heading" style={s.ink}>Ko si i šta radiš</T>
       <Field disabled={disabled} label="Ime na profilu" value={name} change={v=>change('name',v)}/><Field disabled={disabled} label="Veštine i usluge" value={skills} change={v=>change('skills',v)} multiline/>
       <Field disabled={disabled} label="Alat i oprema" value={tools} change={v=>change('tools',v)} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={v=>change('vehicles',v)} multiline/>
@@ -284,22 +287,22 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
   </>;
 }
 export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;disabled:boolean;change:(v:boolean)=>void}){
-  return <View style={s.activation}><View style={{flex:1}}><T variant="bodyStrong" style={s.ink}>Aktiviraj profil posle čuvanja</T><T variant="meta" tone="muted">Isključeno: profil ostaje nacrt.</T></View>
-    <Switch accessibilityLabel="Aktiviraj profil posle čuvanja" value={activate} disabled={disabled} onValueChange={change} trackColor={{true:sys.color.green,false:sys.color.muted}} thumbColor={sys.color.surface}/></View>;
+  return <Surface kind="note" style={s.activation}><View style={{flex:1}}><T variant="bodyStrong" style={s.ink}>Aktiviraj profil posle čuvanja</T><T variant="meta" tone="muted">Isključeno: profil ostaje nacrt.</T></View>
+    <Switch accessibilityLabel="Aktiviraj profil posle čuvanja" value={activate} disabled={disabled} onValueChange={change} trackColor={{true:sys.color.green,false:sys.color.muted}} thumbColor={sys.color.surface}/></Surface>;
 }
 const s=StyleSheet.create({
   ink:{color:sys.color.ink},
   muted:{color:sys.color.muted},
   grow:{flex:1,minWidth:0},
-  card:{...card,paddingHorizontal:sys.space.base,paddingVertical:8,gap:4,minHeight:48,
+  card:{paddingHorizontal:sys.space.base,paddingVertical:sys.space.sm,gap:sys.space.xs,minHeight:layout.touch,
     backgroundColor:sys.conversation.summary,borderColor:sys.conversation.edge},
-  cardCompact:{paddingVertical:6,borderRadius:sys.radius.cardCompact},
+  cardCompact:{paddingVertical:sys.space.sm,borderRadius:sys.radius.cardCompact},
   previewHead:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.md},
   previewSummary:{gap:sys.space.xs},
   skillHeading:{color:sys.color.ink},
   previewFacts:{gap:sys.space.sm},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
-  reviewAction:{gap:4},
+  reviewAction:{gap:sys.space.xs},
   reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
   reviewLabel:{flex:1,minWidth:0,color:sys.color.ink,fontWeight:'700'},
   reviewCue:{flexShrink:0,width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.ink,alignItems:'center',justifyContent:'center'},
@@ -310,9 +313,9 @@ const s=StyleSheet.create({
   progressPartStacked:{flexBasis:'45%'},
   progressBar:{height:4,borderRadius:2,backgroundColor:sys.color.line},
   progressBarDone:{backgroundColor:sys.color.green},
-  review:{gap:0},
-  // A part of the review: title and "Izmeni" on one line, the facts under it, a hairline between parts.
-  group:{gap:sys.space.xs,paddingVertical:sys.space.base,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:sys.color.line},
+  review:{gap:layout.section},
+  // A part of the review: title and "Izmeni" on one line, the facts under it; the parts are parted by the gap between them, not by a line.
+  group:{gap:sys.space.xs},
   groupHead:{flexDirection:'row',alignItems:'center',gap:sys.space.sm,minHeight:44},
   groupBody:{gap:sys.space.md},
   tag:{flexShrink:0,minHeight:24,justifyContent:'center',paddingHorizontal:sys.space.sm,borderRadius:sys.radius.badge,backgroundColor:sys.color.wash},
@@ -320,18 +323,18 @@ const s=StyleSheet.create({
   editText:{color:sys.color.green},
   fact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
   chips:{flexDirection:'row',flexWrap:'wrap',gap:sys.space.sm},
-  chip:{minHeight:36,maxWidth:'100%',justifyContent:'center',paddingHorizontal:14,paddingVertical:sys.space.xs,borderRadius:sys.radius.pill,backgroundColor:sys.color.wash},
+  chip:{minHeight:36,maxWidth:'100%',justifyContent:'center',paddingHorizontal:sys.space.md,paddingVertical:sys.space.xs,borderRadius:sys.radius.pill,backgroundColor:sys.color.wash},
   chipText:{color:sys.color.ink,flexShrink:1},
   // The constant sentence of the review: a flat tint, ink words, the bell (owner 2026-10-07).
-  noteBox:{...inset,backgroundColor:sys.color.wash,flexDirection:'row',alignItems:'flex-start',gap:sys.space.md,marginTop:sys.space.base},
+  noteBox:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
   listEditor:{gap:sys.space.sm},
   reviewNotice:{padding:sys.space.base,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft,flexDirection:'row',alignItems:'flex-start',gap:sys.space.md,marginBottom:sys.space.sm},
   section:{gap:sys.space.base,paddingVertical:sys.space.base},
   scheduleGroup:{gap:sys.space.md},
   row:{gap:sys.space.xs,minWidth:0},
-  notice:{padding:14,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},
+  notice:{padding:sys.space.base,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},
   input:{...field},
   multiline:{minHeight:96,textAlignVertical:'top'},
   // A flat tint, not the orange budget (critique B19): the one orange on the review is not a switch row.
-  activation:{...inset,padding:16,backgroundColor:sys.color.wash,flexDirection:'row',gap:12,alignItems:'center'},
+  activation:{flexDirection:'row',gap:sys.space.md,alignItems:'center'},
 });

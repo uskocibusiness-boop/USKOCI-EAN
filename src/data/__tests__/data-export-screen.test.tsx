@@ -32,6 +32,16 @@ const render = async () => { await act(async () => { tree = create(<ExportScreen
 const update = async () => { await act(async () => tree.update(<ExportScreen />)); };
 const button = (label: string) => tree.root.findByProps({ label });
 const tap = async (label: string) => { await act(async () => { await button(label).props.onPress(); }); };
+// UI/UX pass 2026-10-08 (F6): the refresh is one word at the end of the title of "Tvoja kopija" (a `Section` action, spoken as "Osveži stanje
+// izvoza"), and the two withdrawals are red `ListRow`s found by their title: a command, not a way onward.
+const refreshPress = () => tree.root.find(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje izvoza');
+const refreshWord = () => refreshPress().findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children).join('');
+/** The refresh wherever the screen has one: the word in the title of the card, or - when there is no card to draw - the failure state's own button. */
+const tapRefresh = async () => { await act(async () => { const word = tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje izvoza')[0];
+  await (word ?? button('Osveži stanje')).props.onPress(); }); };
+const redRows = (title: string) => tree.root.findAll(node => node.props.title === title && typeof node.props.onPress === 'function');
+const redRow = (title: string) => { expect(redRows(title)).toHaveLength(1); return redRows(title)[0]; };
+const tapRed = async (title: string) => { await act(async () => { await redRow(title).props.onPress(); }); };
 const texts = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 // The confirmations were Alert.alert and are an in-app ConfirmSheet now. `confirm()` is its confirm button; `retained()` is
 // the screen's own answer as the sheet holds it (the closure the Alert used to get), fired after the screen retired it.
@@ -57,9 +67,9 @@ it('keeps one actual primary action outside scrolling content and cancellation s
   const footer = tree.root.findByProps({ testID: 'settings-primary-footer' });
   expect(footer.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel))
     .toEqual(['Pripremi kopiju']);
-  expect(footer.findAllByProps({ label: 'Otkaži zahtev' })).toHaveLength(0);
+  expect(footer.findAll(node => node.props.title === 'Otkaži zahtev')).toHaveLength(0);
   const scroll = tree.root.findByType('ScrollView' as React.ElementType);
-  expect(scroll.findAllByProps({ label: 'Otkaži zahtev' }).length).toBeGreaterThan(0);
+  expect(scroll.findAll(node => node.props.title === 'Otkaži zahtev').length).toBeGreaterThan(0);
   expect(mockPrepare).not.toHaveBeenCalled(); expect(mockCancel).not.toHaveBeenCalled();
 });
 it('keeps the primary footer absent while the account export state is unresolved', async () => {
@@ -88,7 +98,7 @@ it('keeps the first request\'s own words with a spinner while it runs, never tha
   expect(button('Pripremi kopiju').props.loading).toBe(false);
 });
 it('a repeated request keeps "Ponovi isti zahtev" with its spinner while it runs', async () => {
-  mockRequest.mockRejectedValueOnce(new Error('lost')); await render(); await tap('Zatraži izvoz'); await tap('Osveži stanje');
+  mockRequest.mockRejectedValueOnce(new Error('lost')); await render(); await tap('Zatraži izvoz'); await tapRefresh();
   const pending = deferred(); mockRequest.mockReturnValueOnce(pending.promise);
   await act(async () => { void button('Pošalji ponovo').props.onPress(); });
   expect(button('Pošalji ponovo').props).toMatchObject({ loading: true, disabled: true });
@@ -113,7 +123,7 @@ it('preparing and saving keep their words with a spinner while they run', async 
 it('retains the same request key after unknown outcome and requires readback', async () => {
   mockRequest.mockRejectedValueOnce(new Error('private SQL detail')); await render(); await tap('Zatraži izvoz'); const key = mockRequest.mock.calls[0][0];
   expect(texts()).not.toContain('private SQL'); expect(tree.root.findAllByProps({ label: 'Pošalji ponovo' })).toHaveLength(0);
-  await tap('Osveži stanje'); await tap('Pošalji ponovo'); expect(mockRequest).toHaveBeenLastCalledWith(key);
+  await tapRefresh(); await tap('Pošalji ponovo'); expect(mockRequest).toHaveBeenLastCalledWith(key);
 });
 it('presents POLICY_NOT_READY without a fabricated READY or download', async () => {
   mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Pripremi kopiju');
@@ -126,22 +136,22 @@ it('reads actual availability after a READY preparation receipt rather than manu
   expect(tree.root.findAllByProps({ label: 'Preuzmi i sačuvaj' })).toHaveLength(0); expect(button('Zatraži novu kopiju')).toBeTruthy();
 });
 it.each(['account', 'incarnation', 'blur'])('rejects a retained cancellation after %s changes', async change => {
-  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Otkaži zahtev'); const old = retained();
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tapRed('Otkaži zahtev'); const old = retained();
   if (change === 'account') mockSession = { user: { id: 'account-b' }, accountRevision: 2 };
   else if (change === 'incarnation') mockSession = { user: { id: 'account-a' }, accountRevision: 3 };
   else { mockFocused = false; await update(); expect(sheets()).toHaveLength(0); mockFocused = true; await update(); }
   await act(async () => old()); expect(mockCancel).not.toHaveBeenCalled();
 });
 it('cancelling the question sends nothing, and the same question can be asked again', async () => {
-  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tap('Otkaži zahtev');
+  mockStatus.mockResolvedValue(ok(status('REQUESTED'))); await render(); await tapRed('Otkaži zahtev');
   await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
   expect(sheets()).toHaveLength(0); expect(mockCancel).not.toHaveBeenCalled();
   // The cancel path released the dialog token: the question opens again and its answer runs once.
-  await tap('Otkaži zahtev'); await act(async () => { confirm()(); }); expect(mockCancel).toHaveBeenCalledTimes(1);
+  await tapRed('Otkaži zahtev'); await act(async () => { confirm()(); }); expect(mockCancel).toHaveBeenCalledTimes(1);
 });
 it('cancels only after explicit confirmation and refetches the real cancelled state', async () => {
   mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
-  await render(); await tap('Otkaži zahtev'); expect(mockCancel).not.toHaveBeenCalled();
+  await render(); await tapRed('Otkaži zahtev'); expect(mockCancel).not.toHaveBeenCalled();
   expect(sheet().props).toMatchObject({ title: 'Otkaži zahtev?', confirmLabel: 'Otkaži zahtev', cancelLabel: 'Odustani', tone: 'danger' });
   const action = confirm();
   await act(async () => { action(); action(); }); expect(mockCancel).toHaveBeenCalledTimes(1); expect(texts()).toContain('Zahtev je otkazan');
@@ -151,14 +161,14 @@ it('the screen\'s own answer, fired twice in one tick, cancels once: the screen\
   // handed the sheet twice: the second call is refused by the screen's own guards (the token it retired, `canAct`) or by
   // the editor's write lock, whichever comes first. It does not single out the token; the next test does.
   mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
-  await render(); await tap('Otkaži zahtev'); const answer = retained();
+  await render(); await tapRed('Otkaži zahtev'); const answer = retained();
   await act(async () => { answer(); answer(); }); expect(mockCancel).toHaveBeenCalledTimes(1);
 });
 it('an answer kept after the question was cancelled sends nothing: the dialog token is the fence', async () => {
   // Round 2c (verifier vs, must 2): nothing else is in flight here (no editor write, no sheet latch on this closure), so
   // only the screen's dialog token can refuse it. It fails when `dialog.current !== token ||` is removed.
   mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
-  await render(); await tap('Otkaži zahtev'); const answer = retained();
+  await render(); await tapRed('Otkaži zahtev'); const answer = retained();
   await act(async () => { sheet().findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress(); });
   expect(sheets()).toHaveLength(0);
   await act(async () => { answer(); }); expect(mockCancel).not.toHaveBeenCalled();
@@ -166,7 +176,7 @@ it('an answer kept after the question was cancelled sends nothing: the dialog to
 it('keeps the question open with a busy confirm while the cancellation runs, and closes it once it settles', async () => {
   const cancelled = deferred(); mockCancel.mockReturnValueOnce(cancelled.promise);
   mockStatus.mockResolvedValueOnce(ok(status('REQUESTED'))).mockResolvedValue(ok(status('CANCELLED')));
-  await render(); await tap('Otkaži zahtev'); await act(async () => { confirm()(); });
+  await render(); await tapRed('Otkaži zahtev'); await act(async () => { confirm()(); });
   expect(mockCancel).toHaveBeenCalledTimes(1); expect(sheets()).toHaveLength(1);
   expect(sheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
   await act(async () => cancelled.resolve(ok({ receiptId: ID, status: 'CANCELLED' })));
@@ -211,7 +221,7 @@ it('requires an owned readback after an unknown download response before any sec
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); mockDownload.mockRejectedValueOnce(new Error('private storage error'));
   await render(); const old = button('Preuzmi i sačuvaj').props.onPress; await act(async () => old());
   expect(texts()).not.toContain('private storage'); await act(async () => old()); expect(mockDownload).toHaveBeenCalledTimes(1);
-  await tap('Osveži stanje'); await tap('Preuzmi i sačuvaj'); expect(mockDownload).toHaveBeenCalledTimes(2);
+  await tapRefresh(); await tap('Preuzmi i sačuvaj'); expect(mockDownload).toHaveBeenCalledTimes(2);
 });
 it('never downloads an expired descriptor, even from a retained enabled callback', async () => {
   jest.useFakeTimers(); jest.setSystemTime(new Date('2026-09-10T10:00:00Z'));
@@ -221,7 +231,7 @@ it('never downloads an expired descriptor, even from a retained enabled callback
 });
 it('revokes the server copy only after confirmation and explains that existing local files remain', async () => {
   mockStatus.mockResolvedValueOnce(ok(status('READY', descriptor()))).mockResolvedValue(ok(status('EXPIRED')));
-  await render(); await tap('Opozovi kopiju'); expect(sheet().props.message).toContain('Već sačuvani fajlovi');
+  await render(); await tapRed('Opozovi kopiju'); expect(sheet().props.message).toContain('Već sačuvani fajlovi');
   await act(async () => confirm()()); expect(mockRevoke).toHaveBeenCalledWith(ID); expect(mockSaveFile).not.toHaveBeenCalled();
   expect(texts()).toContain('Preuzimanje kopije je opozvano');
 });
@@ -234,7 +244,10 @@ it('says a saved copy above the button that saved it, in the confirmation colour
 });
 it('says an unconfirmed copy as a failure, and a withdrawal is drawn apart from the harmless refresh', async () => {
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); mockDownload.mockResolvedValue(ok({ ...file(), sha256: 'c'.repeat(64) }));
-  await render(); expect(button('Opozovi kopiju').props.kind).toBe('destructive');
+  await render(); expect(redRow('Opozovi kopiju').props.tone).toBe('danger');
+  // A withdrawal has no arrow (it opens nothing, it asks) and is not the refresh, which is a word in the title.
+  expect(redRow('Opozovi kopiju').findAll(node => node.props.name === 'caret-right')).toHaveLength(0);
+  expect(refreshPress().props.accessibilityLabel).toBe('Osveži stanje izvoza');
   await tap('Preuzmi i sačuvaj');
   const line = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.children === 'Preuzeta kopija nije potvrđena. Osveži stanje.');
   expect(line).toHaveLength(1); expect(line[0].props).toMatchObject({ tone: 'danger', accessibilityRole: 'alert' });
@@ -269,7 +282,7 @@ it.each([
 it('a copy whose availability has run out says "Isteklo" before the server does, and offers no withdrawal of a file that is gone', async () => {
   mockStatus.mockResolvedValue(ok(status('READY', { ...descriptor(), artifactExpiresAt: '2000-01-01T00:00:00Z' }))); await render();
   expect(chip()).toEqual(['Isteklo']);
-  expect(tree.root.findAllByProps({ label: 'Opozovi kopiju' })).toHaveLength(0); expect(tree.root.findAllByProps({ label: 'Preuzmi i sačuvaj' })).toHaveLength(0);
+  expect(redRows('Opozovi kopiju')).toHaveLength(0); expect(tree.root.findAllByProps({ label: 'Preuzmi i sačuvaj' })).toHaveLength(0);
   expect(button('Zatraži novu kopiju')).toBeTruthy();
 });
 it('the sentence about keeping a copy is said only when there is a copy to keep', async () => {
@@ -282,17 +295,22 @@ it('the sentence about keeping a copy is said only when there is a copy to keep'
 it('a re-read keeps the card and the footer on screen: the action waits grey and says why, and only the first read is a skeleton', async () => {
   mockStatus.mockResolvedValue(ok(status('READY', descriptor()))); await render();
   const again = deferred(); mockStatus.mockReturnValueOnce(again.promise);
-  await act(async () => { void button('Osveži stanje').props.onPress(); });
+  expect(refreshWord()).toBe('Osveži');
+  await act(async () => { void refreshPress().props.onPress(); });
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavanje stanja izvoza' })).toHaveLength(0);
   expect(chip()).toEqual(['Spremno']);
   expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: true, reason: 'Učitavamo stanje…' });
-  expect(button('Osveži stanje').props.loading).toBe(true);
+  // The word says it is at work, and a second press while it works asks for nothing more.
+  expect(refreshWord()).toBe('Osvežavamo…');
+  await act(async () => { void refreshPress().props.onPress(); }); expect(mockStatus).toHaveBeenCalledTimes(2);
   await act(async () => button('Preuzmi i sačuvaj').props.onPress()); expect(mockDownload).not.toHaveBeenCalled();
   await act(async () => again.resolve(ok(status('READY', descriptor()))));
-  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: false, reason: null }); expect(button('Osveži stanje').props.loading).toBe(false);
+  expect(button('Preuzmi i sačuvaj').props).toMatchObject({ disabled: false, reason: null }); expect(refreshWord()).toBe('Osveži');
 });
 it('a read that fails says what happened with one retry, and offers no chip over a state that is not known', async () => {
   mockStatus.mockResolvedValue({ ok: false, kod: 'X', poruka: 'Stanje trenutno nije dostupno.' }); await render();
   expect(texts()).toContain('Stanje izvoza nije učitano'); expect(texts()).toContain('Stanje trenutno nije dostupno.');
   expect(chip()).toEqual([]); expect(tree.root.findAllByProps({ label: 'Osveži stanje' })).toHaveLength(1);
+  // The one retry is the state's own; the word in the title of a card that is not drawn is not drawn either.
+  expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje izvoza')).toHaveLength(0);
 });

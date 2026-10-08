@@ -2,12 +2,16 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SettingsText as T } from '../settings/SettingsPresentation';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { inset, sys } from '../system/tokens';
+import { ListRow } from '../system/ListRow';
+import { Section, type SectionAction } from '../system/Section';
+import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
 
 /**
- * A note that sits in a screen's flow: a flat tint at control radius, a 22 px fact drawing and one or two sentences
- * (round 5, privacy / data / legal / support, owner step 11b). It replaces the pale green panels those screens used
- * for everything, where green said "fine" even over "not available", "not confirmed" and "failed".
+ * A note that sits in a screen's flow: the system's `note` (a flat tint, not a card), a 24 px fact drawing and one or two sentences
+ * (round 5, privacy / data / legal / support, owner step 11b; UI/UX pass 2026-10-08: it is a `Surface` now, the one container). It
+ * replaces the pale green panels those screens used for everything, where green said "fine" even over "not available", "not
+ * confirmed" and "failed".
  *
  * - `neutral`: the wash, ink words: a plain fact about the state.
  * - `quiet`: the wash, muted words: the same, said more softly ("Potpun raspored … još nije dostupan").
@@ -24,61 +28,40 @@ export function InlineNote({ tone = 'neutral', art = 'info', artMuted, alert, ch
   children: ReactNode; testID?: string;
 }) {
   const spoken = alert || tone === 'danger';
-  return <View testID={testID} style={[s.note, tone === 'warn' ? s.warn : tone === 'danger' ? s.danger : s.wash]}
-    accessibilityLiveRegion={spoken ? 'polite' : undefined}>
-    {art ? <View style={s.art}><FactArt kind={art} size={22} muted={artMuted ?? (tone === 'danger' || tone === 'quiet')} /></View> : null}
-    <View style={s.copy}>
-      {typeof children === 'string'
-        ? <T variant="note" tone={tone === 'danger' ? 'danger' : tone === 'quiet' ? 'muted' : 'ink'} accessibilityRole={spoken ? 'alert' : undefined}>{children}</T>
-        : children}
+  return <Surface kind="note" tone={tone === 'warn' ? 'warn' : tone === 'danger' ? 'danger' : 'wash'} testID={testID}>
+    <View accessibilityLiveRegion={spoken ? 'polite' : undefined} style={s.row}>
+      {art ? <FactArt kind={art} size={24} muted={artMuted ?? (tone === 'danger' || tone === 'quiet')} /> : null}
+      <View style={s.copy}>
+        {typeof children === 'string'
+          ? <T variant="note" tone={tone === 'danger' ? 'danger' : tone === 'quiet' ? 'muted' : 'ink'} accessibilityRole={spoken ? 'alert' : undefined}>{children}</T>
+          : children}
+      </View>
     </View>
-  </View>;
+  </Surface>;
 }
 
 /**
- * The header of a settings group without its card: the same small muted header `SettingsGroup` draws, for a group whose
- * content is not a list (a loading placeholder, a note), where a card around it would be a card around a card.
- *
- * It copies SettingsGroup's measure as it stands since step 11a (the `meta` size, muted, semibold, 4 in from the edge,
- * 8 above the content, no margin of its own: the screen's gap separates groups), so "Rokovi čuvanja" reads the same
- * loading, unpublished or published. SettingsPresentation belongs to another unit and exports no header; when it does,
- * this should draw that one instead of a copy.
+ * The header of a settings group whose content is not a list (a loading placeholder, a note): the system's `Section`, so
+ * "Rokovi čuvanja" reads the same loading, unpublished or published. It used to be a copy of the group's header.
  */
-export function PlainSection({ title, children }: { title: string; children: ReactNode }) {
-  return <View style={s.section}>
-    <T variant="meta" tone="muted" accessibilityRole="header" style={s.sectionTitle}>{title}</T>
-    {children}
-  </View>;
+export function PlainSection({ title, action, children }: { title: string; action?: SectionAction; children: ReactNode }) {
+  return <Section title={title} action={action}>{children}</Section>;
 }
 
-/** One line of a list that opens nothing: the settings row's measure (56 high, 12 above and below), no caret, no press. */
+/** One line of a list that opens nothing: a `ListRow` that only tells (no arrow, no press). */
 export function PlainRow({ label, detail, last = false }: { label: string; detail?: string; last?: boolean }) {
-  return <View style={[s.row, last && s.last]}>
-    <T variant="bodyStrong">{label}</T>
-    {detail ? <T variant="note" tone="muted">{detail}</T> : null}
-  </View>;
+  return <ListRow title={label} subtitle={detail} last={last} />;
 }
 
 /** A fact drawing beside one quiet line, with no box: a statement about the whole screen (who sees a support request). */
 export function QuietLine({ art, children }: { art: FactArtKind; children: ReactNode }) {
-  return <View style={s.line}>
-    <View style={s.art}><FactArt kind={art} size={22} /></View>
-    <T variant="note" tone="muted" style={s.lineCopy}>{children}</T>
+  return <View style={s.row}>
+    <FactArt kind={art} size={24} />
+    <T variant="note" tone="muted" style={s.copy}>{children}</T>
   </View>;
 }
 
 const s = StyleSheet.create({
-  note: { ...inset, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  wash: { backgroundColor: sys.color.wash },
-  warn: { backgroundColor: sys.color.warnSoft },
-  danger: { backgroundColor: sys.color.dangerSoft },
-  art: { paddingTop: 1 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  // SettingsGroup's own header measure, so a group with a card and one without read as one family.
-  section: { gap: sys.space.sm },
-  sectionTitle: { fontWeight: '600', paddingHorizontal: sys.space.xs },
-  row: { minHeight: 56, paddingVertical: sys.space.md, gap: 2, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
-  last: { borderBottomWidth: 0 },
-  line: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
-  lineCopy: { flex: 1, minWidth: 0 },
 });

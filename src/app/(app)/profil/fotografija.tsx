@@ -81,7 +81,7 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
         setNotice(discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
       }
       return { ok: true, podatak: { profile: profile.podatak, asset, intent: intent.current } };
-    } catch { return failure('MEDIA_READ_UNCONFIRMED', 'Sačuvana fotografija nije potvrđena. Proveri ishod.'); }
+    } catch { return failure('MEDIA_READ_UNCONFIRMED', 'Ne znamo da li je fotografija sačuvana. Proveri to.'); }
   }, [profileId, key, owns]);
   const editor = useOwnedEditor(read), snapshot = editor.data, candidate = snapshot?.asset;
   const token = focus.current, view = useRef(snapshot); view.current = snapshot;

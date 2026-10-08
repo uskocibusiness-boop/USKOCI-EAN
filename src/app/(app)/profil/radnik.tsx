@@ -73,9 +73,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     }
     if (confirmed) {
       pendingRef.current = null; setPending(null); setValidation(null);
-      setMessage(attempt.command.zavrsi ? 'Profil je aktivan. Sačuvani podaci su potvrđeni.'
-        : attempt.profileId === null ? 'Profil je sačuvan i provereno učitan. Nastavi sa podešavanjem.'
-          : 'Izmene profila su sačuvane i proverene.');
+      setMessage(attempt.command.zavrsi ? 'Profil je aktivan i sačuvan.'
+        : attempt.profileId === null ? 'Profil je sačuvan. Nastavi sa podešavanjem.'
+          : 'Izmene profila su sačuvane.');
     }
   }, [editor.data, transportBusy]);
   useEffect(() => {
@@ -111,7 +111,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
     const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate);
     if (!built.command) {
-      setValidation(built.error ?? 'Proveri unos.');
+      setValidation(built.error ?? 'Proveri popunjena polja.');
       const value = draftRef.current.value;
       const target = value.newSkill.trim() ? 'skill' : value.newTool.trim() ? 'tool' : value.newVehicle.trim() ? 'vehicle' : null;
       if (target) setFocusRequest({ target, token: ++focusRequestSequence.current });
@@ -233,7 +233,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         disabled={!enabled} loading={transportBusy} success={!!message} onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
     {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
-    {pending && enabled ? <V2Action tone="neutral" label="Uredi unos posle provere" kind="quiet" onPress={editAfterRead} /> : null}
+    {pending && enabled ? <V2Action tone="neutral" label="Izmeni podatke" kind="quiet" onPress={editAfterRead} /> : null}
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}

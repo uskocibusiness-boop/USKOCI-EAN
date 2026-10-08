@@ -65,6 +65,8 @@ const submits = () => mockRpc.mock.calls.filter(call => call[0] === 'rpc_submit_
 let tree: ReactTestRenderer;
 const press = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
 const action = (label: string) => tree.root.findByProps({ label });
+// Why the save is grey is the foot's own line, ABOVE the button (template T4), not a prop of the button.
+const why = () => (tree.root.findAllByProps({ testID: 'flow-footer-reason' })[0]?.props.children ?? null) as string | null;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
 const input = () => tree.root.findAllByType(TextInput)[0];
 const settle = async () => { await act(async () => {}); };
@@ -149,12 +151,12 @@ describe('with the flag on and a backend that has the package', () => {
     expect(StyleSheet.flatten(input().props.style).borderColor).toBe(sys.color.danger);
     const button = action('Sačuvaj ocenu');
     expect(button.props.disabled).toBe(true);
-    expect(button.props.reason).toBe(REVIEW_COMMENT_MESSAGES.REVIEW_COMMENT_TOO_LONG);
+    expect(why()).toBe(REVIEW_COMMENT_MESSAGES.REVIEW_COMMENT_TOO_LONG);
     await act(async () => button.props.onPress());
     expect(submits()).toHaveLength(0);
     await type('a'.repeat(500));
     expect(action('Sačuvaj ocenu').props.disabled).toBe(false);
-    expect(action('Sačuvaj ocenu').props.reason).toBeNull();
+    expect(why()).toBeNull();
   });
 
   it('a comment that is only blank is no comment: the review goes without one and the save was never held back', async () => {
@@ -197,19 +199,19 @@ describe('when the server refuses the comment itself', () => {
     expect(submits()).toHaveLength(1);
     // No unknown-outcome mode: nothing to check, nothing frozen.
     expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.label === 'Proveri sačuvanu ocenu')).toHaveLength(0);
-    expect(texts()).not.toContain('Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.');
+    expect(texts()).not.toContain('Čuvamo tvoju ocenu dok proveravaš da li je poslata.');
     expect(press('Ocena 4 od 5').props.accessibilityState).toMatchObject({ checked: true, disabled: false });
     expect(input().props).toMatchObject({ editable: true, value: 'Ovo je moj komentar' });
     expect(StyleSheet.flatten(input().props.style).borderColor).toBe(sys.color.danger);
-    expect(action('Sačuvaj ocenu').props).toMatchObject({ disabled: true, reason: sentence });
-    // The sentence is said once, under the save; no second notice carries it, and it never shows a code or the backend's words.
+    expect(action('Sačuvaj ocenu').props.disabled).toBe(true); expect(why()).toBe(sentence);
+    // The sentence is said once, above the save; no second notice carries it, and it never shows a code or the backend's words.
     expect(tree.root.findAll(node => node.props?.accessibilityRole === 'alert')).toHaveLength(0);
     expect(JSON.stringify(texts())).not.toContain(SECRET);
     expect(JSON.stringify(texts())).not.toMatch(/REVIEW_|22023/);
     // Editing releases the save, and the next send is a NEW attempt with its own request id and the corrected text.
     server.submit = (body: Body) => ({ data: receipt(body, body.p_comment ?? null), error: null });
     await type('Ovo je ispravljen komentar');
-    expect(action('Sačuvaj ocenu').props).toMatchObject({ disabled: false, reason: null });
+    expect(action('Sačuvaj ocenu').props.disabled).toBe(false); expect(why()).toBeNull();
     expect(StyleSheet.flatten(input().props.style).borderColor).not.toBe(sys.color.danger);
     await save();
     expect(submits()).toHaveLength(2);
@@ -247,7 +249,7 @@ describe('when the outcome of the send is unknown', () => {
     expect(submits()).toHaveLength(1);
     expect(action('Proveri sačuvanu ocenu')).toBeDefined();
     expect(input().props.editable).toBe(false);
-    expect(texts()).toContain('Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.');
+    expect(texts()).toContain('Čuvamo tvoju ocenu dok proveravaš da li je poslata.');
     await act(async () => { input().props.onChangeText('Promenjeno.'); });
     expect(input().props.value).toBe('Sve pohvale.');
     // Checking finds no stored review, so the same command is offered again.
@@ -298,7 +300,7 @@ describe('when the backend has no D12 package', () => {
     await save();
     // Refused once, in plain words, and the legacy function never saw the comment.
     expect(names().filter(name => name === 'rpc_submit_agreement_review')).toHaveLength(0);
-    expect(action('Sačuvaj ocenu').props).toMatchObject({ disabled: true, reason: REVIEW_COMMENT_MESSAGES.REVIEW_COMMENT_UNAVAILABLE });
+    expect(action('Sačuvaj ocenu').props.disabled).toBe(true); expect(why()).toBe(REVIEW_COMMENT_MESSAGES.REVIEW_COMMENT_UNAVAILABLE);
     await type('');
     expect(action('Sačuvaj ocenu').props.disabled).toBe(false);
     mockRpc.mockClear();

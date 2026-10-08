@@ -22,7 +22,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 } }); });
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsText: 'T', SettingsAction: 'Action' }));
+jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'Screen', SettingsPanel: 'Panel', SettingsGroup: 'Group', SettingsText: 'T', SettingsAction: 'Action' }));
 import { SafetyScreen } from '../../ui/safety/SafetyScreen';
 import { poruka } from '../../ui/system/Poruka';
 import { SuccessMark } from '../../ui/system/SuccessMark';
@@ -140,7 +140,7 @@ it('an undo the server does not confirm says so and offers nothing more; and a "
   await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
   mockSafety.setBlock.mockResolvedValueOnce({ ok: false, kod: 'BLOCK_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
   await act(async () => poruka.current()!.action!.onPress());
-  expect(poruka.current()).toMatchObject({ text: 'Promena nije potvrđena. Proveri stanje pa pokušaj ponovo.' }); expect(poruka.current()?.action).toBeUndefined();
+  expect(poruka.current()).toMatchObject({ text: 'Ne znamo da li je promena sačuvana. Osveži pa pokušaj ponovo.' }); expect(poruka.current()?.action).toBeUndefined();
   // The bar of a change made by account A, pressed after the account changed under it, sends nothing.
   poruka.hide(); await act(async () => tree.unmount());
   await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();
@@ -193,9 +193,9 @@ it('cannot bypass a failed restore with a new command or send after blur', async
 it('a grey send button carries its reason until a category and a short reason are given', async () => {
   // The reason is the button's own (V2Action draws it under the button and speaks it as the hint), as on the support screens.
   await render(); expect(action('Pošalji privatnu prijavu').disabled).toBe(true);
-  expect(action('Pošalji privatnu prijavu').reason).toBe('Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.');
+  expect(action('Pošalji privatnu prijavu').reason).toBe('Izaberi vrstu prijave i upiši kratak razlog.');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uznemiravanje' }).props.onPress());
-  expect(action('Pošalji privatnu prijavu').reason).toBe('Upiši kratak razlog da bi slanje bilo dostupno.');
+  expect(action('Pošalji privatnu prijavu').reason).toBe('Upiši kratak razlog.');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' }).props.onChangeText('Privatan razlog'));
   expect(action('Pošalji privatnu prijavu').disabled).toBe(false); expect(action('Pošalji privatnu prijavu').reason).toBeNull();
   expect(mockSafety.report).not.toHaveBeenCalled();

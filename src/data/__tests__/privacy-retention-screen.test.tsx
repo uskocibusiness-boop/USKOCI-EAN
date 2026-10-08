@@ -44,6 +44,10 @@ let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<Privacy />); }); };
 const update = async () => { await act(async () => tree.update(<Privacy />)); };
 const button = (label: string) => tree.root.findByProps({ label }).props;
+/** The one refresh of the screen: a word at the end of the title of "Rokovi čuvanja" (a `Section` action), absent while the first read runs. */
+const refreshPresses = () => tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži rokove čuvanja');
+const refresh = () => { expect(refreshPresses()).toHaveLength(1); return refreshPresses()[0].props; };
+const refreshWord = () => refreshPresses()[0].findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children).join('');
 const texts = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(() => {
   jest.clearAllMocks(); mockPolicy.mockReset(); mockExecution.mockReset();
@@ -59,17 +63,18 @@ it.each(['narucilac', 'uskocer'])('reads both actual services in parallel for %s
   mockIntent = intent; const first = deferred(), second = deferred();
   mockPolicy.mockReturnValueOnce(first.promise); mockExecution.mockReturnValueOnce(second.promise);
   await render(); expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
-  expect(texts()).toContain('Učitavamo rokove čuvanja'); expect(button('Osveži stanje').disabled).toBe(true);
+  expect(texts()).toContain('Učitavamo rokove čuvanja'); expect(refreshPresses()).toHaveLength(0);
   expect(mockRouter.navigate).not.toHaveBeenCalled();
 });
 it('keeps unpublished retention explicit and opens closure through a separate review', async () => {
   await render(); expect(texts()).toContain('Potpun raspored rokova čuvanja još nije dostupan.');
   expect(texts()).toContain('Pregledaj dostupnost, obaveze i pravila čuvanja');
   expect(texts()).not.toContain('fixture duration');
-  // Round 5 review: the order pinned the old layout; the two account-data rows now sit right under the visibility, above
-  // the retention list, because support's "Izvoz i zatvaranje naloga" leads here. The refresh closes the read blocks.
+  // Round 5 review: the two account-data rows sit right under the visibility, above the retention list, because support's
+  // "Izvoz i zatvaranje naloga" leads here. The refresh is one word at the end of the title of the section it renews, so it
+  // comes after them (UI/UX pass 2026-10-08, F6).
   expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType).map(node => node.props.accessibilityLabel).filter(label => label !== 'Nazad'))
-    .toEqual(['Izvoz podataka', 'Zatvaranje naloga', 'Osveži stanje']);
+    .toEqual(['Izvoz podataka', 'Zatvaranje naloga', 'Osveži rokove čuvanja']);
 });
 it('renders every published rule field and only the narrow matching capability', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
@@ -100,7 +105,7 @@ it('does not carry expanded legal content across a newly read policy version', a
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.onPress());
   expect(texts()).toContain('fixture duration');
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
-  await act(async () => button('Osveži stanje').onPress());
+  await act(async () => refresh().onPress());
   // The version itself is no longer drawn on this screen (only the legal documents carry one): the proof that the new read
   // replaced the old one is that its rule is closed again and none of the old rule's text is on screen.
   expect(tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.accessibilityState.expanded).toBe(false);
@@ -119,7 +124,7 @@ it.each(['policy', 'execution'])('keeps the other reader usable after %s fails w
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'AI razgovori i izdvojeni podaci' }).props.onPress());
     expect(texts()).toContain('fixture duration');
   }
-  await act(async () => button('Osveži stanje').onPress());
+  await act(async () => refresh().onPress());
   expect(mockPolicy).toHaveBeenCalledTimes(2); expect(mockExecution).toHaveBeenCalledTimes(2);
 });
 it('opens existing export once after an explicit double tap', async () => {
@@ -174,23 +179,26 @@ it('keeps the unpublished and failed retention states off the green confirmation
   const alert = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'alert');
   expect(alert.map(node => node.props.children)).toContain('Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.');
 });
-// Round 5 review: the retry of a failed retention read stands right under its note, and there is one refresh on screen.
-it('a failed retention read has its retry right under its own note', async () => {
+// Round 5 review: the retry of a failed retention read stands with its own section, and there is one refresh on screen. Since the
+// UI/UX pass 2026-10-08 the retry is the word at the end of the title of the section whose note says it failed.
+it('a failed retention read has its retry in the title of its own section, over its own note', async () => {
   mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
   const note = tree.root.findAllByType(InlineNote).find(node => node.props.tone === 'danger')!;
   expect(note.props.children).toBe('Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.');
   const section = note.parent!;
-  expect(section.findAllByProps({ label: 'Osveži stanje' }).length).toBeGreaterThan(0);
-  expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje')).toHaveLength(1);
+  expect(section.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži rokove čuvanja')).toHaveLength(1);
+  expect(section.findAll(node => node.type === 'T' as React.ElementType && node.props.accessibilityRole === 'header').map(node => node.children.join(''))).toEqual(['Rokovi čuvanja']);
+  expect(refreshPresses()).toHaveLength(1);
+  mockPolicy.mockResolvedValue(ok(policy())); await act(async () => refresh().onPress());
+  expect(tree.root.findAllByType(InlineNote).filter(node => node.props.tone === 'danger')).toHaveLength(0);
 });
 it('a failed deletion read takes the danger note; a version mismatch stays a plain note', async () => {
   mockExecution.mockRejectedValueOnce(new Error('private transport diagnostic')); await render();
-  const block = () => tree.root.findAllByType(InlineNote).find(node =>
-    node.findAll(child => child.type === 'T' as React.ElementType &&
-      child.props.children === 'Automatsko brisanje napuštenih razgovora').length === 1)!;
+  const block = () => tree.root.findAllByType(InlineNote).find(node => node.props.children === 'Dostupnost automatskog brisanja nije potvrđena.')!;
   expect(block().props.tone).toBe('danger');
+  expect(block().props.alert).toBe(true);
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2'))); mockExecution.mockResolvedValue(ok(execution('fixture-v1')));
-  await act(async () => button('Osveži stanje').onPress());
+  await act(async () => refresh().onPress());
   expect(block().props.tone).toBe('neutral'); expect(texts()).toContain('Dostupnost automatskog brisanja nije potvrđena');
 });
 it.each(['closure', 'export', 'back'])('establishes usable %s after reads finish before route focus, without another read', async action => {
@@ -234,29 +242,54 @@ it('a re-read the person asks for leaves the published rules on screen under the
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
   expect(texts()).toContain('AI razgovori i izdvojeni podaci');
   const policyAgain = deferred(), executionAgain = deferred(); mockPolicy.mockReturnValueOnce(policyAgain.promise); mockExecution.mockReturnValueOnce(executionAgain.promise);
-  await act(async () => { button('Osveži stanje').onPress(); });
+  expect(refreshWord()).toBe('Osveži');
+  await act(async () => { refresh().onPress(); });
   expect(texts()).toContain('AI razgovori i izdvojeni podaci'); expect(texts()).not.toContain('Učitavamo rokove čuvanja');
-  expect(button('Osveži stanje')).toMatchObject({ disabled: true, loading: true });
-  await act(async () => { button('Osveži stanje').onPress(); }); expect(mockPolicy).toHaveBeenCalledTimes(2);
+  // The word says it is at work, and a second press while it is at work asks for nothing more.
+  expect(refreshWord()).toBe('Osvežavamo…');
+  await act(async () => { refresh().onPress(); }); expect(mockPolicy).toHaveBeenCalledTimes(2); expect(mockExecution).toHaveBeenCalledTimes(2);
   await act(async () => { policyAgain.resolve(ok(policy('fixture-v2'))); executionAgain.resolve(ok(execution('fixture-v2'))); });
-  expect(button('Osveži stanje')).toMatchObject({ disabled: false, loading: false });
+  expect(refreshWord()).toBe('Osveži');
 });
 it('a re-read that fails keeps the last published rules and says they could not be renewed, with the refresh as the retry', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); await render();
   mockPolicy.mockRejectedValueOnce(new Error('private transport diagnostic'));
-  await act(async () => button('Osveži stanje').onPress());
+  await act(async () => refresh().onPress());
   expect(texts()).toContain('AI razgovori i izdvojeni podaci'); expect(texts()).toContain('Rokovi čuvanja nisu osveženi. Prikazano je ono što je poslednji put učitano.');
   expect(texts()).not.toContain('private transport');
-  expect(tree.root.findAll(node => node.type === 'Press' as React.ElementType && node.props.accessibilityLabel === 'Osveži stanje')).toHaveLength(1);
+  expect(refreshPresses()).toHaveLength(1);
   mockPolicy.mockResolvedValue(ok(policy('fixture-v2')));
-  await act(async () => button('Osveži stanje').onPress());
+  await act(async () => refresh().onPress());
   expect(texts()).not.toContain('nisu osveženi');
 });
 it('a re-read of the automatic deletion that fails is said as not confirmed, never as the old yes', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render();
   expect(texts()).toContain('Automatsko brisanje je omogućeno samo za napuštene AI razgovore');
   mockExecution.mockRejectedValueOnce(new Error('private transport diagnostic'));
-  await act(async () => button('Osveži stanje').onPress());
+  await act(async () => refresh().onPress());
   expect(texts()).toContain('Dostupnost automatskog brisanja nije potvrđena'); expect(texts()).not.toContain('brisanje je omogućeno');
   expect(texts()).not.toContain('private transport');
+});
+// UI/UX pass 2026-10-08 (F6, composition spec 4.15): what only TELLS is a line with no picture and no arrow; what leads somewhere is a
+// row with its arrow; the sections are named by the system's heading, and the two data rows stand on the screen's one edge.
+it('who sees what are two lines that tell: no press, no picture, no arrow, and nothing that looks like a link', async () => {
+  await render();
+  for (const title of ['Javni podaci zadatka', 'Lokacija i kontakt']) {
+    const rows = tree.root.findAll(node => node.props.title === title);
+    expect(rows).toHaveLength(1);
+    expect([title, rows[0].props.onPress, rows[0].props.leading, rows[0].props.arrow]).toEqual([title, undefined, undefined, undefined]);
+  }
+});
+it('names the four groups with the system heading, in the order a person asks', async () => {
+  mockPolicy.mockResolvedValue(ok(policy())); await render();
+  const headings = tree.root.findAll(node => node.type === 'T' as React.ElementType && node.props.variant === 'heading' && node.props.accessibilityRole === 'header')
+    .map(node => node.children.join(''));
+  expect(headings).toEqual(['Ko šta vidi', 'Tvoji podaci', 'Rokovi čuvanja', 'Automatsko brisanje napuštenih razgovora']);
+});
+it('keeps the refresh out of the way until there is something to renew, and says in its spoken label what it renews', async () => {
+  const first = deferred(); mockPolicy.mockReturnValueOnce(first.promise); await render();
+  expect(refreshPresses()).toHaveLength(0);
+  await act(async () => first.resolve(ok({ ready: false, reason: 'RETENTION_POLICY_NOT_PUBLISHED', missingDataClasses: [] })));
+  expect(refresh().accessibilityLabel).toBe('Osveži rokove čuvanja');
+  expect(refresh().accessibilityRole).toBe('button');
 });

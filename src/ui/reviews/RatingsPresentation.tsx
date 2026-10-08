@@ -7,6 +7,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { Avatar } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
+import { layout, ruleWidth } from '../system/layout';
 import { dogovora } from '../system/plural';
 import { Segmented } from '../system/Segmented';
 import { StateView } from '../system/StateView';
@@ -86,7 +87,7 @@ export function GivenRatings({ view }: { view: GivenView }) {
     {empty && !view.older && view.failed === 0 ? <StateView kind="empty" art="star" title="Još nema datih ocena"
       body="Ocene koje ostaviš posle završenog Dogovora pojaviće se ovde." /> : null}
     {empty && view.older ? <T variant="note" tone="muted">U poslednjim Dogovorima nema datih ocena.</T> : null}
-    {view.rows.map((row, index) => <GivenItem key={row.agreementId} row={row} first={index === 0} />)}
+    {view.rows.map((row, index) => <GivenItem key={row.agreementId} row={row} last={index === view.rows.length - 1} />)}
     {view.failed > 0 ? <View style={s.notice} accessibilityLiveRegion="polite">
       <T variant="note" tone="muted">{`Ne možemo da učitamo ocene za ${dogovora(view.failed)}.`}</T>
       <V2Action label="Pokušaj ponovo" kind="quiet" compact loading={view.working === 'retry'} disabled={view.working !== null} onPress={view.onRetryFailed} />
@@ -95,13 +96,13 @@ export function GivenRatings({ view }: { view: GivenView }) {
   </View>;
 }
 
-function GivenItem({ row, first }: { row: GivenRow; first: boolean }) {
+function GivenItem({ row, last }: { row: GivenRow; last: boolean }) {
   const name = row.person?.name ?? null, day = trenutak(row.createdAt)?.dan ?? null;
   const spoken = ['Ocena ' + row.rating + ' od 5', name ?? 'Ime nije dostupno', row.title, day].filter(Boolean).join('. ');
-  return <View style={[s.item, !first && s.rule]}>
+  return <View style={s.item}>
     <Press accessibilityRole="button" accessibilityLabel={spoken} accessibilityHint="Otvara Dogovor." haptic="select"
       scaleTo={sys.motion.scale.row} onPress={row.onOpen} style={s.open}>
-      <Avatar initials={row.person?.initials ?? null} size={40} />
+      <View style={s.face}><Avatar initials={row.person?.initials ?? null} size={layout.slot} /></View>
       <View style={s.copy}>
         <View style={s.head}>
           {name ? <T variant="bodyStrong" numberOfLines={2} style={s.name}>{name}</T>
@@ -114,6 +115,7 @@ function GivenItem({ row, first }: { row: GivenRow; first: boolean }) {
     </Press>
     {/* Outside the row's own press: the comment has a control of its own, and a button inside a button cannot be reached. */}
     {row.comment ? <View style={s.comment}><ReviewCommentText text={row.comment} /></View> : null}
+    {last ? null : <View pointerEvents="none" style={s.rule} />}
   </View>;
 }
 
@@ -121,16 +123,18 @@ const s = StyleSheet.create({
   hidden: { display: 'none' },
   body: { gap: sys.space.base },
   ink: { color: sys.color.ink },
-  bar: { width: 160, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: 2 },
+  bar: { width: 160, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: sys.space.xs },
   summary: { gap: sys.space.xs },
-  average: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: sys.touch.min },
-  stars: { flexDirection: 'row', gap: 2 },
-  item: { gap: sys.space.sm },
-  rule: { paddingTop: sys.space.base, borderTopWidth: 1, borderColor: sys.color.line },
-  open: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: sys.touch.min },
+  average: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: layout.touch },
+  stars: { flexDirection: 'row', gap: sys.space.xs },
+  item: { paddingVertical: sys.space.md, gap: sys.space.sm },
+  // The divider is not a border: it begins where the words begin, like the one of a `ListRow`.
+  rule: { position: 'absolute', left: layout.slot + sys.space.md, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },
+  open: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: layout.touch },
+  face: { width: layout.slot, alignItems: 'center' },
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: sys.space.md },
   name: { flex: 1, minWidth: 0, color: sys.color.ink },
-  comment: { paddingLeft: 40 + sys.space.md },
+  comment: { paddingLeft: layout.slot + sys.space.md },
   notice: { gap: sys.space.xs, alignItems: 'flex-start' },
 });

@@ -5,7 +5,9 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 // without throwing, returns to the scene list, and reaches no data service or navigation.
 const mockBack = jest.fn(), mockPush = jest.fn(), mockReplace = jest.fn(), mockNavigate = jest.fn();
 jest.mock('expo-router', () => ({ router: { back: () => mockBack(), push: (...a: unknown[]) => mockPush(...a), replace: (...a: unknown[]) => mockReplace(...a),
-  navigate: (...a: unknown[]) => mockNavigate(...a), canGoBack: () => true }, useFocusEffect: () => undefined }));
+  navigate: (...a: unknown[]) => mockNavigate(...a), canGoBack: () => true }, useFocusEffect: () => undefined,
+  // A scene can be opened by its address (`?scene=`), for the design lab; the tests open them from the list.
+  useLocalSearchParams: () => ({}) }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 // Only Android Back is replaced, so the scenes' own hardware-back listeners can be heard.
 const mockBackHandlers: { list: (() => boolean)[] } = { list: [] };

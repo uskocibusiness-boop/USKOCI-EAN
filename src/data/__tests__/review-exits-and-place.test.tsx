@@ -5,6 +5,7 @@ import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskRe
 import type { NeedLocationInput } from '../../contracts/location';
 import type { NeedTaskGeography } from '../../contracts/needFactsV2';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
+import { APPLICATION_PROMISE } from '../ownTaskStanding';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -111,8 +112,14 @@ const update = async () => { await act(async () => tree.update(<ReviewRoute />))
 const blur = async () => { mockFocused = false; await update(); };
 const actions = () => tree.root.findAll(node => node.type === ('Action' as React.ElementType));
 const labels = () => actions().map(node => node.props.label as string);
-const action = (label: string) => tree.root.findByProps({ label }).props;
-const absent = (label: string) => tree.root.findAllByProps({ label }).length === 0;
+/** A command of the review: a button (`label`) or a row / a word at the end of a line (a `Press` named by its `accessibilityLabel`), never one of an open question. */
+const commands = (label: string) => tree.root.findAll(node => node.props?.label === label
+  || (node.type === ('Press' as React.ElementType) && node.props?.accessibilityLabel === label && !String(node.props?.testID ?? '').startsWith('confirm-sheet')));
+const action = (label: string) => { const found = commands(label); if (found.length !== 1) throw new Error(`${found.length} commands named "${label}"`); return found[0].props; };
+const absent = (label: string) => commands(label).length === 0;
+/** The two ways out at the end of the page, in the order they are drawn. */
+const waysOut = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType)
+  && ['Izmeni zadatak', 'Obriši nacrt'].includes(node.props?.accessibilityLabel)).map(node => node.props.accessibilityLabel as string);
 const publish = () => tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 /** The words between two headings of the review: the public half and the private half of the place. */
@@ -213,21 +220,21 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
 });
 
 describe('the ways out of a review that is not published yet', () => {
-  it('draws "Izmeni zadatak" (white, not green), "Sačuvaj nacrt" and, last, "Obriši nacrt" in the danger colour, under ONE green action', async () => {
+  it('draws ONE green action with "Sačuvaj nacrt" quiet under it in the foot, and "Izmeni zadatak" and, last, "Obriši nacrt" as the last two rows of the page', async () => {
     await render();
-    expect(labels().slice(-3)).toEqual(['Izmeni zadatak', 'Sačuvaj nacrt', 'Obriši nacrt']);
-    expect(action('Izmeni zadatak')).toMatchObject({ kind: 'secondary', tone: 'neutral' });
+    // The foot holds what is decided (publish now, or keep it for later); the rows hold the rarer ways out, at the end of everything there is to change.
+    expect(labels()).toEqual(['Sačuvaj nacrt']);
     expect(action('Sačuvaj nacrt').kind).toBe('quiet');
-    expect(action('Obriši nacrt').kind).toBe('destructive');
+    expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']);
     // The only green fill on the screen is the publish.
     expect(greenPresses()).toEqual(['Objavi zadatak']); expect(greenActions()).toEqual([]);
-    // They are enabled on a review that is ready, and each is at least a full touch target (V2Action's own 48).
+    // They are enabled on a review that is ready, and each is at least a full touch target (ListRow's own 56 and V2Action's 48).
     for (const label of ['Izmeni zadatak', 'Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBe(false);
   });
 
   it('a review that cannot be accepted yet still offers the edit and the deletion, but not the saving of a draft', async () => {
     mockPrepare.mockResolvedValue(ok(review({ canAccept: false, missingRequired: ['need.title'] }))); await render();
-    expect(labels().slice(-2)).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
+    expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
     // The publish waits grey (with its reason), so there is no green fill at all, and still nothing else is green.
     expect(publish().disabled).toBe(true); expect(greenPresses()).toEqual([]); expect(greenActions()).toEqual([]);
   });
@@ -235,7 +242,7 @@ describe('the ways out of a review that is not published yet', () => {
   it('the changes of a task that already exists offer the edit only: there is no draft to delete, and nothing to save as one', async () => {
     const bound = review({ draftId: NEED, draftRevision: 4 }); mockPrepare.mockResolvedValue(ok(bound)); mockRead.mockResolvedValue(ok({ review: bound, command: null }));
     await render();
-    expect(action('Izmeni zadatak').kind).toBe('secondary'); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
+    expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' })).toBeDefined();
     expect(greenPresses()).toEqual(['Potvrdi izmene i objavi']);
   });
@@ -336,9 +343,10 @@ describe('the ways out of a review that is not published yet', () => {
       expect(mockAbandon).toHaveBeenCalledTimes(1);
       expect(mockPoruka).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
       expect(text()).toContain('Ovaj razgovor više ne može da se napusti.');
-      // Nothing more is sent until the outcome is read: the exits wait grey, and the explicit read is offered.
-      for (const label of ['Izmeni zadatak', 'Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBe(true);
-      expect(action('Učitaj pregled i proveri ishod').disabled).toBe(false);
+      // Nothing more is sent until the outcome is read: the ways out wait grey, the saving of a draft gives way to the explicit read, and that is offered.
+      for (const label of ['Izmeni zadatak', 'Obriši nacrt']) expect(action(label).disabled).toBe(true);
+      expect(absent('Sačuvaj nacrt')).toBe(true);
+      expect(action('Proveri').disabled).toBe(false);
     });
   });
 
@@ -418,7 +426,7 @@ describe('a private draft reviewed for its first publication', () => {
     expect(text()).toContain('Pregled zadatka'); expect(text()).not.toContain('Pregled izmena');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' })).toHaveLength(0);
-    expect(text()).toContain('Ovim prihvataš prikazanu verziju i tražiš objavu.'); expect(text()).not.toContain('potvrđuješ ovu verziju');
+    expect(text()).toContain('Objavljuješ ovu verziju zadatka.'); expect(text()).not.toContain('izmenjenu verziju');
     expect(publish().disabled).toBe(false);
   });
 
@@ -431,14 +439,13 @@ describe('a private draft reviewed for its first publication', () => {
     const shown = DRAFT_REVIEW(); mockPrepare.mockResolvedValue(ok(shown)); await render();
     expect(text()).toContain('Pregled izmena');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi izmene i objavi' })).toHaveLength(1);
-    expect(action('Izmeni zadatak').kind).toBe('secondary'); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
+    expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
   });
 
   it('offers "Izmeni zadatak" (to the conversation) and, last, "Obriši nacrt", under ONE green action, and no "Sačuvaj nacrt": the draft already exists', async () => {
     await open();
-    expect(labels().slice(-2)).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
-    expect(action('Izmeni zadatak')).toMatchObject({ kind: 'secondary', tone: 'neutral' }); expect(action('Obriši nacrt').kind).toBe('destructive');
+    expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(greenPresses()).toEqual(['Objavi zadatak']); expect(greenActions()).toEqual([]);
     await act(async () => action('Izmeni zadatak').onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
@@ -518,7 +525,7 @@ describe('a private draft reviewed for its first publication', () => {
       });
       await render();
       await act(async () => publish().onPress());
-      expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain('Prijave stižu ovde. Javićemo ti.');
+      expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain(APPLICATION_PROMISE.published);
       expect(text()).not.toContain('Izmene su objavljene.');
     } finally { jest.useRealTimers(); }
   });
@@ -551,7 +558,7 @@ describe('the way out of every blocker is a visible action', () => {
   it('names the word of each other row, and a row that goes to the conversation or to the place says so', async () => {
     mockPrepare.mockResolvedValue(ok(review({ missingRequired: ['need.title'], canAccept: false, safety: 'BLOCK' }))); await render();
     const words = (text: string) => rowOf(text).findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children);
-    expect(words('Sadržaj ne može da se objavi u ovom obliku.')).toEqual(['Sadržaj ne može da se objavi u ovom obliku.', 'Izmeni u razgovoru']);
+    expect(words('Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.')).toEqual(['Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', 'Izmeni u razgovoru']);
     expect(words('Nedostaje: Naslov.')).toEqual(['Nedostaje: Naslov.', 'Dopuni u razgovoru']);
     expect(words('Mesto na mapi nije potvrđeno.')).toEqual(['Mesto na mapi nije potvrđeno.', 'Dodaj mesto']);
     await act(async () => rowOf('Nedostaje: Naslov.').props.onPress());
@@ -579,13 +586,14 @@ describe('the way out of every blocker is a visible action', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
   });
 
-  it('while another editor is open the rows wait grey, and so does their word', async () => {
+  it('while another editor is open the rows wait grey, and the open editor is the only thing left to press', async () => {
     mockPrepare.mockResolvedValue(ok(PASSED())); await render();
     const words = 'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.';
-    const wordColour = () => StyleSheet.flatten(rowOf(words).findAll(node => node.type === ('T' as React.ElementType)).pop()!.props.style).color;
-    expect(wordColour()).toBe(sys.color.green);
+    expect(rowOf(words).props.disabled).toBe(false);
     await act(async () => action('Uredi rok za prijave').onPress());
-    expect(rowOf(words).props.disabled).toBe(true); expect(wordColour()).toBe(sys.color.muted);
+    // Greyed, and every word at the end of a line ("Uredi mesto", "Izmeni") is gone, not drawn pressable and ignored.
+    expect(rowOf(words).props.disabled).toBe(true);
+    expect(absent('Uredi mesto')).toBe(true); expect(absent('Dodaj mesto')).toBe(true); expect(absent('Uredi rok za prijave')).toBe(true);
     const kept = rowOf(words).props.onPress;
     await act(async () => kept());
     expect(tree.root.findAllByProps({ label: 'Početak: datum' })).toHaveLength(0);

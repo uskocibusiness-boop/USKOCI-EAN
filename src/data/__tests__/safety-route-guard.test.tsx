@@ -27,7 +27,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 it.each([{}, { targetAccountId: A }, { targetAccountId: B, needId: 'not-a-uuid' }])('without a usable target (%j) explains where safety opens from and Back never dead-ends', async params => {
   mockParams = params; await render();
   expect(tree.root.findAllByType('Safety' as React.ElementType)).toHaveLength(0);
-  expect(text()).toContain('sa javnog profila osobe');
+  expect(text()).toMatch(/sa profila (druge )?osobe/);
   await act(async () => tree.root.findByType('Screen' as React.ElementType).props.onBack());
   expect(mockRouter.back).toHaveBeenCalledTimes(1);
   mockRouter.canGoBack.mockReturnValue(false);

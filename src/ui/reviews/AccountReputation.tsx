@@ -4,6 +4,7 @@ import { accountReputationLabel, reviewsClientService, type AccountReputation as
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { layout } from '../system/layout';
 import { sys } from '../system/tokens';
 import { FactArt } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
@@ -58,21 +59,25 @@ export function ReputationLine({ state, onRetry, onOpen }: { state: 'loading' | 
   if (!isReputation(state)) return null;
   const none = state.reviewCount === 0, label = accountReputationLabel(state);
   const words = none ? <T variant="note" tone="muted">{label}</T>
-    : <View style={s.line}><FactArt kind="star" size={18} /><T variant="note" style={s.value}>{label}</T></View>;
+    : <View style={s.line}><FactArt kind="star" size={16} /><T variant="note" style={s.value}>{label}</T></View>;
   if (!onOpen) return words;
   return <Press accessibilityRole="button" accessibilityLabel={label} accessibilityHint="Otvara ocene." haptic="select"
-    scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.open}>
+    scaleTo={sys.motion.scale.row} onPress={onOpen} hitSlop={OPEN_REACH} style={s.open}>
     {words}
     <Glyph name="caret-right" size={16} tone="muted" />
   </Press>;
 }
 
+/** The line is as tall as its words (20, the `note` line); the finger reaches the 48 dp of a touch all the same, 14 above and under it. */
+const NOTE_LINE = 20;
+const OPEN_REACH = { top: (layout.touch - NOTE_LINE) / 2, bottom: (layout.touch - NOTE_LINE) / 2, left: sys.space.sm, right: sys.space.sm };
+
 const s = StyleSheet.create({
   centered: { alignItems: 'center', maxWidth: '100%' },
-  bar: { width: 112, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: 2 },
-  retry: { minHeight: 48, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, alignSelf: 'flex-start' },
-  // No alignSelf: in the identity passport the wrapper centres it, elsewhere it starts at the edge like the words it replaces.
-  open: { minHeight: 48, flexDirection: 'row', alignItems: 'center', columnGap: sys.space.xs },
+  bar: { width: 112, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: sys.space.xs },
+  retry: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: sys.space.sm, alignSelf: 'flex-start' },
+  // The words of the rating stand on the profile's edge, under the city, like every line of the identity.
+  open: { minHeight: NOTE_LINE, flexDirection: 'row', alignItems: 'center', columnGap: sys.space.xs },
   shrink: { flexShrink: 1 },
   action: { color: sys.color.green, fontWeight: '600' },
   line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },

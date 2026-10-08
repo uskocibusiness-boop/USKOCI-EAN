@@ -11,8 +11,10 @@ import { useConfirmSheet } from '../system/ConfirmSheet';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
+import { layout, ruleWidth } from '../system/layout';
 import { sys } from '../system/tokens';
 import { SupportChoiceRow, SupportField, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, SupportTopicDisclosure, supportLabel, supportTime } from './SupportPresentation';
+import type { SupportPreset } from './bugReportPreset';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
 import { supportMessageShown, supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
@@ -35,9 +37,9 @@ const channel = (topic: SupportTopic): SupportPayloads['CREATE']['channel'] =>
 const PAGE = 50;
 type ReadAgreements = () => Promise<DogovorProjekcija[]>;
 
-export function SupportNewScreen({ reference }: { reference: SupportReference | null | 'INVALID' }) {
+export function SupportNewScreen({ reference, preset }: { reference: SupportReference | null | 'INVALID'; preset?: SupportPreset }) {
   const model = useSupportController({ type: 'NEW' });
-  return <SupportNewView model={model} reference={reference} />;
+  return <SupportNewView model={model} reference={reference} preset={preset} />;
 }
 
 /**
@@ -45,8 +47,9 @@ export function SupportNewScreen({ reference }: { reference: SupportReference | 
  * words, and the send pinned in the footer with the reason it is grey. The words live only in memory, so Back with typed
  * words asks first. Presentation over the controller: every command, fence and payload is unchanged.
  */
-export function SupportNewView({ model, reference, readAgreements = () => agreementClientService.mojiDogovori({ includeRatings: false }) }: {
+export function SupportNewView({ model, reference, preset, readAgreements = () => agreementClientService.mojiDogovori({ includeRatings: false }) }: {
   model: ReturnType<typeof useSupportController>; reference: SupportReference | null | 'INVALID';
+  /** The first words of the request (a bug report knows its build). The request cannot be sent until the person has added to them. */ preset?: SupportPreset;
   /** Where the person's own Dogovori come from (the gallery hands in fixtures). */ readAgreements?: ReadAgreements;
 }) {
   const { state, navigate } = model;
@@ -77,15 +80,16 @@ export function SupportNewView({ model, reference, readAgreements = () => agreem
   </SupportFrame>;
   if (!model.focused) return <SupportFrame title="Novi zahtev" onBack={back}><SupportLoading /></SupportFrame>;
   return <NewContents key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}`}
-    model={model} initialReference={reference} readAgreements={readAgreements} back={back} />;
+    model={model} initialReference={reference} preset={preset} readAgreements={readAgreements} back={back} />;
 }
 
 function Attachment({ art, label, last }: { art: FactArtKind; label: string; last: boolean }) {
-  return <View style={[s.attachment, !last && s.line]}><FactArt kind={art} size={26} /><T variant="bodyStrong" style={s.grow}>{label}</T></View>;
+  return <View style={s.attachment}><FactArt kind={art} size={24} /><T variant="bodyStrong" style={s.grow}>{label}</T>
+    {last ? null : <View pointerEvents="none" style={s.rule} />}</View>;
 }
 
-function NewContents({ model, initialReference, readAgreements, back }: {
-  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; readAgreements: ReadAgreements; back: () => void;
+function NewContents({ model, initialReference, preset, readAgreements, back }: {
+  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; preset?: SupportPreset; readAgreements: ReadAgreements; back: () => void;
 }) {
   const { state, current: parentCurrent, controller, navigate } = model;
   const alive = useRef(true);
@@ -98,7 +102,9 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const [selectedEvidence, setSelectedEvidence] = useState<SupportReference | null>(
     initialReference && ['AGREEMENT_MESSAGE', 'GROUP_MESSAGE'].includes(initialReference.kind) ? initialReference : null);
   const [contextTitle, setContextTitle] = useState<string | null>(null);
-  const [title, setTitle] = useState(''), [body, setBody] = useState(''), [desired, setDesired] = useState('');
+  const [title, setTitle] = useState(preset?.title ?? ''), [body, setBody] = useState(preset?.body ?? ''), [desired, setDesired] = useState('');
+  // What the person has added to the words they were given: nothing of the preset is a report until they have written under it.
+  const written = preset ? body.trim() !== preset.body.trim() : !!body.trim();
   const [choices, setChoices] = useState<DogovorProjekcija[] | null>(null), [choosing, setChoosing] = useState(false), [choiceError, setChoiceError] = useState('');
   const [choicePage, setChoicePage] = useState(0);
   const confirm = useConfirmSheet();
@@ -107,7 +113,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const latestDraft = useRef(draftView); latestDraft.current = draftView;
   const requiresAgreement = topic === 'COLLABORATION' || topic === 'NO_SHOW';
   const valid = !!title.trim() && Array.from(title).length <= 200 && !!body.trim() && Array.from(body).length <= 4000
-    && Array.from(desired).length <= 1000 && (!requiresAgreement || context?.kind === 'AGREEMENT')
+    && written && Array.from(desired).length <= 1000 && (!requiresAgreement || context?.kind === 'AGREEMENT')
     && (topic !== 'PUBLICATION_REVIEW' || context?.kind === 'TASK_REVIEW');
   // The send button is grey until the form is complete, and a grey button always says why (round 5 review): first what
   // holds the whole screen (an unconfirmed send, a read in progress or failed), then what the form still lacks. While it
@@ -116,13 +122,15 @@ function NewContents({ model, initialReference, readAgreements, back }: {
   const sending = state.phase === 'SENDING' && state.command === 'SEND';
   const lacking = valid ? null : requiresAgreement && context?.kind !== 'AGREEMENT' ? 'Izaberi Dogovor iznad da bi zahtev mogao da se pošalje.'
     : topic === 'PUBLICATION_REVIEW' && context?.kind !== 'TASK_REVIEW' ? 'Ovu temu otvaraš iz pregledane odluke o zadatku.'
-      : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.' : 'Skrati tekst do dozvoljene dužine.';
+      : !title.trim() || !body.trim() ? 'Za slanje su potrebni naslov i opis.'
+        : !written ? 'Dopiši šta se desilo pre slanja.' : 'Skrati tekst do dozvoljene dužine.';
   const missing = sending || (!disabled && valid) ? null
     : state.pending ? 'Najpre proveri prethodno slanje.'
       : state.phase === 'LOADING' ? 'Učitavamo sačuvano stanje…'
         : state.phase === 'ERROR' ? 'Stanje zahteva nije učitano.'
           : lacking ?? (choosing ? 'Učitavamo tvoje Dogovore…' : null);
-  const dirty = !!title || !!body || !!desired;
+  // Words the screen wrote itself are not the person's: leaving with only those asks nothing.
+  const dirty = (title !== (preset?.title ?? '') && !!title) || (body !== (preset?.body ?? '') && !!body) || !!desired;
   // Leaving with typed words asks first, in every state that keeps them on screen. Not while a send is running or
   // unconfirmed: those words may already have reached support, so "neće biti sačuvan" would not be true.
   const guarded = dirty && !state.pending && state.phase !== 'SENDING';
@@ -203,7 +211,7 @@ function NewContents({ model, initialReference, readAgreements, back }: {
       {requiresAgreement ? <SettingsGroup title="Dogovor na koji se zahtev odnosi"><View style={s.inCard}>
         {context?.kind === 'AGREEMENT' ? <T variant="bodyStrong">{contextTitle ?? 'Izabran Dogovor'}</T>
           : <T tone="muted">Izaberi jedan od svojih Dogovora.</T>}
-        <T variant="note" tone="muted">Operater dobija označeni Dogovor i nužan kontekst. Privatni razgovor se ne kopira automatski.</T>
+        <T variant="note" tone="muted">Podrška dobija izabrani Dogovor i osnovne podatke o njemu. Razgovor se ne kopira automatski.</T>
         <SettingsAction label="Izaberi Dogovor" kind="quiet" loading={choosing} disabled={disabled} onPress={() => { void loadAgreements(); }} />
         {choiceError ? <T variant="note" accessibilityRole="alert" tone="danger">{choiceError}</T> : null}
         {/* Choosing this topic with no agreements made the send button unreachable, with nothing anywhere saying why:
@@ -259,13 +267,14 @@ function NewContents({ model, initialReference, readAgreements, back }: {
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
+  // The divider between two attachments is a rule of 1 dp, not a border: the same line every row of the app draws.
+  rule: { position: 'absolute', left: 0, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },
   receipt: { alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xl },
   form: { gap: sys.space.base },
   hidden: { display: 'none' },
   inCard: { paddingVertical: sys.space.md, gap: sys.space.sm },
-  inCardList: { paddingTop: 2 },
-  attachment: { minHeight: 56, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  line: { borderBottomWidth: 1, borderBottomColor: sys.color.line },
+  inCardList: { paddingTop: sys.space.xs },
+  attachment: { minHeight: layout.rowMinPlain, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   rights: { gap: sys.space.xs },
   pager: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm, justifyContent: 'space-between', paddingTop: sys.space.sm },
 });

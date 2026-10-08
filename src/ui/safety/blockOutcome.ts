@@ -13,7 +13,7 @@ export const blockWords = {
   removed: 'Blokiranje je uklonjeno.',
   restored: 'Blokiranje je vraćeno.',
   /** The undo went out and the server did not confirm it: the person is told to look, never that it worked. */
-  unconfirmed: 'Promena nije potvrđena. Proveri stanje pa pokušaj ponovo.',
+  unconfirmed: 'Ne znamo da li je promena sačuvana. Osveži pa pokušaj ponovo.',
 } as const;
 
 /** The account that made the change. A "Vrati" pressed after the account changed under the bar does nothing at all. */

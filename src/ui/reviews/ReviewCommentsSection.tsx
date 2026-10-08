@@ -122,14 +122,14 @@ function CommentRow({ item, photo, first }: { item: ReviewCommentItem; photo?: R
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
   // An open white section set off by one hairline, like the rating and the trust facts of a profile: no card, no card inside a card.
-  section: { gap: sys.space.md, marginTop: sys.space.md, paddingTop: sys.space.base, borderTopWidth: 1, borderColor: sys.color.line },
+  section: { gap: sys.space.md, marginTop: sys.space.md, paddingTop: sys.space.base },
   // Standing still where the comments will be: no spinner, nothing moves.
-  bar: { width: 160, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: 2 },
+  bar: { width: 160, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: sys.space.xs },
   state: { gap: sys.space.sm, alignItems: 'flex-start' },
   item: { gap: sys.space.sm },
-  rule: { paddingTop: sys.space.md, borderTopWidth: 1, borderColor: sys.color.line },
+  rule: { paddingTop: sys.space.md },
   head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  who: { flex: 1, minWidth: 0, gap: 2 },
-  meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: 2 },
+  who: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.xs },
   rating: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
 });

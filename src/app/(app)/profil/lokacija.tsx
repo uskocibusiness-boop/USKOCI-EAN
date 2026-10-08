@@ -7,6 +7,7 @@ import { normalizeWorkerLocation } from '../../../lib/location';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { LocationField, locationStyles } from '../../../ui/location/LocationControls';
+import { layout } from '../../../ui/system/layout';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { V2Action } from '../../../ui/v2/V2Action';
 import { T } from '../../../ui/Text';
@@ -130,7 +131,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
     {settled && !retry ? <View style={s.saved}><FactArt kind="check" size={20} />
       <T accessibilityRole="alert" tone="success" style={s.grow}>Područje rada je sačuvano.</T></View>
       : null}
-    {retry ? <V2Action label="Učitaj sačuvano stanje" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
+    {retry ? <V2Action label="Pokušaj ponovo" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
       error={refusal ?? undefined} />
       : <V2Action label="Sačuvaj područje rada" onPress={submit} loading={busy} style={brandAction}
         disabled={disabled || reading || settled || !selectable} reason={busy ? null : reason} error={refusal ?? undefined} />}
@@ -152,8 +153,8 @@ export default function PodrucjeRada() {
   // The form stays on screen while it is read again; only a first read or a failed one without data replaces it.
   if (!location) return <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={leave.back}>
     {editor.error && !editor.loading ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error}
-      primary={{ label: 'Učitaj sačuvano stanje', onPress: refresh }} />
-      : <StateView kind="loading" title="Učitavamo sačuvanu lokaciju…" skeleton={{ count: 2, rows: 1 }} />}
+      primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
+      : <StateView kind="loading" title="Učitavamo područje rada…" skeleton={{ count: 2, rows: 1 }} />}
   </WorkerProfileFrame>;
   // The saved line stands in the footer above the save (it used to sit at the top of the body, out of sight of the button).
   return <WorkerLocationForm key={location.revision} location={location} busy={editor.busy} uncertain={editor.uncertain}
@@ -170,13 +171,12 @@ const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
   note: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   saved: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  radius: { gap: 12 },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: { minHeight: 48, paddingHorizontal: 16, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
+  radius: { gap: sys.space.md },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+  pill: { minHeight: layout.touch, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
     backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
-  // The chosen distance is the green selection with a 1.5 edge; the half point it adds comes off the padding, so choosing
-  // never moves the row.
-  pillOn: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.green, borderWidth: 1.5, paddingHorizontal: 15.5 },
+  // The chosen distance is the green selection: the same edge in green on the soft green, so choosing never moves the row.
+  pillOn: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.green },
   pillText: { color: sys.color.ink, fontWeight: '600' },
   pillTextOn: { color: sys.color.green, fontWeight: '700' },
 });

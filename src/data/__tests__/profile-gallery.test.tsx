@@ -19,6 +19,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('expo-router', () => ({ router: { back: (...a: unknown[]) => mockBack(...a), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn(), push: jest.fn() },
+  useLocalSearchParams: () => ({}),
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]) }));
 // Review of step 9 (2026-09-24): a thrown client alone could not catch a read, because the services turn the throw into an
 // error state and the scene still draws. Every call is counted and must stay at zero, and nothing may be stored.

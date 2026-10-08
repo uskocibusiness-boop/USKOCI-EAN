@@ -4,8 +4,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 /**
  * "Ocene" (T4a, 2026-10-07): where the rating line of the profile leads. Two tabs in the owner's words, "Primljene" and "Date".
  * Primljene shows what the backend answers about the person's own account (the average with its count and, in a build with
- * the written comments, the comments); the individual ratings behind the average are not listed because the backend has no read for
- * them. Date lists the ratings the person gave, read from their finished Dogovori only when the tab is opened.
+ * the written comments, the reviews received, page by page: PROFILE-TRUST, R30, and which of them are listed is the server's answer).
+ * Date lists the ratings the person gave, read from their finished Dogovori only when the tab is opened.
  */
 jest.setTimeout(60_000);
 const ME = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', THEM = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', PROFILE = '99999999-9999-4999-8999-999999999999';
@@ -35,7 +35,8 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
-jest.mock('../ReviewCommentsSection', () => ({ ReviewCommentsSection: 'ReviewCommentsSection' }));
+// The received reviews read their own pages (tested in received-reviews.test.tsx); here the section is a named element, so the screen is tested for when it draws it.
+jest.mock('../ReceivedReviewsSection', () => ({ ReceivedReviewsSection: 'ReceivedReviewsSection' }));
 import Ocene from '../../../app/(app)/profil/ocene';
 import { trenutak } from '../../../lib/trenutak';
 
@@ -125,41 +126,36 @@ describe('Primljene', () => {
     await render();
     const all = texts();
     expect(all).not.toMatch(/anonim|server|Pojedinačn/i);
-    expect(hosts('ReviewCommentsSection')).toHaveLength(0);
+    expect(hosts('ReceivedReviewsSection')).toHaveLength(0);
   });
 
-  it('lists the written comments about the person only in a build with them, under the profile of the account', async () => {
+  it('lists the reviews the person received only in a build with the written comments', async () => {
     process.env[FLAG] = '1'; await render();
-    const sections = hosts('ReviewCommentsSection');
+    const sections = hosts('ReceivedReviewsSection');
     expect(sections).toHaveLength(1);
-    expect(sections[0].props.profileId).toBe(PROFILE);
-    expect(mockOwn).toHaveBeenCalledWith(ME, 'narucilac');
-    // The reviewer's photo is the profile photo as everywhere, at the size the section asks for, with the stand-in it hands over.
+    // The reviewer's photo is the profile photo as everywhere, at the size the list asks for, with the stand-in it hands over.
     const element = sections[0].props.photo('88888888-8888-4888-8888-888888888888', 40, 'stand-in') as React.ReactElement<Record<string, unknown>>;
     expect(element.type).toBe('ProfilePhoto');
     expect(element.props).toEqual({ profileId: '88888888-8888-4888-8888-888888888888', size: 40, fallback: 'stand-in' });
   });
 
-  it('without the flag nothing is read for the comments, and the work profile\'s id stands in when the person has no requester profile', async () => {
-    await render();
-    expect(mockOwn).not.toHaveBeenCalled(); expect(hosts('ReviewCommentsSection')).toHaveLength(0);
-    await act(async () => tree.unmount());
-    process.env[FLAG] = '1';
-    mockOwn.mockImplementation(async (_account: string, intent: string) => intent === 'uskocer' ? { profileId: 'work-profile' } : null);
-    await render();
-    expect(hosts('ReviewCommentsSection')[0].props.profileId).toBe('work-profile');
-  });
-
-  it('lists the comments even when the average cannot be read: the two reads do not depend on each other', async () => {
-    process.env[FLAG] = '1'; mockReputation.mockResolvedValue({ ok: false, kod: 'REPUTATION_NOT_AVAILABLE', poruka: 'x' });
-    await render();
-    expect(texts()).toContain('Ocene trenutno nisu dostupne'); expect(hosts('ReviewCommentsSection')).toHaveLength(1);
-  });
-
-  it('lists no comments for a person who has no profile to list them under', async () => {
+  it('reads no profile to ask for them: the function answers for the signed-in account itself', async () => {
     process.env[FLAG] = '1'; mockOwn.mockResolvedValue(null);
     await render();
-    expect(hosts('ReviewCommentsSection')).toHaveLength(0);
+    expect(mockOwn).not.toHaveBeenCalled();
+    // A person with no requester profile still has a list of what they received (the server says what it holds).
+    expect(hosts('ReceivedReviewsSection')).toHaveLength(1);
+  });
+
+  it('without the flag nothing is read for the reviews received, and no list is drawn', async () => {
+    await render();
+    expect(mockOwn).not.toHaveBeenCalled(); expect(hosts('ReceivedReviewsSection')).toHaveLength(0);
+  });
+
+  it('lists the reviews received even when the average cannot be read: the two reads do not depend on each other', async () => {
+    process.env[FLAG] = '1'; mockReputation.mockResolvedValue({ ok: false, kod: 'REPUTATION_NOT_AVAILABLE', poruka: 'x' });
+    await render();
+    expect(texts()).toContain('Ocene trenutno nisu dostupne'); expect(hosts('ReceivedReviewsSection')).toHaveLength(1);
   });
 });
 

@@ -4,6 +4,7 @@ import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskRe
 import type { NeedLocationInput } from '../../contracts/location';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
 import { PUBLISHED_MOMENT_MS } from '../../ui/objava/PublishedMoment';
+import { APPLICATION_PROMISE } from '../ownTaskStanding';
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -93,7 +94,10 @@ function deferred<T = unknown>() { let resolve!: (value: T) => void;
 let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<ReviewRoute />); }); };
 const update = async () => { await act(async () => tree.update(<ReviewRoute />)); };
-const action = (label: string) => tree.root.findByProps({ label }).props;
+/** A command of the review: a button (`label`) or a word at the end of a line or a row (a `Press` named by its `accessibilityLabel`: "Uredi mesto", "Izmeni, Naslov"). */
+const commands = (label: string) => tree.root.findAll(node => node.props?.label === label
+  || (node.type === ('Press' as React.ElementType) && node.props?.accessibilityLabel === label));
+const action = (label: string) => { const found = commands(label); if (found.length !== 1) throw new Error(`${found.length} commands named "${label}"`); return found[0].props; };
 const publish = () => tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const blur = async () => { mockFocused = false; await update(); };
@@ -189,10 +193,11 @@ it('serializes retained taps to one immutable review command and freezes an unkn
   await act(async () => held.resolve(unknownOutcome())); expect(publish().disabled).toBe(true);
   await act(async () => retained()); expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockRead).not.toHaveBeenCalled();
   mockRead.mockResolvedValue(ok({ review: review(), command: command('UNKNOWN_OUTCOME') }));
-  await act(async () => action('Učitaj pregled i proveri ishod').onPress());
+  // What is not known is checked with the table's one word, "Proveri".
+  await act(async () => action('Proveri').onPress());
   expect(mockRead).toHaveBeenCalledWith(REVIEW); expect(mockLatest).toHaveBeenCalledTimes(1);
   expect(mockResume).not.toHaveBeenCalled(); expect(mockAccept).toHaveBeenCalledTimes(1);
-  expect(text()).toContain('Objava još nije potvrđena'); expect(mockAlert).not.toHaveBeenCalled();
+  expect(text()).toContain('Ne znamo da li je zadatak objavljen'); expect(mockAlert).not.toHaveBeenCalled();
 });
 
 it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('restores %s on a fresh screen by read only without automatically resuming publication', async state => {
@@ -215,7 +220,7 @@ it('opens the existing saved draft explicitly after a terminal NOT_READY without
   mockOpenEdit.mockResolvedValue(ok({ conversationId: OTHER }));
   await render();
   expect(text()).toContain('privatan nacrt');
-  for (const resumeLabel of ['Nastavi istu objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
+  for (const resumeLabel of ['Nastavi objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
   expect(mockOpenEdit).not.toHaveBeenCalled();
   const retained = action('Izmeni zadatak').onPress;
   await act(async () => { void retained(); void retained(); });
@@ -350,7 +355,7 @@ it('shows a geographical conflict with the current C review instead of replaying
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
   expect(text()).toContain('Mesto je promenjeno posle prethodnog pregleda.');
   expect(text()).toContain('Adresa C'); expect(text()).not.toContain('Adresa B');
-  expect(publish().disabled).toBe(false); expect(action('Uredi mesto').disabled).toBe(false);
+  expect(publish().disabled).toBe(false); expect(commands('Uredi mesto')).toHaveLength(1);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled();
   await act(async () => action('Uredi mesto').onPress());
   expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(c);
@@ -431,7 +436,7 @@ it('recovers a retained local B proposal after an external C revision on the nex
   expect(mockPrepare).toHaveBeenCalledTimes(2);
   mockLocationRead.mockResolvedValue(ok(canonicalLocation(c, newer.geographyRevision)));
   mockPrepare.mockResolvedValue(ok(newer));
-  await act(async () => action('Učitaj pregled i proveri ishod').onPress());
+  await act(async () => action('Proveri').onPress());
   expect(mockPrepare).toHaveBeenCalledTimes(3);
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
   expect(text()).toContain('Adresa C'); expect(text()).toContain('Mesto je promenjeno posle prethodnog pregleda.');
@@ -511,8 +516,8 @@ it('a task held for a manual check says nobody is on duty and offers only "Izmen
   expect(text()).toContain('Zadatak zahteva ručnu proveru i još nije objavljen.');
   expect(text()).toContain('Podrška još nema dežurnog operatera');
   expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
-  expect(tree.root.findAllByProps({ label: 'Zatraži pregled podrške' })).toHaveLength(0);
-  expect(text()).not.toContain('Zatraži pregled podrške');
+  expect(tree.root.findAllByProps({ label: 'Obrati se podršci' })).toHaveLength(0);
+  expect(text()).not.toContain('Obrati se podršci');
   // One green action, the way that works; the check of the outcome stands beside it in white.
   expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(1);
   expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(sys.color.green);
@@ -528,7 +533,7 @@ it.each(['CLARIFY', 'BLOCK', 'ALLOW', 'NOT_READY', 'UNKNOWN_OUTCOME'] as const)(
   expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
 });
 
-const identityLabel = 'Nastavi bez uslova provere identiteta';
+const identityLabel = 'Ukloni uslov i nastavi';
 const identityReview = (value = true): AiTaskReviewEnvelope => ({ ...review(), publicProjection: [
   ...review().publicProjection, { id: 'identity-fact', key: 'need.verified_identity_required', value,
     displayValue: value ? 'Da' : 'Ne', privacyClass: 'PUBLIC', source: 'SYSTEM_DERIVED', status: 'CONFIRMED' },
@@ -562,7 +567,7 @@ it('keeps unknown identity correction visible and frozen until explicit read, wi
   expect(action(identityLabel).disabled).toBe(true); expect(publish().disabled).toBe(true);
   await act(async () => retained()); expect(mockCorrect).toHaveBeenCalledTimes(1); expect(mockPrepare).toHaveBeenCalledTimes(1);
   mockPrepare.mockResolvedValue(ok(identityReview(false)));
-  await act(async () => action('Učitaj pregled i proveri ishod').onPress());
+  await act(async () => action('Proveri').onPress());
   expect(publish().disabled).toBe(false); expect(mockCorrect).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled();
 });
 
@@ -583,7 +588,7 @@ it.each(['ACCEPTED', 'EVALUATED'] as const)('offers exact owned edit for histori
   const stored = state === 'ACCEPTED' ? command(state) : { ...command(state), evaluation: { kind: 'DECISION', decision: { outcome: 'ALLOW' } } };
   mockLatest.mockResolvedValue(ok({ review: identityReview(), command: stored }));
   mockOpenEdit.mockResolvedValue(ok({ conversationId: CONVERSATION })); await render();
-  for (const resumeLabel of ['Nastavi istu objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
+  for (const resumeLabel of ['Nastavi objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
   expect(mockCorrect).not.toHaveBeenCalled(); await act(async () => action('Izmeni zadatak').onPress());
   expect(mockOpenEdit).toHaveBeenCalledWith(NEED); expect(mockResume).not.toHaveBeenCalled();
   expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
@@ -593,7 +598,7 @@ it.each(['EVALUATING', 'UNKNOWN_OUTCOME'] as const)('does not turn historical tr
   mockLatest.mockResolvedValue(ok({ review: identityReview(), command: command(state) })); await render();
   expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ label: identityLabel })).toHaveLength(0);
-  for (const resumeLabel of ['Nastavi istu objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
+  for (const resumeLabel of ['Nastavi objavu', 'Objavi ovaj nacrt']) expect(tree.root.findAllByProps({ label: resumeLabel })).toHaveLength(0);
   expect(mockOpenEdit).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
@@ -617,10 +622,12 @@ describe('the review reads as a task', () => {
     expect(text()).toContain('Prenos ormara');
     // "Ovako će drugi videti zadatak" was a sentence about where the person is (plan 2.17, 3.3): the card shows the task as it will look.
     expect(text()).not.toContain('Ovako će drugi videti zadatak');
-    // The quiet correction of the title stays, under the card, and so does the card itself.
-    expect(tree.root.findAllByProps({ label: 'Izmeni naslov' })).toHaveLength(1);
+    // The correction of the title is a row of "Detalji" like every other fact, not a lonely button under the card (composition spec 4.6).
+    expect(commands('Izmeni naslov')).toHaveLength(0);
+    expect(commands('Izmeni, Naslov')).toHaveLength(1);
     const order = (value: string) => text().indexOf(value);
     expect(order('Prenos ormara')).toBeLessThan(order('Još treba'));
+    expect(order('Još treba')).toBeLessThan(order('Detalji'));
   });
 
   it('names what is not stated in one line instead of a row each', async () => {
@@ -637,8 +644,8 @@ describe('the review reads as a task', () => {
   it('opens them on request, so nothing is hidden from what is being accepted', async () => {
     mockPrepare.mockResolvedValue(ok(withEmpties()));
     await render();
-    const opener = tree.root.findAll(node => typeof node.props?.accessibilityLabel === 'string'
-      && node.props.accessibilityLabel.startsWith('Prikaži šta nije navedeno'))[0];
+    // One line of the same list, "Nije navedeno · Alati · Vozila · Prikaži": its word opens them as rows.
+    const opener = commands('Prikaži, Nije navedeno')[0];
     expect(opener).toBeDefined();
     await act(async () => { opener.props.onPress(); });
     expect(text()).not.toContain('Nije navedeno');
@@ -655,7 +662,7 @@ function scheduledReview(): AiTaskReviewEnvelope {
     { id: 'skills', key: 'need.required_skills', value: ['Prevoz, utovar', 'Montaža'], displayValue: 'prevoz i montaža', privacyClass: 'PUBLIC',
       source: 'AI_INFERENCE', status: 'NEEDS_CONFIRMATION' }] };
 }
-const rowEdit = (label: string) => tree.root.findByProps({ accessibilityLabel: `Izmeni: ${label}` }).props;
+const rowEdit = (label: string) => tree.root.findByProps({ accessibilityLabel: `Izmeni, ${label}` }).props;
 const field = (label: string) => tree.root.findByProps({ label }).props;
 it('corrects a moment with the pickers, in place, and sends the resolved instant', async () => {
   mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
@@ -700,8 +707,8 @@ it('saves the reviewed task as a private draft without asking for publication, t
   // Publishing it later is the stored command's resume, which the ACCEPTED restore test above covers.
   expect(action('Objavi ovaj nacrt').disabled).toBe(false);
   // Nothing was published, so the check is not called a check of the publication.
-  expect(tree.root.findAllByProps({ label: 'Proveri objavu' })).toHaveLength(0);
-  expect(action('Proveri stanje nacrta').disabled).toBe(false);
+  expect(tree.root.findAllByProps({ label: 'Proveri' })).toHaveLength(0);
+  expect(action('Osveži').disabled).toBe(false);
   await act(async () => action('Otvori moje zadatke').onPress()); expect(mockRouter.replace).toHaveBeenCalledWith('/potrebe');
 });
 // Round 2c (verifier va, must 1): loading is the write the action started. "Objavi zadatak" read the editor's busy flag,
@@ -752,7 +759,7 @@ describe('round 6: the publish review', () => {
     await render();
     expect(text()).not.toContain('Kategorija');
     expect(text()).toContain('Treba još malo o samom zadatku.');
-    expect(text()).toContain('Prvo reši ono što još treba.');
+    expect(text()).toContain('Prvo uradi ono što piše pod „Još treba“.');
     expect(publish().disabled).toBe(true);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Treba još malo o samom zadatku.' }).props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
@@ -803,7 +810,7 @@ describe('round 6: the publish review', () => {
     expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
     await act(async () => { for (const handler of [...mockHardwareBack]) handler(); });
     expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
-    expect(action('Učitaj pregled i proveri ishod').disabled).toBe(false);
+    expect(action('Proveri').disabled).toBe(false);
     expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
   });
 
@@ -970,8 +977,9 @@ describe('the Objavljeno moment', () => {
     expect(PUBLISHED_MOMENT_MS).toBeGreaterThanOrEqual(1200);
     await publishHere();
     expect(mockAccept).toHaveBeenCalledTimes(1);
-    expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain('Prijave stižu ovde. Javićemo ti.');
-    expect(tree.root.findByType('SuccessMark' as React.ElementType).props).toMatchObject({ fresh: true, size: 64 });
+    // What the moment promises is the app's one promise (`APPLICATION_PROMISE`, F3's R12): "Javićemo ti" only the day push is sent.
+    expect(text()).toContain('Zadatak je objavljen.'); expect(text()).toContain(APPLICATION_PROMISE.published);
+    expect(tree.root.findByType('SuccessMark' as React.ElementType).props).toMatchObject({ fresh: true, size: 96 });
     expect(tree.root.findAllByProps({ label: 'Otvori zadatak' })).toHaveLength(1);
     expect(action('Otvori zadatak').kind).toBe('primary');
     // The review under it is gone: a finished publication has nothing left to change here, and no second action is offered.

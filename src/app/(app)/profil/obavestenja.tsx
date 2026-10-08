@@ -8,6 +8,7 @@ import { useSesija, sesijaSada } from '../../../store/sesija';
 import { T } from '../../../ui/Text';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
 import { DetailTopBar } from '../../../ui/system/DetailTopBar';
+import { layout } from '../../../ui/system/layout';
 import { Segmented } from '../../../ui/system/Segmented';
 import { sys } from '../../../ui/system/tokens';
 // The two sets carry the names the inbox gives its two filters ("Zadaci", "Moje prijave"): one name, one set, everywhere.
@@ -63,7 +64,7 @@ export default function PushSettings() {
   if (!current()) return;
   if (!dirty) { proceed(); return; }
   // "Odustani" could be read as giving up the changes; the way out of this question keeps them (as on Dostupnost).
-  confirm.ask({ title: 'Odbaciti izmene?', message: 'Izmene kategorija i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
+  confirm.ask({ title: 'Odbaciti izmene?', message: 'Izmene vrsta obaveštenja i tihih sati nisu sačuvane.', confirmLabel: 'Odbaci izmene',
    cancelLabel: 'Nastavi uređivanje', tone: 'danger', onConfirm: () => { if (current()) proceed(); } });
  }
  const requestBack = () => discardThen(back);
@@ -99,5 +100,5 @@ export default function PushSettings() {
 }
 const s = StyleSheet.create({
  screen: { flex: 1, backgroundColor: sys.color.ground },
- sets: { paddingHorizontal: 20, paddingTop: 4, gap: 8 },
+ sets: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs, gap: sys.space.sm },
 });

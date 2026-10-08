@@ -1,15 +1,18 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { BackHandler, ScrollView, StyleSheet, View } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { DataExportStatus } from '../contracts/dataExport';
 import type { LegalBundleStatus } from '../contracts/legal';
 import type { DogovorProjekcija } from '../contracts/projections';
 import type { RetentionExecutionStatus, RetentionPolicyStatus } from '../contracts/retentionPolicy';
+import type { BuildIdentity } from '../data/buildIdentity';
 import type { ClosureExecutionReview, ClosureExecutionState } from '../data/closureExecutionClientService';
 import type { SupportDetail, SupportInbox } from '../data/supportCaseTypes';
 import { ClosureView, type ClosureModel } from '../ui/closure/ClosurePresentation';
+import { GalleryLargeText } from '../ui/profile/GalleryLargeText';
+import { AboutView } from '../ui/settings/AboutPresentation';
 import { LegalReviewView, PublicLegalBody } from '../ui/legal/LegalDocuments';
 import type { LegalReviewState } from '../ui/legal/legalReview';
 import { ExportScreenView, type NoticeTone } from '../ui/privacy/ExportPresentation';
@@ -17,6 +20,7 @@ import { PrivacyBody, type PrivacyRead } from '../ui/privacy/PrivacyPresentation
 import { Press } from '../ui/Press';
 import { ProductSheet } from '../ui/product/ProductSheet';
 import { SettingsAction, SettingsRow, SettingsScreen } from '../ui/settings/SettingsPresentation';
+import { bugReportPreset } from '../ui/support/bugReportPreset';
 import { SupportMessagePreviewSheet } from '../ui/support/SupportContextEntry';
 import { initialSupportState, type SupportState } from '../ui/support/SupportController';
 import { SupportDetailView } from '../ui/support/SupportDetailScreen';
@@ -24,6 +28,10 @@ import { SupportInboxView } from '../ui/support/SupportInboxScreen';
 import { SupportNewView } from '../ui/support/SupportNewScreen';
 import type { useSupportController } from '../ui/support/useSupportController';
 import { useConfirmSheet } from '../ui/system/ConfirmSheet';
+import { DetailTopBar } from '../ui/system/DetailTopBar';
+import { ListRow } from '../ui/system/ListRow';
+import { Screen } from '../ui/system/Screen';
+import { Section } from '../ui/system/Section';
 import { sys } from '../ui/system/tokens';
 import { T } from '../ui/Text';
 
@@ -55,13 +63,25 @@ const SCENES: Scene[] = [
   ['podrska-lista', 'Podrška', 'Lista zahteva'], ['podrska-prazno', 'Podrška', 'Prazno'], ['podrska-ucitavanje', 'Podrška', 'Učitavanje'],
   ['podrska-greska', 'Podrška', 'Greška'], ['podrska-operater', 'Podrška', 'Operaterski inbox'],
   ['novi-forma', 'Novi zahtev', 'Forma'], ['novi-dogovor', 'Novi zahtev', 'Tema traži Dogovor'], ['novi-poruka', 'Novi zahtev', 'Sa izabranom porukom'],
-  ['novi-nepotvrdjeno', 'Novi zahtev', 'Nepotvrđeno slanje'], ['novi-potvrdjeno', 'Novi zahtev', 'Potvrđen'],
+  ['novi-greska', 'Novi zahtev', 'Prijava greške u aplikaciji'], ['novi-nepotvrdjeno', 'Novi zahtev', 'Nepotvrđeno slanje'], ['novi-potvrdjeno', 'Novi zahtev', 'Potvrđen'],
   ['novi-nedostupno', 'Novi zahtev', 'Nije dostupno'],
   ['zahtev-razgovor', 'Zahtev', 'Razgovor i odluka'], ['zahtev-operater', 'Zahtev', 'Operater'], ['zahtev-zatvoren', 'Zahtev', 'Zatvoren'],
   ['zahtev-ucitavanje', 'Zahtev', 'Učitavanje'], ['zahtev-greska', 'Zahtev', 'Greška'],
   ['poruka-podrska', 'Poruka', 'Izabrana poruka (sheet)'],
+  ['o-aplikaciji', 'O aplikaciji', 'Znak, dve mogućnosti, pravila'],
+  ['privatnost-veliki', 'Veliki tekst (1,3)', 'Privatnost'], ['izvoz-veliki', 'Veliki tekst (1,3)', 'Izvoz: kopija spremna'],
+  ['pravila-veliki', 'Veliki tekst (1,3)', 'Pravila: za prihvatanje'], ['o-aplikaciji-veliki', 'Veliki tekst (1,3)', 'O aplikaciji'],
+  ['podrska-veliki', 'Veliki tekst (1,3)', 'Podrška: lista zahteva'], ['novi-greska-veliki', 'Veliki tekst (1,3)', 'Prijava greške u aplikaciji'],
 ].map(([key, group, label]) => ({ key, group, label }));
+/** The groups of scenes, in the order they first appear. */
+const GROUPS = [...new Set(SCENES.map(item => item.group))];
+/** The scenes drawn at text scale 1.3: the same scene as its twin, with the components told "large". */
+const LARGE: Readonly<Record<string, string>> = { 'privatnost-veliki': 'privatnost-objavljeno', 'izvoz-veliki': 'izvoz-spremno',
+  'pravila-veliki': 'pravila-prihvatanje', 'o-aplikaciji-veliki': 'o-aplikaciji', 'podrska-veliki': 'podrska-lista', 'novi-greska-veliki': 'novi-greska' };
 
+/** The build a bug report names: made-up, like every fixture here. */
+const BUILD: BuildIdentity = { version: '1.4.2', sourceCommit: 'abcdef0123456789abcdef0123456789abcdef01', sourceDirty: false, backendTarget: 'canonical',
+  runtimeVersion: '1.4.2', updateChannel: 'preview' };
 const NOW = Date.now(), hour = 3_600_000;
 const iso = (offset: number) => new Date(NOW + offset).toISOString();
 const noop = () => {};
@@ -156,32 +176,34 @@ const AGREEMENTS = [{ id: '00000000-0000-4000-8000-0000000000c1', verzija: 2, na
 
 export default function DizajnPrivatnost() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
-  const [scene, setScene] = useState<string | null>(null);
+  // A scene can be opened by its address too (`?scene=privatnost-objavljeno`, `?scene=izvoz-veliki`), so the design lab can draw it without a
+  // tap; such a scene has no bar under it: what is drawn is the real screen. A "veliki" scene is its twin drawn at text scale 1.3.
+  const params = useLocalSearchParams<{ scene?: string | string[] }>();
+  const fromAddress = SCENES.find(item => item.key === params.scene)?.key ?? null;
+  const [picked, setPicked] = useState<string | null>(fromAddress);
+  useEffect(() => { setPicked(fromAddress); }, [fromAddress]);
+  const large = picked !== null && picked in LARGE;
+  const scene = picked !== null && large ? LARGE[picked] : picked;
   const [expanded, setExpanded] = useState<string | null>(null);
   const confirm = useConfirmSheet(), closeQuestion = confirm.close;
   // Android Back inside a scene returns to the list, as "Nazad" does (the sibling galleries do the same). An open sheet
   // takes Back first (its own Modal); the "Odbaciti zahtev?" question of a typed Novi zahtev is shown by its arrow.
   useEffect(() => {
     if (!scene) return;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closeQuestion(); setExpanded(null); setScene(null); return true; });
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closeQuestion(); setExpanded(null); setPicked(null); return true; });
     return () => subscription.remove();
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
-  const toList = () => { confirm.close(); setExpanded(null); setScene(null); };
+  const toList = () => { confirm.close(); setExpanded(null); setPicked(null); };
   const model = supportModel(toList);
-  if (!scene) return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ScrollView contentContainerStyle={s.list}>
-      <T variant="title" accessibilityRole="header">Galerija: privatnost i podrška</T>
-      <T variant="note" tone="muted">Primeri stanja sa izmišljenim podacima. Ništa se ne čita i ne šalje.</T>
-      {SCENES.map((item, index) => <View key={item.key}>
-        {index === 0 || SCENES[index - 1].group !== item.group ? <T variant="label" style={s.group}>{item.group}</T> : null}
-        <Press accessibilityRole="button" accessibilityLabel={`${item.group}: ${item.label}`} haptic="select" onPress={() => setScene(item.key)} style={s.row}>
-          <T variant="bodyStrong">{item.label}</T>
-        </Press>
-      </View>)}
-      <SettingsAction label="Zatvori galeriju" kind="quiet" onPress={() => router.back()} />
-    </ScrollView>
-  </SafeAreaView>;
+  if (!scene) return <Screen kind="detail" header={<DetailTopBar title="Galerija: privatnost i podrška" onBack={() => router.back()} />}>
+    <T variant="note" tone="muted">Primeri stanja sa izmišljenim podacima. Ništa se ne čita i ne šalje.</T>
+    {GROUPS.map(group => <Section key={group} title={group}>
+      {SCENES.filter(item => item.group === group).map((item, index, all) => <ListRow key={item.key} title={item.label} accessibilityLabel={`${item.group}: ${item.label}`}
+        last={index === all.length - 1} onPress={() => setPicked(item.key)} />)}
+    </Section>)}
+    <SettingsAction label="Zatvori galeriju" kind="quiet" onPress={() => router.back()} />
+  </Screen>;
 
   const privacy = (policy: PrivacyRead<RetentionPolicyStatus>, execution: PrivacyRead<RetentionExecutionStatus>, admitted = false) =>
     <SettingsScreen title="Privatnost i podaci" onBack={toList}>
@@ -201,7 +223,7 @@ export default function DizajnPrivatnost() {
     <LegalReviewView state={state} onBack={toList} action={action} linkError={null} onOpen={noop} onOpenUrl={noop} onRefresh={noop} />;
   const closureView = (value: ClosureModel) => <ClosureView model={value} commands={{ onClose: toList, onPrepare: noop, onRetry: noop, onRefresh: noop,
     onLogout: noop, onSupport: noop, onBlocker: noop, onExport: noop,
-    onAskStart: () => confirm.ask({ title: 'Da li sigurno zatvaraš nalog?', message: 'Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.',
+    onAskStart: () => confirm.ask({ title: 'Zatvoriti nalog?', message: 'Posle ovog koraka nalog se zaključava i podaci se uklanjaju. To ne možeš da poništiš.',
       confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustani', tone: 'danger', onConfirm: noop }) }} />;
 
   const body = scene === 'privatnost-ucitavanje' ? privacy(read<RetentionPolicyStatus>(null, true), read<RetentionExecutionStatus>(null, true))
@@ -230,8 +252,8 @@ export default function DizajnPrivatnost() {
       processors: { ready: false, reason: 'PROCESSOR_MAP_NOT_PUBLISHED', missingProviders: [] } }))
     : scene === 'pravila-prihvatanje' ? legalView(legal({}), <SettingsAction label="Prihvati pregledane dokumente" onPress={noop} />)
     : scene === 'pravila-u-toku' ? legalView(legal({ busy: true, pending: 'READ_REQUIRED' }), <SettingsAction label="Prihvati pregledane dokumente" loading disabled onPress={noop} />)
-    : scene === 'pravila-ishod' ? legalView(legal({ pending: 'READ_REQUIRED', error: 'Prihvatanje još nije potvrđeno. Proveri ishod svog zahteva.' }),
-      <SettingsAction label="Proveri ishod prihvatanja" onPress={noop} />)
+    : scene === 'pravila-ishod' ? legalView(legal({ pending: 'READ_REQUIRED', error: 'Ne znamo da li je prihvatanje sačuvano. Proveri ponovo.' }),
+      <SettingsAction label="Proveri da li je prihvaćeno" onPress={noop} />)
     : scene === 'pravila-prihvaceno' ? legalView(legal({ bundle: { ...BUNDLE, acceptedCurrentBundle: true } }))
     : scene === 'pravila-javno' ? <View style={s.screen}>
       <ProductSheet title="Politika privatnosti" onClose={toList}>{() => <PublicLegalBody loading={false} bundle={BUNDLE} error={null} onOpen={noop} onRefresh={noop} />}</ProductSheet>
@@ -243,7 +265,7 @@ export default function DizajnPrivatnost() {
     : scene === 'zatvaranje-priprema' ? closureView(closure({ review: { ...REVIEW, ready: false, code: 'CLOSURE_PREPARATION_REQUIRED', retainedDatasets: null } }))
     : scene === 'zatvaranje-pregled' ? closureView(closure({ review: REVIEW }))
     : scene === 'zatvaranje-nepotvrdjeno' ? closureView(closure({ review: REVIEW, absent: true,
-      message: 'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.',
+      message: 'Ne znamo da li je zahtev za zatvaranje poslat. Sačuvan je na telefonu; možeš da ga pošalješ ponovo.',
       intent: { kind: 'START', accountId: 'galerija', clientRequestId: 'galerija', requestId: 'galerija', expectedRevision: 1, policySha256: 'a'.repeat(64) } }))
     : scene === 'zatvaranje-u-toku' ? closureView(closure({ state: EXECUTING }))
     : scene === 'zatvaranje-zatvoren' ? closureView(closure({ state: CLOSED }))
@@ -256,6 +278,7 @@ export default function DizajnPrivatnost() {
     : scene === 'podrska-operater' ? <SupportInboxView mode="OPERATOR" onMode={noop} model={model({ capabilities: { ...CAPS, operatorAvailable: true },
       inbox: { ...INBOX, mode: 'OPERATOR', operatorAvailable: true } })} />
     : scene === 'novi-forma' ? <SupportNewView reference={null} model={model({ capabilities: CAPS })} readAgreements={async () => AGREEMENTS} />
+    : scene === 'novi-greska' ? <SupportNewView reference={null} preset={bugReportPreset(BUILD)} model={model({ capabilities: CAPS })} readAgreements={async () => AGREEMENTS} />
     : scene === 'novi-dogovor' ? <SupportNewView reference={{ kind: 'AGREEMENT', id: AGREEMENTS[0].id, revision: 2 }} model={model({ capabilities: CAPS })}
       readAgreements={async () => AGREEMENTS} />
     : scene === 'novi-poruka' ? <SupportNewView reference={{ kind: 'AGREEMENT_MESSAGE', id: '00000000-0000-4000-8000-0000000000d1', revision: 4 }}
@@ -276,30 +299,29 @@ export default function DizajnPrivatnost() {
       <SupportMessagePreviewSheet previewText="U 10:00 niko nije otvorio vrata. Dva poziva su ostala bez odgovora." busy={false} disabled={false} error={null}
         onContinue={noop} onCancel={toList} />
     </View>
+    : scene === 'o-aplikaciji' ? <AboutView onBack={toList} onRules={noop} onPrivacy={noop} />
     : null;
-  const current = SCENES.find(item => item.key === scene);
+  const current = SCENES.find(item => item.key === picked);
+  const drawn = <View style={s.grow}>{body}</View>;
   return <View style={s.screen}>
-    <View style={s.grow}>{body}</View>
+    {large ? <GalleryLargeText>{drawn}</GalleryLargeText> : drawn}
     {confirm.sheet}
     {/* Every scene's arrow returns here (in the support scenes every way out does; their other commands are no-op
-        stand-ins). This bar says which scene is shown and is always one tap back. */}
-    <SafeAreaView edges={['bottom']} style={s.strip}>
+        stand-ins). This bar says which scene is shown and is always one tap back. A scene opened by its address has none. */}
+    {picked !== fromAddress ? <SafeAreaView edges={['bottom']} style={s.strip}>
       <Press accessibilityRole="button" accessibilityLabel="Nazad" haptic="select" onPress={toList} style={s.back}>
         <T variant="action" style={s.backText}>Nazad</T>
       </Press>
       <T variant="meta" tone="muted" numberOfLines={1} style={s.grow}>{current ? `${current.group} · ${current.label}` : ''}</T>
-    </SafeAreaView>
+    </SafeAreaView> : null}
   </View>;
 }
 
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.surface },
   grow: { flex: 1, minWidth: 0 },
-  list: { paddingHorizontal: 20, paddingVertical: 16, gap: 4 },
-  group: { color: sys.color.muted, marginTop: sys.space.lg, marginBottom: sys.space.sm },
-  row: { minHeight: 48, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: sys.color.line },
   strip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingHorizontal: sys.space.base, paddingTop: sys.space.sm,
-    borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.surface },
+    backgroundColor: sys.color.wash },
   back: { minHeight: 48, minWidth: 96, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.lineStrong,
     alignItems: 'center', justifyContent: 'center', marginBottom: sys.space.sm },
   backText: { color: sys.color.green },

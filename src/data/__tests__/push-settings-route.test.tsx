@@ -32,7 +32,7 @@ it('renders both safe-area edges (the tab bar is hidden here since 2026-09-23), 
 it('names its two sets as the inbox names its two filters', () => {
  const { INBOX_FILTERS } = require('../../ui/notifications/InboxPresentation');
  const tabs = tree.root.findAll(node => node.props.accessibilityRole === 'tab' && node.props.accessibilityLabel).map(node => node.props.accessibilityLabel as string);
- expect([...new Set(tabs)]).toEqual(['Zadaci', 'Moje prijave']);
+ expect([...new Set(tabs)]).toEqual(['Moji zadaci', 'Moje prijave']);
  expect(INBOX_FILTERS.map((filter: { label: string }) => filter.label).slice(1)).toEqual([...new Set(tabs)]);
  expect(JSON.stringify(tree.toJSON())).not.toMatch(/Poslovi|poslov|Zadaci i prijave/);
 });
@@ -80,7 +80,7 @@ it('Back with unsaved changes asks first, and leaves only after "Odbaci izmene",
  makeDirty();
  act(() => back()());
  expect(mockBack).not.toHaveBeenCalled(); expect(mockReplace).not.toHaveBeenCalled();
- expect(JSON.stringify(tree.toJSON())).toContain('Izmene kategorija i tihih sati nisu sačuvane.');
+ expect(JSON.stringify(tree.toJSON())).toContain('Izmene vrsta obaveštenja i tihih sati nisu sačuvane.');
  expect(confirmButton().props.accessibilityLabel).toBe('Odbaci izmene');
  act(() => confirmButton().props.onPress());
  expect(mockBack).toHaveBeenCalledTimes(1);

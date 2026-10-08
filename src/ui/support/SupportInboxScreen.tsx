@@ -8,6 +8,7 @@ import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import type { SupportState } from './SupportController';
 import { SupportCaseRow, SupportFrame, SupportLoading, SupportNote, SupportPrivacy, supportLabel, supportStyles, supportTime } from './SupportPresentation';
+import { SupportFaq } from './SupportFaq';
 import { SupportRecoveryPanel } from './SupportRecoveryPanel';
 import { supportMessageTone } from './supportCopy';
 import { useSupportController } from './useSupportController';
@@ -55,6 +56,9 @@ export function SupportInboxView({ model, mode, onMode }: {
   };
   const reload = () => { if (current()) void controller?.load(); };
   const messageTone = supportMessageTone(state);
+  // One word at the end of the list's title: the list's own re-read, which keeps the rows on screen while it works.
+  const refresh = state.phase === 'ERROR' || (state.phase === 'LOADING' && !kept) ? undefined
+    : { label: state.phase === 'LOADING' ? 'Osvežavamo…' : 'Osveži', accessibilityLabel: 'Osveži zahteve', onPress: () => { if (!busy) reload(); } };
   const newReason = busy ? 'Učitavamo zahteve…' : !capabilities?.canCreate ? NEW_UNAVAILABLE : state.pending ? 'Najpre proveri prethodno slanje.' : null;
   return <SupportFrame title={mode === 'OWN' ? 'Podrška' : mode === 'SAFETY' ? 'Bezbednosni zahtevi' : 'Zahtevi'}
     onBack={() => navigate(() => router.canGoBack() ? router.back() : router.replace('/profil'))}
@@ -72,24 +76,25 @@ export function SupportInboxView({ model, mode, onMode }: {
     {state.message && !state.pending && state.phase !== 'ERROR' ? <SupportNote tone={messageTone === 'success' ? 'info' : messageTone}>{state.message}</SupportNote> : null}
     {state.phase === 'LOADING' && !kept ? <SupportLoading />
       : state.phase === 'ERROR' ? <StateView kind="error" art="chat" title="Zahtevi nisu učitani" body={state.message ?? undefined}
-        primary={{ label: 'Osveži zahteve', onPress: reload, disabled: busy }} />
-      : inbox ? inbox.cases.length ? <SettingsGroup title={mode === 'OWN' ? 'Tvoji zahtevi' : 'Zahtevi'}>
-        {inbox.cases.map((item, index) => <SupportCaseRow key={item.id} topic={supportLabel(item.topic)} status={item.status}
+        primary={{ label: 'Pokušaj ponovo', onPress: reload, disabled: busy }} />
+      : inbox ? <SettingsGroup title={mode === 'OWN' ? 'Tvoji zahtevi' : 'Zahtevi'} action={refresh}>
+        {inbox.cases.length ? inbox.cases.map((item, index) => <SupportCaseRow key={item.id} topic={supportLabel(item.topic)} status={item.status}
           channel={item.channel} time={supportTime(item.updatedAt)} caseNumber={item.caseNumber} unread={item.unread}
           last={index === inbox.cases.length - 1} disabled={locked}
-          onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: item.id } }))} />)}
-      </SettingsGroup> : mode === 'OWN'
-        // One sentence under the title and no action of its own: the green "Novi zahtev" below is the screen's one way forward.
-        ? <StateView kind="empty" art="chat" title="Još nema primljenih zahteva" body="Zahteve i odgovore podrške vidiš ovde." />
-        : <StateView kind="empty" art="chat" title="Nema zahteva na ovoj stranici." /> : null}
-    {cursors.length > 1 || inbox?.nextBeforeCaseNumber ? <View style={supportStyles.pager}>
-      {cursors.length > 1 ? <SettingsAction label="Prethodna stranica" kind="quiet" disabled={busy}
-        onPress={() => page(cursors[cursors.length - 2], true)} /> : <View />}
-      {inbox?.nextBeforeCaseNumber ? <SettingsAction label="Stariji zahtevi" kind="quiet" disabled={busy}
-        onPress={() => page(inbox.nextBeforeCaseNumber)} /> : null}
-    </View> : null}
-    {state.phase !== 'ERROR' && (state.phase !== 'LOADING' || kept) ? <SettingsAction label="Osveži zahteve" kind="quiet" disabled={busy}
-      loading={state.phase === 'LOADING'} onPress={reload} /> : null}
+          onPress={() => navigate(() => router.push({ pathname: '/podrska/[id]', params: { id: item.id } }))} />)
+          : mode === 'OWN'
+            // One sentence under the title and no action of its own: the green "Novi zahtev" below is the screen's one way forward.
+            ? <StateView kind="empty" art="chat" title="Još nema primljenih zahteva" body="Zahteve i odgovore podrške vidiš ovde." />
+            : <StateView kind="empty" art="chat" title="Nema zahteva na ovoj stranici." />}
+        {cursors.length > 1 || inbox.nextBeforeCaseNumber ? <View style={supportStyles.pager}>
+          {cursors.length > 1 ? <SettingsAction label="Prethodna stranica" kind="quiet" disabled={busy}
+            onPress={() => page(cursors[cursors.length - 2], true)} /> : <View />}
+          {inbox.nextBeforeCaseNumber ? <SettingsAction label="Stariji zahtevi" kind="quiet" disabled={busy}
+            onPress={() => page(inbox.nextBeforeCaseNumber)} /> : null}
+        </View> : null}
+      </SettingsGroup> : null}
+    {/* The questions people ask before they write: answered where they are asked, for the person's own list only. */}
+    {mode === 'OWN' && state.phase !== 'ERROR' ? <SupportFaq /> : null}
     <View style={s.privacy}><SupportPrivacy safety={mode === 'SAFETY'} /></View>
     {capabilities?.operatorAvailable && mode === 'OWN' ? <SettingsGroup title="Ovlašćena obrada">
       <SettingsRow label="Otvori sve zahteve" detail="Pristup odobren ovom nalogu." disabled={locked} last
@@ -104,4 +109,4 @@ export function SupportInboxView({ model, mode, onMode }: {
   </SupportFrame>;
 }
 
-const s = StyleSheet.create({ privacy: { marginTop: sys.space.sm, marginBottom: sys.space.sm } });
+const s = StyleSheet.create({ privacy: { gap: sys.space.sm } });

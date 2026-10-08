@@ -28,7 +28,8 @@ const button=(label:string)=>tree.root.findAll(n=>n.props.label===label)[0];
 const sheets=()=>tree.root.findAllByType(ConfirmSheet);
 const confirmButton=()=>sheets()[0]?.findByProps({testID:'confirm-sheet-confirm'});
 const cancelButton=()=>sheets()[0]?.findByProps({testID:'confirm-sheet-cancel'});
-const text=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>n.children.filter(c=>typeof c==='string')).join(' ');
+// A group is named by its `title` (the mocked SettingsGroup is a host element), so a group's title is part of what the screen says, before what it holds.
+const text=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>[...((n.type as unknown)==='SettingsGroup'&&typeof n.props.title==='string'?[n.props.title as string]:[]),...n.children.filter(c=>typeof c==='string')]).join(' ');
 const element=()=><ClosureDialog onClose={mockClose}/>;
 const render=async()=>{await act(async()=>{tree=create(element());});};
 const update=async()=>{await act(async()=>tree.update(element()));};
@@ -145,7 +146,7 @@ it.each([['ACTIVE_AGREEMENT','/dogovori'],['OPEN_TASK','/potrebe'],['ACTIVE_APPL
 it('an unconfirmed request is drawn as waiting, a failed read as failed',async()=>{
  mockLoad.mockResolvedValue(pending());await render();
  const note=()=>tree.root.findAllByType(InlineNote).find(n=>n.props.alert);
- expect(note()?.props).toMatchObject({tone:'warn',children:'Ovaj zahtev još nije potvrđen. Isti zahtev ostaje sačuvan; možeš ga izričito ponoviti.'});
+ expect(note()?.props).toMatchObject({tone:'warn',children:'Ne znamo da li je zahtev za zatvaranje poslat. Sačuvan je na telefonu; možeš da ga pošalješ ponovo.'});
  mockRead.mockResolvedValue({ok:false,kod:'X',poruka:'Stanje trenutno nije dostupno.'});
  await act(async()=>button('Proveri stanje zahteva').props.onPress());
  expect(note()?.props).toMatchObject({tone:'danger',children:'Stanje trenutno nije dostupno.'});
@@ -162,7 +163,7 @@ it('a read that fails before anything is known says so, with the check as its on
 // Round 5c review: the caught "not confirmed" words wait only while a saved start or preparation is there to check.
 it('a command that could not be read waits while its saved request remains, and is a failure without one',async()=>{
  const note=()=>tree.root.findAllByType(InlineNote).find(n=>n.props.alert);
- const caught='Stanje zahteva nije potvrđeno. Sačuvani zahtev ostaje za proveru.';
+ const caught='Ne znamo stanje zahteva. Proveri ga ponovo.';
  mockLoad.mockResolvedValue(pending());await render();
  mockRead.mockRejectedValue(new Error('lost'));
  await act(async()=>button('Pošalji zahtev za zatvaranje ponovo').props.onPress());

@@ -13,7 +13,7 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));
-import { AgreementReviewPresentation, type ReviewView } from '../AgreementReviewPresentation';
+import { AgreementReviewPresentation, SAVE_WARNING, type ReviewView } from '../AgreementReviewPresentation';
 import type { ReviewCommentFieldView } from '../ReviewCommentField';
 import { REVIEW_COMMENT_NOTICE } from '../ReviewCommentField';
 
@@ -43,17 +43,18 @@ const inOrder = () => {
 };
 
 describe('the layout around the keyboard', () => {
-  it('without a comment on screen there is no avoiding view and the scroll keeps its default taps: the layout of before', async () => {
+  it('without a comment on screen there is no avoiding view: the layout of before (the frame lets a tap through while a field has the keyboard, as every frame does)', async () => {
     await draw(eligible());
     expect(tree.root.findAllByType(KeyboardAvoidingView)).toHaveLength(0);
-    expect(tree.root.findByType(ScrollView).props.keyboardShouldPersistTaps).toBeUndefined();
+    expect(tree.root.findByType(ScrollView).props.keyboardShouldPersistTaps).toBe('handled');
   });
 
-  it('with a comment the bar, the scroll and the save sit in ONE avoiding view, and a tap on the save works while the keyboard is up', async () => {
+  it('with a comment the scroll and the save sit in ONE avoiding view (the bar stays where it is), and a tap on the save works while the keyboard is up', async () => {
     await draw(eligible({ comment: field({ open: true }) }), true);
     const avoiding = tree.root.findAllByType(KeyboardAvoidingView);
     expect(avoiding).toHaveLength(1);
-    expect(avoiding[0].findAllByType('DetailTopBar' as unknown as React.ElementType)).toHaveLength(1);
+    expect(avoiding[0].findAllByType('DetailTopBar' as unknown as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAllByType('DetailTopBar' as unknown as React.ElementType)).toHaveLength(1);
     expect(avoiding[0].findAllByType(ScrollView)).toHaveLength(1);
     expect(avoiding[0].findAll(node => node.props?.label === 'Sačuvaj ocenu')).toHaveLength(1);
     expect(tree.root.findByType(ScrollView).props.keyboardShouldPersistTaps).toBe('handled');
@@ -75,7 +76,7 @@ describe('the comment on the rating screen', () => {
     const at = (value: string) => text.indexOf(value);
     expect(at('Šta je obeležilo saradnju?')).toBeGreaterThan(-1);
     expect(at('Komentar')).toBeGreaterThan(at('Šta je obeležilo saradnju?'));
-    expect(at('Čuvamo tvoj prvobitni izbor dok proveravaš ishod slanja.')).toBeGreaterThan(at(REVIEW_COMMENT_NOTICE));
+    expect(at('Čuvamo tvoju ocenu dok proveravaš da li je poslata.')).toBeGreaterThan(at(REVIEW_COMMENT_NOTICE));
     expect(text.filter(value => value === REVIEW_COMMENT_NOTICE)).toHaveLength(1);
   });
 
@@ -92,12 +93,34 @@ describe('the comment on the rating screen', () => {
     expect(tree.root.findAllByType(TextInput)).toHaveLength(0);
   });
 
-  it('keeps ONE primary action: the field adds no button, and the grey save carries its reason', async () => {
+  it('keeps ONE primary action: the field adds no button, and the grey save says why in the line above it', async () => {
     await draw(eligible({ save: { label: 'Sačuvaj ocenu', loading: false, disabled: true, reason: 'Skrati komentar.', onPress: jest.fn() },
       comment: field({ open: true, count: 501, invalid: true }) }), true);
     const actions = tree.root.findAll(node => String(node.type) === 'Action');
     expect(actions).toHaveLength(1);
-    expect(actions[0].props).toMatchObject({ label: 'Sačuvaj ocenu', disabled: true, reason: 'Skrati komentar.' });
+    expect(actions[0].props).toMatchObject({ label: 'Sačuvaj ocenu', disabled: true });
+    // The reason is the foot's own line, above the button (template T4), and it takes the place of the sentence about saving.
+    expect(tree.root.findByProps({ testID: 'flow-footer-reason' }).props.children).toBe('Skrati komentar.');
+    expect(tree.root.findAllByProps({ testID: 'review-save-warning' })).toHaveLength(0);
+  });
+});
+
+describe('before "Sačuvaj" (idea R29)', () => {
+  it('says once, above the button, that a saved rating cannot be changed - and says it only while the button can be pressed', async () => {
+    await draw(eligible());
+    expect(inOrder().filter(value => value === SAVE_WARNING)).toHaveLength(1);
+    expect(SAVE_WARNING).toBe('Ocenu posle čuvanja ne možeš da menjaš.');
+    expect(tree.root.findAllByProps({ testID: 'flow-footer-reason' })).toHaveLength(0);
+    await act(async () => tree.unmount());
+    // Grey with a reason: the reason is what the person needs to read.
+    await draw(eligible({ save: { label: 'Sačuvaj ocenu', loading: false, disabled: true, reason: 'Izaberi ocenu.', onPress: jest.fn() } }));
+    expect(inOrder()).not.toContain(SAVE_WARNING);
+    expect(tree.root.findByProps({ testID: 'flow-footer-reason' }).props.children).toBe('Izaberi ocenu.');
+  });
+
+  it('says nothing of it after the rating was saved, when it cannot be saved again', async () => {
+    await draw(saved());
+    expect(inOrder()).not.toContain(SAVE_WARNING);
   });
 });
 

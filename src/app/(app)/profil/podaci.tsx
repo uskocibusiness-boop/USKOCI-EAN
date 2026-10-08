@@ -7,6 +7,7 @@ import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { inicijali } from '../../../lib/inicijali';
 import { useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
+import { tidyPlaceLabel } from '../../../ui/location/placeText';
 import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { SettingsScreen } from '../../../ui/settings/SettingsPresentation';
 import { Avatar } from '../../../ui/system/Avatar';
@@ -37,7 +38,7 @@ function OwnedPersonalProfile() {
   const about: AboutView = work.loading ? { kind: 'loading' } : work.error ? { kind: 'error' } : !work.data ? { kind: 'none' }
     : work.data.biografija.trim() ? { kind: 'text', text: work.data.biografija } : { kind: 'empty' };
   const city: CityView = work.loading ? { kind: 'loading' } : work.error ? { kind: 'error' }
-    : work.data?.grad.trim() ? { kind: 'city', city: work.data.grad.trim() } : { kind: 'none' };
+    : work.data?.grad.trim() ? { kind: 'city', city: tidyPlaceLabel(work.data.grad.trim()) } : { kind: 'none' };
   // One way onward at a time, and a fresh one on every visit.
   const going = useRef(false);
   useFocusEffect(useCallback(() => { going.current = false; }, []));

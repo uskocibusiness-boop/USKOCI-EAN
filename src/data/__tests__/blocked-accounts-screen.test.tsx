@@ -140,7 +140,7 @@ it('an undo the server does not confirm is said as not confirmed; a person with 
   expect(poruka.current()).toMatchObject({ text: 'Blokiranje je uklonjeno.', action: { label: 'Vrati' } });
   mockSetBlock.mockRejectedValueOnce(new Error('offline'));
   await act(async () => poruka.current()!.action!.onPress());
-  expect(poruka.current()).toMatchObject({ text: 'Promena nije potvrđena. Proveri stanje pa pokušaj ponovo.' }); expect(poruka.current()?.action).toBeUndefined();
+  expect(poruka.current()).toMatchObject({ text: 'Ne znamo da li je promena sačuvana. Osveži pa pokušaj ponovo.' }); expect(poruka.current()?.action).toBeUndefined();
 });
 
 it('a refused or unknown unblock locks every "Odblokiraj" until the list is read again, and a retry reuses the request id', async () => {

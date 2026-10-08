@@ -5,15 +5,17 @@ import type { StanjeProfila } from '../../contracts/projections';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { DetailTopBar } from '../system/DetailTopBar';
-import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactArt } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { Glyph } from '../system/Glyph';
-import { ToolArt } from '../system/ToolArt';
+import { tidyPlaceLabel } from '../location/placeText';
+import { layout, ruleWidth } from '../system/layout';
 import { StateView } from '../system/StateView';
-import { sys, field, materialControl } from '../system/tokens';
+import { Surface } from '../system/Surface';
+import { sys, field } from '../system/tokens';
 import { useLayoutClass } from '../system/textScale';
 import { ConversationArt } from '../system/ConversationArt';
-import { SettingsRow } from '../settings/SettingsPresentation';
+import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
 import { WorkerProfileSaved } from './WorkerProfileSaved';
@@ -103,7 +105,7 @@ export function WorkerProfileFooter({ message, error, held = false, children }: 
     </View> : null}
     <View testID="worker-profile-actions" style={[s.answer, typing && s.footerAside]} accessibilityElementsHidden={typing}
       importantForAccessibility={typing ? 'no-hide-descendants' : 'auto'}>
-      {held ? <T variant="meta" tone="muted">Tvoj unos je zadržan. Prikazujemo samo ono što je stvarno sačuvano.</T> : null}
+      {held ? <T variant="meta" tone="muted">Tvoj tekst nije izgubljen. Ispod je prikazano samo ono što je sačuvano.</T> : null}
       {children}
     </View>
   </>;
@@ -116,10 +118,6 @@ function Field({ label, value, change, disabled, multiline = false, inputRef }: 
   return <View style={s.field}><T variant="meta" tone="muted">{label}</T><TextInput ref={inputRef} accessibilityLabel={label} value={value}
     editable={!disabled} onChangeText={text => { if (!disabled) change(text); }} multiline={multiline}
     maxLength={multiline ? 4000 : 160} style={[s.input, multiline && s.multiline, disabled && s.inputLocked]} /></View>;
-}
-
-function SectionHead({ art, title }: { art: FactArtKind; title: string }) {
-  return <View style={s.head}>{art === 'tool' ? <ToolArt size={28} /> : <FactArt kind={art} size={28} cut="art" />}<T variant="bodyStrong" accessibilityRole="header" style={[s.grow, s.ink]}>{title}</T></View>;
 }
 
 /** The most a list may hold (`capabilityTerms`). */
@@ -152,20 +150,19 @@ function TermsEditor({ label, placeholder, values, pending, setPending, change, 
   </View>;
 }
 
-/** Facts read as a profile, with one clearly labelled edit affordance and no hidden removal gesture. */
-function ProfileSection({ title, art, summary, summaryContent, empty, open, toggle, disabled, children }: {
-  title: string; art: FactArtKind; summary: string; empty: string; open: boolean;
+/**
+ * Facts read as a profile, with one clearly labelled edit affordance and no hidden removal gesture: the section's name, and one word at
+ * the end of its title ("Izmeni", and "Gotovo" while it is open) that opens the fields. It used to be a picture, a title and a round
+ * pencil, and a hairline under it; now it is a `Section`, and the screen's gap of 24 is what parts one section from the next.
+ */
+function ProfileSection({ title, summary, summaryContent, empty, open, toggle, disabled, children }: {
+  title: string; summary: string; empty: string; open: boolean;
   toggle: () => void; disabled: boolean; children: ReactNode; summaryContent?: ReactNode;
 }) {
-  return <View style={s.profileSection}>
-    <View style={s.sectionHeading}><View style={s.grow}><SectionHead art={art} title={title} /></View>
-      <Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${title}`} accessibilityState={{ expanded: open, disabled }}
-        disabled={disabled} onPress={toggle} haptic="select" style={[s.edit, materialControl.raised]}>
-        <Glyph name={open ? 'close' : 'edit'} />
-      </Press>
-    </View>
-    {open ? children : summaryContent ?? <ProfileSummary text={summary || empty} label={title} muted={!summary} />}
-  </View>;
+  return <SettingsGroup title={title} action={{ label: open ? 'Gotovo' : 'Izmeni', accessibilityLabel: `${open ? 'Gotovo' : 'Izmeni'}: ${title}`,
+    onPress: () => { if (!disabled) toggle(); } }}>
+    {open ? <View style={s.editor}>{children}</View> : summaryContent ?? <ProfileSummary text={summary || empty} label={title} muted={!summary} />}
+  </SettingsGroup>;
 }
 
 /** Long authored lists remain fully available without pushing the work area off several screens. */
@@ -204,7 +201,7 @@ function ActivationStatus({ status, checks, readyToActivate, disabled, navigate 
   if (status === 'SUSPENDED') return <View style={[s.status, s.suspended]}>
     <T variant="bodyStrong" style={s.danger}>Profil je trenutno suspendovan</T>
     <T variant="note" style={s.ink}>Dok traje suspenzija, zadaci ti se ne nude.</T>
-    <V2Action tone="neutral" label="Piši podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
+    <V2Action tone="neutral" label="Obrati se podršci" kind="quiet" compact disabled={disabled} onPress={() => navigate('/podrska')} style={s.start} />
   </View>;
   const draft = status === 'DRAFT';
   return <View style={s.status}>
@@ -249,7 +246,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   }, [editing, focusRequest, focusSection, disabled]);
   const patch = (value: Partial<WorkerDraft>) => { if (!disabled) change({ ...draft, ...value }); };
   const toggle = (key: NonNullable<typeof editing>) => { if (!disabled) setEditing(editing === key ? null : key); };
-  const grad = draft.grad.trim();
+  const grad = draft.grad.trim() ? tidyPlaceLabel(draft.grad.trim()) : '';
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : 'Izaberi gde želiš da radiš';
   // Before a profile exists, the footer owns the single conversation action.
   // Required activation checks belong to the saved draft, not a warning before setup.
@@ -263,10 +260,8 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričaj čime se baviš</T>
       <T variant="note" tone="muted">Veštine, oprema i područje rada — kroz razgovor.</T>
     </View> : <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />}
-    {openConversation && !firstSetup ? <Press accessibilityRole="button" accessibilityLabel="Uredi profil kroz razgovor"
-      accessibilityHint="Razgovor o zadacima, alatu, vozilima i području rada."
-      accessibilityState={{ disabled }} disabled={disabled} onPress={openConversation} haptic={disabled ? 'none' : 'select'}
-      style={[s.conversationEntry, materialControl.raised]}>
+    {openConversation && !firstSetup ? <Surface kind="record" onPress={disabled ? undefined : openConversation} accessibilityLabel="Uredi profil kroz razgovor"
+      accessibilityHint="Razgovor o zadacima, alatu, vozilima i području rada." style={s.conversationEntry}>
       <View style={[s.conversationCopy, stacked && s.conversationCopyStacked]}>
         <ConversationArt size={64} />
         <View style={s.grow}>
@@ -276,34 +271,34 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       </View>
       <View style={s.conversationBottom}><T variant="bodyStrong" style={s.ink}>Uredi kroz razgovor</T>
         <View style={s.arrow}><Glyph name="caret-right" /></View></View>
-    </Press> : null}
-    <ProfileSection title="O meni" art="person" summary={[draft.ime, draft.biografija].filter(Boolean).join('\n')}
+    </Surface> : null}
+    <ProfileSection title="O meni" summary={[draft.ime, draft.biografija].filter(Boolean).join('\n')}
       summaryContent={draft.ime ? <View style={s.identityCopy}><T variant="title" accessibilityRole="header">{draft.ime}</T>
         {draft.biografija ? <ProfileSummary text={draft.biografija} label="O meni" muted /> : null}</View> : undefined}
       empty="Dodaj ime i nekoliko reči o svom iskustvu." open={editing === 'identity'} toggle={() => toggle('identity')} disabled={disabled}>
       <Field label="Ime na radnom profilu" value={draft.ime} change={ime => patch({ ime })} disabled={disabled} inputRef={nameRef} />
       <Field label="O meni" value={draft.biografija} change={biografija => patch({ biografija })} disabled={disabled} multiline />
     </ProfileSection>
-    <ProfileSection title="Veštine i usluge" art="tasks" summary={draft.vestine.join(' · ')}
+    <ProfileSection title="Veštine i usluge" summary={draft.vestine.join(' · ')}
       empty="Koje zadatke možeš da preuzmeš?" open={editing === 'skills'} toggle={() => toggle('skills')} disabled={disabled}>
       <TermsEditor label="Veštine i usluge" placeholder="Dodaj veštinu ili uslugu" values={draft.vestine} pending={draft.newSkill}
         setPending={newSkill => patch({ newSkill })} change={(vestine, clear) => patch({ vestine, ...(clear ? { newSkill: '' } : {}) })}
         disabled={disabled} inputRef={skillRef} />
     </ProfileSection>
-    <View style={[s.rows, materialControl.raised]}>
-      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} cut="art" />} disabled={disabled}
+    <SettingsGroup>
+      <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')}
         detail={availabilityRowDetail(draft.dostupanOdmah)} />
-      <SettingsRow label="Obaveštenja o zadacima" detail="Novi zadaci i tihi sati" icon={<FactArt kind="bell" size={32} cut="art" />}
+      <SettingsRow label="Obaveštenja o zadacima" detail="Novi zadaci i tihi sati" icon={<FactArt kind="bell" size={32} />}
         disabled={disabled} last onPress={() => navigate('/profil/obavestenja')} />
-    </View>
-    <ProfileSection title="Alat i oprema" art="tool" summary={draft.alati.join(' · ')}
+    </SettingsGroup>
+    <ProfileSection title="Alat i oprema" summary={draft.alati.join(' · ')}
       empty="Dodaj opremu koju možeš da poneseš." open={editing === 'tools'} toggle={() => toggle('tools')} disabled={disabled}>
       <TermsEditor label="Alat i oprema" placeholder="Dodaj alat ili opremu" values={draft.alati} pending={draft.newTool}
         setPending={newTool => patch({ newTool })} change={(alati, clear) => patch({ alati, ...(clear ? { newTool: '' } : {}) })} disabled={disabled} inputRef={toolRef} />
     </ProfileSection>
-    <ProfileSection title="Vozila" art="vehicle" summary={draft.vozila.join(' · ')}
+    <ProfileSection title="Vozila" summary={draft.vozila.join(' · ')}
       empty="Dodaj vozilo ako ga koristiš za zadatke." open={editing === 'vehicles'} toggle={() => toggle('vehicles')} disabled={disabled}>
       <TermsEditor label="Vozila" placeholder="Dodaj vozilo" values={draft.vozila} pending={draft.newVehicle}
         setPending={newVehicle => patch({ newVehicle })} change={(vozila, clear) => patch({ vozila, ...(clear ? { newVehicle: '' } : {}) })} disabled={disabled} inputRef={vehicleRef} />
@@ -316,52 +311,46 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 }, shrink: { flexShrink: 1 },
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger }, center: { textAlign: 'center' },
   start: { alignSelf: 'flex-start' },
-  content: { padding: 20, paddingTop: 6, gap: 16, paddingBottom: 28 },
-  footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8, borderTopWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
+  content: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, gap: layout.section, paddingBottom: layout.zone },
+  footer: { paddingHorizontal: layout.gutter, paddingVertical: sys.space.md, gap: sys.space.sm, borderTopWidth: ruleWidth, borderColor: sys.color.line,
+    backgroundColor: sys.color.surface },
   footerAside: { display: 'none' },
   // While typing, a footer that keeps its answer draws no strip of its own: an empty one would sit on the keyboard.
   footerTyping: { paddingVertical: 0, borderTopWidth: 0, gap: 0 },
-  answer: { gap: 8 }, answerTyping: { paddingVertical: 12 },
-  form: { gap: sys.space.xxl },
-  setupIntro: { gap: 12, paddingTop: 8, paddingBottom: 24 },
-  conversationEntry: { padding: 20, gap: 16, borderRadius: sys.radius.card, backgroundColor: sys.color.wash,
-    borderWidth: 1, borderColor: sys.color.surface },
-  conversationCopy: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  answer: { gap: sys.space.sm }, answerTyping: { paddingVertical: sys.space.md },
+  form: { gap: layout.section },
+  editor: { gap: sys.space.base },
+  setupIntro: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.xl },
+  conversationEntry: { gap: sys.space.base },
+  conversationCopy: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
   conversationCopyStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  conversationBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  arrow: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
+  conversationBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
+  arrow: { width: 36, height: 36, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
   identityCopy: { gap: 8 },
-  summary: { gap: 4 },
+  summary: { gap: sys.space.xs },
   showMore: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   summaryLink: { color: sys.color.ink, textDecorationLine: 'underline' },
-  profileSection: { gap: 12, paddingBottom: 24, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  edit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.surface },
   statusLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Activation requirements are an open reading section; suspension keeps its meaningful warning surface.
-  status: { paddingVertical: sys.space.base, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: sys.color.line, gap: sys.space.md },
-  suspended: { backgroundColor: sys.color.dangerSoft, paddingHorizontal: sys.space.base, borderRadius: sys.radius.control, borderBottomWidth: 0 },
+  status: { gap: sys.space.md },
+  suspended: { backgroundColor: sys.color.dangerSoft, padding: sys.space.base, borderRadius: sys.radius.control },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   dot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
-  checklist: { gap: 4 },
+  checklist: { gap: sys.space.xs },
   checkItem: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   emptyCheck: { width: 20, height: 20, borderRadius: sys.radius.pill, borderWidth: 1.5, borderColor: sys.color.lineStrong },
-  section: { gap: 12 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  field: { gap: 6 },
+  section: { gap: sys.space.md },
+  field: { gap: sys.space.sm },
   input: { ...field },
   multiline: { minHeight: 96, textAlignVertical: 'top' }, inputLocked: { backgroundColor: sys.color.wash, color: sys.color.muted },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 8,
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: layout.touch, maxWidth: '100%', paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm,
     borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
   chipText: { color: sys.color.ink, fontWeight: '500', flexShrink: 1 },
-  addRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  addRow: { flexDirection: 'row', gap: sys.space.sm, alignItems: 'center' },
   addRowStacked: { flexDirection: 'column', alignItems: 'stretch' },
   addInputStacked: { alignSelf: 'stretch' },
   add: { minWidth: 72 },
   addStacked: { alignSelf: 'flex-end' },
-  rows: { borderRadius: sys.radius.card, paddingHorizontal: 16, backgroundColor: sys.color.surface,
-    borderWidth: 1, borderColor: sys.color.line },
 });

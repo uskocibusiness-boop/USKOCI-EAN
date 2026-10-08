@@ -133,7 +133,7 @@ export function AgreementReviewScreen({ agreementId, accountId, accountRevision,
       const checked = await read();
       if (!checked.ok) return checked;
       if (checked.podatak.review?.reviewId !== result.podatak.reviewId) {
-        return failure('REVIEW_READBACK_REQUIRED', 'Potvrda ocene nije učitana. Proveri sačuvanu ocenu.');
+        return failure('REVIEW_READBACK_REQUIRED', 'Ne možemo da vidimo da li je ocena sačuvana. Proveri to.');
       }
       return checked;
     }, commentOn ? { settledFailure: result => !result.ok && COMMENT_REFUSALS.has(result.kod) } : undefined);

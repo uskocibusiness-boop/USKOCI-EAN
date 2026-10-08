@@ -71,14 +71,14 @@ describe('what the saved profile shows', () => {
 });
 
 describe('what the data does today (Na šta utiče)', () => {
-  it('names the notifications and the public profile, and no "Za mene" list while the server has none', async () => {
-    expect(FOR_ME_SWITCH_EXISTS).toBe(false);
+  it('names the notifications, the public profile and the "Za mene" list now that the server has it', async () => {
+    expect(FOR_ME_SWITCH_EXISTS).toBe(true);
     await show();
     const copy = all();
     expect(copy).toContain('Na šta utiče');
     expect(copy).toContain('Obaveštenja'); expect(copy).toContain('Novi i već otvoreni zadaci koji ti odgovaraju');
     expect(copy).toContain('Javni profil'); expect(copy).toContain('Ime, „O meni“ i grad vide osobe koje otvore tvoj profil');
-    expect(copy.join(' ')).not.toMatch(/Za mene|Lista po tvom području/);
+    expect(copy).toContain('Zadaci · Za mene'); expect(copy).toContain('Lista po tvom području i vremenu');
   });
 
   it('the notifications row opens the notification settings; the public-profile row is a sentence, not a control', async () => {
@@ -89,18 +89,19 @@ describe('what the data does today (Na šta utiče)', () => {
     expect(tree.root.findByProps({ testID: 'worker-effect-public' }).props.accessibilityLabel).toBe('Javni profil. Ime, „O meni“ i grad vide osobe koje otvore tvoj profil');
   });
 
-  it('knows the "Za mene" row for the day the server has the switch, and only then', () => {
-    expect(profileEffects().map(row => row.key)).toEqual(['notifications', 'public']);
+  it('has the "Za mene" row while the build has the switch, and only then', () => {
+    expect(profileEffects().map(row => row.key)).toEqual(['notifications', 'public', 'forMe']);
+    expect(profileEffects(false).map(row => row.key)).toEqual(['notifications', 'public']);
     const withSwitch = profileEffects(true);
     expect(withSwitch.map(row => row.key)).toEqual(['notifications', 'public', 'forMe']);
     expect(withSwitch[2]).toMatchObject({ title: 'Zadaci · Za mene', detail: 'Lista po tvom području i vremenu' });
     expect(withSwitch[2].opens).toBeUndefined();
   });
 
-  it('says what the tools and vehicles do today, and the tag only when they are information', async () => {
+  it('says the tools and vehicles are information only, and the tag says it too', async () => {
     await show();
-    expect(tree.root.findByProps({ testID: 'worker-profile-kit-note' }).children.join('')).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
-    expect(all()).not.toContain('samo informacija');
+    expect(tree.root.findByProps({ testID: 'worker-profile-kit-note' }).children.join('')).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
+    expect(all()).toContain('samo informacija');
   });
 });
 

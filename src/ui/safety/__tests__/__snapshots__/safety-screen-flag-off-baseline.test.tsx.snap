@@ -12,247 +12,64 @@ exports[`draws the screen as before for a blocked person 1`] = `
    },
    "children": [
     {
-     "type": "View",
-     "props": {},
+     "type": "Group",
+     "props": {
+      "title": "Kontakt sa osobom"
+     },
      "children": [
       {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
+       "type": "View",
+       "props": {},
        "children": [
-        "Kontakt sa osobom"
+        {
+         "type": "T",
+         "props": {
+          "variant": "copy"
+         },
+         "children": [
+          "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted"
+         },
+         "children": [
+          "Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije."
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "accessibilityLiveRegion": "polite"
+         },
+         "children": [
+          "Osoba je blokirana."
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Odblokiraj osobu",
+          "loading": false,
+          "kind": "secondary",
+          "disabled": false,
+          "reason": null
+         },
+         "children": null
+        }
        ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "copy"
-       },
-       "children": [
-        "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije."
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "accessibilityLiveRegion": "polite"
-       },
-       "children": [
-        "Osoba je blokirana."
-       ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Odblokiraj osobu",
-        "loading": false,
-        "kind": "secondary",
-        "disabled": false,
-        "reason": null
-       },
-       "children": null
       }
      ]
     },
     {
-     "type": "View",
-     "props": {},
+     "type": "Group",
+     "props": {
+      "title": "Bezbednosna prijava podršci"
+     },
      "children": [
-      {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
-       "children": [
-        "Bezbednosna prijava podršci"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
-       ]
-      },
-      {
-       "type": "View",
-       "props": {
-        "accessibilityRole": "radiogroup"
-       },
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Uznemiravanje",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Uznemiravanje"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Prevara",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Prevara"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Nebezbedan rad",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Nebezbedan rad"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Diskriminacija",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Diskriminacija"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Drugo",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Drugo"
-           ]
-          }
-         ]
-        }
-       ]
-      },
       {
        "type": "View",
        "props": {},
@@ -264,21 +81,274 @@ exports[`draws the screen as before for a blocked person 1`] = `
           "tone": "muted"
          },
          "children": [
-          "Kratak razlog"
+          "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
          ]
         },
         {
-         "type": "Input",
+         "type": "View",
          "props": {
-          "accessibilityLabel": "Kratak razlog privatne prijave",
-          "value": "",
-          "maxLength": 200,
-          "editable": true
+          "accessibilityRole": "radiogroup"
+         },
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Uznemiravanje",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Uznemiravanje"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Prevara",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Prevara"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Nebezbedan rad",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Nebezbedan rad"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Diskriminacija",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Diskriminacija"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Drugo",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Drugo"
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "note",
+            "tone": "muted"
+           },
+           "children": [
+            "Kratak razlog"
+           ]
+          },
+          {
+           "type": "Input",
+           "props": {
+            "accessibilityLabel": "Kratak razlog privatne prijave",
+            "value": "",
+            "maxLength": 200,
+            "editable": true
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "note",
+            "tone": "muted"
+           },
+           "children": [
+            "Dodatni opis, ako želiš"
+           ]
+          },
+          {
+           "type": "Input",
+           "props": {
+            "accessibilityLabel": "Dodatni privatni opis",
+            "value": "",
+            "maxLength": 2000,
+            "editable": true,
+            "multiline": true,
+            "textAlignVertical": "top"
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Pošalji privatnu prijavu",
+          "loading": false,
+          "reason": "Izaberi vrstu prijave i upiši kratak razlog.",
+          "disabled": true
          },
          "children": null
         }
        ]
-      },
+      }
+     ]
+    },
+    {
+     "type": "Group",
+     "props": {
+      "title": "Imaš drugo pitanje?"
+     },
+     "children": [
       {
        "type": "View",
        "props": {},
@@ -290,66 +360,18 @@ exports[`draws the screen as before for a blocked person 1`] = `
           "tone": "muted"
          },
          "children": [
-          "Dodatni opis, ako želiš"
+          "Podrška prima tvoju prijavu. Poseban zahtev otvori samo ako imaš drugo pitanje."
          ]
         },
         {
-         "type": "Input",
+         "type": "Action",
          "props": {
-          "accessibilityLabel": "Dodatni privatni opis",
-          "value": "",
-          "maxLength": 2000,
-          "editable": true,
-          "multiline": true,
-          "textAlignVertical": "top"
+          "label": "Otvori zahtev podršci",
+          "kind": "quiet"
          },
          "children": null
         }
        ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Pošalji privatnu prijavu",
-        "loading": false,
-        "reason": "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.",
-        "disabled": true
-       },
-       "children": null
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
-       "children": [
-        "Imaš drugo pitanje?"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
-       ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Otvori zahtev podršci",
-        "kind": "quiet"
-       },
-       "children": null
       }
      ]
     }
@@ -371,247 +393,64 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
    },
    "children": [
     {
-     "type": "View",
-     "props": {},
+     "type": "Group",
+     "props": {
+      "title": "Kontakt sa osobom"
+     },
      "children": [
       {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
+       "type": "View",
+       "props": {},
        "children": [
-        "Kontakt sa osobom"
+        {
+         "type": "T",
+         "props": {
+          "variant": "copy"
+         },
+         "children": [
+          "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted"
+         },
+         "children": [
+          "Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije."
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "accessibilityLiveRegion": "polite"
+         },
+         "children": [
+          "Osoba nije blokirana."
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Blokiraj osobu",
+          "loading": false,
+          "kind": "destructive",
+          "disabled": false,
+          "reason": null
+         },
+         "children": null
+        }
        ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "copy"
-       },
-       "children": [
-        "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije."
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "accessibilityLiveRegion": "polite"
-       },
-       "children": [
-        "Osoba nije blokirana."
-       ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Blokiraj osobu",
-        "loading": false,
-        "kind": "destructive",
-        "disabled": false,
-        "reason": null
-       },
-       "children": null
       }
      ]
     },
     {
-     "type": "View",
-     "props": {},
+     "type": "Group",
+     "props": {
+      "title": "Bezbednosna prijava podršci"
+     },
      "children": [
-      {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
-       "children": [
-        "Bezbednosna prijava podršci"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
-       ]
-      },
-      {
-       "type": "View",
-       "props": {
-        "accessibilityRole": "radiogroup"
-       },
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Uznemiravanje",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Uznemiravanje"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Prevara",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Prevara"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Nebezbedan rad",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Nebezbedan rad"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Diskriminacija",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Diskriminacija"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Drugo",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Drugo"
-           ]
-          }
-         ]
-        }
-       ]
-      },
       {
        "type": "View",
        "props": {},
@@ -623,21 +462,274 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
           "tone": "muted"
          },
          "children": [
-          "Kratak razlog"
+          "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
          ]
         },
         {
-         "type": "Input",
+         "type": "View",
          "props": {
-          "accessibilityLabel": "Kratak razlog privatne prijave",
-          "value": "",
-          "maxLength": 200,
-          "editable": true
+          "accessibilityRole": "radiogroup"
+         },
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Uznemiravanje",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Uznemiravanje"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Prevara",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Prevara"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Nebezbedan rad",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Nebezbedan rad"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Diskriminacija",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Diskriminacija"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Drugo",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Drugo"
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "note",
+            "tone": "muted"
+           },
+           "children": [
+            "Kratak razlog"
+           ]
+          },
+          {
+           "type": "Input",
+           "props": {
+            "accessibilityLabel": "Kratak razlog privatne prijave",
+            "value": "",
+            "maxLength": 200,
+            "editable": true
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "note",
+            "tone": "muted"
+           },
+           "children": [
+            "Dodatni opis, ako želiš"
+           ]
+          },
+          {
+           "type": "Input",
+           "props": {
+            "accessibilityLabel": "Dodatni privatni opis",
+            "value": "",
+            "maxLength": 2000,
+            "editable": true,
+            "multiline": true,
+            "textAlignVertical": "top"
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Pošalji privatnu prijavu",
+          "loading": false,
+          "reason": "Izaberi vrstu prijave i upiši kratak razlog.",
+          "disabled": true
          },
          "children": null
         }
        ]
-      },
+      }
+     ]
+    },
+    {
+     "type": "Group",
+     "props": {
+      "title": "Imaš drugo pitanje?"
+     },
+     "children": [
       {
        "type": "View",
        "props": {},
@@ -649,66 +741,18 @@ exports[`draws the screen as before for a person who is not blocked 1`] = `
           "tone": "muted"
          },
          "children": [
-          "Dodatni opis, ako želiš"
+          "Podrška prima tvoju prijavu. Poseban zahtev otvori samo ako imaš drugo pitanje."
          ]
         },
         {
-         "type": "Input",
+         "type": "Action",
          "props": {
-          "accessibilityLabel": "Dodatni privatni opis",
-          "value": "",
-          "maxLength": 2000,
-          "editable": true,
-          "multiline": true,
-          "textAlignVertical": "top"
+          "label": "Otvori zahtev podršci",
+          "kind": "quiet"
          },
          "children": null
         }
        ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Pošalji privatnu prijavu",
-        "loading": false,
-        "reason": "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.",
-        "disabled": true
-       },
-       "children": null
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
-       "children": [
-        "Imaš drugo pitanje?"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
-       ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Otvori zahtev podršci",
-        "kind": "quiet"
-       },
-       "children": null
       }
      ]
     }
@@ -730,246 +774,63 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
    },
    "children": [
     {
-     "type": "View",
-     "props": {},
+     "type": "Group",
+     "props": {
+      "title": "Kontakt sa osobom"
+     },
      "children": [
       {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
+       "type": "View",
+       "props": {},
        "children": [
-        "Kontakt sa osobom"
+        {
+         "type": "T",
+         "props": {
+          "variant": "copy"
+         },
+         "children": [
+          "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "variant": "note",
+          "tone": "muted"
+         },
+         "children": [
+          "Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije."
+         ]
+        },
+        {
+         "type": "T",
+         "props": {
+          "tone": "danger",
+          "accessibilityRole": "alert"
+         },
+         "children": [
+          "Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo."
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Proveri blokiranje",
+          "kind": "quiet",
+          "disabled": false
+         },
+         "children": null
+        }
        ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "copy"
-       },
-       "children": [
-        "Blokiranje zaustavlja običan kontakt i nova povezivanja. Završetak, otkazivanje i prijava problema u postojećem Dogovoru ostaju dostupni."
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Odblokiranje ne vraća ranije dozvole za deljenje kontakta ili tačne lokacije."
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "tone": "danger",
-        "accessibilityRole": "alert"
-       },
-       "children": [
-        "Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo."
-       ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Proveri blokiranje",
-        "kind": "quiet",
-        "disabled": false
-       },
-       "children": null
       }
      ]
     },
     {
-     "type": "View",
-     "props": {},
+     "type": "Group",
+     "props": {
+      "title": "Bezbednosna prijava podršci"
+     },
      "children": [
-      {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
-       "children": [
-        "Bezbednosna prijava podršci"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
-       ]
-      },
-      {
-       "type": "View",
-       "props": {
-        "accessibilityRole": "radiogroup"
-       },
-       "children": [
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Uznemiravanje",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Uznemiravanje"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Prevara",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Prevara"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Nebezbedan rad",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Nebezbedan rad"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Diskriminacija",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Diskriminacija"
-           ]
-          }
-         ]
-        },
-        {
-         "type": "Press",
-         "props": {
-          "accessibilityRole": "radio",
-          "accessibilityLabel": "Drugo",
-          "accessibilityState": {
-           "selected": false,
-           "checked": false,
-           "disabled": false
-          },
-          "disabled": false
-         },
-         "children": [
-          {
-           "type": "View",
-           "props": {
-            "accessible": false,
-            "accessibilityElementsHidden": true,
-            "importantForAccessibility": "no-hide-descendants"
-           },
-           "children": null
-          },
-          {
-           "type": "T",
-           "props": {},
-           "children": [
-            "Drugo"
-           ]
-          }
-         ]
-        }
-       ]
-      },
       {
        "type": "View",
        "props": {},
@@ -981,21 +842,274 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
           "tone": "muted"
          },
          "children": [
-          "Kratak razlog"
+          "Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru."
          ]
         },
         {
-         "type": "Input",
+         "type": "View",
          "props": {
-          "accessibilityLabel": "Kratak razlog privatne prijave",
-          "value": "",
-          "maxLength": 200,
-          "editable": true
+          "accessibilityRole": "radiogroup"
+         },
+         "children": [
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Uznemiravanje",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Uznemiravanje"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Prevara",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Prevara"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Nebezbedan rad",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Nebezbedan rad"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Diskriminacija",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Diskriminacija"
+             ]
+            },
+            {
+             "type": "View",
+             "props": {
+              "pointerEvents": "none"
+             },
+             "children": null
+            }
+           ]
+          },
+          {
+           "type": "Press",
+           "props": {
+            "accessibilityRole": "radio",
+            "accessibilityLabel": "Drugo",
+            "accessibilityState": {
+             "selected": false,
+             "checked": false,
+             "disabled": false
+            },
+            "disabled": false
+           },
+           "children": [
+            {
+             "type": "View",
+             "props": {
+              "accessible": false,
+              "accessibilityElementsHidden": true,
+              "importantForAccessibility": "no-hide-descendants"
+             },
+             "children": null
+            },
+            {
+             "type": "T",
+             "props": {},
+             "children": [
+              "Drugo"
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "note",
+            "tone": "muted"
+           },
+           "children": [
+            "Kratak razlog"
+           ]
+          },
+          {
+           "type": "Input",
+           "props": {
+            "accessibilityLabel": "Kratak razlog privatne prijave",
+            "value": "",
+            "maxLength": 200,
+            "editable": true
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "View",
+         "props": {},
+         "children": [
+          {
+           "type": "T",
+           "props": {
+            "variant": "note",
+            "tone": "muted"
+           },
+           "children": [
+            "Dodatni opis, ako želiš"
+           ]
+          },
+          {
+           "type": "Input",
+           "props": {
+            "accessibilityLabel": "Dodatni privatni opis",
+            "value": "",
+            "maxLength": 2000,
+            "editable": true,
+            "multiline": true,
+            "textAlignVertical": "top"
+           },
+           "children": null
+          }
+         ]
+        },
+        {
+         "type": "Action",
+         "props": {
+          "label": "Pošalji privatnu prijavu",
+          "loading": false,
+          "reason": "Izaberi vrstu prijave i upiši kratak razlog.",
+          "disabled": true
          },
          "children": null
         }
        ]
-      },
+      }
+     ]
+    },
+    {
+     "type": "Group",
+     "props": {
+      "title": "Imaš drugo pitanje?"
+     },
+     "children": [
       {
        "type": "View",
        "props": {},
@@ -1007,66 +1121,18 @@ exports[`draws the screen as before when the read of the block failed 1`] = `
           "tone": "muted"
          },
          "children": [
-          "Dodatni opis, ako želiš"
+          "Podrška prima tvoju prijavu. Poseban zahtev otvori samo ako imaš drugo pitanje."
          ]
         },
         {
-         "type": "Input",
+         "type": "Action",
          "props": {
-          "accessibilityLabel": "Dodatni privatni opis",
-          "value": "",
-          "maxLength": 2000,
-          "editable": true,
-          "multiline": true,
-          "textAlignVertical": "top"
+          "label": "Otvori zahtev podršci",
+          "kind": "quiet"
          },
          "children": null
         }
        ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Pošalji privatnu prijavu",
-        "loading": false,
-        "reason": "Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.",
-        "disabled": true
-       },
-       "children": null
-      }
-     ]
-    },
-    {
-     "type": "View",
-     "props": {},
-     "children": [
-      {
-       "type": "T",
-       "props": {
-        "variant": "bodyStrong",
-        "accessibilityRole": "header"
-       },
-       "children": [
-        "Imaš drugo pitanje?"
-       ]
-      },
-      {
-       "type": "T",
-       "props": {
-        "variant": "note",
-        "tone": "muted"
-       },
-       "children": [
-        "Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje."
-       ]
-      },
-      {
-       "type": "Action",
-       "props": {
-        "label": "Otvori zahtev podršci",
-        "kind": "quiet"
-       },
-       "children": null
       }
      ]
     }

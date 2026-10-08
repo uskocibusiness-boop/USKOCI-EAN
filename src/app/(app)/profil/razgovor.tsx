@@ -279,8 +279,8 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':
     data.safety==='BLOCK'||data.safety==='REVIEW'?'Ovaj predlog trenutno ne može da se sačuva.':awaiting?turn?.state==='UNKNOWN_OUTCOME'?
-      'Ishod prethodne poruke nije potvrđen. Proveri stanje; ista obrada se neće ponovo pokrenuti.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
-      recovery?.cancelled&&recovery.providerDispatched?'Odgovor je otkazan i podaci su ostali nepromenjeni. Poruka se ipak računa kao poslata, jer je obrada već bila počela.':null;
+      'Ne znamo da li je prethodna poruka stigla. Proveri to; poruka se neće poslati dvaput.':'AI još obrađuje poruku. Proveri stanje.':pending.current?'Proveri prethodno slanje. Novi unos i pregled su dostupni kada potvrdimo ishod.':
+      recovery?.cancelled&&recovery.providerDispatched?'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; profil je ostao isti.':null;
   if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back}><WorkerProfileStatus loading={leaving||editor.loading||!foreground||resuming}
     error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
   const busyPanelCopy=editor.busy?<T accessibilityRole="alert" variant="meta" tone="muted">Sačekaj potvrdu pre povratka u razgovor.</T>
@@ -289,7 +289,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // minimum height left those controls below a second scroll on smaller Android screens.
   if(panel==='availability')return <CalendarScreen title="Dostupnost za rad" back={back} scroll={false}
     footer={<>{busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
-      <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/></>}>
+      <V2Action tone="neutral" label="Proveri razgovor" onPress={refresh} disabled={editor.busy}/></>}>
     <AvailabilityForm availability={data.candidate.availability} busy={editor.busy} uncertain={editor.uncertain} refreshing={editor.loading} candidateMode
       onSave={value=>{if(canAct()&&enabled)void patch(workerAvailabilityPatch(data.candidate.availability,value),origin.current==='review');}}/>
   </CalendarScreen>;
@@ -300,7 +300,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       apply={value=>{if(!manualDraftConflict)void patch(value,origin.current==='review');}} onDraftChange={manualChanged}/>
     {manualDraftConflict?<V2Action tone="neutral" label="Odbaci izmene i nastavi" kind="quiet" disabled={manualBackBlocked.current||panelWrite.current} onPress={back}/>:null}
     {busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
-    <V2Action tone="neutral" label="Proveri stanje razgovora" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
+    <V2Action tone="neutral" label="Proveri razgovor" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
   if(panel==='review'&&data.review){const frozen=data.review,expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision;
     // "Izmeni" at a part opens that part's editor and comes back to a fresh review (see `patch`).
     const editPart=(next:WorkerAiPart)=>{
@@ -337,7 +337,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       :editor.uncertain?'Prvo proveri stanje razgovora.'
         :editor.loading||resuming?'Dostupno kad se razgovor učita.':'Dostupno kad se završi prethodna radnja.';
   // The worker side stores the person's message the moment its turn is claimed, and the read returns every stored
-  // message, so a turn that is still processing (a lost answer, a return to the app, "Proveri stanje razgovora") already
+  // message, so a turn that is still processing (a lost answer, a return to the app, "Proveri razgovor") already
   // shows it in the thread. Drawing it again as "šalje se" said the same sentence twice (verify r4b ra item A); it is
   // "not yet read back" only until the thread's last message is that very sentence.
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
@@ -376,9 +376,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     voice={writable?{controller:voice.controller,state:voice.state,disabled:!enabled||!!pending.current,onKeepText:keepTranscript}:undefined}
     actions={<>
       {/* After a save the only next step is the saved profile; a second "check" button beside it read as unfinished. */}
-      {(pending.current||awaiting||editor.uncertain||editor.error)&&!data.saved?<V2Action tone="neutral" label="Proveri stanje razgovora" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
+      {(pending.current||awaiting||editor.uncertain||editor.error)&&!data.saved?<V2Action tone="neutral" label="Proveri razgovor" disabled={editor.busy||voiceBusy} onPress={refresh}/>:null}
       {pending.current&&recovery?.canCancel?<>
-        <T variant="meta" tone="muted">Odustajanje sprečava da kasniji odgovor promeni podatke. Ako je odgovor već počeo da se sprema, poruka se ipak računa kao poslata.</T>
+        <T variant="meta" tone="muted">Ako odustaneš, odgovor asistenta neće promeniti profil. Ako je asistent već počeo da odgovara, poruka je ipak poslata.</T>
         <V2Action tone="neutral" label={recovery.providerDispatched?'Odustani od odgovora':'Otkaži prethodno slanje'} kind="quiet"
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}

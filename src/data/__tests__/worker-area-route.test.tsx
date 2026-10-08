@@ -51,14 +51,14 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 
 it('a first read shows the loading state instead of a form built from nothing', async () => {
   mockEditor = idle({ data: null, loading: true }); await render();
-  expect(texts()).toContain('Učitavamo sačuvanu lokaciju…');
+  expect(texts()).toContain('Učitavamo područje rada…');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Grad ili mesto rada' })).toHaveLength(0);
 });
 
 it('a failed read without data offers one way to read it again', async () => {
   mockEditor = idle({ data: null, error: 'Lokacija nije učitana. Proveri vezu.' }); await render();
   expect(texts()).toContain('Područje rada nije učitano'); expect(texts()).toContain('Lokacija nije učitana. Proveri vezu.');
-  await act(async () => buttons('Učitaj sačuvano stanje')[0].props.onPress());
+  await act(async () => buttons('Pokušaj ponovo')[0].props.onPress());
   expect(mockRefresh).toHaveBeenCalledTimes(1);
 });
 
@@ -88,7 +88,7 @@ it('while the saved area is read again the save waits and says why', async () =>
 it('a failed read that kept the form offers the read, not a save the editor would refuse', async () => {
   mockEditor = idle({ error: 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.' }); await render();
   expect(buttons('Sačuvaj područje rada')).toHaveLength(0);
-  const retry = buttons('Učitaj sačuvano stanje');
+  const retry = buttons('Pokušaj ponovo');
   expect(retry).toHaveLength(1); expect(retry[0].props.error).toBe('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
   await act(async () => retry[0].props.onPress());
   expect(mockRefresh).toHaveBeenCalledTimes(1);
@@ -97,7 +97,7 @@ it('a failed read that kept the form offers the read, not a save the editor woul
 it('an unknown outcome replaces the save with a read of the saved state', async () => {
   mockEditor = idle({ uncertain: true, error: 'Čuvanje nije potvrđeno.' }); await render();
   expect(buttons('Sačuvaj područje rada')).toHaveLength(0);
-  const retry = buttons('Učitaj sačuvano stanje');
+  const retry = buttons('Pokušaj ponovo');
   expect(retry).toHaveLength(1); expect(retry[0].props.error).toBe('Čuvanje nije potvrđeno.');
   await act(async () => retry[0].props.onPress());
   expect(mockRefresh).toHaveBeenCalledTimes(1); expect(mockSaveCall).not.toHaveBeenCalled();

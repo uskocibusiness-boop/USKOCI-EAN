@@ -7,7 +7,8 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 
 import { ProductSheet } from '../product/ProductSheet';
 import { SettingsAction, SettingsText as T } from '../settings/SettingsPresentation';
-import { inset, sys } from '../system/tokens';
+import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
 
 /** An explicit read opens an owned existing case or a new unsent form.
  * The route contains only an opaque reference, never a narrative or snapshot. */
@@ -93,7 +94,8 @@ export function SupportMessagePreviewSheet({ previewText, busy, disabled, error,
       <SettingsAction label="Odustani od izbora poruke" kind="quiet" disabled={disabled || busy} onPress={dismiss} />
     </>}>
     {() => <View style={styles.preview}>
-      <View style={styles.quote}><T selectable>{previewText}</T></View>
+      {/* The chosen words as the system's note (a flat tint, not a card): a quotation inside the sheet. */}
+      <Surface kind="note"><T selectable>{previewText}</T></Surface>
       <T variant="note" tone="muted">Uz privatni zahtev prilažeš samo ovu poruku. Ostatak razgovora se ne kopira i druga strana ne dobija zahtev.</T>
       {error ? <T variant="note" tone="danger" accessibilityRole="alert">{error}</T> : null}
     </View>}
@@ -102,5 +104,4 @@ export function SupportMessagePreviewSheet({ previewText, busy, disabled, error,
 
 const styles = StyleSheet.create({
   preview: { gap: sys.space.md },
-  quote: { ...inset, backgroundColor: sys.color.wash },
 });

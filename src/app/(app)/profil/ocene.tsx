@@ -1,21 +1,22 @@
 import { useCallback, useRef, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ownProfileClientService } from '../../../data/ownProfileClientService';
 import { reviewCommentBuilt } from '../../../data/reviewCommentGate';
 import { accountReputationLabel, reviewsClientService, type AccountReputation } from '../../../data/reviewsClientService';
 import { useFocusedResource } from '../../../hooks/useFocusedResource';
 import { useSesija } from '../../../store/sesija';
 import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { GivenRatings, ReceivedRatings, RatingsScreen, type GivenView, type RatingsTab, type ReceivedView } from '../../../ui/reviews/RatingsPresentation';
-import { ReviewCommentsSection, type ReviewCommentPhoto } from '../../../ui/reviews/ReviewCommentsSection';
+import type { ReceivedReviewPhoto } from '../../../ui/reviews/ReceivedReviewsList';
+import { ReceivedReviewsSection } from '../../../ui/reviews/ReceivedReviewsSection';
 import { useGivenRatings } from '../../../ui/reviews/useGivenRatings';
 
 /** A reviewer's photo under "Komentari" (D12, only in a build with the flag): the same profile photo as everywhere, at the size asked for. */
-const commentPhoto: ReviewCommentPhoto = (profileId, size, fallback) => <ProfilePhoto profileId={profileId} size={size} fallback={fallback} />;
+const commentPhoto: ReceivedReviewPhoto = (profileId, size, fallback) => <ProfilePhoto profileId={profileId} size={size} fallback={fallback} />;
 
 /**
  * Ocene (T4a, 2026-10-07): where the rating line of the profile leads. "Primljene" is what the account's own reputation read and, in
- * a build with the written comments, the comments about the person; "Date" is the ratings the person left, read from their finished
+ * a build with the written comments, the reviews the person received, page by page (PROFILE-TRUST, R30: `rpc_list_received_reviews_v1`, and
+ * which of them are listed is the server's answer); "Date" is the ratings the person left, read from their finished
  * Dogovori only when the tab is opened. `?tab=date` opens it on "Date". The screen reads and navigates; what is drawn is
  * `RatingsPresentation`.
  */
@@ -46,20 +47,14 @@ function OwnedRatings({ accountId }: { accountId: string | null }) {
     if (!result.ok) throw new Error('REPUTATION_NOT_AVAILABLE');
     return result.podatak;
   }, [accountId]));
-  // The comments are listed under a profile of the account (the list is account-level); only a build with them reads it.
+  // The received reviews are the signed-in account's own (the function answers only for the caller); only a build with the comments reads them.
   const commentsBuilt = reviewCommentBuilt();
-  const profile = useFocusedResource(useCallback(async () => {
-    if (!commentsBuilt || !accountId) return null;
-    const [identity, capability] = await Promise.all([ownProfileClientService.read(accountId, 'narucilac'), ownProfileClientService.read(accountId, 'uskocer')]);
-    return (identity ?? capability)?.profileId ?? null;
-  }, [accountId, commentsBuilt]));
-  const profileId = profile.data ?? null;
 
   const choose = (next: RatingsTab) => { setTab(next); if (next === 'given') setGivenOpened(true); };
   return <RatingsScreen tab={tab} onTab={choose} givenOpened={givenOpened}
     onBack={() => go(() => router.canGoBack() ? router.back() : router.replace('/profil'))}
     received={<ReceivedRatings view={receivedView(reputation, () => { void reputation.refresh(); })}
-      comments={commentsBuilt && profileId ? <ReviewCommentsSection profileId={profileId} photo={commentPhoto} /> : null} />}
+      comments={commentsBuilt ? <ReceivedReviewsSection photo={commentPhoto} /> : null} />}
     given={<GivenTab open={agreementId => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreementId } }))} />} />;
 }
 

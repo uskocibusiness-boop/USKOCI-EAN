@@ -75,14 +75,15 @@ describe('the review in parts (M2)', () => {
     expect(edit).not.toHaveBeenCalled();
   });
 
-  it('says what tools and vehicles do TODAY, and the owner-decided words stay one switch away', async () => {
-    expect(TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY).toBe(false);
+  it('says tools and vehicles are information only now that MATCH-V1 is applied, and the old words stay one switch away', async () => {
+    expect(TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY).toBe(true);
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} />); });
     const note = tree.root.findByProps({ testID: 'worker-tools-note' }).children.join('');
-    expect(note).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
-    expect(texts()).not.toContain('samo informacija');
-    // The switch: the owner's decision of 2026-10-07, drawn only when the server really treats the lists as information.
+    expect(note).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
+    expect(texts()).toContain('samo informacija');
+    // The switch: the words are the owner's decision of 2026-10-07, drawn only while the server really treats the lists as information (a server without MATCH-V1 needs the old ones).
     expect(toolsAndVehiclesNote(true)).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
+    expect(toolsAndVehiclesNote(false)).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
     expect(toolsAndVehiclesTag(true)).toBe('samo informacija'); expect(toolsAndVehiclesTag(false)).toBeNull();
   });
 

@@ -9,9 +9,10 @@ import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
 
-import { SettingsText as T, SettingsScreen, SettingsAction } from '../settings/SettingsPresentation';
+import { SettingsText as T, SettingsScreen, SettingsAction, SettingsGroup } from '../settings/SettingsPresentation';
 import { Press } from '../Press';
 import { withInter } from '../interFont';
+import { layout, ruleWidth } from '../system/layout';
 import { sys } from '../system/tokens';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { StateView } from '../system/StateView';
@@ -91,8 +92,7 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
   return <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <SettingsScreen title="Bezbednost" onBack={back}>
     {name ? <T variant="heading" accessibilityRole="header" numberOfLines={2} testID="safety-target-name">{name}</T> : null}
-    <View style={s.section}>
-      <T variant="bodyStrong" accessibilityRole="header">Kontakt sa osobom</T>
+    <SettingsGroup title="Kontakt sa osobom"><View style={s.section}>
       <T variant="copy">{blockConsequence}</T>
       <T variant="note" tone="muted">{unblockConsequence}</T>
       {/* The first read is a skeleton of the state and the action that will stand here; a re-read keeps them on screen. */}
@@ -106,17 +106,16 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
           reason={editor.loading ? 'Proveravamo blokiranje…' : editor.uncertain ? 'Najpre proveri blokiranje.' : null} onPress={askBlock} />
       </> : null}
       {editor.error ? <SettingsAction label="Proveri blokiranje" kind="quiet" disabled={editor.busy || editor.loading} onPress={() => { void editor.refresh(); }} /> : null}
-    </View>
+    </View></SettingsGroup>
     <PrivateReport {...p} />
     {/* This screen is where a person arrives when something has gone wrong with another person, and
         it had no way through to support at all — the only paths in were the profile row and a
         publication review. */}
-    <View style={[s.section, s.separated]}>
-      <T variant="bodyStrong" accessibilityRole="header">Imaš drugo pitanje?</T>
-      <T variant="note" tone="muted">Prijavu prima podrška i ona već otvara zahtev. Poseban zahtev otvori samo za drugo pitanje.</T>
+    <SettingsGroup title="Imaš drugo pitanje?"><View style={s.section}>
+      <T variant="note" tone="muted">Podrška prima tvoju prijavu. Poseban zahtev otvori samo ako imaš drugo pitanje.</T>
       <SettingsAction label="Otvori zahtev podršci" kind="quiet"
         onPress={() => router.push('/podrska/novi')} />
-    </View>
+    </View></SettingsGroup>
     {confirmation.sheet}
     </SettingsScreen>
   </KeyboardAvoidingView>;
@@ -140,7 +139,7 @@ function PrivateReport(context: Context) {
     const result = await safetyClientService.readReportCommand(requestId);
     if (!current()) return;
     if (result.ok && result.podatak.receipt) { setReceipt(result.podatak.receipt); setFresh(news); setPending(false); setError(null); setReason(''); setNarrative(''); frozen.current = null; }
-    else { setPending(true); setError(result.ok ? 'Potvrda još nije stigla. Možeš ponovo proveriti ili ponovo poslati.' : result.poruka); }
+    else { setPending(true); setError(result.ok ? 'Ne znamo da li je prijava stigla. Proveri ili pošalji ponovo.' : result.poruka); }
   }, []);
   useFocusEffect(useCallback(() => {
     const s = { busy: true, current: () => scope.current === s && !!accountId && sesijaSada().user?.id === accountId &&
@@ -173,7 +172,7 @@ function PrivateReport(context: Context) {
       const result = await safetyClientService.report(command); if (!s.current()) return;
       if (result.ok) { setReceipt(result.podatak); setFresh(true); setPending(false); setReason(''); setNarrative(''); frozen.current = null; }
       else setError(result.poruka);
-    } catch { if (s.current()) setError('Prijava nije potvrđena. Proveri potvrdu pre novog pokušaja.'); }
+    } catch { if (s.current()) setError('Ne znamo da li je prijava stigla. Proveri to pre novog pokušaja.'); }
     finally { finish(s); }
   }
   async function check() { const s = begin('check'); if (!s) return;
@@ -188,10 +187,10 @@ function PrivateReport(context: Context) {
   }
   const editable = loaded && !busy && !frozen.current && !receipt;
   // A grey send carries its reason beside it (owner's rule): what the form still lacks, or that the earlier report is being checked.
-  const lacking = !category && !reason.trim() ? 'Izaberi kategoriju i upiši kratak razlog da bi slanje bilo dostupno.'
-    : !category ? 'Izaberi kategoriju da bi slanje bilo dostupno.' : !reason.trim() ? 'Upiši kratak razlog da bi slanje bilo dostupno.' : null;
+  const lacking = !category && !reason.trim() ? 'Izaberi vrstu prijave i upiši kratak razlog.'
+    : !category ? 'Izaberi vrstu prijave.' : !reason.trim() ? 'Upiši kratak razlog.' : null;
   const sendWhy = !loaded ? busy ? 'Proveravamo prijavu…' : null : !busy && !frozen.current ? lacking : null;
-  return <View style={[s.section, s.separated]}><T variant="bodyStrong" accessibilityRole="header">Bezbednosna prijava podršci</T>
+  return <SettingsGroup title="Bezbednosna prijava podršci"><View style={s.section}>
     <T variant="note" tone="muted">Prijavu prima podrška. Druga osoba ne vidi kategoriju, razlog ni opis. Ovo je odvojeno od problema u Dogovoru.</T>
     {/* The final state is a state of its own, not a line under the form: the form is gone, the receipt says what happened and when. */}
     {receipt ? <View style={s.done}>
@@ -202,12 +201,13 @@ function PrivateReport(context: Context) {
       <View accessibilityRole="radiogroup">{SAFETY_CATEGORIES.map((value, index) => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
-        style={[radioStyles.row, index === SAFETY_CATEGORIES.length - 1 && radioStyles.last]}>
+        style={radioStyles.row}>
         <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           style={[radioStyles.marker, { borderColor: category === value ? sys.color.green : sys.color.lineStrong }]}>
           {category === value ? <View testID="safety-category-selected" style={radioStyles.dot} /> : null}
         </View>
         <T style={radioStyles.label}>{safetyCategoryCopy[value]}</T>
+        {index === SAFETY_CATEGORIES.length - 1 ? null : <View pointerEvents="none" style={radioStyles.rule} />}
       </Press>)}</View>
       <View style={s.field}>
         <T variant="note" tone="muted">Kratak razlog</T><TextInput accessibilityLabel="Kratak razlog privatne prijave" value={reason} maxLength={200}
@@ -223,20 +223,20 @@ function PrivateReport(context: Context) {
     </>}
     {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
     {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} /> : null}
-  </View>;
+  </View></SettingsGroup>;
 }
-const input = withInter({ borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.control, padding: 14, minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });
+const input = withInter({ borderWidth: ruleWidth, borderColor: sys.color.line, borderRadius: sys.radius.control, paddingVertical: sys.space.md, paddingHorizontal: sys.space.base,
+  minHeight: 52, color: sys.color.ink, fontSize: sys.type.body.fontSize });
 
 const s = StyleSheet.create({
   screen: { flex: 1 },
   section: { gap: sys.space.md },
-  separated: { borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.md },
   field: { gap: sys.space.sm },
   done: { gap: sys.space.md, alignItems: 'flex-start', paddingVertical: sys.space.sm },
 });
 const radioStyles = StyleSheet.create({
-  row: { minHeight: 48, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: sys.color.line, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  last: { borderBottomWidth: 0 },
+  row: { minHeight: layout.touch, paddingVertical: sys.space.md, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  rule: { position: 'absolute', left: 0, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },
   marker: { width: 22, height: 22, flexShrink: 0, borderWidth: 2, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 10, height: 10, borderRadius: sys.radius.pill, backgroundColor: sys.color.green },
   label: { flex: 1, minWidth: 0 },
