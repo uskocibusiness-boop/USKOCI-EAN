@@ -1,0 +1,18 @@
+# Vlasnikove odluke 8. oktobra 2026 (zapis za autoritet)
+
+Doslovne reči vlasnika (glasovni unos, iskvaren) i moje čitanje; svaka kasnija njegova reč ima prednost. Mesto gde je svaka primenjena je navedeno.
+
+| # | Reči (doslovno) | Čitanje / odluka | Primenjeno |
+|---|---|---|---|
+| 1 | „Može, dobro vam jedno ime za sve.“ | JEDNO ime: menja se samo u Ličnim podacima i upisuje se i u nalog i u radni profil; polja imena u Radnom profilu i kod asistenta nestaju; registracija ostaje prvo upisivanje. | 4e0ea506 (`src/ui/profile/writeWorkName.ts`, `useAccountName.ts`, `src/ui/workerProfile/NameDifference.tsx`) |
+| 2 | „Odobravam“ (nacrt proizvoda) — dato pre nego što je video skice pojedinačnih ekrana („Ali ja ne vidim same ekrane…“) | Nacrt `docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md` je odobren kao pravac; primedbe po ekranu imaju prednost. | talas „Telefon“ (4e0ea506) |
+| 3 | „pregled zadatka pre objave treba da bude kao detaljan pregled zadatka, a ne taksativno… čovek vidi kako će izgledati kad je objavljen. I kartica… to je suština… on treba da vidi tačnu lokaciju, potpunu adresu“ | R2 pregled pre objave = javni zadatak (kartica + detalj), privatna adresa samo vlasniku, bez spiska stavki. | 4e0ea506 (`src/ui/objava/ReviewDetail.tsx`, `reviewAsTask.ts`) |
+| 4 | „prikaz kalendara… treba da bude dosta bolje, a ne samo ti neki datumi gore… pregled celog meseca, nedelje, dana… svetska rešenja“ | Raspored = kalendar Mesec · Nedelja · Dan po uzoru na Apple/Google kalendar. | 4e0ea506 (`src/ui/calendar/MonthView.tsx`, `WeekDays.tsx`, `DayView.tsx`) |
+| 5 | Zadaci (12:24–12:30): „kad se uđe na mapu dok je lista dole ne vidi se navigacija, tek kad se digne lista na pola ili skroz se pojavljuje… filteri odvojeni od pretrage… lepe fluidne 3D kapsule gore… lako pristupiti listi zadataka koji nisu na mapi… kartica… lista se još uvuče dole… mapa ostane pregledna“ | Na ekranu Zadaci donja traka tabova je SAKRIVENA dok je lista dole ili dok stoji kartica pina (izuzetak od AGENTS 3.6.2 „donja navigacija uvek pokazuje gde si“, samo za ovaj ekran); pretraga odvojena od filtera; kapsule nad mapom; ulaz „nisu na mapi“; kartica pina skroz dole. | 4e0ea506 (`src/ui/v2/DiscoveryPresentation.tsx`, `src/ui/v2/discovery/zadaciBar.ts`, `src/app/(app)/_layout.tsx`) |
+| 6 | „zadaci koji su na daljinu… treba da se naznače i da lako budu pristupni“ | Kapsula „Na daljinu“ prva u redu; kartica nosi oznaku „Na daljinu“; ubrojani u „nisu na mapi“. | 4e0ea506 |
+| 7 | „Samo napred“ (na predlog da se skorašnje pretrage brišu pri odjavi) | Skorašnje pretrage se brišu pri lokalnoj odjavi. | 4e0ea506 (`src/data/recentSearchesKey.ts`, `authClientService.signOutLocal`) |
+| 8 | „Nema potrebe da staješ, idi slobodno do 100%, samo nemoj da staješ.“ | Ukinuto pravilo zaustavljanja agenata na 88 % nedeljnog limita (važi za Claude sesiju). | — |
+| 9 | „povezao i mobilni telefon, koristi ga za sve — instaliranje, pregled ekrana, tokova“ | Telefon sme da se koristi za instalaciju (`adb install -r`, sesija ostaje) i pregled; nikad brisanje podataka, odjava, objava/slanje/otkazivanje sa njegovog naloga; dok on gleda, ne dira se. | APK 4e0ea506 instaliran 18:07 |
+| 10 | „ti se spremi da predaš dalje rad kodeksu… ultra detaljno forenzički presek“ | Predaja Codexu: `docs/implementation/handoff-codex-20261008/`. | 81b9baa8, 653d1636 |
+
+Otvorene odluke (nisu date): „Dogovoren“ vs „Dogovoreno“; „⋯“ u Porukama Dogovora; „d“ bez kvačice → „đ“; primena DISCOVERY-GRAD S3; PNG zvezda; brisanje grane `backup/telefon-20261008-1`.

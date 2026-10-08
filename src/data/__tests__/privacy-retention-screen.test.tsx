@@ -95,7 +95,8 @@ it('keeps unpublished retention explicit, ONCE, inside its row, and opens closur
   expect(texts()).toContain('Rokovi čuvanja i automatsko brisanje napuštenih razgovora još nisu dostupni.');
   expect(texts().match(/još nisu dostupni/g)).toHaveLength(1);
   expect(texts()).not.toContain('Automatsko brisanje napuštenih razgovora'); expect(texts()).not.toContain('Trenutno nije dostupno.');
-  expect(texts()).toContain('Pregledaj dostupnost, obaveze i pravila čuvanja');
+  // The row names itself (J5, 8 Oct 2026): no explaining sentence under it.
+  expect(texts()).toContain('Zatvaranje naloga'); expect(texts()).not.toContain('Pregledaj dostupnost, obaveze i pravila čuvanja');
   expect(texts()).not.toContain('fixture duration');
   // The hub: what only tells has its mark, every other row leads somewhere; nothing is pressable after them: a re-read is the pull of the screen
   // (UI/UX pass 2026-10-08, F6; owner's phone the same day).

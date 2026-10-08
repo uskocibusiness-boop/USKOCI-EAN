@@ -24,7 +24,7 @@ export function ClosureEntry({ canOpen = () => true, disabled = false }: { canOp
   const reduced = useReducedMotion();
   useFocusEffect(useCallback(() => () => setOpen(false), []));
   return <>
-    <SettingsRow compact last label="Zatvaranje naloga" detail="Pregledaj dostupnost, obaveze i pravila čuvanja pre pokretanja zahteva."
+    <SettingsRow compact last label="Zatvaranje naloga"
       disabled={disabled} onPress={() => { if (!open && canOpen()) setOpen(true); }} />
     {open ? <Modal visible presentationStyle="fullScreen" animationType={reduced ? 'none' : 'slide'} onRequestClose={() => requestClose.current?.()}>
       <ClosureDialog onClose={() => setOpen(false)} closeRequestRef={requestClose} />

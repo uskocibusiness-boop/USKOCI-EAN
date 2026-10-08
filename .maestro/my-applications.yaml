@@ -14,9 +14,9 @@ appId: rs.uskoci.dev
     optional: true
 - takeScreenshot: 01-pocetna
 
-# Home lists recent activity; "Vidi sve" opens all of it, and an offer you sent is one of those.
+# Home has the row "Moje prijave" (with its count) since the wave of 2026-10-08; it opens the list of the offers you sent.
 - tapOn:
-    text: "Vidi sve"
+    text: "Moje prijave.*"
     optional: true
 - takeScreenshot: 02-moje-aktivnosti
 - scrollUntilVisible:

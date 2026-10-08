@@ -58,4 +58,6 @@ Exact runs/artifactIDs/hashes/paths are in NEXT_AI_HANDOFF_MANIFEST.evidence. Li
 | OldAGENTS repeatedcheckpoints andoldmaster autonomy | HISTORICAL; fullpreviousfile preserved inhistory. Shortrootmap/latestSAFE_STOP govern. The dated log that later filled the root file (2026-09-11 to 2026-09-30, 130,364 bytes) is preserved byte-exact at `docs/authority/history/AGENTS_PRE_SLIM_20260930.md`; the root `AGENTS.md` is now the rulebook, not a log. |
 | Oldcopyrighted/referencevisualdonors | SUPPORTING/HISTORICAL only, never product/businessauthority or newassetsapproval. |
 
+| 2026-10-08 owner decisions (one name for everything, the approved product blueprint with two corrections, the Zadaci tab bar hidden while the list is down, remote tasks first, recent searches erased at sign-out, phone use, the Codex handoff) | CURRENT; `docs/authority/OWNER_DECISIONS_20261008.md`, applied in 4e0ea506; later owner words win. |
+
 Originalsources are byte-preserved; classifications/supersedes live in AUTHORITY_MANIFEST.json and this index. Do not rewrite historical evidence to make it look current. Missing originals are declared instead of manufactured.
