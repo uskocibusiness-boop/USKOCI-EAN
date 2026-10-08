@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T21:38:02Z",
+  "osvezeno": "2026-10-08T21:39:08Z",
   "grana": "integration/spoj-20261006",
-  "head": "6dbd38e0",
-  "head_poruka": "fix(ux): preserve discovery, agreement and conversation continuity",
+  "head": "4a57b1e9",
+  "head_poruka": "fix(discovery): reserve list pull for sheet movement",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
