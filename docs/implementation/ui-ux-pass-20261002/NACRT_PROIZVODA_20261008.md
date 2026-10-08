@@ -1520,3 +1520,9 @@ Sledeći nivo koristi izolovanu bazu i stvarne ovlašćene RPC pozive za objavu,
 Izvori: [Airbnb pretraga i filteri](https://www.airbnb.com/help/article/39) služe kao referenca povezivanja izbora i rezultata. [k6 arrival-rate i dodela VU](https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/arrival-rate-vu-allocation/) obrazlaže zašto brzina dolaska zahteva i broj potrebnih virtuelnih korisnika nisu ista mera. [Supabase performance](https://supabase.com/docs/guides/platform/performance) daje polazne provere upita i konekcija; ne potvrđuje kapacitet ove aplikacije.
 
 **Runtime09.10:** [izolovani run37856499413](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37856499413) PASS na93041f70;40.000 zadataka,2 Auth naloga,1 istovremeni zahtev. Podudarnost SQL/HTTP brojnosti, mapini članovi po viewportu, telo/ACL/zavisnosti/closure pre i posle merenja i teardown0 potvrđeni. Medijana toplog SQL: početna lista569,6ms, mapa460,6ms, grad366,2ms, tekst1986,2ms; HTTP medijane537/454/398/2027ms. Ovo identifikuje tekstualnu pretragu kao prioritet daljeg merenja/optimizacije; nije dokaz uzroka zastoja, simultanog kapaciteta ili korisničkog FPS-a. Precizni artifacti u evidence/discovery-baseline-40k-37856499413.
+
+### 16.13 Fizička lista i merena pretraga —09.10
+
+Telefon66275774 pokazao je navigaciju preko spuštenog sheet-a. Korekcija određuje vidljivost tek iz stvarnog položaja: PEEK skrivena, HALF/FULL vidljiva, pin kartica skriva. Predviđena meta animacije ne sme biti autoritet, jer prekinut povratak nema nužno završni callback. Sačuvani ukupan okvir i korisnički izbor. Native potvrda korekcije još sledi.
+
+Izolovani profil run37858643191 je potvrdio40.000 formatiranja lokacije čak i uz filter grad+tekst. Sledeći eksperiment deduplikuje formatter po lokaciji unutar zahteva uz identičan odgovor i nezavisno poređenje na jedinstvenim lokacijama. To nije primenjena optimizacija niti dokaz40.000 istovremenih korisnika.

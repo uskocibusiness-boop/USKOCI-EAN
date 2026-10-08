@@ -117,3 +117,29 @@ Push proof grane nije proizveo run; provereno da ga nema, zatim jedan workflow_d
 Phone build37855571775 uspešan, source66275774407b2cb4ccebafac508ea237aa59e930, APK SHA256105d2a0877829f6eb171925327a0ce6b58d561a04f0f29ded21f59ed577e244d. Paket je `rs.uskoci.preview`, versionCode35 (ranije spojeno napisano preview35 nije naziv paketa). Isti potpis fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c; `adb install -r` uspešan, postojeća prijava sačuvana. Lično pregledane privatne slike phone-662-home/inbox-ready/chat/keyboard.png u prethodno navedenom privatnom direktorijumu: ulaz u postojeći chat, ime/inicijali uz izlazne nizove, čitljiv tekst, kompaktno zaglavlje i composer iznad otvorene prazne tastature. Nije slata poruka. Nije dokaz grupnog chata, dolaznog avatara, AI provider-a ili kasnijeg location-order paketa.
 
 **SLEDEĆE / PRIPREMA:** profil40k reader-a sada čita transakcionu statistiku jednog authenticated poziva pre rollback-a, bez globalnog brojača/flush pretpostavke. Četiri upita, sve overload funkcije, stroga provera jednog reader poziva; top8 samo u čitljivom sažetku. Offline Node i postojeći SQL generator checks PASS, novi runtime tek sledi. Reč je o instrumentaciji izolovanog dokaza, ne optimizaciji DEV-a.
+
+## Dopuna — fizički otkriveno prekrivanje liste navigacijom
+
+**URADIO / OTKRIO:** na telefonu66275774 mapa ostane preko celog ekrana, a donji tabbar prekrije count i handle spuštene liste. Vidljiv samo zaobljeni rub; swipe odatle pomeri mapu. Privatni dokazi phone-662-discovery.png i phone-662-discovery-drag.png. Nije dokazano koji konkretan native callback niz nastaje pri hladnom ulazu. SOURCE pregled pokazuje reproduktivan problem: onAnimate(PEEK,HALF) unapred otkrije bar, a povratak na originalni PEEK može proći bez onAnimate/onChange; traženi indeks nije stvarna visina.
+
+**ISPRAVKA / SOURCE:** bar prati prelaz fizičkog animatedPosition na HALF, uz odvojene focus/account/mount ograde. onAnimate više ne određuje vidljivost. Kartica pina ima prednost. Tolerancija HALF ne uključuje PEEK čak kada ih deli1px. Nema proizvoljnog povećanja peek visine niti promene izvora mape. Prvi3-suite test250 PASS i TypeScript PASS; finalno ponavljanje posle uske threshold korekcije pokrenuto. Test uključuje prekinut povratak bez izmišljenog onChange i zakašnjele isporuke posle blur/scope promene.
+
+**NIJE DOKAZANO:** native ispravka na novom APK-u. Mogući kratki prenos starog parent position pri keyed remount-u ostaje native rub za pregled, ne potvrđen trajni kvar. **SLEDEĆE:** objedinjeni APK sa AI redosledom i ovom korekcijom; hladan ulaz, sva3 stanja, prekid, pin, Detail/Back.
+
+Emulator build37855571254, isti66275774, SHA25602c35fc8c7055b29536b6c3a16de6f935c22a4a9ca5990c2dc27bd3006f0e0fb, isti potpis/paket/versionCode35; install-r PASS. Ulazni ekran pregledan. Preview je i pre instalacije bio odjavljen i ostao tako; nije kopiran token iz drugog dev paketa.
+
+Profil40k pokrenut samim push-em: run37858643191, source774d2a669b14deb3bca4b4077f9ff400a5947768; nema duplog dispatch-a. Dok je aktivan, ne tvrditi novi runtime PASS.
+
+### Sledeći push paket — jedan ciljani događaj
+
+Read-only pregled razlikuje single-target od globalnog kapaciteta. Kandidat podržava single_target/single_target_receipt uz globalni EXPO_PUSH_TRANSPORT_ENABLED=false. Sledeći korak je novi read-only capture svih13 funkcija,3 table surface-a, kataloga, certificate-a i ledger-a235; ne menjati samo stari guard225 u235. Zatim regeneracija + tačan izolovani apply/postflight/revert/reapply uz očuvanje235 promena, provera operativnog pristupa flagovima/deployu i zamrzavanje hash-eva. Tek nakon toga jedan prirodno nastali MESSAGE_RECEIVED za vlasnikov uređaj sa punom account/role/event/delivery/device/revision/session/admission vezom; ne dirati backlog. Exact-message flag i kompatibilan APK potrebni su za dokaz banner→tačan Dogovor/poruka. Pre admission-a postoji revert; posle admission-a samo target flag off i forward repair, bez brisanja evidencije. Ništa od ovog server paketa nije primenjeno ovom rundom.
+
+### Profil40k — stvarni uzrok troška izmeren
+
+Run37858643191 SUCCESS, source774d2a669b14deb3bca4b4077f9ff400a5947768, teardown0, provider0/push0. Četiri transakciona profila dokazuju po jedan authenticated reader poziv. Tekst ciscenje: area40.000 poziva,669,24ms sa potomcima od1340,27ms instrumentiranog RPC-a; trim78.001, fold40.002. Grad+tekst: area40.045 poziva695,34ms od1126,97ms, a fold samo7.421. Default PAGE: days40.000 poziva105,60ms od506,89ms. Ne sabirati total vremena roditelja i dece; ovo su po jedan instrumentirani poziv, ne dodatne medijane. Obične medijane/HTTP i ceo profil sa overload identitetima sačuvani su u evidence/discovery-profile-40k-37858643191.
+
+**SLEDEĆE:** mali izolovani eksperiment deduplikacije area formattera po sirovom `(approximate_area,approximate_city,isRemote)` unutar jednog reader zahteva. Sačuvati NULL semantiku, kompletan spojeni haystack (i pogotke preko granice polja), RLS, vreme, counts/cursors/anchors, byte-identične izlaze. Baseline→candidate→baseline, sve16 kombinacije i veliki broj jedinstvenih lokacija da se izmeri i negativan slučaj. Nema novog indeksa, šeme, helpera ni S3 u tom eksperimentu. DEV nije optimizovan na osnovu samog profila.
+
+Završno ponavljanje posle HALF/PEEK threshold korekcije:3 grupe/250 testova PASS (89,9s). Raniji250 se ne sabiraju sa ovim istim ponovljenim proverama.
+
+Završni TypeScript nakon svih threshold izmena PASS.

@@ -36,7 +36,7 @@ import { useCoverValue, useRidingStyle } from './discovery/mapControls';
 import { handleHint, listViewport, nextSheetIndex, snapHeights } from './discovery/sheetSnaps';
 import { TaskAgeContext, taskAgeOf, type PublishedAt } from './discovery/taskAge';
 import { useNearbyMap } from './discovery/useNearbyMap';
-import { useZadaciBar, useZadaciBarMotion } from './discovery/zadaciBar';
+import { useZadaciBar, useZadaciBarMotion, zadaciBarRevealTop } from './discovery/zadaciBar';
 import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type PanelMode, type SearchDraft, type SearchReadiness } from './discovery/DiscoverySearchPanel';
 import { useRecentSearches } from './discovery/recentSearches';
 import { DistanceFromContext } from './discovery/taskDistance';
@@ -685,11 +685,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && panel === null;
   const [cardHeight, setCardHeight] = useState(0);
   const coverBottom = cardShown && cardHeight ? cardHeight + cardBottom + GAP : 0;
-  // The bottom navigation belongs on screen when the list is at half or full and no card stands at the bottom. The sheet says where it goes the moment it
-  // starts to move (`onSheetAnimate`), so the navigation arrives and leaves with it instead of after it.
-  const barShown = sheetIndex > SNAP.peek && !cardShown;
-  const barMotion = useZadaciBarMotion({ bar, shown: barShown, active: focused, reduced });
-  const cardShownRef = useRef(cardShown); cardShownRef.current = cardShown;
   // Android: Reanimated writes a view's opacity and transform by a synchronous update that is lost when Fabric has not mounted the view yet, and nothing
   // writes it again: a freshly mounted Gorhom body then stays at its hidden mount props (opacity 0 / off-screen) while the shared index and position already
   // report the requested stop (found on the CI emulator after returns from a task: a dimmed empty screen with only the "Mapa" pill). The P6 screen is rebuilt
@@ -790,13 +785,28 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }, ms));
     return () => { timers.forEach(clearTimeout); setKick(0); };
   }, [kickable, nativeMountKey, trace]);
-  const announceBar = barMotion.announce;
-  const onSheetAnimate = useCallback((_fromIndex: number, toIndex: number) => {
+  // A requested detent is not a physical height. Gorhom can return an interrupted spring to the
+  // original detent without either callback; an announced HALF must never strand the bar over PEEK.
+  const barOwner = useMemo(() => ({ visit: coverageOwner, mount: nativeMountKey }), [coverageOwner, nativeMountKey]);
+  const currentBarOwner = useRef(barOwner); currentBarOwner.current = barOwner;
+  const [barPlacement, setBarPlacement] = useState<{ owner: typeof barOwner; shown: boolean } | null>(null);
+  const receiveBarPlacement = useCallback((shown: boolean) => {
+    if (!focused || !barOwner.visit.active || currentBarOwner.current !== barOwner) return;
+    setBarPlacement(previous => previous?.owner === barOwner && previous.shown === shown ? previous : { owner: barOwner, shown });
+  }, [barOwner, focused]);
+  const barHalfTop = zadaciBarRevealTop(bodyHeight, Number(snapPoints[SNAP.peek]), Number(snapPoints[SNAP.half]));
+  const barVisitSequence = coverageOwner.sequence;
+  const hasBar = !!bar;
+  useAnimatedReaction(() => ({ shown: bodyHeight > 0 && position.value <= barHalfTop, visit: barVisitSequence, mount: nativeMountKey }),
+    (next, previous) => {
+      if (hasBar && (next.shown !== previous?.shown || next.visit !== previous?.visit || next.mount !== previous?.mount))
+        runOnJS(receiveBarPlacement)(next.shown);
+    }, [position, bodyHeight, barHalfTop, barVisitSequence, nativeMountKey, hasBar, receiveBarPlacement]);
+  useZadaciBarMotion({ bar, shown: barPlacement?.owner === barOwner && barPlacement.shown && !cardShown, active: focused, reduced });
+  const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
-    // The sheet starts to move to another stop (a drag let go of, a tap): the bottom navigation comes with the half and the full stop, leaves with the lowest.
-    announceBar(toIndex > SNAP.peek && !cardShownRef.current);
-  }, [currentSheet, announceBar]);
+  }, [currentSheet]);
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;

@@ -8616,7 +8616,12 @@
         "text": 1986.2
       },
       "evidenceArtifacts": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-baseline-40k-37856499413",
-      "nextProfile": "Prepared transaction-local pg_stat_xact_user_functions for4 requests, full overload identities and strict readerCalls=1. Node/SQL offline PASS; new disposable runtime pending. No server optimization applied."
+      "nextProfile": "Measure request-local location-format deduplication with exact baseline/candidate/baseline responses, corpus and unique-location adversarial fixture; no DEV change or S3 combined.",
+      "profileRun": 37858643191,
+      "profileSource": "774d2a669b14deb3bca4b4077f9ff400a5947768",
+      "profileState": "DISPOSABLE_RUNTIME_PASS / FOUR_TRANSACTION_LOCAL_PROFILES / TEARDOWN0",
+      "profileFinding": "Text query formats location40000 times (669.24ms including children of1340.27ms instrumented RPC). City+text40045 area calls (695.34 of1126.97ms), fold7421. Days40000 calls even default PAGE (105.60 of506.89ms). Single instrumented calls, not medians or capacity.",
+      "profileEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-profile-40k-37858643191"
     },
     "ai_location_order_20261009": {
       "state": "SOURCE_FOCUSED_PASS / FULL_FAILURES_RESOLVED / NATIVE_PROVIDER_PENDING",
@@ -8647,7 +8652,26 @@
         "push delivery",
         "store readiness"
       ],
-      "privateEvidence": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-{home,inbox-ready,chat,keyboard}.png"
+      "privateEvidence": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-{home,inbox-ready,chat,keyboard}.png",
+      "emulatorRun": 37855571254,
+      "emulatorApkSha256": "02c35fc8c7055b29536b6c3a16de6f935c22a4a9ca5990c2dc27bd3006f0e0fb",
+      "emulator": "adb install -r PASS; existing logged-out preview stayed logged out; entry screen viewed; no two-account native proof."
+    },
+    "discovery_bar_native_20261009": {
+      "state": "PHYSICAL_REGRESSION_REPRODUCED / SOURCE_FOCUSED_PASS / NEW_APK_PENDING",
+      "observedSource": "66275774407b2cb4ccebafac508ea237aa59e930",
+      "finding": "Phone map: tab bar remained visible over collapsed sheet, count and handle obscured. Upward swipe at visible edge panned map instead. Exact cold-entry callback sequence not captured.",
+      "privateEvidence": [
+        "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-discovery.png",
+        "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-discovery-drag.png"
+      ],
+      "sourceFix": "Tab bar follows physical animatedPosition at HALF threshold; onAnimate is no longer visibility authority. Visit/mount fences and card priority; HALF tolerance excludes PEEK even at1px gap.",
+      "verification": "Final250/250 tests across discovery-presentation,zadaci-bar,zadaci-sheet-geometry PASS after threshold refinement. Final TypeScript PASS. Independent source review: no confirmed remaining blocker.",
+      "limits": [
+        "No new native proof yet",
+        "Parent shared position may briefly carry prior position on keyed remount until new native observer writes"
+      ],
+      "next": "New combined APK, cold tab entry, PEEK/HALF/FULL, interrupted drag, pin, Detail/Back."
     }
   }
 }

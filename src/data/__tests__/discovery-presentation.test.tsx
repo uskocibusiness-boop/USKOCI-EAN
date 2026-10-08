@@ -3116,71 +3116,66 @@ describe('the bottom navigation follows the list: away at the top line or behind
   const hiddenNow = () => (barValue!.hidden as unknown as { __getValue: () => number }).__getValue();
   const slides = () => (Animated.timing as jest.Mock).mock.calls.filter(([value]) => value === barValue!.hidden).map(([, config]) => config);
 
-  test('the first answer of a visit puts the bar in place at once: away at the top line, on show at half and full, and nothing slides', async () => {
-    for (const [sheet, hidden] of [['peek', 1], ['half', 0], ['full', 0]] as const) {
+  const physicallyAt = async (index: number) => {
+    listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[index]);
+    await deliverUi();
+  };
+  test('the bar starts hidden until the native sheet reaches half or full', async () => {
+    for (const [sheet, index, hidden] of [['peek', 0, 1], ['half', 1, 0], ['full', 2, 0]] as const) {
       barValue = makeBar(); initial = { ...initial, sheet }; await render(); await layOutBody(800);
+      expect(hiddenNow()).toBe(1); // offscreen initial native position is not proof of the requested height
+      await physicallyAt(index);
       expect([sheet, hiddenNow()]).toEqual([sheet, hidden]);
-      expect(slides()).toEqual([]);
       await act(async () => tree.unmount());
     }
   });
-
-  test('the sheet says where it is going the moment it starts to move, and the bar slides with it: in over the enter token, out over the exit token, on the native driver', async () => {
+  test('an interrupted peek-to-half spring returns the bar without an invented finish callback', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    expect(hiddenNow()).toBe(1);
-    await act(async () => listSheet().props.onAnimate?.(0, 1)); // a drag let go of, towards half
+    await physicallyAt(0);
+    await act(async () => listSheet().props.onAnimate?.(0, 1));
+    expect(hiddenNow()).toBe(1); // intent cannot uncover the bar
+    await physicallyAt(1); expect(hiddenNow()).toBe(0);
     expect(slides().at(-1)).toMatchObject({ toValue: 0, duration: sys.motion.enter, useNativeDriver: true });
-    expect(hiddenNow()).toBe(0);
-    const count = slides().length;
-    await act(async () => listSheet().props.onAnimate?.(1, 2)); // from half to full the bar stays where it is
-    expect(slides()).toHaveLength(count); expect(hiddenNow()).toBe(0);
-    await act(async () => listSheet().props.onAnimate?.(2, 0)); // down to the top line: the bar leaves with the sheet
+    await physicallyAt(0); // Gorhom suppresses onChange and onAnimate at the original index
+    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
     expect(slides().at(-1)).toMatchObject({ toValue: 1, duration: sys.motion.exit, useNativeDriver: true });
-    expect(hiddenNow()).toBe(1);
   });
-
-  test('a tap on the count (the handle) takes the bar with it, and a settled sheet that was already announced does not slide it again', async () => {
+  test('count commands and settlement callbacks do not override actual height', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    await act(async () => countLine().props.onPress()); // half
-    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
-    await act(async () => countLine().props.onPress()); // full
+    await physicallyAt(0); await act(async () => countLine().props.onPress());
+    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(1);
+    await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    await act(async () => countLine().props.onPress()); await physicallyAt(2);
     expect(hiddenNow()).toBe(0);
-    await act(async () => countLine().props.onPress()); // back to the top line
-    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
-    const count = slides().length;
-    await act(async () => listSheet().props.onChange(0));
-    expect(slides()).toHaveLength(count);
-  });
-
-  test('under reduced motion the bar is simply there and simply gone: nothing slides', async () => {
-    mockReduced = true; barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    await act(async () => countLine().props.onPress()); expect(hiddenNow()).toBe(0);
-    await act(async () => countLine().props.onPress()); await act(async () => countLine().props.onPress()); expect(hiddenNow()).toBe(1);
-    expect(slides()).toEqual([]);
-  });
-
-  test('a pin\'s card at the bottom keeps the bar away at every height, and closing it lets the list bring the bar back', async () => {
-    barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
-    expect(hiddenNow()).toBe(0);
-    await act(async () => map().props.onSelect('bb')); // the list sinks to its top line and the card stands at the bottom
-    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
-    await act(async () => listSheet().props.onAnimate?.(0, 1)); // a sheet that starts to rise behind the card does not bring the bar
-    expect(hiddenNow()).toBe(1);
-    await tap('Zatvori pregled zadatka');
-    expect(hiddenNow()).toBe(1);
     await act(async () => countLine().props.onPress());
-    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
+    expect(hiddenNow()).toBe(0); // native is still full
+    await physicallyAt(0); expect(hiddenNow()).toBe(1);
+    const count = slides().length;
+    await act(async () => listSheet().props.onChange(0)); expect(slides()).toHaveLength(count);
   });
-
-  test('a screen that is not in front does not move the bar, and one that comes back puts it in place at once', async () => {
+  test('reduced motion follows measured height without a slide', async () => {
+    mockReduced = true; barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
+    await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    await physicallyAt(0); expect(hiddenNow()).toBe(1); expect(slides()).toEqual([]);
+  });
+  test('a pin card keeps navigation hidden even over a physically raised list', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
-    expect(hiddenNow()).toBe(0);
-    mockFocused = false; await update();
-    await act(async () => listSheet().props.onAnimate?.(1, 0));
-    expect(hiddenNow()).toBe(0); // the other tab is in front and has the bar as it always had it
-    mockFocused = true; await update();
-    expect(hiddenNow()).toBe(0); // the list is at half again
-    expect(slides()).toEqual([]);
+    await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    await act(async () => map().props.onSelect('bb'));
+    await physicallyAt(1); expect(hiddenNow()).toBe(1);
+    await physicallyAt(0); await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(1);
+    await act(async () => countLine().props.onPress()); await physicallyAt(1); expect(hiddenNow()).toBe(0);
+  });
+  test.each(['blur', 'scope'] as const)('queued physical bar updates cannot escape their %s owner', async kind => {
+    barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
+    await physicallyAt(0);
+    listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[1]); sampleUi();
+    const queued = mockRnDeliveries.splice(0);
+    if (kind === 'blur') mockFocused = false; else scopeKey = 'b:2';
+    await update(); await act(async () => queued.forEach(deliver => deliver()));
+    expect(hiddenNow()).toBe(1);
+    if (kind === 'blur') { mockFocused = true; await update(); }
+    await physicallyAt(1); expect(hiddenNow()).toBe(0);
   });
 
   test('what the bar lies over is kept clear: the end of the list, the "Mapa" pill, the paging note, and the half stop is half of what the bar leaves', async () => {

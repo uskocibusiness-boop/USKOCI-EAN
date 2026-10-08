@@ -1,7 +1,7 @@
 import React from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { ZadaciBarContext, useZadaciBar, useZadaciBarMotion, zadaciBarStyle, type ZadaciBar } from '../../ui/v2/discovery/zadaciBar';
+import { ZadaciBarContext, useZadaciBar, useZadaciBarMotion, zadaciBarStyle, zadaciBarRevealTop, type ZadaciBar } from '../../ui/v2/discovery/zadaciBar';
 import { sys } from '../../ui/system/tokens';
 
 /**
@@ -149,4 +149,11 @@ describe('the motion', () => {
     await act(async () => tree.unmount());
     expect(runs[0].stop).toHaveBeenCalledTimes(1);
   });
+});
+
+// The native observer uses this threshold, so a cramped HALF must not reveal the bar over PEEK.
+it.each([[800, 68, 436], [800, 700, 701]])('reveals navigation at HALF but never PEEK (%i,%i,%i)', (body, peek, half) => {
+  const threshold = zadaciBarRevealTop(body, peek, half);
+  expect(body - peek <= threshold).toBe(false);
+  expect(body - half <= threshold).toBe(true);
 });

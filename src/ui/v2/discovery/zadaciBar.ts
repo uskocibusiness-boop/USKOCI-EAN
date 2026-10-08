@@ -32,6 +32,11 @@ export function zadaciBarStyle(base: TabBarBase, bar: ZadaciBar): Animated.WithA
     transform: [{ translateY: bar.hidden.interpolate({ inputRange: [0, 1], outputRange: [0, away] }) }] } as Animated.WithAnimatedValue<ViewStyle>;
 }
 
+/** HALF tolerance must never include PEEK, even when large text leaves only one pixel between stops. */
+export function zadaciBarRevealTop(bodyHeight: number, peekHeight: number, halfHeight: number): number {
+  return Math.min(bodyHeight - halfHeight + 1, bodyHeight - peekHeight - 0.5);
+}
+
 /** The bar's slide: entering is longer than leaving and decelerates (rule R2), on the native driver (only a translation moves). */
 function slide(hidden: Animated.Value, shown: boolean): Animated.CompositeAnimation {
   return Animated.timing(hidden, { toValue: shown ? 0 : 1, duration: shown ? sys.motion.enter : sys.motion.exit,

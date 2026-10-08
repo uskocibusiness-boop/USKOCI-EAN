@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "relevantLiveBodyPins": 23,
+  "exact": 23,
+  "converted": [],
+  "mismatched": [],
+  "certificateUnchanged": true,
+  "scope": "Exact relevant DEV bodies (ZONE-PERF 1, MATCH-V1 6 changed + 16 dependencies, DISCOVERY-ZAMENE 1; 23 distinct) on the disposable chain. Not global DEV equivalence."
+}
