@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T22:02:07Z",
-  "grana": "integration/spoj-20261006",
-  "head": "0037e659",
-  "head_poruka": "fix(discovery): keep map credits fixed below overlays",
+  "osvezeno": "2026-10-08T22:02:35Z",
+  "grana": "HEAD",
+  "head": "787a337d",
+  "head_poruka": "merge: reconcile generated tracker with fixed map credits",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -11388,102 +11388,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37818622934,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-08T17:42:20Z"
-  },
-  {
-   "id": 36901345565,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:42:23Z"
-  },
-  {
-   "id": 36242064743,
-   "ime": "Build Android development APK",
-   "sha": "cc8649a8",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T12:29:15Z"
-  },
-  {
-   "id": 36039980994,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:15:35Z"
-  },
-  {
-   "id": 35546202528,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-20T23:59:00Z"
-  },
-  {
-   "id": 35546157605,
-   "ime": "Dependency Graph",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-20T23:58:00Z"
-  },
-  {
-   "id": 35254406698,
-   "ime": "CodeQL",
-   "sha": "916ffb49",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-17T17:42:55Z"
-  },
-  {
-   "id": 34778854343,
-   "ime": "PRE-P4 integrity",
-   "sha": "b35893c1",
-   "stanje": "completed",
-   "ishod": "action_required",
-   "vreme": "2026-09-13T19:49:19Z"
-  },
-  {
-   "id": 34778852570,
-   "ime": "CodeQL",
-   "sha": "b35893c1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-13T19:49:17Z"
-  },
-  {
-   "id": 34778359520,
-   "ime": "PRE-P4 integrity",
-   "sha": "5218a685",
-   "stanje": "completed",
-   "ishod": "action_required",
-   "vreme": "2026-09-13T19:39:23Z"
-  },
-  {
-   "id": 34778356840,
-   "ime": "CodeQL",
-   "sha": "5218a685",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-13T19:39:20Z"
-  },
-  {
-   "id": 34778246902,
-   "ime": "PRE-P4 integrity",
-   "sha": "91a1e0d7",
-   "stanje": "completed",
-   "ishod": "action_required",
-   "vreme": "2026-09-13T19:37:12Z"
-  }
- ]
+ "ci": null
 }
