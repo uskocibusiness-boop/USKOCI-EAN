@@ -1,3 +1,7 @@
+<!-- DESIGN-REVIEW-20261008 START -->
+> **Aktuelni dizajnerski pregled 8.10.2026 — PREDLOG, ne implementacija.** SOURCE `f1ddd54d`, DEV235 / `3a785d42` read-only. [Nacrt sa svim62 blueprint-a, nalazima i motion pravilima](docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#revizija-20261008) · [Vizuelne skice za izbor](docs/implementation/ui-ux-pass-20261002/PREDLOG_EKRANA_20261008.html) · [Statički inventar](docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json). Nova odluka: pokaži pre zamene. Otvoreno:3/4taba i searchA/B/C. Raniji checkpoint-i ispod zadržavaju svoj datum i obim;nisu trenutno PHONE prihvatanje. Nije menjan app/server/CI/uređaj.
+<!-- DESIGN-REVIEW-20261008 END -->
+
 <!-- Current continuation: exact42da local x86_64 APK installed/reviewed on emulator; Home leading dimensional art and first-profile conversation hierarchy. Font1.15/motion1/Home. GitHub403 blocks push/CI. See HOME_WORKER_REFINEMENT_20261006.md. -->
 # Current design direction — owner takeover, 2026-10-02
 

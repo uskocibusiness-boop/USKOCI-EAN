@@ -1,5 +1,7 @@
 # Nacrt proizvoda USKOČI — svaki ekran, ulaz, filter, komanda i tok (8. 10. 2026)
 
+> **Posle predaje: nova revizija za pregled, ne implementacija.** [Audit i specifikacija svih 62 površine](#revizija-20261008) · [58 skica ekrana/stanja](PREDLOG_EKRANA_20261008.html). Raniji tekst ispod ostaje istorija odobrenog pravca. Nova kompozicija, izbor 3/4 taba i pretraga A/B/C čekaju vlasnikov pregled. App, server i uređaji nisu menjani.
+
 **Šta je ovo.** Odgovor na vlasnikovo pitanje (8. 10.): „da li si osmislio kako će svi ti ekrani da izgledaju… ne samo boje i font, nego i sama kompozicija, nešto doda, oduzme, napravi drugačije, drugačiji ulaz, prikaz, filter… neki filter koji je falio ili je bio nepotreban, ulaz ili komanda uvezana kroz tokove… kao pravi produkt arhitekta kompletnog proizvoda“. Ovo je PREDLOG arhitekture celog proizvoda; vlasnik ga gleda kao skice na platnu „Nacrt proizvoda USKOČI“ (https://claude.ai/artifact/6fzbWbjPoRbhKP19d9edX1) i kaže da/ne po ekranu. Ništa ovde nije odobreno samim zapisom. Pravila J1–J15 i dijagnoza: `ANALIZA_EKRANA_TELEFON_20261008.md`. Vlasnikovi izbori sa table (`IZBOR_VLASNIKA_20261008.md`) i zaključani delovi (ulaz V4.9, dve velike pločice Početne) ostaju.
 
 **Status (8. 10. 2026):** vlasnik je napisao „Odobravam“ (doslovno) posle objave platna, a odmah zatim „Ali ja ne vidim same ekrane… vidim samo skicu celog app“ — dakle odobrenje je dato pre nego što je video skice pojedinačnih ekrana. Posle toga su svi ekrani stavljeni na jednu površinu platna i objavljeni kao galerija za telefon (https://claude.ai/artifact/VLiAKoN5NxvfXqzETGQq12). Talasi rade po nacrtu; svaka njegova kasnija primedba po ekranu ima prednost.
@@ -94,3 +96,1124 @@ Za svaki: **Svrha** · **Od vrha do dna** · **Komande** · **Dodaje se / Uklanj
 - **Kartice:** samo zapis koji se dodiruje kao celina (zadatak, Dogovor, ponuda); podešavanja su redovi; nikad kartica u kartici.
 - **Tekst:** jedan rečnik (Zadatak, Prijava, Ponuda, Dogovor, Termin, Mogu odmah, Fleksibilno, Tražim ponude), „ti“ bez roda, najviše jedna rečenica objašnjenja po ekranu, ostalo iza ⓘ.
 - **Pokret:** kartica se otvara u detalj bez skoka (cilj, izvodljivost se proverava), listovi klize mekano, sadržaj ulazi blago, obris umesto vrteške, tik na uspeh, „Dogovoreno!“ trenutak; sve poštuje „smanji pokret“.
+
+---
+
+<a id="revizija-20261008"></a>
+## Revizija posle predaje 8.10 — SOURCE audit i predlog za pregled
+
+**Status: PREDLOG, NIJE ODOBRENA IMPLEMENTACIJA.** Izvor `f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6`; obe grane na remote-u `novi` proverene na istom HEAD-u. Radni checkout čist pre ovog dokumentacionog paketa.
+
+**DEV read-only:** ledger **235**, closure digest **3a785d42**. Funkcije `rpc_discovery_v1`, `rpc_list_my_needs_page`, `rpc_list_my_agreements_page`, `fn_need_urgency` postoje; authenticated ima EXECUTE. To nije dokaz svih RLS scenarija, sveže baze ili performansi. Stara tvrdnja „ne postoje na DEV-u“ nije trenutno tačna. HITNO i platform payments su isključeni; public trust OWN_ONLY, detail reviews COMMENTED_ONLY. Jedanaest Edge funkcija ima ACTIVE metadata, nije izvršena poslovna/provajderska proba.
+
+**Telefon:** 4e0ea506 / versionCode35 / rs.uskoci.preview po predaji. Nema novog PHONE/EMULATOR testa. Pregledano10 vlasnikovih slika od12:25–12:57, pre večernjeg talasa; ne koristiti stare slike kao dokaz da današnja popravka ne radi. Nema tvrdnje „bez grešaka“ ili „release ready“.
+
+**Obuhvat:** 50 produkcionih ulaznih fajlova (uključuje redirect-e i uslovni operator), svih62 stavki registra, import/controls/overlay/RPC/flag inventar nad 697 source modula. Semantički produbljene proizvodne porodice, ne garancija da je svaki red koda nezavisno verifikovan. Statički graf može uključiti zajedničke, uslovne i neaktivne reference. Detaljan mašinski inventar: [WHOLE_APP_ROUTE_AUDIT_20261002.json](WHOLE_APP_ROUTE_AUDIT_20261002.json), polje review_20261008.
+
+**Pogledaj:** [interaktivne skice ekrana i alternativa](PREDLOG_EKRANA_20261008.html). Fiktivni primeri, originalni postojeći artwork; nije screenshot aplikacije, backend nije povezan.
+
+### 1. Zaključak proizvoda
+
+USKOČI ima stvarnu povezanu osnovu. Objava koristi prepare/read/accept/evaluate/publish ugovor; ne zavisi od toga da li je stari publishNeed wrapper pozvan. AI već potvrđuje pin i pojedinačne tačke, skuplja potvrđenu lokaciju i daje pregled. Dogovor ima capabilities, promene, otkazivanje, završetak i ocene;1:1 poruke imaju outbox/read/incoming putanje. Nije opravdano ponovo graditi ove sisteme.
+
+Najveći dobitak:1) poravnati1:1/grupno iskustvo bez gubitka drafta i dodatnog koraka slanja;2) iskren opseg i ukupni brojevi lista;3) oba AI razgovora složiti po modelu jedna aktivna potvrda→kratak trag→konačni pregled;4) razdvojiti važnost informacija, a ne samo presvući sve u novu zelenu.
+
+### 2. Odluke koje čekaju prikaz i vlasnika
+
+| Odluka | Varijante | Preporuka | Zašto nije tiha promena |
+|---|---|---|---|
+| Navigacija |3: Početna/Zadaci/Dogovori sa Porukama u Dogovorima;4: postojeći zaseban Poruke |4 zbog direktnog ulaza u razgovore |Novi uvod kaže3, code/canon7.10 kaže4. Nijedno nije sada promenjeno. |
+| Pretraga |A: polje uz listu;B: uvek dostupna, potvrda otvara FULL rezultate;C: vođene sekcije |B, filteri zaseban sheet |Novi iskaz je sklonost, ne odluka. |
+| Mapa/lista |Postojeći detenti;alternativni Mapa/Lista prekidač |Zadržati detente |Prekidač kao zamena samo ako vlasnik izričito promeni odluku. U skici vidljiv samo povratak Mapa, ne nova paralelna navigacija. |
+| Kartice/Početna/Profil |Kompaktna kompozicija u galeriji |Usvojiti po ekranu tek posle prikaza |Današnja verzija nije plafon, ali nema samostalne zamene. |
+| Ruta |Tačke+spoljna navigacija;stvarna interna drumska linija |Prvo jasno postojeće tačke |Nova geometrija zahteva provider/cost/privacy odluku. |
+
+### 3. Jedinstven vizuelni sistem — predlog evolucije postojećeg sys
+
+| Oblast | Pravilo za sledeći odobreni paket |
+|---|---|
+| Boja |Bele čitajuće površine#FFF;ink#202020;secondary#525252;green#00845A za jednu glavnu radnju;orange#FF7A1A za pažnju/brand. Neutralne kontrole#F7F7F7, bez mentol ploča. Status uvek i rečima. |
+| Tipografija |Inter zadržati. Screen naslov24–28 zavisno od postojeće porodice;list title16–20;body16;secondary14;caption12 minimum;price23/28 samo važan iznos. Ne uvoditi novi font ni nasumične vrednosti po ekranu. Mapirati na postojeće sys role pa konsolidovati višak u posebnom paketu. |
+| Ritam |Gutter20, chat16/composer12, map inset16;spacing4/8/12/16/24/32/48. Grupa12, sekcija24, veća zona32. Dug sadržaj dobija prostor, ne sve isti rectangle. |
+| Površine |Record card samo dodirljiva celina;settings obični redovi;AI odgovor na belom bez kutije;korisnički balon diskretno neutralan u predlogu;pending jedan inline status. Bez card-in-card. |
+| Shape/elevation |Postojeći control12/card24/sheet28;pill za izbor ili composer, ne za pasus. Senka na sloju sheeta i retkom podignutom ulazu;list red odvojen ritmom/inset1dp. |
+| Ikone |Funkcionalne male ikone iz postojeće familije;FactArt28 za stvarne činjenice;32–48 row art;64 Home vrata;88–128 robot samo prazan start. Bez emoji-ja, novih proizvoljnih category ikona ili ukrasne ikone uz svaku reč. |
+| Materijal |Originalni postojeći pin/notes/money/calendar/people/remote. Jedan smer svetla, dosledan satin/plastika/papir. Boja objekta daje živost, ne svaki background. Nov artwork odobriti pre zamene. |
+| Stanja |Pressed120ms;selected tekst+shape;disabled objašnjen razlog;loading zadržava širinu;error kod konkretnog polja;unread dot+weight;confirmed tek receipt;unknown Proveri. |
+| Adaptacija |361dp osnovna skica;320/360/412 i1.0/1.15/1.3font native provera kasnije.48dp touch;dug srpski tekst wrap;ne fiksirati visinu content reda. Max širina640 iz postojećeg layout-a. |
+| Artwork performanse |Izvorni PNG-ovi imaju približno0.7–2MB po fajlu. To nije izmereni memory problem. Pre novih setova izmeriti decode/cache i pripremiti odobrene manje izvoze; zadržati proporcije i transparentnost. |
+
+### 4. Motion i navigation ugovor
+
+| Interakcija | Predlog ponašanja | Greška koju sprečiti |
+|---|---|---|
+| Pin→Peek |Halo odmah;Peek sledeći frame;camera nezavisno do360ms samo ako potrebno |Ne čekati mrežu/animaciju kamere da korisnik vidi izbor |
+| Sheet |Jedna UI-thread pozicija vodi sheet/tabove/attribution/locate;postojeći spring bez bounce |Više nezavisnih transformacija koje se razilaze |
+| Search/filter |Enter240/exit160;draft pa atomic apply;keyboard Back prvo |Flash prazne mape i izgubljeni kriterijumi |
+| List→detail→Back |Sačuvati query/offset/selectedID;ne ponavljati stagger |Skok na vrh ili novi cold skeleton pri toplom povratku |
+| AI |Stvarni stream;jedna aktivna mapa;collapse nakon potvrde;final preview na kraju |Lažni typewriter i svaki fact kao nova ogromna kartica |
+| Message |Optimistic appearance120–180ms;receipt zameni isti item;pagination bez animacije |Duplikat ili nova animacija svih starih poruka |
+| Dogovoreno |Postojeći kratki brand moment posle receipt-a;CTA odmah moguć |Animacija koja obećava uspeh pre servera |
+| Settings/calendar |Lokalna visina disclosure-a;isti datum/fokus ostaje pri promeni režima |Nepotreban horizontalni carousel za svaki podatak |
+| Robot |Blink/mala promena izraza samo iz ispravnog asset-a;focus-only |Rastezanje statične slike, beskrajno motion na listi |
+| Reduce Motion |Isti sadržaj i komande;bez translation/scale,kratak fade ili odmah |Ukidanje pristupačnosti da bi dizajn bio premium |
+
+Android Back: prvo sistemska tastatura;zatim modal/editor (dirty confirm kada treba);zatim interni tab/context;zatim poreklo rute;na root-u sistemski izlaz. Deep link najpre auth/capability pa tačan ID;ne preusmeravati po naslovu. Foreground vrati javni snapshot, privatno tek posle revalidacije;nalog promena poništava sve stare callbacks.
+
+### 5. Registar nalaza i minimalne popravke
+
+#### D01 · P1 · performance
+**Problem:** Ulaz Nisu na mapi može uzastopno učitavati mnoge stranice. **Zašto:** Lokalni filter pinless redova se dopunjava čitanjem cele kolekcije do očekivanog broja; jedan dodir može biti skup.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/DiscoveryPresentation.tsx:376`; `src/ui/v2/DiscoveryPresentation.tsx:1189`
+**Predlog:** Bounded dopunjavanje i iskren učitani broj; zaseban pinless server scope ako je potreban. Ne vraćati P6 na početak.
+**Kasniji focused dokaz:** Sintetički mnogo mapiranih pre prvog pinless reda: ograničen broj poziva po korisničkoj akciji, lista i broj po istom upitu.
+**Odobrenje:** UI predlog + posebno odobrenje server ugovora ako se proširuje. **Registar:** B04, B05.
+
+#### D02 · P1 · UX
+**Problem:** Izbor poznatog grada zatvara pretragu umesto da ponudi delove grada. **Zašto:** OnWithin imaju fallback gradovi, dok gradovi iz rezultata odmah primenjuju scope.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/PlacePicker.tsx:77`; `src/ui/v2/discovery/PlacePicker.tsx:104`; `src/ui/v2/discovery/PlacePicker.tsx:117`
+**Predlog:** Odvoji Ceo grad od Izaberi deo grada. Ulice nuditi samo gde stvarni provider i javni ugovor to daju.
+**Kasniji focused dokaz:** Isti Novi Sad i iz recent i iz rezultata nudi isti izbor; Back iz naselja vraća grad bez primene.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B05.
+
+#### D03 · P2 · UX odluka
+**Problem:** Obična potvrda pretrage ne podiže listu rezultata. **Zašto:** Komentar u panelu obećava listu, apply menja filter i kameru, remote ima zaseban put. Nije automatski kvar važećeg smera.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/DiscoverySearchPanel.tsx:27`; `src/ui/v2/DiscoveryPresentation.tsx:835`
+**Predlog:** Prikazati A: polje uz listu, B: pretraga uvek dostupna pa FULL rezultati, C: vođene sekcije. Preporuka B.
+**Kasniji focused dokaz:** Posle izbora grada/reči rezultat očigledan; Mapa vraća oblast; tastatura ne pomeri mapu.
+**Odobrenje:** OBAVEZNA odluka vlasnika između prikazanih alternativa. **Registar:** B05, B04.
+
+#### D04 · P2 · UX/owner contract
+**Problem:** Na daljinu nije pouzdano prva kapsula. **Zašto:** Za mene i aktivni filteri mogu da se umeću pre nje.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/DiscoveryChipRow.tsx:40`; `src/ui/v2/DiscoveryPresentation.tsx:878`
+**Predlog:** Fiksno Na daljinu prva; izbor označen tekstom+stanjem; druge aktivne uslove sažeti posle osnovnih.
+**Kasniji focused dokaz:** Razne kombinacije filtera i profila ne pomeraju prvu kapsulu.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B04, B05.
+
+#### D05 · P2 · data UX
+**Problem:** Peek više zadataka na istoj tački može prikazati broj prve učitane strane kao ukupan. **Zašto:** POINT_MEMBERS ima limit50, presentation dobija items bez marker total-a.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/data/discoveryV1ScreenSession.ts:226`; `src/ui/v2/discovery/DiscoveryPeek.tsx:90`
+**Predlog:** Preneti total odvojeno od preview članova: tri reda + Prikaži svih N.
+**Kasniji focused dokaz:** Tačka sa 51+ zadatkom kaže ukupno N bez čitanja svih radi naslova.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B04.
+
+#### D06 · P2 · error recovery
+**Problem:** Neuspešan preview filtera onemogućuje primenu bez retry-a u panelu. **Zašto:** Korisnik mora da menja uslov ili zatvara panel da bi ponovio.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/DiscoverySearchPanel.tsx:168`
+**Predlog:** Ponovi u istom footer-u, zadrži draft i stare rezultate do autoritativne zamene.
+**Kasniji focused dokaz:** Preview fail→retry čuva datum i mesto; nije potrebno Očisti.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B05.
+
+#### D07 · P2 · visual/performance risk
+**Problem:** Native marker sloj dopušta preklapanje simbola i teksta. **Zašto:** Geografski bucket-i nisu isto što i čitljiv raspored etiketa na 361dp.
+**Dokaz:** SOURCE rizik; stvarno preklapanje nije izmereno u ovom auditu. `src/ui/v2/discovery/DiscoveryV1ServerMarkerLayer.tsx:69`
+**Predlog:** Guste grupe nose broj; tačke bez svake cene; odabrani ima prioritet. Posebno proveriti screen-space kolizije.
+**Kasniji focused dokaz:** Gusta mapa pri 361dp: izabrani vidljiv, nijedan aktivni dodir ne vodi na pogrešan pin.
+**Odobrenje:** Skica odobrenje, potom native dokaz; ne menjati backend automatski. **Registar:** B04.
+
+#### D08 · P2 · visual/state
+**Problem:** P6 pin nema isti relationship prikaz kao legacy pin. **Zašto:** Native sloj prima kind/count/selected, ne own/applied. Demo ne sme predstavljati legacy kao aktivni P6.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/DiscoveryV1ServerMarkerLayer.tsx:8`; `src/ui/v2/DiscoveryMap.tsx:539`
+**Predlog:** Neutralni pin; svoj mali znak, prijavljen mali tick samo uz poznat odnos; selected halo prvi prioritet. Nepoznato nije tuđ.
+**Kasniji focused dokaz:** Own/applied/selected/unknown kombinacije; card i pin isti id.
+**Odobrenje:** Vlasnik odobrava oblik; postojeći overlay povezati samo ako daje autoritativnu relaciju. **Registar:** B04.
+
+#### D09 · P3 · copy
+**Problem:** Globalno prazno stanje prvenstveno nudi Osveži, uz tekst koji podrazumeva mapu za sve. **Zašto:** Remote zadatak ne mora imati pin; refresh ne menja prazan skup.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/DiscoveryListState.tsx:55`
+**Predlog:** Prazan skup: Objavi zadatak; prazan filter: Promeni uslove; mrežna greška: Ponovi.
+**Kasniji focused dokaz:** Tri uzroka imaju tri odgovarajuće radnje.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B04.
+
+#### D10 · P2 · perceived performance
+**Problem:** Jedan read error može ukloniti izvedenu listu iako koordinator ima prethodnu sliku. **Zašto:** Map-only, marker, page i cold greške nemaju uvek isti efekat po korisnika.
+**Dokaz:** SOURCE izveden scenario; potrebno potvrditi tačan runtime put. `src/ui/v2/discovery/DiscoveryV1Screen.tsx:97`; `src/ui/v2/DiscoveryPresentation.tsx:440`
+**Predlog:** Razdvojiti cold fail od stale refresh/next-page/marker fail; zadrži stare podatke uz jasnu oznaku.
+**Kasniji focused dokaz:** Focused fault injection po read vrsti; izbor/offset ostaju, greška ne glumi nula zadataka.
+**Odobrenje:** Odobren prikaz recovery stanja. **Registar:** B04.
+
+#### D11 · P2 · visual hierarchy
+**Problem:** Dugački naslovi i svaki fact u zasebnom visokom redu šire list kartice. **Zašto:** Na listi odluka postaje spora; veliki detalj i kartica imaju sličnu težinu.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/discovery/TaskRecordBody.tsx:176`
+**Predlog:** Naslov do2 reda u listi, iznos ispod, lokacija/termin kompaktno; detalj zadržava pun naslov i sve činjenice.
+**Kasniji focused dokaz:** Dug naslov, ponuda bez iznosa, 3 osobe, remote, 1.3font: čitljivo bez horizontalnog overflow.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B04, B06.
+
+#### AI01 · P1 · UX/state
+**Problem:** Završen radnički razgovor zadržava onemogućen unos. **Zašto:** Worker ne šalje closed shell-u, task već šalje.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/app/(app)/profil/razgovor.tsx:371`; `src/ui/aiFirst/AiConversationShell.tsx:374`
+**Predlog:** Završni sažetak i Otvori radni profil, bez praznog neaktivnog composer-a.
+**Kasniji focused dokaz:** Save→Back u thread COMPLETED i ABANDONED: nema lažnog unosa; READY ostaje razgovor.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B00.
+
+#### AI02 · P2 · visual/UX
+**Problem:** Dva AI razgovora nemaju isti model sažetka i završetka. **Zašto:** Worker kartica/progress/disclosure dominira drugačije od task završne kartice na kraju.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/workerProfile/WorkerAiPresentation.tsx:31`; `src/ui/v2/IntakePresentation.tsx:397`
+**Predlog:** Jedan aktivan korak, sklopivi sažetak stvarnih činjenica, završni pregled na kraju; sadržaj različit po nameri.
+**Kasniji focused dokaz:** Duga istorija+keyboard, odgovor sa0/1/više činjenica, kraj oba toka: jedna glavna radnja.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** A02, B00.
+
+#### AI03 · P2 · product clarity
+**Problem:** Interna mapa rute crta tačke, ne drumsku geometriju. **Zašto:** Cela ruta postoji kao Google Maps URL; nije dokaz da app crta put između tačaka.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/location/LocationOverviewMap.tsx:101`; `src/ui/location/LocationMapPreview.tsx:69`
+**Predlog:** Sažetak Polazište→usputne→Odredište; overview numerisanih tačaka i otvori navigaciju. Pravu putanju samo iz provider ugovora.
+**Kasniji focused dokaz:** Tri tačke, neuspeo reverse lookup, jedna pomerena: redosled i privatnost očuvani.
+**Odobrenje:** Odobrenje prikaza; novi provider/naplata/server posebno. **Registar:** A04, A06, B06, D08.
+
+#### AI04 · P3 · state continuity
+**Problem:** Cold start može vezati potvrđenu lokaciju/slike uz poslednju učitanu poruku. **Zašto:** In-memory anchor map nije trajna istorija događaja; podatak nije izgubljen, ali timeline se pomera.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/IntakePresentation.tsx:45`
+**Predlog:** Dugoročno stabilan event/message anchor; dotad ne obećavati identičan položaj posle restarta.
+**Kasniji focused dokaz:** Resume/cold start/pagination: samo jedna potvrđena lokacija, bez dupliranja.
+**Odobrenje:** Server promena ako se uvodi anchor mora posebno biti odobrena. **Registar:** A02, A04, A05.
+
+#### AI05 · P2 · copy/semantic
+**Problem:** Završna rečenica izmene prepoznaje se doslovnim string-matchom. **Zašto:** Promena prompt teksta može vratiti poziv na objavu umesto izmene.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/IntakePresentation.tsx:247`
+**Predlog:** Postojeći Edge paket završiti jasnim intentom edit/create; nema novog AI sistema.
+**Kasniji focused dokaz:** Promena interpunkcije/rewording ne menja semantiku sledeće radnje.
+**Odobrenje:** Edge paket preflight/revert/vlasnikova reč. **Registar:** A13.
+
+#### AI06 · P2 · UX
+**Problem:** Ručna ispravka područja u worker predlogu traži ISO državu i broj radijusa. **Zašto:** Korisnik misli u mestima, ne RS parametrima.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/workerProfile/WorkerAiPresentation.tsx:272`
+**Predlog:** Postojeći area picker u draft kontekstu; Sačuvaj predlog ne sme neprimetno da menja live profil.
+**Kasniji focused dokaz:** Izmena područja→Back→frozen review zadržava scope; nema ranog live upisa.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** B00, B02.
+
+#### SEL01 · P1 · UX
+**Problem:** Poređenje je na HONOR širini jedna kolona. **Zašto:** Dve kolone traže≥200dp svaka, a logička širina je≈361dp. To nije paralelno poređenje.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/ApplicationSelectionPresentation.tsx:209`
+**Predlog:** Izaberi dva; isti redovi iznos/termin/ljudi/ocena u dve čitljive kolone, detalji niže. Ne automatski najbolji.
+**Kasniji focused dokaz:** 361dp i1.15font, dug naziv: iste činjenice naspram istih, ≥48dp kontrole.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** A11.
+
+#### SEL02 · P2 · navigation
+**Problem:** Promena lista/poređenje remountuje FlatList. **Zašto:** Key zavisi od režima; u komponenti nema offset restore.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/v2/ApplicationSelectionPresentation.tsx:242`
+**Predlog:** Sačuvaj izabranog kandidata kao anchor i položaj liste; poredi samo2–3.
+**Kasniji focused dokaz:** 50 redova→poredi dva pri dnu→Back: isti kandidat i položaj.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** A11.
+
+#### SEL03 · P2 · performance
+**Problem:** Poređenje može zatražiti sve stranice kandidata. **Zašto:** Globalni sort je pošteno sakriven dok se ne učitaju svi; nije skalabilno za veliku listu.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/app/(app)/potrebe/[id]/kandidati.tsx:33`
+**Predlog:** Server keyset sort kao odvojeni paket; izabrani2 porediti bez pražnjenja celog pager-a.
+**Kasniji focused dokaz:** Poređenje2 posle jedne strane ne čita1000 kandidata.
+**Odobrenje:** Server odobrenje zasebno. **Registar:** A11.
+
+#### TASK01 · P3 · content contract
+**Problem:** publishedAt još nije u owner read projekciji. **Zašto:** Ne može se pouzdano prikazati Objavljen pre… iz lokalnog vremena.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/app/(app)/potrebe/[id]/pregled.tsx:342`
+**Predlog:** Zatvoriti već poznat server paket pa povezati; do tada datum ne izmišljati.
+**Kasniji focused dokaz:** Stari task/cold start pokazuju isti serverski datum.
+**Odobrenje:** Server odobrenje zasebno. **Registar:** A08.
+
+#### COM01 · P1 · UX/state
+**Problem:** Grupa briše neposlati draft pri blur/background. **Zašto:** Kratak poziv ili prelazak drugde gubi tekst.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/groups/GroupConversationScreen.tsx:17`
+**Predlog:** In-memory draft po nalogu+grupi, brisanje na logout/odbacivanje; journal ostaje zaseban.
+**Kasniji focused dokaz:** Napiši→background→vrati; isti draft. Drugi nalog nikad ne vidi prvi draft.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** D05.
+
+#### COM02 · P1 · state sync
+**Problem:** Otvorena grupa nema isti incoming refresh kao1:1. **Zašto:** Focus/manual/send osvežava; dolazak tuđe poruke bez toga nije povezan u controller-u.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/groups/GroupConversationPresentation.tsx:115`; `src/ui/groups/GroupConversationController.ts:1`
+**Predlog:** Bounded invalidation za otvorenu grupu, stabilan scroll, bez stalnog ručnog Osveži. Text-only ostaje.
+**Kasniji focused dokaz:** Dva test naloga: incoming vidljiv bez Back; dok čita stare poruke ne skače na dno.
+**Odobrenje:** Client paket kasnije; server ako treba posebno. **Registar:** D05.
+
+#### COM03 · P1 · UX
+**Problem:** Uspešno slanje grupe skriva unos i traži Prikaži razgovor. **Zašto:** CONFIRMED je dead end za kontinuirano dopisivanje.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/groups/GroupConversationController.ts:70`; `src/ui/groups/GroupConversationPresentation.tsx:153`
+**Predlog:** Receipt automatski reconcile-uje poruku; composer ostaje. Samo UNKNOWN nudi Proveri.
+**Kasniji focused dokaz:** Tri uzastopne poruke bez dodatne potvrde, retry nikad ne šalje novi id.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** D05.
+
+#### COM04 · P1 · data UX
+**Problem:** Aktivni/Završeni filtrira samo učitanu stranu inboxa. **Zašto:** Prazan lokalni rezultat može biti proglašen globalno praznim uz nextCursor.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/messages/ConversationInboxPresentation.tsx:107`
+**Predlog:** Prvo iskren tekst i bounded paging; zatim lifecycle filter/cursor u server projekciji.
+**Kasniji focused dokaz:** Prva strana sve zatvoreno, druga aktivno: ne prikaži lažno Nema aktivnih.
+**Odobrenje:** Server odobrenje posebno; klijentski prikaz pre integracije. **Registar:** D03.
+
+#### COM05 · P2 · performance/sync
+**Problem:** Inbox i drugi potrošači čitaju celu kolekciju Dogovora. **Zašto:** useClosedAgreements koristi reader do20×100; inbox refresh ne osvežava uvek taj skup. Home paralelno čita own tasks/apps i celu kolekciju Dogovora.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/messages/useClosedAgreements.ts:21`; `src/data/agreementClientService.ts:586`; `src/app/(app)/index.tsx:1`
+**Predlog:** Projekcija inbox lifecycle i bounded Home/agenda agregati; ne učitavati celu istoriju radi jednog broja. Izmeriti pre promene.
+**Kasniji focused dokaz:** 1/100/1000 dogovora: broj poziva/payload; zatvaranje+refresh odmah menja odeljak.
+**Odobrenje:** Server odobrenje posebno; ovo nije dokaz opšte spore aplikacije. **Registar:** D03, A01, B12.
+
+#### COM06 · P2 · known pending
+**Problem:** Unread1:1 nije prikazan; count samo za grupu. **Zašto:** Ne treba lažno nacrtati0 ni izmišljeni broj u novom dizajnu.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/messages/ConversationInboxPresentation.tsx:188`
+**Predlog:** Prvo odgovarajući server ugovor iz handoff-a, zatim ista count semantika.
+**Kasniji focused dokaz:** Dva naloga/prava poruka: vidljivost→read receipt→badge opada tačno jednom.
+**Odobrenje:** Server/push test samo uz odobrenje. **Registar:** D03, P01.
+
+#### IA01 · P2 · IA/visual
+**Problem:** Profil i Privacy hub ponavljaju iste privatnosne izlaze. **Zašto:** J1 jedan dom gubi smisao; profil postaje duga postavka.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/profile/ProfileHubPresentation.tsx:145`; `src/ui/privacy/PrivacyPresentation.tsx:79`
+**Predlog:** Profil identitet+radni profil+Nalog+Privatnost i podaci+Pomoć. Privacy ima izvoz/blokirane/pravila/brisanje; deep link prečice ostaju.
+**Kasniji focused dokaz:** Svaka funkcija dostupna jednim jasnim putem; Back vraća scroll.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** N05, N09, N11, N06.
+
+#### A11Y01 · P2 · accessibility
+**Problem:** Spoken label obaveštenja ne koristi isti taskTitle kao vizuelni red. **Zašto:** Više istih događaja nad različitim zadacima može zvučati identično.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/notifications/InboxPresentation.tsx:120`; `src/ui/notifications/InboxPresentation.tsx:151`
+**Predlog:** Accessibility label iz istog rowCopy modela; događaj+zadatak+vreme+unread.
+**Kasniji focused dokaz:** TalkBack razlikuje dva otkazana zadatka; swipe radnja ima alternativu.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** P01.
+
+#### UX01 · P2 · visual hierarchy
+**Problem:** Dogovor lista može sabrati mnogo upozorenja i visokih fact redova. **Zašto:** Komentar max160dp nije realno ograničenje složenog stanja.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/agreements/AgreementListCard.tsx:86`
+**Predlog:** Naslov+osoba, jedan najvažniji sledeći korak, termin/iznos. Ostalo detalj. Bez obaveznog dodatnog expand pre svakog detalja.
+**Kasniji focused dokaz:** 6 različitih statusa: odmah jasno ko čeka koga, ne istih6 velikih kartica.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** D01, D02.
+
+#### UX02 · P3 · copy/composition
+**Problem:** Grupa i podrška imaju trajne tehničke pasuse i ručne read kontrole. **Zašto:** Sadržaj razgovora dobija manji prostor; korisnik mora da razume internu operaciju.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/groups/GroupConversationPresentation.tsx:84`; `src/ui/support/SupportDetailScreen.tsx:191`
+**Predlog:** Grupna koordinacija info disclosure; podrška Prethodne poruke; read-on-visible uz isti guard i zaseban dokaz.
+**Kasniji focused dokaz:** Pravni smisao ostaje dostupan; samo vidljive poruke mogu biti pročitane.
+**Odobrenje:** Prikaz odobriti pre integracije; bez nove poslovne odluke. **Registar:** D05, N08.
+
+#### VIS01 · P3 · brand opportunity
+**Problem:** Robot je jedna statična glava, ne animirani lik sa dva režima. **Zašto:** Opacity ulaz postoji; nema rig-a, treptaja niti radničkog šlema.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `src/ui/aiFirst/AiAssistantArt.tsx:7`
+**Predlog:** Zadržati originalan lik; posebno pripremiti izraze/pose, prvo48/88/128dp čitljivost. Ne deformisati PNG da glumi pisanje.
+**Kasniji focused dokaz:** Listening samo dok mikrofon stvarno snima; thinking nije procenat; success samo receipt.
+**Odobrenje:** Art i motion predlog odobriti; nova biblioteka nikad automatski. **Registar:** A02, B00, N01.
+
+#### NAV01 · P1 odluka · IA / owner decision
+**Problem:** Tri taba u novom uvodu naspram četiri u važećem kodu i odluci7.10. **Zašto:** Tiho uklanjanje Poruka gubi odobren ulaz; tiho zadržavanje ignoriše novu komandu.
+**Dokaz:** SOURCE potvrđeno; nije native reprodukcija. `AGENTS.md:73`; `src/app/(app)/_layout.tsx:218`
+**Predlog:** Pokazati3 (inbox u Dogovorima) i4 (postojeći zaseban Poruke). Preporuka4 za direktan razgovor, vlasnik odlučuje.
+**Kasniji focused dokaz:** Svaki deep link i unread ulaz opstaje u obe skice.
+**Odobrenje:** OBAVEZNA odluka vlasnika pre promene navigacije. **Registar:** A01, B04, D01, D03.
+
+### 6. Blueprint svih62 poslovnih površina
+
+Svaki red ispod je revizija predloga, ne nova potvrda funkcionalnosti. Svi primenjuju ugovor stanja S03; gde stanje nema smisla navesti N/A u kasnijem testu, ne izmišljati. Precizne statičke kontrole, slojevi i call-site linije za svaku rutu su u JSON inventaru. Svaki skraćeni naziv servisa ispod upućuje na postojeći src/data, ne na novi backend.
+
+<a id="blueprint-a01"></a>
+#### A01 · Početna: dve glavne radnje i šta čeka mene
+- **Svrha/3 sekunde:** Razume šta danas traži odgovor i može odmah da započne obe namere.
+- **Vrh→dno:** Znak/zvono/lice → dva velika ulaza → sledeći dogovoren termin ili najvažnije Čeka te → do3 kratka attention reda → moje liste/dostupnost.
+- **Kontrole/glavna i sporedne radnje:** Dva ulaza, zvono, profil, tačan Dogovor, Moji zadaci, Moje prijave, dostupnost kad profil aktivan.
+- **Slojevi/prijem/povratak/stanja:** Bez nove navigacije; nova osoba vidi kratko objašnjenje sa trajnim Sakrij na ovom uređaju. Vraćanje zadržava scroll.
+- **Promena/predlog:** Čeka te ne sme biti KPI dashboard; jedan sledeći potez jači od ostalog.
+- **Postojeći izvor:** `src/app/(app)/index.tsx` Servisi: `homeAttentionClientService`
+- **Podaci/backend:** `rpc_home_attention`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: COM05, NAV01.
+
+<a id="blueprint-a02"></a>
+#### A02 · Razgovor sa AI: kaži šta treba
+- **Svrha/3 sekunde:** Razgovor pretvara nameru u pregled, bez formulara preko celog četa.
+- **Vrh→dno:** Back/naslov → kratka dobrodošlica robota → razgovor → jedna aktivna potvrda → završna kartica tek na kraju → composer.
+- **Kontrole/glavna i sporedne radnje:** Tekst, mikrofon, dodaj sliku, izmeni sažetak, otvori mapu, potvrdi lokaciju, pregled.
+- **Slojevi/prijem/povratak/stanja:** Sažetak disclosure; tastatura smanjuje dekoraciju; Back prvo editor/tastatura. Stare poruke ne skaču pri stream-u.
+- **Promena/predlog:** Task terminalni composer već rešen; uskladiti worker, ne prepisivati engine.
+- **Postojeći izvor:** `src/app/(app)/nova.tsx` Servisi: `aiNeedV2Production`
+- **Podaci/backend:** `rpc_ai_open_need_conversation_owned_v2`, `uskoci-ai-interview`, `rpc_ai_read_need_turn_v2`, `rpc_ai_recover_need_turn_v2`, `rpc_ai_cancel_need_turn_v2`, `rpc_ai_need_review_v2`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI02, AI04, VIS01.
+
+<a id="blueprint-a03"></a>
+#### A03 · Glas u razgovoru
+- **Svrha/3 sekunde:** Kaže zahtev glasom uz jasno stvarno stanje mikrofona.
+- **Vrh→dno:** Isti composer → aktivan mikrofon/talas/vreme → transkript ili slanje po važećem režimu.
+- **Kontrole/glavna i sporedne radnje:** Hold/release, otkaži snimanje, accessible tekst pregled, retry.
+- **Slojevi/prijem/povratak/stanja:** Dozvola samo na nameru; odbijanje ostavlja tekst. Background prekida capture bez slanja tuđem nalogu.
+- **Promena/predlog:** Animacija prati stvarni capture, ne lažni slušam.
+- **Postojeći izvor:** `src/app/(app)/nova.tsx` Servisi: `useHoldToTalk`
+- **Podaci/backend:** `uskoci-speech-session`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a04"></a>
+#### A04 · Mesto zadatka (tačka na mapi, adresa privatna)
+- **Svrha/3 sekunde:** Potvrdi jedno tačno mesto bez zatrpavanja istorije.
+- **Vrh→dno:** Pitanje o tački → mapa/pin → jedna adresa → Da, ovde / Nije tu.
+- **Kontrole/glavna i sporedne radnje:** Expand, drag/tap pin, preciziraj adresu, potvrdi, otkaži.
+- **Slojevi/prijem/povratak/stanja:** Full editor sa dirty draftom; reverse lookup fail ostavlja pin uz iskrenu oznaku. Posle potvrde kratak red Izmeni. Ruta čuva svaki slot.
+- **Promena/predlog:** Ne dodavati200 izbora ni zelenih potvrda za svaku poruku; route overview ne glumi drumsku putanju.
+- **Postojeći izvor:** `src/app/(app)/mesto-zadatka.tsx` Servisi: `locationClientService`
+- **Podaci/backend:** `uskoci-location-search`, `rpc_save_need_location_review`, `rpc_get_need_location_review`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI03, AI04.
+
+<a id="blueprint-a05"></a>
+#### A05 · Fotografije zadatka
+- **Svrha/3 sekunde:** Doda ili ukloni fotografiju uz pregled onoga što će biti javno.
+- **Vrh→dno:** Naslov → fotografije grid → status pojedinačnog upload-a → dodaj → gotovo.
+- **Kontrole/glavna i sporedne radnje:** Kamera/galerija, pregled, ukloni, retry, back.
+- **Slojevi/prijem/povratak/stanja:** Dozvola→sistemski picker→preview; neuspešan upload nije uspešno objavljena fotografija.
+- **Promena/predlog:** Veliki pregled na dodir, uredan kompaktan prilog u razgovoru.
+- **Postojeći izvor:** `src/app/(app)/fotografije-zadatka.tsx` Servisi: `mediaClientService`
+- **Podaci/backend:** `uskoci-media`, `rpc_read_task_photos`, `rpc_remove_task_photo`, `rpc_read_media_upload`, `rpc_cancel_media_upload`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI04.
+
+<a id="blueprint-a06"></a>
+#### A06 · Pregled pre objave
+- **Svrha/3 sekunde:** Vidi tačno šta će drugi videti, a šta ostaje privatno.
+- **Vrh→dno:** Javna TaskCard → javni detalj → jasno odvojeno Samo ti vidiš sa adresom/mapom → Objavi.
+- **Kontrole/glavna i sporedne radnje:** Olovka svakog podatka, mapa, fotografije, objavi, nacrt; retko brisanje zasebno.
+- **Slojevi/prijem/povratak/stanja:** Svaki editor vraća isti review; izmena invalidira prethodni frozen digest; pending/unknown posebni.
+- **Promena/predlog:** Jedna kompozicija, ne dve različite task biblioteke. Privatna tačna adresa nikad u javnom bloku.
+- **Postojeći izvor:** `src/app/(app)/pregled-zadatka.tsx` Servisi: `aiTaskReviewClientService`
+- **Podaci/backend:** `rpc_prepare_ai_task_review`, `rpc_read_latest_ai_task_review`, `rpc_read_ai_task_review`, `rpc_ai_correct_fact_v2`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI03.
+
+<a id="blueprint-a07"></a>
+#### A07 · Objava zadatka
+- **Svrha/3 sekunde:** Zna da je objava stvarno završena i nalazi svoj zadatak.
+- **Vrh→dno:** Receipt potvrđen → naslov novog zadatka → otvori moj zadatak / postojeći map handoff.
+- **Kontrole/glavna i sporedne radnje:** Objavi jedanput, Proveri kod neizvesnog ishoda, Otvori.
+- **Slojevi/prijem/povratak/stanja:** Readback pre uspeha; vrati tačan ID; postojeći legacy publication landing ostaje namenski.
+- **Promena/predlog:** Ne zahtevati automatski novi P6 put bez istog dokaza objave.
+- **Postojeći izvor:** `src/app/(app)/pregled-zadatka.tsx` Servisi: `aiTaskReviewClientService`, `publicationClientService`
+- **Podaci/backend:** `rpc_accept_ai_task_review`, `uskoci-publication-evaluate`, `rpc_publish_accepted_ai_task_review`, `rpc_get_need_publication_context`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a08"></a>
+#### A08 · Moj zadatak (detalj)
+- **Svrha/3 sekunde:** Razume stanje svog zadatka i sledeći potez.
+- **Vrh→dno:** Status+naslov → iznos → prijave/popuna → ključne činjenice → opis/mapa → vidljiva izmena/otkazivanje.
+- **Kontrole/glavna i sporedne radnje:** Kandidati, pitanja, izmeni, zatvori potragu, otkaži; po server dozvolama.
+- **Slojevi/prijem/povratak/stanja:** Draft/objavljeno/delimično popunjeno/zatvoreno imaju različit CTA. Back lista zadržava mesto.
+- **Promena/predlog:** Status sažeti; manje instrukcijskih pasusa, publishedAt samo iz servera.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/pregled.tsx` Servisi: `needClientService`
+- **Podaci/backend:** `rpc_read_task`, `rpc_get_my_task_relations`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: TASK01.
+
+<a id="blueprint-a09"></a>
+#### A09 · Moji zadaci (lista)
+- **Svrha/3 sekunde:** Brzo nalazi aktivan zadatak ili nacrt.
+- **Vrh→dno:** Naslov → statusni segmenti sa tačnim brojevima → kompaktne kartice → sledeća strana.
+- **Kontrole/glavna i sporedne radnje:** Otvori, nastavi nacrt, refresh, paging, filter.
+- **Slojevi/prijem/povratak/stanja:** Cold skeleton, warm zadržano, error ponovi, prazno Objavi; ne brojati samo učitanu stranu kao total.
+- **Promena/predlog:** Cena ispod naslova; najvažnija pažnja samo jednom.
+- **Postojeći izvor:** `src/app/(app)/potrebe.tsx` Servisi: `needClientService`
+- **Podaci/backend:** `rpc_list_my_tasks`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a10"></a>
+#### A10 · Pitanja o mom zadatku (odgovori)
+- **Svrha/3 sekunde:** Odgovara na konkretno javno pitanje o zadatku.
+- **Vrh→dno:** Naslov zadatka → pitanja/odgovori → aktivno pitanje → unos odgovora.
+- **Kontrole/glavna i sporedne radnje:** Odgovori, starije, sigurnost gde dozvoljena, back.
+- **Slojevi/prijem/povratak/stanja:** Slanje uz receipt; unknown proveri; nema privatne adrese u javnom odgovoru.
+- **Promena/predlog:** Jedan thread ritam, ne kartica oko svake rečenice.
+- **Postojeći izvor:** `src/app/(app)/pitanja-zadatka.tsx` Servisi: `preselectionQaClientService`
+- **Podaci/backend:** `rpc_ru4b_owner_preselection_questions`, `rpc_ru4b_answer_preselection_question`, `rpc_ru4b_disposition_preselection_question`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a11"></a>
+#### A11 · Prijave i poređenje
+- **Svrha/3 sekunde:** Poredi ponude po istim činjenicama i bira informisano.
+- **Vrh→dno:** Zadatak → broj/sort samo kad tačan → kompaktni kandidati → izabrana2 za uporedi.
+- **Kontrole/glavna i sporedne radnje:** Ponuda, profil, select2, poredi, odaberi.
+- **Slojevi/prijem/povratak/stanja:** Offer/profile sheet; comparison čuva anchor; bez globalnog sort-a nad jednom stranom.
+- **Promena/predlog:** Na361dp stvarne2kolone jednakih činjenica; ne dve ogromne kartice.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/kandidati.tsx` Servisi: `candidateClientService`
+- **Podaci/backend:** `rpc_list_need_candidates`, `rpc_mark_response_viewed`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: SEL01, SEL02, SEL03.
+
+<a id="blueprint-a12"></a>
+#### A12 · Izbor prijave → nastaje Dogovor
+- **Svrha/3 sekunde:** Potvrđuje osobu i uslove uz jasan rezultat.
+- **Vrh→dno:** Sažetak ponude/ljudi/iznos/termin → eksplicitna potvrda → Dogovoreno! → tačan Dogovor.
+- **Kontrole/glavna i sporedne radnje:** Potvrdi izbor, odustani, proveri, otvori Dogovor.
+- **Slojevi/prijem/povratak/stanja:** Revision/idempotency/readback; konkurentna promena vraća novu ponudu, ne automatski prihvat.
+- **Promena/predlog:** Kratak brand moment posle receipt-a; ne zadržava navigaciju800ms.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/kandidati.tsx` Servisi: `applicationSelectionClientService`
+- **Podaci/backend:** `rpc_select_response`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a13"></a>
+#### A13 · Izmena objavljenog zadatka
+- **Svrha/3 sekunde:** Menja zadatak uz svest o posledici za prijave.
+- **Vrh→dno:** Važeći zadatak → izmene činjenica → pregled razlike → potvrda.
+- **Kontrole/glavna i sporedne radnje:** Izmeni tekst/mesto/termin/uslove, pregledaj, potvrdi, otkaži draft.
+- **Slojevi/prijem/povratak/stanja:** Back vraća original ako odbačeno; promenjene ponude zahtevaju odgovarajući lifecycle.
+- **Promena/predlog:** AI završetak govori Izmene, nikad Objavi za već objavljen task.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/pregled.tsx`, `src/app/(app)/pregled-zadatka.tsx` Servisi: `ru4Production`
+- **Podaci/backend:** `rpc_ai_open_need_edit_conversation_v2`, `rpc_confirm_need_edit_from_review_v2`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI05.
+
+<a id="blueprint-a14"></a>
+#### A14 · Otkaži zadatak · obriši nacrt
+- **Svrha/3 sekunde:** Razlikuje uklanjanje nacrta od otkazivanja javnog zadatka.
+- **Vrh→dno:** Naziv → konkretna posledica → razlog kada potreban → destruktivna potvrda.
+- **Kontrole/glavna i sporedne radnje:** Otkaži ili obriši prema stanju, nazad, proveri.
+- **Slojevi/prijem/povratak/stanja:** Kratak center dialog; duži razlog/review sheet; nepoznat rezultat se ne ponavlja novim ID.
+- **Promena/predlog:** Jasna crvena samo na potvrdi i posledici; česta radnja dostupna na detalju.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/pregled.tsx` Servisi: `needLifecycleClientService`
+- **Podaci/backend:** `rpc_cancel_need`, `rpc_delete_draft_need`, `rpc_get_need_lifecycle_receipt`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a15"></a>
+#### A15 · Zatvori preostalu potragu
+- **Svrha/3 sekunde:** Zatvara samo preostalu potragu uz očuvanje postojećih Dogovora.
+- **Vrh→dno:** Koliko ljudi je već dogovoreno → šta se zatvara → potvrda.
+- **Kontrole/glavna i sporedne radnje:** Zatvori potragu, odustani, otvori postojeće Dogovore.
+- **Slojevi/prijem/povratak/stanja:** Server dozvola; ne mešati sa otkazivanjem svih Dogovora.
+- **Promena/predlog:** Jedna nedvosmislena rečenica posledice, bez šireg destruktivnog naziva.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/pregled.tsx` Servisi: `ru4Production`
+- **Podaci/backend:** `rpc_close_remaining_search`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-a16"></a>
+#### A16 · Uključi HITNO za svoj zadatak
+- **Svrha/3 sekunde:** Zna postoji li stvarna mogućnost HITNO.
+- **Vrh→dno:** Danas skriveno/onemogućeno prema server politici; buduća posebna specifikacija tek posle odobrenja.
+- **Kontrole/glavna i sporedne radnje:** Ne prikazivati aktivno dugme za neaktivnu funkciju.
+- **Slojevi/prijem/povratak/stanja:** DEV urgent_activation_policy=false; nema tajnog countdown-a, plaćanja ni pusha.
+- **Promena/predlog:** Odvojiti dekorativnu oznaku od stvarnog dispatch-a; ne izmisliti SLA.
+- **Postojeći izvor:** `src/app/(app)/potrebe/[id]/pregled.tsx` Servisi: `urgentActivationClientService`
+- **Podaci/backend:** `rpc_urgent_activation_preview`, `rpc_activate_urgent`, `fn_need_urgency`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b00"></a>
+#### B00 · Radni profil kroz razgovor sa AI
+- **Svrha/3 sekunde:** Kroz razgovor sastavlja radni profil koji posle pregleda hrani stvarne servise.
+- **Vrh→dno:** Naslov → robot/kratko pitanje → šta ume → gde/kada/oprema po potrebi → sažetak → pregled.
+- **Kontrole/glavna i sporedne radnje:** Tekst/glas prema postojećem režimu, izmeni činjenicu, područje, pregled, sačuvaj.
+- **Slojevi/prijem/povratak/stanja:** Poznato ime ne pita ponovo; draft nije live profil; završeni thread ima Otvori radni profil.
+- **Promena/predlog:** Isti jezik kao task AI, različita pitanja; bez tehničkog RS unosa.
+- **Postojeći izvor:** `src/app/(app)/profil/razgovor.tsx` Servisi: `workerAiClientService`
+- **Podaci/backend:** `rpc_open_worker_ai`, `uskoci-worker-interview`, `rpc_read_worker_ai`, `rpc_patch_worker_ai`, `rpc_prepare_worker_ai_review`, `rpc_save_worker_ai_review`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI01, AI02, AI06, VIS01.
+
+<a id="blueprint-b01"></a>
+#### B01 · Lični radni profil — pregled i izmene
+- **Svrha/3 sekunde:** Razume kako se predstavlja i da li je radni profil aktivan.
+- **Vrh→dno:** Identitet → status profila → veštine/opis → gde/kada → oprema → izmene.
+- **Kontrole/glavna i sporedne radnje:** AI dopuni, ručno izmeni, javni pregled, aktiviraj/deaktiviraj prema ugovoru.
+- **Slojevi/prijem/povratak/stanja:** Pregled čuva draft/digest; sačuvano tek posle receipt-a.
+- **Promena/predlog:** Oprema vidljiva, ali ne obećava matching kriterijum koji nije odobren.
+- **Postojeći izvor:** `src/app/(app)/profil/radnik.tsx` Servisi: `workerProfileClientService`, `workerCapacityClientService`
+- **Podaci/backend:** `rpc_get_worker_profile_for_edit`, `rpc_save_worker_capacity`, `rpc_get_worker_capacity`, `rpc_complete_worker_profile`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b02"></a>
+#### B02 · Područje rada
+- **Svrha/3 sekunde:** Odredi stvarno područje rada razumljivim mestom.
+- **Vrh→dno:** Grad/područje → predlog na mapi → radijus kad smislen → sačuvaj.
+- **Kontrole/glavna i sporedne radnje:** Pretraga, geolokacija na zahtev, mapa, radijus, sačuvaj.
+- **Slojevi/prijem/povratak/stanja:** Bez dozvole može ručno; ne uzimati trenutni GPS kao trajni grad bez potvrde.
+- **Promena/predlog:** Grad→deo oblasti, ne privatna adresa svakog radnika.
+- **Postojeći izvor:** `src/app/(app)/profil/lokacija.tsx` Servisi: `locationClientService`, `marketClientService`
+- **Podaci/backend:** `rpc_get_worker_location`, `rpc_save_worker_location`, `rpc_list_location_markets`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI06.
+
+<a id="blueprint-b03"></a>
+#### B03 · Dostupnost
+- **Svrha/3 sekunde:** Odredi kada može da uskoči.
+- **Vrh→dno:** Trenutno dostupno → nedeljni raspored → izuzeci ako postoje → sačuvaj.
+- **Kontrole/glavna i sporedne radnje:** Toggle, izbor dana/vremena, pregled, sačuvaj, odbaci.
+- **Slojevi/prijem/povratak/stanja:** Dirty Back; nema implicitnog obećanja HITNO iz Mogu odmah.
+- **Promena/predlog:** Vreme poznato/nenavedeno nisu isto; Raspored Dogovora nije editor dostupnosti.
+- **Postojeći izvor:** `src/app/(app)/profil/dostupnost.tsx` Servisi: `workerAvailabilityClientService`
+- **Podaci/backend:** `rpc_get_worker_availability`, `rpc_save_worker_availability`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b04"></a>
+#### B04 · Mapa i lista prilika
+- **Svrha/3 sekunde:** Pronalazi relevantne zadatke u oblasti ili van mape.
+- **Vrh→dno:** Jedinstvena mapa+search/filter+chips → compact/peek/half/full sheet → tabovi prema visini.
+- **Kontrole/glavna i sporedne radnje:** Pin, cluster, locate, pan/zoom, Na daljinu, Za mene, Danas, Nisu na mapi, mapa/full, detalj.
+- **Slojevi/prijem/povratak/stanja:** Attribution prati isti sheet; Back peek→compact/full→half po modelu; viewport/filter/scroll se vraćaju.
+- **Promena/predlog:** Remote prvo; nema cena na svakoj tački; jedan source of truth i bounded pinless.
+- **Postojeći izvor:** `src/app/(app)/mapa.tsx`, `src/app/(app)/prilike.tsx`, `src/app/(app)/zadaci.tsx` Servisi: `supabaseIzvor`, `marketplaceView`
+- **Podaci/backend:** `rpc_list_open_tasks_v3`, `rpc_get_my_task_relations`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: D01, D03, D04, D05, D07, D08, D09, D10, D11, NAV01.
+
+<a id="blueprint-b05"></a>
+#### B05 · Pretraga i filteri
+- **Svrha/3 sekunde:** Nalazi predmet i mesto pa sužava uslove.
+- **Vrh→dno:** Search odvojen od filtera; full-screen tekst + lokacija + recent; filter sheet Kada/Gde/Iznos.
+- **Kontrole/glavna i sporedne radnje:** Šta/gde, recent clear, ceo grad/deo, primeni, očisti, filter count/retry.
+- **Slojevi/prijem/povratak/stanja:** Draft ne menja rezultate pre primene; recent brisanje pri odjavi; keyboard back prvo.
+- **Promena/predlog:** Tri ponuđene varijante, preporuka potvrda→FULL lista; owner bira.
+- **Postojeći izvor:** `src/app/(app)/prilike.tsx`, `src/app/(app)/zadaci.tsx` Servisi: `marketplaceView`
+- **Podaci/backend:** `NOVO: udaljenost i sortiranje`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: D01, D02, D03, D04, D06.
+
+<a id="blueprint-b06"></a>
+#### B06 · Detalj prilike
+- **Svrha/3 sekunde:** Odlučuje da li ga zadatak zanima i da li može da se prijavi.
+- **Vrh→dno:** Naslov/cena → ključne činjenice → osoba → opis/uslovi → javna približna mapa → jedna prijava.
+- **Kontrole/glavna i sporedne radnje:** Ponuda/prijava po ceni, pitanje, profil, slika, mapa, share/safety.
+- **Slojevi/prijem/povratak/stanja:** Own/applied/selected/unknown imaju različit CTA; exact adresa ne postoji u javnoj projekciji.
+- **Promena/predlog:** Detalj nije uvećana list kartica; sekcije bez kutije oko svake.
+- **Postojeći izvor:** `src/app/(app)/prilike/[id].tsx` Servisi: `needClientService`
+- **Podaci/backend:** `rpc_read_task`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: D11, AI03.
+
+<a id="blueprint-b07"></a>
+#### B07 · Postavi pitanje pre ponude
+- **Svrha/3 sekunde:** Dobije pojašnjenje pre ponude.
+- **Vrh→dno:** Kratak task kontekst → postojeća pitanja → unos.
+- **Kontrole/glavna i sporedne radnje:** Pošalji pitanje, otvori odgovore, back.
+- **Slojevi/prijem/povratak/stanja:** Ne duplirati privatni chat; javno pitanje jasno označeno.
+- **Promena/predlog:** Pitanja blizu uslova, ne novu glavnu karticu na vrhu.
+- **Postojeći izvor:** `src/app/(app)/prilike/[id].tsx` Servisi: `preselectionQaClientService`, `qaSubmissionClientService`
+- **Podaci/backend:** `rpc_ru4b_public_preselection_qa`, `uskoci-qa-classify`, `rpc_read_qa_classification`, `rpc_cancel_qa_classification`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b08"></a>
+#### B08 · Javni profil i ugled
+- **Svrha/3 sekunde:** Proceni osobu na osnovu stvarnih podataka.
+- **Vrh→dno:** Ime/lice → dostupna reputacija → javni opis → dozvoljene ocene.
+- **Kontrole/glavna i sporedne radnje:** Otvori komentar ocene gde ugovor dozvoljava, nazad, prijavi/blokiraj.
+- **Slojevi/prijem/povratak/stanja:** OWN_ONLY i COMMENTED_ONLY iz DEV-a poštovati; nema izmišljene verifikacije/procenta.
+- **Promena/predlog:** Poverenje kroz dokazive činjenice; prazna ocena nije0zvezdica.
+- **Postojeći izvor:** `src/app/(app)/prilike/[id].tsx` Servisi: `publicProfileClientService`
+- **Podaci/backend:** `rpc_get_public_profile`, `rpc_get_account_reputation`, `rpc_read_safety_target`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b09"></a>
+#### B09 · Pošalji ponudu
+- **Svrha/3 sekunde:** Predloži jasan ukupan iznos i termin.
+- **Vrh→dno:** Task summary → ukupno → ljudi → termin → opciona poruka → pregled → pošalji.
+- **Kontrole/glavna i sporedne radnje:** Polja, time sheet, pregled, slanje, odustani.
+- **Slojevi/prijem/povratak/stanja:** Fixed iznos nije edit; idempotent send→nova označena Moja prijava.
+- **Promena/predlog:** Jasno ukupno za sve ljude; nema skrivenog množenja ili finansijske funkcije.
+- **Postojeći izvor:** `src/app/(app)/prilike/[id]/prijava.tsx` Servisi: `applicationClientService`
+- **Podaci/backend:** `rpc_submit_response`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b10"></a>
+#### B10 · Moje prijave
+- **Svrha/3 sekunde:** Vidi odgovor na svaku svoju prijavu i ulazi u Dogovor.
+- **Vrh→dno:** Statusi → kompaktni redovi naslov/iznos/termin/status → paging.
+- **Kontrole/glavna i sporedne radnje:** Detalj, tačan Dogovor za izabranu, izmeni/povuci gde dozvoljeno.
+- **Slojevi/prijem/povratak/stanja:** Pending/selected/rejected/withdrawn nisu samo boje; ukupni brojevi iz ugovora.
+- **Promena/predlog:** Čeka odgovor i čeka tvoju potvrdu odvojeni.
+- **Postojeći izvor:** `src/app/(app)/moje-prijave.tsx` Servisi: `myApplicationsClientService`
+- **Podaci/backend:** `rpc_list_my_applications`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b11"></a>
+#### B11 · Izmeni ili povuci ponudu
+- **Svrha/3 sekunde:** Ispravlja/povlači svoju ponudu bez gubitka važeće verzije.
+- **Vrh→dno:** Trenutna ponuda → promena ili posledica povlačenja → pregled/confirm.
+- **Kontrole/glavna i sporedne radnje:** Izmeni, povuci, odustani, proveri.
+- **Slojevi/prijem/povratak/stanja:** Revision conflict vraća nove uslove; ne bira drugi Dogovor po naslovu.
+- **Promena/predlog:** Destruktivno povlačenje odvojeno od obične izmene.
+- **Postojeći izvor:** `src/app/(app)/moje-prijave.tsx`, `src/app/(app)/prilike/[id]/prijava.tsx` Servisi: `applicationClientService`, `ru4Production`
+- **Podaci/backend:** `rpc_submit_response`, `rpc_withdraw_response`, `rpc_resolve_stale_response_after_need_edit`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-b12"></a>
+#### B12 · Raspored (kalendar posla)
+- **Svrha/3 sekunde:** Vidi dogovorene termine i njihove praznine.
+- **Vrh→dno:** Mesec/Nedelja/Dan → izabrani datum → stvarni Dogovori → bez termina.
+- **Kontrole/glavna i sporedne radnje:** Danas, prethodni/sledeći, swipe, režim, otvori Dogovor, arhiva.
+- **Slojevi/prijem/povratak/stanja:** Isti datum pri promeni režima; nepoznat izvor nije slobodan dan; loose appointments ostaju dostupni.
+- **Promena/predlog:** Kalendar služi obavezama; ne uvesti novi scheduler bez servera.
+- **Postojeći izvor:** `src/app/(app)/raspored.tsx` Servisi: `workerCalendarClientService`
+- **Podaci/backend:** `rpc_get_worker_calendar`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: COM05.
+
+<a id="blueprint-d01"></a>
+#### D01 · Lista Dogovora
+- **Svrha/3 sekunde:** Vidi sa kim sarađuje i šta od njega zavisi.
+- **Vrh→dno:** Aktivni/Istorija → čeka tebe → dogovoreni termini → ostali → arhiva.
+- **Kontrole/glavna i sporedne radnje:** Otvori, poruke, oceni gde due, Raspored, segment/refresh.
+- **Slojevi/prijem/povratak/stanja:** Preserve scroll/status; pending cancel/change dominira samo gde menja sledeću radnju.
+- **Promena/predlog:** Kompaktni redovi; iznos+termin+lice, jedna statusna poruka, bez ogromnih kartica.
+- **Postojeći izvor:** `src/app/(app)/dogovori.tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_list_my_agreements_page`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: UX01, NAV01.
+
+<a id="blueprint-d02"></a>
+#### D02 · Dogovor: pregled, uslovi, sledeći korak
+- **Svrha/3 sekunde:** Za3sekunde vidi ko/šta/kada/koliko i sledeću radnju.
+- **Vrh→dno:** Osoba+task → Pregled/Poruke → status/next action → vreme/iznos/lokacija → uslovi → vidljive sporedne radnje.
+- **Kontrole/glavna i sporedne radnje:** Poruke, izmena, problem, otkazivanje, task/application, safety.
+- **Slojevi/prijem/povratak/stanja:** Autoritativne capabilities; privatno zaklonjeno pri resume dok read nije validan.
+- **Promena/predlog:** Dogovor kao aktivna saradnja; istoriju koraka disclosure, ne timeline preko pola ekrana.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_get_agreement_workspace`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: UX01.
+
+<a id="blueprint-d03"></a>
+#### D03 · Poruke
+- **Svrha/3 sekunde:** Čita i šalje poruke u pravom Dogovoru.
+- **Vrh→dno:** Inbox: lice/ime/vreme/poruka/task. Thread: kompaktan kontekst → poruke → composer.
+- **Kontrole/glavna i sporedne radnje:** Text/photo/voice, starije, latest, retry/proveri, task kontekst, inbox status.
+- **Slojevi/prijem/povratak/stanja:** Read samo vidljivo; targeted message deep link; account change clears state; starije čuvaju anchor.
+- **Promena/predlog:** Ne mešati sve task razgovore iste osobe; unread1:1 ne izmišljati.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx`, `src/app/(app)/poruke.tsx` Servisi: `agreementMessageClientService`, `agreementMessageHistoryService`, `agreementHistoryModel`, `conversationInboxClientService`
+- **Podaci/backend:** `rpc_send_agreement_message_v2`, `rpc_read_agreement_messages_page_v1`, `rpc_mark_displayed_agreement_messages_v1`, `rpc_read_agreement_message_window_v1`, `rpc_list_my_conversations_v1`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: COM04, COM05, COM06, NAV01.
+
+<a id="blueprint-d04"></a>
+#### D04 · Slike u porukama
+- **Svrha/3 sekunde:** Razmeni dozvoljenu sliku unutar saradnje.
+- **Vrh→dno:** Picker → preview → upload state → message bubble → full viewer.
+- **Kontrole/glavna i sporedne radnje:** Izaberi, otkaži, pošalji, retry, fullscreen, zatvori.
+- **Slojevi/prijem/povratak/stanja:** Potpisani URL istek čitljiv recovery; bez public bucket pretpostavke.
+- **Promena/predlog:** Isti outbox lifecycle kao tekst; layout rezerviše sliku da lista ne skače.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx` Servisi: `agreementPhotoClientService`
+- **Podaci/backend:** `uskoci-media`, `rpc_send_agreement_photo_message_v5`, `rpc_read_agreement_photo_messages_v5`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d05"></a>
+#### D05 · Grupni razgovor (više ljudi)
+- **Svrha/3 sekunde:** Koordinira više učesnika uz očuvanu privatnost pojedinačnih Dogovora.
+- **Vrh→dno:** Naziv grupe/task → poruke → unos; učesnici u sheet-u.
+- **Kontrole/glavna i sporedne radnje:** Tekst, starije, članovi, relevantni Dogovor za requester, safety.
+- **Slojevi/prijem/povratak/stanja:** Text-only ostaje; background čuva memory draft; incoming refresh; sent vraća READY.
+- **Promena/predlog:** Ukloniti policy pasus iz stalne istorije, smisao sačuvati u informacijama.
+- **Postojeći izvor:** `src/app/dogovor/[id]/grupa.tsx` Servisi: `groupConversationService`
+- **Podaci/backend:** `rpc_read_group_context_v5`, `rpc_send_group_message_v5`, `rpc_read_group_messages_v5`, `rpc_mark_group_messages_read_v5`, `rpc_read_group_command_v5`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: COM01, COM02, COM03, UX02.
+
+<a id="blueprint-d06"></a>
+#### D06 · Izmene Dogovora (predlog, prihvati, odbij, povuci)
+- **Svrha/3 sekunde:** Razume šta druga strana menja i može da odgovori.
+- **Vrh→dno:** Važeće→predloženo za promenjena polja → razlog → prihvati/odbij ili povuci.
+- **Kontrole/glavna i sporedne radnje:** Predloži, pregledaj, prihvati/odbij/povuci po ulozi.
+- **Slojevi/prijem/povratak/stanja:** Ne prepisivati važeći ugovor pre prihvatanja; pending i conflict posebno.
+- **Promena/predlog:** Vizuelni diff samo promenjenih polja, ostala u disclosure.
+- **Postojeći izvor:** `src/app/dogovor/[id]/izmene.tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_propose_agreement_change_v2`, `rpc_respond_agreement_change`, `rpc_withdraw_agreement_change`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d07"></a>
+#### D07 · Otkaži Dogovor uz razlog
+- **Svrha/3 sekunde:** Zna posledicu otkazivanja pre potvrde.
+- **Vrh→dno:** Task+osoba → razlog → posledica → otkaži Dogovor.
+- **Kontrole/glavna i sporedne radnje:** Razlog, review, confirm, back, check.
+- **Slojevi/prijem/povratak/stanja:** Destruktivni CTA crven; receipt→status i poruke, ne nestanak bez objašnjenja.
+- **Promena/predlog:** Bez opšteg Da/Ne dijaloga bez imena radnje.
+- **Postojeći izvor:** `src/app/dogovor/[id]/izmene.tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_cancel_agreement`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d08"></a>
+#### D08 · Kontakt i tačna adresa zadatka u Dogovoru
+- **Svrha/3 sekunde:** Dođe do mesta i kontakta kad ima pravo pristupa.
+- **Vrh→dno:** Mesto → tačna ili približna oznaka → mapa/tačke → navigacija/kontakt.
+- **Kontrole/glavna i sporedne radnje:** Expand mapa, otvori maps, telefon po capability, back.
+- **Slojevi/prijem/povratak/stanja:** Sakrivanje pri auth/revalidation, ne u public cache/log/share. Ruta otvara celu navigaciju.
+- **Promena/predlog:** Privacy oznaka mala ali nedvosmislena; ne prikazivati tačan pin svima.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx` Servisi: `contactClientService`
+- **Podaci/backend:** `rpc_reveal_contact`, `rpc_set_contact_grant`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: AI03.
+
+<a id="blueprint-d09"></a>
+#### D09 · Prijavi problem u Dogovoru
+- **Svrha/3 sekunde:** Prijavi konkretnu prepreku iz saradnje.
+- **Vrh→dno:** Kontekst → vrsta/tekst/dokaz → pregled → pošalji.
+- **Kontrole/glavna i sporedne radnje:** Izaberi razlog, dodaj dokaz gde postoji, confirm, support link.
+- **Slojevi/prijem/povratak/stanja:** Prijava problema nije automatski raskid; receipt jasno stanje.
+- **Promena/predlog:** Komanda vidljiva u Pregledu; upozorenje opisuje šta dalje.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_report_problem`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d10"></a>
+#### D10 · Završio sam (strana koja radi)
+- **Svrha/3 sekunde:** Javi da je zadatak završen bez lažne finalnosti.
+- **Vrh→dno:** Task+osoba → potvrdi završio sam → čeka potvrdu druge strane.
+- **Kontrole/glavna i sporedne radnje:** Zadatak je gotov, odustani, proveri.
+- **Slojevi/prijem/povratak/stanja:** Server response menja status; ne automatska ocena pre confirm.
+- **Promena/predlog:** Success ton miran, label Čeka potvrdu, ne Završen.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_mark_work_done`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d11"></a>
+#### D11 · Potvrdi završetak (i automatsko završavanje)
+- **Svrha/3 sekunde:** Potvrdi rezultat ili prijavi problem.
+- **Vrh→dno:** Task → ko traži potvrdu → potvrdi / problem → ocena kad dozvoljena.
+- **Kontrole/glavna i sporedne radnje:** Potvrdi, problem, detalj, proveri.
+- **Slojevi/prijem/povratak/stanja:** Automatski rok samo serverski; lokalni sat ne zatvara Dogovor.
+- **Promena/predlog:** Jedna zelena radnja, problem vidljiv sporedan red.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx` Servisi: `agreementClientService`
+- **Podaci/backend:** `rpc_confirm_completion`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d12"></a>
+#### D12 · Ocena
+- **Svrha/3 sekunde:** Oceni stvarnu saradnju bez napornog formulara.
+- **Vrh→dno:** Lice+task → zvezdice sa imenovanim izborom → opcioni tag/komentar → pošalji.
+- **Kontrole/glavna i sporedne radnje:** Ocena, komentar, save, back.
+- **Slojevi/prijem/povratak/stanja:** Due eligibility, existing review, expired/unknown; ne obećavati anonimnost.
+- **Promena/predlog:** Nema mandatory duge poruke; potvrda tek nakon receipt-a.
+- **Postojeći izvor:** `src/app/(app)/oceni-dogovor.tsx` Servisi: `reviewsClientService`
+- **Podaci/backend:** `rpc_submit_agreement_review`, `rpc_get_my_agreement_review`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-d13"></a>
+#### D13 · Koraci napretka Dogovora
+- **Svrha/3 sekunde:** Razume gde je saradnja stigla.
+- **Vrh→dno:** Trenutno stanje + sledeći korak → detaljna istorija na dodir.
+- **Kontrole/glavna i sporedne radnje:** Proširi korake, relevantna radnja.
+- **Slojevi/prijem/povratak/stanja:** Razlikovati završio/čeka/potvrđeno/ocenjeno, ne sve zelene tačke.
+- **Promena/predlog:** Timeline sekundaran, naročito pri velikom tekstu.
+- **Postojeći izvor:** `src/app/dogovor/[id].tsx`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-p01"></a>
+#### P01 · Obaveštenja u aplikaciji (zvonce)
+- **Svrha/3 sekunde:** Odmah razume događaj i na koji zadatak se odnosi.
+- **Vrh→dno:** Naslov/zupčanik → filteri → danas/ranije → kratki red događaj/task/vreme.
+- **Kontrole/glavna i sporedne radnje:** Otvori target, mark read swipe+accessible, mark all, paging.
+- **Slojevi/prijem/povratak/stanja:** Invalid target/removed entity daju recovery, unread tekst+dot; nema replay animacije stare istorije.
+- **Promena/predlog:** Task title vodi; isti rowCopy za govor i vizuelni tekst.
+- **Postojeći izvor:** `src/app/obavestenja.tsx` Servisi: `inboxClientService`
+- **Podaci/backend:** `rpc_list_inbox`, `rpc_mark_inbox_read`, `rpc_resolve_activity_event`, `rpc_mark_activity_event_read`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: COM06, A11Y01.
+
+<a id="blueprint-p02"></a>
+#### P02 · Podešavanja obaveštenja
+- **Svrha/3 sekunde:** Kontroliše šta stiže i kada, razume šta ne zavisi od toggle-a.
+- **Vrh→dno:** Stanje ovog telefona → Moji zadaci/Moje prijave → grupe događaja → tihi sati → napredno → sačuvaj.
+- **Kontrole/glavna i sporedne radnje:** Toggle, time pickers, device actions, save dirty.
+- **Slojevi/prijem/povratak/stanja:** OS dozvola, binding i backend spremnost tri odvojene stvari; UNKNOWN nije uključeno.
+- **Promena/predlog:** Skraćena objašnjenja u disclosure; ne menjati značenje preferenci.
+- **Postojeći izvor:** `src/app/(app)/profil/obavestenja.tsx` Servisi: `notificationPreferencesClientService`
+- **Podaci/backend:** `rpc_get_notification_preferences`, `rpc_set_notification_preferences`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-p03"></a>
+#### P03 · Registracija telefona za obaveštenja
+- **Svrha/3 sekunde:** Poveže baš ovaj telefon za obaveštenja uz jasnu dozvolu.
+- **Vrh→dno:** Trenutno stanje → razlog traženja → sistemska dozvola → potvrđena veza.
+- **Kontrole/glavna i sporedne radnje:** Poveži, otvori postavke ako odbijeno, ukloni vezu uz potvrdu.
+- **Slojevi/prijem/povratak/stanja:** Dozvola odbijena ostavlja inbox; server upis/binding i test push samo uz vlasnikovu reč.
+- **Promena/predlog:** Nema zelene uspostavljeno dok receipt nije potvrđen.
+- **Postojeći izvor:** `src/app/(app)/profil/obavestenja.tsx` Servisi: `pushDeviceClientService`, `nativePushDevice`
+- **Podaci/backend:** `rpc_set_push_device_owned`, `rpc_get_push_device_owned`, `rpc_rotate_push_device_owned`, `rpc_revoke_push_session`, `rpc_get_push_session_device`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-p04"></a>
+#### P04 · Slanje obaveštenja na telefon
+- **Svrha/3 sekunde:** Poruka sa uređaja vodi na pravi sadržaj.
+- **Vrh→dno:** Nema novog ekrana: OS notification → auth/recovery gate → tačan task/agreement/message.
+- **Kontrole/glavna i sporedne radnje:** Tap, eventualni retry destination.
+- **Slojevi/prijem/povratak/stanja:** Cold/warm/background, ugašene dozvole, više uređaja, token churn; ne tvrditi isporučeno iz queued.
+- **Promena/predlog:** PUSH-KAPACITET pripremljen, nije dozvola slanja.
+- **Postojeći izvor:** Servisni tok, bez samostalne rute.
+- **Podaci/backend:** `uskoci-push-transport`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-p05"></a>
+#### P05 · Podsetnik pred termin
+- **Svrha/3 sekunde:** Dobije pravovremen i tačan podsetnik o postojećem terminu.
+- **Vrh→dno:** Notification sadržaj sa potvrđenim terminom → konkretan Dogovor.
+- **Kontrole/glavna i sporedne radnje:** Otvori, preference.
+- **Slojevi/prijem/povratak/stanja:** Rok i quiet hours server-authoritative; izmenjen/otkazan termin ne šalje star podsetnik.
+- **Promena/predlog:** Nema lažnog countdown-a ako politika nije uključena.
+- **Postojeći izvor:** Servisni tok, bez samostalne rute.
+- **Podaci/backend:** `NOVO: podsetnik pred dogovoreni termin`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-n01"></a>
+#### N01 · Prijava
+- **Svrha/3 sekunde:** Uđe bez zabune između prijave i registracije.
+- **Vrh→dno:** Postojeći brand entry → Prijavi se/Registruj se → jedna jasna forma.
+- **Kontrole/glavna i sporedne radnje:** Email/password, vidi lozinku, prijava, oporavak, registracija.
+- **Slojevi/prijem/povratak/stanja:** Keyboard/focus, pending, neutralna auth greška; return destination se čuva bez tokena u URL-u.
+- **Promena/predlog:** Originalna animacija ne blokira ponovljeni ulaz; ne praviti novi auth sistem.
+- **Postojeći izvor:** `src/app/auth.tsx` Servisi: `authClientService`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: VIS01.
+
+<a id="blueprint-n02"></a>
+#### N02 · Registracija i potvrda emaila
+- **Svrha/3 sekunde:** Napravi nalog i zna da li treba potvrda emaila.
+- **Vrh→dno:** Ime/email/lozinka i potrebno mesto → registruj → proveri email → resend.
+- **Kontrole/glavna i sporedne radnje:** Polja, pokaži lozinku, potvrda, resend sa stvarnim ograničenjem.
+- **Slojevi/prijem/povratak/stanja:** Link pending/expired/used, validacija; jedno ime svuda.
+- **Promena/predlog:** Kratko objašnjenje namene podatka; ne tražiti godine bez potrebe.
+- **Postojeći izvor:** `src/app/auth.tsx` Servisi: `authClientService`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-n03"></a>
+#### N03 · Oporavak lozinke
+- **Svrha/3 sekunde:** Povrati pristup bez otkrivanja da li nalog postoji.
+- **Vrh→dno:** Email → neutralna potvrda → validiran link → nova lozinka.
+- **Kontrole/glavna i sporedne radnje:** Pošalji link, resend, nova lozinka, back.
+- **Slojevi/prijem/povratak/stanja:** Expired/invalid link vraća recovery; token ne logovati ni ostaviti u ruti.
+- **Promena/predlog:** Zadržati postojeći bezbedni callback, skratiti tekst bez menjanja poruke.
+- **Postojeći izvor:** `src/app/auth.tsx`, `src/app/oporavak.tsx` Servisi: `passwordRecoveryClientService`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-n04"></a>
+#### N04 · Pravna dokumenta i saglasnost
+- **Svrha/3 sekunde:** Pročita stvarne važeće dokumente i razume saglasnost.
+- **Vrh→dno:** Lista dokumenata/verzije → dokument → potvrda pregledanog gde potrebna.
+- **Kontrole/glavna i sporedne radnje:** Otvori, pročitaj, prihvati, nazad.
+- **Slojevi/prijem/povratak/stanja:** Nedostupno nije prihvaćeno; operator podaci/pravni tekstovi ne izmišljati.
+- **Promena/predlog:** Čista tipografija, veći lineheight, logika nije samo dizajn.
+- **Postojeći izvor:** `src/app/(app)/profil/pravna.tsx` Servisi: `legalClientService`
+- **Podaci/backend:** `rpc_get_legal_bundle`, `rpc_accept_reviewed_legal_bundle`, `rpc_read_my_legal_acceptance`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-n05"></a>
+#### N05 · Moji podaci i slika profila
+- **Svrha/3 sekunde:** Menja lične podatke na jednom mestu.
+- **Vrh→dno:** Profil hub→lični podaci: slika/ime/opis; područje na svom editoru.
+- **Kontrole/glavna i sporedne radnje:** Crop/upload/remove, ime, sačuvaj, retry usklađivanja radnog imena.
+- **Slojevi/prijem/povratak/stanja:** Dirty Back, upload fail, receipt, jedno ime; slika u krugu.
+- **Promena/predlog:** Profil hub kompozicija kraća, postojeće ispravke fotografije ne prijaviti kao nove bez dokaza.
+- **Postojeći izvor:** `src/app/(app)/profil/fotografija.tsx`, `src/app/(app)/profil/podaci.tsx` Servisi: `requesterProfileClientService`, `mediaClientService`
+- **Podaci/backend:** `rpc_get_requester_profile_for_edit`, `rpc_save_requester_profile`, `rpc_apply_profile_avatar`, `rpc_read_profile_avatar`, `rpc_clear_profile_avatar`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: IA01.
+
+<a id="blueprint-n06"></a>
+#### N06 · Blokiranje osobe
+- **Svrha/3 sekunde:** Zaustavi kontakt i vidi koga je blokirao.
+- **Vrh→dno:** Osoba → posledice → blokiraj; lista blokiranih → odblokiraj confirm.
+- **Kontrole/glavna i sporedne radnje:** Block/unblock, report, nazad.
+- **Slojevi/prijem/povratak/stanja:** Svoj/nepoznat target nema komandu; blokada ne znači brisanje Dogovora.
+- **Promena/predlog:** Jednostavan red sa imenom i posledicom, bez dekorativne ilustracije preko upozorenja.
+- **Postojeći izvor:** `src/app/(app)/bezbednost.tsx`, `src/app/(app)/profil/blokirani.tsx` Servisi: `safetyClientService`
+- **Podaci/backend:** `rpc_set_account_block`, `rpc_list_my_account_blocks`, `rpc_get_account_block`, `rpc_read_safety_target`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: IA01.
+
+<a id="blueprint-n07"></a>
+#### N07 · Prijava osobe ili sadržaja
+- **Svrha/3 sekunde:** Prijavi tačan sadržaj/osobu uz kontekst.
+- **Vrh→dno:** Vrsta+target → razlog → tekst/dokaz → pregled → pošalji.
+- **Kontrole/glavna i sporedne radnje:** Izbor razloga, unos, confirm, cancel.
+- **Slojevi/prijem/povratak/stanja:** Sadržaj reference i privatnost sačuvani; unknown proveri.
+- **Promena/predlog:** Ne duplirati support form za istu nameru; predpopunjen kontekst.
+- **Postojeći izvor:** `src/app/(app)/bezbednost.tsx` Servisi: `safetyClientService`
+- **Podaci/backend:** `rpc_submit_safety_report`, `rpc_read_my_safety_report_command`, `rpc_read_safety_target`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-n08"></a>
+#### N08 · Podrška
+- **Svrha/3 sekunde:** Traži pomoć i prati odgovor o svom predmetu.
+- **Vrh→dno:** Moji predmeti → detalj razgovora/stanja → odgovori; novi predmet sa kontekstom.
+- **Kontrole/glavna i sporedne radnje:** New, reply, history, appeal gde available, operator samo uz capability.
+- **Slojevi/prijem/povratak/stanja:** Receipt/recovery, paging događaja, read-on-visible tek posle dokaza.
+- **Promena/predlog:** Korisnik vidi poruke i sledeći potez, operator posebne kontrole.
+- **Postojeći izvor:** `src/app/(app)/podrska/index.tsx`, `src/app/(app)/podrska/[id].tsx`, `src/app/(app)/podrska/novi.tsx`, `src/app/(app)/podrska/operator.tsx` Servisi: `supportCaseClientService`
+- **Podaci/backend:** `rpc_support_submit_v5`, `rpc_support_detail_v5`, `rpc_support_capabilities_v5`, `rpc_support_inbox_v5`, `rpc_support_find_context_v5`, `rpc_support_mark_read_v5`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: UX02.
+
+<a id="blueprint-n09"></a>
+#### N09 · Izvoz mojih podataka
+- **Svrha/3 sekunde:** Preuzme svoje podatke ili vidi zašto još čeka.
+- **Vrh→dno:** Status izvoza → jedna aktuelna radnja → detalji istorije niže.
+- **Kontrole/glavna i sporedne radnje:** Zatraži, proveri, preuzmi, otkaži/opozovi gde dozvoljeno.
+- **Slojevi/prijem/povratak/stanja:** Generisanje/istek/unknown/failed odvojeno; validacija hash/rok/generation ostaje.
+- **Promena/predlog:** Ne izmišljati procenat pripreme ni trajanje.
+- **Postojeći izvor:** `src/app/(app)/profil/izvoz.tsx` Servisi: `dataExportClientService`
+- **Podaci/backend:** `rpc_request_data_export`, `rpc_get_data_export_status`, `rpc_cancel_data_export`, `rpc_revoke_data_export_download`, `uskoci-data-export-worker`, `uskoci-data-export-download`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: IA01.
+
+<a id="blueprint-n10"></a>
+#### N10 · Brisanje naloga
+- **Svrha/3 sekunde:** Razume prepreke i posledice trajnog zatvaranja naloga.
+- **Vrh→dno:** Privatnost→obriši → blockers/retention → eksplicitna potvrda → processing/recovery.
+- **Kontrole/glavna i sporedne radnje:** Pripremi, pregledaj blockers, potvrdi, proveri, cancel samo gde dozvoljeno.
+- **Slojevi/prijem/povratak/stanja:** Nije obrisano dok server ne potvrdi; sesija/recovery ne rušiti radi dizajna.
+- **Promena/predlog:** Bez robota koji slavi brisanje; čist miran destruktivni tok.
+- **Postojeći izvor:** `src/app/(app)/profil/privatnost.tsx` Servisi: `closureExecutionClientService`, `accountClosureClientService`
+- **Podaci/backend:** `rpc_prepare_account_closure`, `rpc_start_account_closure_execution`, `rpc_read_account_closure_execution`, `rpc_get_account_closure`, `uskoci-account-closure-worker`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-n11"></a>
+#### N11 · Privatnost i čuvanje podataka
+- **Svrha/3 sekunde:** Razume ko vidi podatke i gde upravlja njima.
+- **Vrh→dno:** Vidljivost → čuvanje podataka disclosure → izvoz/blokirani/pravila → brisanje.
+- **Kontrole/glavna i sporedne radnje:** Otvori svaki deo, nazad, closure.
+- **Slojevi/prijem/povratak/stanja:** Server OWN_ONLY/COMMENTED_ONLY i pravna zadržavanja prikazati tačno, bez novih toggle-a.
+- **Promena/predlog:** Jedan dom za privatnost, ne kopija cele liste i u profilu.
+- **Postojeći izvor:** `src/app/(app)/profil/privatnost.tsx` Servisi: `retentionPolicyClientService`, `processorMapClientService`
+- **Podaci/backend:** `rpc_get_retention_policy_status`, `rpc_get_processor_map_status`
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Dodatni kriterijumi: IA01.
+
+<a id="blueprint-s01"></a>
+#### S01 · Vraćanje prijave pri pokretanju
+- **Svrha/3 sekunde:** Vrati se tamo gde sme bez slučajnog otkrivanja privatnog sadržaja.
+- **Vrh→dno:** Neutralno pokretanje → auth gate → dozvoljen prethodni ekran.
+- **Kontrole/glavna i sporedne radnje:** Ponovi/session recovery kad potrebno.
+- **Slojevi/prijem/povratak/stanja:** Account revision, stale callbacks, foreground conceal; splash ne čeka animaciju ako podaci spremni.
+- **Promena/predlog:** Skeleton prati konačan layout; ne logotip pet puta.
+- **Postojeći izvor:** `src/app/(app)/index.tsx` Servisi: `supabaseClient`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-s02"></a>
+#### S02 · Dva naloga na jednom telefonu (A→B→A)
+- **Svrha/3 sekunde:** Promeni nalog bez tragova prethodnog korisnika.
+- **Vrh→dno:** Odjava potvrda → auth → novi account.
+- **Kontrole/glavna i sporedne radnje:** Odjava, prijava, back prema sesiji.
+- **Slojevi/prijem/povratak/stanja:** Obavezno očisti recent search, private cache, drafts, media references; push binding spec zaseban.
+- **Promena/predlog:** Ne čuvati istu mapu privatnih tačaka ili draft nalogaA uB.
+- **Postojeći izvor:** `src/app/auth.tsx` Servisi: `authClientService`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-s03"></a>
+#### S03 · Pozadina, bez mreže, dupli dodir
+- **Svrha/3 sekunde:** Može da nastavi posle prekida bez duplih akcija.
+- **Vrh→dno:** Postojeći sadržaj → diskretno stanje veze → ista radnja/recovery.
+- **Kontrole/glavna i sporedne radnje:** Retry istog id, Proveri unknown, back safe, refresh.
+- **Slojevi/prijem/povratak/stanja:** Cold/warm/offline/partial/pending/unknown/confirmed jasno odvojeni.
+- **Promena/predlog:** Živost dolazi iz kontinuiteta, ne iz beskrajnog spinner-a.
+- **Postojeći izvor:** Servisni tok, bez samostalne rute. Servisi: `serverReceipt`
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+<a id="blueprint-s04"></a>
+#### S04 · Stare serverske verzije (čišćenje)
+- **Svrha/3 sekunde:** Održavanje ne uklanja aktivnu zavisnost zbog broja verzije.
+- **Vrh→dno:** Nema korisničkog ekrana; dependency+call graph → proof→revert→owner approval.
+- **Kontrole/glavna i sporedne radnje:** RETIRE-V1 samo po pripremljenom paketu.
+- **Slojevi/prijem/povratak/stanja:** AI confirm v1/correctv2 nisu sami po sebi bug; indirect Edge callers proveriti.
+- **Promena/predlog:** KEEP aktivne ugovore; REMOVE samo dokazano mrtvo, bez DEV mutacije u auditu.
+- **Postojeći izvor:** Servisni tok, bez samostalne rute.
+- **Podaci/backend:** Postojeći session/UI ugovor; ne dodavati novu bazu za izgled.
+- **Kasniji test:** cold/popunjeno/prazno gde smisleno, error/retry, pending/unknown kod komande, keyboard+Back,1.15/1.3font; jedna konkretna radnja iz ovog reda sa pravim readback-om, bez vlasnikovog poslovnog upisa. Nema novog potvrđenog propusta u ovom auditu; to nije all-pass.
+
+### 7. Dodatne rute, sistemski slojevi i stanja
+
+| Ruta | Klasifikacija | Ulazni fajl |
+|---|---|---|
+| `/` | production entry | `src/app/(app)/index.tsx` |
+| `/arhiva` | production entry | `src/app/(app)/arhiva.tsx` |
+| `/auth` | production entry | `src/app/auth.tsx` |
+| `/bezbednost` | production entry | `src/app/(app)/bezbednost.tsx` |
+| `/dogovor/[id]` | production entry | `src/app/dogovor/[id].tsx` |
+| `/dogovor/[id]/grupa` | production entry | `src/app/dogovor/[id]/grupa.tsx` |
+| `/dogovor/[id]/izmene` | production entry | `src/app/dogovor/[id]/izmene.tsx` |
+| `/dogovori` | production entry | `src/app/(app)/dogovori.tsx` |
+| `/fotografije-zadatka` | production entry | `src/app/(app)/fotografije-zadatka.tsx` |
+| `/mapa` | redirect | `src/app/(app)/mapa.tsx` |
+| `/mesto-zadatka` | production entry | `src/app/(app)/mesto-zadatka.tsx` |
+| `/moje-aktivnosti` | redirect | `src/app/(app)/moje-aktivnosti.tsx` |
+| `/moje-prijave` | production entry | `src/app/(app)/moje-prijave.tsx` |
+| `/nova` | production entry | `src/app/(app)/nova.tsx` |
+| `/obavestenja` | production entry | `src/app/obavestenja.tsx` |
+| `/oceni-dogovor` | production entry | `src/app/(app)/oceni-dogovor.tsx` |
+| `/oporavak` | production entry | `src/app/oporavak.tsx` |
+| `/pitanja-zadatka` | production entry | `src/app/(app)/pitanja-zadatka.tsx` |
+| `/podrska` | production entry | `src/app/(app)/podrska/index.tsx` |
+| `/podrska/[id]` | production entry | `src/app/(app)/podrska/[id].tsx` |
+| `/podrska/novi` | production entry | `src/app/(app)/podrska/novi.tsx` |
+| `/podrska/operator` | conditional operator | `src/app/(app)/podrska/operator.tsx` |
+| `/poruke` | production entry | `src/app/(app)/poruke.tsx` |
+| `/potrebe` | production entry | `src/app/(app)/potrebe.tsx` |
+| `/potrebe/[id]/kandidati` | production entry | `src/app/(app)/potrebe/[id]/kandidati.tsx` |
+| `/potrebe/[id]/pregled` | production entry | `src/app/(app)/potrebe/[id]/pregled.tsx` |
+| `/pregled-nacrta` | redirect | `src/app/(app)/pregled-nacrta.tsx` |
+| `/pregled-zadatka` | production entry | `src/app/(app)/pregled-zadatka.tsx` |
+| `/prijave` | redirect | `src/app/prijave.tsx` |
+| `/prilike` | redirect | `src/app/(app)/prilike.tsx` |
+| `/prilike/[id]` | production entry | `src/app/(app)/prilike/[id].tsx` |
+| `/prilike/[id]/prijava` | production entry | `src/app/(app)/prilike/[id]/prijava.tsx` |
+| `/profil` | production entry | `src/app/(app)/profil.tsx` |
+| `/profil/blokirani` | production entry | `src/app/(app)/profil/blokirani.tsx` |
+| `/profil/dostupnost` | production entry | `src/app/(app)/profil/dostupnost.tsx` |
+| `/profil/fotografija` | production entry | `src/app/(app)/profil/fotografija.tsx` |
+| `/profil/izvoz` | production entry | `src/app/(app)/profil/izvoz.tsx` |
+| `/profil/lokacija` | production entry | `src/app/(app)/profil/lokacija.tsx` |
+| `/profil/lozinka` | production entry | `src/app/(app)/profil/lozinka.tsx` |
+| `/profil/o-aplikaciji` | production entry | `src/app/(app)/profil/o-aplikaciji.tsx` |
+| `/profil/obavestenja` | production entry | `src/app/(app)/profil/obavestenja.tsx` |
+| `/profil/ocene` | production entry | `src/app/(app)/profil/ocene.tsx` |
+| `/profil/podaci` | production entry | `src/app/(app)/profil/podaci.tsx` |
+| `/profil/pravna` | production entry | `src/app/(app)/profil/pravna.tsx` |
+| `/profil/prijava-greske` | production entry | `src/app/(app)/profil/prijava-greske.tsx` |
+| `/profil/privatnost` | production entry | `src/app/(app)/profil/privatnost.tsx` |
+| `/profil/radnik` | production entry | `src/app/(app)/profil/radnik.tsx` |
+| `/profil/razgovor` | production entry | `src/app/(app)/profil/razgovor.tsx` |
+| `/raspored` | production entry | `src/app/(app)/raspored.tsx` |
+| `/zadaci` | production entry | `src/app/(app)/zadaci.tsx` |
+
+Redirect-i /mapa,/prilike,/moje-aktivnosti i stari ulazi nisu novi proizvodni ekrani. /arhiva je istorija rasporeda, /pregled-nacrta vraćanje sačuvanog nacrta. /profil/lozinka: sadašnja/nova/ponovljena lozinka→Save uz inline grešku, bez dekoracije. /profil/o-aplikaciji: stvarna verzija i pravni/pomoć linkovi. /profil/prijava-greske: contextual support forma sa pregledom podataka koje šalje. /podrska/operator samo capability; ne crtati ga običnom korisniku. +native-intent nije ekran, nego security-sensitive callback granica. Dizajn-laboratorijske rute su isključene iz produkcionog broja; ne služе kao dokaz produkcionih click putanja.
+
+| Sloj | Kompozicija/close | Stanja i povratak |
+|---|---|---|
+| Kratka potvrda |Center dialog:naslov posledice,kratko telo,odustani/konkretna radnja |Android Back odustaje pre send;pending ne glumi cancel server komande |
+| Jedan podatak |Bottom sheet:naslov/polje/validacija/save |Dirty potvrda,keyboard-safe footer,restore focus |
+| Pretraga |Full screen predlogB;vođeniC samo alternativa |Back keyboard prvo,recent logout,query draft čuva do odustajanja |
+| Filter |Sectioned sheet,primeni broj,očišti |Preview loading/retry,atomic apply,no draft leakage |
+| Datum/vreme |Isti postojeći time editor,zavisno od polja |No invented time,Serbia24h,invalid range inline |
+| Velika mapa |Full screen,map-first,adresa+confirm |Point draft odvojen od potvrđenog;permission fail ručno |
+| Kandidat/profil |Offer sheet;profil zaseban dozvoljen detalj |Back po sloju;ne preklopiti dva footer-a |
+| Gallery/media |Fullscreen image + close,composer preview pre send |Failed/expired URL recovery;private bytes scoped |
+| Group members |Sheet ime/uloga i dozvoljeni dogovor |Ne izložiti tuđe privatne ugovore |
+| Izmene/otkazivanje |Review razlike/posledice;duga forma screen |Revision conflict,unknown check;server capability |
+| Privacy/export/delete |Status+jedna current radnja;retention disclosure |Pending≠done;blockers vidljivi;istek linka recovery |
+| Permissions |Sistemski dialog tek na zahtev;pre objašnjenje svrhe |Odbijeno:alternativni tekst/ručna lokacija/inbox;ne beskrajan prompt |
+| Overflow |Samo retko:share/safety/info |Česte edit/cancel nikad jedino tu |
+
+### 8. Šest disciplinarnih revizija i korigovan predlog
+
+| Perspektiva (simulirana stručna kritika) | Rizik prvog predloga | Korekcija pre predaje |
+|---|---|---|
+| Product |Sve odjednom na Home;novi izmišljeni KPI/verification |Dva ulaza+jedna sledeća radnja;postojeća istina bez izmišljenog match procenta |
+| UX/IA |Dupli privacy izlazi;tri/four tabu konflikt |Jedan privacy dom;obe nav skice;bez tihog uklanjanja Poruka |
+| Visual/brand |Svaka stvar card,svaka akcija artwork |Task card gde se bira zapis;settings/agreements redovi;artwork samo značajne činjenice |
+| Motion |Previše hero robota i duga animacija pre radnje |Jedan welcome;no blocking;stari rezultati bez replay;reduced motion fallback |
+| Engineering/performance |Filter u telefonu izgleda globalan;pinless iscrpljuje istoriju |Bounded reads,server totals/scopes,retain snapshot;bez zaključka o3k concurrent iz single-backend screeninga |
+| Independent UX/QA |Skica idealnih podataka maskira stale/unknown/largefont |Posebne recovery skice i tačan native acceptance plan;stari phone screenshot nije novi PASS |
+
+Ovo nisu šest stvarnih nezavisnih ljudskih recenzenata. Tri odvojena SOURCE subreview-a su pokrila Discovery, AI/task i Dogovore/account; root je povezao zaključke i primenio šest perspektiva.
+
+### 9. KEEP / IMPROVE / RECOMPOSE / REMOVE
+
+| KEEP | IMPROVE | RECOMPOSE | REMOVE samo posle dokaza |
+|---|---|---|---|
+| RPC/RLS/revision/idempotency;P6 owner/epochs;publication landing;warm restore;one name;sys;original art;calendar3modes |Worker terminal;group continuity;inbox scope;city drill;peek totals;spoken labels;retry |Home pažnja;dva AI sažetka;Dogovor lista/detail;profil/privacy;search B ili vlasnikov izbor |Dupli UI linkovi gde jedan dom dovoljan;tehnički pasusi prebačeni u info;neiskorišćeni RPC samo RETIRE-V1 proof+revert+approval |
+
+Ne brisati v1 samo zbog naziva, ne izbacivati source/test sa drugačijeg branch-a, ne kopirati candidates SQL naslepo u migracije. Reproduktivnost sveže baze zaseban dokaz, nije zaključena brojanjem foldera.
+
+### 10. Redosled kasnije implementacije i granice
+
+1. Vlasnik bira search/nav i odobrava konkretne skice. Nema app izmene u ovom paketu.
+2. Najmanji coherent paket:worker terminal + AI kompozicija/lokacija (postojeći engine);preview/public-detail ista projekcija.
+3. Discovery city/apply/remote order/peek total/error retention. Pinless bounded client pa po potrebi poseban server paket. Ne otvoriti P6 zbog samog audita.
+4. Group draft/incoming/receipt continuity;inbox lifecycle/unread ugovor uz odobrenje. Kandidati2comparison+offset.
+5. Home/agreements/profile/settings po usvojenim kompozicijama;calendar/notifications/privacy iste primitives.
+6. Robot asset/motion posebni mali paket nakon što su tokovi čitljivi. Nova biblioteka samo uz dozvolu.
+7. B server iz handoffa:RETIRE-V1,publishedAt,sort,unread,PUSH-KAPACITET,Edge copy,HITNO — svaki ima svoj preflight/revert/approval. Dizajn prihvaćen ne znači server odobren.
+8. C cleanup/D release po postojećoj listi;prodavnica/pravo/plaćanje ne mogu postati READY na osnovu lepe skice.
+
+### 11. Kriterijumi kasnije provere tačnog APK-a
+
+- Identifikuj source SHA, APK hash/version/package/signing;USKOCI_V5_TEST1264×2728/560dpi/font1.15/EuropeBelgrade. Telefon samo vlasnikova reč i install-r,bez brisanja/logout/upisa sa njegovog naloga.
+- Svaka promenjena porodica:normal1.0 za kompoziciju,1.15 glavni cilj,1.3 resilience;361dp uska širina;keyboard,Back,drag,rotation samo ako app podržava. TalkBack čitanje i48dp ciljevi.
+- Vizuelno:pored source-a slika svake promene,dug naslov,bez slike/ocene/iznosa,6 različitih statusa;ne svim redovima isti mock status.
+- Stanja:cold empty/loaded,partial read,error,offline,refresh retention,pagination exhausted,permission denied,unknown after send,confirmed after readback. Native business writes samo test nalozi uz dozvolu.
+- Motion:kratak video pin→Peek,half→full,Back,keyboard,AI map collapse;stills ne dokazuju fluidnost. Meriti ciljeve feedback≤100ms,pin≤200ms,Back≤350ms sa metodom/start/end/frame intervalom i ponavljanjima,ne relaksirati brojke.
+- Ne uzimati link URL kao dokaz izcrtane drumske rute,queued kao delivered,published bundle kao installed,active Edge kao provereno izvršenje,simulaciju kao PHONE.
+
+### 12. Primarni istraživački izvori i granice
+
+- [Android navigation](https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns):3–5 glavnih odredišta i logički grupisane sekundarne radnje. To dozvoljava obe USKOČI varijante;ne odlučuje umesto vlasnika.
+- [Android accessibility](https://developer.android.com/guide/topics/ui/accessibility/apps):48dp targets,tekstualni kontrast4.5:1 standardni/3:1 veliki,razumljive oznake. Palette sama nije dokaz svih rendered kontrasta.
+- [Airbnb2025 release](https://news.airbnb.com/product-releases/airbnb-2025-summer-release):objedinjen kontekst putovanja i razgovora;za USKOČI princip je jedan Dogovor/jedna jasna sledeća radnja,ne kopiranje putovanja/kategorija.
+- [Uber Base Web](https://www.uber.com/us/en/blog/introducing-base-web/):jedna osnova komponenti. Princip podržava konsolidaciju sys,ne dodavanje web biblioteke u RN.
+- R1–R4 i AIRBNB spec su inspiracija/propozicije,ne dokaz aktuelnog koda. Nisu prihvaćene izmišljene trust značke,match%,Imaš kombi kao matching razlog,cena desno protiv kasnije odluke,ni tvrdnja da Dogovoreno sada ne postoji.
+- Apple motion stranica i Base aktualni sajt nisu dali čitljiv kompletan sadržaj u ovom pregledu;ne pripisujemo im ovde neproverena tačna trajanja. Nisu rađeni live user journey-i konkurentskih aplikacija.
+
+### 13. Predaja
+
+**URADIO:** source inventar i semantički audit,live DEV metadata,revizija postojećeg nacrta/centralnog dokumenta/62-row registra,konkretne skice. **DOKAZAO:** navedene code putanje i DEV235/digest;ne novo runtime ponašanje. **NIJE DOKAZANO:** novi APK,PHONE/FPS/whole E2E/3k concurrent/production release. **SLEDEĆE:** vlasnikov izbor prikazanih ekrana,pa odvojen odobren implementacioni paket.
+
+**NO APPLICATION SOURCE CODE, SERVER, CI, DEVICE OR PRODUCTION STATE WAS MODIFIED BY THIS DESIGN AUDIT.** Dokumentacija i njene lokalne projekcije jesu ažurirane;ovo nije tvrdnja da je checkout nepromenjen.
+
+### 14. Dokaz dokumentacionog paketa i ograničenje prikaza
+
+58 ilustrativnih ekrana/stanja u lokalnoj HTML galeriji. Statička provera JavaScript sintakse,izvršenja šablona bez browsera,svih ciljnih skica i lokalnih artwork/font putanja: PASS;0 nedostajućih veza,0 nedostajućih slika. To nije vizuelni PASS: ugrađeni browser je blokirao file:// URL bezbednosnim pravilom. Nije korišćen drugi browser,HTTP posrednik niti zaobilaženje;raspored i animacije nisu renderovani/provereni u ovom krugu. Vlasnik može otvoriti lokalni HTML za pregled.
+
+Tri pretrage su zasebne kompozicije A/B/C. Prekidač3/4taba pokazuje oba ulaza u Poruke. Tri stilska pravca u bočnom panelu su umerene varijante iste postojeće porodice,ne tri zasebne UI biblioteke. Nisu generisani novi roboti niti novi logo. Postojeće slike koriste se uz originalne proporcije.
+
+Svih 71 RPC imena iz direktnih source poziva pronađeno je u DEV katalogu. Širi inventar sadrži 170 doslovnih rpc_/fn_ simbola, uključujući pozive kroz wrappers: ni među njima nema imena odsutnog iz proveravanog kataloga. Inventarisani su i handler-i kontrola i gesture/Back/lifecycle reference. To nije dokaz aktivne dostupnosti svake funkcije u tačnom APK-u; feature flag-ovi, potpisi, grant/auth behavior i izvršenje ostaju odvojeni.
+
+Lokalne projekcije registra su obnovljene postojećim generatorima; LIVE provera doslednosti 62 reda prolazi. Prethodna stanja svih redova ostala su ista: 41 „PROBLEM“ i 21 „NA TELEFONU NIJE PROVERENO“. To su zbirne oznake registra, ne tvrdnja da postoje 41 nova greška. Nijedan novi telefonski dokaz nije dodat. Nema diff-a u `src/`, `supabase/`, paketima, workflow-ima ili `eas.json`. Promenjena je dokumentacija. Objavljena Claude tabla nije sinhronizovana ovim paketom; lokalna tabla jeste.

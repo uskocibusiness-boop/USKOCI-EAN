@@ -132,7 +132,19 @@
           "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
           "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Početna: „Sledeće“ (krupno vreme sledećeg Dogovora), „Čeka te“ ≤3 sa naslovom zadatka, redovi Moji zadaci/Moje prijave sa brojem, „Mogu odmah“ samo uz aktivan radni profil; spinner samo pri povlačenju. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Početna: „Sledeće“ (krupno vreme sledećeg Dogovora), „Čeka te“ ≤3 sa naslovom zadatka, redovi Moji zadaci/Moje prijave sa brojem, „Mogu odmah“ samo uz aktivan radni profil; spinner samo pri povlačenju. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a01",
+          "findings": [
+            "COM05",
+            "NAV01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Čeka te ne sme biti KPI dashboard; jedan sledeći potez jači od ostalog.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -237,7 +249,20 @@
           "open": "No location confirmation/publication or new provider call. Welcome awaits next APK. True spoken AI and push receipt remain open.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Razgovor: završen razgovor = jedno zeleno dugme („Pregledaj za objavu“/„Pregledaj izmene“), polje nestaje; serverski završni tekst izmene se u klijentu preslikava (Edge promena otvorena). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Razgovor: završen razgovor = jedno zeleno dugme („Pregledaj za objavu“/„Pregledaj izmene“), polje nestaje; serverski završni tekst izmene se u klijentu preslikava (Edge promena otvorena). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a02",
+          "findings": [
+            "AI02",
+            "AI04",
+            "VIS01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Task terminalni composer već rešen; uskladiti worker, ne prepisivati engine.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       },
       "native_6d4_checkpoint_20261003": {
         "source": "6d4ce57c827cac496f18a61c24d32638e6e1e8fa",
@@ -359,6 +384,15 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a03",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Animacija prati stvarni capture, ne lažni slušam.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       },
       "native_e444_compact_summary_20261003": {
@@ -450,6 +484,18 @@
           "ci": "run 37205004366: TypeScript PASS; focused 34/34 suites, 700/700 tests; full 428/428 suites, 9387/9387 tests; 6/6 snapshots.",
           "boundary": "SOURCE/CI only. No DEV/Edge/data mutation, no provider probe, no native/phone acceptance.",
           "next": "Native check on the next coherent Android build together with remaining city-fallback/search work."
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a04",
+          "findings": [
+            "AI03",
+            "AI04"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ne dodavati200 izbora ni zelenih potvrda za svaku poruku; route overview ne glumi drumsku putanju.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -510,6 +556,17 @@
         "codex_ci_20261002": {
           "report": "docs/implementation/handoff-codex-20261002/CODEX_CONTINUATION_20261002.md",
           "scope": "CI DISPOSABLE / RC02-F1 AND RC02-F2 REPRODUCED / NOT FIXED"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a05",
+          "findings": [
+            "AI04"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Veliki pregled na dodir, uredan kompaktan prilog u razgovoru.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -564,7 +621,18 @@
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json",
         "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Pregled pre objave v2 = javni zadatak (prava kartica + ceo detalj kako ga drugi vide), tačna adresa u okviru sa bravom samo vlasniku, olovke „Izmeni“ na svakom delu, logika objave ista (src/ui/objava/ReviewDetail.tsx, reviewAsTask.ts; 634 testa). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Pregled pre objave v2 = javni zadatak (prava kartica + ceo detalj kako ga drugi vide), tačna adresa u okviru sa bravom samo vlasniku, olovke „Izmeni“ na svakom delu, logika objave ista (src/ui/objava/ReviewDetail.tsx, reviewAsTask.ts; 634 testa). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a06",
+          "findings": [
+            "AI03"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jedna kompozicija, ne dve različite task biblioteke. Privatna tačna adresa nikad u javnom bloku.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -624,6 +692,15 @@
           "published_discovery_route": "PASS",
           "discovery_presentation": "PASS",
           "device": "PENDING"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a07",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ne zahtevati automatski novi P6 put bez istog dokaza objave.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -699,7 +776,18 @@
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
           "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Moj zadatak: jedan blok stanja (TaskStateBlock: „Još nema prijava“ / lica + „Pogledaj prijave“), „Izmeni“ gore vidljivo, „Otkaži zadatak“ crveno dole, ⓘ umesto rečenica, bez „⋯“ i bez „0/1“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Moj zadatak: jedan blok stanja (TaskStateBlock: „Još nema prijava“ / lica + „Pogledaj prijave“), „Izmeni“ gore vidljivo, „Otkaži zadatak“ crveno dole, ⓘ umesto rečenica, bez „⋯“ i bez „0/1“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a08",
+          "findings": [
+            "TASK01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Status sažeti; manje instrukcijskih pasusa, publishedAt samo iz servera.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -769,7 +857,16 @@
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#moneyv3peoplev2-source-and-ae76-install-boundary",
           "boundary": "Only scoped material art; actual values, quiet and unknown states, avatars and handlers unchanged. ae76 installed without these later art changes; no row/phone acceptance upgrade."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Moji zadaci: grupe po fazi (vlasnikov izbor A) + redovi Nacrti/Istorija; prazno = papir + „Objavi zadatak“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Moji zadaci: grupe po fazi (vlasnikov izbor A) + redovi Nacrti/Istorija; prazno = papir + „Objavi zadatak“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a09",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Cena ispod naslova; najvažnija pažnja samo jednom.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -816,7 +913,16 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a10",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jedan thread ritam, ne kartica oko svake rečenice.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -903,7 +1009,20 @@
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Prijave: kartica lice/ime/★/iznos/„Može: …“/poruka, zeleno „Izaberi“ samo gde može; redosled (Najranije/Najniža cena/Najbolja ocena) samo za celu učitanu listu — server ne sortira stranice. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Prijave: kartica lice/ime/★/iznos/„Može: …“/poruka, zeleno „Izaberi“ samo gde može; redosled (Najranije/Najniža cena/Najbolja ocena) samo za celu učitanu listu — server ne sortira stranice. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a11",
+          "findings": [
+            "SEL01",
+            "SEL02",
+            "SEL03"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Na361dp stvarne2kolone jednakih činjenica; ne dve ogromne kartice.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -968,6 +1087,15 @@
         "shared_material_home_native_20261003": {
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a12",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Kratak brand moment posle receipt-a; ne zadržava navigaciju800ms.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -1014,7 +1142,18 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a13",
+          "findings": [
+            "AI05"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "AI završetak govori Izmene, nikad Objavi za već objavljen task.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -1061,7 +1200,16 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a14",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jasna crvena samo na potvrdi i posledici; česta radnja dostupna na detalju.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -1105,7 +1253,16 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a15",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jedna nedvosmislena rečenica posledice, bez šireg destruktivnog naziva.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -1149,7 +1306,16 @@
         "test": "NIJE POKRETANO — po najnovijem nalogu vlasnika; samo source review i TypeScript.",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "SOURCE WIRED / POLICY NOT ACTIVATED / DURABLE RECEIPT LIMIT OPEN",
-        "evidence": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "evidence": "docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-a16",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Odvojiti dekorativnu oznaku od stvarnog dispatch-a; ne izmisliti SLA.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -1329,6 +1495,20 @@
           "checks": "8 source/grammar checks and18 Node cases PASS; independent recheck closure→profile→prefs, DRAFT/ACTIVE, exact metadata/overload pins PASS.15 disposable cases/workflow prepared, PostgreSQL and CI NOT RUN.",
           "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
           "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b00",
+          "findings": [
+            "AI01",
+            "AI02",
+            "AI06",
+            "VIS01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Isti jezik kao task AI, različita pitanja; bez tehničkog RS unosa.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -1532,7 +1712,16 @@
           "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
           "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Radni profil: kartica „Kako te vide kad uskačeš“, bez polja imena (jedno ime za sve — vlasnik 8.10.; razlika se usklađuje dugmetom „Koristi „X““), Šta radiš/Gde/Kada/Oprema kao redovi, „Mogu odmah“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Radni profil: kartica „Kako te vide kad uskačeš“, bez polja imena (jedno ime za sve — vlasnik 8.10.; razlika se usklađuje dugmetom „Koristi „X““), Šta radiš/Gde/Kada/Oprema kao redovi, „Mogu odmah“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b01",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Oprema vidljiva, ali ne obećava matching kriterijum koji nije odobren.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -1597,7 +1786,18 @@
           },
           "device": "PENDING"
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Područje rada: jedna kontrola radijusa (čipovi), sačuvani radijus ostaje. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Područje rada: jedna kontrola radijusa (čipovi), sačuvani radijus ostaje. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b02",
+          "findings": [
+            "AI06"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Grad→deo oblasti, ne privatna adresa svakog radnika.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -1697,7 +1897,16 @@
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
-        "mogu_odmah_jedan_upis_20261008": "8.10. uveče: „Mogu odmah“ ima jedan upis (src/data/availableNowWrite.ts) koji dele Početna i Radni profil; ponašanje isto, 189 + 3 testa zeleno (c5cfe96d)."
+        "mogu_odmah_jedan_upis_20261008": "8.10. uveče: „Mogu odmah“ ima jedan upis (src/data/availableNowWrite.ts) koji dele Početna i Radni profil; ponašanje isto, 189 + 3 testa zeleno (c5cfe96d).",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b03",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Vreme poznato/nenavedeno nisu isto; Raspored Dogovora nije editor dostupnosti.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2137,7 +2346,27 @@
           "next": "WorkerV2 remains isolated/not applicable: needs full SQL/client/Edge/matching/export/erasure/atomic concurrency and policy-binding resolution. Whole-app visual/flow review, real unauth entry/cold splash and physical phone remain open.",
           "boundary": "No backend/Edge/certificate change, business/preference save, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance. Local tracker generated; prior remote-dashboard file-picker blocker not resolved."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Zadaci v2 (nacrt U1–U3): cela mapa, lista dole, donja traka tabova SAKRIVENA dok je lista dole (vlasnikova odluka 8.10.), kapsule nad mapom (Za mene · Na daljinu · Danas · Ovaj vikend · Sa iznosom), „N nisu na mapi ›“, kartica pina skroz dole, „Moja lokacija“ centrira + udaljenost, bez +/−, bez „0/1“, oznaka odnosa u redu iznosa. NIJE viđeno u laboratoriji (Metro nije renderovao) — telefon je prvi dokaz (APK 4e0ea506 instaliran 18:07). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Zadaci v2 (nacrt U1–U3): cela mapa, lista dole, donja traka tabova SAKRIVENA dok je lista dole (vlasnikova odluka 8.10.), kapsule nad mapom (Za mene · Na daljinu · Danas · Ovaj vikend · Sa iznosom), „N nisu na mapi ›“, kartica pina skroz dole, „Moja lokacija“ centrira + udaljenost, bez +/−, bez „0/1“, oznaka odnosa u redu iznosa. NIJE viđeno u laboratoriji (Metro nije renderovao) — telefon je prvi dokaz (APK 4e0ea506 instaliran 18:07). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b04",
+          "findings": [
+            "D01",
+            "D03",
+            "D04",
+            "D05",
+            "D07",
+            "D08",
+            "D09",
+            "D10",
+            "D11",
+            "NAV01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Remote prvo; nema cena na svakoj tački; jedan source of truth i bounded pinless.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2522,7 +2751,22 @@
           "next": "WorkerV2 remains isolated/not applicable: needs full SQL/client/Edge/matching/export/erasure/atomic concurrency and policy-binding resolution. Whole-app visual/flow review, real unauth entry/cold splash and physical phone remain open.",
           "boundary": "No backend/Edge/certificate change, business/preference save, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance. Local tracker generated; prior remote-dashboard file-picker blocker not resolved."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Pretraga = ceo ekran (reč + gradovi sa brojem + skorašnje pretrage po nalogu, brišu se pri odjavi); filteri = odvojeno okruglo dugme + list odozdo (Kada/Gde/Iznos, „Prikaži N zadataka“). „Redosled“ i „Najbliže“ nema (server nema kursor po udaljenosti). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Pretraga = ceo ekran (reč + gradovi sa brojem + skorašnje pretrage po nalogu, brišu se pri odjavi); filteri = odvojeno okruglo dugme + list odozdo (Kada/Gde/Iznos, „Prikaži N zadataka“). „Redosled“ i „Najbliže“ nema (server nema kursor po udaljenosti). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b05",
+          "findings": [
+            "D01",
+            "D02",
+            "D03",
+            "D04",
+            "D06"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Tri ponuđene varijante, preporuka potvrda→FULL lista; owner bira.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2617,7 +2861,19 @@
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Detalj tuđeg zadatka: dole samo „Pošalji ponudu“/„Pošalji prijavu“ (vlasnikov izbor), ⓘ na ceni i adresi, „Prijavi ili blokiraj osobu“ crveno na kraju, „⋯“ samo „Podeli“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Detalj tuđeg zadatka: dole samo „Pošalji ponudu“/„Pošalji prijavu“ (vlasnikov izbor), ⓘ na ceni i adresi, „Prijavi ili blokiraj osobu“ crveno na kraju, „⋯“ samo „Podeli“. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b06",
+          "findings": [
+            "D11",
+            "AI03"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Detalj nije uvećana list kartica; sekcije bez kutije oko svake.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2667,7 +2923,16 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b07",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Pitanja blizu uslova, ne novu glavnu karticu na vrhu.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2717,7 +2982,16 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b08",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Poverenje kroz dokazive činjenice; prazna ocena nije0zvezdica.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2776,7 +3050,16 @@
           "full": "342 suites / 7214 PASS",
           "device": "PENDING"
         },
-        "source_finishing_20261002": "Application composer removes duplicate headings, aligns amount/people/time and full task context; handlers and recovery unchanged. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Application composer removes duplicate headings, aligns amount/people/time and full task context; handlers and recovery unchanged. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b09",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jasno ukupno za sve ljude; nema skrivenog množenja ili finansijske funkcije.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2865,7 +3148,16 @@
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
           "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Moje prijave: grupe Čeka odgovor/Izabrana/Završene (cela lista) ili serverski čipovi + „Prikaži još“ (stranice); upravo poslata označena (nova=1). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Moje prijave: grupe Čeka odgovor/Izabrana/Završene (cela lista) ili serverski čipovi + „Prikaži još“ (stranice); upravo poslata označena (nova=1). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b10",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Čeka odgovor i čeka tvoju potvrdu odvojeni.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -2923,6 +3215,15 @@
           "workflow_run": 36400916665,
           "full": "342 suites / 7214 PASS",
           "device": "PENDING"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b11",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Destruktivno povlačenje odvojeno od obične izmene.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -3013,7 +3314,18 @@
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Raspored v2 = kalendar Mesec · Nedelja · Dan (src/ui/calendar/{MonthView,WeekDays,DayView,…}, 627 testova): tačke po danu u boji strane, osenčeni dani dostupnosti, traka „N Dogovora bez termina ›“, „Danas“, ⓘ legenda, linija „sada“; samo Dogovori. NIJE viđeno nigde osim testova. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Raspored v2 = kalendar Mesec · Nedelja · Dan (src/ui/calendar/{MonthView,WeekDays,DayView,…}, 627 testova): tačke po danu u boji strane, osenčeni dani dostupnosti, traka „N Dogovora bez termina ›“, „Danas“, ⓘ legenda, linija „sada“; samo Dogovori. NIJE viđeno nigde osim testova. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-b12",
+          "findings": [
+            "COM05"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Kalendar služi obavezama; ne uvesti novi scheduler bez servera.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3092,7 +3404,19 @@
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
           "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Lista Dogovora: grupa „Termin još nije dogovoren“; spinner samo pri povlačenju; izgled nedirnut (vlasnikov izbor „ostaje“). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Lista Dogovora: grupa „Termin još nije dogovoren“; spinner samo pri povlačenju; izgled nedirnut (vlasnikov izbor „ostaje“). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d01",
+          "findings": [
+            "UX01",
+            "NAV01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Kompaktni redovi; iznos+termin+lice, jedna statusna poruka, bez ogromnih kartica.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3176,7 +3500,18 @@
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#a790-bounded-money-and-people-art-native-acceptance",
           "boundary": "No exact Money28/public compact or WorkerAI variant native claim. No business write, Save, ACK, message or provider call. Stills do not prove motion/performance. Phone remains unplugged on historical cb96; no whole-app or store acceptance."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Dogovor: sve radnje vidljive (Izmeni uslove, Prijavi problem; crveno Otkaži Dogovor, Prijavi ili blokiraj), „⋯“ uklonjen sa Pregleda, koraci „Dogovoreno · Gotovo · Potvrđeno · Ocena“ bez preloma reči, jedna rečenica + ⓘ. Otvoreno: „Dogovoren“ vs „Dogovoreno“ (vlasnik), „⋯“ u Porukama Dogovora. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Dogovor: sve radnje vidljive (Izmeni uslove, Prijavi problem; crveno Otkaži Dogovor, Prijavi ili blokiraj), „⋯“ uklonjen sa Pregleda, koraci „Dogovoreno · Gotovo · Potvrđeno · Ocena“ bez preloma reči, jedna rečenica + ⓘ. Otvoreno: „Dogovoren“ vs „Dogovoreno“ (vlasnik), „⋯“ u Porukama Dogovora. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d02",
+          "findings": [
+            "UX01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Dogovor kao aktivna saradnja; istoriju koraka disclosure, ne timeline preko pola ekrana.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3324,7 +3659,21 @@
             "emulator": 37118304645
           }
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Poruke (lista razgovora): lice 48, ime + vreme, pregled 1 red, naslov zadatka 1 red, bez katanca; bela tačka = Androidov spinner osvežavanja → usePullRefresh. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Poruke (lista razgovora): lice 48, ime + vreme, pregled 1 red, naslov zadatka 1 red, bez katanca; bela tačka = Androidov spinner osvežavanja → usePullRefresh. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d03",
+          "findings": [
+            "COM04",
+            "COM05",
+            "COM06",
+            "NAV01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ne mešati sve task razgovore iste osobe; unread1:1 ne izmišljati.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3386,6 +3735,15 @@
           "full": "342 suites / 7214 PASS",
           "device": "PENDING",
           "voice": "B1/B2 UNSHIPPED"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d04",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Isti outbox lifecycle kao tekst; layout rezerviše sliku da lista ne skače.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -3444,7 +3802,21 @@
           "device": "PENDING",
           "voice": "B1/B2 UNSHIPPED"
         },
-        "round73": "P6 obuhvat: grupne poruke koriste postojeći ograničeni ugovor; red potvrde ograničen na 50 ID-eva. Nema novog P6 programiranja."
+        "round73": "P6 obuhvat: grupne poruke koriste postojeći ograničeni ugovor; red potvrde ograničen na 50 ID-eva. Nema novog P6 programiranja.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d05",
+          "findings": [
+            "COM01",
+            "COM02",
+            "COM03",
+            "UX02"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ukloniti policy pasus iz stalne istorije, smisao sačuvati u informacijama.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3505,6 +3877,15 @@
           "scope": "Actual empty-scope reveal/type/clear/discard/reopen accepted; no prepare/proposal send.",
           "report": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md#ae76-bounded-native-depth-and-control-acceptance",
           "boundary": "Exact ae76 only; phone remains historical and existing lights unchanged."
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d06",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Vizuelni diff samo promenjenih polja, ostala u disclosure.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -3550,7 +3931,16 @@
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "KOD I CILJANE PROVERE PROŠLI / NATIVE ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
-        "device": "Nije u instaliranom f526a736; čeka objedinjeni APK."
+        "device": "Nije u instaliranom f526a736; čeka objedinjeni APK.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d07",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Bez opšteg Da/Ne dijaloga bez imena radnje.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3598,7 +3988,18 @@
         "device_proof": "Round12 nije instaliran ni proveren na uređaju. Raniji telefon.dokaz ostaje istorijski.",
         "status": "KOD I CILJANE PROVERE / OGRANIČEN EMULATOR PASS / CELOKUPAN TOK ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_CHECKS.json",
-        "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json"
+        "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d08",
+          "findings": [
+            "AI03"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Privacy oznaka mala ali nedvosmislena; ne prikazivati tačan pin svima.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3640,7 +4041,16 @@
         "test": "Round36: agreement-screen-recovery + agreement-problem-client PASS u exact full run 36400916665; ukupno 342 suite / 7.214 testova PASS; TypeScript PASS.",
         "device_proof": "Nema novog exact APK/device dokaza u ovoj sesiji; disposable Agreement proveriti u objedinjenom native krugu.",
         "status": "SOURCE/CI PASS / DISPOSABLE NATIVE PROBLEM FLOW PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d09",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Komanda vidljiva u Pregledu; upozorenje opisuje šta dalje.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3687,7 +4097,16 @@
         "test": "Round36: agreement-screen-recovery PASS, uključujući worker mark confirmation/readback/unknown/account fences; full Jest 342/7.214 PASS; TypeScript PASS.",
         "device_proof": "Tačan current APK nije proverio worker → Završio sam u ovoj sesiji; istorijski dokaz nije prenet.",
         "status": "SOURCE/CI PASS / TWO-ACCOUNT NATIVE WORKER-COMPLETION PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d10",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Success ton miran, label Čeka potvrdu, ne Završen.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3734,7 +4153,16 @@
         "test": "Round36: pkg007-completion-receipt + agreement-screen-recovery PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
         "device_proof": "Istorijska realna potvrda postoji za stariji build; current exact APK/two-account pass nije izveden u ovoj sesiji.",
         "status": "SOURCE/CI PASS / CURRENT TWO-ACCOUNT NATIVE COMPLETION PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d11",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jedna zelena radnja, problem vidljiv sporedan red.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3797,6 +4225,15 @@
             "phone": 37112338160,
             "emulator": 37112340815
           }
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d12",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Nema mandatory duge poruke; potvrda tek nakon receipt-a.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -3838,7 +4275,16 @@
         "test": "Round36: agreement-screen-recovery + overview/workspace announcement testovi PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
         "device_proof": "Aktuelna kompozicija/step state nije ponovo prihvaćena na current exact APK-u u ovoj sesiji.",
         "status": "REAL NEXT-STEP SOURCE/CI PASS / CURRENT NATIVE PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_36_P2_AGREEMENT_COMPLETION_RATING_SOURCE_20260928.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-d13",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Timeline sekundaran, naročito pri velikom tekstu.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -3925,7 +4371,19 @@
           "build": 37119632905,
           "ci": 37119634429
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Obaveštenja: red = događaj + NASLOV ZADATKA (server INBOX-NASLOV, ledger 235, rpc_list_inbox.taskTitle) + vreme desno, bez „· Otvara …“ (ostaje čitaču ekrana). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Obaveštenja: red = događaj + NASLOV ZADATKA (server INBOX-NASLOV, ledger 235, rpc_list_inbox.taskTitle) + vreme desno, bez „· Otvara …“ (ostaje čitaču ekrana). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-p01",
+          "findings": [
+            "COM06",
+            "A11Y01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Task title vodi; isti rowCopy za govor i vizuelni tekst.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4010,7 +4468,16 @@
           "next": "WorkerV2 remains isolated/not applicable: needs full SQL/client/Edge/matching/export/erasure/atomic concurrency and policy-binding resolution. Whole-app visual/flow review, real unauth entry/cold splash and physical phone remain open.",
           "boundary": "No backend/Edge/certificate change, business/preference save, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance. Local tracker generated; prior remote-dashboard file-picker blocker not resolved."
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Podešavanja obaveštenja = jedan ekran bez tabova (Ovaj telefon · Kad objavljuješ · Kad uskačeš · Tihi sati · Napredno), jedna rečenica, ⓘ. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Podešavanja obaveštenja = jedan ekran bez tabova (Ovaj telefon · Kad objavljuješ · Kad uskačeš · Tihi sati · Napredno), jedna rečenica, ⓘ. TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-p02",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Skraćena objašnjenja u disclosure; ne menjati značenje preferenci.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4071,7 +4538,16 @@
           "exact_transport": "OFF per canonical repository evidence",
           "device": "CURRENT ARTIFACT PENDING"
         },
-        "source_finishing_20261002": "Presentation refined only; historical successful Android registration retained. No new registration/provider/OS action. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md"
+        "source_finishing_20261002": "Presentation refined only; historical successful Android registration retained. No new registration/provider/OS action. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-p03",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Nema zelene uspostavljeno dok receipt nije potvrđen.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4163,7 +4639,16 @@
           "missing": "Kompletan V1/V2 AI/review/source-hash/registry/save/notification merge, client/Edge, export/erasure/holds, policy binding i certificate admission. Work notes are descriptive, not fine-grained task filters.",
           "boundary": "Nije primenjeno; bez novog push-a/provider poziva. Postojeća export-policy instanca0/null nije izmišljena ili izmenjena. Ne traži se primena parcijalnog kandidata."
         },
-        "push_kapacitet_uzrok_20261008": "8.10. uveče: uzrok ograničenja 1 push/min POTVRĐEN čitanjem — Edge radnik uskoci-push-transport (index.ts:169) pravi tačno jedan SEND claim po minutnom otkucaju; rpc_claim_push_transport već ima kapije (6 zakupa, 60/s, SKIP LOCKED). Recept (petlja u otkucaju sa granicom broja i vremena, test u n09_push_transport_edge.test.mjs koji je danas 72/72) u docs/implementation/handoff-codex-20261008/DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md. Izmena NIJE urađena (klasifikator je zaustavio izmenu Edge koda za push; deploy je vlasnikova reč). Pre slanja: povući 1 zaostalu CREATED isporuku (d15, 7.10.)."
+        "push_kapacitet_uzrok_20261008": "8.10. uveče: uzrok ograničenja 1 push/min POTVRĐEN čitanjem — Edge radnik uskoci-push-transport (index.ts:169) pravi tačno jedan SEND claim po minutnom otkucaju; rpc_claim_push_transport već ima kapije (6 zakupa, 60/s, SKIP LOCKED). Recept (petlja u otkucaju sa granicom broja i vremena, test u n09_push_transport_edge.test.mjs koji je danas 72/72) u docs/implementation/handoff-codex-20261008/DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md. Izmena NIJE urađena (klasifikator je zaustavio izmenu Edge koda za push; deploy je vlasnikova reč). Pre slanja: povući 1 zaostalu CREATED isporuku (d15, 7.10.).",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-p04",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "PUSH-KAPACITET pripremljen, nije dozvola slanja.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4205,7 +4690,16 @@
         "test": "Nije implementirano; Round38 potvrđuje samo da nije bezbedno glumiti ga klijentskim timerom.",
         "device_proof": "Nema.",
         "status": "ODLOŽENO POSLE V1 PO PRIHVAĆENOJ ODLUCI A22 / NIJE IMPLEMENTIRANO",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-p05",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Nema lažnog countdown-a ako politika nije uključena.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4263,6 +4757,17 @@
           "native": "Exact1a03 emulator install UID10227 preserved/font1.15/motion1. Profile scroll→WORKER settings→Back and availability→Back return pixel-identical content region; next drag stays put. Home new wordmark retained. Material994c About1.0/1.3 and original gallery replay/reentry/system reduced motion accepted; +/− map controls fixed and functional. Parent1b38 selected pin/detail/Back/FULL/source-sheet and map1.3 evidence retain own scope.",
           "next": "WorkerV2 remains isolated/not applicable: needs full SQL/client/Edge/matching/export/erasure/atomic concurrency and policy-binding resolution. Whole-app visual/flow review, real unauth entry/cold splash and physical phone remain open.",
           "boundary": "No backend/Edge/certificate change, business/preference save, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance. Local tracker generated; prior remote-dashboard file-picker blocker not resolved."
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n01",
+          "findings": [
+            "VIS01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Originalna animacija ne blokira ponovljeni ulaz; ne praviti novi auth sistem.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -4313,6 +4818,15 @@
           "full": "347/7288 PASS",
           "provider": "PENDING",
           "device": "PENDING"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n02",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Kratko objašnjenje namene podatka; ne tražiti godine bez potrebe.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -4356,7 +4870,16 @@
         "test": "NIJE POKRETANO — po nalogu vlasnika",
         "device_proof": "Nema nove provere; vidi postojeći telefon.dokaz",
         "status": "ZAVRŠNI KRUG PREDSTOJI",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n03",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Zadržati postojeći bezbedni callback, skratiti tekst bez menjanja poruke.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4407,6 +4930,15 @@
         "catalog27": {
           "report": "docs/implementation/product-v1-closure-20260926/finalization-20260927/CATALOG27_IMPLEMENTATION.md",
           "status": "SELECTIVE_STATIC_ART_SOURCE_NATIVE_PENDING"
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n04",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Čista tipografija, veći lineheight, logika nije samo dizajn.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -4543,7 +5075,18 @@
           "status": "BOUNDED_EMULATOR_REVIEW",
           "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md"
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Lični podaci (ranije Izmeni profil): JEDINO mesto imena, upis u nalog pa u radni profil (iskrena poruka + „Pokušaj ponovo“ samo za drugi upis), „Sačuvaj“ gore tek kad se ime promeni; fotografija u krugu, inicijali dok se učitava; sopstvena fotografija keširana u memoriji (ownPhotoCache) — treptanje „M“ bi trebalo da nestane (nije provereno na telefonu). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Lični podaci (ranije Izmeni profil): JEDINO mesto imena, upis u nalog pa u radni profil (iskrena poruka + „Pokušaj ponovo“ samo za drugi upis), „Sačuvaj“ gore tek kad se ime promeni; fotografija u krugu, inicijali dok se učitava; sopstvena fotografija keširana u memoriji (ownPhotoCache) — treptanje „M“ bi trebalo da nestane (nije provereno na telefonu). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n05",
+          "findings": [
+            "IA01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Profil hub kompozicija kraća, postojeće ispravke fotografije ne prijaviti kao nove bez dokaza.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -4620,6 +5163,17 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n06",
+          "findings": [
+            "IA01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jednostavan red sa imenom i posledicom, bez dekorativne ilustracije preko upozorenja.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       },
       "native_e572_account_readonly_20261003": {
@@ -4706,6 +5260,15 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n07",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ne duplirati support form za istu nameru; predpopunjen kontekst.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -4784,6 +5347,17 @@
           "builds": {
             "emulator": 37118304645
           }
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n08",
+          "findings": [
+            "UX02"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Korisnik vidi poruke i sledeći potez, operator posebne kontrole.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       },
       "native_e572_account_readonly_20261003": {
@@ -4848,7 +5422,18 @@
         "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
         "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P7_EXPORT_SOURCE.md",
-        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json"
+        "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n09",
+          "findings": [
+            "IA01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ne izmišljati procenat pripreme ni trajanje.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       },
       "native_e572_account_readonly_20261003": {
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
@@ -4920,7 +5505,16 @@
             "emulator": 37112340815
           }
         },
-        "j5_zatvaranje_20261008": "8.10. uveče: red „Zatvaranje naloga“ bez rečenice-objašnjenja (J5), test usklađen (6ebef10f)."
+        "j5_zatvaranje_20261008": "8.10. uveče: red „Zatvaranje naloga“ bez rečenice-objašnjenja (J5), test usklađen (6ebef10f).",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n10",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Bez robota koji slavi brisanje; čist miran destruktivni tok.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       },
       "native_e572_account_readonly_20261003": {
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
@@ -5004,7 +5598,18 @@
             "emulator": 37114307273
           }
         },
-        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Privatnost = čvorište sa stanjem u redovima (Ko šta vidi ⓘ, Rokovi čuvanja, Izvoz, Blokirane, Pravila, Zatvaranje); „nije dostupno“ najviše jednom po ekranu; Zatvaranje naloga (ClosureDialog) još ima rečenicu (J5). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda."
+        "telefon_20261008_talas": "8.10. (talas „Telefon“, komit 4e0ea506; tsc 0, Jest 13.286/13.286; CI 10 dokaza zeleno, P6 native journey crven zbog isteklog dokaznog APK-a — infrastruktura): Privatnost = čvorište sa stanjem u redovima (Ko šta vidi ⓘ, Rokovi čuvanja, Izvoz, Blokirane, Pravila, Zatvaranje); „nije dostupno“ najviše jednom po ekranu; Zatvaranje naloga (ClosureDialog) još ima rečenicu (J5). TELEFON: nije provereno — APK 4e0ea506 je na vlasnikovom HONOR-u od 18:07, vlasnik gleda.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-n11",
+          "findings": [
+            "IA01"
+          ],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Jedan dom za privatnost, ne kopija cele liste i u profilu.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       },
       "native_e572_account_readonly_20261003": {
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
@@ -5067,6 +5672,15 @@
           "native": "Exact1a03 emulator install UID10227 preserved/font1.15/motion1. Profile scroll→WORKER settings→Back and availability→Back return pixel-identical content region; next drag stays put. Home new wordmark retained. Material994c About1.0/1.3 and original gallery replay/reentry/system reduced motion accepted; +/− map controls fixed and functional. Parent1b38 selected pin/detail/Back/FULL/source-sheet and map1.3 evidence retain own scope.",
           "next": "WorkerV2 remains isolated/not applicable: needs full SQL/client/Edge/matching/export/erasure/atomic concurrency and policy-binding resolution. Whole-app visual/flow review, real unauth entry/cold splash and physical phone remain open.",
           "boundary": "No backend/Edge/certificate change, business/preference save, paid provider or push send. No whole-app/Auth/phone/FPS/release acceptance. Local tracker generated; prior remote-dashboard file-picker blocker not resolved."
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-s01",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Skeleton prati konačan layout; ne logotip pet puta.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -5109,7 +5723,16 @@
         "test": "TypeScript PASS; Round07 12/337 + Round08 8/183 = 20 različitih ciljanih grupa / 520 testova. Samo navedeni lifecycle opseg, ne ceo account test plan.",
         "device_proof": "Nema novog APK-a, instalacije, telefona/emulatora ili native prihvatanja za Round07/08; raniji telefon.dokaz ostaje istorijski.",
         "status": "OGRANIČENE ACCOUNT REGRESIJE PROŠLE / CEO TOK I UREĐAJ ČEKAJU",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json"
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-s02",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Ne čuvati istu mapu privatnih tačaka ili draft nalogaA uB.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     },
     {
@@ -5166,6 +5789,15 @@
           "native": "Exact42da local x86_64 APK 27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; attestations and install-r PASS, UID10227 retained. Home ordinary/large text and actual earn→Discovery→Back inspected; first-profile gallery inspected. Final font1.15/motion1/Home.",
           "boundary": "Bez DEV/Edge/certificate primene, poslovnog/preference save-a, provider poziva ili push slanja. Nema whole-app/phone/FPS/release prihvatanja.",
           "openObservation": "Povremeno hladno/delimično Home čitanje nije uspelo. Ručni retry i kasnija rekreacija su vratili podatke. Uzrok nije utvrđen; vizuelni PASS nije popravka učitavanja."
+        },
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-s03",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "Živost dolazi iz kontinuiteta, ne iz beskrajnog spinner-a.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
         }
       }
     },
@@ -5207,7 +5839,16 @@
         "status": "ZAVRŠNI KRUG PREDSTOJI",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_01.md",
         "round73": "P6 obuhvat: stari čitači (rpc_list_open_tasks_v3 itd.) ostaju kao rezervni put i kill switch dok se P6 ne prihvati u prodavnici; njihovo uklanjanje je C2 (predlog u docs/implementation/cleanup-inventory-20260930/), ništa nije uklonjeno.",
-        "retire_v1_pripremljen_20261008": "8.10. uveče: paket RETIRE-V1 PRIPREMLJEN (supabase/candidates/retire-v1-20261008/, komit 92f2e094), NIJE dokazan ni primenjen. Od 11 rpc_* koje aplikacija ne zove, 4 smeju odmah (rpc_ai_open_conversation, rpc_confirm_need_edit, rpc_get_my_safety_report, rpc_list_my_agreements: bez pozivalaca, okidača, crona i mesta u sertifikatu — suvi prolaz čuvara na DEV-u čist, 258 rpc_*), 7 ostaju (zovu ih druge funkcije ili su u digestu). Codex: revert.sql iz DEV-a + dokaz na jednokratnoj bazi, pa primena po stojećem nalogu."
+        "retire_v1_pripremljen_20261008": "8.10. uveče: paket RETIRE-V1 PRIPREMLJEN (supabase/candidates/retire-v1-20261008/, komit 92f2e094), NIJE dokazan ni primenjen. Od 11 rpc_* koje aplikacija ne zove, 4 smeju odmah (rpc_ai_open_conversation, rpc_confirm_need_edit, rpc_get_my_safety_report, rpc_list_my_agreements: bez pozivalaca, okidača, crona i mesta u sertifikatu — suvi prolaz čuvara na DEV-u čist, 258 rpc_*), 7 ostaju (zovu ih druge funkcije ili su u digestu). Codex: revert.sql iz DEV-a + dokaz na jednokratnoj bazi, pa primena po stojećem nalogu.",
+        "design_review_20261008": {
+          "state": "SOURCE_AUDIT / DESIGN_PROPOSAL_NOT_APPROVED",
+          "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+          "blueprint": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#blueprint-s04",
+          "findings": [],
+          "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
+          "proposedChange": "KEEP aktivne ugovore; REMOVE samo dokazano mrtvo, bez DEV mutacije u auditu.",
+          "boundary": "No application source, DEV, device or acceptance-light change."
+        }
       }
     }
   ],
@@ -7583,6 +8224,97 @@
       "tests": "Vraćena verzija 36c57b84: automatski CI 36357286414, TypeScript i 342 grupe / 7213 testova PASS. Izvršni izvor jednak je 10739a44; emulator je vraćen i provereni su mapa, cela lista, meni i povratak iz menija. Izvorni kvar pri povratku cele liste ostaje otvoren. Kandidat 2b2cf4d7 je odbijen uprkos uspešnim automatskim testovima.",
       "canonical_sync_commit": "36c57b84603f6e6d6fb8b9ad2ed3f8105a2b402b"
     },
-    "canonical_sync_status": "LAST_SUCCESSFUL_PUSH_DD25; later42da client and38ada WPP02-A source commits are LOCAL_ONLY. GitHub403 account suspended blocks push/CI. This is not DEV/Edge application."
+    "canonical_sync_status": "LAST_SUCCESSFUL_PUSH_DD25; later42da client and38ada WPP02-A source commits are LOCAL_ONLY. GitHub403 account suspended blocks push/CI. This is not DEV/Edge application.",
+    "design_review_20261008": {
+      "state": "SOURCE_AUDIT / DEV_READ_ONLY / DESIGN_PROPOSAL_NOT_APPROVED",
+      "head": "f1ddd54d4ff9c61a6c7f1da443d56cc1452068f6",
+      "ledger": 235,
+      "digest": "3a785d42",
+      "scope": "50 route entries,62 ledger blueprints,33 findings; no new native proof",
+      "report": "docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#revizija-20261008",
+      "visuals": "docs/implementation/ui-ux-pass-20261002/PREDLOG_EKRANA_20261008.html",
+      "inventory": "docs/implementation/ui-ux-pass-20261002/WHOLE_APP_ROUTE_AUDIT_20261002.json",
+      "decisions": [
+        "3 vs4 tabs",
+        "searchA vsB vsC",
+        "per-screen visual approval"
+      ],
+      "limits": [
+        "No application source change",
+        "No DEV mutation",
+        "No PHONE/EMULATOR acceptance",
+        "No release-ready claim"
+      ],
+      "delivery": "Local review artifacts; hosted dashboard publication not claimed.",
+      "artifactCheck": {
+        "method": "Node VM with inert DOM stubs: syntax, template evaluation, local asset and target references only; no browser/render/native test.",
+        "screens": 58,
+        "ids": [
+          "home",
+          "entry",
+          "auth",
+          "recovery",
+          "discovery",
+          "peek",
+          "list",
+          "remote",
+          "search",
+          "search-a",
+          "search-c",
+          "city",
+          "filters",
+          "ai-start",
+          "ai-map",
+          "ai-confirmed",
+          "worker",
+          "worker-review",
+          "location",
+          "route",
+          "preview",
+          "published",
+          "task",
+          "own",
+          "candidates",
+          "compare",
+          "selection",
+          "application",
+          "applications",
+          "question",
+          "agreements",
+          "agreement",
+          "agreement-confirm",
+          "agreement-done",
+          "inbox",
+          "chat",
+          "group",
+          "change",
+          "rating",
+          "calendar",
+          "calendar-week",
+          "calendar-day",
+          "profile",
+          "account",
+          "notifications",
+          "notification-settings",
+          "privacy",
+          "export",
+          "closure",
+          "support",
+          "blocked",
+          "legal",
+          "photos",
+          "voice",
+          "confirm",
+          "states",
+          "empty",
+          "stale"
+        ],
+        "missingLinks": [],
+        "missingAssets": [],
+        "invalid": [],
+        "browserPreview": "BLOCKED: browser security policy forbids file URL. No alternate surface or workaround used.",
+        "pass": true
+      }
+    }
   }
 }
