@@ -41,6 +41,17 @@ function AttentionFoot({ attention }: { attention: AgreementAttention }) {
   </>;
 }
 
+/** Pending proposals never replace accepted facts. The label also makes an unchanged price explicit. */
+function AcceptedAmount({ item }: { item: DogovorProjekcija }) {
+  const amount = item.cena.prikaz;
+  if (!amount) return <T variant="note" tone="muted">{BEZ_IZNOSA}</T>;
+  if (!item.izmenaCeka) return <T variant="priceRow" style={s.amount}>{amount}</T>;
+  return <View style={s.amountBlock}>
+    <T variant="meta" tone="muted">Važeći iznos</T>
+    <T variant="priceRow" style={s.amount}>{amount}</T>
+  </View>;
+}
+
 /**
  * One Dogovor of the list (composition spec 4.8; at most 160 dp and four kinds of type: the title 18/600, the facts 14/500, the
  * amount 16/700 and the chip 12/600). A `record`: the whole card is touched, so it has the shadow and nothing inside it is a card.
@@ -49,7 +60,8 @@ function AttentionFoot({ attention }: { attention: AgreementAttention }) {
  * grey line ("Danas 14:00 · Novi Sad"); the state chip on the left and the accepted amount on the right; and the orange foot ONLY
  * when something waits for me. The body is one press that opens the Dogovor, with no caret: the whole row is the target (B16). The
  * rating is a press of its own, beside the body and never inside it, that goes straight to the rating (A2). Nothing is drawn that the
- * list does not carry: no last message, no rating, no date built from the task. The amount stands alone: "ukupno" is for the ear and
+ * list does not carry: no last message, no rating, no date built from the task. A pending proposal labels the amount "Važeći iznos";
+ * otherwise it stands alone. "ukupno" is for the ear and
  * the Dogovor itself ("Dogovoreno ukupno"); a group says how many people it is in the line under the title.
  *
  * A cancelled Dogovor says when, by whom and why, in one grey line, once the server has answered (`cancellation`, CANCEL-INFO); until
@@ -57,6 +69,7 @@ function AttentionFoot({ attention }: { attention: AgreementAttention }) {
  *
  * The frame gives under the finger as one object, as a task card does, and holds still under reduced motion.
  */
+
 function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
   item: DogovorProjekcija; now: number; cancellation?: AgreementCancellation | null; onOpen: () => void; onRate?: () => void;
 }) {
@@ -83,7 +96,7 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
   // The rating foot is its own press only when the route hands over where it goes; otherwise it stays inside the body.
   const rateAside = attention?.kind === 'rate' && onRate ? attention : null;
   const footInside = attention && !rateAside ? attention : null;
-  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${amount} ukupno` : BEZ_IZNOSA, place, people,
+  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ukupno` : BEZ_IZNOSA, place, people,
     cancelledLine, ownProposal ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null]
     .filter((part): part is string => !!part).join(', ');
   // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
@@ -107,7 +120,7 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
           <View style={s.stateRow}>
             <AgreementStatusChip chip={chip} detail={changed} />
             {/* A missing amount is said in words, quiet and never a figure. */}
-            {amount ? <T variant="priceRow" style={s.amount}>{amount}</T> : <T variant="note" tone="muted">{BEZ_IZNOSA}</T>}
+            <AcceptedAmount item={item} />
           </View>
           {cancelledLine ? <T variant="note" tone="muted">{cancelledLine}</T> : null}
           {/* My own proposal waits for the other side: a quiet line, not a task of mine. */}
@@ -187,7 +200,7 @@ function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onR
   const place = item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';
   const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(cancellation, other?.ime) : null;
   const spoken = [agreementChipWord(chip), item.verzija > 1 ? 'izmenjeni uslovi' : null, when, term.zone,
-    item.cena.prikaz ? `${amount} ukupno` : amount, place, people, attention?.title,
+    item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ukupno` : amount, place, people, attention?.title,
     cancelled ? cancellationLine(cancelled, now) : null,
     item.izmenaCeka?.mojPredlog ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
@@ -206,7 +219,7 @@ function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onR
       <T variant="note" tone="muted">{when} · {place}</T>
       {term.zone ? <T variant="note" tone="muted">{term.zone}</T> : null}
       <View style={s.stateRow}><AgreementStatusChip chip={chip} detail={item.verzija > 1 ? 'izmenjeni uslovi' : undefined} />
-        <T variant={item.cena.prikaz ? 'priceRow' : 'note'} style={item.cena.prikaz ? s.amount : undefined}>{amount}</T>
+        <AcceptedAmount item={item} />
       </View>
       {cancelled ? <T variant="note" tone="muted">{cancellationLine(cancelled, now)}</T> : null}
       {item.izmenaCeka?.mojPredlog ? <T variant="note" tone="muted">Tvoja izmena čeka odgovor</T> : null}
@@ -229,6 +242,7 @@ const s = StyleSheet.create({
   when: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
   stateRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: sys.space.md, rowGap: sys.space.sm },
   amount: { color: sys.color.money, flexShrink: 1 },
+  amountBlock: { alignItems: 'flex-end', flexShrink: 1, gap: sys.space.xs },
   note: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }, noteText: { flexShrink: 1 },
   // The foot: the one line a record draws, between the two touch zones, then the dot, the verb, and the arrow.
   // It runs down to the card's own edge (the card's 16 under it is its touch row's), so the verb stands in the middle of its 48 dp.

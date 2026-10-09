@@ -8,7 +8,7 @@ jest.mock('react-native', () => {
     if (key === 'Platform') return { OS: 'web' };
     if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 3, fontScale: 1 });
     if (key === 'FlatList') return (p: any) => require('react').createElement('List', p, p.ListHeaderComponent,
-      p.data.map((item: any) => require('react').createElement('Row', { key: item.messageId }, p.renderItem({ item }))), p.ListFooterComponent);
+      p.data.map((item: any, index: number) => require('react').createElement('Row', { key: item.messageId }, p.renderItem({ item, index }))), p.ListFooterComponent);
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView', 'Modal', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
@@ -64,4 +64,18 @@ it('keeps the binding cancellation words after retiring current-location sharing
   expect(text()).toContain('Korak 2 od 2');
   await pressHost('Nazad na scene');
   expect(text()).not.toContain('Lokacija · poslednja tačka');
+});
+
+it('renders actual group message runs, sender identities and a participant private channel without data reads', async () => {
+  await act(async () => { tree = create(<DizajnDodaci />); });
+  await pressHost('Grupa · razgovor');
+  expect(text()).toContain('Dobro jutro! Kombi dolazi u 9, ulaz je iz dvorišta.');
+  for (const [id, name, initials] of [['poruka-1', 'Marko Jovanović', 'MJ'], ['poruka-3', 'Stefan Ilić', 'SI'], ['poruka-4', 'Jovana Petrović', 'JP']]) {
+    const sender = tree.root.findByProps({ testID: `group-message-sender-${id}` });
+    expect(sender.findAllByType('T' as React.ElementType).flatMap(node => node.children).join(' ')).toContain(name);
+    expect(sender.findAllByType('T' as React.ElementType).flatMap(node => node.children)).toContain(initials);
+  }
+  expect(tree.root.findAllByProps({ testID: 'group-message-sender-poruka-2' })).toHaveLength(0);
+  expect(text()).toContain('Privatno');
+  expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
 });

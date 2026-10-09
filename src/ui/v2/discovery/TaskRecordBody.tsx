@@ -24,8 +24,8 @@ import { distanceOf, useDistanceFrom } from './taskDistance';
  * does not change its clothes between the map, the list and the page that opens: [state] -> title -> what it pays -> where -> when ->
  * (one condition) -> who posted it, and how long ago, with the count of people at the end of that line.
  *
- * What this account is to the task ("Tvoj", "Prijava poslata") is a small mark at the end of the amount's row, not a label above the title (the approved plan,
- * U2); what is above the title is only HITNO and a task's own life (a draft, a closed task). The place says how far it is ("Liman, Novi Sad · oko 3 km") only
+ * What this account is to the task ("Tvoj", "Prijava poslata") is a small mark beside the amount or just below it, not above the title.
+ * The short owner mark stays inline; worker states take their own line after the 361 dp / 1.15 phone review (9 Oct 2026); what is above the title is only HITNO and a task's own life (a draft, a closed task). The place says how far it is ("Liman, Novi Sad · oko 3 km") only
  * when that can be said (see `taskDistance`): a task's public point and the one place the person said they are, and otherwise nothing.
  *
  * The amount is a fact like the others (the owner: not the price on the right, but under the title with its picture on the left, like
@@ -48,7 +48,7 @@ export type TaskRecordModel = {
   status: { text: string; quiet: boolean } | null;
   /** The part of it that is the task's own life (a draft, a closed task): it stands above the title. */
   head: { text: string; quiet: boolean } | null;
-  /** What this account is to the task, in the short words of a mark ("Tvoj", "Prijava poslata"): at the end of the amount's row. */
+  /** What this account is to the task, in the short words of a mark ("Tvoj", "Prijava poslata"): beside the amount or on its own line below. */
   mark: { text: string; quiet: boolean } | null;
   urgency: NeedUrgencyProjection | undefined;
   /** The one clock the HITNO badge and the card read, so the two never disagree for a frame. */
@@ -89,7 +89,7 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
   const ownerView = isOwnedNeed(item) || relation === 'OWNED';
   const title = readableTitle(item.naslov);
   const status = taskStatus(item, relation, sectionSays);
-  // A task's own life (a draft, a closed task) is above the title; what the account is to a public task is a mark in the amount's row.
+  // A task's own life (a draft, a closed task) is above the title; what the account is to a public task follows the amount.
   const head = 'stanje' in item ? status : null;
   const mark = 'stanje' in item || !status ? null : { text: MARK_WORDS[status.text] ?? status.text, quiet: status.quiet };
   // HITNO counts only until the server's expiry, on the one clock the badge is given: an expired HITNO on a task with no state drew an empty first row.
@@ -169,16 +169,18 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
   clearOfClose?: boolean;
 }) {
   const { stacked } = useLayoutClass();
+  // Longer application states keep the value's full width, including at the phone's 1.15 text scale.
+  const stackedValue = stacked || (!!model.mark && model.audience === 'worker');
   const head = !!model.head || model.urgent;
   const first = clearOfClose ? s.clearOfClose : undefined;
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.body}>
     {head ? <View style={first}><CardStatus status={model.head} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
     <View style={head ? undefined : first}><T variant="heading" style={s.title}>{model.title}</T></View>
     <View style={s.facts}>
-      {/* The amount, and at its end the small mark of what this account is to the task; where the window is narrow or the text large the mark stands under it. */}
-      <View testID="task-face-value" style={[s.valueLine, stacked && s.valueLineStacked]}>
+      {/* Only the short ownership mark shares this row; application states follow the complete value. */}
+      <View testID="task-face-value" style={[s.valueLine, stackedValue && s.valueLineStacked]}>
         <View style={s.valueMain}><ValueRow model={model} /></View>
-        {model.mark ? <View testID="task-face-mark" style={[s.mark, stacked && s.markStacked]}>
+        {model.mark ? <View testID="task-face-mark" style={[s.mark, stackedValue && s.markStacked]}>
           <CardStatusLine text={model.mark.text} tone={model.mark.quiet ? 'muted' : 'green'} />
         </View> : null}
       </View>
@@ -199,7 +201,7 @@ const s = StyleSheet.create({
   // Between the parts of a face: 12. Inside a part: 4.
   body: { gap: sys.space.md },
   facts: { gap: sys.space.xs },
-  // The amount's row and the mark at its end: the amount takes what the mark leaves, and the mark gives way (it is cut with an ellipsis) before the amount does.
+  // The ownership mark can share the value row; longer relation states have a separate line.
   valueLine: { flexDirection: 'row', alignItems: 'flex-start', columnGap: sys.space.md },
   valueLineStacked: { flexDirection: 'column', alignItems: 'stretch', rowGap: sys.space.xs },
   valueMain: { flex: 1, minWidth: 0 },

@@ -293,3 +293,23 @@ Concurrency paket poslat na obe kanonske grane, source98ed64d2; jedan opt-in run
 **NIJE DOKAZANO:** prekinuto prevlačenje i TalkBack interakcija nisu izvršeni. XML nije zamena za TalkBack. Dogovori prikazuje jednu stvarnu saradnju, pa to nije dokaz prikaza više ljudi. Nema dokaza stvarne push dostave ili spremnosti za prodavnicu. Izvršeni su instalacija, pregled i navigacija, bez slanja, objave ili otkazivanja.
 
 **NEZAVISNA KRITIKA / SLEDEĆE:** „Prijava poslata“ sabija „Tražim ponude“; status treba zaseban red osim kratkog „Tvoj“. Dogovor sa izmenom na čekanju treba jasnu oznaku važećeg iznosa, bez pretpostavke šta predlog menja. Attribution sme da bude prekriven prema izričitoj vlasnikovoj odluci. Novi existing-dev emulator APK omogućava proveru grupisanih saradnji uz očuvanu drugu sesiju. Zatim sledi koherentan paket poboljšanja čitljivosti.
+
+
+## Dopuna — kartice posle fizičkog pregleda i proba više ljudi
+
+**URADIO:** worker status prijave dobija svoj red ispod pune širine iznosa; kratko „Tvoj“ ostaje uz iznos kad prostor dozvoljava. Dogovor sa izmenom na čekanju označava postojeći prihvaćeni iznos kao „Važeći iznos“, u zasebnoj i grupisanoj kartici. Nepoznat iznos ostaje nepoznat, bez pretpostavke šta predlog menja. Nema novih poziva, efekata ili promenjenih poslovnih komandi.
+
+**DOKAZAO / SOURCE:** četiri ciljane grupe, 152 različita testa PASS, TypeScript PASS; postojeća token provera PASS. Dve fixture grupe ponovljene su posle ispravki, nisu dodatni različiti testovi. Nezavisan pregled otkrio je netačan covered_slots u novoj galeriji: popunjeno mora biti 1 po bilateralnom Dogovoru, ne 4 za ceo zadatak; ispravljeno. Group FlatList mock ranije nije davao index, pa poruke nisu zaista renderovane u smoke testu. Sada test proverava stvarni tekst, inicijale/ime na početku niza i odsustvo duplog potpisa na drugoj uzastopnoj poruci.
+
+**NATIVE PRIPREMA:** `dizajn-dogovori?scene=grouped-list` prikazuje četiri odvojene saradnje jednog zadatka: izmena naručioca, čekanje potvrde, tuđ predlog i završena saradnja. Jedan naslov, zasebni iznosi, proširenje četvrtog reda, dugo ime. Postojeće grupne scene izlažu birač kanala kroz no-op privatnu radnju. Ovo su interne inertne fixture kompozicije sa stvarnim prezentacionim komponentama; ne čitaju profile/medije i ne šalju ništa. Installed phone6c i emulator ea456 build prethode ovim izmenama.
+
+**NIJE DOKAZANO / SLEDEĆE:** novi raspored još nije viđen u tačnom APK-u. Završiti postojeći emulator build i očuvati drugi nalog; novi skup fixture-a i čitljivosti spakovati u jednu narednu izgradnju, proveriti font 1,15/1,3 i privatni/grupni prikaz. Area split run 37871070145/source d51cd1b0 je aktivan; njegov rezultat se ne pretpostavlja.
+
+**Sledeći izolovani perf kandidat, tek odvojeno:** read-only pregled identifikovao je već pripremljeni S3 lazy-days (`s3-patches.json`, reader a9b0985991f4ebfe4e95143e5cf57222 → 225edbb8e090395db004b256e7447269). Profil meri 40.000 days poziva i oko 212–216 ms u tekstualnim/no-hit pozivima. To opravdava eksperiment, ne dokazuje uzrok C16. Ne kombinovati sa area postimage-om i ne relaksirati pin. Ponovo upotrebiti fullJSON per-request trojke; stari istorijski S3 dokaz je maskirao asOf/counts.observedAt. Posebno proveriti sve nedatirane, jedini datiran van rezultata, prazan/RLS-nevidljiv skup i forMe sa validnim worker profilom. Nema primene ili novog CI dispatch-a iz ovog plana.
+
+
+### Existing-dev emulator ažuriran uz sačuvan drugi nalog
+
+Run 37869838906/source ea456e15 SUCCESS; stvarno pročitana attestacija, lokalni SHA i compiled package/ABI, isti fac61745… potpis. APK SHA `7f5e94b5d10bc625c6e8bec4944dd585d032e8ee50fbfa356eeed8ee6a7811a3`, rs.uskoci.dev/35/x86_64/OTAoff. `adb install -r` SUCCESS; installed base hash odgovara, UID10227 i prvi install ostali isti. Početna i Dogovori prikazuju postojeći prijavljeni drugi nalog bez prijave ili kopiranja tokena. Receipt: `evidence/native-emulator-ea456e15/receipt.json`.
+
+**NATIVE / OGRANIČENO:** interna 1:1 fixture na font1,15 zaista prikazuje inicijale i ime pošiljaoca na početku sačuvanih nizova, skrol starije istorije i povratak ka najnovijim. Fokus unosa otvorio je plutajuću IME traku, ne punu donju tastaturu; iz tog kadra nema keyboard-inset dokaza. Uočen sledeći konkretan nedostatak: niz neposlatih sopstvenih poruka posle tuđeg sačuvanog niza nema svoj avatar/ime. To ostaje za naredni ciljani zahvat, bez menjanja outbox/retry ugovora. Nisu poslate poruke ili promenjeni poslovni podaci. Ovaj APK ne sadrži još nove dorade kartica i grouped-list fixture.

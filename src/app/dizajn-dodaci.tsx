@@ -165,7 +165,7 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
 const groupProps = (state: GroupState, back: () => void, draft: string, setDraft: (value: string) => void) => ({ state, draft, showPeople: false, listKey: 0,
   draftLength: Array.from(draft.trim()).length, draftSendable: draft.trim().length > 0,
   viewability: { viewAreaCoveragePercentThreshold: 60, minimumViewTime: 600 }, onVisible: noop, onBack: back, onTogglePeople: noop, onRefresh: noop,
-  onOlder: noop, onManagementNext: noop, onOpenAgreement: noop, onDraft: setDraft, onSend: noop, onAcknowledge: noop });
+  onOlder: noop, onManagementNext: noop, onOpenAgreement: noop, onPrivate: noop, onDraft: setDraft, onSend: noop, onAcknowledge: noop });
 
 export default function DizajnDodaci() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');

@@ -304,7 +304,12 @@ test('only a Dogovor that waits for me carries the strip, in the order the Dogov
   await render();
   expect(cardTexts('Posao change')).toContain('Odgovori na predlog izmene'); expect(card('Posao change').props.accessibilityHint).toBe('Odgovori na predlog izmene. Prihvaćeni uslovi važe dok ne odgovoriš.');
   // My own proposal waits for the other side: said quietly, never as my task.
-  expect(cardTexts('Posao mine')).toContain('Tvoja izmena čeka odgovor'); expect(card('Posao mine').props.accessibilityHint).toBeUndefined();
+  expect(cardTexts('Posao mine')).toContain('Tvoja izmena čeka odgovor');
+  for (const title of ['Posao mine', 'Posao change']) {
+    expect(cardTexts(title)).toContain('Važeći iznos'); expect(cardTexts(title)).toContain('2.500 RSD');
+    expect(card(title).props.accessibilityValue.text).toContain('Važeći iznos, 2.500 RSD ukupno');
+  }
+  expect(cardTexts('Posao plain')).not.toContain('Važeći iznos'); expect(card('Posao mine').props.accessibilityHint).toBeUndefined();
   expect(cardTexts('Posao confirm')).toContain('Potvrdi završetak'); expect(cardTexts('Posao confirm')).toContain('Čeka potvrdu');
   // A pending change blocks completion, so no strip asks for a confirmation the server would refuse.
   expect(cardTexts('Posao blocked')).not.toContain('Potvrdi završetak');
@@ -317,11 +322,13 @@ test('only a Dogovor that waits for me carries the strip, in the order the Dogov
   expect(ground('Posao plain')).toBe(STATUS_TONES.green.ground);
   expect(card('Posao plain').props.accessibilityHint).toBeUndefined(); expect(cardTexts('Posao plain')).not.toMatch(/Potvrdi|Odgovori|Oceni|Čeka/);
 });
-test('a term that is missing stays one sentence and a missing place or amount is said in words, never as a value', async () => {
-  rows = [{ ...agreement('bare', 'CONFIRMED'), vremeTekst: 'Termin nije potvrđen', putanjaTekst: '', cena: { iznos: Number.NaN, valuta: 'RSD', prikaz: '' } }];
+test.each([undefined, true, false])('a missing amount stays unknown even with pending proposal %s', async ownProposal => {
+  rows = [{ ...agreement('bare', 'CONFIRMED'), izmenaCeka: ownProposal === undefined ? null : { predlogId: 'pending', mojPredlog: ownProposal }, vremeTekst: 'Termin nije potvrđen', putanjaTekst: '', cena: { iznos: Number.NaN, valuta: 'RSD', prikaz: '' } }];
   await render(); const text = cardTexts('Posao bare');
   expect(text).toContain('Termin nije dogovoren'); expect(text).not.toContain('Termin nije potvrđen'); expect(text).toContain('Mesto nije navedeno'); expect(text).toContain('Iznos nije sačuvan');
-  expect(text).not.toContain('ukupno');
+  expect(text).not.toContain('ukupno'); expect(text).not.toContain('Važeći iznos');
+  expect(card('Posao bare').props.accessibilityValue.text).toContain('Iznos nije sačuvan');
+  expect(card('Posao bare').props.accessibilityValue.text).not.toContain('Važeći iznos');
 });
 // Round-1 critique A3: a finished or cancelled Dogovor that never had a time is not waiting for one.
 test.each(['COMPLETED', 'CANCELLED'] as const)('a %s Dogovor without a time says "Bez tačnog termina", never "Termin nije potvrđen"', async state => {
@@ -615,6 +622,7 @@ test('grouped rows speak cancellation details, changed terms, own pending change
     onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
   const spoken = (name: string) => tree.root.findByProps({ accessibilityLabel: `Otvori Dogovor Selidba, ${name}` }).props.accessibilityValue.text;
   expect(spoken('Ana')).toContain('Prijavljen je problem'); expect(spoken('Ana')).toContain('Tvoja izmena čeka odgovor');
-  expect(spoken('Ana')).toContain('izmenjeni uslovi'); expect(spoken('Ana')).toContain('2.500 RSD ukupno');
+  expect(spoken('Ana')).toContain('izmenjeni uslovi'); expect(spoken('Ana')).toContain('Važeći iznos, 2.500 RSD ukupno');
+  expect(spoken('Iva')).not.toContain('Važeći iznos');
   expect(spoken('Iva')).toContain('Plan je promenjen.');
 });

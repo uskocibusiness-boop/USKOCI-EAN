@@ -48,7 +48,7 @@ const DETAILS = ['one', 'worker', 'worker-done', 'worker-term', 'group', 'waitin
 const STATES = ['status-loading', 'status-error', 'status-unavailable', 'review', 'review-grey', 'review-saved', 'review-loading', 'review-error'];
 const CHATS = ['chat', 'chat-waiting', 'chat-empty', 'chat-loading', 'chat-error', 'chat-closed', 'chat-media', 'chat-unknown'];
 
-it.each([...DETAILS, ...STATES, ...CHATS, 'list', 'history', 'empty', 'loading', 'error', 'long'])('opens the scene "%s" without reading or writing anything', async scene => {
+it.each([...DETAILS, ...STATES, ...CHATS, 'list', 'grouped-list', 'history', 'empty', 'loading', 'error', 'long'])('opens the scene "%s" without reading or writing anything', async scene => {
   await open(scene);
   expect(text().length).toBeGreaterThan(0);
 });
@@ -168,4 +168,18 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     await act(async () => { tree.unmount(); });
     await open('status-unavailable'); expect(text()).toContain('Dogovor nije dostupan'); expect(labels()).toContain('Nazad na Dogovore');
   });
+});
+
+it('shows one task with separate accepted terms and expands the fourth collaboration without photo readers', async () => {
+  await open('grouped-list');
+  const task = 'Pomoć pri preseljenju kancelarije';
+  const people = () => labels().filter(label => label.startsWith(`Otvori Dogovor ${task},`));
+  expect(people()).toHaveLength(3);
+  expect(text()).toContain('4 saradnje'); expect(text()).not.toContain('4 osobe');
+  for (const amount of ['5.500 RSD', '3.200 RSD', '125.000 RSD']) expect(text()).toContain(amount);
+  expect(text()).toContain('Važeći iznos'); expect(text()).toContain('Tvoja izmena čeka odgovor');
+  const expand = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === `Prikaži sve saradnje za ${task}`)[0];
+  await act(async () => expand.props.onPress());
+  expect(people()).toHaveLength(4); expect(text()).toContain('Iva Petrović'); expect(text()).toContain('4.500 RSD');
+  for (const reader of ['ProfilePhoto', 'AuthorizedPhoto', 'NeedPhotos']) expect(tree.root.findAllByType(reader as React.ElementType)).toHaveLength(0);
 });

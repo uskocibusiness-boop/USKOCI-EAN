@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T01:42:18Z",
+  "osvezeno": "2026-10-09T02:01:51Z",
   "grana": "integration/spoj-20261006",
-  "head": "7f33cf7a",
-  "head_poruka": "proof: bound area comparisons and preserve native and concurrency results",
+  "head": "d51cd1b0",
+  "head_poruka": "merge: refresh control views after canonical sync",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2201,7 +2201,7 @@
     "TalkBack not exercised; XML confirms hidden tab controls absent",
     "Whole-app/store/push delivery not proved"
    ],
-   "next": "Finish corrected existing-dev emulator install and grouped agreement native fixtures; then coherent price/status readability refinements.",
+   "next": "Finish corrected existing-dev emulator install; validate grouped agreements and price/status readability in one next bundle. Interrupted gesture and TalkBack remain open.",
    "builds": {
     "source": "44e8eaffdd9fcbd9ccf25cab174ea2374236003d",
     "phone": 37859900972,
@@ -2261,7 +2261,13 @@
    "observations": "Repeated SQL median: ciscenje1215.7→610.1→1173.4; no-hit1138.3→584.5→1135.1; city+text962.1→402.8→927.2; defaultPAGE376.5→430.3→420.5; MAP317.1→376.1→314.5. Candidate helps text but costs nontext; no overall acceptance or DEV application.",
    "diagnosticSqlRun": 37867659562,
    "diagnosticSqlSource": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
-   "diagnosticSqlState": "FAIL_57014_STATEMENT_TIMEOUT"
+   "diagnosticSqlState": "FAIL_57014_STATEMENT_TIMEOUT",
+   "nextSplitRun": {
+    "run": 37871070145,
+    "source": "d51cd1b013a6bb96ef9827a9d1a971c1bd9caa88",
+    "state": "RUNNING",
+    "scope": "Same candidate; fullJSON one-request/page triple with90s limit, repeated62/124 pinned; unique coverage actual result pending."
+   }
   },
   "push_recapture235_20261009": {
    "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",
@@ -2384,17 +2390,27 @@
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/client-proof-d029-37864877598"
   },
   "emulator_existing_dev_20261009": {
-   "state": "EXISTING_AUTH_SESSION_FOUND / CORRECT_PACKAGE_CI_RUNNING",
+   "state": "EXACT_APK_INSTALLED / AUTH_SESSION_RETAINED / BOUNDED_NATIVE_PROOF",
    "observed": "rs.uskoci.dev is authenticated on emulator; preview remains logged out. No login, token transfer or data changes. Existing build lastUpdated2026-10-06; cannot attest current UI.",
-   "installedApkSha256": "27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d",
+   "installedApkSha256": "7f5e94b5d10bc625c6e8bec4944dd585d032e8ee50fbfa356eeed8ee6a7811a3",
    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
    "scope": "Existing visual workflow explicit visual/emulator-existing-dev-* branch; CI-only appconfig overlay rs.uskoci.dev, no preview Firebase,OTAoff,x86_64. No source/auth/storage/permission change.",
    "checks": "2 actual-config/guard tests and YAML PASS; independent SOURCE review no blocker; compiledAPK attestation beforeartifact.",
-   "limits": "New APK/signature/install-r/session-preservation/native not yet verified. Build identity dirty expected from config overlay, receipt binds exact overlay/config hashes.",
+   "limits": "Native1:1 gallery proves saved-message identity layout only; no live send/groupflow/keyboard/fullstore. Current card readability edits predate next APK and are not in this build.",
    "privateEvidence": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-existing-dev.png",
-   "next": "Build correct existing dev package, check exact APK/signature then install-r, preserve second session.",
+   "next": "Validate grouped-list/new card clarity in next bundle; fix pending outgoing identity gap with bounded source and native proof.",
    "run": 37869838906,
-   "source": "ea456e15f9906ec6fae8c4d00586119efbf7e944"
+   "source": "ea456e15f9906ec6fae8c4d00586119efbf7e944",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-emulator-ea456e15/receipt.json"
+  },
+  "card_readability_native_followup_20261009": {
+   "state": "SOURCE_VALIDATED / NATIVE_PENDING",
+   "basis": "Phone6c exact APK, 361dp/font1.15: application status squeezed offer words; pending change needed accepted amount meaning. Independent native/source review.",
+   "scope": "Worker relation status follows the full-width price on its own line; short owner mark stays inline when room permits. Pending agreement proposal labels the accepted amount as Važeći iznos in list and grouped row; missing amount remains unknown. No proposal value inferred.",
+   "gallery": "Existing inert grouped-list scene: four bilateral fixtures share a task, separate people/amounts/statuses, fourth reached through expansion. Existing group scenes expose channel selector with noop private action. No new data controller or network request.",
+   "checks": "Four targeted suites:152 distinct tests PASS (two fixture-suite reruns after correcting assertions/coverage); TypeScript PASS. Existing token source checks PASS. Independent review corrected bilateral fixture covered_slots1, not task total4. Group mock now passes index and checks actual message bodies, sender initials/names and run boundaries.",
+   "native": "Current installed phone6c and emulator build ea456 predate these source edits. New typography/grouped fixture is not yet native acceptance.",
+   "next": "Finish checks and independent review, push coherent batch to both canonical branches; bundled native validation at font1.15 and1.3. Keep business navigation/RLS/provider tests separate."
   }
  },
  "redovi": [

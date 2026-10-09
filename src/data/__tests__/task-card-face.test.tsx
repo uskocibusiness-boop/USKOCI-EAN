@@ -362,10 +362,17 @@ describe('what this account is to the task, and how far it is', () => {
     expect(texts()[0]).toBe('Nacrt'); expect(mark()).toHaveLength(0);
   });
 
-  it('puts the mark under the amount where the window is narrow or the text large', async () => {
+  it('gives application states a full-width value and stacks ownership at narrow or large text sizes', async () => {
     mockWidth = 411; mockScale = 1;
     await render(<TaskCard item={task()} relation="APPLIED" onOpen={jest.fn()} />);
     const line = () => style(tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-value'));
+    expect(line().flexDirection).toBe('column');
+    mockWidth = 361; mockScale = 1.15;
+    for (const relation of ['APPLIED', 'UNKNOWN', 'PENDING'] as const) {
+      await act(async () => tree.update(<TaskCard item={task()} relation={relation} onOpen={jest.fn()} />));
+      expect(line().flexDirection).toBe('column'); expect(style(mark()[0]).maxWidth).toBe('100%');
+    }
+    await act(async () => tree.update(<TaskCard item={task()} relation="OWNED" onOpen={jest.fn()} />));
     expect(line().flexDirection).toBe('row');
     for (const [width, scale] of [[320, 1], [361, 1.3], [411, 2]]) {
       mockWidth = width; mockScale = scale; await act(async () => tree.update(<TaskCard item={task()} relation="OWNED" onOpen={jest.fn()} />));

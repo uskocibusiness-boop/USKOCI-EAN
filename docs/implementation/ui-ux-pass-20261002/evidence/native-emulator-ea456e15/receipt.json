@@ -1,0 +1,124 @@
+{
+  "source": "ea456e15f9906ec6fae8c4d00586119efbf7e944",
+  "run": 37869838906,
+  "apkSha256": "7f5e94b5d10bc625c6e8bec4944dd585d032e8ee50fbfa356eeed8ee6a7811a3",
+  "package": "rs.uskoci.dev",
+  "versionCode": 35,
+  "abi": "x86_64",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "compiledAttestation": {
+    "source": "ea456e15f9906ec6fae8c4d00586119efbf7e944",
+    "run": "37869838906",
+    "package": "rs.uskoci.dev",
+    "versionCode": "35",
+    "abis": [
+      "x86_64"
+    ],
+    "updatesEnabled": false,
+    "apkSha256": "7f5e94b5d10bc625c6e8bec4944dd585d032e8ee50fbfa356eeed8ee6a7811a3",
+    "configOverlay": "scripts/ci/configure-existing-dev-qa.cjs",
+    "sourceDirtyExpected": true,
+    "configSha256": {
+      "app.json": "8ad681e921f2bb09795ed6533658bf313b71094a2fc718086b5a22feb3fc7b1f",
+      "app.config.js": "54118536cc94301711c76f542644568209074cc4de944ade4b4bd079d7c79b73"
+    },
+    "deviceInstalled": false,
+    "release": false
+  },
+  "install": {
+    "command": "adb install -r",
+    "result": "SUCCESS",
+    "installedBaseSha256": "7f5e94b5d10bc625c6e8bec4944dd585d032e8ee50fbfa356eeed8ee6a7811a3",
+    "uidBefore": 10227,
+    "uidAfter": 10227,
+    "firstInstallTimeUnchanged": "2026-09-22 16:45:30",
+    "sessionRetained": "Authenticated Home and own Agreements visible; no login/token transfer/storage clear."
+  },
+  "display": {
+    "width": 1264,
+    "height": 2728,
+    "density": 560,
+    "fontScale": 1.15
+  },
+  "states": [
+    {
+      "name": "home",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-home.png",
+          "sha256": "3556df6b996a2baef1883f24b20bfbc2e5dc20daf39f1add85f823f180bdacd7"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-home.xml",
+          "sha256": "bac71b518911e2bf1b01043c05e51f35339af5d7fb76322f6ce614acd0ea90a2"
+        }
+      }
+    },
+    {
+      "name": "agreements",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-agreements.png",
+          "sha256": "aa7348b9c5cbe427dca3b92103f23746598c932314dc7e66f958e84d15945ed6"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-agreements.xml",
+          "sha256": "74ea83392a30ca68a780f322f1d3ca199e00c482bbb0271edc4538d3babde8b0"
+        }
+      }
+    },
+    {
+      "name": "chat-fixture",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-chat-fixture.png",
+          "sha256": "cfb9565e6f05c8c6e2df36c7ebf0fb98646a89fbf8c974fb00dc2e61b82c6112"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-chat-fixture.xml",
+          "sha256": "5ed2a852bf08d6b327891e4e96d2f70c5439d6f6c371504d34fd207cf343d8e4"
+        }
+      }
+    },
+    {
+      "name": "chat-senders",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-chat-senders.png",
+          "sha256": "4ee1e4761122b801c7c8784b999197de6076063b694031564fac01811d0f0104"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-chat-senders.xml",
+          "sha256": "14a01ab8de87dddab511c0aabda9294fa800cd63cdb97f73f50e7f0890331188"
+        }
+      }
+    },
+    {
+      "name": "chat-keyboard",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-chat-keyboard.png",
+          "sha256": "615f740c231cedda1ca43890142f436a484c24f47ab0cf62a419cbd2b640387f"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-chat-keyboard.xml",
+          "sha256": "24a165f51cd49ce1ca733b68cc883c70add984c7e993974a9e89754a7b9882f9"
+        }
+      }
+    }
+  ],
+  "proved": [
+    "Exact artifact and same certificate; installed base hash matches.",
+    "Existing authenticated second account preserved.",
+    "Live Home/Agreements read-only navigation visible.",
+    "Internal1:1 fixture shows incoming and own initials/name at saved message run starts.",
+    "Older history scroll reveals identity rows and Latest messages return control."
+  ],
+  "notProved": [
+    "New uncommitted card readability/grouped-list fixtures are absent from this APK.",
+    "No live send or multi-person/group RLS proof.",
+    "Focused input opened a floating IME toolbar, not full bottom keyboard; no keyboard-inset PASS from this capture.",
+    "Pending outgoing run has no sender header; followup finding remains open.",
+    "Not release/store/push delivery acceptance."
+  ]
+}

@@ -78,6 +78,20 @@ const LIST: DogovorProjekcija[] = [
   agreement('otkazan-drugi', { stanje: 'CANCELLED', chatDostupan: false, naslov: 'Košenje živice', vremeTekst: '29. sep · 08:00–10:00',
     putanjaTekst: 'Detelinara, Novi Sad', pocinje: '2026-09-29T06:00:00Z', ucesnici: [ME_WORKER, requester('Jelena Nikolić', 'JN')] }),
 ];
+/** Four selected people share a task, never bilateral terms. All ids and facts here are inert fixtures. */
+const GROUPED_NOW = new Date('2026-09-24T09:00:00Z');
+const groupedAgreement = (id: string, name: string, initials: string, amount: number, display: string, patch: Partial<DogovorProjekcija> = {}) =>
+  agreement(id, { naslov: 'Pomoć pri preseljenju kancelarije', ucesnici: [ME_REQUESTER, worker(name, initials)],
+    cena: { iznos: amount, valuta: 'RSD', prikaz: display }, pokrivenost: { ukupno: 4, popunjeno: 1, preostalo: 3, udeo: 0.25 },
+    izvor: { zadatakId: 'galerija-zajednicki-zadatak', prijavaId: `prijava-${id}` }, ...patch });
+const GROUPED: DogovorProjekcija[] = [
+  groupedAgreement('tim-marko', 'Marko Jovanović', 'MJ', 5500, '5.500 RSD', { izmenaCeka: { predlogId: 'lokalni-moj', mojPredlog: true } }),
+  groupedAgreement('tim-stefan', 'Stefan Ilić', 'SI', 3200, '3.200 RSD', { stanje: 'AWAITING_REQUESTER' }),
+  groupedAgreement('tim-aleksandra', 'Aleksandra Konstantinović-Radovanović', 'AK', 125000, '125.000 RSD',
+    { izmenaCeka: { predlogId: 'lokalni-drugi', mojPredlog: false } }),
+  groupedAgreement('tim-iva', 'Iva Petrović', 'IP', 4500, '4.500 RSD', { stanje: 'COMPLETED', chatDostupan: false }),
+];
+
 /** An agreed Dogovor with no term at all (R02), one with a problem reported (R04), and one where the other side's number was shared ("Pozovi"). */
 const NO_TERM_AGREEMENT = agreement('bez-termina-aktivan', { naslov: 'Pomoć oko računara', vremeTekst: 'Termin nije dogovoren', pocinje: null, putanjaTekst: 'Podbara, Novi Sad' });
 /**
@@ -149,12 +163,12 @@ const PENDING_PHOTOS: AgreementPhotosController = { ...PHOTOS, hasSelection: tru
   items: [{ ref: { agreementId: 'zona', agreementVersion: 1, clientRequestId: 'galerija-fotografija' }, receipt: null }],
   message: 'Ne znamo da li je fotografija poslata. Osveži fotografije pre novog izbora.' };
 
-type SceneKey = 'list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'worker-done' | 'worker-term' | 'recovery'
+type SceneKey = 'list' | 'grouped-list' | 'history' | 'long' | 'empty' | 'loading' | 'error' | 'one' | 'group' | 'done' | 'waiting' | 'worker' | 'worker-done' | 'worker-term' | 'recovery'
   | 'no-term' | 'problem' | 'form' | 'shared' | 'no-number' | 'cancelled' | 'cancelled-me' | 'long-detail'
   | 'status-loading' | 'status-error' | 'status-unavailable' | 'review' | 'review-grey' | 'review-saved' | 'review-loading' | 'review-error'
   | 'chat' | 'chat-waiting' | 'chat-empty' | 'chat-loading' | 'chat-error' | 'chat-closed' | 'chat-media' | 'chat-unknown';
 const SCENES: { key: SceneKey; label: string }[] = [
-  { key: 'list', label: 'Lista' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
+  { key: 'list', label: 'Lista' }, { key: 'grouped-list', label: 'Jedan zadatak · više ljudi' }, { key: 'history', label: 'Istorija' }, { key: 'long', label: 'Dugačka imena' }, { key: 'empty', label: 'Prazno' },
   { key: 'loading', label: 'Učitavanje' }, { key: 'error', label: 'Greška' }, { key: 'one', label: 'Pregled 1:1' }, { key: 'worker', label: 'Pregled · uskačem' },
   { key: 'worker-done', label: 'Pregled · uskačem, može da završi' }, { key: 'worker-term', label: 'Pregled · uskačem, termin dogovoren' },
   { key: 'group', label: 'Pregled · grupa' }, { key: 'waiting', label: 'Pregled · čeka potvrdu' }, { key: 'recovery', label: 'Pregled · provera ishoda' }, { key: 'done', label: 'Pregled · završen' },
@@ -173,11 +187,11 @@ const SCENES: { key: SceneKey; label: string }[] = [
 const STILL_HEADER = <ScreenChrome variant="root" title="Dogovori" onProfile={noop}
   bell={<ChromeIconButton label="Obaveštenja" icon={Bell} tone="green" onPress={noop} />} />;
 
-function ListScene({ items, loading = false, error = false, initial = 'active', cancellations }: { items: DogovorProjekcija[]; loading?: boolean; error?: boolean;
-  initial?: AgreementCollectionSection; cancellations?: AgreementCancellations }) {
+function ListScene({ items, loading = false, error = false, initial = 'active', cancellations, now }: { items: DogovorProjekcija[]; loading?: boolean; error?: boolean;
+  initial?: AgreementCollectionSection; cancellations?: AgreementCancellations; now?: Date }) {
   const [section, setSection] = useState<AgreementCollectionSection>(initial);
   const [only, setOnly] = useState(false);
-  return <AgreementCollectionPresentation items={items} loading={loading} error={error} section={section} confirmationOnly={only}
+  return <AgreementCollectionPresentation items={items} now={now} loading={loading} error={error} section={section} confirmationOnly={only}
     onSection={setSection} onConfirmationOnly={setOnly} onRefresh={noop} onOpen={noop} onRate={noop} onCalendar={noop} onProfile={noop}
     onHome={noop} onTasks={noop} onPublish={noop} header={STILL_HEADER} cancellations={cancellations} />;
 }
@@ -297,6 +311,7 @@ function ReviewScene({ mode }: { mode: 'eligible' | 'grey' | 'saved' | 'loading'
 function Scene({ scene, scale }: { scene: SceneKey; scale?: number }) {
   switch (scene) {
     case 'list': return <ListScene items={LIST} />;
+    case 'grouped-list': return <ListScene items={GROUPED} now={GROUPED_NOW} />;
     case 'history': return <ListScene items={LIST} initial="history" cancellations={CANCELLATIONS} />;
     case 'long': return <ListScene items={LONG} />;
     case 'empty': return <ListScene items={[]} />;
