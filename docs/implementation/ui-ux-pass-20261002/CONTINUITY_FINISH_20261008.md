@@ -690,3 +690,18 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **NIJE DOKAZANO:** novi prompt još nije deployovan; stvarni završetak samo komandom nije popravljen dokazom. Novi pregled/overview još nije u instaliranom5c APK-u. Drugi account, OPPORTUNITY/grupni push, voice, telefonski aktuelni UI i store kriterijumi ostaju otvoreni. Ulice bez naziva na SwiftShaderu ostaju ograničenje. Poslednji dostavljen telefonf64;30min automatizacijaPAUSED.
 
 **SLEDEĆE:** zamrznuti objedinjeni paket, deploy sa tačnim rollback/preflight/readback, jedan APK/native pregled i ugnježdeni Back. Nastaviti lokalni AREA-key eksperiment bez DEV opterećenja. Ne ponavljati reset podataka ili globalni push red.
+
+
+## b52 dostavljen; v60 i native pregled potvrđeni — 09.10.
+
+**URADIO:** intervju Edge60 primenjen sa tačnim v59 rollback-om. Emulator b52 instaliran preko postojeće instalacije; UID/prva instalacija sačuvani. Telefonski ARM64preview35 APK isporučen na privatni prerelease qa-phone-20261009-b52f6704; SHA6219e2b918dd9b36ea5603783880549100f8b3179eca3093b6097dc115d28261,99689480B,isti potpis,Firebase/OTA,5819frozenfiles. Nije Play paket.
+
+**DOKAZAO:** svih6 Edge fajlova byte-equal; ledger236,computed full digest/oba sertifikata/binding0201a7cc i retentionReady nepromenjeni. Nativeb52 poznata jedna osoba vidljiva u pregledu i posle objave; kompaktni izvori na punoj mapi; prvi Back zatvara izvore,drugi vraća pregled. Lokalnih1000fixturezadataka prikazuje geometriju i čitljivu podignutu listu. Nezavisna kritika zabeležila prazne grupne markere. evidence/review-map-finish-20261009/deployed-native-phone.json.
+
+**IZOLOVANA SQL PROVERA:**115Unicode +1380AREA/CITYprojekcija bez razlika,svih5pravihhelpera nepromenjeno.9punihRPCJSONparova u istom statementclock-u. Kombinovani window/AREA-once/inline kandidat ef2cd7d: generic9.894s,6auto9.042–10.092s;7odgovora jednaki,0grešaka,tačanrollback.40k su sintetički zadaci,1SQLreader,0HTTP; nije40k korisnika ni prihvatljiva brzina. NemaDEVprimene; partialclone nema puncomputedcert. evidence/discovery-local-plan-20261009/area-key-inline.json.
+
+**PUSH / NOVA VLASNIKOVA ODLUKA:** vlasnik bira uskocibusiness već prijavljen na telefonu; ne tražiti ponovo drugi emulatorlogin. Sveži readonlypreflight:1active sessionboundAndroid,revision6,obe-role saglasnosti; workerDRAFT/prazan. Zato nema legitimne prirodne OPPORTUNITYdok ne dopuni profil. Poslat kratak zahtev da aktivira profil,ostale provere nastavljene. Nema novogpush slanja,izmišljene prilike,authbypass-a niti promene profila. SOURCEaudit potvrđuje tri MESSAGE-only ograde; boundedOPPORTUNITY dodatak zahteva samostalan dokaz i tačnu cert/rollback obradu.
+
+**NIJE DOKAZANO:** fizička instalacija/runtime novogAPK-a,stvarni finish-only provider tok,OPPORTUNITY/grupni push i store. Ulice i brojevi cluster-a se naSwiftShaderu ne crtaju; uzrok se istražuje. CIb52 run37932897234 nije započeo zbog accountbilling/spending limita; nije testfailure. Automatizacija30minostajePAUSED.
+
+**SLEDEĆE:** rešiti map symbol dijagnostiku bez nagađanja produkcionog uzroka; testirati prirodnu ponudu za postojeći telefonski nalog tek sa aktivnim profilom i dokazanom boundedOPPORTUNITY putanjom. Ne ponavljati poslovni reset ili globalno slanje. Doc-only nastavak ne zahteva novu APK izgradnju.

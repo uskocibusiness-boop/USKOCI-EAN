@@ -9415,11 +9415,11 @@
       "ci": "Run37913827086 refresh job113765091836 had zero steps; annotation confirms account billing/spending limit block. No code-test failure claimed."
     },
     "discovery_local_plan_20261009": {
-      "state": "DIAGNOSIS_REPRODUCED_TIMEOUT_GENERIC_PLAN_MISSING",
-      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/receipt.json",
-      "scope": "40000 synthetic tasks+49 retained,5local Auth stubs,1SQLreader,0HTTP requests; noDEV load. Auto6th/generic1st hit90s; custom6/6 match.",
-      "cause": "Generic plan capture missing; custom trace reveals severe cardinality underestimate and spill, not proof of generic join cause.",
-      "next": "Read-only estimated EXPLAIN for exact parameterized inner query on isolated clone; runtime cause remains unproven. No DEV optimizer changes or load."
+      "state": "LOCAL_AREA_KEY_INLINE_PASS_CERT_COMPUTATION_UNAVAILABLE",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/area-key-inline.json",
+      "scope": "40000 synthetic tasks+49 retained;5local Auth stubs;1SQLreader;0HTTP. Unicode115+1380 and9fullJSONpairs pass;7timing answers equal,~9–10s,rollback exact.",
+      "cause": "Combined window/AREA-once/inline mitigates reproduced generic timeout on measured shape; final root cause and acceptable speed not proven.",
+      "next": "Read-only plan/cost diagnosis and additional semantic edge cases. No DEV promotion; full computed certificate unavailable in partial clone."
     },
     "phone_apk_f64b6bb4_20261009": {
       "state": "ATTESTED_PRIVATE_APK_DELIVERED / OWNER_INSTALL_PENDING",
@@ -9497,9 +9497,10 @@
       "result": "Seven equal full PLACES responses,7.2–13.7s, exact rollback;1SQLreader,0HTTP,40000synthetic tasks. No DEV changes or capacity claim."
     },
     "review_map_finish_20261009": {
-      "state": "SOURCE_PASS_NATIVE_AND_EDGE_FOLLOWUP_PENDING",
-      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/review-map-finish-20261009/receipt.json",
-      "result": "155 UI and94 context checks pass; known headcount and compact overview credits fixed; final native/finish-only provider follow-up pending."
+      "state": "EDGE_V60_BYTE_VERIFIED_NATIVE_POLISH_PASS_PRIVATE_PHONE_APK_DELIVERED",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/review-map-finish-20261009/deployed-native-phone.json",
+      "result": "Edge60 six-file byte equality and unchanged ledger/certificate; b52 emulator known1 and nested map Back PASS. Signed ARM64 private test APK delivered. Map native text, finish-only provider, phone acceptance and store remain open.",
+      "phoneTargetEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/review-map-finish-20261009/phone-target-status.json"
     }
   }
 }

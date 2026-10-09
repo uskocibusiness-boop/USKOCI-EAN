@@ -1,0 +1,25 @@
+{
+  "state": "PHONE_TARGET_BOUND_WORKER_DRAFT_NO_NATURAL_OPPORTUNITY",
+  "observedAt": "2026-10-09T13:19:57.159027+00:00",
+  "ownerDirection": "Use existing uskocibusiness phone account instead of requiring another emulator sign-in.",
+  "target": {
+    "alias": "uskocibusiness",
+    "activeSessionBoundAndroidDevices": 1,
+    "deviceRevision": 6,
+    "boundRevision": 6,
+    "requesterStatus": "ACTIVE",
+    "workerStatus": "DRAFT",
+    "workerCityPresent": false,
+    "workerSkillsCount": 0,
+    "workerAvailableNow": false,
+    "pushPreferencesBothRoles": true,
+    "opportunitiesPreference": true
+  },
+  "result": "No push sent. Owner asked to activate real worker profile on existing phone before a natural new-task matching proof. DRAFT is a real eligibility rejection; transport connection does not replace it.",
+  "next": "Prove bounded OPPORTUNITY support through exact event/device admission and pre-send current eligibility checks. Current bounded transport is MESSAGE-only. Preserve all prior journals and global OFF.",
+  "limits": [
+    "No auth bypass, fabricated opportunity, profile activation or device rebind performed.",
+    "An independent source audit identified three MESSAGE-only gates and a closure certificate impact; no OPPORTUNITY package applied.",
+    "Latest measured device registration is07:08UTC, not fresh physical runtime confirmation."
+  ]
+}

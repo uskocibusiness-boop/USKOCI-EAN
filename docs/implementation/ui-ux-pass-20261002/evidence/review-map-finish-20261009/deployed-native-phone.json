@@ -1,0 +1,138 @@
+{
+  "state": "EDGE_V60_BYTE_VERIFIED_NATIVE_POLISH_PASS_PRIVATE_PHONE_APK_DELIVERED",
+  "observedAt": "2026-10-09T13:19:57.159027+00:00",
+  "source": "b52f670437789b2c31a3cfd46a236f435d65d1a5",
+  "deployment": {
+    "version": 60,
+    "active": true,
+    "verifyJwt": true,
+    "filesByteEqual": 6,
+    "ezbrSha256": "c14bf229ea7e2e0507813219ac08b695580baea76f090d06570ea86760a93c2e",
+    "at": "2026-10-09T12:53:39.316Z"
+  },
+  "database": {
+    "ledger": 236,
+    "computedBothCertificatesAndBinding": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "retentionReady": true,
+    "beforeAfterEqual": true
+  },
+  "native": {
+    "apkSha256": "3da6dd403b431f753bfeac4ae2460f968ec44ff93c0281fb3192921912dd1e8c",
+    "package": "rs.uskoci.dev",
+    "updatesEnabled": false,
+    "knownOnePerson": "PASS",
+    "overviewNestedBack": "PASS",
+    "authenticatedUiObserved": true,
+    "device": {
+      "avd": "USKOCI_V5_TEST",
+      "size": "1264x2728",
+      "density": 560,
+      "fontScale": 1.15,
+      "renderer": "SwiftShader"
+    },
+    "density": {
+      "fixtureTasks": 1000,
+      "mapped": 800,
+      "notMapped": 200,
+      "observed": "Map geometry and raised readable list; three cluster bubbles have no visible counts.",
+      "serverLoad": false,
+      "performanceAcceptance": false,
+      "productionTabsAcceptance": false
+    },
+    "evidence": {
+      "polish-people": {
+        "xml": "b7678d73757ebd424b9da44cbd4e923ddb28fd2bade16cae827c4d7cf9c1200e",
+        "png": "a99bab3a7faf0d23f100d010b529451adcd544969d2d5a077d19e847938923b7"
+      },
+      "polish-published-detail": {
+        "xml": "f4f392f420c061a3d1af908a4827c4cdcc6d6268021152c3adeee2b127a8163b",
+        "png": "728578863e0024a9bd3c859c0c16e2f43a90c41c91acf9c9f209df57795fa807"
+      },
+      "polish-overview-ready": {
+        "xml": "aa0f69080a20b5c4648fcfc697482f7d6ab75c7b410addbfb0e24083f46ca371",
+        "png": "5fd375fd68a4690b7c27064cdc2366fc28a9cd6b7335037c8d95da0a63f92af3"
+      },
+      "polish-overview-sources": {
+        "xml": "3aea9371ef33c0c6fc73334d6f90105c6b287bca26ac799dac2ae59b8ca41ed2",
+        "png": "38b416cca81a6a790ce1b7a1d80930aae78f5c27903cfd88b7015835b6330d54"
+      },
+      "polish-overview-back-one": {
+        "xml": "aa0f69080a20b5c4648fcfc697482f7d6ab75c7b410addbfb0e24083f46ca371",
+        "png": "40c347f2fa982160ab8a50a709e2cd1b69f499f9507a19ef034196492c92785a"
+      },
+      "polish-overview-back-two": {
+        "xml": "3da754e709f21bbeed8b609547a3cbf815ee40818a4dcbefc4d87131b688c071",
+        "png": "c3f8044644269e181c2be2437e39ca17aed4749c408aa23e2c81b87194e0bda8"
+      },
+      "density-1000-ready": {
+        "xml": "c860d4079ef715f8faf723d4399eb47d9d742ae40bf8812bae42b6138a071602",
+        "png": "e901b4dfa7a6955e8c9669e36dd46100f164330e83b532ce3ce08d8717bffd8d"
+      },
+      "density-list-full": {
+        "xml": "454759117c2a26c823348f73bcf1e74eeecfec1494f18295feb4586a8cec0f8f",
+        "png": "f5a5c65c487f6ccb269b4ce274d79ed6940191456ff27812bda1df73771792a9"
+      }
+    },
+    "limits": [
+      "Physical phone APK/runtime not checked by this proof.",
+      "Map street labels and cluster numbers are not visible on this emulator; cause not yet established.",
+      "Item detail opening was not captured; no full detail roundtrip claim.",
+      "No new publication or changed location confirmation during this polish check.",
+      "Independent visual/source review found no blocker for known-headcount and nested attribution changes; it did flag missing map text."
+    ]
+  },
+  "phone": {
+    "apkSha256": "6219e2b918dd9b36ea5603783880549100f8b3179eca3093b6097dc115d28261",
+    "apkBytes": 99689480,
+    "sourceFilesByteEqual": 5819,
+    "package": "rs.uskoci.preview",
+    "versionCode": 35,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "signatureVerified": true,
+    "debuggable": false,
+    "updatesEnabled": true,
+    "releaseUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/tag/qa-phone-20261009-b52f6704",
+    "assetDigestVerified": true,
+    "physicalPhoneAccepted": false
+  },
+  "ci": {
+    "repo": "uskocibusiness-boop/USKOCI-EAN",
+    "run": 37932897234,
+    "checkRun": 113827729645,
+    "source": "b52f670437789b2c31a3cfd46a236f435d65d1a5",
+    "result": "JOB_NOT_STARTED_BILLING_OR_SPENDING_LIMIT",
+    "testsExecuted": false
+  },
+  "privateEvidence": [
+    {
+      "file": "review-map-v60-deployment-receipt.json",
+      "sha256": "bab359607aab2cd3b30e41e29028e789a3223f961d39e98a32137e4507ae8ed7"
+    },
+    {
+      "file": "intake-v59-rollback.json",
+      "sha256": "a92bdf1723f9a5fb6c6ef36406f3b52079773a033e21c31e6cf994c9b14a6ae0"
+    },
+    {
+      "file": "native-b52f6704-polish-receipt.json",
+      "sha256": "51e355c156b17bc5cc0972477bd6e30da4e5ba8d916e9e870243e6972ed35eba"
+    },
+    {
+      "file": "apk-phone-b52f6704/receipt.json",
+      "sha256": "f4a8657eaf7350e7458133a0867d6c635b0d63abf0d30ccf0104767347bb0886"
+    },
+    {
+      "file": "phone-b52f6704-private-release.json",
+      "sha256": "5585b176b886aeed0f2f67c281fcb10fba8c15fafa5865a2833a58f23d526cfe"
+    }
+  ],
+  "limits": [
+    "Real finish-only provider recovery still not proven.",
+    "One physical MESSAGE delivery/tap remains the only physical push proof; no new push was sent by this package.",
+    "Map street labels and native cluster numbers absent on SwiftShader; diagnosis remains open.",
+    "Private test APK, not Play/AAB or production release.",
+    "Automation remains PAUSED; phone is owner controlled."
+  ]
+}

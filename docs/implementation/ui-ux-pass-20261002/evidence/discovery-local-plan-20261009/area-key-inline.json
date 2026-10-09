@@ -1,0 +1,149 @@
+{
+  "state": "LOCAL_AREA_KEY_INLINE_PASS_CERT_COMPUTATION_UNAVAILABLE",
+  "observedAt": "2026-10-09T13:19:57.159027+00:00",
+  "baselineBodyMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+  "candidateBodyMd5": "ef2cd7d51cbb83323b06a4e7fe9663cf",
+  "scope": {
+    "syntheticTasks": 40000,
+    "retainedTasks": 49,
+    "discoverable": 40007,
+    "localAuthStubs": 5,
+    "concurrentSqlReaders": 1,
+    "httpRequests": 0,
+    "requestsPerSecond": null,
+    "capacityAccepted": false
+  },
+  "unicode": {
+    "state": "READ_ONLY_UNICODE_AND_FACET_PROJECTION_PASS",
+    "expressionSha256": "c4bf5e7a0665292095e75f63e8a1f9f74a6d01ea38b3ff08f4a96d721d616394",
+    "helperDefinitionsSha256": "7062fd0cb657402e36610c84a3a687781e353691089dc1740fe26f49edfad30a",
+    "key": {
+      "cases": 115,
+      "mismatches": 0
+    },
+    "facetAreaAndCity": {
+      "cases": 1380,
+      "mismatches": 0
+    },
+    "all25Whitespace": true,
+    "helpersUnchanged": true
+  },
+  "semantics": {
+    "state": "LOCAL_FULL_RESPONSE_SEMANTICS_PASS",
+    "fullJsonPairs": 9,
+    "cases": [
+      {
+        "label": "area-1",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "area-2",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "city-1",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "city-2",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "area-cyrillic-1",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "area-cyrillic-2",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "city-cyrillic-1",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": false
+      },
+      {
+        "label": "page-1",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      },
+      {
+        "label": "page-2",
+        "fullResponseEqual": true,
+        "clockEqual": true,
+        "hasMore": true
+      }
+    ],
+    "sameStatementClock": true,
+    "freshConnectionExactRestoreAfterEach": true
+  },
+  "timing": {
+    "genericMs": [
+      9894.2
+    ],
+    "autoMs": [
+      9042.3,
+      9575.1,
+      10092,
+      9694.1,
+      9203.8,
+      9735.8
+    ],
+    "baselineOracleProcessMs": 17763.50210001692,
+    "exactResponseComparisons": 7,
+    "errors": 0,
+    "freshConnectionExactRestoration": true,
+    "host": "Shared Windows host with emulator; phone Gradle complete before run; upload/attestation activity may overlap."
+  },
+  "privateEvidence": [
+    {
+      "file": "local-inline-unicode-20261009-v2.json",
+      "sha256": "d6b9fc36996627f3fd30706028d1f11386d19c7ac77135c3dc4180d7d93372d9"
+    },
+    {
+      "file": "local-inline-rpc-semantics-20261009.json",
+      "sha256": "26a4b3f9713bc22d07b180eb0eae882faa3a5c0c71d3f4ee1fc91909516b1a13"
+    },
+    {
+      "file": "local-area-key-inline-20261009.json",
+      "sha256": "6e9b087fdcd873e750e99a28fa10a32f5c20a7b463c2fa90b9f94ac3eb336116"
+    },
+    {
+      "file": "prove-inline-unicode-v2.py",
+      "sha256": "f187d0e22e217b8d60d5583353f3d3ad2316ad2ccf7eb4aacd1334b2e8f7edc0"
+    },
+    {
+      "file": "prove-inline-rpc-semantics.py",
+      "sha256": "02c6ad87a78d0fadf845270e9e6c24175f8d25c082026f6a84e23259f9d023e7"
+    },
+    {
+      "file": "prove-local-area-key-inline.py",
+      "sha256": "37490a49ced716137fd09de62904e079956ce17cd1f2f685cc8c73359007816e"
+    }
+  ],
+  "limits": [
+    "One authenticated SQL reader and40000synthetic tasks, not HTTP or production capacity.",
+    "Only PLACES shape tested here; other modes require their own semantic/cost checks.",
+    "Original function body, ACL, RLS and stored certificate rows are not changed persistently.",
+    "Computed certificate/readiness preflight failed before any mutation: isolated storage.buckets lacks public column. Only stored certificate rows compared; no computed certificate acceptance.",
+    "Combined window/AREA-once/inline candidate, not isolated inline speedup. Still approximately9–10seconds, not acceptable mobile response speed.",
+    "No percentage comparison against older runs on different host load.",
+    "RPC cases did not record/assert nonempty CITY Cyrillic result; no wrong/expired anchor, cross-group/prefix, malformed cursor, selected-city PAGE, MAP or EXACT_PUBLIC coverage.",
+    "Only initial page transition, not full traversal. Role checks do not establish non-superuser/non-bypass or full Supabase JWT transport.",
+    "Corrected Unicode helper inventory includes actual discovery_fold_v1 and asserts all five helpers. Original incomplete inventory retained only as history.",
+    "Partial clone cannot compute full closure certificate due to missing storage.buckets.public. No DEV promotion or server load."
+  ]
+}
