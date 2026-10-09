@@ -6,7 +6,7 @@ import { discoveryShown, initialMarketplaceView, pinPlaces, publicPoint, type Ma
 import type { DiscoveryPresentationProps } from '../../ui/v2/DiscoveryPresentation';
 
 let mockPackage: string | undefined = 'rs.uskoci.dev';
-let mockParams: { count?: unknown; detail?: unknown; discoveryTrace?: unknown; relation?: unknown } = {};
+let mockParams: { count?: unknown; detail?: unknown; discoveryTrace?: unknown; relation?: unknown; scene?: unknown } = {};
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 jest.mock('expo-constants', () => ({ get expoConfig() { return { android: { package: mockPackage } }; } }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams }));
@@ -34,11 +34,39 @@ test.each([undefined, 'rs.uskoci', 'rs.uskoci.app.dev', 'other.dev'])(
 
 test.each([{ count: '1001' }, { count: '01' }, { count: ['1000'] }, { count: '1', detail: '1' },
   { count: '1000', detail: '1000' }, { count: '1000', detail: '-1' }, { count: '1000', detail: '02' }, { detail: ['0'] },
-  { relation: 'unknown' }, { relation: ['owned'] }])(
+  { relation: 'unknown' }, { relation: ['owned'] }, { scene: 'unknown' }, { scene: ['point-members'] },
+  { scene: 'point-members', count: '1000' }, { scene: 'point-members', detail: '0' },
+  { scene: 'point-members', relation: 'owned' }])(
   'rejects malformed or out-of-range scene input before rendering Discovery: %j', async params => {
     mockParams = params; await render();
     expect(tree.root.findAllByType('Discovery' as React.ElementType)).toHaveLength(0);
     expect(words()).toContain('Nepoznat prikaz galerije.');
+  },
+);
+
+test('bounded point-members fixture carries an independent total through the real seam and stays local', async () => {
+  mockParams = { scene: 'point-members' }; await render();
+  const p = discovery(), seam = p.p6Seam!, marker = seam.map.markers[0];
+  expect(p.items).toHaveLength(50); expect(new Set(p.items.map(row => row.id)).size).toBe(50);
+  expect(p.items.every(row => publicPoint(row)?.lat === 45.25 && row.detalji?.rezimLokacije === 'STATIONARY'
+    && 'narucilacAvatarId' in row && row.narucilacAvatarId === null)).toBe(true);
+  expect(seam.peek?.place).toBe(p.items); expect(seam.peek?.placeTotalCount).toBe(4000);
+  expect(marker).toMatchObject({ kind: 'PLACE', taskCount: 4000 });
+  expect(seam.counts).toMatchObject({ listed: 4000, mapped: 4000, withoutPoint: 0 });
+  expect(seam.pageHasMore).toBe(false);
+  expect(words()).toContain('DEV · 4.000 ukupno / 50 učitano · bez baze');
+  await act(async () => { p.onOpen(p.items[0]); p.onRefresh(); p.onProfile(); seam.onNextPage(); seam.onShowPlace(); });
+  expect(discovery().p6Seam?.peek).toBeNull();
+  await act(async () => discovery().p6Seam!.map.onSelect(marker));
+  expect(discovery().p6Seam?.peek?.placeTotalCount).toBe(4000);
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+test.each(['rs.uskoci.preview', 'rs.uskoci'])(
+  'point-members fixture remains unavailable outside exact DEV package: %s', async packageName => {
+    mockPackage = packageName; mockParams = { scene: 'point-members' }; await render();
+    expect(tree.root.findAllByType('Discovery' as React.ElementType)).toHaveLength(0);
+    expect(words()).toContain('Nije dostupno.');
   },
 );
 

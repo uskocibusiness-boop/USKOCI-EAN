@@ -1,0 +1,66 @@
+{
+  "source": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+  "apk": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/local-apk-c62b85d8/USKOCI-LOCAL-EMULATOR.apk",
+  "apkSha256": "ea57d3e1e09306a3e9e4c6caf20cf48830060fd908c4655408c3b89e354d959f",
+  "apkBytes": 101526804,
+  "package": "rs.uskoci.dev",
+  "versionCode": 35,
+  "abis": [
+    "x86_64"
+  ],
+  "debuggable": false,
+  "updatesEnabled": false,
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "signatureVerified": true,
+  "deviceInstalled": false,
+  "release": false,
+  "kind": "LOCAL_UNPUBLISHED_EMULATOR_QA",
+  "verifiedAtUtc": "2026-10-09T07:14:22.553915+02:00",
+  "buildReceipt": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\local-c62b85d8-build.json",
+  "buildReceiptSha256": "859895fbe444de9a4a277f04e6278473890c8a1d60f2612d4f4e259c76924b68",
+  "buildStep": {
+    "name": "gradle-linked-resume",
+    "state": "PASS",
+    "log": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\local-c62b85d8-gradle-linked-resume.log",
+    "timeoutSeconds": 1800,
+    "reason": "Restore sole locked local vendor junction; same source/config/native cache; process-tree cleanup on timeout.",
+    "processId": 27084,
+    "exit": 0,
+    "elapsedSeconds": 1309.9,
+    "logSha256": "91e5f7f8fed524415ed03360b7f6a0ea35352927513a0e0b755e56d2e44dfaf3"
+  },
+  "manifestProof": {
+    "tool": "C:/Users/user/AppData/Local/Android/Sdk/build-tools/35.0.0/aapt.exe",
+    "xmltreeSha256": "ca79ee03ae0aa7dc91d4c1f751c60002bec2e9e95bc0027ca5e34ab75101cd87",
+    "debuggableAttribute": "Absent; Android default false; badging has no application-debuggable",
+    "updatesEnabledAttribute": "A: android:value(0x01010024)=(type 0x12)0x0"
+  },
+  "sourceProof": {
+    "archiveSha256": "d8eaabba320a15826f45a3cdc5e15717b101457f472736b2df039568a9ee6bcb",
+    "archiveFileCountCompared": 5789,
+    "changedTrackedFiles": [
+      "app.config.js",
+      "app.json",
+      "package.json"
+    ],
+    "knownQaOverlay": {
+      "app.json": "8ad681e921f2bb09795ed6533658bf313b71094a2fc718086b5a22feb3fc7b1f",
+      "app.config.js": "54118536cc94301711c76f542644568209074cc4de944ade4b4bd079d7c79b73",
+      "android/gradle.properties": "3c1310067d2d539a6a9467d6b8f952975e8216b78dc12a6dbb4c2642c7618c14"
+    },
+    "packageScriptOnlyDrift": {
+      "android": {
+        "before": "expo start --android",
+        "after": "expo run:android"
+      },
+      "ios": {
+        "before": "expo start --ios",
+        "after": "expo run:ios"
+      }
+    },
+    "dependencyOverridesUnchanged": true,
+    "vendorLinkRepairReceipt": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\local-c62b85d8-link-repair.json"
+  },
+  "limits": "QA artifact; not byte-identical export: known QA overlay and prebuild android/ios script changes. No device test, server proof or store release claimed.",
+  "originalBuildApk": "C:\\Users\\user\\Documents\\Codex\\ub1\\android\\app\\build\\outputs\\apk\\release\\app-release.apk"
+}

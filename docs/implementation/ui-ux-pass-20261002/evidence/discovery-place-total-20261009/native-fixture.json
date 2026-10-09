@@ -1,0 +1,35 @@
+{
+  "kind": "SOURCE_CHECKS_NOT_NATIVE",
+  "sourceBase": "7cf95d1d",
+  "route": "uskociapp://dizajn-mapa?scene=point-members",
+  "packageGate": "rs.uskoci.dev only",
+  "implementation": "50 inert stationary Novi Sad rows; single PLACE marker/counts/peek total4000 through production DiscoveryPresentation seam. Three preview rows and Show place -> FULL handled by real presentation. Local select/clear; no controller/backend/media/paging.",
+  "files": {
+    "src/app/dizajn-mapa.tsx": "6a6173f37753b80dfcc3d2d001437761f496731ebfbe401c6e8cb84ab965ee1d",
+    "src/data/__tests__/dizajn-mapa-gallery.test.tsx": "881e691ff4f36750066019a13236be7a0b9ffc35154bea96fa1ad87eb622fd08"
+  },
+  "tests": {
+    "gallery": 29,
+    "existingProductionTotalCases": 2,
+    "skippedUnrelatedPresentationCases": 213,
+    "initial": "28PASS/1 pre-existing detail-return test exceeded unchanged5s timeout while emulator consumed host. No assertion failure. Unchanged limit/detail test rerun after emulator shutdown:29PASS. Final run after fixture-only type narrowing:29PASS in4.616s.",
+    "sha256": {
+      "point-members-gallery-tests.json": "ff9b54b9727818adc797a105994695f41cd574edebd9883f6f7eb47311604045",
+      "point-members-gallery-final.json": "1c5d068236096586b4a925a0f78b441951ea8494573dc22e905f04ab411f9561",
+      "point-members-presentation-final.json": "4b43cfff7930cedb9419dd11a416acd95ce3d557628a4bab473f55c6bc64bda7",
+      "point-members-tsc-result.json": "42fbe56ed54566b20291351dd60a48134d140889fed4e2f0ec9ad524a70e1712"
+    }
+  },
+  "tsc": {
+    "exit": 0,
+    "seconds": 83.2,
+    "command": "node node_modules/typescript/bin/tsc --noEmit --pretty false",
+    "firstAttempt": "TS2322 optional fixture details and TS2339 union avatar. Tightened fixture return type; narrowed union in test, production contracts unchanged."
+  },
+  "review": "Independent read-only source review: no blocker.",
+  "limits": [
+    "Not in c62 APK. Native still pending.",
+    "pageHasMore:false intentionally bounds this fixture at50; does not prove a complete4000-row page or server pagination.",
+    "Not4000 users, a load test, or a server capacity claim."
+  ]
+}

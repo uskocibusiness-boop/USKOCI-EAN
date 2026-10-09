@@ -1,0 +1,172 @@
+{
+  "kind": "LOCAL_APK_AND_BOUNDED_EMULATOR_PROOF_WITH_ANR",
+  "recordedAt": "2026-10-09T05:46:44.036301+00:00",
+  "source": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+  "apkSha256": "ea57d3e1e09306a3e9e4c6caf20cf48830060fd908c4655408c3b89e354d959f",
+  "package": "rs.uskoci.dev",
+  "versionCode": 35,
+  "abi": "x86_64",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "debuggable": false,
+  "otaEnabled": false,
+  "storeRelease": false,
+  "build": {
+    "state": "PASS",
+    "steps": [
+      {
+        "name": "patch-check",
+        "state": "PASS",
+        "exit": 0,
+        "elapsedSeconds": 0.5,
+        "logSha256": "100a9e519354289c001daefcb36107bd4e8d1b3db6b5aa4218fefdfa75d8fa51"
+      },
+      {
+        "name": "overlay-check",
+        "state": "PASS",
+        "exit": 0,
+        "elapsedSeconds": 0.8,
+        "logSha256": "48923102c1a1887e93b9874b61e518d745f62102e7fa70025f2ac88b4dcc5abf"
+      },
+      {
+        "name": "overlay",
+        "state": "PASS",
+        "exit": 0,
+        "elapsedSeconds": 0.2,
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "prebuild",
+        "state": "PASS",
+        "exit": 0,
+        "elapsedSeconds": 55.8,
+        "logSha256": "2c7ed98130fe237bb437ecb89e0494653fece6501df1d4f8705f9b24a9db50ee"
+      },
+      {
+        "name": "gradle",
+        "state": "FAIL",
+        "exit": 1,
+        "elapsedSeconds": 132.1,
+        "logSha256": "c4bc3acd35486064848556bdd30e62a3aad9f4f56bea34d3c85b3639b9ac0d10"
+      },
+      {
+        "name": "gradle-online",
+        "state": "CONTROLLED_STOP",
+        "reason": "Stopped exact owned process tree before wrapper deadline; no application compile error; native objects retained.",
+        "exit": 1,
+        "elapsedSeconds": 2673.9,
+        "logSha256": "ed7de0958e1514c29982e3a4d77a3d163b3c2c773ee28f172e6becd34a176e6d"
+      },
+      {
+        "name": "gradle-resume",
+        "state": "FAIL",
+        "timeoutSeconds": 1800,
+        "reason": "Resume exact same source/config with warm native objects; owned process-tree cleanup on timeout.",
+        "exit": 1,
+        "elapsedSeconds": 311.9,
+        "logSha256": "b676d13288dd2f824c13e3efdb0672bb244b2e44f187377206850039719749f2"
+      },
+      {
+        "name": "gradle-linked-resume",
+        "state": "PASS",
+        "timeoutSeconds": 1800,
+        "reason": "Restore sole locked local vendor junction; same source/config/native cache; process-tree cleanup on timeout.",
+        "exit": 0,
+        "elapsedSeconds": 1309.9,
+        "logSha256": "91e5f7f8fed524415ed03360b7f6a0ea35352927513a0e0b755e56d2e44dfaf3"
+      }
+    ],
+    "sourceAttestation": "pre-install-attestation.json",
+    "sourceProof": "5789 archived files compared; only known QA overlay and Expo prebuild android/ios package scripts changed. Dependencies/overrides unchanged.",
+    "recovery": "Offline pinned Kotlin cache miss; controlled owned-process stop before wrapper deadline; Metro missed sole local vendor junction excluded by /XJ copy; restored junction wholly inside private build export, no version/install change.",
+    "buildReceiptSha256": "859895fbe444de9a4a277f04e6278473890c8a1d60f2612d4f4e259c76924b68",
+    "linkRepairReceiptSha256": "a3cf92d10e013960638a0bb802b104b53fe9514e85861e5fef4beceadcaeb037"
+  },
+  "install": {
+    "method": "adb install -r",
+    "exit": 0,
+    "installedHashVerified": true,
+    "uidPreserved": true,
+    "firstInstallPreserved": true,
+    "authenticatedHomeAfterInstall": true,
+    "afterColdRestarts": "Installed APK hash, UID and first-install unchanged; authenticated Home not rechecked after failed cold restarts.",
+    "receiptSha256": "f1103131423ef4c1b63cc41dc119131146038e824fb4d3f439b6495d86336388"
+  },
+  "device": {
+    "kind": "EMULATOR",
+    "avd": "USKOCI_V5_TEST",
+    "android": "16",
+    "sizePx": [
+      1264,
+      2728
+    ],
+    "densityDpi": 560,
+    "fontScaleInitialProof": 1.3,
+    "phoneUsed": false
+  },
+  "observations": {
+    "initialLatest": {
+      "state": "PASS_BOUNDED",
+      "scene": "dizajn-dodaci / gr-thread",
+      "scenario": "Fresh scene, no initial scroll gesture, font1.30.",
+      "body": "I ja. Poneću rukavice za sve.",
+      "bubbleBottomPx": 2070,
+      "composerInputTopPx": 2168,
+      "review": "Root and independent read-only visual review both see complete final body with sender name/initials. Supersedes only the same initial-layout failure in a481."
+    },
+    "fullIme": {
+      "state": "NOT_PROVEN_INTERRUPTED_BY_ANR",
+      "details": "First saved IME-named frame had focused input but no visible keyboard, so it is not IME PASS. Full keyboard later appeared behind ANR dialogs; no completed resize/recovery proof."
+    },
+    "longHistoryPrependParticipants": "NOT_REACHED: automated scene search interrupted, no gr-history capture or anchor proof.",
+    "publisherFooter": "NOT_REACHED: retains SOURCE_CHECKS_PASS/NATIVE_PENDING.",
+    "transportReadAckAuthorization": "NOT_TESTED: inert fixture actions are no-op; no send or business mutation."
+  },
+  "anr": {
+    "state": "OPEN",
+    "events": [
+      "2026-10-09 07:23:11 app rs.uskoci.dev: FocusEvent(true), 5011ms.",
+      "2026-10-09 07:24:07 Android system: MotionEvent, 5004ms."
+    ],
+    "trace": "Current09.10/PID10839 main waits future/RenderProxy.setStopped/HardwareRenderer; RenderThread waits qemu_pipe_read/rcCreateSyncKHR/eglSwapBuffers. JS and native-module threads idle in this snapshot.",
+    "inference": "A blocked emulator EGL/QEMU rendering path is observed; no JS follow-loop evidence in captured stacks. Final root cause remains unresolved; not an app-wide stability PASS.",
+    "pressure": "App/system traces CPU pressure avg10 67.48%/80.63%, total94%/91%, IRQ62%/63%.",
+    "recovery": "Wait did not recover; adb reboot did not complete. Graceful emu kill then same AVD cold boot without snapshots/userdata wipe. Default graphics yielded System UI ANR. One temporary -gpu swiftshader attempt yielded repeated system/phone/Gboard startup ANRs before app test. No further retry.",
+    "reference": "https://developer.android.com/topic/performance/anrs/diagnose-and-fix-anrs"
+  },
+  "cleanup": {
+    "fontScale": "RESTORED1.15; read back from Android settings.",
+    "keyboardPreferences": "RESTORE_PENDING: Gboard Physical keyboard / Show on-screen keyboard originally false, last observed true; Write in text fields / Use stylus originally true, last observed false. Restore through settings before next QA; post-reboot state not verified.",
+    "secureShowImeWithHardKeyboard": "Original1 unchanged.",
+    "avd": "STOPPED with adb emu kill after diagnostics; no snapshot save, no wipe, no emulator config file change.",
+    "phone": "Untouched; prior512 APK remains."
+  },
+  "privateEvidenceSha256": {
+    "emu-c62-home-installed.png": "4e418c9ce699a905411981c8798d0059f7699c3731147903604d4d9379769454",
+    "emu-c62-home-installed.xml": "cc6e85a9ee162e630c6920b0ca0f5ee4d82abc12590c4795c190c9479ff82863",
+    "emu-c62-group-initial-130.png": "09dc8e24f86927d1f98512c670ff168ffbbad4ffec691e5eea9589aab1cb031a",
+    "emu-c62-group-initial-130.xml": "2495071b6f0a8953a5a0a12ed2b7d2578f3c4108366c40ab0ed80290eaff72fe",
+    "emu-c62-group-ime-130.png": "8f310e5b117884915a7df9b5eb9a19c7b5f3081b7e36439e377b75da80a62713",
+    "emu-c62-group-ime-130.xml": "f949db55896d255aab38b0d3337c7ac60e03c611d15b4e6462d0d7aa5510743d",
+    "live-emulator.png": "d6f6aff83434d22ae4227377619d27461f7e0d863ac5a5efccd34fc8294e6c29",
+    "c62-anr-events.log": "c9a4ffe1f193fb269ba78634f6634fcfda3580a17560edb6e35d7a64180a8cf7",
+    "c62-anr-system.log": "902c686c0394a8ce252554648779d80e3bc81c872e6744547787934e621e1c7e",
+    "c62-app-anr-dropbox.txt": "b19543c014d458a0a4619744f90f262ff8094718910629b23b9f0a653ee88d8d",
+    "c62-system-anr-dropbox.txt": "beed0baa92744898f832140affa4de510f77ecfa9af362cbaaafbc2ad6d06460",
+    "c62-coldboot-screen.png": "333ab6a8ecec23f0c7eb5c043f00803c1a2558314cfa39c554bdf361e06910f9",
+    "c62-coldboot-events.log": "851f772fb91edc7f3f9b3abb1cfa7f33dd8b9762ed04efc5db6847978b9fa484",
+    "c62-swiftshader-screen.png": "7c490ac171e85b61956b2454ec2f4ebd4645d746b103059880408355c68977ba",
+    "c62-swiftshader-events.log": "d499a131a3e8316d13636b9ae9877f422cc7911a3e12665ace9eba354c389627",
+    "c62-swiftshader-final.png": "b37be3ef05c182e84b1f5a2428999b04124e223f6f4f76912c33dc8fa5ad3b66",
+    "c62-restored-font.txt": "be3b6d619f42391ff130066e9482c3c55dcff2c4bee618620b2da1e7fba4f0db",
+    "c62-emulator-final-package.json": "3fc35658ebd14912dcb16c7db2ba1b0dd0575985e32ffca8660223734f920559",
+    "emu-gboard-physical-before.xml": "9cea95e5845fa314c538fec047ae3bb4f8ead475467edf16cb4ed1216904fb86",
+    "emu-gboard-physical-test-setting.xml": "6df974cc31c28733e36477fe205cde8de1cec17073f7586128c06299aa1830e7",
+    "emu-gboard-handwriting-before.xml": "71ce99876acbdab12fe9657ad45ac2855b87a680ac12fa2860ffa29c436b6793",
+    "emu-gboard-handwriting-test-setting.xml": "03e98048efd615cafbeeb1a3efc33020d24354b81bc800a161651f530274f8dd"
+  },
+  "limits": [
+    "Raw device images/logs remain private.",
+    "No end-to-end chat, performance, push or store acceptance.",
+    "caf48ecf place total and7cf95d1d agreement rhythm, and new point-members gallery are not in this c62 APK."
+  ]
+}

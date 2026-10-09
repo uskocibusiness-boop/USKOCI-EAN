@@ -8,19 +8,20 @@ import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } fr
 import { taskRelationIndex } from '../data/taskRelation';
 import { needScheduleText } from '../data/needDetailPresentation';
 import { novac } from '../lib/novac';
-import { DiscoveryPresentation, type DiscoveryTrace } from '../ui/v2/DiscoveryPresentation';
+import { DiscoveryPresentation, type DiscoveryTrace, type DiscoveryV1PresentationSeam } from '../ui/v2/DiscoveryPresentation';
 import { Press } from '../ui/Press';
 import { T } from '../ui/Text';
 import { sys } from '../ui/system/tokens';
 
 /**
  * Inert native rendering fixture, never a server dataset or a concurrent-user load test.
- * Exact internal package only: uskociapp://dizajn-mapa?count=1 or count=1000.
+ * Exact internal package only: uskociapp://dizajn-mapa?count=1, count=1000 or scene=point-members.
  * The real Discovery component keeps its filters, map, sheet and virtualization. Its map tiles/attribution and
  * explicit local Nearby control are unchanged; fixtures have no media and no profile/contact/action reads.
  * Opening a row pushes this route's inert detail, so Back exercises native screen detachment and retained list state.
  */
 type Count = 1 | 1000;
+type GalleryTask = PrilikaProjekcija & { detalji: NonNullable<PrilikaProjekcija['detalji']> };
 const noop = () => {};
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const TITLES = ['Prenos ormana do kombija', 'Montaža dve police', 'Pomoć pri selidbi stana sa trećeg sprata bez lifta i rasklapanje velikog ormara',
@@ -28,8 +29,8 @@ const TITLES = ['Prenos ormana do kombija', 'Montaža dve police', 'Pomoć pri s
 const CENTERS = [{ city: 'Novi Sad', lat: 45.25, lng: 19.84 }, { city: 'Novi Sad', lat: 45.25, lng: 19.84 },
   { city: 'Beograd', lat: 44.81, lng: 20.46 }, { city: 'Niš', lat: 43.32, lng: 21.90 }];
 
-function fixtures(count: Count): PrilikaProjekcija[] {
-  return Array.from({ length: count }, (_, index): PrilikaProjekcija => {
+function fixtures(count: number): GalleryTask[] {
+  return Array.from({ length: count }, (_, index): GalleryTask => {
     // Per ten: eight public geographic tasks, one remote, one on-site with an unavailable public pin.
     const remote = index % 10 === 8, noPin = index % 10 === 9;
     const center = CENTERS[Math.floor(index / 10) % CENTERS.length];
@@ -68,18 +69,46 @@ const leave = () => router.canGoBack() ? router.back() : router.replace('/dizajn
 
 export default function DizajnMapa() {
   const params = useLocalSearchParams<{ count?: string | string[]; detail?: string | string[]; discoveryTrace?: string | string[];
-    relation?: string | string[] }>();
+    relation?: string | string[]; scene?: string | string[] }>();
   const internal = Constants.expoConfig?.android?.package === 'rs.uskoci.dev';
   const count = params.count === undefined || params.count === '1' ? 1 : params.count === '1000' ? 1000 : null;
   const detail = params.detail === undefined ? null : typeof params.detail === 'string' && /^(0|[1-9]\d{0,2})$/.test(params.detail)
     ? Number(params.detail) : -1;
   const relation = params.relation ?? 'none';
+  const pointMembers = params.scene === 'point-members';
   if (!internal || count === null || (relation !== 'none' && relation !== 'owned' && relation !== 'applied')
+    || (params.scene !== undefined && !pointMembers)
+    || (pointMembers && (params.count !== undefined || params.detail !== undefined || params.relation !== undefined))
     || (detail !== null && (detail < 0 || detail >= count))) {
     return <SafeAreaView style={s.screen}><T style={s.unavailable}>{internal ? 'Nepoznat prikaz galerije.' : 'Nije dostupno.'}</T>
       <GalleryFooter count={null} onBack={leave} /></SafeAreaView>;
   }
+  if (pointMembers) return <PointMembersGallery />;
   return <LocalGallery key={`${count}:${relation}`} count={count} detail={detail} relation={relation} traceEnabled={params.discoveryTrace === '1'} />;
+}
+
+/** Only fifty local rows: the production seam owns the separate total. No paging or database capacity claim. */
+function PointMembersGallery() {
+  const point = { lat: 45.25, lng: 19.84 }, key = 'place:45.25:19.84';
+  const items = useMemo(() => fixtures(70).filter(row => row.priblizno !== null).slice(0, 50)
+    .map(row => ({ ...row, priblizno: { lat: 45.25, lng: 19.84 },
+    podrucjeTekst: 'Novi Sad', detalji: { ...row.detalji, rezimLokacije: 'STATIONARY' as const,
+      geografija: { mode: 'STATIONARY' as const, start: { city: 'Novi Sad' } } } })), []);
+  const [selected, setSelected] = useState(true);
+  const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map', sheet: 'peek' }));
+  const clear = () => setSelected(false);
+  const seam: DiscoveryV1PresentationSeam = {
+    map: { markers: [{ kind: 'PLACE', key, point, taskCount: 4000 }], selectedKey: selected ? key : null,
+      wholeBounds: [19.79, 45.20, 19.89, 45.30], onSelect: marker => { if (marker.key === key) setSelected(true); } },
+    peek: selected ? { key, item: null, place: items, placeTotalCount: 4000 } : null,
+    counts: { kind: 'exact_live', observedAt: '2026-10-09T04:00:00Z', listed: 4000, mapped: 4000,
+      inArea: 4000, withoutPoint: 0, undated: 0 },
+    pageHasMore: false, onArea: noop, onClearPeek: clear, onShowPlace: clear, onShowAll: clear, onNextPage: noop,
+  };
+  return <View style={s.screen}><View style={s.grow}>
+    <DiscoveryPresentation items={items} loading={false} error={false} scopeKey="local-map-gallery:point-members"
+      view={view} onView={setView} onOpen={noop} onRefresh={noop} onProfile={noop} p6Seam={seam} />
+  </View><GalleryFooter count={null} onBack={leave} pointMembers /></View>;
 }
 
 const TRACE_EVENTS = new Set(['seed', 'preopen', 'request', 'ack', 'clamp0', 'ready', 'content']);
@@ -128,11 +157,15 @@ function LocalGallery({ count, detail, traceEnabled, relation }: {
   </View>;
 }
 
-function GalleryFooter({ count, detail = false, onBack }: { count: Count | null; detail?: boolean; onBack: () => void }) {
+function GalleryFooter({ count, detail = false, onBack, pointMembers = false }: {
+  count: Count | null; detail?: boolean; onBack: () => void; pointMembers?: boolean;
+}) {
   return <SafeAreaView edges={['bottom']} style={s.footer}>
     <View style={s.footerRow}>
-      <T variant="meta" accessibilityLabel={count ? `DEV galerija, ${count} lokalnih probnih zadataka, bez podataka iz baze` : 'DEV galerija'}
-        style={s.context}>{count ? `DEV · ${count === 1000 ? '1.000 zadataka' : '1 zadatak'} · bez baze` : 'DEV galerija'}</T>
+      <T variant="meta" accessibilityLabel={pointMembers ? 'DEV galerija, 4000 ukupno, 50 učitano, bez podataka iz baze'
+        : count ? `DEV galerija, ${count} lokalnih probnih zadataka, bez podataka iz baze` : 'DEV galerija'}
+        style={s.context}>{pointMembers ? 'DEV · 4.000 ukupno / 50 učitano · bez baze'
+          : count ? `DEV · ${count === 1000 ? '1.000 zadataka' : '1 zadatak'} · bez baze` : 'DEV galerija'}</T>
       <Press accessibilityRole="button" accessibilityLabel={detail ? 'Nazad na probnu mapu' : 'Izađi iz galerije'}
         onPress={onBack} style={s.exit}><T variant="action">{detail ? 'Nazad' : 'Izađi'}</T></Press>
     </View>

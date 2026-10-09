@@ -3934,9 +3934,9 @@
         "state_sync": "Poseban command/display ownership; account/focus/history guards i bounded displayed-ID potvrda ostaju odvojeni od običnog chata.",
         "performance": "Red potvrde ograničen na 50 ID-eva; nema novog merenja.",
         "test": "Round37 / run36400916665: v5-group-conversation controller/screen/service PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
-        "device_proof": "Nema current exact multi-member APK/device dokaza u ovoj sesiji.",
-        "status": "GROUP SOURCE/CI PASS / REAL MULTI-MEMBER NATIVE PENDING",
-        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_37_P3_CHAT_CORE_AND_VOICE_BOUNDARY_20260928.md",
+        "device_proof": "c62 local emulator1.30 initial final body/name/initials PASS in inert gr-thread. FullIME interrupted by app/system ANRs; real membership/send/readACK not proven.",
+        "status": "GROUP SOURCE/CI + BOUNDED INITIAL LAYOUT PASS / ANR OPEN / REAL MULTI-MEMBER NATIVE PENDING",
+        "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_37_P3_CHAT_CORE_AND_VOICE_BOUNDARY_20260928.md; docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/receipt.json",
         "round37": {
           "tested_code": "b06480512d197168c0ef857bb151a0e143b3a667",
           "workflow_run": 36400916665,
@@ -8913,22 +8913,44 @@
       "receipt": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/emulator-receipt.json"
     },
     "group_reading_20261009": {
-      "state": "SOURCE_REVISION_AFTER_NATIVE_FAIL / DEVICE_RECHECK_PENDING",
+      "state": "EMULATOR_INITIAL_LATEST_PASS / REMAINING_NATIVE_INTERRUPTED",
       "finding": "Emulator ea456 chronological group list starts at oldest messages; opening people in the header would conflict with following the bottom.",
       "implementation": "Scoped account/group/list generation. Initial/latest only after native geometry, cancellable RAF, manual history suspends follow, explicit latest action, native prepend preservation. Roster/management in existing ProductSheet; list stays mounted. Private picker also masks follow/read. Authoritative replacement warns if reading anchor lost; no stale message merge or fabricated restore. Accessibility scroll actions suspend following.",
       "readAck": "Native60% threshold with minimumViewTime0; owned cancellable600ms dwell bound to page/epoch/geometry/mount/foreground/READY. Sheet close starts new dwell only over unchanged observed geometry. Native FlatList forwards old callbacks to newest props, so epoch-only/native600 design was rejected before commit.",
       "checks": "99 tests in hook/group-screen/fixture/shared-sheet suites PASS; independent source review caught and resolved native-wrapper ACK race. Exact final TypeScript PASS.",
-      "limits": "No RPC/outbox/controller mutation; native scroll/prepend/sheet/IME/TalkBack not yet tested in exact APK. Conservative ACK can wait for fresh native viewability after a small scroll leaves the same indices visible; do not claim600ms after every scroll stop.",
-      "next": "Exact TypeScript, canonical push, consolidate next APK after current512c740e bundle. Verify long thread, older prepend, people/private sheet, latest, font1.15/1.3 and actual keyboard; address unchanged-index ACK delay with native evidence.",
-      "apkSource": "a48162a7232d486f239beddd04f1d23c50f72b4b",
-      "emulatorBuildRun": 37877246449,
-      "phoneBuildRun": 37877245997,
-      "fullRegression": "37877246409 SUCCESS:603suites13391tests;native still pending",
-      "nextNativeFixture": "Existing design additions gallery extended with40inertmessages,last20thenprepend20,realparticipantsopen/close and requesterprivatepicker. No controller/network/realmessageaction.4fixturetestsPASS;nextexactAPK needed; not in a481.",
+      "limits": "Only initial latest at1.30 proven on exact c62 local emulator. App+system ANR captured during keyboard/settings return; no fullIME/prepend/roster/ACK/transport acceptance.",
+      "next": "Recover stable emulator and restore two Gboard preferences first. Recheck one bounded fullIME, then long-history/prepend/participants/latest. No speculative follow patch from EGL wait trace.",
+      "apkSource": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+      "nextNativeFixture": "40-message inert gr-history fixture is INCLUDED in exact c62 APK. Initial last20 then prepend20, participants open/close and requester private picker. Test NOT_REACHED because emulator ANR; no new build required to test this fixture. No controller/network/business command.",
       "nativeFinding": "a481font1.30initiallatestshort392px:ownavatar/namevisible,finalbodybelowcomposer. Manualdragrevealsbody. SourceFlatListscrollToEndestimatedlastcellcanbelate.",
       "revision": "Follow uses nativecontentheight minus viewportheight,clamp0,immediateandfreshRAF;preservesmanualhistory,prepend,cover,scope,ACK.Noimaginednativeoffset.",
       "revisionChecks": "76 targeted tests PASS; TypeScript PASS; independent read-only review: no blocker.",
-      "nativeEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-a48162a7/emulator-review.json"
+      "nativeEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-a48162a7/emulator-review.json",
+      "previousCi": {
+        "apkSource": "a48162a7232d486f239beddd04f1d23c50f72b4b",
+        "emulatorBuildRun": 37877246449,
+        "phoneBuildRun": 37877245997,
+        "fullRegression": "37877246409 SUCCESS:603suites13391tests;native still pending"
+      },
+      "nativeFollowupEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/receipt.json",
+      "nativeFollowup": {
+        "initialLatest": {
+          "state": "PASS_BOUNDED",
+          "scene": "dizajn-dodaci / gr-thread",
+          "scenario": "Fresh scene, no initial scroll gesture, font1.30.",
+          "body": "I ja. Poneću rukavice za sve.",
+          "bubbleBottomPx": 2070,
+          "composerInputTopPx": 2168,
+          "review": "Root and independent read-only visual review both see complete final body with sender name/initials. Supersedes only the same initial-layout failure in a481."
+        },
+        "fullIme": {
+          "state": "NOT_PROVEN_INTERRUPTED_BY_ANR",
+          "details": "First saved IME-named frame had focused input but no visible keyboard, so it is not IME PASS. Full keyboard later appeared behind ANR dialogs; no completed resize/recovery proof."
+        },
+        "longHistoryPrependParticipants": "NOT_REACHED: automated scene search interrupted, no gr-history capture or anchor proof.",
+        "publisherFooter": "NOT_REACHED: retains SOURCE_CHECKS_PASS/NATIVE_PENDING.",
+        "transportReadAckAuthorization": "NOT_TESTED: inert fixture actions are no-op; no send or business mutation."
+      }
     },
     "native_512c740e_20261009": {
       "state": "BOUNDED_PHONE_AND_EMULATOR_PASS / NOT_RELEASE",
@@ -9022,7 +9044,9 @@
       "implementation": "Capacity moved into existing FactRow users28dp before publisher. Full-width publisher except avatar, untruncated name, rating+star kept as a unit. No business fact/command/read changes.",
       "checks": "139distinct targeted tests PASS;121token/glyph guards PASS;TypeScriptPASS. One old ordering expectation adjusted; independent source review no blocker.",
       "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/taskcard-followup.json",
-      "limits": "After a481buildsource; requires next exact native APK. Current512 proves previousworkerstatusrow, not newpublishercomposition."
+      "limits": "Publisher composition is INCLUDED in exact installed c62 local APK, but its visual test was NOT_REACHED after emulator ANR. State remains SOURCE_CHECKS_PASS / NATIVE_PENDING. Earlier512 proof covers previous worker status row, not this publisher composition.",
+      "apkSource": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+      "nativeAttemptEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/receipt.json"
     },
     "discovery_plan_cache_diagnostic_20261009": {
       "state": "ACTUAL_MODE_EFFECT / TRACE_SETUP_FAIL / CORRECTION_CHECKED",
@@ -9052,39 +9076,85 @@
       }
     },
     "local_native_build_20261009": {
-      "state": "RUNNING",
+      "state": "APK_BUILD_AND_ATTESTATION_PASS / EMULATOR_PARTIAL_WITH_ANR",
       "why": "GitHubjobNOT_STARTEDbilling;existinga481APKsverified. LocalExpoTemplatecertmatchesfac617;sourceexportandprivatecopydependencies,nochangestocanonicalconfig/signing. NoDocker/WSLstartup.",
       "output": "C:/Users/user/Documents/Codex/ub1",
-      "limits": "Exact c62 source export; offline Gradle failed on missing pinned Kotlin2.2.0 plugin. Same-source normal-network build in progress. No install or native claim; later P6 total change not included.",
+      "limits": "Exact c62 local QA artifact installed; initial group latest1.30 PASS. ANR interrupts remaining native checks. Later caf/7cf/point-members fixture absent. No phone/server/store acceptance.",
       "source": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
       "tree": "003ad01510de0fc427aa0354b17c9b73d0ac4939",
       "sourceArchiveSha256": "d8eaabba320a15826f45a3cdc5e15717b101457f472736b2df039568a9ee6bcb",
       "steps": [
         {
           "name": "patch-check",
-          "state": "PASS"
+          "state": "PASS",
+          "exit": 0,
+          "elapsedSeconds": 0.5,
+          "logSha256": "100a9e519354289c001daefcb36107bd4e8d1b3db6b5aa4218fefdfa75d8fa51"
         },
         {
           "name": "overlay-check",
-          "state": "PASS"
+          "state": "PASS",
+          "exit": 0,
+          "elapsedSeconds": 0.8,
+          "logSha256": "48923102c1a1887e93b9874b61e518d745f62102e7fa70025f2ac88b4dcc5abf"
         },
         {
           "name": "overlay",
-          "state": "PASS"
+          "state": "PASS",
+          "exit": 0,
+          "elapsedSeconds": 0.2,
+          "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         {
           "name": "prebuild",
-          "state": "PASS"
+          "state": "PASS",
+          "exit": 0,
+          "elapsedSeconds": 55.8,
+          "logSha256": "2c7ed98130fe237bb437ecb89e0494653fece6501df1d4f8705f9b24a9db50ee"
         },
         {
           "name": "gradle",
-          "state": "FAIL"
+          "state": "FAIL",
+          "exit": 1,
+          "elapsedSeconds": 132.1,
+          "logSha256": "c4bc3acd35486064848556bdd30e62a3aad9f4f56bea34d3c85b3639b9ac0d10"
         },
         {
           "name": "gradle-online",
-          "state": "RUNNING"
+          "state": "CONTROLLED_STOP",
+          "reason": "Stopped exact owned process tree before wrapper deadline; no application compile error; native objects retained.",
+          "exit": 1,
+          "elapsedSeconds": 2673.9,
+          "logSha256": "ed7de0958e1514c29982e3a4d77a3d163b3c2c773ee28f172e6becd34a176e6d"
+        },
+        {
+          "name": "gradle-resume",
+          "state": "FAIL",
+          "timeoutSeconds": 1800,
+          "reason": "Resume exact same source/config with warm native objects; owned process-tree cleanup on timeout.",
+          "exit": 1,
+          "elapsedSeconds": 311.9,
+          "logSha256": "b676d13288dd2f824c13e3efdb0672bb244b2e44f187377206850039719749f2"
+        },
+        {
+          "name": "gradle-linked-resume",
+          "state": "PASS",
+          "timeoutSeconds": 1800,
+          "reason": "Restore sole locked local vendor junction; same source/config/native cache; process-tree cleanup on timeout.",
+          "exit": 0,
+          "elapsedSeconds": 1309.9,
+          "logSha256": "91e5f7f8fed524415ed03360b7f6a0ea35352927513a0e0b755e56d2e44dfaf3"
         }
-      ]
+      ],
+      "apkSha256": "ea57d3e1e09306a3e9e4c6caf20cf48830060fd908c4655408c3b89e354d959f",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/receipt.json",
+      "cleanup": {
+        "fontScale": "RESTORED1.15; read back from Android settings.",
+        "keyboardPreferences": "RESTORE_PENDING: Gboard Physical keyboard / Show on-screen keyboard originally false, last observed true; Write in text fields / Use stylus originally true, last observed false. Restore through settings before next QA; post-reboot state not verified.",
+        "secureShowImeWithHardKeyboard": "Original1 unchanged.",
+        "avd": "STOPPED with adb emu kill after diagnostics; no snapshot save, no wipe, no emulator config file change.",
+        "phone": "Untouched; prior512 APK remains."
+      }
     },
     "discovery_place_total_20261009": {
       "state": "SOURCE_CHECKS_PASS / P6_GATED / NATIVE_PENDING",
@@ -9098,7 +9168,18 @@
         "Synthetic 4000 total with 50 rows is a correctness fixture, not a measured load or concurrency result.",
         "35 final session tests are included in 258, not additional tests."
       ],
-      "next": "Keep existing POINT_LIST paging and P6 rollout gate. Verify native dense-point card only in an authorized P6 environment; no DEV bulk seed."
+      "next": "Keep existing POINT_LIST paging and P6 rollout gate. Verify native dense-point card only in an authorized P6 environment; no DEV bulk seed.",
+      "nativeFixture": {
+        "state": "SOURCE_CHECKS_PASS / NATIVE_PENDING",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-place-total-20261009/native-fixture.json",
+        "route": "uskociapp://dizajn-mapa?scene=point-members",
+        "checks": "29gallery+2existing production-total cases PASS, TypeScript PASS, independent review no blocker.",
+        "limits": [
+          "Not in c62 APK. Native still pending.",
+          "pageHasMore:false intentionally bounds this fixture at50; does not prove a complete4000-row page or server pagination.",
+          "Not4000 users, a load test, or a server capacity claim."
+        ]
+      }
     }
   }
 }
