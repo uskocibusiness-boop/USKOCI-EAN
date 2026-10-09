@@ -1,0 +1,218 @@
+name: Connected four-account product lifecycle proof
+on:
+  workflow_dispatch:
+  push:
+    branches: [proof/connected-lifecycle-20261009]
+    paths: ['.github/workflows/connected-lifecycle-proof.yml', 'supabase/proofs/ex06/connected-*.mjs']
+permissions:
+  contents: read
+concurrency:
+  group: connected-lifecycle-disposable-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: '1'
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+      CONNECTED_JOURNEY_DISPOSABLE: FOUR_ACTORS_V1
+      CONNECTED_JOURNEY_ARTIFACT_DIR: /tmp/connected-journey-artifacts
+      WPP01_ARTIFACT_DIR: /tmp/connected-wpp
+      EX06E_R2_DIR: /tmp/connected-r2
+      EX06E_R3_DIR: /tmp/connected-r3
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # The existing P4 proofs assert these three exact paths; the whole chain uses them so the predecessor reports (chat-b3a, chat-b3b, A1 preparation) are where those proofs read them.
+      PRE_V3_ARTIFACT_DIR: /tmp/chat-p4-private
+      P4_ARTIFACT_DIR: /tmp/chat-p4-artifacts
+      P4_PUSH_ARTIFACT_DIR: /tmp/chat-p4-push-artifacts
+      EX05_S01_ARTIFACT_DIR: /tmp/ex05-s01-artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Bind exact source and install locked existing dependencies
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$PRE_V3_ARTIFACT_DIR" "$P4_ARTIFACT_DIR" "$P4_PUSH_ARTIFACT_DIR" "$EX05_S01_ARTIFACT_DIR"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          git rev-parse HEAD 'HEAD^{tree}' > "$EX05_S01_ARTIFACT_DIR/source-binding.txt"
+          : > "$EX05_S01_ARTIFACT_DIR/failed-stages.txt"
+          dependency_exit=0
+          npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/01-dependencies.log" 2>&1 || dependency_exit=$?
+          printf '01-dependencies exit=%s\n' "$dependency_exit" | tee "$EX05_S01_ARTIFACT_DIR/stages.txt"
+          test "$dependency_exit" -eq 0
+          git diff --exit-code
+      - name: Reconstruct the existing disposable historical live79
+        run: |
+          set -euo pipefail
+          umask 077
+          # Setup can print local keys. Raw output and predecessor reports stay outside the uploaded directory; only fixed stage summaries are public.
+          setup_exit=0
+          bash supabase/proofs/ru5_device_ui_live79_env.sh > "$PRE_V3_ARTIFACT_DIR/02-live79.log" 2>&1 || setup_exit=$?
+          printf '02-live79 exit=%s\n' "$setup_exit" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+          exit "$setup_exit"
+      - name: Guard loopback targets and replay the unchanged predecessor stages (source147 to B3b, the stage order of the D12 workflow)
+        run: |
+          set -euo pipefail
+          umask 077
+          node --input-type=module - <<'NODE'
+          import {assertLocalDeviceProofTargets} from './supabase/proofs/ru5_device_ui_local_guard.mjs';
+          try {
+            assertLocalDeviceProofTargets(process.env.RU5_DEVICE_SUPABASE_URL, process.env.RU5_DEVICE_DB_URL);
+            if (process.env.DB_URL !== process.env.RU5_DEVICE_DB_URL) throw new Error();
+          } catch { console.error('FAIL EX05_S01_LOCAL_TARGET_ADMISSION'); process.exit(1); }
+          NODE
+          run_stage() {
+            local stage="$1" status=0
+            shift
+            printf '%s START\n' "$stage" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+            "$@" > "$PRE_V3_ARTIFACT_DIR/$stage.log" 2>&1 || status=$?
+            printf '%s exit=%s\n' "$stage" "$status" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+            if [ "$status" -ne 0 ]; then tail -15 "$PRE_V3_ARTIFACT_DIR/$stage.log"; fi
+            return "$status"
+          }
+          run_stage 03-source147 python3 supabase/proofs/pkg023j/replay_source147.py
+          run_stage 04-dev-alpha-to-pkg026 node supabase/proofs/pkg027/pkg027_proof.mjs replay
+          run_stage 05-pkg027 node supabase/proofs/pkg028/pkg028_proof.mjs replay
+          run_stage 06-pkg028 node supabase/proofs/pkg029/pkg029_proof.mjs replay
+          run_stage 07-pkg029 node supabase/proofs/pkg030/pkg030_proof.mjs replay
+          run_stage 08-pkg030 node supabase/proofs/pkg031/pkg031_proof.mjs replay
+          run_stage 09-pkg031 node supabase/proofs/pkg032/pkg032_proof.mjs replay
+          run_stage 10-pkg032 node supabase/proofs/pkg033/pkg033_proof.mjs replay
+          run_stage 11-pkg033 node supabase/proofs/pkg034/pkg034_proof.mjs replay
+          run_stage 12-pkg034 node supabase/proofs/pkg035/pkg035_proof.mjs replay
+          run_stage 13-pkg035 node supabase/proofs/pkg037/pkg037_proof.mjs replay
+          run_stage 14-pkg037 node supabase/proofs/pkg038/pkg038_proof.mjs replay
+          run_stage 15-pkg038 node supabase/proofs/pkg039/pkg039_proof.mjs replay
+          run_stage 16-pkg039 node supabase/proofs/pkg040/pkg040_proof.mjs replay
+          run_stage 17-pkg040 node supabase/proofs/pkg042/pkg042_proof.mjs replay
+          # The existing proofs that ARE chain stages: PKG-050 (18), then the A1 preparation (19), B3a (20) and B3b (21) at their own positions.
+          run_stage 18-pkg042-to-pkg050 node supabase/proofs/pkg050/pkg050_proof.mjs
+          run_stage 19-a1-preparation node supabase/proofs/chat/prepare_notification_a1.mjs
+          run_stage 20-b3a node supabase/proofs/chat/private_history_read_proof.mjs
+          run_stage 21-b3b node supabase/proofs/chat/message_window_proof.mjs
+          for report in pkg050-report.json chat-b3-a1-preparation.json chat-b3a-report.json chat-b3b-report.json; do cp "$PRE_V3_ARTIFACT_DIR/$report" "$EX05_S01_ARTIFACT_DIR/$report" || echo "no $report"; done
+      - name: The packages applied to DEV before B3c, the exact B3c application file, then the P4 push transport candidate (ledger 210)
+        run: |
+          set -euo pipefail
+          umask 077
+          run_stage() {
+            local stage="$1" status=0
+            shift
+            printf '%s START\n' "$stage" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+            "$@" > "$PRE_V3_ARTIFACT_DIR/$stage.log" 2>&1 || status=$?
+            printf '%s exit=%s\n' "$stage" "$status" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+            if [ "$status" -ne 0 ]; then tail -15 "$PRE_V3_ARTIFACT_DIR/$stage.log"; fi
+            return "$status"
+          }
+          run_stage 22-p0 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/discovery_p0_exact_public_landing.sql
+          run_stage 23-p4 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_p4_exact_message_event_resolver.sql
+          run_stage 24-p5 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/worker_profile_licenses_owned_projection.sql
+          run_stage 25-b3c-application psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_b3c_private_invalidation_dev_application.sql
+          run_stage 25b-p4-push-transport psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -1 -f supabase/candidates/chat_p4_push_event_transport.sql
+          # Actual DEV ledger211, before B24. Exact existing candidate, including its own pins/isolation/rebind.
+          test "$(sha256sum supabase/candidates/pkg045b_task_column_privileges_p0.sql | cut -d' ' -f1)" = d34cb5d9fc1c514e31ee67a6adb05a5aa95ec80fab1a7874801f18d7b80a1ff0
+          run_stage 25c-pkg045b-p0 psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/candidates/pkg045b_task_column_privileges_p0.sql
+      - name: B24 part 1 as a chain variant (the targets that exist, relaxed pre-image mode), then B24 part 2 in relaxed mode and the chain fidelity check against the DEV receipt
+        run: |
+          set -euo pipefail
+          umask 077
+          derive_exit=0
+          node supabase/proofs/ex05_s01/derive_b24_part1_chain.mjs --db "$DB_URL" --out "$EX05_S01_ARTIFACT_DIR/b24_part1.chain.sql" --report "$EX05_S01_ARTIFACT_DIR/b24-part1-chain-variant-report.json" || derive_exit=$?
+          printf '26a-b24-part1-derive exit=%s\n' "$derive_exit" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+          test "$derive_exit" -eq 0
+          part1_exit=0
+          PGOPTIONS='-c b24.preimage=relaxed' psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$EX05_S01_ARTIFACT_DIR/b24_part1.chain.sql" > "$PRE_V3_ARTIFACT_DIR/26a-b24-part1.log" 2>&1 || part1_exit=$?
+          printf '26a-b24-part1 exit=%s\n' "$part1_exit" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+          if [ "$part1_exit" -ne 0 ]; then tail -20 "$PRE_V3_ARTIFACT_DIR/26a-b24-part1.log"; fi
+          test "$part1_exit" -eq 0
+          b24_exit=0
+          PGOPTIONS='-c b24.preimage=relaxed' psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f supabase/candidates/b24_nonretried_conflicts_part2_certified.sql > "$PRE_V3_ARTIFACT_DIR/26b-b24-part2.log" 2>&1 || b24_exit=$?
+          printf '26b-b24-part2 exit=%s\n' "$b24_exit" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+          if [ "$b24_exit" -ne 0 ]; then tail -20 "$PRE_V3_ARTIFACT_DIR/26b-b24-part2.log"; fi
+          fidelity_exit=0
+          node supabase/proofs/chat/voice_b1_b24_fidelity.mjs || fidelity_exit=$?
+          printf '26b-b24-fidelity exit=%s\n' "$fidelity_exit" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+          test "$b24_exit" -eq 0
+          exit "$fidelity_exit"
+      - name: The exact Voice B1 and EX04c prerequisites on the disposable predecessor
+        run: |
+          set -euo pipefail
+          umask 077
+          stage() {
+            local name="$1" file="$2" strict="$3" status=0
+            printf '%s START\n' "$name" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+            psql "$DB_URL" -X -q -v ON_ERROR_STOP=1 -f "$file" > "$PRE_V3_ARTIFACT_DIR/$name.log" 2>&1 || status=$?
+            printf '%s exit=%s\n' "$name" "$status" | tee -a "$EX05_S01_ARTIFACT_DIR/stages.txt"
+            if [ "$status" -ne 0 ]; then tail -12 "$PRE_V3_ARTIFACT_DIR/$name.log"; fi
+            if [ "$strict" = "required" ] && [ "$status" -ne 0 ]; then return "$status"; fi
+            return 0
+          }
+          stage 27-voice-b1-application supabase/candidates/chat_voice_b1_dev_application.sql required
+          stage 28-ex04c-rating-state supabase/candidates/ex04c_rating_state.sql required
+      - name: Reconstruct the missing D12 closure predecessor with its existing pin gate
+        env:
+          PUSH_SINGLE_TARGET_DISPOSABLE: SINGLE_TARGET_V1
+        run: |
+          set -euo pipefail
+          node supabase/proofs/push_single_target/prepare-d12.mjs
+      - name: Exact current99 predecessor and promotion wrapper proof
+        env:
+          PUSH_SINGLE_TARGET_DISPOSABLE: SINGLE_TARGET_V1
+        run: |
+          set -euo pipefail
+          node supabase/proofs/push_single_target/promotion/proof-current99.mjs
+      - name: Exact lifecycle extension of the current99 chat and AI predecessor
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$CONNECTED_JOURNEY_ARTIFACT_DIR" "$WPP01_ARTIFACT_DIR" "$EX06E_R2_DIR" "$EX06E_R3_DIR"
+          node --check supabase/proofs/ex06/connected-chain.mjs
+          node --check supabase/proofs/ex06/connected-journey.mjs
+          node supabase/proofs/ex06/connected-chain.mjs
+      - name: Four real Auth actors through product publication and lifecycle RPCs
+        run: |
+          set -euo pipefail
+          node supabase/proofs/ex06/connected-journey.mjs
+      - name: Always discard disposable database
+        if: always()
+        run: |
+          mkdir -p "$CONNECTED_JOURNEY_ARTIFACT_DIR"
+          code=0
+          if [[ -d /tmp/uskoci-ru5-device-ui ]]; then
+            cd /tmp/uskoci-ru5-device-ui
+            supabase stop --no-backup > /tmp/connected-teardown-private.log 2>&1 || code=$?
+          else
+            printf 'NOT_STARTED: disposable project directory absent\n' > "$CONNECTED_JOURNEY_ARTIFACT_DIR/teardown.txt"
+            exit 0
+          fi
+          printf 'teardown exit=%s\n' "$code" > "$CONNECTED_JOURNEY_ARTIFACT_DIR/teardown.txt"
+          exit "$code"
+      - name: Upload bounded reports only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: connected-lifecycle-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            /tmp/connected-journey-artifacts/
+            /tmp/chat-p4-private/single-target-current99-promotion.json
+            /tmp/ex05-s01-artifacts/source-binding.txt
+            /tmp/ex05-s01-artifacts/stages.txt
+          if-no-files-found: error
+          retention-days: 30

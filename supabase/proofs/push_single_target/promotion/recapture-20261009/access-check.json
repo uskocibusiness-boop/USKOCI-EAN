@@ -1,0 +1,31 @@
+{
+  "state": "SECRET_WRITE_DENIED_NO_PROMOTION",
+  "observedAt": "2026-10-09T00:37:59.279318+00:00",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "cliVersion": "2.119.0",
+  "preflightCheckedAt": "2026-10-09T00:33:00.438608+00:00",
+  "preflightProblems": [],
+  "ledgerRows": 235,
+  "sourceRoster": 99,
+  "storedDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "candidateAbsent": true,
+  "edgeVersion": 22,
+  "edgeBeforeFilesExactlyEqual": true,
+  "attemptedFlagValues": {
+    "EXPO_PUSH_SINGLE_TARGET_ENABLED": "false",
+    "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "false"
+  },
+  "result": "SecretsSetUnexpectedStatusError: account lacks endpoint privileges",
+  "readAfter": {
+    "EXPO_PUSH_TRANSPORT_ENABLED": "metadataSHA256_matches_false",
+    "EXPO_PUSH_SINGLE_TARGET_ENABLED": "ABSENT",
+    "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "ABSENT"
+  },
+  "flagsChanged": false,
+  "migrationApplied": false,
+  "edgeDeployed": false,
+  "admissionCreated": false,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "next": "Authorized project secret write access is required; then fresh preflight and exact apply_migration expected235to236, postflight, Edge readback. Do not bypass access using SQL vault writes."
+}

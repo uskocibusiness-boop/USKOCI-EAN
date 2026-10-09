@@ -204,3 +204,19 @@ Push offline dodatak10/10PASS: exact-message metadata sa jednociljnim admission-
 ### Sledeći lifecycle dokaz — konkretan mali scenario
 
 Read-only stručni pregled je odredio4nova scenarioAuth nalogaR/A/B/C i1zadatak/2mesta. EX06createFixtures needPath=product (PRODUCT_PATH, bez droppedFacts/mismatches), applyA/B→selectA/B→privateR/A i groupR/A/B→cancelA→close/reopen sa owner-read expectedClosedAt→apply/selectC. Proveriti cutoff: AvidiG1, neG2/G3; CnevidiG1/G2, vidiG3; neovlašćen privatni read odbijen; identičan commandreplay istiID, promenjenbody odbijen; read sam ne markira. OriginalEX06Ereopen ima zastareli4argumentni ugovor, uzetiR3 petargumentni. EX05fixture SQLpublication se ne koristi, samo RPCassertioni. Grupa ostaje ista posle otkaza/zamene. Discovery/MATCHchain izostavlja chat/voice, zato prvo sastaviti eksplicitno pinovanu EX05+EX06R3disposable osnovu i dokazati metadata/grants/RLS/certificate; bezparkForeign koji suspenduje40kpozadinu. Ovo je plan najmanjeg pravogRPCdokaza, ne tvrdnja o njegovom izvršenju ili40kaktivnihkorisnika.
+
+
+## Dopuna — stvarna prepreka za push, nastavak UI/isolated rada
+
+**URADIO/DOKAZAO:** freshDEVpreflight00:33:00UTC problems[],235ledger/99roster/3a785d42/candidateAbsent; Edgev22oba fajla byte-identična frozenbefore. MetadataGET globaltransport=false, target/exactflagabsent. CLI2.119.0 SETsingle-target=false+exact-message=false vraća SecretsSetUnexpectedStatusError: prijavljeni nalog nema prava za endpoint. Read-after potvrđuje da ništa nije promenjeno. Evidence promotion/recapture-20261009/access-check.json.
+
+**NIJE DOKAZANO/NIJE URAĐENO:** nema SQL/certificate/Edgeprimene,admission-a,providera ni slanja. Ovo nisu nedostajuća vlasnikova odobrenja nego stvarnaSupabaseprava; ne zaobilaziti SQLvaultupisom. **SLEDEĆE:** nastavitiAPK/nativni pregled i izolovaneprobe, pushpromocija tek nakon dostupnogsecretWRITEpristupa i ponovnogfreshpreflight-a. apply_migration je pravi postojeći proces:235pre→236post; postflight/revertnezaključavaju235. To je potvrđeno nezavisnimčitanjem stvarnih guard-a i HANDOFF-a, bezprimene. Area recoveryrun37865279345/source52c4965b je u toku, nema duplogdispatch-a.
+
+
+## Dopuna — stvarni povezani lifecycle pokretač, pre izvršavanja
+
+**URADIO:** connected-chain/connected-journey i namenski disposable workflow koriste postojeći current99 chat/AI lanac, zatim EX04d→EX06a/b→WPP→R2/R3 sa tačnim R3 SHA bd8c823c. Četiri nova Auth naloga, product-path objava jednog zadatka/dva mesta, dve prijave/izbora, privatni V2 page+exact window, grupni replay/read-ACK, otkaz jednog, owner close/reopen sa closedAt witness-om, zamena bez ranije istorije. Nema parkForeign, globalnog dispatch tick-a, direktnog SQL objavljivanja ni provider poziva. AI proposal/evaluator jesu sintetičke fixture vrednosti.
+
+**DOKAZAO / SOURCE:** Node/YAML sintaksa PASS. Dva read-only pregleda: ispravljena očekivana idempotentReplay razlika, svako negativno očekivanje ima stvarni denial razlog (transportni kvar ne sme glumiti zabranu), current V2 reader/window i teardown fallback kada bootstrap ne stigne do GITHUB_ENV. Poređenje AI/chat/voice pg_proc metapodataka pre/posle slaganja, puni katalog/RLS/policy/cert guard pre/posle scenarija.
+
+**NIJE DOKAZANO:** kombinovani runtime, četiri stvarna scenario naloga, 40k aktivnih korisnika, konkurentni lifecycle, native i push. **SLEDEĆE:** jedan izolovani CI run i stvarni rezultat, paralelno završetak D029 APK provera. Ovo je proširenje postojećih EX05/EX06 provera, ne novi master plan.

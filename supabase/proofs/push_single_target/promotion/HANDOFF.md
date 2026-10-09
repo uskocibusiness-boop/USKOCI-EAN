@@ -41,3 +41,11 @@ After any admission, do not drop these columns/functions or erase evidence; use 
 ## Recapture235 — 09.10.2026
 
 Current bounded facts supersede the old225 guard: see SOURCE_REVIEW.md and recapture-20261009/preflight-regenerated.json. Candidate239ccd18 has ledger235 guard backed by13-body/metadata, table-surface, catalog/certificate and Edge comparison. New isolated wrapper run is pending. No live state changed. CLI2.119.0 can list secret metadata; global flag digest equals SHA256('false'), target flag absent. Write/deploy permission still not proven; do not infer it from GET. One existing TICKET_PENDING remains untouched. Old current99 run37085434332 remains historical evidence.
+
+## Latest current99 proof and access check —09.10
+
+Run37861832231/sourcec70dd513 passed current99 wrapper cycle,13business groups and6offlineEdge; later10offlineEdge tests include exact-message/single-target payload. See SOURCE_REVIEW. Fresh frozen235preflight at00:33:00UTC has problems[],99roster, unchanged3a785d42digest and candidateAbsent. Both liveEdgev22 files remain exactly equal to frozenbefore assets.
+
+CLI2.119.0 again rejected setting single-target=false and exact-message=false: account lacks endpoint privileges. Read-after confirms both remain absent(defaultoff), globaltransport metadata digest stillfalse. SQL/certificate/Edge/admission/provider were not changed. This is an access blocker, not a request for repeated owner authorization. See recapture-20261009/access-check.json.
+
+After access is resolved, normal apply_migration uses committed SQL without its final newline;235 is the candidatePREcondition, expected ledgerAFTER236. Verify stored migration hash be8782a4834857f3d2507a40e6bcf9757fc61f753e6857977fa02360867f9ace. Postflight does not require235 and the frozen revert has no ledger-count guard. Preserve history even after a revert. Never use unrecordedDDL merely to keep235. Native combined phone build37864877643/d0295e1c was still building at this check; no provider or cold/warmtap proof.
