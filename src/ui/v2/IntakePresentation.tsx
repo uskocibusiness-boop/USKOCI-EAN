@@ -389,7 +389,13 @@ export function IntakePresentation(props: Props) {
   const note = safetyCopy && conversation.safety !== 'BLOCK' ? safetyCopy : null;
   // The one way on from a conversation that is over, and it is on the screen (rule J15: a "···" is never the only road): the review while there is one
   // (green), otherwise a new task (quiet). The same "Novi zadatak" stays in the menu for the rare case.
-  const footerAction = completed && props.canReview
+  const lastReply = conversation.messages.at(-1);
+  const incompleteHandoff = open && !showSummary && reviewAllowed && !needsPoint && !busy && !pending && !props.error
+    && lastReply?.fromAi && (SERVER_REVIEW_ENDINGS.has(lastReply.body)
+      || lastReply.body === 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
+  const footerAction = incompleteHandoff
+    ? <V2Action label="Pregledaj i dopuni zadatak" kind="secondary" tone="neutral" onPress={outsidePlace(props.onReview)} />
+    : completed && props.canReview
     ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
     : ended && props.onNewTask
       ? <V2Action label="Novi zadatak" kind="secondary" tone="neutral" disabled={props.newTaskDisabled} onPress={props.onNewTask} /> : undefined;

@@ -11,7 +11,11 @@ function load(fetch = () => assert.fail('UNEXPECTED_NETWORK')) {
   assert.equal(code.diagnostics.filter(d=>d.category===ts.DiagnosticCategory.Error).length,0);
   const context = vm.createContext({fetch, Response, Request, Headers, TextEncoder, TextDecoder, ReadableStream,
     AbortController, setTimeout, clearTimeout, console:{error:(...args)=>logs.push(args)}});
-  return {api:new vm.Script(`(function(exports){${code.outputText};return exports;})`).runInContext(context)({}),logs};
+  const availability=ts.transpileModule(readFileSync(new URL('../../../src/contracts/aiAvailability.ts',import.meta.url),'utf8'),
+    {compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
+  const contract=new vm.Script(`(function(exports){${availability.outputText};return exports;})`).runInContext(context)({});
+  const require=name=>{assert.equal(name,'../../../src/contracts/aiAvailability.ts');return contract;};
+  return {api:new vm.Script(`(function(exports,require){${code.outputText};return exports;})`).runInContext(context)({},require),logs};
 }
 const body = () => JSON.stringify({contents:[{role:'user',parts:[{text:'SYNTHETIC_INPUT'}]}],generationConfig:{
   temperature:0.2,topP:0.9,topK:10,maxOutputTokens:8192,responseMimeType:'application/json',

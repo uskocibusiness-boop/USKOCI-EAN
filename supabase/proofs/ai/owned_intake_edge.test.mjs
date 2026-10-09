@@ -79,6 +79,20 @@ test('provider 429 is fixed public failure, no fallback or materialization',asyn
  assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);assert.equal((await r.json()).code,'AI_PROVIDER_FAILED');
  assert.ok(!JSON.stringify(f.logs).includes('PRIVATE_PROVIDER_SECRET'));
 });
+
+for(const diagnostics of [false,true]) for(const status of [402,429])
+test(`HTTP provider ${status}, diagnostics=${diagnostics}: closed availability only for real 402, one settled attempt`,async()=>{
+ const f=fixture({provider:()=>new Response('PRIVATE_PROVIDER_SECRET AI_CREDITS_UNAVAILABLE',{status})});
+ const options=diagnostics?{headers:{Authorization:'Bearer SYNTHETIC_USER','Content-Type':'application/json','x-client-info':'uskoci-app/ai-availability-v1'}}:{};
+ const response=await f.invoke({},options),data=await response.json();
+ const admitted=diagnostics&&status===402;
+ assert.equal(response.status,admitted?503:502);
+ assert.equal(data.code,admitted?'AI_CREDITS_UNAVAILABLE':'AI_PROVIDER_FAILED');
+ assert.equal(response.headers.get('x-uskoci-ai-availability'),admitted?'AI_CREDITS_UNAVAILABLE':null);
+ assert.equal(providers(f).length,1);assert.equal(completes(f).length,0);
+ assert.equal(f.calls.filter(x=>x.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,1);
+ assert.ok(!JSON.stringify([data,f.logs]).includes('PRIVATE_PROVIDER_SECRET'));
+});
 test('incomplete Gemini JSON output cannot reach materializer',async()=>{
  const f=fixture({provider:()=>json({candidates:[{content:{parts:[{text:'{"safety":"ALLOW",'}]},finishReason:'MAX_TOKENS'}]})});
  assert.equal((await f.invoke()).status,502);assert.equal(completes(f).length,0);

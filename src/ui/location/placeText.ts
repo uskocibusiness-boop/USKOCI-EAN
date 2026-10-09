@@ -130,6 +130,15 @@ export const confirmedPointText = (point: ConfirmedLocationPoint, value: PlaceVa
 
 const HOUSE_NUMBER = /^\d+\s?[a-zA-ZčćžšđČĆŽŠĐ]?(?:\s?[/-]\s?\d+\s?[a-zA-ZčćžšđČĆŽŠĐ]?)?$/;
 
+/** Candidate choices retain every locality/district: two places with the same street must stay distinguishable.
+ * Only a leading house number changes order for reading; no provider segment is guessed or discarded. */
+export function candidatePlaceLabel(label: string): { main: string; detail: string | null } {
+  const parts = toSerbianLatin(label).replace(/\s+/g, ' ').trim().split(',').map(part => part.trim()).filter(Boolean);
+  const leadingNumber = parts.length > 1 && HOUSE_NUMBER.test(parts[0]) && !HOUSE_NUMBER.test(parts[1]);
+  return { main: leadingNumber ? `${parts[1]} ${parts[0]}` : parts[0] ?? '',
+    detail: parts.slice(leadingNumber ? 2 : 1).join(', ') || null };
+}
+
 /**
  * Street and number, then the locality, from a label that may be the provider's whole address line ("65, Bulevar
  * oslobođenja, MZ Žitni trg, Rotkvarija, Novi Sad, …"). Only the label's own parts are used: the locality is the part that

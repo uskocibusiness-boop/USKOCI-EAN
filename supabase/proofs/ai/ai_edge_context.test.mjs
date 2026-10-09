@@ -349,6 +349,56 @@ test('finish-only task request cannot invent new terms or claim publication',asy
  assert.equal(written.p_assistant_message,'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
 });
 
+const completionFacts=()=>[
+ semanticFact('need.title','Nošenje kesa'),semanticFact('need.description','Prenošenje nekoliko kesa od ulaza do stana.'),
+ semanticFact('need.category','Nošenje stvari'),semanticFact('need.people_needed',1),semanticFact('need.price_mode','OFFERS'),
+ semanticFact('need.schedule_kind','TODAY_FLEXIBLE'),semanticFact('need.task_country_code','RS'),
+ semanticFact('need.task_geography',{mode:'STATIONARY',start:{city:'Beograd'}}),
+];
+const proposed=(key,value,evidence='Prenošenje nekoliko kesa')=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:0.95});
+for(const absent of ['need.title','need.category'])test('REVIEW cannot conceal missing internal completion: '+absent,async()=>{
+ const f=fixture({activeFacts:completionFacts().filter(x=>x.fact_key!==absent),providerOutput:{safety:'ALLOW',facts:[],
+  assistantMessage:'Sve je spremno.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ await f.invoke();const result=materialWrites(f)[0].body;
+ assert.equal(result.p_assistant_message,'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
+ assert.deepEqual(result.p_proposals,[]);assert.equal(providerCalls(f).length,1);
+});
+test('REVIEW asks the missing material question and retains the last content proposal',async()=>{
+ const f=fixture({activeFacts:completionFacts().filter(x=>!['need.category','need.price_mode'].includes(x.fact_key)),
+  providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari')],assistantMessage:'Spremno.',
+   dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ await f.invoke();const result=materialWrites(f)[0].body;
+ assert.equal(result.p_assistant_message,'Želiš da navedeš cenu ili da dobiješ ponude?');
+ assert.equal(result.p_proposals[0].key,'need.category');
+});
+test('the last classification completes the real task without dropping other proposals',async()=>{
+ const f=fixture({activeFacts:completionFacts().filter(x=>!['need.category','need.people_needed'].includes(x.fact_key)),
+  providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari'),proposed('need.people_needed',1,'jedna osoba')],
+   assistantMessage:'Spremno.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ await f.invoke({text:'Jedna osoba za prenošenje nekoliko kesa.'});const result=materialWrites(f)[0].body;
+ assert.equal(result.p_assistant_message,'Otvori pregled zadatka. Tamo proveri podatke pre objave.');
+ assert.deepEqual(result.p_proposals.map(x=>x.key),['need.category','need.people_needed']);
+});
+test('finish-only can recover only missing presentation from the existing description',async()=>{
+ const f=fixture({activeFacts:completionFacts().filter(x=>!['need.category','need.title'].includes(x.fact_key)),
+  providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari'),proposed('need.title','Pomoć oko kesa'),
+   proposed('need.people_needed',9),proposed('need.price_rsd',9000),proposed('need.description','Drugi zadatak')],
+   assistantMessage:'Objavljeno.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ await f.invoke({text:'To je to.'});const result=materialWrites(f)[0].body;
+ assert.deepEqual(result.p_proposals.map(x=>x.key),['need.category','need.title']);
+ assert.ok(!result.p_assistant_message.includes('Objavljeno'));assert.equal(providerCalls(f).length,1);
+});
+for(const variant of ['no-description','unknown-description','wrong-evidence','existing-category','different-task'])
+ test('finish-only summary recovery stays bounded: '+variant,async()=>{
+  const activeFacts=completionFacts().filter(x=>x.fact_key!=='need.category');
+  if(variant==='no-description')activeFacts.splice(activeFacts.findIndex(x=>x.fact_key==='need.description'),1);
+  if(variant==='unknown-description')activeFacts.find(x=>x.fact_key==='need.description').status='UNKNOWN';
+  if(variant==='existing-category')activeFacts.push(semanticFact('need.category','Ranija vrsta zadatka'));
+  const f=fixture({activeFacts,providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari',variant==='wrong-evidence'?'Uređivanje bašte':'Prenošenje nekoliko kesa')],
+   assistantMessage:'Gotovo.',dialogue:{...syntheticDialogue(),next:'REVIEW',...(variant==='different-task'?{taskRelation:'DIFFERENT_TASK'}:{})}}});
+  await f.invoke({text:'To je to.'});assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
+ });
+
 test('a question about known headcount is replaced by one genuinely missing topic',async()=>{
  const f=fixture({activeFacts:[semanticFact('need.description','Prenos stvari'),semanticFact('need.people_needed',3)],
   providerOutput:{safety:'ALLOW',assistantMessage:'Koliko ljudi, kada, gde i koja cena?',facts:[],

@@ -1,0 +1,78 @@
+{
+  "state": "SOURCE_PASS_DEPLOY_AND_NEW_UI_NATIVE_PENDING",
+  "at": "2026-10-09T12:27:03.287149+00:00",
+  "sourceSha256": {
+    "src/ui/location/LocationPointEditor.tsx": "65aa402ee3b93bc40ead99c6c9e618dfa66d6312fa65a6b2b174841779dbb154",
+    "src/ui/location/placeText.ts": "a1d8a231e5ff3a20b6e8aff8d28d315a993dc73bbe56d16e0600266799088d58",
+    "src/ui/v2/IntakePresentation.tsx": "c0f74fafa40781e2955432de4808a8e2b09c0f0eaae7f6ceda4692cf7bc05f3b",
+    "supabase/functions/uskoci-ai-interview/index.ts": "1311d7914effcba4a859325f9c0891a2121b2cc6918fb897da9756a7a12b3da7",
+    "supabase/functions/_shared/geminiTaskStream.ts": "9ecbba9b34bda3252b4d56d063bbe7208d56a189cd3a6eb8ff16323a8de8299a",
+    "src/contracts/aiAvailability.ts": "a875fafef0509b2f6905489bf186b8c7c6c0147d0155b0aa22212ce6080dc1a5"
+  },
+  "nativeBefore": {
+    "source": "b9eca855245f343f53798e2a87a93882b1b90543",
+    "apkSha256": "fa55c2f75f45b481e257465bd2fcb8960930ad8af84fb972efeba5fedb44786d",
+    "proven": [
+      "Rapid whole-query text retained on emulator; three actual geocoder choices visible.",
+      "Correct Belgrade candidate selected then explicitly confirmed; independent fact readback contains provider-origin point.",
+      "Review correctly refused publication because internal category missing. No task published by this check."
+    ],
+    "limits": [
+      "SwiftShader displays geometry but street labels remain absent.",
+      "Host renderer experiment blocked by SystemUI/Gboard ANR; no product map-style diagnosis.",
+      "No current physical phone proof."
+    ]
+  },
+  "fixes": [
+    "Completion readiness includes registry required title/category; normal REVIEW asks the missing material question before handoff.",
+    "Finish-only may add only missing title/category with literal evidence in the existing known description; no invented material terms.",
+    "Geocoder choices become compact rows retaining full geographic detail; chosen address visible before explicit confirmation.",
+    "Incomplete review handoff exposes a neutral review-and-complete action, never the final task card."
+  ],
+  "tests": {
+    "context": {
+      "passed": 91,
+      "logSha256": null
+    },
+    "httpStreamAdmissionDiagnosticsHistorical": {
+      "passed": 128,
+      "logSha256": "1f2f80d7beeceee931545de301cbba43f1642b37ffa7dca82fa973caae495177"
+    },
+    "httpStreamIncluding402": {
+      "passed": 69,
+      "logSha256": "be3d7a80bfa5adbc9184ba62a0f0a4d4afe23aa59023b15c7d2a4fd6fa52f001"
+    },
+    "ui": {
+      "passedAcrossThreeSuites": 294,
+      "note": "Initial 293 PASS /1FAIL was obsolete hidden-address expectation; corrected to require visible address, full location suite81PASS. Other two suites213PASS unchanged.",
+      "combinedLogSha256": "6c57af1f6ba2fb89b81728b2b5cc38a03ad75e974d4255e98f44bdf6697d8871",
+      "locationRerunSha256": "dcf4ee825440d2b94faf9263c8d3fc0c0ad96fdb58020e9486075d0ca7cc8faf"
+    },
+    "typecheck": "PASS"
+  },
+  "failedAttempts": [
+    "Transport harness rejected newly imported exact source modules before execution. Updated explicit module whitelist and retained immutable historical binding; then128PASS.",
+    "Initial new context regression tests failed before source change. Literal evidence proves provenance, not semantic classification."
+  ],
+  "deploymentPlan": {
+    "target": "canonical DEV/ALPHA",
+    "function": "uskoci-ai-interview",
+    "beforeVersion": 58,
+    "verifyJwt": true,
+    "scope": "Completion fixes plus already-committed undeployed HTTP402 availability diagnostic and exact relative dependencies; no worker function, SQL, flags, keys or provider changes.",
+    "rollback": "Frozen private v58 five-file bundle and metadata retained in scratch; redeploy identical content with JWTtrue if readback or bounded provider proof fails.",
+    "preflight": {
+      "ledger": 236,
+      "sourceSha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+      "computedAndBothRowsAndBindingEqual": true,
+      "retentionReady": true,
+      "diagnosticCorrection": "Component erasure digest dab1... differs by design from full source digest0201...; initial raw comparison was invalid. No certificate change."
+    }
+  },
+  "limits": [
+    "No deploy yet at this source freeze.",
+    "No claim all push categories or full store readiness.",
+    "No second-account matching or new-task push proof yet.",
+    "Old phoneb9 APK built/attested but not delivered and lacks this UI package; delivered phone remainsf64."
+  ]
+}

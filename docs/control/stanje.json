@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T11:40:32Z",
+  "osvezeno": "2026-10-09T12:27:16Z",
   "grana": "integration/spoj-20261006",
-  "head": "1d78eb58",
-  "head_poruka": "Refine map recovery and direct location search with native label probe",
+  "head": "b9eca855",
+  "head_poruka": "Preserve rapid location edits and expose ambiguous place choices",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2923,17 +2923,18 @@
    "limits": "Computed certificate unavailable in partial storage stub. No persistent or DEV change;14s is still slow. No concurrency/HTTP/40000users capacity proof."
   },
   "location_native_findings_20261009": {
-   "state": "SOURCE_PASS_NATIVE_FIX_PENDING",
+   "state": "NATIVE_B9_TEXT_AND_SELECTION_PASS",
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/location-native-recovery-20261009/receipt.json",
    "fixes": [
     "Text edit epoch survives native text batches but retires across blur/disable/selection/search/confirm/lease; existing command guards retained.",
     "Ambiguous places immediately expose3paginated real choices before map, Latin display; choosing remains draft-only before separate pin confirmation."
    ],
    "limits": [
-    "New exact APK required for text/choice recovery native proof.",
-    "No task publication, positive second-account matching or OPPORTUNITY push proof yet.",
-    "No DEV/Edge/push mutation by this package; phone APK remains previous delivered f64; store gates remain open."
-   ]
+    "Text and explicit candidate confirmation proven on exactb9 emulator. New compact rows require next APK.",
+    "No task publication/second-account matching/OPPORTUNITYpush yet.",
+    "No physical phone label proof; delivered phone remainsf64."
+   ],
+   "nativeEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/intake-completion-20261009/receipt.json"
   },
   "discovery_window_local_20261009": {
    "state": "LOCAL_WINDOW_FACETS_PASS_CERT_COMPUTATION_UNAVAILABLE",
@@ -2946,6 +2947,16 @@
    "evidence": "docs/implementation/product-v1-closure-20260926/NOTIFICATION_MATRIX.md",
    "result": "19captured emitters;5contract types without captured emitter; group chat emitter missing; MESSAGE-only bounded transport; one owner-confirmed phone MESSAGE delivery.",
    "limits": "Other phone categories unproved; no global drain enabled."
+  },
+  "intake_completion_20261009": {
+   "state": "SOURCE_PASS_DEPLOY_AND_NEW_UI_NATIVE_PENDING",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/intake-completion-20261009/receipt.json",
+   "result": "Actual native review found missing category; source readiness and bounded finish classification repaired; UI offers truthful incomplete review. Tests pass, real provider and latest native pending."
+  },
+  "discovery_area_key_local_20261009": {
+   "state": "LOCAL_AREA_KEY_ONCE_PASS_CERT_COMPUTATION_UNAVAILABLE",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/area-key-once.json",
+   "result": "Seven equal full PLACES responses,7.2–13.7s, exact rollback;1SQLreader,0HTTP,40000synthetic tasks. No DEV changes or capacity claim."
   }
  },
  "redovi": [

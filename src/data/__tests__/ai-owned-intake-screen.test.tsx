@@ -847,6 +847,18 @@ it('keeps partial proposals out of the conversation card while facts are gathere
 
 // Review r4 ra item 4: while only the hidden category is missing, the card names nothing as missing and does not call
 // the draft ready either; the separate review remains available for incomplete facts.
+it('offers an explicit incomplete review after a handoff without a premature final card', async () => {
+  const data = conversation({ facts: completeFacts().filter(f => f.key !== 'need.category'), messages: [
+    { id: other, body: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.', fromAi: true, safety: null, proposedFactIds: [] },
+  ] });
+  data.review.missingRequired = ['need.category']; mockLoad.mockResolvedValue(data); await resume();
+  noSummary(); expect(text()).not.toContain('Kategorija');
+  const action = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj i dopuni zadatak' });
+  await act(async () => action.props.onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
+  expect(mockSend).not.toHaveBeenCalled();
+});
+
 it('never names a category and does not call the draft ready while only the category is missing', async () => {
   const said = [{ id: other, body: 'Treba mi prevoz.', fromAi: false, safety: null, proposedFactIds: [] }];
   const hidden = conversation({ messages: said, facts: [publicFact('need.title', 'Prenos ormara')] });

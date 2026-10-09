@@ -16,10 +16,11 @@ import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { FlowFooter } from '../system/FlowFooter';
 import { layout } from '../system/layout';
+import { ListRow } from '../system/ListRow';
 import { brandAction, sys } from '../system/tokens';
 import { LocationDetails, LocationField } from './LocationControls';
 import { ResolvedPinMap, type ResolvedPinPosition } from './ResolvedPinMap';
-import { toSerbianLatin } from './placeText';
+import { candidatePlaceLabel, toSerbianLatin } from './placeText';
 
 type DialogueContext = LocationDialogueRequest['locationContext'];
 export type PointPromptLease = { isCurrent: () => boolean; confirm: () => boolean; correct: () => boolean; cancel: () => void };
@@ -407,10 +408,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
     const candidateChoices = <>
-      {alternatives.length > 1 ? visibleCandidates.map((candidate, index) => <Button tone="neutral"
-        key={`${candidate.origin.candidateHint ?? 'candidate'}:${candidatePage * 3 + index}`} label={toSerbianLatin(candidate.label)}
-        accessibilityLabel={`Izaberi predlog: ${toSerbianLatin(candidate.label)}`} kind="secondary"
-        disabled={controlDisabled || !focused} onPress={() => selectCandidate(candidate)} />) : null}
+      {alternatives.length > 1 ? <View>{visibleCandidates.map((candidate, index) => {
+        const label = candidatePlaceLabel(candidate.label);
+        return <ListRow key={`${candidate.origin.candidateHint ?? 'candidate'}:${candidatePage * 3 + index}`}
+          title={label.main} subtitle={label.detail ?? undefined} last={index === visibleCandidates.length - 1}
+          accessibilityLabel={`Izaberi predlog: ${toSerbianLatin(candidate.label)}`}
+          accessibilityHint="Prikazuje tačku na mapi. Potvrdi je nakon provere."
+          disabled={controlDisabled || !focused} onPress={() => selectCandidate(candidate)} />;
+      })}</View> : null}
       {alternatives.length > 3 ? <View style={{ gap: sys.space.xs }}>
         <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Predlozi {candidatePage * 3 + 1}–{Math.min(alternatives.length, candidatePage * 3 + 3)} od {alternatives.length}</T>
         {candidatePage > 0 ? <Button tone="neutral" label="Prethodni predlozi" kind="quiet" disabled={controlDisabled || !focused}
@@ -449,9 +454,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || loading} onPress={search} />
       </> : !position && !loading ? <Button tone="neutral" label="Pronađi drugo mesto" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => { if (owns()) setSearchOpen(true); }} /> : null}
-      {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="secondary"
-        disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
       {ambiguous ? candidateChoices : null}
+      {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="quiet"
+        disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
       {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Označi na mapi" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => {
           if (!owns()) return;
@@ -499,6 +504,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       </> : null}
       {position ? <>
         <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
+        {!loading && !correctionOpen ? <T variant="note" tone="muted">{toSerbianLatin(expandedPlace)}</T> : null}
         {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
         {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
           && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">

@@ -350,6 +350,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext) {
     ...commonInstruction(activeFacts, timeContext),
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
+    'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
     'Ako korisnik pita zašto nešto tražite, postavi drugo pitanje o ovom zadatku ili kaže da se ponavljate, prvo odgovorite na tu poruku koristeći ANSWER i questionKey NONE. Nemojte umesto odgovora ponoviti pitanje za nedostajuće polje. Objasnite konkretno šta još nije jasno, bez ponavljanja privatne adrese.',
     'Delimičan podatak nije isto što i nikakav podatak. Kod prenosa razlikujte mesto preuzimanja i odredište: ako je odredište poznato, a grad preuzimanja nije, pitajte samo za grad preuzimanja. Ne izmišljajte ga iz naziva ulice. Ako ponovo tražite istu vrstu podatka, recite koji tačno deo nedostaje; ne ponavljajte isto opšte pitanje. Već navedene detalje sačuvajte u kontekstu i predložite tipizovanu geografiju tek kada imate njene obavezne delove.',
@@ -593,8 +594,22 @@ function sameFactValue(left: unknown, right: unknown): boolean {
 function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation = false): ParsedTurn {
   if (turn.safety === 'BLOCK' || turn.safety === 'REVIEW') return turn;
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
-    || contextualLocation && explicitPublicationOnly(input)) return { ...turn, proposals: [],
-    assistantMessage: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.' };
+    || contextualLocation && explicitPublicationOnly(input)) {
+    // Ending the interview supplies no new terms. Only missing presentation of an existing
+    // description may be completed, with literal evidence from that description. Map replies
+    // and task/price/schedule ambiguity never take this exception. Semantic accuracy still
+    // belongs to the provider; the final review remains an explicit human decision.
+    const known = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
+    const description = known.get('need.description');
+    const plainFinish = !contextualLocation && turn.dialogue?.taskRelation === 'CONTINUE'
+      && turn.dialogue.priceUnit === 'UNSPECIFIED' && turn.dialogue.schedulePattern === 'UNSPECIFIED';
+    const proposals = plainFinish && typeof description === 'string' && description.trim()
+      ? turn.proposals.filter(proposal => ['need.title', 'need.category'].includes(proposal.key) && !known.has(proposal.key)
+        && typeof proposal.evidence === 'string' && proposal.evidence.trim().length >= 3
+        && description.includes(proposal.evidence.trim())) : [];
+    return { ...turn, proposals,
+      assistantMessage: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.' };
+  }
   const clarification = (assistantMessage: string): ParsedTurn => ({ safety: 'CLARIFY', proposals: [], assistantMessage });
   const dialogue = turn.dialogue;
   if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi posao izaberi Novi zadatak u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
@@ -646,10 +661,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   if (contextualLocation) return { ...turn, proposals };
   const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
-  const missing = ['need.description', 'need.people_needed', 'need.price_mode',
+  const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
     'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at', 'need.ends_at'] : []),
-    'need.task_country_code', 'need.task_geography'].filter(key => !facts.has(key));
+    'need.task_country_code', 'need.task_geography',
+    ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
+    .filter(key => !facts.has(key));
   const questions: Record<string, string> = {
     'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi ti treba?',
     'need.price_mode': 'Želiš da navedeš cenu ili da dobiješ ponude?', 'need.price_rsd': 'Koju cenu nudiš za ceo posao?',
@@ -657,16 +674,19 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
     'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
   };
+  const incompleteMessage = () => {
+    const key = missing.find(key => questions[key]);
+    return key ? questions[key] : 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.';
+  };
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
     // A missing field may be partly explained in the conversation. Preserve the
     // specific clarification (e.g. pickup city) instead of erasing it with a generic
     // location question. Retarget only when the requested field is already known.
     if (!missing.includes(dialogue.questionKey)) {
-      const key = missing[0];
-      assistantMessage = key ? questions[key] : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+      assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
-  } else if (dialogue?.next === 'REVIEW') assistantMessage = 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.';
+  } else if (dialogue?.next === 'REVIEW') assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
   else if (dialogue?.next === 'ACK') assistantMessage = proposals.length ? 'Podaci su ažurirani u pregledu.' : 'Možeš da otvoriš pregled ili dopuniš zadatak.';
   return { ...turn, proposals, assistantMessage };
 }

@@ -32,12 +32,24 @@ function fixture(config={}){
    assert.fail('UNEXPECTED_ROUTE');
  };
  const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout});
- return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_TEXT'})}))};
+ return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_TEXT'})}))};
 }
 async function events(f){const response=await f.invoke();assert.match(response.headers.get('content-type'),/text\/event-stream/);return (await response.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service'));
+
+for(const diagnostics of [false,true]) for(const status of [402,429])
+test(`SSE provider ${status}, diagnostics=${diagnostics}: one safe terminal error, no prose or successful receipt`,async()=>{
+ const f=fixture({headers:diagnostics?{'x-client-info':'uskoci-app/ai-availability-v1'}:{},
+  provider:()=>new Response('PRIVATE_PROVIDER_SECRET AI_CREDITS_UNAVAILABLE',{status})}),es=await events(f);
+ assert.equal(es.at(-1).code,diagnostics&&status===402?'AI_CREDITS_UNAVAILABLE':'AI_TURN_NOT_CONFIRMED');
+ assert.equal(es.filter(e=>e.kind==='safe_error').length,1);
+ assert.ok(!es.some(e=>e.kind==='text_delta'||e.kind==='final'));
+ assert.ok(!JSON.stringify(es).includes('PRIVATE_PROVIDER_SECRET'));
+ assert.equal(providers(f).length,1);assert.equal(writes(f).length,0);assert.equal(failures(f).length,1);
+ assert.equal(failures(f)[0].body.p_attempt_id,attemptId);
+});
 
 for(const config of [{finishReason:'MAX_TOKENS'}, {provider:async()=>{throw Error('SYNTHETIC_NETWORK');}},
  {provider:async()=>new Response('{}',{status:429,headers:{'Content-Type':'application/json'}})}])

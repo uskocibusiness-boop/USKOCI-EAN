@@ -20,6 +20,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/location/LocationControls', () => ({ LocationField: 'LocationField', LocationDetails: 'LocationDetails' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'PinMap' }));
+jest.mock('../../ui/system/ListRow', () => ({ ListRow: 'Button' }));
 jest.mock('../nativeCurrentLocation', () => ({ captureCurrentLocation: jest.fn() }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
@@ -330,7 +331,7 @@ describe('compact conversation proposal', () => {
     expect(props.onInvalidate).not.toHaveBeenCalled();
     expect(map().props).toMatchObject({ position: candidate.position, height: 156, compact: true });
     expect(text()).toContain('Da li je ovo početak?');
-    expect(text()).not.toContain(candidate.label);
+    expect(text()).toContain(candidate.label);
     expect(text()).not.toContain('Svi vide približno područje.');
     expect(button('Potvrdi tačku: Početak').props.label).toBe('Da, ovo je početak');
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);

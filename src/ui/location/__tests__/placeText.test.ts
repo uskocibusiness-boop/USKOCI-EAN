@@ -1,7 +1,20 @@
 import type { ConfirmedLocationPoint } from '../../../contracts/location';
 import type { NeedTaskGeography } from '../../../contracts/needFactsV2';
-import { confirmedPlaceEntries, exactAddressForSlot, ownerPlace, ownerPlaceLine, ownerPlaces, shortPlaceLabel, slotSeed, tidyPlaceLabel, toSerbianLatin } from '../placeText';
+import { candidatePlaceLabel, confirmedPlaceEntries, exactAddressForSlot, ownerPlace, ownerPlaceLine, ownerPlaces, shortPlaceLabel, slotSeed, tidyPlaceLabel, toSerbianLatin } from '../placeText';
 import { toSerbianLatin as fromEditor } from '../LocationPointEditor';
+
+describe('candidate choices retain all distinguishing geography', () => {
+  it.each(['Stari grad, Beograd', 'Umčari, Grocka', 'Centar, Novi Sad'])(
+    'retains the complete remainder for %s', detail => {
+      expect(candidatePlaceLabel(`12a, Trg republike, ${detail}, 11000, Srbija`))
+        .toEqual({ main: 'Trg republike 12a', detail: `${detail}, 11000, Srbija` });
+    });
+  it('keeps POI details and transliterates both lines without inferring a city', () => {
+    expect(candidatePlaceLabel('Народни музеј, 1а, Трг републике, Стари град, Београд'))
+      .toEqual({ main: 'Narodni muzej', detail: '1a, Trg republike, Stari grad, Beograd' });
+    expect(candidatePlaceLabel('  Трг   слободе  ')).toEqual({ main: 'Trg slobode', detail: null });
+  });
+});
 
 describe('conversation search seeds in both Serbian scripts', () => {
   it('keeps a Cyrillic city even before a street is known', () => {

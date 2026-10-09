@@ -1,0 +1,29 @@
+{
+  "state": "LOCAL_AREA_KEY_ONCE_PASS_CERT_COMPUTATION_UNAVAILABLE",
+  "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+  "candidateBodyMd5": "b02dd213008fd3f2482df3ed27c6e8da",
+  "singleReader": true,
+  "httpRequests": 0,
+  "syntheticTasks": 40000,
+  "fullResponseComparisons": 7,
+  "genericMs": [
+    7204.6
+  ],
+  "autoMs": [
+    11764.6,
+    10900.8,
+    11281.7,
+    13682,
+    12679.1,
+    11421.3
+  ],
+  "exactRestoration": true,
+  "rawReceiptSha256": "8c8dff5c48b22e18fcbe2708874e2aed284d827d727e15589bca16839003a423",
+  "limits": [
+    "One authenticated SQL reader and40000synthetic tasks, not HTTP or production capacity.",
+    "Only PLACES shape tested here; other modes require their own semantic/cost checks.",
+    "Original function body, ACL, RLS and stored certificate rows are not changed persistently.",
+    "Computed certificate/readiness preflight failed before any mutation: isolated storage.buckets lacks public column. Only stored certificate rows compared; no computed certificate acceptance.",
+    "Shared host with emulator startup/install; no fair percent improvement claim. Still too slow. Not40000concurrent users."
+  ]
+}
