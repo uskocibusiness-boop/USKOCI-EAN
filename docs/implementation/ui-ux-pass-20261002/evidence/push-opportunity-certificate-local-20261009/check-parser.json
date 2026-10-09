@@ -1,0 +1,122 @@
+{
+  "state": "CHECK_DEPARSE_ROUNDTRIP_EQUIVALENT_ON_LOCAL_PG17_11",
+  "normalization": "ONLY regex :location -?[0-9]+ -> :location -1",
+  "negativeControls": 2,
+  "pairs": [
+    {
+      "table": "private.agreement_review_comments_v1",
+      "constraint": "agreement_review_comments_v1_text_length_check",
+      "expected": "CHECK ((((char_length(comment) >= 1) AND (char_length(comment) <= 500)) AND (octet_length(comment) <= 2000)))",
+      "observed": "CHECK (((char_length(comment) >= 1) AND (char_length(comment) <= 500) AND (octet_length(comment) <= 2000)))",
+      "expectedSha256": "2fb386a4e36ac085b05ced3ba264a4b9c2ecdb454d66778e7eeefc66e07b0657",
+      "observedSha256": "5c3e1502045f91688562805237795ffc3f419ebae89061afe82b9a4a6b8e8ff6",
+      "expectedAstSha256": "408bc5849c4b6bbc28130209c2bf24776b7ab20d41805fd962008e646dae9af4",
+      "observedAstSha256": "408bc5849c4b6bbc28130209c2bf24776b7ab20d41805fd962008e646dae9af4",
+      "negativeControlDifferent": true
+    },
+    {
+      "table": "private.ai_test_reservations_v5",
+      "constraint": "ai_test_reservations_v5_settlement_check",
+      "expected": "CHECK ((((settled_microusd IS NULL) AND (settlement_basis IS NULL) AND (settled_at IS NULL)) OR (((settled_microusd >= 0) AND (settled_microusd <= max_cost_microusd)) AND (settlement_basis = ANY (ARRAY['MEASURED'::text, 'CONSERVATIVE_ESTIMATE_UNMEASURED'::text, 'FAILED_NO_USAGE'::text, 'AUDIO_DURATION_AT_PUBLISHED_RATE'::text])) AND (settled_at IS NOT NULL))))",
+      "observed": "CHECK ((((settled_microusd IS NULL) AND (settlement_basis IS NULL) AND (settled_at IS NULL)) OR ((settled_microusd >= 0) AND (settled_microusd <= max_cost_microusd) AND (settlement_basis = ANY (ARRAY['MEASURED'::text, 'CONSERVATIVE_ESTIMATE_UNMEASURED'::text, 'FAILED_NO_USAGE'::text, 'AUDIO_DURATION_AT_PUBLISHED_RATE'::text])) AND (settled_at IS NOT NULL))))",
+      "expectedSha256": "9dc81db5f0db77455e6299b7f5ef1cd5180f3b748815ba1e2603199afda8d14b",
+      "observedSha256": "2c6873a2858044b85f5423e8ddb10940e91205778fdd3fbe940ff42b7e421444",
+      "expectedAstSha256": "51f797dd3325f19a7bf63468175bd55536cd9395201e9dde850da0b73ef02997",
+      "observedAstSha256": "51f797dd3325f19a7bf63468175bd55536cd9395201e9dde850da0b73ef02997",
+      "negativeControlDifferent": true
+    },
+    {
+      "table": "private.group_messages_v5",
+      "constraint": "group_messages_v5_body_check",
+      "expected": "CHECK ((((char_length(body) >= 1) AND (char_length(body) <= 2000)) AND (body = btrim(body))))",
+      "observed": "CHECK (((char_length(body) >= 1) AND (char_length(body) <= 2000) AND (body = btrim(body))))",
+      "expectedSha256": "45f7eb769b81725cc5bc1fbd52bdf32cf40c94d9e9003333a43dc959a1d46337",
+      "observedSha256": "2cb9e22909ccca4362a53eb47560324be284761316e0ee382f88b4b9e8484c5a",
+      "expectedAstSha256": "9b1cc2afe1cb01baf863361299dd354d4549a07b73f635a3971a6704e646f8da",
+      "observedAstSha256": "9b1cc2afe1cb01baf863361299dd354d4549a07b73f635a3971a6704e646f8da",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "private.safety_reports",
+      "constraint": "safety_reports_reason_check",
+      "expected": "CHECK ((((length(btrim(reason)) >= 1) AND (length(btrim(reason)) <= 200)) AND (octet_length(reason) <= 800)))",
+      "observed": "CHECK (((length(btrim(reason)) >= 1) AND (length(btrim(reason)) <= 200) AND (octet_length(reason) <= 800)))",
+      "expectedSha256": "2c983ac841cdd8a9a468f7a6ba51e546b08596842aab10591648adf3d4ffa30a",
+      "observedSha256": "528a7a09cdb9625c69448714804a944b3b6133400dd81514c1530db121bbc8cd",
+      "expectedAstSha256": "4844679ffd9ddd7f0c88be29797d5db04ad50d32501d0792c0d4fcadbf4eb2c3",
+      "observedAstSha256": "4844679ffd9ddd7f0c88be29797d5db04ad50d32501d0792c0d4fcadbf4eb2c3",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "private.support_cases_v5",
+      "constraint": "support_cases_v5_title_check",
+      "expected": "CHECK ((((length(btrim(title)) >= 1) AND (length(btrim(title)) <= 200)) AND (octet_length(title) <= 800)))",
+      "observed": "CHECK (((length(btrim(title)) >= 1) AND (length(btrim(title)) <= 200) AND (octet_length(title) <= 800)))",
+      "expectedSha256": "2b2ebe1d2b002d62cfec4e7a471f0a02ccf3016d85ed6111a2e77002d2f76034",
+      "observedSha256": "ce0d61e2aed837c18eaaf4e25ced8ff13469b521b216866d1404339a3414aace",
+      "expectedAstSha256": "057e24063d695f362f48b0687782a8385a4c1a880ae0fc816c050de26b4a94ba",
+      "observedAstSha256": "057e24063d695f362f48b0687782a8385a4c1a880ae0fc816c050de26b4a94ba",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "private.support_decisions_v5",
+      "constraint": "support_decisions_v5_explanation_check",
+      "expected": "CHECK ((((length(btrim(explanation)) >= 1) AND (length(btrim(explanation)) <= 4000)) AND (octet_length(explanation) <= 16000)))",
+      "observed": "CHECK (((length(btrim(explanation)) >= 1) AND (length(btrim(explanation)) <= 4000) AND (octet_length(explanation) <= 16000)))",
+      "expectedSha256": "bbd85381912e3428385590f98618bf81358599e2f2e9201b91bf46e7b6e88438",
+      "observedSha256": "eb97ce7ea00146b142ffe49a5a28ed81387ee75bd2e1a9ef53600f2fd32dbe33",
+      "expectedAstSha256": "e17e81fbda34194d079f5734a38f66c71ad04ce4f7154d926d69f8ab962f8672",
+      "observedAstSha256": "e17e81fbda34194d079f5734a38f66c71ad04ce4f7154d926d69f8ab962f8672",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "private.support_events_v5",
+      "constraint": "support_events_v5_body_check",
+      "expected": "CHECK ((((length(btrim(body)) >= 1) AND (length(btrim(body)) <= 4000)) AND (octet_length(body) <= 16000)))",
+      "observed": "CHECK (((length(btrim(body)) >= 1) AND (length(btrim(body)) <= 4000) AND (octet_length(body) <= 16000)))",
+      "expectedSha256": "56ba0d7e21709df8f7fa4274c718b396cfb8fe5af069efbbc3f505dc954ee58d",
+      "observedSha256": "090e20da5cad5fac5a9da175892f7bbbc23c7eb0a1b97775773e4e8bd244e97a",
+      "expectedAstSha256": "ddfbb700a95c652e639e3b74872feb8317a8dd2cf7b402b649dfaf8993aab50d",
+      "observedAstSha256": "ddfbb700a95c652e639e3b74872feb8317a8dd2cf7b402b649dfaf8993aab50d",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "public.account_legal_acceptance_events",
+      "constraint": "account_legal_acceptance_request_chk",
+      "expected": "CHECK ((((char_length(request_id) >= 16) AND (char_length(request_id) <= 96)) AND (request_id ~ '^[A-Za-z0-9_-]+$'::text)))",
+      "observed": "CHECK (((char_length(request_id) >= 16) AND (char_length(request_id) <= 96) AND (request_id ~ '^[A-Za-z0-9_-]+$'::text)))",
+      "expectedSha256": "949842e442ecc2312aea858eb0031c83a691749031c6f96275187166d8a73aba",
+      "observedSha256": "eac5b89bb01a8dce26e32d943db0ed6cff10c025b3fb528fa568c6d62677c980",
+      "expectedAstSha256": "cfd236c604347f0a9ed909172e34ec473c6537c8a0d756281f1cb0cab22ca333",
+      "observedAstSha256": "cfd236c604347f0a9ed909172e34ec473c6537c8a0d756281f1cb0cab22ca333",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "public.data_export_requests",
+      "constraint": "data_export_request_id_chk",
+      "expected": "CHECK ((((char_length(client_request_id) >= 16) AND (char_length(client_request_id) <= 96)) AND (client_request_id ~ '^[A-Za-z0-9_-]+$'::text)))",
+      "observed": "CHECK (((char_length(client_request_id) >= 16) AND (char_length(client_request_id) <= 96) AND (client_request_id ~ '^[A-Za-z0-9_-]+$'::text)))",
+      "expectedSha256": "015c74d3e4b20ee327f9cd788a00b431d3bb51e374ca638bdcffc5bae87aa603",
+      "observedSha256": "1928456de8ad83027d946539cb79b765941de9ab1fe4c1491476b38bf6dd81cc",
+      "expectedAstSha256": "cfd236c604347f0a9ed909172e34ec473c6537c8a0d756281f1cb0cab22ca333",
+      "observedAstSha256": "cfd236c604347f0a9ed909172e34ec473c6537c8a0d756281f1cb0cab22ca333",
+      "negativeControlDifferent": false
+    },
+    {
+      "table": "public.profile_availability_rules",
+      "constraint": "profile_availability_rule_weekdays_check",
+      "expected": "CHECK ((((cardinality(weekdays) >= 1) AND (cardinality(weekdays) <= 7)) AND (weekdays <@ ARRAY[(0)::smallint, (1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint])))",
+      "observed": "CHECK (((cardinality(weekdays) >= 1) AND (cardinality(weekdays) <= 7) AND (weekdays <@ ARRAY[(0)::smallint, (1)::smallint, (2)::smallint, (3)::smallint, (4)::smallint, (5)::smallint, (6)::smallint])))",
+      "expectedSha256": "3e885127751ce0bb3165d546988472c576264584d903efa9408aff7ca56c682f",
+      "observedSha256": "3b32aae4097397a476e22d860a8d6f1bb6617a7a29c8692ce6ce6618bb9afbdb",
+      "expectedAstSha256": "936edb81467e65206c77dd31800c767b870288c2ec63485ad4811e5bd0bcfc23",
+      "observedAstSha256": "936edb81467e65206c77dd31800c767b870288c2ec63485ad4811e5bd0bcfc23",
+      "negativeControlDifferent": false
+    }
+  ],
+  "privateFullReceiptSha256": "a399ba7d64e31ee7dce800f77f50a71b38a645d5fd42d37ca16ec3fc114378d8",
+  "limits": [
+    "Does not prove byte-identical DEV conbin or PG17.6 execution engine.",
+    "Original surface differences remain recorded, not silently normalized."
+  ]
+}

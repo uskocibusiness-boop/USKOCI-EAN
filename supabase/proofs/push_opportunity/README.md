@@ -60,3 +60,7 @@ Still required before DEV application:
 6. Exact live preflight, matching active recipient profile, one current owner device/event, closure-safe application/readback and one bounded provider/phone proof. Owner-confirmed MESSAGE delivery is separate evidence, not acceptance of this new category.
 
 This package does not establish store readiness, sustained traffic capacity, group-message emission or all notification categories.
+
+### Later local certificate evidence, 09 October
+
+The faithful 108-function surface reconstruction, local baseline translation, committed install/revert/reapply and closure/admission refusals have now passed in isolated children. See `docs/implementation/ui-ux-pass-20261002/evidence/push-opportunity-certificate-local-20261009/README.md` for exact scope and source-bound artifacts. This closes the local reconstruction/transition work in items 1–4 above; it does not supply a DEV promotion wrapper or resolve the remaining concurrency and physical delivery requirements. Post-admission exact downgrade is explicitly refused in PENDING, SUPPRESSED and UNKNOWN states, preserving journal metadata.

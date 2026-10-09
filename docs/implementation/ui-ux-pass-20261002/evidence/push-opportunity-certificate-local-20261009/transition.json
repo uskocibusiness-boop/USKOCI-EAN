@@ -1,0 +1,40 @@
+{
+  "state": "LOCAL_CERTIFICATE_TRANSITION_PASS_PARTIAL_NEGATIVES",
+  "database": "uskoci_proof_cert108_round_1a877548",
+  "parent": "uskoci_proof_cert108_1d4bbab5",
+  "devWrites": 0,
+  "providerCalls": 0,
+  "httpCalls": 0,
+  "rosterBefore": 108,
+  "rosterAfter": 108,
+  "cases": [
+    "faithful-local-catalog-fixture-binding",
+    "committed-install-closes-then-rebinds-readiness",
+    "committed-exact-pre-admission-revert",
+    "committed-reapply-identical-installed-snapshot",
+    "guard-refused-snapshot-equal-after-savepoint-rollback:revert-source-drift",
+    "guard-refused-snapshot-equal-after-savepoint-rollback:revert-source-row-drift",
+    "guard-refused-snapshot-equal-after-savepoint-rollback:revert-readiness-literal-drift",
+    "guard-refused-snapshot-equal-after-savepoint-rollback:install-source-drift",
+    "guard-refused-snapshot-equal-after-savepoint-rollback:install-erasure-row-drift",
+    "guard-refused-snapshot-equal-after-savepoint-rollback:install-readiness-literal-drift"
+  ],
+  "candidateSha256": "0a295c777c59def4dedc7473b6262df789db22658821f9bb202081ad5c3368a6",
+  "harnessSha256": "cdce07e4d564119c93dceab8dde47bc8e03eaf89d633f01a97441a67ab32bcf6",
+  "evidencePins": {
+    "closure108-full-dev-v2.json": "7786b165586a3088c82c582ae49089b1ad9c1b6cf974fedd940f865d107a3be9",
+    "closure108-full-local.json": "34019ab969a4c4fb628c207111f041cd027ebea3398bb7b0e832bad404ceb6c4",
+    "closure108-supplement-dev.json": "21a462950b0a5f21ea895a256b1c8a67a6212b7a291cdb2e1af75094c5a7c8c0",
+    "closure108-supplement-local.json": "370426d003ae6abc49e6c7a42aad5f21daf0a3a212035a3234cd39b046c1884e",
+    "closure108-semantic-comparison.json": "63db53b6853b726310bff6525b0e55ba795b157df0590332b75aa7831d6fa377",
+    "closure108-check-proof.json": "a399ba7d64e31ee7dce800f77f50a71b38a645d5fd42d37ca16ec3fc114378d8",
+    "closure108-check-pairs.json": "e80df472abea9abca6390344b1df0fe0f005d22ff799349ec9aeec8c1a032dfe"
+  },
+  "baselineDigest": "003ff5d73c3e5dced755b9ffaac8a08e75ab2d8b912cab9095b0bfdf35ff5431",
+  "candidateDigest": "99118bf8a0082a8a3ecd58622d8296a7bcda3cf878796067bc14c79b41e819a8",
+  "limitations": [
+    "Local PG17.11 catalog fixture, not DEV recertification or byte-identical engine proof.",
+    "EXECUTING and post-admission revert guards not yet exercised by this runner.",
+    "No HTTP Auth, provider, phone or store acceptance."
+  ]
+}

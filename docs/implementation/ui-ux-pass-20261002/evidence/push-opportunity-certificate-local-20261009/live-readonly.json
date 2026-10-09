@@ -1,0 +1,10 @@
+{
+  "state": "DEV_CERTIFICATE_UNCHANGED_READ_ONLY",
+  "ready": true,
+  "source": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "erasure": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "computed": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "capturedAt": "2026-10-09T14:36:53.130627+00:00",
+  "bindingSource": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "devWrites": 0
+}

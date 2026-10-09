@@ -1,0 +1,137 @@
+{
+  "state": "EXACT_ERROR_AND_FROZEN_ARTIFACT_VALIDATION_PASS",
+  "freshComparatorEqualsRecorded": true,
+  "uniqueCheckPairs": 10,
+  "checkArraysSameLength": true,
+  "negativeLogs": [
+    {
+      "file": "closure108-transition-1a877548/cert108-negative-install-erasure-row-drift.stderr.log",
+      "sha256": "8f8cd0df73e9941fa979184e0acc6b95c13e24f9ea4d9738c7e37996803dd27a",
+      "firstError": "CERTIFICATE_PRECONDITION",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 12
+    },
+    {
+      "file": "closure108-transition-1a877548/cert108-negative-install-readiness-literal-drift.stderr.log",
+      "sha256": "8f8cd0df73e9941fa979184e0acc6b95c13e24f9ea4d9738c7e37996803dd27a",
+      "firstError": "CERTIFICATE_PRECONDITION",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 12
+    },
+    {
+      "file": "closure108-transition-1a877548/cert108-negative-install-source-drift.stderr.log",
+      "sha256": "8f8cd0df73e9941fa979184e0acc6b95c13e24f9ea4d9738c7e37996803dd27a",
+      "firstError": "CERTIFICATE_PRECONDITION",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 12
+    },
+    {
+      "file": "closure108-transition-1a877548/cert108-negative-revert-readiness-literal-drift.stderr.log",
+      "sha256": "cc30011991551664df3d8ae2b0ba967e665f39278d975efa3a1ee7b84ecf370a",
+      "firstError": "CERTIFICATE_PRECONDITION",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    },
+    {
+      "file": "closure108-transition-1a877548/cert108-negative-revert-source-drift.stderr.log",
+      "sha256": "cc30011991551664df3d8ae2b0ba967e665f39278d975efa3a1ee7b84ecf370a",
+      "firstError": "CERTIFICATE_PRECONDITION",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    },
+    {
+      "file": "closure108-transition-1a877548/cert108-negative-revert-source-row-drift.stderr.log",
+      "sha256": "cc30011991551664df3d8ae2b0ba967e665f39278d975efa3a1ee7b84ecf370a",
+      "firstError": "CERTIFICATE_PRECONDITION",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    },
+    {
+      "file": "closure108-barriers-1c4fd6e2/revert-executing-closure.stderr.log",
+      "sha256": "774eabe2cd9b4ea1616c2fe8ddeab634a1ce4f26179ae560526f809a847704a8",
+      "firstError": "EXECUTING_CLOSURE",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    },
+    {
+      "file": "closure108-barriers-1c4fd6e2/install-executing-closure.stderr.log",
+      "sha256": "3d374888fad3038a0d6c0b23e8050497d66b66000e568c9d231ee3adc620c071",
+      "firstError": "EXECUTING_CLOSURE",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 12
+    },
+    {
+      "file": "closure108-barriers-1c4fd6e2/revert-after-pending.stderr.log",
+      "sha256": "fab950b08b0d8e3e0521ae0c3bcb6664730c20bd53917efe45b2f94d8b2a24e2",
+      "firstError": "OPPORTUNITY_ADMISSIONS_PREVENT_EXACT_REVERT",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    },
+    {
+      "file": "closure108-barriers-1c4fd6e2/revert-after-suppressed.stderr.log",
+      "sha256": "fab950b08b0d8e3e0521ae0c3bcb6664730c20bd53917efe45b2f94d8b2a24e2",
+      "firstError": "OPPORTUNITY_ADMISSIONS_PREVENT_EXACT_REVERT",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    },
+    {
+      "file": "closure108-barriers-1c4fd6e2/revert-after-unknown.stderr.log",
+      "sha256": "fab950b08b0d8e3e0521ae0c3bcb6664730c20bd53917efe45b2f94d8b2a24e2",
+      "firstError": "OPPORTUNITY_ADMISSIONS_PREVENT_EXACT_REVERT",
+      "additionalErrors": "only aborted-transaction",
+      "additionalErrorCount": 8
+    }
+  ],
+  "privateArtifactSha256": {
+    "closure108-transition-1a877548/00-cloud-binding-in-local-catalog.json": "4978ecc0f5f4463fd85addfc4011c7c514824240e46f071e70e2f61971fdb88c",
+    "closure108-transition-1a877548/01-coherent-local-baseline.json": "c4c666bd3772883e01435a7562dc4799d5b515cceafed2ddee944fcc58780c5d",
+    "closure108-transition-1a877548/01-local-catalog-fixture.sql": "f1af7214e1e97f026e8bddc3e3d303e65844b634fc086870f2bcb59172fcc7c6",
+    "closure108-transition-1a877548/02-install.sql": "7c4d6d092d09f23e8493d95f36348f9aeb16f2c33b6051f06693534906ee5895",
+    "closure108-transition-1a877548/02-installed.json": "4149dd67ce31de6e8a6852c8be1d2b9d1bb2184397d9eb832977bf26b831dd14",
+    "closure108-transition-1a877548/03-revert.sql": "343c9fbee85dd358426f4fc174a84a83c11aea81df904ea1491b9ac09500bdb5",
+    "closure108-transition-1a877548/04-reapply.sql": "7c4d6d092d09f23e8493d95f36348f9aeb16f2c33b6051f06693534906ee5895",
+    "closure108-transition-1a877548/05-revert-before-install-negatives.sql": "343c9fbee85dd358426f4fc174a84a83c11aea81df904ea1491b9ac09500bdb5",
+    "closure108-transition-1a877548/06-final-reapply.sql": "7c4d6d092d09f23e8493d95f36348f9aeb16f2c33b6051f06693534906ee5895",
+    "closure108-transition-1a877548/cert108-negative-install-erasure-row-drift.stderr.log": "8f8cd0df73e9941fa979184e0acc6b95c13e24f9ea4d9738c7e37996803dd27a",
+    "closure108-transition-1a877548/cert108-negative-install-readiness-literal-drift.stderr.log": "8f8cd0df73e9941fa979184e0acc6b95c13e24f9ea4d9738c7e37996803dd27a",
+    "closure108-transition-1a877548/cert108-negative-install-source-drift.stderr.log": "8f8cd0df73e9941fa979184e0acc6b95c13e24f9ea4d9738c7e37996803dd27a",
+    "closure108-transition-1a877548/cert108-negative-revert-readiness-literal-drift.stderr.log": "cc30011991551664df3d8ae2b0ba967e665f39278d975efa3a1ee7b84ecf370a",
+    "closure108-transition-1a877548/cert108-negative-revert-source-drift.stderr.log": "cc30011991551664df3d8ae2b0ba967e665f39278d975efa3a1ee7b84ecf370a",
+    "closure108-transition-1a877548/cert108-negative-revert-source-row-drift.stderr.log": "cc30011991551664df3d8ae2b0ba967e665f39278d975efa3a1ee7b84ecf370a",
+    "closure108-transition-1a877548/negative-install-erasure-row-drift.sql": "3b5805e2c07a1284f63f5b2b1a86bd9167c66918b94c2134ff9715ed478d2ed9",
+    "closure108-transition-1a877548/negative-install-readiness-literal-drift.sql": "5ed6cca921148ed0773a33a0001b1e584e35ffecb9e758c631f9475ab5aa9653",
+    "closure108-transition-1a877548/negative-install-source-drift.sql": "93c8c61d053077101dfbc42133b6f508d520a51adf1e157d37666c5bd37b320d",
+    "closure108-transition-1a877548/negative-revert-readiness-literal-drift.sql": "8f1ab81e374fa44197492bffbe03655f038ab9478ce62c8a6ab90674428e1f87",
+    "closure108-transition-1a877548/negative-revert-source-drift.sql": "68193b220eb12d270601ac5284a45c6e75658692c90fc25d803fac1caa5450df",
+    "closure108-transition-1a877548/negative-revert-source-row-drift.sql": "0d58e28024ee96d3e4c0d72cb080b93dac777c0c688c2496a836b173ff2ff848",
+    "closure108-transition-1a877548/receipt.json": "099944546b34f075f70d8eb68c03c2f68d128a52be4d27d979ea9cfb5ea0509d",
+    "closure108-barriers-1c4fd6e2/install-executing-closure.sql": "32b421c0f063d4681391027418994bb86457784f90f05616534f89025e37780e",
+    "closure108-barriers-1c4fd6e2/install-executing-closure.stderr.log": "3d374888fad3038a0d6c0b23e8050497d66b66000e568c9d231ee3adc620c071",
+    "closure108-barriers-1c4fd6e2/reapply.sql": "d2c5982ca225282256b4dcad27b937907cc2bda6edcf1f0de0b93e4f4a61ef01",
+    "closure108-barriers-1c4fd6e2/reapply.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "closure108-barriers-1c4fd6e2/receipt.json": "66cb2f9b4e8eea4e5086f2a9d67b97073455fa84fbdf9434460b8451c36470a8",
+    "closure108-barriers-1c4fd6e2/revert-after-pending.sql": "e146dc0db91a6b336ba6f696c9a6cbe2916f5c46aee26b80dfbaf7cbddb471ec",
+    "closure108-barriers-1c4fd6e2/revert-after-pending.stderr.log": "fab950b08b0d8e3e0521ae0c3bcb6664730c20bd53917efe45b2f94d8b2a24e2",
+    "closure108-barriers-1c4fd6e2/revert-after-suppressed.sql": "c310e9a7275efbe4de780536b1bd51a76cde869af0cfc69ba0ef8aafcc0ec844",
+    "closure108-barriers-1c4fd6e2/revert-after-suppressed.stderr.log": "fab950b08b0d8e3e0521ae0c3bcb6664730c20bd53917efe45b2f94d8b2a24e2",
+    "closure108-barriers-1c4fd6e2/revert-after-unknown.sql": "3d039984dd31cd90952a767a6408602a073e846e29095ae5daaa4af7cf2660c2",
+    "closure108-barriers-1c4fd6e2/revert-after-unknown.stderr.log": "fab950b08b0d8e3e0521ae0c3bcb6664730c20bd53917efe45b2f94d8b2a24e2",
+    "closure108-barriers-1c4fd6e2/revert-executing-closure.sql": "13d7bb7fefcadcfba0f43040afb5244699a7c62c0e799524217c1ed25ca72c7e",
+    "closure108-barriers-1c4fd6e2/revert-executing-closure.stderr.log": "774eabe2cd9b4ea1616c2fe8ddeab634a1ce4f26179ae560526f809a847704a8",
+    "closure108-barriers-1c4fd6e2/revert-to-baseline.sql": "405d43cc1d63eb45db40c6355b2f645842083a0899e7d183781e02ed8f47826c",
+    "closure108-barriers-1c4fd6e2/revert-to-baseline.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "closure108-full-dev-v2.json": "7786b165586a3088c82c582ae49089b1ad9c1b6cf974fedd940f865d107a3be9",
+    "closure108-full-local.json": "34019ab969a4c4fb628c207111f041cd027ebea3398bb7b0e832bad404ceb6c4",
+    "closure108-supplement-dev.json": "21a462950b0a5f21ea895a256b1c8a67a6212b7a291cdb2e1af75094c5a7c8c0",
+    "closure108-supplement-local.json": "370426d003ae6abc49e6c7a42aad5f21daf0a3a212035a3234cd39b046c1884e",
+    "closure108-semantic-comparison.json": "63db53b6853b726310bff6525b0e55ba795b157df0590332b75aa7831d6fa377",
+    "closure108-byte-source-restore.sql": "c42a41e2b2a9117d5a6e54c558d771b123ef7d2ae7b02e129941c3474c143f58",
+    "closure108-null-acl-restore.sql": "0d03d5ba63b1251597e862d40b1922e34b488c809e59c59318915f05f8349a5e",
+    "closure108-check-proof.rollback.sql": "aa47da4348bedb88ca93a53812da6a9fb782acef402c5b11ff31e9db992144e8",
+    "closure108-check-proof.json": "a399ba7d64e31ee7dce800f77f50a71b38a645d5fd42d37ca16ec3fc114378d8",
+    "closure108-restore-1d4bbab5.sql": "073cf4aacd89319472cef7c5c8dee5a67f8b45ecd887fe8ed6770bb73f3f9db9",
+    "opportunity-canonical-proof/opportunity-local-3304e13d.rollback.sql": "5e19aa8b83027387a0844b298bb3e7d0518893a0eac1caf0915270647e30e530",
+    "opportunity-canonical-proof/opportunity-local-3304e13d.json": "0339b7e8863a4564aea2b3777fa69681072471fa6a5d95e312db58ad07265470"
+  },
+  "scope": "Offline validation of exact previously executed SQL, snapshots and logs; no new database calls."
+}

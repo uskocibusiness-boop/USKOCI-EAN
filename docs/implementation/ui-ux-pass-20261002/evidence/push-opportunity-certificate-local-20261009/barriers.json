@@ -1,0 +1,76 @@
+{
+  "state": "LOCAL_CLOSURE_AND_ADMISSION_BARRIERS_PASS",
+  "database": "uskoci_proof_cert108_barrier_1c4fd6e2",
+  "parent": "uskoci_proof_cert108_round_1a877548",
+  "devWrites": 0,
+  "providerCalls": 0,
+  "httpCalls": 0,
+  "harnessSha256": "2150d887436a7b57a3597bd832c4b2a931e69c8b0c38e20b7430300afd047497",
+  "transitionReceiptSha256": "099944546b34f075f70d8eb68c03c2f68d128a52be4d27d979ea9cfb5ea0509d",
+  "cases": [
+    {
+      "case": "revert-executing-closure",
+      "error": "EXECUTING_CLOSURE",
+      "witness": {
+        "executing": 1
+      },
+      "snapshotEqualAfterRollbackToSavepoint": true
+    },
+    {
+      "case": "install-executing-closure",
+      "error": "EXECUTING_CLOSURE",
+      "witness": {
+        "executing": 1
+      },
+      "snapshotEqualAfterRollbackToSavepoint": true
+    },
+    {
+      "case": "revert-after-pending",
+      "error": "OPPORTUNITY_ADMISSIONS_PREVENT_EXACT_REVERT",
+      "witness": {
+        "state": "PENDING",
+        "sendCount": 0,
+        "eventType": "OPPORTUNITY_AVAILABLE",
+        "metadataPreserved": true
+      },
+      "snapshotEqualAfterRollbackToSavepoint": true
+    },
+    {
+      "case": "revert-after-suppressed",
+      "error": "OPPORTUNITY_ADMISSIONS_PREVENT_EXACT_REVERT",
+      "witness": {
+        "state": "SUPPRESSED",
+        "sendCount": 0,
+        "eventType": "OPPORTUNITY_AVAILABLE",
+        "metadataPreserved": true
+      },
+      "snapshotEqualAfterRollbackToSavepoint": true
+    },
+    {
+      "case": "revert-after-unknown",
+      "error": "OPPORTUNITY_ADMISSIONS_PREVENT_EXACT_REVERT",
+      "witness": {
+        "state": "UNKNOWN",
+        "sendCount": 1,
+        "eventType": "OPPORTUNITY_AVAILABLE",
+        "metadataPreserved": true
+      },
+      "snapshotEqualAfterRollbackToSavepoint": true
+    }
+  ],
+  "rowMultisetsPreserved": 129,
+  "rowProofSha256": "7fb87b7c646137e99d7fa04f0af4cae9350964c1d6fbe50b153aea7584984b32",
+  "sequenceBefore": {
+    "last": 37,
+    "called": false
+  },
+  "sequenceAfter": {
+    "last": 40,
+    "called": true
+  },
+  "limits": [
+    "Canonical SQL RPC with actual SQL roles and synthetic Auth rows; not HTTP Auth.",
+    "Identity sequence movement is recorded, not claimed rolled back.",
+    "No provider requests or real phone delivery."
+  ]
+}

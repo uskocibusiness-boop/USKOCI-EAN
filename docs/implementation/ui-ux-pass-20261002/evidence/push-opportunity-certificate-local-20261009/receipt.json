@@ -1,0 +1,97 @@
+{
+  "state": "LOCAL_108_CERTIFICATE_TRANSITION_AND_REFUSALS_PASS_NOT_DEPLOYABLE",
+  "candidateSha256": "0a295c777c59def4dedc7473b6262df789db22658821f9bb202081ad5c3368a6",
+  "sourceCommit": "b7ffcc16",
+  "devWrites": 0,
+  "httpCalls": 0,
+  "providerCalls": 0,
+  "surface": {
+    "sourceMembers": 108,
+    "functionRecords": 153,
+    "schemaTables": 126,
+    "functionOrAclDifferences": 0,
+    "storageAuthSupplementDifferences": 0,
+    "catalogIdentityDifferences": 418,
+    "invalidationCatalogIdentityDifferences": 14,
+    "invalidationSemanticDifferences": 0,
+    "checkRepresentationDifferences": 10,
+    "checkPairsSameLocalAst": 10,
+    "negativeControlsDifferent": 2,
+    "sourceAndProgramProjectionEqualsActual": true
+  },
+  "restoration": {
+    "exactFunctionBodiesRestored": 13,
+    "nullAclTablesRestored": [
+      "private.dispatch_schedule",
+      "private.marketplace_config"
+    ],
+    "tableRowsPreserved": true,
+    "storageObjectContentsCopied": false,
+    "realRealtimeReplicationProved": false
+  },
+  "transition": {
+    "committedInstallRevertReapply": true,
+    "sourceAndProgramRosterDefinitionsUnchanged": true,
+    "readinessChange": "One digest literal only; remaining function and metadata unchanged.",
+    "datasetCatalogEntries": 15,
+    "exportCatalogEntries": 52,
+    "catalogsUnchanged": true,
+    "negativeDriftCases": 6
+  },
+  "barriers": {
+    "canonicalExecutingClosureCases": 2,
+    "postAdmissionRevertStates": [
+      "PENDING",
+      "SUPPRESSED",
+      "UNKNOWN"
+    ],
+    "preservedRowMultisets": 129,
+    "identitySequence": {
+      "before": {
+        "last": 37,
+        "called": false
+      },
+      "after": {
+        "last": 40,
+        "called": true
+      },
+      "scope": "Fresh disposable child only; RPC sequence increment does not roll back."
+    }
+  },
+  "phoneTarget": {
+    "capturedAt": "2026-10-09T14:29:19.141835Z",
+    "accountChoice": "Owner-selected uskocibusiness already open on phone",
+    "workerStatus": "DRAFT",
+    "cityEmpty": true,
+    "skillsEmpty": true,
+    "activeBoundDeviceRows": 1,
+    "newDeliverySent": false
+  },
+  "harnessSha256": {
+    "prove-closure108-transition.py": "cdce07e4d564119c93dceab8dde47bc8e03eaf89d633f01a97441a67ab32bcf6",
+    "prove-closure108-barriers.py": "2150d887436a7b57a3597bd832c4b2a931e69c8b0c38e20b7430300afd047497",
+    "prove-closure108-checks.py": "d048bb44d61b49451c5306a2a1490bbafa6dfb4bdd7a1ddc2b7a00dc5d56f847",
+    "compare-closure108.mjs": "92335403cff738d03bd67da75c31706c2d556a0ec62ba923529704986c875e58"
+  },
+  "failedHistory": [
+    {
+      "run": "closure108-barriers-48181881",
+      "reason": "Harness attempted TEMP table creation within read-only transaction; no test passed."
+    },
+    {
+      "run": "closure108-barriers-1f7f5394",
+      "reason": "Two executing-closure cases passed; harness used incorrect fixture receipt filename before admission cases."
+    }
+  ],
+  "remaining": [
+    "Exact DEV promotion wrapper/preflight and source/readback receipts are not provided by these local scripts.",
+    "Active-transport and concurrent-install guard scenarios are not separately exercised.",
+    "Profile/preference/calendar/time-boundary and full-capacity selection races remain.",
+    "Post-admission operation must preserve admission metadata; exact MESSAGE-only revert is refused. A compatible downgrade is a separate forward package.",
+    "Owner-selected active worker with real work/city choice, one bounded provider/phone opportunity proof.",
+    "No HTTP Auth, engine byte-identity, full account erasure, all-category push, capacity or store claim."
+  ],
+  "independentReview": "Read-only parent-model review: no invalidating finding in 10+5 cases. Exact first errors and source inputs independently audited; labels narrowed to snapshot equality after savepoint rollback.",
+  "artifactValidation": "artifact-validation.json",
+  "cleanup": "cleanup.json"
+}

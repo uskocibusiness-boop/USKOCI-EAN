@@ -1,0 +1,14 @@
+{
+  "state": "OWN_COMPLETED_PROOF_CLONES_REMOVED",
+  "removed": [
+    "uskoci_proof_cert108_barrier_48181881",
+    "uskoci_proof_cert108_barrier_1f7f5394",
+    "uskoci_proof_cert108_barrier_1c4fd6e2",
+    "uskoci_proof_cert108_round_1a877548"
+  ],
+  "forceUsed": false,
+  "sessionsTerminated": 0,
+  "retainedFixture": "uskoci_proof_cert108_1d4bbab5",
+  "parent": "uskoci_plan_cache_20261009",
+  "devWrites": 0
+}

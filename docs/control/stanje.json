@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T13:58:49Z",
+  "osvezeno": "2026-10-09T14:36:13Z",
   "grana": "integration/spoj-20261006",
-  "head": "7bdeb124",
-  "head_poruka": "Record verified b52 APK delivery and bounded native and SQL results",
+  "head": "b7ffcc16",
+  "head_poruka": "Prove bounded opportunity push behavior and cancellation races locally",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2970,6 +2970,13 @@
    "result": "Natural local matching/emitter plus baseline refusal/candidate single SEND;33required markers including26drift,22shape,15SQL-role cases and MESSAGE differential both roles.127table rollback comparison. Two actual connections: cancel-first suppresses, begin-first permits at most1 SEND; clones removed.",
    "limits": "Partial Auth/Storage clone; no full108certificate/provider/phone or capacity claim. Worker on owner-selected phone account remains DRAFT/empty. No DEV mutations.",
    "next": "Complete faithful108certificate surface and rebind/revert policy, then one natural opportunity to the active owner-selected worker/device. Keep global queue disabled."
+  },
+  "push_opportunity_certificate_local_20261009": {
+   "state": "LOCAL_108_CERTIFICATE_TRANSITION_AND_REFUSALS_PASS_NOT_DEPLOYED",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-opportunity-certificate-local-20261009/receipt.json",
+   "result": "Faithful108surface:0function/ACL/supplement differences;10exact CHECK pairs have equal local AST with2negative controls,418+14catalog identities explicit. Committed local install/revert/reapply preserves15dataset/52export entries.6drift rejections,2canonical EXECUTING refusals,3post-admission refusals;129row multisets unchanged,identity sequence movement recorded.",
+   "limits": "Local PG17.11 fixture, not DEV recertification or engine identity. No provider/phone send. Selected phone worker still DRAFT/empty at14:29:19UTC.",
+   "next": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history."
   }
  },
  "redovi": [
@@ -9329,8 +9336,8 @@
    },
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
-   "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. New OPPORTUNITY path now has local matching, transport, ACL and cancellation-race proof but is NOT DEPLOYED: full108certificate and post-admission rollback remain open. Selected phone worker is still DRAFT/empty. All-category/group/automatic push and store remain unproven.",
-   "sledece": "Complete faithful108certificate surface and rebind/revert policy, then one natural opportunity to the active owner-selected worker/device. Keep global queue disabled.",
+   "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. OPPORTUNITY has local behavior, cancellation race and complete108catalog transition/refusal evidence, but is NOT DEPLOYED. Exact promotion and remaining profile/time/selection concurrency checks are open; selected phone worker is DRAFT/empty. All-category/group/automatic push and store remain unproven.",
+   "sledece": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -9443,6 +9450,13 @@
      "result": "Natural local matching/emitter plus baseline refusal/candidate single SEND;33required markers including26drift,22shape,15SQL-role cases and MESSAGE differential both roles.127table rollback comparison. Two actual connections: cancel-first suppresses, begin-first permits at most1 SEND; clones removed.",
      "limits": "Partial Auth/Storage clone; no full108certificate/provider/phone or capacity claim. Worker on owner-selected phone account remains DRAFT/empty. No DEV mutations.",
      "next": "Complete faithful108certificate surface and rebind/revert policy, then one natural opportunity to the active owner-selected worker/device. Keep global queue disabled."
+    },
+    "opportunity_certificate_local_20261009": {
+     "state": "LOCAL_108_CERTIFICATE_TRANSITION_AND_REFUSALS_PASS_NOT_DEPLOYED",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-opportunity-certificate-local-20261009/receipt.json",
+     "result": "Faithful108surface:0function/ACL/supplement differences;10exact CHECK pairs have equal local AST with2negative controls,418+14catalog identities explicit. Committed local install/revert/reapply preserves15dataset/52export entries.6drift rejections,2canonical EXECUTING refusals,3post-admission refusals;129row multisets unchanged,identity sequence movement recorded.",
+     "limits": "Local PG17.11 fixture, not DEV recertification or engine identity. No provider/phone send. Selected phone worker still DRAFT/empty at14:29:19UTC.",
+     "next": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history."
     }
    },
    "ukupno": "PROBLEM",
