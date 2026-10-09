@@ -555,3 +555,16 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **NIJE DOKAZANO:** nema admission/provider slanja ili fizičkogpush prijema. StartupANR nije rešen i jedanWait recovery ne dokazuje performanse. c62 nije najnoviji izvor. Vlasnik je dobio f61 APK za privatno preuzimanje i asinhrono pitanje da posle instalacije potvrdi Profil→Obaveštenja→Ovaj telefon povezan. To je nedostajuća aktuelna fizička veza, ne nova dozvola.
 
 **SLEDEĆE:** po potvrdi vlasnika ponovo očitati binding/session/prefs/suppression, pa sa stvarnim novim tuple-om pripremiti admission/one-send/receipt. Nema globalnogtick-a, preuzimanja starih isporuka niti biranja uređaja samo po poslednjem vremenu. Source copy-v2 i transportcapacity ostaju sledeći provereni paketi; Gboardrestore više nije otvoren blokator. Novi objedinjeni APK treba42e fix; ne tvrditi da ga sadrži već isporučenif61.
+
+
+## Copy-v2 izvor i prva aktuelna stvarna poruka → telefon → isti razgovor
+
+**URADIO:** tri donor194b4fb0 tekstualne ispravke spojene u canonical i current proof formatter. Predmet RECOVERY_OPENED je problem u Dogovoru, ne oporavak naloga (aktuelni emitter potvrđen). Edge24 nije redeployovan. Izvršivi manifest ispravlja i ranije zastarele build.py/edge.test hash-eve; canonical equality guard ostaje, promotion32fajla nepromenjena.
+
+**DOKAZAO:**121 Node+168 foreground testova PASS;13manifest LFhashova odgovara; nezavisan read-only pregled bez blokera. `evidence/push-copy-v2-20261009/receipt.json`.
+
+**STVARNI PUSH:** vlasnik potvrdio instalaciju f61APK i povezivanje telefona. Read-only preflight: isti poznatiAndroiddevice,revision6/bound6,valid session; fresh MESSAGE deliveryCREATED/nosuppression/noattempt. Jedan named admission i jedan single_target poziv (HTTP200):SEND_COUNT1,TICKET_PENDING,SENT08:11:25UTC. GlobalOFF sve vreme; single/exact privremenoON pa sva3OFF08:12:13UTC. Providerreceipt dospeva08:26:25UTC. Vlasnik odgovorio „Stiglo je i otvara taj razgovor“. Unrelated PUSHdelivery/attempt digesti ostali isti; IN_APProw read_at jošfalse na08:15:58, ne izmišljati server read potvrdu. Privatni tuple `push-target-20261009.json`; request23021/admission9ee7c695…d5b5. Nema ponovnogSEND-a.
+
+**NIJE DOKAZANO:** provider terminalreceipt joščeka; runtimeAbout nije očitan; nisu dokazane sve kategorije, grupni push ili store spremnost. Copy-v2 je source-only i nije deo tog deployed push dokaza.
+
+**NOVI ZADATAK / SLEDEĆE:** vlasnik izričito potvrđuje svih5naloga su testni, obrisati sve probne poslovne podatke uz sačuvane Auth/session/device veze. Liveinventory125relations/204FK/116triggers,49tasks/5accounts/10profiles. Četiri immutable grupe stvarno blokiraju običanDELETE; ne falsifikovati closure kontekst, ne resetovati provider budget/journals. Privatni metapodaci `cleanup-live-metadata-20261009.json`, aktuelne definicije `cleanup-live-guards-20261009.json`. Pripremiti privatni encrypted snapshot i dokaziv scoped reset pre bilo kogbrisanja; zatim novi AI profil→zadatak→Dogovor→poruke→push. Završiti dospeli exactreceipt pre čišćenja njegoveistorije. Odobrenje obuhvata je dato; ne pitati ponovo.

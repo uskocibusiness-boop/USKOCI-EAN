@@ -186,22 +186,29 @@ it.each(['android', 'ios'] as const)('requires an exact public title/body tuple 
  }
 });
 
-// T4a (2026-10-07): the owner's words (no grammatical gender, "zadatak" and never "posao") are accepted BEFORE the push package changes
-// the Edge formatter, so the order of the two roll-outs does not matter. The formatter itself is untouched here.
-const LEGACY_BREAKS_THE_RULE = ['Izabran si', 'označila posao', 'Oporavak naloga'];
-it('the planned copy replaces exactly the three Edge pairs that break the owner\'s rules, and breaks none of them itself', () => {
- const broken = transportContract.copies.filter(copy => LEGACY_BREAKS_THE_RULE.some(piece => `${copy.title} ${copy.body}`.includes(piece)));
- expect(broken.map(copy => copy.eventType).sort()).toEqual(['COMPLETION_REQUIRED', 'RECOVERY_OPENED', 'RESPONSE_SELECTED'].flatMap(type => [type, type]).sort());
- // Three replace the pairs that break the rules; the fourth (R15, 2026-10-08) says "zadatak" where the Edge body still says "prilika".
+// Copy-v2: current Edge source uses these three replacements; already queued older copy remains accepted.
+// The fourth planned opportunity body is separate and is not part of this source package.
+const LEGACY_EDGE_COPIES = [
+ { title: 'Izabran si', body: 'Tvoja prijava je prihvaćena. Otvori Dogovor.' },
+ { title: 'Potvrdi završetak', body: 'Druga strana je označila posao kao završen.' },
+ { title: 'Oporavak naloga', body: 'Otvoren je postupak oporavka naloga.' },
+];
+it('the active Edge source uses the three neutral pairs already accepted by the client', () => {
+ const changed = ['RESPONSE_SELECTED', 'COMPLETION_REQUIRED', 'RECOVERY_OPENED'];
+ for (const [index, eventType] of changed.entries()) {
+  const copies = transportContract.copies.filter(copy => copy.eventType === eventType);
+  expect(copies).toHaveLength(2);
+  for (const copy of copies) {
+   expect({ title: copy.title, body: copy.body }).toEqual(PLANNED_PUBLIC_INBOX_COPIES[index]);
+   expect(LEGACY_EDGE_COPIES).not.toContainEqual({ title: copy.title, body: copy.body });
+  }
+ }
  expect(PLANNED_PUBLIC_INBOX_COPIES).toHaveLength(4);
  for (const copy of PLANNED_PUBLIC_INBOX_COPIES) {
   expect(`${copy.title} ${copy.body}`).not.toMatch(/posa[ol]|poslov|Izabran si|označila|Oporavak naloga|Naručilac|Uskočer|prilik/i);
-  // Nothing of a person, a task or a place on the lock screen (rule A20): no pair here has a variable part.
   expect(`${copy.title} ${copy.body}`).not.toMatch(/[{}$]/);
  }
- expect(PLANNED_PUBLIC_INBOX_COPIES.map(copy => copy.title)).toEqual(['Tvoja prijava je izabrana', 'Potvrdi završetak', 'Prijavljen je problem u Dogovoru', 'Novi zadatak za tebe']);
- expect(PLANNED_PUBLIC_INBOX_COPIES[3].body).toBe('Pojavio se novi zadatak koji može da ti odgovara.');
- // The old body stays accepted from an older Edge formatter: a roll-out in either order loses nothing.
+ expect(PLANNED_PUBLIC_INBOX_COPIES[3]).toEqual({ title: 'Novi zadatak za tebe', body: 'Pojavio se novi zadatak koji može da ti odgovara.' });
  expect(transportContract.copies.some(copy => copy.title === 'Novi zadatak za tebe' && copy.body.includes('prilika'))).toBe(true);
 });
 it.each(['android', 'ios'] as const)('shows the planned copy while the app is open on %s, exactly as a pair and nothing around it', async platform => {
@@ -214,8 +221,11 @@ it.each(['android', 'ios'] as const)('shows the planned copy while the app is op
  }
  // A planned title with a body of another pair is not a pair.
  expect(await present(notification({ title: 'Tvoja prijava je izabrana', body: 'Zadatak je označen kao gotov.' }))).toEqual(hidden);
- // And the old Edge pairs are still shown until the formatter changes: a roll-out in either order loses nothing.
- for (const copy of transportContract.copies) expect(await present(notification({ title: copy.title, body: copy.body }))).toEqual(visible);
+ // Both current source and historical queued Edge pairs remain visible in either rollout order.
+ for (const copy of [...transportContract.copies, ...LEGACY_EDGE_COPIES]) {
+  expect(await present(notification({ title: copy.title, body: copy.body }))).toEqual(visible);
+  expect(await present(notification({ title: copy.title, body: copy.body + ' Private detail' }))).toEqual(hidden);
+ }
 });
 it.each(['android', 'ios'] as const)('foreground public copy is immediate local presentation only on %s; a later tap still opens Inbox once', async platform => {
  jest.replaceProperty(Platform, 'OS', platform); await mount();

@@ -4748,8 +4748,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
-      "problem": "SQL/Edge24 applied, all3flagsOFF. One fresh natural message successfully sent on owner emulator; new PUSH delivery CREATED without suppression or attempt. Phonef61 download delivered; owner install/current binding and single-target receipt/tap pending.",
-      "sledece": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone.",
+      "problem": "One real message sent once; owner confirmed push arrival and tap to correct conversation on phone. Provider receipt due08:26:25UTC; global/single/exact flags restoredOFF. All-category automatic push, group push and full native runtime identity remain unproven.",
+      "sledece": "At or after due time, exact admission receipt only, then restore all3OFF. Preserve target proof until terminal postflight. No repeat SEND.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -4841,6 +4841,23 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json",
           "scope": "One normal private message on existingc62 emulator; new IN_APP+PUSH rows. No admission/provider.",
           "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone."
+        },
+        "copy_v2_20261009": {
+          "state": "SOURCE_TESTED_NOT_DEPLOYED",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-copy-v2-20261009/receipt.json",
+          "tests": "121 Node +168 foreground PASS; manifest13match; frozen32unchanged; no deploy."
+        },
+        "phone_real_message_20261009": {
+          "state": "ONE_REAL_MESSAGE_PHONE_ARRIVAL_AND_TAP_OWNER_CONFIRMED / PROVIDER_RECEIPT_PENDING",
+          "source": "Deployed Edge24; owner manually installed f61 preview APK; runtime About not independently observed.",
+          "sentAt": "2026-10-09T08:11:25.288304+00:00",
+          "sendCount": 1,
+          "transportState": "TICKET_PENDING",
+          "receiptDueAt": "2026-10-09T08:26:25.288304+00:00",
+          "ownerReport": "Stiglo je i otvara taj razgovor",
+          "allFlagsRestoredOffAt": "2026-10-09T08:12:13.560Z",
+          "unrelatedBacklogUnchanged": true,
+          "next": "At or after due time, exact admission receipt only, then restore all3OFF. Preserve target proof until terminal postflight. No repeat SEND."
         }
       }
     },
@@ -9345,6 +9362,31 @@
       "deviceInstalled": false,
       "scope": "ARM64 preview35, same signature,5794 source files byte-equal except documented app/package metadata. Firebase+OTA verified; runtime may load OTA.",
       "limits": "Owner installation/runtime/current push not verified. Source42e Cyrillic/moved-pin followup not included. Not store ready."
+    },
+    "push_copy_v2_20261009": {
+      "state": "SOURCE_TESTED_NOT_DEPLOYED",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-copy-v2-20261009/receipt.json",
+      "tests": "121 Node +168 foreground PASS; manifest13match; frozen32unchanged; no deploy."
+    },
+    "push_phone_real_message_20261009": {
+      "state": "ONE_REAL_MESSAGE_PHONE_ARRIVAL_AND_TAP_OWNER_CONFIRMED / PROVIDER_RECEIPT_PENDING",
+      "source": "Deployed Edge24; owner manually installed f61 preview APK; runtime About not independently observed.",
+      "sentAt": "2026-10-09T08:11:25.288304+00:00",
+      "sendCount": 1,
+      "transportState": "TICKET_PENDING",
+      "receiptDueAt": "2026-10-09T08:26:25.288304+00:00",
+      "ownerReport": "Stiglo je i otvara taj razgovor",
+      "allFlagsRestoredOffAt": "2026-10-09T08:12:13.560Z",
+      "unrelatedBacklogUnchanged": true,
+      "next": "At or after due time, exact admission receipt only, then restore all3OFF. Preserve target proof until terminal postflight. No repeat SEND."
+    },
+    "owner_test_reset_20261009": {
+      "state": "AUTHORIZED_ALL_FIVE_TEST_ACCOUNTS / READ_ONLY_INVENTORY / NOT_DELETED",
+      "ownerDecision": "Svih pet naloga su testni — očisti sve probne podatke",
+      "preserve": "Auth/password/sessions/app_accounts/push devices and preferences; system authority/certificates and provider spend/outcome evidence.",
+      "scope": "49 needs across5accounts/10profiles. Owner pair42needs/8agreements;2cross-accountagreements covered by explicit five-account authorization.",
+      "inventory": "125relations/204FK/116triggers; immutable publication/connection/review/media guards confirmed live; no existing supported business reset that preserves Auth.",
+      "next": "Encrypted private snapshot and exact scoped reset candidate, prove restore/transaction before deletion. Do not bypass closure or erase pending provider attempts. No new approval for same five-account scope."
     }
   }
 }

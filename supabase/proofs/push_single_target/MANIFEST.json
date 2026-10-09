@@ -18,14 +18,14 @@
     "install.disposable.sql": "08cbaf53863108fb5b687e6115ad0691b160e8bc2ca19de799fe2ff844b5299c",
     "revert.disposable.sql": "1bd8d6e164954fec7ae40fbefb7df66e381c73d6e35142aaf9642e4c6e323943",
     "supabase/functions/uskoci-push-transport/index.ts": "6d27f508c53f8fed23b12e14ae873b633749aa4c7d457602d1e0d3a4f62ee1de",
-    "build.py": "9687a717d14226e40f4605f41d7a5346556f11fc9743325e3fd17804a285b73b",
+    "build.py": "3fdb38c93fd324a328fe34842f1c3d4677d11b9ff8f225b09c4bd9f9d58dfac1",
     "certificate-proof.mjs": "461a305b6eb45843f66d825a9e8b13bfd98394f63d83adb1d2842777e405df20",
-    "edge.test.mjs": "83eb04938f40f2257e1f5ab508a2f224e9451a6343d468167050f35dbc4143f1",
+    "edge.test.mjs": "615dff8805a5543d9ac4a7249df0122bfa7be14321563f4b98e1b58dd3fb2725",
     "proof.mjs": "d630ccc7ebfde03a4e31ab6b8e31445ae06ab320fd7911ba3f55262e4a27e733",
     "package-proof.py": "c25f43ecb491b155f0625da5c3174bbbd04d782ef9bc831bd4bd2127c5f1f47f",
     "prepare-d12.mjs": "bd0dbcdcbf2f17a9c902aee9c7579874d0b42c938787770eb578e772f3146ace",
     "candidate-runtime.mjs": "311974bf800af672100a0ee1580dc6af67bbe41ad7d5e74b49ff464c2187e603",
-    "supabase/functions/_shared/pushNotificationCopy.mjs": "a14fa35d3428f25b55ec68ad0e10dd881de238dfde164f834651c06e121e7c57"
+    "supabase/functions/_shared/pushNotificationCopy.mjs": "a66cccb7e5d8a7500f905fd5d7e7df95a90eac0afbf9e9172714f926b498a731"
   },
   "workflowSha256": "514b99b9082f443aa3a126ea3cd5916b08faf5c8293076db1aef6655eb79c7c8"
 }

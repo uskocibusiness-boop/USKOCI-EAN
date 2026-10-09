@@ -2,7 +2,7 @@ import test, {describe} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadCandidate} from './candidate-runtime.mjs';
 import {loadPushHandler} from '../notifications/n09_push_transport_runtime.mjs';
-for (const [name, loadHandler] of [['frozen candidate', loadCandidate], ['canonical handler', loadPushHandler]]) {
+for (const [name, loadHandler] of [['current proof candidate', loadCandidate], ['canonical handler', loadPushHandler]]) {
 describe(name, () => {
 const id='11111111-1111-4111-8111-111111111111', lease='22222222-2222-4222-8222-222222222222';
 const key='synthetic-service-key';

@@ -1,8 +1,8 @@
 # USKOČI Notification Matrix — V1
 
-Status: **A1 PRODUCT CONTRACT / IMPLEMENTATION NEXT**.
+Status: **A1 product contract; copy-v2 SOURCE TESTED on 2026-10-09, NOT DEPLOYED**.
 
-The two neutral body corrections for `RESPONSE_VIEWED` and `RESPONSE_NOT_SELECTED` below are a source-only proposal (2026-09-26), pending the owner's explicit `primeni` and Edge deployment. The client rejects their former internal-role wording; live compatibility for those two events remains pending that deployment.
+The current source includes the three copy-v2 pairs below (`RESPONSE_SELECTED`, `COMPLETION_REQUIRED`, `RECOVERY_OPENED`), with old and new client presentation compatibility tested. DEV Edge24 still uses the previous three pairs; deployment is separate. Earlier `RESPONSE_VIEWED` / `RESPONSE_NOT_SELECTED` neutral corrections are already part of frozen Edge24. This matrix describes text and intended destinations; it does not prove every event emitter, automatic dispatch or physical delivery. The 2026-10-09 single-target phone test uses Edge24, not this new formatter.
 
 System notifications are OS-owned surfaces. The app icon can carry the USKOČI green/orange identity, but the OS must not be expected to render “USKO” green and “ČI” orange inside the system header. The in-app Inbox may render the full two-tone brand treatment.
 
@@ -26,7 +26,7 @@ System notifications are OS-owned surfaces. The app icon can carry the USKOČI g
 | RESPONSE_UPDATED | Prijava je izmenjena | Jedna prijava na tvoj zadatak je ažurirana. | approved offer summary | offer / green | Candidates |
 | RESPONSE_VIEWED | Prijava je pregledana | Tvoja prijava je pregledana. | none | offer / green | My application |
 | RESPONSE_SHORTLISTED | U užem si izboru | Tvoja prijava je izdvojena za dalji izbor. | none | offer / green | My application |
-| RESPONSE_SELECTED | Izabran si | Tvoja prijava je prihvaćena. Otvori Dogovor. | accepted price/time summary when server-certified | agreement / green | Agreement |
+| RESPONSE_SELECTED | Tvoja prijava je izabrana | Otvori Dogovor. | accepted price/time summary when server-certified | agreement / green | Agreement |
 | RESPONSE_NOT_SELECTED | Prijava je završena | Za ovaj zadatak je izabrana druga osoba. | none | offer / neutral | My application |
 | RESPONSE_STALE | Proveri prijavu | Zadatak je promenjen nakon tvoje prijave. | none | offer / orange | My application |
 | RESPONSE_WITHDRAWN | Prijava je povučena | Jedna prijava više nije aktivna. | none | offer / neutral | Candidates / application |
@@ -38,10 +38,10 @@ System notifications are OS-owned surfaces. The app icon can carry the USKOČI g
 | AGREEMENT_CHANGE_REJECTED | Izmena nije prihvaćena | Predlog izmene Dogovora nije prihvaćen. | none | agreement / neutral | Agreement |
 | AGREEMENT_CANCELLED | Dogovor je otkazan | Otvori Dogovor da vidiš trenutno stanje. | none | agreement / neutral | Agreement |
 | EXECUTION_STATE_CHANGED | Status Dogovora je promenjen | Otvori Dogovor da vidiš sledeći korak. | certified next-action label later | check / green | Agreement |
-| COMPLETION_REQUIRED | Potvrdi završetak | Druga strana je označila posao kao završen. | confirmation deadline | check / orange | Agreement |
+| COMPLETION_REQUIRED | Potvrdi završetak | Zadatak je označen kao gotov. | confirmation deadline | check / orange | Agreement |
 | MESSAGE_RECEIVED | Nova poruka u Dogovoru | Imaš novu poruku. | **never message text** | chat / green | Agreement → Messages |
 | PRIVATE_ACCESS_GRANTED | Podaci Dogovora su dostupni | Otvori Dogovor da vidiš podatke kojima sada imaš pristup. | never private data itself | lock / green | Agreement |
-| RECOVERY_OPENED | Oporavak naloga | Otvoren je postupak oporavka naloga. | none | shield / neutral | Recovery/security |
+| RECOVERY_OPENED | Prijavljen je problem u Dogovoru | Otvori Dogovor da vidiš prijavljeni problem. | none | shield / neutral | Agreement problem |
 | REVIEW_RECEIVED | Stigla ti je nova ocena | Pogledaj novu ocenu saradnje. | rating only if product policy explicitly allows it | star / warm | Reputation/review |
 | CLARIFICATION_CREATED | Novo pitanje za zadatak | Stiglo je novo pitanje. | public task label later | chat / orange | Task Q&A |
 | CLARIFICATION_ANSWERED | Stigao je odgovor | Na pitanje za zadatak je odgovoreno. | public task label later | chat / green | Task Q&A |

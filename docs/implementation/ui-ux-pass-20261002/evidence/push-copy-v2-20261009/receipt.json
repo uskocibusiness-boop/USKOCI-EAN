@@ -1,0 +1,36 @@
+{
+  "state": "SOURCE_TESTED_NOT_DEPLOYED",
+  "recordedAt": "2026-10-09T08:19:51.654872+00:00",
+  "baseCommit": "7b1d544677ba55dbd5e2e0588a1e7ed3b777c83f",
+  "donor": "194b4fb0",
+  "changedTypes": [
+    "RESPONSE_SELECTED",
+    "COMPLETION_REQUIRED",
+    "RECOVERY_OPENED"
+  ],
+  "formatterSha256": "a66cccb7e5d8a7500f905fd5d7e7df95a90eac0afbf9e9172714f926b498a731",
+  "nodeTests": {
+    "pass": 121,
+    "fail": 0,
+    "logSha256": "abe31356bafde625e8bbb524c80eafe46629fc412b3f646d5375220ff77ea166"
+  },
+  "foregroundTests": {
+    "pass": 168,
+    "fail": 0,
+    "logSha256": "05421c9baa5c89c2343b2b4f3eadecb8c4ca474baa6586ab890288711a1e72cb"
+  },
+  "manifest": {
+    "beforeStaleEntries": [
+      "build.py",
+      "edge.test.mjs"
+    ],
+    "all13LfHashesMatch": true
+  },
+  "frozenPromotionFilesUnchanged": 32,
+  "review": "Independent read-only review: no blocker. Current proof candidate keeps canonical-copy equality guard.",
+  "limits": [
+    "No deploy, provider invocation or database replay for this changed formatter.",
+    "Phone single-target proof uses previously deployed Edge24 with older formatter.",
+    "Opportunity body fourth planned pair remains separate."
+  ]
+}

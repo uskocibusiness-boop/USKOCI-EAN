@@ -47,3 +47,10 @@ Najnovije pojašnjenje vlasnika: mali natpis izvora ostaje dole levo na samoj ma
 - Završna kartica zadatka pojavljuje se tek kada postoje svi obavezni podaci. Lokacija ili sve tačke rute rešavaju se pre sledećeg običnog pitanja; mapa ne treba da se pojavi ispod pitanja o drugoj temi.
 - Traži izolovane testove sa hiljadama zadataka po gradovima Srbije i scenarijima za 40.000 korisnika. Broj sintetičkih redova nije dokaz broja istovremeno aktivnih korisnika; potrebni su stvarni RPC tokovi i merenja.
 - Poslednja poruka: vlasnik odlazi da spava, izričito ponavlja autonomiju, korišćenje telefona/emulatora, push izmena i nastavak rada bez čekanja. Postojeći automatski nastavak je aktivan. Ne ponavljati zahtev za istu dozvolu; čuvati podatke/sesije, raditi preflight/rollback i vezivati dokaz za tačan izvor i APK. Spremnost za prodavnicu nije obećana ovim odobrenjem.
+
+
+### 09.10 — ručna instalacija APK, potvrđen push i čišćenje testnih podataka
+
+Vlasnik bira da APK preuzme i instalira sam, a agent radi na emulatoru; ne tražiti ponovo USB. Potvrdio je „APK je instaliran i telefon je povezan“, zatim za jednu stvarnu poruku „Stiglo je i otvara taj razgovor“. To je korisnikova fizička potvrda dolaska i tap putanje; nije nezavisno očitan runtime About niti potvrda svake push kategorije.
+
+Na zahtev da se obrišu stari zadaci, radni profili, Dogovori i obaveštenja, prikazan mu je inventar49zadataka/5naloga i ukrštene veze. Izričito je izabrao: „Svih pet naloga su testni — očisti sve probne podatke“. Autorizovan je reset poslovnih testnih podataka svih pet poznatih naloga, uz sačuvane prijave/lozinke i vezu telefona za push iz istog pitanja. Nije potrebno novo odobrenje istog obuhvata. Odluka ne predstavlja već izvršeno brisanje: prethode privatni backup, tačan manifest, proverljiva transakcija i očuvanje autoriteta/sertifikata, potrošnje i neizvesnih provider ishoda. Ne glumiti account closure niti izbrisati Auth da bi se postigao poslovni reset.
