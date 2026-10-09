@@ -42,8 +42,9 @@ it('bridges strict page and bounded overlays into the real presentation seam wit
 
 it('PLACE peek stays a bounded place preview and never becomes a fabricated map task',()=>{
  const placeTask={...task,id:'44444444-4444-4444-8444-444444444444'};
- const model=discoveryV1PresentationBridgeModel(screen({kind:'PLACE',point:{lat:45.26,lng:19.84},items:[task,placeTask]}),overlay(),null,false,actions);
- expect(model.p6Seam.peek).toMatchObject({key:'place:45.26:19.84',item:null,place:[{id:ID},{id:placeTask.id}]});
+ const model=discoveryV1PresentationBridgeModel(screen({kind:'PLACE',point:{lat:45.26,lng:19.84},items:[task,placeTask],totalCount:4000}),overlay(),null,false,actions);
+ expect(model.p6Seam.peek).toMatchObject({key:'place:45.26:19.84',item:null,place:[{id:ID},{id:placeTask.id}],placeTotalCount:4000});
+ expect(model.p6Seam.counts?.listed).toBe(840); // Main PAGE total is a different scope.
  expect((model.p6Seam.map.markers[0] as any).naslov).toBeUndefined();
 });
 

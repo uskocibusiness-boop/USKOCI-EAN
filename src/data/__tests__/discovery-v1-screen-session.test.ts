@@ -228,13 +228,61 @@ it('EX-03 warm return: a selection read in flight when the screen leaves never l
 const placeBucket=(count:number)=>({kind:'PLACE',key:'place:45.25:19.83',point:{lat:45.25,lng:19.83},taskCount:count});
 const openPlace=async(ids=[ID1,ID2],count=2)=>{
  const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());
- x.pending[0].resolve(page(ids));await wait(x,1);x.pending[1].resolve({...map(),buckets:[placeBucket(count)]});await opening;
+ x.pending[0].resolve(page(ids));await wait(x,1);x.pending[1].resolve({...map(),buckets:[placeBucket(count)],counts:{...map().counts,mapped:count}});await opening;
  return {x,s};
 };
+const membersWithTotal=(ids:string[],total:number,more=false)=>{
+ const result=page(ids,more);
+ return {...result,counts:{...result.counts,listed:total,mapped:total,inArea:total}};
+};
+it('a dense PLACE keeps its exact member total separate from the bounded 50-row preview and main PAGE',async()=>{
+ const {x,s}=await openPlace([ID1],4100);
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ expect(x.pending[2].request).toMatchObject({scope:{kind:'POINT_MEMBERS'},limit:50});
+ const ids=Array.from({length:50},(_,i)=>`${String(i+1).padStart(8,'0')}-1111-4111-8111-111111111111`);
+ x.pending[2].resolve(membersWithTotal(ids,4000,true));await selected;
+ const peek=s.snapshot().peek;
+ expect(peek).toMatchObject({kind:'PLACE',totalCount:4000});
+ expect(peek?.kind==='PLACE'&&peek.items.length).toBe(50);
+ expect(s.snapshot().counts?.listed).toBe(2);expect(s.snapshot().memberHasMore).toBe(true);
+ const more=s.nextMembers();x.pending[3].resolve(membersWithTotal([ID2],3999,true));await more;
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',totalCount:3999});
+ expect(s.snapshot().memberHasMore).toBe(true);
+});
+it('a fresh POINT_MEMBERS count replaces a stale map total even when the preview rows are unchanged',async()=>{
+ const {x,s}=await openPlace();
+ const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
+ expect(s.snapshot().peek).toMatchObject({totalCount:2});
+ const known=s.snapshot().peek;
+ x.pending[2].resolve(membersWithTotal([ID1,ID2],4,true));await selected;
+ expect(s.snapshot().peek).not.toBe(known);
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',totalCount:4,items:[{id:ID1},{id:ID2}]});
+});
+it('a late PLACE count cannot overwrite a more recent PLACE selection',async()=>{
+ const {x,s}=await openPlace([ID1],4000);
+ const old=s.selectMarker(s.snapshot().mapMarkers[0]);
+ const fresh=s.selectMarker({kind:'PLACE',key:'other',point:{lat:44.8,lng:20.4},taskCount:8});
+ x.pending[3].resolve(membersWithTotal([ID2],8,true));await fresh;
+ x.pending[2].resolve(membersWithTotal([ID1],4000,true));expect((await old).kind).toBe('stale');
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',point:{lat:44.8,lng:20.4},totalCount:8});
+});
+it('a members continuation already decoded by the owner cannot land after another selection in the same microtask turn',async()=>{
+ const {x,s}=await openPlace();
+ const first=s.selectMarker(s.snapshot().mapMarkers[0]);
+ x.pending[2].resolve(membersWithTotal([ID1,ID2],3,true));await first;
+ const old=s.nextMembers();
+ x.pending[3].resolve(membersWithTotal(['55555555-5555-4555-8555-555555555555'],3));
+ // Owner resumes first; this continuation runs before the screen resumes from awaiting that owner result.
+ await Promise.resolve();
+ const fresh=s.selectMarker(s.snapshot().mapMarkers[0]),card=s.snapshot().peek;
+ expect(card).toMatchObject({totalCount:2});
+ expect((await old).kind).toBe('stale');expect(s.snapshot().peek).toBe(card);
+ x.pending[4].resolve(membersWithTotal([ID1,ID2],2));await fresh;
+});
 it('EX-03: a PLACE marker whose every task is already loaded shows its card before any answer; the members read still goes out and only confirms',async()=>{
  const {x,s}=await openPlace();
  const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
- expect(s.snapshot().peek).toMatchObject({kind:'PLACE',items:[{id:ID1},{id:ID2}]});                   // no answer yet
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',totalCount:2,items:[{id:ID1},{id:ID2}]});                   // no answer yet
  expect(x.pending[2].request).toMatchObject({mode:'PAGE',scope:{kind:'POINT_MEMBERS'}});
  const known=s.snapshot().peek;
  x.pending[2].resolve(page([ID1,ID2]));expect(await selected).toEqual({kind:'PLACE',applied:true});
@@ -245,15 +293,15 @@ it('EX-03: a PLACE that is not fully loaded waits for the members read as before
  const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
  expect(s.snapshot().peek).toBeNull();
  const three=page([ID1,ID2,'55555555-5555-4555-8555-555555555555']);x.pending[2].resolve({...three,counts:{...three.counts,mapped:3,listed:3,inArea:3}});expect(await selected).toEqual({kind:'PLACE',applied:true});
- expect(s.snapshot().peek).toMatchObject({kind:'PLACE'});expect((s.snapshot().peek as any).items).toHaveLength(3);
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',totalCount:3});expect((s.snapshot().peek as any).items).toHaveLength(3);
 });
 it('EX-03: a members answer that differs replaces the known place card, and one with no tasks empties it',async()=>{
  const {x,s}=await openPlace();
  const first=s.selectMarker(s.snapshot().mapMarkers[0]);const known=s.snapshot().peek;
- x.pending[2].resolve(page([ID2]));await first;
- expect(s.snapshot().peek).not.toBe(known);expect((s.snapshot().peek as any).items.map((row:any)=>row.id)).toEqual([ID2]);
- const again=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[3].resolve(page([]));await again;
- expect((s.snapshot().peek as any).items).toEqual([]);
+ x.pending[2].resolve(membersWithTotal([ID2],1));await first;
+ expect(s.snapshot().peek).not.toBe(known);expect(s.snapshot().peek).toMatchObject({totalCount:1,items:[{id:ID2}]});
+ const again=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[3].resolve(membersWithTotal([],0));await again;
+ expect(s.snapshot().peek).toMatchObject({totalCount:0,items:[]});
 });
 it('EX-03: a failed members read keeps the known place card, and without a known card it still fails as before',async()=>{
  const {x,s}=await openPlace();

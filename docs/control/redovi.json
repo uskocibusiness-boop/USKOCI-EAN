@@ -9041,10 +9041,53 @@
       }
     },
     "local_native_build_20261009": {
-      "state": "DEPENDENCIES_COPIED / SOURCE_CHECKS_PASS / BUILD_PENDING",
+      "state": "RUNNING",
       "why": "GitHubjobNOT_STARTEDbilling;existinga481APKsverified. LocalExpoTemplatecertmatchesfac617;sourceexportandprivatecopydependencies,nochangestocanonicalconfig/signing. NoDocker/WSLstartup.",
       "output": "C:/Users/user/Documents/Codex/ub1",
-      "limits": "Buildnotyetproved;copy/TSCpending. Samepackage/signaturemustbeverifiedbeforeinstall-r. NoCI/native/serverclaimfromsource."
+      "limits": "Exact c62 source export; offline Gradle failed on missing pinned Kotlin2.2.0 plugin. Same-source normal-network build in progress. No install or native claim; later P6 total change not included.",
+      "source": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+      "tree": "003ad01510de0fc427aa0354b17c9b73d0ac4939",
+      "sourceArchiveSha256": "d8eaabba320a15826f45a3cdc5e15717b101457f472736b2df039568a9ee6bcb",
+      "steps": [
+        {
+          "name": "patch-check",
+          "state": "PASS"
+        },
+        {
+          "name": "overlay-check",
+          "state": "PASS"
+        },
+        {
+          "name": "overlay",
+          "state": "PASS"
+        },
+        {
+          "name": "prebuild",
+          "state": "PASS"
+        },
+        {
+          "name": "gradle",
+          "state": "FAIL"
+        },
+        {
+          "name": "gradle-online",
+          "state": "RUNNING"
+        }
+      ]
+    },
+    "discovery_place_total_20261009": {
+      "state": "SOURCE_CHECKS_PASS / P6_GATED / NATIVE_PENDING",
+      "finding": "P6 PLACE preview used 50 loaded rows as total even when the point contains 4000 matching tasks.",
+      "implementation": "Exact POINT_MEMBERS counts.listed passed independently from main PAGE counts. Render three preview rows; speak and display exact count. Keep POINT_LIST cursor route. Fresh count updates unchanged rows. Screen selection sequence fences already-decoded stale nextMembers responses.",
+      "checks": "258 distinct targeted tests PASS; final35 session cases rerun after fixture cleanup (included). TypeScript PASS. Independent read-only review no blocker.",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-place-total-20261009/receipt.json",
+      "limits": [
+        "P6 remains gated; no rollout or DEV change.",
+        "No new APK contains this change yet.",
+        "Synthetic 4000 total with 50 rows is a correctness fixture, not a measured load or concurrency result.",
+        "35 final session tests are included in 258, not additional tests."
+      ],
+      "next": "Keep existing POINT_LIST paging and P6 rollout gate. Verify native dense-point card only in an authorized P6 environment; no DEV bulk seed."
     }
   }
 }

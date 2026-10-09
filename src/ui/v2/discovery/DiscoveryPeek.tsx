@@ -63,9 +63,11 @@ function PinTask({ item, relation, onOpen, onLayout }: {
  * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
  * text it may take more of the window than other cards rather than be cut off.
  */
-export function DiscoveryPeek({ item, place, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
+export function DiscoveryPeek({ item, place, placeTotalCount, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
   /** The tasks on the chosen place, in the list's order. */ place: readonly MarketplaceItem[];
+  /** Exact POINT_MEMBERS total, independent of its bounded preview. Legacy supplies the complete place array. */
+  placeTotalCount?: number;
   relation: (item: MarketplaceItem) => TaskCardRelation | undefined;
   active: boolean; bottomInset: number; reduced: boolean;
   /** Available map space below search and attribution; the existing scroll keeps a taller preview reachable. */
@@ -86,9 +88,10 @@ export function DiscoveryPeek({ item, place, relation, active, bottomInset, redu
     // A resized map can change the viewport without laying out the unchanged content again.
     if (measuredHeight.current !== null) onHeight?.(Math.min(measuredHeight.current, cap));
   }, [cap, onHeight]);
-  // One card per choice (the screen keys it by the task or the place), so this runs once for each card that comes up.
-  const opened = item ? `Pregled zadatka: ${readableTitle(item.naslov)}` : `${zadataka(place.length)} na ovom mestu`;
-  useEffect(() => { AccessibilityInfo.announceForAccessibility?.(opened); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const totalCount = placeTotalCount ?? place.length;
+  // Announce the chosen card and any refreshed live count, never the length of a bounded preview.
+  const opened = item ? `Pregled zadatka: ${readableTitle(item.naslov)}` : `${zadataka(totalCount)} na ovom mestu`;
+  useEffect(() => { AccessibilityInfo.announceForAccessibility?.(opened); }, [opened]);
   // The single card reaches the sheet's edges itself (its whole face is the press); a place's rows sit in its padding.
   const measureCard = (event: LayoutChangeEvent) => {
     const whole = Math.ceil(event.nativeEvent.layout.height);
@@ -105,7 +108,7 @@ export function DiscoveryPeek({ item, place, relation, active, bottomInset, redu
     {() => item ? <PinTask item={item} relation={relation(item)} onOpen={() => onOpen(item)} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
         <View style={[s.head, s.clearOfClose]}>
-          <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(place.length)} na ovom mestu`}</T>
+          <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(totalCount)} na ovom mestu`}</T>
         </View>
         {place.slice(0, PLACE_ROWS).map(task => <Press key={task.id} accessibilityRole="button" accessibilityLabel={`Pogledaj zadatak ${readableTitle(task.naslov)}`}
           haptic="select" scaleTo={sys.motion.scale.row} onPress={() => onOpen(task)} style={s.row}>
@@ -117,7 +120,7 @@ export function DiscoveryPeek({ item, place, relation, active, bottomInset, redu
           <PriceWords item={task} />
           <Glyph name="caret-right" size={20} tone="muted" />
         </Press>)}
-        {place.length > PLACE_ROWS ? <V2Action label="Prikaži sve u listi" kind="quiet" onPress={onShowPlace} /> : null}
+        {totalCount > PLACE_ROWS ? <V2Action label="Prikaži sve u listi" kind="quiet" onPress={onShowPlace} /> : null}
       </View>}
   </PeekSheet>;
 }

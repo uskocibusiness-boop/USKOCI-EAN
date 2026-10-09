@@ -13,7 +13,7 @@ type DiscoveryV1PlaceCounts = DiscoveryV1PlacesResponse['counts'];
 
 export type DiscoveryV1Peek =
   | { kind: 'TASK'; item: PrilikaProjekcija & { revision: number } }
-  | { kind: 'PLACE'; point: DiscoveryV1Point; items: (PrilikaProjekcija & { revision: number })[] };
+  | { kind: 'PLACE'; point: DiscoveryV1Point; items: (PrilikaProjekcija & { revision: number })[]; totalCount: number };
 
 export type DiscoveryV1ScreenSnapshot = {
   active: boolean;
@@ -221,7 +221,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     const key=pointKey(marker.point),rows=owner.snapshot().page?.items??[];
     const here=key?rows.filter(row=>row.pin&&pointKey(row.pin)===key):[];
     const known=here.length>0&&here.length===marker.taskCount?here:null;
-    if(known) peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(known)};
+    if(known) peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(known),totalCount:marker.taskCount};
     let result;
     try{result=await owner.firstMembers(marker.point,50);}
     catch(error){
@@ -231,13 +231,20 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     }
     if(selection!==selectionSequence||!isCurrent()||result.kind==='stale') return {kind:'stale'};
     if(result.kind!=='applied'){if(!known){peek=null;failed();}return {kind:'PLACE',applied:!!known};}
-    if(!known||JSON.stringify(result.value.items)!==JSON.stringify(known)) peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(result.value.items)};
+    // POINT_MEMBERS counts the entire filtered place; its bounded rows are only a preview. The live count may change even when those rows do not.
+    if(!known||result.value.counts.listed!==marker.taskCount||JSON.stringify(result.value.items)!==JSON.stringify(known))
+      peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(result.value.items),totalCount:result.value.counts.listed};
     return {kind:'PLACE',applied:true};
   }
 
   async function nextPage(){const result=await owner.nextPage();return {kind:result.kind,snapshot:snapshot()};}
-  async function nextMembers(){const result=await owner.nextMembers();if(result.kind==='applied'&&peek?.kind==='PLACE')
-    peek={...peek,items:discoveryV1Opportunities(result.value.items)};return {kind:result.kind,snapshot:snapshot()};}
+  async function nextMembers(){
+    const selection=selectionSequence,result=await owner.nextMembers();
+    if(selection!==selectionSequence||!isCurrent()) return {kind:'stale' as const,snapshot:snapshot()};
+    if(result.kind==='applied'&&peek?.kind==='PLACE')
+      peek={...peek,items:discoveryV1Opportunities(result.value.items),totalCount:result.value.counts.listed};
+    return {kind:result.kind,snapshot:snapshot()};
+  }
   async function queryPlaces(prefix:string,facetArea:PublicBounds|null=null,limit=10){
     const result=await owner.firstPlaces(prefix,facetArea?bounds(facetArea):null,limit);return {kind:result.kind,snapshot:snapshot()};
   }

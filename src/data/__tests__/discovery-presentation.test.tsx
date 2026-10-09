@@ -2703,6 +2703,23 @@ const serverPlace: DiscoveryV1MapMarker = { kind: 'PLACE', key: 'place:44.74:20.
 const serverCluster: DiscoveryV1MapMarker = { kind: 'CLUSTER', key: 'cluster:1', point: { lat: 44.8, lng: 20.4 }, taskCount: 5, distinctPointCount: 3,
   memberBounds: [20.3, 44.7, 20.5, 44.9] };
 const p6Rows = () => Array.from({ length: 4 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+
+test.each([100,4000])('P6 PLACE announces all %i matching tasks while rendering only three preview rows', async total => {
+  rows = Array.from({ length: 50 }, (_, i) => row(`p${i}`, at(44.74, 20.4)));
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+  p6Seam = { ...p6Seam_(), counts: { kind:'exact_live', observedAt:'2026-10-09T04:00:00Z', listed:9000, mapped:9000, inArea:9000, withoutPoint:0, undated:0 },
+    peek: { key:serverPlace.key, item:null, place:rows, placeTotalCount:total } };
+  await render();
+  expect(texts(peek()!)).toContain(`${total} zadataka na ovom mestu`);
+  expect(texts(peek()!)).not.toContain('50 zadataka na ovom mestu');
+  expect(announce).toHaveBeenCalledWith(`${total} zadataka na ovom mestu`);
+  expect(peek()!.findAll(node => String(node.type)==='Press' && /^Pogledaj zadatak /.test(node.props.accessibilityLabel ?? ''))).toHaveLength(3);
+  p6Seam = {...p6Seam, peek:{...p6Seam.peek!,placeTotalCount:total+1}};await update();
+  expect(texts(peek()!)).toContain(`${total+1} zadatak na ovom mestu`);
+  expect(announce).toHaveBeenCalledWith(`${total+1} zadatak na ovom mestu`);
+  await click('Prikaži sve u listi');
+  expect(p6Seam.onShowPlace).toHaveBeenCalledTimes(1);expect(listSheet().props.index).toBe(2);
+});
 test.each([['task', serverTask], ['place', serverPlace]] as const)(
   'a P6 %s marker chosen at the half detent lowers the list sheet to its top line, as a legacy pin does, and reaches the seam', async (_kind, marker) => {
   rows = p6Rows(); initial = { ...initial, sheet: 'half' }; p6Seam = p6Seam_();

@@ -56,7 +56,7 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
   const peek = snapshot.peek?.kind === 'TASK'
     ? { key: 'task:' + snapshot.peek.item.id, item: snapshot.peek.item, place: [] as const }
     : snapshot.peek?.kind === 'PLACE'
-      ? { key: 'place:' + snapshot.peek.point.lat + ':' + snapshot.peek.point.lng, item: null, place: snapshot.peek.items }
+      ? { key: 'place:' + snapshot.peek.point.lat + ':' + snapshot.peek.point.lng, item: null, place: snapshot.peek.items, placeTotalCount: snapshot.peek.totalCount }
       : null;
   return {
     items,

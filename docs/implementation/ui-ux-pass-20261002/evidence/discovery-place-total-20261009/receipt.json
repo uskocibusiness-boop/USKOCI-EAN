@@ -1,0 +1,73 @@
+{
+  "kind": "SOURCE_AND_COMPONENT_TESTS_NOT_NATIVE_OR_CAPACITY",
+  "sourceBase": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+  "files": {
+    "src/data/discoveryV1ScreenSession.ts": "7f4ae7f364444bc1007d96c665ba195a0ca093e24874108af4891f5dceb920f0",
+    "src/data/discoveryV1PresentationBridge.tsx": "7b0fdf7a7d17a98e94ba7c73beec1ab10d3f23f63d422a9d2feec9184b764e66",
+    "src/ui/v2/DiscoveryPresentation.tsx": "3c5216ade67c562e25da76f9038ed8da7aecb9ffb0188d645dba5734f74f8aa3",
+    "src/ui/v2/discovery/DiscoveryPeek.tsx": "22ac9e348ca5140258be9844bb7098cabe980185f091aa666cc41e2c63f3def2",
+    "src/data/__tests__/discovery-v1-screen-session.test.ts": "698e8d092dfd9ddd6562320e29e0ffd34ec8e12e81c464522b0b8dd9213b3936",
+    "src/data/__tests__/discovery-v1-presentation-bridge.test.ts": "12be09130521c47ba72d51ec244103a59539bfd468d1f9e054262ba15b50be55",
+    "src/data/__tests__/discovery-presentation.test.tsx": "1e3c3825ff2333478f881d11b82ab0876ea00fe7dc29ae170c6651870576af45"
+  },
+  "reports": {
+    "place-total-tests.json": {
+      "sha256": "e82b5d244c8398a35b174af3b1f8c6fbc959359dfb063767520d0e6c949e749c",
+      "tests": 258,
+      "suites": 3,
+      "results": [
+        {
+          "file": "src/data/__tests__/discovery-v1-screen-session.test.ts",
+          "tests": 35,
+          "startTime": 1791518810624,
+          "endTime": 1791518819370,
+          "status": "passed"
+        },
+        {
+          "file": "src/data/__tests__/discovery-presentation.test.tsx",
+          "tests": 215,
+          "startTime": 1791518820222,
+          "endTime": 1791518985492,
+          "status": "passed"
+        },
+        {
+          "file": "src/data/__tests__/discovery-v1-presentation-bridge.test.ts",
+          "tests": 8,
+          "startTime": 1791518985841,
+          "endTime": 1791518994919,
+          "status": "passed"
+        }
+      ]
+    },
+    "place-total-session-final.json": {
+      "sha256": "1bc425e0107b7a0c57f425a96d816e3bedbf7791c9e1bcbb086568be39dcd2cb",
+      "tests": 35,
+      "suites": 1,
+      "results": [
+        {
+          "file": "src/data/__tests__/discovery-v1-screen-session.test.ts",
+          "tests": 35,
+          "startTime": 1791519072247,
+          "endTime": 1791519109345,
+          "status": "passed"
+        }
+      ]
+    }
+  },
+  "uniqueFinalTests": 258,
+  "tsc": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit --pretty false",
+    "exit": 0,
+    "observedSession": 30425
+  },
+  "finding": "P6 PLACE preview used 50 loaded rows as total even when the point contains 4000 matching tasks.",
+  "change": "Exact POINT_MEMBERS counts.listed passed independently from main PAGE counts. Render three preview rows; speak and display exact count. Keep POINT_LIST cursor route. Fresh count updates unchanged rows. Screen selection sequence fences already-decoded stale nextMembers responses.",
+  "firstRun": "256 PASS,2 fixture failures DISCOVERY_V1_MAP_BUCKET_OVERCOUNT; fixture MAP counts corrected to represent its bucket. Final three suites PASS; final session rerun covers later realistic terminal-count fixtures.",
+  "review": "Independent read-only source review no blocker; unrealistic test terminal corrected.",
+  "limits": [
+    "P6 remains gated; no rollout or DEV change.",
+    "No new APK contains this change yet.",
+    "Synthetic 4000 total with 50 rows is a correctness fixture, not a measured load or concurrency result.",
+    "35 final session tests are included in 258, not additional tests."
+  ]
+}

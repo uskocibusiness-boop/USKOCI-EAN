@@ -419,3 +419,14 @@ Postojeća dodatna galerija dobija dugu, inertnu prepisku sa40poruka: prvo posle
 **NATIVE FAIL / REVIZIJA:** gr-thread na fontu 1,30 bez početnog gesta otvara poslednji avatar, ali telo poslednje poruke ostaje ispod vidljivog dela liste. Ručno skrolovanje otkriva ga 392 px niže. RN scrollToEnd koristi procenu poslednje ćelije; kasniji cell layout ne poziva naš follow. Follow je prebačen na stvarnu native visinu sadržaja minus visinu viewport-a, ograničeno na najmanje nulu. RAF ponovo izračunava cilj. Zaštite ručnog čitanja, prepend-a, panela i ACK-a ostaju. Prošlo je 76 ciljanih testova i TypeScript; nezavisan pregled nije našao bloker. Popravka još nije nativno dokazana. Plutajuća tastatura nije provera punog IME resize-a.
 
 **SLEDEĆE:** lokalni objedinjeni APK iz tačnog commita: publisher footer, fixture sa 40 poruka i popravka skrola. Izolovani build output ima privatnu kopiju node_modules; postojeći Expo template ima isti sertifikat. Proveriti stvarni package, sertifikat, OTA i ABI pre install-r. Vizuelni pregled predlaže manje praznog prostora iznad liste i diskretniju vremensku zonu; funkcionalni povratak na poslednju poruku ima prednost.
+
+
+## Dopuna — tačan broj zadataka iza gustog pina
+
+**URADIO:** P6 pregled mesta više ne koristi broj učitanih redova kao ukupan broj. Pin sa 4.000 zadataka i prvih 50 učitanih članova prikazuje ukupan broj iz svog POINT_MEMBERS odgovora; kartica i dalje pokazuje najviše tri reda. Glavna PAGE lista ima zaseban broj. „Prikaži sve u listi” već otvara zaseban POINT_LIST cursor i taj tok nije menjan. Svež broj se osvežava i kad su preview redovi isti. Dodatna selection/account zaštita sprečava da već obrađen stari nastavak članova upadne u ponovo izabran pin.
+
+**DOKAZAO:** 258 različitih ciljanih testova PASS, TypeScript PASS, nezavisan read-only pregled bez blokera. Konačnih 35 session testova ponovljeno posle sređivanja fixture-a; sadržani su u 258. Prvi pokušaj imao je dva nevažeća MAP fixture broja, oba korigovana uz očuvanje strogog dekodera. Izvorni SHA fajlova, sažeci i SHA rezultata: `evidence/discovery-place-total-20261009/receipt.json`.
+
+**NIJE DOKAZANO:** novi native prikaz i kapacitet servera. Ovo je ispravka ograničenog P6 klijentskog prikaza, bez uključivanja rollout-a ili promene DEV-a. Fixture 4.000/50 nije opterećenje niti 4.000 istovremenih korisnika. Lokalni APK c62b85d8 koji se gradi ne sadrži ovu kasniju promenu.
+
+**SLEDEĆE:** završiti stvarnu c62 APK izgradnju i proveriti grupni skrol, dugu prepisku i publisher footer. Offline Gradle nije našao keširan tačan Kotlin plugin; jedan ponovljeni build koristi normalno razrešavanje postojećih verzija, bez izmene aplikacionog izvora ili potpisa. GitHub dijagnostika i dalje nije započela zbog naplate. Vizuelni pregled Dogovora predlaže manji lokalni razmak i diskretniju vremensku zonu; to još nije ugrađeno niti nativno dokazano.
