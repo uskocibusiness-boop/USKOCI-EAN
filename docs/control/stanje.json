@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T03:20:12Z",
+  "osvezeno": "2026-10-09T03:21:35Z",
   "grana": "integration/spoj-20261006",
-  "head": "a48162a7",
-  "head_poruka": "merge: retain generated control views after native UI refinement",
+  "head": "7fb01e5d",
+  "head_poruka": "Improve task publisher readability and diagnose isolated PLACES plan timeouts",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
