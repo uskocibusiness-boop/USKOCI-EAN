@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T00:50:29Z",
+  "osvezeno": "2026-10-09T00:52:25Z",
   "grana": "integration/spoj-20261006",
-  "head": "52c4965b",
-  "head_poruka": "merge: synchronize generated control views",
+  "head": "28ef043d",
+  "head_poruka": "test: connect product lifecycle and private group authority proof",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
