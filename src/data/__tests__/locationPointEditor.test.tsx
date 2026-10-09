@@ -535,6 +535,27 @@ describe('compact conversation proposal', () => {
     expect(props.onConfirm).toHaveBeenCalledWith({ ...point, latitudeE6: 45300000, longitudeE6: 19900000, address: candidate.label });
   });
 
+  it.each<ConfiguredLocationResolution>([{ status: 'UNAVAILABLE' }, { status: 'PROPOSALS', candidates: [], requiresConfirmation: true }])(
+    'never reuses the old address after moving a saved pin when reverse returns %j', async result => {
+      const resolver = configured(result), onPromptReady = jest.fn(), point = { slot: 'start' as const,
+        latitudeE6: 45200000, longitudeE6: 19800000, origin: { kind: 'MANUAL_PIN' as const },
+        address: 'Saved private address', accessNotes: 'Saved note' };
+      await render({ resolver, point, onPromptReady, presentation: 'conversation', autoLocate: true, initialQuery: 'Original place query' });
+      expect(onPromptReady.mock.calls.at(-1)?.[0].context.proposal.label).toBe(point.address);
+      await act(async () => map().props.onChoose({ latitude: 45.3, longitude: 19.9 }));
+      expect(map().props.position).toEqual({ latitude: 45.3, longitude: 19.9 });
+      expect(onPromptReady.mock.calls.at(-1)?.[0].context.proposal.label).toBe('Tačka izabrana na mapi');
+      await act(async () => map().props.expand.onPress());
+      expect(text()).toContain('Tačka na mapi');
+      expect(text()).not.toContain(point.address);
+      expect(text()).not.toContain('Original place query');
+      await press('Zatvori');
+      await press('Potvrdi tačku: Početak');
+      expect(props.onConfirm).toHaveBeenCalledTimes(1);
+      expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45300000, longitudeE6: 19900000,
+        origin: { kind: 'MANUAL_PIN' }, accessNotes: point.accessNotes });
+    });
+
   it('does not turn a late disabled lookup into a proposal or admit an old correction callback', async () => {
     const pending = deferred<ConfiguredLocationResolution>(), resolver = configured(), correct = jest.fn();
     resolver.search.mockReturnValue(pending.promise);

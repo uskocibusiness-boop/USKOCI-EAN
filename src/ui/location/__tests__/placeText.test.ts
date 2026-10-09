@@ -1,7 +1,35 @@
 import type { ConfirmedLocationPoint } from '../../../contracts/location';
 import type { NeedTaskGeography } from '../../../contracts/needFactsV2';
-import { confirmedPlaceEntries, ownerPlace, ownerPlaceLine, ownerPlaces, shortPlaceLabel, tidyPlaceLabel, toSerbianLatin } from '../placeText';
+import { confirmedPlaceEntries, exactAddressForSlot, ownerPlace, ownerPlaceLine, ownerPlaces, shortPlaceLabel, slotSeed, tidyPlaceLabel, toSerbianLatin } from '../placeText';
 import { toSerbianLatin as fromEditor } from '../LocationPointEditor';
+
+describe('conversation search seeds in both Serbian scripts', () => {
+  it('keeps a Cyrillic city even before a street is known', () => {
+    expect(slotSeed('start', { geography: { mode: 'STATIONARY', start: { city: 'Нови Сад' } }, exactAddress: null }))
+      .toBe('Нови Сад');
+  });
+
+  it('keeps both the Cyrillic street and city, with or without a house number', () => {
+    const geography: NeedTaskGeography = { mode: 'STATIONARY', start: { label: 'Булевар ослобођења', city: 'Нови Сад' } };
+    expect(slotSeed('start', { geography, exactAddress: null })).toBe('Булевар ослобођења, Нови Сад');
+    expect(slotSeed('start', { geography, exactAddress: 'Булевар ослобођења 65, Нови Сад' }))
+      .toBe('Булевар ослобођења 65, Нови Сад');
+  });
+
+  it.each(['Булевар ослобођења 65, Нови Сад', 'Bulevar oslobođenja 65, Novi Sad'])(
+    'binds %j only to its own route point across scripts', exactAddress => {
+      const geography: NeedTaskGeography = { mode: 'MULTI_STOP',
+        start: { label: 'Булевар ослобођења', city: 'Нови Сад' },
+        waypoints: [{ label: 'Трг слободе', city: 'Нови Сад' }], end: { label: 'Доситејева', city: 'Нови Сад' } };
+      const value = { geography, exactAddress };
+      expect(exactAddressForSlot('start', value)).toBe(exactAddress);
+      expect(slotSeed('start', value)).toBe(exactAddress);
+      expect(exactAddressForSlot('waypoints/0', value)).toBeNull();
+      expect(slotSeed('waypoints/0', value)).toBe('Трг слободе, Нови Сад');
+      expect(exactAddressForSlot('end', value)).toBeNull();
+      expect(slotSeed('end', value)).toBe('Доситејева, Нови Сад');
+    });
+});
 
 /**
  * The confirmed place as ONE line of the conversation (owner, phone test 2026-10-07): street and number in bold, then the

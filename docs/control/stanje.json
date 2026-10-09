@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T07:10:51Z",
+  "osvezeno": "2026-10-09T07:27:08Z",
   "grana": "integration/spoj-20261006",
-  "head": "f61d91f7",
-  "head_poruka": "Restore enamel gradients and retry incomplete task searches",
+  "head": "1724d24d",
+  "head_poruka": "Record verified single-target push promotion with sending disabled",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2190,6 +2190,13 @@
     "state": "SOURCE_145_TESTS_PASS / NATIVE_PENDING",
     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/conversation-races-20261009/receipt.json",
     "change": "Recheck location lease after journal save; retired background lease cannot begin resolve on return. No journal clearing or automatic retry."
+   },
+   "cyrillicAndMovedPinFollowup": {
+    "state": "SOURCE_TARGETED_PASS / CURRENT_PHONE_PENDING",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/location-cyrillic-pin-20261009/receipt.json",
+    "checks": "Before:4 Cyrillic failures/59PASS and2 stale-address failures/66PASS. After:342 tests/8 suites PASS; TypeScript PASS; independent read-only review no blockers.",
+    "scope": "Cyrillic seed/route street matching; moved manual pin after failed or empty reverse has current coordinates, neutral label and preserved notes.",
+    "limits": "No live provider or native proof. f61 phone build does not include these latest source changes."
    }
   },
   "native_66275774_20261009": {
@@ -2346,7 +2353,7 @@
    "freshPreflightCheckedAt": "2026-10-09T07:03:42.604899+00:00",
    "freshEdgeVersion": 22,
    "freshEdgeBeforeEqualsFrozen": true,
-   "expectedMigrationLedgerChange": "235 precondition;236 after normal apply_migration. Postflight reports new ledger; frozen revert has no235count guard. No migration applied.",
+   "expectedMigrationLedgerChange": "235 precondition;236 after normal apply_migration. Applied20261009070352; see applicationReceipt. Frozen revert has no235count guard.",
    "authenticatedRole": "OWNER_LOGIN_CONFIRMED_AND_SECRET_WRITE_SUCCEEDED",
    "next": "Verify current phone binding and obtain one fresh MESSAGE_RECEIVED event from the other existing owner test account through normal authenticated UI/RPC. Existing4 message deliveries are SENT/SUPPRESSED and cannot be reused. Then exact one-target admission/send/receipt and physicaltap. No global queue drain.",
    "accessRecheckRecordedAt": "2026-10-09T06:58:34.533851+00:00",
@@ -2355,7 +2362,8 @@
    "rosterAfter": 108,
    "certificateAfter": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
    "edgeAfter": 24,
-   "allFlagsOff": true
+   "allFlagsOff": true,
+   "historicalSnapshotScope": "checkedAt/ledger/edgeVersion and original flag fields above describe the retained pre-application recapture; applicationReceipt/ledgerAfter/edgeAfter/allFlagsOff are the current applied checkpoint."
   },
   "agreement_tasks_20261009": {
    "state": "SOURCE_TARGETED_PASS / NATIVE_PENDING",
@@ -2784,6 +2792,15 @@
    "state": "SOURCE_TARGETED_PASS / PHONE_BUILD_NEXT",
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/enamel-paging-20261009/receipt.json",
    "checks": "93 tests/3 suites and TypeScript PASS; source review no blocker. Full a5 regression stopped with79PASS suites/1FAIL; later isolated unchanged config13PASS does not complete full regression."
+  },
+  "claude_push_handoff_reconciliation_20261009": {
+   "state": "SOURCE_AND_GIT_RECONCILED / NO_NEW_SERVER_CHANGE",
+   "report": "docs/implementation/handoff-codex-20261008/DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md",
+   "integrated": "eb3dd2c5 handoff; MATCH-V1/V1B receipts ledger231/233 are ancestors of f61. Matching and wave creation applied; not Expo throughput evidence.",
+   "remaining": "Transport remains one SEND and one RECEIPT per tick. Capacity recipe not implemented. Donor194b4fb0 candidate/profile-trust-20261007 contains edge-push-copy-v2 neutral text package, pushed there but not integrated/deployed.",
+   "historicalPhone": "PUSH_REAL_DEVICE_EVIDENCE.md/source463215ef preserves actual owner receipt26Sep; synthetic event/olderAPK, not current real-message exact tap proof.",
+   "current": "1724d24d verified on both canonical remote branches; applied ledger236/Edge24 with all flags off. No hidden uncommitted push work found in three relevant inspected checkouts; not exhaustive all old worktrees.",
+   "ci": "Run37897728095 at1724:0steps. GitHub annotation says recent payments failed or spending limit needs increase; not a failed test. Other latest workflows show failure but not independently diagnosed."
   }
  },
  "redovi": [
@@ -3104,6 +3121,13 @@
     "conversation_races_20261009": {
      "state": "SOURCE_TARGETED_PASS / CURRENT_NATIVE_PENDING",
      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/conversation-races-20261009/receipt.json"
+    },
+    "cyrillic_moved_pin_20261009": {
+     "state": "SOURCE_TARGETED_PASS / CURRENT_PHONE_PENDING",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/location-cyrillic-pin-20261009/receipt.json",
+     "checks": "Before:4 Cyrillic failures/59PASS and2 stale-address failures/66PASS. After:342 tests/8 suites PASS; TypeScript PASS; independent read-only review no blockers.",
+     "scope": "Cyrillic seed/route street matching; moved manual pin after failed or empty reverse has current coordinates, neutral label and preserved notes.",
+     "limits": "No live provider or native proof. f61 phone build does not include these latest source changes."
     }
    },
    "ukupno": "PROBLEM",

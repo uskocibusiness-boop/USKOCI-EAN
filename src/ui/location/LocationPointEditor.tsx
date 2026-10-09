@@ -336,7 +336,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
   const weakSingleProposal = !position && lookupMode === 'search' && alternatives.length === 1
     && !candidateFitsSeed(searchText, alternatives[0].label);
-  const promptLabel = address.trim() || selectedLabel || point?.address || 'Tačka izabrana na mapi';
+  const promptLabel = address.trim() || selectedLabel || 'Tačka izabrana na mapi';
   const phase: DialogueContext['phase'] = position ? 'PROPOSAL'
     : lookupMode === 'search' && alternatives.length > 1 ? 'AMBIGUOUS' : 'UNRESOLVED';
   const pointQuestion = `Da li je ovo ${title.toLocaleLowerCase()}?`;
@@ -395,7 +395,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const shownCameraHint = position ? undefined : cameraHint ?? providerCameraHint;
     const lastCandidatePage = Math.max(0, Math.ceil(alternatives.length / 3) - 1);
     const visibleCandidates = alternatives.slice(candidatePage * 3, candidatePage * 3 + 3);
-    const expandedPlace = address.trim() || selectedLabel || initialQuery.trim() || 'Tačka na mapi';
+    const expandedPlace = address.trim() || selectedLabel || 'Tačka na mapi';
     const lookupMessage = contextOnly
       ? 'Nismo našli dovoljno preciznu tačku za opis iz razgovora. Mapa je samo orijentir — dodirni tačno mesto ili ispravi opis.'
       : lookup.status === 'PROPOSALS' ? 'Mesto nije pronađeno. Obeleži ga na mapi ili ispravi opis u razgovoru.'

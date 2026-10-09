@@ -20,7 +20,7 @@ export const toSerbianLatin = (value: string): string => value.replace(/[Ѐ-ӿ]/
   return letter === lower ? latin : latin.charAt(0).toUpperCase() + latin.slice(1);
 });
 
-export const normalizedPlaceText = (value: string): string => value.normalize('NFKD').replace(/[̀-ͯ]/g, '')
+export const normalizedPlaceText = (value: string): string => toSerbianLatin(value).normalize('NFKD').replace(/[̀-ͯ]/g, '')
   .toLocaleLowerCase('sr-Latn-RS').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, ' ').trim();
 
 const CASE_LOCALE = 'sr-Latn-RS';

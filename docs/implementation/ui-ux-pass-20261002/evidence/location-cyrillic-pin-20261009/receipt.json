@@ -1,0 +1,60 @@
+{
+  "recordedAt": "2026-10-09T07:26:55.102966+00:00",
+  "baseCommit": "1724d24d7d0fcb76ca93688b3c4a14bfc40d8a14",
+  "state": "SOURCE_TARGETED_PASS / CURRENT_PHONE_PENDING",
+  "changes": [
+    "Preserve Cyrillic street/city search seeds and compare Latin/Cyrillic route descriptions without changing canonical geography binding.",
+    "After manual pin movement and failed/empty reverse lookup, AI proposal and expanded footer no longer reuse saved address or original search query."
+  ],
+  "sourceSha256LF": {
+    "src/ui/location/placeText.ts": "c7a87bbe3f324836f2e5d1a598ba1412242ff87445302fb684e4c670175b7ebc",
+    "src/ui/location/LocationPointEditor.tsx": "d22ca7efe0d1528a4203584faaca02ebae254bf5bea7f45b2239e68eb5e4f99c",
+    "src/ui/location/__tests__/placeText.test.ts": "bedd2d148e8ae69e40b6c10840c689fdc3772862a6495d8740b93440cf0da495",
+    "src/data/__tests__/locationPointEditor.test.tsx": "c6391f672b6fd376bde7a8aac24e3a613b9e0cb23cb929be8aff4c6fcc88e5fd"
+  },
+  "checks": {
+    "cyrillic-seed-before": {
+      "passed": 59,
+      "failed": 4,
+      "total": 63,
+      "suites": 1,
+      "success": false,
+      "resultSha256": "dda7a1a08a2e84d3572c53fca24bdfed675c790f4d8c3d216ece4ef34ade5438"
+    },
+    "moved-pin-before": {
+      "passed": 66,
+      "failed": 2,
+      "total": 68,
+      "suites": 1,
+      "success": false,
+      "resultSha256": "db5a20134d88ce5e3b845e34ccadbcfdaa982f2587b9c237ce32954a6d42d140"
+    },
+    "location-cyrillic-pin-after": {
+      "passed": 314,
+      "failed": 0,
+      "total": 314,
+      "suites": 6,
+      "success": true,
+      "resultSha256": "a061256077841f57265de1cede82eda8e6aba74b1959835b96710a4a4a2cee0a"
+    },
+    "location-shared-labels-after": {
+      "passed": 28,
+      "failed": 0,
+      "total": 28,
+      "suites": 2,
+      "success": true,
+      "resultSha256": "1585891c37bff566678f04af9f46f41eae7770a9acb8fea71938ba92af9c6f36"
+    }
+  },
+  "typeScript": {
+    "exit": 0,
+    "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "independentReview": "Read-only agent: no blockers; query remains original search context, proposal label is current pin; lease/revision/coordinates/canonical guards preserved.",
+  "limits": [
+    "342 targeted tests, not a full repository regression. Resolver results are mocked; no live provider request.",
+    "Both route descriptions and resulting payloads checked; text matching is not proof that same-named places are the same exact location.",
+    "No device test or installation of these new source changes. The in-progress f61d91f7 APK predates this patch.",
+    "No Supabase, push flags, business data, or provider send changed in this location patch."
+  ]
+}

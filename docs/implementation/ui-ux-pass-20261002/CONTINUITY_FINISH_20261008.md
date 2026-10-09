@@ -507,3 +507,18 @@ Izmene f61d91f7425aeb028b27443a5d218ce3cd92d136 poslate i očitane na obe kanons
 **NIJE DOKAZANO:** admission0/provider0/push0. Sva3flaga sufalse. Jedan aktivan Android uređaj u bazi ima važeću vezanu sesiju i rev5, ali aktuelnu fizičku vezu još potvrditi kroz app. Četiri postojeće MESSAGE_RECEIVED isporuke za taj vlasnički nalog su1SENT/3SUPPRESSED, bez pogodnog neokušavanog događaja; ne oživljavati ih. Normalna druga test sesija je potrebna za svežu poruku, bez lažnih događaja ili admin impersonacije.
 
 **SLEDEĆE:** završiti f61 ARM64 APK, attest, install-r kada telefon nije aktivno u upotrebi, proveriti stvarni runtime i Ovaj telefon. Vlasnik u07:09 koristi USKOČI; nije slat input. Zatim normalan drugi vlasnički profil na emulatoru/drugoj autentifikovanoj površini i tačan prvi send/receipt/tap. Tokovi, serverkapacitet i prodavnica ostaju otvoreni.
+
+
+## Ćirilica, pomeren pin i Claude predaja — 09.10. nastavak
+
+**URADIO:** normalizacija teksta lokacije čuva ćirilične ulice/gradove preko postojećeg transliteratora; ne menja originalni unos niti canonical geography binding. Pomeren pin posle neuspelog ili praznog reverse rezultata više ne preuzima staru adresu u AI proposal label-u ili proširenoj mapi. Sačuvane napomene i nove koordinate ostaju.
+
+**DOKAZAO:** prethodno4FAIL/59PASS za ćirilične seedove i2FAIL/66PASS za staru adresu; posle342 testova u8grupa PASS, TypeScript PASS, nezavisan read-only pregled bez blokera. Dokaz: `evidence/location-cyrillic-pin-20261009/receipt.json`. Obuhvaćeni route start/waypoint/end, latinično-ćirilično poređenje, stari callbacks i privatnost postojećim ciljanim grupama.
+
+**CLAUDE PREDAJA:** `handoff-codex-20261008/DRUGI_PROLAZ_I_PUSH_RECEPT_20261008.md` (eb3dd2c5) izričito kaže da PUSH-KAPACITET nije izvršen. Matching V1/V1B primenjen i integrisan u f61; ne raditi od nule. Donor194b4fb0 na candidate/profile-trust-20261007 ima tri neutralna Edge teksta i test, već pushovan tamo, nije u canonical niti deployovan. Raniji fizički push dokaz26Sep ostaje važeći u svom obimu. Nisu pronađene nekomitovane push izmene u tri pregledana relevantna checkout-a; nije iscrpna provera svih starih worktree-ja.
+
+**NIJE DOKAZANO:** nema novog provider poziva, isporuke, server izmene, punog regresionog testa niti native potvrde ovih lokacijskih izmena. f61 APK ih ne sadrži. CI37897728095 na1724 nije započeo nijedan korak zbog GitHub naplate/limita (potvrđena annotation); to nije pad testa. Prvi lokalni f61 Gradle build zaustavljen na2700s timeout pri mergeAssets, bez prijavljene aplikacione greške do tog trenutka. Cleanup zaustavio samo owned process tree; istorijski log/receipt sačuvani.
+
+**SLEDEĆE:** isti neizmenjeni f61 export nastavlja Gradle iz warm cache-a kroz privatni `resume-phone-f61d91f7.py`,1800s limit; nije APK PASS dok ne završi i prođe attest. Potom fizički telefon samo kad nije aktivno korišćen, install-r uz tačan potpis i runtime proveru. Za svež push potreban normalan drugi profil/događaj; ne reaktivirati stare delivery redove. Lokacijski patch uključiti u naredni objedinjeni APK; pripremljene donor tekstove uskladiti sa sadašnjim Edge24 pre zasebne proverene promocije. Kapacitet zahteva usklađen SEND/RECEIPT budžet i postojeći25s deadline, ne slepo kopiranje40s recepta.
+
+**UREĐAJ:** pri narednoj read-only proveri `qa_device.pick(prefer='physical')` prijavljuje0uređaja, `attached:none`. Telefon više nije priključen. Vlasniku je asinhrono zatraženo ponovno USB povezivanje; to je potreban fizički pristup, ne ponovni zahtev za odobrenje. Nema instalacije/input-a. Ne pretpostavljati da je stari serial ponovo prisutan.
