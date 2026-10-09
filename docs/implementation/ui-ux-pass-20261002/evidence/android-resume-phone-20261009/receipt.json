@@ -1,0 +1,285 @@
+{
+  "recordedAt": "2026-10-09T18:29:25.072380+00:00",
+  "source": "b9f734efb88f9eda0f732153770dbb48cbd0c7e8",
+  "tree": "9ad216f69482e33522f0bce4a83143de3c3b1fd2",
+  "scope": "Bounded physical Android task intake resume/manual location, not whole-product acceptance",
+  "apk": {
+    "apkSha256": "55be82dc3c09de5371b9295b7977b75fa82ff098d86ec3d7e6f8db404c3a7e5c",
+    "apkBytes": 99677208,
+    "sourceFilesByteEqual": 5949,
+    "package": "rs.uskoci.preview",
+    "versionCode": 35,
+    "abis": [
+      "arm64-v8a"
+    ],
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "signatureVerified": true,
+    "debuggable": false,
+    "updatesEnabled": true,
+    "bundleSha256": {
+      "assets/index.android.bundle": "5e5eed0f0d14197bf1fd5ff6dd8dfd85b9fae33c637f4a52f1057feb044ca30a"
+    }
+  },
+  "phone": {
+    "model": "VKP-NX9",
+    "android": "16",
+    "sdk": "36",
+    "screenPx": [
+      1264,
+      2728
+    ],
+    "fontScale": 1.15,
+    "uidPreserved": true,
+    "firstInstallTimePreserved": true,
+    "installedHashMatches": true,
+    "runtimeAbout": "b9f734e",
+    "sessionPreserved": true,
+    "install": "adb install -r"
+  },
+  "tests": {
+    "success": true,
+    "numPassedTestSuites": 605,
+    "numFailedTestSuites": 0,
+    "numTotalTestSuites": 605,
+    "numPassedTests": 13501,
+    "numPendingTests": 9,
+    "numFailedTests": 0,
+    "startTime": 1791569232777
+  },
+  "native": [
+    "pre-fix ce23 saved intake lacked Home resume",
+    "b9 upgrade shows resume",
+    "resume restores original message and pending location",
+    "force-stop/restart keeps resume and same conversation",
+    "manual map point confirmed before next people question",
+    "server OPEN/unpublished; initial message once; one live confirmed MANUAL_PIN location",
+    "final Home; no task publication"
+  ],
+  "open": [
+    "intermittent ce23 warm VIEW About blank body not diagnosed",
+    "emulator map symbol issue not fixed by phone labels",
+    "full current two-account flow/voice/media/push not covered",
+    "legal/export/erasure/production build remain open",
+    "CI job billing gate"
+  ],
+  "backend": "No migration or Edge deploy. One owner-authorized unpublished QA conversation through real UI, then scoped read-only verification.",
+  "ci": {
+    "run": 37967025103,
+    "job": 113943813775,
+    "state": "NOT_STARTED_ACCOUNT_BILLING_OR_SPENDING_LIMIT"
+  },
+  "storeReady": false,
+  "rawEvidencePrivate": true,
+  "files": [
+    {
+      "name": "jest-results.json",
+      "sha256": "6f8cf8efa42bedc7616ac82b74f6ce8f6624a14a141c3a9bb27412424194342c",
+      "bytes": 5615251
+    },
+    {
+      "name": "jest.log",
+      "sha256": "8f2148295bea534a806d55cc6789568315dc524637b97ab27e844f77978e6c67",
+      "bytes": 34188
+    },
+    {
+      "name": "backend-location-readback.json",
+      "sha256": "8f5713a218dc060926be51aa1a153d71ed7e1248ea7485e2091c8b26212793a9",
+      "bytes": 2075
+    },
+    {
+      "name": "receipt.json",
+      "sha256": "190f0687a6730d2fa15cf9758adb5904d18f1346181793cd760b9b9d69112a80",
+      "bytes": 2350
+    },
+    {
+      "name": "signature.txt",
+      "sha256": "8a333bbbc68d6087974497380c0bc256b60ddb220c217dbb3055a5069856141e",
+      "bytes": 1007
+    },
+    {
+      "name": "device_pass.py",
+      "sha256": "35352f525bf91da47e068717f4f5228b1b09bfeb16240cbe3a9c0efbd315dea9",
+      "bytes": 2328
+    },
+    {
+      "name": "phone-home-no-resume-before.png",
+      "sha256": "6227d216fdbcbc4799f652e08d6b393dc4fc7c6dbc6bcf28b213d0961d0c74f1",
+      "bytes": 501343
+    },
+    {
+      "name": "phone-home-no-resume-before.xml",
+      "sha256": "d659d3b501dafb9b7863941373b932ee3d5c440b6b32367dc478a3934d2777ff",
+      "bytes": 59891
+    },
+    {
+      "name": "phone-about-ce23.png",
+      "sha256": "7cb184bc55c46112571fbe303d935d2da50b831c5bdc6c598609a303fc635006",
+      "bytes": 436970
+    },
+    {
+      "name": "phone-about-ce23.xml",
+      "sha256": "eee57cffcb1dc0f66b65895ac36918b4db86dc7679376499f7893a8d051c8640",
+      "bytes": 39500
+    },
+    {
+      "name": "phone-map-ce23.png",
+      "sha256": "09072c3b50937eae36f00d95a36a896414b50e1679a55b7f468736f629b3ed89",
+      "bytes": 444745
+    },
+    {
+      "name": "phone-map-ce23.xml",
+      "sha256": "68c7908c39956cc7150ea9f10158574388210d29140b33df4d2f797710c6906d",
+      "bytes": 56272
+    },
+    {
+      "name": "phone-map-list-expanded.png",
+      "sha256": "03b1cf50c5c8231e86960ea14c217cdca3c6abc8555218689fa6ed343af58d8f",
+      "bytes": 326249
+    },
+    {
+      "name": "phone-map-list-expanded.xml",
+      "sha256": "450a61b28a098fcf3016700652709a21c416b463fd23051b25f74d5879419f02",
+      "bytes": 56942
+    },
+    {
+      "name": "phone-filters-ce23.png",
+      "sha256": "3477d9af0766294a95fc5f1c0869363e389dafe32b51243d54f9b77a6c3734bc",
+      "bytes": 856035
+    },
+    {
+      "name": "phone-filters-ce23.xml",
+      "sha256": "099a65322fab700cfb1d037d058ded381bd72638bfd6e65e15c87fa8ebf579ac",
+      "bytes": 26077
+    },
+    {
+      "name": "phone-about-b9f.png",
+      "sha256": "75abb433b10a729f017c6f5cadc9d10f14ccf1a1a0a6222717a49ed0f87f123d",
+      "bytes": 437838
+    },
+    {
+      "name": "phone-about-b9f.xml",
+      "sha256": "b2f8e21be62f4beccf58d6a1676b6ea131004284dc966df8a30a9945d2e8d41a",
+      "bytes": 39500
+    },
+    {
+      "name": "phone-home-b9f.png",
+      "sha256": "960bfb3456b811f0b3b7565ee67b919395a7678b12dbb5e2b6523889f1a23aeb",
+      "bytes": 485210
+    },
+    {
+      "name": "phone-home-b9f.xml",
+      "sha256": "8e838b2703396ad462abbc5a012d2b3ca7512f4ee458af14347fa8126f494521",
+      "bytes": 59515
+    },
+    {
+      "name": "phone-ai-resumed-b9f.png",
+      "sha256": "a2370c39b444895bd90af58c595361d2a39309927a0e0397d93d4d640635b98e",
+      "bytes": 566071
+    },
+    {
+      "name": "phone-ai-resumed-b9f.xml",
+      "sha256": "f8e25666024af61f61870f52e9137334554e48cbb4fde304a4f1a41200035391",
+      "bytes": 30124
+    },
+    {
+      "name": "phone-home-after-restart-b9f.png",
+      "sha256": "5ec996217a5eca20d44f629cadbf8d20a15cf387b6086a4c96cee5ea094b636e",
+      "bytes": 484975
+    },
+    {
+      "name": "phone-home-after-restart-b9f.xml",
+      "sha256": "3c4b37fccb60d6bca1eab619e3e3bef1c530b874b614deefb6e9375d18ab640b",
+      "bytes": 59517
+    },
+    {
+      "name": "phone-ai-after-restart-b9f.png",
+      "sha256": "0fbd45bc6ffbc7b8c498851468bf38532f5641c1b4831ffcb659eae250cd0f21",
+      "bytes": 565775
+    },
+    {
+      "name": "phone-ai-after-restart-b9f.xml",
+      "sha256": "f8e25666024af61f61870f52e9137334554e48cbb4fde304a4f1a41200035391",
+      "bytes": 30124
+    },
+    {
+      "name": "phone-location-expanded-b9f.png",
+      "sha256": "501d81efdfb89e6d22989b19ba84061852bc7e8159b155983e2902539e784597",
+      "bytes": 1742897
+    },
+    {
+      "name": "phone-location-expanded-b9f.xml",
+      "sha256": "fb48569ce0907b672684cf661dd0d9e012ae38e983feaaf5b6daa8278fc3fd21",
+      "bytes": 9204
+    },
+    {
+      "name": "phone-location-pin-first-b9f.png",
+      "sha256": "ed2de154bae56b737f7fdc56ea24e25be39e03ef9688331146c00c56ebe5da4e",
+      "bytes": 550029
+    },
+    {
+      "name": "phone-location-pin-first-b9f.xml",
+      "sha256": "8772276f28de972cd83d7f73a38e19fe3f1e6b4f14d8fec37c30bec937837ec2",
+      "bytes": 10408
+    },
+    {
+      "name": "phone-location-pin-moved-b9f.png",
+      "sha256": "65ac93c6dd61629ca8386eeee9f5e4dcb60d1e5d7c9bd3bbe59ee26405e9ced4",
+      "bytes": 509260
+    },
+    {
+      "name": "phone-location-pin-moved-b9f.xml",
+      "sha256": "8772276f28de972cd83d7f73a38e19fe3f1e6b4f14d8fec37c30bec937837ec2",
+      "bytes": 10408
+    },
+    {
+      "name": "phone-location-confirmed-b9f.png",
+      "sha256": "9bcf964b650dea053791098f4abd0d272eea092dcf7d76eba86f619612a46cf1",
+      "bytes": 228349
+    },
+    {
+      "name": "phone-location-confirmed-b9f.xml",
+      "sha256": "3cbcfc6fa24c3d7cd67ba31dfc0f22cc8214e97edaa7b65a772f4ba825ad5b24",
+      "bytes": 27780
+    },
+    {
+      "name": "phone-home-final-b9f.png",
+      "sha256": "bfb9e8adc084f6a49c6f59f0732a7c0b98f167644cf817537013667143ec88a9",
+      "bytes": 485061
+    },
+    {
+      "name": "phone-home-final-b9f.xml",
+      "sha256": "8e838b2703396ad462abbc5a012d2b3ca7512f4ee458af14347fa8126f494521",
+      "bytes": 59515
+    },
+    {
+      "name": "phone-about-baseline-end.png",
+      "sha256": "b727c47399980384f23da9994e9bd5a8d3f124d5af3729f7012bf06a08c8fb3d",
+      "bytes": 47304
+    },
+    {
+      "name": "phone-about-baseline-end.xml",
+      "sha256": "ad12d570f606804ea125224801d48405016bfe155402f27ccaafa1e3287a8cb9",
+      "bytes": 6417
+    },
+    {
+      "name": "phone-about-repeat-ce23.png",
+      "sha256": "e67555b367fb840742d270204c0fc3048bc09cbb4fc2e46c037d8d5619b3c8bc",
+      "bytes": 46431
+    },
+    {
+      "name": "phone-about-repeat-ce23.xml",
+      "sha256": "ad12d570f606804ea125224801d48405016bfe155402f27ccaafa1e3287a8cb9",
+      "bytes": 6417
+    },
+    {
+      "name": "phone-about-from-profile-ce23.png",
+      "sha256": "8654465813d26f983a32171117c55af21dc99743aca74a6f039cdb10430b2195",
+      "bytes": 437879
+    },
+    {
+      "name": "phone-about-from-profile-ce23.xml",
+      "sha256": "261f8e91fe0b1aed7edcd93e048e62ba9c7db533a9125d6e40cf1a3b477de01f",
+      "bytes": 41597
+    }
+  ]
+}

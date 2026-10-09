@@ -76,3 +76,8 @@ Najnoviji zahtev traži profesionalnu timsku analizu trenutnog stanja, šta je z
 ### 09.10 — nezavisni pre-release forensic audit i granica završetka
 
 Vlasnik izričito traži nezavisnu procenu stvarnog trenutnog proizvoda kroz27oblasti, sa dokazima, dvadeset stručnih perspektiva, P0–P3 i release gate tabelom. Zabranjuje ulepšavanje i beskonačni redizajn; dovoljno dobra rešenja označitiFREEZE. Audit razlikuje implementirano/povezano/testirano/emulator/fizičkiuređaj/productionready. Ovaj zahtev odobrava potrebne bezbedne audite i testove, ne objavu neodobrenog release paketa ili nasumičan arhitektonski rewrite. Sadašnji rezultat i tačne granice su u docs/implementation/ui-ux-pass-20261002/FORENSIC_PRE_RELEASE_20261009.md. Postojeći62redni registar i master ostaju jedini;30-minutna automatizacijaPAUSED.
+
+
+### 09.10 — Android prvo, ponovo povezan telefon i konkretne popravke
+
+Najnovija poruka potvrđuje povezan telefon i traži stvarni prolaz kroz ekrane, dugmad, AI, animacije, mapu i filtere, pa popravke dokazanih problema prema postojećoj analizi. Android V1 je neposredni cilj. Ovo autorizuje ograničenu fizičku proveru i nadogradnju install-r uz očuvanje sesije/podataka. Ranije tražen jasan kraj i FREEZE dobrih rešenja ostaju; ne započinjati beskonačan redizajn ili iOS prepravku. Ne uključuje automatsku javnu objavu ili ponovno aktiviranje30-minutne automatizacije.
