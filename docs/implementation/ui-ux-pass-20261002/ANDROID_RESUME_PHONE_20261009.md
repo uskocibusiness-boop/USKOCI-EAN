@@ -28,9 +28,11 @@
 2. Vizuelni/microcopy nalaz: geocoder vraća predug administrativni opis, a stvarni AI koristi „posao“ umesto doslednog „zadatak“. Ne menjati provider odgovor samo u prikazu; Edge prompt zahteva svoj ograničen paket. Screen-reader hint Home retry-a može jasnije izgovoriti konkretnu radnju; nije blokirao ovaj native tok.
 3. Više razgovora/paging/account race ima source testove, ne stvarni native višekorisnički dokaz. Nema nove provere glasa, slike, svih ruta, izmena/objave, dve strane, grupnih poruka ili novog push-a. Ranije vlasnikovo MESSAGE push prihvatanje ostaje zasebno.
 4. Nije meren produkcioni kapacitet, P95 network ili korisnici/s. Usputni gfxinfo nije kontrolisan benchmark. Nema iOS ili Google Play spremnosti.
-5. Aktuelni GitHub run 37967025103 nije pokrenuo posao: anotacija navodi neuspele account uplate ili spending limit. Lokalni testovi nisu CI PASS. Nije menjana naplata.
+5. Raniji GitHub run 37967025103 nije pokrenuo posao: anotacija navodi neuspele account uplate ili spending limit. Kasniji source-ekvivalentni `5fd6ee64` run-ovi 37973737055 (EX-06E, uključujući Full regression) i 37973736906 (P5, uključujući Full Jest) završili su SUCCESS. Ranija prepreka nije dokaz da CI i dalje ne može da radi. Nije menjana naplata; puni lokalni i CI dokazi ostaju odvojeni.
 6. Profil na telefonu prikazuje da pravila i saglasnosti još nisu objavljeni. Pravni dokumenti, izvoz/brisanje naloga, production AAB/potpis/okruženje i povezani release gate-ovi ostaju otvoreni.
 
 ## SLEDEĆE
 
 Unutar postojećih B04/B05 redova: dok se učitavaju novi filteri/oblast, stara mapa/lista ostaju, ali novi kriterijumi ne smeju delovati kao već potvrđeni rezultat. Povezati postojeće pending stanje sa jasnim „Osvežavamo zadatke…“, bez novog request vlasnika i bez uklanjanja mape. Zatim nastaviti pet konačnih paketa iz postojećeg audita. Dobre ekrane i poslovna pravila ne redizajnirati bez konkretne greške. Automatizacija na 30 minuta ostaje PAUSED.
+
+Naknadni završetak: B04/B05 pending signal i Home accessibility hint rešeni su u `725be7bd`, uz 600 ciljanih testova i fizički telefon. Videti [završni dokaz](ANDROID_DISCOVERY_PENDING_20261009.md). Istorijski b9 receipt ostaje neizmenjen. Nije ponovo proglašen ceo proizvod prihvaćenim.

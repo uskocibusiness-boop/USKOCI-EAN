@@ -796,3 +796,16 @@ DOKAZAO: tsc0,270+193ciljanih testova; puna regresija605/605suite,13501PASS/9SKI
 NIJE DOKAZANO: ceo AI/profile/two-account/voice/media/push/performance/store. ce23 warm VIEW About povremeno belo telo; Back/normalan ulaz radi, uzrok neutvrđen. Fizički telefon ima map labels, emulator nalaz ostaje. GitHub37967025103 posao nije startovao zbog billing/spending limita. Pravni dokumenti na telefonu još neobjavljeni.
 
 SLEDEĆE: B04/B05 pošten signal osvežavanja bez uklanjanja mape i starih rezultata, zatim pet postojećih završnih paketa. Telefon ostavljen na Home; jedna probna neobjavljena konverzacija, bez dodatnog reset-a/slanja. Izveštaj ANDROID_RESUME_PHONE_20261009.md i evidence/android-resume-phone-20261009/receipt.json. AutomatizacijaPAUSED.
+
+
+## 09.10 — 725 Discovery pending i drugi fizički prolaz
+
+URADIO: postojeći coordinator replacing povezan sa prikazom; mapa/kartice i visina ostaju dok novi filter/oblast stiže. Paging duplikat ne gasi tuđi loadingMore. Precizan Home accessibility hint. Source725be7bd, botd0dd6f76 sačuvan merge-om e1355f37 i obe kanonske grane usaglašene pre dokumentacionog zatvaranja.
+
+DOKAZAO: tsc0; 23grupe/600PASS uključuju deferred/reversed/error/account/paging i presentationHALF/FULL. Fizički HONOR isti install-r potpis, APK hash/runtime725be7b, UID/prvo vreme/sesija očuvani. Stvarni pendingDanas pa rezultat; vikend prazan/reset; FULL i spuštanje preko sadržaja i HALF; Home vraća isti razgovor/potvrđeno mesto. Nema novog providerturn/push/objave. GitHub5fd EX-06E iP5 sa punim testovima SUCCESS; stari billing fail ostaje istorijski, nije aktuelni blanket blocker.
+
+NIJE DOKAZANO: svih62redova, kompletan AI/profile/two-account/voice/media/push, kapacitet/latency/FPS, About uzrok, store. CI završnog e135 kandidata beleži receipt prema stvarnom ishodu. Telefon ostavljen na Home. Ranije tvrdnje o privatnom GitHub repo-u su zastarele: trenutno PUBLIC; novi APK nije javno uploadovan.
+
+SLEDEĆE: povezani tok dva naloga; legal/privacy/export/erasure; izmerene performance/security korekcije; jedan produkcioni AAB i završni Play paket. Bez beskonačnog redizajna. ANDROID_DISCOVERY_PENDING_20261009.md i evidence/android-discovery-pending-20261009/receipt.json. Automatizacija na30min ostaje PAUSED. Generisana lokalna tabla nije tvrdnja o objavi udaljenog Claude artefakta.
+
+Završni CI rezultat: 37975515493 na e1355f37 SUCCESS, TypeScript +219focused +605/605suite,13519/13519PASS,6snapshotPASS,313.666s. Aplikacioni source jednak725APK-u; nije CIbuildAPK-a niti dokaz svih native tokova. Novi receipt čuva taj ishod i hash loga. Postojeći forensic NO-GO ostaje do navedenih release paketa.
