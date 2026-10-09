@@ -1,0 +1,4970 @@
+{
+  "unit": "DISCOVERY-GRAD load",
+  "result": "FAIL",
+  "sourceSha": "98ed64d28406b9b42b4ffe581f3a43a8c38118d4",
+  "disposableOnly": true,
+  "liveAccess": false,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "tasks": 40000,
+  "checks": [
+    {
+      "name": "DISCOVERY_GRAD_LOAD_SEEDED",
+      "result": "PASS",
+      "detail": {
+        "openTasks": 40000
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE",
+      "result": "PASS"
+    },
+    {
+      "name": "DEPLOYED_BASELINE_COUNTS_FILTERS_RESPONSE_BOUNDS",
+      "result": "PASS",
+      "detail": {
+        "pageDefault": {
+          "coldMs": 688.6,
+          "medianMs": 559.7,
+          "minMs": 504.1,
+          "maxMs": 785.2,
+          "rows": 50,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:18:22.843700Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:48:22.843700Z",
+            "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+            "publishedThrough": "2026-10-09T01:18:22.843700Z"
+          },
+          "memberCount": 0
+        },
+        "pageTextCiscenje": {
+          "coldMs": 2250.5,
+          "medianMs": 1972.7,
+          "minMs": 1869.5,
+          "maxMs": 2119.5,
+          "rows": 50,
+          "counted": 5333,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:18:31.754393Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:48:31.754393Z",
+            "filterKey": "a409934eded9e3997b6353c296541575",
+            "publishedThrough": "2026-10-09T01:18:31.754393Z"
+          },
+          "memberCount": 0
+        },
+        "pageTextSelidba": {
+          "coldMs": 2144.3,
+          "medianMs": 1983.6,
+          "minMs": 1878,
+          "maxMs": 2135.9,
+          "rows": 50,
+          "counted": 5333,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:19:01.951406Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:49:01.951406Z",
+            "filterKey": "bde6517e1f7ea765f47c13be90552f5e",
+            "publishedThrough": "2026-10-09T01:19:01.951406Z"
+          },
+          "memberCount": 0
+        },
+        "pageTextNoHit": {
+          "coldMs": 2063.3,
+          "medianMs": 1914.2,
+          "minMs": 1797.5,
+          "maxMs": 2008.2,
+          "rows": 0,
+          "counted": 0,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:19:32.142219Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:49:32.142219Z",
+            "filterKey": "184bfb4d716ce88547d4cf0b50f2b101",
+            "publishedThrough": "2026-10-09T01:19:32.142219Z"
+          },
+          "memberCount": 0
+        },
+        "pagePlaceCity": {
+          "coldMs": 374.5,
+          "medianMs": 363.5,
+          "minMs": 334.8,
+          "maxMs": 484.8,
+          "rows": 50,
+          "counted": 7332,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:01.183192Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:01.183192Z",
+            "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+            "publishedThrough": "2026-10-09T01:20:01.183192Z"
+          },
+          "memberCount": 0
+        },
+        "pagePlaceLabel": {
+          "coldMs": 298.2,
+          "medianMs": 300.2,
+          "minMs": 278,
+          "maxMs": 399.7,
+          "rows": 0,
+          "counted": 0,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:06.961774Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:06.961774Z",
+            "filterKey": "bc079e4e5258b9ecb8c4a2377816d898",
+            "publishedThrough": "2026-10-09T01:20:06.961774Z"
+          },
+          "memberCount": 0
+        },
+        "pagePlaceAndText": {
+          "coldMs": 1712.3,
+          "medianMs": 1617.9,
+          "minMs": 1563.4,
+          "maxMs": 1759.4,
+          "rows": 50,
+          "counted": 2000,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:11.673652Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:11.673652Z",
+            "filterKey": "f867ef6a93a4a2542b3c5235ca1f9c16",
+            "publishedThrough": "2026-10-09T01:20:11.673652Z"
+          },
+          "memberCount": 0
+        },
+        "pageAreaToday": {
+          "coldMs": 503.9,
+          "medianMs": 502.8,
+          "minMs": 460.4,
+          "maxMs": 636.6,
+          "rows": 50,
+          "counted": 11075,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:36.844830Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:36.844830Z",
+            "filterKey": "71748541eec5db18a630ad68143a9c80",
+            "publishedThrough": "2026-10-09T01:20:36.844830Z"
+          },
+          "memberCount": 0
+        },
+        "mapDefault": {
+          "coldMs": 498,
+          "medianMs": 444.1,
+          "minMs": 408.3,
+          "maxMs": 485.3,
+          "rows": 14,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "MAP",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:44.784255Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:44.784255Z",
+            "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+            "publishedThrough": "2026-10-09T01:20:44.784255Z"
+          },
+          "memberCount": 35077
+        },
+        "mapPlaceCity": {
+          "coldMs": 190.3,
+          "medianMs": 192.4,
+          "minMs": 169.5,
+          "maxMs": 326.3,
+          "rows": 1,
+          "counted": 7332,
+          "version": "DISCOVERY_V1",
+          "mode": "MAP",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:51.681835Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:51.681835Z",
+            "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+            "publishedThrough": "2026-10-09T01:20:51.681835Z"
+          },
+          "memberCount": 6768
+        },
+        "placesDefault": {
+          "coldMs": 252.3,
+          "medianMs": 237,
+          "minMs": 219.5,
+          "maxMs": 288.1,
+          "rows": 30,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:54.750587Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:54.750587Z",
+            "filterKey": "9cc48e0aa5323ed4a7129fd5b71a7502",
+            "publishedThrough": "2026-10-09T01:20:54.750587Z"
+          },
+          "memberCount": 0
+        },
+        "placesPrefix": {
+          "coldMs": 264.4,
+          "medianMs": 235.7,
+          "minMs": 217,
+          "maxMs": 322.8,
+          "rows": 5,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-09T01:20:58.383100Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:50:58.383100Z",
+            "filterKey": "ffb1bbb687dbb4650594cc60d62a4cca",
+            "publishedThrough": "2026-10-09T01:20:58.383100Z"
+          },
+          "memberCount": 0
+        },
+        "placesCity": {
+          "coldMs": 235.5,
+          "medianMs": 246,
+          "minMs": 218.3,
+          "maxMs": 455.3,
+          "rows": 12,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-09T01:21:02.094328Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:51:02.094328Z",
+            "filterKey": "aee158c8cab8a384f0d0791ff83a548b",
+            "publishedThrough": "2026-10-09T01:21:02.094328Z"
+          },
+          "memberCount": 0
+        },
+        "placesCityPrefix": {
+          "coldMs": 234.6,
+          "medianMs": 233.5,
+          "minMs": 218,
+          "maxMs": 271,
+          "rows": 1,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-09T01:21:06.066006Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:51:06.066006Z",
+            "filterKey": "7305991adc7d38d1a96b6cf5ffe06b68",
+            "publishedThrough": "2026-10-09T01:21:06.066006Z"
+          },
+          "memberCount": 0
+        },
+        "pageRemote": {
+          "coldMs": 333.8,
+          "medianMs": 287.8,
+          "minMs": 269.1,
+          "maxMs": 352.1,
+          "rows": 50,
+          "counted": 2000,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-09T01:21:09.693717Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:51:09.693717Z",
+            "filterKey": "08bb6992959c507001d32dc3db3c8ff3",
+            "publishedThrough": "2026-10-09T01:21:09.693717Z"
+          },
+          "memberCount": 0
+        },
+        "mapCityDense": {
+          "coldMs": 324.3,
+          "medianMs": 293.5,
+          "minMs": 266.2,
+          "maxMs": 349.4,
+          "rows": 5,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "MAP",
+          "anchor": {
+            "timeAt": "2026-10-09T01:21:14.420080Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T01:51:14.420080Z",
+            "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+            "publishedThrough": "2026-10-09T01:21:14.420080Z"
+          },
+          "memberCount": 6768
+        }
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_AUTHENTICATED_HTTP",
+      "result": "PASS",
+      "detail": {
+        "pageDefault": 512,
+        "pageTextCiscenje": 1992,
+        "pageTextSelidba": 2035,
+        "pageTextNoHit": 1908,
+        "pagePlaceCity": 370,
+        "pagePlaceLabel": 306,
+        "pagePlaceAndText": 1760,
+        "pageAreaToday": 542,
+        "mapDefault": 502,
+        "mapPlaceCity": 204,
+        "placesDefault": 223,
+        "placesPrefix": 241,
+        "placesCity": 238,
+        "placesCityPrefix": 242,
+        "pageRemote": 329,
+        "mapCityDense": 304
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_FOUR_REQUEST_PROFILES",
+      "result": "PASS"
+    },
+    {
+      "name": "DEPLOYED_BASELINE_POSTLOAD_FIDELITY",
+      "result": "PASS"
+    },
+    {
+      "name": "DEPLOYED_BASELINE_RELEVANT_CHAIN_FIDELITY",
+      "result": "PASS"
+    }
+  ],
+  "failures": [
+    {
+      "name": "LOAD",
+      "detail": "AssertionError [ERR_ASSERTION]: READ_CONCURRENCY_FAILED:16\n\n'FAIL' !== 'PASS'\n\n    at proveReadConcurrency (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/read-concurrency.proof.mjs:74:14)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async deployedBaseline (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/load.proof.mjs:298:7)\n    at async file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/load.proof.mjs:321:5"
+    }
+  ],
+  "load": {
+    "openTasks": 40000,
+    "DEPLOYED_BASELINE": {
+      "pageDefault": {
+        "coldMs": 688.6,
+        "medianMs": 559.7,
+        "minMs": 504.1,
+        "maxMs": 785.2,
+        "rows": 50,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:18:22.843700Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:48:22.843700Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-10-09T01:18:22.843700Z"
+        },
+        "memberCount": 0
+      },
+      "pageTextCiscenje": {
+        "coldMs": 2250.5,
+        "medianMs": 1972.7,
+        "minMs": 1869.5,
+        "maxMs": 2119.5,
+        "rows": 50,
+        "counted": 5333,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:18:31.754393Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:48:31.754393Z",
+          "filterKey": "a409934eded9e3997b6353c296541575",
+          "publishedThrough": "2026-10-09T01:18:31.754393Z"
+        },
+        "memberCount": 0
+      },
+      "pageTextSelidba": {
+        "coldMs": 2144.3,
+        "medianMs": 1983.6,
+        "minMs": 1878,
+        "maxMs": 2135.9,
+        "rows": 50,
+        "counted": 5333,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:19:01.951406Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:49:01.951406Z",
+          "filterKey": "bde6517e1f7ea765f47c13be90552f5e",
+          "publishedThrough": "2026-10-09T01:19:01.951406Z"
+        },
+        "memberCount": 0
+      },
+      "pageTextNoHit": {
+        "coldMs": 2063.3,
+        "medianMs": 1914.2,
+        "minMs": 1797.5,
+        "maxMs": 2008.2,
+        "rows": 0,
+        "counted": 0,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:19:32.142219Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:49:32.142219Z",
+          "filterKey": "184bfb4d716ce88547d4cf0b50f2b101",
+          "publishedThrough": "2026-10-09T01:19:32.142219Z"
+        },
+        "memberCount": 0
+      },
+      "pagePlaceCity": {
+        "coldMs": 374.5,
+        "medianMs": 363.5,
+        "minMs": 334.8,
+        "maxMs": 484.8,
+        "rows": 50,
+        "counted": 7332,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:01.183192Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:01.183192Z",
+          "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+          "publishedThrough": "2026-10-09T01:20:01.183192Z"
+        },
+        "memberCount": 0
+      },
+      "pagePlaceLabel": {
+        "coldMs": 298.2,
+        "medianMs": 300.2,
+        "minMs": 278,
+        "maxMs": 399.7,
+        "rows": 0,
+        "counted": 0,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:06.961774Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:06.961774Z",
+          "filterKey": "bc079e4e5258b9ecb8c4a2377816d898",
+          "publishedThrough": "2026-10-09T01:20:06.961774Z"
+        },
+        "memberCount": 0
+      },
+      "pagePlaceAndText": {
+        "coldMs": 1712.3,
+        "medianMs": 1617.9,
+        "minMs": 1563.4,
+        "maxMs": 1759.4,
+        "rows": 50,
+        "counted": 2000,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:11.673652Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:11.673652Z",
+          "filterKey": "f867ef6a93a4a2542b3c5235ca1f9c16",
+          "publishedThrough": "2026-10-09T01:20:11.673652Z"
+        },
+        "memberCount": 0
+      },
+      "pageAreaToday": {
+        "coldMs": 503.9,
+        "medianMs": 502.8,
+        "minMs": 460.4,
+        "maxMs": 636.6,
+        "rows": 50,
+        "counted": 11075,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:36.844830Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:36.844830Z",
+          "filterKey": "71748541eec5db18a630ad68143a9c80",
+          "publishedThrough": "2026-10-09T01:20:36.844830Z"
+        },
+        "memberCount": 0
+      },
+      "mapDefault": {
+        "coldMs": 498,
+        "medianMs": 444.1,
+        "minMs": 408.3,
+        "maxMs": 485.3,
+        "rows": 14,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:44.784255Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:44.784255Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-10-09T01:20:44.784255Z"
+        },
+        "memberCount": 35077
+      },
+      "mapPlaceCity": {
+        "coldMs": 190.3,
+        "medianMs": 192.4,
+        "minMs": 169.5,
+        "maxMs": 326.3,
+        "rows": 1,
+        "counted": 7332,
+        "version": "DISCOVERY_V1",
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:51.681835Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:51.681835Z",
+          "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+          "publishedThrough": "2026-10-09T01:20:51.681835Z"
+        },
+        "memberCount": 6768
+      },
+      "placesDefault": {
+        "coldMs": 252.3,
+        "medianMs": 237,
+        "minMs": 219.5,
+        "maxMs": 288.1,
+        "rows": 30,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:54.750587Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:54.750587Z",
+          "filterKey": "9cc48e0aa5323ed4a7129fd5b71a7502",
+          "publishedThrough": "2026-10-09T01:20:54.750587Z"
+        },
+        "memberCount": 0
+      },
+      "placesPrefix": {
+        "coldMs": 264.4,
+        "medianMs": 235.7,
+        "minMs": 217,
+        "maxMs": 322.8,
+        "rows": 5,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-09T01:20:58.383100Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:50:58.383100Z",
+          "filterKey": "ffb1bbb687dbb4650594cc60d62a4cca",
+          "publishedThrough": "2026-10-09T01:20:58.383100Z"
+        },
+        "memberCount": 0
+      },
+      "placesCity": {
+        "coldMs": 235.5,
+        "medianMs": 246,
+        "minMs": 218.3,
+        "maxMs": 455.3,
+        "rows": 12,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-09T01:21:02.094328Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:51:02.094328Z",
+          "filterKey": "aee158c8cab8a384f0d0791ff83a548b",
+          "publishedThrough": "2026-10-09T01:21:02.094328Z"
+        },
+        "memberCount": 0
+      },
+      "placesCityPrefix": {
+        "coldMs": 234.6,
+        "medianMs": 233.5,
+        "minMs": 218,
+        "maxMs": 271,
+        "rows": 1,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-09T01:21:06.066006Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:51:06.066006Z",
+          "filterKey": "7305991adc7d38d1a96b6cf5ffe06b68",
+          "publishedThrough": "2026-10-09T01:21:06.066006Z"
+        },
+        "memberCount": 0
+      },
+      "pageRemote": {
+        "coldMs": 333.8,
+        "medianMs": 287.8,
+        "minMs": 269.1,
+        "maxMs": 352.1,
+        "rows": 50,
+        "counted": 2000,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-09T01:21:09.693717Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:51:09.693717Z",
+          "filterKey": "08bb6992959c507001d32dc3db3c8ff3",
+          "publishedThrough": "2026-10-09T01:21:09.693717Z"
+        },
+        "memberCount": 0
+      },
+      "mapCityDense": {
+        "coldMs": 324.3,
+        "medianMs": 293.5,
+        "minMs": 266.2,
+        "maxMs": 349.4,
+        "rows": 5,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-10-09T01:21:14.420080Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T01:51:14.420080Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-10-09T01:21:14.420080Z"
+        },
+        "memberCount": 6768
+      }
+    },
+    "DEPLOYED_BASELINE_HTTP": {
+      "pageDefault": 512,
+      "pageTextCiscenje": 1992,
+      "pageTextSelidba": 2035,
+      "pageTextNoHit": 1908,
+      "pagePlaceCity": 370,
+      "pagePlaceLabel": 306,
+      "pagePlaceAndText": 1760,
+      "pageAreaToday": 542,
+      "mapDefault": 502,
+      "mapPlaceCity": 204,
+      "placesDefault": 223,
+      "placesPrefix": 241,
+      "placesCity": 238,
+      "placesCityPrefix": 242,
+      "pageRemote": 329,
+      "mapCityDense": 304
+    },
+    "DEPLOYED_BASELINE_PROFILE": {
+      "pageDefault": {
+        "functions": [
+          {
+            "oid": "26008",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 410.251258,
+            "totalMs": 548.977277,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26006",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 136.091341,
+            "totalMs": 136.091341,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "21741",
+            "name": "covered_slots",
+            "calls": 50,
+            "schema": "public",
+            "selfMs": 1.066868,
+            "totalMs": 1.066868,
+            "signature": "covered_slots(needs)"
+          },
+          {
+            "oid": "26019",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.349213,
+            "totalMs": 0.349213,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.319696,
+            "totalMs": 0.684839,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.274123,
+            "totalMs": 0.274123,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "26396",
+            "name": "discovery_fold_v1",
+            "calls": 2,
+            "schema": "public",
+            "selfMs": 0.268532,
+            "totalMs": 0.268532,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.221194,
+            "totalMs": 0.906033,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.09102,
+            "totalMs": 0.09102,
+            "signature": "private.closure_account_key(uuid)"
+          },
+          {
+            "oid": "26002",
+            "name": "p6_discovery_trim",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.044032,
+            "totalMs": 0.044032,
+            "signature": "p6_discovery_trim(text)"
+          }
+        ],
+        "readerOid": "26008",
+        "trackFunctions": "all"
+      },
+      "pageTextCiscenje": {
+        "functions": [
+          {
+            "oid": "26002",
+            "name": "p6_discovery_trim",
+            "calls": 78001,
+            "schema": "public",
+            "selfMs": 567.324201,
+            "totalMs": 567.324201,
+            "signature": "p6_discovery_trim(text)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_area",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 400.284374,
+            "totalMs": 1157.731355,
+            "signature": "p6_discovery_area(text,text,boolean)"
+          },
+          {
+            "oid": "26396",
+            "name": "discovery_fold_v1",
+            "calls": 40002,
+            "schema": "public",
+            "selfMs": 353.23286,
+            "totalMs": 353.23286,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "26008",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 353.063538,
+            "totalMs": 2078.87511,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26006",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 212.550944,
+            "totalMs": 212.550944,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "26004",
+            "name": "p6_discovery_unquote",
+            "calls": 76000,
+            "schema": "public",
+            "selfMs": 190.167193,
+            "totalMs": 384.687891,
+            "signature": "p6_discovery_unquote(text)"
+          },
+          {
+            "oid": "21741",
+            "name": "covered_slots",
+            "calls": 50,
+            "schema": "public",
+            "selfMs": 1.016562,
+            "totalMs": 1.016562,
+            "signature": "covered_slots(needs)"
+          },
+          {
+            "oid": "26019",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.34267,
+            "totalMs": 0.34267,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.321031,
+            "totalMs": 0.679009,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.293869,
+            "totalMs": 0.293869,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.213759,
+            "totalMs": 0.892768,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.064109,
+            "totalMs": 0.064109,
+            "signature": "private.closure_account_key(uuid)"
+          }
+        ],
+        "readerOid": "26008",
+        "trackFunctions": "all"
+      },
+      "pageTextNoHit": {
+        "functions": [
+          {
+            "oid": "26002",
+            "name": "p6_discovery_trim",
+            "calls": 78001,
+            "schema": "public",
+            "selfMs": 553.762899,
+            "totalMs": 553.762899,
+            "signature": "p6_discovery_trim(text)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_area",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 414.132418,
+            "totalMs": 1163.982475,
+            "signature": "p6_discovery_area(text,text,boolean)"
+          },
+          {
+            "oid": "26396",
+            "name": "discovery_fold_v1",
+            "calls": 40002,
+            "schema": "public",
+            "selfMs": 349.75483,
+            "totalMs": 349.75483,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "26008",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 295.663765,
+            "totalMs": 2027.005417,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26006",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 216.31047,
+            "totalMs": 216.31047,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "26004",
+            "name": "p6_discovery_unquote",
+            "calls": 76000,
+            "schema": "public",
+            "selfMs": 196.13086,
+            "totalMs": 384.638394,
+            "signature": "p6_discovery_unquote(text)"
+          },
+          {
+            "oid": "26019",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.342019,
+            "totalMs": 0.342019,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.32112,
+            "totalMs": 0.692965,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.284141,
+            "totalMs": 0.284141,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.215191,
+            "totalMs": 0.908156,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.087704,
+            "totalMs": 0.087704,
+            "signature": "private.closure_account_key(uuid)"
+          }
+        ],
+        "readerOid": "26008",
+        "trackFunctions": "all"
+      },
+      "pagePlaceAndText": {
+        "functions": [
+          {
+            "oid": "26002",
+            "name": "p6_discovery_trim",
+            "calls": 78281,
+            "schema": "public",
+            "selfMs": 555.273631,
+            "totalMs": 555.273631,
+            "signature": "p6_discovery_trim(text)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_area",
+            "calls": 40045,
+            "schema": "public",
+            "selfMs": 402.594376,
+            "totalMs": 1150.468712,
+            "signature": "p6_discovery_area(text,text,boolean)"
+          },
+          {
+            "oid": "26008",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 325.725462,
+            "totalMs": 1759.694724,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26006",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 225.030607,
+            "totalMs": 225.030607,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "26004",
+            "name": "p6_discovery_unquote",
+            "calls": 76132,
+            "schema": "public",
+            "selfMs": 194.537874,
+            "totalMs": 381.709207,
+            "signature": "p6_discovery_unquote(text)"
+          },
+          {
+            "oid": "26396",
+            "name": "discovery_fold_v1",
+            "calls": 7421,
+            "schema": "public",
+            "selfMs": 53.244128,
+            "totalMs": 53.244128,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "26003",
+            "name": "p6_discovery_key",
+            "calls": 133,
+            "schema": "public",
+            "selfMs": 1.04964,
+            "totalMs": 2.680757,
+            "signature": "p6_discovery_key(text)"
+          },
+          {
+            "oid": "21741",
+            "name": "covered_slots",
+            "calls": 50,
+            "schema": "public",
+            "selfMs": 0.973982,
+            "totalMs": 0.973982,
+            "signature": "covered_slots(needs)"
+          },
+          {
+            "oid": "26019",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.350816,
+            "totalMs": 0.350816,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.331919,
+            "totalMs": 0.691551,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.269163,
+            "totalMs": 0.269163,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.222657,
+            "totalMs": 0.914208,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.090469,
+            "totalMs": 0.090469,
+            "signature": "private.closure_account_key(uuid)"
+          }
+        ],
+        "readerOid": "26008",
+        "trackFunctions": "all"
+      }
+    }
+  },
+  "mode": "DEPLOYED_BASELINE",
+  "population": {
+    "tasks": 40000,
+    "authAccounts": 2,
+    "simultaneousRequests": 1,
+    "lifecycleMutations": 0
+  },
+  "limits": "Synthetic bulk read fixture, serial SQL/HTTP samples on a shared CI runner. Not 40000 active users, whole-schema fidelity, lifecycle or native FPS.",
+  "baseline": {
+    "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "foldMd5": "41353abe05d434d513495ae5974b9802",
+    "before": {
+      "helper": true,
+      "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "readerAfter": true,
+      "dependencies": true,
+      "closureDigest": "8ec6831e2c72d4ca8a24d609b00f7908cc7c8dc94212d5a2b956f7ba7cc25896",
+      "certificateReady": true,
+      "erasureProgramDigest": "0f4355d8a4f33e4a859a620ed7945578cf86659efc98eb426b3245db0fbe5d90",
+      "retriedLiteralFunctions": 63,
+      "foldTruthTableMismatches": 0
+    },
+    "after": {
+      "helper": true,
+      "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "readerAfter": true,
+      "dependencies": true,
+      "closureDigest": "8ec6831e2c72d4ca8a24d609b00f7908cc7c8dc94212d5a2b956f7ba7cc25896",
+      "certificateReady": true,
+      "erasureProgramDigest": "0f4355d8a4f33e4a859a620ed7945578cf86659efc98eb426b3245db0fbe5d90",
+      "retriedLiteralFunctions": 63,
+      "foldTruthTableMismatches": 0
+    }
+  },
+  "readConcurrency": {
+    "state": "FAIL",
+    "levels": [
+      {
+        "targetConcurrency": 1,
+        "peakInFlight": 1,
+        "averageInFlightDuringWindow": 1,
+        "warmupMs": 15000,
+        "requestedWindowMs": 60000,
+        "observedWindowMs": 60000,
+        "totalMs": 76543.19,
+        "drainMs": 1543.19,
+        "deadlineMs": 90000,
+        "stopReason": "WINDOW_COMPLETE",
+        "outstandingAtReturn": 0,
+        "maxMeasured": 2048,
+        "maxWarmup": 2048,
+        "retries": 0,
+        "unconfirmedServerCancellations": 0,
+        "completionsDuringWindow": 77,
+        "successfulCompletionsDuringWindow": 77,
+        "completedRps": 1.28,
+        "successfulRps": 1.28,
+        "measured": {
+          "started": 77,
+          "completed": 77,
+          "successful": 77,
+          "failed": 0,
+          "timedOut": 0,
+          "aborted": 0,
+          "errors": {},
+          "latencyAll": {
+            "samples": 77,
+            "minMs": 297.57,
+            "p50Ms": 569.14,
+            "p95Ms": 2054.94,
+            "p99Ms": null,
+            "maxMs": 2161.53
+          },
+          "latencySuccessful": {
+            "samples": 77,
+            "minMs": 297.57,
+            "p50Ms": 569.14,
+            "p95Ms": 2054.94,
+            "p99Ms": null,
+            "maxMs": 2161.53
+          },
+          "httpLatencyAll": {
+            "samples": 77,
+            "minMs": 297.39,
+            "p50Ms": 567.47,
+            "p95Ms": 2054.83,
+            "p99Ms": null,
+            "maxMs": 2158.66
+          },
+          "httpBeyondApplicationDeadline": 0,
+          "responseJsonBytes": 1921166
+        },
+        "warmup": {
+          "started": 18,
+          "completed": 18,
+          "successful": 18,
+          "failed": 0,
+          "timedOut": 0,
+          "aborted": 0,
+          "errors": {},
+          "latencyAll": {
+            "samples": 18,
+            "minMs": 299.37,
+            "p50Ms": 576.9,
+            "p95Ms": null,
+            "p99Ms": null,
+            "maxMs": 2177.35
+          },
+          "latencySuccessful": {
+            "samples": 18,
+            "minMs": 299.37,
+            "p50Ms": 576.9,
+            "p95Ms": null,
+            "p99Ms": null,
+            "maxMs": 2177.35
+          },
+          "httpLatencyAll": {
+            "samples": 18,
+            "minMs": 299.18,
+            "p50Ms": 575.71,
+            "p95Ms": null,
+            "p99Ms": null,
+            "maxMs": 2175.52
+          },
+          "httpBeyondApplicationDeadline": 0,
+          "responseJsonBytes": 491300
+        },
+        "byCase": {
+          "pageDefault": {
+            "started": 16,
+            "completed": 16,
+            "successful": 16,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 16,
+              "minMs": 565.72,
+              "p50Ms": 580.23,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 770.16
+            },
+            "latencySuccessful": {
+              "samples": 16,
+              "minMs": 565.72,
+              "p50Ms": 580.23,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 770.16
+            },
+            "httpLatencyAll": {
+              "samples": 16,
+              "minMs": 564.65,
+              "p50Ms": 579.02,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 768.84
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 769758
+          },
+          "pageSecond": {
+            "started": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 8,
+              "minMs": 575.21,
+              "p50Ms": 615.61,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 771.84
+            },
+            "latencySuccessful": {
+              "samples": 8,
+              "minMs": 575.21,
+              "p50Ms": 615.61,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 771.84
+            },
+            "httpLatencyAll": {
+              "samples": 8,
+              "minMs": 573.58,
+              "p50Ms": 614.33,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 770.28
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 384236
+          },
+          "pageTextCiscenje": {
+            "started": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 8,
+              "minMs": 1964.81,
+              "p50Ms": 1978.48,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2161.53
+            },
+            "latencySuccessful": {
+              "samples": 8,
+              "minMs": 1964.81,
+              "p50Ms": 1978.48,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2161.53
+            },
+            "httpLatencyAll": {
+              "samples": 8,
+              "minMs": 1963.56,
+              "p50Ms": 1977.35,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2158.66
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 374496
+          },
+          "pageTextNoHit": {
+            "started": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 8,
+              "minMs": 1880.48,
+              "p50Ms": 1941.57,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2054.94
+            },
+            "latencySuccessful": {
+              "samples": 8,
+              "minMs": 1880.48,
+              "p50Ms": 1941.57,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2054.94
+            },
+            "httpLatencyAll": {
+              "samples": 8,
+              "minMs": 1880.29,
+              "p50Ms": 1941.43,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2054.83
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 5024
+          },
+          "pagePlaceCity": {
+            "started": 7,
+            "completed": 7,
+            "successful": 7,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 7,
+              "minMs": 366.1,
+              "p50Ms": 389.32,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 455.98
+            },
+            "latencySuccessful": {
+              "samples": 7,
+              "minMs": 366.1,
+              "p50Ms": 389.32,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 455.98
+            },
+            "httpLatencyAll": {
+              "samples": 7,
+              "minMs": 364.88,
+              "p50Ms": 387.69,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 454.47
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 335678
+          },
+          "mapDefault": {
+            "started": 14,
+            "completed": 14,
+            "successful": 14,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 14,
+              "minMs": 448.92,
+              "p50Ms": 459.3,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 569.15
+            },
+            "latencySuccessful": {
+              "samples": 14,
+              "minMs": 448.92,
+              "p50Ms": 459.3,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 569.15
+            },
+            "httpLatencyAll": {
+              "samples": 14,
+              "minMs": 448.75,
+              "p50Ms": 459.14,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 568.93
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 34346
+          },
+          "mapCityDense": {
+            "started": 16,
+            "completed": 16,
+            "successful": 16,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 16,
+              "minMs": 297.57,
+              "p50Ms": 304.06,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 396.59
+            },
+            "latencySuccessful": {
+              "samples": 16,
+              "minMs": 297.57,
+              "p50Ms": 304.06,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 396.59
+            },
+            "httpLatencyAll": {
+              "samples": 16,
+              "minMs": 297.39,
+              "p50Ms": 303.93,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 396.45
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 17628
+          }
+        },
+        "generator": {
+          "cpuUserMs": 375.84,
+          "cpuSystemMs": 38.06,
+          "eventLoopUtilization": 0,
+          "eventLoopDelayP99Ms": 21.25,
+          "eventLoopDelayMaxMs": 31.72
+        },
+        "samples": [
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.6,
+            "endMs": 624.67,
+            "elapsedMs": 624.07,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 621.82,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 624.79,
+            "endMs": 1379.68,
+            "elapsedMs": 754.9,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 752.52,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 1379.75,
+            "endMs": 2004.53,
+            "elapsedMs": 624.78,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 623.02,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 2004.55,
+            "endMs": 4050.51,
+            "elapsedMs": 2045.96,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2043.99,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 4050.53,
+            "endMs": 5951.65,
+            "elapsedMs": 1901.12,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1900.97,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 5951.68,
+            "endMs": 6315.65,
+            "elapsedMs": 363.97,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 362.76,
+            "jsonBytes": 47952
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 6315.67,
+            "endMs": 6765.75,
+            "elapsedMs": 450.08,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 449.9,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 6765.77,
+            "endMs": 7237.59,
+            "elapsedMs": 471.82,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 471.56,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 7237.6,
+            "endMs": 7549.59,
+            "elapsedMs": 311.99,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 311.78,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 7549.66,
+            "endMs": 7849.04,
+            "elapsedMs": 299.37,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 299.18,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 7849.06,
+            "endMs": 8440.46,
+            "elapsedMs": 591.4,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 589.87,
+            "jsonBytes": 48108
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 8440.48,
+            "endMs": 9110.61,
+            "elapsedMs": 670.14,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 668.33,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 9110.62,
+            "endMs": 9687.52,
+            "elapsedMs": 576.9,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 575.71,
+            "jsonBytes": 48028
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 9687.53,
+            "endMs": 11864.88,
+            "elapsedMs": 2177.35,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2175.52,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 11864.89,
+            "endMs": 13798.87,
+            "elapsedMs": 1933.98,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1933.87,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 13798.88,
+            "endMs": 14223.89,
+            "elapsedMs": 425.01,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 423.75,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 14223.9,
+            "endMs": 14678.24,
+            "elapsedMs": 454.34,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 454.06,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 14678.25,
+            "endMs": 15129.81,
+            "elapsedMs": 451.57,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 451.36,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 15129.82,
+            "endMs": 15433.88,
+            "elapsedMs": 304.06,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 303.93,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 15433.89,
+            "endMs": 15768.95,
+            "elapsedMs": 335.06,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 334.9,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 15768.96,
+            "endMs": 16334.68,
+            "elapsedMs": 565.72,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 564.65,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 16334.69,
+            "endMs": 16908.04,
+            "elapsedMs": 573.35,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 572.35,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 16908.05,
+            "endMs": 17507.79,
+            "elapsedMs": 599.74,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 598.88,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 17507.79,
+            "endMs": 19561.67,
+            "elapsedMs": 2053.88,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2052.87,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 19561.68,
+            "endMs": 21601.66,
+            "elapsedMs": 2039.98,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2039.85,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 21601.68,
+            "endMs": 22014.95,
+            "elapsedMs": 413.27,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 412.05,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 22014.96,
+            "endMs": 22465.19,
+            "elapsedMs": 450.23,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 449.96,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 22465.2,
+            "endMs": 22987.8,
+            "elapsedMs": 522.6,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 522.42,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 22987.81,
+            "endMs": 23287.36,
+            "elapsedMs": 299.55,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 299.28,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 23287.37,
+            "endMs": 23588.51,
+            "elapsedMs": 301.14,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 300.97,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 23588.52,
+            "endMs": 24212.42,
+            "elapsedMs": 623.89,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 622.55,
+            "jsonBytes": 48108
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 24212.42,
+            "endMs": 24786,
+            "elapsedMs": 573.58,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 572.14,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 24786.02,
+            "endMs": 25361.22,
+            "elapsedMs": 575.21,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 573.58,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 25361.23,
+            "endMs": 27339.71,
+            "elapsedMs": 1978.48,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1977.35,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 27339.72,
+            "endMs": 29220.2,
+            "elapsedMs": 1880.48,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1880.29,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 29220.21,
+            "endMs": 29676.19,
+            "elapsedMs": 455.98,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 454.47,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 29676.2,
+            "endMs": 30151.11,
+            "elapsedMs": 474.91,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 474.69,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 30151.12,
+            "endMs": 30645.83,
+            "elapsedMs": 494.71,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 494.48,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 30645.84,
+            "endMs": 30954.02,
+            "elapsedMs": 308.18,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 308.02,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 30954.04,
+            "endMs": 31275.91,
+            "elapsedMs": 321.87,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 321.71,
+            "jsonBytes": 1100
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 31275.92,
+            "endMs": 32046.09,
+            "elapsedMs": 770.16,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 768.84,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 32046.1,
+            "endMs": 32617.96,
+            "elapsedMs": 571.86,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 570.42,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 32617.98,
+            "endMs": 33276.59,
+            "elapsedMs": 658.61,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 657.26,
+            "jsonBytes": 48028
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 33276.6,
+            "endMs": 35252.24,
+            "elapsedMs": 1975.64,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1974.52,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 35252.25,
+            "endMs": 37211.87,
+            "elapsedMs": 1959.62,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1959.51,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 37211.88,
+            "endMs": 37585.2,
+            "elapsedMs": 373.32,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 372.1,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 37585.21,
+            "endMs": 38034.41,
+            "elapsedMs": 449.19,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 448.95,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 38034.42,
+            "endMs": 38512.86,
+            "elapsedMs": 478.45,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 478.29,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 38512.87,
+            "endMs": 38815.18,
+            "elapsedMs": 302.31,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 302.16,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 38815.19,
+            "endMs": 39119.25,
+            "elapsedMs": 304.06,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 303.89,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 39119.26,
+            "endMs": 39804.13,
+            "elapsedMs": 684.87,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 683.38,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 39804.14,
+            "endMs": 40384.37,
+            "elapsedMs": 580.23,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 579.02,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 40384.38,
+            "endMs": 41000.51,
+            "elapsedMs": 616.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 615.19,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 41000.52,
+            "endMs": 43162.05,
+            "elapsedMs": 2161.53,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2158.66,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 43162.11,
+            "endMs": 45103.67,
+            "elapsedMs": 1941.57,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1941.43,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 45103.69,
+            "endMs": 45473.53,
+            "elapsedMs": 369.84,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 368.66,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 45473.54,
+            "endMs": 45963.01,
+            "elapsedMs": 489.47,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 489.32,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 45963.01,
+            "endMs": 46411.94,
+            "elapsedMs": 448.92,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 448.77,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 46411.95,
+            "endMs": 46715.23,
+            "elapsedMs": 303.28,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 303.1,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 46715.24,
+            "endMs": 47016.94,
+            "elapsedMs": 301.7,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 301.58,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 47016.95,
+            "endMs": 47611.95,
+            "elapsedMs": 595,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 593.73,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 47611.96,
+            "endMs": 48180.96,
+            "elapsedMs": 569,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 567.47,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 48180.97,
+            "endMs": 48796.58,
+            "elapsedMs": 615.61,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 614.33,
+            "jsonBytes": 48028
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 48796.59,
+            "endMs": 50905.89,
+            "elapsedMs": 2109.29,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2108.06,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 50905.9,
+            "endMs": 52960.84,
+            "elapsedMs": 2054.94,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2054.83,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 52960.85,
+            "endMs": 53397,
+            "elapsedMs": 436.16,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 434.37,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 53397.02,
+            "endMs": 53845.95,
+            "elapsedMs": 448.93,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 448.75,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 53845.95,
+            "endMs": 54298.37,
+            "elapsedMs": 452.41,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 452.14,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 54298.4,
+            "endMs": 54654.53,
+            "elapsedMs": 356.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 355.87,
+            "jsonBytes": 1100
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 54654.54,
+            "endMs": 54952.11,
+            "elapsedMs": 297.57,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 297.39,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 54952.12,
+            "endMs": 55521.26,
+            "elapsedMs": 569.14,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 567.23,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 55521.27,
+            "endMs": 56129.46,
+            "elapsedMs": 608.19,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 606.22,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 56129.47,
+            "endMs": 56715.23,
+            "elapsedMs": 585.76,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 584.17,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 56715.24,
+            "endMs": 58685.37,
+            "elapsedMs": 1970.14,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1969.01,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 58685.38,
+            "endMs": 60709.72,
+            "elapsedMs": 2024.34,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2024.21,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 60709.73,
+            "endMs": 61099.05,
+            "elapsedMs": 389.32,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 387.69,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 61099.06,
+            "endMs": 61566.23,
+            "elapsedMs": 467.17,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 466.21,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 61566.25,
+            "endMs": 62135.39,
+            "elapsedMs": 569.15,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 568.93,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 62135.4,
+            "endMs": 62498.12,
+            "elapsedMs": 362.72,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 362.54,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 62498.13,
+            "endMs": 62802.91,
+            "elapsedMs": 304.78,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 304.61,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 62802.92,
+            "endMs": 63378.38,
+            "elapsedMs": 575.46,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 573.41,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 63378.39,
+            "endMs": 64029.9,
+            "elapsedMs": 651.51,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 650.27,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 64029.91,
+            "endMs": 64662.86,
+            "elapsedMs": 632.95,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 631.8,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 64662.87,
+            "endMs": 66627.68,
+            "elapsedMs": 1964.81,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1963.56,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 66627.69,
+            "endMs": 68560.39,
+            "elapsedMs": 1932.7,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1932.56,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 68560.4,
+            "endMs": 68926.5,
+            "elapsedMs": 366.1,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 364.88,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 68926.51,
+            "endMs": 69381.99,
+            "elapsedMs": 455.48,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 455.33,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 69382,
+            "endMs": 69841.29,
+            "elapsedMs": 459.3,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 459.14,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 69841.3,
+            "endMs": 70237.89,
+            "elapsedMs": 396.59,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 396.45,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 70237.9,
+            "endMs": 70547.82,
+            "elapsedMs": 309.93,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 309.8,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 70547.83,
+            "endMs": 71164.05,
+            "elapsedMs": 616.21,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 614.75,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 71164.06,
+            "endMs": 71780.74,
+            "elapsedMs": 616.68,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 615.65,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 71780.75,
+            "endMs": 72552.59,
+            "elapsedMs": 771.84,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 770.28,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 72552.6,
+            "endMs": 74638.1,
+            "elapsedMs": 2085.49,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2084.59,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 74638.11,
+            "endMs": 76543.13,
+            "elapsedMs": 1905.02,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1904.86,
+            "jsonBytes": 628
+          }
+        ],
+        "result": "PASS",
+        "oracles": {
+          "pageSecond": {
+            "rows": 50,
+            "counted": 40000,
+            "members": null,
+            "digest": "7e9ab8cc98add75072b46aecd6dbc5a255bdf39192bd5ff43490733dd3684b4f",
+            "jsonBytes": 48030
+          },
+          "pageDefault": {
+            "rows": 50,
+            "counted": 40000,
+            "members": null,
+            "digest": "e4e406fc22dc1bd2486de28766b62a9e639defd1ad5b79e6da59f17c38088cee",
+            "jsonBytes": 48110
+          },
+          "pageTextCiscenje": {
+            "rows": 50,
+            "counted": 5333,
+            "members": null,
+            "digest": "731e056e45fd928ee9cd6139931c195ee7002be97cf6d6bae50938926143ff5a",
+            "jsonBytes": 46812
+          },
+          "pageTextNoHit": {
+            "rows": 0,
+            "counted": 0,
+            "members": null,
+            "digest": "2432b5276e10df10c4f5680e3ddeea0df563f7f7aa32e253e9527695ba2ef7db",
+            "jsonBytes": 628
+          },
+          "pagePlaceCity": {
+            "rows": 50,
+            "counted": 7332,
+            "members": null,
+            "digest": "1b6534fa615243982fec71440cbbcc0587c4cefbce57fc36f0b4338b0a51a861",
+            "jsonBytes": 47954
+          },
+          "mapDefault": {
+            "rows": 14,
+            "counted": 40000,
+            "members": 35077,
+            "digest": "54673f939269341c3ad6b6cc65b29711bc81338e31251f6a3237f83bb421112e",
+            "jsonBytes": 2454
+          },
+          "mapCityDense": {
+            "rows": 5,
+            "counted": 40000,
+            "members": 6768,
+            "digest": "1e4a86db3ca415a014e357fc3c79eb7b8c19da0536dd0fe8af6abaac021b8ccc",
+            "jsonBytes": 1102
+          }
+        }
+      },
+      {
+        "targetConcurrency": 4,
+        "peakInFlight": 4,
+        "averageInFlightDuringWindow": 4,
+        "warmupMs": 15000,
+        "requestedWindowMs": 60000,
+        "observedWindowMs": 60000,
+        "totalMs": 76498.25,
+        "drainMs": 1498.25,
+        "deadlineMs": 90000,
+        "stopReason": "WINDOW_COMPLETE",
+        "outstandingAtReturn": 0,
+        "maxMeasured": 2048,
+        "maxWarmup": 2048,
+        "retries": 0,
+        "unconfirmedServerCancellations": 0,
+        "completionsDuringWindow": 86,
+        "successfulCompletionsDuringWindow": 86,
+        "completedRps": 1.43,
+        "successfulRps": 1.43,
+        "measured": {
+          "started": 86,
+          "completed": 86,
+          "successful": 86,
+          "failed": 0,
+          "timedOut": 0,
+          "aborted": 0,
+          "errors": {},
+          "latencyAll": {
+            "samples": 86,
+            "minMs": 1072.47,
+            "p50Ms": 1995.6,
+            "p95Ms": 6709.09,
+            "p99Ms": null,
+            "maxMs": 7197.29
+          },
+          "latencySuccessful": {
+            "samples": 86,
+            "minMs": 1072.47,
+            "p50Ms": 1995.6,
+            "p95Ms": 6709.09,
+            "p99Ms": null,
+            "maxMs": 7197.29
+          },
+          "httpLatencyAll": {
+            "samples": 86,
+            "minMs": 1072.29,
+            "p50Ms": 1995.37,
+            "p95Ms": 6707.04,
+            "p99Ms": null,
+            "maxMs": 7195.1
+          },
+          "httpBeyondApplicationDeadline": 0,
+          "responseJsonBytes": 2077202
+        },
+        "warmup": {
+          "started": 25,
+          "completed": 25,
+          "successful": 25,
+          "failed": 0,
+          "timedOut": 0,
+          "aborted": 0,
+          "errors": {},
+          "latencyAll": {
+            "samples": 25,
+            "minMs": 936.7,
+            "p50Ms": 2172.72,
+            "p95Ms": 6860.13,
+            "p99Ms": null,
+            "maxMs": 7121.6
+          },
+          "latencySuccessful": {
+            "samples": 25,
+            "minMs": 936.7,
+            "p50Ms": 2172.72,
+            "p95Ms": 6860.13,
+            "p99Ms": null,
+            "maxMs": 7121.6
+          },
+          "httpLatencyAll": {
+            "samples": 25,
+            "minMs": 936.53,
+            "p50Ms": 2169.84,
+            "p95Ms": 6855.75,
+            "p99Ms": null,
+            "maxMs": 7119.21
+          },
+          "httpBeyondApplicationDeadline": 0,
+          "responseJsonBytes": 685200
+        },
+        "byCase": {
+          "pageDefault": {
+            "started": 17,
+            "completed": 17,
+            "successful": 17,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 17,
+              "minMs": 1774.86,
+              "p50Ms": 2325.38,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2506.51
+            },
+            "latencySuccessful": {
+              "samples": 17,
+              "minMs": 1774.86,
+              "p50Ms": 2325.38,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2506.51
+            },
+            "httpLatencyAll": {
+              "samples": 17,
+              "minMs": 1773.25,
+              "p50Ms": 2323.27,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2504.03
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 817862
+          },
+          "pageSecond": {
+            "started": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 8,
+              "minMs": 2107.12,
+              "p50Ms": 2203.49,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2327.57
+            },
+            "latencySuccessful": {
+              "samples": 8,
+              "minMs": 2107.12,
+              "p50Ms": 2203.49,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2327.57
+            },
+            "httpLatencyAll": {
+              "samples": 8,
+              "minMs": 2105.52,
+              "p50Ms": 2201.59,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2326.05
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 384240
+          },
+          "pageTextCiscenje": {
+            "started": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 8,
+              "minMs": 6279.23,
+              "p50Ms": 6688.61,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 7197.29
+            },
+            "latencySuccessful": {
+              "samples": 8,
+              "minMs": 6279.23,
+              "p50Ms": 6688.61,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 7197.29
+            },
+            "httpLatencyAll": {
+              "samples": 8,
+              "minMs": 6277.72,
+              "p50Ms": 6685.24,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 7195.1
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 374496
+          },
+          "pageTextNoHit": {
+            "started": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 8,
+              "minMs": 6078.46,
+              "p50Ms": 6523.63,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 6895.75
+            },
+            "latencySuccessful": {
+              "samples": 8,
+              "minMs": 6078.46,
+              "p50Ms": 6523.63,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 6895.75
+            },
+            "httpLatencyAll": {
+              "samples": 8,
+              "minMs": 6078.32,
+              "p50Ms": 6523.5,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 6895.59
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 5024
+          },
+          "pagePlaceCity": {
+            "started": 9,
+            "completed": 9,
+            "successful": 9,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 9,
+              "minMs": 1338.4,
+              "p50Ms": 1417.41,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 1671.33
+            },
+            "latencySuccessful": {
+              "samples": 9,
+              "minMs": 1338.4,
+              "p50Ms": 1417.41,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 1671.33
+            },
+            "httpLatencyAll": {
+              "samples": 9,
+              "minMs": 1336.78,
+              "p50Ms": 1415.17,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 1668.56
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 431582
+          },
+          "mapDefault": {
+            "started": 18,
+            "completed": 18,
+            "successful": 18,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 18,
+              "minMs": 1657.32,
+              "p50Ms": 1866.54,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2090.69
+            },
+            "latencySuccessful": {
+              "samples": 18,
+              "minMs": 1657.32,
+              "p50Ms": 1866.54,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2090.69
+            },
+            "httpLatencyAll": {
+              "samples": 18,
+              "minMs": 1657.12,
+              "p50Ms": 1866.28,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 2090.47
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 44164
+          },
+          "mapCityDense": {
+            "started": 18,
+            "completed": 18,
+            "successful": 18,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 18,
+              "minMs": 1072.47,
+              "p50Ms": 1144.9,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 1258.08
+            },
+            "latencySuccessful": {
+              "samples": 18,
+              "minMs": 1072.47,
+              "p50Ms": 1144.9,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 1258.08
+            },
+            "httpLatencyAll": {
+              "samples": 18,
+              "minMs": 1072.29,
+              "p50Ms": 1144.74,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": 1257.91
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 19834
+          }
+        },
+        "generator": {
+          "cpuUserMs": 554.23,
+          "cpuSystemMs": 28.27,
+          "eventLoopUtilization": 0.01,
+          "eventLoopDelayP99Ms": 21.59,
+          "eventLoopDelayMaxMs": 29.7
+        },
+        "samples": [
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.15,
+            "endMs": 2002.13,
+            "elapsedMs": 2001.98,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1998.94,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.18,
+            "endMs": 2195.56,
+            "elapsedMs": 2195.39,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2192.96,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 0.18,
+            "endMs": 2232.46,
+            "elapsedMs": 2232.28,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2229.89,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 2195.58,
+            "endMs": 3510.61,
+            "elapsedMs": 1315.03,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1309.78,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 2232.48,
+            "endMs": 3927,
+            "elapsedMs": 1694.52,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1694.24,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 3927.01,
+            "endMs": 4944.29,
+            "elapsedMs": 1017.28,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1017.12,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 3510.62,
+            "endMs": 5167.73,
+            "elapsedMs": 1657.1,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1656.88,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 4944.3,
+            "endMs": 5986.43,
+            "elapsedMs": 1042.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1041.95,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 0.19,
+            "endMs": 6783.69,
+            "elapsedMs": 6783.51,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6780.93,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 5167.74,
+            "endMs": 7122.71,
+            "elapsedMs": 1954.97,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1952.36,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 5986.44,
+            "endMs": 8205.53,
+            "elapsedMs": 2219.09,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2216.65,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 2002.15,
+            "endMs": 8429.62,
+            "elapsedMs": 6427.47,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6427.04,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 6783.74,
+            "endMs": 8956.47,
+            "elapsedMs": 2172.72,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2169.84,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 8429.64,
+            "endMs": 10029.38,
+            "elapsedMs": 1599.74,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1595.68,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 8956.48,
+            "endMs": 10884.63,
+            "elapsedMs": 1928.15,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1927.93,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 10884.64,
+            "endMs": 11821.34,
+            "elapsedMs": 936.7,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 936.53,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 10029.42,
+            "endMs": 11985.23,
+            "elapsedMs": 1955.81,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1955.59,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 11821.35,
+            "endMs": 12882.84,
+            "elapsedMs": 1061.48,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1061.25,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 7122.72,
+            "endMs": 13982.85,
+            "elapsedMs": 6860.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6855.75,
+            "jsonBytes": 46810
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 11985.24,
+            "endMs": 14246.7,
+            "elapsedMs": 2261.46,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2259.12,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 8205.54,
+            "endMs": 14887.7,
+            "elapsedMs": 6682.16,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6682.02,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 12882.85,
+            "endMs": 15132.52,
+            "elapsedMs": 2249.67,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2247.19,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 13982.87,
+            "endMs": 16231.63,
+            "elapsedMs": 2248.77,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2246.61,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 15132.53,
+            "endMs": 16558.6,
+            "elapsedMs": 1426.07,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1423.68,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 16558.61,
+            "endMs": 18293.09,
+            "elapsedMs": 1734.48,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1734.25,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 16231.65,
+            "endMs": 18322.35,
+            "elapsedMs": 2090.69,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2090.47,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 18293.1,
+            "endMs": 19464.79,
+            "elapsedMs": 1171.69,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1171.52,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 18322.36,
+            "endMs": 19524.8,
+            "elapsedMs": 1202.44,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1202.26,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 14246.71,
+            "endMs": 21368.31,
+            "elapsedMs": 7121.6,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 7119.21,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 14887.71,
+            "endMs": 21617.21,
+            "elapsedMs": 6729.5,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6729.37,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 19464.8,
+            "endMs": 21844.38,
+            "elapsedMs": 2379.58,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2376.82,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 19524.81,
+            "endMs": 21882.37,
+            "elapsedMs": 2357.56,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2355.23,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 21882.38,
+            "endMs": 23299.79,
+            "elapsedMs": 1417.41,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1415.17,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 21368.32,
+            "endMs": 23689.83,
+            "elapsedMs": 2321.5,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2319.39,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 23299.8,
+            "endMs": 25102.92,
+            "elapsedMs": 1803.11,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1802.89,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 23689.84,
+            "endMs": 25569.13,
+            "elapsedMs": 1879.29,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1879.05,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 25102.93,
+            "endMs": 26277.23,
+            "elapsedMs": 1174.3,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1174.14,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 25569.14,
+            "endMs": 26703.82,
+            "elapsedMs": 1134.69,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1134.54,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 21617.22,
+            "endMs": 28202.11,
+            "elapsedMs": 6584.89,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6583.44,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 21844.42,
+            "endMs": 28225.24,
+            "elapsedMs": 6380.82,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6380.68,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 26277.24,
+            "endMs": 28448.37,
+            "elapsedMs": 2171.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2169.51,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 26703.83,
+            "endMs": 29029.22,
+            "elapsedMs": 2325.38,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2323.27,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 28202.12,
+            "endMs": 30529.69,
+            "elapsedMs": 2327.57,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2326.05,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 29029.23,
+            "endMs": 30571.74,
+            "elapsedMs": 1542.51,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1540.79,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 30529.7,
+            "endMs": 32253.98,
+            "elapsedMs": 1724.28,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1724.08,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 30571.75,
+            "endMs": 32567.35,
+            "elapsedMs": 1995.6,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1995.37,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 32253.99,
+            "endMs": 33398.9,
+            "elapsedMs": 1144.9,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1144.74,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 32567.36,
+            "endMs": 33754.38,
+            "elapsedMs": 1187.02,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1186.86,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 28225.25,
+            "endMs": 34913.86,
+            "elapsedMs": 6688.61,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6685.24,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 28448.38,
+            "endMs": 35344.13,
+            "elapsedMs": 6895.75,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6895.59,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 33398.91,
+            "endMs": 35651.69,
+            "elapsedMs": 2252.78,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2250.58,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 33755.63,
+            "endMs": 36036.54,
+            "elapsedMs": 2280.91,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2277.58,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 34913.87,
+            "endMs": 37048.55,
+            "elapsedMs": 2134.67,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2131.46,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 36036.55,
+            "endMs": 37437.3,
+            "elapsedMs": 1400.74,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1399.21,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 37048.56,
+            "endMs": 39110.32,
+            "elapsedMs": 2061.76,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2061.54,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 37437.31,
+            "endMs": 39422.34,
+            "elapsedMs": 1985.03,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1984.83,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 39110.33,
+            "endMs": 40182.8,
+            "elapsedMs": 1072.47,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1072.29,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 39422.35,
+            "endMs": 40655.65,
+            "elapsedMs": 1233.3,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1233.13,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 35651.7,
+            "endMs": 42241.77,
+            "elapsedMs": 6590.07,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6589.94,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 35344.14,
+            "endMs": 42541.44,
+            "elapsedMs": 7197.29,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 7195.1,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 40182.81,
+            "endMs": 42654.94,
+            "elapsedMs": 2472.12,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2469.14,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 40655.66,
+            "endMs": 42979.31,
+            "elapsedMs": 2323.66,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2320.35,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 42979.33,
+            "endMs": 44364.02,
+            "elapsedMs": 1384.69,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1382.65,
+            "jsonBytes": 47952
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 42241.78,
+            "endMs": 44387.78,
+            "elapsedMs": 2146,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2144.12,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 44387.79,
+            "endMs": 46045.11,
+            "elapsedMs": 1657.32,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1657.12,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 44364.03,
+            "endMs": 46145.89,
+            "elapsedMs": 1781.86,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1781.64,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 46045.12,
+            "endMs": 47126.83,
+            "elapsedMs": 1081.72,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1081.54,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 46145.91,
+            "endMs": 47234.23,
+            "elapsedMs": 1088.33,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1088.16,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 42654.95,
+            "endMs": 49178.58,
+            "elapsedMs": 6523.63,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6523.5,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 42541.45,
+            "endMs": 49250.53,
+            "elapsedMs": 6709.09,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6707.04,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 47126.84,
+            "endMs": 49457.27,
+            "elapsedMs": 2330.43,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2328.37,
+            "jsonBytes": 48106
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 47234.24,
+            "endMs": 49595.57,
+            "elapsedMs": 2361.33,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2359.16,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 49595.58,
+            "endMs": 51124.5,
+            "elapsedMs": 1528.91,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1527.17,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 49178.59,
+            "endMs": 51434.92,
+            "elapsedMs": 2256.33,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2254.05,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 51124.51,
+            "endMs": 52906.16,
+            "elapsedMs": 1781.65,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1781.42,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 51434.94,
+            "endMs": 53390.14,
+            "elapsedMs": 1955.2,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1954.98,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 52906.17,
+            "endMs": 54020.01,
+            "elapsedMs": 1113.84,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1113.67,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 53390.15,
+            "endMs": 54516.68,
+            "elapsedMs": 1126.53,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1126.33,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 49457.28,
+            "endMs": 56010.05,
+            "elapsedMs": 6552.77,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6552.64,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 49250.55,
+            "endMs": 56080.04,
+            "elapsedMs": 6829.49,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6827.04,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 54020.02,
+            "endMs": 56247.9,
+            "elapsedMs": 2227.88,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2226.19,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 54516.69,
+            "endMs": 56618.56,
+            "elapsedMs": 2101.88,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2100.33,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 56618.58,
+            "endMs": 57971.3,
+            "elapsedMs": 1352.73,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1351.3,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 56010.06,
+            "endMs": 58117.18,
+            "elapsedMs": 2107.12,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2105.52,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 57971.31,
+            "endMs": 59924.46,
+            "elapsedMs": 1953.14,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1952.89,
+            "jsonBytes": 2450
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 58117.19,
+            "endMs": 60115.03,
+            "elapsedMs": 1997.83,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1997.62,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 59924.47,
+            "endMs": 61161.6,
+            "elapsedMs": 1237.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1236.95,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 60115.04,
+            "endMs": 61373.11,
+            "elapsedMs": 1258.08,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1257.91,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 56247.91,
+            "endMs": 62628.7,
+            "elapsedMs": 6380.79,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6380.65,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 56080.05,
+            "endMs": 62830.75,
+            "elapsedMs": 6750.7,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6749.18,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 61161.62,
+            "endMs": 63576.54,
+            "elapsedMs": 2414.92,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2412.37,
+            "jsonBytes": 48108
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 61373.13,
+            "endMs": 63791.47,
+            "elapsedMs": 2418.34,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2416.69,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 62628.71,
+            "endMs": 64832.21,
+            "elapsedMs": 2203.49,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2201.59,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 63791.48,
+            "endMs": 65129.88,
+            "elapsedMs": 1338.4,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1336.78,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 64832.22,
+            "endMs": 66610.48,
+            "elapsedMs": 1778.26,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1777.98,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 65129.9,
+            "endMs": 67114.03,
+            "elapsedMs": 1984.13,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1983.23,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 66610.5,
+            "endMs": 67756.01,
+            "elapsedMs": 1145.52,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1145.32,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 67114.04,
+            "endMs": 68319.59,
+            "elapsedMs": 1205.55,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1205.39,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 62830.76,
+            "endMs": 69472.01,
+            "elapsedMs": 6641.25,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6638.79,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 63576.56,
+            "endMs": 70151.22,
+            "elapsedMs": 6574.67,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6574.52,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 67756.02,
+            "endMs": 70262.54,
+            "elapsedMs": 2506.51,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2504.03,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 68319.6,
+            "endMs": 70633.78,
+            "elapsedMs": 2314.18,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2311.7,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "MEASURED",
+            "startMs": 69472.02,
+            "endMs": 71775.35,
+            "elapsedMs": 2303.32,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2301.72,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "MEASURED",
+            "startMs": 70633.79,
+            "endMs": 72305.12,
+            "elapsedMs": 1671.33,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1668.56,
+            "jsonBytes": 47952
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 71775.36,
+            "endMs": 73641.9,
+            "elapsedMs": 1866.54,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1866.28,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapDefault",
+            "phase": "MEASURED",
+            "startMs": 72305.14,
+            "endMs": 74083.13,
+            "elapsedMs": 1778,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1777.77,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 73641.91,
+            "endMs": 74723.36,
+            "elapsedMs": 1081.45,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1081.29,
+            "jsonBytes": 1100
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "MEASURED",
+            "startMs": 74083.15,
+            "endMs": 75222.76,
+            "elapsedMs": 1139.61,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1139.44,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "MEASURED",
+            "startMs": 70262.55,
+            "endMs": 76341.01,
+            "elapsedMs": 6078.46,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6078.32,
+            "jsonBytes": 628
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "MEASURED",
+            "startMs": 70151.23,
+            "endMs": 76430.47,
+            "elapsedMs": 6279.23,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6277.72,
+            "jsonBytes": 46812
+          },
+          {
+            "case": "pageDefault",
+            "phase": "MEASURED",
+            "startMs": 74723.37,
+            "endMs": 76498.23,
+            "elapsedMs": 1774.86,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 1773.25,
+            "jsonBytes": 48108
+          }
+        ],
+        "result": "PASS",
+        "oracles": {
+          "pageSecond": {
+            "rows": 50,
+            "counted": 40000,
+            "members": null,
+            "digest": "c9a9ea19d65dc65dcdcefade643c1dee6f90ccc9ed7477f4a06be8aa7f0aae34",
+            "jsonBytes": 48030
+          },
+          "pageDefault": {
+            "rows": 50,
+            "counted": 40000,
+            "members": null,
+            "digest": "63e5915e4b0a01cb404dbd6dbf12801466a172d4fe7f737fcbbe2860a7656afc",
+            "jsonBytes": 48110
+          },
+          "pageTextCiscenje": {
+            "rows": 50,
+            "counted": 5333,
+            "members": null,
+            "digest": "dccb93604477f029673b630dafd62ac119c2b79388ecbc437f48bea1e4972848",
+            "jsonBytes": 46812
+          },
+          "pageTextNoHit": {
+            "rows": 0,
+            "counted": 0,
+            "members": null,
+            "digest": "a036af643f27264f0abb8a9c44f43556de62d96331f463347af5597343e0d08e",
+            "jsonBytes": 628
+          },
+          "pagePlaceCity": {
+            "rows": 50,
+            "counted": 7332,
+            "members": null,
+            "digest": "841d844f3c6074d09d5064079bbdbe834b8c8778e1e950ace9e6c5b8581ba599",
+            "jsonBytes": 47954
+          },
+          "mapDefault": {
+            "rows": 14,
+            "counted": 40000,
+            "members": 35077,
+            "digest": "0f6b32f926c1739dc79d65dc3370915fa7f30761c63d88fec3d0bc2c7e36e209",
+            "jsonBytes": 2452
+          },
+          "mapCityDense": {
+            "rows": 5,
+            "counted": 40000,
+            "members": 6768,
+            "digest": "b27c01cbc0b2c9d92c714560c9ccfaf80091af14d288c06f1b55a33095e079f2",
+            "jsonBytes": 1102
+          }
+        }
+      },
+      {
+        "targetConcurrency": 16,
+        "peakInFlight": 16,
+        "averageInFlightDuringWindow": 1.06,
+        "warmupMs": 15000,
+        "requestedWindowMs": 60000,
+        "observedWindowMs": 721.76,
+        "totalMs": 15721.76,
+        "drainMs": 0,
+        "deadlineMs": 90000,
+        "stopReason": "FIRST_FAILURE_DRAINED",
+        "outstandingAtReturn": 0,
+        "maxMeasured": 2048,
+        "maxWarmup": 2048,
+        "retries": 0,
+        "unconfirmedServerCancellations": 0,
+        "completionsDuringWindow": 2,
+        "successfulCompletionsDuringWindow": 1,
+        "completedRps": 2.77,
+        "successfulRps": 1.39,
+        "measured": {
+          "started": 0,
+          "completed": 0,
+          "successful": 0,
+          "failed": 0,
+          "timedOut": 0,
+          "aborted": 0,
+          "errors": {},
+          "latencyAll": {
+            "samples": 0,
+            "minMs": null,
+            "p50Ms": null,
+            "p95Ms": null,
+            "p99Ms": null,
+            "maxMs": null
+          },
+          "latencySuccessful": {
+            "samples": 0,
+            "minMs": null,
+            "p50Ms": null,
+            "p95Ms": null,
+            "p99Ms": null,
+            "maxMs": null
+          },
+          "httpLatencyAll": {
+            "samples": 0,
+            "minMs": null,
+            "p50Ms": null,
+            "p95Ms": null,
+            "p99Ms": null,
+            "maxMs": null
+          },
+          "httpBeyondApplicationDeadline": 0,
+          "responseJsonBytes": 0
+        },
+        "warmup": {
+          "started": 27,
+          "completed": 27,
+          "successful": 22,
+          "failed": 5,
+          "timedOut": 0,
+          "aborted": 0,
+          "errors": {
+            "57014": 5
+          },
+          "latencyAll": {
+            "samples": 27,
+            "minMs": 2616.53,
+            "p50Ms": 5726.32,
+            "p95Ms": 13287.05,
+            "p99Ms": null,
+            "maxMs": 14249.83
+          },
+          "latencySuccessful": {
+            "samples": 22,
+            "minMs": 2616.53,
+            "p50Ms": 5323.72,
+            "p95Ms": 12554.95,
+            "p99Ms": null,
+            "maxMs": 13212.31
+          },
+          "httpLatencyAll": {
+            "samples": 27,
+            "minMs": 2616.26,
+            "p50Ms": 5726.09,
+            "p95Ms": 13286.9,
+            "p99Ms": null,
+            "maxMs": 14249.68
+          },
+          "httpBeyondApplicationDeadline": 0,
+          "responseJsonBytes": 640100
+        },
+        "byCase": {
+          "pageDefault": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          },
+          "pageSecond": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          },
+          "pageTextCiscenje": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          },
+          "pageTextNoHit": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          },
+          "pagePlaceCity": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          },
+          "mapDefault": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          },
+          "mapCityDense": {
+            "started": 0,
+            "completed": 0,
+            "successful": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "errors": {},
+            "latencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "latencySuccessful": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpLatencyAll": {
+              "samples": 0,
+              "minMs": null,
+              "p50Ms": null,
+              "p95Ms": null,
+              "p99Ms": null,
+              "maxMs": null
+            },
+            "httpBeyondApplicationDeadline": 0,
+            "responseJsonBytes": 0
+          }
+        },
+        "generator": {
+          "cpuUserMs": 107.58,
+          "cpuSystemMs": 7.28,
+          "eventLoopUtilization": 0.01,
+          "eventLoopDelayP99Ms": 22.12,
+          "eventLoopDelayMaxMs": 28.79
+        },
+        "samples": [
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 0.28,
+            "endMs": 2616.81,
+            "elapsedMs": 2616.53,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2616.26,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 0.28,
+            "endMs": 2874.85,
+            "elapsedMs": 2874.57,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2874.29,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 0.27,
+            "endMs": 3742.46,
+            "elapsedMs": 3742.19,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 3740.08,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 0.28,
+            "endMs": 4348.75,
+            "elapsedMs": 4348.47,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 4348.12,
+            "jsonBytes": 2452
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 0.28,
+            "endMs": 4357.97,
+            "elapsedMs": 4357.7,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 4357.41,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.26,
+            "endMs": 5187.28,
+            "elapsedMs": 5187.02,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 5184.31,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.23,
+            "endMs": 5272.04,
+            "elapsedMs": 5271.8,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 5269.07,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 0.27,
+            "endMs": 5323.99,
+            "elapsedMs": 5323.72,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 5321.62,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 0.3,
+            "endMs": 6220.42,
+            "elapsedMs": 6220.12,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6217.9,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 4348.76,
+            "endMs": 7024.23,
+            "elapsedMs": 2675.47,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 2675.31,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "mapCityDense",
+            "phase": "WARMUP",
+            "startMs": 3742.47,
+            "endMs": 7188.59,
+            "elapsedMs": 3446.12,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 3445.95,
+            "jsonBytes": 1102
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 0.27,
+            "endMs": 8114,
+            "elapsedMs": 8113.73,
+            "outcome": "ERROR",
+            "code": "57014",
+            "status": 500,
+            "httpElapsedMs": 8113.51,
+            "jsonBytes": 0
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 0.27,
+            "endMs": 8142.25,
+            "elapsedMs": 8141.98,
+            "outcome": "ERROR",
+            "code": "57014",
+            "status": 500,
+            "httpElapsedMs": 8141.76,
+            "jsonBytes": 0
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 2874.86,
+            "endMs": 8248.74,
+            "elapsedMs": 5373.88,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 5373.63,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 0.29,
+            "endMs": 8299.35,
+            "elapsedMs": 8299.06,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 8296.98,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 5187.29,
+            "endMs": 10775.9,
+            "elapsedMs": 5588.6,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 5586.97,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 4357.98,
+            "endMs": 11213.52,
+            "elapsedMs": 6855.54,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 6852,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pagePlaceCity",
+            "phase": "WARMUP",
+            "startMs": 7024.24,
+            "endMs": 11903.97,
+            "elapsedMs": 4879.73,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 4878.15,
+            "jsonBytes": 47954
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.29,
+            "endMs": 12555.24,
+            "elapsedMs": 12554.95,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 12553.1,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 7188.6,
+            "endMs": 12914.92,
+            "elapsedMs": 5726.32,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 5726.09,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "pageDefault",
+            "phase": "WARMUP",
+            "startMs": 0.29,
+            "endMs": 13212.6,
+            "elapsedMs": 13212.31,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 13210.69,
+            "jsonBytes": 48110
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 0.3,
+            "endMs": 13287.35,
+            "elapsedMs": 13287.05,
+            "outcome": "ERROR",
+            "code": "57014",
+            "status": 500,
+            "httpElapsedMs": 13286.9,
+            "jsonBytes": 0
+          },
+          {
+            "case": "pageSecond",
+            "phase": "WARMUP",
+            "startMs": 5272.05,
+            "endMs": 14244.66,
+            "elapsedMs": 8972.61,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 8971.15,
+            "jsonBytes": 48030
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 0.29,
+            "endMs": 14250.12,
+            "elapsedMs": 14249.83,
+            "outcome": "ERROR",
+            "code": "57014",
+            "status": 500,
+            "httpElapsedMs": 14249.68,
+            "jsonBytes": 0
+          },
+          {
+            "case": "mapDefault",
+            "phase": "WARMUP",
+            "startMs": 2616.84,
+            "endMs": 14387.1,
+            "elapsedMs": 11770.25,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 11770.04,
+            "jsonBytes": 2454
+          },
+          {
+            "case": "pageTextNoHit",
+            "phase": "WARMUP",
+            "startMs": 6220.43,
+            "endMs": 15044.36,
+            "elapsedMs": 8823.93,
+            "outcome": "ERROR",
+            "code": "57014",
+            "status": 500,
+            "httpElapsedMs": 8823.89,
+            "jsonBytes": 0
+          },
+          {
+            "case": "pageTextCiscenje",
+            "phase": "WARMUP",
+            "startMs": 5324,
+            "endMs": 15721.74,
+            "elapsedMs": 10397.74,
+            "outcome": "SUCCESS",
+            "status": 200,
+            "httpElapsedMs": 10396.92,
+            "jsonBytes": 46812
+          }
+        ],
+        "result": "FAIL",
+        "oracles": {
+          "pageSecond": {
+            "rows": 50,
+            "counted": 40000,
+            "members": null,
+            "digest": "e3273514538bfd4e2e87c6dce72ff974fa32daada136bd3c29bc3caef62f20fa",
+            "jsonBytes": 48028
+          },
+          "pageDefault": {
+            "rows": 50,
+            "counted": 40000,
+            "members": null,
+            "digest": "0f4fd8c570c934e428723259ccf2dabd7b560b64478a841669d7492085218ac5",
+            "jsonBytes": 48110
+          },
+          "pageTextCiscenje": {
+            "rows": 50,
+            "counted": 5333,
+            "members": null,
+            "digest": "e576f1f007ded5390a4aa7642153a7d0716d0a6f5c7f3f372125866e62634a43",
+            "jsonBytes": 46812
+          },
+          "pageTextNoHit": {
+            "rows": 0,
+            "counted": 0,
+            "members": null,
+            "digest": "f71a0cd47560d3cdd167fd1d4546840eee113743a64f618c6f5ca65259ac1741",
+            "jsonBytes": 628
+          },
+          "pagePlaceCity": {
+            "rows": 50,
+            "counted": 7332,
+            "members": null,
+            "digest": "b3f16134d2cd00cfe0e0bc876b5c28afc21a410b24fb04c49251e9e31479373c",
+            "jsonBytes": 47954
+          },
+          "mapDefault": {
+            "rows": 14,
+            "counted": 40000,
+            "members": 35077,
+            "digest": "65ae3b1de28a2c02a293c9e6b894af19a69c58a39c2511f7a7cf71ea2e4c965a",
+            "jsonBytes": 2454
+          },
+          "mapCityDense": {
+            "rows": 5,
+            "counted": 40000,
+            "members": 6768,
+            "digest": "45185018856ebce812b5fd1d7f34a80fa00e47f2e4551d61cb78b3db69064211",
+            "jsonBytes": 1100
+          }
+        }
+      }
+    ],
+    "mix": [
+      "pageDefault",
+      "pageDefault",
+      "pageSecond",
+      "pageTextCiscenje",
+      "pageTextNoHit",
+      "pagePlaceCity",
+      "mapDefault",
+      "mapDefault",
+      "mapCityDense",
+      "mapCityDense"
+    ],
+    "sourceSha": "98ed64d28406b9b42b4ffe581f3a43a8c38118d4",
+    "syntheticTaskRows": 40000,
+    "scenarioAuthAccounts": 2,
+    "activeViewerAccounts": 1,
+    "plannedParallelRequests": [
+      1,
+      4,
+      16,
+      32
+    ],
+    "sqlPublishedFixtures": true,
+    "schedulersPaused": true,
+    "lifecycleMutations": 0,
+    "providerCalls": 0,
+    "pushSends": 0,
+    "retries": 0,
+    "applicationDeadlineMs": 15000,
+    "deadlineSource": "src/data/discoveryV1ClientTransport.ts: DISCOVERY_V1_READ_DEADLINE_MS=15_000. The proof permits90s to observe saturation; semantic PASS is not application responsiveness acceptance.",
+    "latencyScope": "httpLatencyAll ends when the Supabase HTTP client returns (JSON decoding included); latencyAll additionally includes canonicalization/semantic verification. Hard client deadlines with no return are retained in latencyAll and timeout counts.",
+    "compared": "Complete canonical JSON; only asOf and counts.observedAt omitted after timestamp validation; anchor, cursor, item and bucket order retained.",
+    "limits": "Closed-loop clients on the same shared CI host as PostgreSQL/PostgREST; queuing and coordinated omission are not corrected. Not 40000 users, production capacity, lifecycle throughput, background-worker or native performance. CPU/loop metrics describe the Node generator only; JSON bytes are reserialized body sizes, not wire bytes. Client abort does not prove server cancellation.",
+    "host": {
+      "node": "v24.21.0",
+      "platform": "linux",
+      "architecture": "x64",
+      "logicalCpus": 2,
+      "availableParallelism": 2,
+      "memoryBytes": 8323969024
+    },
+    "before": {
+      "postflight": {
+        "helper": true,
+        "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+        "readerAfter": true,
+        "dependencies": true,
+        "closureDigest": "8ec6831e2c72d4ca8a24d609b00f7908cc7c8dc94212d5a2b956f7ba7cc25896",
+        "certificateReady": true,
+        "erasureProgramDigest": "0f4355d8a4f33e4a859a620ed7945578cf86659efc98eb426b3245db0fbe5d90",
+        "retriedLiteralFunctions": 63,
+        "foldTruthTableMismatches": 0
+      },
+      "certificate": "{\"ready\": true, \"digest\": \"8ec6831e2c72d4ca8a24d609b00f7908cc7c8dc94212d5a2b956f7ba7cc25896\", \"program\": \"0f4355d8a4f33e4a859a620ed7945578cf86659efc98eb426b3245db0fbe5d90\"}",
+      "taskCount": 40000
+    }
+  }
+}

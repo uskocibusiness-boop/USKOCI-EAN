@@ -177,7 +177,7 @@ print(f"PASS DISCOVERY-GRAD offline: generators exact, {checked} SQL/PLpgSQL uni
 capture = subprocess.run(['node', '--input-type=module', '-'], cwd=ROOT, check=True, capture_output=True, encoding='utf-8', input=r'''
 import assert from 'node:assert/strict';
 import {areaExperiment} from './supabase/proofs/discovery-grad/area-dedup.mjs';
-import {proveAreaDedup} from './supabase/proofs/discovery-grad/area-dedup.proof.mjs';
+import {proveAreaDedup,areaExactRequestSql} from './supabase/proofs/discovery-grad/area-dedup.proof.mjs';
 const e=areaExperiment(), statements=[e.apply,e.revert];
 const stop=Symbol('captured'), filter={text:'',price:'all',where:'any',places:1,when:'any',dates:null,place:null};
 const requests={pageDefault:{mode:'PAGE',filter,anchor:null,scope:{kind:'ALL'},limit:50,after:null},
@@ -194,6 +194,16 @@ await proveAreaDedup({env:{DB_URL:'postgresql://postgres:postgres@127.0.0.1:5432
  write:()=>{},pass:()=>{throw Error('offline pass forbidden')},measure:()=>{throw Error('offline measure forbidden')}});
 } catch(error) {if(error!==stop) throw error;}
 assert.ok(exactCaptured);
+// The same pure template handles every runtime request/page; parse special keys,
+// all three modes, and a next-page JSON string whose numeric cursor must stay exact.
+const quote=s=>"'"+String(s).replaceAll("'","''")+"'";
+const rawNext='{"mode":"PAGE","anchor":"2026-10-09T00:00:00.123456Z","after":{"n":9007199254740993},"filter":{"text":"O\'Grad Љ"}}';
+for(const [key,request] of Object.entries({...requests,corpus0:requests.pageDefault,corpus1:requests.pageDefault,
+  corpus5:requests.pageDefault,mapCrossField:requests.mapDefault,placesCorpus:requests.placesDefault})) {
+  for(const page of [0,1]) statements.push(areaExactRequestSql({auth:"execute 'set local role authenticated';",
+    root:"execute 'reset role';",experiment:e,q:quote,label:'uniqueLocations',key,page,
+    requestJson:page===0?JSON.stringify(request):rawNext}));
+}
 process.stdout.write(JSON.stringify({candidate:e.candidate,statements}));
 ''')
 generated = json.loads(capture.stdout)
@@ -203,3 +213,10 @@ for statement in generated['statements']:
     for found in re.finditer(r"\bdo\s+(\$[a-z0-9_]+\$)(.*?)\1;", statement, re.S):
         parse_plpgsql_json("create function f() returns void language plpgsql as $syntax$" + found.group(2) + "$syntax$")
 print(f"PASS AREA-DEDUPE offline: candidate and {len(generated['statements'])} captured SQL statements parsed; runtime NOT proven")
+
+# Parse the exact read-only timeout catalog query used by the concurrency runner.
+timeouts = subprocess.run(['node', '--input-type=module', '-e',
+    "import {timeoutDiagnosticsSql} from './supabase/proofs/discovery-grad/read-concurrency.mjs';process.stdout.write(timeoutDiagnosticsSql)"],
+    cwd=ROOT, check=True, capture_output=True, encoding='utf-8').stdout
+pglast.parse_sql(timeouts)
+print('PASS concurrency timeout catalog SQL parsed; actual HTTP settings/runtime NOT proven')

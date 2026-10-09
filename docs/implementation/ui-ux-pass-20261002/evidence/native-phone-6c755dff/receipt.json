@@ -1,0 +1,151 @@
+{
+  "source": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
+  "workflowRun": 37867659756,
+  "uiSource": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5",
+  "apkSha256": "5fc1c0e61ce3948df36e922a9354b45d76eb4116f9dc86ed25757eb51e90e7e1",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "package": "rs.uskoci.preview",
+  "versionCode": 35,
+  "abi": "arm64-v8a",
+  "device": "physical HONOR VKP-NX9",
+  "screenPx": [
+    1264,
+    2728
+  ],
+  "installed": "adb install -r Success; installed base APK hash read matches artifact",
+  "session": "Existing authenticated account retained; no login/token transfer/data clearing",
+  "idlePreflight": "Dozing; last user activity5124863ms ago before install",
+  "scope": "Bounded read-only phone UI checks. No publication/messages/cancellation/business mutation. APK push capable is not provider delivery proof.",
+  "checks": {
+    "peekHidden": "PASS",
+    "halfTabsShown": "PASS",
+    "fullTabsShown": "PASS",
+    "lastCardAboveNavigation": "PASS",
+    "backFullToPeek": "PASS",
+    "pinCardHiddenTabs": "PASS",
+    "pinDetailBackRestoresCardAndViewport": "PASS",
+    "fullDetailNoTabs": "PASS",
+    "fullDetailBackRestoresScrollAndTabs": "PASS",
+    "backgroundResumeFullAndPeek": "PASS",
+    "otherRootsHomeAgreements": "PASS",
+    "interruptedGesture": "NOT_RUN",
+    "talkBackInteraction": "NOT_RUN",
+    "multiplayerAgreementNative": "NOT_PROVEN_SINGLE_EXISTING_AGREEMENT",
+    "storeRelease": "NOT_PROVEN"
+  },
+  "visualReview": "Independent read-only seven-screenshot review: no new P0; applied status crowds offer label; pending agreement needs clearer current-price label. Fixed bottom-left map attribution may be covered per owner.",
+  "evidence": [
+    {
+      "state": "home",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-home.png",
+      "screenshotSha256": "fb1c88891ea52ead69cf7000431536a1f7972e7d3c4c33b640b26c623c379cf3",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-home.xml",
+      "xmlSha256": "c266012ecf01909cb86a29d939333625e22a9e807f060d99539a0e83d9e6010a",
+      "tabControls": 4
+    },
+    {
+      "state": "peek",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-peek.png",
+      "screenshotSha256": "9ef2d18ee5b447d0e276459854e4d8166e9c6791c20b62ffc8c35881062c87c5",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-peek.xml",
+      "xmlSha256": "31ab25e7eb4d4b8f61d40caabc086260cde471ae5220ee6b083fef87b7a46caf",
+      "tabControls": 0
+    },
+    {
+      "state": "half",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-half.png",
+      "screenshotSha256": "87b044637a9a0e037954134d4e263369c7e7c591fc16717bdae9280a2df036d3",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-half.xml",
+      "xmlSha256": "6cfc1ad4f5418706b026ec9ed7ae9b49aa0c89b8b05675dfac5738f05bbf4319",
+      "tabControls": 4
+    },
+    {
+      "state": "full",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full.png",
+      "screenshotSha256": "bfe9922d96c17921eb441e4e3d666af1ed1b029b22f534d931b408fc27c8d9eb",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full.xml",
+      "xmlSha256": "2a7204cbf87f29cce98144bf6868fcd8b5f1e10f0c8e10f7e1712a9bc7f32508",
+      "tabControls": 4
+    },
+    {
+      "state": "full-bottom",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-bottom.png",
+      "screenshotSha256": "32a40730b394a2c53f179941caaf5a81149c3eebe4bcb3d851e0c7373fcc36b7",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-bottom.xml",
+      "xmlSha256": "425382efd744d58c796bb0f207bf2ebcc4937f898196e15f16376c9d08520c73",
+      "tabControls": 4
+    },
+    {
+      "state": "back-peek",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-back-peek.png",
+      "screenshotSha256": "706adf5a904b6b5e8f8952b5be83ca9c66fe924fbcd2a33a7aa6ef9b040a96b7",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-back-peek.xml",
+      "xmlSha256": "45493a03933b63c5d064ee3a0b3dbd13c244b8cfa5059ee071c226dc4a611c9e",
+      "tabControls": 0
+    },
+    {
+      "state": "pin",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-pin.png",
+      "screenshotSha256": "805c6a315766534489cdac66d03fcff2f3f7e7077bc82b044710833a438e2ab1",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-pin.xml",
+      "xmlSha256": "3f90f480ce3c524dd94afd944428f59ad06c3bef92e1cd7316c57fbe316b4318",
+      "tabControls": 0
+    },
+    {
+      "state": "pin-detail",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-pin-detail.png",
+      "screenshotSha256": "9ac69b6c7e3d2513bce9c79a664f262428463f427c5b9373b3ef7d1b0bde7099",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-pin-detail.xml",
+      "xmlSha256": "e5fbc0be6beda78460280162c0a3e6cc11a131a9054cd1e81a477b92b1f1a89f",
+      "tabControls": 0
+    },
+    {
+      "state": "pin-back",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-pin-back.png",
+      "screenshotSha256": "805c6a315766534489cdac66d03fcff2f3f7e7077bc82b044710833a438e2ab1",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-pin-back.xml",
+      "xmlSha256": "3f90f480ce3c524dd94afd944428f59ad06c3bef92e1cd7316c57fbe316b4318",
+      "tabControls": 0
+    },
+    {
+      "state": "agreements",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-agreements.png",
+      "screenshotSha256": "f08a81c798bd8cd7aba4a21c6a3de32f9b38251f81ea7b41c9afb634b865e266",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-agreements.xml",
+      "xmlSha256": "bbeea99d1b171899f7e87a1957c33ef3de3a3eee709b9dca2310ee71134f529e",
+      "tabControls": 4
+    },
+    {
+      "state": "full-resume",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-resume.png",
+      "screenshotSha256": "84a07868a8994c148d63b1f57446dcd54c97073e5831f8559b36ea4a0e35a78e",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-resume.xml",
+      "xmlSha256": "425382efd744d58c796bb0f207bf2ebcc4937f898196e15f16376c9d08520c73",
+      "tabControls": 4
+    },
+    {
+      "state": "full-detail",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-detail.png",
+      "screenshotSha256": "3ccba7cfc40bc54995494aeafcc11cb7b3d0a1968a02af51dbb354a9bb259f23",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-detail.xml",
+      "xmlSha256": "d7f234c51a0bcb34f0129a0338a70fb3e69d05d3589b02a48fdfa99670aa46bf",
+      "tabControls": 0
+    },
+    {
+      "state": "full-detail-back",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-detail-back.png",
+      "screenshotSha256": "212412417f79ca0be9c9271a0a7b0f87fe40ff1d70b3a31ed46fc9b9aca0f58f",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-full-detail-back.xml",
+      "xmlSha256": "425382efd744d58c796bb0f207bf2ebcc4937f898196e15f16376c9d08520c73",
+      "tabControls": 4
+    },
+    {
+      "state": "peek-resume",
+      "privateScreenshot": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-peek-resume.png",
+      "screenshotSha256": "b96ef09bdf3f6086da95cd9b6c7b863d7a8b7c18d7e0c5e5342c7f6dfd8bdc20",
+      "privateXml": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-6c-peek-resume.xml",
+      "xmlSha256": "31ab25e7eb4d4b8f61d40caabc086260cde471ae5220ee6b083fef87b7a46caf",
+      "tabControls": 0
+    }
+  ]
+}

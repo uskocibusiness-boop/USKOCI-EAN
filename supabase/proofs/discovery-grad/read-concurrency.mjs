@@ -52,14 +52,51 @@ export function responseFacts(body, request) {
     jsonBytes: Buffer.byteLength(JSON.stringify(body))};
 }
 
+const ERROR_KINDS = new Set(['SQL_STATEMENT_TIMEOUT', 'SQL_CANCELLED_USER_REQUEST', 'SQL_CANCELLED_OTHER', 'SQL_LOCK_TIMEOUT', 'OTHER']);
+export function readErrorKind(error) {
+  const message = typeof error?.message === 'string' ? error.message.trim() : '';
+  if (error?.code === '57014') {
+    if (message === 'canceling statement due to statement timeout') return 'SQL_STATEMENT_TIMEOUT';
+    if (message === 'canceling statement due to user request') return 'SQL_CANCELLED_USER_REQUEST';
+    return 'SQL_CANCELLED_OTHER';
+  }
+  if (error?.code === '55P03' && message === 'canceling statement due to lock timeout') return 'SQL_LOCK_TIMEOUT';
+  return 'OTHER';
+}
+// Only allowlisted non-secret timeout settings. pg_settings belongs to this diagnostic
+// psql connection, not the effective HTTP/PostgREST session. Never SET a higher limit.
+export const timeoutDiagnosticsSql = `
+with keys(name) as (values ('statement_timeout'),('lock_timeout'),('transaction_timeout'),('idle_in_transaction_session_timeout')),
+role_settings as (
+  select coalesce(r.rolname,'ALL_ROLES') as role,case when d.setdatabase=0 then 'ALL_DATABASES' else 'CURRENT_DATABASE' end as scope,
+    split_part(c.value,'=',1) as name,substring(c.value from position('=' in c.value)+1) as setting
+  from pg_db_role_setting d left join pg_roles r on r.oid=d.setrole
+  cross join lateral unnest(d.setconfig) c(value)
+  where (d.setrole=0 or r.rolname in ('authenticated','authenticator','anon','service_role','postgres'))
+    and (d.setdatabase=0 or d.setdatabase=(select oid from pg_database where datname=current_database()))
+    and split_part(c.value,'=',1) in (select name from keys)
+), reader_settings as (
+  select split_part(c.value,'=',1) as name,substring(c.value from position('=' in c.value)+1) as setting
+  from pg_proc p cross join lateral unnest(p.proconfig) c(value)
+  where p.oid='public.rpc_discovery_v1(jsonb)'::regprocedure and split_part(c.value,'=',1) in (select name from keys)
+)
+select jsonb_build_object(
+  'sessionScope','diagnostic psql connection; not effective HTTP settings',
+  'session',(select coalesce(jsonb_agg(to_jsonb(x) order by x.name),'[]') from
+    (select name,setting,unit,source from pg_settings where name in (select name from keys)) x),
+  'roles',(select coalesce(jsonb_agg(to_jsonb(x) order by x.role,x.scope,x.name),'[]') from role_settings x),
+  'readerOverrides',(select coalesce(jsonb_agg(to_jsonb(x) order by x.name),'[]') from reader_settings x));`;
+
 function outcomeCounts(samples) {
-  const codes = {};
-  for (const s of samples) if (s.outcome !== 'SUCCESS') codes[s.code] = (codes[s.code] ?? 0) + 1;
+  const codes = {}, kinds = {};
+  for (const s of samples) if (s.outcome !== 'SUCCESS') {
+    codes[s.code] = (codes[s.code] ?? 0) + 1; kinds[s.errorKind] = (kinds[s.errorKind] ?? 0) + 1;
+  }
   return {started: samples.length, completed: samples.length,
     successful: samples.filter(s => s.outcome === 'SUCCESS').length,
     failed: samples.filter(s => s.outcome !== 'SUCCESS').length,
     timedOut: samples.filter(s => s.outcome === 'TIMEOUT').length,
-    aborted: samples.filter(s => s.outcome === 'ABORT').length, errors: codes,
+    aborted: samples.filter(s => s.outcome === 'ABORT').length, errors: codes, errorKinds: kinds,
     latencyAll: latencySummary(samples.map(s => s.elapsedMs)),
     latencySuccessful: latencySummary(samples.filter(s => s.outcome === 'SUCCESS').map(s => s.elapsedMs)),
     httpLatencyAll: latencySummary(samples.filter(s => s.httpElapsedMs !== null).map(s => s.httpElapsedMs)),
@@ -120,7 +157,7 @@ export async function sampleReadLevel({concurrency, cases, invoke, warmupMs = 15
         : ['TIMEOUT', 'ABORT'].includes(result?.outcome) ? result.outcome : 'ERROR';
       samples.push({case: item.name, phase: measured ? 'MEASURED' : 'WARMUP',
         startMs: round(admitted - start), endMs: round(completed - start), elapsedMs: round(completed - admitted),
-        outcome, ...(outcome === 'SUCCESS' ? {} : {code}),
+        outcome, ...(outcome === 'SUCCESS' ? {} : {code, errorKind: ERROR_KINDS.has(result?.errorKind) ? result.errorKind : 'OTHER'}),
         status: Number.isInteger(result?.status) ? result.status : null,
         httpElapsedMs: Number.isFinite(result?.httpElapsedMs) ? round(result.httpElapsedMs) : null,
         jsonBytes: Number.isSafeInteger(result?.jsonBytes) ? result.jsonBytes : 0});

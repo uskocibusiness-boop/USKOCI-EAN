@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import {performance} from 'node:perf_hooks';
 import {assertLocalDeviceProofTargets} from '../ru5_device_ui_local_guard.mjs';
-import {responseFacts, sampleReadLevel} from './read-concurrency.mjs';
+import {responseFacts, sampleReadLevel, readErrorKind, timeoutDiagnosticsSql} from './read-concurrency.mjs';
 
 export const MIX = ['pageDefault', 'pageDefault', 'pageSecond', 'pageTextCiscenje', 'pageTextNoHit',
   'pagePlaceCity', 'mapDefault', 'mapDefault', 'mapCityDense', 'mapCityDense'];
 
-export async function proveReadConcurrency({env, client, requests, report, write, verify, visible}) {
+export async function proveReadConcurrency({env, client, requests, report, write, verify, visible, sql}) {
   assert.equal(env.DG_READ_CONCURRENCY, 'DISPOSABLE_READ_CONCURRENCY');
   assertLocalDeviceProofTargets(env.RU5_DEVICE_SUPABASE_URL, env.DB_URL);
   assert.equal(env.DB_URL, env.RU5_DEVICE_DB_URL);
@@ -29,6 +29,7 @@ export async function proveReadConcurrency({env, client, requests, report, write
   write();
   const call = async request => client.rpc('rpc_discovery_v1', {p_request: request}).abortSignal(AbortSignal.timeout(90000));
   try {
+    concurrency.timeoutConfigurationBefore = JSON.parse(sql(timeoutDiagnosticsSql)); write();
     for (const parallel of concurrency.plannedParallelRequests) {
       // Fresh complete oracle/anchor set per level, outside timed work. No retries even here.
       const cases = {};
@@ -60,7 +61,7 @@ export async function proveReadConcurrency({env, client, requests, report, write
           const started = performance.now();
           const r = await client.rpc('rpc_discovery_v1', {p_request: item.request}).abortSignal(signal);
           const httpElapsedMs = performance.now() - started;
-          if (r.error) return {ok: false, status: r.status, httpElapsedMs,
+          if (r.error) return {ok: false, status: r.status, httpElapsedMs, errorKind: readErrorKind(r.error),
             code: r.status === 0 ? 'TRANSPORT' : /^[A-Z0-9_]{1,32}$/.test(r.error.code ?? '') ? r.error.code : 'HTTP_ERROR'};
           try {
             const facts = responseFacts(r.data, item.request);
@@ -81,7 +82,11 @@ export async function proveReadConcurrency({env, client, requests, report, write
     assert.deepEqual(concurrency.after, concurrency.before, 'CONCURRENCY_MOVED_FIDELITY');
     concurrency.state = 'SEMANTICS_PASS_PERFORMANCE_REPORTED';
   } catch (error) { concurrency.state = 'FAIL'; throw error; }
-  finally { write(); }
+  finally {
+    try { concurrency.timeoutConfigurationAfter = JSON.parse(sql(timeoutDiagnosticsSql)); }
+    catch { concurrency.timeoutConfigurationAfter = {state: 'READ_FAILED'}; }
+    write();
+  }
 }
 
 export function readConcurrencySummary(result) {

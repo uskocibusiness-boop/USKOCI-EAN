@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T01:27:04Z",
+  "osvezeno": "2026-10-09T01:40:31Z",
   "grana": "integration/spoj-20261006",
-  "head": "9253d8f6",
-  "head_poruka": "fix: preserve existing emulator account with a scoped dev QA build",
+  "head": "ea456e15",
+  "head_poruka": "merge: synchronize regenerated control views",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2186,7 +2186,7 @@
    "emulator": "adb install -r PASS; existing logged-out preview stayed logged out; entry screen viewed; no two-account native proof."
   },
   "discovery_bar_native_20261009": {
-   "state": "SECOND_SOURCE_FIX_TARGETED_PASS / PREVIOUS_NATIVE_FAIL / NEW_NATIVE_PENDING",
+   "state": "BOUNDED_PHYSICAL_NATIVE_PASS / ADDITIONAL_GESTURE_ACCESSIBILITY_PENDING",
    "observedSource": "66275774407b2cb4ccebafac508ea237aa59e930",
    "finding": "Phone map: tab bar remained visible over collapsed sheet, count and handle obscured. Upward swipe at visible edge panned map instead. Exact cold-entry callback sequence not captured.",
    "privateEvidence": [
@@ -2197,10 +2197,11 @@
    "sourceFix": "Separate outer Animated host moves Discovery; inner BottomTabBar keeps static geometry and navigator keyboard animation. Settled visibility removes pointer/accessibility/opacity; generation guards reject stale completion. Other roots retain normal flow; FULL routes reserve no bar. Physical HALF threshold and pin precedence retained.",
    "verification": "Real NavigationContainer+BottomTabBar regression PASS; final discovery/trace/host221 cases PASS, existing design/navigation checks PASS, TypeScript PASS. Numeric-only bounded trace explicitly enabled for preview QA; store package gate remains closed.",
    "limits": [
-    "No native proof of second fix yet",
-    "Exact native animated-props reset cause remains a hypothesis; previous44e8 APK still failed"
+    "Interrupted gesture not executed",
+    "TalkBack not exercised; XML confirms hidden tab controls absent",
+    "Whole-app/store/push delivery not proved"
    ],
-   "next": "Combined push-capable phone build and visual emulator from same source; manifest/signature checks, install-r; PEEK/HALF/FULL, interrupted gestures, pin and Detail/Back.",
+   "next": "Finish corrected existing-dev emulator install and grouped agreement native fixtures; then coherent price/status readability refinements.",
    "builds": {
     "source": "44e8eaffdd9fcbd9ccf25cab174ea2374236003d",
     "phone": 37859900972,
@@ -2209,7 +2210,7 @@
     "phoneSha256": "f344fbd60632d2b4fb55e7d3efa898c276bcdaf33d911a6f63dc104d8aa4d291",
     "emulatorSha256": "fc7679fd07ce149ce9ec5df195e23e383d3eb8251961318ea4f17776e165b9d6"
    },
-   "nativeResult": "Same signing certificate, session-preserving install-r both. Physical cold entry still has bar obscuring collapsed sheet. Do NOT count source fix as native acceptance.",
+   "nativeResult": "6c APK installed-r exactSHA/samecert; session retained. PEEK/pin/detail hide tabs; HALF/FULL show; lastcard visible; FULL->PEEK Back; pinDetailBack retains card+viewport; FULLdetailBack retains scroll; HOME/resume FULL+PEEK correct. Other roots normal. No repeated44e8 overlap.",
    "nextBuilds": {
     "source": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5",
     "phonePushCapable": 37864877643,
@@ -2224,24 +2225,27 @@
    "attestationRebuild": {
     "run": 37867659756,
     "source": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
-    "state": "RUNNING",
-    "uiUnchangedFrom": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5"
-   }
+    "state": "SUCCESS / INSTALL_R_PASS / BOUNDED_NATIVE_PASS",
+    "uiUnchangedFrom": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5",
+    "apkSha256": "5fc1c0e61ce3948df36e922a9354b45d76eb4116f9dc86ed25757eb51e90e7e1",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-phone-6c755dff/receipt.json"
+   },
+   "latestEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-phone-6c755dff/receipt.json"
   },
   "discovery_area_experiment_20261009": {
-   "state": "REPEATED_LOCATION_MEASUREMENT_COMPLETE / UNIQUE_BASELINE_SQL_FAIL / DIAGNOSTIC_FIX_TESTED",
+   "state": "ACTUAL_UNIQUE_BASELINE_AGGREGATE_SQL_TIMEOUT / BOUNDED_TRIPLES_SOURCE_TESTED",
    "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
    "baselineReaderMd5": "a9b0985991f4ebfe4e95143e5cf57222",
    "candidateReaderMd5": "46d4baf9d6ce391710b9d428654763d4",
    "scope": "Request-local area deduplication only; identical full JSON A/B/revert in one outer statement, PAGE/MAP/PLACES and baseline cursor replay; repeated and unique locations, 16 measured cases per stage.",
    "corpus": "27 task rows; 27 NULL/empty/boolean key-helper projection cases; PAGE14 and PLACES3 terminal pages; cross-field text and license exclusion.",
-   "checks": "Offline candidate plus5 captured SQL statements and nested PLpgSQL parsed; Node syntax PASS; independent read-only source review no blocker.",
+   "checks": "Source: one baseline/candidate/revert DO per request/page,90s for complete triple,identical request/fullJSON/time. Baseline cursor travels as raw JSON text. pglast22units+21generatedSQL statements PASS; per-key coverage,14/3terminal,2comparisons/page; repeated62/124 pinned,unique realcount pending.",
    "limits": "Not applied to DEV; not a promotion package, no S3/helper/schema/certificate change. Two Auth accounts and serial reads, no lifecycle or concurrent-user capacity.",
    "run": 37861199898,
    "source": "e526ad5d9b9fc29b4b2f3c5c61ac8c6960da54c4",
    "failedEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-failed-37861199898/load-report.json",
    "result": "Repeated fixture:124 full JSON baseline/candidate/revert checks PASS,27 corpus,27 NULL/key cases,14PAGE+3PLACES terminal pages. First HTTP after exact failed before durable candidate install; error lost by typeof assertion. Unique fixture and performance comparison NOT reached.",
-   "next": "Repeat once with preserved SQL headline/SQLSTATE/elapsed/status/timeout/last request marker and fresh exact phase. Limits and candidate unchanged; 7 offline diagnostic/transport checks PASS.",
+   "next": "One justified isolated area run after split/review; no timeout extension, dropped request or candidate change; not DEV promotion.",
    "diagnosticRun": 37863338193,
    "diagnosticSource": "89bb5e85a88e7a5fc82cf687c442a4082b92fc40",
    "diagnosticEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-diagnostic-37863338193/load-report.json",
@@ -2250,14 +2254,14 @@
    "nextRun": 37865279345,
    "nextSource": "52c4965b0f5dd7e33fdb353802c4b17c4dc1a8c9",
    "nextRunState": "FAILED_PRESERVED",
-   "latestRun": 37865279345,
-   "latestSource": "52c4965b0f5dd7e33fdb353802c4b17c4dc1a8c9",
-   "latestEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-recovery-37865279345",
-   "latestResult": "Repeated:124 exact JSON comparisons and16 baseline/candidate/revert SQL+HTTP cases. Unique: failure in baseline exactDO before candidate. Headline/timedOut were lost in stderr-tail, true SQL cause unknown. Teardown0. One recorded socket recovery200/486ms.",
+   "latestRun": 37867659562,
+   "latestSource": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
+   "latestEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-sql-37867659562",
+   "latestResult": "Repeated62requests/124fullJSONcomparisons+14PAGE/3PLACES terminal and all stages complete. Unique baseline aggregateDO timeout300064ms,SQLSTATE57014 statement_timeout, lastProbe placesDefault:0; candidate not yet applied to unique. Teardown0. Individual request cost vs accumulated prior calls not yet separated.",
    "observations": "Repeated SQL median: ciscenje1215.7→610.1→1173.4; no-hit1138.3→584.5→1135.1; city+text962.1→402.8→927.2; defaultPAGE376.5→430.3→420.5; MAP317.1→376.1→314.5. Candidate helps text but costs nontext; no overall acceptance or DEV application.",
    "diagnosticSqlRun": 37867659562,
    "diagnosticSqlSource": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
-   "diagnosticSqlState": "RUNNING"
+   "diagnosticSqlState": "FAIL_57014_STATEMENT_TIMEOUT"
   },
   "push_recapture235_20261009": {
    "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",
@@ -2324,18 +2328,20 @@
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/connected-lifecycle-37867079947"
   },
   "discovery_read_concurrency_20261009": {
-   "state": "ISOLATED_CI_RUNNING",
+   "state": "ACTUAL_ISOLATED_FAIL_C16 / C1_C4_MEASURED / C32_NOT_RUN",
    "scope": "40000 synthetic task rows,2 scenario Auth accounts,1 active viewer;actual loopback PostgREST read levels1/4/16/32.15swarmup+60smeasurement perlevel,90sdeadline,2048samplecaps,no retries.7 request shapes/10slot deterministic mix including cursor page2/denseMAP.",
    "verification": "8 new offline tests PASS; existing4 socket/3SQLdiagnostic tests PASS; Node and workflow YAML PASS. Two independent read-only reviews no blocker; separate HTTP+JSON latency added; proof90s versus app15s explicitly disclosed.",
-   "limits": "Closedloop sharedCIhost;no40000user/servercapacity claim,no concurrent lifecycle/background workers/DEV changes; client abort cannot prove server cancellation. All semantic/HTTP/transport failures retained and fail proof.",
+   "limits": "40000 synthetic rows,2scenarioAuth,1viewer,shared2CPU CI host; not40000 users/production capacity. 57014 alone does not prove cancellation cause; bootstrap8s role default supports timeout hypothesis. Final concurrency fidelity postflight not reached.",
    "files": [
     "supabase/proofs/discovery-grad/read-concurrency.mjs",
     "supabase/proofs/discovery-grad/read-concurrency.proof.mjs",
     "supabase/proofs/discovery-grad/read-concurrency.test.mjs"
    ],
-   "next": "One opt-in isolated concurrency run; exact source and real failure/latency evidence before any capacity claim.",
+   "next": "Do not blindly repeat. Continue area cost proof; next justified concurrency run captures allowlisted exact error kind and readonly timeout catalog. Limits unchanged.",
    "run": 37868724376,
-   "source": "98ed64d28406b9b42b4ffe581f3a43a8c38118d4"
+   "source": "98ed64d28406b9b42b4ffe581f3a43a8c38118d4",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-concurrency-37868724376",
+   "result": "C1 measured77success/0error,1.28successRPS,HTTP p50=567.47ms/p95=2054.83ms; C4 measured86/0,1.43successRPS,p50=1995.37ms/p95=6707.04ms. C16 warmup27starts/22success/5HTTP500 code57014,0measured; C32NOT_RUN. Teardown0. No retry/clienttimeout/semantic mismatch."
   },
   "client_regression_d029_20261009": {
    "run": 37864877598,
@@ -2378,7 +2384,7 @@
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/client-proof-d029-37864877598"
   },
   "emulator_existing_dev_20261009": {
-   "state": "EXISTING_AUTH_SESSION_FOUND / CORRECT_PACKAGE_BUILD_PREPARED",
+   "state": "EXISTING_AUTH_SESSION_FOUND / CORRECT_PACKAGE_CI_RUNNING",
    "observed": "rs.uskoci.dev is authenticated on emulator; preview remains logged out. No login, token transfer or data changes. Existing build lastUpdated2026-10-06; cannot attest current UI.",
    "installedApkSha256": "27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d",
    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
@@ -2386,7 +2392,9 @@
    "checks": "2 actual-config/guard tests and YAML PASS; independent SOURCE review no blocker; compiledAPK attestation beforeartifact.",
    "limits": "New APK/signature/install-r/session-preservation/native not yet verified. Build identity dirty expected from config overlay, receipt binds exact overlay/config hashes.",
    "privateEvidence": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-existing-dev.png",
-   "next": "Build correct existing dev package, check exact APK/signature then install-r, preserve second session."
+   "next": "Build correct existing dev package, check exact APK/signature then install-r, preserve second session.",
+   "run": 37869838906,
+   "source": "ea456e15f9906ec6fae8c4d00586119efbf7e944"
   }
  },
  "redovi": [

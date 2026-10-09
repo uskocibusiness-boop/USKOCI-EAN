@@ -19,6 +19,41 @@ export function areaExperimentSummary(proof) {
   return lines.join('\n') + '\n';
 }
 
+// One bounded request/page keeps all three calls in the same SQL statement clock.
+// Return the next request as PostgreSQL JSON text so JS cannot round a numeric cursor.
+export function areaExactRequestSql({auth, root, experiment, q, label, key, page, requestJson}) {
+  return `begin; set local lock_timeout='5s';
+    do $area_exact$ declare req jsonb:=${q(requestJson)}::jsonb; baseline jsonb; answer jsonb;
+    begin
+      ${auth}
+      raise notice 'AREA_PROBE:%:baseline:%:%',${q(label)},${q(key)},${page};
+      baseline:=public.rpc_discovery_v1(req);
+      if ${q(key)} in ('corpus1','corpus2','corpus3','corpus4') and ${page}=0 and jsonb_array_length(baseline->'items')=0 then
+        raise exception 'AREA_CROSS_FIELD_FIXTURE_EMPTY:%',${q(key)}; end if;
+      if ${q(key)}='corpus5' and jsonb_array_length(baseline->'items')<>0 then raise exception 'AREA_LICENSE_LEAK'; end if;
+      if ${q(key)}='mapCrossField' and jsonb_array_length(baseline->'buckets')=0 then raise exception 'AREA_MAP_FIXTURE_EMPTY'; end if;
+      if ${q(key)} in ('corpus0','placesCorpus') and not coalesce((baseline->>'hasMore')::boolean,false)
+        and baseline->'nextCursor' is distinct from 'null'::jsonb then raise exception 'AREA_TERMINAL_CURSOR'; end if;
+      ${root}
+      ${experiment.applyBlock}
+      ${auth}
+      raise notice 'AREA_PROBE:%:candidate:%:%',${q(label)},${q(key)},${page};
+      answer:=public.rpc_discovery_v1(req);
+      if answer is distinct from baseline then raise exception 'AREA_FULL_RESPONSE_DIFF:candidate:%',${q(key)}; end if;
+      ${root}
+      ${experiment.revertBlock}
+      ${auth}
+      raise notice 'AREA_PROBE:%:reverted:%:%',${q(label)},${q(key)},${page};
+      answer:=public.rpc_discovery_v1(req);
+      if answer is distinct from baseline then raise exception 'AREA_FULL_RESPONSE_DIFF:reverted:%',${q(key)}; end if;
+      ${root}
+      perform set_config('dg.area_exact',jsonb_build_object('comparisons',2,
+        'hasMore',coalesce((baseline->>'hasMore')::boolean,false),
+        'nextRequestJson',(req||jsonb_build_object('anchor',baseline->'anchor','after',baseline->'nextCursor'))::text)::text,false);
+    end $area_exact$;
+    select current_setting('dg.area_exact'); rollback;`;
+}
+
 export async function proveAreaDedup({env, run, sql, q, viewer, requester, requests, measure, httpMs, profile, report, write, pass}) {
   assert.equal(env.DB_URL, 'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
   assert.equal(env.DG_AREA_EXPERIMENT, 'DISPOSABLE_AREA_DEDUP');
@@ -79,55 +114,44 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
     placesCorpus: {...requests.placesDefault, prefix: 'areafacet', limit: 1},
   };
   const exact = label => {
-    proof.phase = {fixture: label, stage: 'exact', transport: 'SQL'}; write();
-    // One outer statement fixes statement_timestamp for A/B/revert, including every timestamp in the public envelope.
-    // Store baseline cursors and replay them verbatim. No sorting, field removal or time masking.
-    const output = execute(`begin; set local lock_timeout='5s';
-      do $area_exact$ declare spec record; req jsonb; answer jsonb; replay jsonb:='[]'; entry jsonb; checks integer:=0; pages integer; phase integer; terminal jsonb:='{}';
-      begin
-        ${auth}
-        for spec in select key,value from jsonb_each(${q(JSON.stringify(comparisons))}::jsonb) loop
-          req:=spec.value; pages:=0;
-          loop
-            raise notice 'AREA_PROBE:%:baseline:%:%',${q(label)},spec.key,pages;
-            answer:=public.rpc_discovery_v1(req);
-            if spec.key in ('corpus1','corpus2','corpus3','corpus4') and pages=0 and jsonb_array_length(answer->'items')=0 then
-              raise exception 'AREA_CROSS_FIELD_FIXTURE_EMPTY:%',spec.key; end if;
-            if spec.key='corpus5' and jsonb_array_length(answer->'items')<>0 then raise exception 'AREA_LICENSE_LEAK'; end if;
-            if spec.key='mapCrossField' and jsonb_array_length(answer->'buckets')=0 then raise exception 'AREA_MAP_FIXTURE_EMPTY'; end if;
-            replay:=replay||jsonb_build_array(jsonb_build_object('key',spec.key,'request',req,'answer',answer)); pages:=pages+1;
-            if not coalesce((answer->>'hasMore')::boolean,false) then
-              if spec.key in ('corpus0','placesCorpus') then
-                if answer->'nextCursor' is distinct from 'null'::jsonb then raise exception 'AREA_TERMINAL_CURSOR'; end if;
-                terminal:=terminal||jsonb_build_object(spec.key,pages);
-              end if;
-              exit;
-            end if;
-            if spec.key not in ('corpus0','placesCorpus') and pages>=2 then exit; end if;
-            if pages>=32 then raise exception 'AREA_CORPUS_PAGE_BOUND'; end if;
-            req:=req||jsonb_build_object('anchor',answer->'anchor','after',answer->'nextCursor');
-          end loop;
-        end loop;
-        if (terminal->>'corpus0')::integer<>14 or (terminal->>'placesCorpus')::integer<>3
-          or not(terminal?&array['corpus0','placesCorpus']) then raise exception 'AREA_TERMINAL_CORPUS_BOUND:%',terminal; end if;
-        ${root}
-        ${experiment.applyBlock}
-        for phase in 1..2 loop
-          ${auth}
-          for entry in select value from jsonb_array_elements(replay) loop
-            raise notice 'AREA_PROBE:%:phase%:%:%',${q(label)},phase,entry->>'key',checks;
-            answer:=public.rpc_discovery_v1(entry->'request');
-            if answer is distinct from entry->'answer' then raise exception 'AREA_FULL_RESPONSE_DIFF:%:%',phase,entry->>'key'; end if;
-            checks:=checks+1;
-          end loop;
-          ${root}
-          if phase=1 then ${experiment.revertBlock} end if;
-        end loop;
-        perform set_config('dg.area_exact',jsonb_build_object('requests',jsonb_array_length(replay),'fullResponseComparisons',checks,'timestampMasking',false,'terminalPages',terminal)::text,false);
-      end $area_exact$;
-      select current_setting('dg.area_exact'); rollback;`, 300);
-    assert.equal(current(), experiment.hashes.baseline);
-    return JSON.parse(output.split('\n').filter(Boolean).at(-1));
+    const result = proof.fixtures[label].exact = {requests: 0, fullResponseComparisons: 0,
+      timestampMasking: false, terminalPages: {}, pagesByRequest: {}, timeoutSPerTriple: 90, complete: false};
+    for (const [key, request] of Object.entries(comparisons)) {
+      let requestJson = JSON.stringify(request), pages = 0;
+      while (true) {
+        proof.phase = {fixture: label, stage: 'exact', request: key, page: pages, transport: 'SQL', timeoutS: 90}; write();
+        const output = execute(areaExactRequestSql({auth, root, experiment, q, label, key, page: pages, requestJson}), 90);
+        assert.equal(current(), experiment.hashes.baseline);
+        const triple = JSON.parse(output.split('\n').filter(Boolean).at(-1));
+        assert.equal(triple.comparisons, 2);
+        assert.equal(typeof triple.hasMore, 'boolean');
+        result.requests++; result.fullResponseComparisons += triple.comparisons; pages++; result.pagesByRequest[key] = pages;
+        if (!triple.hasMore) {
+          if (key === 'corpus0' || key === 'placesCorpus') result.terminalPages[key] = pages;
+          write(); break;
+        }
+        write();
+        if (key !== 'corpus0' && key !== 'placesCorpus' && pages >= 2) break;
+        assert.ok(pages < 32, 'AREA_CORPUS_PAGE_BOUND');
+        assert.equal(typeof triple.nextRequestJson, 'string');
+        requestJson = triple.nextRequestJson;
+      }
+    }
+    assert.deepEqual(result.terminalPages, {corpus0: 14, placesCorpus: 3});
+    assert.deepEqual(Object.keys(result.pagesByRequest).sort(), Object.keys(comparisons).sort(), 'AREA_EXACT_REQUEST_KEYS');
+    for (const [key, pages] of Object.entries(result.pagesByRequest)) {
+      assert.ok(Number.isInteger(pages) && pages >= 1 && pages <= (key === 'corpus0' || key === 'placesCorpus' ? 32 : 2), 'AREA_REQUEST_PAGE_COVERAGE');
+    }
+    assert.equal(result.requests, Object.values(result.pagesByRequest).reduce((sum, n) => sum + n, 0));
+    assert.equal(result.fullResponseComparisons, 2 * result.requests);
+    // Repeated coverage is pinned to the actual preceding proof. Unique distribution
+    // has not completed before; all keys/pages are checked without inventing its total.
+    if (label === 'repeatedLocations') {
+      assert.equal(result.requests, 62, 'AREA_EXACT_REQUEST_COVERAGE');
+      assert.equal(result.fullResponseComparisons, 124, 'AREA_EXACT_COMPARISON_COVERAGE');
+    }
+    result.complete = true; write();
+    return result;
   };
   const measureStage = async (fixture, stage) => {
     const result = proof.fixtures[fixture].stages[stage] = {};
@@ -143,7 +167,8 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
     return result;
   };
   const fixture = async label => {
-    const result = proof.fixtures[label] = {exact: exact(label), stages: {}, profiles: {}}; write();
+    const result = proof.fixtures[label] = {exact: null, stages: {}, profiles: {}};
+    exact(label); write();
     await measureStage(label, 'baseline');
     try {
       execute(experiment.apply); assert.equal(current(), experiment.hashes.candidate);

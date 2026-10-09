@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {responseFacts, latencySummary, sampleReadLevel} from './read-concurrency.mjs';
+import {responseFacts, latencySummary, sampleReadLevel, readErrorKind} from './read-concurrency.mjs';
 
 const request = {mode: 'PAGE', limit: 50, anchor: {timeAt: '2026-10-09T00:00:00.123456Z'}};
 const page = {version: 'DISCOVERY_V1', mode: 'PAGE', asOf: '2026-10-09T00:00:01.123456Z', anchor: request.anchor,
@@ -105,4 +105,19 @@ test('measured cap is exact even when many workers complete together', async () 
     invoke: async () => { await delay(3); return {ok: true}; }});
   assert.equal(result.measured.started, 7); assert.equal(result.measured.completed, 7);
   assert.equal(result.stopReason, 'SAMPLE_CAP_DRAINED'); assert.equal(result.outstandingAtReturn, 0);
+});
+
+test('cancellation classification requires the exact server message and never retains raw content', async () => {
+  assert.equal(readErrorKind({code:'57014',message:'canceling statement due to statement timeout'}),'SQL_STATEMENT_TIMEOUT');
+  assert.equal(readErrorKind({code:'57014',message:'canceling statement due to user request'}),'SQL_CANCELLED_USER_REQUEST');
+  assert.equal(readErrorKind({code:'57014',message:'other cancellation with secret'}),'SQL_CANCELLED_OTHER');
+  assert.equal(readErrorKind({code:'55P03',message:'canceling statement due to lock timeout'}),'SQL_LOCK_TIMEOUT');
+  assert.equal(readErrorKind({code:'XX000',message:'canceling statement due to statement timeout'}),'OTHER');
+  const result=await sampleReadLevel({...levelArgs,concurrency:1,invoke:async()=>({ok:false,status:500,code:'57014',
+    errorKind:readErrorKind({code:'57014',message:'canceling statement due to statement timeout'})})});
+  assert.deepEqual(result.warmup.errorKinds,{SQL_STATEMENT_TIMEOUT:1});
+  assert.equal(result.samples[0].errorKind,'SQL_STATEMENT_TIMEOUT');
+  const untrusted=await sampleReadLevel({...levelArgs,concurrency:1,invoke:async()=>({ok:false,code:'57014',errorKind:'secret message'})});
+  assert.deepEqual(untrusted.warmup.errorKinds,{OTHER:1});
+  assert.ok(!JSON.stringify(untrusted).includes('secret'));
 });

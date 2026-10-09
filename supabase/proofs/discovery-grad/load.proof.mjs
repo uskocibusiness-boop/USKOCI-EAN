@@ -295,7 +295,7 @@ async function deployedBaseline(viewer, requester, open) {
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
   if (env.DG_READ_CONCURRENCY) {
     try {
-      await proveReadConcurrency({env, client: viewer.client, requests, report, write,
+      await proveReadConcurrency({env, client: viewer.client, requests, report, write, sql,
         verify: () => ({postflight: verify(), certificate: closure(),
           taskCount: Number(sql(`select count(*) from public.needs where requester_account_id=${q(requester.id)}::uuid and category='DG load'`))}),
         visible: (anchor, bounds) => visible(`and published_at<=${q(anchor.publishedThrough)}::timestamptz` + (bounds
