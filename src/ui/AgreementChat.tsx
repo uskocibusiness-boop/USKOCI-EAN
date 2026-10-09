@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import type { PorukaProjekcija } from '../contracts/projections';
 import { sameMessagePhotos, sameMessageVoice, type createAgreementOutbox, type OutboxError } from '../data/agreementOutbox';
@@ -12,6 +13,7 @@ import { Glyph } from './system/Glyph';
 import { tick } from './system/haptics';
 import { OUTCOME_ACTION } from './system/outcomeCopy';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
+import { PhotoViewer, type PhotoReadContext, type PagePhoto } from './media/PhotoViewer';
 import { Press } from './Press';
 import { FactArt } from './system/FactArt';
 import { floating, sys } from './system/tokens';
@@ -30,6 +32,12 @@ import { useAutoResend } from './messages/useAutoResend';
 export { messageMoment, messageSpoken } from './messages/threadModel';
 
 type Outbox = ReturnType<typeof createAgreementOutbox>;
+type MessageGallery = { outbox: Outbox; context: PhotoReadContext; photos: readonly PagePhoto[]; index: number; localId?: string };
+function FocusedMessageGallery(props: React.ComponentProps<typeof PhotoViewer>) {
+  const close = useRef(props.onClose); close.current = props.onClose;
+  useFocusEffect(useCallback(() => () => close.current(), []));
+  return <PhotoViewer {...props} />;
+}
 /** Route-owned, account/Agreement-scoped reading intent; no message bodies are retained. */
 export type AgreementReadingPosition = {
   following: boolean;
@@ -188,6 +196,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   // The "+" opens the shared photo sheet (Galerija, Kamera); the earlier prepared photos are shown when asked for from it.
   const [sheetOpen, setSheetOpen] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
+  const [gallery, setGallery] = useState<MessageGallery | null>(null);
+  const covered = useRef(false);
   const [focused, setFocused] = useState(false);
   const list = useRef<ScrollView>(null);
   // Native layout/keyboard scroll events describe geometry, not a decision to stop following.
@@ -263,12 +273,12 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
     followFrame.current = null;
   };
   const reportDisplayed = () => {
-    if (!onDisplayedMessageIds || visibilityFrame.current !== null) return;
+    if (covered.current || !onDisplayedMessageIds || visibilityFrame.current !== null) return;
     const owner = messages;
     const notify = onDisplayedMessageIds;
     visibilityFrame.current = requestAnimationFrame(() => {
       visibilityFrame.current = null;
-      if (!mounted.current || restoring.current || source.current.messages !== owner
+      if (covered.current || !mounted.current || restoring.current || source.current.messages !== owner
         || source.current.onDisplayedMessageIds !== notify || source.current.loading || source.current.error) return;
       const { offset, viewport, content } = geometry.current;
       if (!(viewport > 0)) return;
@@ -326,8 +336,23 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
     if (userScrolling.current) readUserPosition(event);
     reportDisplayed();
   };
-  const source = useRef({ messages, support, loading, error, photos, terminal, writable, outbox, refresh, onDisplayedMessageIds });
-  source.current = { messages, support, loading, error, photos, terminal, writable, outbox, refresh, onDisplayedMessageIds };
+  const source = useRef({ messages, support, loading, error, photos, terminal, writable, outbox, state, refresh, onDisplayedMessageIds });
+  source.current = { messages, support, loading, error, photos, terminal, writable, outbox, state, refresh, onDisplayedMessageIds };
+  const galleryCurrent = (value: MessageGallery) => {
+    const now = source.current;
+    if (!mounted.current || now.loading || now.error || now.outbox !== value.outbox || now.photos?.agreementId !== value.context.agreementId) return false;
+    const entry = value.localId ? now.state.entries.find(item => item.command.clientMessageId === value.localId) : null;
+    const ids = value.localId ? entry?.messageId === value.context.messageId ? entry?.command.photos?.assetIds : undefined
+      : now.messages.find(item => item.id === value.context.messageId)?.fotografije?.map(item => item.assetId);
+    return !!ids && ids.length === value.photos.length && ids.every((id, index) => id === value.photos[index].assetId);
+  };
+  const openGallery = (value: MessageGallery) => {
+    if (!galleryCurrent(value)) return;
+    covered.current = true; setGallery(value);
+  };
+  const closeGallery = () => { covered.current = false; setGallery(null); reportDisplayed(); };
+  const visibleGallery = gallery && galleryCurrent(gallery) ? gallery : null;
+  useEffect(() => { if (gallery && !visibleGallery) closeGallery(); }, [gallery, visibleGallery]);
   const loadHistory = (direction: 'older' | 'newer') => {
     if (!mounted.current || source.current.messages !== messages || loadingOlder || loadingNewer || loading || error) return;
     cancelFollow(); following.current = false; remember(); restoring.current = true;
@@ -544,7 +569,11 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {hasPhotos ? <PhotoBubble {...common} caption={message.telo || null}
               photos={message.fotografije?.map((photo, photoIndex) => <Press key={photo.assetId} accessible={false} scaleTo={1} haptic="select"
                 onLongPress={summary.onLongPress}><AuthorizedPhoto assetId={photo.assetId} agreementId={photos!.agreementId} messageId={message.id}
-                label={`Fotografija poruke ${photoIndex + 1}`} style={s.photo} /></Press>)} />
+                label={`Fotografija poruke ${photoIndex + 1}`} style={s.photo}
+                open={{ label: `Otvori fotografiju poruke ${photoIndex + 1}`, hint: 'Pregled preko celog ekrana.',
+                  onLongPress: summary.onLongPress,
+                  onPress: () => openGallery({ outbox, context: { agreementId: photos!.agreementId, messageId: message.id },
+                    photos: message.fotografije!, index: photoIndex }) }} /></Press>)} />
               : message.glas && voice ? <VoiceBubble {...common} voice={voice} message={message} />
                 : <TextBubble {...common} lines={[message.telo, message.glas ? `Glasovna poruka · ${voiceTime(message.glas.trajanjeMs)}` : ''].filter(Boolean)} />}
             </View>
@@ -583,7 +612,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {entry.command.photos ? <PhotoBubble {...common} caption={entry.command.body || null}
               photos={entry.command.photos.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
                 agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
-                style={s.photo} />)} />
+                style={s.photo} open={{ label: `Otvori fotografiju poruke na čekanju ${photoIndex + 1}`,
+                  onPress: () => openGallery({ outbox, context: { agreementId: entry.command.agreementId, messageId: entry.messageId },
+                    localId: entry.command.clientMessageId, photos: entry.command.photos!.assetIds.map(id => ({ assetId: id })), index: photoIndex }) }} />)} />
               : <TextBubble {...common} lines={[entry.command.body, entry.command.voice ? 'Glasovna poruka' : ''].filter(Boolean)} />}
             {entry.state === 'unknown' || failed ? <View style={s.pendingNote}>
               <T variant="meta" tone={failed ? 'danger' : 'muted'} style={s.rightText} accessibilityLiveRegion="polite">{MARK_WORDS[kind]}</T>
@@ -667,6 +698,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
       </View>}
       {photos && sheetOpen && !terminal ? <AgreementPhotoSheet photos={photos} capturing={state.capturing}
         onClose={() => setSheetOpen(false)} onShowSaved={() => setSavedOpen(true)} /> : null}
+      {visibleGallery ? <FocusedMessageGallery title="Fotografije iz poruke" context={visibleGallery.context}
+        photos={visibleGallery.photos} index={visibleGallery.index} onClose={closeGallery}
+        onIndex={index => { if (galleryCurrent(visibleGallery)) setGallery({ ...visibleGallery, index }); }} /> : null}
     </View>
   );
 }

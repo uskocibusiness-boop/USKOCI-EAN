@@ -185,3 +185,15 @@ it('retires image-open callbacks when the parent action, account or focus change
   mockFocused = false; await update({ open: replacement });
   await act(async () => currentPress()); expect(replacement.onPress).not.toHaveBeenCalled();
 });
+
+
+it('the actual loaded-photo press owns long-press support and retires it with its authorization',async()=>{
+ const open={label:'Otvori fotografiju',onPress:jest.fn(),onLongPress:jest.fn()};await render({open});
+ const hold=host('Press')[0].props.onLongPress;await act(async()=>hold());
+ expect(open.onLongPress).toHaveBeenCalledTimes(1);expect(open.onPress).not.toHaveBeenCalled();
+ mockSession={...mockSession,accountRevision:2};await act(async()=>hold());expect(open.onLongPress).toHaveBeenCalledTimes(1);
+ await update({open});const nextHold=host('Press')[0].props.onLongPress;
+ await act(async()=>host('NativeImage')[0].props.onError({error:'decode'}));
+ await act(async()=>nextHold());expect(open.onLongPress).toHaveBeenCalledTimes(1);
+ expect(host('Press')[0].props.onLongPress).toBeUndefined();
+});

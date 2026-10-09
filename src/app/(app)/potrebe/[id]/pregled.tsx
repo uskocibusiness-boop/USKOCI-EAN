@@ -307,8 +307,8 @@ function OwnedNeed({ id }: { id: string }) {
   // Answering and the whole thread of questions are one screen with its own journal and recovery; the section opens it by the
   // same route the link it replaced used, through this screen's own fence like every other way out of it. `own` says whose
   // task this is, so that the arrow with nothing behind it comes back here.
-  const openQuestions = () => {
-    if (potreba && canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1' } }));
+  const openQuestions = (questionId?: string) => {
+    if (potreba && canAct()) navigate(() => router.push({ pathname: '/pitanja-zadatka', params: { needId: potreba.id, own: '1', ...(questionId ? { questionId } : {}) } }));
   };
 
   return <><NeedPresentation key={`${potreba?.id ?? id}:${potreba?.revizija ?? ''}`} need={potreba} loading={ucitava}
@@ -321,7 +321,7 @@ function OwnedNeed({ id }: { id: string }) {
     // Reading, and "Još nema pitanja." on one's own task (nobody can ask the owner anything else), would be a heading over nothing (owner, 8 Oct 2026).
     qaAction={potreba && publicNeedId && (questions.state.phase === 'error' || (questions.state.phase === 'ready' && (questions.state.shown.length > 0 || questions.state.olderVersion)))
       ? <TaskQaInline key={`${accountId}:${accountRevision}:${potreba.id}`} state={questions.state}
-        disabled={!canAct()} onRetry={questions.retry} onAsk={openQuestions} onAnswer={openQuestions} onOpenAll={openQuestions} /> : undefined}
+        disabled={!canAct()} onRetry={questions.retry} onAsk={() => openQuestions()} onAnswer={openQuestions} onOpenAll={() => openQuestions()} /> : undefined}
     lifecycleActions={uuid(id) ? <>
       <UrgentActivationActions control={urgent} />
       <NeedLifecycleActions need={potreba} needId={id} menu={lifecycleMenu}

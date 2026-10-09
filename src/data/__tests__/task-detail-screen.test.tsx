@@ -473,6 +473,6 @@ describe('the questions of the task, drawn on it', () => {
     mockQuestions = ownerSees([waiting(1)]);
     mockRelations.mockImplementation(relatesAs(owner('task-a'))); mockLoad.mockResolvedValue(detail()); await render();
     await act(async () => press('Odgovori na pitanje: Pitanje 1?')[0].props.onPress());
-    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: 'task-a', own: '1' } }]]);
+    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: 'task-a', own: '1', questionId: waiting(1).questionId } }]]);
   });
 });

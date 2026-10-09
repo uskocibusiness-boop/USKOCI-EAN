@@ -262,6 +262,14 @@ export function useTaskPhotoUploads(conversationId: string | null) {
   // A photo still being processed is checked again by itself: every 3 s for up to a minute, only while this visit is in
   // front (not in the background), and never on top of another command.
   const processing = recovered && (list.some(asset => !settledState(asset.state)) || processingPending);
+  // Forward navigation must not abandon a picked batch. Back remains available with its existing recovery journal.
+  const continueReason = !conversationId ? null : busy ? working === 'PICK' || working === 'RETRY' ? 'Sačekaj da se pošalju izabrane fotografije.' : 'Proveravamo fotografije…'
+    : !recovered ? 'Prvo učitaj fotografije.' : unconfirmed ? 'Proveri ili otkaži nepotvrđeno slanje.'
+      : queued.length || sending ? 'Sačekaj da se pošalju izabrane fotografije.'
+      : processing ? 'Fotografije se još obrađuju.' : list.some(asset => asset.state === 'FAILED')
+        ? 'Ukloni fotografiju koja nije obrađena ili je pošalji ponovo.' : null;
+  const latestContinueReason = useRef(continueReason); latestContinueReason.current = continueReason;
+  const canContinue = () => current() && !operation.current && !pending.current && !queue.current.length && !latestContinueReason.current;
   const quiet = useRef<() => Promise<boolean>>(async () => false);
   quiet.current = async () => {
     if (!current() || operation.current) return false;
@@ -314,7 +322,7 @@ export function useTaskPhotoUploads(conversationId: string | null) {
     loaded: recovered, sending: !!sending, batch,
     /** Before a conversation exists there is nothing to read: adding is open, and the first pick opens it. */
     canAdd: !conversationId || (!busy && recovered && !unconfirmed && !queued.length && !full),
-    addReason,
+    addReason, continueReason, canContinue,
     /** The read failed and nothing else explains the screen. */
     readError: !busy && !recovered && !!message && !!conversationId && !permissionDenied && !unconfirmed,
     /** A photo is still processing after the bounded checks: the person checks by hand. */

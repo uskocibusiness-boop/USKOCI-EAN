@@ -483,6 +483,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,
       onKeepText: keepTranscript } : undefined}
     canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}
+    reviewDisabledReason={writable ? photos.continueReason : null}
     reviewLabel={stanje.review.boundNeedId ? 'Pregledaj izmene' : 'Pregledaj zadatak'}
     showReadback={!sending && !!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}
     readbackDisabled={radi || editor.loading}
@@ -501,7 +502,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       draftRevision.current += 1; draftText.current = value; setUnos(value);
     } }}
     onReview={() => {
-      if (!canAct() || !razgovorId || request.current) return;
+      if (!canAct() || !razgovorId || request.current || (writable && !photos.canContinue())) return;
       const handoff = rememberIntakeReviewReturn({ accountId: accountId!, accountRevision }, razgovorId,
         { ...(resumeId ? { conversationId: resumeId } : {}), ...(entryKey ? { entryKey } : {}) });
       if (!handoff) return;

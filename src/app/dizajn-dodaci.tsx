@@ -105,7 +105,7 @@ const group = (state: Partial<GroupState>): GroupState => ({ phase: 'READY', con
 const PHOTOS = { agreementId: AGREEMENT, loaded: true, busy: false, ready: false, hasSelection: true, available: false, selected: [], versionConflict: false,
   items: [{ ref: { agreementId: AGREEMENT, agreementVersion: 3, clientRequestId: 'galerija-1' }, receipt: null }],
   saved: [{ clientRequestId: 'galerija-2', photo: { width: 1600, height: 1200 } }], message: null,
-  canSubmit: () => false, capture: () => null, refresh: later, pick: later, retry: later, remove: later, restore: later, reserved: () => false, canRetry: () => true,
+  canSubmit: () => false, capture: () => null, refresh: later, pick: later, retry: later, remove: later, restore: later, preview: () => undefined, reserved: () => false, canRetry: () => true,
 } as unknown as AgreementPhotosController;
 
 type SceneKey = 'qa-public' | 'qa-owner' | 'qa-answer' | 'qa-empty' | 'qa-loading' | 'qa-error' | 'qa-closed' | 'qa-recovery'

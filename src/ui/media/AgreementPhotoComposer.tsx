@@ -52,9 +52,9 @@ function tileOf(photos: AgreementPhotosController, item: Item, index: number, di
   const reserved = photos.reserved(item), receipt = item.receipt;
   const state: AttachTileState = receipt?.state === 'READY' && receipt.photo ? { kind: 'READY', assetId: receipt.photo.assetId }
     : reserved ? { kind: 'RESERVED' } : receipt?.state === 'PROCESSING' || receipt?.state === 'STAGED' ? { kind: 'PROCESSING' }
-      : receipt?.state === 'FAILED' ? { kind: 'FAILED' } : { kind: 'UNCONFIRMED' };
-  const retry = !reserved && photos.canRetry(item.ref.clientRequestId) && receipt?.state !== 'READY';
-  return { key: item.ref.clientRequestId, state,
+      : receipt?.state === 'FAILED' ? { kind: 'FAILED' } : photos.sending === item.ref.clientRequestId ? { kind: 'SENDING' } : { kind: 'UNCONFIRMED' };
+  const retry = !reserved && !photos.busy && photos.canRetry(item.ref.clientRequestId) && (!receipt || receipt.state === 'ABSENT');
+  return { key: item.ref.clientRequestId, state, preview: photos.preview(item.ref.clientRequestId),
     onRemove: reserved ? undefined : () => ask(removalRequest('AGREEMENT', () => photos.remove(item.ref))),
     removeLabel: `Ukloni pripremljenu fotografiju ${index + 1}`, removeDisabled: disabled,
     onRetry: retry ? () => { void photos.retry(item.ref); } : undefined, retryDisabled: disabled };
@@ -78,7 +78,7 @@ export function AgreementPhotoComposer({ photos, capturing, showSaved = false, o
   const why = agreementPhotoReason(photos, capturing);
   const reserved = photos.items.some(item => photos.reserved(item));
   const absent = photos.items.some(item => !photos.reserved(item) && item.receipt?.state === 'ABSENT');
-  const unknown = photos.items.some(item => !photos.reserved(item) && !item.receipt);
+  const unknown = photos.items.some(item => !photos.reserved(item) && !item.receipt && photos.sending !== item.ref.clientRequestId);
   const uncertain = absent || unknown || !photos.loaded;
   return <View style={s.tray}>
     {tiles.length ? <PhotoAttachStrip testID="agreement-photo-strip" tiles={tiles} context={{ agreementId: photos.agreementId }}

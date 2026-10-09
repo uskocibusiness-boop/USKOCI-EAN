@@ -59,3 +59,8 @@ DOKAZAO: pre izolacije novi guard daje 52 FAIL / 62 PASS; posle izolacije šest 
 NIJE DOKAZANO: puna udaljena regresija korigovanih testova, native CodeQL pokrivenost, GitHub settings, novi uređaj/store prolaz. Computer Use inventar sada vidi pokrenuti Chrome; to nije uklanjanje sačuvane zabrane github.com niti dokaz izmene njegovih podešavanja.
 
 SLEDEĆE: objaviti korekciju na obe grane, ponoviti punu regresiju i zabeležiti stvaran rezultat. Postojeći NO-GO ostaje.
+
+
+## Naknadni CI readback — 10.10.
+
+Puna OTA source regresija 37996116134 na 7f1f540806bfb41ac86b0dd071068c00f12631f3 završena SUCCESS. Android build 37994636884 na 5ed01f6e završen SUCCESS. Raniji FAIL ostaje istorijski dokaz; novi uspeh ne dokazuje native CodeQL, podešavanja, instalaciju ili store spremnost.

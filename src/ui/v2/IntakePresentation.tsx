@@ -111,6 +111,7 @@ type Props = {
   turnRoles?: Readonly<Record<string, IntakeTurnRole>>;
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
+  reviewDisabledReason?: string | null;
   /** Separate route authority from the temporary speech/semantic interaction lock. */
   locationDisabled?: boolean;
   locationDialogueEnabled?: boolean;
@@ -191,10 +192,11 @@ const stickerWords = (kind: DraftSticker, summary: Summary): string => kind === 
  * already landed (the presentation keeps it, so moving the card from the top to the end of the thread never lands them again); without it
  * nothing moves.
  */
-export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewLabel = 'Pregledaj zadatak',
+export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewDisabledReason, reviewLabel = 'Pregledaj zadatak',
   editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, ended = false, appear }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
+  reviewDisabledReason?: string | null;
   /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
   reviewLabel?: string;
   /** The conversation changes a task that already exists: the card says it to a screen reader, never over the name. */
@@ -239,6 +241,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
         </View>))}
       </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
+    {reviewDisabledReason ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">{reviewDisabledReason}</T> : null}
     {!locationEditing && next ? <T variant="note" tone="muted">{next}</T> : null}
     {readyForReview ? <V2Action label={reviewLabel} style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} />
       : !locationEditing && !ended ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
@@ -352,7 +355,8 @@ export function IntakePresentation(props: Props) {
     ordered.placement ? ordered.placement.after : conversation.messages.at(-1)?.id ?? null, askSeen.current, !!ordered.placement) : null;
   const contextualReply = !!props.locationDialogueEnabled && askOpen && !!promptToken && !placeDisabled;
   const send = () => { if (!editingPlaceNow.current || contextualReply) props.onSend(); };
-  const reviewAllowed = props.canReview && !editingPlace;
+  const reviewContentReady = props.canReview && !editingPlace;
+  const reviewAllowed = reviewContentReady && !props.reviewDisabledReason;
   // What is still missing, counted where the person is, including the map point (the server's required list cannot
   // contain it, because the AI is not allowed to propose it). A required fact the AI has already proposed is not listed:
   // confirming what it proposed is the review screen's job, and the card's heading already shows it.
@@ -367,7 +371,7 @@ export function IntakePresentation(props: Props) {
   const stillNeededText = !stillNeeded.length ? null : stillNeeded.length <= 3 ? stillNeeded.join(' · ')
     : `${stillNeeded.slice(0, 3).join(' · ')} · i još ${stillNeeded.length - 3}`;
   const completeProposal = completeDraftProposal(conversation.facts) && !!place && gap.done === gap.total;
-  const readyForReview = completeProposal && open && reviewAllowed && conversation.safety !== 'BLOCK'
+  const readyForReview = completeProposal && open && reviewContentReady && conversation.safety !== 'BLOCK'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   const showSummary = readyForReview || (completed && completeProposal && conversation.safety !== 'BLOCK' && !busy && !pending && !props.error);
   // Current facts belong in the live card and the explicit full review. Decorating
@@ -457,7 +461,7 @@ export function IntakePresentation(props: Props) {
     // Partial and abandoned drafts remain reachable through the existing review menu, never a premature card.
     card={compact => !showSummary ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
-      onReview={outsidePlace(props.onReview)} note={note} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
+      onReview={outsidePlace(props.onReview)} note={note} reviewDisabledReason={props.reviewDisabledReason} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended} appear={landed} />}
     actions={(!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>

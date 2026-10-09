@@ -103,3 +103,19 @@ it('keeps photo selection and Send fenced during an in-flight picker and on loca
   await act(async () => { resolve(prepared); await pending; }); expect(mockUpload).not.toHaveBeenCalled(); expect(photos.loaded).toBe(false);
   expect(photos.canSubmit()).toBe(false); expect(photos.message).not.toContain('disk details');
 });
+
+
+it('previews only journaled bytes while sending, blocks capture, clears progress on success and drops pixels on blur',async()=>{
+ let done!:(v:unknown)=>void;mockUpload.mockReturnValue(new Promise(resolve=>{done=resolve;}));
+ mockPick.mockImplementation(async(_source,_valid,onPreparing)=>{onPreparing();return prepared;});
+ await render();const retainedSubmit=photos.canSubmit;let pending!:Promise<void>;
+ await act(async()=>{pending=photos.pick('LIBRARY');});
+ expect(stored()).toEqual([ref]);expect(photos.preview(rid)).toBe(prepared.bytes);
+ expect(photos.sending).toBe(rid);expect(photos.items).toEqual([{ref,receipt:null}]);
+ expect(photos.capture()).toBeNull();expect(retainedSubmit()).toBe(false);
+ await act(async()=>{done({ok:true,podatak:ready});await pending;});
+ expect(photos.message).toBeNull();expect(photos.sending).toBeNull();expect(photos.capture()?.assetIds).toEqual([asset]);
+ const preview=photos.preview;mockRevision++;expect(preview(rid)).toBeUndefined();mockRevision--;
+ mockFocused=false;await act(async()=>tree.update(<Harness/>));expect(preview(rid)).toBeUndefined();
+ mockFocused=true;await act(async()=>tree.update(<Harness/>));expect(photos.preview(rid)).toBeUndefined();
+});

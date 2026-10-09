@@ -1681,3 +1681,18 @@ describe('adding photos inside the conversation', () => {
     expect(recovery.props.alternative).toBe('Galerija');
   });
 });
+
+
+it('keeps the complete card and safety warning while a photo blocks review, including a retained review callback',async()=>{
+ mockLoad.mockResolvedValue(conversation({facts:completeFacts(),safety:'REVIEW'}));await resume();
+ const card=()=>tree.root.findByProps({testID:'intake-task-summary'});
+ const safetyText=card().findAllByProps({variant:'note'}).map(node=>node.props.children).filter(child=>typeof child==='string').join(' ');
+ const review=card().findByProps({label:'Pregledaj zadatak'}).props.onPress;
+ let done!:(v:unknown)=>void;mockPickPhotos.mockReturnValue(new Promise(resolve=>{done=resolve;}));
+ await act(async()=>plus().onPress());await act(async()=>tree.root.findByType(PhotoAttachSheet).props.onPick('LIBRARY'));
+ expect(card().findByProps({label:'Pregledaj zadatak'}).props.disabled).toBe(true);
+ expect(text()).toContain(safetyText);expect(text()).toContain('Sačekaj da se pošalju izabrane fotografije.');
+ await act(async()=>review());expect(mockRouter.push).not.toHaveBeenCalled();
+ await act(async()=>done(null));expect(card().findByProps({label:'Pregledaj zadatak'}).props.disabled).toBe(false);
+ await act(async()=>card().findByProps({label:'Pregledaj zadatak'}).props.onPress());expect(mockRouter.push).toHaveBeenCalledTimes(1);
+});

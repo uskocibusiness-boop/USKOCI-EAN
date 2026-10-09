@@ -242,7 +242,7 @@ describe('round 6: the photo grid', () => {
     for (const label of ['Odustani od slanja', 'Proveri', 'Pošalji ponovo'])
       expect(tree.root.findAllByProps({ label }).length).toBeLessThanOrEqual(1);
     expect(JSON.stringify(tree.toJSON())).toContain('Ne znamo da li je poslato');
-    expect(footReason()).toBe('Prvo završi ili otkaži nepotvrđeno slanje.');
+    expect(footReason()).toBe('Proveri ili otkaži nepotvrđeno slanje.');
   });
   it('an unconfirmed send keeps the server-owned cancel when the photo list read also fails', async () => {
     mockRead.mockResolvedValueOnce(ok(listing())).mockResolvedValue({ ok: false, kod: 'MEDIA_READ_FAILED', poruka: 'Fotografije nisu učitane.' });
@@ -341,4 +341,19 @@ describe('2026-10-07: one sequence, the bounded check and the shared viewer', ()
     await act(async () => tree.root.findByType('Photo' as React.ElementType).props.open.onPress());
     expect(tree.root.findByType(PhotoViewer).props).toMatchObject({ photos: [{ assetId: READY_ID }], index: 0, title: 'Fotografije zadatka' });
   });
+});
+
+
+it('Done cannot abandon an active pick, an unknown batch or its unsent remainder, including a retained handler',async()=>{
+ const chosen=deferred();mockPick.mockReturnValueOnce(chosen.promise);await render();
+ const done=action('Gotovo').onPress;
+ await choose();await act(async()=>done());expect(mockBack).not.toHaveBeenCalled();
+ await act(async()=>chosen.resolve(selection(photo,photo)));
+ expect(action('Gotovo').disabled).toBe(true);expect(footReason()).toBe('Proveri ili otkaži nepotvrđeno slanje.');
+ await act(async()=>done());expect(mockBack).not.toHaveBeenCalled();
+});
+it('Done returns once after a settled read and rejects a stale account handler',async()=>{
+ await render();const done=action('Gotovo').onPress;mockSession={...mockSession,accountRevision:2};
+ await act(async()=>done());expect(mockBack).not.toHaveBeenCalled();mockSession={...mockSession,accountRevision:1};
+ await act(async()=>{done();done();});expect(mockBack).toHaveBeenCalledTimes(1);
 });

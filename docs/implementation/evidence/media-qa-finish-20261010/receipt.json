@@ -1,0 +1,45 @@
+{
+  "base": "e9f26856d2e1b25a885ce7e71c5b88c0f76c05ce",
+  "state": "SOURCE_TESTS_PASS_NATIVE_PENDING",
+  "checks": [
+    {
+      "file": "media-qa-pass1.json",
+      "sha256": "be72ed5d5c9369c6bac30c13e15acb3d38a78a35adec25cbf6d6e77e492474c0",
+      "passed": 422,
+      "suites": 10,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "file": "media-qa-guards.json",
+      "sha256": "bd9fa0ac5147fac57fe87df9099478b73ead04f5050243531d60874b6132a663",
+      "passed": 75,
+      "suites": 7,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "file": "media-qa-layout.json",
+      "sha256": "2fe6fe0ac1722a8490a387475df341bc9ec8f88358e3650bcf4c783678ac8555",
+      "passed": 104,
+      "suites": 2,
+      "fail": 0,
+      "skip": 0
+    },
+    {
+      "file": "media-qa-longpress.json",
+      "sha256": "4c8e900be0be71a0fbd7d528ff93554fb2bee1e3d7c2aadd2b951d2218277b18",
+      "passed": 73,
+      "suites": 2,
+      "fail": 0,
+      "skip": 0
+    }
+  ],
+  "uniqueSuites": 19,
+  "uniqueTests": 602,
+  "serverChanges": false,
+  "store": "NO-GO",
+  "automation": "PAUSED",
+  "tscExit": 0,
+  "tscLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

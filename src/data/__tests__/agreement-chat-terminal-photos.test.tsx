@@ -33,7 +33,7 @@ beforeEach(() => {
   photos = { agreementId: agreement, loaded: true, busy: false, items: [{ ref, receipt }], saved: [], message: null,
     available: true, hasSelection: true, selected: [{ ref, receipt }], versionConflict: false, ready: true,
     capture: jest.fn(() => ({ agreementVersion: 2, assetIds: [asset] })), canSubmit: () => true,
-    reserved: () => false, canRetry: () => true, refresh: jest.fn().mockResolvedValue(undefined), pick: jest.fn().mockResolvedValue(undefined),
+    preview: () => undefined, reserved: () => false, canRetry: () => true, refresh: jest.fn().mockResolvedValue(undefined), pick: jest.fn().mockResolvedValue(undefined),
     retry: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(undefined), restore: jest.fn().mockResolvedValue(undefined) };
   props = { messages: [], loading: false, error: false, terminal: false, writable: true,
     refresh: jest.fn().mockResolvedValue(undefined), refreshWorkspace: jest.fn().mockResolvedValue(undefined),

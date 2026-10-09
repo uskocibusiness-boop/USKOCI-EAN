@@ -69,7 +69,7 @@ function Thread({ ready, disabled, now, onAsk, onAnswer, onOpenAll }: Pick<TaskQ
       <Row item={item} viewer={ready.viewer} canAnswer={ready.canAnswer} disabled={disabled} now={now} onAnswer={onAnswer} />
     </Fragment>)}</View>
       // A thread kept out because the task changed must not read as a task nobody asked about.
-      : <T variant="copy" tone="muted">{ready.olderVersion ? 'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.' : 'Još nema pitanja.'}</T>}
+      : <T variant="copy" tone="muted">{ready.olderVersion ? 'Zadatak je izmenjen. Ranija pitanja pripadaju starijoj verziji.' : ready.viewer === 'PUBLIC' ? 'Još nema objavljenih odgovora.' : 'Još nema pitanja.'}</T>}
     {ready.shown.length && ready.olderVersion ? <T variant="note" tone="muted">Neka ranija pitanja pripadaju starijoj verziji zadatka.</T> : null}
     {ready.all > ready.shown.length ? <Press accessibilityRole="button" accessibilityLabel={`Prikaži sva pitanja (${ready.all})`}
       accessibilityState={{ disabled }} disabled={disabled} onPress={onOpenAll} haptic="select" scaleTo={sys.motion.scale.row} style={s.more}>
@@ -96,6 +96,8 @@ function Row({ item, viewer, canAnswer, disabled, now, onAnswer }: {
         <T variant="meta" tone="muted" accessibilityLabel={spoken(by)}>{by}</T>
         <T>{item.answer}</T>
       </View>
+      {viewer === 'OWNER' && canAnswer ? <V2Action label="Izmeni odgovor" accessibilityLabel={`Izmeni odgovor na pitanje: ${shorten(item.question)}`}
+        kind="secondary" tone="neutral" compact disabled={disabled} onPress={() => onAnswer(item.questionId)} style={s.link} /> : null}
     </View>;
   }
   const asked = item.askedAt ? starost(item.askedAt, { sada: now }) : null;

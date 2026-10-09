@@ -49,9 +49,11 @@ function TaskPhotosEditor({ conversationId }: { conversationId: string | null })
   const { openFor, viewer } = usePhotoViewer(tiles, {}, 'Fotografije zadatka');
   const addDisabled = !conversationId || !photos.canAdd;
   // Nothing can be added to a draft that cannot be read, and there is no draft to add to without a conversation.
-  const footer = !conversationId || photos.readError ? null : <FlowFooter reason={photos.addReason ?? undefined}>
-    <V2Action label={PHOTO_WORDS.add} style={brandAction} loading={photos.working === 'PICK'} disabled={addDisabled}
+  const footer = !conversationId || photos.readError ? null : <FlowFooter reason={photos.continueReason ?? photos.addReason ?? undefined}>
+    <V2Action label={PHOTO_WORDS.add} kind="secondary" tone="neutral" loading={photos.working === 'PICK'} disabled={addDisabled}
       onPress={() => { if (!addDisabled) setChoosing(true); }} />
+    <V2Action label="Gotovo" style={brandAction} disabled={!!photos.continueReason}
+      onPress={() => { if (photos.canContinue()) back(); }} />
   </FlowFooter>;
   return <Screen kind="detail" header={<DetailTopBar title="Fotografije zadatka" onBack={back} />} footer={footer}>
     {!conversationId ? <StateView kind="error" art="photo" title="Fotografije nisu dostupne" body="Otvori fotografije iz razgovora o zadatku." />

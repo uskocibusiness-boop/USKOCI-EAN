@@ -40,7 +40,7 @@ let tree:ReactTestRenderer;
 // and heard by, on the outermost element that carries it.
 const button=(label:string)=>tree.root.findAll(n=>typeof n.type!=='string'&&(n.props.label===label||n.props.accessibilityLabel===label))[0];
 const allText=()=>tree.root.findAll(n=>typeof n.type==='string').flatMap(n=>n.children.filter(c=>typeof c==='string')).join(' ');
-async function render(onBack=jest.fn(),needId:string|null=N){await act(async()=>{tree=create(<TaskQaScreen needId={needId} onBack={onBack}/>);});}
+async function render(onBack=jest.fn(),needId:string|null=N,initialQuestionId?:string){await act(async()=>{tree=create(<TaskQaScreen needId={needId} onBack={onBack} initialQuestionId={initialQuestionId}/>);});}
 async function type(value:string,label='Tekst pitanja'){await act(async()=>tree.root.findByProps({accessibilityLabel:label}).props.onChangeText(value));}
 beforeEach(()=>{jest.clearAllMocks();mockOwner={user:{id:A},accountRevision:1};mockContext.mockResolvedValue(ok(context()));mockRead.mockResolvedValue(ok({found:false,command:null}));mockPublicFeed.mockResolvedValue(ok([]));mockOwnerFeed.mockResolvedValue(ok([]));mockLoad.mockResolvedValue(null);mockSave.mockResolvedValue(undefined);mockClear.mockResolvedValue(undefined);mockAiSubmit.mockResolvedValue({ok:false,kod:'QA_CLASSIFICATION_UNCONFIRMED',poruka:'Ishod nije potvrđen.'});mockAiRecover.mockResolvedValue(ok(absent()));mockAiCancel.mockResolvedValue(ok(status({state:'CANCELLED',canCancel:false})));});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
@@ -214,4 +214,47 @@ it('the invalid task error still has a working one-shot Back without reading or 
  const back=jest.fn();await render(back,null);expect(allText()).toContain('Ponovo otvori zadatak');
  const leave=tree.root.findByType(TaskQaPresentation).props.onBack;await act(async()=>{leave();leave();});
  expect(back).toHaveBeenCalledTimes(1);expect(mockLoad).not.toHaveBeenCalled();expect(mockContext).not.toHaveBeenCalled();expect(mockAiSubmit).not.toHaveBeenCalled();
+});
+
+
+describe('exact question selected from the task',()=>{
+ const q={questionId:mockKey,needRevision:2,questionText:'Da li ima lift?',status:'ANSWERED_PUBLIC',createdAt:'2026-10-09T10:00:00Z',answerVersion:1,answerText:'Ima lift.',edited:false};
+ const owner=()=>{mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:true,answerMaxChars:1000})));mockOwnerFeed.mockResolvedValue(ok([q]));};
+ const shown=()=>tree.root.findByType(TaskQaPresentation).props;
+ it('prefills the chosen answer, preserves changes across refresh/refocus and never reopens after closing',async()=>{
+  owner();await render(jest.fn(),N,mockKey);
+  expect(shown().composer?.answeringId).toBe(mockKey);expect(shown().text).toBe('Ima lift.');
+  await act(async()=>shown().onText('Lift je mali.'));
+  await act(async()=>shown().onRefresh());expect(shown().text).toBe('Lift je mali.');
+  await act(async()=>mockBlur());await act(async()=>mockFocus());expect(shown().text).toBe('Lift je mali.');
+  await act(async()=>shown().onCloseAnswer());await act(async()=>shown().onRefresh());
+  expect(shown().composer).toBeNull();expect(mockAiSubmit).not.toHaveBeenCalled();expect(mockAnswer).not.toHaveBeenCalled();
+ });
+ it('opens an empty answer for a pending question and retries the initial read without losing that intent',async()=>{
+  owner();mockOwnerFeed.mockResolvedValue(ok([{...q,status:'PENDING_ANSWER',answerText:null,answerVersion:null}]));
+  mockContext.mockResolvedValueOnce({ok:false,poruka:'Veza nije dostupna.'});
+  await render(jest.fn(),N,mockKey);expect(shown().composer).toBeNull();
+  await act(async()=>shown().onRefresh());expect(shown().composer?.answeringId).toBe(mockKey);expect(shown().text).toBe('');
+ });
+ it.each(['PUBLIC','DENIED','OLD','IGNORED','REPORTED','MISSING'])('never selects a %s target',async(kind)=>{
+  owner();if(kind==='PUBLIC'){mockContext.mockResolvedValue(ok(context()));mockPublicFeed.mockResolvedValue(ok([{...q,answeredAt:'2026-10-09T10:00:00Z'}]));}
+  if(kind==='DENIED')mockContext.mockResolvedValue(ok(context({mode:'OWNER',canComposeAnswer:false})));
+  if(kind==='OLD')mockOwnerFeed.mockResolvedValue(ok([{...q,needRevision:1}]));
+  if(kind==='IGNORED'||kind==='REPORTED')mockOwnerFeed.mockResolvedValue(ok([{...q,status:kind}]));
+  await render(jest.fn(),N,kind==='MISSING'?N:mockKey);
+  expect(shown().composer).toBeNull();expect(mockAiSubmit).not.toHaveBeenCalled();
+ });
+ it.each(['PROCESSING','COMMITTED'])('recovered %s command takes priority even if recovery finishes it',async(state)=>{
+  owner();mockLoad.mockResolvedValue({...pending(),type:'ANSWER',questionId:mockKey});
+  mockAiRecover.mockResolvedValue(ok(status({type:'ANSWER',questionId:mockKey,state,
+   receipt:state==='COMMITTED'?{questionId:mockKey,status:'ANSWERED_PUBLIC',needRevision:2,answerVersion:2,edited:true}:null})));
+  await render(jest.fn(),N,mockKey);expect(shown().composer).toBeNull();expect(mockAiSubmit).not.toHaveBeenCalled();
+  if(state==='COMMITTED')expect(mockClear).toHaveBeenCalled();
+ });
+ it.each(['blur','account'])('a delayed owner read cannot select after %s changes',async(change)=>{
+  owner();let done!:(v:unknown)=>void;mockOwnerFeed.mockReturnValue(new Promise(resolve=>{done=resolve;}));
+  await render(jest.fn(),N,mockKey);
+  if(change==='blur')await act(async()=>mockBlur());else mockOwner={user:{id:A},accountRevision:2};
+  await act(async()=>done(ok([q])));expect(shown().composer).toBeNull();expect(mockAiSubmit).not.toHaveBeenCalled();
+ });
 });

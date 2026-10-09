@@ -15,7 +15,7 @@ import {TaskQaPresentation,type Question} from './TaskQaPresentation';
 // failure. An absent read alone is not evidence that a write was rejected.
 const rejected=new Set(['RU4B_BLOCK_AUTHORITY_NOT_READY','RU4B_RATE_POLICY_NOT_READY','PRESELECTION_QA_POLICY_NOT_READY','RU4B_MATERIALITY_NOT_READY','EMPTY_CONTENT','QUESTION_REQUIRED','ANSWER_REQUIRED','EMAIL_NOT_PUBLIC','PHONE_NOT_PUBLIC','OFF_PLATFORM_LINK_NOT_PUBLIC','SOCIAL_HANDLE_NOT_PUBLIC','STALE_NEED_REVISION','QUESTION_STALE_AFTER_NEED_REVISION','NEED_NOT_FOUND','NEED_NOT_PUBLIC','REQUESTER_CANNOT_ASK_OWN_TASK','ACTIVE_WORKER_REQUIRED','RU4B_MATERIAL_REQUIRES_RU4_EDIT','QUESTION_NOT_FOUND','QUESTION_NOT_ANSWERABLE','QUESTION_NOT_PENDING','NOT_NEED_OWNER','RU4B_DISPOSITION_INVALID']);
 
-export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null;onBack:()=>void;
+export function TaskQaScreen({needId,onBack,onWorkerProfile,initialQuestionId}:{needId:string|null;onBack:()=>void;initialQuestionId?:string;
   /** Where the route sends someone whose Radni profil is not active yet; without it the notice is a sentence alone. */
   onWorkerProfile?:()=>void}) {
   const session=useSesija(),accountId=session.user?.id,accountRevision=session.accountRevision;
@@ -27,13 +27,14 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
   const [intent,setIntent]=useState<QaIntent|null>(null),[absent,setAbsent]=useState(false);
   const [classification,setClassification]=useState<QaSubmissionStatus|null>(null),[material,setMaterial]=useState(false);
   const [target,setTarget]=useState<OwnerPreselectionQuestion|null>(null),[text,setText]=useState('');
+  const initialSelectionUsed=useRef(false);
   const [busy,setBusy]=useState(true),[message,setMessage]=useState(''),[messageTone,setMessageTone]=useState<'danger'|'info'>('danger'),[receipt,setReceipt]=useState('');
   // Only a real problem is red: a fact about the thread (a version filter, a checked text, a send still being checked) is said plainly.
   const say=(text:string,tone:'danger'|'info'='danger')=>{setMessage(text);setMessageTone(tone);};
   const ownsVisit=(token:object|null)=>!!token&&token===focus.current&&!leaving.current&&active.current&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;
   const live=(token:object|null)=>ownsVisit(token)&&!!needId&&!!accountId;
 
-  async function readFeed(token:object) {
+  async function readFeed(token:object,allowInitialSelection=false) {
     viewGeneration.current++;
     const result=await qaRecoveryClientService.context(needId!,account);
     if(!live(token))return;
@@ -42,6 +43,14 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     const feed=c.mode==='OWNER'?await qa.ownerQuestions(needId!):await qa.publicQa(needId!);
     if(!live(token))return;
     if(!feed.ok){setContext(null);setRows([]);say(feed.poruka);return;}
+    if(!initialSelectionUsed.current) {
+      initialSelectionUsed.current=true;
+      if(allowInitialSelection&&initialQuestionId&&c.mode==='OWNER'&&c.canComposeAnswer) {
+        const selected=feed.podatak.find((q):q is OwnerPreselectionQuestion=>'status' in q&&q.questionId===initialQuestionId&&q.needRevision===c.needRevision
+          &&(q.status==='PENDING_ANSWER'||q.status==='ANSWERED_PUBLIC'));
+        if(selected){setTarget(selected);setText(selected.answerText??'');}
+      }
+    }
     if(c.mode==='PUBLIC'&&feed.podatak.some(q=>q.needRevision!==c.needRevision)) {
       // One answer belonging to an older revision used to blank the whole public feed: every
       // question and every answer vanished, including the asker's own, with a message offering no
@@ -106,7 +115,7 @@ export function TaskQaScreen({needId,onBack,onWorkerProfile}:{needId:string|null
     if(!live(token))return;
     setIntent(saved);setAbsent(false);
     if(saved)await readIntent(saved,token);
-    if(live(token))await readFeed(token);
+    if(live(token))await readFeed(token,!saved);
   }
   async function run(work:(token:object)=>Promise<void>,token=visit) {
     if(!live(token)||lock.current)return;

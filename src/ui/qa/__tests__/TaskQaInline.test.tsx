@@ -84,7 +84,7 @@ describe('before and without anything to show', () => {
 
   it('an empty thread is "Još nema pitanja." and a stranger who may ask can ask', async () => {
     const on = await render(asStranger([]));
-    expect(texts()).toContain('Još nema pitanja.');
+    expect(texts()).toContain('Još nema objavljenih odgovora.');
     expect(joined()).not.toMatch(/odgovorena|Prikaži sva pitanja/);
     await act(async () => byLabel('Postavi pitanje')!.props.onPress());
     expect(on.onAsk).toHaveBeenCalledTimes(1);
@@ -92,7 +92,7 @@ describe('before and without anything to show', () => {
 
   it('a stranger who may not ask is not offered to; the rule and its notice stay in the whole thread', async () => {
     await render(asStranger([], { canAsk: false }));
-    expect(texts()).toContain('Još nema pitanja.');
+    expect(texts()).toContain('Još nema objavljenih odgovora.');
     expect(byLabel('Postavi pitanje')).toBeUndefined();
     expect(joined()).not.toMatch(/Radni profil/);
   });
@@ -291,4 +291,13 @@ describe('the questions are parted by the one line of the system', () => {
     await render(asStranger([answeredPublic(1)]));
     expect(joined()).toContain('Odgovor osobe koja je objavila zadatak'); expect(joined()).not.toContain('Odgovorio');
   });
+});
+
+
+it('one answered question still offers its owner a direct edit, without exposing it to a stranger',async()=>{
+ const on=await render(asOwner([answeredOwner(1)]));
+ await act(async()=>byLabel('Izmeni odgovor na pitanje: Pitanje 1?')!.props.onPress());
+ expect(on.onAnswer).toHaveBeenCalledWith(id(1));expect(on.onOpenAll).not.toHaveBeenCalled();
+ await act(async()=>tree.unmount());await render(asStranger([answeredPublic(1)]));
+ expect(byLabel('Izmeni odgovor na pitanje: Pitanje 1?')).toBeUndefined();
 });

@@ -18,7 +18,7 @@ type PhotoState = { attempt: PhotoAttempt; uri: string | null } | null;
 
 export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId?: string; caseId?: string; agreementId?: string; messageId?: string; label: string; style?: StyleProp<ViewStyle>; contentFit?: 'contain' | 'cover';
   /** Only a loaded image can open its viewer; failure recovery stays a separate target. */
-  open?: { label: string; hint?: string; onPress: () => void };
+  open?: { label: string; hint?: string; onPress: () => void; onLongPress?: () => void };
   /** Optional decorative identity while authorization/image data is pending; never a retained photo. */ pending?: ReactNode;
   /** Drawn instead of the failure sentence when the photo cannot be read, e.g. initials in a small avatar. */ unavailable?: ReactNode;
   /** The signed-in person's OWN photograph: it is remembered in memory for a while (`ownPhotoCache`) and drawn at once when the screen is entered again,
@@ -89,6 +89,7 @@ export function AuthorizedPhoto(p: { assetId: string; needId?: string; profileId
     justifyContent: 'center', alignItems: 'center' }, p.style]}>
     {image ? p.open ? <Press accessibilityRole="button" accessibilityLabel={p.open.label} accessibilityHint={p.open.hint}
       onPress={() => { if (shown && current(shown.attempt) && shown.attempt.phase === 'image' && opening.current === p.open) p.open?.onPress(); }}
+      onLongPress={p.open.onLongPress ? () => { if (shown && current(shown.attempt) && shown.attempt.phase === 'image' && opening.current === p.open) p.open?.onLongPress?.(); } : undefined}
       scaleTo={1} style={{ width: '100%', height: '100%' }}>{image}</Press> : image
       // The entire failure frame is the target: a separate button below the old
       // multi-line notice would be clipped in the 96px prepared-photo thumbnail.

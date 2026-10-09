@@ -133,10 +133,10 @@ export default function PrilikaDetaljiEkran() {
   // Asking, answering and the whole thread are one screen with its own journal and recovery. The section opens it by the
   // same route the link it replaced used, once, and never from a press kept from before this screen read its task again.
   // Whose task it is comes with the link: the server's own answer (the owner's thread or the public one), never a mode.
-  function openQuestions() {
+  function openQuestions(questionId?: string) {
     if (!fresh || resource.data?.request !== readRequest.current || !currentScope()) return;
     const own = questions.state.phase === 'ready' && questions.state.viewer === 'OWNER' ? '1' : '0';
-    navigate(() => router.navigate({ pathname: '/pitanja-zadatka', params: { needId: fresh.id, own } }));
+    navigate(() => router.navigate({ pathname: '/pitanja-zadatka', params: { needId: fresh.id, own, ...(questionId ? { questionId } : {}) } }));
   }
 
   // Owner decision 3 (2026-09-16): the requester's public profile is a sheet over the
@@ -176,7 +176,7 @@ export default function PrilikaDetaljiEkran() {
 
   return <PublicNeedPresentation key={`${accountId}:${accountRevision}:${id}`}
     qa={fresh && !resource.loading && !resource.error && questions.state.phase !== 'idle' ? <TaskQaInline key={`${accountId}:${accountRevision}:${fresh.id}`} state={questions.state}
-      disabled={busy} onRetry={questions.retry} onAsk={openQuestions} onAnswer={openQuestions} onOpenAll={openQuestions} /> : undefined}
+      disabled={busy} onRetry={questions.retry} onAsk={() => openQuestions()} onAnswer={openQuestions} onOpenAll={() => openQuestions()} /> : undefined}
     photos={fresh && !resource.loading && !resource.error ? <NeedPhotos needId={fresh.id} /> : undefined}
     map={fresh && fresh.priblizno && !resource.loading && !resource.error
       ? <LocationMapPreview points={[{ id: 'area', label: 'Približno mesto', latitude: fresh.priblizno.lat, longitude: fresh.priblizno.lng }]} coarse height={184}

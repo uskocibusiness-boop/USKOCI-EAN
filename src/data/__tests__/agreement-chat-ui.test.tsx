@@ -13,6 +13,9 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoComposer: 'AgreementPhotoComposer', AgreementPhotoSheet: 'AgreementPhotoSheet' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
+jest.mock('../../ui/media/PhotoViewer', () => ({ PhotoViewer: 'PhotoViewer' }));
+let mockGalleryBlur:()=>void=()=>{};
+jest.mock('expo-router',()=>({useFocusEffect:(effect:()=>()=>void)=>require('react').useEffect(()=>{mockGalleryBlur=effect();return mockGalleryBlur;},[effect])}));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest.fn() }));
 import { tick } from '../../ui/system/haptics';
@@ -405,6 +408,7 @@ describe('D03 actual message component', () => {
     const photoHold = tree.root.findByType('AuthorizedPhoto' as React.ElementType).parent!;
     expect(photoHold.props.accessible).toBe(false); expect(photoHold.props.accessibilityLabel).toBeUndefined();
     expect(photoHold.props.onLongPress).toBe(held('Ti').props.onLongPress);
+    expect(tree.root.findByType('AuthorizedPhoto' as React.ElementType).props.open.onLongPress).toBe(held('Ti').props.onLongPress);
     // The support entry no longer stands under every message; it belongs to the one being held.
     await act(async () => held('Ti').props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
@@ -823,4 +827,43 @@ describe('a failed send ticks once', () => {
     // The first ready state is the baseline: a failed send from an earlier visit is not a failure that just happened.
     expect(ticks()).toEqual([]);
   });
+});
+
+
+describe('private message gallery',()=>{
+ const photo={assetId:'40000000-0000-4000-8000-000000000001',width:1600,height:900,byteSize:50,contentType:'image/jpeg' as const};
+ const read={id:'30000000-0000-4000-8000-000000000001',telo:'Ovde je kvar.',moja:false,posiljalacIme:'Milan',vremeTekst:'12:00',procitano:null,
+  fotografije:[photo,{...photo,assetId:'40000000-0000-4000-8000-000000000002'}]};
+ const photos={loaded:true,busy:false,ready:false,hasSelection:false,agreementId:agreement,canSubmit:()=>false} as any;
+ const galleries=()=>tree.root.findAllByType('PhotoViewer' as React.ElementType);
+ const images=()=>tree.root.findAllByType('AuthorizedPhoto' as React.ElementType);
+ it('opens the tapped photo with exact context, blocks queued read acknowledgments and resumes after close',async()=>{
+  const onDisplayedMessageIds=jest.fn();await render({messages:[read],photos,onDisplayedMessageIds});
+  const scroll=tree.root.findByProps({testID:'agreement-chat-history'});
+  await act(async()=>{
+   scroll.props.onLayout({nativeEvent:{layout:{height:300}}});scroll.props.onContentSizeChange(390,200);
+   tree.root.findByProps({testID:`agreement-message-row-${read.id}`}).props.onLayout({nativeEvent:{layout:{y:0}}});
+   tree.root.findByProps({testID:`agreement-message-bubble-${read.id}`}).props.onLayout({nativeEvent:{layout:{y:0,height:150}}});
+   images()[1].props.open.onPress();
+  });
+  expect(galleries()[0].props).toMatchObject({context:{agreementId:agreement,messageId:read.id},index:1,photos:read.fotografije});
+  await flushFrames();expect(onDisplayedMessageIds).not.toHaveBeenCalled();
+  await act(async()=>galleries()[0].props.onClose());await flushFrames();
+  expect(galleries()).toHaveLength(0);expect(onDisplayedMessageIds).toHaveBeenCalledWith([read.id]);
+ });
+ it.each(['assets','removed','outbox','blur'])('closes the gallery after %s changes and rejects a retained opener',async(change)=>{
+  await render({messages:[read],photos});const open=images()[0].props.open.onPress;await act(async()=>open());
+  if(change==='blur')await act(async()=>mockGalleryBlur());
+  else await act(async()=>tree.update(<AgreementChat {...props} photos={photos} messages={change==='removed'?[]:change==='assets'?[{...read,fotografije:[photo]}]:[read]}
+   outbox={change==='outbox'?{...outbox}:outbox}/>));
+  expect(galleries()).toHaveLength(0);
+  if(change!=='blur'){await act(async()=>open());expect(galleries()).toHaveLength(0);}
+ });
+ it('local prepared photos retain their command context and close when the confirmed message identity changes',async()=>{
+  const entry={command:{...command,photos:{agreementVersion:2,assetIds:[photo.assetId]}},state:'unknown' as const,persisted:true,attempt:1};
+  await render({photos,state:{...state,entries:[entry]}});await act(async()=>images()[0].props.open.onPress());
+  expect(galleries()[0].props.context).toEqual({agreementId:agreement,messageId:undefined});
+  await act(async()=>tree.update(<AgreementChat {...props} photos={photos} state={{...state,entries:[{...entry,state:'confirmed',messageId:read.id}]}}/>));
+  expect(galleries()).toHaveLength(0);
+ });
 });

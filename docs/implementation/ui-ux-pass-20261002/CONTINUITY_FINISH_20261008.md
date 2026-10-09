@@ -841,3 +841,14 @@ DOKAZAO: PRE-P4 obe grane i R20 na5ed PASS. CodeQL PASS samoJS/TS/Python/Actions
 NIJE DOKAZANO: nova puna udaljena regresija, završetak APK37994636884 (pri proveri IN_PROGRESS), native CodeQL, settings/uređaj/store. Computer Use inventar prepoznaje Chrome; saved-site-denial zaGitHub nije zaobiđen. NO-GO i automatizacijaPAUSED ostaju.
 
 SLEDEĆE: objava test korekcije i puna regresija, zatim postojeći Android paket i jedini registar. GitHub podešavanja nastaviti kad vlasnik ukloni sačuvanu zabranu sajta.
+
+
+## 10.10 — fotografije i pitanja, jedan objedinjeni paket
+
+URADIO: photo batch zadržava pregled dok ne stigne ishod; eksplicitno Gotovo; pripremljeni privatni chat foto preview, tačan full-screen viewer i read-ack zaštita; unutrašnji photo long-press za podršku. Inline odgovor/izmena vodi na tačno pitanje, sa journal recovery prioritetom. Root jedini pisac, tri read-only stručna pregleda.
+
+DOKAZAO:19suite/602jedinstvena testa bezskip; prethodni full CI7f i APK5ed SUCCESS. Detalji i hashevi u docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.
+
+NIJE DOKAZANO: novi native/media/QA/two-account put i fullCI; završniTS/APK rezultat se dopisuje. Nema serverskih izmena, privatne/grupne autorizacije ne menjaju se. NO-GO i PAUSED ostaju.
+
+SLEDEĆE: proveri/pushuj koherentan paket naobegrane, objedinjeni Androidbuild sa prethodnim header/camera/permission izmenama, telefon samo kad nije u aktivnoj vlasnikovoj upotrebi; dopuni jedini registar. Potom već otvoren AI-only worker/povezani lifecycle/release plan, bez novog mastera.

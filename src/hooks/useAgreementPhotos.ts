@@ -10,7 +10,7 @@ import { sesijaSada, useSesija } from '../store/sesija';
 
 
 type Item = { ref: AgreementUploadRef; receipt: AgreementPhotoUpload | null };
-type State = { loaded: boolean; busy: boolean; items: readonly Item[]; saved: readonly AgreementPhotoUpload[]; message: string | null };
+type State = { loaded: boolean; busy: boolean; items: readonly Item[]; saved: readonly AgreementPhotoUpload[]; message: string | null; sending?: string | null };
 export function useAgreementPhotos(accountId: string, agreementId: string, agreementVersion: number | null, writable: boolean,
   outbox: { getSnapshot(): Pick<OutboxSnapshot, 'capturing' | 'entries'> }) {
   const { accountRevision } = useSesija();
@@ -47,7 +47,7 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
   useFocusEffect(useCallback(() => {
     const token = {}; focus.current = token; operation.current = token; navigate.current = false;
     const current = () => focus.current === token && owns();
-    apply({ loaded: false, busy: true, items: [], saved: [], message: null });
+    apply({ loaded: false, busy: true, items: [], saved: [], message: null, sending: null });
     void read(current).catch(() => { if (current()) apply({ loaded: false, message: 'Sačuvani izbor nije učitan. Osveži fotografije.' }); })
       .finally(() => { if (current()) { operation.current = null; apply({ busy: false }); } });
     return () => { if (focus.current === token) focus.current = null; operation.current = null; abort.current?.abort(); prepared.current.clear(); };
@@ -59,7 +59,7 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     const token = {}; operation.current = token; apply({ busy: true, message: null });
     const valid = () => current() && operation.current === token;
     try { await work(valid); } catch { if (valid()) apply({ loaded: false, message: 'Ishod nije potvrđen. Proveri fotografije pre novog pokušaja.' }); }
-    finally { if (valid()) { operation.current = null; apply({ busy: false }); } }
+    finally { if (valid()) { operation.current = null; apply({ busy: false, sending: null }); } }
   }
   async function upload(ref: AgreementUploadRef, photo: PreparedPhoto, valid: () => boolean) {
     await agreementPhotoJournal.save(accountId, ref, valid);
@@ -68,9 +68,12 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
       apply({ message: 'Osveži uslove Dogovora pre slanja fotografije.' }); await read(valid); return;
     }
     const controller = new AbortController(); abort.current = controller;
+    // The journal owns the request before the first pixel is sent. The preview stays in this focused visit's memory.
+    apply({ sending: ref.clientRequestId, message: 'Šaljemo fotografiju…',
+      items: [...latest.current.items.filter(item => item.ref.clientRequestId !== ref.clientRequestId), { ref, receipt: null }] });
     const result = await agreementPhotoClientService.upload(ref, photo.bytes, identity, controller.signal);
     if (!valid()) return;
-    if (!result.ok) apply({ message: result.poruka });
+    apply({ sending: null, message: result.ok ? null : result.poruka });
     await read(valid);
   }
   const reserved = (item: Item) => !!item.receipt?.assetId && live.current.outbox.getSnapshot().entries.some(entry => entry.command.photos?.assetIds.includes(item.receipt!.assetId!));
@@ -90,6 +93,7 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
     canSubmit: () => current() && !operation.current && live.current.writable && latest.current.loaded
       && (latest.current.items.every(reserved) || capture() !== null),
     canRetry: (id: string) => prepared.current.has(id), reserved,
+    preview: (id: string) => current() ? prepared.current.get(id)?.bytes : undefined,
     refresh: () => run(read),
     restore: (clientRequestId: string) => run(async valid => {
       if (live.current.outbox.getSnapshot().capturing || !latest.current.loaded || latest.current.items.length >= 6) return;
@@ -104,7 +108,8 @@ export function useAgreementPhotos(accountId: string, agreementId: string, agree
       let photo: PreparedPhoto | null;
       try { photo = await pickPreparedPhoto(source, valid, () => { if (valid()) apply({ message: 'Pripremamo fotografiju…' }); }); }
       catch (error) { if (valid()) apply({ message: photoSelectionMessage(error) }); return; }
-      if (!photo || !valid()) return;
+      if (!valid()) return;
+      if (!photo) { apply({ message: null }); return; }
       const ref = { agreementId, agreementVersion: version, clientRequestId: noviUuidZahtevId() };
       prepared.current.set(ref.clientRequestId, photo); await upload(ref, photo, valid);
     }),

@@ -32,7 +32,7 @@ const tray = (extra: Partial<React.ComponentProps<typeof AgreementPhotoComposer>
   <AgreementPhotoComposer photos={photos} capturing={false} {...extra} />;
 beforeEach(() => { mockAsk.mockReset(); mockConfirmOptions.mockReset(); mockReduced = false; photos = { agreementId: gid, loaded: true, busy: false, items: [], saved: [], message: null, available: true,
   hasSelection: false, selected: [], versionConflict: false, ready: false, capture: jest.fn(() => null), canSubmit: () => true,
-  reserved: () => false, canRetry: () => false, refresh: jest.fn().mockResolvedValue(undefined), pick: jest.fn().mockResolvedValue(undefined),
+  preview: () => undefined, reserved: () => false, canRetry: () => false, refresh: jest.fn().mockResolvedValue(undefined), pick: jest.fn().mockResolvedValue(undefined),
   retry: jest.fn().mockResolvedValue(undefined), remove: jest.fn().mockResolvedValue(undefined), restore: jest.fn().mockResolvedValue(undefined) }; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
@@ -129,4 +129,11 @@ it.each([false, true])('the sheet and the removal question follow the reduced-mo
   expect(tree.root.findByType('PhotoAttachSheet' as React.ElementType).props.reduced).toBe(reduced);
   await act(async () => tree.update(tray()));
   expect(mockConfirmOptions).toHaveBeenLastCalledWith({ reduced });
+});
+
+
+it('a sending preview shows progress rather than retry or an unknown result',async()=>{
+ photos.busy=true;photos.sending=rid;photos.items=[{ref,receipt:null}];photos.preview=()=>new Uint8Array([255,216,255]).buffer;photos.canRetry=()=>true;
+ await draw(tray());expect(texts()).toContain('Šalje se');expect(texts()).not.toContain('Pošalji ponovo');expect(texts()).not.toContain('Ne znamo da li');
+ expect(button('Ukloni pripremljenu fotografiju 1').props.disabled).toBe(true);
 });

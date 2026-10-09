@@ -341,7 +341,7 @@ describe('V2 saved Need presentation', () => {
     await render();
     const answer = pressHost('Odgovori na pitanje: Pitanje 1?')[0].props.onPress;
     await act(async () => { answer(); answer(); });
-    expect(mockRouter.push.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1' } }]]);
+    expect(mockRouter.push.mock.calls).toEqual([[{ pathname: '/pitanja-zadatka', params: { needId: NEED, own: '1', questionId: question(1).questionId } }]]);
     expect(mockPublish).not.toHaveBeenCalled();
   });
   it('opens Task-scoped questions with the loaded identity and rejects a callback after blur', async () => {
