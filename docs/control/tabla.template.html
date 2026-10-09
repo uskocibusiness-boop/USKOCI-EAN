@@ -161,15 +161,16 @@ tr:last-child td{border-bottom:0}
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var LIGHT_NAMES = [['nacrt', 'Nacrt'], ['ekran', 'Ekran'], ['kod', 'Kod'], ['server', 'Server'], ['test', 'Test'], ['telefon', 'Telefon']];
   var WORD = { zeleno: 'u redu', zuto: 'delimično', crveno: 'fali', sivo: 'nije provereno', nema: 'ne odnosi se' };
+  var lightName = function (value) { return typeof value === 'string' && Object.prototype.hasOwnProperty.call(WORD, value) ? value : 'sivo'; };
   var m = D.meta || {};
   $('meta').innerHTML = 'Osveženo ' + esc((m.osvezeno || '').replace('T', ' ').replace('Z', ' UTC')) + ' · grana <code>' + esc(m.grana) + '</code> · verzija <code>' + esc(m.head) + '</code> — ' + esc(m.head_poruka);
   $('rule').textContent = m.pravilo_gotovo || '';
   var c = D.counts || {};
   var tiles = [['red', c.PROBLEM || 0, 'reda sa problemom ili nedostatkom'], ['yellow', c['NA TELEFONU NIJE PROVERENO'] || 0, 'bez upisanog problema, ceo tok nije potvrđen'], ['green', c.GOTOVO || 0, 'gotovo i dokazano na telefonu'],
     ['', D.redovi.length, 'redova ukupno']];
-  tiles.forEach(function (t) { $('tiles').appendChild(el('div', { class: 'tile ' + t[0] }, '<b>' + t[1] + '</b><span>' + t[2] + '</span>')); });
+  tiles.forEach(function (t) { $('tiles').appendChild(el('div', { class: 'tile ' + t[0] }, '<b>' + esc(t[1]) + '</b><span>' + t[2] + '</span>')); });
   var s = m.server || {};
-  var edges = (s.edge || []).map(function (e) { return esc(e.slug.replace('uskoci-', '')) + ' v' + e.version; }).join(' · ');
+  var edges = (s.edge || []).map(function (e) { return esc(e.slug.replace('uskoci-', '')) + ' v' + esc(e.version); }).join(' · ');
   $('server').innerHTML = '<h2>Server (DEV)</h2><p class="sub">Snimljeno ' + esc(s.snimljeno) + ' — samo čitanje.</p><div class="server-strip">' +
     '<span>Migracije <b>' + esc(s.migracije) + '</b> (' + esc(s.dev_alpha) + ' dodatih)</span>' +
     '<span>Sertifikat brisanja ' + (s.sertifikat_ok === true ? '<span class="tag ok">važi</span>' : s.sertifikat_ok === false ? '<span class="tag bad">ne važi</span>' : '<span class="tag">nije sveže provereno</span>') + '</span>' +
@@ -180,7 +181,7 @@ tr:last-child td{border-bottom:0}
       if (!k) return '';
       var ok = k.hes_proveren && k.isti_redovi && !k.novo_slomljeno.length;
       return '<p class="sub" style="margin-top:10px">Forenzički snimak <code>' + esc(k.paket) + '</code> (samo čitanje, zamrznut na <code>' + esc(String(k.zamrznuti_head).slice(0, 8)) + '</code>, server gledan ' + esc(String(k.dev_posmatran).slice(0, 16).replace('T', ' ')) + '): ' +
-        k.fajlova + ' fajla, svaki proveren po otisku. ' + (ok ? '<span class="tag ok">slaže se sa kodom</span>' : '<span class="tag mid">ima razlika</span>') +
+        esc(k.fajlova) + ' fajla, svaki proveren po otisku. ' + (ok ? '<span class="tag ok">slaže se sa kodom</span>' : '<span class="tag mid">ima razlika</span>') +
         ' Tvrdi da na serveru fali: ' + (k.r4_tvrdi_da_fali.length ? '<span class="mono">' + esc(k.r4_tvrdi_da_fali.join(', ')) + '</span>' : 'ništa') +
         '; danas i dalje fali: ' + (k.i_dalje_fali.length ? '<span class="mono">' + esc(k.i_dalje_fali.join(', ')) + '</span>' : '<span class="tag ok">ništa</span>') +
         (k.vise_ne_fali.length ? '; u međuvremenu rešeno: <span class="mono">' + esc(k.vise_ne_fali.join(', ')) + '</span>' : '') +
@@ -197,12 +198,12 @@ tr:last-child td{border-bottom:0}
     groups[g].forEach(function (r) {
       var cls = r.ukupno === 'PROBLEM' ? 'PROBLEM' : r.ukupno === 'GOTOVO' ? 'GOTOVO' : 'NIJE';
       var d = el('details', { class: 'row', 'data-status': cls, id: 'red-' + r.id });
-      var lights = LIGHT_NAMES.map(function (n) { return '<i class="dot ' + r.lights[n[0]] + '" title="' + n[1] + ': ' + WORD[r.lights[n[0]]] + '" aria-label="' + n[1] + ': ' + WORD[r.lights[n[0]]] + '"></i>'; }).join('');
+      var lights = LIGHT_NAMES.map(function (n) { var light = lightName(r.lights[n[0]]); return '<i class="dot ' + light + '" title="' + n[1] + ': ' + WORD[light] + '" aria-label="' + n[1] + ': ' + WORD[light] + '"></i>'; }).join('');
       var label = cls === 'PROBLEM' ? 'problem' : cls === 'GOTOVO' ? 'gotovo' : 'telefon?';
       d.appendChild(el('summary', null, '<span class="rid">' + esc(r.id) + '</span><span class="rtitle">' + esc(r.naslov) + '</span><span class="lights">' + lights + ' <span class="pill ' + cls + '">' + label + '</span></span>'));
       var body = '<div class="lightgrid">' + LIGHT_NAMES.map(function (n) {
         var why = n[0] === 'telefon' ? (r.telefon_dokaz || 'Nema dokaza sa telefona.') : n[0] === 'nacrt' ? (r.nacrt_ref || 'Nije u UX nacrtu.') : (r.note[n[0]] || (r.lights[n[0]] === 'zeleno' ? 'U redu.' : ''));
-        return '<div><i class="dot ' + r.lights[n[0]] + '"></i><span><b>' + n[1] + '</b><small>' + esc(why) + '</small></span></div>'; }).join('') + '</div>';
+        return '<div><i class="dot ' + lightName(r.lights[n[0]]) + '"></i><span><b>' + n[1] + '</b><small>' + esc(why) + '</small></span></div>'; }).join('') + '</div>';
       if (r.problem) body += '<div class="problem"><b>Problem:</b> ' + esc(r.problem) + '</div>';
       if (r.sledece) body += '<div class="next"><b>Sledeće:</b> ' + esc(r.sledece) + '</div>';
       if (r.funkcionalni_audit) body += '<p class="sub"><b>Funkcionalna analiza:</b> celine ' + esc(r.funkcionalni_audit.matrica.join(', ')) + ' · ' + esc(r.funkcionalni_audit.status) + '<br>' + esc(r.funkcionalni_audit.izvor) + '</p>';
@@ -238,7 +239,7 @@ tr:last-child td{border-bottom:0}
     var sz = T.sazetak || {};
     $('tokovi').innerHTML = '<p class="sub">Server pravi ' + T.stavke.length + ' vrsta obaveštenja. „Nastaje“ je red u kom se događaj rodi; „aplikacija otvara“ je ekran koji se zaista otvori kad se obaveštenje dodirne — pročitano iz <code>' + esc(T.provereno_u) + '</code>' + (T.putevi_nadjeni ? '' : ' <span class="tag bad">putevi se ne poklapaju sa kodom</span>') + '.</p>' +
       '<div class="chips" style="margin-bottom:10px">' + Object.keys(OC).filter(function (k) { return sz[k]; }).map(function (k) {
-        return '<span class="tag ' + OC[k][0] + '">' + sz[k] + ' ' + OC[k][1] + '</span>'; }).join(' ') + '</div>' +
+        return '<span class="tag ' + OC[k][0] + '">' + esc(sz[k]) + ' ' + OC[k][1] + '</span>'; }).join(' ') + '</div>' +
       '<div class="tablewrap"><table><thead><tr><th>Kad se desi</th><th>Kome</th><th>Nacrt traži</th><th>Aplikacija otvara</th><th></th></tr></thead><tbody>' +
       T.stavke.map(function (s) {
         var src = (s.nastaje || []).map(function (id) { return byId[id] ? byId[id].naslov : id; })[0];
@@ -252,7 +253,7 @@ tr:last-child td{border-bottom:0}
 
   if (D.nivoi && D.nivoi.length) {
     $('nivoi').innerHTML = '<p class="sub">Gde koji red živi u aplikaciji. Nivo 1 je ono što se vidi iz donje navigacije i zaglavlja, nivo 2 se otvara iz njega, nivo 3 je ispod svega.' +
-      (D.rute ? ' Fizičkih ekrana: <b>' + D.rute.ukupno + '</b>, od toga <b>' + D.rute.u_redovima + '</b> pripada nekom redu, ' + D.rute.bez_reda.length + ' su okvir, stara ili informativna strana.' : '') + '</p>' +
+      (D.rute ? ' Fizičkih ekrana: <b>' + esc(D.rute.ukupno) + '</b>, od toga <b>' + esc(D.rute.u_redovima) + '</b> pripada nekom redu, ' + D.rute.bez_reda.length + ' su okvir, stara ili informativna strana.' : '') + '</p>' +
       '<div class="mapa">' + D.nivoi.map(function (n) {
         return '<div class="surface"><div class="shead"><span class="lvl">' + esc(n.nivo) + '</span><b>' + esc(n.povrsina) + '</b>' +
           (n.stanje === 'PROPOSED' ? '<span class="tag mid">predlog</span>' : '') + '<span class="sub">' + (n.redovi.length || 'nema') + ' redova</span></div>' +

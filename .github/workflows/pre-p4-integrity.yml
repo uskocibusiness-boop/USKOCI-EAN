@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - clean-alpha-backend
+      - work/uskoci-ui-unification-20260924
+      - integration/spoj-20261006
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - clean-alpha-backend
+      - work/uskoci-ui-unification-20260924
+      - integration/spoj-20261006
 
   workflow_dispatch:
     inputs:
@@ -96,6 +100,10 @@ jobs:
         id: dependencies
         run: npm ci
 
+      - name: Verify dashboard snapshot rendering boundaries
+        id: dashboard
+        run: node --test scripts/control/tabla-rendering.test.cjs
+
       - name: Verify Windows Metro cache bound and installed Expo disk compatibility
         id: metro
         run: node --test scripts/metro-cache-concurrency.test.cjs
@@ -123,6 +131,7 @@ jobs:
           MIGRATION_REQUIRED: ${{ steps.scope.outputs.migration }}
           MIGRATION_RESULT: ${{ steps.migration.outcome }}
           DEPENDENCIES_RESULT: ${{ steps.dependencies.outcome }}
+          DASHBOARD_RESULT: ${{ steps.dashboard.outcome }}
           METRO_RESULT: ${{ steps.metro.outcome }}
           BUILD_IDENTITY_RESULT: ${{ steps.build_identity.outcome }}
           TYPESCRIPT_RESULT: ${{ steps.typescript.outcome }}
@@ -130,7 +139,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, os, pathlib, subprocess
-          names = ('scope', 'migration', 'dependencies', 'metro', 'build_identity', 'typescript', 'regression')
+          names = ('scope', 'migration', 'dependencies', 'dashboard', 'metro', 'build_identity', 'typescript', 'regression')
           results = {name: os.environ.get(name.upper() + '_RESULT') or 'not_run' for name in names}
           checked_out = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
           receipt = {

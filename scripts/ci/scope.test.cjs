@@ -167,3 +167,44 @@ test('capability names are substrings while ports.ts is an exact filename suffix
     assert.ok(!classify([path]).includes('capability'));
   }
 });
+
+const uiRatchetTests = [
+  'src/ui/system/__tests__/one-token-source.test.ts',
+  'src/ui/system/__tests__/layout-ladder.test.ts',
+  'src/ui/system/__tests__/surface-kinds-ratchet.test.ts',
+  'src/ui/system/__tests__/rule-width-ratchet.test.ts',
+  'src/ui/system/__tests__/glyph-import-guard.test.ts',
+];
+
+test('src edits explicitly select every filesystem UI ratchet without expanding to a full run', () => {
+  for (const source of ['src/app/(app)/zadaci.tsx', 'src/ui/v2/DiscoveryPresentation.tsx',
+    'src/components/NewControl.tsx', 'src/lib/presentation.ts', 'src/ui/system/__tests__/ratchetKit.ts']) {
+    const plan = makePlan([source]);
+    assert.equal(plan.mode, 'targeted', source);
+    const args = testArguments(plan, [...uiRatchetTests, source]);
+    for (const guard of uiRatchetTests) assert.ok(args.includes(guard), `${source}: ${guard}`);
+    assert.ok(args.includes(source), source);
+  }
+});
+
+test('deleting src code still runs the filesystem UI ratchets without a missing Jest source', () => {
+  const removed = 'src/ui/v2/RemovedControl.tsx';
+  const args = testArguments(makePlan([removed]), uiRatchetTests);
+  assert.ok(!args.includes(removed));
+  for (const guard of uiRatchetTests) assert.ok(args.includes(guard), guard);
+});
+
+test('a ratchet edit runs each guard once; full regression keeps its existing command', () => {
+  const args = testArguments(makePlan([uiRatchetTests[0]]), uiRatchetTests);
+  for (const guard of uiRatchetTests) assert.equal(args.filter(arg => arg === guard).length, 1, guard);
+  assert.deepEqual(testArguments(makePlan(['package-lock.json']), uiRatchetTests), ['--runInBand']);
+});
+
+test('docs and non-src changes do not add the UI ratchets to targeted checks', () => {
+  const critical = 'src/store/__tests__/session-epoch.test.ts';
+  for (const changed of ['docs/README.md', 'scripts/helper.ts', 'other/src/ui/Control.tsx', 'src/ui/Control.tsx.bak']) {
+    const args = testArguments(makePlan([changed]), [...uiRatchetTests, critical]);
+    for (const guard of uiRatchetTests) assert.ok(!args.includes(guard), `${changed}: ${guard}`);
+    assert.ok(args.includes(critical));
+  }
+});

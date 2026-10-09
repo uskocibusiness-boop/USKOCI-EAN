@@ -20,6 +20,16 @@ const TESTS = {
   capability: /capability|profile|ru2-ai-v2/i,
 };
 const CRITICAL = /session-epoch|return-target-ownership|cb1-receipt-boundary|m04-privatnost-kontakt|selectionIdempotency/;
+// These suites scan source with fs, so Jest's import graph cannot connect an edited
+// screen to them. Their input is all src TS/TSX, including added or deleted files.
+const UI_RATCHET_SOURCE = /^src\/.*\.tsx?$/;
+const UI_RATCHET_TESTS = new Set([
+  'src/ui/system/__tests__/one-token-source.test.ts',
+  'src/ui/system/__tests__/layout-ladder.test.ts',
+  'src/ui/system/__tests__/surface-kinds-ratchet.test.ts',
+  'src/ui/system/__tests__/rule-width-ratchet.test.ts',
+  'src/ui/system/__tests__/glyph-import-guard.test.ts',
+]);
 const SOURCE = /\.[cm]?[jt]sx?$/;
 const TEST_FILE = /(?:\.test|\.spec)\.[cm]?[jt]sx?$/;
 const BUILD = /^(?:package(?:-lock)?\.json|(?:babel|metro|jest|app)\.config\.[cm]?js|tsconfig.*\.json|index\.js|plugins\/|vendor\/|patches\/|scripts\/verify-native-patches\.cjs$)/;
@@ -118,7 +128,9 @@ function testArguments(plan, tracked) {
     (CRITICAL.test(path) || plan.domains.some(domain => TESTS[domain].test(path))));
   const sources = plan.changed.filter(path => SOURCE.test(path) && tracked.includes(path));
   const guards = plan.changed.some(path => NATIVE_PATCH_GUARDED.test(path)) ? tracked.filter(path => path === NATIVE_PATCH_CONTRACT) : [];
-  const targets = [...new Set([...tests, ...sources, ...guards])].filter(path => !path.startsWith('-'));
+  const uiRatchets = plan.changed.some(path => UI_RATCHET_SOURCE.test(path))
+    ? tracked.filter(path => UI_RATCHET_TESTS.has(path)) : [];
+  const targets = [...new Set([...tests, ...sources, ...guards, ...uiRatchets])].filter(path => !path.startsWith('-'));
   if (!targets.length) throw new Error('NO_TARGETED_TESTS_SELECTED');
   return ['--runInBand', '--findRelatedTests', ...targets];
 }
