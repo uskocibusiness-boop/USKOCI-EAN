@@ -46,7 +46,7 @@ it('opens every scene by its visible label and comes back with "Nazad"', async (
   await act(async () => { tree = create(<DizajnDodaci />); });
   const labels = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && /^(Pitanja|Izmene|Lokacija|Grupa|Poruke) · /.test(String(node.props.accessibilityLabel)))
     .map(node => String(node.props.accessibilityLabel));
-  expect(labels).toHaveLength(21);
+  expect(labels).toHaveLength(22);
   expect(labels.some(label => label.startsWith('Lokacija · '))).toBe(false);
   for (const label of labels) {
     await pressHost(label);
@@ -77,5 +77,20 @@ it('renders actual group message runs, sender identities and a participant priva
   }
   expect(tree.root.findAllByProps({ testID: 'group-message-sender-poruka-2' })).toHaveLength(0);
   expect(text()).toContain('Privatno');
+  expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
+});
+
+it('can inspect, prepend and restore inert long history while opening and closing the real participant sheet', async () => {
+  await act(async () => { tree = create(<DizajnDodaci />); });
+  await pressHost('Grupa · duga prepiska i starije poruke');
+  expect(text()).toContain('Poruka 21 ·'); expect(text()).toContain('Poruka 40 ·'); expect(text()).not.toContain('Poruka 1 ·');
+  await pressHost('Starije poruke');
+  expect(text()).toContain('Poruka 1 ·'); expect(text()).toContain('Poruka 40 ·');
+  await pressHost('Učesnici razgovora');
+  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Zatvori učesnike').length).toBeGreaterThan(0);
+  await pressHost('Zatvori učesnike');
+  expect(text()).toContain('Poruka 1 ·');
+  await pressHost('Osveži poruke');
+  expect(text()).not.toContain('Poruka 1 ·'); expect(text()).toContain('Poruka 40 ·');
   expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
 });

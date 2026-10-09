@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -88,6 +88,14 @@ const MESSAGES = [
   said(3, THIRD, 'Stižem pet minuta ranije.', '2026-09-24T06:52:00Z'),
   said(4, ME, 'I ja. Poneću rukavice za sve.', '2026-09-24T06:55:00Z'),
 ];
+// Inert, bounded history for native scroll/prepend/keyboard checks. No controller, writes or media reads.
+const HISTORY = Array.from({ length: 40 }, (_, i) => said(i + 1, [OTHER, THIRD, ME][i % 3],
+  `Poruka ${i + 1} · ${['Kombi stiže do ulaza iz dvorišta.', 'Poneću trake i rukavice za nošenje.', 'Sve je spremno. Vidimo se u dogovoreno vreme.'][i % 3]}`,
+  new Date(Date.UTC(2026, 8, 24, 6, i)).toISOString()));
+const requesterGroup = () => groupContext({ role: 'REQUESTER', management: [
+  { agreementId: 'pojedinacni-1', accountId: THIRD, status: 'CONFIRMED', executionState: 'AWAITING_REQUESTER', problemOpened: false },
+  { agreementId: 'pojedinacni-2', accountId: OTHER, status: 'CONFIRMED', executionState: 'CONFIRMED', problemOpened: false },
+] });
 const group = (state: Partial<GroupState>): GroupState => ({ phase: 'READY', context: groupContext(), messages: MESSAGES, before: null, journal: null,
   receipt: null, canRetry: false, message: null, ...state } as GroupState);
 
@@ -102,7 +110,7 @@ const PHOTOS = { agreementId: AGREEMENT, loaded: true, busy: false, ready: false
 
 type SceneKey = 'qa-public' | 'qa-owner' | 'qa-answer' | 'qa-empty' | 'qa-loading' | 'qa-error' | 'qa-closed' | 'qa-recovery'
   | 'ch-hub' | 'ch-other' | 'ch-form' | 'ch-cancel' | 'ch-unknown' | 'ch-done' | 'ch-loading'
-  | 'gr-thread' | 'gr-people' | 'gr-empty' | 'gr-closed' | 'gr-error' | 'photos';
+  | 'gr-thread' | 'gr-history' | 'gr-people' | 'gr-empty' | 'gr-closed' | 'gr-error' | 'photos';
 const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'qa-public', label: 'Pitanja · javno' }, { key: 'qa-owner', label: 'Pitanja · moj zadatak' }, { key: 'qa-answer', label: 'Pitanja · odgovaram' },
   { key: 'qa-empty', label: 'Pitanja · prazno' }, { key: 'qa-loading', label: 'Pitanja · učitavanje' }, { key: 'qa-error', label: 'Pitanja · greška' },
@@ -111,12 +119,14 @@ const SCENES: { key: SceneKey; label: string }[] = [
   { key: 'ch-cancel', label: 'Izmene · otkazivanje, korak 2' }, { key: 'ch-unknown', label: 'Izmene · nepotvrđeno' }, { key: 'ch-done', label: 'Izmene · potvrđeno' },
   { key: 'ch-loading', label: 'Izmene · učitavanje' },
   { key: 'gr-thread', label: 'Grupa · razgovor' }, { key: 'gr-people', label: 'Grupa · učesnici' }, { key: 'gr-empty', label: 'Grupa · prazno' },
+  { key: 'gr-history', label: 'Grupa · duga prepiska i starije poruke' },
   { key: 'gr-closed', label: 'Grupa · završen' }, { key: 'gr-error', label: 'Grupa · greška' },
   { key: 'photos', label: 'Poruke · fotografije uz poruku' },
 ];
 
 function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
   const [draft, setDraft] = useState(scene === 'qa-answer' ? 'Ne, parking je besplatan ispred zgrade.' : '');
+  const [people, setPeople] = useState(scene === 'gr-people');
   switch (scene) {
     case 'qa-public': return <TaskQaPresentation {...qa({ onBack: back, text: draft, onText: setDraft })} />;
     case 'qa-owner': return <TaskQaPresentation {...qa({ onBack: back, mode: 'OWNER', canAnswer: true, composer: null,
@@ -146,11 +156,11 @@ function Scene({ scene, back }: { scene: SceneKey; back: () => void }) {
       canRetry: true, needsReentry: true, journalKind: 'PROPOSE' })} />;
     case 'ch-done': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'CONFIRMED', journalKind: 'PROPOSE', message: 'Predlog izmene je sačuvan.' })} />;
     case 'ch-loading': return <AgreementActionsPresentation {...changes({ onBack: back, phase: 'LOADING', snapshot: null })} />;
-    case 'gr-thread': return <GroupConversationPresentation {...groupProps(group({}), back, draft, setDraft)} />;
-    case 'gr-people': return <GroupConversationPresentation {...groupProps(group({ context: groupContext({ role: 'REQUESTER', management: [
-      { agreementId: 'pojedinacni-1', accountId: THIRD, status: 'CONFIRMED', executionState: 'AWAITING_REQUESTER', problemOpened: false },
-      { agreementId: 'pojedinacni-2', accountId: OTHER, status: 'CONFIRMED', executionState: 'CONFIRMED', problemOpened: false }] }) }), back, draft, setDraft)}
-      showPeople />;
+    case 'gr-thread': return <GroupConversationPresentation {...groupProps(group({}), back, draft, setDraft)}
+      showPeople={people} onTogglePeople={() => setPeople(value => !value)} />;
+    case 'gr-people': return <GroupConversationPresentation {...groupProps(group({ context: requesterGroup() }), back, draft, setDraft)}
+      showPeople={people} onTogglePeople={() => setPeople(value => !value)} />;
+    case 'gr-history': return <GroupHistoryScene back={back} />;
     case 'gr-empty': return <GroupConversationPresentation {...groupProps(group({ messages: [] }), back, draft, setDraft)} />;
     case 'gr-closed': return <GroupConversationPresentation {...groupProps(group({ context: groupContext({ canSend: false, terminal: true }) }), back, draft, setDraft)} />;
     case 'gr-error': return <GroupConversationPresentation {...groupProps(group({ phase: 'ERROR', context: null, messages: [], message: 'Proveri vezu i pokušaj ponovo.' }),
@@ -166,6 +176,13 @@ const groupProps = (state: GroupState, back: () => void, draft: string, setDraft
   draftLength: Array.from(draft.trim()).length, draftSendable: draft.trim().length > 0,
   viewability: { viewAreaCoveragePercentThreshold: 60, minimumViewTime: 600 }, onVisible: noop, onBack: back, onTogglePeople: noop, onRefresh: noop,
   onOlder: noop, onManagementNext: noop, onOpenAgreement: noop, onPrivate: noop, onDraft: setDraft, onSend: noop, onAcknowledge: noop });
+
+function GroupHistoryScene({ back }: { back: () => void }) {
+  const [older, setOlder] = useState(false), [people, setPeople] = useState(false), [draft, setDraft] = useState('');
+  const state = useMemo(() => group({ context: requesterGroup(), messages: older ? HISTORY : HISTORY.slice(20), before: older ? null : '21' }), [older]);
+  return <GroupConversationPresentation {...groupProps(state, back, draft, setDraft)} showPeople={people}
+    onTogglePeople={() => setPeople(value => !value)} onOlder={() => setOlder(true)} onRefresh={() => setOlder(false)} />;
+}
 
 export default function DizajnDodaci() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
