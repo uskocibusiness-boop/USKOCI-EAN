@@ -1,0 +1,70 @@
+{
+  "kind": "CLIENT_REGRESSION_FAIL_BEFORE_PASS_AFTER",
+  "recordedAt": "2026-10-09T06:05:10.779867+00:00",
+  "sourceParent": "862fa5adf58a2bccad4b3048741ebaab4e54f7ec",
+  "sourceSha256": {
+    "src/app/(app)/nova.tsx": "fcfd3b73ad45c6cdc3ac09f6b03e67030b7c0160a7a4d4dc28ebbc3071f382eb",
+    "src/ui/groups/GroupConversationController.ts": "548186818333fe307d4c2d31dd345484288184c9c0b87dee0f07c2fc7577cc5b",
+    "src/data/__tests__/ai-owned-intake-screen.test.tsx": "405fd0fea5af0511c3b989f819f585c89aef6b3af088e3bb90e5a12c74e127bc",
+    "src/data/__tests__/v5-group-conversation-controller.test.ts": "394c0700ecc7af3fbd31d3679f1bc6d2f15ca38823484bcd2724b23da326954a"
+  },
+  "locationReply": {
+    "before": "2 failures: one resolve dispatch after background, and background-active, while journal save was pending. Positive and late-HTTP controls passed.",
+    "after": "145 complete intake-screen tests PASS, including four new cases. Point lease is rechecked after storage and before HTTP; journal/draft retained. Existing explicit recovery/retry remains.",
+    "limits": "Mocked service/native lifecycle; not paid-provider or device proof. Late-HTTP test proves no apply; incomplete-facts assertion alone is not a new multi-point completeness proof."
+  },
+  "groupManagement": {
+    "before": "3 failures: ACK collapses 51 and100 loaded agreements to50; first-page insertion loses the loaded suffix.11 other focused authority/race controls pass.",
+    "after": "38 controller tests PASS inside175 adjacent tests. ACK keeps explicitly loaded suffix only beyond freshly read UUID boundary and exact account/agreement/need/group/requester identity. Fresh global authority/roster/unread and first-page statuses replace previous values in one update.",
+    "bounds": "One context read per ACK, no automatic extra pages; explicit refresh resets range. Remaining suffix statuses and terminal pagination remain last-read snapshots until explicit refresh. Participant gets no management.",
+    "races": "Late ACK readback cannot replace refresh/next/send/dispose/account state. Complete smaller response drops suffix; shifted prefix replaces overlap and removed rows."
+  },
+  "checks": {
+    "distinctTests": 320,
+    "suites": 5,
+    "typescript": {
+      "exit": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "initial": "TS2322 only in new fixture helper: boolean authoritative widened; narrowed to true as const. Production contract unchanged.",
+      "initialLogSha256": "7f5321d3a1e6ab774cc2a415dceea17f1777534d609d6d458196571ea5f94b09"
+    },
+    "independentReviews": "Two read-only source reviewers found no blocker. Suggested forward-boundary regression added and passed.",
+    "files": {
+      "location-lease-before.json": "fdbb2f47d006fd271853ef04829c97a6052d9fceabd047b87bab814cc199afa7",
+      "location-lease-after.json": "7fe2dedb92c266d869a475371ba285d7eec3361f918a77c2bd2ecb317b943abf",
+      "group-management-before.json": "b0742715ede3b88ed96b0a53a5843a648be393c0a4070e58e36c02ffd6b225b2",
+      "lease-management-adjacent.json": "aba3c57dee1654c6eeec9d89dc133213f1d98583e73043c434c3dc4832e5ceac",
+      "lease-management-tsc-result.json": "d4c84225579e58a104e2d2f9f82bbf6d9708e4a25376bf42912f83833c449c22"
+    }
+  },
+  "limits": [
+    "No APK includes this source yet.",
+    "No DEV, Edge, provider, push or dependency mutation.",
+    "No full current-head regression, native acceptance, server-capacity or store conclusion."
+  ],
+  "reference": "https://reactnative.dev/docs/appstate",
+  "ciReadback": [
+    {
+      "run": 37890468740,
+      "job": 113690018166,
+      "source": "862fa5adf58a2bccad4b3048741ebaab4e54f7ec",
+      "workflow": "Control tracker refresh",
+      "state": "NOT_STARTED",
+      "steps": 0,
+      "reason": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37890468740/job/113690018166",
+      "privateReceiptSha256": "649f7bbcd8d264a0372443f392d4fec34749e96ea5e6348cd5684a807ff91871"
+    },
+    {
+      "run": 37883041996,
+      "job": 113666830038,
+      "source": "caf48ecf6d6de56d7a9f8a2bf077707433ef77f9",
+      "workflow": "R20 Discovery retained-mount proof",
+      "state": "NOT_STARTED",
+      "steps": 0,
+      "reason": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37883041996/job/113666830038",
+      "privateReceiptSha256": "f5b61f5b9b284b6dea0cf509960c74a4b801dacebd2561b0cf3f0d095281d6fb"
+    }
+  ]
+}

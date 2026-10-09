@@ -1,11 +1,11 @@
 jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({})}));
 jest.mock('../../store/sesija',()=>({sesijaSada:()=>({})}));
 import { GroupConversationController } from '../../ui/groups/GroupConversationController';
-import { groupBodyHash,type GroupJournal } from '../groupConversationService';
+import { groupBodyHash,type GroupJournal,type GroupContext,type GroupManagement } from '../groupConversationService';
 const A='10000000-0000-4000-8000-000000000001',ID='20000000-0000-4000-8000-000000000001',G='30000000-0000-4000-8000-000000000001',K='40000000-0000-4000-8000-000000000001',M='50000000-0000-4000-8000-000000000001';
 const j:GroupJournal={version:1,groupId:G,clientRequestId:K,bodySha256:groupBodyHash('Privatna zajednička poruka')};
 const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'GROUP_UNCONFIRMED',poruka:'Proveri ishod.'};
-const context=()=>({accountId:A,agreementId:ID,needId:ID,available:true,authoritative:true,group:{groupId:G,title:'Zadatak',canSend:true,terminal:false,role:'PARTICIPANT',members:[],management:null,managementNextId:null,unreadCount:1}});
+const context=()=>({accountId:A,agreementId:ID,needId:ID,available:true,authoritative:true as const,group:{groupId:G,title:'Zadatak',canSend:true,terminal:false,role:'PARTICIPANT',members:[],management:null,managementNextId:null,unreadCount:1}});
 const message=(sequence='1')=>({messageId:M,sequence,senderAccountId:A,body:'Privatna zajednička poruka',createdAt:'2026-09-13T12:00:00Z',mine:true});
 function deferred<T>(){let resolve!:(v:T)=>void;const promise=new Promise<T>(r=>{resolve=r;});return{promise,resolve};}
 function fixture(raw:string|null=null){let current=true;const storage={getItem:jest.fn().mockResolvedValue(raw),setItem:jest.fn().mockResolvedValue(undefined),removeItem:jest.fn().mockResolvedValue(undefined)};
@@ -14,6 +14,67 @@ function fixture(raw:string|null=null){let current=true;const storage={getItem:j
  const uuid=jest.fn(()=>K),controller=new GroupConversationController({agreementId:ID,account:{accountId:A,accountRevision:1},current:()=>current,storage,service:service as never,uuid});
  return{controller,storage,service,uuid,setCurrent:(v:boolean)=>{current=v;}};
 }
+const management=(n:number):GroupManagement=>({agreementId:`60000000-0000-4000-8000-${String(n).padStart(12,'0')}`,
+ accountId:K,status:'CONFIRMED',executionState:'CONFIRMED',problemOpened:false});
+const managed=(rows:GroupManagement[],next:string|null):GroupContext=>({...context(),group:{...context().group,
+ role:'REQUESTER',management:rows,managementNextId:next}});
+async function expandedManagement(count=51){
+ const f=fixture(),rows=Array.from({length:count},(_,i)=>management(i+1));
+ f.service.context.mockResolvedValueOnce(ok(managed(rows.slice(0,50),rows[49].agreementId)));
+ await f.controller.load();
+ f.service.context.mockResolvedValueOnce(ok(managed(rows.slice(50),count===100?rows[99].agreementId:null)));
+ await f.controller.managementNext();return{...f,rows};
+}
+it.each([51,100])('read ACK preserves %i explicitly loaded private targets and cursor with one authority read',async count=>{
+ const f=await expandedManagement(count),old=f.controller.snapshot().context!;
+ const fresh=managed([{...f.rows[0],status:'CANCELLED',executionState:'CANCELLED'},...f.rows.slice(1,50)],f.rows[49].agreementId);
+ fresh.group!.unreadCount=0;fresh.group!.canSend=false;fresh.group!.terminal=true;
+ f.service.context.mockResolvedValue(ok(fresh));const before=f.service.context.mock.calls.length;
+ const sizes:number[]=[];const off=f.controller.subscribe(()=>sizes.push(f.controller.snapshot().context?.group?.management?.length??0));
+ await f.controller.markVisible([M]);off();
+ const actual=f.controller.snapshot().context!.group!;
+ expect(actual.management).toHaveLength(count);expect(sizes).toEqual([count]);
+ expect(actual.management![0]).toMatchObject({status:'CANCELLED',executionState:'CANCELLED'});
+ expect(actual).toMatchObject({members:[],unreadCount:0,canSend:false,terminal:true,managementNextId:old.group!.managementNextId});
+ expect(actual.management!.at(-1)).toEqual(f.rows.at(-1));
+ expect(f.service.context).toHaveBeenCalledTimes(before+1);
+ await f.controller.refresh();expect(f.controller.snapshot().context!.group!.management).toHaveLength(50);
+});
+it('ACK first-page insertions keep the loaded tail without duplicates; a complete smaller response retires it',async()=>{
+ const f=await expandedManagement(),inserted=management(0);
+ f.service.context.mockResolvedValueOnce(ok(managed([inserted,...f.rows.slice(0,49)],f.rows[48].agreementId)));
+ await f.controller.markVisible([M]);
+ expect(f.controller.snapshot().context!.group!.management).toEqual([inserted,...f.rows]);
+ f.service.context.mockResolvedValueOnce(ok(managed(f.rows.slice(0,10),null)));
+ await f.controller.markVisible([M]);expect(f.controller.snapshot().context!.group!.management).toHaveLength(10);
+});
+it('ACK advances the refreshed prefix and drops its removed rows while keeping the loaded suffix cursor',async()=>{
+ const f=await expandedManagement(100),fresh=f.rows.slice(10,60).map(row=>({...row,problemOpened:true}));
+ f.service.context.mockResolvedValueOnce(ok(managed(fresh,f.rows[59].agreementId)));
+ await f.controller.markVisible([M]);
+ expect(f.controller.snapshot().context!.group).toMatchObject({management:[...fresh,...f.rows.slice(60)],managementNextId:f.rows[99].agreementId});
+});
+it.each(['denied','unavailable','account','agreement','need','group','participant'] as const)(
+ 'ACK never keeps expanded management across %s authority',async change=>{
+  const f=await expandedManagement(),fresh=managed(f.rows.slice(0,50),f.rows[49].agreementId);
+  if(change==='unavailable'){fresh.available=false;fresh.group=null;}
+  if(change==='account')fresh.accountId=K;if(change==='agreement')fresh.agreementId=K;if(change==='need')fresh.needId=K;
+  if(change==='group')fresh.group!.groupId=K;
+  if(change==='participant'){fresh.group!.role='PARTICIPANT';fresh.group!.management=null;fresh.group!.managementNextId=null;}
+  f.service.context.mockResolvedValueOnce(change==='denied'?unknown:ok(fresh));await f.controller.markVisible([M]);
+  expect(f.controller.snapshot().context?.group?.management??[]).not.toContainEqual(f.rows[50]);
+ });
+it.each(['refresh','next','send','dispose','account'] as const)('late ACK context cannot replace newer %s',async change=>{
+ const f=await expandedManagement(100),gate=deferred<unknown>(),entered=deferred<void>();
+ f.service.context.mockImplementationOnce(()=>{entered.resolve();return gate.promise;});
+ const ack=f.controller.markVisible([M]);await entered.promise;
+ if(change==='refresh'){f.service.context.mockResolvedValueOnce(ok(managed([management(200)],null)));await f.controller.refresh();}
+ if(change==='next'){f.service.context.mockResolvedValueOnce(ok(managed([management(101)],null)));await f.controller.managementNext();}
+ if(change==='send')await f.controller.send('Nova poruka dok se potvrđuje čitanje.');
+ if(change==='dispose')f.controller.dispose();if(change==='account')f.setCurrent(false);
+ const current=f.controller.snapshot();gate.resolve(ok(managed(f.rows.slice(0,50),f.rows[49].agreementId)));await ack;
+ expect(f.controller.snapshot()).toBe(current);
+});
 it('persists opaque identity before one dispatch despite concurrent retained taps',async()=>{
  const f=fixture(),gate=deferred<void>();await f.controller.load();f.storage.setItem.mockReturnValue(gate.promise);
  const first=f.controller.send('  Privatna zajednička poruka  ');void f.controller.send('Druga poruka');expect(f.service.send).not.toHaveBeenCalled();

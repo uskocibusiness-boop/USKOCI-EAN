@@ -130,7 +130,7 @@
     "trace": "Current09.10/PID10839 main waits future/RenderProxy.setStopped/HardwareRenderer; RenderThread waits qemu_pipe_read/rcCreateSyncKHR/eglSwapBuffers. JS and native-module threads idle in this snapshot.",
     "inference": "A blocked emulator EGL/QEMU rendering path is observed; no JS follow-loop evidence in captured stacks. Final root cause remains unresolved; not an app-wide stability PASS.",
     "pressure": "App/system traces CPU pressure avg10 67.48%/80.63%, total94%/91%, IRQ62%/63%.",
-    "recovery": "Wait did not recover; adb reboot did not complete. Graceful emu kill then same AVD cold boot without snapshots/userdata wipe. Default graphics yielded System UI ANR. One temporary -gpu swiftshader attempt yielded repeated system/phone/Gboard startup ANRs before app test. No further retry.",
+    "recovery": "Wait did not recover; adb reboot did not complete. Graceful emu kill then same AVD cold boot without snapshots/userdata wipe. Default graphics yielded System UI ANR. One temporary -gpu swiftshader attempt yielded repeated system/phone/Gboard startup ANRs before app test. No further retry at that checkpoint; later bounded noVulkanFollowup is recorded below.",
     "reference": "https://developer.android.com/topic/performance/anrs/diagnose-and-fix-anrs"
   },
   "cleanup": {
@@ -168,5 +168,29 @@
     "Raw device images/logs remain private.",
     "No end-to-end chat, performance, push or store acceptance.",
     "caf48ecf place total and7cf95d1d agreement rhythm, and new point-members gallery are not in this c62 APK."
-  ]
+  ],
+  "noVulkanFollowup": {
+    "state": "SYSTEM_STARTUP_ANR / APP_QA_NOT_REACHED",
+    "arguments": [
+      "-avd",
+      "USKOCI_V5_TEST",
+      "-no-snapshot",
+      "-gpu",
+      "host",
+      "-feature",
+      "-Vulkan"
+    ],
+    "reason": "Both preceding graphics attempts still used Vulkan; independent read-only review identified this distinct official diagnostic option.",
+    "observed": "sys.boot_completed=1; boot log77.883s. SystemUI service ANR20725ms, Gboard and Android System Intelligence startup ANRs; screenshot shows System UI not responding over launcher.",
+    "cleanup": "Graceful adb emu kill; subsequent process read showed no emulator/qemu. Font1.15 read back. Gboard two preferences still RESTORE_PENDING. No wipe, snapshot save, config edit, app launch or phone use.",
+    "limits": "Does not establish Vulkan as cause. No installed package/auth re-attestation in this failed attempt; earlier attestation remains historical.",
+    "reference": "https://developer.android.com/studio/run/emulator-troubleshooting",
+    "privateEvidenceSha256": {
+      "c62-no-vulkan.stdout.log": "6e2dd53a5c3383a6b7deee1f6e94674626de83bb6acad6904de0afc69a6c0940",
+      "c62-no-vulkan.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "c62-no-vulkan-events.log": "eb2123cf81750c69ef82df0f4c7005d7c6007dca0cd47c1bccac0f147401e80c",
+      "c62-no-vulkan-boot.xml": "395de3865fec2b76edf6abd6636945d71d685435b0e8412c57909e1ed4a8db3f",
+      "c62-no-vulkan-boot.png": "dd74979e323b6ac92ad254d692650fb25ca22be7bd82ab1d18db1afed87c24fa"
+    }
+  }
 }

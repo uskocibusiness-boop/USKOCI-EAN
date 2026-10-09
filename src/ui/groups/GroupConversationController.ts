@@ -25,12 +25,26 @@ export class GroupConversationController{
   if(journal){if(journal.groupId!==this.state.context?.group?.groupId){this.update({phase:'ERROR',message:'Sačuvani zahtev ne pripada ovom razgovoru.'});return;}await this.recover();}
   else await this.page();
  });
- private async context(accept:()=>boolean=()=>true){const result=await this.service.context(this.deps.agreementId,this.deps.account);if(!this.current()||!accept())return false;
+ private async context(accept:()=>boolean=()=>true,keepManagement=false){
+  const previous=this.state.context;
+  const result=await this.service.context(this.deps.agreementId,this.deps.account);if(!this.current()||!accept())return false;
   if(!result.ok){this.update({phase:this.state.journal?'UNKNOWN':'ERROR',context:null,messages:[],before:null,canRetry:false,message:result.poruka});return false;}
   if(this.state.journal&&this.state.journal.groupId!==result.podatak.group?.groupId){
    this.update({phase:'ERROR',context:null,messages:[],before:null,canRetry:false,message:'Sačuvani zahtev ne pripada ovom razgovoru.'});return false;
   }
-  this.update({context:result.podatak,...(!result.podatak.group?{messages:[],before:null}:{})});return true;
+  let next=result.podatak;
+  const old=previous?.group,fresh=next.group;
+  // A read ACK refreshes authority/roster/unread, not the person's pagination choice. Keep the
+  // explicitly loaded tail as its last-read snapshot, just as managementNext does. An explicit
+  // refresh still replaces it. Cancelled bilateral agreements remain valid requester targets.
+  if(keepManagement&&previous?.accountId===next.accountId&&previous.agreementId===next.agreementId&&previous.needId===next.needId
+   &&old?.groupId===fresh?.groupId&&old?.role==='REQUESTER'&&fresh?.role==='REQUESTER'
+   &&old.management&&old.management.length>50&&fresh.management&&fresh.managementNextId){
+   const boundary=fresh.managementNextId.toLowerCase(),seen=new Set(fresh.management.map(row=>row.agreementId.toLowerCase()));
+   const tail=old.management.filter(row=>row.agreementId.toLowerCase()>boundary&&!seen.has(row.agreementId.toLowerCase()));
+   if(tail.length)next={...next,group:{...fresh,management:[...fresh.management,...tail],managementNextId:old.managementNextId}};
+  }
+  this.update({context:next,...(!next.group?{messages:[],before:null}:{})});return true;
  }
  private async page(before?:string){const context=this.state.context,group=context?.group;if(!group){this.update({phase:'READY'});return;}
   let result:Awaited<ReturnType<typeof groupConversationService.messages>>;
@@ -121,7 +135,7 @@ export class GroupConversationController{
     const revision=this.operationRevision,context=this.state.context;
     const result=await this.service.markRead(g.groupId,ids,this.deps.account);if(!this.current())return;
     const unchanged=()=>this.operationRevision===revision&&!this.busy&&this.state.phase==='READY'&&this.state.context===context;
-    if(result.ok&&unchanged())await this.context(unchanged);
+    if(result.ok&&unchanged())await this.context(unchanged,true);
    }
   }catch{/* Best effort only; an unconfirmed read never changes message or command state. */}
   finally{this.marking=false;if(this.visible)void this.flushVisible();}

@@ -6,6 +6,7 @@ jest.mock('@react-native-async-storage/async-storage', () => { const values = ne
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
 import type { VoicePhase } from '../../features/voice/holdToTalk';
+import type { LocationReplyLease } from '../../ui/location/ConversationPointAsk';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../contracts/needFactsV2';
 
 let mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
@@ -26,6 +27,10 @@ jest.mock('../../features/voice/nativeSpeechAdapter', () => ({
 jest.mock('../supabaseClient', () => ({ supabaseKonfigurisan: () => false }));
 const mockVoiceCancel = jest.fn(), mockVoiceOptions = jest.fn();
 const mockCancel = jest.fn(), mockRecover = jest.fn();
+let mockLocationDialogueEnabled = false;
+const mockLocationResolve = jest.fn();
+jest.mock('../locationDialogueClientService', () => ({ locationDialogueEnabled: () => mockLocationDialogueEnabled,
+  resolveLocationDialogue: (...args: unknown[]) => mockLocationResolve(...args) }));
 const mockOpen = jest.fn(), mockLoad = jest.fn(), mockSend = jest.fn(), mockTurn = jest.fn(), mockAbandon = jest.fn();
 const mockRouter = { back: jest.fn(), canGoBack: jest.fn(() => true), replace: jest.fn(), push: jest.fn() };
 jest.mock('../index', () => ({ aiNeedV2Izvor: { openConversation: (...args: unknown[]) => mockOpen(...args),
@@ -231,6 +236,7 @@ beforeEach(async () => {
   mockReduced = false;
   mockVoicePhase = 'IDLE';
   mockRealVoice = false; mockAppState = 'active'; mockAppListeners.clear();
+  mockLocationDialogueEnabled = false; mockLocationResolve.mockReset().mockResolvedValue(unknown());
   mockPermission.mockReset().mockResolvedValue('granted');
   mockCreateCapture.mockReset().mockReturnValue(mockCapture);
   mockCapture.start.mockReset().mockResolvedValue(undefined);
@@ -1344,6 +1350,69 @@ it('rechecks account ABA after persistence before any network send', async () =>
   await act(async () => { void submit().onPress(); });
   mockSession = { user: { id: mockSession.user.id }, accountRevision: 3 }; await update();
   await act(async () => held.resolve()); expect(mockSend).not.toHaveBeenCalled();
+});
+// The map owns this capability. The screen must recheck it across storage as well as HTTP;
+// merely returning to the foreground does not revive the question that was retired.
+async function contextualLocationReply() {
+  mockLocationDialogueEnabled = true;
+  mockLoad.mockResolvedValue(conversation({ facts: [
+    publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } }),
+  ] }));
+  await resume(); await type('Da, to je ulaz.');
+  let current = true;
+  const lease: LocationReplyLease = { context: { version: 1, promptToken: other, reviewRevision: 'a'.repeat(64),
+    slot: 'start', phase: 'PROPOSAL', question: 'Da li je ovo ulaz?', query: 'Novi Sad',
+    proposal: { id: other, label: 'Ulaz iz dvorišta' }, alternatives: [] },
+    isCurrent: () => current, cancel: jest.fn(() => { current = false; }), apply: jest.fn(async () => true) };
+  await act(async () => tree.root.findByType('PointAsk' as React.ElementType).props.onPromptReady({
+    context: lease.context, acquire: () => lease,
+  }));
+  return lease;
+}
+it.each(['background', 'background-active'] as const)(
+  'does not dispatch a retired location reply after delayed storage: %s', async transition => {
+    const lease = await contextualLocationReply(), held = deferred<void>();
+    const save = aiTurnIntentJournal.save.bind(aiTurnIntentJournal);
+    const saving = jest.spyOn(aiTurnIntentJournal, 'save').mockImplementationOnce(async intent => {
+      await save(intent); await held.promise;
+    });
+    try {
+      await act(async () => { void submit().onPress(); });
+      const intent = await aiTurnIntentJournal.load(mockSession.user.id);
+      expect(intent).toMatchObject({ conversationId: id });
+      expect(mockLocationResolve).not.toHaveBeenCalled();
+      await act(async () => { mockAppState = 'background'; mockAppListeners.forEach(listener => listener('background')); });
+      if (transition === 'background-active') await act(async () => {
+        mockAppState = 'active'; mockAppListeners.forEach(listener => listener('active'));
+      });
+      await act(async () => held.resolve());
+      expect(lease.cancel).toHaveBeenCalled(); expect(lease.isCurrent()).toBe(false);
+      expect(mockLocationResolve).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+      expect(lease.apply).not.toHaveBeenCalled();
+      expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
+      expect(input().value).toBe('Da, to je ulaz.');
+    } finally { saving.mockRestore(); }
+  });
+it('dispatches a current location reply once after storage with its exact context and journal key', async () => {
+  const lease = await contextualLocationReply();
+  await act(async () => submit().onPress());
+  const intent = await aiTurnIntentJournal.load(mockSession.user.id);
+  expect(mockLocationResolve).toHaveBeenCalledTimes(1);
+  expect(mockLocationResolve.mock.calls[0][0]).toEqual({ mode: 'locationReply', conversationId: id,
+    clientRequestId: intent!.clientRequestId, text: 'Da, to je ulaz.', locationContext: lease.context });
+  expect(mockSend).not.toHaveBeenCalled(); expect(lease.apply).not.toHaveBeenCalled();
+});
+it('aborts an already dispatched location reply on background and never applies its late confirmation', async () => {
+  const lease = await contextualLocationReply(), held = deferred();
+  mockLocationResolve.mockReturnValueOnce(held.promise);
+  await act(async () => { void submit().onPress(); });
+  const [command, guard] = mockLocationResolve.mock.calls[0];
+  await act(async () => { mockAppState = 'background'; mockAppListeners.forEach(listener => listener('background')); });
+  expect(guard.signal.aborted).toBe(true); expect(guard.isCurrent()).toBe(false);
+  await act(async () => held.resolve(ok({ turn: turn(command.clientRequestId, 'SUCCEEDED').podatak,
+    location: { version: 1, promptToken: other, reviewRevision: 'a'.repeat(64), slot: 'start',
+      proposalId: other, action: 'CONFIRM_DISPLAYED' } })));
+  expect(lease.apply).not.toHaveBeenCalled(); noSummary();
 });
 it('routes a conflicting resumed conversation back to the pending UUID owner without sending', async () => {
   await aiTurnIntentJournal.save({ accountId: mockSession.user.id, conversationId: id, clientRequestId: other });

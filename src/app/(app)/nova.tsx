@@ -213,8 +213,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       } catch {
         return { ok: false, kod: 'AI_LOCAL_INTENT_NOT_SAVED', poruka: 'Poruka nije poslata. Pokušaj ponovo.' };
       }
-      // Storage completion is asynchronous: recheck focus/account before HTTP.
-      if (!isCurrent() || !command.body)
+      // Backgrounding can retire the map question while storage is pending, before an HTTP abort
+      // controller exists. Returning to the foreground does not revive that confirmation lease.
+      if (!isCurrent() || !command.body || (pointLease && !pointLease.isCurrent()))
         return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;
       setStreamingText('');
