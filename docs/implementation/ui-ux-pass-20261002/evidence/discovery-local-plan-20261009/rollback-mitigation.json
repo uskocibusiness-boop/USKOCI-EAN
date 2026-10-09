@@ -1,0 +1,71 @@
+{
+  "state": "LOCAL_ROLLBACK_MITIGATION_PASS_CERT_COMPUTATION_UNAVAILABLE",
+  "startedAt": "2026-10-09T10:48:13.940127+00:00",
+  "target": "127.0.0.1:55439/uskoci_plan_cache_20261009",
+  "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+  "change": "Function-local plan_cache_mode=force_custom_plan only, inside uncommitted transaction then ROLLBACK.",
+  "limits": [
+    "One authenticated SQL reader and40000synthetic tasks, not HTTP or production capacity.",
+    "Only PLACES shape tested here; other modes require their own semantic/cost checks.",
+    "Original function body, ACL, RLS and stored certificate rows are not changed persistently.",
+    "Computed certificate/readiness preflight failed before any mutation: isolated storage.buckets lacks public column. Only stored certificate rows compared; no computed certificate acceptance."
+  ],
+  "oracle": {
+    "elapsedMs": 14216.56960004475,
+    "everywhere": 40007,
+    "sha256": "b72a53d00c419c5d80ff3e80e2b87cfec5926456ac625de0d8d092d4e10a2d98"
+  },
+  "result": {
+    "environment": {
+      "jit": "on",
+      "mode": "auto",
+      "role": "authenticated",
+      "workMem": "4MB",
+      "lockTimeout": "5s",
+      "serverVersion": "170011",
+      "statementTimeout": "90s"
+    },
+    "elapsedMs": 84851.19840002153,
+    "progress": {
+      "valid": true,
+      "plannedSamples": 6,
+      "completedSamples": 6,
+      "activeSample": null,
+      "completed": [
+        {
+          "index": 0,
+          "elapsedMs": 13558.8
+        },
+        {
+          "index": 1,
+          "elapsedMs": 13614.3
+        },
+        {
+          "index": 2,
+          "elapsedMs": 14243.5
+        },
+        {
+          "index": 3,
+          "elapsedMs": 14336.8
+        },
+        {
+          "index": 4,
+          "elapsedMs": 13958.5
+        },
+        {
+          "index": 5,
+          "elapsedMs": 14883.3
+        }
+      ]
+    },
+    "sessionStable": true,
+    "completedResponseComparisons": 6,
+    "failure": null,
+    "sqlstate": null,
+    "status": 0,
+    "processCode": null
+  },
+  "duringMetadataAndStoredCertificatesVerified": true,
+  "freshConnectionExactRestoration": true,
+  "elapsedMs": 99555.6796999881
+}

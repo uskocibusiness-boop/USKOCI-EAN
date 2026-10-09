@@ -633,3 +633,23 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **LOKALNA BAZA:** odvojeni clone127.0.0.1:55439/uskoci_plan_cache_20261009,40000sintetičkihzadataka+49starih,5AuthUUIDstubova,1SQLreader,0HTTP. Auto5istihodgovora pa6.poziv timeout90s; custom6/6PASS(12.3–16.1s na zajedničkomhostu); generic1.poziv timeout90s. Customnativeplan uhvaćen:38005grupa/200procena,Merge/Hashjoin,temp spill. Generictrace nema plan jer timeout. Uzrok sporog genericjoin-a nije dokazan. ReaderMD5/metapodaci isti; originalna baza ima49zadataka, ovo je samo countcheck. Nije dokaz40000korisnika, konkurentnosti ili produkcionogkapaciteta. Evidence/discovery-local-plan-20261009/receipt.json.
 
 **NIJE DOKAZANO / SLEDEĆE:** HALF objava ostaje ispod navigacije dok se lista ne podigne/scrolluje; FULL je otkriva. Nova profil→objava→matching→OPPORTUNITY push provera traje odvojeno. Privatni phoneAPK tek poslebuild/attestation. Storegates otvoreni, globalpushOFF, automatizacija30minPAUSED. Sledeći mali performancekorak je estimatedEXPLAIN tačnog parametrizovanog query-ja u localclone-u, bezANALYZE/DEVopterećenja.
+
+
+## f64 telefon isporučen; stvarni AI radni profil aktiviran — 09.10.
+
+**URADIO/DOKAZAO:** ARM64preview35 APK SHA0883efba3a428b38ff0655be8b145193aba7b02fe61e202187e76a2311020717,99682948B,5805frozen sourcefajlova, isti potpis/Firebase/OTA attestovani. Privatni prerelease qa-phone-20261009-f64b6bb4 vezan za f64commit, uploaded digest/veličina jednaki lokalnim; link poslat vlasniku. Telefon se pojavio naADB, ali Awake i još stari f61hash; samo read-only package/power, bez inputa/instalacije.
+
+**STVARNI TOK:** emulatorf64 postojeći login→AIradni profil;2providerturnaSUCCEEDED; nošenje kesa i stvari,Beograd/RS,20km,Moguodmah; pregled i eksplicitnoSačuvaj/aktiviraj. Ekran potvrđuje aktivanprofil, nezavisanDEVreadback potvrđuje authoritative=true,saved=true,ACTIVE i razgovorCOMPLETED. Evidence/native-f64b6bb4/worker-ai.json. Područje nema približnu koordinatu i pošteno kaže da se dodaje posle čuvanja; ovo ne dokazujegeoradius.
+
+**NIJE DOKAZANO/SLEDEĆE:** voice/physicalphone/new-taskpush nisu dokazani. U pregledu je alat prikazanNije navedeno iako je odgovor bioNemam, nijansa kopije za doradu. BrziADBunos jednom izgubio deo nacrta; sporiji unos tačno proveren pre slanja, nije poslata pogrešna poruka. Sada trajeNovi zadatak: stvarniAIprepoznaodanas/jednuosobu/ponude i pita lokaciju pre završne kartice. Drugi nalog/matching ostajeodvojenkorak, bezauthbypass-a/resetovanja lozinki. AutomatizacijaostajePAUSED,storeotvoren.
+
+
+## Lokacijska mapa, ispravka mesta i izolovana SQL mitigacija — 09.10.
+
+**URADIO:** source paket smanjuje map credits na postojeću donju levu kontrolu sa3izvora, bez dodatnog prostora ispod mape. Otvaranje prekida pendingdrag i poštuje token tačke. Prazna Discoverylista nema dupliranu mapilustraciju; obe akcije ostaju. Opcioni alat/vozilo više nisu u nedostajućim obaveznim stavkama govorne kopije. Slab lokacijski kandidat prikazan kao orijentir; direktna ispravka upita ide kroz postojeći resolver, bez dodatnog AIturna i bez automatske potvrde.
+
+**DOKAZAO:** ciljane sourceprovere u evidence/map-location-recovery-20261009/receipt.json. Nativef64 je tokom stvarnog taskAI toka otkrio weakproposal bez korisnički vidljivog labela i mapu bez naziva. Geometrija i reverseadresa rade; pogrešanVrčintap nije potvrđen. Javni Beograd tile z10/z14 daje neprazne nazive,3fontPBF200,JSstylevalidator0errors; ovo ne dokazuje nativeglyphrender. Dodata inertna map-labels galerija, samo rs.uskoci.dev, za originalURL/rawJSON/transformedJSON poređenje.
+
+**SQL LOKALNO:** estimatedplan custom45/generic47nodes; generic završni NestedLoop nad CTEs očekuje1grupu, stvarni customtrace38005. Jedna rollbacktransakcija sa functionlocalforce_custom_plan:6/6punihodgovora13.56–14.88s, posle svakogcallerauto, nova konekcija potvrđuje potpunovraćanje definicije/metapodataka/sačuvanihcertredova. Computedcert/readiness nije prošao zbog storage.buckets.public u lokalnomstubu i nije zaobiđen. Ništa nije primenjeno naDEV. Nije kapacitet40000korisnika;1SQLreader,0HTTP,40000sintetičkihtaskova.
+
+**NIJE DOKAZANO / SLEDEĆE:** novi tačan APK/native izvoripanela i Backsteka, HALFkompozicija, labelA/B, direktnaispravkageokodera; završenaobjava→drugiaccountmatching→OPPORTUNITYpush. Samo MESSAGEpush ima vlasnikovu fizičkudostavu/tappotvrdu. Privatnif64phoneAPK isporučen ranije, storegatesotvoreni. Automatizacija30minostajePAUSED. Nastaviti sourceverified→attestedAPK, bez ponovnogreseta i bez globalpushflush-a.

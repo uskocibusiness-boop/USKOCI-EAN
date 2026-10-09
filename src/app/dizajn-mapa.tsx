@@ -12,6 +12,7 @@ import { DiscoveryPresentation, type DiscoveryTrace, type DiscoveryV1Presentatio
 import { Press } from '../ui/Press';
 import { T } from '../ui/Text';
 import { sys } from '../ui/system/tokens';
+import { MapLabelsProbe } from '../ui/location/MapLabelsProbe';
 
 /**
  * Inert native rendering fixture, never a server dataset or a concurrent-user load test.
@@ -76,14 +77,17 @@ export default function DizajnMapa() {
     ? Number(params.detail) : -1;
   const relation = params.relation ?? 'none';
   const pointMembers = params.scene === 'point-members';
+  const mapLabels = params.scene === 'map-labels';
   if (!internal || count === null || (relation !== 'none' && relation !== 'owned' && relation !== 'applied')
-    || (params.scene !== undefined && !pointMembers)
-    || (pointMembers && (params.count !== undefined || params.detail !== undefined || params.relation !== undefined))
+    || (params.scene !== undefined && !pointMembers && !mapLabels)
+    || ((pointMembers || mapLabels) && (params.count !== undefined || params.detail !== undefined || params.relation !== undefined))
+    || (mapLabels && params.discoveryTrace !== undefined)
     || (detail !== null && (detail < 0 || detail >= count))) {
     return <SafeAreaView style={s.screen}><T style={s.unavailable}>{internal ? 'Nepoznat prikaz galerije.' : 'Nije dostupno.'}</T>
       <GalleryFooter count={null} onBack={leave} /></SafeAreaView>;
   }
   if (pointMembers) return <PointMembersGallery />;
+  if (mapLabels) return <MapLabelsProbe onBack={leave} />;
   return <LocalGallery key={`${count}:${relation}`} count={count} detail={detail} relation={relation} traceEnabled={params.discoveryTrace === '1'} />;
 }
 

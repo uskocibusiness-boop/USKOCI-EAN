@@ -1,0 +1,578 @@
+{
+  "state": "ESTIMATED_PLANS_ONLY",
+  "sourceQuerySha256": "3f63aaf71e9aff49e00ad0afc1a6224fe79c147010c67e0d8568808e0148133b",
+  "parameterizedSha256": "3598546bc328e3913ac294d842812912500d64e01e837abdac686d9f0b81341c",
+  "elapsedMs": 294.365799985826,
+  "context": {
+    "jit": "on",
+    "port": 55439,
+    "role": "authenticated",
+    "workMem": "4MB",
+    "database": "uskoci_plan_cache_20261009",
+    "readOnly": "on",
+    "bypassRls": false,
+    "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "superuser": false,
+    "rowSecurity": "on",
+    "enableHashjoin": "on",
+    "enableNestloop": "on",
+    "enableMergejoin": "on"
+  },
+  "privateReceiptSha256": "a53cc95e813bb3d554e1e602bed6dd6b65180c9d4081d3ca612d137cc57049b5",
+  "plans": {
+    "custom": [
+      {
+        "Node Type": "Result",
+        "Plan Rows": 1,
+        "Total Cost": 20885.48
+      },
+      {
+        "Node Type": "Seq Scan",
+        "Subplan Name": "CTE place_base",
+        "Plan Rows": 13295,
+        "Total Cost": 16944.6
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 1",
+        "Plan Rows": 1,
+        "Total Cost": 0.26
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 2",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 3",
+        "Plan Rows": 1,
+        "Total Cost": 0.26
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 4",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 5",
+        "Plan Rows": 1,
+        "Total Cost": 0.26
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE place_wanted",
+        "CTE Name": "place_base",
+        "Plan Rows": 13295,
+        "Total Cost": 265.9
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE place_qualified",
+        "CTE Name": "place_wanted",
+        "Plan Rows": 13295,
+        "Total Cost": 332.38
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "CTE facet_raw_counts",
+        "Plan Rows": 6314,
+        "Total Cost": 409.65
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 6316,
+        "Total Cost": 299.14
+      },
+      {
+        "Node Type": "Unique",
+        "Subplan Name": "CTE facet_raw_representatives",
+        "Plan Rows": 6314,
+        "Total Cost": 745.2
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 6316,
+        "Total Cost": 713.62
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 6316,
+        "Total Cost": 299.14
+      },
+      {
+        "Node Type": "Merge Join",
+        "Subplan Name": "CTE facet_raw",
+        "Plan Rows": 997,
+        "Total Cost": 989.26
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_raw_representatives",
+        "Plan Rows": 6314,
+        "Total Cost": 126.28
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 6314,
+        "Total Cost": 540.62
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_raw_counts",
+        "Plan Rows": 6314,
+        "Total Cost": 126.28
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE facet_keys",
+        "CTE Name": "facet_raw",
+        "Plan Rows": 997,
+        "Total Cost": 518.44
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE facet_members",
+        "CTE Name": "facet_keys",
+        "Plan Rows": 987,
+        "Total Cost": 269.18
+      },
+      {
+        "Node Type": "Unique",
+        "Subplan Name": "CTE facet_representatives",
+        "Plan Rows": 200,
+        "Total Cost": 73.76
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 987,
+        "Total Cost": 71.3
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_members",
+        "Plan Rows": 987,
+        "Total Cost": 19.74
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "CTE facet_counts",
+        "Plan Rows": 200,
+        "Total Cost": 27.68
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_members",
+        "Plan Rows": 987,
+        "Total Cost": 19.74
+      },
+      {
+        "Node Type": "Hash Join",
+        "Subplan Name": "CTE facets",
+        "Plan Rows": 200,
+        "Total Cost": 13.25
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_counts",
+        "Plan Rows": 200,
+        "Total Cost": 4.0
+      },
+      {
+        "Node Type": "Hash",
+        "Plan Rows": 200,
+        "Total Cost": 4.0
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_representatives",
+        "Plan Rows": 200,
+        "Total Cost": 4.0
+      },
+      {
+        "Node Type": "Limit",
+        "Subplan Name": "CTE facet_page",
+        "Plan Rows": 31,
+        "Total Cost": 10.03
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 200,
+        "Total Cost": 10.45
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facets",
+        "Plan Rows": 200,
+        "Total Cost": 4.0
+      },
+      {
+        "Node Type": "Limit",
+        "Subplan Name": "CTE facet_shown",
+        "Plan Rows": 30,
+        "Total Cost": 0.6
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_page",
+        "Plan Rows": 31,
+        "Total Cost": 0.62
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 19",
+        "Plan Rows": 1,
+        "Total Cost": 0.76
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_shown",
+        "Plan Rows": 30,
+        "Total Cost": 0.6
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 20",
+        "Plan Rows": 1,
+        "Total Cost": 0.71
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_page",
+        "Plan Rows": 31,
+        "Total Cost": 0.62
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 21",
+        "Plan Rows": 1,
+        "Total Cost": 0.71
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_page",
+        "Plan Rows": 31,
+        "Total Cost": 0.62
+      },
+      {
+        "Node Type": "Limit",
+        "Subplan Name": "InitPlan 22",
+        "Plan Rows": 1,
+        "Total Cost": 0.83
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 30,
+        "Total Cost": 0.9
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_shown",
+        "Plan Rows": 30,
+        "Total Cost": 0.67
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 23",
+        "Plan Rows": 1,
+        "Total Cost": 282.53
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 6648,
+        "Total Cost": 265.9
+      }
+    ],
+    "generic": [
+      {
+        "Node Type": "Result",
+        "Plan Rows": 1,
+        "Total Cost": 17400.1
+      },
+      {
+        "Node Type": "Bitmap Heap Scan",
+        "Subplan Name": "CTE place_base",
+        "Plan Rows": 4,
+        "Total Cost": 17396.18
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 1",
+        "Plan Rows": 1,
+        "Total Cost": 0.26
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 2",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 3",
+        "Plan Rows": 1,
+        "Total Cost": 0.26
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 4",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Result",
+        "Subplan Name": "InitPlan 5",
+        "Plan Rows": 1,
+        "Total Cost": 0.26
+      },
+      {
+        "Node Type": "Bitmap Index Scan",
+        "Plan Rows": 13333,
+        "Total Cost": 665.62
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE place_wanted",
+        "CTE Name": "place_base",
+        "Plan Rows": 4,
+        "Total Cost": 0.58
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE place_qualified",
+        "CTE Name": "place_wanted",
+        "Plan Rows": 4,
+        "Total Cost": 0.1
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "CTE facet_raw_counts",
+        "Plan Rows": 2,
+        "Total Cost": 0.12
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 2,
+        "Total Cost": 0.09
+      },
+      {
+        "Node Type": "Unique",
+        "Subplan Name": "CTE facet_raw_representatives",
+        "Plan Rows": 2,
+        "Total Cost": 0.12
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 2,
+        "Total Cost": 0.11
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 2,
+        "Total Cost": 0.09
+      },
+      {
+        "Node Type": "Merge Join",
+        "Subplan Name": "CTE facet_raw",
+        "Plan Rows": 1,
+        "Total Cost": 0.38
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_raw_representatives",
+        "Plan Rows": 2,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 2,
+        "Total Cost": 0.06
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_raw_counts",
+        "Plan Rows": 2,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE facet_keys",
+        "CTE Name": "facet_raw",
+        "Plan Rows": 1,
+        "Total Cost": 1.53
+      },
+      {
+        "Node Type": "CTE Scan",
+        "Subplan Name": "CTE facet_members",
+        "CTE Name": "facet_keys",
+        "Plan Rows": 1,
+        "Total Cost": 0.53
+      },
+      {
+        "Node Type": "Unique",
+        "Subplan Name": "CTE facet_representatives",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_members",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "CTE facet_counts",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_members",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Nested Loop",
+        "Subplan Name": "CTE facets",
+        "Plan Rows": 1,
+        "Total Cost": 0.05
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_counts",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_representatives",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Limit",
+        "Subplan Name": "CTE facet_page",
+        "Plan Rows": 1,
+        "Total Cost": 0.05
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 1,
+        "Total Cost": 0.05
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facets",
+        "Plan Rows": 1,
+        "Total Cost": 0.03
+      },
+      {
+        "Node Type": "Limit",
+        "Subplan Name": "CTE facet_shown",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_page",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 19",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_shown",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 20",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_page",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 21",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_page",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Limit",
+        "Subplan Name": "InitPlan 22",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "Sort",
+        "Plan Rows": 1,
+        "Total Cost": 0.04
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "facet_shown",
+        "Plan Rows": 1,
+        "Total Cost": 0.02
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 23",
+        "Plan Rows": 1,
+        "Total Cost": 0.1
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 2,
+        "Total Cost": 0.08
+      },
+      {
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 24",
+        "Plan Rows": 1,
+        "Total Cost": 0.09
+      },
+      {
+        "Node Type": "CTE Scan",
+        "CTE Name": "place_qualified",
+        "Plan Rows": 1,
+        "Total Cost": 0.08
+      }
+    ]
+  },
+  "limits": [
+    "EXPLAIN without ANALYZE; generic actual loop count is not observed.",
+    "One local authenticated SQL reader,40000synthetic tasks,not40000users or HTTP capacity."
+  ]
+}

@@ -2013,7 +2013,7 @@ test('reading, not read and nothing in this view keep their meanings, through th
   // Owner, 2026-10-07: the map and the list always show every task, so nothing found is never about the person's profile.
   // Empty results share the screen with a real map, so the sheet uses the compact state.
   expect(texts()).toContain('Još niko nije tražio pomoć'); expect(texts()).toContain('Čim neko objavi zadatak, pojaviće se ovde i na mapi.');
-  expect(tree.root.findAll(node => node.props.compact === true && node.props.art === 'map')).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.compact === true && node.props.art === null)).toHaveLength(1);
   expect(texts()).not.toContain('radnom profilu'); expect(action('Dopuni radni profil')).toBeUndefined();
   refresh.mockClear(); await click('Osveži'); expect(refresh).toHaveBeenCalledTimes(1); expect(profile).not.toHaveBeenCalled();
   expect(countLine().props.accessibilityLabel).toBe('Nema zadataka');
@@ -2729,7 +2729,7 @@ test('an empty P6 read with no bounds keeps a map and compact recovery without a
   expect(map()).toBeTruthy(); expect(map().props.p6Server.markers).toEqual([]);
   expect(map().props.viewport).toBeNull(); expect(map().props.me).toBeNull();
   expect(mockNearbyPermission).not.toHaveBeenCalled();
-  expect(tree.root.findAll(node => node.props.compact === true && node.props.art === 'map')).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.compact === true && node.props.art === null)).toHaveLength(1);
   await click('Osveži'); expect(refresh).toHaveBeenCalledTimes(1);
 });
 test.each([['task', serverTask], ['place', serverPlace]] as const)(

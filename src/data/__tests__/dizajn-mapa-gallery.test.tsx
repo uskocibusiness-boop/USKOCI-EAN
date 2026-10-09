@@ -1,4 +1,5 @@
 import React from 'react';
+jest.mock('../../ui/location/MapLabelsProbe', () => ({ MapLabelsProbe: 'MapLabelsProbe' }));
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
@@ -61,6 +62,22 @@ test('bounded point-members fixture carries an independent total through the rea
   expect(discovery().p6Seam?.peek?.placeTotalCount).toBe(4000);
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
+
+test.each(['rs.uskoci.preview', 'rs.uskoci', 'rs.uskoci.dev'])(
+  'label isolation fixture is reachable only in exact DEV package: %s', async packageName => {
+    mockPackage = packageName; mockParams = { scene: 'map-labels' }; await render();
+    expect(tree.root.findAllByType('MapLabelsProbe' as React.ElementType)).toHaveLength(packageName === 'rs.uskoci.dev' ? 1 : 0);
+    expect(tree.root.findAllByType('Discovery' as React.ElementType)).toHaveLength(0);
+  },
+);
+
+test.each([{ count: '1000' }, { detail: '0' }, { relation: 'owned' }, { discoveryTrace: '1' }])(
+  'does not combine the label probe with dataset or trace modes: %j', async other => {
+    mockParams = { scene: 'map-labels', ...other }; await render();
+    expect(tree.root.findAllByType('MapLabelsProbe' as React.ElementType)).toHaveLength(0);
+    expect(words()).toContain('Nepoznat prikaz galerije.');
+  },
+);
 
 test.each(['rs.uskoci.preview', 'rs.uskoci'])(
   'point-members fixture remains unavailable outside exact DEV package: %s', async packageName => {

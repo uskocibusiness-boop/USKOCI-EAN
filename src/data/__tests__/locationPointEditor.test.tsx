@@ -443,6 +443,39 @@ describe('compact conversation proposal', () => {
     }));
   });
 
+  it('shows a weak orientation result and lets the person correct the search without another AI turn', async () => {
+    const city = { ...candidate, label: 'Београд, Србија' };
+    const exact = { ...candidate, label: '10, Kneza Mihaila, Stari grad, Beograd, Srbija' };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [city], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Knez Mihailova 10, Beograd' });
+    expect(text()).toContain('Mapa kao orijentir:  Beograd, Srbija');
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
+    await press('Pronađi drugo mesto');
+    expect(field('pronađi mesto').props.value).toBe('Knez Mihailova 10, Beograd');
+    await change('pronađi mesto', 'Kneza Mihaila 10, Stari grad, Beograd');
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    resolver.search.mockResolvedValue({ status: 'PROPOSALS', candidates: [exact], requiresConfirmation: true });
+    await press('Pronađi na mapi');
+    expect(resolver.search).toHaveBeenLastCalledWith(expect.objectContaining({ text: 'Kneza Mihaila 10, Stari grad, Beograd' }));
+    expect(map().props.position).toEqual(exact.position);
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledTimes(1);
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ address: exact.label, origin: exact.origin }));
+  });
+
+  it('ignores a corrected-search result after the location editor loses focus', async () => {
+    const resolver = configured({ status: 'PROPOSALS', candidates: [], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Unknown street' });
+    await press('Pronađi drugo mesto'); await change('pronađi mesto', candidate.label);
+    const pending = deferred<ConfiguredLocationResolution>(); resolver.search.mockReturnValue(pending.promise);
+    await press('Pronađi na mapi');
+    mockFocused = false; await update();
+    await act(async () => pending.resolve(proposals));
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
   // OSM / LocationIQ return Serbian labels in Cyrillic (seen 2026-10-07 for a Novi Sad street address); the person speaks Latin.
   it('places the pin for a Cyrillic provider label of the spoken Latin address and shows the address in Latin', async () => {
     const house = { ...candidate, label: '10, Булевар ослобођења, Роткварија, Нови Сад, Србија',

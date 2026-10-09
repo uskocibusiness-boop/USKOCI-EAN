@@ -114,7 +114,7 @@ describe('what the conversation has understood (the progress of M1)', () => {
   it('is nothing but the draft: an empty draft is four grey bars, and nothing counts questions', async () => {
     await act(async () => { tree = create(<WorkerAiProgress profile={draft()} />); });
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila još nema ničega. Još nema: veštine, područje, vreme i alat.');
+    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila još nema ničega. Još nema: veštine, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
     expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 0 });
     expect(texts()).toBe('Veštine | Područje | Vreme | Alat'); expect(texts()).not.toMatch(/od 5|Pitanje/);
   });
@@ -139,6 +139,15 @@ describe('what the conversation has understood (the progress of M1)', () => {
     expect(time({})).toBe(false); expect(time({ availableNow: true })).toBe(true);
     expect(time({ rules: [{ id: 'r', weekdays: [1], startTime: '08:00', endTime: '16:00', startsOn: '2026-09-24', endsOn: null, label: '', active: true }] })).toBe(true);
     expect(time({ windows: [{ id: 'w', startsAt: '2026-09-26T08:00:00Z', endsAt: '2026-09-26T10:30:00Z', state: 'AVAILABLE', label: '' }] })).toBe(true);
+  });
+
+  it('does not ask for optional equipment when the core facts are present or invent confirmed absence', async () => {
+    const withoutEquipment = review({}, { availableNow: true, rules: [], windows: [] });
+    await act(async () => { tree = create(<WorkerAiProgress profile={withoutEquipment.profile} />); });
+    const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
+    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: veštine, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
+    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 3 });
+    expect(capturedParts(withoutEquipment.profile).find(part => part.key === 'tools')?.done).toBe(false);
   });
 });
 

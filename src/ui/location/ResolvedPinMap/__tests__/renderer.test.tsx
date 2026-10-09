@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { ResolvedPinMap } from '../../ResolvedPinMap';
 import { ResolvedPinMap as WebPinMap } from '../../ResolvedPinMap.web';
@@ -31,6 +31,7 @@ jest.mock('react-native', () => {
 jest.mock('../../../Text', () => ({ T: 'T' }));
 jest.mock('../../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../../v2/V2Action', () => ({ V2Action: 'Button' }));
+jest.mock('../../../system/ActionSheet', () => ({ ActionSheet: 'MapSourcesPanel' }));
 jest.mock('../../LocationControls', () => ({ locationStyles: { notice: {} } }));
 
 let tree: ReactTestRenderer;
@@ -68,28 +69,52 @@ it('shows a neutral real map with no pin or selection when position is absent', 
   expect(onChoose).not.toHaveBeenCalled();
 });
 
-// r6 rows 8 and 15 (2026-09-24): one attribution, the app's own. MapLibre's "i" (English name, English dialog, the
-// library's blue) is off, and so is every other ornament that could wear that blue; the credits are three Serbian-chrome
-// links that carry the whole OpenFreeMap credit, appear with the tiles, sit outside the accessible frame node so a
-// screen reader still reaches them on a read-only map, and each has a 48 dp touch box.
-it('credits the map once, through the app\x27s own links, with no SDK ornament', async () => {
+it('keeps all source links in a compact overlay outside the accessible map frame', async () => {
   const openURL = jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve(true));
-  await render();
+  await render({ compact: true, height: 156, disabled: true, position: { latitude: 45, longitude: 19 } });
   expect(map().props).toMatchObject({ attribution: false, compass: false, logo: false });
   expect(map().props.attributionPosition).toBeUndefined();
   expect(links()).toHaveLength(0); // Nothing to credit while the map is still loading.
   await ready();
-  expect(links().map(link => [link.props.accessibilityRole, link.props.accessibilityLabel])).toEqual([
-    ['link', '© OpenStreetMap'], ['link', '© OpenMapTiles'], ['link', 'OpenFreeMap']]);
+  expect(links()).toHaveLength(1);
+  expect(links()[0].props.accessibilityRole).toBe('button');
+  expect(links()[0].props.accessibilityLabel).toBe('Izvori mape: © OpenStreetMap, © OpenMapTiles, OpenFreeMap');
   expect(frame().findAllByType('Press' as React.ElementType)).toHaveLength(0);
-  const band = links()[0].parent!;
-  expect(band.props.style).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
-  for (const link of links()) {
-    expect(link.props.style).toMatchObject({ minHeight: 48, maxWidth: '100%' });
-    expect(link.props.hitSlop).toBe(0);
-    await act(async () => link.props.onPress());
-  }
+  expect(StyleSheet.flatten(frame().props.style).height).toBe(156);
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-map-credits-layer' }).props.style)).toMatchObject({ position: 'absolute', bottom: sys.space.xs });
+  expect(StyleSheet.flatten(links()[0].props.style)).toMatchObject({ minHeight: 44, maxWidth: '100%' });
+  const jumps = mockJump.mock.calls.length;
+  await act(async () => links()[0].props.onPress());
+  const panel = tree.root.findByType('MapSourcesPanel' as React.ElementType);
+  expect(panel.props.actions.map((action: { label: string }) => action.label)).toEqual(['© OpenStreetMap', '© OpenMapTiles', 'OpenFreeMap']);
+  for (const action of panel.props.actions) await act(async () => action.onPress());
   expect(openURL.mock.calls.map(([url]) => url)).toEqual(['https://www.openstreetmap.org/copyright', 'https://www.openmaptiles.org/', 'https://openfreemap.org/']);
+  await act(async () => panel.props.onClose());
+  expect(tree.root.findAllByType('MapSourcesPanel' as React.ElementType)).toHaveLength(0);
+  expect(mockJump).toHaveBeenCalledTimes(jumps);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+it('retires the source panel with the point identity and rejects the old open callback', async () => {
+  await render({ position: { latitude: 45, longitude: 19 } }); await ready();
+  const oldOpen = links()[0].props.onPress;
+  await act(async () => oldOpen());
+  expect(tree.root.findAllByType('MapSourcesPanel' as React.ElementType)).toHaveLength(1);
+  await act(async () => tree.update(<ResolvedPinMap {...initial} position={{ latitude: 44, longitude: 20 }} />));
+  await act(async () => oldOpen());
+  expect(tree.root.findAllByType('MapSourcesPanel' as React.ElementType)).toHaveLength(0);
+  expect(onChoose).not.toHaveBeenCalled();
+});
+
+it('opening sources cancels an in-flight pin projection without accepting its late coordinate', async () => {
+  const pending = deferred<[number, number]>(); mockUnproject.mockReturnValue(pending.promise);
+  await render({ position: { latitude: 45, longitude: 19 } }); await dragReady();
+  await act(async () => handle().props.onResponderGrant(gesture(100, 100)));
+  await act(async () => { void handle().props.onResponderRelease(gesture(110, 130)); });
+  expect(mockUnproject).toHaveBeenCalledTimes(1);
+  await act(async () => links()[0].props.onPress());
+  await act(async () => pending.resolve([20, 44]));
+  expect(tree.root.findAllByType('MapSourcesPanel' as React.ElementType)).toHaveLength(1);
   expect(onChoose).not.toHaveBeenCalled();
 });
 

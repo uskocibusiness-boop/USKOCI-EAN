@@ -1,0 +1,39 @@
+{
+  "state": "SOURCE_TARGETED_PASS_NATIVE_PENDING",
+  "recordedAt": "2026-10-09T11:08:17.655311+00:00",
+  "changes": [
+    "Native location-map credits reuse compact bottom-left sources control; cancel pending pin drag on open; all3links retained outside accessible map frame.",
+    "Optional worker tools/vehicle do not appear in required missing-facts sentence; no fabricated confirmed absence.",
+    "Empty Discovery sheet omits repeated map artwork so both recovery actions fit earlier.",
+    "Unresolved location shows real weak orientation label and offers direct query correction using the existing resolver and explicit confirmation.",
+    "Exact DEV-only map-labels fixture isolates original URL/rawJSON/current transformedJSON with same camera; no business data/GPS/provider calls."
+  ],
+  "checks": [
+    {
+      "file": "map-credits-worker-targeted.json",
+      "sha256": "2c5ac27deb5cd5d1f38e476d8628ee4a8977b8d8195716c9fa0f69dbb811b36d",
+      "suites": 2,
+      "tests": 59
+    },
+    {
+      "file": "map-location-final-targeted.json",
+      "sha256": "d991520a0eddc1c1efb24688a1183711a22f29c6b0465556dfcfd5167fd81162",
+      "suites": 3,
+      "tests": 322
+    },
+    {
+      "file": "map-credits-discovery-targeted.json",
+      "sha256": "d31a76cdd4ffee1dcc04b35ade9641b22b59897fb599dce11b2afd56c8ec2192",
+      "state": "PARTIAL_THEN_RERUN",
+      "passed": 320,
+      "failed": 2,
+      "detail": "Two presentation expectations changed from map illustration to no illustration; fresh presentation rerun included above. Map-pills and StateView suites passed."
+    }
+  ],
+  "limits": [
+    "Native validation requires new exact APK; currentf64runtime does not include these changes.",
+    "Missing native street/place labels not yet diagnosed; public tiles/fonts and JS style validation pass, not native proof.",
+    "No task published yet: tested location remains unconfirmed. New-task matching/push still open.",
+    "No DEV schema/Edge/push flags changed by this source package. Store release not accepted."
+  ]
+}

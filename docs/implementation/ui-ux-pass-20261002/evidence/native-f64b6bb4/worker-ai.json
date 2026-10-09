@@ -1,0 +1,50 @@
+{
+  "state": "EMULATOR_NATIVE_PROFILE_SAVE_AND_DEV_READBACK_PASS",
+  "recordedAt": "2026-10-09T10:43:13.911531+00:00",
+  "runtimeSource": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+  "devicePackage": "rs.uskoci.dev",
+  "providerCalls": 2,
+  "providerTurns": [
+    "SUCCEEDED",
+    "SUCCEEDED"
+  ],
+  "steps": [
+    "Open existing authenticated worker conversation",
+    "Enter skill/country/city/radius/immediate availability",
+    "Answer display-name clarification using existing account alias and explicitly no tools/vehicle",
+    "Review existing values then activate",
+    "Read saved ACTIVE profile and COMPLETED conversation independently from canonical DEV"
+  ],
+  "facts": {
+    "skill": "Nošenje kesa i stvari",
+    "country": "RS",
+    "city": "Beograd",
+    "radiusKm": 20,
+    "availableNow": true,
+    "tools": [],
+    "vehicles": [],
+    "approximatePosition": null
+  },
+  "saved": true,
+  "authoritative": true,
+  "privateReadbackSha256": "43a98982a07cb16cd449f93aba88fe2818d6a640ccff8ab220f626c4ab41505b",
+  "privateEvidenceSha256": {
+    "emu-f64b6bb4-worker-start.png": "dd23749c137cd37b6ce298a28f994c0b8051cf29a8040fd6cbd7793c4c6b0ec3",
+    "emu-f64b6bb4-worker-start.xml": "27fe19ae9fab4ab6f514efbb3226170d37019f5591c0826b55da5067cbf96f54",
+    "emu-f64b6bb4-worker-sent.png": "cf692393034dc021b6651e14d8b9ad4f05ad0ac7865de56c95ba23585d5bfaac",
+    "emu-f64b6bb4-worker-sent.xml": "e6f8fd7e2986039775b81d130e7a7206d7ff232e4d1e3ecc28d696955c3d5d38",
+    "emu-f64b6bb4-worker-name-sent.png": "c0d97f72673690fc05cc2569bb323508bb1bf4a18efd25216fd9948d7ed0c1c6",
+    "emu-f64b6bb4-worker-name-sent.xml": "f3d5163602f091d3fe03a8a4dc3b3d86bcab011f7f2278b9512a599faac8930c",
+    "emu-f64b6bb4-worker-review.png": "c7cabfade295f0d6fd1d195b28b80b446462a70cd4b9bd7a471bc773b64f1a98",
+    "emu-f64b6bb4-worker-review.xml": "8756430c9507f974be74487cd43c247e00a289717d03518ea4c4ad7d58b72e56",
+    "emu-f64b6bb4-worker-activated.png": "e757c61b93fd6c7029d3e8067763391d86aacba86b4c434c377f3f6eaa867c36",
+    "emu-f64b6bb4-worker-activated.xml": "184e2fe7a6f50fef121ea4ad2c6697669cbc63482ddf80f383e7fba9996ce5d6"
+  },
+  "limits": [
+    "One test account and two real text-provider calls, not microphone/voice proof.",
+    "No position selected; city-based match only, not geometric20km matching proof.",
+    "Tools absent is currently shown as Not specified despite explicit no-tools statement; copy/state nuance remains.",
+    "Task publication, another-account matching and new-task push still in progress.",
+    "ADB fast input initially lost draft characters under host load; draft replaced slowly and verified exactly before send. No malformed test input sent."
+  ]
+}

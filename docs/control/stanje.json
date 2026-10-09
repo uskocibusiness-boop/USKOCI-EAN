@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T10:34:57Z",
+  "osvezeno": "2026-10-09T11:08:35Z",
   "grana": "integration/spoj-20261006",
-  "head": "f64b6bb4",
-  "head_poruka": "Keep empty Discovery map visible with compact recovery",
+  "head": "e66d5c3d",
+  "head_poruka": "Record native empty-map proof and isolated plan-cache diagnosis",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2882,6 +2882,45 @@
    "scope": "40000 synthetic tasks+49 retained,5local Auth stubs,1SQLreader,0HTTP requests; noDEV load. Auto6th/generic1st hit90s; custom6/6 match.",
    "cause": "Generic plan capture missing; custom trace reveals severe cardinality underestimate and spill, not proof of generic join cause.",
    "next": "Read-only estimated EXPLAIN for exact parameterized inner query on isolated clone; runtime cause remains unproven. No DEV optimizer changes or load."
+  },
+  "phone_apk_f64b6bb4_20261009": {
+   "state": "ATTESTED_PRIVATE_APK_DELIVERED / OWNER_INSTALL_PENDING",
+   "source": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-f64b6bb4/phone.json",
+   "releaseUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/tag/qa-phone-20261009-f64b6bb4",
+   "apkSha256": "0883efba3a428b38ff0655be8b145193aba7b02fe61e202187e76a2311020717",
+   "deviceInstalled": false,
+   "scope": "ARM64 preview35; same signature;5805frozen source files verified; Firebase/OTA attested. Runtime source may differ if OTA selected.",
+   "limits": "Owner phone still f61 at read-only check. Private QA APK, not production/store release."
+  },
+  "worker_ai_native_f64b6bb4_20261009": {
+   "state": "EMULATOR_NATIVE_PROFILE_SAVE_AND_DEV_READBACK_PASS",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-f64b6bb4/worker-ai.json",
+   "scope": "Existing authenticated emulator account,2real AI turns, reviewed save and ACTIVE/COMPLETED server readback. Beograd/RS/20km/availableNow.",
+   "limits": "No point/radius geometry,voice or new-task push proof; these remain open."
+  },
+  "map_location_recovery_20261009": {
+   "state": "SOURCE_TARGETED_PASS_NATIVE_PENDING",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/map-location-recovery-20261009/receipt.json",
+   "scope": [
+    "Native location-map credits reuse compact bottom-left sources control; cancel pending pin drag on open; all3links retained outside accessible map frame.",
+    "Optional worker tools/vehicle do not appear in required missing-facts sentence; no fabricated confirmed absence.",
+    "Empty Discovery sheet omits repeated map artwork so both recovery actions fit earlier.",
+    "Unresolved location shows real weak orientation label and offers direct query correction using the existing resolver and explicit confirmation.",
+    "Exact DEV-only map-labels fixture isolates original URL/rawJSON/current transformedJSON with same camera; no business data/GPS/provider calls."
+   ],
+   "limits": [
+    "Native validation requires new exact APK; currentf64runtime does not include these changes.",
+    "Missing native street/place labels not yet diagnosed; public tiles/fonts and JS style validation pass, not native proof.",
+    "No task published yet: tested location remains unconfirmed. New-task matching/push still open.",
+    "No DEV schema/Edge/push flags changed by this source package. Store release not accepted."
+   ]
+  },
+  "discovery_plan_cache_local_mitigation_20261009": {
+   "state": "LOCAL_ROLLBACK_MITIGATION_PASS_CERT_COMPUTATION_UNAVAILABLE",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/rollback-mitigation.json",
+   "result": "Function-local force_custom_plan in rollback transaction:6/6samePLACES responses13.56–14.88s, metadata/storedcertificate restored. EstimatedgenericfacetsNestedLoop assumes1group; actualgroups38005 fromcustomtrace.",
+   "limits": "Computed certificate unavailable in partial storage stub. No persistent or DEV change;14s is still slow. No concurrency/HTTP/40000users capacity proof."
   }
  },
  "redovi": [

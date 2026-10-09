@@ -1,0 +1,67 @@
+{
+  "state": "ATTESTED_PRIVATE_APK_DELIVERED / OWNER_INSTALL_PENDING",
+  "recordedAt": "2026-10-09T10:36:36.627542+00:00",
+  "source": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+  "tree": "3a094977e9171465ca2beb5ff2baa385241e564f",
+  "archiveSha256": "72a9458f8d6dcf1e14aab447c622f5a4f7e64c1b40b4f92db2b2fab337796230",
+  "sourceFilesByteEqual": 5805,
+  "overlaySha256": {
+    "app.json": "573213a0c56388506e5fd96b79fe9e71a0a11a9af5234176383ed91d480da553",
+    "package.json": "2325c3fd021694383ac80711806b5c9c1e6ce835e69d3164c4bb8e8e784d89ad"
+  },
+  "buildReceiptSha256": "c00598cc5f2386f3765a28abe88056e307cc29e9336b3ae4d4b0a27afebbeea4",
+  "apkSha256": "0883efba3a428b38ff0655be8b145193aba7b02fe61e202187e76a2311020717",
+  "apkBytes": 99682948,
+  "identity": {
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false
+  },
+  "package": "rs.uskoci.preview",
+  "versionCode": 35,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "signatureVerified": true,
+  "debuggable": false,
+  "updatesEnabled": true,
+  "embeddedBuildIdentity": {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "sourceCommit": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+    "sourceDirty": {},
+    "backendTarget": "canonical",
+    "backendRelease": {},
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "updateChannel": "preview"
+  },
+  "bundleSha256": {
+    "assets/index.android.bundle": "9013946050a0e54f32d14a64e2de5f25268c1c99961253601e8241e78db67cc9"
+  },
+  "deviceInstalled": false,
+  "runtimeIdentityChecked": false,
+  "ci": false,
+  "storeReady": false,
+  "limits": [
+    "Local incremental build, not CI or public release.",
+    "Phone preview may choose OTA; independently verify runtime identity.",
+    "No device or push delivery acceptance from this artifact alone.",
+    "Current phone still has f61 APK; read-only package check hash99b17c9e… . Awake phone left untouched; no install/input."
+  ],
+  "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/tag/qa-phone-20261009-f64b6bb4",
+  "downloadUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/download/qa-phone-20261009-f64b6bb4/USKOCI-test-f64b6bb4.apk",
+  "assetSha256": "sha256:0883efba3a428b38ff0655be8b145193aba7b02fe61e202187e76a2311020717",
+  "assetBytes": 99682948,
+  "releaseId": 407811937,
+  "privateRepo": true,
+  "prerelease": true
+}

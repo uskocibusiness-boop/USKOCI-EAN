@@ -136,6 +136,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [expandedMap, setExpandedMap] = useState(false);
   const [candidatePage, setCandidatePage] = useState(0);
   const [focused, setFocused] = useState(false);
@@ -159,7 +160,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // the address the conversation worked to obtain was gone, the field empty and "Pronađi na
       // mapi" greyed out. Coming back restores the seed and lets the automatic lookup run again.
       setCameraHint(undefined); if (conversation) setPlaceByHand(false);
-      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setExpandedMap(false); setSearchText(initialQuery); located.current = false; setError(false);
+      setFocused(false); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setSearchOpen(false); setExpandedMap(false); setSearchText(initialQuery); located.current = false; setError(false);
       setPosition(saved ? { latitude: saved.latitudeE6 / 1e6, longitude: saved.longitudeE6 / 1e6 } : null);
       setOrigin(saved?.origin ?? { kind: 'MANUAL_PIN' });setAddress(saved?.address ?? '');setNotes(saved?.accessNotes ?? '');
     };
@@ -167,7 +168,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   useEffect(() => {
     if (!disabled) return;
     replyLease.current = null; setReplyLocked(false);
-    requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setExpandedMap(false);
+    requestEpoch.current++; resolver.cancel(); setLookup({ status: 'IDLE' }); setSelectedLabel(null); setCorrectionOpen(false); setSearchOpen(false); setExpandedMap(false);
     setCameraHint(undefined); if (conversation) setPlaceByHand(false);
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     const saved = current.current.point;
@@ -417,6 +418,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       {!position && !loading && !ambiguous && !contextOnly && lookup.status !== 'IDLE' ? <T variant="meta" tone="muted">
         {lookupMessage}
       </T> : null}
+      {contextOnly ? <T variant="note" tone="muted">Mapa kao orijentir: {toSerbianLatin(alternatives[0].label)}</T> : null}
+      {!position && searchOpen ? <>
+        <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađi mesto" value={searchText}
+          maxLength={1000} editable={!controlDisabled && focused && !loading} onChangeText={changeSearch} />
+        <Button tone="neutral" label={loading ? 'Tražimo mesto…' : 'Pronađi na mapi'} kind="secondary"
+          disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || loading} onPress={search} />
+      </> : !position && !loading ? <Button tone="neutral" label="Pronađi drugo mesto" kind="quiet"
+        disabled={controlDisabled || !focused} onPress={() => { if (owns()) setSearchOpen(true); }} /> : null}
       {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="secondary"
         disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
       {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Označi na mapi" kind="quiet"

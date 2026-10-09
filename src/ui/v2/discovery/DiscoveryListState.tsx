@@ -50,7 +50,7 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
     case 'filtered': return <StateView compact={compact} art="map" title={w.filteredTitle} body={w.filteredBody} primary={{ label: clearAllLabel, onPress: state.onClear }} />;
     case 'forMe': return <StateView compact={compact} art="tasks" title={w.forMeTitle} body={w.forMeBody} primary={{ label: w.showAll, onPress: state.onShowAll }} />;
-    case 'none': return <StateView compact={compact} hero={!compact} art="map" title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
+    case 'none': return <StateView compact={compact} hero={!compact} art={compact ? null : 'map'} title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
       quiet={state.onNew ? { label: w.publish, onPress: state.onNew } : undefined} />;
   }
 }

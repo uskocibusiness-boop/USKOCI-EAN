@@ -82,7 +82,7 @@ const MEASURE = 280;
  */
 export type StateViewProps = {
   kind?: StateKind;
-  /** The picture; defaults to the kind's own. Not drawn while loading. */ art?: FactArtKind;
+  /** The picture; defaults to the kind's own. Null omits decoration when the surrounding view already provides it. */ art?: FactArtKind | null;
   /** One line. While loading it is the quiet sentence under the placeholders. */ title: string;
   /** One sentence under the title. */ body?: string;
   /** The one way forward, drawn as the screen's green action. */ primary?: StateAction;
@@ -111,14 +111,14 @@ export function StateView({ kind = 'empty', art, title, body, primary, quiet, sk
   const trouble = kind !== 'empty';
   const size = compact ? ART_COMPACT : hero && kind === 'empty' ? ART_HERO : ART;
   // A failure never wears a picture that says "confirmed"; it falls back to the kind's quiet sign.
-  const drawn = art === undefined || (trouble && SAYS_CONFIRMED.includes(art)) ? DEFAULT_ART[kind] : art;
+  const drawn = art == null || (trouble && SAYS_CONFIRMED.includes(art)) ? DEFAULT_ART[kind] : art;
   const picture = kind === 'empty' && art === 'chat' ? <ConversationArt size={size} />
     : <FactArt kind={drawn} size={size} muted={trouble} />;
   return <View testID={testID} accessibilityLiveRegion="polite" style={[s.frame, compact ? s.frameCompact : s.frameScreen]}>
     {compact ? null : <View style={s.above} />}
     <View style={s.column}>
       {/* An empty list's picture settles in once (V41's art arrive); a failure's does not, because it is not a thing to be glad of. */}
-      <View style={compact ? s.artCompact : s.art}>{kind === 'empty' ? <Arrive>{picture}</Arrive> : picture}</View>
+      {art === null ? null : <View style={compact ? s.artCompact : s.art}>{kind === 'empty' ? <Arrive>{picture}</Arrive> : picture}</View>}
       <T variant={compact ? 'heading' : 'title'} accessibilityRole={trouble ? 'alert' : 'header'} {...BALANCED_LINES} style={[s.title, balancedStyle]}>{title}</T>
       {body ? <T variant={compact ? 'note' : 'copy'} tone="muted" {...BALANCED_LINES} style={[s.copy, balancedStyle]}>{body}</T> : null}
       {primary || quiet ? <View style={s.actions}>

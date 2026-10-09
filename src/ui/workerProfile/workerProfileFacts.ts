@@ -78,9 +78,10 @@ const said = (labels: readonly string[]) => labels.length < 2 ? labels[0] ?? ''
 /** The one spoken sentence of the progress strip: what the draft holds and what it does not. */
 export function capturedSpeech(parts: readonly CapturedPart[]): string {
   const have = parts.filter(part => part.done).map(part => part.label.toLowerCase());
-  const missing = parts.filter(part => !part.done).map(part => part.label.toLowerCase());
+  const missing = parts.filter(part => !part.done && part.key !== 'tools').map(part => part.label.toLowerCase());
   return [have.length ? `U nacrtu profila: ${said(have)}.` : 'U nacrtu profila još nema ničega.',
-    missing.length ? `Još nema: ${said(missing)}.` : null].filter(Boolean).join(' ');
+    missing.length ? `Još nema: ${said(missing)}.` : null,
+    parts.some(part => part.key === 'tools' && !part.done) ? 'Alat i vozilo su opcioni; nisu navedeni.' : null].filter(Boolean).join(' ');
 }
 
 /** The sentence under "Alat i vozilo": what the two lists really do. */

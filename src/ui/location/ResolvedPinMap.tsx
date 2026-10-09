@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Linking, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { sys } from '../system/tokens';
@@ -7,6 +7,8 @@ import { V2Action as Button } from '../v2/V2Action';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
+import { useReducedMotion } from '../system/motion';
+import { MapCredits, MapSources } from '../v2/discovery/MapCredits';
 import { cameraHintBounds, displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 import { useMapStyle } from './mapStyle';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';
@@ -19,16 +21,6 @@ type PinDrag = { token: object; start: Pixel; origin: Promise<Pixel | null>; can
 const pixel = (value: unknown): Pixel | null => Array.isArray(value) && value.length === 2
   && value.every(item => typeof item === 'number' && Number.isFinite(item)) ? [value[0], value[1]] : null;
 
-/**
- * The one attribution (r6 rows 8 and 15, 2026-09-24). MapLibre's own "i" button is a foreign glyph with an English
- * spoken name that opens an English dialog, so the map no longer shows it; these three links are the whole credit
- * OpenFreeMap asks for (its tiles, © OpenMapTiles, data from © OpenStreetMap), in a wrapping row below the map.
- */
-const CREDITS = [
-  { text: '© OpenStreetMap', url: 'https://www.openstreetmap.org/copyright' },
-  { text: '© OpenMapTiles', url: 'https://www.openmaptiles.org/' },
-  { text: 'OpenFreeMap', url: 'https://openfreemap.org/' },
-] as const;
 /** A branded approximate marker: its halo still makes the public two-decimal location visibly imprecise. */
 const AREA = 64;
 
@@ -40,6 +32,8 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   // private point keep the pin.
   const area = coarse && disabled;
   const [status, setStatus] = useState<MapStatus>('loading');
+  const [sourcesToken, setSourcesToken] = useState<object | null>(null);
+  const reduced = useReducedMotion();
   const load = useRef<MapStatus>('loading');
   const failure = useRef<'deadline' | 'native-error' | null>(null);
   const active = useRef(true);
@@ -171,7 +165,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const mapName = area ? 'Mapa približnog područja' : disabled ? 'Mapa prikazane tačke'
     : coarse ? 'Mapa približnog područja rada' : 'Mapa predložene lokacije';
   return <View style={[styles.container, props.fill && styles.fill]}>
-    {/* Credits stay outside the accessible frame and do not cover the map on narrow screens. */}
+    {/* Credits overlay the map, outside its accessible frame so all source links remain reachable. */}
     <View style={props.fill ? styles.fill : undefined}>
     <View style={[styles.frame, props.fill ? styles.fillFrame : props.height ? { height: props.height } : null]}
       accessible={spokenByFrame} accessibilityRole={spokenByFrame ? 'image' : undefined}
@@ -233,16 +227,12 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         <Glyph name="expand" size={20} tone={props.expand.disabled ? 'muted' : 'ink'} />
       </Press> : null}
     </View>
-    {/* Real 48 dp targets: hitSlop alone is clipped by a smaller parent. Wrapping also keeps all credits available
-        at 320 dp and with large text, without reducing the map's usable area. */}
-    {status === 'ready' ? <View style={styles.creditBand}>
-        {CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text} hitSlop={0}
-          style={styles.creditLink}
-          onPress={() => { void Linking.openURL(credit.url).catch(() => {}); }}>
-          <T variant="label" tone="muted" style={styles.credit}>{credit.text}</T>
-        </Press>)}
-    </View> : null}
+    {status === 'ready' ? <MapCredits locate={false} onPress={() => {
+      if (!owns() || load.current !== 'ready') return;
+      cancelDrag(); setSourcesToken(token);
+    }} /> : null}
     </View>
+    {sourcesToken === token && status === 'ready' ? <MapSources reduced={reduced} onClose={() => setSourcesToken(null)} /> : null}
     {/* One usable instruction, not a coordinate readout. The precise point remains available
         to assistive technology and the parent still owns explicit confirmation. */}
     {!compact ? (pin && !disabled ?
@@ -282,11 +272,8 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: sys.space.lg,
     gap: sys.space.md, backgroundColor: sys.color.surface },
-  creditBand: { flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
-  creditLink: { minHeight: 48, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
-  credit: { fontWeight: '500', letterSpacing: 0 },
   marker: { width: 44, height: 48 },
-  // A white map control (as Discovery's zoom), inside the rounded frame and clear of the credits below it.
+  // A white map control (as Discovery's zoom), above the credits at the bottom of the rounded frame.
   expand: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, width: 44, height: 44, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center',
     ...sys.elevation.soft },
