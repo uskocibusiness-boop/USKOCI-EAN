@@ -5,6 +5,7 @@ type Subscription = { remove: () => void };
 type Position = { timestamp: number; coords: NearbyPoint };
 export type NearbyLocationAdapter = {
   Accuracy: { Balanced: number };
+  getForegroundPermissionsAsync: () => Promise<{ granted: boolean }>;
   requestForegroundPermissionsAsync: () => Promise<{ granted: boolean }>;
   hasServicesEnabledAsync: () => Promise<boolean>;
   watchPositionAsync: (options: { accuracy: number; distanceInterval: number; timeInterval: number; mayShowUserSettingsDialog: boolean },
@@ -49,9 +50,15 @@ export function createNearbyCapture(options: {
         // Called only from an explicit tap, never while the map or hook is mounting.
         const location = await options.load();
         if (!current(attempt)) return;
-        if (options.beforePermission && (await options.beforePermission()) === 'later') { finish(attempt, 'idle'); return; }
+        // Expo's Android request delegates to an Activity even for an existing grant. On HONOR this backgrounds
+        // the route and correctly retires capture. Read first; never reopen a permission window for a held grant.
+        let permission = await location.getForegroundPermissionsAsync();
         if (!current(attempt)) return;
-        const permission = await location.requestForegroundPermissionsAsync();
+        if (!permission.granted) {
+          if (options.beforePermission && (await options.beforePermission()) === 'later') { finish(attempt, 'idle'); return; }
+          if (!current(attempt)) return;
+          permission = await location.requestForegroundPermissionsAsync();
+        }
         if (!current(attempt)) return;
         if (!permission.granted) { finish(attempt, 'denied'); return; }
         const enabled = await location.hasServicesEnabledAsync();

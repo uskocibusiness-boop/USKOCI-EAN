@@ -35,11 +35,17 @@ async function cameraNeed(): Promise<PermissionNeed> {
 async function launch(source: PhotoSource, current: () => boolean, limit: number): Promise<PickedAsset[] | null> {
   if (!current()) return null;
   if (source === 'CAMERA') {
-    if (await askInContext('photos', cameraNeed) === 'later') return null;
+    let need: PermissionNeed = 'unknown';
+    try { need = await cameraNeed(); } catch { /* An unreadable state still uses the system's own permission check. */ }
     if (!current()) return null;
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!current()) return null;
-    if (!permission.granted) throw new PhotoSelectionError('PERMISSION');
+    if (need === 'blocked') throw new PhotoSelectionError('PERMISSION');
+    if (need !== 'granted') {
+      if (await askInContext('photos', async () => need) === 'later') return null;
+      if (!current()) return null;
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!current()) return null;
+      if (!permission.granted) throw new PhotoSelectionError('PERMISSION');
+    }
   }
   // Several photos only from the gallery and only up to the slots still free; the camera always takes one.
   const multiple = source === 'LIBRARY' && limit > 1;

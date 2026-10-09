@@ -2,10 +2,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 let mockPlatform='android';
-const mockPermission=jest.fn(),mockIosPermission=jest.fn(),mockAdd=jest.fn(),mockRemove=jest.fn();
+const mockCheck=jest.fn(),mockPermission=jest.fn(),mockIosPermission=jest.fn(),mockAdd=jest.fn(),mockRemove=jest.fn();
 const mockLastKnown=jest.fn(),mockRemoveAll=jest.fn();
 const native={Platform:{get OS(){return mockPlatform;}},PermissionsAndroid:{
  PERMISSIONS:{ACCESS_FINE_LOCATION:'fine',ACCESS_COARSE_LOCATION:'coarse'},RESULTS:{GRANTED:'granted'},
+ check:(...args:unknown[])=>mockCheck(...args),
  requestMultiple:(...args:unknown[])=>mockPermission(...args)}};
 const maplibre={LocationManager:{
  requestPermissions:(...args:unknown[])=>mockIosPermission(...args),addListener:(...args:unknown[])=>mockAdd(...args),
@@ -22,12 +23,12 @@ const moduleExports:typeof import('../nativeCurrentLocation')=new Function('expo
 });
 const {captureCurrentLocation}=moduleExports;
 function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return{promise,resolve};}
-const flush=async()=>{for(let n=0;n<8;n++)await Promise.resolve();};
+const flush=async()=>{for(let n=0;n<14;n++)await Promise.resolve();};
 const sample=(patch:Record<string,unknown>={})=>({timestamp:Date.now(),coords:{latitude:45.25,longitude:19.85,accuracy:7},...patch});
 const emit=(value=sample())=>mockAdd.mock.calls[0][0](value);
 beforeEach(()=>{jest.useFakeTimers();jest.setSystemTime(new Date('2026-09-13T12:00:00Z'));jest.clearAllMocks();
- for(const mock of [mockPermission,mockIosPermission,mockAdd,mockRemove])mock.mockReset();mockPlatform='android';
- mockPermission.mockResolvedValue({fine:'granted',coarse:'granted'});mockIosPermission.mockResolvedValue(true);});
+ for(const mock of [mockCheck,mockPermission,mockIosPermission,mockAdd,mockRemove])mock.mockReset();mockPlatform='android';
+ mockCheck.mockResolvedValue(false);mockPermission.mockResolvedValue({fine:'granted',coarse:'granted'});mockIosPermission.mockResolvedValue(true);});
 afterEach(()=>{expect(mockLastKnown).not.toHaveBeenCalled();expect(mockRemoveAll).not.toHaveBeenCalled();jest.useRealTimers();});
 it('takes exactly one fresh foreground observation, accepts coarse permission, and removes only its own listener',async()=>{
  mockPermission.mockResolvedValue({fine:'denied',coarse:'granted'});const abort=new AbortController();
@@ -86,4 +87,17 @@ it('cleanup bridge failure cannot strand the settled caller or retain its deadli
  mockRemove.mockImplementation(()=>{throw new Error('stop failed');});const pending=captureCurrentLocation(new AbortController().signal,()=>true);await flush();
  let outcome:unknown;void pending.then(value=>{outcome=value;});expect(()=>emit()).not.toThrow();await flush();
  expect(outcome).toEqual({kind:'UNAVAILABLE'});expect(mockRemove).toHaveBeenCalledTimes(2);expect(jest.getTimerCount()).toBe(0);
+});
+
+it.each(['fine', 'coarse'])('a held %s grant starts capture without another permission request', async held => {
+ mockCheck.mockImplementation(async permission => permission === held);
+ const pending = captureCurrentLocation(new AbortController().signal, () => true); await flush();
+ expect(mockCheck).toHaveBeenCalledTimes(2); expect(mockPermission).not.toHaveBeenCalled();
+ expect(mockAdd).toHaveBeenCalledTimes(1); jest.advanceTimersByTime(1); emit(); expect((await pending).kind).toBe('POINT');
+});
+it('late permission reads cannot start a request or listener after abort', async () => {
+ const held = deferred<boolean>(); mockCheck.mockReturnValue(held.promise);
+ const abort = new AbortController(), pending = captureCurrentLocation(abort.signal, () => true); await flush();
+ abort.abort(); held.resolve(false); await flush(); expect(await pending).toEqual({ kind: 'CANCELLED' });
+ expect(mockPermission).not.toHaveBeenCalled(); expect(mockAdd).not.toHaveBeenCalled(); expect(jest.getTimerCount()).toBe(0);
 });

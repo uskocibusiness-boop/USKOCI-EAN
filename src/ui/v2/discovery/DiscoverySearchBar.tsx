@@ -98,10 +98,10 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
         </Surface>
         {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
       </View>
-      <View pointerEvents="box-none" style={s.chipsClip}>
-        <Animated.View testID="discovery-collapsing-chips" pointerEvents={motion?.hidden ? 'none' : 'box-none'}
-          accessibilityElementsHidden={!!motion?.hidden} importantForAccessibility={motion?.hidden ? 'no-hide-descendants' : 'auto'}
-          style={capsules}>{chips}</Animated.View>
+      <View testID="discovery-chips-clip" collapsable={false} style={s.chipsClip}
+        pointerEvents={motion?.hidden ? 'none' : 'box-none'} accessibilityElementsHidden={!!motion?.hidden}
+        importantForAccessibility={motion?.hidden ? 'no-hide-descendants' : 'auto'}>
+        <Animated.View testID="discovery-collapsing-chips" style={capsules}>{chips}</Animated.View>
       </View>
     </View>
     {below}

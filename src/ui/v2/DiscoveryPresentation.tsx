@@ -580,7 +580,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (!loading && where === 'remote') { setSheetIndex(SNAP.full); return; }
     if (!started.current || loading) return;
     if (mapped.length > 0 && mappedWithoutPin === mapped.length) setSheetIndex(SNAP.full);
-    else if (!mapped.length && sheetIndex === SNAP.peek) setSheetIndex(SNAP.half);
+    else if (!mapped.length && !area && !pinPlace && sheetIndex === SNAP.peek) setSheetIndex(SNAP.half);
   }, [loading, refreshing, mapped.length, mappedWithoutPin, where, sharedFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Empty results still belong on a map: keep geography available without requiring GPS or a first task.
@@ -801,14 +801,22 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   }
   const nativeMountKey = sheetMount.current.key;
   useEffect(() => { chromeOffset.value = 0; }, [nativeMountKey, props.scopeKey, chromeOffset]);
-  const [chipsHidden, setChipsHidden] = useState(false);
+  const chipsOwner = useMemo(() => ({ visit: coverageOwner, mount: nativeMountKey }), [coverageOwner, nativeMountKey]);
+  const currentChipsOwner = useRef(chipsOwner); currentChipsOwner.current = chipsOwner;
+  const [chipsState, setChipsState] = useState<{ owner: typeof chipsOwner; hidden: boolean } | null>(null);
   const receiveChipsHidden = useCallback((hidden: boolean) => {
-    if (currentSheet()) setChipsHidden(hidden);
-  }, [currentSheet]);
-  useAnimatedReaction(() => capsuleSpace > 0 && chromeJoin(position.value, listTop, capsuleSpace) >= 1
-    && capsuleCollapse(chromeOffset.value, capsuleSpace) >= capsuleSpace,
-  (next, previous) => { if (next !== previous) runOnJS(receiveChipsHidden)(next); },
-  [position, listTop, capsuleSpace, chromeOffset, receiveChipsHidden]);
+    if (currentSheet() && currentChipsOwner.current === chipsOwner)
+      setChipsState(previous => previous?.owner === chipsOwner && previous.hidden === hidden ? previous : { owner: chipsOwner, hidden });
+  }, [currentSheet, chipsOwner]);
+  const chipsVisit = coverageOwner.sequence;
+  useAnimatedReaction(() => ({ visit: chipsVisit, mount: nativeMountKey,
+    hidden: capsuleSpace > 0 && chromeJoin(position.value, listTop, capsuleSpace) >= 1
+      && capsuleCollapse(chromeOffset.value, capsuleSpace) >= capsuleSpace }),
+  (next, previous) => {
+    if (next.hidden !== previous?.hidden || next.visit !== previous?.visit || next.mount !== previous?.mount)
+      runOnJS(receiveChipsHidden)(next.hidden);
+  }, [position, listTop, capsuleSpace, chromeOffset, chipsVisit, nativeMountKey, receiveChipsHidden]);
+  const chipsHidden = chipsState?.owner === chipsOwner && chipsState.hidden;
   const kickable = !!props.p6Seam && Platform.OS === 'android' && focused && bodyHeight > 0;
   useEffect(() => {
     if (!kickable) return;
@@ -1253,13 +1261,30 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const elsewhere = p6 ? (p6.counts?.mapped ?? 0) > 0 : mapped.length > 0;
   const conditionsOn = !!view.query.trim() || discoveryFiltered(view) || !!view.place;
   // "Za mene" on, and nothing else narrowing the list: what the person asked for is what leaves nothing, and the way on is every task again.
-  const listState: DiscoveryListStateKind = loading || refreshing || props.collectionStatus === 'loading' || offMapMore || (offMap && !!p6?.loadingMore && !listed.length) ? { kind: 'loading' }
+  const emptyKey = JSON.stringify([props.scopeKey, query, price, when, where, freePlaces, chosenPlace, dates, forMeOn, offMap]);
+  type EmptyDescriptor = { kind: 'place'; point: boolean } | { kind: 'forMe' | 'filtered' | 'none' };
+  const confirmedEmpty = useRef<{ key: string; value: EmptyDescriptor | null }>({ key: emptyKey, value: null });
+  if (confirmedEmpty.current.key !== emptyKey) confirmedEmpty.current = { key: emptyKey, value: null };
+  const heldEmpty = refreshing && !loading && !error && !props.collectionStatus ? confirmedEmpty.current.value : null;
+  const computedState: DiscoveryListStateKind = loading || (refreshing && !heldEmpty) || props.collectionStatus === 'loading' || offMapMore || (offMap && !!p6?.loadingMore && !listed.length) ? { kind: 'loading' }
     : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList }
       // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
       : (pinPlace || area) && elsewhere && !offMap ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
         : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all') }
           : conditionsOn ? { kind: 'filtered', onClear: reset }
             : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
+  // Keep the last confirmed empty picture during a map pan, just as the coordinator retains its rows.
+  // Store facts only: callbacks always belong to this render and account; a first read still shows loading.
+  const listState: DiscoveryListStateKind = !heldEmpty ? computedState
+    : heldEmpty.kind === 'place' ? { ...heldEmpty, onShowAll: showAll }
+      : heldEmpty.kind === 'forMe' ? { kind: 'forMe', onShowAll: () => chooseScope('all') }
+        : heldEmpty.kind === 'filtered' ? { kind: 'filtered', onClear: reset }
+          : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
+  useLayoutEffect(() => {
+    if (loading || refreshing || props.collectionStatus || offMapMore || p6?.loadingMore) return;
+    confirmedEmpty.current.value = error || listed.length || computedState.kind === 'loading' || computedState.kind === 'error' ? null
+      : computedState.kind === 'place' ? { kind: 'place', point: computedState.point } : { kind: computedState.kind };
+  });
   const empty = <View style={s.empty}><DiscoveryListState state={listState} clearAllLabel={CLEAR_ALL} compact={mapShown} /></View>;
   // A time choice leaves out the tasks whose schedule names no day; the list says how many instead of hiding them silently.
   const footer = undated ? <View key={extent.sequence} onLayout={event => {

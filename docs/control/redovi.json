@@ -206,8 +206,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 fizički HONOR 725be7bd: R09 nastavak task razgovora zatvoren u b9 i ponovo fizički potvrđen u 725 sa sačuvanim mestom. Current edit, glas/foto i ceo publish tok ostaju zasebni. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
-      "problem": "R09 nastavak task razgovora zatvoren u b9 i ponovo fizički potvrđen u 725 sa sačuvanim mestom. Current edit, glas/foto i ceo publish tok ostaju zasebni.",
-      "sledece": "Povezani AI task/profile edit, glas/fotografije, objava i dve strane na istom kandidatu.",
+      "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
+      "sledece": "Tačan APK: task restart, sačuvana lokacija, ručna izmena, glas/foto i publish u povezanom toku.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -360,6 +360,26 @@
               "dokaz": "09.10 b9f734ef fizički HONOR: R09 nastavak otvorenog task AI razgovora zatvoren: b9 Home → isti razgovor posle upgrade i force-stop. Current edit, glas/foto i ceo publish tok ostaju zasebni. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_RESUME_PHONE_20261009.md. Raniji dokazi sačuvani u finalization.android_resume_phone_20261009.previous.telefon."
             }
           }
+        },
+        "android_interaction_finish_20261009": {
+          "state": "CI4B5_PASS / PHONE4B5_PARTIAL / GRANT_EMPTY_FOLLOWUP_TESTED",
+          "source": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "phoneSource": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "previous": {
+            "problem": "R09 nastavak task razgovora zatvoren u b9 i ponovo fizički potvrđen u 725 sa sačuvanim mestom. Current edit, glas/foto i ceo publish tok ostaju zasebni.",
+            "sledece": "Povezani AI task/profile edit, glas/fotografije, objava i dve strane na istom kandidatu.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 fizički HONOR 725be7bd: R09 nastavak task razgovora zatvoren u b9 i ponovo fizički potvrđen u 725 sa sačuvanim mestom. Current edit, glas/foto i ceo publish tok ostaju zasebni. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+            }
+          },
+          "ciRuns": [
+            37985179185,
+            37985182906,
+            37985186356
+          ],
+          "followupTests": 451
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -546,8 +566,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 b9f734ef fizički HONOR: b9 fizički telefon: ručni pin potvrđen i jedan server MANUAL_PIN; sledeće pitanje tek posle potvrde lokacije. Rute/izmena/slaba mreža nisu kompletno prihvaćene. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_RESUME_PHONE_20261009.md. Raniji dokazi sačuvani u finalization.android_resume_phone_20261009.previous.telefon."
       },
-      "problem": "b9 fizički telefon: ručni pin potvrđen i jedan server MANUAL_PIN; sledeće pitanje tek posle potvrde lokacije. Rute/izmena/slaba mreža nisu kompletno prihvaćene.",
-      "sledece": "Proveriti više tačaka rute, ponovno čitanje, GPS/greške i latinicu/ćirilicu. Tačna QA lokacija ostaje u privatnom dokazu.",
+      "problem": "Grad-only latinica/ćirilica, ručni city camera hint i Ovde gde sam GPS source/test PASS. Current fizički GPS/route potvrda još nije zatvorena.",
+      "sledece": "Aktuelni telefon: city→bliže mesto→manual/GPS pin→potvrda→sledeće pitanje, bez promene tačke reverse lookup-om.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -658,6 +678,26 @@
             "sledece": "25.09: dodatna kvačica uklonjena; Sačuvaj mesto i dalje šalje confirmed: true, uz iste revizije, potvrdu pomerene tačke i oporavak. Na emulatoru 3fdbe559 viđene lokalne scene mesta i rada na daljinu bez kvačice; ništa nije sačuvano. R7 zajednička provera: 308 grupa / 5996 testova i čisti tipovi. Stvaran upis i telefon još nisu prihvaćeni. docs/implementation/design-system/r7-cohesion-20260925/RECEIPT.json Završni krug09: pregled svih privatnih potvrđenih tačaka pre objave; dopuna napomene zadržava pin, a odbacivanje izmene vraća poslednju potvrđenu tačku. Tipovi i 5 ciljanih grupa/173 testa prolaze. Telefon, provajder i glas nisu ponovo provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md Završni krug10: potvrđena mapa ostaje u AI razgovoru, svaka tačka se može ispraviti; nacrt poruke ostaje sačuvan dok se rešava mesto. Stari pregled ne može prepisati novu lokaciju. Tipovi i 4 ciljane grupe / 270 testova prolaze; novi APK, telefon i AI provajder nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md Završni krug11: Dugme za proširenje više ne prekriva Pokušaj ponovo sa mapom; oporavak ostaje na istom prikazu. Fotografije zadatka imaju zaseban oporavak čitanja. Tipovi i 5 ciljanih grupa / 100 testova prolaze; novi APK/telefon nisu provereni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md 04.10: ambiguity fix a349907 — kada geokoder vrati više kandidata, conversation mapa odmah kadrira njihov region umesto world-view; nijedan kandidat nije automatski izabran niti potvrđen. Exact CI run 37205004366: TypeScript PASS, focused 34/34 suites 700/700 tests, full regression 428/428 suites 9387/9387 tests, 6/6 snapshots. Novi native/telefon dokaz još ne postoji.",
             "telefon": null
           }
+        },
+        "android_interaction_finish_20261009": {
+          "state": "CI4B5_PASS / PHONE4B5_PARTIAL / GRANT_EMPTY_FOLLOWUP_TESTED",
+          "source": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "phoneSource": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "previous": {
+            "problem": "b9 fizički telefon: ručni pin potvrđen i jedan server MANUAL_PIN; sledeće pitanje tek posle potvrde lokacije. Rute/izmena/slaba mreža nisu kompletno prihvaćene.",
+            "sledece": "Proveriti više tačaka rute, ponovno čitanje, GPS/greške i latinicu/ćirilicu. Tačna QA lokacija ostaje u privatnom dokazu.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 b9f734ef fizički HONOR: b9 fizički telefon: ručni pin potvrđen i jedan server MANUAL_PIN; sledeće pitanje tek posle potvrde lokacije. Rute/izmena/slaba mreža nisu kompletno prihvaćene. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_RESUME_PHONE_20261009.md. Raniji dokazi sačuvani u finalization.android_resume_phone_20261009.previous.telefon."
+            }
+          },
+          "ciRuns": [
+            37985179185,
+            37985182906,
+            37985186356
+          ],
+          "followupTests": 451
         }
       }
     },
@@ -1566,9 +1606,12 @@
         "rpc_prepare_worker_ai_review",
         "rpc_save_worker_ai_review"
       ],
-      "telefon": null,
-      "problem": "Stvarni AI→review→save na f64 i DEV ACTIVE/COMPLETED dokaz postoje. Aktuelna AI izmena aktivnog profila, matching/push i zasebne WPP02 preference nisu zatvoreni.",
-      "sledece": "Aktivni profil→Uredi kroz razgovor→jedna stvarna izmena→pregled→save/reopen; proveriti uticaj na podobnost. Proširene WPP02 preference ostaju zaseban nedovršen obuhvat.",
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "09.10 HONOR517 fizički prolaz: Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
+      },
+      "problem": "Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren.",
+      "sledece": "Zatvoriti povezani radni profil kroz AI i njegovu izmenu; ne menjati dobar početni ulaz radi kozmetike.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1746,7 +1789,25 @@
           "report": "docs/implementation/ui-ux-pass-20261002/STATUS_I_KRITERIJUMI_ZAVRSETKA_20261009.md",
           "source": "ce23eb06befd0260b71e0c334e5557da5df7639d",
           "phoneAcceptanceUpgraded": false
-        }
+        },
+        "android_interaction_finish_20261009": {
+          "state": "CI4B5_PASS / PHONE4B5_PARTIAL / GRANT_EMPTY_FOLLOWUP_TESTED",
+          "source": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "phoneSource": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "previous": {
+            "problem": "Stvarni AI→review→save na f64 i DEV ACTIVE/COMPLETED dokaz postoje. Aktuelna AI izmena aktivnog profila, matching/push i zasebne WPP02 preference nisu zatvoreni.",
+            "sledece": "Aktivni profil→Uredi kroz razgovor→jedna stvarna izmena→pregled→save/reopen; proveriti uticaj na podobnost. Proširene WPP02 preference ostaju zaseban nedovršen obuhvat.",
+            "telefon": null
+          },
+          "ciRuns": [
+            37985179185,
+            37985182906,
+            37985186356
+          ],
+          "followupTests": 451
+        },
+        "owner_followup_20261009": "Jedan AI ulaz za podešavanje profila; sačuvana kartica read-only; područje i dostupnost ostaju unutar razgovora/review-a. SOURCE AUDIT DONE / IMPLEMENTATION OPEN."
       },
       "native_6d4_checkpoint_20261003": {
         "source": "6d4ce57c827cac496f18a61c24d32638e6e1e8fa",
@@ -2202,10 +2263,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "09.10 fizički HONOR 725be7bd: 725 telefon: stvarna mapa sa nazivima ostaje vidljiva tokom filtera; pending se prikazuje pre odgovora. Visoka gustina i serverski timeout rizik ostaju otvoreni. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+        "dokaz": "HONOR4b5 tačan APK/About, search keyboard i FULL backing PASS; Nearby/a11y nalaz i follow-up source u docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
       },
-      "problem": "725 telefon: stvarna mapa sa nazivima ostaje vidljiva tokom filtera; pending se prikazuje pre odgovora. Visoka gustina i serverski timeout rizik ostaju otvoreni.",
-      "sledece": "Meriti i rešiti stvarne velike Discovery upite; ne predstavljati ovu UI proveru kao dokaz serverskog kapaciteta.",
+      "problem": "Telefon4b5: tastatura pri prvom tapu i FULL bela podloga potvrđeni. Nearby prekida nepotreban permission Activity; collapsed a11y ostaje izložena. Korekcije grant/a11y/prazno→prazno source testirane451PASS; nov fizički APK pending.",
+      "sledece": "Tačan follow-up APK: Nearby uz postojeću dozvolu, collapsed accessibility, prazno→prazno bez trzaja. Zatim kompaktni back/search/filter header, prikaz sopstvene lokacije i numerički budžet kroz ceo server ugovor.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2687,6 +2748,26 @@
               "dokaz": "R19 a69a26c6 / telefon36229901348, font1,15: stvarna lista→detalj→Nazad vraća isto mesto, 749/749,1 dp i razlika1px. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
             }
           }
+        },
+        "android_interaction_finish_20261009": {
+          "state": "CI4B5_PASS / PHONE4B5_PARTIAL / GRANT_EMPTY_FOLLOWUP_TESTED",
+          "source": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "phoneSource": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "previous": {
+            "problem": "725 telefon: stvarna mapa sa nazivima ostaje vidljiva tokom filtera; pending se prikazuje pre odgovora. Visoka gustina i serverski timeout rizik ostaju otvoreni.",
+            "sledece": "Meriti i rešiti stvarne velike Discovery upite; ne predstavljati ovu UI proveru kao dokaz serverskog kapaciteta.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 fizički HONOR 725be7bd: 725 telefon: stvarna mapa sa nazivima ostaje vidljiva tokom filtera; pending se prikazuje pre odgovora. Visoka gustina i serverski timeout rizik ostaju otvoreni. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+            }
+          },
+          "ciRuns": [
+            37985179185,
+            37985182906,
+            37985186356
+          ],
+          "followupTests": 451
         }
       }
     },
@@ -2710,10 +2791,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "09.10 fizički HONOR 725be7bd: 725 source600PASS i fizički telefon: pošten pending filtera, stvarni/prazni rezultati i reset; FULL/HALF/spuštanje liste rade u ograničenom prolazu. Nema prihvata svih filtera/velikih lista. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+        "dokaz": "HONOR4b5 tačan APK/About, search keyboard i FULL backing PASS; Nearby/a11y nalaz i follow-up source u docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
       },
-      "problem": "725 source600PASS i fizički telefon: pošten pending filtera, stvarni/prazni rezultati i reset; FULL/HALF/spuštanje liste rade u ograničenom prolazu. Nema prihvata svih filtera/velikih lista.",
-      "sledece": "Povezani tok i preostali duboki filter/error/viewport scenariji; očuvati već dokazani map/list prelaz.",
+      "problem": "Telefon4b5: tastatura pri prvom tapu i FULL bela podloga potvrđeni. Nearby prekida nepotreban permission Activity; collapsed a11y ostaje izložena. Korekcije grant/a11y/prazno→prazno source testirane451PASS; nov fizički APK pending.",
+      "sledece": "Tačan follow-up APK: Nearby uz postojeću dozvolu, collapsed accessibility, prazno→prazno bez trzaja. Zatim kompaktni back/search/filter header, prikaz sopstvene lokacije i numerički budžet kroz ceo server ugovor.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3126,6 +3207,26 @@
               "dokaz": "R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-25: R16 b4ba8a8d / APK 36162844547, VKP-NX9, Android 16, oko 361 dp, postojeći font 1,15. Panel filtera otvoren, pomeren i zatvoren. Uža grupa broja ljudi traži doradu; promenjeni filter nije primenjen na telefonu. docs/implementation/design-system/r16-discovery-work-brief-20260925/NATIVE_REVIEW.phone.md Ranije: 2026-09-24: filteri u odeljcima Kada, Gde se radi, Cena, Slobodna mesta sa „Prikaži N zadataka“; filtriranje i dalje na telefonu; emulator, build 09dc6877 (docs/implementation/design-system/r3-emulator-09dc6877/R3_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/DEVICE_CHECK.json: isti APK; panel se otvara, privremeni izbor 6 → 0. Primena, reset, Back i gesto-zatvaranje nisu potpuno provereni."
             }
           }
+        },
+        "android_interaction_finish_20261009": {
+          "state": "CI4B5_PASS / PHONE4B5_PARTIAL / GRANT_EMPTY_FOLLOWUP_TESTED",
+          "source": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "phoneSource": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "previous": {
+            "problem": "725 source600PASS i fizički telefon: pošten pending filtera, stvarni/prazni rezultati i reset; FULL/HALF/spuštanje liste rade u ograničenom prolazu. Nema prihvata svih filtera/velikih lista.",
+            "sledece": "Povezani tok i preostali duboki filter/error/viewport scenariji; očuvati već dokazani map/list prelaz.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 fizički HONOR 725be7bd: 725 source600PASS i fizički telefon: pošten pending filtera, stvarni/prazni rezultati i reset; FULL/HALF/spuštanje liste rade u ograničenom prolazu. Nema prihvata svih filtera/velikih lista. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+            }
+          },
+          "ciRuns": [
+            37985179185,
+            37985182906,
+            37985186356
+          ],
+          "followupTests": 451
         }
       }
     },
@@ -3836,7 +3937,8 @@
           "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
           "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
           "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
-        }
+        },
+        "owner_followup_20261009": "Root donja navigacija fizički potvrđena4b5. Doraditi uloge Tražim pomoć/Uskačem, status Aktivni/Istorija sa završenim+otkazanim i period/Raspored. OPEN."
       }
     },
     {
@@ -6333,8 +6435,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
-      "problem": "725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke.",
-      "sledece": "Reprodukovati About ciljano; završiti povezani lifecycle/loša mreža bez globalnih arhitekturnih promena.",
+      "problem": "Guard kasnog pin-dismiss/AI callback/source ownership testiran; Nearby explicit flight/debounce ima prednost nad list-detent zoom-om. Native lifecycle scope nije ceo završen.",
+      "sledece": "Potvrditi tačan follow-up build; nastaviti povezani lifecycle/loša mreža i raniji About slučaj bez proizvoljnog refaktora.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6406,7 +6508,28 @@
             "sledece": "Kontrolisano reprodukovati About i izmeriti eventualnu minimalnu korekciju. Bez globalnog native detach prepravljanja ili lažnog green-a.",
             "telefon": null
           }
-        }
+        },
+        "android_interaction_finish_20261009": {
+          "state": "CI4B5_PASS / PHONE4B5_PARTIAL / GRANT_EMPTY_FOLLOWUP_TESTED",
+          "source": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "phoneSource": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "previous": {
+            "problem": "725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke.",
+            "sledece": "Reprodukovati About ciljano; završiti povezani lifecycle/loša mreža bez globalnih arhitekturnih promena.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+            }
+          },
+          "ciRuns": [
+            37985179185,
+            37985182906,
+            37985186356
+          ],
+          "followupTests": 451
+        },
+        "owner_followup_20261009": "Permission audit/source korekcije: existing Nearby grant, coarse AI grant i camera get-first; mikrofon/notification contextual postoje. Prvi native grant i konačan merged manifest ostaju NOT VERIFIED."
       }
     },
     {
@@ -10012,6 +10135,13 @@
       "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
       "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
       "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
+    },
+    "android_interaction_finish_20261009": {
+      "state": "FOLLOWUP_SOURCE_TESTED / APK_PENDING",
+      "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+      "testedCurrentFollowup": 451,
+      "ciBaseline": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
+      "store": "NO-GO"
     }
   }
 }

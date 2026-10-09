@@ -81,3 +81,16 @@ Vlasnik izričito traži nezavisnu procenu stvarnog trenutnog proizvoda kroz27ob
 ### 09.10 — Android prvo, ponovo povezan telefon i konkretne popravke
 
 Najnovija poruka potvrđuje povezan telefon i traži stvarni prolaz kroz ekrane, dugmad, AI, animacije, mapu i filtere, pa popravke dokazanih problema prema postojećoj analizi. Android V1 je neposredni cilj. Ovo autorizuje ograničenu fizičku proveru i nadogradnju install-r uz očuvanje sesije/podataka. Ranije tražen jasan kraj i FREEZE dobrih rešenja ostaju; ne započinjati beskonačan redizajn ili iOS prepravku. Ne uključuje automatsku javnu objavu ili ponovno aktiviranje30-minutne automatizacije.
+
+
+### 09.10 — večernja dopuna navigacije, filtera i radnog profila
+
+Vlasnik traži proveru na ponovo povezanom telefonu; emulator je dopunski. Početna i Dogovori moraju imati donju navigaciju. Na mapi želi strelicu nazad, lupicu i filtere, bez stalno širokog polja pretrage; FULL lista se potpuno spaja sa belim zaglavljem bez ostatka mape. Želi svoj položaj vidljiv dok traži zadatke, uz dozvolu i otvorenu mapu — ovo nije zahtev za praćenje u pozadini.
+
+Dogovori treba jasno da odvoje „Tražim pomoć“ i „Uskačem“, aktivne i istoriju (uključujući završene/otkazane), uz smislen period/kalendar. Mapa treba da podrži datume i numerički budžet, npr. bez zadataka ispod2000RSD; tačan zajednički UI/PAGE/MAP/PLACES ugovor mora sačuvati istinite rezultate i brojeve, ne filtrirati samo učitanu stranu. Način tumačenja ukupne cene i cene po osobi ne sme se prećutno izjednačiti.
+
+Podešavanje radnog profila vodi kroz jedan AI razgovor, dok kartica prikazuje sačuvan opis, veštine, alat i vozila. Uklanja se zbunjujući paralelni ručni uređivač, ali se mapa područja, dostupnost, čuvanje i recovery ne gube: pripadaju istom razgovoru/pregledu. AI ne izmišlja koordinate ni podatke koje server ne prima.
+
+Vlasnik traži doradu odgovarajućih ikona, ulaznog ekrana/prijave/registracije/gosta i ikone aplikacije u originalnom2.5D stilu. To je odobrenje ciljanog UI rada, ne potvrda gotovog dizajna ili store paketa. Postojeća white/neutral površina i jednostavni tokovi ostaju smer; konkretna vrednost i funkcija imaju prednost nad ukrasom.
+
+Pomeranje mape prazno→prazno ne sme da zameni potvrđenu poruku novim skeletonom i da trza listu. Provera ide u pozadini, a sadržaj se menja sa stvarnim novim rezultatom/greškom. Proveriti sve stvarne dozvole (lokacija, mikrofon, fotografije/kamera, obaveštenja), u trenutku funkcije, bez ponovnog nepotrebnog traženja već odobrenog i uz oporavak nakon odbijanja. Ovo su zahtevi; implementacija, APK i fizički dokaz se vode odvojeno u jedinom registru.

@@ -34,7 +34,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: async (key: string) => mockRecentStore.get(key) ?? null,
   setItem: async (key: string, value: string) => { mockRecentStore.set(key, value); },
 }));
-jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 },
+jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 }, getForegroundPermissionsAsync: async () => ({ granted: false }),
   requestForegroundPermissionsAsync: () => mockNearbyPermission(), hasServicesEnabledAsync: async () => true,
   watchPositionAsync: (...args: unknown[]) => mockNearbyWatch(...args) }) }));
 // The window: React Native's Jest default (a 2× text size, so "large text") unless a test says otherwise.
@@ -92,6 +92,7 @@ jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 jest.mock('../../ui/v2/TaskPublisherPortrait', () => ({ TaskPublisherPortrait: 'TaskPublisherPortrait' }));
 import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS, RESTORE_STALL_MS, type DiscoveryV1PresentationSeam } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
+import { DiscoveryListState } from '../../ui/v2/discovery/DiscoveryListState';
 import { DiscoveryListSheet } from '../../ui/v2/discovery/DiscoveryListSheet';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { DiscoveryChipRow } from '../../ui/v2/discovery/DiscoveryChipRow';
@@ -2222,7 +2223,7 @@ test.each([0, 1])('a short FULL list with %i rows reserves native scroll space f
     await nativeScroll(y); await deliverUi(); await update();
     const chips = tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
     expect(StyleSheet.flatten(chips.props.style).transform).toEqual([{ translateY: -y }]);
-    expect(chips.props.accessibilityElementsHidden).toBe(y === 66);
+    expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.accessibilityElementsHidden).toBe(y === 66);
   }
 });
 
@@ -2239,7 +2240,7 @@ test('capsules collapse with native scrolling and return at the first row withou
       await nativeScroll(y); await deliverUi(); await update();
       const chips = tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
       expect(StyleSheet.flatten(chips.props.style).transform).toEqual([{ translateY: -Math.min(66, y) }]);
-      expect(chips.props.accessibilityElementsHidden).toBe(y >= 66);
+      expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.accessibilityElementsHidden).toBe(y >= 66);
       expect(listSheet().props.snapPoints).toEqual(stops); expect(press('Pretraži zadatke')).toBeTruthy();
     }
     // The row is not in the sheet at all: nothing of it scrolls with the rows, and nothing of it is pinned above them.
@@ -2265,7 +2266,7 @@ test.each([0, 160])('a native locked position %s replaces stale chrome offset on
   mounted.props.animatedPosition.value = fullTop(68);
   await nativeScroll(500); await deliverUi(); await update();
   const chips = () => tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
-  expect(chips().props.accessibilityElementsHidden).toBe(true);
+  expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.accessibilityElementsHidden).toBe(true);
   await dragSheet(1); mockNativeScrollStatus.value = 0;
   mounted.props.animatedPosition.value = 400;
   // Default Gorhom's LOCKED target is zero unless a handle drag explicitly holds its initial position.
@@ -2278,8 +2279,8 @@ test.each([0, 160])('a native locked position %s replaces stale chrome offset on
   await deliverUi(); await update();
   expect(listSheet()).toBe(mounted);
   expect(StyleSheet.flatten(chips().props.style).transform).toEqual([{ translateY: -Math.min(66, locked) }]);
-  expect(chips().props.accessibilityElementsHidden).toBe(locked >= 66);
-  expect(chips().props.pointerEvents).toBe(locked >= 66 ? 'none' : 'box-none');
+  expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.accessibilityElementsHidden).toBe(locked >= 66);
+  expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.pointerEvents).toBe(locked >= 66 ? 'none' : 'box-none');
 });
 
 test('when a search or filter leaves only tasks without a point on the map, the list rises to the whole screen', async () => {
@@ -3459,4 +3460,46 @@ test('the full discovery list leaves its downward gesture to the sheet', async (
   expect(list().props.onRefresh).toBeUndefined();
   expect(list().props.refreshControl).toBeUndefined();
   expect(refresh).not.toHaveBeenCalled();
+});
+
+
+test('a delayed hidden-capsule callback cannot own a new visit, which receives the same hidden value again', async () => {
+  rows = [row('one')]; initial = { ...initial, sheet: 'full' }; await render(); await layOutBody();
+  await dragSheet(2); await readyList(); listSheet().props.animatedPosition.value = fullTop(68);
+  await nativeScroll(66); sampleUi(); const stale = mockRnDeliveries.splice(0);
+  scopeKey = 'other-account:2'; await update();
+  listSheet().props.animatedPosition.value = fullTop(68); await nativeScroll(66);
+  const clip = () => tree.root.findByProps({ testID: 'discovery-chips-clip' });
+  await act(async () => { for (const send of stale) send(); });
+  expect(clip().props.accessibilityElementsHidden).toBe(false);
+  await deliverUi(); await update();
+  expect(clip().props.accessibilityElementsHidden).toBe(true);
+});
+
+test('confirmed empty areas stay in place through repeated pending pans; new results and errors replace them', async () => {
+  rows = []; initial = { ...initial, sheet: 'peek', area: [20, 44, 21, 45] };
+  p6Seam = { ...p6Seam_(), counts: p6Counts(0) }; await render(); await dragSheet(0);
+  const empty = () => tree.root.findByType(DiscoveryListState);
+  const settled = empty().props.state.kind;
+  for (let pan = 0; pan < 2; pan++) {
+    refreshing = true; await update();
+    expect(empty().props.state.kind).toBe(settled); expect(listSheet().props.index).toBe(0);
+    expect(tree.root.findByProps({ testID: 'list-count' }).props.accessibilityState.busy).toBe(true);
+    refreshing = false; await update();
+    expect(empty().props.state.kind).toBe(settled); expect(listSheet().props.index).toBe(0);
+  }
+  refreshing = true; await update(); rows = p6Rows(); refreshing = false;
+  p6Seam = { ...p6Seam, counts: p6Counts(rows.length, rows.length) }; await update();
+  expect(cards().length).toBeGreaterThan(0);
+  rows = []; error = true; await update(); expect(empty().props.state.kind).toBe('error');
+});
+
+test('a confirmed empty picture cannot leak into a new account or new filter pending read', async () => {
+  rows = []; initial = { ...initial, sheet: 'peek', area: [20, 44, 21, 45] };
+  p6Seam = { ...p6Seam_(), counts: p6Counts(0) }; await render();
+  refreshing = true; scopeKey = 'other-account:2'; await update();
+  expect(tree.root.findByType(DiscoveryListState).props.state.kind).toBe('loading');
+  refreshing = false; await update(); refreshing = true;
+  await act(async () => tree.root.findByType(DiscoveryPresentation).props.onView({ ...snapshot, query: 'new-filter' }));
+  expect(tree.root.findByType(DiscoveryListState).props.state.kind).toBe('loading');
 });

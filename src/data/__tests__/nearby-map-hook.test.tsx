@@ -34,7 +34,7 @@ beforeEach(() => {
   scope = 'account-a:1'; focused = true; mockPlatform = 'android'; mockAppState = 'active';
   mockPermission.mockResolvedValue({ granted: true }); mockServices.mockResolvedValue(true);
   mockWatch.mockImplementation(async (_options, next) => { nextFix = next; return { remove: mockRemove }; });
-  mockLoad.mockResolvedValue({ Accuracy: { Balanced: 3 }, requestForegroundPermissionsAsync: mockPermission,
+  mockLoad.mockResolvedValue({ Accuracy: { Balanced: 3 }, getForegroundPermissionsAsync: async () => ({ granted: false }), requestForegroundPermissionsAsync: mockPermission,
     hasServicesEnabledAsync: mockServices, watchPositionAsync: mockWatch });
   mockSettings.mockResolvedValue(undefined); mockIntent.mockResolvedValue(undefined);
 });

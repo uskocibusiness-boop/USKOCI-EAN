@@ -377,7 +377,7 @@ test('Nearby waits for map readiness and does not move a blurred map', async () 
 test('Nearby then manual pan then refresh/remount restores the pan without replaying location', async () => {
   let receive!: (value: { timestamp: number; coords: { latitude: number; longitude: number } }) => void;
   const remove = jest.fn();
-  mockNearbyLoad.mockResolvedValue({ Accuracy: { Balanced: 3 }, requestForegroundPermissionsAsync: async () => ({ granted: true }),
+  mockNearbyLoad.mockResolvedValue({ Accuracy: { Balanced: 3 }, getForegroundPermissionsAsync: async () => ({ granted: false }), requestForegroundPermissionsAsync: async () => ({ granted: true }),
     hasServicesEnabledAsync: async () => true, watchPositionAsync: async (_options: unknown, next: typeof receive) => { receive = next; return { remove }; } });
   let capture!: ReturnType<typeof useNearbyMap>, visible = true;
   // Real hook + real DiscoveryMap: the hook survives the map being removed during a read, like DiscoveryPresentation.

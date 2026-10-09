@@ -189,5 +189,22 @@ test('FULL white backing starts at map top outside the offset search bar', async
   expect(StyleSheet.flatten(backing.props.style).top).toBe(0);
   const stack = tree.root.findByProps({ testID: 'discovery-search-stack' });
   expect(stack.parent!.findAllByProps({ testID: 'discovery-chrome-backing' })).toHaveLength(0);
-  expect(tree.root.findByProps({ testID: 'discovery-collapsing-chips' }).props.importantForAccessibility).toBe('no-hide-descendants');
+  expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.importantForAccessibility).toBe('no-hide-descendants');
+});
+
+
+test('hidden capsules stay mounted and keep their measured clip while native accessibility follows visibility', async () => {
+  const motion = { sheetTop: { value: 72 } as never, offset: { value: 66 } as never, compactTop: 72, capsules: 66, hidden: true };
+  await render({ motion, chips: <React.Fragment /> });
+  const clip = () => tree.root.findByProps({ testID: 'discovery-chips-clip' });
+  const hiddenClip = clip();
+  expect(hiddenClip.props.collapsable).toBe(false); expect(hiddenClip.props.pointerEvents).toBe('none');
+  expect(hiddenClip.props.importantForAccessibility).toBe('no-hide-descendants');
+  const style = hiddenClip.props.style;
+  const props = tree.root.findByType(DiscoverySearchBar).props as React.ComponentProps<typeof DiscoverySearchBar>;
+  const moving = tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
+  await act(async () => tree.update(<DiscoverySearchBar {...props} motion={{ ...motion, hidden: false }} />));
+  expect(clip()).toBe(hiddenClip); expect(clip().props.style).toEqual(style);
+  expect(clip().props.pointerEvents).toBe('box-none'); expect(clip().props.importantForAccessibility).toBe('auto');
+  expect(tree.root.findByProps({ testID: 'discovery-collapsing-chips' })).toBe(moving);
 });

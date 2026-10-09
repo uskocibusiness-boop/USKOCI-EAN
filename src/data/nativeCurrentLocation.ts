@@ -60,12 +60,19 @@ export async function captureCurrentLocation(signal: AbortSignal, current: () =>
       try {
         let permitted: boolean;
         if (Platform.OS === 'android') {
-          const permission = await PermissionsAndroid.requestMultiple([
+          const permissions = [
             PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
             PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-          ]);
-          permitted = permission[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED
-            || permission[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED;
+          ];
+          const held = await Promise.all(permissions.map(permission => PermissionsAndroid.check(permission)));
+          if (!alive()) { abort(); return; }
+          permitted = held.some(Boolean);
+          // Approximate foreground access is enough. Do not reopen Android's dialog to upgrade a held coarse grant.
+          if (!permitted) {
+            const permission = await PermissionsAndroid.requestMultiple(permissions);
+            permitted = permission[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED
+              || permission[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED;
+          }
         } else permitted = await LocationManager.requestPermissions();
         // A permission dialog can finish after navigation, background, logout
         // or the deadline. It must never start a late native listener.

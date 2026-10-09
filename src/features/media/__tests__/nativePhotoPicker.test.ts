@@ -15,7 +15,7 @@ import { answeringHost, holdingHost } from '../../../ui/permissions/testing/answ
 const original = 'file:///cache/picker/original.jpg', saved = 'file:///cache/output.jpg';
 const resize = jest.fn(), render = jest.fn(), save = jest.fn(), releaseContext = jest.fn(), releaseImage = jest.fn();
 beforeEach(() => {
-  jest.clearAllMocks(); mockFiles.clear();
+  jest.clearAllMocks(); mockFiles.clear(); mockCameraState.mockResolvedValue({ granted: false, canAskAgain: true });
   mockFiles.set(original, { size: 80, bytes: new ArrayBuffer(80), exists: true });
   mockFiles.set(saved, { size: 12, bytes: new ArrayBuffer(12), exists: true });
   mockLibrary.mockResolvedValue({ canceled: false, assets: [{ uri: original, width: 4000, height: 3000, fileSize: 80 }] });
@@ -86,7 +86,7 @@ describe('the question before the camera window', () => {
     const asking = answeringHost('later'); host = asking;
     if (state.granted) expect(await pickPreparedPhoto('CAMERA', () => true)).toMatchObject({ contentType: 'image/jpeg' });
     else await expect(pickPreparedPhoto('CAMERA', () => true)).rejects.toEqual(new PhotoSelectionError('PERMISSION'));
-    expect(asking.asked).toEqual([]); expect(mockPermission).toHaveBeenCalledTimes(1);
+    expect(asking.asked).toEqual([]); expect(mockPermission).not.toHaveBeenCalled();
   });
 
   it('goes straight on when the state cannot be read', async () => {
@@ -159,4 +159,10 @@ describe('several photos from one pick', () => {
     expect(await pickPreparedPhotos('LIBRARY', () => current, { limit: 3 })).toBeNull();
     expect(mockDelete.mock.calls.flat()).toEqual(expect.arrayContaining([copy(1), copy(2), copy(3)]));
   });
+});
+
+it('retiring during a camera permission read opens neither permission nor camera', async () => {
+ let current = true; mockCameraState.mockImplementation(async () => { current = false; return { granted: true, canAskAgain: true }; });
+ expect(await pickPreparedPhoto('CAMERA', () => current)).toBeNull();
+ expect(mockPermission).not.toHaveBeenCalled(); expect(mockCamera).not.toHaveBeenCalled(); expect(mockManipulate).not.toHaveBeenCalled();
 });
