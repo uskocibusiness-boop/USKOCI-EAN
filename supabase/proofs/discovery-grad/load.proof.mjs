@@ -11,6 +11,7 @@ import {createFixtures} from '../ex06/lib/fixtures.mjs';
 import {proveAreaDedup, areaExperimentSummary} from './area-dedup.proof.mjs';
 import {readWithSocketRecovery} from './read-transport.mjs';
 import {sqlFailure} from './sql-failure.mjs';
+import {proveReadConcurrency, readConcurrencySummary} from './read-concurrency.proof.mjs';
 
 const {assert, sql, q, ok, env} = rt;
 const DB = env.DB_URL;
@@ -292,6 +293,18 @@ async function deployedBaseline(viewer, requester, open) {
     for (const f of profile.functions.slice(0, 8)) lines.push(`| ${f.signature} | ${f.calls} | ${f.selfMs} | ${f.totalMs} |`);
   }
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
+  if (env.DG_READ_CONCURRENCY) {
+    try {
+      await proveReadConcurrency({env, client: viewer.client, requests, report, write,
+        verify: () => ({postflight: verify(), certificate: closure(),
+          taskCount: Number(sql(`select count(*) from public.needs where requester_account_id=${q(requester.id)}::uuid and category='DG load'`))}),
+        visible: (anchor, bounds) => visible(`and published_at<=${q(anchor.publishedThrough)}::timestamptz` + (bounds
+          ? ` and execution_location_mode is distinct from 'REMOTE' and approximate_lat between ${bounds[1]} and ${bounds[3]} and approximate_lng between ${bounds[0]} and ${bounds[2]}` : ''))});
+      pass('DEPLOYED_BASELINE_CONCURRENT_HTTP_FIDELITY');
+    } finally {
+      if (report.readConcurrency) fs.appendFileSync(path.join(out, 'load-summary.md'), readConcurrencySummary(report.readConcurrency));
+    }
+  }
 }
 
 try {

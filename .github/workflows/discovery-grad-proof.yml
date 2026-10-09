@@ -1,9 +1,16 @@
 name: Discovery applied-reader 40000-task baseline
 
 # Disposable baseline of the applied DISCOVERY-GRAD reader, with relevant-body fidelity and real Auth/PostgREST.
-# 40000 synthetic tasks, two accounts, serial measurements. NOT a 40000-concurrent-user or lifecycle proof. Never touches DEV.
+# 40000 synthetic tasks, two scenario accounts. Optional 1/4/16/32 HTTP reads, never 40000 concurrent users. Never touches DEV.
 on:
   workflow_dispatch:
+    inputs:
+      workload:
+        description: 'Isolated area A/B/revert or concurrent reads of the applied baseline'
+        required: true
+        default: area
+        type: choice
+        options: [area, concurrency]
   push:
     branches: [proof/discovery-baseline-40k-20261009]
     paths:
@@ -43,7 +50,8 @@ jobs:
       DISCOVERY_GRAD_ARTIFACT_DIR: /tmp/discovery-grad-artifacts
       DG_LOAD_TASKS: '40000'
       DG_LOAD_MODE: deployed-baseline
-      DG_AREA_EXPERIMENT: DISPOSABLE_AREA_DEDUP
+      DG_AREA_EXPERIMENT: ${{ inputs.workload != 'concurrency' && 'DISPOSABLE_AREA_DEDUP' || '' }}
+      DG_READ_CONCURRENCY: ${{ inputs.workload == 'concurrency' && 'DISPOSABLE_READ_CONCURRENCY' || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -72,6 +80,7 @@ jobs:
           for f in supabase/proofs/discovery-grad/*.mjs supabase/proofs/match-v1/chain.mjs supabase/proofs/match-v1/fidelity.mjs; do node --check "$f"; done
           node --test supabase/proofs/discovery-grad/read-transport.test.mjs
           node --test supabase/proofs/discovery-grad/sql-failure.test.mjs
+          node --test supabase/proofs/discovery-grad/read-concurrency.test.mjs
           find supabase/candidates/discovery-grad-20261008 supabase/proofs/discovery-grad -type f -print0 | sort -z | xargs -0 sha256sum > "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           sha256sum .github/workflows/discovery-grad-proof.yml >> "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/npm.log" 2>&1
@@ -128,6 +137,22 @@ jobs:
           assert.equal(report.population.simultaneousRequests, 1);
           assert.equal(report.baseline.readerMd5, 'a9b0985991f4ebfe4e95143e5cf57222');
           assert.equal(report.baseline.foldMd5, '41353abe05d434d513495ae5974b9802');
+          if (process.env.DG_READ_CONCURRENCY) {
+          assert.equal(report.areaExperiment, undefined);
+          assert.equal(report.readConcurrency.state, 'SEMANTICS_PASS_PERFORMANCE_REPORTED');
+          assert.equal(report.readConcurrency.activeViewerAccounts, 1);
+          assert.equal(report.readConcurrency.retries, 0);
+          assert.deepEqual(report.readConcurrency.levels.map(x => x.targetConcurrency), [1, 4, 16, 32]);
+          for (const level of report.readConcurrency.levels) {
+            assert.equal(level.result, 'PASS'); assert.equal(level.stopReason, 'WINDOW_COMPLETE');
+            assert.equal(level.measured.failed + level.warmup.failed, 0);
+            assert.equal(level.unconfirmedServerCancellations, 0);
+            assert.equal(level.peakInFlight, level.targetConcurrency);
+            assert.ok(level.measured.completed > 0);
+          }
+          assert.ok(report.checks.some(c => c.name === 'DEPLOYED_BASELINE_CONCURRENT_HTTP_FIDELITY' && c.result === 'PASS'));
+          } else {
+          assert.equal(report.readConcurrency, undefined);
           assert.equal(report.areaExperiment.state, 'SEMANTICS_PASS_PERFORMANCE_REPORTED');
           assert.equal(report.areaExperiment.finalReaderMd5, report.baseline.readerMd5);
           assert.equal(report.areaExperiment.s3Applied, false);
@@ -139,6 +164,7 @@ jobs:
             assert.equal(result.exact.timestampMasking, false);
             assert.deepEqual(result.exact.terminalPages, {corpus0: 14, placesCorpus: 3});
             for (const stage of ['baseline', 'candidate', 'revertedBaseline']) assert.equal(Object.keys(result.stages[stage]).length, 16);
+          }
           }
           for (const file of ['chain/chain-fidelity.json', 'predecessor-fidelity.json'])
             assert.equal(JSON.parse(readFileSync(dir + '/' + file, 'utf8')).result, 'PASS');

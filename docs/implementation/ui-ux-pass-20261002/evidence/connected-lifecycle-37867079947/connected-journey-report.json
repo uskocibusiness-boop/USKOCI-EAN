@@ -1,0 +1,79 @@
+{
+  "unit": "CONNECTED_FOUR_ACTORS",
+  "sourceSha": "8b1c3da7f9f62ac032ee649481d589aac7354c94",
+  "result": "PASS",
+  "checks": [
+    {
+      "name": "FOUR_DISTINCT_AUTH_ACTORS_NO_AUTH_RETRY",
+      "result": "PASS"
+    },
+    {
+      "name": "PRODUCT_PUBLICATION_TWO_SELECTIONS_ONE_GROUP_PRIVATE_TERMS_HIDDEN",
+      "result": "PASS"
+    },
+    {
+      "name": "GROUP_VISIBILITY_REPLAY_AND_EXPLICIT_READ_ACK",
+      "result": "PASS"
+    },
+    {
+      "name": "CANCELLATION_PRESERVES_OTHER_AGREEMENT_AND_REVOKES_FUTURE_GROUP_VISIBILITY",
+      "result": "PASS"
+    },
+    {
+      "name": "OWNER_ONLY_CLOSE_REOPEN_EXACT_REVISION_AND_CLOSURE_WITNESS",
+      "result": "PASS"
+    },
+    {
+      "name": "REPLACEMENT_SAME_GROUP_NO_HISTORY_BACKFILL_PRIVATE_TO_REQUESTER_ONLY",
+      "result": "PASS"
+    }
+  ],
+  "actualAuth": true,
+  "actualProductPublication": true,
+  "syntheticAIProposalAndEvaluator": true,
+  "actualProvider": false,
+  "liveAccess": false,
+  "pushSends": 0,
+  "simultaneousScenarioRequests": 1,
+  "population": {
+    "scenarioAuthAccounts": 4,
+    "existingBootstrapAuthAccounts": 10,
+    "taskCount": 1
+  },
+  "limits": [
+    "Four scenario accounts on a historical relevant-function replay; not full DEV235.",
+    "Synthetic AI proposal and evaluator fixture; actual review/accept/publish RPCs.",
+    "Sequential lifecycle and message authority proof, not 40000 active users, throughput, native UI or push."
+  ],
+  "schedulers": {
+    "available": true,
+    "jobs": [
+      {
+        "jobname": "uskoci_marketplace_tick",
+        "activeBefore": false,
+        "activeAfter": false
+      },
+      {
+        "jobname": "uskoci_edge_workers",
+        "activeBefore": false,
+        "activeAfter": false
+      }
+    ]
+  },
+  "certificate": {
+    "unchanged": true,
+    "ready": true,
+    "digest": "c23aed4a2c2d05c1c0209162870d2dad42ac47373c50fa5775ad273fe189da0e"
+  },
+  "catalogUnchanged": true,
+  "auth": {
+    "accountsCreated": 4,
+    "retries": 0,
+    "rateLimited": 0,
+    "waitedMs": 0,
+    "failures": 0,
+    "backoffMs": 0,
+    "maxWaitMs": 360000,
+    "maxTotalWaitMs": 1200000
+  }
+}

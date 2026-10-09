@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T01:00:43Z",
+  "osvezeno": "2026-10-09T01:12:28Z",
   "grana": "integration/spoj-20261006",
-  "head": "a481be3e",
-  "head_poruka": "fix: preserve SQL failure evidence and attest compiled push manifest",
+  "head": "6c755dff",
+  "head_poruka": "merge: synchronize generated control views",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2218,6 +2218,12 @@
     "emulatorLimit": "Existing preview remained logged out; entry viewed. No discovery acceptance from this device.",
     "phoneFailure": "37864877643: Gradle SUCCESS; apkanalyzer manifest application-id reparses unescaped Expo JSON metadata and throws SAXParseException. Same failure reproduced on installed emulator APK; manifest print + existing OTA manifest parser works. No phone artifact uploaded or installed.",
     "attestationFix": "Reuse actual compiled manifest print and existing quote-aware parser; package/debuggable/Firebase action/auto-init validation. 7 push unit +19 OTA tests PASS; duplicate/nested metadata and debuggable regressions covered; real non-push emulator APK correctly rejected. Failed future artifacts preserved as UNVERIFIED."
+   },
+   "attestationRebuild": {
+    "run": 37867659756,
+    "source": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
+    "state": "RUNNING",
+    "uiUnchangedFrom": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5"
    }
   },
   "discovery_area_experiment_20261009": {
@@ -2241,12 +2247,15 @@
    "harnessCorrection": "At most one observed read-only retry for status0/emptyAPIcode/UND_ERR_SOCKET. Identical request/anchor, one90s deadline, full initial+retry latency, durable first error/phase and outcome. No retry forHTTP/API/timeout/shape.4offline testsPASS plus independent review.",
    "nextRun": 37865279345,
    "nextSource": "52c4965b0f5dd7e33fdb353802c4b17c4dc1a8c9",
-   "nextRunState": "RUNNING",
+   "nextRunState": "FAILED_PRESERVED",
    "latestRun": 37865279345,
    "latestSource": "52c4965b0f5dd7e33fdb353802c4b17c4dc1a8c9",
    "latestEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-recovery-37865279345",
    "latestResult": "Repeated:124 exact JSON comparisons and16 baseline/candidate/revert SQL+HTTP cases. Unique: failure in baseline exactDO before candidate. Headline/timedOut were lost in stderr-tail, true SQL cause unknown. Teardown0. One recorded socket recovery200/486ms.",
-   "observations": "Repeated SQL median: ciscenje1215.7→610.1→1173.4; no-hit1138.3→584.5→1135.1; city+text962.1→402.8→927.2; defaultPAGE376.5→430.3→420.5; MAP317.1→376.1→314.5. Candidate helps text but costs nontext; no overall acceptance or DEV application."
+   "observations": "Repeated SQL median: ciscenje1215.7→610.1→1173.4; no-hit1138.3→584.5→1135.1; city+text962.1→402.8→927.2; defaultPAGE376.5→430.3→420.5; MAP317.1→376.1→314.5. Candidate helps text but costs nontext; no overall acceptance or DEV application.",
+   "diagnosticSqlRun": 37867659562,
+   "diagnosticSqlSource": "6c755dffbb255b13159cf720a3efa5bc4a517ab1",
+   "diagnosticSqlState": "RUNNING"
   },
   "push_recapture235_20261009": {
    "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",
@@ -2293,23 +2302,36 @@
    "open": "Exact APK visual grouping, role/history filters, expanded return, private/group navigation and real data with multiple selected people."
   },
   "connected_lifecycle_20261009": {
-   "state": "SOURCE_REVIEWED / CI_RUNNING",
+   "state": "ISOLATED_ACTUAL_RPC_PASS / NATIVE_AND_CAPACITY_NOT_PROVEN",
    "scope": "Four new real Auth actors; product publication, two selections, private/group messages, cancel one, owner close/reopen, replacement with history cutoff. AI proposal/evaluator synthetic, provider not called.",
    "chain": "Existing push current99 predecessor followed by EX04d, EX06a/b, WPP, exact R2/R3; strict metadata/certificate guards. Relevant functions only, not full DEV235.",
-   "verification": "Node syntax and workflow YAML PASS; independent source reviews corrected replay flag assertion, exact denial contracts, current V2 page/window coverage and bootstrap-failure teardown.",
+   "verification": "Run37867079947 SUCCESS:6 actual lifecycle/authority checks,4 new Auth accounts/no retries,1 product-path task/2slots,2 selections/1group, private V2 page/window, group replay/readACK, cancel/cutoff, owner close/reopen, replacement without old group history. Chain/catalog/RLS/policies/certificate unchanged; teardown0.",
    "limits": [
-    "No runtime PASS yet",
-    "Not 40000 users, concurrency, native or push proof",
-    "No real DEV data or provider changes"
+    "Relevant-function replay, not full DEV235;10 existing bootstrap+4 new scenario accounts",
+    "AI proposal/evaluator synthetic; no provider call",
+    "Sequential requests; not40000 users/concurrency/native/push; schedulers already inactive"
    ],
    "sourceFiles": [
     "supabase/proofs/ex06/connected-chain.mjs",
     "supabase/proofs/ex06/connected-journey.mjs",
     ".github/workflows/connected-lifecycle-proof.yml"
    ],
-   "next": "One isolated CI run, inspect actual failure or pass and teardown; continue current APK verification.",
+   "next": "Keep this authority proof and measure bounded concurrent Discovery reads separately. Complete physical APK acceptance.",
    "run": 37867079947,
-   "source": "8b1c3da7f9f62ac032ee649481d589aac7354c94"
+   "source": "8b1c3da7f9f62ac032ee649481d589aac7354c94",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/connected-lifecycle-37867079947"
+  },
+  "discovery_read_concurrency_20261009": {
+   "state": "SOURCE_REVIEWED / OFFLINE8_PASS / RUNTIME_PENDING",
+   "scope": "40000 synthetic task rows,2 scenario Auth accounts,1 active viewer;actual loopback PostgREST read levels1/4/16/32.15swarmup+60smeasurement perlevel,90sdeadline,2048samplecaps,no retries.7 request shapes/10slot deterministic mix including cursor page2/denseMAP.",
+   "verification": "8 new offline tests PASS; existing4 socket/3SQLdiagnostic tests PASS; Node and workflow YAML PASS. Two independent read-only reviews no blocker; separate HTTP+JSON latency added; proof90s versus app15s explicitly disclosed.",
+   "limits": "Closedloop sharedCIhost;no40000user/servercapacity claim,no concurrent lifecycle/background workers/DEV changes; client abort cannot prove server cancellation. All semantic/HTTP/transport failures retained and fail proof.",
+   "files": [
+    "supabase/proofs/discovery-grad/read-concurrency.mjs",
+    "supabase/proofs/discovery-grad/read-concurrency.proof.mjs",
+    "supabase/proofs/discovery-grad/read-concurrency.test.mjs"
+   ],
+   "next": "One opt-in isolated concurrency run; exact source and real failure/latency evidence before any capacity claim."
   }
  },
  "redovi": [

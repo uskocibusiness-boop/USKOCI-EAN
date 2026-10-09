@@ -1,0 +1,51 @@
+{
+  "unit": "CONNECTED_CHAIN",
+  "sourceSha": "8b1c3da7f9f62ac032ee649481d589aac7354c94",
+  "result": "PASS",
+  "stages": [
+    {
+      "name": "ex04d",
+      "status": 0,
+      "elapsedMs": 220
+    },
+    {
+      "name": "ex06a",
+      "status": 0,
+      "elapsedMs": 317
+    },
+    {
+      "name": "ex06b",
+      "status": 0,
+      "elapsedMs": 278
+    },
+    {
+      "name": "wpp-predecessors",
+      "status": 0,
+      "elapsedMs": 823
+    },
+    {
+      "name": "wpp",
+      "status": 0,
+      "elapsedMs": 209
+    },
+    {
+      "name": "r2-alignment",
+      "status": 0,
+      "elapsedMs": 196
+    },
+    {
+      "name": "r3-build",
+      "status": 0,
+      "elapsedMs": 92
+    },
+    {
+      "name": "r3-apply",
+      "status": 0,
+      "elapsedMs": 282
+    }
+  ],
+  "liveAccess": false,
+  "fullDev235Replay": false,
+  "r3CandidateSha256": "bd8c823c67c55967f0e62a8e893320897832a6f8f2248c762f9e1c3c15bf87da",
+  "aiChatVoiceUnchanged": true
+}
