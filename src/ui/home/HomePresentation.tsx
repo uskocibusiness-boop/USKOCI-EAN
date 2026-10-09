@@ -53,6 +53,8 @@ export type HomePresentationProps = {
   stale?: boolean;
   /** Internal galleries supply the same chrome with an inert bell; the live header remains the default. */
   header?: ReactNode;
+  /** Account-owned AI conversations, read separately from tasks and decisions. */
+  intakeResume?: ReactNode;
   onPublish: () => void; onEarn: () => void; onProfile: () => void; onOpen: (target: HomeTarget) => void;
   /**
    * What waits for my rating. With the one Dogovor's id (the Dogovori read already gave it) the route opens that
@@ -323,6 +325,7 @@ export function HomePresentation(p: HomePresentationProps) {
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
+    {p.intakeResume}
 
     {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}

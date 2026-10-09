@@ -343,7 +343,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     expect(lf('supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql')).toMatch(/CREATE POLICY app_profiles_update_own ON public\.app_profiles\s+FOR UPDATE TO authenticated/);
   });
 
-  it('G04-5: need.minimum_experience_years is AI-proposable, hard for every worker, and the interview never asks for it', () => {
+  it('G04-5 historical matcher input remains readable, while current interview readiness uses required draft facts', () => {
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toEqual(expect.arrayContaining([
       'need.minimum_experience_years', 'need.category', 'need.required_skills', 'need.required_tools',
       'need.required_vehicles', 'need.required_licenses', 'need.critical_conditions']));
@@ -351,10 +351,15 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     expect(lf(TI)).toContain("AI_PROPOSABLE_NEED_FACT_V2_KEYS.filter(key => key !== 'need.required_licenses')");
     expect(lf(TI)).toContain("key: { type: 'STRING', enum: INTERVIEW_NEED_FACT_V2_KEYS }");
     expect(lf(TI)).toContain("if (key === 'need.minimum_experience_years') return Number(value) >= 0 && Number(value) <= 60;");
-    // X-10: the facts the interview still asks for are not the matcher inputs
-    const asked = between(lf(TI), "const missing = ['need.description'", ".filter(key => !facts.has(key));");
+    // Current completeness also includes schema-required facts (title/category). Do not restore the old
+    // incomplete list merely to satisfy a source marker; optional matching preferences stay optional.
+    const asked = between(lf(TI), 'const missing =', 'const questions:');
     expect(asked).toMatch(/need\.description[\s\S]*need\.people_needed[\s\S]*need\.price_mode[\s\S]*need\.schedule_kind[\s\S]*need\.task_country_code[\s\S]*need\.task_geography/);
-    expect(asked).not.toMatch(/required_skills|required_tools|required_vehicles|required_licenses|minimum_experience|need\.category/);
+    expect(asked).toContain('definition.requiredForDraft');
+    expect(asked).toContain('.filter(key => !facts.has(key))');
+    for (const key of ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.minimum_experience_years'] as const)
+      expect(NEED_FACT_V2_DEFINITIONS[key].requiredForDraft).toBe(false);
+    expect(asked).not.toMatch(/required_skills|required_tools|required_vehicles|required_licenses|minimum_experience/);
   });
 
   it('G04-6: the client ships PROFILE_EXCLUSION (and INSUFFICIENT_EXPERIENCE) copy although no screen can create either input', () => {

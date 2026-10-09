@@ -8,6 +8,7 @@ import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { HomePresentation } from '../../ui/home/HomePresentation';
+import { IntakeResume } from '../../ui/home/IntakeResume';
 import { writeAvailableNow } from '../../data/availableNowWrite';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 
@@ -100,6 +101,7 @@ function Home() {
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   return <HomePresentation header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     stale={!!resource.refreshError && !!home}
+    intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
     availableNow={profile?.state === 'ACTIVE' ? { value: switching.value ?? profile.availableNow, onChange: changeAvailable,
       busy: switching.busy, failed: switching.failed } : undefined}
     onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/zadaci'))}

@@ -7,6 +7,7 @@ import type {
 import { MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { listOpenIntakes } from './aiOpenIntakes';
 import { sesijaSada } from '../store/sesija';
 import { aiAvailabilityFromSdkError, requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
 import { capabilityTerms } from '../lib/capabilityTerms';
@@ -309,6 +310,7 @@ function mapConversation(raw: unknown, conversationId: string, accountId: string
 }
 
 export const aiNeedV2Production = {
+  listOpenIntakes,
   async openConversation(clientRequestId: string): Promise<Ishod<AiNeedConversationOpened>> {
     if (!uuid(clientRequestId)) return fail('CLIENT_REQUEST_ID_INVALID', ERRORS.CLIENT_REQUEST_ID_INVALID);
     return readReceipt({ rpc: 'rpc_ai_open_need_conversation_owned_v2', args: { p_client_request_id: clientRequestId }, errors: ERRORS,

@@ -426,6 +426,17 @@ it('CF01: a typed retry clears only its unchanged raw submitted draft', async ()
   expect(mockSend.mock.calls[1][1]).toBe('Poslati nacrt.');
   expect(input().value).toBe(''); expect(input().editable).toBe(true);
 });
+it('resumes the selected saved conversation after a successful turn has cleared the recovery journal', async () => {
+  mockSend.mockImplementation((_id: string, _body: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  await start();
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+  await act(async () => tree.unmount());
+  mockOpen.mockClear(); mockSend.mockClear(); mockLoad.mockClear();
+  await resume();
+  expect(mockLoad).toHaveBeenCalledWith(id);
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+});
 it.each(['typed', 'spoken'])('CF01: remounted %s intent restores only IDs and cannot clear a fresh draft', async origin => {
   await render(); await type('Private typed draft');
   if (origin === 'typed') await act(async () => submit().onPress());

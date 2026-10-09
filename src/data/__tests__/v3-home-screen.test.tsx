@@ -11,6 +11,10 @@ let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 let mockPhoneZone: string | undefined = 'Europe/Belgrade';
 const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
+const mockListOpenIntakes = jest.fn();
+jest.mock('../index', () => ({ aiNeedV2Izvor: { listOpenIntakes: (...args: unknown[]) => mockListOpenIntakes(...args) } }));
+jest.mock('../../ui/product/ProductSheet', () => ({ ProductSheet: ({ children, onClose, ...props }: any) =>
+  require('react').createElement('Sheet', { ...props, onClose }, children(() => undefined)) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; },
@@ -83,9 +87,90 @@ beforeEach(() => {
   mockAppState = 'active'; mockAppStateListeners.clear();
   mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 }; mockPhoneZone = 'Europe/Belgrade';
   mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
+  mockListOpenIntakes.mockResolvedValue({ rows: [], next: null });
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
+
+const intake = (id = A) => ({ id, createdAt: '2026-10-09T12:00:00.123456Z' });
+it('offers the saved AI conversation separately from tasks and opens its existing ID once', async () => {
+  mockListOpenIntakes.mockResolvedValue({ rows: [intake()], next: null });
+  await render();
+  const resume = row('Nastavi razgovor o zadatku');
+  await act(async () => { resume.onPress(); resume.onPress(); });
+  expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/nova', params: { conversationId: A } }]]);
+  expect(text()).toContain('Započeto 9. okt');
+});
+it('does not hold Home while the AI list is slow, and a failed list has a real retry', async () => {
+  const wait = deferred<{ rows: never[]; next: null }>(); mockListOpenIntakes.mockReturnValueOnce(wait.promise);
+  await render(); expect(text()).toContain('Moji zadaci'); expect(text()).not.toContain('Nastavi razgovor o zadatku');
+  await act(async () => wait.resolve({ rows: [], next: null }));
+  await act(async () => tree.unmount());
+  mockListOpenIntakes.mockRejectedValueOnce(new Error('offline')); await render();
+  expect(text()).toContain('Razgovori nisu učitani');
+  mockListOpenIntakes.mockResolvedValue({ rows: [intake()], next: null });
+  await act(async () => row('Nastavi razgovor o zadatku').onPress());
+  expect(text()).toContain('Započeto 9. okt'); expect(mockRouter.navigate).not.toHaveBeenCalled();
+});
+it('pages older conversations once, keeps rows on failure, and opens only after the sheet closes', async () => {
+  const first = { rows: [intake(A), intake(B)], next: intake(B) };
+  mockListOpenIntakes.mockResolvedValue(first); await render();
+  await act(async () => row('Nastavi razgovor o zadatku').onPress());
+  const wait = deferred<typeof first>(); mockListOpenIntakes.mockReturnValueOnce(wait.promise);
+  await act(async () => { action('Stariji razgovori').onPress(); action('Stariji razgovori').onPress(); });
+  expect(mockListOpenIntakes.mock.calls).toEqual([[], [intake(B)]]);
+  await act(async () => wait.resolve({ rows: [intake(B)], next: null } as any));
+  expect(action('Noviji razgovori')).toBeDefined();
+  mockListOpenIntakes.mockRejectedValueOnce(new Error('offline'));
+  await act(async () => action('Noviji razgovori').onPress());
+  expect(text()).toContain('Razgovori nisu učitani. Pokušaj ponovo');
+  await act(async () => row('Razgovor o zadatku').onPress());
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByType('Sheet' as any).props.onClose());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: B } });
+});
+it.each(['blur', 'account', 'background'])('retires a selected conversation and its delayed sheet close on %s', async kind => {
+  mockListOpenIntakes.mockResolvedValue({ rows: [intake(A), intake(B)], next: null }); await render();
+  await act(async () => row('Nastavi razgovor o zadatku').onPress());
+  await act(async () => row('Razgovor o zadatku').onPress());
+  const close = tree.root.findByType('Sheet' as any).props.onClose;
+  await act(async () => {
+    if (kind === 'blur') mockFocused = false;
+    if (kind === 'account') mockSession = { user: { id: B }, accountRevision: 2 };
+    if (kind === 'background') { mockAppState = 'background'; for (const listener of mockAppStateListeners) listener('background'); }
+    tree.update(<Pocetna />);
+  });
+  await act(async () => close()); expect(mockRouter.navigate).not.toHaveBeenCalled();
+});
+it('rejects callbacks retained from a closed sheet and from a previous page', async () => {
+  mockListOpenIntakes.mockResolvedValue({ rows: [intake(A), intake(B)], next: intake(B) }); await render();
+  await act(async () => row('Nastavi razgovor o zadatku').onPress());
+  const oldRow = row('Razgovor o zadatku'), oldMore = action('Stariji razgovori');
+  const oldClose = tree.root.findByType('Sheet' as any).props.onClose;
+  await act(async () => oldClose());
+  await act(async () => row('Nastavi razgovor o zadatku').onPress());
+  await act(async () => { oldRow.onPress(); oldMore.onPress(); oldClose(); });
+  expect(mockListOpenIntakes).toHaveBeenCalledTimes(1); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  const previousPageMore = action('Stariji razgovori'), previousRow = row('Razgovor o zadatku');
+  mockListOpenIntakes.mockResolvedValue({ rows: [intake(B)], next: null });
+  await act(async () => previousPageMore.onPress());
+  await act(async () => { previousPageMore.onPress(); previousRow.onPress(); });
+  expect(mockListOpenIntakes).toHaveBeenCalledTimes(2);
+  await act(async () => row('Razgovor o zadatku').onPress());
+  await act(async () => tree.root.findByType('Sheet' as any).props.onClose());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: B } });
+});
+it('keeps the current resume row usable immediately on refocus while rejecting the old callback', async () => {
+  mockListOpenIntakes.mockResolvedValue({ rows: [intake()], next: null }); await render();
+  const previous = row('Nastavi razgovor o zadatku');
+  await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
+  const wait = deferred<{ rows: never[]; next: null }>(); mockListOpenIntakes.mockReturnValueOnce(wait.promise);
+  await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
+  await act(async () => previous.onPress()); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  await act(async () => row('Nastavi razgovor o zadatku').onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: A } });
+  await act(async () => wait.resolve({ rows: [], next: null }));
+});
 
 it('offers both things a person can start before any read has answered, and they go where they say', async () => {
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
