@@ -1,4 +1,9 @@
 import React from 'react';
+// Catch an unisolated reader before it can create a live client under CI's public app configuration.
+const mockUnexpectedClient = jest.fn(() => { throw new Error('UNMOCKED_SCREEN_TRANSPORT'); });
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => mockUnexpectedClient() }));
+// Optional work-area/calendar reads have their own useTaskFit suite; here the task has no extra fit hint.
+jest.mock('../../ui/v2/detail/useTaskFit', () => ({ useTaskFit: () => undefined }));
 // The public Task now shows the requester's photograph in the card that opens their profile, so
 // this suite renders `publicPhoto` on every pass instead of only when the profile sheet is open.
 jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', ProfilePhoto: 'ProfilePhoto' }));
@@ -85,7 +90,10 @@ beforeEach(() => {
   mockId = 'task-a'; mockAccountId = 'account-a'; mockEpoch = 1; mockAccountRevision = 1; mockIntent = 'uskocer'; mockFocused = true;
   mockRouter.canGoBack.mockReturnValue(true);
 });
-afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = undefined; jest.useRealTimers(); });
+afterEach(async () => {
+  await act(async () => { tree?.unmount(); }); tree = undefined; jest.useRealTimers();
+  expect(mockUnexpectedClient).not.toHaveBeenCalled();
+});
 
 describe('W04 actual screen and focused read lifecycle', () => {
   it('shows recoverable read failure without transport details and serializes retry taps', async () => {

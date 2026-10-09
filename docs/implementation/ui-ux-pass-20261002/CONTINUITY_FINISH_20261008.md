@@ -831,3 +831,13 @@ DOKAZAO:39 CI +12 dashboard PASS bezskip;194 Jest PASS/9 postojeći shell-depend
 NIJE DOKAZANO: nova udaljena CI/CodeQL provera, native APK, store; GitHub settings ostaje browser saved-site-denial. Java/Kotlin autobuild stvarno pada jer ne nalazi build komandu. Nema settings workaround-a, server/push/data/sertifikat promene ili tvrdnje o objavi Claude artefakta. NO-GO i PAUSED ostaju.
 
 SLEDEĆE: commit/push obe grane i tačni remote rezultati; CodeQL manual Expo/Gradle i GitHub zaštite kad browser dozvola proradi. Zatim objedinjeni Android paket. Ispravka prethodnog kursora: sistemska lokacija je već vraćena OFF posle 068 QA; novo privremeno uključivanje traži isti ograničeni režim i vraćanje nakon provere.
+
+## 09.10 — GitHub objava i stvarni CI povratak
+
+URADIO: 1a18e816 i 5ed01f6e objavljeni na obe kanonske grane; naknadni bot c2dc1a8a sačuvan. OTA full run otkrio je neizolovane pomoćne čitače u tri testa ekrana. Dodati lokalni boundary mockovi i zero-client-call assertion posle cleanup-a; aplikacija/server nisu menjani ovim nastavkom.
+
+DOKAZAO: PRE-P4 obe grane i R20 na5ed PASS. CodeQL PASS samoJS/TS/Python/Actions; nemaJava/Kotlin joba. OTA originalno602suite/13575PASS i3suite/3FAIL, ne prepisivati kao prolaz. Novi guard RED52FAIL/62PASS; popravka GREEN6suite/150PASS bezskip, uključujući odvojene reader testove, sa sintetičkom javnom konfiguracijom. Nezavisan pregled nema nalaza. Detalji u postojećem github-hardening-20261009/REPORT.md.
+
+NIJE DOKAZANO: nova puna udaljena regresija, završetak APK37994636884 (pri proveri IN_PROGRESS), native CodeQL, settings/uređaj/store. Computer Use inventar prepoznaje Chrome; saved-site-denial zaGitHub nije zaobiđen. NO-GO i automatizacijaPAUSED ostaju.
+
+SLEDEĆE: objava test korekcije i puna regresija, zatim postojeći Android paket i jedini registar. GitHub podešavanja nastaviti kad vlasnik ukloni sačuvanu zabranu sajta.

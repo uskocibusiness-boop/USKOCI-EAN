@@ -1,6 +1,12 @@
 import React from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
+// A screen test must not create a live client, even when CI supplies the app's public configuration.
+const mockUnexpectedClient = jest.fn(() => { throw new Error('UNMOCKED_SCREEN_TRANSPORT'); });
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => mockUnexpectedClient() }));
+// This suite checks where the face appears and which props it receives; own-photo-views tests its reader/cache.
+jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
+
 let mockAccountId = 'account-a';
 let mockEmail: string | undefined = 'ana@example.rs';
 let mockAccountRevision = 1;
@@ -73,7 +79,10 @@ beforeEach(() => {
   mockRouter.canGoBack.mockReturnValue(true);
   mockSignOut.mockResolvedValue(undefined);
 });
-afterEach(async () => { await act(async () => { tree?.unmount(); }); });
+afterEach(async () => {
+  await act(async () => { tree?.unmount(); });
+  expect(mockUnexpectedClient).not.toHaveBeenCalled();
+});
 
 describe('real profile hub', () => {
   // Owner decision 1 (2026-09-19): one hub for one account. `mockIntent` stays in these tables as the

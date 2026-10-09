@@ -1,4 +1,9 @@
 import React from 'react';
+// Catch an unisolated reader before it can create a live client under CI's public app configuration.
+const mockUnexpectedClient = jest.fn(() => { throw new Error('UNMOCKED_SCREEN_TRANSPORT'); });
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => mockUnexpectedClient() }));
+// Optional work-area/calendar reads have their own useTaskFit suite; this suite checks the poster route.
+jest.mock('../../ui/v2/detail/useTaskFit', () => ({ useTaskFit: () => undefined }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ NeedPhotos: 'NeedPhotos', ProfilePhoto: 'ProfilePhoto' }));
 // The safety entry is the hook's own business (PKG-047); here it is a value the test moves, to see what the route shows.
 let mockSafety: { onPress: () => void; busy: boolean; error: string | null } | undefined;
@@ -67,7 +72,10 @@ beforeEach(() => {
   mockRelations.mockReset().mockImplementation(async (ids: readonly string[]) => taskRelationIndex([], ids));
   mockProfile.mockReset().mockResolvedValue(null);
 });
-afterEach(async () => { await act(async () => { tree?.unmount(); }); tree = undefined; });
+afterEach(async () => {
+  await act(async () => { tree?.unmount(); }); tree = undefined;
+  expect(mockUnexpectedClient).not.toHaveBeenCalled();
+});
 
 describe('the poster without a photo', () => {
   it('stands in with the one Avatar and the poster\'s letters on the row; the profile sheet keeps its own portrait', async () => {

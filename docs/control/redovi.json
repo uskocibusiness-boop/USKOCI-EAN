@@ -10200,7 +10200,7 @@
       "ciFullPass": 13571
     },
     "github_hardening_20261009": {
-      "state": "LOCAL_SOURCE_TESTED_REMOTE_GATES_PENDING",
+      "state": "PUSHED_CORE_CI_PASS_OTA_TEST_ISOLATION_FIXED_RECHECK_PENDING",
       "base": "a0dea3ac83a20ad8735058ddc29634e4cdcc5217",
       "report": "docs/implementation/evidence/github-hardening-20261009/REPORT.md",
       "scope": "Both canonical CI branches; five existing filesystem UI ratchets; escaped dashboard snapshots and fixed status whitelist; explicit dashboard CI outcome; PR template.",
@@ -10224,7 +10224,22 @@
       "device": "NOT_TESTED_BY_THIS_PACKAGE",
       "store": "NO-GO",
       "automation": "PAUSED",
-      "next": "Exact pushed CI/CodeQL result, browser settings grant and native CodeQL build wiring, then existing Android consolidated package."
+      "publishedSource": "5ed01f6eac7702689478e45d71f3589903679f71",
+      "remoteChecks": {
+        "preP4BothBranches": "PASS: 37994637261, 37994636596",
+        "r20": "PASS: 37994636857",
+        "codeql": "PASS: 37994636698; JavaScript/TypeScript, Python, Actions ONLY; no Java/Kotlin job in this run",
+        "ota": "FAIL: 37994636833; 602 suites/13575 tests PASS, 3 suites/3 tests FAIL; unisolated photo and work-area readers initialize native storage in CI",
+        "apk": "37994636884 IN_PROGRESS at readback; not downloaded/installed by this follow-up"
+      },
+      "screenIsolation": {
+        "scope": "Three screen test files only; isolate separately tested ProfilePhoto/useTaskFit readers, assert no live Supabase client entry after cleanup; no runtime/config changes",
+        "red": "Guard detects 52 unintended client-call failures; 62 existing cases PASS",
+        "green": "150 PASS, 0 FAIL, 0 SKIP in 6 suites, including reader/photo suites; public env present with unreachable synthetic URL and dummy key",
+        "review": "Independent read-only review: existing behavior assertions and cleanup preserved",
+        "remoteRetest": "PENDING"
+      },
+      "next": "Push test-isolation correction and check full CI regression; browser saved-site denial must be removed before settings; restore native CodeQL coverage through a reviewed build configuration; finish existing consolidated Android package."
     }
   }
 }

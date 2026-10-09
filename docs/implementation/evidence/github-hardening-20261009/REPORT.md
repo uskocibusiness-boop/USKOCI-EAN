@@ -42,3 +42,20 @@ Ovaj lokalni prolaz nije novi GitHub CI/CodeQL rezultat, produkcioni build ili n
 ## SLEDEĆE
 
 Proveriti CI na objavljenom commit-u, dovršiti GitHub zaštite i Java/Kotlin konfiguraciju kada se ukloni browser zabrana; zatim objedinjeni Android header/camera/permission paket i preostali konačni release koraci iz postojećeg registra. Automatizacija na 30 minuta ostaje PAUSED.
+
+## Stvarni CI rezultat i izolacija testova — nastavak 09.10.
+
+Obe kanonske grane primile su `5ed01f6eac7702689478e45d71f3589903679f71`. Naknadni tracker commit `c2dc1a8a` sačuvan je fast-forward-om pre ovog nastavka.
+
+- PRE-P4 `37994637261` i `37994636596`: SUCCESS; R20 `37994636857`: SUCCESS.
+- CodeQL `37994636698`: SUCCESS za JavaScript/TypeScript, Python i Actions. U ovom run-u NEMA Java/Kotlin joba: ovaj zeleni rezultat ne zatvara prethodno neproverenu native pokrivenost. Ovaj agent nije menjao GitHub settings.
+- OTA `37994636833`: FAIL, Full regression: 602 suites / 13.575 tests PASS, tri suites / tri tests FAIL. Stack povezuje `ProfilePhoto` sa `mediaClientService.readProfilePhoto`, a detalj zadatka sa `useTaskFit` i `workerLocationClientService.read`. Ovi direktni čitači nisu bili izolovani u tri testa ekrana; prisutna javna konfiguracija omogućila je pravi klijent i nedostajući native AsyncStorage u CI.
+- APK `37994636884` je pri ovoj proveri još IN_PROGRESS; nema tvrdnje o preuzetom ili instaliranom novom APK-u.
+
+URADIO: samo tri UI test fajla izdvajaju pomoćni čitač na postojećoj granici. Fotografija i task-fit imaju svoje zasebne testove. Svaki suite sada zabranjuje ulazak u pravi Supabase klijent i proverava broj poziva posle cleanup-a, čak i kada čitač uhvati grešku. Postojeće behavior assertions ostaju; nema globalnog isključivanja real-source moda, lažnog zelenog AsyncStorage mocka ili promene aplikacije/servera.
+
+DOKAZAO: pre izolacije novi guard daje 52 FAIL / 62 PASS; posle izolacije šest suite-ova ima 150 PASS, 0 FAIL, 0 SKIP. Uključeni su `own-photo-views`, `profile-photo-presentation` i `useTaskFit`; javne env vrednosti su prisutne, URL namerno lokalni nedostupan, ključ sintetički. Nezavisan read-only review nema nalaza. Sirovi test JSON/logovi su lokalni van javnog repozitorijuma.
+
+NIJE DOKAZANO: puna udaljena regresija korigovanih testova, native CodeQL pokrivenost, GitHub settings, novi uređaj/store prolaz. Computer Use inventar sada vidi pokrenuti Chrome; to nije uklanjanje sačuvane zabrane github.com niti dokaz izmene njegovih podešavanja.
+
+SLEDEĆE: objaviti korekciju na obe grane, ponoviti punu regresiju i zabeležiti stvaran rezultat. Postojeći NO-GO ostaje.
