@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T03:26:12Z",
+  "osvezeno": "2026-10-09T03:27:13Z",
   "grana": "integration/spoj-20261006",
-  "head": "40565dbc",
-  "head_poruka": "merge: retain generated control evidence after diagnostic package",
+  "head": "4038dd02",
+  "head_poruka": "Prepare inert long group history for native reading checks",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
