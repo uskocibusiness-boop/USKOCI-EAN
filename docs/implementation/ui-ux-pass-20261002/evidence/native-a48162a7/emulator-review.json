@@ -1,0 +1,125 @@
+{
+  "source": "a48162a7232d486f239beddd04f1d23c50f72b4b",
+  "run": 37877246449,
+  "apkSha256": "a04d6bea8ca016e5ea2559c3f4a3c6f15b94287bea59a00ca774f63fdb09e46a",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "device": "Emulator1264x2728,density560",
+  "installation": "adb install -r;actualbaseSHAverified;UID10227/firstInstallpreserved;existingaccountHomeauthenticated",
+  "checks": {
+    "home": "PASS bounded visual title/action hierarchy atfont1.15",
+    "role": "PASS actualtouchrevealUskačem,2tasks→1,HistoryattentionlinkreturnsActivepreservingrole1.15",
+    "group": "FAIL initiallatest at1.30:finalbodybelowviewport;manualdragreveals it",
+    "ime": "FloatingGboardshown;fullresizeIME NOTPROVEN"
+  },
+  "nativeLimits": [
+    "Inertgroup,nottransport/authorization/ACKproof",
+    "40messagefixture and newpublisherfooterareafterthissource",
+    "Phoneartifactcompiledverifiedbutnotinstalledinthisround"
+  ],
+  "states": [
+    {
+      "name": "home",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-home.png",
+          "sha256": "5ae281b8ef97ab4a7ec2c91194ba001816e800ab50f85c94125f960b19ce91a5"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-home.xml",
+          "sha256": "cc6e85a9ee162e630c6920b0ca0f5ee4d82abc12590c4795c190c9479ff82863"
+        }
+      }
+    },
+    {
+      "name": "agreements",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-agreements.png",
+          "sha256": "872ae49e41f29b5bc5d9a59556447ce218feda0bde94681f7f29f938c72167a7"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-agreements.xml",
+          "sha256": "7322adcfd327974b21cf3ce014d7567212b111a31c582b39e1079b1580a8a661"
+        }
+      }
+    },
+    {
+      "name": "role-worker",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-role-worker.png",
+          "sha256": "858136cb782030b57f796158e79f91282bda62186c10c1e2feca2adc5d6dc474"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-role-worker.xml",
+          "sha256": "1c6bbbca54eceae610fa886ca007f22ff68c9f6049c33abb8c76b49f011b6f23"
+        }
+      }
+    },
+    {
+      "name": "history",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-history.png",
+          "sha256": "2cc3bd8d6d8054c32ed9333bfbf15cbef1afd39500c82fd3ee78a351753c3d28"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-history.xml",
+          "sha256": "2c6e71d6be778ffcc7e53110c70dbadfa42de070783b8fe7131c5a1b2922e482"
+        }
+      }
+    },
+    {
+      "name": "return-active",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-return-active.png",
+          "sha256": "85134695080293a674c6c2e79cb1c65e95a4929ea2df10c162eb077c469a6958"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-return-active.xml",
+          "sha256": "a53a156e0f1f79d35107367024590dce70e77d13803fad6e32c6ed1c46116446"
+        }
+      }
+    },
+    {
+      "name": "group-settled",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-group-settled.png",
+          "sha256": "b5a679ab2276a9febb7710493326b6c31f33e2ecfee74b0c5ef8e7bd96d18c61"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-group-settled.xml",
+          "sha256": "f37c61543bc4a0038da69410c9318c7576cf00fa09ffbeede9f0b7c809e06f88"
+        }
+      }
+    },
+    {
+      "name": "group-scroll-bottom",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-group-scroll-bottom.png",
+          "sha256": "e813f0cc5fcb237a3ab41d8ced136c67fe955a563de8e7801b5f0bb483b0b982"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-group-scroll-bottom.xml",
+          "sha256": "2495071b6f0a8953a5a0a12ed2b7d2578f3c4108366c40ab0ed80290eaff72fe"
+        }
+      }
+    },
+    {
+      "name": "group-ime-settled",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-group-ime-settled.png",
+          "sha256": "631b42e8d1b9aaecd0aec75d309443c3c2e5c1a68cffc35af675550d0fb50bb2"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-a48162a7-group-ime-settled.xml",
+          "sha256": "f949db55896d255aab38b0d3337c7ac60e03c611d15b4e6462d0d7aa5510743d"
+        }
+      }
+    }
+  ]
+}

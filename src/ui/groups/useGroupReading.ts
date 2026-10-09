@@ -41,15 +41,21 @@ export function useGroupReading(input: Input) {
   const invalidateVisibility = () => { cancelAck(); visibilityEpoch.current++; setEpoch(visibilityEpoch.current); };
   const mayFollow = () => alive.current && foreground() && now.current.ready && !blocked.current
     && following.current && !dragging.current && geometry.current.height > 0 && geometry.current.content > 0;
+  // FlatList.scrollToEnd uses an estimated last-cell frame, which may still be
+  // short after contentSize fires (native large-font reproduction). The actual
+  // measured content includes list header/footer/padding; the composer is outside.
+  const measuredEnd = () => list.current?.scrollToOffset({
+    offset: Math.max(0, geometry.current.content - geometry.current.height), animated: false,
+  });
   const follow = () => {
     cancel();
     if (!mayFollow()) return;
-    list.current?.scrollToEnd({ animated: false });
+    measuredEnd();
     const ticket = serial.current;
     frame.current = requestAnimationFrame(() => {
       if (ticket !== serial.current) return;
       frame.current = null;
-      if (mayFollow()) list.current?.scrollToEnd({ animated: false });
+      if (mayFollow()) measuredEnd();
     });
   };
   useEffect(() => {

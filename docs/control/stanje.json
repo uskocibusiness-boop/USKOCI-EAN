@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T03:37:02Z",
+  "osvezeno": "2026-10-09T03:48:56Z",
   "grana": "integration/spoj-20261006",
-  "head": "511b1e34",
-  "head_poruka": "Preserve plan-cache timeout evidence and repair isolated trace admission",
+  "head": "53756d9d",
+  "head_poruka": "merge: reconcile generated plan diagnostic status",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2439,7 +2439,7 @@
    "receipt": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/emulator-receipt.json"
   },
   "group_reading_20261009": {
-   "state": "SOURCE_TESTS_PASS / NATIVE_PENDING",
+   "state": "SOURCE_REVISION_AFTER_NATIVE_FAIL / DEVICE_RECHECK_PENDING",
    "finding": "Emulator ea456 chronological group list starts at oldest messages; opening people in the header would conflict with following the bottom.",
    "implementation": "Scoped account/group/list generation. Initial/latest only after native geometry, cancellable RAF, manual history suspends follow, explicit latest action, native prepend preservation. Roster/management in existing ProductSheet; list stays mounted. Private picker also masks follow/read. Authoritative replacement warns if reading anchor lost; no stale message merge or fabricated restore. Accessibility scroll actions suspend following.",
    "readAck": "Native60% threshold with minimumViewTime0; owned cancellable600ms dwell bound to page/epoch/geometry/mount/foreground/READY. Sheet close starts new dwell only over unchanged observed geometry. Native FlatList forwards old callbacks to newest props, so epoch-only/native600 design was rejected before commit.",
@@ -2450,7 +2450,11 @@
    "emulatorBuildRun": 37877246449,
    "phoneBuildRun": 37877245997,
    "fullRegression": "37877246409 SUCCESS:603suites13391tests;native still pending",
-   "nextNativeFixture": "Existing design additions gallery extended with40inertmessages,last20thenprepend20,realparticipantsopen/close and requesterprivatepicker. No controller/network/realmessageaction.4fixturetestsPASS;nextexactAPK needed; not in a481."
+   "nextNativeFixture": "Existing design additions gallery extended with40inertmessages,last20thenprepend20,realparticipantsopen/close and requesterprivatepicker. No controller/network/realmessageaction.4fixturetestsPASS;nextexactAPK needed; not in a481.",
+   "nativeFinding": "a481font1.30initiallatestshort392px:ownavatar/namevisible,finalbodybelowcomposer. Manualdragrevealsbody. SourceFlatListscrollToEndestimatedlastcellcanbelate.",
+   "revision": "Follow uses nativecontentheight minus viewportheight,clamp0,immediateandfreshRAF;preservesmanualhistory,prepend,cover,scope,ACK.Noimaginednativeoffset.",
+   "revisionChecks": "76 targeted tests PASS; TypeScript PASS; independent read-only review: no blocker.",
+   "nativeEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-a48162a7/emulator-review.json"
   },
   "native_512c740e_20261009": {
    "state": "BOUNDED_PHONE_AND_EMULATOR_PASS / NOT_RELEASE",
@@ -2471,7 +2475,7 @@
    "finding": "Role chips wrap to two rows and block list; source refinement next. Long surname retained but midword wrap remains."
   },
   "compact_agreement_home_20261009": {
-   "state": "SOURCE_CHECKS_PASS / NATIVE_PENDING",
+   "state": "BOUNDED_EMULATOR_PASS / PHONE_PENDING",
    "basis": "Phone512 live+emulator512 fixture role chips two rows; active number conflates tasks needing attention with total active agreements; Home numeric applications dominated task identity.",
    "implementation": "Measured horizontal role rail, unchanged text/touch, reveals selected via native geometry and observed offset; resize/font remeasure. Waiting task count beside actual filtered group heading, history direct return preserves role and resets confirmation. Home lead task before action/count with same destination and full accessible reason.",
    "checks": "149 distinct targeted tests PASS (100Home45Collection4rail) +89 token/glyph guard tests PASS; TypeScript PASS. Initial expected order/selector assertions revised to new hierarchy; final passes recorded. Independent review fixed native clamp/content width risk and a11y order.",
@@ -2480,7 +2484,10 @@
    "apkSource": "a48162a7232d486f239beddd04f1d23c50f72b4b",
    "emulatorBuildRun": 37877246449,
    "phoneBuildRun": 37877245997,
-   "fullRegression": "37877246409 SUCCESS:603suites13391tests;native still pending"
+   "fullRegression": "37877246409 SUCCESS:603suites13391tests;native still pending",
+   "nativeEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-a48162a7/emulator-review.json",
+   "native": "Actuala481font1.15Home/roleworkerreveal/count/historyreturnPASS.NoTalkBackorphoneclaim.",
+   "refinement": "Independentvisualreview:reduceheader/controlverticalspace andtimezoneprominence inlatercoherentcomposition;notclippingblocker."
   },
   "client_regression_a48162a7_20261009": {
    "run": 37877246409,
@@ -2550,7 +2557,20 @@
     "traces": "42501beforeenvironment/sample;0nativeplans",
     "postflight": "identity+certificate+closurePASS;teardown0"
    },
-   "correction": "Remove redundant privilegedLOAD; preloadedGUCguard + localsettings only; allowlistedsetupstages.17Node+6PythonPASS,5exactSQLsessions/22PLpgSQLparsed;read-onlyreviewnoblocker."
+   "correction": "Remove redundant privilegedLOAD; preloadedGUCguard + localsettings only; allowlistedsetupstages.17Node+6PythonPASS,5exactSQLsessions/22PLpgSQLparsed;read-onlyreviewnoblocker.",
+   "retry": {
+    "run": 37880156922,
+    "source": "53756d9db265767e7b44d7fd1668b5351616c0b5",
+    "state": "NOT_STARTED_GITHUB_BILLING",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-plan-cache-37880156922/not-started-receipt.json",
+    "scope": "No steps/artifacts/DB startup/teardown. Correctedtraceunverified. LocalWSL/Docker/psqlabsent;notreplacedbyclientbenchmark."
+   }
+  },
+  "local_native_build_20261009": {
+   "state": "DEPENDENCIES_COPIED / SOURCE_CHECKS_PASS / BUILD_PENDING",
+   "why": "GitHubjobNOT_STARTEDbilling;existinga481APKsverified. LocalExpoTemplatecertmatchesfac617;sourceexportandprivatecopydependencies,nochangestocanonicalconfig/signing. NoDocker/WSLstartup.",
+   "output": "C:/Users/user/Documents/Codex/ub1",
+   "limits": "Buildnotyetproved;copy/TSCpending. Samepackage/signaturemustbeverifiedbeforeinstall-r. NoCI/native/serverclaimfromsource."
   }
  },
  "redovi": [

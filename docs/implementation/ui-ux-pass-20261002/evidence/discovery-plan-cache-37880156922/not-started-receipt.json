@@ -1,0 +1,14 @@
+{
+  "state": "NOT_STARTED",
+  "sourceSha": "53756d9db265767e7b44d7fd1668b5351616c0b5",
+  "runId": "37880156922",
+  "checkId": "113657764877",
+  "steps": 0,
+  "artifacts": 0,
+  "databaseStartedByRun": false,
+  "teardownExecuted": false,
+  "reason": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+  "sourceUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37880156922/job/113657764877",
+  "annotationsUrl": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/check-runs/113657764877/annotations",
+  "scope": "Actual GitHub job metadata. No runtime measurement or native plan evidence."
+}

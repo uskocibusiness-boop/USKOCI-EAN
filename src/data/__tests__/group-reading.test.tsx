@@ -40,44 +40,44 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => tree?.unmount()); tree = undefined;
-  expect(mockListeners.size).toBe(0); expect(frames.size).toBe(0);
+  expect(mockListeners.size).toBe(0); expect(frames.size).toBe(0); expect(end).not.toHaveBeenCalled();
   global.requestAnimationFrame = originalRequest; global.cancelAnimationFrame = originalCancel;
   jest.useRealTimers();
 });
 
 it('opens at the latest only after both native measurements, without animation or read ACK', async () => {
-  await render(); expect(end).not.toHaveBeenCalled();
-  await act(async () => reading.onContentSizeChange(360, 2000)); expect(end).not.toHaveBeenCalled();
+  await render(); expect(offset).not.toHaveBeenCalled();
+  await act(async () => reading.onContentSizeChange(360, 2000)); expect(offset).not.toHaveBeenCalled();
   await act(async () => reading.onLayout(500)); await flush();
-  expect(end).toHaveBeenCalledTimes(2); expect(end).toHaveBeenLastCalledWith({ animated: false });
+  expect(offset).toHaveBeenCalledTimes(2); expect(offset).toHaveBeenLastCalledWith({ offset: 1500, animated: false });
   expect(input.onVisible).not.toHaveBeenCalled();
 });
 it('cancels a queued settle when a finger starts reading, including an already retained RAF callback', async () => {
-  await render(); await layout(); const queued = [...frames.values()][0]; end.mockClear();
+  await render(); await layout(); const queued = [...frames.values()][0]; offset.mockClear();
   await act(async () => { reading.onScrollBeginDrag(); reading.onScroll(scroll(400)); queued(0); });
-  expect(end).not.toHaveBeenCalled(); expect(reading.showLatest).toBe(true);
+  expect(offset).not.toHaveBeenCalled(); expect(reading.showLatest).toBe(true);
 });
 it('follows content and keyboard resizing at the bottom, but neither while reading history', async () => {
-  await render(); await layout(); await flush(); end.mockClear();
-  await act(async () => reading.onLayout(300)); expect(end).toHaveBeenCalled(); await flush(); end.mockClear();
+  await render(); await layout(); await flush(); offset.mockClear();
+  await act(async () => reading.onLayout(300)); expect(offset).toHaveBeenLastCalledWith({ offset: 1700, animated: false }); await flush(); offset.mockClear();
   await act(async () => { reading.onScrollBeginDrag(); reading.onScrollEndDrag(scroll(300)); });
   await render({ messages: [...input.messages, message('3')] });
   await act(async () => { reading.onContentSizeChange(360, 2300); reading.onLayout(500); }); await flush();
-  expect(end).not.toHaveBeenCalled(); expect(reading.showLatest).toBe(true);
+  expect(offset).not.toHaveBeenCalled(); expect(reading.showLatest).toBe(true);
 });
 it('an older-page prepend retains reading mode and the explicit latest action resumes following', async () => {
-  await render(); await layout(); await flush(); end.mockClear();
+  await render(); await layout(); await flush(); offset.mockClear();
   await act(async () => reading.readOlder());
   await render({ ready: false }); await render({ ready: true, messages: [message('0'), ...input.messages] });
-  await act(async () => reading.onContentSizeChange(360, 2300)); expect(end).not.toHaveBeenCalled();
+  await act(async () => reading.onContentSizeChange(360, 2300)); expect(offset).not.toHaveBeenCalled();
   expect(reading.readingLost).toBe(false);
-  await act(async () => reading.chooseLatest()); expect(end).toHaveBeenCalled(); expect(reading.showLatest).toBe(false);
+  await act(async () => reading.chooseLatest()); expect(offset).toHaveBeenCalled(); expect(reading.showLatest).toBe(false);
 });
 it('opening and closing a sheet keeps history in place without a blind offset restore', async () => {
   await render(); await layout(); await flush();
-  await act(async () => { reading.onScrollBeginDrag(); reading.onScrollEndDrag(scroll(400)); }); end.mockClear();
+  await act(async () => { reading.onScrollBeginDrag(); reading.onScrollEndDrag(scroll(400)); }); offset.mockClear();
   await act(async () => reading.cover()); await render({ covered: true }); await render({ covered: false });
-  expect(end).not.toHaveBeenCalled(); expect(offset).not.toHaveBeenCalled(); expect(reading.showLatest).toBe(true);
+  expect(offset).not.toHaveBeenCalled(); expect(reading.showLatest).toBe(true);
 });
 it('rejects a pending native dwell callback after a quick sheet open/close; only a new observation may ACK', async () => {
   await render(); const stale = reading.onVisible;
@@ -110,10 +110,10 @@ it('changed geometry invalidates a hidden observation until native visibility is
   expect(input.onVisible).toHaveBeenCalledTimes(1);
 });
 it('accessible history scrolling suspends following without requiring a drag event', async () => {
-  await render(); await layout(); await flush(); end.mockClear();
+  await render(); await layout(); await flush(); offset.mockClear();
   await act(async () => reading.onAccessibilityAction('scrollBackward'));
   expect(offset).toHaveBeenCalledWith({ offset: 0, animated: false }); expect(reading.showLatest).toBe(true);
-  await act(async () => reading.onContentSizeChange(360, 2300)); expect(end).not.toHaveBeenCalled();
+  await act(async () => reading.onContentSizeChange(360, 2300)); expect(offset).toHaveBeenCalledTimes(1);
 });
 it('rejects an observation for the previous page even when the index is the same', async () => {
   await render(); const stale = reading.onVisible;
@@ -123,9 +123,9 @@ it('rejects an observation for the previous page even when the index is the same
 it('warns when a fresh authoritative page removes the reading anchor without forcing the latest', async () => {
   await render(); await layout(); await flush();
   await act(async () => { reading.onVisible(observation(input.messages[0])); reading.onScrollBeginDrag(); reading.onScrollEndDrag(scroll(200)); });
-  end.mockClear(); await render({ ready: false }); await render({ ready: true, messages: [message('9'), message('10')] });
-  expect(reading.readingLost).toBe(true); expect(reading.showLatest).toBe(true); expect(end).not.toHaveBeenCalled();
-  await act(async () => reading.chooseLatest()); expect(reading.readingLost).toBe(false); expect(end).toHaveBeenCalled();
+  offset.mockClear(); await render({ ready: false }); await render({ ready: true, messages: [message('9'), message('10')] });
+  expect(reading.readingLost).toBe(true); expect(reading.showLatest).toBe(true); expect(offset).not.toHaveBeenCalled();
+  await act(async () => reading.chooseLatest()); expect(reading.readingLost).toBe(false); expect(offset).toHaveBeenCalled();
 });
 it('does not call an append, prepend or retained anchor a lost position', async () => {
   await render(); await act(async () => { reading.readOlder(); reading.onVisible(observation(input.messages[1])); });
@@ -138,7 +138,7 @@ it('does not invent a lost-position warning for an access/error purge or initial
 });
 it('explains an authoritative empty replacement when the prior reading position is gone', async () => {
   await render(); await act(async () => reading.readOlder()); await render({ messages: [] });
-  expect(reading.readingLost).toBe(true); expect(end).not.toHaveBeenCalled();
+  expect(reading.readingLost).toBe(true); expect(offset).not.toHaveBeenCalled();
 });
 it('conservatively waits for native visibility again after scrolling with an unchanged visible-index set', async () => {
   await render(); await act(async () => { reading.onVisible(observation(input.messages[0])); reading.onScroll(scroll(10)); jest.advanceTimersByTime(600); });
@@ -151,12 +151,24 @@ it('does not send a read receipt from a non-ready state or a pending dwell durin
 });
 it('a new account/group generation cannot be moved or acknowledged by old callbacks', async () => {
   await render(); await layout(); const old = reading, queued = [...frames.values()][0];
-  scope++; await render(); end.mockClear();
+  scope++; await render(); offset.mockClear();
   await act(async () => { queued(0); old.onVisible(observation(message('1'))); old.chooseLatest(); });
-  expect(end).not.toHaveBeenCalled(); expect(input.onVisible).not.toHaveBeenCalled();
+  expect(offset).not.toHaveBeenCalled(); expect(input.onVisible).not.toHaveBeenCalled();
 });
 it('background cancels queued scroll and pending visibility, even before route cleanup', async () => {
-  await render(); await layout(); const queued = [...frames.values()][0], old = reading.onVisible; end.mockClear();
+  await render(); await layout(); const queued = [...frames.values()][0], old = reading.onVisible; offset.mockClear();
   await act(async () => { mockForeground = 'background'; mockListeners.forEach(fn => fn('background')); queued(0); old(observation(message('1'))); });
-  expect(end).not.toHaveBeenCalled(); expect(input.onVisible).not.toHaveBeenCalled();
+  expect(offset).not.toHaveBeenCalled(); expect(input.onVisible).not.toHaveBeenCalled();
+});
+
+it('uses the latest measured content after late cell growth and clamps short content without inventing a native offset', async () => {
+  await render(); await layout(); const stale = [...frames.values()][0]; offset.mockClear();
+  await act(async () => reading.onContentSizeChange(360, 2500));
+  await act(async () => stale(0)); await flush();
+  expect(offset).toHaveBeenCalledTimes(2);
+  expect(offset.mock.calls.every(([target]) => target.offset === 2000 && target.animated === false)).toBe(true);
+  offset.mockClear();
+  await act(async () => reading.onContentSizeChange(360, 250)); await flush();
+  expect(offset).toHaveBeenLastCalledWith({ offset: 0, animated: false });
+  expect(input.onVisible).not.toHaveBeenCalled();
 });
