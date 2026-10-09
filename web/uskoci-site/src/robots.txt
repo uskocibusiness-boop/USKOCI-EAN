@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+# Release preview. Change to Allow: / only after legal + production sign-off.
