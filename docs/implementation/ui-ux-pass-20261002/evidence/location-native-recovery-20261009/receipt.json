@@ -1,0 +1,71 @@
+{
+  "state": "SOURCE_PASS_NATIVE_FIX_PENDING",
+  "recordedAt": "2026-10-09T11:40:19.228214+00:00",
+  "nativeSource": "1d78eb5887171ae2288eca46d992abe3ae831e55",
+  "apkSha256": "cf17fd7fc39e15ed208d938c8d47cc40d803a2276cdd41bab72b017d3291a0a2",
+  "installation": "adb install -r; SHA/UID/firstInstall retained",
+  "nativeFindings": [
+    "Original URL, raw JSON and USKOCI transformed JSON all show geometry without labels under emulator SwiftShader; does not isolate exact shader cause or reproduce on phone.",
+    "Direct search query lost characters under batched native typing; char-by-char slow input retained them. Source renderEpoch retired subsequent native text callbacks.",
+    "Multiple real geocoder suggestions had no visible choice until correction required an existing pin; draft never published or falsely confirmed.",
+    "Compact sources in expanded map show all3links; hardware Back1 closes only sources, Back2 closes expanded map and returns to conversation. No selected pin in this check; TalkBack not proved."
+  ],
+  "fixes": [
+    "Text edit epoch survives native text batches but retires across blur/disable/selection/search/confirm/lease; existing command guards retained.",
+    "Ambiguous places immediately expose3paginated real choices before map, Latin display; choosing remains draft-only before separate pin confirmation."
+  ],
+  "tests": {
+    "suites": 2,
+    "passed": 134,
+    "privateReportSha256": "250ea94439634d40d74acdc0d943f545b67a6bf6964000c285f31539beef0853",
+    "typecheck": "PASS",
+    "diffCheck": "PASS"
+  },
+  "upstreamHypothesis": [
+    "https://github.com/maplibre/maplibre-native/issues/3648",
+    "https://github.com/maplibre/maplibre-native/pull/4625"
+  ],
+  "limits": [
+    "New exact APK required for text/choice recovery native proof.",
+    "No task publication, positive second-account matching or OPPORTUNITY push proof yet.",
+    "No DEV/Edge/push mutation by this package; phone APK remains previous delivered f64; store gates remain open."
+  ],
+  "privateCaptures": [
+    {
+      "name": "emu-1d78eb58-labels-url-settled.png",
+      "sha256": "c7bb4741233f9e9412405ab0864456e4c8d30bc0593c990cd1abaa02ca6ee188"
+    },
+    {
+      "name": "emu-1d78eb58-labels-json-settled.png",
+      "sha256": "8942edbf4079d495c781f6c151dbe805a62dac0abb5c57ea6d486a8f6ab3174b"
+    },
+    {
+      "name": "emu-1d78eb58-labels-uskoci-settled.png",
+      "sha256": "f7c8025d3394fd64bbc42e55e8cfbacf42de16e6dae8e27aee54891cb8298013"
+    },
+    {
+      "name": "emu-1d78eb58-task-search-short-draft.png",
+      "sha256": "8fa4d8f0fe15d957be5f4b1cce8de8be3fdb6f2e85e61e0f73dff41b95757c6b"
+    },
+    {
+      "name": "emu-1d78eb58-task-search-slow-draft.png",
+      "sha256": "9a5591d45caa12c97f60c4df95e56ba981d3fa2d973f78a638192661f575875c"
+    },
+    {
+      "name": "emu-1d78eb58-task-search-candidates.png",
+      "sha256": "d21435dd81cc0dd790b98dd8d7c23b6a7249ea117bdd028ba281b04543623ae7"
+    },
+    {
+      "name": "emu-1d78eb58-task-nested-sources.png",
+      "sha256": "1f73d919a71625cd8eee7670bffd90920573a6f1a86776bafc602fbfcec33c3e"
+    },
+    {
+      "name": "emu-1d78eb58-task-sources-back-one.png",
+      "sha256": "c8b1bfa25fb5c3cf4f704a9d9cbd74897b27510fe4fb7c397681a75f75d5d3d9"
+    },
+    {
+      "name": "emu-1d78eb58-task-sources-back-two.png",
+      "sha256": "9e21803de7b3fbd3ca10ecd137fb8f0e996606a237023dc5ec089ec7dd2f782e"
+    }
+  ]
+}

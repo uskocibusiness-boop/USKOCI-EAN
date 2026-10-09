@@ -19,32 +19,32 @@ System notifications are OS-owned surfaces. The app icon can carry the USKOČI g
 
 ## Matrix
 
-| event_type | Push title | Push body A1 | Safe A2 metadata | In-app art/accent | Destination |
-| --- | --- | --- | --- | --- | --- |
-| OPPORTUNITY_AVAILABLE | Novi zadatak za tebe | Pojavila se nova prilika koja može da ti odgovara. | public title; rounded distance/locality; fixed price **or** “Traže se ponude”; remote | task / orange | Opportunity |
-| RESPONSE_RECEIVED | Nova prijava | Stigla je nova prijava na tvoj zadatak. | offered price only if contract allows | offer / green | Candidates |
-| RESPONSE_UPDATED | Prijava je izmenjena | Jedna prijava na tvoj zadatak je ažurirana. | approved offer summary | offer / green | Candidates |
-| RESPONSE_VIEWED | Prijava je pregledana | Tvoja prijava je pregledana. | none | offer / green | My application |
-| RESPONSE_SHORTLISTED | U užem si izboru | Tvoja prijava je izdvojena za dalji izbor. | none | offer / green | My application |
-| RESPONSE_SELECTED | Tvoja prijava je izabrana | Otvori Dogovor. | accepted price/time summary when server-certified | agreement / green | Agreement |
-| RESPONSE_NOT_SELECTED | Prijava je završena | Za ovaj zadatak je izabrana druga osoba. | none | offer / neutral | My application |
-| RESPONSE_STALE | Proveri prijavu | Zadatak je promenjen nakon tvoje prijave. | none | offer / orange | My application |
-| RESPONSE_WITHDRAWN | Prijava je povučena | Jedna prijava više nije aktivna. | none | offer / neutral | Candidates / application |
-| RESPONSE_EXPIRED | Prijava je istekla | Ova prijava više nije aktivna. | none | offer / neutral | My application |
-| NEED_REVISED | Zadatak je izmenjen | Promenjeni su podaci zadatka koji pratiš. | public safe summary later | task / orange | Need |
-| NEED_CANCELLED | Zadatak je otkazan | Zadatak više nije aktivan. | none | task / neutral | Related application/list |
-| AGREEMENT_VERSION_CHANGED | Dogovor je ažuriran | Promenjeni su uslovi Dogovora. | certified price/time summary | agreement / green | Agreement |
-| AGREEMENT_CHANGE_PROPOSED | Predložena je izmena Dogovora | Proveri predložene uslove. | certified price/time delta later | agreement / orange | Agreement changes |
-| AGREEMENT_CHANGE_REJECTED | Izmena nije prihvaćena | Predlog izmene Dogovora nije prihvaćen. | none | agreement / neutral | Agreement |
-| AGREEMENT_CANCELLED | Dogovor je otkazan | Otvori Dogovor da vidiš trenutno stanje. | none | agreement / neutral | Agreement |
-| EXECUTION_STATE_CHANGED | Status Dogovora je promenjen | Otvori Dogovor da vidiš sledeći korak. | certified next-action label later | check / green | Agreement |
-| COMPLETION_REQUIRED | Potvrdi završetak | Zadatak je označen kao gotov. | confirmation deadline | check / orange | Agreement |
-| MESSAGE_RECEIVED | Nova poruka u Dogovoru | Imaš novu poruku. | **never message text** | chat / green | Agreement → Messages |
-| PRIVATE_ACCESS_GRANTED | Podaci Dogovora su dostupni | Otvori Dogovor da vidiš podatke kojima sada imaš pristup. | never private data itself | lock / green | Agreement |
-| RECOVERY_OPENED | Prijavljen je problem u Dogovoru | Otvori Dogovor da vidiš prijavljeni problem. | none | shield / neutral | Agreement problem |
-| REVIEW_RECEIVED | Stigla ti je nova ocena | Pogledaj novu ocenu saradnje. | rating only if product policy explicitly allows it | star / warm | Reputation/review |
-| CLARIFICATION_CREATED | Novo pitanje za zadatak | Stiglo je novo pitanje. | public task label later | chat / orange | Task Q&A |
-| CLARIFICATION_ANSWERED | Stigao je odgovor | Na pitanje za zadatak je odgovoreno. | public task label later | chat / green | Task Q&A |
+| event_type | Push title | Push body A1 | Safe A2 metadata | In-app art/accent | Destination | Emitter evidence | PUSH row | Bounded admission | Physical phone |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| OPPORTUNITY_AVAILABLE | Novi zadatak za tebe | Pojavila se nova prilika koja može da ti odgovara. | public title; rounded distance/locality; fixed price **or** “Traže se ponude”; remote | task / orange | Opportunity | Captured emitter | Policy-gated | No | Not proved |
+| RESPONSE_RECEIVED | Nova prijava | Stigla je nova prijava na tvoj zadatak. | offered price only if contract allows | offer / green | Candidates | Captured emitter | Policy-gated | No | Not proved |
+| RESPONSE_UPDATED | Prijava je izmenjena | Jedna prijava na tvoj zadatak je ažurirana. | approved offer summary | offer / green | Candidates | Captured emitter | Policy-gated | No | Not proved |
+| RESPONSE_VIEWED | Prijava je pregledana | Tvoja prijava je pregledana. | none | offer / green | My application | Captured emitter | Policy-gated | No | Not proved |
+| RESPONSE_SHORTLISTED | U užem si izboru | Tvoja prijava je izdvojena za dalji izbor. | none | offer / green | My application | Not found in captured functions | Not proved | No | Not proved |
+| RESPONSE_SELECTED | Tvoja prijava je izabrana | Otvori Dogovor. | accepted price/time summary when server-certified | agreement / green | Agreement | Captured emitter | Policy-gated | No | Not proved |
+| RESPONSE_NOT_SELECTED | Prijava je završena | Za ovaj zadatak je izabrana druga osoba. | none | offer / neutral | My application | Not found in captured functions | Not proved | No | Not proved |
+| RESPONSE_STALE | Proveri prijavu | Zadatak je promenjen nakon tvoje prijave. | none | offer / orange | My application | Not found in captured functions | Not proved | No | Not proved |
+| RESPONSE_WITHDRAWN | Prijava je povučena | Jedna prijava više nije aktivna. | none | offer / neutral | Candidates / application | Captured emitter | Policy-gated | No | Not proved |
+| RESPONSE_EXPIRED | Prijava je istekla | Ova prijava više nije aktivna. | none | offer / neutral | My application | Not found in captured functions | Not proved | No | Not proved |
+| NEED_REVISED | Zadatak je izmenjen | Promenjeni su podaci zadatka koji pratiš. | public safe summary later | task / orange | Need | Captured emitter | Policy-gated | No | Not proved |
+| NEED_CANCELLED | Zadatak je otkazan | Zadatak više nije aktivan. | none | task / neutral | Related application/list | Captured emitter | Policy-gated | No | Not proved |
+| AGREEMENT_VERSION_CHANGED | Dogovor je ažuriran | Promenjeni su uslovi Dogovora. | certified price/time summary | agreement / green | Agreement | Captured emitter | Policy-gated | No | Not proved |
+| AGREEMENT_CHANGE_PROPOSED | Predložena je izmena Dogovora | Proveri predložene uslove. | certified price/time delta later | agreement / orange | Agreement changes | Captured emitter | Policy-gated | No | Not proved |
+| AGREEMENT_CHANGE_REJECTED | Izmena nije prihvaćena | Predlog izmene Dogovora nije prihvaćen. | none | agreement / neutral | Agreement | Captured emitter | Policy-gated | No | Not proved |
+| AGREEMENT_CANCELLED | Dogovor je otkazan | Otvori Dogovor da vidiš trenutno stanje. | none | agreement / neutral | Agreement | Captured emitter | Policy-gated | No | Not proved |
+| EXECUTION_STATE_CHANGED | Status Dogovora je promenjen | Otvori Dogovor da vidiš sledeći korak. | certified next-action label later | check / green | Agreement | Captured emitter | Policy-gated | No | Not proved |
+| COMPLETION_REQUIRED | Potvrdi završetak | Zadatak je označen kao gotov. | confirmation deadline | check / orange | Agreement | Captured emitter | Policy-gated | No | Not proved |
+| MESSAGE_RECEIVED | Nova poruka u Dogovoru | Imaš novu poruku. | **never message text** | chat / green | Agreement → Messages | Captured private-message emitters | Policy-gated | MESSAGE only | One delivery + tap confirmed by owner |
+| PRIVATE_ACCESS_GRANTED | Podaci Dogovora su dostupni | Otvori Dogovor da vidiš podatke kojima sada imaš pristup. | never private data itself | lock / green | Agreement | Not found in captured functions | Not proved | No | Not proved |
+| RECOVERY_OPENED | Prijavljen je problem u Dogovoru | Otvori Dogovor da vidiš prijavljeni problem. | none | shield / neutral | Agreement problem | Captured emitter | Policy-gated | No | Not proved |
+| REVIEW_RECEIVED | Stigla ti je nova ocena | Pogledaj novu ocenu saradnje. | rating only if product policy explicitly allows it | star / warm | Reputation/review | Captured emitter | Policy-gated | No | Not proved |
+| CLARIFICATION_CREATED | Novo pitanje za zadatak | Stiglo je novo pitanje. | public task label later | chat / orange | Task Q&A | Captured emitter | Policy-gated | No | Not proved |
+| CLARIFICATION_ANSWERED | Stigao je odgovor | Na pitanje za zadatak je odgovoreno. | public task label later | chat / green | Task Q&A | Captured emitter | Policy-gated | No | Not proved |
 
 ## Opportunity A2 examples
 
@@ -97,3 +97,13 @@ A1 formatter should be a strict allowlist keyed by `event_type`. Unknown event t
 - body: **Imaš novo obaveštenje. Otvori aplikaciju.**
 
 A2 must consume a typed, server-curated facts object. It must never parse arbitrary `payload` keys ad hoc in the Edge worker.
+
+## Observed delivery coverage — 2026-10-09
+
+Read-only inventory of the captured canonical schema and applied single-target package:19 event types have actual emitters through `private.emit_event`; five contract rows above have no emitter found in that snapshot. A policy-gated PUSH row may be CREATED or SUPPRESSED; neither proves delivery. The applied bounded transport accepts only MESSAGE_RECEIVED. Global and target sending flags remain OFF after the one completed proof.
+
+Private MESSAGE_RECEIVED covers text/photo/voice emitters in source. The owner's physical confirmation covers one text message and opening its intended chat, not every subtype. `rpc_send_group_message_v5` writes group messages/visibility but has no emit_event in the captured definition; group push remains an explicit gap.
+
+OPPORTUNITY_AVAILABLE has the natural matching emitter, but requires a new bounded admission/begin/CHECK package with current need revision, unexpired READY opportunity, active eligible profile, open search/time and unfilled slots. Recheck immediately before SEND. Existing generic INBOX payload is available; direct task navigation and actual new-task phone delivery remain unproved. Existing MESSAGE journals must survive any extension/rollback.
+
+Sources: `supabase/migrations/20260829210536_clean_emit_event_engine.sql`, `supabase/migrations/20260912090000_clean_pre_v3_event_semantics.sql`, `supabase/migrations/20260913002405_clean_v5_group_conversation.sql`, `supabase/candidates/match-v1b-remote-waves-20261007/candidate.sql`, `supabase/proofs/push_single_target/promotion/candidate.sql`, `supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json`; private captured schema retained separately. This is source/snapshot evidence, not a new live delivery test.

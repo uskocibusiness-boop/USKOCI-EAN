@@ -1,0 +1,104 @@
+{
+  "state": "LOCAL_WINDOW_FACETS_PASS_CERT_COMPUTATION_UNAVAILABLE",
+  "startedAt": "2026-10-09T11:14:30.460550+00:00",
+  "target": "127.0.0.1:55439/uskoci_plan_cache_20261009",
+  "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+  "change": "Only final facet join replaced by WindowAgg and DISTINCT ON, uncommitted transaction then ROLLBACK.",
+  "limits": [
+    "One authenticated SQL reader and40000synthetic tasks, not HTTP or production capacity.",
+    "Only PLACES shape tested here; other modes require their own semantic/cost checks.",
+    "Original function body, ACL, RLS and stored certificate rows are not changed persistently.",
+    "Computed certificate/readiness preflight failed before any mutation: isolated storage.buckets lacks public column. Only stored certificate rows compared; no computed certificate acceptance."
+  ],
+  "oracle": {
+    "elapsedMs": 18860.976599971764,
+    "everywhere": 40007,
+    "sha256": "657fe391a74175fde9fd321f86ce2643597636f6cfcc79b6a3c53388cc5a3b99"
+  },
+  "candidateBodyMd5": "fb5d37e4119517013240c894b8695db1",
+  "modes": {
+    "force_generic_plan": {
+      "environment": {
+        "jit": "on",
+        "mode": "force_generic_plan",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 15400.406899978407,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 1,
+        "completedSamples": 1,
+        "activeSample": null,
+        "completed": [
+          {
+            "index": 0,
+            "elapsedMs": 15050
+          }
+        ]
+      },
+      "sessionStable": true,
+      "completedResponseComparisons": 1,
+      "failure": null,
+      "sqlstate": null,
+      "status": 0,
+      "processCode": null
+    },
+    "auto": {
+      "environment": {
+        "jit": "on",
+        "mode": "auto",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 73671.61820002366,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 6,
+        "completedSamples": 6,
+        "activeSample": null,
+        "completed": [
+          {
+            "index": 0,
+            "elapsedMs": 14593.2
+          },
+          {
+            "index": 1,
+            "elapsedMs": 9823.6
+          },
+          {
+            "index": 2,
+            "elapsedMs": 10191.2
+          },
+          {
+            "index": 3,
+            "elapsedMs": 12309.6
+          },
+          {
+            "index": 4,
+            "elapsedMs": 12442.9
+          },
+          {
+            "index": 5,
+            "elapsedMs": 14038.2
+          }
+        ]
+      },
+      "sessionStable": true,
+      "completedResponseComparisons": 6,
+      "failure": null,
+      "sqlstate": null,
+      "status": 0,
+      "processCode": null
+    }
+  },
+  "duringMetadataAndStoredCertificatesVerified": true,
+  "freshConnectionExactRestoration": true,
+  "elapsedMs": 109443.1083999807
+}

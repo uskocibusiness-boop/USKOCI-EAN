@@ -63,6 +63,42 @@ async function update(overrides: Partial<Props> = {}) {
 beforeEach(() => { mockFocused = true; mockGalleryPackage = 'rs.uskoci.dev'; mockGalleryParams = {}; jest.clearAllMocks(); });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
+it.each(['pronađi mesto', 'privatna adresa (opciono)', 'privatne napomene za pristup (opciono)'])(
+  'keeps the last native text event in a burst for %s without admitting a stale confirmation', async suffix => {
+    await render({ resolver: configured(), initialQuery: 'Place' }); await press('Pronađi na mapi');
+    await press(`Izaberi predlog: ${candidate.label}`);
+    const confirm = button('Potvrdi tačku: Početak').props.onPress;
+    const edit = field(suffix).props.onChangeText;
+    await act(async () => { edit('Trg'); edit('Trg republike'); edit('Trg republike, Beograd'); confirm(); });
+    expect(field(suffix).props.value).toBe('Trg republike, Beograd');
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(map().props.position).toEqual(suffix === 'pronađi mesto' ? null : candidate.position);
+  });
+
+it.each(['blur', 'disabled', 'selection', 'search', 'confirmation'] as const)(
+  'does not revive a retained text callback after %s', async boundary => {
+    await render({ resolver: configured(), initialQuery: 'Place' }); await press('Pronađi na mapi');
+    const edit = field('pronađi mesto').props.onChangeText;
+    if (boundary === 'blur') { mockFocused = false; await update(); mockFocused = true; await update(); }
+    else if (boundary === 'disabled') { await update({ disabled: true }); await update({ disabled: false }); }
+    else if (boundary === 'search') await press('Pronađi na mapi');
+    else { await press(`Izaberi predlog: ${candidate.label}`); if (boundary === 'confirmation') await press('Potvrdi tačku: Početak'); }
+    const value = field('pronađi mesto').props.value, position = map().props.position;
+    await act(async () => edit('A retired native event'));
+    expect(field('pronađi mesto').props.value).toBe(value); expect(map().props.position).toEqual(position);
+  });
+
+it('retires text events synchronously when a reply lease is acquired then cancelled before commit', async () => {
+  const onPromptReady = jest.fn();
+  await render({ resolver: configured({ status: 'UNAVAILABLE' }), initialQuery: 'Place', presentation: 'conversation', autoLocate: true, onPromptReady });
+  await press('Pronađi drugo mesto');
+  const edit = field('pronađi mesto').props.onChangeText;
+  const prompt = onPromptReady.mock.calls.at(-1)?.[0]; expect(prompt).toBeTruthy();
+  await act(async () => { const lease = prompt.acquire(); expect(lease).toBeTruthy(); lease.cancel(); edit('Stale lease edit'); });
+  expect(field('pronađi mesto').props.value).toBe('Place');
+  await change('pronađi mesto', 'New edit'); expect(field('pronađi mesto').props.value).toBe('New edit');
+});
+
 it('prefills a visible query without automatic lookup and honestly shows unavailable activation', async () => {
   await render({ initialQuery: 'Novi Sad' });
   expect(field('pronađi mesto').props.value).toBe('Novi Sad');
@@ -523,10 +559,10 @@ describe('compact conversation proposal', () => {
     expect(map().props.position).toBeNull();
     expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
-    expect(button('Izaberi predlog: ' + other.label)).toBeUndefined();
-    expect(button('Izaberi predlog: ' + candidate.label)).toBeUndefined();
+    expect(button('Izaberi predlog: ' + other.label)).toBeDefined();
+    expect(button('Izaberi predlog: ' + candidate.label)).toBeDefined();
     expect(button('Označi na mapi')).toBeUndefined();
-    expect(text()).toContain('Gde tačno je početak? Dopuni opis ili označi tačku na mapi.');
+    expect(text()).toContain('Pronađeno je više mesta. Izaberi ono koje tražiš, pa proveri tačku.');
     expect(props.onInvalidate).not.toHaveBeenCalled(); // Framing candidates is context, not a user edit.
     await press('Dopuni mesto u razgovoru'); expect(correct).toHaveBeenCalledTimes(1);
     expect(props.onConfirm).not.toHaveBeenCalled();
@@ -538,6 +574,36 @@ describe('compact conversation proposal', () => {
     await press('Potvrdi tačku: Početak');
     expect(props.onConfirm).toHaveBeenCalledWith({ slot: 'start', latitudeE6: 45000000, longitudeE6: 19000000, origin: { kind: 'MANUAL_PIN' } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers paged ambiguous places in Latin and confirms only the explicitly chosen proposal', async () => {
+    const places = Array.from({ length: 4 }, (_, index) => ({ ...candidate,
+      label: `Трг републике ${index + 1}, Београд`, position: { latitude: 44 + index / 10, longitude: 20 },
+      origin: { ...candidate.origin, candidateHint: `place-${index}` } }));
+    const resolver = configured({ ...proposals, candidates: places });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Trg republike, Beograd' });
+    expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(3);
+    const oldChoice = button('Izaberi predlog: Trg republike 1, Beograd').props.onPress;
+    expect(map().props.position).toBeNull(); expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Još predloga'); expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(1);
+    await act(async () => oldChoice()); expect(map().props.position).toBeNull();
+    await press('Izaberi predlog: Trg republike 4, Beograd');
+    expect(map().props.position).toEqual(places[3].position); expect(props.onConfirm).not.toHaveBeenCalled();
+    expect(text()).toContain('Da li je ovo početak?');
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ address: 'Trg republike 4, Beograd', origin: places[3].origin }));
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the last conversation address edit and retires it when correction is closed', async () => {
+    const point = { slot: 'start' as const, latitudeE6: 44123456, longitudeE6: 20654321, origin: candidate.origin, address: candidate.label };
+    await render({ point, resolver: configured(), presentation: 'conversation' }); await press('Nije tu'); await press('Zatvori');
+    const edit = field('adresa za ovaj pin (opciono)').props.onChangeText;
+    await act(async () => { edit('Trg'); edit('Trg republike, Beograd'); });
+    expect(field('adresa za ovaj pin (opciono)').props.value).toBe('Trg republike, Beograd');
+    await press('Završi izmenu'); await act(async () => edit('Retired correction'));
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ address: 'Trg republike, Beograd', latitudeE6: point.latitudeE6 }));
   });
 
   it.each([
@@ -725,8 +791,8 @@ describe('inert compact location gallery', () => {
       expect(map().props.position).toBeNull();
       expect(button('Potvrdi tačku: Mesto rada')).toBeUndefined();
       expect(button('Označi na mapi')).toBeUndefined();
-      expect(text()).toContain('Gde tačno je mesto rada? Dopuni opis ili označi tačku na mapi.');
-      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog'))).toHaveLength(0);
+      expect(text()).toContain('Pronađeno je više mesta. Izaberi ono koje tražiš, pa proveri tačku.');
+      expect(buttons().filter(node => named(node).startsWith('Izaberi predlog')).length).toBeGreaterThan(1);
       await act(async () => map().props.onChoose({ latitude: 45.25, longitude: 19.85 }));
       expect(map().props.position).toEqual({ latitude: 45.25, longitude: 19.85 });
     } else expect(map().props.position).toEqual({ latitude: 45.2546, longitude: 19.8507 });

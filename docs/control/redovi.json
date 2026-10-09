@@ -9459,6 +9459,31 @@
       "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/rollback-mitigation.json",
       "result": "Function-local force_custom_plan in rollback transaction:6/6samePLACES responses13.56–14.88s, metadata/storedcertificate restored. EstimatedgenericfacetsNestedLoop assumes1group; actualgroups38005 fromcustomtrace.",
       "limits": "Computed certificate unavailable in partial storage stub. No persistent or DEV change;14s is still slow. No concurrency/HTTP/40000users capacity proof."
+    },
+    "location_native_findings_20261009": {
+      "state": "SOURCE_PASS_NATIVE_FIX_PENDING",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/location-native-recovery-20261009/receipt.json",
+      "fixes": [
+        "Text edit epoch survives native text batches but retires across blur/disable/selection/search/confirm/lease; existing command guards retained.",
+        "Ambiguous places immediately expose3paginated real choices before map, Latin display; choosing remains draft-only before separate pin confirmation."
+      ],
+      "limits": [
+        "New exact APK required for text/choice recovery native proof.",
+        "No task publication, positive second-account matching or OPPORTUNITY push proof yet.",
+        "No DEV/Edge/push mutation by this package; phone APK remains previous delivered f64; store gates remain open."
+      ]
+    },
+    "discovery_window_local_20261009": {
+      "state": "LOCAL_WINDOW_FACETS_PASS_CERT_COMPUTATION_UNAVAILABLE",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/window-rollback.json",
+      "result": "Window facet shape: generic1 and auto6/6 full responses equivalent,9.82–15.05s. One timed inner query11.776s; trim190019calls4.558s self, area38005calls1.615s self, key76010calls1.454s self. Exact rollback.",
+      "limits": "One SQL reader,40000synthetic task rows,0HTTP. Too slow; not40Kactive-user capacity. No DEV application; computed certificate unavailable in partial local schema."
+    },
+    "push_event_inventory_20261009": {
+      "state": "SOURCE_CAPTURED_SCHEMA_ONLY",
+      "evidence": "docs/implementation/product-v1-closure-20260926/NOTIFICATION_MATRIX.md",
+      "result": "19captured emitters;5contract types without captured emitter; group chat emitter missing; MESSAGE-only bounded transport; one owner-confirmed phone MESSAGE delivery.",
+      "limits": "Other phone categories unproved; no global drain enabled."
     }
   }
 }
