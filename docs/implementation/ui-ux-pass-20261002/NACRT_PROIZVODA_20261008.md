@@ -1541,3 +1541,16 @@ Eksperiment deduplikacije lokacije u run37861199898 je dokazao124 kompletna JSON
 
 
 **Razgovori — nalaz i revidirana verzija:** emulator ea456 potvrđuje ime/inicijale za sačuvane privatne i grupne nizove. Lokalni niz poruka na slanju imao je propust; novi izvor daje isti identitet iz zadržane komande bez lažnog vremena ili potvrde. Potpis se ne ponavlja unutar istog niza i razdvaja se preko neučitane istorije. Grupni uvod postaje kratak pomoćni tekst; publiku i dalje jasno kaže birač kanala. Osvežavanje je mirna sekundarna radnja. Početno praćenje najnovije grupne poruke ostaje zaseban otvoren zahvat sa očuvanjem skrola i stvarnog readACK-a. Izmene tek čekaju svoj tačan native APK.
+
+
+## Dopuna — grupni razgovor: poslednja poruka i učesnici bez pomeranja istorije
+
+**URADIO:** početni prikaz prati dno tek kad postoji stvarno izmeren sadržaj/viewport. Dodir i čitanje istorije prekidaju praćenje; Starije poruke ne vraćaju dno, Najnovije ga izričito vraća. Keyboard/layout prati samo postojeći following režim. Lista ima nativni prepend anchor; scope je account/group/list generation. Učesnici i ovlašćeni pojedinačni Dogovori premešteni su u postojeći ProductSheet. Lista ostaje montirana; nema scroll-to-top ili slepog offset restore-a. Gubitak vidljivog anchor-a posle autoritativnog latest-page readback-a ima jasno objašnjenje, bez tihog spajanja starih podataka. Pristupačne akcije starije/novije imaju isti prekid praćenja.
+
+**KRITIKA / REVIZIJA:** prvi predlog epoch callback-a uz native600ms odbijen je: stvarni FlatList wrapper prosleđuje odloženi native callback najnovijem props callback-u. Revidirano: native threshold60%/timer0, aplikacioni600ms dwell vezan za page/epoch/geometriju/mount/foreground/READY. Otvaranje učesnika ili private picker-a poništava timer; zatvaranje nad nepromenjenom geometrijom kreće punih novih600ms. Nema mark-all ili ACK iz scrollToEnd.
+
+**DOKAZAO / SOURCE:**99 testova hook-a/grupnog ekrana/galerije/zajedničkog sheet-a PASS. Obuhvaćeni init, ručni skrol, backfill, latest, scope/background/staleRAF, overlay dwell, page replacement, empty page, accessibility i controller zaštite. Dva pada testnog mock-a otklonjena su (nedostajući RN Platform, potom eager native getter), nisu runtime greške. Završna TypeScript provera PASS.
+
+**NIJE DOKAZANO / SLEDEĆE:** novi skrol još nije u APK-u512c740e koji se gradi. Nativni prepend/IME/TalkBack ostaju otvoreni. Mali skrol koji zadrži isti native viewable index set može konzervativno odložiti ACK do nove opservacije; to nije garantovan ACK600ms posle zaustavljanja i ostaje cilj native dorade. Ne menjati controller da bi se zadržale stare neautorizovane poruke.
+
+Izvori: instalirani RN FlatList.js433–448 i ViewabilityHelper.js219–240; [React Native scroll anchoring](https://reactnative.dev/docs/scrollview#maintainvisiblecontentposition), [FlatList scrollToEnd](https://reactnative.dev/docs/flatlist#scrolltoend). Dokumentacija ne zamenjuje nativni dokaz.

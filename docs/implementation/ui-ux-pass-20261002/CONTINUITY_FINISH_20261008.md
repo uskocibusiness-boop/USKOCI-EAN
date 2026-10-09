@@ -327,3 +327,27 @@ Run 37869838906/source ea456e15 SUCCESS; stvarno pročitana attestacija, lokalni
 
 
 **Granica naredne scroll dorade:** read-only pregled kontrolera potvrđuje da refresh i readback posle slanja zamenjuju niz poslednjom stranicom, dok older prepend zadržava niz. Zato stari anchor može nestati iz novog autoritativnog čitanja; ne obećavati njegovo očuvanje i ne spajati tiho zastarele poruke. Native follow-latest mora imati scope/RAF zaštitu, prekinuti praćenje pri ručnom čitanju, poštovati panel učesnika i ostaviti ACK isključivo stvarnoj viewability proveri.
+
+
+## Dopuna — obe pune semantičke fixture završene, performanse još odbijene
+
+**DOKAZAO / ACTUAL:** area run37871070145/source d51cd1b0 je FAIL posle34m14s. Repeated62 zahteva/124 poređenja i unique63/126 potpuno završeni: ukupno250 poređenja punog JSON-a, bez maskiranja vremena, oba32 oblika i terminali14 PAGE/3 PLACES. NULL/key27/27 bez razlike. Repeated završio svih16 SQL/HTTP slučajeva za baseline/candidate/revert. Unique baseline završio10/16, kandidat i revert merenja nisu počeli. Relevantni chain23/23, teardown0. Originalni izveštaj i SHA receipt: `evidence/discovery-area-split-37871070145/`.
+
+**FAIL / NIJE DOKAZANO:** unique baseline placesDefault staje na SQL57014. Stari measure() drži1cold+5warm u jednom DO sa zajedničkim90s limitom; to NE dokazuje jedan RPC od90s. Parcijalna vremena/status nisu sačuvani. Finalni reader/certificate postflight nije dostignut. Repeated tekst SQL jeste57–64% brži, ali mapPlaceCity+37,8%, remote+35%, densemap+34,1% i defaultmap+32,2% sporiji; kandidat se ne promoviše. Medijane5 SQL/3HTTP nisu p95/p99 ili concurrent capacity.40.000 synthetic zadataka/dva Auth naloga nisu40.000 korisnika.
+
+**SLEDEĆE:** pre novog opravdanog runtime-a odvojiti svaki performance poziv u svoj DO u istoj psql sesiji; cold anchor preneti svim warm i HTTP pozivima. Sačuvati numeričke BEGIN/DONE markere i pun bounded failure pre assertion-a. Statement limit ostaje90s; procesni rok za šest uzoraka mora biti zasebno naveden, najviše570s. Exact trojke ostaju netaknute. Zatim rešavati measured non-text overhead i snimiti PLACES plan pre SQL prepravke. S3 ostaje zaseban kandidat.
+
+Objedinjeni UI build source512c740e: emulator37873738596 i phone37873738743 aktivni. Oni sadrže kartice/grupisani pregled/pending identity, ali ne naredni group-scroll paket.
+
+
+## Dopuna — grupni razgovor: poslednja poruka i učesnici bez pomeranja istorije
+
+**URADIO:** početni prikaz prati dno tek kad postoji stvarno izmeren sadržaj/viewport. Dodir i čitanje istorije prekidaju praćenje; Starije poruke ne vraćaju dno, Najnovije ga izričito vraća. Keyboard/layout prati samo postojeći following režim. Lista ima nativni prepend anchor; scope je account/group/list generation. Učesnici i ovlašćeni pojedinačni Dogovori premešteni su u postojeći ProductSheet. Lista ostaje montirana; nema scroll-to-top ili slepog offset restore-a. Gubitak vidljivog anchor-a posle autoritativnog latest-page readback-a ima jasno objašnjenje, bez tihog spajanja starih podataka. Pristupačne akcije starije/novije imaju isti prekid praćenja.
+
+**KRITIKA / REVIZIJA:** prvi predlog epoch callback-a uz native600ms odbijen je: stvarni FlatList wrapper prosleđuje odloženi native callback najnovijem props callback-u. Revidirano: native threshold60%/timer0, aplikacioni600ms dwell vezan za page/epoch/geometriju/mount/foreground/READY. Otvaranje učesnika ili private picker-a poništava timer; zatvaranje nad nepromenjenom geometrijom kreće punih novih600ms. Nema mark-all ili ACK iz scrollToEnd.
+
+**DOKAZAO / SOURCE:**99 testova hook-a/grupnog ekrana/galerije/zajedničkog sheet-a PASS. Obuhvaćeni init, ručni skrol, backfill, latest, scope/background/staleRAF, overlay dwell, page replacement, empty page, accessibility i controller zaštite. Dva pada testnog mock-a otklonjena su (nedostajući RN Platform, potom eager native getter), nisu runtime greške. Završna TypeScript provera PASS.
+
+**NIJE DOKAZANO / SLEDEĆE:** novi skrol još nije u APK-u512c740e koji se gradi. Nativni prepend/IME/TalkBack ostaju otvoreni. Mali skrol koji zadrži isti native viewable index set može konzervativno odložiti ACK do nove opservacije; to nije garantovan ACK600ms posle zaustavljanja i ostaje cilj native dorade. Ne menjati controller da bi se zadržale stare neautorizovane poruke.
+
+Izvori: instalirani RN FlatList.js433–448 i ViewabilityHelper.js219–240; [React Native scroll anchoring](https://reactnative.dev/docs/scrollview#maintainvisiblecontentposition), [FlatList scrollToEnd](https://reactnative.dev/docs/flatlist#scrolltoend). Dokumentacija ne zamenjuje nativni dokaz.

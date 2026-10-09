@@ -157,11 +157,16 @@ it('read-only and bilateral contexts offer no composer or fabricated group membe
  expect(text()).toContain('najmanje dve osobe');expect(tree!.root.findAllByProps({label:'Učesnici razgovora'})).toHaveLength(0);
 });
 it('marks only truly viewable rows and retains SafeArea/whole-screen keyboard avoidance with scalable input',async()=>{
+ jest.useFakeTimers();
+ try {
  await render();expect(mockService.markRead).not.toHaveBeenCalled();const list=tree!.root.findByType('List' as never).props;
- expect(list.viewabilityConfig).toEqual({viewAreaCoveragePercentThreshold:60,minimumViewTime:600});
+ expect(list.viewabilityConfig).toEqual({viewAreaCoveragePercentThreshold:60,minimumViewTime:0});
  await act(async()=>list.onViewableItemsChanged({viewableItems:[{item:message,isViewable:true},{item:{...message,messageId:ID},isViewable:false}]}));
+ expect(mockService.markRead).not.toHaveBeenCalled();
+ await act(async()=>jest.advanceTimersByTime(600));
  expect(mockService.markRead).toHaveBeenCalledWith(G,[M],{accountId:A,accountRevision:1});
  expect(tree!.root.findByType('KeyboardAvoidingView' as never).parent!.type).toBe('SafeAreaView');expect(tree!.root.findByType('TextInput' as never).props.multiline).toBe(true);
+ } finally { jest.useRealTimers(); }
 });
 it.each(['blur','account','ABA','background'])('fences retained send/read-marker callbacks and late responses after %s',async kind=>{
  await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=send('Pošalji poruku grupi').onPress,visible=tree!.root.findByType('List' as never).props.onViewableItemsChanged;

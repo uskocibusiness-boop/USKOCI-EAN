@@ -23,10 +23,11 @@ export function privateConversationChoices(context: GroupContext): { id: string;
   });
 }
 
-export function ConversationChannels({ context, selected, disabled = false, error = false, onGroup, onPrivate, onMore }: {
+export function ConversationChannels({ context, selected, disabled = false, error = false, onGroup, onPrivate, onMore, onPickerVisibilityChange }: {
   context: GroupContext; selected: 'group' | 'private'; disabled?: boolean;
   error?: boolean;
   onGroup: () => void; onPrivate: (id: string) => void; onMore?: () => void;
+  onPickerVisibilityChange?: (open: boolean) => void;
 }) {
   const [choosing, setChoosing] = useState(false), reduced = useReducedMotion();
   if (!context.group) return null;
@@ -34,7 +35,7 @@ export function ConversationChannels({ context, selected, disabled = false, erro
   const openPrivate = () => {
     if (disabled) return;
     if (choices.length === 1 && !context.group?.managementNextId) onPrivate(choices[0].id);
-    else setChoosing(true);
+    else { onPickerVisibilityChange?.(true); setChoosing(true); }
   };
   const actions: SheetAction[] = choices.map(choice => ({ key: choice.id, label: choice.name, icon: 'chat',
     subtitle: 'Privatna prepiska uz ovaj Dogovor.', disabled, reason: disabled ? 'Sačekaj da se razgovor osveži.' : undefined,
@@ -45,7 +46,7 @@ export function ConversationChannels({ context, selected, disabled = false, erro
       onChange={key => { if (!disabled) { if (key === 'group') onGroup(); else openPrivate(); } }} />
     {selected === 'private' && context.group.role === 'REQUESTER' && (choices.length > 1 || !!context.group.managementNextId)
       ? <V2Action label="Promeni privatni razgovor" kind="quiet" compact disabled={disabled} onPress={openPrivate} /> : null}
-    {choosing ? <ActionSheet title="Privatna poruka" actions={actions} onClose={() => setChoosing(false)} reduced={reduced} /> : null}
+    {choosing ? <ActionSheet title="Privatna poruka" actions={actions} onClose={() => { setChoosing(false); onPickerVisibilityChange?.(false); }} reduced={reduced} /> : null}
     {selected === 'group' ? <T variant="meta" tone="muted">Ove poruke vide svi učesnici zadatka.</T> : null}
     {error ? <View><T variant="meta" tone="muted" accessibilityLiveRegion="polite">Nisu učitani svi privatni razgovori.</T>
       {onMore ? <V2Action label="Pokušaj ponovo" kind="quiet" compact disabled={disabled} onPress={onMore} /> : null}</View> : null}

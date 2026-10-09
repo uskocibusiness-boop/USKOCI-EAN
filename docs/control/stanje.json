@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T02:15:06Z",
+  "osvezeno": "2026-10-09T02:30:41Z",
   "grana": "integration/spoj-20261006",
-  "head": "76027963",
-  "head_poruka": "fix(chat): retain sender identity while messages await confirmation",
+  "head": "512c740e",
+  "head_poruka": "merge: reconcile generated control views after chat batch",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2233,7 +2233,7 @@
    "latestEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-phone-6c755dff/receipt.json"
   },
   "discovery_area_experiment_20261009": {
-   "state": "ACTUAL_UNIQUE_BASELINE_AGGREGATE_SQL_TIMEOUT / BOUNDED_TRIPLES_SOURCE_TESTED",
+   "state": "BOTH_FULL_JSON_FIXTURES_PASS / ACTUAL_PERFORMANCE_FAIL / NOT_PROMOTABLE",
    "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
    "baselineReaderMd5": "a9b0985991f4ebfe4e95143e5cf57222",
    "candidateReaderMd5": "46d4baf9d6ce391710b9d428654763d4",
@@ -2245,7 +2245,7 @@
    "source": "e526ad5d9b9fc29b4b2f3c5c61ac8c6960da54c4",
    "failedEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-failed-37861199898/load-report.json",
    "result": "Repeated fixture:124 full JSON baseline/candidate/revert checks PASS,27 corpus,27 NULL/key cases,14PAGE+3PLACES terminal pages. First HTTP after exact failed before durable candidate install; error lost by typeof assertion. Unique fixture and performance comparison NOT reached.",
-   "next": "One justified isolated area run after split/review; no timeout extension, dropped request or candidate change; not DEV promotion.",
+   "next": "Split performance sampling into individual DO statements in one psql session with shared cold-response anchor; preserve bounded partial diagnostic. Keep90s statement limit, explicitly bound six-call process envelope. No candidate promotion or duplicate unchanged runtime.",
    "diagnosticRun": 37863338193,
    "diagnosticSource": "89bb5e85a88e7a5fc82cf687c442a4082b92fc40",
    "diagnosticEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-diagnostic-37863338193/load-report.json",
@@ -2267,7 +2267,10 @@
     "source": "d51cd1b013a6bb96ef9827a9d1a971c1bd9caa88",
     "state": "RUNNING",
     "scope": "Same candidate; fullJSON one-request/page triple with90s limit, repeated62/124 pinned; unique coverage actual result pending."
-   }
+   },
+   "nextSplitRunState": "FAILED_PRESERVED",
+   "nextSplitEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-split-37871070145/receipt.json",
+   "nextSplitResult": "Repeated62/124 + unique63/126:250 fullJSON comparisons, timestampMaskingfalse, complete32shapes each, PAGE14/PLACES3. Repeated16metrics perstage; unique baseline10/16. SQL57014 at six-call batch placesDefault; not one-RPC90s. Non-text candidate regressions32-38%; final postflightnotreached,teardown0."
   },
   "push_recapture235_20261009": {
    "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",
@@ -2419,7 +2422,20 @@
    "checks": "128 private-chat/thread/gallery cases +38 group-screen/gallery cases PASS; no double-count of prior batches. Independent identity diff review no blocker; exact final TypeScript PASS.",
    "limits": "No outbox/RPC/retry/readACK/auth changes; new layout not installed. Group follow-latest/anchor behavior remains separate open finding.",
    "next": "Finish exact source checks; canonical push and one combined emulator/phone build for grouped-list, card clarity, local identity and group helper. Native font1.15/1.3 and keyboard proof remain.",
-   "nextGroupScroll": "Separate native finding: chronological group FlatList has no initial/follow-latest policy. Controller refresh/send readback replaces loaded page, so preserve only still-authorized present anchors; no silent stale merge. Keep actual-viewability ACK, scope/RAF fences, manual Latest action and people-panel restore."
+   "nextGroupScroll": "Separate native finding: chronological group FlatList has no initial/follow-latest policy. Controller refresh/send readback replaces loaded page, so preserve only still-authorized present anchors; no silent stale merge. Keep actual-viewability ACK, scope/RAF fences, manual Latest action and people-panel restore.",
+   "buildSource": "512c740e8cade2cefa18383554cb11299f1e02df",
+   "emulatorRun": 37873738596,
+   "phoneRun": 37873738743,
+   "buildState": "IN_PROGRESS / NOT_INSTALLED"
+  },
+  "group_reading_20261009": {
+   "state": "SOURCE_TESTS_PASS / NATIVE_PENDING",
+   "finding": "Emulator ea456 chronological group list starts at oldest messages; opening people in the header would conflict with following the bottom.",
+   "implementation": "Scoped account/group/list generation. Initial/latest only after native geometry, cancellable RAF, manual history suspends follow, explicit latest action, native prepend preservation. Roster/management in existing ProductSheet; list stays mounted. Private picker also masks follow/read. Authoritative replacement warns if reading anchor lost; no stale message merge or fabricated restore. Accessibility scroll actions suspend following.",
+   "readAck": "Native60% threshold with minimumViewTime0; owned cancellable600ms dwell bound to page/epoch/geometry/mount/foreground/READY. Sheet close starts new dwell only over unchanged observed geometry. Native FlatList forwards old callbacks to newest props, so epoch-only/native600 design was rejected before commit.",
+   "checks": "99 tests in hook/group-screen/fixture/shared-sheet suites PASS; independent source review caught and resolved native-wrapper ACK race. Exact final TypeScript PASS.",
+   "limits": "No RPC/outbox/controller mutation; native scroll/prepend/sheet/IME/TalkBack not yet tested in exact APK. Conservative ACK can wait for fresh native viewability after a small scroll leaves the same indices visible; do not claim600ms after every scroll stop.",
+   "next": "Exact TypeScript, canonical push, consolidate next APK after current512c740e bundle. Verify long thread, older prepend, people/private sheet, latest, font1.15/1.3 and actual keyboard; address unchanged-index ACK delay with native evidence."
   }
  },
  "redovi": [
@@ -7449,7 +7465,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 5 serverskih funkcija",
-    "test": "8 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Stari status „nije provereno” je zastareo: posebni group controller/screen/service testovi sada prolaze. I dalje nema aktuelnog stvarnog multi-member native dokaza.",

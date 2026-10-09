@@ -19,6 +19,8 @@ import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
 import type { GroupState } from './GroupConversationController';
 import { ConversationChannels } from './ConversationChannels';
+import { ProductSheet } from '../product/ProductSheet';
+import { GROUP_READING_POSITION, useGroupReading } from './useGroupReading';
 
 type Group = NonNullable<NonNullable<GroupState['context']>['group']>;
 type Member = Group['members'][number];
@@ -50,10 +52,14 @@ export type GroupConversationPresentationProps = {
  * white with the card edge and the name at the start of their turn, mine on the right on pale green, the clock small,
  * and the floating pill to write in. A short thread sits on the composer, where a reply is written, and a state stands
  * in the middle; the header copy and the states keep the screens' 20 dp gutter while the bubbles stay on Poruke's 16.
- * The people of the group sit behind the bar's people button. Presentation only: the screen owns the controller, the
+ * The people of the group sit in a sheet behind the bar's people button; opening it preserves the thread's position. Presentation only: the screen owns the controller, the
  * journal, the read marking of truly visible rows and every fence.
  */
 export function GroupConversationPresentation(p: GroupConversationPresentationProps) {
+  const scope = `${p.listKey}:${p.state.context?.accountId ?? ''}:${p.state.context?.group?.groupId ?? ''}`;
+  return <ScopedGroupConversation key={scope} {...p} />;
+}
+function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   const { state } = p, group = state.context?.group ?? null, ready = state.phase === 'READY';
   const retry = state.phase === 'UNKNOWN' && state.canRetry;
   const olderUnavailable = state.phase === 'ERROR' && state.olderPageUnavailable && !!group && state.messages.length > 0;
@@ -62,7 +68,16 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   const centred = first || (state.phase === 'ERROR' && !olderUnavailable) || (ready && (!group || state.messages.length === 0));
   const me = state.context?.accountId;
   // The pull spinner answers a pull only; a read of its own does not raise it (the owner's "dot", 8 Oct 2026).
-  const pull = usePullRefresh(p.onRefresh, state.phase === 'LOADING' && state.messages.length > 0);
+  const [privatePicker, setPrivatePicker] = useState(false);
+  const reading = useGroupReading({ messages: state.messages, ready, covered: p.showPeople || privatePicker, onVisible: p.onVisible,
+    minimumViewTime: p.viewability.minimumViewTime });
+  const nativeViewability = useMemo(() => ({ ...p.viewability, minimumViewTime: 0 }), [p.viewability]);
+  // Refresh explicitly reads the latest page; older() alone retains the loaded history.
+  const refresh = () => { reading.chooseLatest(); p.onRefresh(); };
+  const older = () => { reading.readOlder(); p.onOlder(); };
+  const people = () => { reading.cover(); p.onTogglePeople(); };
+  const picker = (open: boolean) => { if (open) reading.cover(); setPrivatePicker(open); };
+  const pull = usePullRefresh(refresh, state.phase === 'LOADING' && state.messages.length > 0);
   // In a conversation the arrival IS the message. The history that was already there settles silently, "Starije poruke"
   // does not replay the thread, and only a message that has just landed moves.
   const appear = useAppear();
@@ -79,17 +94,8 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
   const thread = useMemo(() => buildThread(state.messages.map((message): ThreadMessage => ({ id: message.messageId, moja: message.mine,
     posiljalacAccountId: message.senderAccountId, posiljalacIme: name(message), telo: message.body, vremeTekst: '', procitano: null,
     createdAt: message.createdAt }))), [state.messages, group, today]); // eslint-disable-line react-hooks/exhaustive-deps
-  const header =<View style={[s.stack, s.gutter]}>
-    {first ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
-    {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
-      primary={{ label: 'Pokušaj ponovo', onPress: p.onRefresh }} /> : null}
-    {group ? <>
-      <T variant="note" tone="muted">{p.onPrivate
-        ? 'Cenu, lične uslove i probleme dogovori privatno.'
-        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovori privatno.'}</T>
-      {/* A finished conversation says so once, where the pill would be. */}
-      {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
-      {p.showPeople ? <View style={s.people}>
+  const peopleSheet = p.showPeople && group ? <ProductSheet title="Učesnici razgovora" closeLabel="Zatvori učesnike" onClose={p.onTogglePeople}>
+    {() => <View style={s.people}>
         {group.members.map(member => {
           const fallback = <Avatar initials={inicijali(member.displayName)} size={40} />;
           // The read lists the requester and every member, the reader included: their own row says so.
@@ -109,28 +115,47 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
           </View>)}
           {group.managementNextId ? <V2Action label="Još pojedinačnih Dogovora" kind="quiet" onPress={p.onManagementNext} /> : null}
         </View> : null}
-      </View> : null}
+      </View>}
+  </ProductSheet> : null;
+  const header =<View style={[s.stack, s.gutter]}>
+    {first ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
+    {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
+      primary={{ label: 'Pokušaj ponovo', onPress: refresh }} /> : null}
+    {group ? <>
+      <T variant="note" tone="muted">{p.onPrivate
+        ? 'Cenu, lične uslove i probleme dogovori privatno.'
+        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovori privatno.'}</T>
+      {/* A finished conversation says so once, where the pill would be. */}
+      {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
       body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
     {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
-    {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={p.onOlder} /> : null}
+    {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
       body={group.canSend ? 'Vidiš poruke od svog ulaska u grupu. Napiši prvu.' : 'Vidiš poruke od svog ulaska u grupu.'} /> : null}
     {/* New messages come on focus, after my own send or by pulling down, and a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}
-    {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={p.onRefresh} /> : null}
+    {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title={group?.title ?? 'Grupni razgovor'} subtitle={group ? 'Grupni razgovor' : undefined}
       backLabel={p.backLabel ?? 'Nazad na Dogovor'} onBack={p.onBack}
-      right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={p.onTogglePeople} /> : undefined} />
+      right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={people} /> : undefined} />
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {state.context?.group && p.onPrivate ? <View style={s.gutter}><ConversationChannels context={state.context} selected="group" disabled={!ready}
-        onGroup={() => undefined} onPrivate={p.onPrivate} onMore={p.onManagementNext} /></View> : null}
-      <FlatList key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
-        onViewableItemsChanged={p.onVisible} viewabilityConfig={p.viewability} refreshing={pull.refreshing} onRefresh={pull.onRefresh}
+        onGroup={() => undefined} onPrivate={p.onPrivate} onMore={p.onManagementNext} onPickerVisibilityChange={picker} /></View> : null}
+      <FlatList ref={reading.list} key={p.listKey} data={state.messages} keyExtractor={item => item.messageId} contentContainerStyle={[s.content, centred ? s.listCentred : s.listBottom]} keyboardShouldPersistTaps="handled"
+        onViewableItemsChanged={reading.onVisible} viewabilityConfig={nativeViewability}
+        maintainVisibleContentPosition={GROUP_READING_POSITION} scrollEventThrottle={32}
+        accessibilityActions={[{ name: 'scrollBackward', label: 'Starije poruke' }, { name: 'scrollForward', label: 'Novije poruke' }]}
+        onAccessibilityAction={event => {
+          if (event.nativeEvent.actionName === 'scrollBackward' || event.nativeEvent.actionName === 'scrollForward') reading.onAccessibilityAction(event.nativeEvent.actionName);
+        }}
+        onLayout={event => reading.onLayout(event.nativeEvent.layout.height)} onContentSizeChange={reading.onContentSizeChange}
+        onScroll={reading.onScroll} onScrollBeginDrag={reading.onScrollBeginDrag} onScrollEndDrag={reading.onScrollEndDrag}
+        onMomentumScrollBegin={reading.onMomentumScrollBegin} onMomentumScrollEnd={reading.onMomentumScrollEnd} refreshing={pull.refreshing} onRefresh={pull.onRefresh}
         ListHeaderComponent={header}
         renderItem={({ item, index }) => {
           const entry = thread[index];
@@ -161,9 +186,13 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         }}
         ListFooterComponent={<View style={[s.stack, s.gutter]}>
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekamo potvrdu slanja…</T> : null}
-          {state.phase === 'UNKNOWN' ? <V2Action label="Proveri da li je poruka stigla" style={brandAction} onPress={p.onRefresh} /> : null}
+          {state.phase === 'UNKNOWN' ? <V2Action label="Proveri da li je poruka stigla" style={brandAction} onPress={refresh} /> : null}
           {state.phase === 'CONFIRMED' ? <V2Action label="Nastavi razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
         </View>} />
+      {reading.showLatest ? <View style={[s.gutter, s.latest]}>
+        {reading.readingLost ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Razgovor je osvežen. Prethodno mesto nije u prikazanom delu.</T> : null}
+        <V2Action label="Najnovije poruke" kind="quiet" tone="neutral" compact onPress={reading.chooseLatest} />
+      </View> : null}
       {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upiši istu poruku' : 'Poruka grupi'}
         placeholder={retry ? 'Prvobitna poruka…' : 'Napiši poruku grupi…'} sendLabel={retry ? 'Ponovi slanje iste poruke' : 'Pošalji poruku grupi'}
         canSend={p.draftSendable} reason={length === 0 ? 'Upiši poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : null}
@@ -174,6 +203,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
         </>} />
         : group?.terminal ? <T variant="note" tone="muted" style={s.closed}>{GROUP_CLOSED_SENTENCE}</T> : null}
     </KeyboardAvoidingView>
+    {peopleSheet}
   </SafeAreaView>;
 }
 
@@ -188,6 +218,7 @@ const s = StyleSheet.create({
   gutter: { paddingHorizontal: sys.space.xs },
   centred: { alignSelf: 'center' },
   flex: { flex: 1 },
+  latest: { alignItems: 'center', paddingVertical: sys.space.xs },
   people: { gap: sys.space.md, paddingVertical: sys.space.sm },
   member: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
   parted: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine, paddingTop: sys.space.md },
