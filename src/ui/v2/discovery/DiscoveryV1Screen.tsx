@@ -33,6 +33,7 @@ export type DiscoveryV1ScreenProps = {
   isCurrent: () => boolean;
   onPersistView: (view: MarketplaceView) => void;
   onOpen: (item: MarketplaceItem, relation: TaskRelation) => void;
+  onBack?: () => void;
   onProfile: () => void;
   onNew: () => void;
   onNotifications: () => void;
@@ -286,6 +287,6 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
     trace={props.trace} onView={handleView} onRefresh={handleRefresh}
     onOpen={item => { if (live()) props.onOpen(item, discoveryV1OverlayRelation(state.overlay, item.id)); }}
-    onProfile={props.onProfile} onNew={props.onNew} onNotifications={props.onNotifications}
+    onBack={props.onBack} onProfile={props.onProfile} onNew={props.onNew} onNotifications={props.onNotifications}
     arriveAfterLoading={!warmStart} forMeAvailable={props.forMeAvailable} forMeRefused={forMeRefused} onWorkProfile={props.onWorkProfile} onDismissForMeRefused={() => setForMeRefused(false)} />;
 }

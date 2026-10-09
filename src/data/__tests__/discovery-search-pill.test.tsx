@@ -20,8 +20,8 @@ import { sys } from '../../ui/system/tokens';
  * 8 Oct 2026; the approved plan, U1): the pill is the SEARCH (a word and a place) and the button the FILTERS, which is why the magnifier never leads into the filters
  * and the button never into the search. Both stand at the top at every height of the list, and what hangs under them floats over the map without moving the list sheet's stops.
  */
-const search = jest.fn(), clear = jest.fn(), more = jest.fn(), layout = jest.fn(), settings = jest.fn(), filters = jest.fn();
-const props = () => ({ where: '„farbanje“ · Novi Sad', onSearch: search, onClearWhere: clear, onMore: more, onLayout: layout, filters: { count: 0, onPress: filters } });
+const search = jest.fn(), clear = jest.fn(), more = jest.fn(), back = jest.fn(), layout = jest.fn(), settings = jest.fn(), filters = jest.fn();
+const props = () => ({ where: '„farbanje“ · Novi Sad', onBack: back, onSearch: search, onClearWhere: clear, onMore: more, onLayout: layout, filters: { count: 0, onPress: filters } });
 let tree: ReactTestRenderer;
 const render = async (extra: Partial<React.ComponentProps<typeof DiscoverySearchBar>> = {}) => act(async () => {
   tree = create(<DiscoverySearchBar {...props()} {...extra} />);
@@ -31,12 +31,15 @@ const sized = (node: ReactTestInstance) => { let at: ReactTestInstance | null = 
 beforeEach(() => { jest.clearAllMocks(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-test('the pill says what is searched in ONE line, and the whole of it is spoken', async () => {
+test('the compact search icon opens search while its active context stays readable and spoken in full', async () => {
   await render();
   const summary = button('Pretraži zadatke');
   expect(summary.props.accessibilityValue.text).toBe(props().where);
   expect(summary.props.accessibilityHint).toBe(SEARCH_HINT);
-  const words = summary.findAllByType('T' as React.ElementType);
+  expect(summary.findAllByType('T' as React.ElementType)).toHaveLength(0);
+  const context = button('Aktivna pretraga');
+  expect(context.props.accessibilityValue.text).toBe(props().where);
+  const words = context.findAllByType('T' as React.ElementType);
   expect(words.map(text => text.props.numberOfLines)).toEqual([1]);
   expect(words.flatMap(text => text.children.filter(child => typeof child === 'string')).join('')).toBe(props().where);
   expect(words.every(text => text.props.allowFontScaling !== false && !text.props.adjustsFontSizeToFit)).toBe(true);
@@ -45,17 +48,24 @@ test('the pill says what is searched in ONE line, and the whole of it is spoken'
   expect(filters).not.toHaveBeenCalled(); // the pill never opens the filters
 });
 
-test('with nothing searched the pill is a place to start, quiet, and it claims nothing about which tasks the list holds', async () => {
+test('without an active search there is only a magnifier, no empty search field or extra context row', async () => {
   await render({ where: null, onClearWhere: undefined });
   const summary = button('Pretraži zadatke');
   expect(summary.props.accessibilityValue).toBeUndefined();
   const words = summary.findAllByType('T' as React.ElementType);
-  expect(words.map(text => text.children)).toEqual([[SEARCH_PLACEHOLDER]]);
+  expect(words).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
   // the two things a search is, the one thing the pill opens (the approved plan, U1)
   expect(SEARCH_PLACEHOLDER).toBe('Grad ili zadatak');
-  expect(words[0].props).toMatchObject({ variant: 'body', tone: 'muted' });
-  // the placeholder is not "Svi zadaci": the capsules and the count say which tasks the list is about
-  expect(words[0].children).not.toContain('Svi zadaci');
+  expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
+});
+
+test('Back is independent from clearing or opening search, including while a query is active', async () => {
+  await render();
+  await act(async () => button('Nazad').props.onPress());
+  expect(back).toHaveBeenCalledTimes(1);
+  expect(clear).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled(); expect(filters).not.toHaveBeenCalled();
+  expect(button('Aktivna pretraga').props.accessibilityValue.text).toBe(props().where);
 });
 
 test('the pill opens the search and says so: a word and a place, never the filters', async () => {

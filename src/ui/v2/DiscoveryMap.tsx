@@ -478,11 +478,11 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     resetSheetCamera();
     cancelArea(); intent.current = 0; openedCluster.current = null;
     const bounds = nearbyCameraBounds(target.center);
-    camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: reduced ? 0 : sys.motion.camera });
+    camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.nearbyFitBottom ?? props.fitBottom ?? 56), duration: reduced ? 0 : sys.motion.camera });
     intent.current = Date.now();
     openedCluster.current = { bounds, at: Date.now() };
     props.onNearbyConsumed?.(target.key);
-  }, [props.centerNearby, status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [props.centerNearby, status, frame, props.cameraLayoutReady, props.toolsBottom, props.nearbyFitBottom, props.fitBottom]); // eslint-disable-line react-hooks/exhaustive-deps
   // The map's furniture (UX plan section P; the owner's phone of 8 Oct 2026): the map's sources stand at the bottom left, in the one row
   // directly ABOVE the list sheet that "moja lokacija" (drawn by the screen) ends on the right, and the row moves with the sheet. A pin's
   // card that lies over the map's bottom lifts the row above the card; when the list is all the way up no map is left and the row fades.

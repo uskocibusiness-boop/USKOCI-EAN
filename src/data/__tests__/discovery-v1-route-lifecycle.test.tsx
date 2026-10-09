@@ -18,13 +18,13 @@ const AT = '2026-09-29T05:00:00.000000Z', EX = '2026-09-29T05:30:00.000000Z', A 
 let mockFocused = true, mockRevision = 1;
 let mockSource = { odnosiPremaZadacima: jest.fn(async (ids: readonly string[]) => taskRelationIndex([], ids)) };
 const mockOriginalSource = mockSource;
-const mockRouter = { navigate: jest.fn() };
+const mockRouter = { navigate: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => false) };
 const mockTransportCalls: DiscoveryV1OwnerRequest[] = [];
 let mockTransport: (request: DiscoveryV1OwnerRequest) => Promise<unknown>;
 
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('Unexpected transport'); } }));
 jest.mock('expo-router', () => ({
-  router: { navigate: (...args: unknown[]) => mockRouter.navigate(...args) },
+  router: { navigate: (...args: unknown[]) => mockRouter.navigate(...args), back: () => mockRouter.back(), canGoBack: () => mockRouter.canGoBack() },
   useLocalSearchParams: () => ({}),
   useFocusEffect: (callback: () => (() => void) | void) => {
     const React = require('react');
@@ -98,7 +98,7 @@ const pendingRead = () => { let resolve!: () => void, reject!: (error: Error) =>
 let info: jest.SpyInstance;
 const traced = () => info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_P6_TRACE]'));
 beforeEach(() => {
-  mockFocused = true; mockRevision = 1; mockSource = mockOriginalSource; mockTransportCalls.length = 0; mockTransport = async request => server(request); mockRouter.navigate.mockClear();
+  mockFocused = true; mockRevision = 1; mockSource = mockOriginalSource; mockTransportCalls.length = 0; mockTransport = async request => server(request); mockRouter.navigate.mockClear(); mockRouter.back.mockClear(); mockRouter.canGoBack.mockReturnValue(false);
   info = jest.spyOn(console, 'info').mockImplementation(() => {});
 });
 
@@ -562,4 +562,27 @@ test('source A-B-A cannot revive old route navigation callbacks during the same 
  await act(async () => bridge().props.onProfile());
  expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
  expect(mockRouter.navigate).toHaveBeenCalledWith('/profil');
+});
+
+
+test.each([false, true])('header Back uses history when available (%s), otherwise Home, and ignores a second press', async history => {
+  mockRouter.canGoBack.mockReturnValue(history);
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const back = bridge().props.onBack;
+  await act(async () => { back(); back(); });
+  expect(mockRouter.back).toHaveBeenCalledTimes(history ? 1 : 0);
+  expect(mockRouter.navigate).toHaveBeenCalledTimes(history ? 0 : 1);
+  if (!history) expect(mockRouter.navigate).toHaveBeenCalledWith('/');
+});
+
+test('a captured header Back cannot navigate after the account revision changes or the route blurs', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const first = bridge().props.onBack;
+  mockRevision++;
+  await act(async () => { first(); tree!.update(<DiscoveryV1Route />); }); await flush();
+  const second = bridge().props.onBack;
+  mockFocused = false;
+  await act(async () => { tree!.update(<DiscoveryV1Route />); }); await flush();
+  await act(async () => { first(); second(); });
+  expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
 });

@@ -1,0 +1,36 @@
+{
+  "at": "2026-10-09T20:59:08.404434+00:00",
+  "state": "SOURCE_TESTED_NATIVE_PENDING",
+  "parent": "a0dea3ac83a20ad8735058ddc29634e4cdcc5217",
+  "typecheckExit": 0,
+  "checks": [
+    {
+      "name": "header-camera-focused-2.json",
+      "suites": 5,
+      "pass": 332,
+      "fail": 0,
+      "sha256": "1d6fd1d683a78e8c11e785b76f2941368a81ef7acd31a4b26a7f625e1d27a8fd"
+    },
+    {
+      "name": "permissions-nearby-final.json",
+      "suites": 3,
+      "pass": 34,
+      "fail": 0,
+      "sha256": "d8d14ae5c43c20186a72e739fcb4b4168f7b4342adc7dd171ddb0cbae52aea3f"
+    }
+  ],
+  "independentReview": "Header/route guard and Nearby geometry reviewed read-only; two incorrect new fixture expectations fixed. No blocking source finding.",
+  "nativeBaseline": "068f340db57d39363288fc1f3aa6c6551ac86b33",
+  "baselineCI": {
+    "run": "37987951027",
+    "pass": 13571,
+    "suites": 605,
+    "skip": 0
+  },
+  "scope": "Compact Discovery header and protected Back, final PEEK Nearby margin, removal of temporary trace and Android overlay permission.",
+  "limits": [
+    "New APK pending native prebuild/install-r/runtime acceptance.",
+    "No server, provider, business write, push send, data deletion or store release.",
+    "Compressed accessibility-tree inspection is not full TalkBack acceptance."
+  ]
+}

@@ -57,3 +57,24 @@ USKE KOREKCIJE POSLE4b5:
 DOKAZAO SOURCE: pogođenih5suite ukupno328PASS kroz završne prolaze (DiscoveryPresentation226PASS, ostala4suite102PASS); dodatni permission/location/media3suite123PASS. Ukupno451pogođeni test PASS; TSC exit0. Ranija2 pada novih testova bila su pristup mockovanom FlatList propu koji mock troši; ispravljeno čitanjem stvarne DiscoveryListState komponente. Nema promene backend-a ili novih zavisnosti.
 
 NIJE DOKAZANO: novi APK posle ovih korekcija tek treba proveriti. Prvo stvarno OS odobravanje lokacije ostaje poseban native scenario; get-first rešava postojeći grant, ne tvrdi automatsko nastavljanje kroz svaki permission dijalog. Nisu dokazani live GPS tokom kretanja, kompletan tok dva naloga, sve push kategorije,40k kapacitet ili store spremnost. Potrebne nove vizuelne dopune i AI-only profil su zabeleženi u postojećem registru/autoritetu, ne predstavljeni kao završeni.
+
+
+## Fizički068 i kompaktno zaglavlje / korekcija GPS kadra (09.10)
+
+URADIO: tačan068f340d ARM64 APK, SHA2568037e8506d1c4c99189d83fd343afeb7893f0762a92d0731edcad24b3090d009, instaliran isključivo install-r. Runtime About068, isti UID/prvo vreme instalacije i prijava. Nema poslovnih upisa, novih push proba ni brisanja podataka.
+
+DOKAZAO NA TELEFONU068: sistemska lokacija OFF daje pravilan oporavak; sa uključenom lokacijom i već datom dozvolom kontrolisani Nearby dobija fix bez background/retired prekida. FULL je belo spojen sa zaglavljem, skrol sklapa kapsule i povlačenje vraća HALF. Prazna oblast A→B zadržava HALF i isti opis; pet uzoraka od0,47do2,35s bez skeleton-a. To nisu FPS/latency merenja.
+
+ISPRAVKA RANIJEG TUMAČENJA: običan UIAutomator XML uključuje i not-important elemente. Compressed accessibility dump sklopljenog068 ekrana izostavlja i kapsule i pokrivenu mapu; nakon HALF ih ponovo uključuje. Prethodni uncompressed nalazi sami po sebi ne dokazuju TalkBack kvar. Ovo je dokaz stabla, ne kompletan TalkBack prolaz.
+
+CI068: R20 run37987951027 SUCCESS, tačan068f340db57d39363288fc1f3aa6c6551ac86b33, tree dbcd31af5d12dbebdd3e1f362b0111ef08c770ce. TypeScript,226ciljanih i605suite/13571testova bez skip-a/FAIL. Lokalni a0dea je samo generisana dokumentacija; bot commit sačuvan.
+
+NAĐENO NA TELEFONU: Nearby dobije ispravnu tačku, ali je postavi previsoko i odzumira previše. Geometrija pokazuje HALF donju marginu dok je lista već naPEEK: preostalo97dp, očekivani centar oko861px, što odgovara snimku. Nije kvar GPS koordinata niti Supabase-a.
+
+NAREDNI SOURCE PAKET: namenski nearbyFitBottom računa konačanPEEK prostor; početni fit/klasteri čuvaju postojeće margine. Kompaktno zaglavlje Nazad/Zadaci/lupa/filteri/meni; aktivna pretraga ima svoj čitljiv i obrisiv red unutar merenog zaglavlja, nezavisan od kapsula koje nestaju. Back koristi postojeću focus/account i double-tap zaštitu, bez istorije ide na Početnu. Uklonjen privremeni Nearby log. Konfiguracija blokira nepotreban SYSTEM_ALERT_WINDOW; zato sledi kontrolisan native prebuild, ne samo JS nadogradnja. Kamera/mikrofon/push/foreground lokacija ostaju. Legacy storage dozvole nisu slepo uklonjene: postojeći camera path naAPI<29 traži njihov poseban prolaz.
+
+NIJE DOKAZANO: ovaj novi header/camera/manifest paket tek čeka tačan APK i fizički prihvat. Prvo OS odobrenje, stvarno kretanje GPS-a, sve dozvole, ceoAI/profile/two-account/media/push tok, kapacitet i store ostaju otvoreni. Owner je odobrio privremenu sistemsku lokaciju; posle provere vratiti OFF.
+
+SLEDEĆE: finalni ciljani testovi/tsc, attest novog nativeAPK-a, install-r, headerBack/search/filter i pravilna Nearby razmera, zatim AI-only radni profil prema postojećemB00. Bez novog mastera i bez novog30minautomatizma.
+
+ZAVRŠNA SOURCE PROVERA OVOG PAKETA: TypeScript exit0;8pogođenih suite-ova/366PASS/0FAIL/0SKIP. Posebno istorija/fallback Back, dupli tap i stale account/blur callback; kamera sa stvarnom geometrijom telefona; permission recovery i postojeći grant. Prvi prolaz imao pet neuspelih testova: tri vezana za penzionisanu široku search kapsulu i dve pogrešne nove fixture pretpostavke (floor paddinga i redosled mapped/listed). Zabeleženo, zaštite nisu oslabljene. Izvorni dokaz: evidence/android-interaction-20261009/header-camera-permissions-source.json.

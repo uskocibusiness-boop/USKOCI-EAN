@@ -32,4 +32,16 @@ describe('PKG-002 microphone permission copy', () => {
     expect(result.plugins.some((plugin: unknown) => (Array.isArray(plugin) ? plugin[0] : plugin) === '@maplibre/maplibre-react-native')).toBe(true);
     expect(result.ios.infoPlist.NSLocationWhenInUseUsageDescription).toContain('jednu lokaciju');
   });
+
+  it('blocks template overlay access while preserving existing permission exclusions', () => {
+    const result = configure({ config: { version: '1.0.0', android: {
+      package: 'rs.uskoci.preview', blockedPermissions: ['android.permission.ACCESS_BACKGROUND_LOCATION'],
+    }, plugins: [], extra: {} } });
+    expect(result.android.blockedPermissions).toEqual([
+      'android.permission.ACCESS_BACKGROUND_LOCATION', 'android.permission.SYSTEM_ALERT_WINDOW',
+    ]);
+    expect(result.android.permissions).toEqual(expect.arrayContaining([
+      'android.permission.ACCESS_FINE_LOCATION', 'android.permission.ACCESS_COARSE_LOCATION',
+    ]));
+  });
 });

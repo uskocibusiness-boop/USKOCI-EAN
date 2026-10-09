@@ -1439,15 +1439,16 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(tree.root.findAllByProps({ accessibilityRole: 'tablist' })).toHaveLength(0);
   expect(listSheet().props).toMatchObject({ enablePanDownToClose: false, enableDynamicSizing: false });
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
-  // Discovery V47: the search over the map is one pill that says what is SEARCHED in one line (nothing, until something is) and opens the panel; the words
-  // searched there narrow the list, and the pill's own × takes them away again, keeping everything else. The conditions are the capsules under it.
+  // The magnifier opens search; an active query stays readable separately and can be cleared without changing other filters.
   expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
-  expect(texts(press('Pretraži zadatke'))).toBe('Grad ili zadatak');
+  expect(texts(press('Pretraži zadatke'))).toBe('');
+  expect(pressable('Aktivna pretraga')).toHaveLength(0);
   expect(pressable('Prikaži sve zadatke')).toHaveLength(0);
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await search('bb');
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
   expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“' });
+  expect(texts(press('Aktivna pretraga'))).toBe('„bb“');
   await tap('Prikaži sve zadatke'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
   expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
 });
@@ -2091,10 +2092,7 @@ test('the list follows the map area and the search pill clears it', async () => 
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
 });
 
-// Review of V47, item 3: the "Ova oblast ×" chip under the count came and went with every move of the map, and the
-// sheet's measured top line, and the sheet with it, jumped each time. The area is said by the search pill instead, whose
-// × at its right end takes it away; the × lies over the pill's end, so the pill is exactly as tall with it as without.
-test('a map area adds nothing under the count; the search pill says it, and its × (48 wide, over its end) takes it away', async () => {
+test('a map area stays in a separately clearable search context, never under the list count', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
   const before = StyleSheet.flatten(press('Pretraži zadatke').props.style);
@@ -2102,12 +2100,14 @@ test('a map area adds nothing under the count; the search pill says it, and its 
   expect(removable()).toHaveLength(0);
   const clear = tree.root.findByProps({ testID: 'clear-where' });
   expect(clear.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži sve zadatke', hitSlop: 0 });
-  expect(StyleSheet.flatten(clear.props.style)).toMatchObject({ position: 'absolute', top: 0, bottom: 0, width: 48 });
-  const after = StyleSheet.flatten(press('Pretraži zadatke').props.style);
-  expect([after.minHeight, after.paddingVertical, after.borderWidth]).toEqual([before.minHeight, before.paddingVertical, before.borderWidth]);
-  expect(after.paddingRight).toBe(48);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
+  expect(StyleSheet.flatten(clear.props.style)).toMatchObject({ minHeight: 48, width: 48 });
+  expect(StyleSheet.flatten(press('Pretraži zadatke').props.style)).toEqual(before);
+  expect(press('Aktivna pretraga').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
+  expect(texts(press('Aktivna pretraga'))).toBe('Ova oblast');
+  await tap('Aktivna pretraga'); expect(panel()).toHaveLength(1);
+  await tap('Zatvori pretragu');
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
+  expect(pressable('Aktivna pretraga')).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
 });
 
@@ -2334,6 +2334,7 @@ test('the map is told where the sheet starts, so the first fit keeps the pins ab
   expect(listSheet().props.index).toBe(1);
   expect(map().props.fitBottom).toBe(listSheet().props.snapPoints[1] + sys.space.md + CONTROL_SIZE);
   expect(map().props.fitBottom).toBeGreaterThan(listSheet().props.snapPoints[0] + sys.space.md + CONTROL_SIZE);
+  expect(map().props.nearbyFitBottom).toBe(listSheet().props.snapPoints[0] + sys.space.md + CONTROL_SIZE);
 });
 
 // DN-01: the same map fits every visible public pin before the labels arrive.
@@ -2533,21 +2534,22 @@ test('a time choice says under the list how many tasks it leaves out because the
   await act(async () => quick('Danas').props.onPress()); expect(list().props.ListFooterComponent).toBeNull();
 });
 
-// R10: large text gets the whole search row, instead of four squeezed lines beside two tools.
+// At narrow widths the search context is its own line, preserving separate accessible tools.
 test('at large text the search stays one line with separate tools and the pin preview may use more room', async () => {
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
-  // One line: the words of the pill (what is searched, or the place to start) carry the limit once.
-  const lines = () => press('Pretraži zadatke').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
+  await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
+  const lines = () => press('Aktivna pretraga').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
   expect(lines()).toEqual([1]);
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.5);
   await act(async () => tree.unmount());
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1.3 }; await render();
+  await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
   expect(lines()).toEqual([1]);
-  // The filters are the round button beside the pill, in the pill's own row (the menu is in the pill); they are no capsule of the row under it.
+  // Search, filters and menu remain separate from the collapsible quick filters.
   const searchRow = tree.root.findByProps({ testID: 'discovery-search-row' });
   expect(searchRow.findAllByProps({ accessibilityLabel: 'Filteri' })).toHaveLength(1);
-  expect(tree.root.findByProps({ testID: 'discovery-search-tools' }).findByProps({ accessibilityLabel: 'Još mogućnosti' })).toBeTruthy();
+  expect(searchRow.findByProps({ accessibilityLabel: 'Još mogućnosti' })).toBeTruthy();
   expect(capsuleLabels()).not.toContain('Filteri');
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
@@ -3502,4 +3504,17 @@ test('a confirmed empty picture cannot leak into a new account or new filter pen
   refreshing = false; await update(); refreshing = true;
   await act(async () => tree.root.findByType(DiscoveryPresentation).props.onView({ ...snapshot, query: 'new-filter' }));
   expect(tree.root.findByType(DiscoveryListState).props.state.kind).toBe('loading');
+});
+
+test('a real empty viewport A to B retains place feedback and PEEK, then an error replaces that feedback', async () => {
+  rows = []; initial = { ...initial, sheet: 'peek', area: [20, 44, 21, 45] };
+  p6Seam = { ...p6Seam_(), counts: p6Counts(7, 0) }; await render(); await dragSheet(0);
+  const empty = () => tree.root.findByType(DiscoveryListState);
+  expect(empty().props.state.kind).toBe('place');
+  refreshing = true;
+  await act(async () => tree.root.findByType(DiscoveryPresentation).props.onView({ ...snapshot, area: [21, 44, 22, 45] }));
+  expect(snapshot.area).toEqual([21, 44, 22, 45]);
+  expect(empty().props.state.kind).toBe('place'); expect(listSheet().props.index).toBe(0);
+  refreshing = false; error = true; await update();
+  expect(empty().props.state.kind).toBe('error'); expect(listSheet().props.index).toBe(0);
 });

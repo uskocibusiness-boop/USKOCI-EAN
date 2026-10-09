@@ -97,6 +97,8 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
    * it (a sheet that starts half open would otherwise hide the pins it was opened for). Without it the fit keeps 56.
    */
   fitBottom?: number;
+  /** Nearby explicitly lowers the sheet to PEEK; reserve that final space even before its animation settles. */
+  nearbyFitBottom?: number;
   /** False until the screen has measured its body and floating tools. Initial bounds fit must not freeze estimates. */
   cameraLayoutReady?: boolean;
   /**

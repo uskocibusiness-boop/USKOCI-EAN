@@ -3,43 +3,30 @@ import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { Glyph } from '../../system/Glyph';
-import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
+import { ChromeIconButton } from '../../system/ScreenChrome';
 import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
-import { FILTERS_HINT, SEARCH_HINT, SEARCH_PLACEHOLDER, filtersSpoken } from './discoveryWords';
+import { FILTERS_HINT, SEARCH_HINT, filtersSpoken } from './discoveryWords';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { capsuleCollapse, chromeJoin } from './discoveryChrome';
 
 /** The bar's distance from the top of the map. */
 export const BAR_TOP = sys.space.md;
-/** The search pill's own clear button: a full 48 wide, as high as the pill, at its right end. */
-const CLEAR_WIDTH = 48;
-/** The round filters button: as high as the pill beside it. */
+/** Filter touch and its count stay together inside the toolbar. */
 const FILTERS_SIZE = 56;
 
-/**
- * The top of the Zadaci map (Discovery V47; Airbnb's search bar, USKOČI's look; the owner's phone of 7 and 8 Oct 2026, the approved plan U1). One white search
- * pill, with the magnifier, says what is searched in one line (the words, then the place, or "Ova oblast") and opens the SEARCH, which is a word
- * and a place and nothing else; beside it, SEPARATE, the round button of the FILTERS with how many are on, which opens the filters and nothing of the
- * search (`filters`); under them the row of capsules (`chips`, the row `DiscoveryChipRow`). With nothing searched the pill says "Šta tražiš · Gde": a place
- * to start, never a claim about which tasks the list holds. There is no typing field on the map: the words are typed in the search, which fills the
- * screen. The adjacent menu preserves secondary destinations without another header; search and the menu share one surface. The pill, the button and the
- * capsules stand at the top at every height of the list, and the list, when it is all the way up, ends directly under them.
- *
- * While the list is narrowed to what the pill says (a place, words, the map's area or one point), the pill carries its own "×" at its
- * right end, "Prikaži sve zadatke": the way back to every task is where the narrowing is said, not a chip that would appear under the list's
- * count and move the sheet each time the map moves (review of V47). It lies over the pill's end, so the pill is exactly as tall with it as
- * without it.
- *
- * `onLayout` reports the lower edge of the pill and its row of capsules, from the top of the map: what the list stops under when it is up,
- * and what the map's camera keeps clear. Whatever hangs `below` them (a notice) floats over the map and never moves the list sheet's stops.
+/** Compact map controls: Back, search, filters and the existing secondary menu share one white surface.
+ * A real active query/place is shown in its own clearable row; there is no permanently empty search field.
+ * Both rows stay above the scrolling capsules and are included in the compact FULL measurement.
+ * Notices remain outside that measurement so permission/error feedback never moves the sheet stops.
  */
-export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filters, onLayout, onSearchLayout, motion, chips, below }: {
-  /** What is searched, in one line; null when nothing is. */ where: string | null;
+export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhere, filters, onLayout, onSearchLayout, motion, chips, below }: {
+  /** Active search/area, in one line; null when nothing is. */ where: string | null;
   onSearch: () => void;
+  onBack?: () => void;
   /** Secondary account/publication entries share one menu so the map does not need a second header. */
   onMore?: () => void;
-  /** Set while the list is narrowed to what the pill says: the pill's "×" takes that narrowing away. */
+  /** Set while the list is narrowed to what the pill says: the summary's "×" takes that narrowing away. */
   onClearWhere?: () => void;
   /** The round button of the filters beside the pill, with how many conditions are on (none: no number). */
   filters?: { count: number; onPress: () => void };
@@ -75,28 +62,28 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
       <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}
         onLayout={event => onSearchLayout?.(Math.ceil(BAR_TOP + event.nativeEvent.layout.y + event.nativeEvent.layout.height))}>
         <Surface kind="float" style={s.searchSurface}>
-          <View style={s.search}>
+          <View style={s.controls}>
+            {onBack ? <ChromeIconButton label="Nazad" glyph="back" quiet onPress={onBack} /> : null}
+            <T variant="bodyStrong" numberOfLines={1} style={s.title}>Zadaci</T>
             <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={where ? { text: where } : undefined}
               accessibilityHint={SEARCH_HINT} haptic="select" scaleTo={sys.motion.scale.row} onPress={onSearch}
-              style={[s.pill, s.pillWide, onClearWhere && s.pillClearable]}>
+              hitSlop={0} style={s.searchButton}>
               <Glyph name="search" size={20} tone="ink" strong />
-              <View style={s.lines}>
-                {/* One line: what is searched, or the place to start. The full words are spoken (the Pressable's value) and written out in the
-                    search. */}
-                {where ? <T variant="bodyStrong" style={s.where} numberOfLines={1}>{where}</T>
-                  : <T variant="body" tone="muted" style={s.placeholder} numberOfLines={1}>{SEARCH_PLACEHOLDER}</T>}
-              </View>
+            </Press>
+            {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
+            {onMore ? <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." glyph="more" quiet onPress={onMore} /> : null}
+          </View>
+          {where ? <View testID="discovery-search-context" style={s.context}>
+            <Press accessibilityRole="button" accessibilityLabel="Aktivna pretraga" accessibilityValue={{ text: where }} accessibilityHint={SEARCH_HINT}
+              haptic="select" onPress={onSearch} hitSlop={0} style={s.contextText}>
+              <T variant="meta" numberOfLines={1} style={s.where}>{where}</T>
             </Press>
             {onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
               haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onClearWhere} style={s.clear}>
-              <View style={s.clearCircle}><Glyph name="close" size={16} tone="ink" /></View>
+              <Glyph name="close" size={16} tone="ink" />
             </Press> : null}
-          </View>
-          {onMore ? <View testID="discovery-search-tools" style={s.tool}>
-            <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." glyph="more" quiet onPress={onMore} />
           </View> : null}
         </Surface>
-        {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
       </View>
       <View testID="discovery-chips-clip" collapsable={false} style={s.chipsClip}
         pointerEvents={motion?.hidden ? 'none' : 'box-none'} accessibilityElementsHidden={!!motion?.hidden}
@@ -108,12 +95,9 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
   </View></>;
 }
 
-/**
- * The filters, as a round button beside the pill (the approved plan, U1): the same float as the pill, as high as it, with the sliders and, when any
- * condition is on, how many in a small ink disc at its corner (a number, never only a colour). It is the way to the filters and to nothing else.
- */
+/** The filter count stays visible and spoken; the shared header owns the surface and shadow. */
 function FiltersButton({ count, onPress }: { count: number; onPress: () => void }) {
-  return <Surface kind="float" style={s.filtersSurface}>
+  return <View style={s.filtersSurface}>
     <Press testID="filters-button" accessibilityRole="button" accessibilityLabel={filtersSpoken(count)} accessibilityHint={FILTERS_HINT}
       accessibilityState={{ selected: count > 0 }} haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onPress} style={s.filtersTouch}>
       <Glyph name="filters" size={24} tone="ink" />
@@ -121,7 +105,7 @@ function FiltersButton({ count, onPress }: { count: number; onPress: () => void 
     {count > 0 ? <View testID="filters-count" pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.badge}>
       <T variant="label" style={s.badgeText}>{count}</T>
     </View> : null}
-  </Surface>;
+  </View>;
 }
 
 /**
@@ -168,26 +152,18 @@ const s = StyleSheet.create({
   backing: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: sys.color.surface },
   chipsClip: { overflow: 'hidden' },
   bar: { position: 'absolute', top: BAR_TOP, left: 0, right: 0, gap: sys.space.sm },
-  // The pill and its row of capsules: 8 between them (the capsules carry 2 above and 8 below them for the lift of their shadow).
+  // The header and quick filters share the established measured gap.
   stack: { gap: sys.space.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base },
-  search: { flex: 1, minWidth: 0 },
-  // One float owns the search and its controls: the first of the few things over the map, in the one look of a float.
-  searchSurface: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', paddingRight: sys.space.xs, borderRadius: sys.radius.pill },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 56, paddingLeft: sys.space.base,
-    paddingRight: sys.space.sm, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill,
-    backgroundColor: sys.color.surface },
-  // The words end where the clear button begins.
-  pillClearable: { paddingRight: CLEAR_WIDTH },
-  pillWide: { borderRadius: sys.radius.card },
-  lines: { flex: 1, minWidth: 0 },
+  row: { paddingHorizontal: sys.space.base },
+  searchSurface: { minWidth: 0, borderRadius: sys.radius.card },
+  controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: sys.space.xs, minHeight: 56 },
+  title: { flex: 1, minWidth: 0, paddingHorizontal: sys.space.xs },
+  searchButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
+  context: { flexDirection: 'row', alignItems: 'center', paddingLeft: sys.space.base, paddingRight: sys.space.xs },
+  contextText: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', paddingRight: sys.space.sm },
   where: { lineHeight: 20, color: sys.color.ink },
-  placeholder: { lineHeight: 20 },
-  // Over the pill's right end, from its top edge to its bottom edge: never taller than the pill, never under 48 wide.
-  clear: { position: 'absolute', top: 0, bottom: 0, right: 0, width: CLEAR_WIDTH, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  clearCircle: { width: 28, height: 28, borderRadius: sys.radius.pill, backgroundColor: sys.color.wash, alignItems: 'center', justifyContent: 'center' },
-  tool: { width: chrome.control, height: chrome.control },
-  // The round button of the filters: a full float, as high as the pill; the touch fills it. The count is a small ink disc over its upper right.
+  clear: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  // The touch fills this control; its count sits at the upper right.
   filtersSurface: { width: FILTERS_SIZE, height: FILTERS_SIZE, borderRadius: sys.radius.pill, flexShrink: 0 },
   filtersTouch: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
   badge: { position: 'absolute', top: sys.space.xs, right: sys.space.xs, minWidth: 20, height: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,

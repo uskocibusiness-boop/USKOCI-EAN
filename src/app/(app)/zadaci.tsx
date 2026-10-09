@@ -135,6 +135,7 @@ function Discovery() {
           void relations.refresh(true);
         }
       }} onOpen={open}
+      onBack={() => navigate(() => router.canGoBack() ? router.back() : router.navigate('/'))}
       onProfile={() => navigate(() => router.navigate('/profil'))}
       onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
       onNew={() => navigate(() => router.navigate('/nova'))} />;

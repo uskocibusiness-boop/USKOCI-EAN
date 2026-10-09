@@ -2263,10 +2263,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "HONOR4b5 tačan APK/About, search keyboard i FULL backing PASS; Nearby/a11y nalaz i follow-up source u docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
+        "dokaz": "HONOR068 install-r/runtime: postojeći grant GPS fix, FULL/chips/HALF i prazno→prazno bez promene visine; compressed a11y tree PASS u uskom opsegu. GPS framing kvar pronađen; sledeći header/camera APK još pending. docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md"
       },
-      "problem": "Telefon4b5: tastatura pri prvom tapu i FULL bela podloga potvrđeni. Nearby prekida nepotreban permission Activity; collapsed a11y ostaje izložena. Korekcije grant/a11y/prazno→prazno source testirane451PASS; nov fizički APK pending.",
-      "sledece": "Tačan follow-up APK: Nearby uz postojeću dozvolu, collapsed accessibility, prazno→prazno bez trzaja. Zatim kompaktni back/search/filter header, prikaz sopstvene lokacije i numerički budžet kroz ceo server ugovor.",
+      "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
+      "sledece": "Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2768,6 +2768,24 @@
             37985186356
           ],
           "followupTests": 451
+        },
+        "android_header_camera_permissions_20261009": {
+          "previous": {
+            "problem": "Telefon4b5: tastatura pri prvom tapu i FULL bela podloga potvrđeni. Nearby prekida nepotreban permission Activity; collapsed a11y ostaje izložena. Korekcije grant/a11y/prazno→prazno source testirane451PASS; nov fizički APK pending.",
+            "sledece": "Tačan follow-up APK: Nearby uz postojeću dozvolu, collapsed accessibility, prazno→prazno bez trzaja. Zatim kompaktni back/search/filter header, prikaz sopstvene lokacije i numerički budžet kroz ceo server ugovor.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "HONOR4b5 tačan APK/About, search keyboard i FULL backing PASS; Nearby/a11y nalaz i follow-up source u docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
+            }
+          },
+          "state": "SOURCE_TESTED / 068_NATIVE_SCOPED / NEW_APK_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "ciBaseline": "068f340db57d39363288fc1f3aa6c6551ac86b33",
+          "ciRun": "37987951027",
+          "ciFullPass": 13571,
+          "focusedTests": 366,
+          "focusedSuites": 8,
+          "typecheckExit": 0
         }
       }
     },
@@ -2791,10 +2809,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "HONOR4b5 tačan APK/About, search keyboard i FULL backing PASS; Nearby/a11y nalaz i follow-up source u docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
+        "dokaz": "HONOR068 install-r/runtime: postojeći grant GPS fix, FULL/chips/HALF i prazno→prazno bez promene visine; compressed a11y tree PASS u uskom opsegu. GPS framing kvar pronađen; sledeći header/camera APK još pending. docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md"
       },
-      "problem": "Telefon4b5: tastatura pri prvom tapu i FULL bela podloga potvrđeni. Nearby prekida nepotreban permission Activity; collapsed a11y ostaje izložena. Korekcije grant/a11y/prazno→prazno source testirane451PASS; nov fizički APK pending.",
-      "sledece": "Tačan follow-up APK: Nearby uz postojeću dozvolu, collapsed accessibility, prazno→prazno bez trzaja. Zatim kompaktni back/search/filter header, prikaz sopstvene lokacije i numerički budžet kroz ceo server ugovor.",
+      "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
+      "sledece": "Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3227,6 +3245,24 @@
             37985186356
           ],
           "followupTests": 451
+        },
+        "android_header_camera_permissions_20261009": {
+          "previous": {
+            "problem": "Telefon4b5: tastatura pri prvom tapu i FULL bela podloga potvrđeni. Nearby prekida nepotreban permission Activity; collapsed a11y ostaje izložena. Korekcije grant/a11y/prazno→prazno source testirane451PASS; nov fizički APK pending.",
+            "sledece": "Tačan follow-up APK: Nearby uz postojeću dozvolu, collapsed accessibility, prazno→prazno bez trzaja. Zatim kompaktni back/search/filter header, prikaz sopstvene lokacije i numerički budžet kroz ceo server ugovor.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "HONOR4b5 tačan APK/About, search keyboard i FULL backing PASS; Nearby/a11y nalaz i follow-up source u docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
+            }
+          },
+          "state": "SOURCE_TESTED / 068_NATIVE_SCOPED / NEW_APK_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "ciBaseline": "068f340db57d39363288fc1f3aa6c6551ac86b33",
+          "ciRun": "37987951027",
+          "ciFullPass": 13571,
+          "focusedTests": 366,
+          "focusedSuites": 8,
+          "typecheckExit": 0
         }
       }
     },
@@ -6529,7 +6565,25 @@
           ],
           "followupTests": 451
         },
-        "owner_followup_20261009": "Permission audit/source korekcije: existing Nearby grant, coarse AI grant i camera get-first; mikrofon/notification contextual postoje. Prvi native grant i konačan merged manifest ostaju NOT VERIFIED."
+        "owner_followup_20261009": "Permission audit/source korekcije: existing Nearby grant, coarse AI grant i camera get-first; mikrofon/notification contextual postoje. Prvi native grant i konačan merged manifest ostaju NOT VERIFIED.",
+        "android_header_camera_permissions_20261009": {
+          "previous": {
+            "problem": "Guard kasnog pin-dismiss/AI callback/source ownership testiran; Nearby explicit flight/debounce ima prednost nad list-detent zoom-om. Native lifecycle scope nije ceo završen.",
+            "sledece": "Potvrditi tačan follow-up build; nastaviti povezani lifecycle/loša mreža i raniji About slučaj bez proizvoljnog refaktora.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
+            }
+          },
+          "state": "SOURCE_TESTED / 068_NATIVE_SCOPED / NEW_APK_PENDING",
+          "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
+          "ciBaseline": "068f340db57d39363288fc1f3aa6c6551ac86b33",
+          "ciRun": "37987951027",
+          "ciFullPass": 13571,
+          "focusedTests": 366,
+          "focusedSuites": 8,
+          "typecheckExit": 0
+        }
       }
     },
     {
@@ -10137,11 +10191,40 @@
       "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
     },
     "android_interaction_finish_20261009": {
-      "state": "FOLLOWUP_SOURCE_TESTED / APK_PENDING",
+      "state": "068_NATIVE_SCOPED / HEADER_CAMERA_PERMISSION_SOURCE_TESTED",
       "report": "docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md",
-      "testedCurrentFollowup": 451,
-      "ciBaseline": "4b5f48c46e84d1fb43b35a0be30d1fe2138b2dda",
-      "store": "NO-GO"
+      "testedCurrentFollowup": 366,
+      "ciBaseline": "068f340db57d39363288fc1f3aa6c6551ac86b33",
+      "store": "NO-GO",
+      "ciRun": "37987951027",
+      "ciFullPass": 13571
+    },
+    "github_hardening_20261009": {
+      "state": "LOCAL_SOURCE_TESTED_REMOTE_GATES_PENDING",
+      "base": "a0dea3ac83a20ad8735058ddc29634e4cdcc5217",
+      "report": "docs/implementation/evidence/github-hardening-20261009/REPORT.md",
+      "scope": "Both canonical CI branches; five existing filesystem UI ratchets; escaped dashboard snapshots and fixed status whitelist; explicit dashboard CI outcome; PR template.",
+      "tests": {
+        "ciNodePass": 39,
+        "dashboardPass": 12,
+        "jestPass": 194,
+        "jestSkip": 9,
+        "failures": 0,
+        "tscExit": 0
+      },
+      "skips": "Existing shell-tool-dependent APK-attestation fixtures on Windows; not PASS.",
+      "codeqlBaseline": {
+        "commit": "a0dea3ac83a20ad8735058ddc29634e4cdcc5217",
+        "open": 28,
+        "run": "37988814767",
+        "jsAnalysis": "1926222485",
+        "kotlin": "AUTOBUILD_FAILED_ANALYSIS_SKIPPED"
+      },
+      "githubSettings": "BLOCKED_BY_SAVED_BROWSER_SITE_DENIAL; no settings workaround or alert dismissals",
+      "device": "NOT_TESTED_BY_THIS_PACKAGE",
+      "store": "NO-GO",
+      "automation": "PAUSED",
+      "next": "Exact pushed CI/CodeQL result, browser settings grant and native CodeQL build wiring, then existing Android consolidated package."
     }
   }
 }

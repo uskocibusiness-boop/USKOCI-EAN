@@ -127,6 +127,7 @@ export function DiscoveryV1Route() {
     source={source} scopeKey={`${user.id}:${accountRevision}`} initialView={view}
     initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
     isCurrent={current} onPersistView={persistView} onOpen={open} trace={trace} warmReturn={warmReturn.current!}
+    onBack={() => navigate(() => router.canGoBack() ? router.back() : router.navigate('/'))}
     onProfile={() => navigate(() => router.navigate('/profil'))}
     onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
     onNew={() => navigate(() => router.navigate('/nova'))} forMeAvailable={FOR_ME_SWITCH_EXISTS} onWorkProfile={() => navigate(() => router.navigate('/profil/radnik'))} />;

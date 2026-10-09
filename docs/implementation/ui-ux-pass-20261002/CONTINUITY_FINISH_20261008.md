@@ -809,3 +809,25 @@ NIJE DOKAZANO: svih62redova, kompletan AI/profile/two-account/voice/media/push, 
 SLEDEĆE: povezani tok dva naloga; legal/privacy/export/erasure; izmerene performance/security korekcije; jedan produkcioni AAB i završni Play paket. Bez beskonačnog redizajna. ANDROID_DISCOVERY_PENDING_20261009.md i evidence/android-discovery-pending-20261009/receipt.json. Automatizacija na30min ostaje PAUSED. Generisana lokalna tabla nije tvrdnja o objavi udaljenog Claude artefakta.
 
 Završni CI rezultat: 37975515493 na e1355f37 SUCCESS, TypeScript +219focused +605/605suite,13519/13519PASS,6snapshotPASS,313.666s. Aplikacioni source jednak725APK-u; nije CIbuildAPK-a niti dokaz svih native tokova. Novi receipt čuva taj ishod i hash loga. Postojeći forensic NO-GO ostaje do navedenih release paketa.
+
+
+## 09.10 — 517/4b5/068 Android iteracija i sledeći ograničeni paket
+
+URADIO: postojeći ANDROID_INTERACTION_FINISH_20261009.md vodi jedini nastavak: AI novi razgovor, pretraga, FULL/chips, pin camera, city/GPS; tri tačna install-r prolaza, sesija očuvana. Ispravljena tastatura na prvi tap, bela FULL pozadina, get-first permission i prazno→prazno stabilnost. Novi source: kompaktno Back/lupa/filter zaglavlje, zasebna Nearby PEEK margina i uklanjanje nepotrebne overlay dozvole. Bot a0dea sačuvan.
+
+DOKAZAO: CI068 R20 TypeScript+226focused+605suite/13571PASS bezskip. HONOR068 runtime/hash/UID; postojeći grant GPS fix, FULL/HALF/chips, compressed a11y tree i dva prazna viewport-a. Default XML nije TalkBack dokaz; ranije tumačenje ispravljeno. GPS previsok/širok kadar reprodukovan i objašnjen pogrešnimHALF paddingom.
+
+NIJE DOKAZANO: novi source header/camera/manifest tek čeka native prebuild/install-r; nije release, nema novih business/push upisa. AI-only profil, sve dozvole/push/safety/privacy/performance/production gates ostaju otvoreni; NO-GO ostaje.
+
+SLEDEĆE: dovršiti kontrolisani header/camera/permission APK paket; posle privremenog GPS testa vratiti sistemsku lokacijuOFF po owner odobrenju. Zatim najmanjiAI-only worker paket: sačuvaniACTIVE/DRAFT pregled sa punim činjenicama iAI izmenom, sačuvana mapa/dostupnost/unknown-outcome zaštita. AutomatizacijaPAUSED.
+
+
+## 09.10 — GitHub CI i bezbedan renderer kontrolne table
+
+URADIO: Oba pripremljena patch-a primenjena na a0dea, uz postojeće Android izmene sačuvane. Obe kanonske grane u PRE-P4; pet UI filesystem pravila eksplicitno; scalar escaping i whitelist svetala; dashboard test i njegov CI receipt; PR obrazac. Dokaz: docs/implementation/evidence/github-hardening-20261009/REPORT.md.
+
+DOKAZAO:39 CI +12 dashboard PASS bezskip;194 Jest PASS/9 postojeći shell-dependent SKIP;tsc0;YAML i nezavisan read-only pregled. Pravi Git test više nije EPERM. Stvarni CodeQL SARIF razjašnjava #28 putanju i #22–26 object-wide taint; nijedan alert nije automatski zatvoren.
+
+NIJE DOKAZANO: nova udaljena CI/CodeQL provera, native APK, store; GitHub settings ostaje browser saved-site-denial. Java/Kotlin autobuild stvarno pada jer ne nalazi build komandu. Nema settings workaround-a, server/push/data/sertifikat promene ili tvrdnje o objavi Claude artefakta. NO-GO i PAUSED ostaju.
+
+SLEDEĆE: commit/push obe grane i tačni remote rezultati; CodeQL manual Expo/Gradle i GitHub zaštite kad browser dozvola proradi. Zatim objedinjeni Android paket. Ispravka prethodnog kursora: sistemska lokacija je već vraćena OFF posle 068 QA; novo privremeno uključivanje traži isti ograničeni režim i vraćanje nakon provere.

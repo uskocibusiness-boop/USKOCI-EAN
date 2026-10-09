@@ -374,6 +374,29 @@ test('Nearby waits for map readiness and does not move a blurred map', async () 
   await ready(); expect(mockFit).toHaveBeenCalledTimes(1);
   mockFocused = false; nearby = { key: 3, center: [19.8, 45.2] }; await update(); expect(mockFit).toHaveBeenCalledTimes(1);
 });
+
+test('Nearby fits the final PEEK space on a phone, independently of the empty initial HALF fit', async () => {
+  let target: NearbyCameraTarget | null = null;
+  function Geometry() { return <DiscoveryMap items={[]} scopeKey={key} viewport={null} selectedId={null}
+    toolsBottom={136} fitBottom={470} nearbyFitBottom={146.3} centerNearby={target}
+    onSelect={select} onViewport={setViewport} onArea={search} onList={list} />; }
+  await act(async () => { tree = create(<Geometry />); });
+  await act(async () => {
+    tree.root.find(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function')
+      .props.onLayout({ nativeEvent: { layout: { width: 361, height: 741 } } });
+    native().props.onDidFinishLoadingMap();
+  });
+  const initialPadding = mockFit.mock.calls[0][1].padding;
+  expect(initialPadding.bottom).toBeGreaterThan(480);
+  mockFit.mockClear(); target = { key: 1, center: [19.8, 45.2] };
+  await act(async () => tree.update(<Geometry />));
+  const padding = mockFit.mock.calls[0][1].padding;
+  expect(padding).toEqual({ top: 162, right: 50, bottom: 170, left: 50 });
+  // Before the fix this fit left only 97dp and pushed the dot to y861px. It must now use the broad clear band.
+  expect(741 - padding.top - padding.bottom).toBeGreaterThan(400);
+  expect(135 + (padding.top + 741 - padding.bottom) / 2 * 3.5).toBeCloseTo(1416, -1);
+  await act(async () => tree.update(<Geometry />)); expect(mockFit).toHaveBeenCalledTimes(1);
+});
 test('Nearby then manual pan then refresh/remount restores the pan without replaying location', async () => {
   let receive!: (value: { timestamp: number; coords: { latitude: number; longitude: number } }) => void;
   const remove = jest.fn();

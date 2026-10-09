@@ -95,7 +95,7 @@ export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; lo
   scopeKey: string; view: MarketplaceView; onView: (value: MarketplaceView) => void; onRefresh: () => void;
   /** Explicit interaction supersedes an automatic publication landing still waiting for its read. */
   onUserIntent?: () => void;
-  onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
+  onBack?: () => void; onOpen: (item: MarketplaceItem) => void; onProfile: () => void; onNew?: () => void; onNotifications?: () => void;
   /** A confirmed publication, resolved against a fresh public list by the route. */
   publicationFocus?: { token: string; id: string; kind: 'map' | 'list' };
   publicationUnavailable?: 'missing' | 'error'; onOpenPublishedTask?: () => void;
@@ -877,6 +877,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
   // The row of the map's furniture (its sources and "moja lokacija") stands above the list, so a fit keeps one row and a gap of it clear.
   const fitBottom = (discoveryStartSnap(mapped.length, mappedWithoutPin) === 'peek' ? snapPoints[0] as number : halfSheet) + GAP + footerRow;
+  // Nearby always asks for PEEK, including an empty list that initially opens at HALF. A fast GPS response must
+  // use its destination geometry, not the initial fit or the in-flight sheet position.
+  const nearbyFitBottom = collapsedSnap + GAP + footerRow;
   // The card at the bottom may take what the map leaves between the tools above it and the row of furniture over it (the pin stays above the card).
   const previewMaxHeight = bodyHeight ? Math.max(48, bodyHeight - toolsBottom - footerRow - cardBottom - 3 * GAP - HIDDEN) : undefined;
   // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
@@ -1388,7 +1391,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} me={nearby.me} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
-          onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom} nearbyFitBottom={nearbyFitBottom}
           listDetent={cameraListDetent}
           controlsMinTop={toolsBottom + GAP} locked={mapCovered} locateShown={canLocate}
           onStripPress={() => { userIntent?.(); setSheetIndex(SNAP.half); }}
@@ -1451,7 +1454,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         </CellLayoutContext.Provider>
         </DiscoveryScrollReadiness>
       </DiscoveryListSheet>
-      <DiscoverySearchBar where={searchedWords}
+      <DiscoverySearchBar where={searchedWords} onBack={props.onBack}
         onSearch={() => openPanel('search')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={searchedWords ? clearSearch : undefined}
         filters={{ count: conditionCount, onPress: () => openPanel('filters') }}
