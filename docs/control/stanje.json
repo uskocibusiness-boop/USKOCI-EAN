@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T03:27:13Z",
+  "osvezeno": "2026-10-09T03:35:56Z",
   "grana": "integration/spoj-20261006",
-  "head": "4038dd02",
-  "head_poruka": "Prepare inert long group history for native reading checks",
+  "head": "be858be5",
+  "head_poruka": "merge: preserve generated native-check preparation status",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2533,7 +2533,7 @@
    "limits": "After a481buildsource; requires next exact native APK. Current512 proves previousworkerstatusrow, not newpublishercomposition."
   },
   "discovery_plan_cache_diagnostic_20261009": {
-   "state": "SOURCE_OFFLINE_PASS / ONE_ISOLATED_RUNTIME_RUNNING",
+   "state": "ACTUAL_MODE_EFFECT / TRACE_SETUP_FAIL / CORRECTION_CHECKED",
    "scope": "Opt-in plan-cache existing loopbackworkflow. Separate40kuniquearea fixture,twoAuth,oneSQLreader. Three fresh sessionsauto/custom/generic,6separate90sstatements;15min workload budget including fixture/oracle/traces;postflight separately timed.",
    "oracle": "Complete shared anchor and fullPLACESJSON equality except asOf/counts.observedAt, validated exactly against eachSQLstatement_timestamp before masking. Not a replacement for unmasked250comparison proof.",
    "trace": "Separate1callcustom+generic nativeauto_explain,projected nodes/buffers only. Exact source-derivedSPIqueryhash3f63aaf71e9aff49e00ad0afc1a6224fe79c147010c67e0d8568808e0148133b. Timeout may yield no plan. Metrics retained before parser.",
@@ -2541,7 +2541,16 @@
    "limits": "No reader/schema/globalconfig/DEV changes; diagnostic completion withtimeouts is not capacity acceptance. No40kactiveusers/lifecycleclaim.",
    "run": 37878921357,
    "source": "40565dbc43505d03df3d79b88185a37dbc9577ca",
-   "next": "Read actual mode samples/native plan traces/postflight/teardown; keep original area FAIL and no DEV promotion."
+   "next": "One corrected isolated runtime for nativeplan capture; unchanged90sSQLlimit. No candidate or DEV promotion.",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-plan-cache-37878921357/receipt.json",
+   "actual": {
+    "auto": "5completed2179.4/2217.3/2230.7/2291.1/2131.8ms;6thSQL90s57014",
+    "custom": "6complete2486.8/2620.3/2618.4/2529.4/2501.4/2603.4ms",
+    "generic": "0complete;firstSQL90s57014",
+    "traces": "42501beforeenvironment/sample;0nativeplans",
+    "postflight": "identity+certificate+closurePASS;teardown0"
+   },
+   "correction": "Remove redundant privilegedLOAD; preloadedGUCguard + localsettings only; allowlistedsetupstages.17Node+6PythonPASS,5exactSQLsessions/22PLpgSQLparsed;read-onlyreviewnoblocker."
   }
  },
  "redovi": [

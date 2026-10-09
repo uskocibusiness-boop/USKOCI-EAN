@@ -1568,3 +1568,14 @@ Nivo dokaza: ove dve revizije SOURCE149 testova+89guards/TSC, native sledeći pa
 ### Nativna dorada — broj mesta i naručilac na kartici (09.10)
 
 Stvarni emulator512,361dp/1,15, pokazuje da bočni broj mesta odvlači širinu imenu i oceni. Revizija: broj mesta je zaseban red činjenica sa postojećim2.5D users28dp; naručilac zatvara karticu punom širinom, ime se ne skraćuje, zvezda i ocena ostaju zajedno. Sve postojeće činjenice, klik i čitački opis ostaju.139ciljanih+121guardtestPASS/TSC/source-review; ovaj raspored je poslea481 i još nije native prihvaćen. Dokaz problema: evidence/native-512c740e/taskcard-followup.json.
+
+
+## Dopuna — izmeren efekat keširanja plana i ispravka instrumenta
+
+**DOKAZAO / ACTUAL FAIL:** izolovani run37878921357/source40565dbc završioFAIL. Auto pet poziva2179,4/2217,3/2230,7/2291,1/2131,8ms pa šesti90s SQL57014; custom svih šest2486,8–2620,3ms; generic prvi90s57014. Svih11završenih odgovora odgovara oracle-u uz već navedenu validaciju/izuzimanje observationclock. Dva Auth,40.000zadataka,jedanSQLreader,bezHTTP i bezlifecycle. Readeridentity/cert/closure postflightPASS,teardown0. Originalni bounded artefakti i SHA: `evidence/discovery-plan-cache-37878921357/`.
+
+**NIJE DOKAZANO:** oba instrumentirana poziva su42501 pre environment/sample, nema nativeplana. Efekat plan-mode važi za ceoRPC ihelpers; konkretan spori čvor još nije lokalizovan. Ne proglašavati ovaj FAIL uspešnom dijagnostikom ili performancePASS.
+
+**REVIZIJA:** uklonjen suvišan privilegovaniLOADauto_explain; postojeći P6instrument već proverava preloadedGUC, zatim samoSETLOCAL. Ista ograda sada ovde,bezgrantova i menjanjauloga. Samo dozvoljene fazeADMISSION/CONFIG/CONFIGURED/ROLE/CALL ostajuuizveštaju; setuppermission/missingmodule odvojeni.17Node+6PythonPASS,5stvarnogeneratorSQLsesija/22PLpgSQLtelaPARSEPASS,read-onlyreview bezblokera. Ovo opravdava jedan korigovani izolovani runtime, sa istim90s/5s limitima.
+
+**IZVOR:** PostgreSQL17 `src/backend/tcop/utility.c` i `src/backend/utils/fmgr/dfmgr.c` odbijaju ograničeniLOADpre provere već učitanogmodula. Pošto starierrorheadline nije sačuvan, tačna atribucijaLOAD-u je source-supported inference, ne posmatraniheadline.

@@ -236,3 +236,23 @@ timeouts = subprocess.run(['node', '--input-type=module', '-e',
     cwd=ROOT, check=True, capture_output=True, encoding='utf-8').stdout
 pglast.parse_sql(timeouts)
 print('PASS concurrency timeout catalog SQL parsed; actual HTTP settings/runtime NOT proven')
+
+# Parse the exact plan-cache sessions, including trace admission, without a DB.
+plan_sessions = subprocess.run(['node', '--input-type=module', '-'], cwd=ROOT,
+    check=True, capture_output=True, encoding='utf-8', input=r'''
+import {PLAN_MODES,planSessionSql} from './supabase/proofs/discovery-grad/plan-cache.proof.mjs';
+const q=s=>"'"+String(s).replaceAll("'","''")+"'";
+const fixture={q,viewerId:'00000000-0000-0000-0000-000000000001',
+ request:{mode:'PLACES',prefix:"O'Grad Љ",limit:30},
+ oracle:{mode:'PLACES',anchor:{timeAt:'2026-10-09T00:00:00.123456Z'},counts:{everywhere:40000},items:[]}};
+process.stdout.write(JSON.stringify([
+ ...PLAN_MODES.map(mode=>planSessionSql({...fixture,mode})),
+ ...['force_custom_plan','force_generic_plan'].map(mode=>planSessionSql({...fixture,mode,trace:true}))]));
+''')
+plan_bodies = 0
+for statement in json.loads(plan_sessions.stdout):
+    pglast.parse_sql(statement)
+    for found in re.finditer(r"\bdo\s+(\$[a-z0-9_]+\$)(.*?)\1;", statement, re.S):
+        parse_plpgsql_json("create function f() returns void language plpgsql as $syntax$" + found.group(2) + "$syntax$")
+        plan_bodies += 1
+print(f'PASS plan-cache 5 exact SQL sessions/{plan_bodies} PLpgSQL bodies parsed; native plans NOT proven')

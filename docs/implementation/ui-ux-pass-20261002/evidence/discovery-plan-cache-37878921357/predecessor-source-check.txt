@@ -1,0 +1,4 @@
+PASS ZONE-PERF 1 body replacement, 0 new functions, 27 truth-table probes; generated files checked
+PASS MATCH-V1 6 body replacements, 4 new functions, 16 pinned dependencies; generated files checked
+PASS DISCOVERY-ZAMENE 1 body replacement, 2 helpers, 3 MATCH-V1 pins; generated files checked
+PASS ZONE-PERF + MATCH-V1 + DISCOVERY-ZAMENE offline: generators exact, 46 SQL/PLpgSQL units parsed, rule and speed boundaries hold; runtime proof pending

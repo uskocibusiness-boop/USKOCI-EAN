@@ -30,6 +30,20 @@ test('instrumented trace has just one separate call and disables parameter/timin
   assert.ok(sql.includes('auto_explain.log_parameter_max_length=0'));
   assert.ok(sql.includes('auto_explain.log_timing=off'));
   assert.ok(sql.includes('auto_explain.log_buffers=on'));
+  assert.ok(sql.includes('DG_AUTO_EXPLAIN_NOT_PRELOADED'));
+  assert.ok(!/\bload\s+'|alter\s+role|grant\s+/i.test(sql));
+});
+
+test('trace setup failures retain only an allowlisted phase and bounded reason', () => {
+  const child = {status: 3, stdout: 'DG_TRACE_STAGE ADMISSION\nDG_TRACE_STAGE CONFIG\nDG_TRACE_STAGE SECRET_RAW_LITERAL',
+    stderr: 'ERROR: 42501: permission denied to set parameter auto_explain.log_analyze\nQUERY: SECRET_RAW_LITERAL'};
+  const result = planResult(child, 28, true);
+  assert.equal(result.traceSetupStage, 'CONFIG');
+  assert.equal(result.failure, 'TRACE_SETUP_PERMISSION_DENIED');
+  assert.equal(result.progress.activeSample, null);
+  assert.ok(!JSON.stringify(result).includes('SECRET_RAW_LITERAL'));
+  assert.equal(planResult({...child, stderr: 'ERROR: P0001: DG_AUTO_EXPLAIN_NOT_PRELOADED'}, 28, true).failure, 'TRACE_NOT_PRELOADED');
+  assert.equal(planResult({...child, stdout: env}, 28, true).failure, 'SQL_OR_PROCESS_FAILURE');
 });
 test('sixth-call timeout retains completed samples, never stderr/query payload or a partial successful metric', () => {
   const stderr = Array.from({length: 5}, (_, i) => `NOTICE: DG_MEASURE_BEGIN:${i}\nNOTICE: DG_MEASURE_DONE:${i}:3000`).join('\n')

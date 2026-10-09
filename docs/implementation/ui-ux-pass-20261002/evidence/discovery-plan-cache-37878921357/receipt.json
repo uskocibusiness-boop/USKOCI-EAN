@@ -1,0 +1,29 @@
+{
+  "run": 37878921357,
+  "source": "40565dbc43505d03df3d79b88185a37dbc9577ca",
+  "result": "FAIL",
+  "files": {
+    "load-report.json": "27793ff1507af1f4f234f230dc244a674574429ff858d5d79cf588c667aa3337",
+    "load-checks.txt": "9be32c8a65c9e7c23fe721fad4a54704303a541aa6cad69a196ac81fe2f63f07",
+    "source-binding.txt": "7a7790b5d85b6f742a95f9a920abc80278812de0d3912cc9985e70391381c545",
+    "source-check.txt": "181d9e49f46df1f7255475151f61556ea6d9aa6af952f037d0147ea9dc48a732",
+    "predecessor-fidelity.json": "28040b8830c0d1c2fa5a1e6642b8c17246a8c4a441125877dfcda28809ba6c99",
+    "predecessor-source-check.txt": "ce9cb235a2b0893c2835662044abac56695e2c7ff43ec6855bf6b6354ada7111",
+    "source-manifest-sha256.txt": "65cf23a0b6a823dcfd65cec0842cb2504eceeeb6a88f6552bc4f7e6dfa076c7a",
+    "teardown.txt": "e6326040a1b78fbb37908b37ad51f89592239973c26e4a2ffedbd1cdbec4237d",
+    "chain/chain-fidelity.json": "c4c9c826eb67f3e3250ba1f43ff57299332030d0a6ccd78306f148afdebeb763",
+    "chain/chain-stages.txt": "462d083755f8c9d245cc792626bab8eb5c5a53667e879d09ab0a92dde098b891"
+  },
+  "proof": "Mode-sensitive whole RPC: auto sixth statement90s timeout; custom6pass; generic first90s timeout. All11completed responses match complete oracle except explicitly validated observation clocks.",
+  "notProven": [
+    "Specific slow nested PLACES node: both traces failed42501 before call, no native plans",
+    "40k active users/concurrency capacity",
+    "DEV improvement"
+  ],
+  "traceDiagnosis": "Source-supported redundant privileged LOAD rejection, exact error headline not retained. Reuse existing preloaded-module guard, no privilege grants.",
+  "postflight": {
+    "identityUnchanged": true,
+    "certificateUnchanged": true,
+    "teardownExit": 0
+  }
+}

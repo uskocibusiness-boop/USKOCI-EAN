@@ -8,7 +8,14 @@ export const PLAN_MODES = ['auto', 'force_custom_plan', 'force_generic_plan'];
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const READER = 'a9b0985991f4ebfe4e95143e5cf57222';
 const BUDGET_MS = 15 * 60 * 1000;
-const TRACE_CONFIG = `load 'auto_explain';
+// Supabase preloads auto_explain. LOAD itself requires superuser even when the
+// module is already loaded; use the existing p6_cost_probe admission instead.
+const TRACE_CONFIG = `select 'DG_TRACE_STAGE ADMISSION';
+do $dg_trace_loaded$ begin
+  if current_setting('auto_explain.log_min_duration',true) is null then
+    raise exception 'DG_AUTO_EXPLAIN_NOT_PRELOADED'; end if;
+end $dg_trace_loaded$;
+select 'DG_TRACE_STAGE CONFIG';
 set local auto_explain.log_analyze=on;
 set local auto_explain.log_buffers=on;
 set local auto_explain.log_timing=off;
@@ -16,7 +23,8 @@ set local auto_explain.log_nested_statements=on;
 set local auto_explain.log_parameter_max_length=0;
 set local auto_explain.log_format=json;
 set local auto_explain.log_level=notice;
-set local auto_explain.log_min_duration=1;`;
+set local auto_explain.log_min_duration=1;
+select 'DG_TRACE_STAGE CONFIGURED';`;
 
 export function planSessionSql({mode, viewerId, request, oracle, q, trace = false}) {
   assert.ok(PLAN_MODES.includes(mode), 'PLAN_MODE_NOT_ALLOWED');
@@ -48,12 +56,14 @@ ${trace ? TRACE_CONFIG : ''}
 set local plan_cache_mode=${q(mode)};
 select set_config('request.jwt.claims',${q(JSON.stringify({sub: viewerId, role: 'authenticated'}))},true);
 select set_config('request.jwt.claim.sub',${q(viewerId)},true);
+${trace ? "select 'DG_TRACE_STAGE ROLE';" : ''}
 set local role authenticated;
 select set_config('dg.plan_pid',pg_backend_pid()::text,true);
 select set_config('dg.plan_times','[]',true);
 select 'DG_PLAN_ENV '||jsonb_build_object('mode',current_setting('plan_cache_mode'),'role',current_user,
   'serverVersion',current_setting('server_version_num'),'statementTimeout',current_setting('statement_timeout'),
   'lockTimeout',current_setting('lock_timeout'),'jit',current_setting('jit'),'workMem',current_setting('work_mem'))::text;
+${trace ? "select 'DG_TRACE_STAGE CALL';" : ''}
 ${calls.join('\n')}
 select 'DG_PLAN_RESULT '||jsonb_build_object('sessionStable',true,'times',current_setting('dg.plan_times')::jsonb)::text;
 rollback;`;
@@ -68,8 +78,13 @@ export function planResult(child, elapsedMs, trace = false) {
   const environment = readMarker('DG_PLAN_ENV '), result = readMarker('DG_PLAN_RESULT ');
   const stderr = String(child.stderr ?? '');
   const sqlstate = stderr.match(/(?:ERROR|FATAL):\s+([A-Z0-9]{5}):/)?.[1] ?? null;
+  const traceSetupStage = trace ? String(child.stdout ?? '').split('\n')
+    .filter(line => /^DG_TRACE_STAGE (ADMISSION|CONFIG|CONFIGURED|ROLE|CALL)$/.test(line))
+    .at(-1)?.slice('DG_TRACE_STAGE '.length) ?? null : null;
   const failure = child.status === 0 ? null : child.error?.code === 'ETIMEDOUT' ? 'PROCESS_BUDGET'
     : /canceling statement due to statement timeout/.test(stderr) ? 'STATEMENT_TIMEOUT'
+    : trace && !environment && sqlstate === '42501' ? 'TRACE_SETUP_PERMISSION_DENIED'
+    : trace && /DG_AUTO_EXPLAIN_NOT_PRELOADED/.test(stderr) ? 'TRACE_NOT_PRELOADED'
     : /DG_PLAN_RESPONSE_CHANGED/.test(stderr) ? 'RESPONSE_CHANGED'
     : /DG_PLAN_ENVELOPE_CHANGED/.test(stderr) ? 'ENVELOPE_CHANGED'
     : /DG_PLAN_SESSION_CHANGED/.test(stderr) ? 'SESSION_CHANGED' : 'SQL_OR_PROCESS_FAILURE';
@@ -82,7 +97,7 @@ export function planResult(child, elapsedMs, trace = false) {
     assert.ok(PLAN_MODES.includes(environment?.mode)); assert.equal(environment.role, 'authenticated');
     assert.equal(environment.statementTimeout, '90s'); assert.equal(environment.lockTimeout, '5s');
   }
-  return {environment, elapsedMs, progress, sessionStable: result?.sessionStable === true,
+  return {environment, elapsedMs, progress, ...(trace ? {traceSetupStage} : {}), sessionStable: result?.sessionStable === true,
     completedResponseComparisons: progress.completedSamples, failure, sqlstate,
     status: child.status, processCode: child.error?.code === 'ETIMEDOUT' ? 'ETIMEDOUT' : null};
 }

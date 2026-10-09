@@ -1,0 +1,259 @@
+{
+  "unit": "DISCOVERY-GRAD load",
+  "result": "FAIL",
+  "sourceSha": "40565dbc43505d03df3d79b88185a37dbc9577ca",
+  "disposableOnly": true,
+  "liveAccess": false,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "tasks": 40000,
+  "checks": [
+    {
+      "name": "DISCOVERY_GRAD_LOAD_SEEDED",
+      "result": "PASS",
+      "detail": {
+        "openTasks": 40000
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE",
+      "result": "PASS"
+    }
+  ],
+  "failures": [
+    {
+      "name": "LOAD",
+      "detail": "AssertionError [ERR_ASSERTION]: PLAN_UNEXPECTED_FAILURE\n    at provePlanCache (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/plan-cache.proof.mjs:164:12)\n    at deployedBaseline (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/load.proof.mjs:231:11)\n    at async file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/load.proof.mjs:320:5"
+    }
+  ],
+  "load": {
+    "openTasks": 40000
+  },
+  "mode": "DEPLOYED_BASELINE",
+  "population": {
+    "tasks": 40000,
+    "authAccounts": 2,
+    "simultaneousRequests": 1,
+    "lifecycleMutations": 0
+  },
+  "limits": "Synthetic bulk read fixture, serial SQL/HTTP samples on a shared CI runner. Not 40000 active users, whole-schema fidelity, lifecycle or native FPS.",
+  "baseline": {
+    "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "foldMd5": "41353abe05d434d513495ae5974b9802",
+    "before": {
+      "helper": true,
+      "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "readerAfter": true,
+      "dependencies": true,
+      "closureDigest": "8bcfb1dfad5ddf2074a30a0c9e832ba174bea9c0ee354c5030523c7b22aa43e1",
+      "certificateReady": true,
+      "erasureProgramDigest": "97d5ce6b4971e9c1439e134878bb12bf0d3e7ea228ac763a698283cef9a507a9",
+      "retriedLiteralFunctions": 63,
+      "foldTruthTableMismatches": 0
+    }
+  },
+  "planCacheDiagnostic": {
+    "state": "FAIL",
+    "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "budgetMs": 900000,
+    "budgetScope": "Fixture, oracle and sampling/trace workload; postflight is separately measured with existing bounded SQL deadlines.",
+    "fixture": "All 40000 DG load rows have unique areas; separate from the 27-marked-row area corpus.",
+    "limits": "Two Auth accounts, one SQL reader at a time. No HTTP/concurrency/capacity proof. Modes also affect helper plans. No candidate installed.",
+    "semanticComparison": "Full JSON except validated asOf and counts.observedAt; same complete oracle anchor. Not a new unmasked semantic proof.",
+    "modes": {
+      "auto": {
+        "environment": {
+          "jit": "on",
+          "mode": "auto",
+          "role": "authenticated",
+          "workMem": "4MB",
+          "lockTimeout": "5s",
+          "serverVersion": "170006",
+          "statementTimeout": "90s"
+        },
+        "elapsedMs": 101104,
+        "progress": {
+          "valid": true,
+          "plannedSamples": 6,
+          "completedSamples": 5,
+          "activeSample": 5,
+          "completed": [
+            {
+              "index": 0,
+              "elapsedMs": 2179.4
+            },
+            {
+              "index": 1,
+              "elapsedMs": 2217.3
+            },
+            {
+              "index": 2,
+              "elapsedMs": 2230.7
+            },
+            {
+              "index": 3,
+              "elapsedMs": 2291.1
+            },
+            {
+              "index": 4,
+              "elapsedMs": 2131.8
+            }
+          ]
+        },
+        "sessionStable": false,
+        "completedResponseComparisons": 5,
+        "failure": "STATEMENT_TIMEOUT",
+        "sqlstate": "57014",
+        "status": 3,
+        "processCode": null
+      },
+      "force_custom_plan": {
+        "environment": {
+          "jit": "on",
+          "mode": "force_custom_plan",
+          "role": "authenticated",
+          "workMem": "4MB",
+          "lockTimeout": "5s",
+          "serverVersion": "170006",
+          "statementTimeout": "90s"
+        },
+        "elapsedMs": 15404,
+        "progress": {
+          "valid": true,
+          "plannedSamples": 6,
+          "completedSamples": 6,
+          "activeSample": null,
+          "completed": [
+            {
+              "index": 0,
+              "elapsedMs": 2486.8
+            },
+            {
+              "index": 1,
+              "elapsedMs": 2620.3
+            },
+            {
+              "index": 2,
+              "elapsedMs": 2618.4
+            },
+            {
+              "index": 3,
+              "elapsedMs": 2529.4
+            },
+            {
+              "index": 4,
+              "elapsedMs": 2501.4
+            },
+            {
+              "index": 5,
+              "elapsedMs": 2603.4
+            }
+          ]
+        },
+        "sessionStable": true,
+        "completedResponseComparisons": 6,
+        "failure": null,
+        "sqlstate": null,
+        "status": 0,
+        "processCode": null
+      },
+      "force_generic_plan": {
+        "environment": {
+          "jit": "on",
+          "mode": "force_generic_plan",
+          "role": "authenticated",
+          "workMem": "4MB",
+          "lockTimeout": "5s",
+          "serverVersion": "170006",
+          "statementTimeout": "90s"
+        },
+        "elapsedMs": 90048,
+        "progress": {
+          "valid": true,
+          "plannedSamples": 6,
+          "completedSamples": 0,
+          "activeSample": 0,
+          "completed": []
+        },
+        "sessionStable": false,
+        "completedResponseComparisons": 0,
+        "failure": "STATEMENT_TIMEOUT",
+        "sqlstate": "57014",
+        "status": 3,
+        "processCode": null
+      }
+    },
+    "traces": {
+      "force_custom_plan": {
+        "environment": null,
+        "elapsedMs": 32,
+        "progress": {
+          "valid": true,
+          "plannedSamples": 1,
+          "completedSamples": 0,
+          "activeSample": null,
+          "completed": []
+        },
+        "sessionStable": false,
+        "completedResponseComparisons": 0,
+        "failure": "SQL_OR_PROCESS_FAILURE",
+        "sqlstate": "42501",
+        "status": 3,
+        "processCode": null,
+        "nativePlans": [],
+        "traceStatus": "PLAN_NOT_CAPTURED"
+      },
+      "force_generic_plan": {
+        "environment": null,
+        "elapsedMs": 28,
+        "progress": {
+          "valid": true,
+          "plannedSamples": 1,
+          "completedSamples": 0,
+          "activeSample": null,
+          "completed": []
+        },
+        "sessionStable": false,
+        "completedResponseComparisons": 0,
+        "failure": "SQL_OR_PROCESS_FAILURE",
+        "sqlstate": "42501",
+        "status": 3,
+        "processCode": null,
+        "nativePlans": [],
+        "traceStatus": "PLAN_NOT_CAPTURED"
+      }
+    },
+    "phase": {
+      "stage": "native_trace",
+      "mode": "force_generic_plan"
+    },
+    "taskCount": 40000,
+    "oracleRead": {
+      "ok": true,
+      "elapsedMs": null,
+      "sqlstate": null,
+      "failure": null
+    },
+    "oracle": {
+      "sha256": "a7c46e6271bb8b64ec4367bb223ccbd4d7c62606028f8f98924de42cc2aa4f91",
+      "rows": 30,
+      "everywhere": 40000,
+      "anchorSha256": "142ac23c9ff093db2a8a80664002bc4b527aeb1de566742aca7cf1144edb26c4"
+    },
+    "elapsedMs": 211476,
+    "identityUnchanged": true,
+    "certificateUnchanged": true,
+    "postflight": {
+      "helper": true,
+      "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "readerAfter": true,
+      "dependencies": true,
+      "closureDigest": "8bcfb1dfad5ddf2074a30a0c9e832ba174bea9c0ee354c5030523c7b22aa43e1",
+      "certificateReady": true,
+      "erasureProgramDigest": "97d5ce6b4971e9c1439e134878bb12bf0d3e7ea228ac763a698283cef9a507a9",
+      "retriedLiteralFunctions": 63,
+      "foldTruthTableMismatches": 0
+    },
+    "postflightElapsedMs": 353
+  }
+}
