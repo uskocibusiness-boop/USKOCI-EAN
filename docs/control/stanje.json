@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T03:35:56Z",
+  "osvezeno": "2026-10-09T03:37:02Z",
   "grana": "integration/spoj-20261006",
-  "head": "be858be5",
-  "head_poruka": "merge: preserve generated native-check preparation status",
+  "head": "511b1e34",
+  "head_poruka": "Preserve plan-cache timeout evidence and repair isolated trace admission",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
