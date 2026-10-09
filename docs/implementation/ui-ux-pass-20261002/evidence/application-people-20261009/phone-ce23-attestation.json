@@ -1,0 +1,60 @@
+{
+  "state": "LOCAL_APK_ATTESTED_DEVICE_PENDING",
+  "recordedAt": "2026-10-09T15:50:29.104018+00:00",
+  "source": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+  "tree": "3200f4c0ee970deb6d57a7741d34b8af48a0e788",
+  "archiveSha256": "e9e55e0a087c4056c8b694a19ccb4a44912407b568c74aadd91582cd4a1a089f",
+  "sourceFilesByteEqual": 5863,
+  "overlaySha256": {
+    "app.json": "573213a0c56388506e5fd96b79fe9e71a0a11a9af5234176383ed91d480da553",
+    "package.json": "2325c3fd021694383ac80711806b5c9c1e6ce835e69d3164c4bb8e8e784d89ad"
+  },
+  "buildReceiptSha256": "1fc72971ddc19556fe716c2ed53d6b3f3aa039769998f7ffb67304e67dde3a0f",
+  "apk": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\apk-phone-ce23eb06\\USKOCI-test-ce23eb06.apk",
+  "apkSha256": "d9b875a0e8293eaf07c34190a0b59f119d50d281f9322854a796726826762e16",
+  "apkBytes": 99690208,
+  "identity": {
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false
+  },
+  "package": "rs.uskoci.preview",
+  "versionCode": 35,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "signatureVerified": true,
+  "debuggable": false,
+  "updatesEnabled": true,
+  "embeddedBuildIdentity": {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "sourceCommit": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+    "sourceDirty": {},
+    "backendTarget": "canonical",
+    "backendRelease": {},
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "updateChannel": "preview"
+  },
+  "bundleSha256": {
+    "assets/index.android.bundle": "601a9f5d2c2a99016f4e24ea420983cb58d3d6bd27f3176e0e580dd7627da3e0"
+  },
+  "deviceInstalled": false,
+  "runtimeIdentityChecked": false,
+  "ci": false,
+  "storeReady": false,
+  "limits": [
+    "Local incremental build, not CI or public release.",
+    "Phone preview may choose OTA; independently verify runtime identity.",
+    "No device or push delivery acceptance from this artifact alone."
+  ]
+}

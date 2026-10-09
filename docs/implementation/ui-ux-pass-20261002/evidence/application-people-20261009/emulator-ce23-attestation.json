@@ -1,0 +1,54 @@
+{
+  "state": "LOCAL_APK_ATTESTED_DEVICE_PENDING",
+  "recordedAt": "2026-10-09T15:41:59.213204+00:00",
+  "source": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+  "tree": "3200f4c0ee970deb6d57a7741d34b8af48a0e788",
+  "archiveSha256": "e9e55e0a087c4056c8b694a19ccb4a44912407b568c74aadd91582cd4a1a089f",
+  "sourceFilesByteEqual": 5862,
+  "overlaySha256": {
+    "app.json": "8ad681e921f2bb09795ed6533658bf313b71094a2fc718086b5a22feb3fc7b1f",
+    "package.json": "2325c3fd021694383ac80711806b5c9c1e6ce835e69d3164c4bb8e8e784d89ad",
+    "app.config.js": "54118536cc94301711c76f542644568209074cc4de944ade4b4bd079d7c79b73"
+  },
+  "buildReceiptSha256": "1389989325bb6957aa76dbc8905afae30ec05dc8409880c598607e324a648981",
+  "apk": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\apk-emulator-ce23eb06\\USKOCI-test-ce23eb06.apk",
+  "apkSha256": "3a3da9ea72f39b7d278384ddc869d5b1b6da53bb256a529b82b3725082db999b",
+  "apkBytes": 101541580,
+  "identity": {
+    "package": "rs.uskoci.dev",
+    "versionCode": 35,
+    "version": "1.0.0",
+    "updatesEnabled": false
+  },
+  "package": "rs.uskoci.dev",
+  "versionCode": 35,
+  "abis": [
+    "x86_64"
+  ],
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "signatureVerified": true,
+  "debuggable": false,
+  "updatesEnabled": false,
+  "embeddedBuildIdentity": {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "sourceCommit": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+    "sourceDirty": {},
+    "backendTarget": "canonical",
+    "backendRelease": {},
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "updateChannel": "preview"
+  },
+  "bundleSha256": {
+    "assets/index.android.bundle": "601a9f5d2c2a99016f4e24ea420983cb58d3d6bd27f3176e0e580dd7627da3e0"
+  },
+  "deviceInstalled": false,
+  "runtimeIdentityChecked": false,
+  "ci": false,
+  "storeReady": false,
+  "limits": [
+    "Local incremental build, not CI or public release.",
+    "Phone preview may choose OTA; independently verify runtime identity.",
+    "No device or push delivery acceptance from this artifact alone."
+  ]
+}

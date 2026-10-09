@@ -1,0 +1,74 @@
+{
+  "state": "EXACT_EMULATOR_INERT_INTERACTIONS_PASS_LIVE_JOURNEY_OPEN",
+  "recordedAt": "2026-10-09T15:59:08.781462+00:00",
+  "source": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+  "apkSha256": "3a3da9ea72f39b7d278384ddc869d5b1b6da53bb256a529b82b3725082db999b",
+  "package": "rs.uskoci.dev",
+  "device": "emulator-5554 / USKOCI_V5_TEST",
+  "runtimeSource": "ce23eb0",
+  "install": "adb install -r; Success; session/data retained",
+  "accepted": [
+    "Default1, minus disabled; plus2=6667, plus3=10000/max disabled; minus2=6667",
+    "Typed4/0 retained and review disabled; keyboard-visible reason",
+    "Typed2 -> review6667 and2people -> return preserves2",
+    "PER_PERSON2500 ->2people5000",
+    "Stale edit1->2 calculates4000; direct3 overmax shows reason and Save disabled",
+    "Large font1.30 review readable with stacked facts and reachable actions"
+  ],
+  "fonts": {
+    "baseline": 1.0,
+    "resilience": 1.3,
+    "restored": 1.15
+  },
+  "snapshots": [
+    {
+      "file": "people-ce23-rounded-1.png",
+      "sha256": "b49e4b6b1ccc0c33cbaf8f22b70035fae0e9c32c3d0c4475ee80d49c57ebfba0"
+    },
+    {
+      "file": "people-ce23-rounded-1.xml",
+      "sha256": "328b5bf29baca3de6cfb039d52365069e0a6a5d9046f88a9f788fe0698c0dabe"
+    },
+    {
+      "file": "people-ce23-invalid4.png",
+      "sha256": "7180f8a42fe2aede1ac2b38aaf38bd7f9a1218bd104cea9ad3e3de8f6fb1133a"
+    },
+    {
+      "file": "people-ce23-invalid4.xml",
+      "sha256": "93c829c0fe3dbb11ececec8fb1b87c6723721333a06bbec79443ed328b55c356"
+    },
+    {
+      "file": "people-ce23-review.png",
+      "sha256": "5b58d89512d3c8f455c7b7e6f467895fb44d23ebcb1b5428e521286509c050a3"
+    },
+    {
+      "file": "people-ce23-review.xml",
+      "sha256": "c7746469a9bb6eba8039d124f1b7ab4184b1b2ff68b0ea8f78cf6dfbcbc1b0ad"
+    },
+    {
+      "file": "people-ce23-large-review.png",
+      "sha256": "a6d603e1d8319ba98c6b182c550cc18da3eaf871bbabaf3ee32a8d38d52a11a6"
+    },
+    {
+      "file": "people-ce23-large-review.xml",
+      "sha256": "c30dea41a04675cec2256e0a5dc801a3426f73daef1855826c8b615e3beafb59"
+    },
+    {
+      "file": "people-ce23-edit-final-back.png",
+      "sha256": "17bf83a01bbcb011a0c7d1d8ebf050593769766c6b9fd13b13a945d3fd73b6eb"
+    },
+    {
+      "file": "people-ce23-edit-final-back.xml",
+      "sha256": "ac43900758b8adcc0fb0eef3fbeca1beaeafa46e87a1957eacb248293e55fc31"
+    }
+  ],
+  "harnessIssues": [
+    "First invocation from scratch cwd could not import qa_device; no device action; corrected canonical cwd.",
+    "Font configuration recreated Activity while first gallery URL arrived; stale screen had no expected controls, assertion stopped taps; route reopened and completed."
+  ],
+  "limits": [
+    "Inert galleries use fixture data; no new live response, selection, message or push written.",
+    "No measured frame/latency percentiles or whole-app/no-ANR claim.",
+    "Phone APK not physically accepted; no store or full combined journey proof."
+  ]
+}

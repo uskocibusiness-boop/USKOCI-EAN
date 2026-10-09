@@ -68,3 +68,7 @@ Vlasnik traži početni broj1, minus/plus i direktan unos broja ljudi koje podno
 ### 09.10 — potvrđeno zaokruživanje svake prijave
 
 Na konkretno pitanje10000RSD/3osobe vlasnik izričito odgovara: „Zaokruži na najbliži dinar“. Nova ili izmenjena prijava računa round(ukupna cena zadatka × broj ljudi u prijavi / ukupno traženih ljudi), jednom za celu prijavu;10000/3 daje3333 za jednu i6667 za dve osobe. Prihvaćena je i navedena posledica da tri odvojene prijave po jednoj osobi daju9999. Ne deliti zaokruženu jediničnu cenu pa množiti. Sačuvani Dogovor/pending iznosi ostaju nepromenjeni. Ovo zatvara ranije otvoreno obračunsko pitanje i odobrava usklađenu implementaciju konkretno opisane cene.
+
+### 09.10 — određen plan, presek i kraj rada
+
+Najnoviji zahtev traži profesionalnu timsku analizu trenutnog stanja, šta je završeno, šta sledi i kada je APK spreman; vlasnik izričito ne želi neograničen rad bez jasnog plana i završetka. Prioritet su AI radni profil, stvaranje/izmena zadatka i profila, lokacije/pin/ruta, saradnje, čet/mediji i brzina baze. Čitanje: nastaviti postojeći posao uz ograničene prihvatne scenarije i jasne release uslove; ne pretvoriti raniji „u krug“ nalog u beskonačne estetske iteracije. Postojećih62 redova i master ostaju autoritet evidencije. Izveštaj STATUS_I_KRITERIJUMI_ZAVRSETKA_20261009.md je presek, ne nova paralelna lista. Ovo nije odobrenje javnog izdanja niti promena već pauzirane30-minutne automatizacije.
