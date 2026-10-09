@@ -2488,6 +2488,12 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
           "change": "Removed refreshable list gesture conflict at FULL; refresh remains explicit in existing menu, stale callback/restore guards preserved.",
           "boundary": "Fail-before/PASS-after binding proof; existing6dbd38e0 APK jobs do not include this later change. No server/library change."
+        },
+        "empty_map_20261009": {
+          "state": "SOURCE_TARGETED_PASS / BUNDLED_NATIVE_PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/empty-map-20261009/receipt.json",
+          "checks": "377 targeted tests/4 suites PASS, TypeScript PASS, independent read-only review no blocker; full regression running.",
+          "next": "Freeze source, bundle emulator and phone previews, inspect empty-map HALF/FULL/peek and fresh worker AI/task/matching. Phone f61 not current."
         }
       }
     },
@@ -9390,6 +9396,21 @@
         "tests": "75 worker recovery tests PASS; first cold run timed out existing first test at5s, rerun PASS."
       },
       "heartbeat": "Owner explicitly paused the30-minute Codex automation; active work continues. Do not re-enable it without a new request."
+    },
+    "empty_map_20261009": {
+      "state": "SOURCE_TARGETED_PASS / BUNDLED_NATIVE_PENDING",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/empty-map-20261009/receipt.json",
+      "checks": "377 targeted tests/4 suites PASS, TypeScript PASS, independent read-only review no blocker; full regression running.",
+      "next": "Freeze source, bundle emulator and phone previews, inspect empty-map HALF/FULL/peek and fresh worker AI/task/matching. Phone f61 not current."
+    },
+    "release_flow_readonly_20261009": {
+      "state": "GAPS_CONFIRMED / NO_RELEASE_CLAIM",
+      "newTaskPush": "Natural matching can emit OPPORTUNITY_AVAILABLE, but current single-target admission, begin-send guard and CHECK accept MESSAGE_RECEIVED only. Prepare a new exact certified bounded opportunity package; do not enable global sending.",
+      "store": "Production config still uses canonical DEV and excludes preview Firebase; real production package identity/push/signing/AAB plus legal/privacy/deletion evidence incomplete.",
+      "capacity": "Existing40k is synthetic task count, not concurrent users. One viewer:1.28 req/s p95=2054.83ms at parallelism1;1.43 req/s p95=6707.04ms at4. Parallelism16 failed in warmup with5 HTTP500/57014. No production capacity acceptance.",
+      "localDiagnostic": "Portable local restore has49 original tasks, not40k; missing per-column ACL/auth schema grants means separate diagnostic clone must reconstruct compatibility before authenticated Discovery measurement. Reset/inverse proof scope unchanged.",
+      "nativeAlignment": "Exact f61 APK:28 native libraries statically aligned >=16KB for ELF LOAD and uncompressed ZIP offsets; no16KB runtime/AAB proof.",
+      "ci": "Run37913827086 refresh job113765091836 had zero steps; annotation confirms account billing/spending limit block. No code-test failure claimed."
     }
   }
 }

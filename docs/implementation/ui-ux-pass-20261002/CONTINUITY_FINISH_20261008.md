@@ -611,3 +611,14 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **VLASNIK:** u toku rada izričito traži zaustavljanje zadatka koji se ponavlja svakih30min, uz nastavak tekućeg rada. Postojeća Codexautomation usko-i-kontinuirano-usavr-avanje postavljenaPAUSED i tool potvrdio. Ne praviti novu/ne vraćatiACTIVE bez vlasnikove nove naredbe. To nije pauza rootrada.
 
 **NIJE DOKAZANO / SLEDEĆE:** sveži puni nativeAI→profil→objava→Dogovor→chat/push tokovi jošslede; novoAPK pakovanje, svepushkategorije, kapacitet40k i storespremnost nisu proglašeni. Naemulatoru stari cachedchat može stajati do normalnogrefresh/focus; proveriti normalno učitavanje bezbrisanja sesije ili aplikacijskih podataka.
+
+
+## Prazna mapa i novi objedinjeni native paket — 09.10.
+
+**URADIO:** posle potvrđenog reset-a emulatorc62 prikazuje postojeću prijavljenu Početnu i prazne Poruke. Zadaci reprodukuju vlasnikov problem:0zadataka uklanja celu mapu, a144dp hero uHALF listi skriva objašnjenje/komande. Source sada drži mapu posle uspešnog praznog čitanja; početni regionalni pregled je isključivo kamera. CompactStateView vraća prostor tekstu i komandama.
+
+**DOKAZAO:** četiri ciljane regresije padaju pre izmene. Završno377testova/4grupe PASS, TypeScript PASS, nezavisan read-only pregled bez blokera. Naknadna full-regression je pokrenuta i još nije dokaz završetka. Izmene čuvaju stvarne pinove, GPS dozvole, zapamćeni viewport/radno područje, HALF/FULL/peek i nativeBack. `evidence/empty-map-20261009/receipt.json`.
+
+**NIJE DOKAZANO:** source fix još nije uAPK-u. Telefonf61 nema ni raniji Cyrillic/moved-pin i worker-terminal-restart patch; emulatorc62 ima još stariji UI. Jedna stvarna MESSAGE push poruka jeste fizički potvrđena; OPPORTUNITY novi-zadatak nije: sva3bounded SQL guard-a danas dopuštaju samoMESSAGE. Nije opravdano globalno aktiviranje transporta. Storeproduction i dalje koristiDEV i nema proizvodni Firebaseclient; pravni/privacy/release dokazi nisu zatvoreni.40kpostojećeg benchmarka znači zadaci, ne aktivni korisnici; parallel16 je pao u warmup-u. NajnovijiCI refresh37913827086 nije započeo zbogbilling limita, ne zbogtesta.
+
+**SLEDEĆE:** zamrznuti objedinjeni source, zadržati sopstveni ub1/ub2 nativecache uz poređenje svihsourcefajlova i izričito rebundle; attestsource/package/signature/OTA/ABI, install-r samoemulator, slikeHALF/FULL/mapa i stvarniAIprofil→zadatak→matching. BoundedOPPORTUNITY paket i izolovaniqueryplan ostaju odvojeni dokazni koraci; bezopterećenjaDEV. Automatizacija30min ostajePAUSED po vlasnikovoj naredbi.

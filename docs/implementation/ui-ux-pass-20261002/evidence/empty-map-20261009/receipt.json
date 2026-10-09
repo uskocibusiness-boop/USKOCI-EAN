@@ -1,0 +1,40 @@
+{
+  "recordedAt": "2026-10-09T10:06:26.261295+00:00",
+  "base": "f0bc0f05e7c6c9adf29a61b0cc4d3b34935dc097",
+  "state": "SOURCE_TARGETED_PASS / BUNDLED_NATIVE_PENDING",
+  "before": "Old c62 emulator after approved data reset: authenticated Home and Inbox empty as expected; Zadaci had no map and oversized first-use state hid body/actions. Four targeted regressions fail before the source patch.",
+  "after": [
+    "A successful empty local/P6 result mounts the map without GPS permission. Remote-only/loading/error behavior retained.",
+    "No-point camera uses a regional overview, fitted once after measured overlays; remembered view, work area and explicit camera intent keep priority.",
+    "No fabricated pin, device position or business/list filter. Quiet fallback settle refreshes P6 markers.",
+    "Empty states inside map sheet use existing compact StateView; recovery/publish actions remain."
+  ],
+  "checks": {
+    "suites": 4,
+    "passed": 377,
+    "failed": 0,
+    "jsonSha256": "cad3fb347d68da278abdab614379de513a1b4c7923f538bbd73b24a4c4666a0b",
+    "typeScript": "PASS",
+    "review": "Independent read-only review: no concrete blocker; existing loading/error map removal remains.",
+    "fullRegression": "RUNNING; not yet accepted"
+  },
+  "sourceSha256LF": {
+    "src/ui/v2/DiscoveryMap.tsx": "47f27a13c2cb062ac3a1881fd1573b3929ef2f0f92cb153dca13652cf425e7e8",
+    "src/ui/v2/DiscoveryPresentation.tsx": "eb053e2e8aa5a5e0bd8fa2036f86c3cc0d7931a3bc25f68ec39b48c2076f5e14",
+    "src/ui/v2/discovery/DiscoveryListState.tsx": "3dc09b791243a5cc9c860555387482f85595cdf466c330b7c3fe5c6684c08ef4",
+    "src/data/__tests__/discovery-map.test.tsx": "8494beb38f83f42988901db84a449fe34f41a55736f276bee10242c788407535",
+    "src/data/__tests__/discovery-map-pills.test.tsx": "af4161da49f01c1b2a024a12558c34680771e57c3799e6f1bccc608fd04fd2bf",
+    "src/data/__tests__/discovery-presentation.test.tsx": "e4bef8c74d305ede7ff5cc6b14d168fba05d1b93814f56f64c0285b9c9452ba8"
+  },
+  "priorNativePrivateEvidence": {
+    "emu-c62-postreset-home.png": "50621e82f2294c37ef9fcd80fc4c703b59b59aa58420f19772ca2aba907dd999",
+    "emu-c62-postreset-inbox.png": "26ad0141d75d01b4e9673e599cc7bac278983abfaa60d62792bf18e5ad9a45a2",
+    "emu-c62-postreset-discovery.png": "aefa0eef98cb3ee33efd8376941a36778257cc4a2df59e80cd5f2078ac4523a7"
+  },
+  "limits": [
+    "Old c62 screenshots reproduce the bug, not the new source fix.",
+    "Latest phone f61 and emulator c62 do not contain this change.",
+    "No provider or Supabase mutation in this source package.",
+    "Fresh worker/task/matching/new-task push journey and store release remain open."
+  ]
+}

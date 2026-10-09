@@ -819,6 +819,18 @@ const clusterMap = () => {
   return { onViewportSettled };
 };
 const settleAt = (bounds: number[]) => native().props.onRegionDidChange({ nativeEvent: { center: [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2], zoom: 12, bounds, userInteraction: false } });
+
+test('empty P6 overview fits measured clear space and refreshes markers without filtering the list', async () => {
+  const onViewportSettled = jest.fn(); rows = [];
+  extra = { p6Server: { markers: [], selectedKey: null, wholeBounds: null, onSelect: jest.fn(), onViewportSettled }, toolsBottom: 60, fitBottom: 300 };
+  await render(); await measureFrame(800); await ready();
+  expect(mockFit).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenCalledWith([18.8, 42.2, 23, 46.2], expect.objectContaining({ duration: 0, padding: expect.objectContaining({ bottom: 324, top: 86 }) }));
+  expect(annotations()).toHaveLength(0);
+  await act(async () => settleAt([18, 42, 24, 47]));
+  expect(onViewportSettled).toHaveBeenCalledWith([18, 42, 24, 47]);
+  expect(search).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
+});
 test("a P6 cluster's settle reported seconds late is still the person's own move: the list follows where it landed", async () => {
   const { onViewportSettled } = clusterMap();
   await render(); await measureFrame(800); await ready();

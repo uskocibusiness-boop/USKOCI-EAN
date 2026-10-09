@@ -1697,9 +1697,9 @@ test('at the full height a floating dark-green "Mapa" lowers the list to its top
   await dragSheet(2);
   expect(rowOf(press('Mapa')).props.entering).toBeUndefined(); expect(rowOf(press('Mapa')).props.exiting).toBeUndefined();
   expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).opacity).toBe(1);
-  // A list with nothing on the map offers no way to a map that shows nothing.
+  // Unlocated tasks keep their full list and a way back to the empty geographic overview.
   await act(async () => tree.unmount()); mockReduced = false; rows = [row('remote', { priblizno: null })]; await render();
-  expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(0);
+  expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(1);
 });
 
 // M-02 (UI/UX pass 2026-10-08): a list that comes after a skeleton has news to tell, so its first rows (at most six) arrive once; everything else stays still.
@@ -2011,9 +2011,9 @@ test('reading, not read and nothing in this view keep their meanings, through th
   await act(async () => tree.unmount());
   error = false; rows = []; await render();
   // Owner, 2026-10-07: the map and the list always show every task, so nothing found is never about the person's profile.
-  // The first encounter of the screen is a hero (the owner's pick of 8 Oct 2026, "Predmet vrata"): the map at 144 and a promise of what will be here.
+  // Empty results share the screen with a real map, so the sheet uses the compact state.
   expect(texts()).toContain('Još niko nije tražio pomoć'); expect(texts()).toContain('Čim neko objavi zadatak, pojaviće se ovde i na mapi.');
-  expect(tree.root.findAll(node => node.props.hero === true && node.props.art === 'map')).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.compact === true && node.props.art === 'map')).toHaveLength(1);
   expect(texts()).not.toContain('radnom profilu'); expect(action('Dopuni radni profil')).toBeUndefined();
   refresh.mockClear(); await click('Osveži'); expect(refresh).toHaveBeenCalledTimes(1); expect(profile).not.toHaveBeenCalled();
   expect(countLine().props.accessibilityLabel).toBe('Nema zadataka');
@@ -2367,9 +2367,11 @@ test('Android Back with the whole list up over the map lowers it to its top line
     // A task opened over the map: Back belongs to it, not to this list.
     mockFocused = false; await act(async () => listSheet().props.onChange(2));
     expect(listeners).toHaveLength(1);
-    // A list with nothing on the map takes the whole screen; Back then leaves the screen as usual.
+    // Unlocated tasks start in the full list; Back still reveals the available geographic overview.
     mockFocused = true; await act(async () => tree.unmount()); rows = [row('remote', { priblizno: null })]; listeners.length = 0; await render();
-    expect(listSheet().props.index).toBe(2); expect(listeners).toHaveLength(0);
+    expect(listSheet().props.index).toBe(2); expect(listeners).toHaveLength(1);
+    await act(async () => { consumed = listeners[0](); });
+    expect(consumed).toBe(true); expect(listSheet().props.index).toBe(0);
   } finally { spy.mockRestore(); }
 });
 
@@ -2659,9 +2661,9 @@ describe('Moja lokacija: an explicit camera-only location capture', () => {
     expect(texts()).toContain('Dozvoli lokaciju u podešavanjima'); expect(press('Podešavanja lokacije')).toBeTruthy();
     expect(press('Moja lokacija').props.disabled).toBe(false); expect(map().props.me).toBeNull(); // no permission, no dot
   });
-  test('consuming Nearby keeps an otherwise empty map mounted until its native viewport arrives', async () => {
-    rows = []; await render(); await layOutBody(); expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(0);
-    // With no map to show there is still the way to one: "Moja lokacija" stands above the list.
+  test('an empty map is visible before Nearby permission and stays mounted when its target is consumed', async () => {
+    rows = []; await render(); await layOutBody(); expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
+    expect(mockNearbyPermission).not.toHaveBeenCalled(); expect(map().props.me).toBeNull();
     await tap('Moja lokacija');
     await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.8, longitude: 20.4 } }));
     const request = map().props.centerNearby;
@@ -2719,6 +2721,16 @@ test.each([100,4000])('P6 PLACE announces all %i matching tasks while rendering 
   expect(announce).toHaveBeenCalledWith(`${total+1} zadatak na ovom mestu`);
   await click('Prikaži sve u listi');
   expect(p6Seam.onShowPlace).toHaveBeenCalledTimes(1);expect(listSheet().props.index).toBe(2);
+});
+test('an empty P6 read with no bounds keeps a map and compact recovery without asking for GPS', async () => {
+  mockNearbyPermission.mockClear();
+  rows = []; p6Seam = p6Seam_(); p6Seam.map.wholeBounds = null;
+  await render(); await layOutBody();
+  expect(map()).toBeTruthy(); expect(map().props.p6Server.markers).toEqual([]);
+  expect(map().props.viewport).toBeNull(); expect(map().props.me).toBeNull();
+  expect(mockNearbyPermission).not.toHaveBeenCalled();
+  expect(tree.root.findAll(node => node.props.compact === true && node.props.art === 'map')).toHaveLength(1);
+  await click('Osveži'); expect(refresh).toHaveBeenCalledTimes(1);
 });
 test.each([['task', serverTask], ['place', serverPlace]] as const)(
   'a P6 %s marker chosen at the half detent lowers the list sheet to its top line, as a legacy pin does, and reaches the seam', async (_kind, marker) => {

@@ -11,9 +11,8 @@ import { StateView } from '../../system/StateView';
  * - `place`     the map's own area or one point leaves nothing, and the tasks are elsewhere on the map: one move, or one tap, away.
  * - `filtered`  the conditions leave nothing: take them away.
  * - `forMe`     "Za mene" leaves nothing: say what it looks at, and the way back to every task.
- * - `none`      nobody has published a task: read again, or publish one. It is the FIRST encounter of the screen, so it is a `hero` (the owner's pick of
- *               8 Oct 2026, "Predmet vrata"): the map at 144, the object of the screen's own door, and a promise of what will be here. The states that
- *               are about a view (`place`, `filtered`, `forMe`) keep the picture at 96.
+ * - `none`      nobody has published a task: read again, or publish one. A full-screen first encounter uses the hero; the map's sheet uses the
+ *               compact state so the explanation and next actions fit above the navigation without taking the map away.
  */
 export type DiscoveryListStateKind =
   | { kind: 'loading' }
@@ -37,20 +36,21 @@ export const LIST_STATE_WORDS = {
   refresh: 'Osveži', publish: 'Objavi zadatak',
 } as const;
 
-export function DiscoveryListState({ state, clearAllLabel }: {
+export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
   state: DiscoveryListStateKind;
   /** The one label of "take every condition away", shared with the search panel's foot. */
   clearAllLabel: string;
+  compact?: boolean;
 }) {
   const w = LIST_STATE_WORDS;
   switch (state.kind) {
     case 'loading': return <StateView kind="loading" title={w.loading} skeleton={{ variant: 'task' }} />;
-    case 'error': return <StateView kind="error" art="tasks" title={w.error} body={w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
-    case 'place': return <StateView art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
+    case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error} body={w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
+    case 'place': return <StateView compact={compact} art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
-    case 'filtered': return <StateView art="map" title={w.filteredTitle} body={w.filteredBody} primary={{ label: clearAllLabel, onPress: state.onClear }} />;
-    case 'forMe': return <StateView art="tasks" title={w.forMeTitle} body={w.forMeBody} primary={{ label: w.showAll, onPress: state.onShowAll }} />;
-    case 'none': return <StateView hero art="map" title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
+    case 'filtered': return <StateView compact={compact} art="map" title={w.filteredTitle} body={w.filteredBody} primary={{ label: clearAllLabel, onPress: state.onClear }} />;
+    case 'forMe': return <StateView compact={compact} art="tasks" title={w.forMeTitle} body={w.forMeBody} primary={{ label: w.showAll, onPress: state.onShowAll }} />;
+    case 'none': return <StateView compact={compact} hero={!compact} art="map" title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
       quiet={state.onNew ? { label: w.publish, onPress: state.onNew } : undefined} />;
   }
 }

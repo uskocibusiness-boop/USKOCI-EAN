@@ -56,6 +56,17 @@ test('native clustering contains only rounded existing public points; zero is ad
  expect(sourceData().features[0].geometry.coordinates).toEqual([0, 0]); expect(sourceData().features[1].geometry.coordinates).toEqual([19.83, 45.25]);
  expect(sourceData().features[0].properties).toEqual({ needId: 'one' }); expect(source().props.data).not.toContain('Privatan');
 });
+test('an empty first map fits a regional overview above the sheet, with no invented point, GPS or list filter', async () => {
+ rows = []; await render();
+ expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState.bounds).toEqual([18.8, 42.2, 23, 46.2]);
+ expect(sourceData().features).toEqual([]);
+ expect(mockFit).not.toHaveBeenCalled(); await ready();
+ expect(mockFit).toHaveBeenCalledTimes(1);
+ expect(mockFit).toHaveBeenCalledWith([18.8, 42.2, 23, 46.2], expect.objectContaining({ duration: 0 }));
+ expect(mockNearbyLoad).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled(); expect(select).not.toHaveBeenCalled();
+ rows = [row('arrived', 45.25, 19.83)]; await update();
+ expect(mockFit).toHaveBeenCalledTimes(1); // later results cannot steal the camera
+});
 test('only an existing current public ID selects; unknown and malformed features are rejected', async () => {
  await render(); await ready(); const feature = sourceData().features[0]; await pressFeature([feature]); expect(select).toHaveBeenCalledWith('one'); select.mockClear();
  await pressFeature([{ ...feature, properties: { needId: 'unknown' } }]);

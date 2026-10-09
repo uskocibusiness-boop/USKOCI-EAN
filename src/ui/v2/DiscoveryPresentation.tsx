@@ -565,11 +565,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     else if (!mapped.length && sheetIndex === SNAP.peek) setSheetIndex(SNAP.half);
   }, [loading, mapped.length, mappedWithoutPin, where, sharedFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The map is shown once the read has landed and it has something to show (or a place the person already looked at).
+  // Empty results still belong on a map: keep geography available without requiring GPS or a first task.
   // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
-  const mapShown = where !== 'remote' && !loading && !error && (props.p6Seam
-    ? props.p6Seam.map.markers.length > 0 || !!props.p6Seam.map.wholeBounds || !!view.viewport || nearby.mapRequested
-    : mapped.length - mappedWithoutPin > 0 || !!view.viewport || nearby.mapRequested);
+  const mapShown = where !== 'remote' && !loading && !error;
   // An empty full list keeps its own recovery action and a quiet, gesture-free return to the map.
   const emptyOverMap = !loading && !error && !props.collectionStatus && !listed.length && mapShown;
 
@@ -1224,7 +1222,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all') }
           : conditionsOn ? { kind: 'filtered', onClear: reset }
             : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
-  const empty = <View style={s.empty}><DiscoveryListState state={listState} clearAllLabel={CLEAR_ALL} /></View>;
+  const empty = <View style={s.empty}><DiscoveryListState state={listState} clearAllLabel={CLEAR_ALL} compact={mapShown} /></View>;
   // A time choice leaves out the tasks whose schedule names no day; the list says how many instead of hiding them silently.
   const footer = undated ? <View key={extent.sequence} onLayout={event => {
     if (!currentSheet() || currentExtent.current !== extent) return;
