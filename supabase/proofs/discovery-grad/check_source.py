@@ -13,6 +13,22 @@ import pglast
 from pglast.parser import parse_plpgsql_json
 
 ROOT = Path(__file__).resolve().parents[3]
+# Parse the actual measurement builder, never a copied SQL template or a live runner import.
+measurement = subprocess.run(['node', '--input-type=module', '-'], cwd=ROOT, check=True, capture_output=True,
+    encoding='utf-8', input=r'''
+import {measureSql} from './supabase/proofs/discovery-grad/measure-sql.mjs';
+const q=s=>"'"+String(s).replaceAll("'","''")+"'";
+process.stdout.write(JSON.stringify([5,11].map(runs=>measureSql({viewerId:'00000000-0000-0000-0000-000000000001',
+  request:{mode:'PLACES',anchor:null,filter:{text:"O'Grad Љ"}},runs,q}))));
+''')
+measurement_units = 0
+for text in json.loads(measurement.stdout):
+    pglast.parse_sql(text)
+    for body in re.findall(r'do \$dg_measure\$(.*?)end \$dg_measure\$;', text, re.S):
+        parse_plpgsql_json('create function f() returns void language plpgsql as $syntax$' + body + 'end $syntax$')
+        measurement_units += 1
+assert measurement_units == 18
+print('PASS measurement grammar: 6/12 separate sample statements, 18 PLpgSQL units, shared anchor/session')
 G = ROOT / "supabase/candidates/discovery-grad-20261008"
 D = ROOT / "supabase/candidates/discovery-zamene-20261007"
 subprocess.run([sys.executable, str(G / "build_candidate.py"), "--check"], check=True)

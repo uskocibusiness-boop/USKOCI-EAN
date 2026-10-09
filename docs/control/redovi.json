@@ -8744,7 +8744,9 @@
       },
       "nextSplitRunState": "FAILED_PRESERVED",
       "nextSplitEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-split-37871070145/receipt.json",
-      "nextSplitResult": "Repeated62/124 + unique63/126:250 fullJSON comparisons, timestampMaskingfalse, complete32shapes each, PAGE14/PLACES3. Repeated16metrics perstage; unique baseline10/16. SQL57014 at six-call batch placesDefault; not one-RPC90s. Non-text candidate regressions32-38%; final postflightnotreached,teardown0."
+      "nextSplitResult": "Repeated62/124 + unique63/126:250 fullJSON comparisons, timestampMaskingfalse, complete32shapes each, PAGE14/PLACES3. Repeated16metrics perstage; unique baseline10/16. SQL57014 at six-call batch placesDefault; not one-RPC90s. Non-text candidate regressions32-38%; final postflightnotreached,teardown0.",
+      "measurementHarness": "SOURCE/OFFLINE PASS: each SQL sample is separate DO in one psql transaction/session; cold response anchor reused and checked for warm samples.90s statement/5s lock unchanged; explicit process envelope570s for6 samples,1110s for12. Bounded progress survives failed statement; failed metric persisted before assert. HTTP, candidate and exact triples unchanged.",
+      "measurementChecks": "7 new measurement tests +16 existing transport/SQL/concurrency tests PASS;18 generated measurement PLpgSQL units+22 existing units+21 area generated SQL parser PASS; workflowYAML PASS; independent source review no blockers. Runtime pending."
     },
     "push_recapture235_20261009": {
       "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",

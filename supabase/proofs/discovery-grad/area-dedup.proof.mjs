@@ -158,6 +158,8 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
     for (const [key, request] of Object.entries(requests)) {
       proof.phase = {fixture, stage, request: key, transport: 'SQL'}; write();
       const metric = measure(viewer.id, request, 5);
+      result[key] = metric; write();
+      if (metric.error) { proof.sqlFailure = {phase: {...proof.phase}, ...metric}; write(); }
       assert.ok(!metric.error, 'AREA_MEASURE:' + fixture + ':' + stage + ':' + key + ':' + metric.error);
       result[key] = metric; proof.phase.transport = 'HTTP'; write();
       const http = await httpMs(viewer.client, {...request, anchor: metric.anchor}, 3, metric);

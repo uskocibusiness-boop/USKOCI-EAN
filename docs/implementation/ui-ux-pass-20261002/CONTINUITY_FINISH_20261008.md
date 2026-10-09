@@ -351,3 +351,14 @@ Objedinjeni UI build source512c740e: emulator37873738596 i phone37873738743 akti
 **NIJE DOKAZANO / SLEDEĆE:** novi skrol još nije u APK-u512c740e koji se gradi. Nativni prepend/IME/TalkBack ostaju otvoreni. Mali skrol koji zadrži isti native viewable index set može konzervativno odložiti ACK do nove opservacije; to nije garantovan ACK600ms posle zaustavljanja i ostaje cilj native dorade. Ne menjati controller da bi se zadržale stare neautorizovane poruke.
 
 Izvori: instalirani RN FlatList.js433–448 i ViewabilityHelper.js219–240; [React Native scroll anchoring](https://reactnative.dev/docs/scrollview#maintainvisiblecontentposition), [FlatList scrollToEnd](https://reactnative.dev/docs/flatlist#scrolltoend). Dokumentacija ne zamenjuje nativni dokaz.
+
+
+### Korekcija performance instrumenta posle izmerenog timeout-a
+
+**URADIO / SOURCE:** measure-sql.mjs sada gradi1cold+5/11warm zasebnih DO statementa u jednoj psql sesiji/transakciji. Svaki DO ima jedan reader poziv. Cold anchor prenosi se svim warm pozivima; drift anchor-a prekida merenje. Numerički BEGIN/DONE markeri čuvaju završene uzorke i aktivni indeks kada transaction abort izgubi GUC stanje. Postojeći bounded status/signal/elapsed/SQL diagnostic ostaju u neuspešnoj metrici; nema parcijalne medijane. Area i baseline pišu metricu pre assertion-a.
+
+**ROKOVI:** statement90s/lock5s nisu povećani. Merni proces sada ima eksplicitno570s za6 ili1110s za12 poziva; ovo JEST veći procesni omotač od starog120s, ne krije se kao nepromenjen timeout. Ostali run pozivi zadržavaju prethodni omotač. Nema promene exact triple-a, kandidata, HTTP recovery-ja ili DEV-a.
+
+**DOKAZAO:**7 novih Node testova +16 postojećih PASS. Parser stvarnog generatora:18 novih PLpgSQL tela; postojeća22 i21 area iskaz PASS; workflowYAML PASS. Nezavisan source review bez blokera.
+
+**NIJE DOKAZANO / SLEDEĆE:** jedan novi opravdani isolated runtime, ne promocija. Unique PLACES može legitimno otkriti pojedinačan SQL/HTTP timeout; to ne zaobilaziti novim povećanjem limita. Razdvojiti tu činjenicu od starog šestopozivnog timeout-a i objaviti parcijalne uzorke.

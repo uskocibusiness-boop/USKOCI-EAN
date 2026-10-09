@@ -11,6 +11,7 @@ import {createFixtures} from '../ex06/lib/fixtures.mjs';
 import {proveAreaDedup, areaExperimentSummary} from './area-dedup.proof.mjs';
 import {readWithSocketRecovery} from './read-transport.mjs';
 import {sqlFailure} from './sql-failure.mjs';
+import {measureEnvelope, measureSql, measureProgress, measureResult} from './measure-sql.mjs';
 import {proveReadConcurrency, readConcurrencySummary} from './read-concurrency.proof.mjs';
 
 const {assert, sql, q, ok, env} = rt;
@@ -29,13 +30,15 @@ const write = () => fs.writeFileSync(path.join(out, 'load-report.json'), JSON.st
 const pass = (name, detail) => { report.checks.push({name, result: 'PASS', ...(detail === undefined ? {} : {detail})}); write(); console.log('PASS ' + name); };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function run(text, {timeoutS = HARD_S} = {}) {
+function run(text, {timeoutS = HARD_S, measurementSamples = 0} = {}) {
+  const processTimeoutMs = measurementSamples ? measureEnvelope(measurementSamples, timeoutS).processTimeoutMs : (timeoutS + 30) * 1000;
   const started = Date.now();
   try {
     return {ok: true, output: execFileSync('psql', [DB, '-X', '-q', '-At', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose'],
-      {input: `set statement_timeout='${timeoutS}s';\nset lock_timeout='5s';\n${text}`, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: (timeoutS + 30) * 1000, maxBuffer: 1 << 24}).trim()};
+      {input: `set statement_timeout='${timeoutS}s';\nset lock_timeout='5s';\n${text}`, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: processTimeoutMs, maxBuffer: 1 << 24}).trim()};
   } catch (error) {
-    return sqlFailure(error, Date.now() - started);
+    return {...sqlFailure(error, Date.now() - started),
+      ...(measurementSamples ? {measurementProgress: measureProgress(error?.stderr, measurementSamples)} : {})};
   }
 }
 const lastLine = text => text.split('\n').filter(Boolean).at(-1);
@@ -79,28 +82,10 @@ function seed(R) {
 // least disturbed figure of CPU-bound work, the median the typical one).
 const median = values => { const s = [...values].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
 function measure(viewerId, request, runs = 11) {
-  const claims = JSON.stringify({sub: viewerId, role: 'authenticated'});
-  const r = run(`begin;
-    select set_config('request.jwt.claims', ${q(claims)}, true);
-    select set_config('request.jwt.claim.sub', ${q(viewerId)}, true);
-    set local role authenticated;
-    do $t$ declare t0 timestamptz; r jsonb; times jsonb:='[]'::jsonb; begin
-      for i in 1..${runs + 1} loop
-        t0:=clock_timestamp(); r:=public.rpc_discovery_v1(${q(JSON.stringify(request))}::jsonb);
-        times:=times||to_jsonb(round((extract(epoch from clock_timestamp()-t0)*1000)::numeric,1));
-      end loop;
-      perform set_config('dg.last', jsonb_build_object('times', times,
-        'version',r->'version','mode',r->'mode','anchor',r->'anchor',
-        'memberCount',(select coalesce(sum(case when b->>'kind'='TASK' then 1 else (b->>'taskCount')::bigint end),0) from jsonb_array_elements(coalesce(r->'buckets','[]'::jsonb)) b),
-        'rows', coalesce(jsonb_array_length(r->'items'), jsonb_array_length(r->'buckets'), 0),
-        'counted', coalesce((r#>>'{counts,listed}')::bigint, (r#>>'{counts,mapped}')::bigint, (r#>>'{counts,everywhere}')::bigint, 0))::text, false); end $t$;
-    select current_setting('dg.last');
-    rollback;`);
-  if (!r.ok) return {error: r.error, timedOut: r.timedOut};
-  const x = JSON.parse(lastLine(r.output)), times = x.times.map(Number), warm = times.slice(1);
-  return {coldMs: times[0], medianMs: median(warm), minMs: Math.min(...warm), maxMs: Math.max(...warm), rows: x.rows, counted: x.counted,
-    version: x.version, mode: x.mode, anchor: x.anchor, memberCount: x.memberCount};
+  const result = run(measureSql({viewerId, request, runs, q}), {measurementSamples: runs + 1});
+  return measureResult(result, runs);
 }
+
 const FILTER = {text: '', price: 'all', where: 'any', places: 1, when: 'any', dates: null, place: null};
 const WIDE = [18, 42, 23, 47];
 const REQUESTS = {
@@ -242,8 +227,9 @@ async function deployedBaseline(viewer, requester, open) {
     pageRemote: {...REQUESTS.pageDefault, filter: {...FILTER, where: 'remote'}},
     mapCityDense: {...REQUESTS.mapDefault, bounds: [19.7, 45.15, 19.95, 45.4], grid: 16}};
   const measured = {}, http = {};
+  report.load.DEPLOYED_BASELINE = measured; report.load.DEPLOYED_BASELINE_HTTP = http; write();
   for (const [key, request] of Object.entries(requests)) {
-    const value = measure(viewer.id, request); measured[key] = value;
+    const value = measure(viewer.id, request); measured[key] = value; write();
     assert.ok(!value.error, 'BASELINE_MEASUREMENT_FAILED:' + key + ':' + value.error);
     assert.equal(value.version, 'DISCOVERY_V1'); assert.equal(value.mode, request.mode);
     assert.ok(Number.isSafeInteger(value.rows) && value.rows >= 0 && Number.isSafeInteger(value.counted) && value.counted >= 0);

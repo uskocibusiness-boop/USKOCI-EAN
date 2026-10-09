@@ -80,6 +80,7 @@ jobs:
           for f in supabase/proofs/discovery-grad/*.mjs supabase/proofs/match-v1/chain.mjs supabase/proofs/match-v1/fidelity.mjs; do node --check "$f"; done
           node --test supabase/proofs/discovery-grad/read-transport.test.mjs
           node --test supabase/proofs/discovery-grad/sql-failure.test.mjs
+          node --test supabase/proofs/discovery-grad/measure-sql.test.mjs
           node --test supabase/proofs/discovery-grad/read-concurrency.test.mjs
           find supabase/candidates/discovery-grad-20261008 supabase/proofs/discovery-grad -type f -print0 | sort -z | xargs -0 sha256sum > "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           sha256sum .github/workflows/discovery-grad-proof.yml >> "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
