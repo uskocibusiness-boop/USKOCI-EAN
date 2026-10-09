@@ -6,6 +6,7 @@
   const BASE = 'https://leqcwgzvjsxugfgzdmth.supabase.co';
   const PUBLIC_KEY = 'sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW';
   const PRODUCTION_HOST = location.protocol === 'https:' && ['uskoci.rs', 'www.uskoci.rs'].includes(location.hostname);
+  const VERIFIED_PRODUCTION_ERASURE_ENABLED = false; // Fails closed until isolated prod backend, legal policy and disposable E2E receipt are approved.
   const LOCAL_KEY = 'uskoci.web.closure.intent.v1';
   const HASH = /^[a-f0-9]{64}$/;
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -47,9 +48,9 @@
   const removePending = () => localStorage.removeItem(LOCAL_KEY);
 
   // Preview links are for design/legal review only. Credentials MUST NOT be used there.
-  if (!PRODUCTION_HOST) {
+  if (!PRODUCTION_HOST || !VERIFIED_PRODUCTION_ERASURE_ENABLED) {
     if (loginForm) loginForm.querySelector('button[type="submit"]').disabled = true;
-    failClosed('Ovo je pregled sajta. Prijava i brisanje naloga su onemogućeni na preview adresi. Zvaničan postupak mora prvo proći test sa namenskim nalogom na kanonskom backendu.');
+    failClosed(PRODUCTION_HOST ? 'Brisanje naloga je privremeno nedostupno dok se ne potvrde produkciona baza, pravna pravila i stvarni test brisanja. Obrati se podršci; nalog nije obrisan.' : 'Ovo je pregled sajta. Prijava i brisanje naloga su onemogućeni na preview adresi. Zvaničan postupak mora prvo proći test sa namenskim nalogom na kanonskom backendu.');
     return;
   }
   async function request(path, body, authed) {
