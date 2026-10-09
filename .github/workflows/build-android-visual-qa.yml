@@ -1,9 +1,10 @@
-name: Build Android visual QA APK (emulator, unpublished)
+name: Build Android visual QA APK (unpublished)
 
-# VISUAL QA ONLY (lead, 2026-10-07). An x86_64 emulator APK built from a work-in-progress branch named visual/**, so that screens can be LOOKED AT before an
+# VISUAL QA ONLY. An x86_64 emulator or explicitly named arm64 phone APK built from a branch named visual/**, so that screens can be LOOKED AT before an
 # integration commit exists. It skips the canonical ref check and the full regression ON PURPOSE: build-android-dev-apk.yml keeps both and stays the ONLY
 # workflow that may publish. This one uploads a workflow artifact and nothing else: no release, no dev-latest, no OTA. What it proves is how the screens look
-# and move on the emulator; it proves nothing about tests, the server or the phone, and it is never installed on the owner's phone.
+# and move on the selected device; it proves nothing about server capacity or release readiness. Phone installation requires exact artifact/signature verification
+# and adb install -r, as authorized by the owner on 2026-10-08; no data clearing or session transfer.
 on:
   push:
     branches:
@@ -25,6 +26,8 @@ env:
   EXPO_PUBLIC_VOICE_MESSAGES: '1'
   EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
   EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+  # Bounded numeric-only QA trace; production builds do not enable it.
+  EXPO_PUBLIC_DISCOVERY_TRACE: '1'
   CI: '1'
   NODE_ENV: production
 

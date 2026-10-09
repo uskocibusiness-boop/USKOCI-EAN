@@ -10,6 +10,7 @@ import { sys } from '../../ui/system/tokens';
 import { Press } from '../../ui/Press';
 import { conversationInboxBuilt } from '../../data/conversationInboxGate';
 import { ZadaciBarContext, zadaciBarStyle } from '../../ui/v2/discovery/zadaciBar';
+import { ZadaciNavigationBar } from '../../ui/v2/discovery/ZadaciNavigationBar';
 
 /**
  * One shell for one account: Početna | Zadaci | Dogovori | Poruke (inbox paired with its DEV reader).
@@ -166,13 +167,18 @@ export default function TabLayout() {
   // The bar as every tab draws it, and what Zadaci does to it (the owner's phone of 8 Oct 2026): on that one tab it lies over the bottom of the
   // screen and slides away while the list rests at its top line or a pin's card stands at the bottom (`ui/v2/discovery/zadaciBar`). The value that
   // moves it, and the bar's whole height, go to that screen through the context; nothing else of the navigator is changed.
-  const barBase = { ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING), marginHorizontal: 0, marginTop: 0, marginBottom: Math.max(12, insets.bottom) };
+  const barBase = useMemo(() => ({ ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING), marginHorizontal: 0, marginTop: 0,
+    marginBottom: Math.max(12, insets.bottom) }), [labelHeight, insets.bottom]);
   const awayValue = useRef(new Animated.Value(0)).current;
-  const zadaciBar = useMemo(() => ({ hidden: awayValue, height: barBase.height + barBase.marginBottom }), [awayValue, barBase.height, barBase.marginBottom]);
+  const [zadaciVisible, setZadaciVisible] = useState(false);
+  const zadaciBar = useMemo(() => ({ hidden: awayValue, height: barBase.height + barBase.marginBottom, setVisible: setZadaciVisible }), [awayValue, barBase.height, barBase.marginBottom]);
+  // Static inner geometry; a separate, stable host owns Discovery's translation and settled native visibility.
+  const zadaciStyle = useMemo(() => zadaciBarStyle(barBase, zadaciBar), [barBase, zadaciBar]);
   // Where the bar's top edge is, measured from the window's bottom: the one "Poruka" (the short outcome bar) floats above it
   // on every screen of this navigator, so it never covers the bar and, where the bar is hidden, clears a flow's own footer.
   const barClearance = tabBarHeight(labelHeight, TAB_BAR_PADDING) + Math.max(12, insets.bottom);
   return <><ZadaciBarContext.Provider value={zadaciBar}><Tabs initialRouteName="index" backBehavior="history" safeAreaInsets={{ bottom: 0 }}
+    tabBar={props => <ZadaciNavigationBar {...props} bar={zadaciBar} visible={zadaciVisible} />}
     UNSTABLE_router={original => ({
       // Every replace is taken as a jump that leaves the screen it replaces (see `replacedAsJump`), and a retired entry
       // never stays in the history.
@@ -214,7 +220,7 @@ export default function TabLayout() {
       tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden',
         flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
       // The height follows the icon and the actual label height (`tabBarHeight`); no font shrinking or truncation.
-      tabBarStyle: route.name === 'zadaci' ? zadaciBarStyle(barBase, zadaciBar) : barBase }; }}>
+      tabBarStyle: route.name === 'zadaci' ? zadaciStyle : barBase }; }}>
     <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
     <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />

@@ -39,11 +39,9 @@ describe('the bar\'s style on Zadaci', () => {
     expect(style).toMatchObject({ backgroundColor: '#fff', borderRadius: 0, marginHorizontal: 0, marginTop: 0 });
     expect(style).toMatchObject({ position: 'absolute', left: 0, right: 0, bottom: 0, marginBottom: 0, height: 56 + 24, paddingBottom: 24 });
     expect(Object.keys(style).filter(key => /^(top|width|flex)/.test(key))).toEqual([]);
-    // Away is the bar's own height, its margin and one pixel more (the edge of its shadow): never a change of size.
-    expect(style.transform[0].translateY.__getValue()).toBe(0);
-    bar.hidden.setValue(1);
-    expect(style.transform[0].translateY.__getValue()).toBe(56 + 24 + 1);
-    expect(style.transform).toHaveLength(1);
+    // Discovery moves an outer host; the inner bar retains only static geometry and its own keyboard transform.
+    expect(style.transform).toBeUndefined();
+
   });
 
   it('does not change what it was given', () => {
@@ -156,4 +154,19 @@ it.each([[800, 68, 436], [800, 700, 701]])('reveals navigation at HALF but never
   const threshold = zadaciBarRevealTop(body, peek, half);
   expect(body - peek <= threshold).toBe(false);
   expect(body - half <= threshold).toBe(true);
+});
+
+
+it('publishes settled native visibility and rejects cancelled animation completion after reversal or blur', async () => {
+  const bar = { ...makeBar(), setVisible: jest.fn() };
+  await render({ bar, shown: false }); expect(bar.setVisible).toHaveBeenLastCalledWith(false);
+  await update({ bar, shown: true }); expect(bar.setVisible).toHaveBeenLastCalledWith(true);
+  await update({ bar, shown: false }); const exit = runs.at(-1)!;
+  await update({ bar, shown: true });
+  act(() => exit.start.mock.calls[0][0]({ finished: true })); expect(bar.setVisible).toHaveBeenLastCalledWith(true);
+  await update({ bar, shown: false }); const currentExit = runs.at(-1)!;
+  act(() => currentExit.start.mock.calls[0][0]({ finished: true })); expect(bar.setVisible).toHaveBeenLastCalledWith(false);
+  await update({ bar, shown: true }); const entering = runs.at(-1)!;
+  await update({ bar, shown: true, active: false }); bar.setVisible.mockClear();
+  act(() => entering.start.mock.calls[0][0]({ finished: true })); expect(bar.setVisible).not.toHaveBeenCalled();
 });

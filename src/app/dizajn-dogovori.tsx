@@ -55,7 +55,7 @@ function agreement(id: string, patch: Partial<DogovorProjekcija> = {}): DogovorP
     ucesnici: [ME_REQUESTER, worker('Marko Jovanović', 'MJ')], rezim: 'FIZICKI',
     kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true, tacnaLokacija: null, emailNijeDeljen: true },
     chatDostupan: true, rokPotvrdeIso: null, problemOtvoren: false, ocenaMoguca: false, hronologija: [], radnje: null,
-    pocinje: '2026-09-26T15:00:00Z', izmenaCeka: null, izvor: { zadatakId: 'zadatak', prijavaId: 'prijava' }, ...patch };
+    pocinje: '2026-09-26T15:00:00Z', izmenaCeka: null, izvor: { zadatakId: `zadatak-${id}`, prijavaId: `prijava-${id}` }, ...patch };
 }
 
 const LIST: DogovorProjekcija[] = [

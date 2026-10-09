@@ -564,3 +564,57 @@ test('role filters use my actual participant role and persist across active/hist
  await tap('Sve uloge');expect(titles()).toEqual(['Otvori Dogovor Posao old-help']);
  await tap('Aktivni');expect(titles()).toHaveLength(2);
 });
+
+
+const collaboration = (id: string, state: DogovorProjekcija['stanje']): DogovorProjekcija => ({ ...agreement(id, state), naslov: 'Selidba',
+  izvor: { zadatakId: 'shared-task', prijavaId: id }, ucesnici: agreement(id, state).ucesnici.map(p => p.viSte ? p : { ...p, id, ime: id }) });
+test('one shared heading keeps individual prices, statuses and original click targets without private contact', async () => {
+  rows = [collaboration('Ana', 'CONFIRMED'), collaboration('Milan', 'AWAITING_REQUESTER'), collaboration('Iva', 'CANCELLED')];
+  rows[1].cena = { iznos: 3100, valuta: 'RSD', prikaz: '3.100 RSD' };
+  await render();
+  expect(tree.root.findAllByType('T' as React.ElementType).filter(n => n.props.children === 'Selidba')).toHaveLength(1);
+  expect(texts()).toContain('3 saradnje'); expect(texts()).toContain('2.500 RSD'); expect(texts()).toContain('3.100 RSD');
+  expect(texts()).toContain('Otkazan'); expect(texts()).not.toMatch(/PRIVATE_|5.600/);
+  await tap('Otvori Dogovor Selidba, Milan'); expect(open).toHaveBeenLastCalledWith(rows[1]);
+  await tap('Čeka tvoju potvrdu'); expect(titles()).toHaveLength(3);
+  await tap('Istorija'); expect(texts()).toContain('Saradnje su uz aktivne zadatke');
+  await act(async () => tree.root.findByProps({ label: 'Pogledaj aktivne Dogovore' }).props.onPress());
+  expect(titles()).toHaveLength(3);
+});
+test('the completed history match is shown before three cancelled siblings, expansion retains all', async () => {
+  rows = ['Ana', 'Milan', 'Iva'].map(id => collaboration(id, 'CANCELLED')).concat(collaboration('Petar', 'COMPLETED'));
+  await render(); await tap('Istorija'); await tap('Završeni');
+  expect(titles()[0]).toBe('Otvori Dogovor Selidba, Petar'); expect(titles()).toHaveLength(3);
+  await tap('Prikaži sve saradnje za Selidba'); expect(titles()).toHaveLength(4);
+  await tap('Otvori Dogovor Selidba, Petar'); expect(open).toHaveBeenLastCalledWith(rows[3]);
+  await tap('Sažmi saradnje za Selidba'); expect(titles()).toHaveLength(3);
+});
+test('confirmation filter reveals the matching collaboration even behind three changes', async () => {
+  rows = ['Ana', 'Milan', 'Iva'].map(id => ({ ...collaboration(id, 'CONFIRMED'), izmenaCeka: { predlogId: 'change-' + id, mojPredlog: false } as DogovorProjekcija['izmenaCeka'] }))
+    .concat(collaboration('Petar', 'AWAITING_REQUESTER'));
+  await render(); expect(titles()).not.toContain('Otvori Dogovor Selidba, Petar');
+  await tap('Čeka tvoju potvrdu'); expect(titles()[0]).toBe('Otvori Dogovor Selidba, Petar');
+  expect(tree.root.findByProps({ accessibilityLabel: 'Aktivni' }).props.accessibilityValue).toEqual({ text: '1 Dogovor čeka tebe' });
+});
+test('a grouped rating opens the original completed agreement, not a sibling or shared task', async () => {
+  rows = [collaboration('Ana', 'CONFIRMED'), { ...collaboration('Petar', 'COMPLETED'), ocenaMoguca: true }];
+  const rate = jest.fn();
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} now={NOW}
+    section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRate={rate}
+    onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
+  await tap('Oceni saradnju, Selidba, Petar'); expect(rate).toHaveBeenCalledWith(rows[1]); expect(open).not.toHaveBeenCalled();
+});
+
+
+test('grouped rows speak cancellation details, changed terms, own pending change and problem', async () => {
+  rows = [{ ...collaboration('Ana', 'CONFIRMED'), problemOtvoren: true, izmenaCeka: { predlogId: 'p', mojPredlog: true } }, collaboration('Iva', 'CANCELLED')];
+  const cancellations = new Map([['iva', { agreementId: 'Iva', cancelledAt: '2026-09-23T10:00:00Z', by: 'REQUESTER' as const,
+    byMe: true, reasonState: 'KEPT' as const, reason: 'Plan je promenjen.' }]]);
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} now={NOW} cancellations={cancellations}
+    section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open}
+    onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
+  const spoken = (name: string) => tree.root.findByProps({ accessibilityLabel: `Otvori Dogovor Selidba, ${name}` }).props.accessibilityValue.text;
+  expect(spoken('Ana')).toContain('Prijavljen je problem'); expect(spoken('Ana')).toContain('Tvoja izmena čeka odgovor');
+  expect(spoken('Ana')).toContain('izmenjeni uslovi'); expect(spoken('Ana')).toContain('2.500 RSD ukupno');
+  expect(spoken('Iva')).toContain('Plan je promenjen.');
+});

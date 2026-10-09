@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { readableTitle } from '../../data/needDetailPresentation';
 import type { DogovorProjekcija } from '../../contracts/projections';
-import type { AgreementCancellation } from '../../data/agreementCancellationClientService';
+import { cancellationOf, type AgreementCancellation, type AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -14,11 +14,12 @@ import { FactArt } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
 import { layout, ruleWidth } from '../system/layout';
 import { Surface } from '../system/Surface';
+import { plural } from '../system/plural';
 import { usePressLift } from '../system/usePressLift';
 import { sys } from '../system/tokens';
 import { agreementPeople, agreementRole, agreementTerm } from '../v2/AgreementPresentation';
 import { WaitingDot } from '../v2/TaskFace';
-import { agreementAttention, agreementChip, agreementWhen, cancellationDetailsOf, cancellationLine, type AgreementAttention } from './agreementListModel';
+import { agreementAttention, agreementChip, agreementWhen, awaitsMyConfirmation, cancellationDetailsOf, cancellationLine, groupActiveAgreements, isActiveAgreement, type AgreementAttention, type AgreementTaskGroup, type HistoryFilter } from './agreementListModel';
 import { AgreementStatusChip, agreementChipWord } from './AgreementStatusChip';
 
 /** Recognize the person before opening their agreement; photos and fallback share the same footprint. */
@@ -140,7 +141,87 @@ export const AgreementRow = memo(function AgreementRow({ item, index, now, anima
   return <Appear index={index} animate={animate}><AgreementCard item={item} now={now} cancellation={cancellation} onOpen={open} onRate={onRate ? rate : undefined} /></Appear>;
 });
 
+/** One task record. Each collaboration keeps its own accepted terms and destination; there is no invented group price/status. */
+export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, expanded, onExpand, cancellations, onOpen, onRate, prioritize = 'all' }: {
+  group: AgreementTaskGroup; index: number; now: number; animate: boolean; expanded: boolean;
+  prioritize?: HistoryFilter | 'confirmation';
+  onExpand: (key: string | null, witness: DogovorProjekcija) => void;
+  cancellations?: AgreementCancellations | null; onOpen: (item: DogovorProjekcija) => void; onRate?: (item: DogovorProjekcija) => void;
+}) {
+  const first = group.items[0];
+  if (group.items.length === 1) return <AgreementRow item={first} index={index} now={now} animate={animate}
+    cancellation={cancellationOf(cancellations, first.id)} onOpen={onOpen} onRate={onRate} />;
+  const at = new Date(now), title = readableTitle(first.naslov);
+  const byUrgency = [...groupActiveAgreements(group.items.filter(isActiveAgreement), at).flatMap(section => section.items), ...group.items.filter(item => !isActiveAgreement(item))];
+  // The reason this task matched the current filter is visible without expanding it.
+  const matches = (item: DogovorProjekcija) => prioritize === 'confirmation' ? awaitsMyConfirmation(item)
+    : prioritize === 'completed' ? item.stanje === 'COMPLETED' : prioritize === 'cancelled' ? item.stanje === 'CANCELLED' : true;
+  const ordered = prioritize === 'all' ? byUrgency : [...byUrgency.filter(matches), ...byUrgency.filter(item => !matches(item))];
+  const shown = expanded ? ordered : ordered.slice(0, 3);
+  const waiting = group.items.filter(item => agreementAttention(item)).length;
+  const role = first.ucesnici.find(person => person.viSte)?.uloga === 'narucilac' ? 'Tražiš pomoć' : 'Uskačeš';
+  return <Appear index={index} animate={animate}><Surface kind="record">
+    <View style={s.taskHead}>
+      <T variant="heading">{title}</T>
+      <T variant="note" tone="muted">{role} · {plural(group.items.length, 'saradnja', 'saradnje', 'saradnji')}</T>
+      {waiting ? <T variant="note" style={s.footTitle}>{plural(waiting, 'obaveza čeka', 'obaveze čekaju', 'obaveza čeka')} tebe</T> : null}
+    </View>
+    {shown.map(item => <AgreementCollaborator key={item.id} item={item} taskTitle={title} now={at}
+      cancellation={cancellationOf(cancellations, item.id)} onOpen={onOpen} onRate={onRate} />)}
+    {ordered.length > 3 ? <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Sažmi' : 'Prikaži sve'} saradnje za ${title}`}
+      accessibilityState={{ expanded }} onPress={() => onExpand(expanded ? null : group.key, first)} haptic="select" style={s.more}>
+      <T variant="note">{expanded ? 'Prikaži manje' : `Sve saradnje (${ordered.length})`}</T>
+      <Glyph name={expanded ? 'caret-up' : 'caret-down'} size={20} tone="muted" />
+    </Press> : null}
+  </Surface></Appear>;
+});
+
+function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onRate }: {
+  item: DogovorProjekcija; taskTitle: string; now: Date; cancellation?: AgreementCancellation | null;
+  onOpen: (item: DogovorProjekcija) => void; onRate?: (item: DogovorProjekcija) => void;
+}) {
+  const other = item.ucesnici.find(person => !person.viSte), name = other?.ime?.trim() || 'Druga strana';
+  const chip = agreementChip(item, now), attention = agreementAttention(item), term = agreementTerm(item);
+  const when = agreementWhen(item, now) ?? term.line;
+  const amount = item.cena.prikaz || BEZ_IZNOSA, people = agreementPeople(item);
+  const place = item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';
+  const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(cancellation, other?.ime) : null;
+  const spoken = [agreementChipWord(chip), item.verzija > 1 ? 'izmenjeni uslovi' : null, when, term.zone,
+    item.cena.prikaz ? `${amount} ukupno` : amount, place, people, attention?.title,
+    cancelled ? cancellationLine(cancelled, now) : null,
+    item.izmenaCeka?.mojPredlog ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
+  const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
+  return <View style={s.collaborator}>
+    <Press accessibilityRole="button" accessibilityLabel={`Otvori Dogovor ${taskTitle}, ${name}`}
+      accessibilityValue={{ text: spoken }}
+      onPress={() => onOpen(item)} haptic="select" style={s.main}>
+      <View style={s.head}>
+        {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
+        <View style={s.headCopy}><T variant="bodyStrong">{name}</T>
+          {people ? <T variant="note" tone="muted">{people}</T> : null}
+        </View>
+        <Glyph name="caret-right" size={20} tone="muted" />
+      </View>
+      {readableTitle(item.naslov) !== taskTitle ? <T variant="note">{readableTitle(item.naslov)}</T> : null}
+      <T variant="note" tone="muted">{when} · {place}</T>
+      {term.zone ? <T variant="note" tone="muted">{term.zone}</T> : null}
+      <View style={s.stateRow}><AgreementStatusChip chip={chip} detail={item.verzija > 1 ? 'izmenjeni uslovi' : undefined} />
+        <T variant={item.cena.prikaz ? 'priceRow' : 'note'} style={item.cena.prikaz ? s.amount : undefined}>{amount}</T>
+      </View>
+      {cancelled ? <T variant="note" tone="muted">{cancellationLine(cancelled, now)}</T> : null}
+      {item.izmenaCeka?.mojPredlog ? <T variant="note" tone="muted">Tvoja izmena čeka odgovor</T> : null}
+      {item.problemOtvoren ? <T variant="note" tone="danger">Prijavljen je problem</T> : null}
+      {attention && !(attention.kind === 'rate' && onRate) ? <T variant="note" style={s.footTitle}>{attention.title}</T> : null}
+    </Press>
+    {attention?.kind === 'rate' && onRate ? <Press accessibilityRole="button" accessibilityLabel={`Oceni saradnju, ${taskTitle}, ${name}`}
+      onPress={() => onRate(item)} haptic="select" style={s.more}><AttentionFoot attention={attention} /></Press> : null}
+  </View>;
+}
+
 const s = StyleSheet.create({
+  taskHead: { gap: sys.space.xs, paddingBottom: sys.space.md },
+  collaborator: { paddingVertical: sys.space.base, gap: sys.space.sm },
+  more: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   body: { borderRadius: 0 },
   main: { gap: sys.space.sm },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },

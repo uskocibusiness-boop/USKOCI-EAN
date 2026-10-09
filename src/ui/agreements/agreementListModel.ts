@@ -37,7 +37,37 @@ export const AGREEMENT_ROLE_FILTERS = [
 ] as const;
 /** A person's role belongs to this Agreement, never to a global account mode. */
 export function filterAgreementRole(items: readonly DogovorProjekcija[], role: AgreementRoleFilter): readonly DogovorProjekcija[] {
-  return role === 'all' ? items : items.filter(item => item.ucesnici.find(person => person.viSte)?.uloga === role);
+  return role === 'all' ? items : items.filter(item => item.ucesnici?.find(person => person.viSte)?.uloga === role);
+}
+
+/** One task in my own role; the underlying bilateral agreements remain authoritative and individually actionable. */
+export type AgreementTaskGroup = { key: string; items: readonly DogovorProjekcija[] };
+export function agreementTaskKey(item: DogovorProjekcija): string {
+  const task = item.izvor?.zadatakId, mine = item.ucesnici?.find(person => person.viSte);
+  // Unknown linkage or ownership must never merge unrelated private records, even if their titles match.
+  return task && mine ? JSON.stringify(['task', task, mine.uloga]) : JSON.stringify(['agreement', item.id]);
+}
+export function groupAgreementTasks(items: readonly DogovorProjekcija[]): AgreementTaskGroup[] {
+  const groups = new Map<string, DogovorProjekcija[]>();
+  for (const item of items) {
+    const key = agreementTaskKey(item), group = groups.get(key);
+    if (group) group.push(item); else groups.set(key, [item]);
+  }
+  return [...groups].map(([key, members]) => ({ key, items: members }));
+}
+export const isActiveAgreementTask = (group: AgreementTaskGroup) => group.items.some(isActiveAgreement);
+
+/** Assign a whole task to its most urgent active collaboration, retaining completed/cancelled siblings in that record. */
+export function groupActiveAgreementTasks(groups: readonly AgreementTaskGroup[], now: Date): { key: AgreementGroupKey; title: string; items: AgreementTaskGroup[] }[] {
+  const byKey = new Map(groups.map(group => [group.key, group])), seen = new Set<string>();
+  return groupActiveAgreements(groups.flatMap(group => group.items.filter(isActiveAgreement)), now).flatMap(section => {
+    const items: AgreementTaskGroup[] = [];
+    for (const item of section.items) {
+      const key = agreementTaskKey(item);
+      if (!seen.has(key)) { seen.add(key); items.push(byKey.get(key)!); }
+    }
+    return items.length ? [{ ...section, items }] : [];
+  });
 }
 
 export type AgreementAttention = { kind: 'change' | 'confirm' | 'rate' | 'check-rating'; title: string; line: string };

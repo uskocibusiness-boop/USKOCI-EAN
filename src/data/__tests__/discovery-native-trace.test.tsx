@@ -8,8 +8,9 @@ jest.mock('expo-constants', () => ({ __esModule: true, default: { get expoConfig
 import { NATIVE_TRACE_LIMIT, NATIVE_TRACE_SAMPLE_LIMIT, useDiscoveryNativeTrace } from '../../ui/v2/discovery/discoveryNativeTrace';
 
 let info: jest.SpyInstance;
-beforeEach(() => { info = jest.spyOn(console, 'info').mockImplementation(() => {}); mockPackage = 'rs.uskoci.dev'; });
-afterEach(() => info.mockRestore());
+const originalTrace = process.env.EXPO_PUBLIC_DISCOVERY_TRACE;
+beforeEach(() => { info = jest.spyOn(console, 'info').mockImplementation(() => {}); mockPackage = 'rs.uskoci.dev'; delete process.env.EXPO_PUBLIC_DISCOVERY_TRACE; });
+afterEach(() => { info.mockRestore(); if (originalTrace === undefined) delete process.env.EXPO_PUBLIC_DISCOVERY_TRACE; else process.env.EXPO_PUBLIC_DISCOVERY_TRACE = originalTrace; });
 
 async function mount() {
   const box: { trace: DiscoveryTrace | undefined } = { trace: undefined };
@@ -19,13 +20,23 @@ async function mount() {
 }
 const lines = () => info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_DISCOVERY_TRACE]'));
 
-it('exists only in the exact DEV package', async () => {
+it('exists by default only in the exact DEV package', async () => {
   for (const other of ['rs.uskoci', 'rs.uskoci.preview', 'com.example', undefined]) {
     mockPackage = other;
     expect((await mount()).trace).toBeUndefined();
   }
   mockPackage = 'rs.uskoci.dev';
   expect(typeof (await mount()).trace).toBe('function');
+});
+
+it('allows an explicitly enabled preview build but never the store or another package', async () => {
+  process.env.EXPO_PUBLIC_DISCOVERY_TRACE = '1';
+  mockPackage = 'rs.uskoci.preview';
+  expect(typeof (await mount()).trace).toBe('function');
+  for (const other of ['rs.uskoci', 'com.example', undefined]) {
+    mockPackage = other;
+    expect((await mount()).trace).toBeUndefined();
+  }
 });
 
 it('logs a numbered fixed line with finite numbers only and drops anything else', async () => {

@@ -26,6 +26,8 @@ env:
   EXPO_PUBLIC_VOICE_MESSAGES: '1'
   EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
   EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+  # Bounded numeric-only trace for the combined phone QA package, never a store build.
+  EXPO_PUBLIC_DISCOVERY_TRACE: '1'
   CI: '1'
 
 jobs:
@@ -51,6 +53,9 @@ jobs:
 
       - name: Install locked dependencies
         run: npm ci --include=dev
+
+      - name: Verify the Reanimated patch (RNR-01)
+        run: node scripts/verify-native-patches.cjs
 
       - name: Prove push-proof config isolation
         run: |
@@ -107,6 +112,11 @@ jobs:
 
       - name: Build ARM64 release APK
         working-directory: android
+        env:
+          USKOCI_PUSH_PROOF_BUILD: '1'
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
+          NODE_ENV: production
         run: |
           printf '\nreactNativeArchitectures=arm64-v8a\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' >> gradle.properties
           ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease

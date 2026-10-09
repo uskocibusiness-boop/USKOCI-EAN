@@ -8,7 +8,7 @@ import { agreementCancellationService, type AgreementCancellations } from '../..
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import type { HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
+import { filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type HistoryFilter, type AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
 export default function Dogovori() {
@@ -25,6 +25,7 @@ function AgreementListSession() {
   const [confirmationOnly, setConfirmationOnly] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const [roleFilter, setRoleFilter] = useState<AgreementRoleFilter>('all');
+  const [expandedTaskKey, setExpandedTaskKey] = useState<string | null>(null);
   // The profile's total means every role. Consume this explicit entry once so
   // back from a detail preserves filters and a later profile entry resets again.
   useEffect(() => {
@@ -47,11 +48,13 @@ function AgreementListSession() {
   // background→foreground transition; returning creates a fresh owned read.
   return foreground.current.active ? <OwnedAgreements key={foreground.current.generation}
     foreground={foreground.current} section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
+    expandedTaskKey={expandedTaskKey} onExpandedTask={setExpandedTaskKey}
     onSection={setSection} onConfirmationOnly={setConfirmationOnly} onHistoryFilter={setHistoryFilter} onRoleFilter={setRoleFilter} /> : null;
 }
-function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, roleFilter, onSection, onConfirmationOnly, onHistoryFilter, onRoleFilter }: {
+function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter, roleFilter, expandedTaskKey, onExpandedTask, onSection, onConfirmationOnly, onHistoryFilter, onRoleFilter }: {
   foreground: { active: boolean; generation: number }; section: AgreementCollectionSection; confirmationOnly: boolean; historyFilter: HistoryFilter; roleFilter: AgreementRoleFilter;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void; onHistoryFilter: (value: HistoryFilter) => void; onRoleFilter: (value: AgreementRoleFilter) => void;
+  expandedTaskKey: string | null; onExpandedTask: (key: string | null) => void;
 }) {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
@@ -102,21 +105,27 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     navigate(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: agreement.id, from: 'dogovori' } }));
   };
   const onProfile = () => navigate(() => router.navigate('/profil'));
-  // When, by whom and why the cancelled Dogovori were cancelled (CANCEL-INFO). It is asked only when Istorija is on screen and holds a
-  // cancelled one, in one call; a read that fails, or that has not come, leaves every card saying "Otkazan" and nothing more.
-  const cancelledIds = useMemo(() => (resource.data ?? []).filter(item => item.stanje === 'CANCELLED').map(item => item.id), [resource.data]);
+  // One bounded read for cancelled collaborations in this section, including siblings of an active task.
+  // A failed or stale read leaves the authoritative status visible without inventing a reason.
+  const cancelledIds = useMemo(() => groupAgreementTasks(filterAgreementRole(resource.data ?? [], roleFilter))
+    .filter(task => isActiveAgreementTask(task) === (section === 'active'))
+    .flatMap(task => task.items.filter(item => item.stanje === 'CANCELLED').map(item => item.id)), [resource.data, section, roleFilter]);
   const cancelledKey = cancelledIds.join('|');
-  const [cancellations, setCancellations] = useState<AgreementCancellations | null>(null);
+  const [cancellations, setCancellations] = useState<{ key: string; value: AgreementCancellations; scope: object | null;
+    generation: number; data: typeof resource.data } | null>(null);
   useEffect(() => {
-    if (section !== 'history' || !cancelledIds.length || !user?.id) return;
+    if (!current() || resource.loading || resource.refreshing || resource.error || !cancelledIds.length || !user?.id) return;
     let live = true;
     void agreementCancellationService.read(cancelledIds, { accountId: user.id, accountRevision })
-      .then(result => { if (live && result.ok) setCancellations(result.podatak); }).catch(() => undefined);
+      .then(result => { if (live && current() && result.ok) setCancellations({ key: cancelledKey, value: result.podatak,
+        scope, generation: renderedReadGeneration, data: resource.data }); }).catch(() => undefined);
     return () => { live = false; };
-  }, [section, cancelledKey, user?.id, accountRevision]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error]); // eslint-disable-line react-hooks/exhaustive-deps
   return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    cancellations={cancellations}
+    cancellations={!resource.loading && !resource.refreshing && !resource.error && current() && cancellations?.key === cancelledKey && cancellations.scope === scope
+      && cancellations.generation === renderedReadGeneration && cancellations.data === resource.data ? cancellations.value : null}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
+    expandedTaskKey={expandedTaskKey} onExpandedTask={(key, witness) => { if (current() && shown(witness)) onExpandedTask(key); }}
     onSection={value => { if (current()) onSection(value); }}
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onHistoryFilter={value => { if (current()) onHistoryFilter(value); }}

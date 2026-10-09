@@ -1,7 +1,7 @@
 import type { DogovorProjekcija, UcesnikProjekcija } from '../../../contracts/projections';
 import {
   AGREEMENT_GROUP_ORDER, AGREEMENT_GROUP_TITLES, agreementAttention, agreementChip, agreementGroupOf, agreementInProgress, agreementWhen,
-  cancellationDetailsOf, cancellationLine, filterHistory, groupActiveAgreements, isActiveAgreement, REASON_ERASED, REASON_NEVER_SAVED, type AgreementGroupKey,
+  cancellationDetailsOf, cancellationLine, filterHistory, groupActiveAgreements, groupAgreementTasks, groupActiveAgreementTasks, isActiveAgreementTask, isActiveAgreement, REASON_ERASED, REASON_NEVER_SAVED, type AgreementGroupKey,
 } from '../agreementListModel';
 import type { AgreementCancellation } from '../../../data/agreementCancellationClientService';
 
@@ -289,5 +289,34 @@ describe('the line "Otkazano {datum} · {ko} · {razlog}" from what the server a
   it('uses no gendered verb and none of the two words the app never says for a person', () => {
     const all = [line(answered()), line(answered({ by: 'REQUESTER', byMe: false }), 'Ana'), line(answered({ reason: null, reasonState: 'REMOVED' }))].join(' ');
     expect(all).not.toMatch(/otkazao|otkazala|Naručilac|Uskočer/);
+  });
+});
+
+
+describe('one task record with independently owned collaborations', () => {
+  const linked = (id: string, task: string | null, patch: Partial<DogovorProjekcija> = {}, role: 'narucilac' | 'uskocer' = 'narucilac') =>
+    agreement(id, { naslov: 'Isti naslov', izvor: { zadatakId: task, prijavaId: null }, ...patch }, role);
+  test('groups only actual task and own role, never matching titles or unknown ownership', () => {
+    const a = linked('a', 'task'), b = linked('b', 'task');
+    const unknown = linked('unknown', 'task', { ucesnici: [] });
+    const groups = groupAgreementTasks([a, b, linked('c', 'another'), linked('d', null), linked('e', null), linked('f', 'task', {}, 'uskocer'), unknown]);
+    expect(groups.map(g => g.items.map(i => i.id))).toEqual([['a', 'b'], ['c'], ['d'], ['e'], ['f'], ['unknown']]);
+    expect(groups[0].items[1]).toBe(b);
+  });
+  test('keeps finished/cancelled siblings with the active task, led by a later member awaiting confirmation', () => {
+    const rows = [linked('done', 'task', { stanje: 'COMPLETED' }), linked('off', 'task', { stanje: 'CANCELLED' }),
+      linked('later', 'task', starting('2026-11-01T12:00:00Z')), linked('waiting', 'task', { stanje: 'AWAITING_REQUESTER' }),
+      linked('today', 'another', starting('2026-10-07T12:00:00Z'))];
+    const groups = groupActiveAgreementTasks(groupAgreementTasks(rows), NOW);
+    expect(groups.map(g => g.key)).toEqual(['waiting', 'today']);
+    expect(groups[0].items[0].items).toEqual(rows.slice(0, 4));
+    expect(groups.flatMap(g => g.items)).toHaveLength(2);
+  });
+  test('retains the whole record until the last rating is read and settled', () => {
+    const done = linked('done', 'task', { stanje: 'COMPLETED' });
+    for (const patch of [{ ocenaMoguca: true }, { stanjeProvereOcene: 'UNAVAILABLE' as const }]) {
+      expect(isActiveAgreementTask(groupAgreementTasks([done, linked('pending', 'task', { stanje: 'COMPLETED', ...patch })])[0])).toBe(true);
+    }
+    expect(isActiveAgreementTask(groupAgreementTasks([done, linked('off', 'task', { stanje: 'CANCELLED' })])[0])).toBe(false);
   });
 });

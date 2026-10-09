@@ -8590,8 +8590,8 @@
       "native": "Previous 6dbd38e0 installed with -r on both devices; bounded physical inbox/private-chat/keyboard read-only review. Does not prove this source package.",
       "open": [
         "Current APK visual and real voice delivery",
-        "Top-level task grouping in Agreements",
-        "AI location-before-next-question ordering",
+        "Native top-level task grouping in Agreements",
+        "Native/provider AI location-before-next-question ordering",
         "40k concurrent users and actual lifecycle RPC load",
         "Bounded push delivery and store gates"
       ]
@@ -8658,7 +8658,7 @@
       "emulator": "adb install -r PASS; existing logged-out preview stayed logged out; entry screen viewed; no two-account native proof."
     },
     "discovery_bar_native_20261009": {
-      "state": "NATIVE_FIX_FAILED / INVESTIGATING",
+      "state": "SECOND_SOURCE_FIX_TARGETED_PASS / PREVIOUS_NATIVE_FAIL / NEW_NATIVE_PENDING",
       "observedSource": "66275774407b2cb4ccebafac508ea237aa59e930",
       "finding": "Phone map: tab bar remained visible over collapsed sheet, count and handle obscured. Upward swipe at visible edge panned map instead. Exact cold-entry callback sequence not captured.",
       "privateEvidence": [
@@ -8666,13 +8666,13 @@
         "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-discovery-drag.png",
         "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-44e8-peek.png"
       ],
-      "sourceFix": "Tab bar follows physical animatedPosition at HALF threshold; onAnimate is no longer visibility authority. Visit/mount fences and card priority; HALF tolerance excludes PEEK even at1px gap.",
-      "verification": "Final250/250 tests across discovery-presentation,zadaci-bar,zadaci-sheet-geometry PASS after threshold refinement. Final TypeScript PASS. Independent source review: no confirmed remaining blocker.",
+      "sourceFix": "Separate outer Animated host moves Discovery; inner BottomTabBar keeps static geometry and navigator keyboard animation. Settled visibility removes pointer/accessibility/opacity; generation guards reject stale completion. Other roots retain normal flow; FULL routes reserve no bar. Physical HALF threshold and pin precedence retained.",
+      "verification": "Real NavigationContainer+BottomTabBar regression PASS; final discovery/trace/host221 cases PASS, existing design/navigation checks PASS, TypeScript PASS. Numeric-only bounded trace explicitly enabled for preview QA; store package gate remains closed.",
       "limits": [
-        "No new native proof yet",
-        "Parent shared position may briefly carry prior position on keyed remount until new native observer writes"
+        "No native proof of second fix yet",
+        "Exact native animated-props reset cause remains a hypothesis; previous44e8 APK still failed"
       ],
-      "next": "New combined APK, cold tab entry, PEEK/HALF/FULL, interrupted drag, pin, Detail/Back.",
+      "next": "Combined push-capable phone build and visual emulator from same source; manifest/signature checks, install-r; PEEK/HALF/FULL, interrupted gestures, pin and Detail/Back.",
       "builds": {
         "source": "44e8eaffdd9fcbd9ccf25cab174ea2374236003d",
         "phone": 37859900972,
@@ -8727,6 +8727,14 @@
       "proofRun": 37861832231,
       "proofSource": "c70dd513d0896628b9958a8be2bd272a7180b383",
       "proof": "28/28 source hashes verified; current99 wrapper install108/revert99/reapply/revert99,17AI+13definition checks,13 behavioral groups,6offlineEdge; teardownPASS. Local wrapper ledger147/OID/certificate-specific, not literal live235SQL or full235 replay. Mockprovider concurrency exactly1; no real provider."
+    },
+    "agreement_tasks_20261009": {
+      "state": "SOURCE_TARGETED_PASS / NATIVE_PENDING",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+      "scope": "One visual task record by authoritative task ID and own role; bilateral terms/actions retained. Three visible collaborations, expandable remainder, matching filtered member first. Active task retains cancelled/completed siblings.",
+      "privacy": "Original agreement IDs and ownership guards retained; cancellation reasons bound to current resource/scope/generation, no stale refresh or account reuse.",
+      "checks": "Grouped list/model/screen and bar family:134 tests PASS. Final targeted discovery/trace/real navigator:221 tests PASS. TypeScript PASS. Across12 relevant suites430 distinct cases; additional3 design guards95 cases PASS after removing a new raw divider. No full-suite or native claim.",
+      "open": "Exact APK visual grouping, role/history filters, expanded return, private/group navigation and real data with multiple selected people."
     }
   }
 }

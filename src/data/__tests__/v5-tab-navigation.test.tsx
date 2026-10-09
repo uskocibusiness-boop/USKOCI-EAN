@@ -117,13 +117,11 @@ it('draws the bar over the bottom of Zadaci and nowhere else, and gives that scr
   const bar = mockBar!;
   expect(bar).not.toBeNull();
   expect(bar.height).toBe(normal.height + normal.marginBottom);
-  // The bar is where it always was while the value is 0, and is carried by its own height (and a pixel, for its shadow) off the bottom when the value is 1: a translation, never a change of size.
-  const away = () => zadaci.transform[0].translateY.__getValue() as number;
-  expect(away()).toBe(0);
-  bar.hidden.setValue(1);
-  expect(away()).toBe(bar.height + 1);
-  bar.hidden.setValue(0.5);
-  expect(away()).toBeCloseTo((bar.height + 1) / 2, 5);
+  // The native inner bar does not also own Discovery's transform; the always-mounted wrapper does.
+  expect(zadaci.transform).toBeUndefined();
+  expect(optionsFor('zadaci', ['zadaci']).tabBarStyle).toBe(zadaci);
+  expect(typeof tree.root.findByType('Tabs' as React.ElementType).props.tabBar).toBe('function');
+
 });
 
 it('the new tab surface preserves navigator press/long-press handlers and exposes the selected tab', async () => {

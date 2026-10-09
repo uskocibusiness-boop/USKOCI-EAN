@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DogovorProjekcija } from '../../contracts/projections';
-import { cancellationOf, type AgreementCancellations } from '../../data/agreementCancellationClientService';
+import type { AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { Press } from '../Press';
 import { useAppear } from '../system/Appear';
 import { usePullRefresh } from '../system/usePullRefresh';
@@ -15,11 +15,11 @@ import { dogovora } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { AgreementRow } from '../agreements/AgreementListCard';
+import { AgreementTaskRow } from '../agreements/AgreementListCard';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
-  agreementAttention, awaitsMyConfirmation, filterHistory, groupActiveAgreements, HISTORY_FILTERS, isActiveAgreement, type HistoryFilter,
-  AGREEMENT_ROLE_FILTERS, filterAgreementRole, type AgreementRoleFilter,
+  agreementAttention, awaitsMyConfirmation, filterHistory, groupActiveAgreementTasks, HISTORY_FILTERS, type HistoryFilter,
+  AGREEMENT_ROLE_FILTERS, filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type AgreementTaskGroup, type AgreementRoleFilter,
 } from '../agreements/agreementListModel';
 
 /** Aktivni and Istorija (round-1 critique A11): "Svi" repeated both, and the count line repeated the tabs' own counts. */
@@ -46,17 +46,18 @@ type Props = {
   /** Istorija shows "Sve · Završeni · Otkazani". The route may keep the choice through the foreground gate; without it the list keeps its own. */
   historyFilter?: HistoryFilter; onHistoryFilter?: (value: HistoryFilter) => void;
   roleFilter?: AgreementRoleFilter; onRoleFilter?: (value: AgreementRoleFilter) => void;
+  expandedTaskKey?: string | null; onExpandedTask?: (key: string | null, witness: DogovorProjekcija) => void;
   /** "Now" for the day groups ("Danas", "Sutra"…). The screen leaves it out; the tests and the gallery fix it. */
   now?: Date;
   /**
    * When, by whom and why the cancelled Dogovori of the list were cancelled (CANCEL-INFO, `agreementCancellationService`). The
-   * route reads it for Istorija; a card with no answer says only "Otkazan".
+   * route reads it for the current section, including cancelled siblings of active tasks; no answer says only "Otkazan".
    */
   cancellations?: AgreementCancellations | null;
 };
 const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 'Istorija' }] as const;
 /** The Aktivni list is groups, each a heading followed by its cards; one flat list keeps the virtualised window and the row memo. */
-type ListRow = { id: string; kind: 'group'; title: string } | { id: string; kind: 'item'; item: DogovorProjekcija };
+type ListRow = { id: string; kind: 'group'; title: string } | { id: string; kind: 'item'; task: AgreementTaskGroup };
 const keyOf = (row: ListRow) => row.id;
 /** A heading is closer to the card under it than the card above it is: the heading carries its own top space (12 + the card gap 12 = 24 above, 12 below). */
 const Separator = () => <View style={s.separator} />;
@@ -82,22 +83,30 @@ export function AgreementCollectionPresentation(props: Props) {
   const setRoleFilter = props.onRoleFilter ?? setOwnRoleFilter;
   const roleItems = useMemo(() => filterAgreementRole(items, roleFilter), [items, roleFilter]);
   const now = minuteOf(props.now);
-  const activeItems = useMemo(() => roleItems.filter(isActiveAgreement), [roleItems]);
-  const historyItems = useMemo(() => roleItems.filter(item => !isActiveAgreement(item)), [roleItems]);
+  const tasks = useMemo(() => groupAgreementTasks(roleItems), [roleItems]);
+  const activeItems = useMemo(() => tasks.filter(isActiveAgreementTask), [tasks]);
+  const historyItems = useMemo(() => tasks.filter(task => !isActiveAgreementTask(task)), [tasks]);
+  const [ownExpandedKey, setOwnExpandedKey] = useState<string | null>(null);
+  const expandedKey = props.expandedTaskKey === undefined ? ownExpandedKey : props.expandedTaskKey;
+  const expandRef = useRef(props.onExpandedTask); expandRef.current = props.onExpandedTask;
+  const expand = useCallback((key: string | null, witness: DogovorProjekcija) => {
+    if (expandRef.current) expandRef.current(key, witness); else setOwnExpandedKey(key);
+  }, []);
   // Aktivni is groups ("Čeka tebe" first, then the days), each a heading and its cards; Istorija keeps the newest-first order
   // the server gave, narrowed by its chips. One flat list, so the window and the row memo stay as they were.
   const rows = useMemo<ListRow[]>(() => {
-    if (section === 'history') return filterHistory(historyItems, historyFilter).map(item => ({ id: item.id, kind: 'item' as const, item }));
-    const pool = filtering ? activeItems.filter(awaitsMyConfirmation) : activeItems;
-    return groupActiveAgreements(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const, title: group.title },
-      ...group.items.map(item => ({ id: item.id, kind: 'item' as const, item }))]);
+    if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0)
+      .map(task => ({ id: task.key, kind: 'item' as const, task }));
+    const pool = filtering ? activeItems.filter(task => task.items.some(awaitsMyConfirmation)) : activeItems;
+    return groupActiveAgreementTasks(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const, title: group.title },
+      ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))]);
   }, [section, filtering, activeItems, historyItems, historyFilter, now]);
   const waiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
   const settledRead = !loading && !error;
   // The two sets are told apart by their words, not by counts: a number is drawn ONLY for what needs the person, as the orange
   // count on Aktivni ("Čeka tebe"), and only once the read has settled; a count of how many there are says nothing to act on.
   // It is the size of the list's own first group, so the tab and the group name the same Dogovori.
-  const attention = useMemo(() => activeItems.filter(item => agreementAttention(item) !== null).length, [activeItems]);
+  const attention = useMemo(() => activeItems.filter(task => task.items.some(item => agreementAttention(item) !== null)).length, [activeItems]);
   const sections = useMemo(() => !settledRead || !attention ? SECTIONS
     : SECTIONS.map(option => option.key === 'active' ? { ...option, badge: attention, badgeLabel: waitingSpoken(attention), badgeTone: 'attention' as const } : option),
   [attention, settledRead]);
@@ -119,9 +128,10 @@ export function AgreementCollectionPresentation(props: Props) {
   const cancellations = props.cancellations;
   const renderItem = useCallback(({ item: row, index }: ListRenderItemInfo<ListRow>) => row.kind === 'group'
     ? <GroupHeader title={row.title} first={index === 0} />
-    : <AgreementRow item={row.item} index={index} now={now} animate={appearRef.current.isNew(row.id)} onOpen={openItem}
-      cancellation={row.item.stanje === 'CANCELLED' ? cancellationOf(cancellations, row.id) : null}
-      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations]);
+    : <AgreementTaskRow group={row.task} index={index} now={now} animate={appearRef.current.isNew(row.id)} onOpen={openItem}
+      expanded={expandedKey === row.task.key} onExpand={expand} cancellations={cancellations}
+      prioritize={section === 'history' ? historyFilter : filtering ? 'confirmation' : 'all'}
+      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, expandedKey, expand, section, historyFilter, filtering]);
   // A set that is empty while the other one is not leads to the one that has Dogovori, with the filter off, so the
   // way forward never lands on another empty view (review r3 item 7).
   const target: AgreementCollectionSection = (section === 'active' && !filtering) || !activeCount ? 'history' : 'active';
@@ -131,8 +141,9 @@ export function AgreementCollectionPresentation(props: Props) {
   const emptyRole = roleFilter !== 'all' && roleItems.length === 0 && items.length > 0;
   const clearRole = () => {
     setRoleFilter('all'); props.onConfirmationOnly(false); setHistoryFilter('all');
-    if (!items.some(item => isActiveAgreement(item) === (section === 'active'))) props.onSection(section === 'active' ? 'history' : 'active');
+    if (!groupAgreementTasks(items).some(task => isActiveAgreementTask(task) === (section === 'active'))) props.onSection(section === 'active' ? 'history' : 'active');
   };
+  const historyInActive = section === 'history' && activeItems.some(task => task.items.some(item => item.stanje === 'COMPLETED' || item.stanje === 'CANCELLED'));
   // The one state view: reading, not read, nothing in this set, nothing yet - each in the same look. Nothing yet leads to the two
   // ways a Dogovor begins (look at the tasks; publish one) when the route can take the person there, and otherwise to Početna.
   const first = props.onTasks ? { label: 'Pogledaj zadatke', onPress: props.onTasks } : { label: 'Idi na Početnu', onPress: props.onHome };
@@ -144,7 +155,8 @@ export function AgreementCollectionPresentation(props: Props) {
         : emptyRole ? <StateView art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikaži sve uloge', onPress: clearRole }} />
         : items.length ? <StateView art="agreements"
           title={filtering ? 'Nijedan Dogovor ne čeka tvoju potvrdu' : section === 'active' ? 'Nema aktivnih Dogovora'
-            : narrowedEmpty ? (historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Nema završenih Dogovora') : 'Još nema završenih Dogovora'}
+            : narrowedEmpty ? (historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Nema završenih Dogovora') : historyInActive ? 'Saradnje su uz aktivne zadatke' : 'Još nema završenih Dogovora'}
+          body={historyInActive ? 'Završene i otkazane saradnje ostaju uz isti zadatak dok još ima obaveza. Pronađi ih u Aktivni.' : undefined}
           primary={narrowedEmpty ? { label: 'Prikaži sve', onPress: () => setHistoryFilter('all') }
             : { label: target === 'history' ? 'Pogledaj istoriju' : 'Pogledaj aktivne Dogovore', onPress: showOther }} />
           : <StateView hero art="agreements" title="Još nemaš Dogovor" body="Dogovor nastaje kad izabereš prijavu ili te izaberu."

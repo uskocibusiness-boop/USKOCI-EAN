@@ -1,5 +1,5 @@
 import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
-import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState, type Context, type ReactNode } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type Context, type ReactNode } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated as NativeAnimated, BackHandler, Easing, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import * as SafeArea from 'react-native-safe-area-context';
@@ -47,10 +47,10 @@ import type { TaskCardRelation } from './TaskFace';
 import type { TaskRelationIndex } from '../../data/taskRelation';
 import { TaskPublisherPortrait } from './TaskPublisherPortrait';
 
-/** Internal DEV diagnosis. Route owns the exact package/query gate, numeric validation and 120-event limit. */
+/** Internal diagnosis. Route owns the exact package gate, numeric validation and per-visit limit. */
 export type DiscoveryTrace = (event: 'route-trace' | 'route-focus' | 'route-blur' | 'route-open' | 'route-view' | 'focus' | 'blur'
   | 'preopen' | 'write-offset' | 'seed' | 'ready' | 'geometry' | 'index' | 'content' | 'layout' | 'restore-check'
-  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'drag' | 'refresh' | 'kick' | 'stall' | 'want' | 'fit',
+  | 'clamp0' | 'request' | 'ack' | 'scroll0' | 'scroll' | 'scroll-reject' | 'search-change' | 'drag' | 'refresh' | 'kick' | 'stall' | 'want' | 'fit' | 'bar' | 'bar-value',
   ...values: (number | boolean)[]) => void;
 
 export type DiscoveryV1PresentationSeam = {
@@ -802,7 +802,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       if (hasBar && (next.shown !== previous?.shown || next.visit !== previous?.visit || next.mount !== previous?.mount))
         runOnJS(receiveBarPlacement)(next.shown);
     }, [position, bodyHeight, barHalfTop, barVisitSequence, nativeMountKey, hasBar, receiveBarPlacement]);
+  useLayoutEffect(() => {
+    if (!props.trace || !bar) return;
+    const listener = bar.hidden.addListener(({ value }) => trace('bar-value', value));
+    return () => bar.hidden.removeListener(listener);
+  }, [props.trace, trace, bar]);
   useZadaciBarMotion({ bar, shown: barPlacement?.owner === barOwner && barPlacement.shown && !cardShown, active: focused, reduced });
+  useEffect(() => {
+    if (!props.trace) return;
+    trace('bar', focused, hasBar, barOwner.visit.active, barPlacement?.owner === barOwner, !!barPlacement?.shown, cardShown,
+      bodyHeight, barHalfTop, position.value);
+  }, [props.trace, trace, focused, hasBar, barOwner, barPlacement, cardShown, bodyHeight, barHalfTop, position]);
   const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.

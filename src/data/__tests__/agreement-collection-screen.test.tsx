@@ -259,3 +259,42 @@ test('role survives background without a new filter read, retires on account ABA
  mockSession={user:{id:'account-a'},accountRevision:3};await update();
  await act(async()=>stale('narucilac'));expect(props().roleFilter).toBe('all');
 });
+
+
+test('reads cancellation details for siblings of an active task in one batch, without unrelated history', async () => {
+  const linkage = { izvor: { zadatakId: 'shared' }, ucesnici: [{ viSte: true, uloga: 'narucilac' }] };
+  mockRead.mockResolvedValue([{ id: 'live', stanje: 'CONFIRMED', ...linkage }, { id: 'cancelled-sibling', stanje: 'CANCELLED', ...linkage },
+    { id: 'history', stanje: 'CANCELLED', izvor: { zadatakId: 'another' }, ucesnici: linkage.ucesnici }]);
+  await render(); expect(mockCancellations).toHaveBeenCalledTimes(1);
+  expect(mockCancellations).toHaveBeenCalledWith(['cancelled-sibling'], { accountId: 'account-a', accountRevision: 1 });
+});
+test('expanded task survives detail/back and background, while stale expansion and account ABA are rejected', async () => {
+  await render(); const before = props();
+  await act(async () => before.onExpandedTask('task-key', before.items[0])); expect(props().expandedTaskKey).toBe('task-key');
+  await act(async () => props().onOpen(props().items[0]));
+  mockFocused = false; await update();
+  await act(async () => { mockApp.currentState = 'background'; mockListeners.forEach(fn => fn('background')); });
+  await act(async () => { mockApp.currentState = 'active'; mockListeners.forEach(fn => fn('active')); });
+  mockFocused = true; await update(); expect(props().expandedTaskKey).toBe('task-key');
+  await act(async () => before.onExpandedTask('stale', before.items[0])); expect(props().expandedTaskKey).toBe('task-key');
+  const latest = props();
+  mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
+  mockSession = { user: { id: 'account-a' }, accountRevision: 3 }; await update();
+  await act(async () => latest.onExpandedTask('retired', latest.items[0])); expect(props().expandedTaskKey).toBeNull();
+});
+
+
+test('same cancellation IDs never retain an old reason across new reads, failures or erased content', async () => {
+  mockParams = { odeljak: 'istorija' };
+  mockRead.mockImplementation(async () => [{ id: 'cancelled', stanje: 'CANCELLED' }]);
+  mockCancellations.mockResolvedValueOnce({ ok: true, podatak: new Map([['cancelled', { reasonState: 'KEPT', reason: 'OLD_PRIVATE_REASON' }]]) });
+  await render(); expect(props().cancellations.get('cancelled').reason).toBe('OLD_PRIVATE_REASON');
+  let resolve!: (value: unknown) => void;
+  mockCancellations.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+  await act(async () => props().onRefresh());
+  expect(props().cancellations).toBeNull();
+  await act(async () => resolve({ ok: false })); expect(props().cancellations).toBeNull();
+  mockCancellations.mockResolvedValueOnce({ ok: true, podatak: new Map([['cancelled', { reasonState: 'REMOVED', reason: null }]]) });
+  await act(async () => props().onRefresh());
+  expect(props().cancellations.get('cancelled')).toEqual({ reasonState: 'REMOVED', reason: null });
+});
