@@ -1,0 +1,1172 @@
+{
+  "unit": "DISCOVERY-GRAD load",
+  "result": "FAIL",
+  "sourceSha": "e526ad5d9b9fc29b4b2f3c5c61ac8c6960da54c4",
+  "disposableOnly": true,
+  "liveAccess": false,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "tasks": 40000,
+  "checks": [
+    {
+      "name": "DISCOVERY_GRAD_LOAD_SEEDED",
+      "result": "PASS",
+      "detail": {
+        "openTasks": 40000
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE",
+      "result": "PASS"
+    },
+    {
+      "name": "DEPLOYED_BASELINE_COUNTS_FILTERS_RESPONSE_BOUNDS",
+      "result": "PASS",
+      "detail": {
+        "pageDefault": {
+          "coldMs": 479.7,
+          "medianMs": 425.1,
+          "minMs": 375,
+          "maxMs": 516.6,
+          "rows": 50,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:50:28.944134Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:20:28.944134Z",
+            "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+            "publishedThrough": "2026-10-08T23:50:28.944134Z"
+          },
+          "memberCount": 0
+        },
+        "pageTextCiscenje": {
+          "coldMs": 1168.5,
+          "medianMs": 1206.9,
+          "minMs": 1121.8,
+          "maxMs": 1272.8,
+          "rows": 50,
+          "counted": 5333,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:50:35.526957Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:20:35.526957Z",
+            "filterKey": "a409934eded9e3997b6353c296541575",
+            "publishedThrough": "2026-10-08T23:50:35.526957Z"
+          },
+          "memberCount": 0
+        },
+        "pageTextSelidba": {
+          "coldMs": 1226.1,
+          "medianMs": 1172.5,
+          "minMs": 1116.5,
+          "maxMs": 1318.7,
+          "rows": 50,
+          "counted": 5333,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:50:53.683212Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:20:53.683212Z",
+            "filterKey": "bde6517e1f7ea765f47c13be90552f5e",
+            "publishedThrough": "2026-10-08T23:50:53.683212Z"
+          },
+          "memberCount": 0
+        },
+        "pageTextNoHit": {
+          "coldMs": 1133.8,
+          "medianMs": 1148,
+          "minMs": 1104.9,
+          "maxMs": 1271.7,
+          "rows": 0,
+          "counted": 0,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:51:11.775132Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:21:11.775132Z",
+            "filterKey": "184bfb4d716ce88547d4cf0b50f2b101",
+            "publishedThrough": "2026-10-08T23:51:11.775132Z"
+          },
+          "memberCount": 0
+        },
+        "pagePlaceCity": {
+          "coldMs": 291.6,
+          "medianMs": 274.8,
+          "minMs": 253.5,
+          "maxMs": 299.5,
+          "rows": 50,
+          "counted": 7332,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:51:29.256571Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:21:29.256571Z",
+            "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+            "publishedThrough": "2026-10-08T23:51:29.256571Z"
+          },
+          "memberCount": 0
+        },
+        "pagePlaceLabel": {
+          "coldMs": 231.2,
+          "medianMs": 245.6,
+          "minMs": 213.7,
+          "maxMs": 312.5,
+          "rows": 0,
+          "counted": 0,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:51:33.454314Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:21:33.454314Z",
+            "filterKey": "bc079e4e5258b9ecb8c4a2377816d898",
+            "publishedThrough": "2026-10-08T23:51:33.454314Z"
+          },
+          "memberCount": 0
+        },
+        "pagePlaceAndText": {
+          "coldMs": 980.3,
+          "medianMs": 961.4,
+          "minMs": 920.9,
+          "maxMs": 1133.1,
+          "rows": 50,
+          "counted": 2000,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:51:37.195209Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:21:37.195209Z",
+            "filterKey": "f867ef6a93a4a2542b3c5235ca1f9c16",
+            "publishedThrough": "2026-10-08T23:51:37.195209Z"
+          },
+          "memberCount": 0
+        },
+        "pageAreaToday": {
+          "coldMs": 388.1,
+          "medianMs": 371.6,
+          "minMs": 351.6,
+          "maxMs": 511.7,
+          "rows": 50,
+          "counted": 11075,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:51:52.003868Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:21:52.003868Z",
+            "filterKey": "71748541eec5db18a630ad68143a9c80",
+            "publishedThrough": "2026-10-08T23:51:52.003868Z"
+          },
+          "memberCount": 0
+        },
+        "mapDefault": {
+          "coldMs": 333.1,
+          "medianMs": 349.1,
+          "minMs": 316,
+          "maxMs": 397.4,
+          "rows": 14,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "MAP",
+          "anchor": {
+            "timeAt": "2026-10-08T23:51:57.917336Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:21:57.917336Z",
+            "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+            "publishedThrough": "2026-10-08T23:51:57.917336Z"
+          },
+          "memberCount": 35077
+        },
+        "mapPlaceCity": {
+          "coldMs": 152.8,
+          "medianMs": 151.3,
+          "minMs": 132.3,
+          "maxMs": 232.2,
+          "rows": 1,
+          "counted": 7332,
+          "version": "DISCOVERY_V1",
+          "mode": "MAP",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:03.169196Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:03.169196Z",
+            "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+            "publishedThrough": "2026-10-08T23:52:03.169196Z"
+          },
+          "memberCount": 6768
+        },
+        "placesDefault": {
+          "coldMs": 182.4,
+          "medianMs": 185.4,
+          "minMs": 169,
+          "maxMs": 241.9,
+          "rows": 30,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:05.605723Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:05.605723Z",
+            "filterKey": "9cc48e0aa5323ed4a7129fd5b71a7502",
+            "publishedThrough": "2026-10-08T23:52:05.605723Z"
+          },
+          "memberCount": 0
+        },
+        "placesPrefix": {
+          "coldMs": 183.8,
+          "medianMs": 190.5,
+          "minMs": 170,
+          "maxMs": 238.1,
+          "rows": 5,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:08.449036Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:08.449036Z",
+            "filterKey": "ffb1bbb687dbb4650594cc60d62a4cca",
+            "publishedThrough": "2026-10-08T23:52:08.449036Z"
+          },
+          "memberCount": 0
+        },
+        "placesCity": {
+          "coldMs": 184.8,
+          "medianMs": 187,
+          "minMs": 169,
+          "maxMs": 216.2,
+          "rows": 12,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:11.352620Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:11.352620Z",
+            "filterKey": "aee158c8cab8a384f0d0791ff83a548b",
+            "publishedThrough": "2026-10-08T23:52:11.352620Z"
+          },
+          "memberCount": 0
+        },
+        "placesCityPrefix": {
+          "coldMs": 217.6,
+          "medianMs": 187.7,
+          "minMs": 172.8,
+          "maxMs": 242.1,
+          "rows": 1,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "PLACES",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:14.197432Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:14.197432Z",
+            "filterKey": "7305991adc7d38d1a96b6cf5ffe06b68",
+            "publishedThrough": "2026-10-08T23:52:14.197432Z"
+          },
+          "memberCount": 0
+        },
+        "pageRemote": {
+          "coldMs": 240.9,
+          "medianMs": 222.4,
+          "minMs": 205.4,
+          "maxMs": 269.1,
+          "rows": 50,
+          "counted": 2000,
+          "version": "DISCOVERY_V1",
+          "mode": "PAGE",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:17.237767Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:17.237767Z",
+            "filterKey": "08bb6992959c507001d32dc3db3c8ff3",
+            "publishedThrough": "2026-10-08T23:52:17.237767Z"
+          },
+          "memberCount": 0
+        },
+        "mapCityDense": {
+          "coldMs": 249.6,
+          "medianMs": 230.8,
+          "minMs": 206.8,
+          "maxMs": 269.3,
+          "rows": 5,
+          "counted": 40000,
+          "version": "DISCOVERY_V1",
+          "mode": "MAP",
+          "anchor": {
+            "timeAt": "2026-10-08T23:52:20.742076Z",
+            "version": "DISCOVERY_V1",
+            "expiresAt": "2026-10-09T00:22:20.742076Z",
+            "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+            "publishedThrough": "2026-10-08T23:52:20.742076Z"
+          },
+          "memberCount": 6768
+        }
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_AUTHENTICATED_HTTP",
+      "result": "PASS",
+      "detail": {
+        "pageDefault": 452,
+        "pageTextCiscenje": 1181,
+        "pageTextSelidba": 1221,
+        "pageTextNoHit": 1173,
+        "pagePlaceCity": 281,
+        "pagePlaceLabel": 236,
+        "pagePlaceAndText": 1016,
+        "pageAreaToday": 392,
+        "mapDefault": 355,
+        "mapPlaceCity": 161,
+        "placesDefault": 174,
+        "placesPrefix": 177,
+        "placesCity": 192,
+        "placesCityPrefix": 193,
+        "pageRemote": 233,
+        "mapCityDense": 233
+      }
+    },
+    {
+      "name": "DEPLOYED_BASELINE_FOUR_REQUEST_PROFILES",
+      "result": "PASS"
+    },
+    {
+      "name": "DEPLOYED_BASELINE_POSTLOAD_FIDELITY",
+      "result": "PASS"
+    },
+    {
+      "name": "DEPLOYED_BASELINE_RELEVANT_CHAIN_FIDELITY",
+      "result": "PASS"
+    }
+  ],
+  "failures": [
+    {
+      "name": "LOAD",
+      "detail": "AssertionError [ERR_ASSERTION]: AREA_HTTP:repeatedLocations:baseline:pageDefault\n\n'object' !== 'number'\n\n    at measureStage (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/area-dedup.proof.mjs:134:14)\n    at async fixture (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/area-dedup.proof.mjs:141:30)\n    at async proveAreaDedup (file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/area-dedup.proof.mjs:153:3)\n    at async file:///home/runner/work/USKOCI-EAN/USKOCI-EAN/supabase/proofs/discovery-grad/load.proof.mjs:294:33"
+    }
+  ],
+  "load": {
+    "openTasks": 40000,
+    "DEPLOYED_BASELINE": {
+      "pageDefault": {
+        "coldMs": 479.7,
+        "medianMs": 425.1,
+        "minMs": 375,
+        "maxMs": 516.6,
+        "rows": 50,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:50:28.944134Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:20:28.944134Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-10-08T23:50:28.944134Z"
+        },
+        "memberCount": 0
+      },
+      "pageTextCiscenje": {
+        "coldMs": 1168.5,
+        "medianMs": 1206.9,
+        "minMs": 1121.8,
+        "maxMs": 1272.8,
+        "rows": 50,
+        "counted": 5333,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:50:35.526957Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:20:35.526957Z",
+          "filterKey": "a409934eded9e3997b6353c296541575",
+          "publishedThrough": "2026-10-08T23:50:35.526957Z"
+        },
+        "memberCount": 0
+      },
+      "pageTextSelidba": {
+        "coldMs": 1226.1,
+        "medianMs": 1172.5,
+        "minMs": 1116.5,
+        "maxMs": 1318.7,
+        "rows": 50,
+        "counted": 5333,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:50:53.683212Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:20:53.683212Z",
+          "filterKey": "bde6517e1f7ea765f47c13be90552f5e",
+          "publishedThrough": "2026-10-08T23:50:53.683212Z"
+        },
+        "memberCount": 0
+      },
+      "pageTextNoHit": {
+        "coldMs": 1133.8,
+        "medianMs": 1148,
+        "minMs": 1104.9,
+        "maxMs": 1271.7,
+        "rows": 0,
+        "counted": 0,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:51:11.775132Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:21:11.775132Z",
+          "filterKey": "184bfb4d716ce88547d4cf0b50f2b101",
+          "publishedThrough": "2026-10-08T23:51:11.775132Z"
+        },
+        "memberCount": 0
+      },
+      "pagePlaceCity": {
+        "coldMs": 291.6,
+        "medianMs": 274.8,
+        "minMs": 253.5,
+        "maxMs": 299.5,
+        "rows": 50,
+        "counted": 7332,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:51:29.256571Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:21:29.256571Z",
+          "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+          "publishedThrough": "2026-10-08T23:51:29.256571Z"
+        },
+        "memberCount": 0
+      },
+      "pagePlaceLabel": {
+        "coldMs": 231.2,
+        "medianMs": 245.6,
+        "minMs": 213.7,
+        "maxMs": 312.5,
+        "rows": 0,
+        "counted": 0,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:51:33.454314Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:21:33.454314Z",
+          "filterKey": "bc079e4e5258b9ecb8c4a2377816d898",
+          "publishedThrough": "2026-10-08T23:51:33.454314Z"
+        },
+        "memberCount": 0
+      },
+      "pagePlaceAndText": {
+        "coldMs": 980.3,
+        "medianMs": 961.4,
+        "minMs": 920.9,
+        "maxMs": 1133.1,
+        "rows": 50,
+        "counted": 2000,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:51:37.195209Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:21:37.195209Z",
+          "filterKey": "f867ef6a93a4a2542b3c5235ca1f9c16",
+          "publishedThrough": "2026-10-08T23:51:37.195209Z"
+        },
+        "memberCount": 0
+      },
+      "pageAreaToday": {
+        "coldMs": 388.1,
+        "medianMs": 371.6,
+        "minMs": 351.6,
+        "maxMs": 511.7,
+        "rows": 50,
+        "counted": 11075,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:51:52.003868Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:21:52.003868Z",
+          "filterKey": "71748541eec5db18a630ad68143a9c80",
+          "publishedThrough": "2026-10-08T23:51:52.003868Z"
+        },
+        "memberCount": 0
+      },
+      "mapDefault": {
+        "coldMs": 333.1,
+        "medianMs": 349.1,
+        "minMs": 316,
+        "maxMs": 397.4,
+        "rows": 14,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-10-08T23:51:57.917336Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:21:57.917336Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-10-08T23:51:57.917336Z"
+        },
+        "memberCount": 35077
+      },
+      "mapPlaceCity": {
+        "coldMs": 152.8,
+        "medianMs": 151.3,
+        "minMs": 132.3,
+        "maxMs": 232.2,
+        "rows": 1,
+        "counted": 7332,
+        "version": "DISCOVERY_V1",
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:03.169196Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:03.169196Z",
+          "filterKey": "ded33cf3469a7e5aff581623a47ac5c0",
+          "publishedThrough": "2026-10-08T23:52:03.169196Z"
+        },
+        "memberCount": 6768
+      },
+      "placesDefault": {
+        "coldMs": 182.4,
+        "medianMs": 185.4,
+        "minMs": 169,
+        "maxMs": 241.9,
+        "rows": 30,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:05.605723Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:05.605723Z",
+          "filterKey": "9cc48e0aa5323ed4a7129fd5b71a7502",
+          "publishedThrough": "2026-10-08T23:52:05.605723Z"
+        },
+        "memberCount": 0
+      },
+      "placesPrefix": {
+        "coldMs": 183.8,
+        "medianMs": 190.5,
+        "minMs": 170,
+        "maxMs": 238.1,
+        "rows": 5,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:08.449036Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:08.449036Z",
+          "filterKey": "ffb1bbb687dbb4650594cc60d62a4cca",
+          "publishedThrough": "2026-10-08T23:52:08.449036Z"
+        },
+        "memberCount": 0
+      },
+      "placesCity": {
+        "coldMs": 184.8,
+        "medianMs": 187,
+        "minMs": 169,
+        "maxMs": 216.2,
+        "rows": 12,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:11.352620Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:11.352620Z",
+          "filterKey": "aee158c8cab8a384f0d0791ff83a548b",
+          "publishedThrough": "2026-10-08T23:52:11.352620Z"
+        },
+        "memberCount": 0
+      },
+      "placesCityPrefix": {
+        "coldMs": 217.6,
+        "medianMs": 187.7,
+        "minMs": 172.8,
+        "maxMs": 242.1,
+        "rows": 1,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "PLACES",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:14.197432Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:14.197432Z",
+          "filterKey": "7305991adc7d38d1a96b6cf5ffe06b68",
+          "publishedThrough": "2026-10-08T23:52:14.197432Z"
+        },
+        "memberCount": 0
+      },
+      "pageRemote": {
+        "coldMs": 240.9,
+        "medianMs": 222.4,
+        "minMs": 205.4,
+        "maxMs": 269.1,
+        "rows": 50,
+        "counted": 2000,
+        "version": "DISCOVERY_V1",
+        "mode": "PAGE",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:17.237767Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:17.237767Z",
+          "filterKey": "08bb6992959c507001d32dc3db3c8ff3",
+          "publishedThrough": "2026-10-08T23:52:17.237767Z"
+        },
+        "memberCount": 0
+      },
+      "mapCityDense": {
+        "coldMs": 249.6,
+        "medianMs": 230.8,
+        "minMs": 206.8,
+        "maxMs": 269.3,
+        "rows": 5,
+        "counted": 40000,
+        "version": "DISCOVERY_V1",
+        "mode": "MAP",
+        "anchor": {
+          "timeAt": "2026-10-08T23:52:20.742076Z",
+          "version": "DISCOVERY_V1",
+          "expiresAt": "2026-10-09T00:22:20.742076Z",
+          "filterKey": "8615c5d43fd29ebd12926d3bd64d47f1",
+          "publishedThrough": "2026-10-08T23:52:20.742076Z"
+        },
+        "memberCount": 6768
+      }
+    },
+    "DEPLOYED_BASELINE_HTTP": {
+      "pageDefault": 452,
+      "pageTextCiscenje": 1181,
+      "pageTextSelidba": 1221,
+      "pageTextNoHit": 1173,
+      "pagePlaceCity": 281,
+      "pagePlaceLabel": 236,
+      "pagePlaceAndText": 1016,
+      "pageAreaToday": 392,
+      "mapDefault": 355,
+      "mapPlaceCity": 161,
+      "placesDefault": 174,
+      "placesPrefix": 177,
+      "placesCity": 192,
+      "placesCityPrefix": 193,
+      "pageRemote": 233,
+      "mapCityDense": 233
+    },
+    "DEPLOYED_BASELINE_PROFILE": {
+      "pageDefault": {
+        "functions": [
+          {
+            "oid": "26007",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 428.594516,
+            "totalMs": 540.670109,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 109.516535,
+            "totalMs": 109.516535,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "21737",
+            "name": "covered_slots",
+            "calls": 50,
+            "schema": "public",
+            "selfMs": 1.21031,
+            "totalMs": 1.21031,
+            "signature": "covered_slots(needs)"
+          },
+          {
+            "oid": "26018",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.302365,
+            "totalMs": 0.302365,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.281994,
+            "totalMs": 0.281994,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.261134,
+            "totalMs": 0.593063,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "26395",
+            "name": "discovery_fold_v1",
+            "calls": 2,
+            "schema": "public",
+            "selfMs": 0.230056,
+            "totalMs": 0.230056,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.175553,
+            "totalMs": 0.768616,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.049935,
+            "totalMs": 0.049935,
+            "signature": "private.closure_account_key(uuid)"
+          },
+          {
+            "oid": "26001",
+            "name": "p6_discovery_trim",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.047711,
+            "totalMs": 0.047711,
+            "signature": "p6_discovery_trim(text)"
+          }
+        ],
+        "readerOid": "26007",
+        "trackFunctions": "all"
+      },
+      "pageTextCiscenje": {
+        "functions": [
+          {
+            "oid": "26001",
+            "name": "p6_discovery_trim",
+            "calls": 78001,
+            "schema": "public",
+            "selfMs": 294.55871,
+            "totalMs": 294.55871,
+            "signature": "p6_discovery_trim(text)"
+          },
+          {
+            "oid": "26395",
+            "name": "discovery_fold_v1",
+            "calls": 40002,
+            "schema": "public",
+            "selfMs": 236.347106,
+            "totalMs": 236.347106,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "26007",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 235.535803,
+            "totalMs": 1218.079134,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26004",
+            "name": "p6_discovery_area",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 210.802289,
+            "totalMs": 631.293331,
+            "signature": "p6_discovery_area(text,text,boolean)"
+          },
+          {
+            "oid": "26003",
+            "name": "p6_discovery_unquote",
+            "calls": 76000,
+            "schema": "public",
+            "selfMs": 125.965732,
+            "totalMs": 243.534103,
+            "signature": "p6_discovery_unquote(text)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 112.962984,
+            "totalMs": 112.962984,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "21737",
+            "name": "covered_slots",
+            "calls": 50,
+            "schema": "public",
+            "selfMs": 0.871432,
+            "totalMs": 0.871432,
+            "signature": "covered_slots(needs)"
+          },
+          {
+            "oid": "26018",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.287663,
+            "totalMs": 0.287663,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.260722,
+            "totalMs": 0.260722,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.260342,
+            "totalMs": 0.571069,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.176346,
+            "totalMs": 0.747415,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.050005,
+            "totalMs": 0.050005,
+            "signature": "private.closure_account_key(uuid)"
+          }
+        ],
+        "readerOid": "26007",
+        "trackFunctions": "all"
+      },
+      "pageTextNoHit": {
+        "functions": [
+          {
+            "oid": "26001",
+            "name": "p6_discovery_trim",
+            "calls": 78001,
+            "schema": "public",
+            "selfMs": 305.258712,
+            "totalMs": 305.258712,
+            "signature": "p6_discovery_trim(text)"
+          },
+          {
+            "oid": "26395",
+            "name": "discovery_fold_v1",
+            "calls": 40002,
+            "schema": "public",
+            "selfMs": 244.14464,
+            "totalMs": 244.14464,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "26004",
+            "name": "p6_discovery_area",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 220.804438,
+            "totalMs": 655.884216,
+            "signature": "p6_discovery_area(text,text,boolean)"
+          },
+          {
+            "oid": "26007",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 191.092975,
+            "totalMs": 1210.742945,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26003",
+            "name": "p6_discovery_unquote",
+            "calls": 76000,
+            "schema": "public",
+            "selfMs": 129.854807,
+            "totalMs": 250.82972,
+            "signature": "p6_discovery_unquote(text)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 118.566168,
+            "totalMs": 118.566168,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "26018",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.296355,
+            "totalMs": 0.296355,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.249836,
+            "totalMs": 0.543568,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.240953,
+            "totalMs": 0.240953,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.181282,
+            "totalMs": 0.72485,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.052779,
+            "totalMs": 0.052779,
+            "signature": "private.closure_account_key(uuid)"
+          }
+        ],
+        "readerOid": "26007",
+        "trackFunctions": "all"
+      },
+      "pagePlaceAndText": {
+        "functions": [
+          {
+            "oid": "26001",
+            "name": "p6_discovery_trim",
+            "calls": 78281,
+            "schema": "public",
+            "selfMs": 289.771479,
+            "totalMs": 289.771479,
+            "signature": "p6_discovery_trim(text)"
+          },
+          {
+            "oid": "26007",
+            "name": "rpc_discovery_v1",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 219.402156,
+            "totalMs": 999.578717,
+            "signature": "rpc_discovery_v1(jsonb)"
+          },
+          {
+            "oid": "26004",
+            "name": "p6_discovery_area",
+            "calls": 40045,
+            "schema": "public",
+            "selfMs": 211.710742,
+            "totalMs": 624.078545,
+            "signature": "p6_discovery_area(text,text,boolean)"
+          },
+          {
+            "oid": "26003",
+            "name": "p6_discovery_unquote",
+            "calls": 76132,
+            "schema": "public",
+            "selfMs": 123.759426,
+            "totalMs": 243.321896,
+            "signature": "p6_discovery_unquote(text)"
+          },
+          {
+            "oid": "26005",
+            "name": "p6_discovery_days",
+            "calls": 40000,
+            "schema": "public",
+            "selfMs": 111.070502,
+            "totalMs": 111.070502,
+            "signature": "p6_discovery_days(text,timestamp with time zone,timestamp with time zone,text,timestamp with time zone)"
+          },
+          {
+            "oid": "26395",
+            "name": "discovery_fold_v1",
+            "calls": 7421,
+            "schema": "public",
+            "selfMs": 41.038678,
+            "totalMs": 41.038678,
+            "signature": "discovery_fold_v1(text)"
+          },
+          {
+            "oid": "21737",
+            "name": "covered_slots",
+            "calls": 50,
+            "schema": "public",
+            "selfMs": 0.864015,
+            "totalMs": 0.864015,
+            "signature": "covered_slots(needs)"
+          },
+          {
+            "oid": "26002",
+            "name": "p6_discovery_key",
+            "calls": 133,
+            "schema": "public",
+            "selfMs": 0.702035,
+            "totalMs": 1.646459,
+            "signature": "p6_discovery_key(text)"
+          },
+          {
+            "oid": "23893",
+            "name": "closure_assert_open",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.409958,
+            "totalMs": 0.722307,
+            "signature": "private.closure_assert_open(uuid,uuid)"
+          },
+          {
+            "oid": "26018",
+            "name": "p6_discovery_test_world_accounts",
+            "calls": 2,
+            "schema": "rls_private",
+            "selfMs": 0.333471,
+            "totalMs": 0.333471,
+            "signature": "rls_private.p6_discovery_test_world_accounts()"
+          },
+          {
+            "oid": "23892",
+            "name": "closure_account_restricted",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.255764,
+            "totalMs": 0.255764,
+            "signature": "private.closure_account_restricted(uuid)"
+          },
+          {
+            "oid": "24292",
+            "name": "rpc_storage_account_open",
+            "calls": 1,
+            "schema": "public",
+            "selfMs": 0.203906,
+            "totalMs": 0.926213,
+            "signature": "rpc_storage_account_open()"
+          },
+          {
+            "oid": "23891",
+            "name": "closure_account_key",
+            "calls": 1,
+            "schema": "private",
+            "selfMs": 0.056585,
+            "totalMs": 0.056585,
+            "signature": "private.closure_account_key(uuid)"
+          }
+        ],
+        "readerOid": "26007",
+        "trackFunctions": "all"
+      }
+    }
+  },
+  "mode": "DEPLOYED_BASELINE",
+  "population": {
+    "tasks": 40000,
+    "authAccounts": 2,
+    "simultaneousRequests": 1,
+    "lifecycleMutations": 0
+  },
+  "limits": "Synthetic bulk read fixture, serial SQL/HTTP samples on a shared CI runner. Not 40000 active users, whole-schema fidelity, lifecycle or native FPS.",
+  "baseline": {
+    "readerMd5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "foldMd5": "41353abe05d434d513495ae5974b9802",
+    "before": {
+      "helper": true,
+      "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "readerAfter": true,
+      "dependencies": true,
+      "closureDigest": "eb3175c64877bea425b2c0cac24463e612268c7393e0aa36e8d1b5092f2a4cba",
+      "certificateReady": true,
+      "erasureProgramDigest": "eb20e6246b7e9ec98db526dd4b3f0cd2943f4c3c9c0568e48aa0aa5f08f42bdc",
+      "retriedLiteralFunctions": 63,
+      "foldTruthTableMismatches": 0
+    },
+    "after": {
+      "helper": true,
+      "readerAcl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "readerAfter": true,
+      "dependencies": true,
+      "closureDigest": "eb3175c64877bea425b2c0cac24463e612268c7393e0aa36e8d1b5092f2a4cba",
+      "certificateReady": true,
+      "erasureProgramDigest": "eb20e6246b7e9ec98db526dd4b3f0cd2943f4c3c9c0568e48aa0aa5f08f42bdc",
+      "retriedLiteralFunctions": 63,
+      "foldTruthTableMismatches": 0
+    }
+  },
+  "areaExperiment": {
+    "state": "RUNNING",
+    "hashes": {
+      "baseline": "a9b0985991f4ebfe4e95143e5cf57222",
+      "candidate": "46d4baf9d6ce391710b9d428654763d4"
+    },
+    "s3Applied": false,
+    "fixtures": {
+      "repeatedLocations": {
+        "exact": {
+          "requests": 62,
+          "terminalPages": {
+            "corpus0": 14,
+            "placesCorpus": 3
+          },
+          "timestampMasking": false,
+          "fullResponseComparisons": 124
+        },
+        "stages": {},
+        "profiles": {}
+      }
+    },
+    "limits": "Serial read experiment on two Auth accounts. Not lifecycle, concurrency or a DEV promotion. Bulk fixtures use disabled triggers.",
+    "corpusRows": 27,
+    "nullKeyCorpus": {
+      "cases": 27,
+      "mismatches": 0,
+      "distinctKeys": 27
+    }
+  }
+}

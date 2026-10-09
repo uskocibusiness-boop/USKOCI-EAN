@@ -125,8 +125,10 @@ async function httpMs(client, request, runs = 3, expected = null) {
   const times = [];
   for (let i = 0; i < runs; i++) {
     const started = Date.now();
-    const r = await client.rpc('rpc_discovery_v1', {p_request: request});
-    if (r.error) return {error: r.error.message};
+    const r = await client.rpc('rpc_discovery_v1', {p_request: request}).abortSignal(AbortSignal.timeout(HARD_S * 1000));
+    if (r.error) throw new Error('DISCOVERY_HTTP_FAILED:' + JSON.stringify({sample: i + 1, elapsedMs: Date.now() - started,
+      status: r.status, statusText: r.statusText, code: r.error.code,
+      message: String(r.error.message ?? '').slice(0, 500), details: String(r.error.details ?? '').slice(0, 500), hint: String(r.error.hint ?? '').slice(0, 250)}));
     if (expected) {
       const body = r.data;
       assert.equal(body?.version, 'DISCOVERY_V1'); assert.equal(body.mode, request.mode);
@@ -379,6 +381,7 @@ try {
   report.result = 'PASS'; write();
   console.log('PASS DISCOVERY_GRAD_LOAD');
 } catch (error) {
+  if (report.areaExperiment?.state === 'RUNNING') report.areaExperiment.state = 'FAIL';
   report.result = 'FAIL'; report.failures.push({name: 'LOAD', detail: String(error?.stack ?? error).slice(0, 2500)}); write();
   console.error('FAIL DISCOVERY_GRAD_LOAD ' + String(error?.stack ?? error).slice(0, 2500));
   process.exitCode = 1;

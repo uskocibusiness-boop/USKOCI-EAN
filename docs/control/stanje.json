@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-08T23:52:34Z",
+  "osvezeno": "2026-10-09T00:06:50Z",
   "grana": "integration/spoj-20261006",
-  "head": "36abcaef",
-  "head_poruka": "test: refresh bounded push proof against DEV235 capture",
+  "head": "c70dd513",
+  "head_poruka": "merge: synchronize generated control views",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2184,12 +2184,13 @@
    "emulator": "adb install -r PASS; existing logged-out preview stayed logged out; entry screen viewed; no two-account native proof."
   },
   "discovery_bar_native_20261009": {
-   "state": "PHYSICAL_REGRESSION_REPRODUCED / SOURCE_FOCUSED_PASS / NEW_APK_PENDING",
+   "state": "NATIVE_FIX_FAILED / INVESTIGATING",
    "observedSource": "66275774407b2cb4ccebafac508ea237aa59e930",
    "finding": "Phone map: tab bar remained visible over collapsed sheet, count and handle obscured. Upward swipe at visible edge panned map instead. Exact cold-entry callback sequence not captured.",
    "privateEvidence": [
     "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-discovery.png",
-    "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-discovery-drag.png"
+    "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-662-discovery-drag.png",
+    "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-44e8-peek.png"
    ],
    "sourceFix": "Tab bar follows physical animatedPosition at HALF threshold; onAnimate is no longer visibility authority. Visit/mount fences and card priority; HALF tolerance excludes PEEK even at1px gap.",
    "verification": "Final250/250 tests across discovery-presentation,zadaci-bar,zadaci-sheet-geometry PASS after threshold refinement. Final TypeScript PASS. Independent source review: no confirmed remaining blocker.",
@@ -2202,11 +2203,14 @@
     "source": "44e8eaffdd9fcbd9ccf25cab174ea2374236003d",
     "phone": 37859900972,
     "emulator": 37859901389,
-    "state": "IN_PROGRESS_LAST_CHECK"
-   }
+    "state": "BOTH_SUCCESS / INSTALL_R_PASS / PHYSICAL_PEEK_FAIL",
+    "phoneSha256": "f344fbd60632d2b4fb55e7d3efa898c276bcdaf33d911a6f63dc104d8aa4d291",
+    "emulatorSha256": "fc7679fd07ce149ce9ec5df195e23e383d3eb8251961318ea4f17776e165b9d6"
+   },
+   "nativeResult": "Same signing certificate, session-preserving install-r both. Physical cold entry still has bar obscuring collapsed sheet. Do NOT count source fix as native acceptance."
   },
   "discovery_area_experiment_20261009": {
-   "state": "SOURCE_OFFLINE_PASS / DISPOSABLE_RUNTIME_PENDING",
+   "state": "DISPOSABLE_FAIL_FIRST_HTTP / REPEATED_EXACT_PASS / DIAGNOSTIC_FIX",
    "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
    "baselineReaderMd5": "a9b0985991f4ebfe4e95143e5cf57222",
    "candidateReaderMd5": "46d4baf9d6ce391710b9d428654763d4",
@@ -2215,10 +2219,13 @@
    "checks": "Offline candidate plus5 captured SQL statements and nested PLpgSQL parsed; Node syntax PASS; independent read-only source review no blocker.",
    "limits": "Not applied to DEV; not a promotion package, no S3/helper/schema/certificate change. Two Auth accounts and serial reads, no lifecycle or concurrent-user capacity.",
    "run": 37861199898,
-   "source": "e526ad5d9b9fc29b4b2f3c5c61ac8c6960da54c4"
+   "source": "e526ad5d9b9fc29b4b2f3c5c61ac8c6960da54c4",
+   "failedEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-failed-37861199898/load-report.json",
+   "result": "Repeated fixture:124 full JSON baseline/candidate/revert checks PASS,27 corpus,27 NULL/key cases,14PAGE+3PLACES terminal pages. First HTTP after exact failed before durable candidate install; error lost by typeof assertion. Unique fixture and performance comparison NOT reached.",
+   "next": "Rerun with bounded status/code/message diagnostics, explicit failed phase and partial SQL metrics. No blind retry or candidate change."
   },
   "push_recapture235_20261009": {
-   "state": "READ_ONLY_PREFLIGHT_PASS / REGENERATED_SOURCE / RUNTIME_PENDING",
+   "state": "READ_ONLY235_PREFLIGHT_PASS / EQUIVALENT_CURRENT99_DISPOSABLE_PASS / LIVE_NOT_APPLIED",
    "checkedAt": "2026-10-08T23:50:17.042064+00:00",
    "ledger": 235,
    "functionBodiesAndMetadataCompared": 13,
@@ -2242,7 +2249,10 @@
    "providerCalls": 0,
    "pushSends": 0,
    "candidateSha256": "239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac",
-   "evidence": "supabase/proofs/push_single_target/promotion/SOURCE_REVIEW.md"
+   "evidence": "supabase/proofs/push_single_target/promotion/SOURCE_REVIEW.md",
+   "proofRun": 37861832231,
+   "proofSource": "c70dd513d0896628b9958a8be2bd272a7180b383",
+   "proof": "28/28 source hashes verified; current99 wrapper install108/revert99/reapply/revert99,17AI+13definition checks,13 behavioral groups,6offlineEdge; teardownPASS. Local wrapper ledger147/OID/certificate-specific, not literal live235SQL or full235 replay. Mockprovider concurrency exactly1; no real provider."
   }
  },
  "redovi": [

@@ -163,3 +163,16 @@ Završni TypeScript nakon svih threshold izmena PASS.
 **NIJE DOKAZANO:** novi current99 runtime, SET/deploy prava, stvarna push dostava/banner/deeplink. Nije bilo DEV/Edge/sertifikat izmene, admission-a ili provider poziva. Current99 je relevantna certifiedchain, nije puna kopija svih235 funkcionalnih migracija.
 
 **SLEDEĆE:** novi izolovani wrapper apply/revert/reapply+13behavior groups; tek po stvarnom rezultatu pripremiti tačan live paket. Area-dedup run37861199898 sada je aktivan na sourcee526ad5d, pokrenut jednim push-em bez duplog dispatch-a.
+
+
+## Dopuna — novi APK, rezultat push dokaza i neuspešan area HTTP
+
+**URADIO:** oba APK-a44e8eaffdd9fcbd9ccf25cab174ea2374236003d uspešna: phone37859900972, emulator37859901389; instalacije adb install-r sa istim fac61745… potpisom, paket rs.uskoci.preview/versionCode35, bez brisanja i odjave. PhoneSHA256 f344fbd60632d2b4fb55e7d3efa898c276bcdaf33d911a6f63dc104d8aa4d291; emulatorSHA256 fc7679fd07ce149ce9ec5df195e23e383d3eb8251961318ea4f17776e165b9d6.
+
+**NIJE DOKAZANO / NATIVE FAIL:** phone-44e8-peek.png ponavlja stvaran kvar: tabbar prekriva spuštenu listu. Source animatedPosition ispravka nije dovoljna. Nastavlja se dijagnostika propagacije/visine; ne zatvarati ovaj red.
+
+**DOKAZAO / PUSH IZOLACIJA:** run37861832231/sourcec70dd513 SUCCESS. Nezavisno28/28sourcehasha; wrappercurrent99→108→99→108→99, puna restauracija certificate/digest/readiness,17AIreceipt+13DEVdefinition checks,13behavioralgrupa,6offlineEdge. Dva concurrent candidatehandler-a daju1mockproviderpoziv, revoke/device-revision races su odbijene, unrelatedbacklog/readstate nepromenjeni, teardownPASS. Izvršen lokalni ledger147/OID/certificate wrapperfb0cc352, nije replay235 niti doslovno izvršen live235SQL. Livecandidate239ccd18 je vezan capture/preflightom235; DEV primena, Edge i stvarni provider ostaju neizvršeni.
+
+**DOKAZAO / AREA DELIMIČNO:** run37861199898/sourcee526ad5d FAIL; sačuvan originalni bounded report u evidence/discovery-area-failed-37861199898. Repeatedlocations corpus27+NULLoracle27+124fullJSON A/B/revert checks PASS, uključujući14PAGE+3PLACES terminal. Prvi HTTP posle exactDO pao pre trajnogcandidateapply; stvarni status/code/message bio izgubljen u typeofassertion. Bez dokaza da je uzrok JWT, cache ili socket. Harness sada čuva status/kod/ograničenu poruku, fazu i delimične SQLmetrike, označavaFAIL i ograničava trajanjeHTTPzahteva; nema skrivenogretry-a. Kandidat nije promenjen. Unique/performance nisu dokazani.
+
+**SLEDEĆE:** ponoviti izolovani test sa dijagnostikom; ispraviti stvarni map/tabbar kvar; dovršiti grupisane Dogovore i njihov novi APK. Bez DEV/Edge/certificate/data izmena u ovoj dopuni.

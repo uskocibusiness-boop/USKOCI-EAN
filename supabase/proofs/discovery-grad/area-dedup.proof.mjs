@@ -125,30 +125,32 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
     assert.equal(current(), experiment.hashes.baseline);
     return JSON.parse(output.split('\n').filter(Boolean).at(-1));
   };
-  const measureStage = async label => {
-    const result = {};
+  const measureStage = async (fixture, stage) => {
+    const result = proof.fixtures[fixture].stages[stage] = {};
     for (const [key, request] of Object.entries(requests)) {
+      proof.phase = {fixture, stage, request: key, transport: 'SQL'}; write();
       const metric = measure(viewer.id, request, 5);
-      assert.ok(!metric.error, 'AREA_MEASURE:' + label + ':' + key + ':' + metric.error);
+      assert.ok(!metric.error, 'AREA_MEASURE:' + fixture + ':' + stage + ':' + key + ':' + metric.error);
+      result[key] = metric; proof.phase.transport = 'HTTP'; write();
       const http = await httpMs(viewer.client, {...request, anchor: metric.anchor}, 3, metric);
-      assert.equal(typeof http, 'number', 'AREA_HTTP:' + label + ':' + key);
-      result[key] = {...metric, httpMedianMs: http};
+      assert.equal(typeof http, 'number', 'AREA_HTTP:' + fixture + ':' + stage + ':' + key);
+      result[key] = {...metric, httpMedianMs: http}; write();
     }
     return result;
   };
   const fixture = async label => {
     const result = proof.fixtures[label] = {exact: exact(label), stages: {}, profiles: {}}; write();
-    result.stages.baseline = await measureStage(label + ':baseline'); write();
+    await measureStage(label, 'baseline');
     try {
       execute(experiment.apply); assert.equal(current(), experiment.hashes.candidate);
-      result.stages.candidate = await measureStage(label + ':candidate');
+      await measureStage(label, 'candidate');
       for (const key of ['pageDefault', 'pageTextCiscenje', 'pageTextNoHit', 'pagePlaceAndText']) result.profiles[key] = profile(viewer.id, requests[key]);
       write();
     } finally {
       if (current() === experiment.hashes.candidate) execute(experiment.revert);
     }
     assert.equal(current(), experiment.hashes.baseline);
-    result.stages.revertedBaseline = await measureStage(label + ':revertedBaseline'); write();
+    await measureStage(label, 'revertedBaseline');
   };
   await fixture('repeatedLocations');
   // Adversarial performance case: most rows have a unique area. Marked corpus remains unchanged for exact cross-field assertions.
