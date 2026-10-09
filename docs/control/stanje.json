@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T02:35:56Z",
+  "osvezeno": "2026-10-09T02:36:41Z",
   "grana": "integration/spoj-20261006",
-  "head": "62bd0900",
-  "head_poruka": "merge: reconcile control projections after group reading proof",
+  "head": "eacef838",
+  "head_poruka": "test(perf): isolate SQL sample deadlines within one measured session",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
