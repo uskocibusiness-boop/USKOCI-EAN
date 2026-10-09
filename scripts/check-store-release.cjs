@@ -29,5 +29,8 @@ for(const [id,reason] of [
 ['ios-archive','No iOS signed IPA/TestFlight/privacy manifest proof.']
 ]) add(id,'NOT_VERIFIED',reason);
 const blocked=checks.filter(c=>c.status==='BLOCKED').map(c=>c.id);
-console.log(JSON.stringify({verdict:'NO_GO_PUBLIC_RELEASE',source:'2026-10-09 static store gate',checks,blocked},null,2));
-process.exitCode=blocked.length?2:0;
+const unresolved=checks.filter(c=>c.status==='NOT_VERIFIED').map(c=>c.id);
+// No green light without artifact and legal evidence. A configuration-only probe cannot grant production release.
+const passing=blocked.length===0&&unresolved.length===0&&checks.every(c=>c.status==='VERIFIED');
+console.log(JSON.stringify({verdict:passing?'READY_FOR_RELEASE_REVIEW':'NO_GO_PUBLIC_RELEASE',source:'2026-10-09 static store gate',checks,blocked,unresolved},null,2));
+process.exitCode=passing?0:2;
