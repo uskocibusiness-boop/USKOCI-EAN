@@ -38,7 +38,7 @@ import { HowItWorks } from './HowItWorks';
  * into the whole schedule (that is reached from Dogovori only); then "Čeka te", always once the reads answered (one grey line when
  * nothing waits, and never when something does: a Dogovor without a term, a change to answer, a draft to continue, a rating), at most
  * three things and the rest as a count. With no appointment ahead the hero would vanish, so the first thing that waits takes its place
- * as the one record (its number first: "2 prijave"); the Dogovori that have no day to show them on are NOT a block of their own (the
+ * as the one record (the task first, then the action it needs); the Dogovori that have no day to show them on are NOT a block of their own (the
  * owner's phone, 8 Oct 2026: "Raspored — 1 Dogovor bez tačnog termina" was a weak row): the one that needs a term is asked for under
  * "Čeka te", and all of them stand in Raspored, under "Termin još nije dogovoren". Then "Moji zadaci" / "Moje prijave", each with its
  * number, and, for an active work profile, "Mogu odmah", as one group of rows directly below. A row of "Čeka te" says the task and the
@@ -195,22 +195,15 @@ function RasporedCard({ row, raspored, photo, onOpen }: {
   </Surface>;
 }
 
-/**
- * No appointment ahead: the first thing that waits for me is the one record of the screen, so the focus does not vanish ("Danas u 14",
- * the risk answered). Its number leads when it is a count ("2 prijave", in the voice of money), the task is under it and, for a count,
- * what is asked of me ("Čeka tvoj izbor."); the picture with the orange dot is at the end. A thing that is not a count leads with the
- * action, the task is under it, and the sentence that said the action again is not drawn (it is in the screen reader's label). It is the
- * same row as the others (same words, same target), only larger.
- */
+/** Without an appointment ahead, the first waiting task leads. Its action stays directly below, at the same destination. */
 function FirstWaiting({ row, onOpen }: { row: HomeAttention; onOpen: (target: HomeTarget) => void }) {
   const title = readableTitle(row.title), taskTitle = row.taskTitle === undefined ? null : readableTitle(row.taskTitle);
-  const counted = /^\d/.test(title);
-  return <Surface kind="record" onPress={() => onOpen(row.target)} accessibilityLabel={[title, taskTitle, row.detail].filter(Boolean).join('. ')} style={s.appointment}>
+  const subtitle = taskTitle ? row.target.kind === 'CANDIDATES' ? joined(title, row.detail) : title : row.detail;
+  return <Surface kind="record" onPress={() => onOpen(row.target)} accessibilityLabel={[taskTitle, title, row.detail].filter(Boolean).join('. ')} style={s.appointment}>
     <View style={s.appointmentHead}>
       <View style={s.appointmentWhen}>
-        <T variant={counted ? 'priceLarge' : 'heading'} style={s.appointmentDay}>{title}</T>
-        {taskTitle ? <T>{taskTitle}</T> : null}
-        {counted || !taskTitle ? <T variant="note" tone="muted">{row.detail}</T> : null}
+        <T variant="heading" style={s.appointmentDay}>{taskTitle ?? title}</T>
+        <T variant="note" tone="muted">{subtitle}</T>
       </View>
       <Marked art={artFor(row.target)} attention />
     </View>

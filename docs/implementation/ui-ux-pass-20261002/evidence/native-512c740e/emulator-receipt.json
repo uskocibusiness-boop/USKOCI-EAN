@@ -1,0 +1,203 @@
+{
+  "source": "512c740e8cade2cefa18383554cb11299f1e02df",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "versionCode": 35,
+  "screenPx": [
+    1264,
+    2728
+  ],
+  "densityDpi": 560,
+  "scope": "Bounded native UI, no sends, proposal decisions, publication or account clearing. Inert galleries do not prove RPC authorization or delivery. Normal live conversation opening may invoke existing read receipt behavior.",
+  "notProven": [
+    "group reading/participants sheet source ef1dfd49 (not in512 APK)",
+    "new compact role rail/Home source (not in512 APK)",
+    "actual pending send/retry transport",
+    "TalkBack",
+    "push delivery",
+    "release/store readiness"
+  ],
+  "device": "Android emulator",
+  "run": 37873738596,
+  "package": "rs.uskoci.dev",
+  "abi": "x86_64",
+  "apkSha256": "5f4f71c3af679d99feecc6256db00e10c4cd69faa14aa93b4046f3207959cc30",
+  "installation": {
+    "method": "adb install -r",
+    "exit": 0,
+    "installedHashMatched": true,
+    "uidBefore": 10227,
+    "uidAfter": 10227,
+    "firstInstallPreserved": true,
+    "session": "Authenticated second account Home retained, no token/session transfer"
+  },
+  "fontScale": [
+    1.15,
+    1.3
+  ],
+  "fontRestored": 1.15,
+  "checks": {
+    "groupedList": "PASS inert four separate collaborations; original three expand to fourth completed person; amounts/statuses/long name retained",
+    "pendingSender": "PASS inert one Ana Petrović/initials above sending+failed outgoing run after incoming; 1.15 and1.3",
+    "groupHelper": "PASS inert channel audience plus short privacy helper and quiet refresh; initial old-position still present in512 and handled in next source",
+    "privatePicker": "NOT PROVEN: fixture private callback no-op",
+    "longName": "Full name retained but native midword wrap observed; refinement open"
+  },
+  "states": [
+    {
+      "name": "home",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-home.png",
+          "sha256": "9ae83d3236a33015c8ef705d08274823b008d55faace6bcab93487c54a00988b"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-home.xml",
+          "sha256": "bac71b518911e2bf1b01043c05e51f35339af5d7fb76322f6ce614acd0ea90a2"
+        }
+      }
+    },
+    {
+      "name": "grouped",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped.png",
+          "sha256": "6a9b402c57b871d06309ca183a1ade1eaf33f6360f0d951b06ad4f1fe8bf5d1d"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped.xml",
+          "sha256": "a7923a2f91d4f57124c41554ec30f1683d4a892a4cd5dcd30f5e85f96a5ec82a"
+        }
+      }
+    },
+    {
+      "name": "grouped-lower",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-lower.png",
+          "sha256": "e1d6c66feb8cac0566b498ec11b1fb381fb2b6e28a175bfd52c301c9fa677e5f"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-lower.xml",
+          "sha256": "33251ad7bd24c0f4fe57c4b3934dcb0acbcab9ffbd3378145b57d62458b9897d"
+        }
+      }
+    },
+    {
+      "name": "grouped-end",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-end.png",
+          "sha256": "86ab3cf46e59edc82f37d39974fa37965acb61658e539aae2b6d380b90a4b1c0"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-end.xml",
+          "sha256": "5d51f458c7ad425bc8e4c4bb9656b5b53d72162b19cf129d815cbcae814cf667"
+        }
+      }
+    },
+    {
+      "name": "grouped-expand",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-expand.png",
+          "sha256": "7a8278447d3446a68954a60914a36b827e9b3f5ada549712decac7f91d8adeaa"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-expand.xml",
+          "sha256": "07e8312c83b5b0a5bc12bc3a6f19934263c7c531d8cfc4a20e979c488f1ae3da"
+        }
+      }
+    },
+    {
+      "name": "grouped-fourth",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-fourth.png",
+          "sha256": "aa8cb3df6982c747adb1c7c3752f07bf9b4b358bdb700368a8152f0afe995608"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-fourth.xml",
+          "sha256": "e09745505f3a966e2496a3995505595aa292c9f7aef7666a5b0542d2ad9cd7a8"
+        }
+      }
+    },
+    {
+      "name": "grouped-130-open",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-130-open.png",
+          "sha256": "c59d18938eff388851f560464feab3ae259a48c7ca6b3346ef2f5e58bf50d61a"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-130-open.xml",
+          "sha256": "354412faee47417252d98a7559706ec28c90031cc4f020c2def11c49d80a7962"
+        }
+      }
+    },
+    {
+      "name": "grouped-130-detail",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-130-detail.png",
+          "sha256": "23046cb0a76e9f999e44eb4f6500b3409d65462af2e3720f63b0a40511b164ce"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-grouped-130-detail.xml",
+          "sha256": "b76ed1f3853cc6c303d15c77a4efb1fbe3e519837e47543243b845c269de4773"
+        }
+      }
+    },
+    {
+      "name": "chat-115",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-chat-115.png",
+          "sha256": "4cc38ce887204c487a49e74c3e4852917e6d7e299bd92afea8f7f06d29b08520"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-chat-115.xml",
+          "sha256": "1da88c80095389a23fbbc7ac9d57f981c65d4b4a893bd83c6b2d30bdcaa04bf9"
+        }
+      }
+    },
+    {
+      "name": "chat-130",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-chat-130.png",
+          "sha256": "4a786bfedc003d4a3ba1d4c07d0c701eb4598875009a64079bb0446544fabcb2"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-chat-130.xml",
+          "sha256": "39b4c37205652a5fa6e230b43e21a9b96dd694eb7fc2a7b21bdd0e037833d836"
+        }
+      }
+    },
+    {
+      "name": "group-chat",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-group-chat.png",
+          "sha256": "196a72e59090fe4283d683e0bed0a5c721e7d9d1182b5ed43b949f23f2f23f18"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-group-chat.xml",
+          "sha256": "e8888df3c36c5be2cf51be2ae4dc19e96cf86b914d7dbe58a2555c14f1f59091"
+        }
+      }
+    },
+    {
+      "name": "group-private",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-group-private.png",
+          "sha256": "196a72e59090fe4283d683e0bed0a5c721e7d9d1182b5ed43b949f23f2f23f18"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-512c740e-group-private.xml",
+          "sha256": "e8888df3c36c5be2cf51be2ae4dc19e96cf86b914d7dbe58a2555c14f1f59091"
+        }
+      }
+    }
+  ]
+}

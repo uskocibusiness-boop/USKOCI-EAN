@@ -1,0 +1,17 @@
+{
+  "status": "PUSH_CAPABLE_APK_BUILT_DEVICE_PENDING",
+  "source": "512c740e8cade2cefa18383554cb11299f1e02df",
+  "tree": "7386333e6b76608d7ad07e7004bdf050d7f7dee9",
+  "workflowRunId": 37873738743,
+  "package": "rs.uskoci.preview",
+  "firebaseProject": "uskoci-ed59b",
+  "expoProjectId": "1e6cc490-9851-4741-9226-128612122db6",
+  "apkSha256": "8cc5413410e17817a010304ec7180d75f54527c9d1ee8b94f69968b3d6d261e5",
+  "apkBytes": 99662908,
+  "firebaseMessagingIntentPresent": true,
+  "firebaseAutoInitExplicitlyDisabled": false,
+  "devApplied": false,
+  "edgeApplied": false,
+  "pushSent": false,
+  "deviceInstalled": false
+}

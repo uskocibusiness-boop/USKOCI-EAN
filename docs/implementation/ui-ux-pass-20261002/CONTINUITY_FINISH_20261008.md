@@ -362,3 +362,18 @@ Izvori: instalirani RN FlatList.js433–448 i ViewabilityHelper.js219–240; [Re
 **DOKAZAO:**7 novih Node testova +16 postojećih PASS. Parser stvarnog generatora:18 novih PLpgSQL tela; postojeća22 i21 area iskaz PASS; workflowYAML PASS. Nezavisan source review bez blokera.
 
 **NIJE DOKAZANO / SLEDEĆE:** jedan novi opravdani isolated runtime, ne promocija. Unique PLACES može legitimno otkriti pojedinačan SQL/HTTP timeout; to ne zaobilaziti novim povećanjem limita. Razdvojiti tu činjenicu od starog šestopozivnog timeout-a i objaviti parcijalne uzorke.
+
+
+## Dopuna — 512c740e na oba uređaja i naredni pregledniji skup kontrola
+
+**URADIO / NATIVE:** emulator37873738596 i phone37873738743 SUCCESS, oba tačno source512c740e. Stvarni compiled package/ABI, SHA i potpis provereni pre `adb install -r`; instalirani base hash potom odgovara. UID i prvi install ostali isti, oba postojeća naloga autentifikovana bez prenosa tokena. Telefon idle65min/Dozing pre rada, vraćen na Početnu/Dozing. Emulator font1,15→1,3→1,15 vraćen. Originalni compiled receipts i SHA vezane slike: `evidence/native-512c740e/` (slike privatno, nisu objavljene).
+
+**DOKAZAO / OGRANIČENO:** phone live kartica jasno kaže Važeći iznos uz predlog koji čeka; razgovor ima ime/inicijale i, sa stvarno otvorenom punom tastaturom, poslednju poruku/composer iznad nje. Emulator inertna galerija jednog zadatka ima tri osobe pa proširenjem četvrtu, različite iznose/status, dugo ime i125.000RSD čitljivo i na1,3. Pending niz pokazuje jednom Ana Petrović iznad slanja+failed poruke, na1,15/1,3. Mirniji grupni uvod i javnost kanala vidljivi. Native fixture nije dokaz slanja, autorizacije ili ponovnog pokušaja. Phone QA galerija pravilno odbijena, a njen Back vraća prethodni ekran. Nijedna poruka/objava/proposal odluka nije poslata; normalan ulaz u postojeći chat može pokrenuti postojeći readACK.
+
+**KRITIKA / REVIZIJA SOURCE:** role filteri na361dp zauzimaju dva reda; sada samo taj red postaje horizontalan, tekst/dodirna površina ostaju. Izabrana uloga otkriva se iz stvarnih native bounds i contentWidth, potvrđeni offset dolazi iz onScroll. Pregled je otkrio prerano pretpostavljen scroll; revidirano content-size ponavljanje sa clamp/retry testom. Ručno horizontalno listanje ne vraća izbor automatski; promena širine/fonta ponovo meri. Broj sa Aktivni premešten uz Čeka tebe i kaže broj zadataka posle filtera, ne broj ljudi. Istorija zadržava jasan povratak ka obavezama, uz istu ulogu/reset confirmation. Prva obaveza Početne vodi naslovom zadatka, zatim radnjom/brojem; isto izgovara čitač ekrana, isti target ostaje.
+
+**DOKAZAO / SOURCE:**149 različitih ciljanih testova PASS (100Home/45Collection/4rail),89 token/glyph provera PASS, TypeScript PASS. Početni padovi bili su očekivanja starog redosleda i testni prefix helper; promenjeni da provere novu hijerarhiju, poslovni ciljevi nisu uklonjeni. Završni nezavisni pregled bez konkretnog blokera.
+
+**NIJE DOKAZANO / SLEDEĆE:** ovaj novi header/Home i prethodni ef1 grupni scroll/participants sheet nisu u APK-u512. Objediniti ih u sledeću izgradnju i proveriti rail/selection/istoriju, novu Početnu, grupni scroll/older/sheet/IME. Dugo prezime je potpuno ali native ponekad deli sredinu reči — dodatna tipografska dorada ostaje. Worker application status row nije posebno native potvrđen. Push,40.000 istovremenih korisnika i prodavnica nisu dokazani.
+
+**IZOLOVANA BAZA:** korigovani measurement run37875405845/source19572d736879733c45c3c5bb73d10ed39a922761 je u toku. Offline/bootstrap/chain završeni; čekati stvarne finalne artifacte. Ne povećavati SQL limit, ne pokretati duplikat i ne promovisati area kandidata na osnovu starog ubrzanja samo tekstualnih upita.

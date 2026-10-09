@@ -1,0 +1,19 @@
+{
+  "source": "512c740e8cade2cefa18383554cb11299f1e02df",
+  "run": "37873738596",
+  "package": "rs.uskoci.dev",
+  "versionCode": "35",
+  "abis": [
+    "x86_64"
+  ],
+  "updatesEnabled": false,
+  "apkSha256": "5f4f71c3af679d99feecc6256db00e10c4cd69faa14aa93b4046f3207959cc30",
+  "configOverlay": "scripts/ci/configure-existing-dev-qa.cjs",
+  "sourceDirtyExpected": true,
+  "configSha256": {
+    "app.json": "8ad681e921f2bb09795ed6533658bf313b71094a2fc718086b5a22feb3fc7b1f",
+    "app.config.js": "54118536cc94301711c76f542644568209074cc4de944ade4b4bd079d7c79b73"
+  },
+  "deviceInstalled": false,
+  "release": false
+}

@@ -1,0 +1,121 @@
+{
+  "source": "512c740e8cade2cefa18383554cb11299f1e02df",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "versionCode": 35,
+  "screenPx": [
+    1264,
+    2728
+  ],
+  "densityDpi": 560,
+  "scope": "Bounded native UI, no sends, proposal decisions, publication or account clearing. Inert galleries do not prove RPC authorization or delivery. Normal live conversation opening may invoke existing read receipt behavior.",
+  "notProven": [
+    "group reading/participants sheet source ef1dfd49 (not in512 APK)",
+    "new compact role rail/Home source (not in512 APK)",
+    "actual pending send/retry transport",
+    "TalkBack",
+    "push delivery",
+    "release/store readiness"
+  ],
+  "device": "physical HONOR",
+  "run": 37873738743,
+  "package": "rs.uskoci.preview",
+  "abi": "arm64-v8a",
+  "apkSha256": "8cc5413410e17817a010304ec7180d75f54527c9d1ee8b94f69968b3d6d261e5",
+  "installation": {
+    "method": "adb install -r",
+    "exit": 0,
+    "installedHashMatched": true,
+    "uidBefore": 10346,
+    "uidAfter": 10346,
+    "firstInstallPreserved": true,
+    "session": "Authenticated Home, Agreements, existing private chat retained; no login or credential transfer"
+  },
+  "idlePreflight": "Dozing, no foreground; actual lastUserActivity about3907759ms before installation. Returned app Home and device Dozing afterwards.",
+  "fontScale": 1.15,
+  "checks": {
+    "acceptedAmountLabel": "PASS live own pending proposal",
+    "savedSenderIdentity": "PASS existing own runs",
+    "fullKeyboard": "PASS actual full IME; last message and composer visible; Back restores expanded header",
+    "qaGalleryGate": "CLOSED as intended in phone APK; cannot claim gallery acceptance on phone"
+  },
+  "states": [
+    {
+      "name": "home",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-home.png",
+          "sha256": "e2c369d11f531c82478b3e7449219092c5d02bdc8f11273bda23a1ebca508c4f"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-home.xml",
+          "sha256": "c6b6004377582879dd85908a1c6cabe9b0e6b7dfa91801981c7bcf7db120ebfa"
+        }
+      }
+    },
+    {
+      "name": "agreements",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-agreements.png",
+          "sha256": "e5abe2c7424f6500a3d2949a3c78fcdf25ee8f6b63ee90bbfd4be15756dd0594"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-agreements.xml",
+          "sha256": "9113403a195d047243d06c09c8e13223c3a30259d52c2c790b36c8ecb0f2eb82"
+        }
+      }
+    },
+    {
+      "name": "detail",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-detail.png",
+          "sha256": "23656c18baaa8f87d8bd84f3e4540c4b62a9d62e66e90efe0601e0ddd101e649"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-detail.xml",
+          "sha256": "5202165203b0601697ae7263ab8c76004ade948347a8df564b6d72ce73ef7bd5"
+        }
+      }
+    },
+    {
+      "name": "chat",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-chat.png",
+          "sha256": "876ccb6d712fcbaea9392eaf4573254021fc68171b8087ef620b3f2e99e7b0d9"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-chat.xml",
+          "sha256": "15d83d01e08fbb3cc43215c1c67c3cd36ea8ab1561b823cf240bc086a5ec0de7"
+        }
+      }
+    },
+    {
+      "name": "chat-ime",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-chat-ime.png",
+          "sha256": "cd96ae47cd73dce3cde346d6d623b95c871ccb6004d9b0ae921cdfc3eec635b1"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-chat-ime.xml",
+          "sha256": "824ca91c518cab5ea63c817ffe6e2dd737ea371a67cddf532a05fdecea0653a4"
+        }
+      }
+    },
+    {
+      "name": "chat-ime-back",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-chat-ime-back.png",
+          "sha256": "e4101175ddf002eed92d18e11e75fc32ca141d25f11d1db13f621a9fa1d2345c"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/phone-512c740e-chat-ime-back.xml",
+          "sha256": "ddbf6157608882c16a611afa7c0c743ae94eed0b7d124136dac4e27151d58289"
+        }
+      }
+    }
+  ]
+}

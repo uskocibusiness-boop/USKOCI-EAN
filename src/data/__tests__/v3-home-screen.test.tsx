@@ -67,7 +67,7 @@ const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(
 const action = (label: string) => ['Objavi zadatak', 'Uskoči i zaradi'].includes(label)
   ? tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0].props
   : tree.root.findByProps({ label }).props;
-const row = (start: string) => tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith(start))[0].props;
+const row = (start: string) => tree.root.findAll(node => String(node.type) === 'Press' && (String(node.props.accessibilityLabel).startsWith(start) || String(node.props.accessibilityLabel).includes(`. ${start}`)))[0].props;
 /** The Raspored card: the one press that opens the next Dogovor (a Dogovor row of any other kind has its own hint). */
 const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityHint === 'Otvara Dogovor.');
 const render = async () => { await act(async () => { tree = create(<Pocetna />); }); };
@@ -421,14 +421,14 @@ describe('what leads Početna', () => {
     expect(dots()).toHaveLength(2);
   });
 
-  it('with no appointment ahead the first thing that waits is the one record: its number first, the task under it, the reason last, the others rows', async () => {
+  it('with no appointment ahead the first thing that waits is the one record: its task first, the action and reason below, the others rows', async () => {
     const handlers = await direct(waiting());
     expect(headings().filter(name => name === 'Sledeće')).toHaveLength(0);
     const lead = row('2 prijave');
-    expect(lead.accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
+    expect(lead.accessibilityLabel).toBe('Pomoć pri selidbi. 2 prijave. Čeka tvoj izbor.');
     expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === lead.accessibilityLabel)[0]
       .findAll(node => String(node.type) === 'T').map(node => [node.props.variant, node.props.children]))
-      .toEqual([['priceLarge', '2 prijave'], [undefined, 'Pomoć pri selidbi'], ['note', 'Čeka tvoj izbor.']]);
+      .toEqual([['heading', 'Pomoć pri selidbi'], ['note', '2 prijave · čeka tvoj izbor']]);
     // The next one is a row as always.
     expect(row('Predloži termin').accessibilityLabel).toBe('Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.');
     expect(dots()).toHaveLength(2);
@@ -440,9 +440,9 @@ describe('what leads Početna', () => {
     const home = waiting(); home.attention = [term];
     await direct(home);
     expect(largest()).toEqual([]);
-    // The action leads and the task is under it; the sentence that said the action again is not drawn (the label keeps it).
+    // The task leads; its specific action remains below and the full explanation stays in the spoken label.
     expect(text()).not.toContain('Termin još nije dogovoren.');
-    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'heading' && node.props.children === 'Predloži termin')).toHaveLength(1);
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'heading' && node.props.children === 'Krečenje stana u belo')).toHaveLength(1);
     await act(async () => tree.unmount());
     const failed = waiting(); failed.attentionState = 'unavailable'; failed.attention = []; failed.prompts = [];
     await direct(failed);
@@ -451,6 +451,20 @@ describe('what leads Početna', () => {
     const quiet = emptyHome(); quiet.firstRun = false;
     await direct(quiet);
     expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(dots()).toHaveLength(0);
+  });
+
+  it('keeps the action when the task is unknown and lets a long task title grow without losing its destination', async () => {
+    const home = waiting(); home.attention = [{ ...term, taskTitle: undefined }];
+    const handlers = await direct(home);
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'heading').map(node => node.props.children)).toContain('Predloži termin');
+    expect(text()).toContain('Termin još nije dogovoren.');
+    await act(async () => row('Predloži termin').onPress()); expect(handlers.onOpen).toHaveBeenCalledWith(term.target);
+    await act(async () => tree.unmount());
+    const title = 'Pomoć pri selidbi teškog ormana i svih kutija sa četvrtog sprata bez lifta';
+    home.attention = [{ ...choice, taskTitle: title }]; await direct(home);
+    const heading = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === title)[0];
+    expect(heading.props.variant).toBe('heading'); expect(heading.props.numberOfLines).toBeUndefined();
+    expect(heading.props.allowFontScaling).not.toBe(false); expect(text()).toContain('2 prijave · čeka tvoj izbor');
   });
 
   // The approved blueprint (8 Oct 2026, T3): "Čeka te" holds three things at most. What does not fit is counted, together with what the
@@ -1063,10 +1077,10 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     // action is in the label a screen reader hears, and nowhere else. With no appointment ahead this is the one record that leads: the action
     // first, as a heading.
     expect(text()).not.toContain('Termin još nije dogovoren.');
-    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Predloži termin'))[0]
-      .findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual(['Predloži termin', 'Krečenje stana u belo']);
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Predloži termin'))[0]
+      .findAll(node => String(node.type) === 'T').map(node => node.props.children)).toEqual(['Krečenje stana u belo', 'Predloži termin']);
     expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
-    expect(row('Predloži termin').accessibilityLabel).toBe('Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.');
+    expect(row('Predloži termin').accessibilityLabel).toBe('Krečenje stana u belo. Predloži termin. Termin još nije dogovoren.');
     await act(async () => row('Predloži termin').onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: 'krecenje', start: 'propose' } });
   });
@@ -1074,9 +1088,9 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
   it('puts the change the other side proposed before the term, and opens the changes screen for it', async () => {
     mockSource.mojiDogovori.mockResolvedValue([termless('a'), termless('b', { naslov: 'Montaža police', izmenaCeka: { predlogId: 'p', mojPredlog: false } })]);
     await render();
-    const labels = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Odgovori na predlog')
-      || String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Predloži termin')).map(node => String(node.props.accessibilityLabel));
-    expect(labels).toEqual(['Odgovori na predlog izmene. Montaža police. Druga strana predlaže izmenu uslova.',
+    const labels = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Odgovori na predlog')
+      || String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Predloži termin')).map(node => String(node.props.accessibilityLabel));
+    expect(labels).toEqual(['Montaža police. Odgovori na predlog izmene. Druga strana predlaže izmenu uslova.',
       'Predloži termin. Krečenje stana u belo. Termin još nije dogovoren.']);
     await act(async () => row('Odgovori na predlog izmene').onPress());
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: 'b' } });
@@ -1099,8 +1113,8 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
   it('offers the draft to continue and opens it (R18); a draft without a title, and a published task, are not offered', async () => {
     mockSource.mojePotrebe.mockResolvedValue([need('n1', { stanje: 'NACRT', naslov: 'Prevoz ormana iz Novog Sada' }), need('n2', { stanje: 'NACRT', naslov: '' }), need('n3')]);
     await render();
-    expect(row('Nastavi nacrt').accessibilityLabel).toBe('Nastavi nacrt. Prevoz ormana iz Novog Sada. Nacrt još nije objavljen.');
-    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Nastavi nacrt'))).toHaveLength(1);
+    expect(row('Nastavi nacrt').accessibilityLabel).toBe('Prevoz ormana iz Novog Sada. Nastavi nacrt. Nacrt još nije objavljen.');
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Nastavi nacrt'))).toHaveLength(1);
     // Two lines, not three: the task and "Nastavi nacrt" (the owner's phone said the draft twice, "Nastavi nacrt / Nacrt još nije objavljen.").
     expect(text()).not.toContain('Nacrt još nije objavljen.');
     // Two drafts here (one of them has no title to name it by), so the door says how many there are.
@@ -1117,7 +1131,7 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     // A draft that nothing offers (it has no title to name it by) is still a draft of the list, and the door counts it.
     mockSource.mojePotrebe.mockResolvedValue([need('a'), need('n2', { stanje: 'NACRT', naslov: '' })]);
     await render();
-    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Nastavi nacrt'))).toHaveLength(0);
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Nastavi nacrt'))).toHaveLength(0);
     expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 nacrt');
   });
 

@@ -11,15 +11,16 @@ import { layout } from '../system/layout';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
-import { dogovora } from '../system/plural';
+import { zadataka } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
+import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
 import { AgreementTaskRow } from '../agreements/AgreementListCard';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
   agreementAttention, awaitsMyConfirmation, filterHistory, groupActiveAgreementTasks, HISTORY_FILTERS, type HistoryFilter,
-  AGREEMENT_ROLE_FILTERS, filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type AgreementTaskGroup, type AgreementRoleFilter,
+  filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type AgreementTaskGroup, type AgreementRoleFilter,
 } from '../agreements/agreementListModel';
 
 /** Aktivni and Istorija (round-1 critique A11): "Svi" repeated both, and the count line repeated the tabs' own counts. */
@@ -65,8 +66,8 @@ const Separator = () => <View style={s.separator} />;
 const CLIP_OFFSCREEN = Platform.OS === 'android';
 /** The minute the day groups are taken at: a number that changes once a minute, so rows memoised on it are not drawn again inside one. */
 const minuteOf = (now?: Date) => Math.floor((now ?? new Date()).getTime() / 60_000) * 60_000;
-/** The words a screen reader hears for the number on Aktivni: what waits for the person, with the verb of its count ("1 Dogovor čeka tebe", "3 Dogovora čekaju tebe"). */
-const waitingSpoken = (count: number) => `${dogovora(count)} ${count === 1 ? 'čeka' : 'čekaju'} tebe`;
+/** Count the tasks shown in this group, not the separate people collaborating on each task. */
+const waitingTitle = (count: number) => `Čeka tebe · ${zadataka(count)}`;
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
   const { items, section, confirmationOnly, loading, error, onOpen, onRate } = props;
@@ -98,18 +99,13 @@ export function AgreementCollectionPresentation(props: Props) {
     if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0)
       .map(task => ({ id: task.key, kind: 'item' as const, task }));
     const pool = filtering ? activeItems.filter(task => task.items.some(awaitsMyConfirmation)) : activeItems;
-    return groupActiveAgreementTasks(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const, title: group.title },
+    return groupActiveAgreementTasks(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const, title: group.key === 'waiting' ? waitingTitle(group.items.length) : group.title },
       ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))]);
   }, [section, filtering, activeItems, historyItems, historyFilter, now]);
   const waiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
   const settledRead = !loading && !error;
-  // The two sets are told apart by their words, not by counts: a number is drawn ONLY for what needs the person, as the orange
-  // count on Aktivni ("Čeka tebe"), and only once the read has settled; a count of how many there are says nothing to act on.
-  // It is the size of the list's own first group, so the tab and the group name the same Dogovori.
+  // The count belongs to "Čeka tebe". In history a direct link keeps outstanding actions discoverable.
   const attention = useMemo(() => activeItems.filter(task => task.items.some(item => agreementAttention(item) !== null)).length, [activeItems]);
-  const sections = useMemo(() => !settledRead || !attention ? SECTIONS
-    : SECTIONS.map(option => option.key === 'active' ? { ...option, badge: attention, badgeLabel: waitingSpoken(attention), badgeTone: 'attention' as const } : option),
-  [attention, settledRead]);
   const activeCount = activeItems.length, historyCount = historyItems.length;
   const appear = useAppear();
   // The skeleton was on screen before these rows: they are news, so the first few arrive once (M-02). A warm return (rows already there,
@@ -188,22 +184,18 @@ export function AgreementCollectionPresentation(props: Props) {
         (its name is its spoken label). The filter follows only when needed. */}
     <View style={s.controls}>
       <View style={s.tabRow}>
-        <View style={s.tabs}><Segmented options={sections} value={section} onChange={props.onSection} /></View>
+        <View style={s.tabs}><Segmented options={SECTIONS} value={section} onChange={props.onSection} /></View>
         <ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} />
       </View>
       {items.length > 0 || loading || roleFilter !== 'all' ? <View style={s.toolbar}>
-        <View accessibilityRole="radiogroup" accessibilityLabel="Tvoja uloga u Dogovorima" style={s.chipRow}>
-          {AGREEMENT_ROLE_FILTERS.map(option => {
-            const selected = roleFilter === option.key;
-            return <Press key={option.key} accessibilityRole="radio" accessibilityLabel={option.spoken} accessibilityState={{ checked: selected }}
-              onPress={() => { setRoleFilter(option.key); props.onConfirmationOnly(false); }} haptic="select" style={[s.chip, selected && s.chipOn]}>
-              {selected ? <Glyph name="check" size={16} tone="green" /> : null}
-              <T variant="meta" style={[s.chipText, selected && s.chipTextOn]}>{option.label}</T>
-            </Press>;
-          })}
-        </View>
+        <AgreementRoleRail value={roleFilter} onChange={value => { setRoleFilter(value); props.onConfirmationOnly(false); }} />
       </View> : null}
       {chips || holdsStrip ? <View style={s.toolbar}>{chips}</View> : null}
+      {section === 'history' && settledRead && attention > 0 ? <Press accessibilityRole="button"
+        accessibilityLabel={waitingTitle(attention)} accessibilityHint="Otvara Dogovore, prvo one koji čekaju tvoju radnju."
+        onPress={() => { props.onSection('active'); props.onConfirmationOnly(false); }} style={s.attentionLink}>
+        <T variant="meta" style={s.attentionText}>{waitingTitle(attention)}</T><Glyph name="caret-right" size={20} />
+      </Press> : null}
     </View>
     <FlatList<ListRow> data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}
       onRefresh={pull.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
@@ -224,6 +216,8 @@ const s = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: layout.touch, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.surface },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
+  attentionLink: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  attentionText: { flex: 1, color: sys.color.ink, fontWeight: '600' },
   list: { paddingHorizontal: layout.gutter, paddingTop: sys.space.md, paddingBottom: layout.zone, flexGrow: 1 },
   empty: { flex: 1 },
   separator: { height: layout.group },

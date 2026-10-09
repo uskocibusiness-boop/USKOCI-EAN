@@ -1554,3 +1554,12 @@ Eksperiment deduplikacije lokacije u run37861199898 je dokazao124 kompletna JSON
 **NIJE DOKAZANO / SLEDEĆE:** novi skrol još nije u APK-u512c740e koji se gradi. Nativni prepend/IME/TalkBack ostaju otvoreni. Mali skrol koji zadrži isti native viewable index set može konzervativno odložiti ACK do nove opservacije; to nije garantovan ACK600ms posle zaustavljanja i ostaje cilj native dorade. Ne menjati controller da bi se zadržale stare neautorizovane poruke.
 
 Izvori: instalirani RN FlatList.js433–448 i ViewabilityHelper.js219–240; [React Native scroll anchoring](https://reactnative.dev/docs/scrollview#maintainvisiblecontentposition), [FlatList scrollToEnd](https://reactnative.dev/docs/flatlist#scrolltoend). Dokumentacija ne zamenjuje nativni dokaz.
+
+
+### Revizija posle tačnog APK-a512c740e (9.10.)
+
+Dogovori: Aktivni/Istorija ostaju mirna dva segmenta uz Raspored. Uloga je jedan horizontalni red sa punom dodirnom površinom i slovima; izabrana kapsula se otkriva nakon merenja, veliki tekst se ne skraćuje. Čeka tebe sada uz naslov kaže broj zadataka u tom skupu, ne bilateralnih saradnji. Istorija nudi povratak ka otvorenim obavezama iste uloge. Grupisani zadatak i dalje ima sve odvojene saradnje/uslove i njihove direktne ciljeve.
+
+Početna: kada nema sledećeg termina, u prvom bloku Čeka te vodi stvarni naslov zadatka, pa konkretna radnja (npr.2 prijave · čeka tvoj izbor). I čitač ekrana koristi taj redosled. Bez naslova ostaju radnja i objašnjenje. Dva velika polja i sledeći prihvaćeni termin zadržavaju svoje mesto.
+
+Nivo dokaza: ove dve revizije SOURCE149 testova+89guards/TSC, native sledeći paket. U prethodnom512 APK-u oba naloga/sesije očuvana, phone fullIME/lastmessage PASS i emulator4-person/125000/longname/pendingidentity1,15/1,3 boundedPASS. Inertna galerija ne dokazuje transport ili ovlašćenja. Detalji i granice su u postojećem CONTINUITY_FINISH i registru; release nije proglašen.

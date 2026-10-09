@@ -8746,7 +8746,10 @@
       "nextSplitEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-area-split-37871070145/receipt.json",
       "nextSplitResult": "Repeated62/124 + unique63/126:250 fullJSON comparisons, timestampMaskingfalse, complete32shapes each, PAGE14/PLACES3. Repeated16metrics perstage; unique baseline10/16. SQL57014 at six-call batch placesDefault; not one-RPC90s. Non-text candidate regressions32-38%; final postflightnotreached,teardown0.",
       "measurementHarness": "SOURCE/OFFLINE PASS: each SQL sample is separate DO in one psql transaction/session; cold response anchor reused and checked for warm samples.90s statement/5s lock unchanged; explicit process envelope570s for6 samples,1110s for12. Bounded progress survives failed statement; failed metric persisted before assert. HTTP, candidate and exact triples unchanged.",
-      "measurementChecks": "7 new measurement tests +16 existing transport/SQL/concurrency tests PASS;18 generated measurement PLpgSQL units+22 existing units+21 area generated SQL parser PASS; workflowYAML PASS; independent source review no blockers. Runtime pending."
+      "measurementChecks": "7 new measurement tests +16 existing transport/SQL/concurrency tests PASS;18 generated measurement PLpgSQL units+22 existing units+21 area generated SQL parser PASS; workflowYAML PASS; independent source review no blockers. Runtime pending.",
+      "measurementRun": 37875405845,
+      "measurementSource": "19572d736879733c45c3c5bb73d10ed39a922761",
+      "measurementRuntimeState": "IN_PROGRESS; no performance promotion or DEV change"
     },
     "push_recapture235_20261009": {
       "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",
@@ -8883,16 +8886,17 @@
       "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-emulator-ea456e15/receipt.json"
     },
     "card_readability_native_followup_20261009": {
-      "state": "SOURCE_VALIDATED / NATIVE_PENDING",
+      "state": "PARTIAL_BOUNDED_NATIVE_PASS / WORKER_RELATION_PENDING",
       "basis": "Phone6c exact APK, 361dp/font1.15: application status squeezed offer words; pending change needed accepted amount meaning. Independent native/source review.",
       "scope": "Worker relation status follows the full-width price on its own line; short owner mark stays inline when room permits. Pending agreement proposal labels the accepted amount as Važeći iznos in list and grouped row; missing amount remains unknown. No proposal value inferred.",
       "gallery": "Existing inert grouped-list scene: four bilateral fixtures share a task, separate people/amounts/statuses, fourth reached through expansion. Existing group scenes expose channel selector with noop private action. No new data controller or network request.",
       "checks": "Four targeted suites:152 distinct tests PASS (two fixture-suite reruns after correcting assertions/coverage); TypeScript PASS. Existing token source checks PASS. Independent review corrected bilateral fixture covered_slots1, not task total4. Group mock now passes index and checks actual message bodies, sender initials/names and run boundaries.",
-      "native": "Current installed phone6c and emulator build ea456 predate these source edits. New typography/grouped fixture is not yet native acceptance.",
-      "next": "Finish checks and independent review, push coherent batch to both canonical branches; bundled native validation at font1.15 and1.3. Keep business navigation/RLS/provider tests separate."
+      "native": "512 exact phone live pending accepted amount PASS. Emulator grouped amount/status/long name/fourth expansion PASS at1.15, long name125000 at1.3. Worker application status row not separately observed; no blanket native PASS.",
+      "next": "Finish checks and independent review, push coherent batch to both canonical branches; bundled native validation at font1.15 and1.3. Keep business navigation/RLS/provider tests separate.",
+      "receipt": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/emulator-receipt.json"
     },
     "chat_pending_identity_20261009": {
-      "state": "SOURCE_VALIDATED / NATIVE_PENDING",
+      "state": "BOUNDED_NATIVE_FIXTURE_PASS / TRANSPORT_UNCHANGED",
       "finding": "Exact emulator ea456 native gallery: saved own/incoming runs show identity, first local outgoing run after incoming lacks it. Group copy/refresh competes with conversation.",
       "implementation": "Identity-only sender callback from actual command.accountId and authorized participants; local first gets identity unless immediately adjoining own canonical run, with hasNewer gap separating runs. No fabricated canonical id/time/status. Group privacy helper shorter; audience already in channel selector, explicit fallback without it. Refresh neutral compact with same touch area and handler.",
       "checks": "128 private-chat/thread/gallery cases +38 group-screen/gallery cases PASS; no double-count of prior batches. Independent identity diff review no blocker; exact final TypeScript PASS.",
@@ -8902,7 +8906,9 @@
       "buildSource": "512c740e8cade2cefa18383554cb11299f1e02df",
       "emulatorRun": 37873738596,
       "phoneRun": 37873738743,
-      "buildState": "IN_PROGRESS / NOT_INSTALLED"
+      "buildState": "BOTH_SUCCESS / BOTH_INSTALL_R_HASH_VERIFIED_AUTH_PRESERVED",
+      "native": "512 emulator pending run shows one sender at1.15/1.3; phone live own canonical runs and full keyboard PASS. Inert gallery does not prove sending/retry; new group scroll remains separate.",
+      "receipt": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/emulator-receipt.json"
     },
     "group_reading_20261009": {
       "state": "SOURCE_TESTS_PASS / NATIVE_PENDING",
@@ -8912,6 +8918,32 @@
       "checks": "99 tests in hook/group-screen/fixture/shared-sheet suites PASS; independent source review caught and resolved native-wrapper ACK race. Exact final TypeScript PASS.",
       "limits": "No RPC/outbox/controller mutation; native scroll/prepend/sheet/IME/TalkBack not yet tested in exact APK. Conservative ACK can wait for fresh native viewability after a small scroll leaves the same indices visible; do not claim600ms after every scroll stop.",
       "next": "Exact TypeScript, canonical push, consolidate next APK after current512c740e bundle. Verify long thread, older prepend, people/private sheet, latest, font1.15/1.3 and actual keyboard; address unchanged-index ACK delay with native evidence."
+    },
+    "native_512c740e_20261009": {
+      "state": "BOUNDED_PHONE_AND_EMULATOR_PASS / NOT_RELEASE",
+      "source": "512c740e8cade2cefa18383554cb11299f1e02df",
+      "phoneRun": 37873738743,
+      "emulatorRun": 37873738596,
+      "phoneReceipt": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/phone-receipt.json",
+      "emulatorReceipt": "docs/implementation/ui-ux-pass-20261002/evidence/native-512c740e/emulator-receipt.json",
+      "proof": "Both compiled identities/signatures/local hashes then installed base hashes verified, install-r preserved UIDs/first install/authenticated separate accounts. Phone live accepted amount/sender/full IME; emulator inert grouped four-person gallery, full amount/status/name and pending identity at1.15/1.3. Restored emulator1.15, phoneDozing.",
+      "limits": [
+        "group reading/participants sheet source ef1dfd49 (not in512 APK)",
+        "new compact role rail/Home source (not in512 APK)",
+        "actual pending send/retry transport",
+        "TalkBack",
+        "push delivery",
+        "release/store readiness"
+      ],
+      "finding": "Role chips wrap to two rows and block list; source refinement next. Long surname retained but midword wrap remains."
+    },
+    "compact_agreement_home_20261009": {
+      "state": "SOURCE_CHECKS_PASS / NATIVE_PENDING",
+      "basis": "Phone512 live+emulator512 fixture role chips two rows; active number conflates tasks needing attention with total active agreements; Home numeric applications dominated task identity.",
+      "implementation": "Measured horizontal role rail, unchanged text/touch, reveals selected via native geometry and observed offset; resize/font remeasure. Waiting task count beside actual filtered group heading, history direct return preserves role and resets confirmation. Home lead task before action/count with same destination and full accessible reason.",
+      "checks": "149 distinct targeted tests PASS (100Home45Collection4rail) +89 token/glyph guard tests PASS; TypeScript PASS. Initial expected order/selector assertions revised to new hierarchy; final passes recorded. Independent review fixed native clamp/content width risk and a11y order.",
+      "limits": "No new reads/writes/dependency or business membership changes. Actual next APK/native rail selection/resize/font/TalkBack pending.",
+      "next": "Bundle with committed ef1 group reading and participants sheet; exact source build and device checks."
     }
   }
 }

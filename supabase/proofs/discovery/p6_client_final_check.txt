@@ -7,3 +7,4 @@ EX-03 client check 2026-09-30 (2): halo-first, cheap peek look, place card from 
 EX-03 client check 2026-09-30 (3): list rows stay mounted when a pin card opens or closes (row key follows the row geometry, not the card); types + discovery suites + full Jest.
 2026-10-04 generic functional regression trigger: location ambiguous-region UX; no P6 reopening, no backend change.
 2026-10-04 rerun: aligned ambiguous-map retirement regression; generic source verification only.
+2026-10-09 exact bundled client regression: grouped-chat reading/roster dwell, pending sender, grouped amount clarity, compact role rail and task-first Home. No backend or release promotion.
