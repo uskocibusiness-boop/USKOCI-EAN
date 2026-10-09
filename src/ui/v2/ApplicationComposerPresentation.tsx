@@ -97,7 +97,7 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
     : price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.'
     : people === 'invalid' ? 'Upiši koliko ljudi dolazi.'
     : people === 'over' ? need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš prijavu.` : 'Sva mesta su popunjena. Osveži zadatak.'
-    : tooMuch ? total === null ? 'Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.' : 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
+    : tooMuch ? total === null ? 'Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.' : 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
     : null;
   return { reason, price, people };
 }
@@ -482,7 +482,7 @@ function FixedPrice({ need }: { need: PotrebaProjekcija }) {
         <T variant="pageTitle" style={s.money}>{amount}</T><T variant="note" tone="muted">{basis}</T>
       </> : <T variant="bodyStrong">Cena nije navedena</T>}
     </View>
-    {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi koje obezbeđuješ.</T> : null}
+    {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.</T> : null}
   </Section>;
 }
 

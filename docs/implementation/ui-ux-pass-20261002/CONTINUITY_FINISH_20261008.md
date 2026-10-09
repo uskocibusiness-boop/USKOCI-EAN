@@ -752,3 +752,13 @@ NIJE DOKAZANO: Ovo nije DEV primena, HTTP/Auth-provider, profil/objava zadatka, 
 SLEDEĆE: Interni emulator APK i interakcije brojača/pregleda/izmene; obračunsko pitanje ostaje pending pre primene i izdavanja telefonskog APK-a.
 
 Dopuna pre build-a:339 testova/11grupa; tsc0. Ispravljen i readonly fixed-price edit CTA kada iznos nije izračunljiv; ruta odbija pre komande sa konkretnim razlogom. Dva odvojena negativna certificate testa PASS; kompletni cert redovi/binding pinovani, RPC receipt vezan za stvarne helper/caller/candidate hashove. Nezavisni read-only pregled završen bez novih blokirajućih nalaza. Pogrešne putanje5testfajlova u jednom QA pozivu sačuvane kao harness greška; ispravljeni poziv prolazi.
+
+### Potvrđeno zaokruživanje i DEV primena —09.10
+
+URADIO: Vlasnik je izabrao najbliži dinar; isto pravilo po celoj prijavi u klijentu i jednom privatnom helperu. Primena20261009153350,ledger236→237,tačan statementMD5d5295a26e190a78d8ceeadb685208641. Sve stare sačuvane cene ostaju.
+
+DOKAZAO:341/341testova+tsc0;8925vektora na oba obračuna;SQLRPC3333+6667/10000,odbijanje6666;DEV pre/post readback,isti helpermetadata/ACL/callers/closurecert/binding,READYtrue;advisorygroupsbezpromene. Dokaz u ledger/20261009_application_people_rounding.receipt.json.
+
+NIJE DOKAZANO: novi native/telefon/store;9fc70507APK attestiran,ali superseded preinstalacije jer je stigao odgovor za rounding. Nema dodatnih live podataka/push probe.
+
+SLEDEĆE: čisti final-rule source commit,usaglašen emulatorAPK,native default/step/type/review/edit/largefont,zatim phoneAPK.

@@ -2,6 +2,10 @@
   "state": "LOCAL_RPC_PARTIAL_TOTAL_PASS",
   "db": "uskoci_proof_people_6c282aee",
   "tests": [
+    "rounded-submit1-at3333-select",
+    "rounded-unit-first6666-rejected",
+    "rounded-submit2-at6667-select",
+    "rounded-agreement-sum10000",
     "revert-blocked-after-partial-admission",
     "stale-update-to1-at3000",
     "stale-keep-legacy3-at9000",
@@ -31,21 +35,21 @@
   ],
   "fixturesRolledBack": true,
   "liveDev": false,
-  "candidateSha256": "fa382564ac84b49589eca42dba1f5a005d130e801e8e0642ce84cc6082a794c0",
+  "candidateSha256": "759db115d465f1edb7bd82c850dd1057c768d135bb345210952ebbb7947249c3",
   "programBodyMd5": {
     "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)": "66aab6df0d625e24e0073c27bfe2aa91",
     "public.rpc_select_response(uuid,integer,uuid,integer,text,text)": "6a8fd871a60779bc438119b21a900dca",
     "public.rpc_resolve_stale_response_after_need_edit(uuid,integer,integer,text,text,integer,integer,timestamptz,timestamptz,text)": "9634b0333c3bd5dab208286f04d8e556",
     "private.need_candidate_states_v5(uuid)": "112ed258e838b2cae22b248ac94ebe7c",
     "private.need_candidate_states_v5(uuid,uuid[])": "20092ecb2a781776ddb0ce9c46ba8aa5",
-    "private.assert_application_price_v5(public.needs,integer,integer)": "dfae6f56acd6a76979ff19d96e80c41d"
+    "private.assert_application_price_v5(public.needs,integer,integer)": "1f6cd7c39d5fc70d82cfa8653737246c"
   },
   "localAuditSequenceBefore": {
     "max": 36,
-    "last": 40
+    "last": 42
   },
-  "revertSha256": "e6d229b17f77d7d68fcc3d111c6e35cba77932de8490293221282a1debc9fa64",
+  "revertSha256": "15c1b3aaaf9c4fe30a1222a95693cd1d44c66191a5d50fc134ff4082828a4249",
   "fixtureBoundary": "Synthetic direct-DML seed with triggers/FK disabled ONLY during setup; real RPC calls with origin and authenticated role. Not profile/publication/HTTP/JWT-provider proof.",
-  "sqlSha256": "93d019d6e68681e660f6c544d26fcf30218d3b1f7019f690f0a21e2f0a3c29dc",
-  "harnessSha256": "3703e174a8b1b939107060d81341c0c1a55f7365910de36e1bf2c331885c0b87"
+  "sqlSha256": "0463aa5dd59591412aa446dcdcbe7d771bed5f468bf241e10103d293a668601b",
+  "harnessSha256": "235c73a33e07443e952992fa262a7414e79029f8d48dd817acf2ad68cdc7d64b"
 }

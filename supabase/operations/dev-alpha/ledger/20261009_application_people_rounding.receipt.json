@@ -1,0 +1,69 @@
+{
+  "schema": "USKOCI_APPLICATION_PEOPLE_TOTAL_V1",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "state": "APPLIED_POSTFLIGHT_VERIFIED",
+  "authorization": [
+    "Owner requested default1, +/- and direct headcount entry.",
+    "Owner explicitly chose 9000RSD/3 ->3000 for1, then nearest whole-dinar rounding for10000/3 ->3333 for1 and6667 for2, including possible aggregate9999 for3 separate single-person applications."
+  ],
+  "candidate": "supabase/candidates/application-people-price-20261009/candidate.in-transaction.sql",
+  "candidateSha256": "759db115d465f1edb7bd82c850dd1057c768d135bb345210952ebbb7947249c3",
+  "storedStatementMd5": "d5295a26e190a78d8ceeadb685208641",
+  "ledgerBefore": 236,
+  "ledgerAfter": 237,
+  "migration": {
+    "name": "application_people_proportional_total_rounding_20261009",
+    "version": "20261009153350",
+    "statementMd5": "d5295a26e190a78d8ceeadb685208641",
+    "statementCount": 1
+  },
+  "helperBeforeMd5": "bd7ef02925c03d99ff7fd549219214cb",
+  "helperAfterMd5": "1f6cd7c39d5fc70d82cfa8653737246c",
+  "fiveCallersUnchanged": true,
+  "helperMetadataAclAndCommentUnchanged": true,
+  "source": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "program": "dab1d731ee99625c6685bbd4df391228e0857e8fbb08fde35539815b7484af65",
+  "certificateAndBindingUnchanged": true,
+  "ready": true,
+  "devProbes": "Read-only helper values9000:3000/9000;10000:3333/6667/10000;6666 rejected. No live business records inserted/changed.",
+  "localProof": "8925numeric vectors, metadata/cert guards, exact pre-admission revert; authenticated SQL synthetic RPC submit/select/replay/stale/overfill, rounding3333+6667 and refusal6666; business fixtures rollback.",
+  "securityAdvisorsUnchanged": true,
+  "advisoryGroups": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 88,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+    },
+    {
+      "name": "extension_in_public",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public"
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 2,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 184,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    }
+  ],
+  "revert": "revert-before-admission.sql requires locked zero partial TOTAL response versions. Once used, prefer forward fix; never delete terms to fit old semantics.",
+  "limits": [
+    "No device/whole-app/store acceptance from database proof.",
+    "Existing old APK can still submit full-team totals; new APK required for partial headcount UI.",
+    "No live HTTP/auth-provider/RPC mutation or push attempted in this package."
+  ]
+}

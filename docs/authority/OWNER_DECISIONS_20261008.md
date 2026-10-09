@@ -64,3 +64,7 @@ Vlasnik: „i ovaj zatak sot se na skvom 30m inuta ppanvlaj zasuravi ga a nastav
 ### 09.10 — broj ljudi po prijavi i srazmerna ukupna cena
 
 Vlasnik traži početni broj1, minus/plus i direktan unos broja ljudi koje podnosilac obezbeđuje, uz nastavak UI/UX i emulator provera. Na konkretno pitanje9000RSD ukupno za3osobe izričito bira: „3.000 RSD za jednu osobu — srazmerna podela“. Time menja ranije pravilo TOTAL zahteva sve članove ekipe; obračun za novu prijavu treba da prati pokrivena mesta/ukupno traženih. Ne menja retroaktivno već sačuvane iznose i uslove Dogovora. Poseban slučaj nedeljivog iznosa u celim dinarima postavljen je kao kratko pitanje; odgovor se ne podrazumeva. Primena i APK tek posle usaglašenih server/klijent provera.
+
+### 09.10 — potvrđeno zaokruživanje svake prijave
+
+Na konkretno pitanje10000RSD/3osobe vlasnik izričito odgovara: „Zaokruži na najbliži dinar“. Nova ili izmenjena prijava računa round(ukupna cena zadatka × broj ljudi u prijavi / ukupno traženih ljudi), jednom za celu prijavu;10000/3 daje3333 za jednu i6667 za dve osobe. Prihvaćena je i navedena posledica da tri odvojene prijave po jednoj osobi daju9999. Ne deliti zaokruženu jediničnu cenu pa množiti. Sačuvani Dogovor/pending iznosi ostaju nepromenjeni. Ovo zatvara ranije otvoreno obračunsko pitanje i odobrava usklađenu implementaciju konkretno opisane cene.

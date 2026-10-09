@@ -37,24 +37,27 @@ after=snap();assert after['ready'] and {k:v for k,v in base.items() if k!='funct
 assert len(base['functions'])==len(after['functions']), 'FUNCTION_INVENTORY_LENGTH_CHANGED'
 changed=[(a,b) for a,b in zip(base['functions'],after['functions']) if a!=b];assert len(changed)==1 and changed[0][0]['proname']=='assert_application_price_v5'
 assert {k:v for k,v in changed[0][0].items() if k!='prosrc'}=={k:v for k,v in changed[0][1].items() if k!='prosrc'}
-# Vector oracle uses exact integer cross-products; no rounded or truncated quotient enters this policy.
+# Expected whole-dinar result uses integer arithmetic, independent of SQL round().
 checks="""do $t$ declare n public.needs;budget integer;required integer;covered integer;expected bigint;passed integer:=0;rejected integer:=0;begin
  n.mode:='MY_PRICE';n.price_basis:='TOTAL';
  foreach budget in array array[1,3,5,1000,9000,10000,2147483647] loop
  n.requester_price_rsd:=budget;
  for required in 1..50 loop n.required_slots:=required;
  for covered in 1..required loop
- expected:=budget::bigint*covered/required;
- if budget::bigint*covered%required=0 then perform private.assert_application_price_v5(n,covered,expected::integer);passed:=passed+1;
- else begin perform private.assert_application_price_v5(n,covered,greatest(1,expected)::integer);raise exception 'FRACTION_ACCEPTED';exception when sqlstate '22023' then if sqlerrm not in ('FIXED_PRICE_MISMATCH','INVALID_PRICE') then raise;end if;rejected:=rejected+1;end;end if;
+ expected:=(budget::bigint*covered*2+required)/(required*2);
+ if expected>=1 then perform private.assert_application_price_v5(n,covered,expected::integer);passed:=passed+1;
+ else begin perform private.assert_application_price_v5(n,covered,0);raise exception 'ZERO_ACCEPTED';exception when sqlstate '22023' then if sqlerrm<>'INVALID_PRICE' then raise;end if;rejected:=rejected+1;end;end if;
  if expected<2147483647 then begin perform private.assert_application_price_v5(n,covered,(expected+1)::integer);raise exception 'WRONG_PRICE_ACCEPTED';exception when sqlstate '22023' then if sqlerrm<>'FIXED_PRICE_MISMATCH' then raise;end if;end;end if;
  end loop;end loop;end loop;
  n.required_slots:=3;n.requester_price_rsd:=9000;
  perform private.assert_application_price_v5(n,1,3000);perform private.assert_application_price_v5(n,2,6000);perform private.assert_application_price_v5(n,3,9000);
+ n.requester_price_rsd:=10000;
+ perform private.assert_application_price_v5(n,1,3333);perform private.assert_application_price_v5(n,2,6667);perform private.assert_application_price_v5(n,3,10000);
+ n.requester_price_rsd:=9000;
  n.price_basis:='PER_PERSON';perform private.assert_application_price_v5(n,2,18000);
  n.price_basis:=null;perform private.assert_application_price_v5(n,2,9000);
  n.mode:='OFFERS';perform private.assert_application_price_v5(n,2,123);
- raise notice 'PEOPLE_VECTOR_PASS exact=% fractionRejected=% total=8925',passed,rejected;
+ raise notice 'PEOPLE_VECTOR_PASS nearestDinar=% zeroRejected=% total=8925',passed,rejected;
 end $t$;"""
 r=sql(checks);notice=r.stderr.decode()
 sql((PKG/'revert-before-admission.sql').read_text());assert snap()==base

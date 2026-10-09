@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T15:22:47Z",
+  "osvezeno": "2026-10-09T15:36:46Z",
   "grana": "integration/spoj-20261006",
-  "head": "7658b925",
-  "head_poruka": "Record isolated opportunity certificate transition and rollback guards",
+  "head": "9fc70507",
+  "head_poruka": "Add editable application headcount and verified proportional price candidate",
   "server": {
-   "snimljeno": "2026-10-09T07:08:33.959021Z",
-   "migracije": 236,
+   "snimljeno": "2026-10-09T15:35:15Z",
+   "migracije": 237,
    "dev_alpha": 86,
-   "poslednja": "push_single_target_v1_current99",
+   "poslednja": "application_people_proportional_total_rounding_20261009",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -24,7 +24,7 @@
      "active": true
     }
    ],
-   "cron_24h": 2880,
+   "cron_24h": 2874,
    "cron_greske_24h": 0,
    "edge": [
     {
@@ -34,52 +34,52 @@
     },
     {
      "slug": "uskoci-location-search",
-     "version": 14,
+     "version": 19,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-publication-evaluate",
-     "version": 14,
+     "version": 19,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-data-export-worker",
-     "version": 14,
+     "version": 19,
      "verify_jwt": false
     },
     {
      "slug": "uskoci-data-export-download",
-     "version": 14,
+     "version": 19,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-worker-interview",
-     "version": 18,
+     "version": 23,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-speech-session",
-     "version": 15,
+     "version": 20,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-qa-classify",
-     "version": 13,
+     "version": 18,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-push-transport",
-     "version": 24,
+     "version": 28,
      "verify_jwt": false
     },
     {
      "slug": "uskoci-media",
-     "version": 14,
+     "version": 19,
      "verify_jwt": true
     },
     {
      "slug": "uskoci-account-closure-worker",
-     "version": 4,
+     "version": 9,
      "verify_jwt": false
     }
    ]
@@ -2979,11 +2979,12 @@
    "next": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history."
   },
   "application_people_20261009": {
-   "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
-   "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
-   "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+   "state": "PROPORTIONAL_TOTAL_ROUNDING_DEV_APPLIED_NATIVE_PENDING",
+   "source": "Default1, +/- and direct number input; rounded proportional TOTAL in both new/stale application edits.",
+   "proof": "341/341tests,tsc0;8925JS+SQLvectors;localRPC1+2 and rounded3333+6667;DEV exact migration237 with unchanged metadata/certs and read-only amount probes.",
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
-   "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
+   "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json",
+   "next": "Consolidated final-rule emulator APK, native interaction proof, then signed phone APK."
   }
  },
  "redovi": [
@@ -7042,11 +7043,12 @@
      "boundary": "No application source, DEV, device or acceptance-light change."
     },
     "application_people_20261009": {
-     "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
-     "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
-     "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+     "state": "PROPORTIONAL_TOTAL_ROUNDING_DEV_APPLIED_NATIVE_PENDING",
+     "source": "Default1, +/- and direct number input; rounded proportional TOTAL in both new/stale application edits.",
+     "proof": "341/341tests,tsc0;8925JS+SQLvectors;localRPC1+2 and rounded3333+6667;DEV exact migration237 with unchanged metadata/certs and read-only amount probes.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
-     "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
+     "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json",
+     "next": "Consolidated final-rule emulator APK, native interaction proof, then signed phone APK."
     }
    },
    "ukupno": "PROBLEM",
@@ -7189,11 +7191,12 @@
      "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
     },
     "application_people_20261009": {
-     "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
-     "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
-     "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+     "state": "PROPORTIONAL_TOTAL_ROUNDING_DEV_APPLIED_NATIVE_PENDING",
+     "source": "Default1, +/- and direct number input; rounded proportional TOTAL in both new/stale application edits.",
+     "proof": "341/341tests,tsc0;8925JS+SQLvectors;localRPC1+2 and rounded3333+6667;DEV exact migration237 with unchanged metadata/certs and read-only amount probes.",
      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
-     "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
+     "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json",
+     "next": "Consolidated final-rule emulator APK, native interaction proof, then signed phone APK."
     }
    },
    "ukupno": "PROBLEM",

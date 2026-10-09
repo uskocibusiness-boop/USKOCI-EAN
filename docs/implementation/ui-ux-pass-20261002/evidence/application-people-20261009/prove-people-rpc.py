@@ -3,13 +3,13 @@ import json,uuid,hashlib
 import local_pg as p
 ROOT=Path(__file__).parent;DB=json.loads((ROOT/'people-local-db.json').read_text())['db'];assert DB.startswith('uskoci_proof_people_')
 u=lambda:str(uuid.uuid4());q=p.ql
-r,w1,w2,w3=[{'id':u(),'requester':u(),'worker':u()} for _ in range(4)];need=u();stale=u();keep=u();sr=u();kr=u()
+r,w1,w2,w3=[{'id':u(),'requester':u(),'worker':u()} for _ in range(4)];need=u();stale=u();keep=u();rounded=u();sr=u();kr=u()
 fixtures=''
 for x in [r,w1,w2,w3]:
  fixtures+=f"insert into auth.users(id)values('{x['id']}');insert into public.app_accounts(id,email)values('{x['id']}','{x['id']}@proof.invalid');"
  fixtures+=f"insert into public.app_profiles(id,account_id,kind,display_name,city,profile_status,skills,team_capacity,available_now) values('{x['requester']}','{x['id']}','REQUESTER','Local proof','Novi Sad','ACTIVE','{{}}',1,false),('{x['worker']}','{x['id']}','WORKER','Local proof','Novi Sad','ACTIVE','{{ciscenje}}',1,true);"
-for n in [need,stale,keep]:
- fixtures+=f"insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,approximate_city,approximate_area,mode,required_slots,schedule_kind,published_at,task_timezone,revision,requester_price_rsd,price_basis,response_deadline)values('{n}','{r['id']}','{r['requester']}','PUBLISHED','People local proof','Disposable fixture','PROOF','{{}}','Novi Sad','Liman','MY_PRICE',3,'FLEXIBLE',statement_timestamp()-interval '1 hour','Europe/Belgrade',1,9000,'TOTAL',statement_timestamp()+interval '2 hours');"
+for n in [need,stale,keep,rounded]:
+ fixtures+=f"insert into public.needs(id,requester_account_id,requester_profile_id,status,title,description,category,required_skills,approximate_city,approximate_area,mode,required_slots,schedule_kind,published_at,task_timezone,revision,requester_price_rsd,price_basis,response_deadline)values('{n}','{r['id']}','{r['requester']}','PUBLISHED','People local proof','Disposable fixture','PROOF','{{}}','Novi Sad','Liman','MY_PRICE',3,'FLEXIBLE',statement_timestamp()-interval '1 hour','Europe/Belgrade',1,{10000 if n==rounded else 9000},'TOTAL',statement_timestamp()+interval '2 hours');"
 for n,response_id in [(stale,sr),(keep,kr)]:
  fixtures+=f"update public.needs set revision=2 where id='{n}';insert into public.marketplace_responses(id,need_id,worker_account_id,worker_profile_id,response_kind,status,submitted_against_need_revision,current_version,price_rsd,covered_slots,scope_note) values('{response_id}','{n}','{w3['id']}','{w3['worker']}','OFFER','STALE_REVIEW_REQUIRED',1,1,9000,3,'Old full-team offer');insert into public.marketplace_response_versions(response_id,version,need_revision,price_rsd,covered_slots,scope_note,content_hash)values('{response_id}',1,1,9000,3,'Old full-team offer',repeat('a',64));"
 def actor(x):return "perform set_config('request.jwt.claim.sub',"+q(x['id'])+",true);perform set_config('request.jwt.claim.role','authenticated',true);perform set_config('request.jwt.claims',"+q(json.dumps({'sub':x['id'],'role':'authenticated'}))+",true);"
@@ -33,6 +33,14 @@ body=f"""do $rpc$ declare a jsonb;b jsonb;c jsonb;replayed jsonb;g uuid;g2 uuid;
  {actor(w2)} b:={submit(w2,need,2,6000,'remaining-two')};
  {actor(r)} g2:={select(need,'b','choose-two')};
  begin perform {select(need,'c','overfill')};raise exception 'OVERFILL_ACCEPTED';exception when others then if sqlerrm not in ('OVERFILL','NEED_NOT_OPEN','NEED_FULL') then raise;end if;end;
+ {actor(w1)} a:={submit(w1,rounded,1,3333,'rounded-one')};
+ {actor(r)} g:={select(rounded,'a','rounded-choose-one')};
+ {actor(w2)}
+ begin perform {submit(w2,rounded,2,6666,'rounded-unit-first-wrong')};raise exception 'ROUNDED_UNIT_FIRST_ACCEPTED';exception when sqlstate '22023' then if sqlerrm<>'FIXED_PRICE_MISMATCH' then raise;end if;end;
+ b:={submit(w2,rounded,2,6667,'rounded-two')};
+ {actor(r)} g2:={select(rounded,'b','rounded-choose-two')};
+ if (select sum((v.terms->>'price_rsd')::integer) from public.agreement_versions v join public.agreements a on a.id=v.agreement_id where a.need_id='{rounded}') is distinct from 10000::bigint then raise exception 'ROUNDED_TERMS_DRIFT';end if;
+ insert into people_rpc_obs values('rounded',jsonb_build_object('one',a,'two',b,'termsSum',10000));
  insert into people_rpc_obs values('ids',jsonb_build_object('a',a,'b',b,'g1',g,'g2',g2));
 end $rpc$;
 """
@@ -58,4 +66,4 @@ if r.returncode: print(r.stderr.decode()[-3000:]);raise SystemExit(r.returncode)
 d=json.loads(r.stdout.decode().strip().splitlines()[-1]);assert d['stale']==[{'price':3000,'people':1,'version':2},{'price':9000,'people':3,'version':2}],d
 assert d['terms']==[{'price':'3000','people':'1'},{'price':'6000','people':'2'}],d
 assert read_pins()==pins, 'RPC_PROGRAM_CHANGED'
-(ROOT/'people-rpc-local.json').write_text(json.dumps({'state':'LOCAL_RPC_PARTIAL_TOTAL_PASS','db':DB,'tests':['revert-blocked-after-partial-admission','stale-update-to1-at3000','stale-keep-legacy3-at9000','zero-rejected','over-required-rejected','wrong-price-rejected','submit1-at3000','identical-replay','changed-replay-rejected','submit3-at9000','select1','submit2-after-one-selected-at6000','select2','open-task-overfill-rejected','full-task-selection-rejected','agreement-terms-exact'],'terms':d['terms'],'fixturesRolledBack':True,'liveDev':False,'candidateSha256':candidate_sha,'programBodyMd5':pins,'localAuditSequenceBefore':seq,'revertSha256':hashlib.sha256((PKG/'revert-before-admission.sql').read_bytes()).hexdigest(),'fixtureBoundary':'Synthetic direct-DML seed with triggers/FK disabled ONLY during setup; real RPC calls with origin and authenticated role. Not profile/publication/HTTP/JWT-provider proof.','sqlSha256':hashlib.sha256(sql.encode()).hexdigest(),'harnessSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},indent=2)+'\n',encoding='utf-8');print('LOCAL_RPC_PARTIAL_TOTAL_PASS',d['terms'])
+(ROOT/'people-rpc-local.json').write_text(json.dumps({'state':'LOCAL_RPC_PARTIAL_TOTAL_PASS','db':DB,'tests':['rounded-submit1-at3333-select','rounded-unit-first6666-rejected','rounded-submit2-at6667-select','rounded-agreement-sum10000','revert-blocked-after-partial-admission','stale-update-to1-at3000','stale-keep-legacy3-at9000','zero-rejected','over-required-rejected','wrong-price-rejected','submit1-at3000','identical-replay','changed-replay-rejected','submit3-at9000','select1','submit2-after-one-selected-at6000','select2','open-task-overfill-rejected','full-task-selection-rejected','agreement-terms-exact'],'terms':d['terms'],'fixturesRolledBack':True,'liveDev':False,'candidateSha256':candidate_sha,'programBodyMd5':pins,'localAuditSequenceBefore':seq,'revertSha256':hashlib.sha256((PKG/'revert-before-admission.sql').read_bytes()).hexdigest(),'fixtureBoundary':'Synthetic direct-DML seed with triggers/FK disabled ONLY during setup; real RPC calls with origin and authenticated role. Not profile/publication/HTTP/JWT-provider proof.','sqlSha256':hashlib.sha256(sql.encode()).hexdigest(),'harnessSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},indent=2)+'\n',encoding='utf-8');print('LOCAL_RPC_PARTIAL_TOTAL_PASS',d['terms'])

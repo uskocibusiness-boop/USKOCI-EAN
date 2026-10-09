@@ -1,0 +1,14 @@
+{
+  "state": "ROUNDED_SOURCE_PASS_DEV_APPLIED",
+  "tests": {
+    "success": true,
+    "numPassedTests": 341,
+    "numFailedTests": 0,
+    "numPassedTestSuites": 11,
+    "numFailedTestSuites": 0
+  },
+  "testReportSha256": "83d37167c7490a64e58e09cfd42856bacaa5b6a8006c442f775e475fc8ee0143",
+  "typecheckExit": 0,
+  "testProcessExit": 0,
+  "native": "pending new APK"
+}

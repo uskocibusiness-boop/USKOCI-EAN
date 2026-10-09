@@ -1,0 +1,81 @@
+{
+  "ready": true,
+  "helper": {
+    "bodyMd5": "bd7ef02925c03d99ff7fd549219214cb",
+    "comment": null,
+    "metadata": {
+      "oid": "25158",
+      "proacl": [
+        "postgres=X/postgres"
+      ],
+      "probin": null,
+      "procost": 100,
+      "prokind": "f",
+      "prolang": "13619",
+      "proname": "assert_application_price_v5",
+      "prorows": 0,
+      "pronargs": 3,
+      "proowner": "16388",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "proretset": false,
+      "prosecdef": false,
+      "prorettype": "2278",
+      "prosqlbody": null,
+      "prosupport": "-",
+      "proargmodes": null,
+      "proargnames": [
+        "n",
+        "p_covered_slots",
+        "p_price_rsd"
+      ],
+      "proargtypes": [
+        "17658",
+        "23",
+        "23"
+      ],
+      "proisstrict": false,
+      "proparallel": "u",
+      "protrftypes": null,
+      "provariadic": "0",
+      "provolatile": "i",
+      "proleakproof": false,
+      "pronamespace": "18078",
+      "proallargtypes": null,
+      "proargdefaults": null,
+      "pronargdefaults": 0
+    },
+    "definition": "CREATE OR REPLACE FUNCTION private.assert_application_price_v5(n needs, p_covered_slots integer, p_price_rsd integer)\n RETURNS void\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nbegin\n  if p_price_rsd is null or p_price_rsd <= 0 then\n    raise exception using errcode='22023', message='INVALID_PRICE';\n  end if;\n\n  if n.mode = 'MY_PRICE' then\n    if n.requester_price_rsd is null or n.requester_price_rsd <= 0 then\n      raise exception using errcode='P0001', message='FIXED_PRICE_NOT_READY';\n    end if;\n    -- pkg025b. A null basis is the rule this product has always had: the application's price is\n    -- the task's price, whatever it covers. A basis says what that price is FOR.\n    if n.price_basis is null then\n      if p_price_rsd <> n.requester_price_rsd then\n        raise exception using errcode='22023', message='FIXED_PRICE_MISMATCH';\n      end if;\n    elsif n.price_basis = 'PER_PERSON' then\n      if p_price_rsd <> n.requester_price_rsd::bigint * p_covered_slots then\n        raise exception using\n          errcode='22023',\n          message='FIXED_PRICE_MISMATCH',\n          detail=format('basis=PER_PERSON,perPerson=%s,covered=%s,expected=%s,sent=%s',\n                        n.requester_price_rsd, p_covered_slots,\n                        n.requester_price_rsd::bigint * p_covered_slots, p_price_rsd);\n      end if;\n    elsif n.price_basis = 'TOTAL' then\n      -- The price of the whole task, so one application carries the whole task. No split, no\n      -- rounding: owner's decision of 2026-09-19. Hiring people separately is what PER_PERSON is for.\n      if p_covered_slots <> n.required_slots then\n        raise exception using\n          errcode='22023',\n          message='TOTAL_PRICE_REQUIRES_ALL_SLOTS',\n          detail=format('required=%s,covered=%s', n.required_slots, p_covered_slots);\n      end if;\n      if p_price_rsd <> n.requester_price_rsd then\n        raise exception using\n          errcode='22023',\n          message='FIXED_PRICE_MISMATCH',\n          detail=format('basis=TOTAL,total=%s,sent=%s', n.requester_price_rsd, p_price_rsd);\n      end if;\n    else\n      -- Unreachable while the CHECK holds. A basis nobody has reviewed is refused, never guessed.\n      raise exception using errcode='22023', message='UNKNOWN_PRICE_BASIS';\n    end if;\n  end if;\n\nend;\n$function$\n"
+  },
+  "ledger": 236,
+  "source": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "binding": {
+    "sha256": "cd4d984005b0483b7f34f19093b89e375f9e7563ebb27f286131ba8744be3bc2",
+    "trigger": "CLOSURE_REQUESTED",
+    "authAction": "AUTH_IDENTITY_ERASED_SUBJECT_RETAINED",
+    "provenance": "OWNER_AF_D22",
+    "mediaAction": "DELETE_UNPROTECTED_OWNED_OBJECTS",
+    "sourceSha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "adapterVersion": "OWNER_AF_D22_EVENT_ERASURE_V1",
+    "exceptionAction": "SCOPED_REVIEW_REQUIRED",
+    "relationalAction": "ERASE_ORDINARY_PERSONAL_CONTENT",
+    "legalPolicyAttested": false
+  },
+  "callers": {
+    "private.need_candidate_states_v5(uuid)": "112ed258e838b2cae22b248ac94ebe7c",
+    "private.need_candidate_states_v5(uuid,uuid[])": "20092ecb2a781776ddb0ce9c46ba8aa5",
+    "public.rpc_select_response(uuid,integer,uuid,integer,text,text)": "6a8fd871a60779bc438119b21a900dca",
+    "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)": "66aab6df0d625e24e0073c27bfe2aa91",
+    "public.rpc_resolve_stale_response_after_need_edit(uuid,integer,integer,text,text,integer,integer,timestamptz,timestamptz,text)": "9634b0333c3bd5dab208286f04d8e556"
+  },
+  "program": "dab1d731ee99625c6685bbd4df391228e0857e8fbb08fde35539815b7484af65",
+  "sourceCert": {
+    "sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "singleton": true
+  },
+  "erasureCert": {
+    "sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "singleton": true
+  }
+}

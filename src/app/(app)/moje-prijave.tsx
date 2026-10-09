@@ -224,7 +224,7 @@ export default function MojePrijave() {
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (positiveInteger(people) && people <= draft.pricing.pokrivenost.ukupno && draft.pricing.rezimCene === 'MY_PRICE'
         && fixedApplicationPrice(draft.pricing, people) === null) {
-        session.message = 'Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.'; render(v => v + 1); return;
+        session.message = 'Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.'; render(v => v + 1); return;
       }
       if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesi cenu u dinarima i broj ljudi, bez decimala.'; render(v => v + 1); return; }
       if (people > draft!.pricing.pokrivenost.ukupno) { session.message = `Možeš da prijaviš najviše ${draft!.pricing.pokrivenost.ukupno}.`; render(v => v + 1); return; }

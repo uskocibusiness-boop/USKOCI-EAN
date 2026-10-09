@@ -51,8 +51,8 @@ begin
     elsif n.price_basis = 'TOTAL' then
       -- Owner 2026-10-09: the task total is shared in proportion to this application's headcount.
       -- Use original required_slots, never remaining slots; preserve existing accepted terms.
-      if p_price_rsd::bigint * n.required_slots is distinct from
-         n.requester_price_rsd::bigint * p_covered_slots then
+      if p_price_rsd::numeric is distinct from
+         round(n.requester_price_rsd::numeric * p_covered_slots / n.required_slots) then
         raise exception using errcode='22023', message='FIXED_PRICE_MISMATCH',
           detail=format('basis=TOTAL,total=%s,required=%s,covered=%s,sent=%s',
             n.requester_price_rsd,n.required_slots,p_covered_slots,p_price_rsd);
@@ -69,11 +69,11 @@ begin
  o:=to_regprocedure('private.assert_application_price_v5(public.needs,integer,integer)');
  select prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict original,meta,note from pg_proc p where p.oid=o;
  if md5(original) is distinct from 'bd7ef02925c03d99ff7fd549219214cb' then raise exception 'PEOPLE_PRICE_PREIMAGE_DRIFT';end if;
- if md5(replacement) is distinct from 'dfae6f56acd6a76979ff19d96e80c41d' then raise exception 'PEOPLE_PRICE_PAYLOAD_DRIFT';end if;
+ if md5(replacement) is distinct from '1f6cd7c39d5fc70d82cfa8653737246c' then raise exception 'PEOPLE_PRICE_PAYLOAD_DRIFT';end if;
  definition:=pg_get_functiondef(o);
  if (length(definition)-length(replace(definition,original,'')))<>length(original) then raise exception 'PEOPLE_PRICE_AMBIGUOUS_BODY';end if;
  execute replace(definition,original,replacement);
- if (select md5(prosrc) from pg_proc where oid=o) is distinct from 'dfae6f56acd6a76979ff19d96e80c41d'
+ if (select md5(prosrc) from pg_proc where oid=o) is distinct from '1f6cd7c39d5fc70d82cfa8653737246c'
    or (select to_jsonb(p)-'prosrc' from pg_proc p where oid=o) is distinct from meta
    or obj_description(o,'pg_proc') is distinct from note then raise exception 'PEOPLE_PRICE_METADATA_DRIFT';end if;
 end $replace$;

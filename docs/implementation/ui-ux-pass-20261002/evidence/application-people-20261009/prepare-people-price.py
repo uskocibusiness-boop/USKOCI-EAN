@@ -7,12 +7,12 @@ row=json.loads((ROOT/'people-helper-preimage.json').read_text(encoding='utf-8'))
 definition=row['definition']; old=definition.split('AS $function$',1)[1].split('$function$',1)[0]
 assert hashlib.md5(old.encode()).hexdigest()==row['md5']=='bd7ef02925c03d99ff7fd549219214cb'
 start=old.index("    elsif n.price_basis = 'TOTAL' then");end=old.index('    else',start)
-# Exact proportional price for now. A rounding rule must be separately approved before replacing this expression.
+# Owner explicitly approved nearest whole-dinar rounding for each application on 2026-10-09.
 new=old[:start]+"""    elsif n.price_basis = 'TOTAL' then
       -- Owner 2026-10-09: the task total is shared in proportion to this application's headcount.
       -- Use original required_slots, never remaining slots; preserve existing accepted terms.
-      if p_price_rsd::bigint * n.required_slots is distinct from
-         n.requester_price_rsd::bigint * p_covered_slots then
+      if p_price_rsd::numeric is distinct from
+         round(n.requester_price_rsd::numeric * p_covered_slots / n.required_slots) then
         raise exception using errcode='22023', message='FIXED_PRICE_MISMATCH',
           detail=format('basis=TOTAL,total=%s,required=%s,covered=%s,sent=%s',
             n.requester_price_rsd,n.required_slots,p_covered_slots,p_price_rsd);
@@ -71,5 +71,5 @@ revert=revert.replace('set local search_path=pg_catalog;',"set local search_path
 (OUT/'candidate.in-transaction.sql').write_text(candidate,encoding='utf-8',newline='\n')
 (OUT/'candidate.sql').write_text('begin;\n'+candidate+'commit;\n',encoding='utf-8',newline='\n')
 (OUT/'revert-before-admission.sql').write_text('-- Use only before any new partial TOTAL application can have been admitted. Not a live rollback after use.\nbegin;\n'+revert+'commit;\n',encoding='utf-8',newline='\n')
-(OUT/'manifest.json').write_text(json.dumps({'mode':'EXACT_PROPORTION_ROUNDING_PENDING','signature':sig,'beforeBodyMd5':row['md5'],'afterBodyMd5':post,'candidateSha256':hashlib.sha256(candidate.encode()).hexdigest(),'callerMd5':pins,'applied':False},indent=2)+'\n',encoding='utf-8')
+(OUT/'manifest.json').write_text(json.dumps({'mode':'PROPORTIONAL_TOTAL_NEAREST_DINAR_OWNER_APPROVED','signature':sig,'beforeBodyMd5':row['md5'],'afterBodyMd5':post,'candidateSha256':hashlib.sha256(candidate.encode()).hexdigest(),'callerMd5':pins,'applied':False},indent=2)+'\n',encoding='utf-8')
 print('candidate prepared',post)

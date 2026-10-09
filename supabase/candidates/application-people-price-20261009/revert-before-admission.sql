@@ -78,7 +78,7 @@ $body$;
 begin
  o:=to_regprocedure('private.assert_application_price_v5(public.needs,integer,integer)');
  select prosrc,to_jsonb(p)-'prosrc',obj_description(p.oid,'pg_proc') into strict original,meta,note from pg_proc p where p.oid=o;
- if md5(original) is distinct from 'dfae6f56acd6a76979ff19d96e80c41d' then raise exception 'PEOPLE_PRICE_PREIMAGE_DRIFT';end if;
+ if md5(original) is distinct from '1f6cd7c39d5fc70d82cfa8653737246c' then raise exception 'PEOPLE_PRICE_PREIMAGE_DRIFT';end if;
  if md5(replacement) is distinct from 'bd7ef02925c03d99ff7fd549219214cb' then raise exception 'PEOPLE_PRICE_PAYLOAD_DRIFT';end if;
  definition:=pg_get_functiondef(o);
  if (length(definition)-length(replace(definition,original,'')))<>length(original) then raise exception 'PEOPLE_PRICE_AMBIGUOUS_BODY';end if;

@@ -13,3 +13,9 @@ The attached Python/SQL files are the exact historical local harnesses, with SHA
 Primary implementation references: [Supabase database functions](https://supabase.com/docs/guides/database/functions), [PostgreSQL numeric operators](https://www.postgresql.org/docs/17/functions-math.html). Supabase changelog and17.11 notices inspected; no index/operator changes are in this package.
 
 Independent read-only final review: certificate/admission/replay guards closed; no further blocking findings within this scoped candidate. One QA invocation used five incorrect test file paths (194 tests passed, five file-load failures); corrected invocation retained separately. Rounding remains pending.
+
+## Superseding owner decision and DEV application
+
+Owner chose nearest whole-dinar rounding. Current candidate uses round(total × application headcount / original required headcount), once per application. The earlier exact-only candidate is historical.341 source tests/11suites + tsc0; both client and SQL cover8925 vectors with independent integer oracle (8041valid,884round-to-zero refusals under existing positive-price rule). Local real SQL RPC additionally selects3333+6667 for10000/3 and refuses6666.
+
+Applied on canonical DEV as20261009153350, ledger236→237; exact stored statement MD5=d5295a26e190a78d8ceeadb685208641, candidate SHA=759db115d465f1edb7bd82c850dd1057c768d135bb345210952ebbb7947249c3. Helper metadata/ACL/comments, five callers, full certificates/binding and readiness unchanged; read-only DEV amount probes passed; advisory groups unchanged. See ledger receipt. No live business-row changes, push or new phone release. The9fc70507 internal APK was built/attested but superseded before installation by the rounding decision; next build contains the final rule.

@@ -1,10 +1,10 @@
 {
   "state": "LOCAL_HELPER_MATRIX_AND_PRE_ADMISSION_REVERT_PASS",
   "db": "uskoci_proof_people_6c282aee",
-  "candidateSha256": "fa382564ac84b49589eca42dba1f5a005d130e801e8e0642ce84cc6082a794c0",
-  "mode": "EXACT_PROPORTION_ROUNDING_PENDING",
+  "candidateSha256": "759db115d465f1edb7bd82c850dd1057c768d135bb345210952ebbb7947249c3",
+  "mode": "PROPORTIONAL_TOTAL_NEAREST_DINAR_OWNER_APPROVED",
   "vectors": 8925,
-  "notice": "NOTICE:  PEOPLE_VECTOR_PASS exact=1311 fractionRejected=7614 total=8925\r\n",
+  "notice": "NOTICE:  PEOPLE_VECTOR_PASS nearestDinar=8041 zeroRejected=884 total=8925\r\n",
   "onlyHelperChanged": true,
   "metadataAclCommentPreserved": true,
   "sourceAndProgramCertificateUnchanged": true,
@@ -15,7 +15,7 @@
   ],
   "preAdmissionRevertExact": true,
   "businessCountsUnchanged": true,
-  "harnessSha256": "6670c27d4dd3fb641d49c17ffce118de6944e729b645587ee20f3df41f5a9266",
+  "harnessSha256": "bba7f176286ba1c7ceb8b29f52b7b655a9d945230c254e66d4413b1f595d8fce",
   "limits": [
     "Local PG17 clone with documented catalog identity translation; no Supabase network/auth-provider parity.",
     "Pure helper matrix; companion RPC receipt is separate.",

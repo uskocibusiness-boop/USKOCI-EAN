@@ -138,10 +138,10 @@ export function MyApplicationsPresentation(props: Props) {
           <T accessibilityRole="header" variant="heading">Izmeni svoju prijavu</T>
           <T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
             : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
-            : draft.pricing.osnovaCene === 'TOTAL' ? 'Tvoja cena se računa srazmerno broju ljudi koje obezbeđuješ.' : 'Cena je određena u zadatku.'}</T>
+            : draft.pricing.osnovaCene === 'TOTAL' ? 'Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.' : 'Cena je određena u zadatku.'}</T>
           <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T>
           <TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
-          {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.</T> : null}
+          {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.</T> : null}
           <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T>
           <ApplicationPeopleInput label="Broj ljudi" value={draft.people} maximum={draft.pricing.pokrivenost.ukupno} disabled={disabled}
             onChange={people => props.onChange({ ...draft, people })} help={`Zadatak traži ${osobuAkuz(draft.pricing.pokrivenost.ukupno)}.`} />

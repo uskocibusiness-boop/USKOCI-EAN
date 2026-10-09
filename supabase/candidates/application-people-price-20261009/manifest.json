@@ -1,9 +1,9 @@
 {
-  "mode": "EXACT_PROPORTION_ROUNDING_PENDING",
+  "mode": "PROPORTIONAL_TOTAL_NEAREST_DINAR_OWNER_APPROVED",
   "signature": "private.assert_application_price_v5(public.needs,integer,integer)",
   "beforeBodyMd5": "bd7ef02925c03d99ff7fd549219214cb",
-  "afterBodyMd5": "dfae6f56acd6a76979ff19d96e80c41d",
-  "candidateSha256": "fa382564ac84b49589eca42dba1f5a005d130e801e8e0642ce84cc6082a794c0",
+  "afterBodyMd5": "1f6cd7c39d5fc70d82cfa8653737246c",
+  "candidateSha256": "759db115d465f1edb7bd82c850dd1057c768d135bb345210952ebbb7947249c3",
   "callerMd5": {
     "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)": "66aab6df0d625e24e0073c27bfe2aa91",
     "public.rpc_select_response(uuid,integer,uuid,integer,text,text)": "6a8fd871a60779bc438119b21a900dca",
@@ -11,5 +11,6 @@
     "private.need_candidate_states_v5(uuid)": "112ed258e838b2cae22b248ac94ebe7c",
     "private.need_candidate_states_v5(uuid,uuid[])": "20092ecb2a781776ddb0ce9c46ba8aa5"
   },
-  "applied": false
+  "applied": true,
+  "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json"
 }

@@ -122,17 +122,17 @@ it('reconfirmation shares a total-price task by the chosen headcount', async () 
 });
 it('keeps an uncomputable fixed-price edit unsent and recovers with a valid headcount', async () => {
   mockInterval.mockResolvedValue({ ok: true, podatak: { ...interval, pricing: {
-    rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 10000 }, pokrivenost: { ukupno: 3 },
+    rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 1 }, pokrivenost: { ukupno: 3 },
   } } });
   await editing(); await edit('Broj ljudi', '1');
   const save = () => tree!.root.findAll(n => String(n.type) === 'Press' && n.props.accessibilityLabel === 'Sačuvaj izmenjenu prijavu')[0];
   expect(save().props.disabled).toBe(true);
   await act(async () => save().props.onPress());
   expect(mockResolve).not.toHaveBeenCalled();
-  expect(text()).toContain('Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.');
+  expect(text()).toContain('Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.');
   await edit('Broj ljudi', '3'); expect(save().props.disabled).toBe(false);
   await tap('Sačuvaj izmenjenu prijavu');
-  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 10000, pokrivenaMesta: 3 });
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 1, pokrivenaMesta: 3 });
 });
 it('a definite price refusal leads to review after readback, without treating the result as a network loss', async () => {
   mockResolve.mockResolvedValueOnce({ ok: false, kod: 'FIXED_PRICE_MISMATCH', poruka: 'hidden backend detail' });

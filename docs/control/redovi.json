@@ -3206,11 +3206,12 @@
           "boundary": "No application source, DEV, device or acceptance-light change."
         },
         "application_people_20261009": {
-          "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
-          "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
-          "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+          "state": "PROPORTIONAL_TOTAL_ROUNDING_DEV_APPLIED_NATIVE_PENDING",
+          "source": "Default1, +/- and direct number input; rounded proportional TOTAL in both new/stale application edits.",
+          "proof": "341/341tests,tsc0;8925JS+SQLvectors;localRPC1+2 and rounded3333+6667;DEV exact migration237 with unchanged metadata/certs and read-only amount probes.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
-          "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
+          "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json",
+          "next": "Consolidated final-rule emulator APK, native interaction proof, then signed phone APK."
         }
       }
     },
@@ -3317,11 +3318,12 @@
           "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
         },
         "application_people_20261009": {
-          "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
-          "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
-          "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+          "state": "PROPORTIONAL_TOTAL_ROUNDING_DEV_APPLIED_NATIVE_PENDING",
+          "source": "Default1, +/- and direct number input; rounded proportional TOTAL in both new/stale application edits.",
+          "proof": "341/341tests,tsc0;8925JS+SQLvectors;localRPC1+2 and rounded3333+6667;DEV exact migration237 with unchanged metadata/certs and read-only amount probes.",
           "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
-          "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
+          "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json",
+          "next": "Consolidated final-rule emulator APK, native interaction proof, then signed phone APK."
         }
       }
     },
@@ -9545,11 +9547,12 @@
       "next": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history."
     },
     "application_people_20261009": {
-      "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
-      "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
-      "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+      "state": "PROPORTIONAL_TOTAL_ROUNDING_DEV_APPLIED_NATIVE_PENDING",
+      "source": "Default1, +/- and direct number input; rounded proportional TOTAL in both new/stale application edits.",
+      "proof": "341/341tests,tsc0;8925JS+SQLvectors;localRPC1+2 and rounded3333+6667;DEV exact migration237 with unchanged metadata/certs and read-only amount probes.",
       "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
-      "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
+      "receipt": "supabase/operations/dev-alpha/ledger/20261009_application_people_rounding.receipt.json",
+      "next": "Consolidated final-rule emulator APK, native interaction proof, then signed phone APK."
     }
   }
 }

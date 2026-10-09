@@ -161,7 +161,8 @@ export function fixedApplicationPrice(input: {
   if (!Number.isSafeInteger(people) || people < 1) return null;
   const required = input.pokrivenost?.ukupno;
   if (input.osnovaCene === 'TOTAL' && (typeof required !== 'number' || !Number.isSafeInteger(required) || required < 1 || people > required)) return null;
-  const total = input.osnovaCene === 'TOTAL' ? amount * people / required! : amount * people;
+  // Round the application's share once, never a rounded per-person unit times the people.
+  const total = input.osnovaCene === 'TOTAL' ? Math.round(amount * people / required!) : amount * people;
   return Number.isSafeInteger(total) && total >= 1 ? total : null;
 }
 
