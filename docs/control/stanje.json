@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T02:01:51Z",
+  "osvezeno": "2026-10-09T02:02:28Z",
   "grana": "integration/spoj-20261006",
-  "head": "d51cd1b0",
-  "head_poruka": "merge: refresh control views after canonical sync",
+  "head": "0d3f5c82",
+  "head_poruka": "fix(ui): clarify application status and accepted agreement amounts",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
