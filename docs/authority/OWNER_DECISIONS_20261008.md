@@ -94,3 +94,21 @@ Podešavanje radnog profila vodi kroz jedan AI razgovor, dok kartica prikazuje s
 Vlasnik traži doradu odgovarajućih ikona, ulaznog ekrana/prijave/registracije/gosta i ikone aplikacije u originalnom2.5D stilu. To je odobrenje ciljanog UI rada, ne potvrda gotovog dizajna ili store paketa. Postojeća white/neutral površina i jednostavni tokovi ostaju smer; konkretna vrednost i funkcija imaju prednost nad ukrasom.
 
 Pomeranje mape prazno→prazno ne sme da zameni potvrđenu poruku novim skeletonom i da trza listu. Provera ide u pozadini, a sadržaj se menja sa stvarnim novim rezultatom/greškom. Proveriti sve stvarne dozvole (lokacija, mikrofon, fotografije/kamera, obaveštenja), u trenutku funkcije, bez ponovnog nepotrebnog traženja već odobrenog i uz oporavak nakon odbijanja. Ovo su zahtevi; implementacija, APK i fizički dokaz se vode odvojeno u jedinom registru.
+
+
+### 10.10 — radna kartica, AI glas i povezani korisnički detalji
+
+Vlasnik potvrđuje da je telefon slobodan za tačan APK i ograničenu proveru fotografija/pitanja uz očuvanje prijave i podataka. Zatim traži nastavak čišćenja i pojednostavljenja, posebno sačuvan radni profil kao jasnu radnu karticu. Podešavanje i izmena radnog profila idu isključivo kroz AI razgovor; ručni izbor dana/vremena dostupnosti je dozvoljen kao konkretna kontrola. AI treba da pita smisleno i dovoljno detaljno za postojeći server ugovor.
+
+Govorni unos: jedno držanje mikrofona, stanje slušanja uz donji unos (ne kao poruka u istoriji), stvaran prepoznati tekst latinicom prikazan pre odgovora asistenta i vidljivo stanje odgovaranja. Želja za neposrednim prikazom po puštanju mikrofona ne daje dozvolu da se izmišlja transkript pre ASR rezultata; do njega prikazati pošteno stanje obrade. Postepeni odgovor je prihvatljiv samo uz jasno razlikovanje stvarnog strimovanja od vizuelnog otkrivanja završenog teksta. Kada unos nije razumljiv, potreban je ljubazan zahtev da se ponovi/pojasni, uz sačuvan unos i postojeći recovery.
+
+Ikone treba da odgovaraju značenju: Moje prijave kao papirni avion u originalnom 2.5D stilu, dorada zvona i pregled navigacionih ikona. Mapa mora imati razumljiv izlaz i dok je lista spuštena; predlog rasporeda lupice/filtera/avatara/obaveštenja je smer za proveru, ne nalog da se dodaju sve kontrole bez potrebe. Moja lokacija treba brzo da fokusira valjanu poznatu poziciju, uz bezbedno osvežavanje i pošteno razlikovanje zastarele/uskraćene lokacije.
+
+Proveriti stvarno prispeće/čitanje poruka i avatare; pregled tuđih i sopstvenih recenzija; broj realizovanih Dogovora bez mešanja sa otkazanim ili samo objavljenim zadacima. Nastaviti kroz postojeće redove plana, meriti konkretna poboljšanja i zamrznuti dovoljno dobra rešenja. Zahtev ne predstavlja store odobrenje, dokaz skaliranja ili nastavak pauzirane automatizacije.
+
+
+### 10.10 — nove reference filtera i potvrda e-maila
+
+Vlasnik šalje14501–14504 kao referencu ponašanja: blag blur pozadine, odvojene bele izdignute sekcije, jedna otvorena sekcija sa sažetkom ostalih, razumljiva pretraga/lokacija i kalendar, jasne donje akcije. USKOČI prilagoditi tome uz istinite filter rezultate; numerički budžet se ne sme glumiti filtriranjem jedne učitane stranice. Zahteva novu profesionalnu ulaznu površinu za prijavu/registraciju/gosta i uklanjanje starog zeleno-narandžastog izgleda. Time je nadjačana ranija zabrana vizuelne izmene tog ulaza, ne sigurnost autentifikacije. Gost mora imati stvarno dozvoljen read-only tok, ne zaobilaženje auth/RLS ili mrtav CTA.
+
+Potvrda e-maila treba da bude uredna i prepoznatljivo USKOČI, sa logotipom/ikonama, jasnim kratkim tekstom i jednim dugmetom za potvrdu. Klik treba da vrati korisnika u aplikaciju i dovrši odgovarajuću autentifikaciju. Proveriti cold/warm start, istekao/iskorišćen link, dozvoljeni redirect i web fallback; bez lažne tvrdnje da template sam rešava session/deep link. Ovo autorizuje pripremu i proveru konkretnog auth paketa; stvarna primena i isporuka evidentiraju se odvojeno.

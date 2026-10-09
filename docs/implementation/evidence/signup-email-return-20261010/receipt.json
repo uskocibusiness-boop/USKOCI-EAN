@@ -1,0 +1,62 @@
+{
+  "state": "SOURCE_TESTS_PASS_SERVER_BLOCKED_DEVICE_PENDING",
+  "base": "35aa728713ce4ecc08233916ca865ffea512f8e4",
+  "templateSha256": "3d520f4e72e28a87ae9efd31ee9191b176faeaeae7ee91d7a06d06518370e941",
+  "checks": [
+    {
+      "file": "tests-pass3.json",
+      "sha256": "413145bc9c8ddb9c6d7750c9b0a477615c98b117554d0669f0473420244ee137",
+      "passed": 147,
+      "failed": 0,
+      "skipped": 0,
+      "suites": 5
+    },
+    {
+      "file": "tests-final.json",
+      "sha256": "b7d4286e069f879e51b3196a3357ceeafcb260e453ca7bb44e2484608996f487",
+      "passed": 100,
+      "failed": 0,
+      "skipped": 0,
+      "suites": 2
+    },
+    {
+      "file": "regression.json",
+      "sha256": "92365dabeea1c7a5f281defd1cf319ccf651ac843f0b8123ffdb3561f2331f5b",
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "suites": 9
+    }
+  ],
+  "uniqueSuites": 14,
+  "uniqueTests": 281,
+  "tscExit": 0,
+  "independentReview": "Three concrete UI findings fixed; final bounded source review has no new findings.",
+  "server": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "liveRedirectAllowlist": [],
+    "liveSiteURL": "http://localhost:3000",
+    "confirmationEnabled": true,
+    "customSMTPEnabled": false,
+    "liveTemplateSubject": "Confirm your email address",
+    "candidateRedirects": [
+      "uskociapp://auth?form=login",
+      "uskociapp://oporavak"
+    ],
+    "apply": "FAILED_403_NO_CHANGE",
+    "templateApply": "NOT_ATTEMPTED_REQUIRES_SUPPORTED_SENDER",
+    "emailSent": false
+  },
+  "preview": {
+    "desktopScreenshotInspected": true,
+    "iframeWidthsWithoutHorizontalOverflow": [
+      390,
+      320
+    ],
+    "mobileScreenshot": "NOT_CAPTURED_BROWSER_TIMEOUT",
+    "mailClientRendering": "NOT_VERIFIED"
+  },
+  "device": "Installed 600efd10 is the media package, not this email source patch. No signup callback/device/delivery proof claimed.",
+  "store": "NO-GO",
+  "automation": "PAUSED"
+}

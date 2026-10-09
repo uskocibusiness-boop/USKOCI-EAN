@@ -61,6 +61,7 @@ jest.mock('../authClientService', () => ({ authClientService: {
 } }));
 
 import AuthScreen from '../../app/auth';
+import { signupConfirmationIntent } from '../../store/signupConfirmationIntent';
 import { PROVIDER_UNAVAILABLE_COPY, RATE_LIMITED_COPY, SIGN_IN_FAILURE_COPY, SignInFailureError, type SignInFailureClass } from '../authFailureClasses';
 import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
 import { restrictedAccountCopy } from '../../ui/auth/RestrictedAccountPanel';
@@ -369,7 +370,7 @@ it('offers an explicit confirmation resend after signup and serializes duplicate
   expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledTimes(1);
   expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledWith('ana@example.test');
   await act(async () => pending.resolve());
-  expect(text()).toContain('Poslali smo novu poruku za potvrdu.');
+  expect(text()).toContain('Ako email čeka potvrdu, stići će nova poruka.');
 });
 
 it('visibly gates unfinished recovery and never sends a broken reset link', async () => {
@@ -853,7 +854,7 @@ describe('the next step of a failure', () => {
     expect(button('Pošalji ponovo potvrdu')).toBeDefined();
     await press('Pošalji ponovo potvrdu');
     expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledWith('ana@example.test');
-    expect(text()).toContain('Poslali smo novu poruku za potvrdu.');
+    expect(text()).toContain('Ako email čeka potvrdu, stići će nova poruka.');
     expect(text()).not.toContain(SIGN_IN_FAILURE_COPY.EMAIL_NOT_CONFIRMED); expect(button('Pošalji ponovo potvrdu')).toBeUndefined();
   });
 
@@ -1001,5 +1002,95 @@ describe('the answer to a command is brought into view when it appears', () => {
     await press('Pošalji ponovo potvrdu');
     // The notice (20..80) is above the top of the visible part (100): it is 96 dp up, and the start of the scroll area is as far as that goes.
     expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: true });
+  });
+});
+
+
+describe('signup email return in the real Auth form', () => {
+  it('retains a callback while Auth is covered and shows it when Router focuses Auth', async () => {
+    await render();
+    await act(async () => mockBlur?.());
+    await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
+    expect(signupConfirmationIntent.snapshot()?.kind).toBe('LINK_UNAVAILABLE');
+    expect(button('Pošalji novu potvrdu')).toBeUndefined();
+    await act(async () => { mockBlur = mockFocus() || undefined; });
+    expect(text()).toContain('Ovaj link više nije važeći.');
+    expect(button('Pošalji novu potvrdu')).toBeDefined();
+    expect(signupConfirmationIntent.snapshot()).toBeNull();
+  });
+
+  it('an expired callback offers a working resend after a previous auto-confirm signup, and reveals each warm return', async () => {
+    const scrollTo = jest.fn();
+    mockRead.mockResolvedValue({ ...emailOnly, emailConfirmationRequired: false });
+    mockParams = { form: 'login' };
+    await act(async () => { tree = create(<AuthScreen />, { createNodeMock: element =>
+      element.type === 'ScrollView' ? { scrollTo } : null }); });
+    await pressTab('Napravi nalog');
+    for (const [label, value] of signUpValues) await fill(label, value);
+    await press('Napravi nalog');
+    await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
+    scrollTo.mockClear();
+    // Same route and same category still need to reveal the new link's result.
+    await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
+    await press('Pošalji novu potvrdu');
+    expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledWith('ana@example.test');
+    expect(text()).toContain('Ako email čeka potvrdu, stići će nova poruka.');
+  });
+
+  it('a warm callback leaves Proveri email even when the route form has not changed', async () => {
+    mockParams = { form: 'login' };
+    await act(async () => { tree = create(<AuthScreen />); }); await pressTab('Napravi nalog');
+    for (const [label, value] of signUpValues) await fill(label, value);
+    await press('Napravi nalog');
+    expect(text()).toContain('Proveri email');
+    await act(async () => signupConfirmationIntent.publish('RETURNED'));
+    expect(button('Prijavi se')).toBeDefined();
+    expect(input('Email').props.value).toBe('ana@example.test');
+    expect(text()).toContain('Nastavi prijavu svojim emailom i lozinkom.');
+    expect(text()).not.toContain('Email je potvrđen');
+    expect(signupConfirmationIntent.snapshot()).toBeNull();
+    expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('cold expired callback can resend with just a valid email, preserves CTA while typing and serializes taps', async () => {
+    await render();
+    await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
+    expect(text()).toContain('Ovaj link više nije važeći.');
+    await press('Pošalji novu potvrdu');
+    expect(mockAuth.resendSignupConfirmation).not.toHaveBeenCalled();
+    expect(input('Email').props.accessibilityLabel).toBe('Email');
+    await fill('Email', 'ana@example.test');
+    expect(button('Pošalji novu potvrdu')).toBeDefined();
+    const pending = deferred<void>(); mockAuth.resendSignupConfirmation.mockReturnValueOnce(pending.promise);
+    const send = button('Pošalji novu potvrdu').props.onPress;
+    await act(async () => { send(); send(); });
+    expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledTimes(1);
+    expect(input('Lozinka').props.value).toBe('');
+    await act(async () => pending.resolve());
+    expect(text()).toContain('Ako email čeka potvrdu, stići će nova poruka.');
+    expect(button('Pošalji novu potvrdu')).toBeUndefined();
+  });
+
+  it('does not interrupt or replay navigation over an in-flight signup', async () => {
+    await render(); await pressTab('Napravi nalog');
+    for (const [label, value] of signUpValues) await fill(label, value);
+    const pending = deferred<{ hasSession: boolean }>(); mockAuth.signUp.mockReturnValueOnce(pending.promise);
+    await act(async () => { button('Napravi nalog').props.onPress(); });
+    await act(async () => signupConfirmationIntent.publish('RETURNED'));
+    expect(host('TextInput')).toHaveLength(5);
+    await act(async () => pending.resolve({ hasSession: false }));
+    expect(text()).toContain('Proveri email');
+    expect(signupConfirmationIntent.snapshot()).toBeNull();
+  });
+
+  it('manual form change dismisses the callback; a new callback is a new event', async () => {
+    await render();
+    await act(async () => signupConfirmationIntent.publish('INVALID_LINK'));
+    expect(button('Pošalji novu potvrdu')).toBeDefined();
+    await pressTab('Napravi nalog');
+    expect(button('Pošalji novu potvrdu')).toBeUndefined();
+    await act(async () => signupConfirmationIntent.publish('INVALID_LINK'));
+    expect(button('Prijavi se')).toBeDefined(); expect(button('Pošalji novu potvrdu')).toBeDefined();
   });
 });

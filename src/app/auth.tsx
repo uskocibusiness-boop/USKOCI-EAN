@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { BackHandler, KeyboardAvoidingView, Linking, Platform, StyleSheet, View, type ScrollView, type TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +27,8 @@ import { EntryWelcome, type EntryIntentSelection } from '../ui/entry/EntryWelcom
 import { entryIntentClientService } from '../data/entryIntentClientService';
 import { potvrdiRazlogOdjave, sesijaSada, useSesija } from '../store/sesija';
 import { useEntrySplashReady } from '../hooks/useEntrySplashReady';
+import { signupConfirmationIntent } from '../store/signupConfirmationIntent';
+import type { SignupReturnKind } from '../data/signupConfirmationReturn';
 
 type Rezim = 'LOGIN' | 'SIGNUP';
 type Faza = 'EMAIL' | 'PHONE' | 'OTP' | 'RECOVERY' | 'SIGNUP_NEXT_STEP' | 'RECOVERY_SENT' | 'RESTRICTED';
@@ -37,7 +39,7 @@ type FailureNext = 'HAVE_ACCOUNT' | 'RESEND' | null;
 
 export default function AuthScreen() {
   const params = useLocalSearchParams<{ form?: string }>();
-  const [, refreshEntryFocus] = useState(0);
+  const [entryFocusRevision, refreshEntryFocus] = useState(0);
   const entryScope = useRef({ focused: true, revision: 0, form: params.form });
   if (entryScope.current.form !== params.form) {
     entryScope.current.form = params.form;
@@ -94,6 +96,8 @@ export default function AuthScreen() {
   const [poruka, setPoruka] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [failureNext, setFailureNext] = useState<FailureNext>(null);
+  const returnedSignup = useSyncExternalStore(signupConfirmationIntent.subscribe, signupConfirmationIntent.snapshot, signupConfirmationIntent.serverSnapshot);
+  const [signupReturn, setSignupReturn] = useState<{ kind: SignupReturnKind; accountRevision: number } | null>(null);
   const clearFeedback = () => { setGreska(null); setPoruka(null); setFieldErrors({}); setFailureNext(null); };
   const signOutReason = useSesija().signOutReason;
   // Owner decision 2026-10-07: a restricted account is its own screen, not a line of red text under the form. Nobody is signed
@@ -103,6 +107,27 @@ export default function AuthScreen() {
     ime: useRef<TextInput>(null), prezime: useRef<TextInput>(null), grad: useRef<TextInput>(null),
     email: useRef<TextInput>(null), lozinka: useRef<TextInput>(null),
   };
+
+  // Every callback is an event, including a second link to the same form. It never starts an Auth command.
+  useEffect(() => {
+    if (!returnedSignup) return;
+    const owner = sesijaSada();
+    // Native intent publishes before Router brings a covered Auth screen back into focus.
+    if (!owner.user && !entryScope.current.focused) return;
+    if (!owner.user && entryScope.current.focused) {
+      const applied = commands.changeForm(() => {
+        setRezim('LOGIN'); setFaza('EMAIL'); setLozinka(''); clearFeedback(); setOtvoren(true);
+        setConfirmationRequired(true);
+        setSignupReturn({ kind: returnedSignup.kind, accountRevision: owner.accountRevision });
+        scroller.current?.scrollTo?.({ y: 0, animated: false });
+      });
+      // An existing sign-in/signup/resend owns its result. Do not queue a later form reset over it.
+      if (!applied) setSignupReturn(null);
+    }
+    signupConfirmationIntent.clear(returnedSignup.id);
+    // Focus may arrive after the callback. Keystrokes and command completion must not replay it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnedSignup?.id, entryFocusRevision]);
 
   // A session the provider ended because the account is restricted shows that screen, once.
   useEffect(() => {
@@ -138,6 +163,7 @@ export default function AuthScreen() {
   // One step back, for the arrow and for the phone's Back: any step after the form returns to the sign-in form, and the form
   // itself, in either mode (they are two sides of one screen), closes the sheet and shows the entry again.
   const retreat = () => commands.changeForm(() => {
+    setSignupReturn(null);
     if (faza !== 'EMAIL') { setFaza('EMAIL'); setRezim('LOGIN'); }
     else setOtvoren(false);
     clearFeedback();
@@ -155,6 +181,7 @@ export default function AuthScreen() {
 
   function otvori(mode: Rezim = 'LOGIN') {
     commands.changeForm(() => {
+      setSignupReturn(null);
       setPreparedIntent(null);
       setRezim(mode);
       setFaza('EMAIL');
@@ -218,6 +245,7 @@ export default function AuthScreen() {
     }
     setFieldErrors({});
     await commands.run(async () => {
+      setSignupReturn(null);
       setGreska(null);
       setPoruka(null);
       setFailureNext(null);
@@ -240,11 +268,19 @@ export default function AuthScreen() {
   }
 
   async function ponoviPotvrduEmaila() {
-    if (!confirmationRequired || !email.trim()) return;
+    if (!confirmationRequired) return;
+    if (!isEmailAddress(email.trim())) {
+      setFieldErrors(current => ({ ...current, email: email.trim() ? authFieldMessages.emailInvalid : authFieldMessages.emailMissing }));
+      inputRefs.email.current?.focus();
+      return;
+    }
     await commands.run(async () => {
       clearFeedback();
       await authClientService.resendSignupConfirmation(email.trim());
-    }, () => setPoruka('Poslali smo novu poruku za potvrdu. Proveri email i neželjenu poštu.'), error => prijaviGresku(error));
+    }, () => {
+      setSignupReturn(null);
+      setPoruka('Ako email čeka potvrdu, stići će nova poruka. Proveri i neželjenu poštu.');
+    }, error => prijaviGresku(error));
   }
 
   async function posaljiTelefon() {
@@ -288,7 +324,7 @@ export default function AuthScreen() {
   // above where the shorter one had been scrolled to (the form is one surface, so it is the same ScrollView that rewinds).
   const scroller = useRef<ScrollView>(null);
   const switchWay = (next: Rezim) => commands.changeForm(() => {
-    setRezim(next); clearFeedback();
+    setRezim(next); clearFeedback(); setSignupReturn(null);
     scroller.current?.scrollTo?.({ y: 0, animated: false });
   });
   const onValue = (name: AuthFieldName, value: string) => commands.changeForm(() => {
@@ -324,9 +360,11 @@ export default function AuthScreen() {
         values={{ ime, prezime, grad, email, lozinka }} onValue={onValue}
         onCityBlur={() => { const tidy = tidyCity(grad); if (tidy !== grad) commands.changeForm(() => setGrad(tidy)); }}
         errors={fieldErrors} failure={greska} failureAction={failureAction} notice={poruka} confirmEmail={methods.emailConfirmationRequired}
+        signupReturn={signupReturn?.accountRevision === session.accountRevision && rezim === 'LOGIN' ? signupReturn.kind : null}
+        onResendConfirmation={() => void ponoviPotvrduEmaila()}
         busy={radi} check={check} onRetryCheck={() => void availability.retry()}
-        onForgot={() => commands.changeForm(() => { setFaza('RECOVERY'); setLozinka(''); clearFeedback(); })}
-        onPhone={() => commands.changeForm(() => { setFaza('PHONE'); clearFeedback(); })}
+        onForgot={() => commands.changeForm(() => { setSignupReturn(null); setFaza('RECOVERY'); setLozinka(''); clearFeedback(); })}
+        onPhone={() => commands.changeForm(() => { setSignupReturn(null); setFaza('PHONE'); clearFeedback(); })}
         onSubmit={() => void emailAkcija()} inputRefs={inputRefs} />;
       // The server has email sign-in switched off: the green command is there, grey, and the line above it says why (the system foot's reason).
       footer = methods.emailPassword ? <AuthFormFooter way={rezim} busy={radi} onSubmit={() => void emailAkcija()} />

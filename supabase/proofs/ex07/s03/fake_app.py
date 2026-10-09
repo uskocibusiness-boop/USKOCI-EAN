@@ -300,7 +300,7 @@ class FakeApp(Device):
                 resp = self.gt.resend(email, core.SIGNUP_REDIRECT)
                 self.message = self.validation = None
                 if resp.status == 200:
-                    self.message = 'Poslali smo novu poruku za potvrdu. Proveri email i neželjenu poštu.'
+                    self.message = 'Ako email čeka potvrdu, stići će nova poruka. Proveri i neželjenu poštu.'
                 elif resp.status == 429:
                     self.validation = 'Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.'
                 else:

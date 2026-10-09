@@ -85,7 +85,7 @@ function RecoveryProbe() {
 function Group() { return React.createElement(Stack); }
 
 const redirectCalls: { path: string; initial: boolean }[] = [];
-const redirectReturns: string[] = [];
+const redirectReturns: (string | null)[] = [];
 const context = inMemoryContext({
   _layout: RootLayout, auth: AuthProbe, oporavak: RecoveryProbe,
   '(app)/_layout': Group, '(app)/index': PrivateProbe,
@@ -101,7 +101,7 @@ const context = inMemoryContext({
   } as never,
 });
 
-type Outcome = { frames: Frame[]; everything: string; calls: typeof redirectCalls; returns: string[] };
+type Outcome = { frames: Frame[]; everything: string; calls: typeof redirectCalls; returns: (string | null)[] };
 
 /** Boots the installed router at `initial`, then delivers each `events` URL as a warm OS event. */
 async function launch(options: { initial?: string; signedIn?: boolean; events?: string[] }): Promise<Outcome> {
@@ -155,9 +155,9 @@ describe('the installed Expo Router, the real +native-intent and the real root l
     const last = outcome.frames.at(-1)!;
     expect(last).toMatchObject({ screen: 'auth', params: { form: 'login' }, globalParams: { form: 'login' }, segments: ['auth'], pathname: '/auth' });
     expect(outcome.frames.every(frame => frame.screen === 'auth')).toBe(true);
-    // The whole URL, fragment included, reaches +native-intent and comes back untouched: the router, not the app, drops the fragment.
+    // The native boundary removes credentials before Router receives the path.
     expect(outcome.calls[0]).toEqual({ path: SIGNUP_CALLBACK, initial: true });
-    expect(outcome.returns[0]).toBe(SIGNUP_CALLBACK);
+    expect(outcome.returns[0]).toBe('/auth?form=login');
     leaksNothing(outcome);
     // A signup callback is never a recovery callback: nothing is published for the recovery screen.
     expect(passwordRecoveryIntent.snapshot()).toBeNull();

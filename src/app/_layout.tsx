@@ -10,6 +10,7 @@ import { useReducedMotion, useReducedMotionRoot } from '../ui/system/motion';
 import { sesijaSada, useSesija } from '../store/sesija';
 import { povratniCilj } from '../store/povratniCilj';
 import { pendingRoute } from '../store/pendingRoute';
+import { signupConfirmationIntent } from '../store/signupConfirmationIntent';
 import { PushRuntime } from '../ui/notifications/PushRuntime';
 import { PermissionAskHost } from '../ui/permissions/PermissionAskHost';
 import { BrandMark } from '../ui/entry/BrandAssets';
@@ -54,6 +55,11 @@ export default function RootLayout() {
   // marketplace shell. Auth is one screen in the same app, not a second app.
   // Two and a half seconds of nothing is where a person decides the app is frozen.
   const [slowStart, setSlowStart] = useState(false);
+  useEffect(() => {
+    if (!isLoaded || !session) return;
+    const returned = signupConfirmationIntent.snapshot();
+    if (returned) signupConfirmationIntent.clear(returned.id);
+  }, [isLoaded, session, accountRevision]);
   useEffect(() => {
     const timer = setTimeout(() => setSlowStart(true), 2500);
     return () => clearTimeout(timer);

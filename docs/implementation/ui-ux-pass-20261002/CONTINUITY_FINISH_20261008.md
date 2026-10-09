@@ -852,3 +852,13 @@ DOKAZAO:19suite/602jedinstvena testa bezskip; prethodni full CI7f i APK5ed SUCCE
 NIJE DOKAZANO: novi native/media/QA/two-account put i fullCI; završniTS/APK rezultat se dopisuje. Nema serverskih izmena, privatne/grupne autorizacije ne menjaju se. NO-GO i PAUSED ostaju.
 
 SLEDEĆE: proveri/pushuj koherentan paket naobegrane, objedinjeni Androidbuild sa prethodnim header/camera/permission izmenama, telefon samo kad nije u aktivnoj vlasnikovoj upotrebi; dopuni jedini registar. Potom već otvoren AI-only worker/povezani lifecycle/release plan, bez novog mastera.
+
+## 10.10 — media APK na telefonu i potvrda emaila
+
+URADIO: tačan lokalni600efd10 media APK potpisan/proveren i instaliran install-r po novom „Telefon je sada slobodan“. Pripremljen brendirani signup email i čist callback na prijavu, poštena poruka za nevažeći link i resend, očuvani account/command/recovery autoriteti. Root jedini pisac; dva read-only stručna pregleda.
+
+DOKAZAO:600efd CI puna regresija605suite/13603testa PASS; native About600efd1, isti UID/prvi install, prijava/nacrt/3slike sačuvani. Galerija/cancel/fullscreen/Next/Back fizički prošli u tom opsegu. Novi email izvor14suite/281jedinstveni test PASS,tsc0; tri review nalaza popravljena sa testovima. Stvarni server preflight našao prazan redirect allowlist, localhost SiteURL i isključen SMTP.
+
+NIJE DOKAZANO: auth config apply odbijen403; nijedna auth/email promena nije primenjena. Free ugrađeni pošiljalac u dashboard-u blokira custom šablon; kandidat nije pokušavan drugim kanalom. Novi izvor nije u instaliranom600APK-u. Stvarno email slanje/callback i novi media upload/uklanjanje/two-account chat/QA ostaju otvoreni. Telefon nije odjavljen niti su dirane stare slike/razgovor. NO-GO i automatizacijaPAUSED.
+
+SLEDEĆE: objavi provereni izvor obegrane i proveri tačan CI. Za završetak email paketa čeka se Owner prijava i podatak o postojećem SMTP servisu (bez tajni u chatu); rollback i precizan config su pripremljeni. Nastavi nezavisan AI-only worker paket i ostale otvorene redove, bez ponavljanja završenih testova ili novog mastera. Dokazi: media-qa-finish-20261010/REPORT.md i signup-email-return-20261010/REPORT.md pod docs/implementation/evidence/.

@@ -11,6 +11,7 @@ import { AuthIntentLine, type AuthIntentName } from './AuthIntentLine';
 import { AuthIntro } from './AuthPresentation';
 import { authCopy } from './authCopy';
 import { authFieldMessages, type AuthFieldErrors, type AuthFieldName, type AuthFormValues } from './authValidation';
+import type { SignupReturnKind } from '../../data/signupConfirmationReturn';
 
 export type AuthWay = 'LOGIN' | 'SIGNUP';
 
@@ -42,6 +43,8 @@ export type AuthFormStepProps = {
   failureAction: { label: string; onPress: () => void; note?: string } | null;
   /** The green confirmation ("we sent it again"). */
   notice: string | null;
+  signupReturn?: SignupReturnKind | null;
+  onResendConfirmation?: () => void;
   /** The server wants the email confirmed before the first sign-in; said under the form that makes an account. */
   confirmEmail: boolean;
   busy: boolean;
@@ -80,6 +83,13 @@ export function AuthFormStep(p: AuthFormStepProps) {
       {signingUp ? <T variant="note" tone="muted">{authCopy.oneAccount}</T> : null}
     </View> : null}
     {p.notice ? <RevealWhenShown key={p.notice} testID="auth-notice"><AuthNote tone="ok">{p.notice}</AuthNote></RevealWhenShown> : null}
+    {p.signupReturn ? <View style={s.group} accessibilityLiveRegion="polite" testID="signup-return">
+      <AuthNote>{p.signupReturn === 'RETURNED' ? 'Nastavi prijavu svojim emailom i lozinkom.'
+        : p.signupReturn === 'LINK_UNAVAILABLE'
+          ? 'Ovaj link više nije važeći. Ako je email već potvrđen, prijavi se. U suprotnom zatraži novu potvrdu.'
+          : 'Ovaj link ne možemo da upotrebimo. Prijavi se ili zatraži novu potvrdu emaila.'}</AuthNote>
+      {p.signupReturn !== 'RETURNED' && p.onResendConfirmation ? <LinkAction title="Pošalji novu potvrdu" disabled={p.busy} onPress={p.onResendConfirmation} /> : null}
+    </View> : null}
 
     {p.emailOpen ? <View style={s.fields}>
       {signingUp ? <>
