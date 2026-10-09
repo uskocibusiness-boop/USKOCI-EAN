@@ -1,4 +1,4 @@
-import { decodeDiscoveryV1Page, type DiscoveryV1Availability } from './discoveryV1Contract';
+import { decodeDiscoveryV1Page, type DiscoveryV1Availability, type DiscoveryV1Item } from './discoveryV1Contract';
 import { decodeDiscoveryV1Places, type DiscoveryV1PlaceRow } from './discoveryV1SpatialContract';
 import { discoveryV1ViewPlan } from './discoveryV1MarketplaceAdapter';
 import { placeKey, publicBounds, type MarketplaceView, type PublicBounds } from './marketplaceView';
@@ -12,6 +12,7 @@ import type { DiscoveryV1OwnerTransport, DiscoveryV1PageRequest, DiscoveryV1Plac
 export const DISCOVERY_V1_PLACES_BY_CITY = true;
 /** How many parts of a city (AREA rows) are offered under the cities when letters are typed: the first page only, never paged. */
 export const DISCOVERY_V1_PARTS_LIMIT = 10;
+export const DISCOVERY_SEARCH_TASK_LIMIT = 5;
 
 export type DiscoveryV1SearchStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type DiscoveryV1SearchSnapshot = {
@@ -22,6 +23,8 @@ export type DiscoveryV1SearchSnapshot = {
   count: number | null;
   undated: number | null;
   availability: DiscoveryV1Availability | null;
+  /** Bounded public suggestions from the same PAGE read; never the authority for the total count. */
+  tasks?: readonly DiscoveryV1Item[];
   /** Cities with their task counts (the places of before when the city list is switched off). */
   places: DiscoveryV1PlaceRow[];
   /** The parts of a city that contain the letters typed ("Liman, Novi Sad"), when letters are typed; never paged. */
@@ -66,7 +69,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     places:[],parts:[],placeHasMore:false,placePaging:false,everywhere:null,inMapArea:null,facetError:false};
   let placesBase:PlacesBase|null=null,placesAnchor:any=null,placesCursor:any=null,readyAt=0;
 
-  const snapshot=():DiscoveryV1SearchSnapshot=>({...state,places:state.places.map(row=>({...row})),parts:state.parts.map(row=>({...row}))});
+  const snapshot=():DiscoveryV1SearchSnapshot=>({...state,tasks:state.tasks?.map(row=>({...row}))??[],places:state.places.map(row=>({...row})),parts:state.parts.map(row=>({...row}))});
   const current=(g:number)=>active&&generation===g&&isCurrent();
   const failState=(g:number,key:string):DiscoveryV1SearchSnapshot=>{
     state={active:true,generation:g,key,status:'error',count:null,undated:null,availability:null,places:[],parts:[],placeHasMore:false,
@@ -91,7 +94,8 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
       placePaging:false,everywhere:null,inMapArea:null,facetError:false};
 
     const plan=discoveryV1ViewPlan(view);
-    const pageRequest:DiscoveryV1PageRequest={mode:'PAGE',filter:plan.filter,anchor:null,scope:plan.pageScope,limit:1,after:null};
+    const taskLimit=view.query.trim()?DISCOVERY_SEARCH_TASK_LIMIT:1;
+    const pageRequest:DiscoveryV1PageRequest={mode:'PAGE',filter:plan.filter,anchor:null,scope:plan.pageScope,limit:taskLimit,after:null};
     const pageTask=transport(pageRequest,own.signal);
 
     const remote=(view.where??'any')==='remote';
@@ -113,7 +117,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
     if(!current(g))return {kind:'stale' as const,snapshot:snapshot()};
 
     let page;
-    try{page=decodeDiscoveryV1Page(pageRaw,1);}
+    try{page=decodeDiscoveryV1Page(pageRaw,taskLimit);}
     catch(error){failState(g,key);throw error;}
 
     let places:DiscoveryV1PlaceRow[]=[],parts:DiscoveryV1PlaceRow[]=[],placeHasMore=false,everywhere:number|null=null,inMapArea:number|null=null,facetError=false;
@@ -132,7 +136,7 @@ export function createDiscoveryV1SearchOwner(transport:DiscoveryV1OwnerTransport
       }
     }
 
-    state={active:true,generation:g,key,status:'ready',count:page.counts.listed,undated:page.counts.undated,
+    state={active:true,generation:g,key,status:'ready',count:page.counts.listed,undated:page.counts.undated,tasks:view.query.trim()?page.items:[],
       availability:page.availability,places,parts,placeHasMore,placePaging:false,everywhere,inMapArea,facetError};
     readyAt=Date.now();
     if(controller===own)controller=null;own.abort();

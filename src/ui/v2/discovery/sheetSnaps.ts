@@ -38,6 +38,8 @@ export type SheetHeightsInput = {
   bodyHeight: number;
   /** Where the sheet's top edge rests at its full height, in pixels from the top of the body (`fullSheetTop`). */
   fullTop: number;
+  /** Expanded quick filters still cover the map at HALF; keep that stop below their full measured edge. */
+  halfTop?: number;
   /** The lowest stop with no card over it: the sheet's top line (grab bar and count, and what belongs to it). */
   collapsed: number;
   /** The one pixel the lowest stop shrinks to while a pin's card lies over it (the sheet steps out of sight). */
@@ -59,11 +61,11 @@ export type SheetHeightsInput = {
  * the body is measured they are the percentages the sheet can start from. The half stop is half what the navigation leaves of the
  * body, never below the lowest and never as tall as the full one, so the three are always apart.
  */
-export function snapHeights({ bodyHeight, fullTop, collapsed, hidden, cardShown, margin, bar = 0 }: SheetHeightsInput): [number | string, number | string, number | string] {
+export function snapHeights({ bodyHeight, fullTop, halfTop = fullTop, collapsed, hidden, cardShown, margin, bar = 0 }: SheetHeightsInput): [number | string, number | string, number | string] {
   const low = cardShown ? hidden : collapsed;
   if (!bodyHeight) return [low, '50%', '88%'];
   const full = Math.max(3, bodyHeight - fullTop);
-  const clear = Math.max(3, full - margin);
+  const clear = Math.max(3, bodyHeight - Math.max(fullTop, halfTop) - margin);
   const half = Math.round((bodyHeight + Math.max(0, bar)) / 2);
   return [low, Math.min(full - 1, Math.max(collapsed + 1, Math.min(clear, half))), full];
 }

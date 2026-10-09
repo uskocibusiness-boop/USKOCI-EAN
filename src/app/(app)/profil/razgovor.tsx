@@ -375,6 +375,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(next==='time')showPanel('availability');else if(next!=='identity')showPanel('manual',{part:next});
   };
   return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
+    newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
     closed={!!data.saved || data.status !== 'OPEN'}
     attach={writable?{label:'Dodaj podatke',hint:'Veštine, područje, vreme, alat i vozilo.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
@@ -408,7 +409,6 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       </>:null}
       {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Pošalji ponovo" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
-      {(pending.current||data.stale||reviewNeedsRestart||data.status!=='OPEN'||turn?.state==='UNKNOWN_OUTCOME')?<V2Action tone="neutral" label="Novi razgovor" kind="quiet" disabled={!canAct()||voiceBusy} onPress={restart}/>:null}
     </>}/>{confirmSheet.sheet}
     {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
       {key:'manual',label:'Ručno uredi podatke',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,

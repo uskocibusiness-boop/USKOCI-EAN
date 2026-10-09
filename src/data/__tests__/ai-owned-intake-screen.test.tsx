@@ -1245,6 +1245,59 @@ it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])(
 });
 
 // Owner-requested pre-HTML stabilization: terminal conversation is not a dead end.
+it('offers a visible new conversation for an open intake and does nothing when its confirmation is cancelled', async () => {
+  await resume();
+  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  expect(leaveSheet().props.title).toBe('Početi novi razgovor?');
+  expect(leaveSheet().props.message).toContain('podaci se ovim ne brišu');
+  await act(async () => answer('confirm-sheet-cancel'));
+  expect(mockAbandon).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+it('starts over only after the same conversation is read back as abandoned', async () => {
+  const held = deferred(); mockAbandon.mockReturnValueOnce(held.promise); await resume();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
+  mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
+  await act(async () => held.resolve(ok({ conversationId: id, status: 'ABANDONED', authoritative: true })));
+  expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace.mock.calls[0][0]).toMatchObject({ pathname: '/nova', params: { entryKey: expect.any(String) } });
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+});
+it('does not replace an open intake when abandon succeeded but canonical readback is still OPEN', async () => {
+  await resume(); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(text()).toContain('Ne znamo da li je razgovor napušten.');
+});
+it('retires the visible restart confirmation on background and cannot reuse its callback after returning', async () => {
+  await resume(); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  const old = leaveSheet().props.onConfirm;
+  await act(async () => { mockAppState='background'; mockAppListeners.forEach(fn=>fn('background')); });
+  expect(leaveSheets()).toHaveLength(0);
+  await act(async () => { mockAppState='active'; mockAppListeners.forEach(fn=>fn('active')); });
+  await act(async () => old());
+  expect(mockAbandon).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.disabled).not.toBe(true);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  expect(leaveSheets()).toHaveLength(1);
+  expect(leaveSheet().props.onConfirm).not.toBe(old);
+});
+it('does not navigate on a late abandon response after background', async () => {
+  const held = deferred(); mockAbandon.mockReturnValueOnce(held.promise); await resume();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress()); await act(async () => answer('confirm-sheet-confirm'));
+  await act(async () => { mockAppState='background'; mockAppListeners.forEach(fn=>fn('background')); });
+  mockLoad.mockResolvedValue(conversation({ status: 'ABANDONED' }));
+  await act(async () => held.resolve(ok({ conversationId: id, status: 'ABANDONED', authoritative: true })));
+  expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockOpen).not.toHaveBeenCalled();
+});
+it('blocks visible restart until the existing photo journal has been checked', async () => {
+  mockReadPhotos.mockResolvedValue({ ok:false,kod:'MEDIA_UNAVAILABLE',poruka:'Fotografije nisu učitane.' });
+  await resume(); expect(tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.disabled).toBe(true);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress()); expect(leaveSheets()).toHaveLength(0);
+  expect(mockAbandon).not.toHaveBeenCalled();
+});
 it.each(['COMPLETED', 'ABANDONED'] as const)('starts a separate owned Task after %s without changing the first one', async status => {
   const saved = conversation({ status }); saved.review.boundNeedId = status === 'COMPLETED' ? other : null;
   mockParams = { conversationId: id }; mockLoad.mockResolvedValue(saved); await resume();

@@ -7,6 +7,8 @@ import { ChromeIconButton, chrome } from '../../system/ScreenChrome';
 import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
 import { FILTERS_HINT, SEARCH_HINT, SEARCH_PLACEHOLDER, filtersSpoken } from './discoveryWords';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { capsuleCollapse, chromeJoin } from './discoveryChrome';
 
 /** The bar's distance from the top of the map. */
 export const BAR_TOP = sys.space.md;
@@ -32,7 +34,7 @@ const FILTERS_SIZE = 56;
  * `onLayout` reports the lower edge of the pill and its row of capsules, from the top of the map: what the list stops under when it is up,
  * and what the map's camera keeps clear. Whatever hangs `below` them (a notice) floats over the map and never moves the list sheet's stops.
  */
-export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filters, onLayout, chips, below }: {
+export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filters, onLayout, onSearchLayout, motion, chips, below }: {
   /** What is searched, in one line; null when nothing is. */ where: string | null;
   onSearch: () => void;
   /** Secondary account/publication entries share one menu so the map does not need a second header. */
@@ -43,6 +45,8 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
   filters?: { count: number; onPress: () => void };
   /** The lower edge of the pill and its capsules from the top of the map: where the list stops when it is all the way up. */
   onLayout: (bottom: number) => void;
+  onSearchLayout?: (bottom: number) => void;
+  motion?: { sheetTop: SharedValue<number>; offset: SharedValue<number>; compactTop: number; capsules: number; hidden: boolean };
   /** The row of capsules, under the pill. It is part of the measured edge. */
   chips?: ReactNode;
   /** Floats over the map under the capsules: a notice. Not part of the measured edge. */
@@ -52,9 +56,23 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
     const { y, height } = event.nativeEvent.layout;
     onLayout(Math.ceil(BAR_TOP + y + height));
   };
+  const backing = useAnimatedStyle(() => {
+    if (!motion) return { opacity: 0 };
+    const joined = chromeJoin(motion.sheetTop.value, motion.compactTop, motion.capsules);
+    return { opacity: joined, transform: [{ translateY: -capsuleCollapse(motion.offset.value, motion.capsules) * joined }] };
+  });
+  const capsules = useAnimatedStyle(() => {
+    if (!motion) return {};
+    const collapse = capsuleCollapse(motion.offset.value, motion.capsules)
+      * chromeJoin(motion.sheetTop.value, motion.compactTop, motion.capsules);
+    return { transform: [{ translateY: -collapse }] };
+  });
   return <View pointerEvents="box-none" style={s.bar}>
+    {motion ? <Animated.View testID="discovery-chrome-backing" pointerEvents="none" accessible={false}
+      style={[s.backing, { height: motion.compactTop + motion.capsules }, backing]} /> : null}
     <View testID="discovery-search-stack" pointerEvents="box-none" style={s.stack} onLayout={measure}>
-      <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}>
+      <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}
+        onLayout={event => onSearchLayout?.(Math.ceil(BAR_TOP + event.nativeEvent.layout.y + event.nativeEvent.layout.height))}>
         <Surface kind="float" style={s.searchSurface}>
           <View style={s.search}>
             <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={where ? { text: where } : undefined}
@@ -79,7 +97,11 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
         </Surface>
         {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
       </View>
-      {chips}
+      <View pointerEvents="box-none" style={s.chipsClip}>
+        <Animated.View testID="discovery-collapsing-chips" pointerEvents={motion?.hidden ? 'none' : 'box-none'}
+          accessibilityElementsHidden={!!motion?.hidden} importantForAccessibility={motion?.hidden ? 'no-hide-descendants' : 'auto'}
+          style={capsules}>{chips}</Animated.View>
+      </View>
     </View>
     {below}
   </View>;
@@ -142,6 +164,8 @@ export function ForMeNotice({ message, entry, onEntry, onClose }: { message: str
 }
 
 const s = StyleSheet.create({
+  backing: { position: 'absolute', top: -BAR_TOP, left: 0, right: 0, backgroundColor: sys.color.surface },
+  chipsClip: { overflow: 'hidden' },
   bar: { position: 'absolute', top: BAR_TOP, left: 0, right: 0, gap: sys.space.sm },
   // The pill and its row of capsules: 8 between them (the capsules carry 2 above and 8 below them for the lift of their shadow).
   stack: { gap: sys.space.sm },

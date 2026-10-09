@@ -123,6 +123,17 @@ export const slotSeed = (slot: LocationSlot, value: PlaceValue): string => {
   return uniqueSeedParts([exactAddressForSlot(slot, value), place?.label, place?.area, place?.city]).join(', ');
 };
 
+/** A city is context, not an address. Area-wide work intentionally needs an area rather than a street. */
+export const slotNeedsCloserPlace = (slot: LocationSlot, value: PlaceValue): boolean => {
+  if (value.geography?.mode === 'AREA_BASED') return false;
+  const place = slotPlace(slot, value.geography);
+  const label = normalizedPlaceText(place?.label ?? '');
+  const city = normalizedPlaceText(place?.city ?? '');
+  if (city && normalizedPlaceText(slotSeed(slot, value)) === city) return true;
+  return !exactAddressForSlot(slot, value)
+    && ['ovde', 'moja lokacija', 'trenutna lokacija', 'ovde gde sam', 'gde se nalazim'].includes(label);
+};
+
 /** A confirmed point's own words: its address, or for a provider point the conversation's place. A hand-placed pin with no
  *  address has none: a manually confirmed coordinate is not a resolved address. */
 export const confirmedPointText = (point: ConfirmedLocationPoint, value: PlaceValue): string | null =>

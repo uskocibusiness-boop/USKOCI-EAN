@@ -671,6 +671,46 @@ describe('use where I am', () => {
   const capture = jest.requireMock('../nativeCurrentLocation').captureCurrentLocation as jest.Mock;
   beforeEach(() => capture.mockReset());
 
+  it('keeps the city-only question in the live conversation without an automatic geocoder or GPS request', async () => {
+    const resolver = configured(), onPromptReady = jest.fn(), question = 'Koja ulica, objekat ili bliže mesto?';
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad', initialQuestion: question, onPromptReady });
+    expect(resolver.search).not.toHaveBeenCalled(); expect(capture).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+    expect(text()).toContain(question); expect(button('Ovde gde sam')).toBeDefined(); expect(button('Označi na mapi')).toBeDefined();
+    const prompt = onPromptReady.mock.calls.at(-1)![0];
+    expect(prompt.context).toMatchObject({ phase: 'UNRESOLVED', question, query: 'Novi Sad', proposal: null, alternatives: [] });
+    await act(async () => { expect(prompt.acquire()).not.toBeNull(); });
+  });
+  it('uses GPS in the conversation as an unconfirmed pin and resolves its address without moving the coordinate', async () => {
+    const resolver = configured();
+    capture.mockResolvedValue({ kind: 'POINT', point: { latitude: 45.2551, longitude: 19.8451, accuracyMeters: 8 } });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad', initialQuestion: 'Koje bliže mesto?' });
+    await press('Ovde gde sam');
+    expect(capture).toHaveBeenCalledTimes(1); expect(resolver.search).not.toHaveBeenCalled();
+    expect(map().props.position).toEqual({ latitude: 45.2551, longitude: 19.8451 });
+    expect(resolver.reverse).toHaveBeenCalledWith(expect.objectContaining({ position: { latitude: 45.2551, longitude: 19.8451 } }));
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    await press('Potvrdi tačku: Početak');
+    expect(props.onConfirm).toHaveBeenCalledWith(expect.objectContaining({ latitudeE6: 45255100, longitudeE6: 19845100, origin: { kind: 'MANUAL_PIN' }, address: candidate.label }));
+  });
+  it('opens city camera context only after the explicit map action, without selecting or confirming it', async () => {
+    const resolver = configured();
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad', initialQuestion: 'Koje bliže mesto?' });
+    expect(resolver.search).not.toHaveBeenCalled();
+    await press('Označi na mapi');
+    expect(resolver.search).toHaveBeenCalledWith(expect.objectContaining({ text: 'Novi Sad' }));
+    expect(map().props.position).toBeNull(); expect(map().props.cameraHint).toEqual([candidate.position]);
+    expect(map().props.cameraHintZoom).toBe(12); expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+  it.each(['DENIED', 'UNAVAILABLE'])('keeps manual and conversational correction after GPS %s', async kind => {
+    capture.mockResolvedValue({ kind });
+    await render({ resolver: configured(), presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad', initialQuestion: 'Koje bliže mesto?' });
+    await press('Ovde gde sam');
+    expect(button('Označi na mapi')).toBeDefined(); expect(button('Pronađi drugo mesto')).toBeDefined();
+    expect(text()).toContain(kind === 'DENIED' ? 'Lokacija nije dozvoljena' : 'Ne možemo da očitamo gde si');
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
   it('is not offered where it was never asked for, so the long form gains no permission prompt', async () => {
     await render({ resolver: configured() as never, initialQuery: 'Novi Sad' });
     expect(buttons().some(node => node.props.label === 'Koristi moju lokaciju')).toBe(false);

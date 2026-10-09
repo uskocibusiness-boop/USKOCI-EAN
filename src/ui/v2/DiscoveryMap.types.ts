@@ -67,6 +67,8 @@ export type DiscoveryMapProps = { items: readonly MarketplaceItem[]; selectedId:
    * Credits are fixed to the lower map and do not follow this position.
    */
   sheetTop?: SharedValue<number>;
+  /** Accepted native list detent, not the requested spring target. Camera response never changes list filters. */
+  listDetent?: SharedValue<number>;
   /** Fixed bottom-left credit clearance; never the animated sheet position or pin-card height. */
   creditsBottom?: number;
   /** The raised list/card covers the credit control, so it must not receive touch or accessibility focus. */

@@ -44,6 +44,8 @@ export type AiConversationShellProps = {
   sendBlockedReason?: string;
   /** The "···" of rare actions. Left out when there is nothing to offer, so the chrome shows no dead control. */
   onOptions?: () => void;
+  /** An everyday action, visible without opening the options menu. The route owns confirmation and reconciliation. */
+  newConversation?: { onPress: () => void; disabled?: boolean };
   status?: ReactNode; actions?: ReactNode; children?: ReactNode;
   /** Current task context, such as its location, on the conversation's open white surface. */
   context?: ReactNode;
@@ -251,6 +253,15 @@ export function AiConversationShell(p: AiConversationShellProps) {
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." glyph="more" onPress={p.onOptions} /> : undefined} />
+      {p.newConversation ? <View style={s.conversationTools}>
+        <Press accessibilityRole="button" accessibilityLabel="Novi razgovor"
+          accessibilityHint="Započinje novi razgovor."
+          disabled={p.newConversation.disabled} accessibilityState={{ disabled: !!p.newConversation.disabled }}
+          onPress={() => { Keyboard.dismiss(); p.newConversation?.onPress(); }} style={s.newConversation}>
+          <Glyph name="plus" size={20} tone={p.newConversation.disabled ? 'muted' : 'ink'} />
+          <T variant="action" tone={p.newConversation.disabled ? 'muted' : 'ink'}>Novi razgovor</T>
+        </Press>
+      </View> : null}
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
       {pinned && !inlineSummary && !cardAtEnd ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
@@ -480,6 +491,8 @@ const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis =
 });
 
 const s = StyleSheet.create({
+  conversationTools: { paddingHorizontal: layout.chatList, alignItems: 'flex-end' },
+  newConversation: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.sm },
   canvas: { flex: 1, backgroundColor: sys.conversation.ground }, flex: { flex: 1, minHeight: 0 },
   cardArea: { flexGrow: 0, flexShrink: 1, paddingHorizontal: layout.chatList },
   cardContents: { paddingTop: 2, paddingBottom: sys.space.md },

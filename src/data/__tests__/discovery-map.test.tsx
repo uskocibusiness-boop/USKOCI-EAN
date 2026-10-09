@@ -22,7 +22,7 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-import { AREA_SETTLE_MS, DiscoveryMap, NEARBY_ZOOM } from '../../ui/v2/DiscoveryMap';
+import { AREA_SETTLE_MS, DiscoveryMap, nearbyCameraBounds, NEARBY_RADIUS_KM } from '../../ui/v2/DiscoveryMap';
 import { clearBandBounds, latitudeAtRow, MIN_CLEAR_BAND, rowOfLatitude } from '../../ui/v2/discovery/mapClearBand';
 import { DiscoveryMap as WebMap } from '../../ui/v2/DiscoveryMap.web';
 import { sys } from '../../ui/system/tokens';
@@ -337,13 +337,15 @@ test.each([false, true])('"Moja lokacija" centers once at a neighbourhood zoom i
   mockReduced = reduced; await render(); await ready();
   await act(async () => native().props.onRegionDidChange(moved(region)));
   await wait(AREA_SETTLE_MS); search.mockClear();
-  nearby = { key: 1, center: [20.412345, 44.812345] }; await update();
+  mockFit.mockClear(); nearby = { key: 1, center: [20.412345, 44.812345] }; await update();
   // the room the tools above (none here) and the list below (the first fit's 56) leave: 26 over the pin's half, 24 and 56 under, 50 each side
-  const options = { center: nearby.center, zoom: NEARBY_ZOOM, padding: { top: 26, right: 50, bottom: 80, left: 50 } };
-  expect(NEARBY_ZOOM).toBe(12);
-  if (reduced) { expect(mockJump).toHaveBeenCalledWith(options); expect(mockEase).not.toHaveBeenCalled(); }
-  else { expect(mockEase).toHaveBeenCalledWith({ ...options, duration: sys.motion.camera }); expect(mockJump).not.toHaveBeenCalled(); }
-  await update(); expect((reduced ? mockJump : mockEase)).toHaveBeenCalledTimes(1);
+  const options = { padding: { top: 26, right: 50, bottom: 80, left: 50 }, duration: reduced ? 0 : sys.motion.camera };
+  expect(NEARBY_RADIUS_KM).toBe(5);
+  expect(mockFit).toHaveBeenCalledWith(nearbyCameraBounds(nearby.center), options);
+  const bounds = mockFit.mock.calls[0][0];
+  expect((bounds[3] - bounds[1]) * 111.195).toBeCloseTo(10, 5);
+  expect((bounds[2] - bounds[0]) * Math.cos(nearby.center[1] * Math.PI / 180) * 111.195).toBeCloseTo(10, 5);
+  await update(); expect(mockFit).toHaveBeenCalledTimes(1);
   const here = { ...region, center: nearby.center, zoom: 12, bounds: [20.37, 44.78, 20.45, 44.84] };
   await act(async () => native().props.onRegionDidChange({ nativeEvent: here }));
   // the move was asked for by the person, so the list follows it: the tasks around them (the map's area, never a pin and never a filter)
@@ -368,9 +370,9 @@ test('the person\'s dot is drawn as one native point for as long as the screen s
   expect(meSources()).toHaveLength(0);
 });
 test('Nearby waits for map readiness and does not move a blurred map', async () => {
-  nearby = { key: 2, center: [20.4, 44.8] }; await render(); expect(mockEase).not.toHaveBeenCalled();
-  await ready(); expect(mockEase).toHaveBeenCalledTimes(1);
-  mockFocused = false; nearby = { key: 3, center: [19.8, 45.2] }; await update(); expect(mockEase).toHaveBeenCalledTimes(1);
+  nearby = { key: 2, center: [20.4, 44.8] }; await render(); expect(mockFit).not.toHaveBeenCalled();
+  await ready(); expect(mockFit).toHaveBeenCalledTimes(1);
+  mockFocused = false; nearby = { key: 3, center: [19.8, 45.2] }; await update(); expect(mockFit).toHaveBeenCalledTimes(1);
 });
 test('Nearby then manual pan then refresh/remount restores the pan without replaying location', async () => {
   let receive!: (value: { timestamp: number; coords: { latitude: number; longitude: number } }) => void;
@@ -386,15 +388,16 @@ test('Nearby then manual pan then refresh/remount restores the pan without repla
       onNearbyConsumed={capture.consume} onSelect={select} onViewport={save} onArea={search} onList={list} /> : null;
   }
   await act(async () => { tree = create(<NearbyScreen />); }); await ready();
+  mockFit.mockClear();
   await act(async () => { capture.start(); });
   await act(async () => receive({ timestamp: Date.now(), coords: { latitude: 44.8, longitude: 20.4 } }));
-  expect(mockEase).toHaveBeenCalledTimes(1); expect(capture.target).toBeNull(); expect(remove).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenCalledTimes(1); expect(capture.target).toBeNull(); expect(remove).toHaveBeenCalledTimes(1);
   const elsewhere: PublicViewport = { center: [19.8, 45.2], zoom: 10, bounds: [19.7, 45.1, 19.9, 45.3] };
   await act(async () => native().props.onRegionDidChange(moved(elsewhere)));
   visible = false; await act(async () => tree.update(<NearbyScreen />));
   visible = true; await act(async () => tree.update(<NearbyScreen />));
   expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState).toEqual({ bounds: elsewhere.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } });
-  await ready(); expect(mockEase).toHaveBeenCalledTimes(1); expect(mockJump).not.toHaveBeenCalled(); expect(capture.target).toBeNull();
+  await ready(); expect(mockFit).toHaveBeenCalledTimes(1); expect(mockJump).not.toHaveBeenCalled(); expect(capture.target).toBeNull();
 });
 test('the map\'s sources are one small line in the bottom left corner above the list, with no box and a touch of 44, not a competing scrolling rail', async () => {
   await render(); await ready();

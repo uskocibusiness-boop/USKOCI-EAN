@@ -123,6 +123,7 @@ type Props = {
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
   onNewTask?: () => void; newTaskDisabled?: boolean; voice?: VoiceInput; streamingText?: string;
+  onRestart?: () => void; restartDisabled?: boolean;
   onPhotos?: () => void; photosDisabled?: boolean;
   /** The draft's photos. With them the "+" opens the shared attach sheet inside the conversation (Galerija, Kamera), and
    *  added photos are lines of the thread, where they were added; `onPhotos` stays the route for the design gallery only. */
@@ -428,6 +429,8 @@ export function IntakePresentation(props: Props) {
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     cardPlacement="end" closed={ended}
     footerAction={footerAction}
+    newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
+      : ended && props.onNewTask ? { onPress: props.onNewTask, disabled: props.newTaskDisabled } : undefined}
     interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
     revealInteractiveContext={editingSavedPlace}

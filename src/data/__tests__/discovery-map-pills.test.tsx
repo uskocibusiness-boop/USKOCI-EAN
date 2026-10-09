@@ -26,7 +26,11 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced
 // value keeps its value, so fixed controls and their physical sheet-coverage boundary can be read.
 jest.mock('react-native-reanimated', () => {
   const React = require('react'), shared = jest.requireActual('../../../__mocks__/react-native-reanimated');
-  return { ...shared, useSharedValue: (value: unknown) => React.useRef({ value }).current, useAnimatedStyle: (updater: () => object) => updater() };
+  return { ...shared, useSharedValue: (value: unknown) => React.useRef({ value }).current, useAnimatedStyle: (updater: () => object) => updater(),
+    useAnimatedReaction: (read: () => unknown, react: (value: unknown, previous: unknown) => void) => {
+      const value = read(), previous = React.useRef(null);
+      React.useEffect(() => { if (value !== previous.current) { const before = previous.current; previous.current = value; react(value, before); } }, [value]);
+    } };
 });
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
@@ -364,10 +368,8 @@ test.each(['pan', 'pinch', 'pin', 'nearby', 'fitTo'])('a deliberate %s before la
   }
   if (intent === 'nearby') {
     extra = { ...extra, centerNearby: { key: 8, center: [19.84, 45.26] } }; await update();
-    // "Moja lokacija": the person in the middle of the map that is left clear between the tools above and the list below, at the zoom of a neighbourhood.
-    expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [19.84, 45.26], zoom: 12, duration: sys.motion.camera }));
-    const { padding } = mockEase.mock.calls[0][0];
-    expect(padding.top).toBeGreaterThan(100); expect(790 - padding.top - padding.bottom).toBeGreaterThanOrEqual(96);
+    // A local-radius fit waits for the real clear band, instead of freezing the estimated sheet height.
+    expect(mockFit).not.toHaveBeenCalled();
   }
   if (intent === 'fitTo') {
     extra = { ...extra, fitTo: { key: 9, bounds: [19.8, 45.2, 19.9, 45.3], bottom: 200 } }; await update();
@@ -378,6 +380,10 @@ test.each(['pan', 'pinch', 'pin', 'nearby', 'fitTo'])('a deliberate %s before la
     expect(mockFit).toHaveBeenCalledTimes(1);
     expect(mockFit).toHaveBeenCalledWith([19.8, 45.2, 19.9, 45.3], expect.objectContaining({ duration: sys.motion.camera }));
     expect(fitted).toHaveBeenCalledWith(9);
+  } else if (intent === 'nearby') {
+    expect(mockFit).toHaveBeenCalledTimes(1);
+    const { padding } = mockFit.mock.calls[0][1];
+    expect(padding.top).toBeGreaterThan(100); expect(790 - padding.top - padding.bottom).toBeGreaterThanOrEqual(96);
   } else expect(mockFit).not.toHaveBeenCalled();
   if (intent === 'pin') expect(mockEase).toHaveBeenCalledTimes(1);
   await act(async () => { jest.advanceTimersByTime(2_000); });
@@ -667,9 +673,9 @@ test('a "moja lokacija" move followed at once by a programmatic fit sets no area
   await render(); await measureFrame(800); await ready();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.45, 44.8], zoom: 12, bounds: [20.4, 44.7, 20.5, 44.9], userInteraction: false } }));
   extra = { ...extra, centerNearby: { key: 4, center: [19.84, 45.26] } }; await update();
-  expect(mockEase).toHaveBeenCalledTimes(1);
+  expect(mockFit).toHaveBeenCalledTimes(1);
   extra = { ...extra, fitTo: { key: 7, bounds: [20.4, 44.78, 20.47, 44.82], bottom: 200 } }; await update();
-  expect(mockFit).toHaveBeenCalledTimes(1); expect(fitted).toHaveBeenCalledWith(7);
+  expect(mockFit).toHaveBeenCalledTimes(2); expect(fitted).toHaveBeenCalledWith(7);
   // The fit settles (the map says: not the person's), well inside the time a zoom tap counts for.
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.43, 44.8], zoom: 13, bounds: [20.4, 44.78, 20.47, 44.82], userInteraction: false } }));
   await act(async () => { jest.advanceTimersByTime(2_000); });
@@ -964,7 +970,7 @@ test('the list reads the band between the tools and the sheet or card; the bucke
 
 // Audit fix 3: on the P6 path the chosen bucket is the map's to keep in sight. The camera moves only when the card (or the sheet) covers it, at the same
 // zoom and longitude, and that move is the camera's own (the markers follow it, the list does not).
-test('a chosen P6 pin that the card covers comes into the clear band; one the person can see stays put', async () => {
+test('every new P6 pin centers its own longitude and latitude once; card resize does not replay the camera', async () => {
   const low = { kind: 'TASK', key: 'task:low', point: { lat: 44.73, lng: 20.45 }, taskId: '00000000-0000-4000-8000-000000000004', taskCount: 1 };
   const high = { kind: 'TASK', key: 'task:high', point: { lat: 44.82, lng: 20.35 }, taskId: '00000000-0000-4000-8000-000000000005', taskCount: 1 };
   const onViewportSettled = jest.fn(), sheetTop = { value: 732 };
@@ -975,24 +981,24 @@ test('a chosen P6 pin that the card covers comes into the clear band; one the pe
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.8], zoom: 12, bounds: [20.3, 44.7, 20.5, 44.9], userInteraction: true } }));
   await act(async () => { jest.advanceTimersByTime(2_000); });
   mockEase.mockClear(); mockJump.mockClear(); mockFit.mockClear(); search.mockClear();
-  // The touch: the pin is where the finger was, so nothing moves.
+  // A new choice moves even when the pin is already visible, then keeps that one camera request.
   extra = { ...extra, p6Server: seam('task:low') }; await update();
-  expect(mockEase).not.toHaveBeenCalled();
   // The card lands, 300 dp high with its gaps: the low pin (about 85 % down the frame) is under it, so the camera brings it to the band's middle.
   extra = { ...extra, coverBottom: 300 }; await update();
   expect(mockEase).toHaveBeenCalledTimes(1);
   const [{ center, ...move }] = mockEase.mock.calls[0];
-  expect(center[0]).toBeCloseTo(20.4, 9); expect(center[1]).toBe(44.73);         // the map's own longitude, the pin's latitude
-  expect(move).toEqual({ padding: { top: 60, right: 0, bottom: 300, left: 0 }, duration: sys.motion.camera });   // no zoom: it stays
+  expect(center).toEqual([20.45, 44.73]);
+  expect(move).toMatchObject({ zoom: 12, duration: sys.motion.camera });
   // That move settles as the camera's own: the buckets follow it, the list does not.
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [20.4, 44.76], zoom: 12, bounds: [20.3, 44.66, 20.5, 44.86], userInteraction: false } }));
   await act(async () => { jest.advanceTimersByTime(2_000); });
   expect(onViewportSettled).toHaveBeenCalledWith([20.3, 44.66, 20.5, 44.86]); expect(search).not.toHaveBeenCalled();
-  // A pin high on the map, clear of the card, is not moved.
+  // A visible second pin also becomes the focus, without waiting for another card layout.
   mockEase.mockClear();
   extra = { ...extra, coverBottom: 0, p6Server: seam('task:high') }; await update();
   extra = { ...extra, coverBottom: 300 }; await update();
-  expect(mockEase).not.toHaveBeenCalled();
+  expect(mockEase).toHaveBeenCalledTimes(1);
+  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.35, 44.82], zoom: 12 }));
 });
 
 test('a choice the P6 map is mounted with stays put, and Reduce Motion jumps instead of flying', async () => {
@@ -1011,8 +1017,50 @@ test('a choice the P6 map is mounted with stays put, and Reduce Motion jumps ins
   extra = { ...extra, p6Server: seam('task:low'), coverBottom: 300 }; await update();
   expect(mockEase).not.toHaveBeenCalled(); expect(mockJump).toHaveBeenCalledTimes(1);
   const [{ center, ...move }] = mockJump.mock.calls[0];
-  expect(center[0]).toBeCloseTo(20.4, 9); expect(center[1]).toBe(44.73);
-  expect(move).toEqual({ padding: { top: 60, right: 0, bottom: 300, left: 0 } });
+  expect(center).toEqual([20.45, 44.73]);
+  expect(move).toEqual({ zoom: 12, padding: { top: 86, right: 50, bottom: 324, left: 50 } });
+});
+
+test.each(['TASK', 'PLACE'])('a far-away %s selection zooms to a neighbourhood; a closer manual zoom is preserved', async kind => {
+  const marker = { kind, key: 'selected', point: { lat: 45.25, lng: 19.83 }, taskId: 'task', taskCount: 4 };
+  const seam = (selectedKey: string | null) => ({ markers: [marker], selectedKey, wholeBounds: [19, 44, 21, 46], onSelect: jest.fn() });
+  extra = { p6Server: seam(null), viewport: { center: [20, 45], zoom: 5, bounds: [18, 42, 24, 47] } };
+  await render(); await measureFrame(); await ready();
+  extra = { ...extra, p6Server: seam('selected') }; await update();
+  expect(mockEase).toHaveBeenLastCalledWith(expect.objectContaining({ center: [19.83, 45.25], zoom: 12 }));
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 16, bounds: [19.8, 45.2, 19.9, 45.3], userInteraction: true } }));
+  extra = { ...extra, p6Server: seam(null) }; await update();
+  extra = { ...extra, p6Server: seam('selected') }; await update();
+  expect(mockEase).toHaveBeenLastCalledWith(expect.objectContaining({ zoom: 16 }));
+});
+
+test('ten list cycles return to the same zoom and center, without changing the list area', async () => {
+  const listDetent = { value: 0 }, saved = { center: [20.4, 44.8], zoom: 13, bounds: [20.3, 44.7, 20.5, 44.9] };
+  extra = { viewport: saved, listDetent };
+  await render(); await measureFrame(); await ready(); mockEase.mockClear();
+  for (let i = 0; i < 10; i++) {
+    listDetent.value = 1; await update();
+    expect(mockEase).toHaveBeenLastCalledWith(expect.objectContaining({ center: saved.center, zoom: 12.45 }));
+    listDetent.value = 0; await update();
+    expect(mockEase).toHaveBeenLastCalledWith(expect.objectContaining({ center: saved.center, zoom: 13 }));
+  }
+  expect(mockEase).toHaveBeenCalledTimes(20); expect(search).not.toHaveBeenCalled();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...saved, center: [19.8, 45.2], zoom: 15, userInteraction: true } }));
+  listDetent.value = 1; await update();
+  expect(mockEase).toHaveBeenLastCalledWith(expect.objectContaining({ center: [19.8, 45.2], zoom: 14.45 }));
+});
+
+test.each(['data', 'gesture', 'blur'])('a waiting P6 focus cannot survive competing %s ownership', async cause => {
+  const marker = { kind: 'TASK', key: 'a', point: { lat: 45.25, lng: 19.83 }, taskId: 'a', taskCount: 1 };
+  extra = { viewport: { center: [20, 45], zoom: 6, bounds: [18, 42, 24, 47] }, cameraLayoutReady: false,
+    canRetainMap: () => true, p6Server: { markers: [marker], selectedKey: null, wholeBounds: [19, 44, 21, 46], onSelect: jest.fn() } };
+  await render(); await measureFrame(); await ready();
+  extra = { ...extra, p6Server: { ...(extra.p6Server as object), selectedKey: 'a' } }; await update();
+  if (cause === 'data') extra = { ...extra, p6Server: { ...(extra.p6Server as object), markers: [{ ...marker, point: { lat: 44.8, lng: 20.4 } }] } };
+  if (cause === 'gesture') await act(async () => native().props.onRegionWillChange({ nativeEvent: { userInteraction: true } }));
+  if (cause === 'blur') { mockFocused = false; await update(); mockFocused = true; await update(); }
+  extra = { ...extra, cameraLayoutReady: true }; await update();
+  expect(mockEase).not.toHaveBeenCalled();
 });
 
 test('a P6 map restored with its saved viewport reports the region it settles into, and the legacy map never does', async () => {

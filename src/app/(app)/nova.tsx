@@ -88,6 +88,17 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const reviewReturn = useRef<IntakeReviewReturn | null>(null);
   useEffect(() => () => retireIntakeReviewReturn(reviewReturn.current), []);
   const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
+  const restartOwner = useRef<object | null>(!AppState.currentState || AppState.currentState === 'active' ? {} : null);
+  const [, renderRestartAvailability] = useState(0);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') {
+        if (restartOwner.current) { restartOwner.current = null; renderRestartAvailability(value => value + 1); }
+        retireConfirmation();
+      } else if (!restartOwner.current) { restartOwner.current = {}; renderRestartAvailability(value => value + 1); }
+    });
+    return () => { restartOwner.current = null; subscription.remove(); };
+  }, [retireConfirmation]);
   useFocusEffect(useCallback(() => {
     const scope = {}; focus.current = scope; navigating.current = false;
     // A completed return (including Android Back) cannot be reused by an older review route.
@@ -368,6 +379,32 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     // fresh owned opener; it does not delete or reopen the terminal conversation.
     navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }));
   };
+  // Starting over is a visible action. Never erase a journal or leave a still-unconfirmed write behind.
+  const restartBlocked = () => !canAct() || !restartOwner.current || !!request.current || voice.controller.getSnapshot().phase !== 'IDLE'
+    || (!!razgovorId && !photos.loaded) || photos.busy || !!photos.working || photos.unconfirmed || !!photoSourceAfterOpen || !!locationFlight.current;
+  const restart = () => {
+    if (restartBlocked() || stanje?.status !== 'OPEN' || stanje.safety === 'BLOCK' || stanje.review.boundNeedId) return;
+    const owner = restartOwner.current;
+    const ownsRestart = () => !!owner && restartOwner.current === owner && isCurrent();
+    confirmation.ask({ title: 'Početi novi razgovor?',
+      message: 'Ovaj razgovor će biti zatvoren i više neće biti među razgovorima koje možeš da nastaviš. Njegovi podaci se ovim ne brišu. Novi razgovor počinje prazan; neposlat tekst se ne prenosi.',
+      cancelLabel: 'Ostani ovde', confirmLabel: 'Novi razgovor', onConfirm: () => {
+        if (restartBlocked() || !ownsRestart()) return;
+        if (!razgovorId) { navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } })); return; }
+        return editor.save(async () => {
+          abandoning.current = true;
+          const result = await aiNeedV2Izvor.abandonConversation(razgovorId);
+          if (!ownsRestart()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+          if (!result.ok) return result;
+          const confirmed = await read();
+          if (!ownsRestart()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+          if (confirmed.ok && confirmed.podatak.conversation.conversationId === razgovorId
+            && confirmed.podatak.conversation.status === 'ABANDONED' && !request.current)
+            navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }));
+          return confirmed;
+        });
+      } });
+  };
   const osvezi = () => { if (!isCurrent() || navigating.current || radi || editor.loading) return;
     voice.controller.cancel('navigation'); void editor.refresh(); };
   const napusti = () => {
@@ -457,6 +494,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     abandonLabel={abandoning.current ? 'Pokušaj ponovo da napustiš razgovor' : 'Napusti razgovor'}
     onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
     newTaskDisabled={!canAct() || !!request.current}
+    onRestart={stanje.status === 'OPEN' && stanje.safety !== 'BLOCK' && !stanje.review.boundNeedId && (!!razgovorId || !!unos) ? restart : undefined}
+    restartDisabled={restartBlocked()}
     onBack={back} onSend={posalji} onRefresh={osvezi} onAbandon={napusti}
     onChange={value => { if (canAct() && writable && !request.current) {
       draftRevision.current += 1; draftText.current = value; setUnos(value);

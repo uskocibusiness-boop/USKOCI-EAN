@@ -29,7 +29,10 @@ jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mo
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
 jest.mock('../../ui/aiFirst/VoiceComposer',()=>({VoiceComposer:'VoiceComposer'}));
-jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,status,children,...props}:any)=>require('react').createElement('Shell',props,status,actions,children)}));
+jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,status,children,newConversation,...props}:any)=>{
+ const React=require('react');return React.createElement('Shell',props,
+  newConversation?React.createElement('NewConversation',{label:'Novi razgovor',...newConversation}):null,status,actions,children);
+}}));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfileFrame:(props:any)=>mockRealAvailability
  ?require('react').createElement(jest.requireActual('../../ui/workerProfile/WorkerProfilePresentation').WorkerProfileFrame,props)
  :require('react').createElement('Frame',props,props.children,props.footer),WorkerProfileStatus:'Status'}));

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetView, type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
 import { SHEET_SPRING, sheetCloseConfig } from '../product/ProductSheet';
@@ -19,7 +19,9 @@ export const PEEK_MAX_SHARE = 0.5;
  * for a card that carries its own close button (Discovery V47); a drag down still closes it.
  */
 export function PeekSheet({ label, active, onClose, children, bottomInset = sys.space.md, reduced: callerReduced, handle = true,
-  maxShare = PEEK_MAX_SHARE, scrollable = false, overlay }: {
+  maxShare = PEEK_MAX_SHARE, scrollable = false, overlay, contentKey }: {
+  /** Replaces the content of an open card without mounting/animating a second sheet. */
+  contentKey?: string;
   /** What assistive technology calls the card. */
   label: string;
   /** True while the screen that hosts the card is the one in front (the map passes `useIsFocused()`). Only then does
@@ -46,13 +48,31 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
   const sheet = useRef<BottomSheet>(null), closing = useRef(false);
+  const identity = useMemo(() => ({}), [contentKey]);
+  const current = useRef(identity); current.current = identity;
+  const closeOwner = useRef<object | null>(null), recovering = useRef(false), previous = useRef(identity);
+  useLayoutEffect(() => {
+    if (previous.current === identity) return;
+    previous.current = identity;
+    const interrupted = closing.current || closeOwner.current !== null;
+    closing.current = false; closeOwner.current = null;
+    if (interrupted) { recovering.current = true; sheet.current?.snapToIndex(0, { duration: 0 }); }
+  }, [identity]);
+  const completeClose = useCallback(() => {
+    if (current.current !== identity || !active) return;
+    if (contentKey !== undefined && (recovering.current || closeOwner.current !== identity)) {
+      sheet.current?.snapToIndex(0, { duration: 0 }); return;
+    }
+    onClose();
+  }, [identity, contentKey, active, onClose]);
   const { height } = useWindowDimensions();
   const dismiss = useCallback(() => {
-    if (closing.current) return;
+    if (current.current !== identity || !active || closing.current) return;
     closing.current = true;
+    closeOwner.current = identity; recovering.current = false;
     // Closed by a command (the card's own ×, Android Back): the same short timing as every sheet, or at once when motion is off.
-    if (sheet.current) sheet.current.close(sheetCloseConfig(reduced)); else onClose();
-  }, [onClose, reduced]);
+    if (sheet.current) sheet.current.close(sheetCloseConfig(reduced)); else completeClose();
+  }, [identity, active, completeClose, reduced]);
   useEffect(() => {
     if (!active) return;
     // Once the card is on its way out, Back is the screen's again: it never swallows a second press.
@@ -61,10 +81,12 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   }, [active, dismiss]);
   return <BottomSheet ref={sheet} index={0} enableDynamicSizing enablePanDownToClose detached bottomInset={bottomInset}
     style={s.sheet} accessible={false} accessibilityRole="none" accessibilityLabel={label}
-    maxDynamicContentSize={height * maxShare} animateOnMount={!reduced} onClose={onClose}
+    maxDynamicContentSize={height * maxShare} animateOnMount={!reduced} onClose={completeClose}
+    onAnimate={(_from, to) => { if (to === -1 && current.current === identity && !recovering.current) { closing.current = true; closeOwner.current = identity; } }}
+    onChange={index => { if (index >= 0 && current.current === identity) recovering.current = false; }}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING}
     backgroundComponent={PeekBackground} handleComponent={handle ? PeekHandle : null}>
-    {scrollable ? <BottomSheetScrollView contentContainerStyle={[s.content, !handle && s.unhandled]}
+    {scrollable ? <BottomSheetScrollView key={contentKey} contentContainerStyle={[s.content, !handle && s.unhandled]}
       keyboardShouldPersistTaps="handled" bounces={false} showsVerticalScrollIndicator>
       {children(dismiss)}
     </BottomSheetScrollView> : <BottomSheetView style={[s.content, !handle && s.unhandled]}>{children(dismiss)}</BottomSheetView>}

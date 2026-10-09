@@ -87,7 +87,7 @@ test.each([false, true])('scrollable cards preserve reduced motion and the nativ
   const sheet = tree.root.findByType(BottomSheet);
   expect(sheet.props.animateOnMount).toBe(!reduced);
   if (reduced) expect(sheet.props.animationConfigs).toEqual({ duration: 0 });
-  await act(async () => sheet.props.onClose()); expect(onClose).toHaveBeenCalledTimes(1);
+  await act(async () => { sheet.props.onAnimate(0, -1); sheet.props.onClose(); }); expect(onClose).toHaveBeenCalledTimes(1);
 });
 
 test('Back dismisses the focused card once and does not remain registered while its screen is away', async () => {
@@ -104,4 +104,29 @@ test('generic Peek callers keep the existing static body by default', async () =
   expect(tree.root.findAllByType(BottomSheetView)).toHaveLength(1);
   expect(tree.root.findAllByType(BottomSheetScrollView)).toHaveLength(0);
   expect(tree.root.findByType(BottomSheet).props.maxDynamicContentSize).toBe(320);
+});
+
+test('changing pins keeps one native sheet, resets the content scroll, and retires old dismiss callbacks', async () => {
+  await render();
+  const host = tree.root.findByType(BottomSheet).instance;
+  const oldClose = press('Zatvori pregled zadatka').props.onPress;
+  const oldScroll = tree.root.findByType(BottomSheetScrollView);
+  await act(async () => tree.update(<DiscoveryPeek item={task('two')} place={[]} relation={() => undefined} active bottomInset={12} reduced={false}
+    onOpen={onOpen} onClose={onClose} onHeight={onHeight} onShowPlace={onShowPlace} />));
+  expect(tree.root.findByType(BottomSheet).instance === host).toBe(true);
+  expect(tree.root.findByType(BottomSheetScrollView) === oldScroll).toBe(false);
+  await act(async () => oldClose()); expect(onClose).not.toHaveBeenCalled();
+  await act(async () => press('Zatvori pregled zadatka').props.onPress()); expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test('an old native closing completion cannot dismiss the next pin, even after it reopens', async () => {
+  await render();
+  const old = tree.root.findByType(BottomSheet).props;
+  await act(async () => old.onAnimate(0, -1));
+  await act(async () => tree.update(<DiscoveryPeek item={task('two')} place={[]} relation={() => undefined} active bottomInset={12} reduced={false}
+    onOpen={onOpen} onClose={onClose} onShowPlace={onShowPlace} />));
+  const current = tree.root.findByType(BottomSheet).props;
+  await act(async () => { old.onClose(); current.onClose(); current.onChange(0); current.onClose(); });
+  expect(onClose).not.toHaveBeenCalled();
+  await act(async () => press('Zatvori pregled zadatka').props.onPress()); expect(onClose).toHaveBeenCalledTimes(1);
 });

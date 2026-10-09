@@ -14,7 +14,7 @@ import type { LocationDialogueRequest, LocationDialogueResult } from '../../cont
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { sys } from '../system/tokens';
 import { ConfirmedPlaceLine } from './ConfirmedPlaceLine';
-import { confirmedPlaceEntries, slotSeed as seed, slotTitle as title } from './placeText';
+import { confirmedPlaceEntries, slotNeedsCloserPlace, slotSeed as seed, slotTitle as title } from './placeText';
 
 /**
  * The conversation asks for the map point instead of waiting for the person to discover a form.
@@ -389,6 +389,8 @@ function OwnedPointAsk(props: Props & { accountId: string | undefined; accountRe
     {activeSlot ? <LocationPointEditor key={`${editorEpoch}:${activeSlot}`} slot={activeSlot} title={title(activeSlot, geography)}
       point={points.find(point => point.slot === activeSlot)} scopeKey={`${props.accountId}:${props.accountRevision}:${review.conversationId}:${review.revision}:${editorEpoch}`}
       countryCode={country} initialQuery={seed(activeSlot, review.value)} autoLocate={!inactive} resolver={resolver}
+      initialQuestion={!points.some(point => point.slot === activeSlot) && slotNeedsCloserPlace(activeSlot, review.value)
+        ? `${title(activeSlot, geography)} — koja ulica, objekat ili bliže mesto?` : undefined}
       presentation="conversation" onCorrectInConversation={leave}
       conversationSummary={slots.length > 1 ? { title: title(activeSlot, geography),
         description: points.find(point => point.slot === activeSlot)?.address || seed(activeSlot, review.value) } : undefined}

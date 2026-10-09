@@ -1,6 +1,6 @@
 import type { ConfirmedLocationPoint } from '../../../contracts/location';
 import type { NeedTaskGeography } from '../../../contracts/needFactsV2';
-import { candidatePlaceLabel, confirmedPlaceEntries, exactAddressForSlot, ownerPlace, ownerPlaceLine, ownerPlaces, shortPlaceLabel, slotSeed, tidyPlaceLabel, toSerbianLatin } from '../placeText';
+import { candidatePlaceLabel, confirmedPlaceEntries, exactAddressForSlot, ownerPlace, ownerPlaceLine, ownerPlaces, shortPlaceLabel, slotNeedsCloserPlace, slotSeed, tidyPlaceLabel, toSerbianLatin } from '../placeText';
 import { toSerbianLatin as fromEditor } from '../LocationPointEditor';
 
 describe('candidate choices retain all distinguishing geography', () => {
@@ -17,6 +17,19 @@ describe('candidate choices retain all distinguishing geography', () => {
 });
 
 describe('conversation search seeds in both Serbian scripts', () => {
+  it.each([{ city: 'Novi Sad' }, { city: 'Novi Sad', label: 'Нови Сад' }, { city: 'Нови Сад', label: 'Novi Sad' }])(
+    'asks for a closer place when only the same city is known: %p', start => {
+      expect(slotNeedsCloserPlace('start', { geography: { mode: 'STATIONARY', start }, exactAddress: null })).toBe(true);
+    });
+  it('keeps street, POI, area-wide and other route endpoint semantics', () => {
+    expect(slotNeedsCloserPlace('start', { geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } }, exactAddress: 'Нови Сад' })).toBe(true);
+    expect(slotNeedsCloserPlace('start', { geography: { mode: 'STATIONARY', start: { city: 'Novi Sad', label: 'SPENS' } }, exactAddress: null })).toBe(false);
+    expect(slotNeedsCloserPlace('start', { geography: { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Lenke Dunđerski' } }, exactAddress: null })).toBe(false);
+    expect(slotNeedsCloserPlace('serviceArea', { geography: { mode: 'AREA_BASED', serviceArea: { city: 'Novi Sad' } }, exactAddress: null })).toBe(false);
+    const geography: NeedTaskGeography = { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd', label: 'Knez Mihailova' } };
+    expect(slotNeedsCloserPlace('start', { geography, exactAddress: 'Knez Mihailova 4, Beograd' })).toBe(true);
+    expect(slotNeedsCloserPlace('end', { geography, exactAddress: 'Knez Mihailova 4, Beograd' })).toBe(false);
+  });
   it('keeps a Cyrillic city even before a street is known', () => {
     expect(slotSeed('start', { geography: { mode: 'STATIONARY', start: { city: 'Нови Сад' } }, exactAddress: null }))
       .toBe('Нови Сад');

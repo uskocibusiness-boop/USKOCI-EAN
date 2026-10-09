@@ -1,19 +1,30 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import BottomSheet, { type BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
-import type { SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { chromeJoin } from './discoveryChrome';
 import { SHEET_SPRING } from '../../product/ProductSheet';
 import { sheetLift, sys } from '../../system/tokens';
 
-/** The sheet's three heights, in this order: its top line only, half the map, the whole list directly under the search pill and its capsules. */
+/** Its top line, half the map, then the whole list under the search pill. Capsules scroll away at FULL. */
 export const SNAP = { peek: 0, half: 1, full: 2 } as const;
 
 /**
- * The sheet's surface: white, with its corners, its hairline and its lift at EVERY height, so it is a sheet over the map to the end
- * (at the full stop the map is behind it, covered, and only the tools stand above it).
+ * The floating surface joins the white search header at FULL. Crossfade the two native surfaces so both Android
+ * elevation and boxShadow disappear, without animating platform-specific shadow or layout properties.
  */
-const ListBackground = ({ style }: BottomSheetBackgroundProps) => <View testID="discovery-sheet-background" pointerEvents="none"
-  accessible={false} importantForAccessibility="no" style={[style, s.background]} />;
+const ChromeJoinContext = createContext({ compactTop: 0, capsuleSpace: 0 });
+const ListBackground = ({ style, animatedPosition }: BottomSheetBackgroundProps) => {
+  const { compactTop, capsuleSpace } = useContext(ChromeJoinContext);
+  const floating = useAnimatedStyle(() => ({ opacity: 1 - chromeJoin(animatedPosition.value, compactTop, capsuleSpace) }),
+    [animatedPosition, compactTop, capsuleSpace]);
+  const joined = useAnimatedStyle(() => ({ opacity: chromeJoin(animatedPosition.value, compactTop, capsuleSpace) }),
+    [animatedPosition, compactTop, capsuleSpace]);
+  return <View testID="discovery-sheet-background" pointerEvents="none" accessible={false} importantForAccessibility="no" style={style}>
+    <Animated.View testID="discovery-sheet-floating" style={[StyleSheet.absoluteFill, s.background, floating]} />
+    <Animated.View testID="discovery-sheet-joined" style={[StyleSheet.absoluteFill, s.flat, joined]} />
+  </View>;
+};
 /** The sunk sheet draws nothing: its edge and upward shadow would show as a sliver under the pin card. */
 const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
   importantForAccessibility="no" style={[style, s.background, s.sunk]} />;
@@ -33,9 +44,10 @@ const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
  * it: the map's furniture stands directly above the sheet and moves with it, and a veil over the map would grey it while it rises.
  * Under reduced motion it changes height at once.
  */
-export function DiscoveryListSheet({ index, snapPoints, position, reduced, animateOnMount = false, onIndex, onAnimate, header, sunk = false,
+export function DiscoveryListSheet({ index, snapPoints, position, reduced, animateOnMount = false, onIndex, onAnimate, header, sunk = false, compactTop = 0, capsuleSpace = 0,
   children }: {
   index: number; snapPoints: readonly (number | string)[];
+  compactTop?: number; capsuleSpace?: number;
   /** Where the sheet's top edge is, for the map's furniture that rides on it. */ position?: SharedValue<number>;
   reduced: boolean; animateOnMount?: boolean; onIndex: (index: number) => void;
   /** The sheet starts to move to another stop (a drag let go of, a tap, a command): the stop it goes to. */
@@ -44,7 +56,8 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, anima
   /** A pin's card lies over the sheet's top line: the sheet steps out of sight and out of reach behind it. */ sunk?: boolean;
   /** The list itself (a `BottomSheetFlatList`). */ children: ReactNode;
 }) {
-  return <BottomSheet index={index} snapPoints={snapPoints as (number | string)[]} enableDynamicSizing={false} enablePanDownToClose={false}
+  const join = useMemo(() => ({ compactTop, capsuleSpace }), [compactTop, capsuleSpace]);
+  return <ChromeJoinContext.Provider value={join}><BottomSheet index={index} snapPoints={snapPoints as (number | string)[]} enableDynamicSizing={false} enablePanDownToClose={false}
     enableOverDrag={false}
     animateOnMount={animateOnMount} animatedPosition={position} onAnimate={onAnimate} onChange={next => { if (next >= 0) onIndex(next); }}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING} handleComponent={null} backgroundComponent={sunk ? SunkBackground : ListBackground}
@@ -52,7 +65,7 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, anima
     keyboardBehavior="extend" keyboardBlurBehavior="restore">
     <View testID="list-sheet-content" style={s.content} accessibilityElementsHidden={sunk}
       importantForAccessibility={sunk ? 'no-hide-descendants' : 'auto'}>{header}{children}</View>
-  </BottomSheet>;
+  </BottomSheet></ChromeJoinContext.Provider>;
 }
 
 const s = StyleSheet.create({
@@ -61,5 +74,6 @@ const s = StyleSheet.create({
   background: { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet,
     borderWidth: 1, borderBottomWidth: 0, borderColor: sys.color.line, ...sheetLift.docked },
   sunk: { opacity: 0 },
+  flat: { backgroundColor: sys.color.surface },
   content: { flex: 1 },
 });

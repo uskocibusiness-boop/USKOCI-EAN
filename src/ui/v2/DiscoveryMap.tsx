@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
+import { runOnJS, useAnimatedReaction } from 'react-native-reanimated';
 import { Camera, GeoJSONSource, Images, Layer, Map, ViewAnnotation, type CameraOptions, type CameraRef, type GeoJSONSourceRef, type MapRef, type ViewAnnotationRef } from '@maplibre/maplibre-react-native';
 import { pinLabel, pinPlaces, pointKey, publicFeatures, publicInitialBounds, publicPoint, publicViewport, publicBounds, type MarketplaceItem, type PinPlace, type PublicBounds }
   from '../../data/marketplaceView';
@@ -18,7 +19,7 @@ import { useUrgencyClock } from './NeedUrgencyBadge';
 import { pinRelationWords, PricePill, type PillContent, type PinRelation } from './discovery/PricePill';
 import type { DiscoveryMapProps } from './DiscoveryMap.types';
 import { DISCOVERY_V1_PIN_IMAGES, DiscoveryV1ServerMarkerLayer } from './discovery/DiscoveryV1ServerMarkerLayer';
-import { clearBandBounds, rowOfLatitude } from './discovery/mapClearBand';
+import { clearBandBounds } from './discovery/mapClearBand';
 import { MapCredits, MapSources } from './discovery/MapCredits';
 import { traceDiscoveryV1 } from '../../data/discoveryV1Trace';
 
@@ -59,8 +60,16 @@ const showsBounds = (view: PublicBounds, wanted: PublicBounds) => {
 /** A pill's own press may also reach the map as a tap on empty ground; within this long it is not one. */
 const PILL_TAP_MS = 400;
 const GAP = sys.space.md;
-/** "Moja lokacija" shows a neighbourhood: about ten kilometres across on a phone, where the tasks a person could walk or ride to are. */
+/** A public pin selection opens at neighbourhood scale; this never increases coordinate precision. */
 export const NEARBY_ZOOM = 12;
+/** Five kilometres each way, fitted inside the usable map; camera framing is not a strict distance filter. */
+export const NEARBY_RADIUS_KM = 5;
+export function nearbyCameraBounds([lng, lat]: [number, number]): PublicBounds {
+  const dy = NEARBY_RADIUS_KM / 111.195;
+  const dx = Math.min(180, dy / Math.max(0.01, Math.cos(lat * Math.PI / 180)));
+  return [Math.max(-180, lng - dx), Math.max(-85, lat - dy), Math.min(180, lng + dx), Math.min(85, lat + dy)];
+}
+const sheetZoomOffset = (detent: number | undefined) => detent === 2 ? 0.8 : detent === 1 ? 0.55 : 0;
 /** Camera-only regional overview when no public points, saved view or work area is available. Never a location fact or filter. */
 const EMPTY_OVERVIEW_BOUNDS: PublicBounds = [18.8, 42.2, 23, 46.2];
 
@@ -122,6 +131,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   };
   const reduced = useReducedMotion(), camera = useRef<CameraRef>(null), source = useRef<GeoJSONSourceRef>(null), map = useRef<MapRef>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [listDetent, setListDetent] = useState<number | undefined>(undefined);
   const failure = useRef<'deadline' | 'native-error' | null>(null);
   const workAreaMayApply = useRef(!props.viewport);
   const traceStart = useRef(Date.now()), traced = useRef(new Set<LoadTraceEvent>());
@@ -137,7 +147,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     return () => {
       focused.current = false; traceLoad('retired');
       cancelArea(); query.current++; intent.current = 0; openedCluster.current = null;
-      pendingFocus.current = null; setSourcesOpen(false);
+      pendingFocus.current = null; pendingServerFocus.current = null; resetSheetCamera(); setSourcesOpen(false);
     };
   }, [traceLoad]));
   const [viewport, setViewport] = useState(props.viewport);
@@ -150,15 +160,21 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   /** The members' bounds a tapped P6 cluster asked the camera to show, and when (see CLUSTER_OPEN_MS). */
   const openedCluster = useRef<{ bounds: PublicBounds; at: number } | null>(null);
   const pendingFocus = useRef<{ key: string; dataKey: string; center: [number, number]; publicationToken?: string } | null>(null);
+  const pendingServerFocus = useRef<{ key: string; dataKey: string; center: [number, number] } | null>(null);
+  const sheetCamera = useRef<{ detent: number | undefined; baseZoom: number | null; center: [number, number] | null }>(
+    { detent: listDetent, baseZoom: null, center: null });
+  const resetSheetCamera = () => { sheetCamera.current = { detent: listDetent, baseZoom: null, center: null }; };
   const retirePublicationFocus = () => {
     if (!owns()) return;
     const token = latest.current.props.publicationCameraToken;
     if (token) latest.current.props.onPublicationCameraRetired?.(token, props.scopeKey);
     pendingFocus.current = null;
+    pendingServerFocus.current = null;
   };
   const manualMapIntent = () => {
     if (!owns()) return;
     workAreaMayApply.current = false;
+    resetSheetCamera();
     latest.current.props.onUserIntent?.();
     retirePublicationFocus();
   };
@@ -188,6 +204,13 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     : JSON.stringify(data), [serverMap?.markers, data]);
   const latest = useRef({ props, dataKey, places, byId }); latest.current = { props, dataKey, places, byId };
   const owns = () => mounted.current && props.owns() && latest.current.dataKey === dataKey;
+  const receiveDetent = useCallback((value: number | undefined) => {
+    if (mounted.current && props.owns()) setListDetent(value);
+  }, [props.owns]);
+  const detentSignal = props.listDetent;
+  useAnimatedReaction(() => detentSignal?.value, (value, prior) => {
+    if (value !== prior) runOnJS(receiveDetent)(value);
+  }, [detentSignal, receiveDetent]);
   /**
    * The part of `bounds` the person can see right now: below the floating search tools and above the list sheet or a chosen pin's card. The list
    * follows this band (a task under the sheet is not one they looked at); the server buckets keep the whole view.
@@ -357,25 +380,42 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     camera.current.fitBounds(memberBounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56),
       duration: reduced ? 0 : sys.motion.camera });
   };
-  // P6: a chosen bucket that the card (or the sheet, or the search tools) now covers comes into the clear band between them, at the same zoom and
-  // the same longitude: the camera's own move, so the markers follow it and the list does not. A pin the person can see stays where it is, and a
-  // choice the map was mounted with (a return to the screen) stays put. Checked when the choice changes and when the card's height is known.
-  const restoredChoice = useRef<string | null>(serverMap?.selectedKey ?? null);
+  // A new TASK or PLACE choice centers its public point once, at neighbourhood scale or the person's closer zoom.
+  // A saved choice on return stays put; later card measurements or bucket reads cannot replay the flight.
+  const serverChoice = useRef<string | null>(serverMap?.selectedKey ?? null);
   useEffect(() => {
     const key = serverMap?.selectedKey ?? null;
-    if (key !== restoredChoice.current) restoredChoice.current = null;
-    if (!key || key === restoredChoice.current || status !== 'ready' || !frame || props.cameraLayoutReady === false || !owns() || !camera.current) return;
-    const shown = viewport?.bounds, marker = serverMap?.markers.find(candidate => candidate.key === key);
-    if (!shown || !marker || marker.kind === 'CLUSTER') return;
-    const top = props.toolsBottom ?? 0;
-    const bottom = Math.min(props.sheetTop ? props.sheetTop.value : frame.height, frame.height - Math.max(0, props.coverBottom ?? 0));
-    if (bottom - top < 2 * PIN_HALF) return;
-    const row = rowOfLatitude(shown, frame.height, marker.point.lat);
-    if (row - PIN_HALF >= top && row + PIN_HALF <= bottom) return;
+    if (key !== serverChoice.current) {
+      serverChoice.current = key; pendingServerFocus.current = null; resetSheetCamera();
+      const marker = serverMap?.markers.find(candidate => candidate.key === key);
+      if (key && marker && marker.kind !== 'CLUSTER') pendingServerFocus.current = { key, dataKey, center: [marker.point.lng, marker.point.lat] };
+    }
+    const request = pendingServerFocus.current;
+    if (!request) return;
+    if (!owns() || key !== request.key || request.dataKey !== dataKey || (props.fitTo && props.fitTo.key !== fitted.current)
+      || (props.centerNearby && props.centerNearby.key !== centeredNearby.current)) { pendingServerFocus.current = null; return; }
+    if (status !== 'ready' || !frame || props.cameraLayoutReady === false || !camera.current) return;
+    pendingServerFocus.current = null; initialFitPending.current = false;
     cancelArea(); intent.current = 0; openedCluster.current = null;
-    moveCamera({ center: [shown[0] <= shown[2] ? (shown[0] + shown[2]) / 2 : marker.point.lng, marker.point.lat],
-      padding: { top, right: 0, bottom: Math.max(0, frame.height - bottom), left: 0 } }, sys.motion.camera);
-  }, [serverMap?.selectedKey, props.coverBottom, status, frame, props.cameraLayoutReady, props.toolsBottom]); // eslint-disable-line react-hooks/exhaustive-deps
+    moveCamera({ center: request.center, zoom: Math.min(18, Math.max(NEARBY_ZOOM, settledZoom.current ?? NEARBY_ZOOM)),
+      padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.coverBottom || props.focusBottom || 0) }, sys.motion.camera);
+  }, [serverMap?.selectedKey, props.coverBottom, props.focusBottom, status, frame, props.cameraLayoutReady, props.toolsBottom,
+    dataKey, props.fitTo?.key, props.centerNearby?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Settled detents produce one quiet camera move, never a frame-by-frame bridge call. The same base is used for both
+  // directions, so repeated opening/closing cannot accumulate zoom or center drift. A new map gesture/destination wins.
+  useEffect(() => {
+    const previous = sheetCamera.current, detent = listDetent;
+    if (previous.detent === detent) return;
+    sheetCamera.current = { ...previous, detent };
+    if (detent === undefined || previous.detent === undefined || status !== 'ready' || !owns() || !viewport || !frame
+      || props.cameraLayoutReady === false || initialFitPending.current || serverMap?.selectedKey || props.selectedId || props.selectedPlace
+      || props.fitTo || props.centerNearby || pendingServerFocus.current || pendingFocus.current) { resetSheetCamera(); return; }
+    const baseZoom = previous.baseZoom ?? Math.min(18, (settledZoom.current ?? viewport.zoom) + sheetZoomOffset(previous.detent));
+    const center = previous.center ?? viewport.center;
+    sheetCamera.current = { detent, baseZoom, center };
+    cancelArea(); intent.current = 0; openedCluster.current = null;
+    moveCamera({ center, zoom: Math.max(0, baseZoom - sheetZoomOffset(detent)), padding: { top: 0, right: 0, bottom: 0, left: 0 } }, sys.motion.camera);
+  }, [listDetent]); // eslint-disable-line react-hooks/exhaustive-deps
   // Exactly one first fit after BOTH native frame and screen overlays are measured. It is not a live camera binding:
   // changing rows, sheet height, tools or font size later cannot take the map away from the person's chosen view.
   useEffect(() => {
@@ -418,27 +458,30 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (status !== 'ready' || !request || fitted.current === request.key || !owns() || !frame || props.cameraLayoutReady === false) return;
     initialFitPending.current = false; retirePublicationFocus();
     fitted.current = request.key;
+    resetSheetCamera();
     intent.current = 0; openedCluster.current = null;
     camera.current?.fitBounds?.(request.bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, request.bottom),
       duration: reduced ? 0 : sys.motion.camera });
     props.onFitted?.(request.key);
   }, [props.fitTo?.key, status, props.cameraLayoutReady, frame]); // eslint-disable-line react-hooks/exhaustive-deps
-  // "Moja lokacija": one explicit location capture moves the camera to the person, at the zoom of a neighbourhood (about ten kilometres across),
+  // "Moja lokacija": one explicit location capture fits five kilometres each way around the person,
   // with the person in the middle of the map that is left clear between the tools above and the list below. It is never a pin or a stored place.
   // The move is the person's own (they asked for it), so the list follows where it settles and shows the tasks around them (`onArea`), as it does
   // after a drag or a cluster. The dot that shows where they are is drawn by the screen's own layer (`me`), only for as long as this visit lasts.
   useEffect(() => {
     const target = props.centerNearby;
-    if (status !== 'ready' || !target || target.key === centeredNearby.current || !owns() || !camera.current) return;
+    if (status !== 'ready' || !target || target.key === centeredNearby.current || !owns() || !camera.current || !frame || props.cameraLayoutReady === false) return;
     if (target.center.length !== 2 || !target.center.every(Number.isFinite) || Math.abs(target.center[0]) > 180 || Math.abs(target.center[1]) > 90) return;
     initialFitPending.current = false; retirePublicationFocus();
     centeredNearby.current = target.key;
+    resetSheetCamera();
     cancelArea(); intent.current = 0; openedCluster.current = null;
-    const dispatched = moveCamera({ center: target.center, zoom: NEARBY_ZOOM,
-      ...(frame ? { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56) } : {}) }, sys.motion.camera);
-    if (dispatched) intent.current = Date.now();
+    const bounds = nearbyCameraBounds(target.center);
+    camera.current.fitBounds(bounds, { padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.fitBottom ?? 56), duration: reduced ? 0 : sys.motion.camera });
+    intent.current = Date.now();
+    openedCluster.current = { bounds, at: Date.now() };
     props.onNearbyConsumed?.(target.key);
-  }, [props.centerNearby, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [props.centerNearby, status, frame, props.cameraLayoutReady, props.toolsBottom, props.fitBottom]); // eslint-disable-line react-hooks/exhaustive-deps
   // The map's furniture (UX plan section P; the owner's phone of 8 Oct 2026): the map's sources stand at the bottom left, in the one row
   // directly ABOVE the list sheet that "moja lokacija" (drawn by the screen) ends on the right, and the row moves with the sheet. A pin's
   // card that lies over the map's bottom lifts the row above the card; when the list is all the way up no map is left and the row fades.

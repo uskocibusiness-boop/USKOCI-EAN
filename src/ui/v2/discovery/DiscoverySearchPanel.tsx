@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { discoveryV1Opportunity } from '../../../data/discoveryV1MarketplaceAdapter';
 import { Keyboard, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount, workMode,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
@@ -69,7 +70,7 @@ const ANYWHERE = { place: null, area: null, pinPlace: null } as const satisfies 
  * list is not known yet nothing is counted: the action says the list is being read, or that it could not be, and cannot be pressed; while only what is mine is still
  * read it applies the draft without a number. × or Back leaves the list exactly as it was.
  */
-export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, mode, reduced, readiness = 'ready', p6Search, recent = [], onApply, onClose }: {
+export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, mode, reduced, readiness = 'ready', p6Search, recent = [], onApply, onClose, onOpenTask }: {
   items: readonly MarketplaceItem[]; view: MarketplaceView; mine: ReadonlySet<string> | undefined; now: Date;
   /** The map's visible area when the camera has settled somewhere, for the counts of the search; null when unknown. */
   mapArea: PublicBounds | null;
@@ -84,6 +85,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   /** What this person searched before, newest first (the search only). */
   recent?: readonly RecentSearch[];
   onApply: (draft: SearchDraft) => void; onClose: () => void;
+  onOpenTask?: (item: MarketplaceItem) => void;
 }) {
   const [draft, setDraft] = useState<SearchDraft>(() => draftOf(view));
   const [datesOpen, setDatesOpen] = useState(false);
@@ -91,6 +93,10 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   /** The city whose parts the rows show (the row that "leads to" its parts); '' for the cities. It is not part of the draft: it filters no task. */
   const [within, setWithin] = useState('');
+  const [typing, setTyping] = useState(false);
+  // Choosing a place consumes only this visit's new input. An already applied task query remains intentional.
+  const [committedQuery, setCommittedQuery] = useState(view.query);
+  const placeSearch = within || (typing ? draft.query : '');
   const [closing, setClosing] = useState(false);
   const large = useTextScale() >= 1.3;
   const { width } = useWindowDimensions();
@@ -101,7 +107,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const serverOwned = !!p6Search;
   const localCount = useMemo(() => serverOwned ? 0 : discoveryItems(items, viewOf(draft), mine, now).length, [serverOwned, items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
   const localUndated = useMemo(() => serverOwned ? 0 : undatedCount(items, viewOf(draft), mine, now), [serverOwned, items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const serverKey = discoveryV1SearchPreviewKey({ ...viewOf(draft), placeSearch: within } as SearchPreviewView, mapArea);
+  const serverKey = discoveryV1SearchPreviewKey({ ...viewOf(draft), placeSearch } as SearchPreviewView, mapArea);
   const serverCurrent = !!p6Search && p6Search.snapshot.active && p6Search.snapshot.key === serverKey;
   const effectiveReadiness: SearchReadiness = p6Search
     ? !serverCurrent || p6Search.snapshot.status === 'loading' || p6Search.snapshot.status === 'idle' ? 'loading'
@@ -117,18 +123,34 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   // The route hands a fresh clone of its view with every snapshot, so `mapArea` is a new array each time: keyed by identity this effect asked for
   // a preview after every preview (a request loop while the panel was open). It follows the area's value.
   const mapAreaKey = mapArea ? mapArea.join(',') : '';
-  useEffect(() => { p6Search?.onDraft({ ...draft, placeSearch: within }, mapArea); }, [p6Search?.onDraft, draft, within, mapAreaKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { p6Search?.onDraft({ ...draft, placeSearch }, mapArea); }, [p6Search?.onDraft, draft, placeSearch, mapAreaKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const today = serbianToday(now);
   const edit = (patch: Partial<SearchDraft>) => setDraft(current => remoteDiscoveryScope({ ...current, ...patch }));
 
   // Once the panel has begun to leave, nothing in it is acted on again: a second "Prikaži" or × during the exit
   // must not apply the draft twice or close twice.
   const [leaving] = useState({ value: false });
+  const chosenTask = useRef<{ item: MarketplaceItem; key: string } | null>(null);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; chosenTask.current = null; }; }, []);
+  const taskState = useRef({ serverKey, serverCurrent, p6Search, onOpenTask });
+  taskState.current = { serverKey, serverCurrent, p6Search, onOpenTask };
+  const closed = () => {
+    if (!alive.current) return;
+    const selected = chosenTask.current; chosenTask.current = null;
+    const latest = taskState.current;
+    const stillListed = selected && latest.serverKey === selected.key && latest.serverCurrent
+      && latest.p6Search?.snapshot.status === 'ready'
+      && latest.p6Search.snapshot.tasks?.some(item => item.id === selected.item.id
+        && item.revision === (selected.item as MarketplaceItem & { revision?: number }).revision);
+    onClose();
+    if (selected && stillListed) latest.onOpenTask?.(selected.item);
+  };
   const beginClose = () => {
     if (leaving.value) return;
     leaving.value = true;
     Keyboard.dismiss();
-    if (reduced) onClose(); else setClosing(true);
+    if (reduced) closed(); else setClosing(true);
   };
   const onCloseButton = () => { if (!leaving.value) beginClose(); };
   const requestClose = () => {
@@ -154,6 +176,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       setDraft(current => ({ ...current, query: NO_SEARCH.query, place: NO_SEARCH.place, area: NO_SEARCH.area, pinPlace: NO_SEARCH.pinPlace,
         where: current.where === 'remote' ? NO_SEARCH.where : current.where }));
       setWithin('');
+      setTyping(false); setCommittedQuery('');
     } else {
       setDraft(current => ({ ...current, when: NO_SEARCH.when, dates: NO_SEARCH.dates, where: NO_SEARCH.where, places: NO_SEARCH.places, price: NO_SEARCH.price }));
       setRangeStart(null);
@@ -168,7 +191,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
   const emptyReason = counted && count === 0 ? 'Pokušaj sa širom oblašću ili drugim danom.' : null;
   const retryPreview = effectiveReadiness === 'error' && p6Search
-    ? () => p6Search.onDraft({ ...draft, placeSearch: within }, mapArea) : undefined;
+    ? () => p6Search.onDraft({ ...draft, placeSearch }, mapArea) : undefined;
   // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Očisti" beside the one green action, which says how many tasks the list will show;
   // when it cannot be pressed the reason stands in a line above it. At a large text size or a narrow window the two stand one under the other.
   const footer = <FlowFooter testID="search-footer" reason={retryPreview ? 'Zadaci nisu učitani. Tvoji izbori su sačuvani.' : emptyReason ?? undefined}>
@@ -202,20 +225,35 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     const facetDown = !!p6Search && serverCurrent && p6Search.snapshot.facetError;
     const placesComplete = counted && placesRead && !facetDown && !(p6Search && p6Search.snapshot.placeHasMore);
     // Choosing a place leaves the work done remotely (which has no place): a place and "Na daljinu" are not one search.
-    const place = (text: string) => choose({ ...ANYWHERE, place: text, where: draft.where === 'remote' ? 'any' : draft.where });
+    const place = (text: string) => choose({ ...ANYWHERE, place: text, query: typing ? committedQuery : draft.query,
+      where: draft.where === 'remote' ? 'any' : draft.where });
+    const tasks = draft.query.trim() && counted && serverCurrent ? p6Search?.snapshot.tasks ?? [] : [];
     const header = <View style={s.searchHeader}>
       <ChromeIconButton glyph="back" label="Zatvori pretragu" hint="Lista ostaje kakva je bila." quiet onPress={onCloseButton} />
       <View style={s.grow}>
-        <SearchField testID="search-what-field" autoFocus value={draft.query} onChangeText={query => edit({ query })} label={SEARCH_WORDS.what}
+        <SearchField testID="search-what-field" autoFocus value={draft.query} onChangeText={query => {
+          setTyping(true); setWithin(''); if (!query) setCommittedQuery(''); edit({ query });
+        }} label={SEARCH_WORDS.what}
           placeholder={SEARCH_WORDS.whatPlaceholder} clearLabel="Obriši reč" returnKeyType="search" onSubmit={() => { if (!show.disabled) apply(); }} />
       </View>
     </View>;
     return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header}
       title={SEARCH_WORDS.searchTitle} closeLabel="Zatvori pretragu" closeHint="Lista ostaje kakva je bila."
-      footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={onClose}>
+      footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={closed}>
       <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
-        <T variant="bodyStrong" accessibilityRole="header" style={s.groupName}>{SEARCH_WORDS.where}</T>
-        <PlacePicker within={within} onWithin={setWithin}
+        {onOpenTask && tasks.length ? <View testID="search-task-suggestions" style={s.recent}>
+          <T variant="bodyStrong" accessibilityRole="header">Zadaci</T>
+          {tasks.map(item => <Row key={item.id} text={item.title} note={[item.approximateArea, item.approximateCity].filter(Boolean).join(', ')}
+            label={`Otvori zadatak: ${item.title}${item.approximateCity ? `, ${item.approximateCity}` : ''}`} role="button" onPress={() => {
+              const latest = taskState.current;
+              if (!alive.current || leaving.value || !latest.serverCurrent || latest.serverKey !== serverKey
+                || latest.p6Search?.snapshot.status !== 'ready'
+                || !latest.p6Search.snapshot.tasks?.some(current => current.id === item.id && current.revision === item.revision)) return;
+              chosenTask.current = { item: discoveryV1Opportunity(item), key: serverKey }; beginClose();
+            }} />)}
+        </View> : null}
+        <T variant="bodyStrong" accessibilityRole="header" style={s.groupName}>Mesta</T>
+        <PlacePicker within={placeSearch} onWithin={city => { setWithin(city); if (!city && typing) { edit({ query: committedQuery }); setTyping(false); } }}
           anywhere={{ checked: !draft.place && !draft.area && !draft.pinPlace && draft.where !== 'remote', count: everywhere, onPress: () => choose({ ...ANYWHERE, where: draft.where === 'remote' ? 'any' : draft.where }) }}
           remote={{ available: workModes, checked: draft.where === 'remote', count: remoteCount, onPress: () => choose({ where: 'remote' }) }}
           remoteNote={draft.where === 'remote' ? SEARCH_WORDS.remoteNote : null}

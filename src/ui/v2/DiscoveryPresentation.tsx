@@ -6,7 +6,7 @@ import * as SafeArea from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import { useIsFocused } from 'expo-router';
-import Animated, { runOnJS, useAnimatedReaction, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { State as GestureState } from 'react-native-gesture-handler';
 import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, useBottomSheetInternal, useScrollEventsHandlersDefault,
   type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
@@ -32,6 +32,7 @@ import { DiscoveryListState, type DiscoveryListStateKind } from './discovery/Dis
 import { BAR_TOP, DiscoverySearchBar, ForMeNotice, NearbyNotice } from './discovery/DiscoverySearchBar';
 import { DiscoveryChipRow, type QuickChip, type ScopeKey } from './discovery/DiscoveryChipRow';
 import { CONTROL_SIZE, fullSheetTop } from './discovery/mapClearBand';
+import { capsuleCollapse, chromeJoin } from './discovery/discoveryChrome';
 import { useCoverValue, useRidingStyle } from './discovery/mapControls';
 import { handleHint, listViewport, nextSheetIndex, snapHeights } from './discovery/sheetSnaps';
 import { TaskAgeContext, taskAgeOf, type PublishedAt } from './discovery/taskAge';
@@ -222,38 +223,52 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
 // Gorhom 5.2.14 locks scroll to zero until EXTENDED/FILL_PARENT; issuing scrollToOffset earlier loses the restore.
 type NativeScrollWitness = { extent: number; offset: number; dragging: boolean; momentum: boolean };
 type NativeListSnapshot = { ready: boolean; canRestore: boolean; gestureStarted: boolean; state: number; settledIndex: number; offset: number; command: number };
-const NativeScrollContext = createContext<{ extent: number; witness: SharedValue<NativeScrollWitness> } | null>(null);
+const NativeScrollContext = createContext<{ extent: number; witness: SharedValue<NativeScrollWitness>; chromeOffset: SharedValue<number>; alive: SharedValue<boolean> } | null>(null);
 const useDiscoveryScrollEvents: ScrollEventsHandlersHookType = (ref, contentOffset) => {
   const defaults = useScrollEventsHandlersDefault(ref, contentOffset);
   const probe = useContext(NativeScrollContext)!;
-  const { extent, witness } = probe;
+  const { extent, witness, chromeOffset, alive } = probe;
   const { animatedSheetState, animatedScrollableStatus } = useBottomSheetInternal();
   const observe = useCallback((event: NativeScrollEvent, dragging?: boolean, momentum?: boolean) => {
     'worklet';
+    if (!alive.value) return;
     const ready = animatedSheetState.value === SHEET_STATE.EXTENDED || animatedSheetState.value === SHEET_STATE.FILL_PARENT;
     const y = event.contentOffset.y;
+    if (ready && animatedScrollableStatus.value === SCROLLABLE_STATUS.UNLOCKED && Number.isFinite(y)) chromeOffset.value = Math.max(0, y);
     // A LOCKED handler may itself scroll to another position: its incoming y is not evidence of that result.
     witness.value = { extent, offset: ready && animatedScrollableStatus.value === SCROLLABLE_STATUS.UNLOCKED && Number.isFinite(y)
       ? Math.max(0, y) : -1, dragging: dragging ?? witness.value.dragging, momentum: momentum ?? witness.value.momentum };
-  }, [extent, witness, animatedSheetState, animatedScrollableStatus]);
+  }, [extent, witness, chromeOffset, alive, animatedSheetState, animatedScrollableStatus]);
+  // Gorhom can reset (or lock) native content itself while the sheet is below FULL. Its incoming event is not
+  // the resulting position. Mirror only that explicit lock target for the chrome; it never acknowledges a restore.
+  const lockedChrome = useCallback((context: { shouldLockInitialPosition?: boolean; initialContentOffsetY?: number }) => {
+    'worklet';
+    if (alive.value && animatedScrollableStatus.value === SCROLLABLE_STATUS.LOCKED) {
+      const y = context.shouldLockInitialPosition ? context.initialContentOffsetY ?? 0 : 0;
+      if (Number.isFinite(y)) chromeOffset.value = Math.max(0, y);
+    }
+  }, [alive, animatedScrollableStatus, chromeOffset]);
   // Preserve every Gorhom handler and its context. This witness reads actual native deliveries, including hidden
   // ones; animatedScrollableState.contentOffsetY is only updated at drag/momentum boundaries in Gorhom 5.2.14.
   return useMemo<ReturnType<ScrollEventsHandlersHookType>>(() => ({
-    handleOnScroll: (event, context) => { 'worklet'; defaults.handleOnScroll?.(event, context); observe(event); },
+    handleOnScroll: (event, context) => { 'worklet'; defaults.handleOnScroll?.(event, context); observe(event); lockedChrome(context); },
     handleOnBeginDrag: (event, context) => { 'worklet'; defaults.handleOnBeginDrag?.(event, context); observe(event, true, false); },
-    handleOnEndDrag: (event, context) => { 'worklet'; defaults.handleOnEndDrag?.(event, context); observe(event, false); },
+    handleOnEndDrag: (event, context) => { 'worklet'; defaults.handleOnEndDrag?.(event, context); observe(event, false); lockedChrome(context); },
     handleOnMomentumBegin: (event, context) => { 'worklet'; defaults.handleOnMomentumBegin?.(event, context); observe(event, false, true); },
-    handleOnMomentumEnd: (event, context) => { 'worklet'; defaults.handleOnMomentumEnd?.(event, context); observe(event, false, false); },
-  }), [defaults, observe]);
+    handleOnMomentumEnd: (event, context) => { 'worklet'; defaults.handleOnMomentumEnd?.(event, context); observe(event, false, false); lockedChrome(context); },
+  }), [defaults, observe, lockedChrome]);
 };
 
-function DiscoveryScrollReadiness({ owner, extent, command, requestedIndex, pendingRequest, onReady, children }: {
+function DiscoveryScrollReadiness({ owner, extent, command, requestedIndex, pendingRequest, onReady, chromeOffset, children }: {
   owner: number; extent: number; command: number; requestedIndex: number; pendingRequest: boolean;
   onReady: (snapshot: NativeListSnapshot) => void; children: ReactNode;
+  chromeOffset: SharedValue<number>;
 }) {
   // This provider is inside the keyed sheet: a native replacement can never inherit the previous list's witness.
   const witness = useSharedValue<NativeScrollWitness>({ extent: -1, offset: -1, dragging: false, momentum: false });
-  const context = useMemo(() => ({ extent, witness }), [extent, witness]);
+  const alive = useSharedValue(true);
+  useEffect(() => { alive.value = true; return () => { alive.value = false; }; }, [alive]);
+  const context = useMemo(() => ({ extent, witness, chromeOffset, alive }), [extent, witness, chromeOffset, alive]);
   const { animatedSheetState, animatedIndex, animatedPosition, animatedDetentsState, animatedAnimationState,
     animatedContentGestureState, animatedHandleGestureState, isInTemporaryPosition, animatedScrollableStatus } = useBottomSheetInternal();
   useAnimatedReaction(() => {
@@ -510,6 +525,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     : !loading && !error ? INDEX[discoveryStartSnap(mapped.length, mappedWithoutPin)] as number : SNAP.half,
   sequence: 0, pending: false }));
   const sheetIndex = sheet.index, sheetCommand = useRef(sheet);
+  const cameraListDetent = useSharedValue(sheetIndex);
   const setSheetIndex = useCallback((index: number) => {
     if (sheetCommand.current.index === index) return;
     trace('want', index, sheetCommand.current.index);
@@ -527,6 +543,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const command = sheetCommand.current;
     // Native observations may reconcile a drag, but cannot cancel an explicit target before its spring starts.
     if (command.pending && command.index !== index) return false;
+    cameraListDetent.value = index;
     if (command.index !== index) {
       const next = { index, sequence: command.sequence + 1, pending: false };
       sheetCommand.current = next; applySheet(next);
@@ -536,7 +553,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       sheetCommand.current = { ...command, pending: false };
     }
     return true;
-  }, []);
+  }, [cameraListDetent]);
   // Requested React index and physically settled native index are deliberately separate.
   // This lets a quiet return keep native FlatList geometry, while an interrupted spring still forces a fresh mount.
   const nativeSettledIndex = useRef(sheetIndex), nativeSpringMoving = useRef(false);
@@ -670,16 +687,20 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // Layout: the body (it reaches the bottom of the screen), the tools' lower edge (the search pill and its row of capsules) and the sheet's measured top line.
   const [bodyHeight, setBodyHeight] = useState(0), [toolsBottom, setToolsBottom] = useState(TOOLS_ESTIMATE), [peek, setPeek] = useState(PEEK_ESTIMATE);
   const [toolsMeasured, setToolsMeasured] = useState(false);
+  const [searchBottom, setSearchBottom] = useState(BAR_TOP + 56);
   const [headerLeadHeight, setHeaderLeadHeight] = useState(PEEK_ESTIMATE);
   // The list at its full height ends directly under the tools: no strip of map is left between them (the owner, 8 Oct 2026: "lista ide do vrha").
   // The map's furniture (its sources on the left, "moja lokacija" on the right) is one row high and rides the list's top edge, above it; where
   // the list is as high as it goes the row has no map to stand on and gives way. A tall count header joins the list scroll instead of pinning it.
   const canLocate = where !== 'remote';
   const footerRow = CONTROL_SIZE;
-  const listTop = fullSheetTop(toolsBottom, LIST_GAP);
-  const availableSheet = bodyHeight ? Math.max(3, bodyHeight - listTop) : 0;
-  const mapClearSheet = bodyHeight ? Math.max(3, availableSheet - GAP) : 0;
-  const scrollHeader = !!mapClearSheet && peek + 2 > mapClearSheet;
+  const listTop = fullSheetTop(searchBottom, LIST_GAP);
+  const capsuleSpace = Math.max(0, toolsBottom + LIST_GAP - listTop);
+  const mapClearSheet = bodyHeight ? Math.max(3, bodyHeight - fullSheetTop(toolsBottom, LIST_GAP) - GAP) : 0;
+  // The count belongs to the scroll now. A constant capsule spacer is hidden by transform below FULL;
+  // at FULL native scrolling consumes it first, then continues through rows, with no detent/layout writes per frame.
+  const tallHeader = !!mapClearSheet && peek + 2 > mapClearSheet;
+  const scrollHeader = true;
   // A chosen pin's card, at the very bottom of the screen: the list's top line steps out of sight behind it; the row of map furniture stands above the card.
   const cardShown = mapShown && (!!chosen || placeTasks.length > 1) && panel === null;
   const [cardHeight, setCardHeight] = useState(0);
@@ -694,16 +715,21 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const interacted = useRef(false);
   // The list's top line as it stands with no card over it, and the system's inset under it (the sheet reaches the bottom of the screen, and the
   // bottom navigation is away while it rests here). With a card it steps out of sight (HIDDEN) and only that one line changes.
-  const collapsedLead = scrollHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
-  const collapsedSnap = scrollHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset;
-  const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP, bar: barHeight }),
-    [bodyHeight, listTop, collapsedSnap, cardShown, barHeight]);
+  const collapsedLead = tallHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
+  const collapsedSnap = tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset;
+  const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, halfTop: fullSheetTop(toolsBottom, LIST_GAP),
+    collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP, bar: barHeight }),
+    [bodyHeight, listTop, toolsBottom, collapsedSnap, cardShown, barHeight]);
   const sheetSnapPoints = useMemo(() => kick % 2 === 1
     ? snapPoints.map((value, at) => at === sheetIndex && typeof value === 'number' ? value - SHEET_KICK_PX : value) : snapPoints, [snapPoints, kick, sheetIndex]);
   // Empty results use the same full-height recovery surface, with a secondary map return.
   const highest = SNAP.full;
   // Match the native sheet's initial off-screen position; zero before its first layout would mean falsely covered.
   const position = useSharedValue(windowHeight);
+  const chromeOffset = useSharedValue(0);
+  const listMotion = useAnimatedStyle(() => ({
+    transform: [{ translateY: -capsuleSpace * (1 - chromeJoin(position.value, listTop, capsuleSpace)) }],
+  }), [position, listTop, capsuleSpace]);
   const expanded = sheetIndex === SNAP.full;
   // "Moja lokacija" stands at the right end of the map's row of furniture, directly above the list, and moves with it: the same arithmetic as
   // the map's sources on the left of that row (`mapControls`), drawn here because it must also be there while no map is mounted.
@@ -774,6 +800,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     sheetMount.current.layout = layoutMountSignature;
   }
   const nativeMountKey = sheetMount.current.key;
+  useEffect(() => { chromeOffset.value = 0; }, [nativeMountKey, props.scopeKey, chromeOffset]);
+  const [chipsHidden, setChipsHidden] = useState(false);
+  const receiveChipsHidden = useCallback((hidden: boolean) => {
+    if (currentSheet()) setChipsHidden(hidden);
+  }, [currentSheet]);
+  useAnimatedReaction(() => capsuleSpace > 0 && chromeJoin(position.value, listTop, capsuleSpace) >= 1
+    && capsuleCollapse(chromeOffset.value, capsuleSpace) >= capsuleSpace,
+  (next, previous) => { if (next !== previous) runOnJS(receiveChipsHidden)(next); },
+  [position, listTop, capsuleSpace, chromeOffset, receiveChipsHidden]);
   const kickable = !!props.p6Seam && Platform.OS === 'android' && focused && bodyHeight > 0;
   useEffect(() => {
     if (!kickable) return;
@@ -952,13 +987,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // of the sheet from half height up. It does not depend on whether the navigation is on show at the moment (a list that is read at its top line is
   // not looked at), so the rows' own geometry never changes with it.
   const endPadding = (pillShown ? sys.space.huge + sys.space.xxl : sys.space.xxl) + barHeight;
-  const listPadding = useMemo(() => ({ paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: endPadding, flexGrow: 1 }), [endPadding]);
+  const minimumListContent = listWindow > 0 ? listWindow + capsuleSpace : 0;
+  const listPadding = useMemo(() => ({ paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: endPadding, flexGrow: 1,
+    ...(minimumListContent ? { minHeight: minimumListContent } : {}) }), [endPadding, minimumListContent]);
   const hasMeasuredEnd = useCallback(() => {
     if (extent.bottom === null || extent.footer === null) return false;
     const end = extent.bottom + extent.footer + endPadding;
     return contentHeight.current >= end - 1
-      && (contentHeight.current <= listWindow || Math.abs(contentHeight.current - end) <= 1);
-  }, [extent, endPadding, listWindow]);
+      && (contentHeight.current <= minimumListContent || Math.abs(contentHeight.current - end) <= 1);
+  }, [extent, endPadding, minimumListContent]);
   const restoreVisit = useRef<number | null>(null), restoreMount = useRef<number | null>(null), restoreHadRows = useRef(hasRows);
   traceState.current = { scrolled: scrolledRef.current, index: sheetIndex };
   const tracedScroll = useRef<number | null>(null);
@@ -1327,6 +1364,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} me={nearby.me} onNearbyConsumed={nearby.consume}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
           onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom}
+          listDetent={cameraListDetent}
           controlsMinTop={toolsBottom + GAP} locked={mapCovered} locateShown={canLocate}
           onStripPress={() => { userIntent?.(); setSheetIndex(SNAP.half); }}
           cameraLayoutReady={bodyHeight > 0 && toolsMeasured}
@@ -1346,18 +1384,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           </Press>
         </Surface>
       </Animated.View> : null}
-      <DiscoverySearchBar where={searchedWords}
-        onSearch={() => openPanel('search')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
-        onClearWhere={searchedWords ? clearSearch : undefined}
-        filters={{ count: conditionCount, onPress: () => openPanel('filters') }}
-        onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
-        chips={chipRow}
-        below={<>
-          {canLocate && nearby.message ? <NearbyNotice message={nearby.message} onSettings={nearby.settings} /> : null}
-          {props.forMeRefused ? <ForMeNotice message={FOR_ME_REFUSED} entry={WORK_PROFILE_ENTRY} onEntry={props.onWorkProfile}
-            onClose={() => props.onDismissForMeRefused?.()} /> : null}
-        </>} />
       <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={sheetSnapPoints} position={position} reduced={reduced}
+        compactTop={listTop} capsuleSpace={capsuleSpace}
         // Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not FINISHED (an interrupted one never
         // sets `didAnimateOnMount`), and nothing re-runs it: a later request for another detent is lost, React says FULL and the native sheet stays
         // where it is (a dimmed empty screen with only the "Mapa" pill; found on the emulator, on the first open of the list and after a return).
@@ -1366,15 +1394,16 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onIndex={onIndex} onAnimate={onSheetAnimate} header={scrollHeader ? null : header}
         sunk={cardShown}>
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
-          requestedIndex={sheetIndex} pendingRequest={sheetCommand.current.pending} onReady={receiveListReady}>
+          requestedIndex={sheetIndex} pendingRequest={sheetCommand.current.pending} onReady={receiveListReady} chromeOffset={chromeOffset}>
         {/* The content drag raises the sheet, then scrolls the list; at offset zero a downward drag lowers it again.
             An onRefresh prop makes Gorhom reserve that FULL gesture for refresh. Refresh is an explicit menu action. */}
         <CellLayoutContext.Provider value={cellLayoutContext}>
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem} CellRendererComponent={DiscoveryCell}
           scrollEventsHandlersHook={useDiscoveryScrollEvents}
-          style={listWindow > 0 ? { height: listWindow, flexGrow: 0, flexShrink: 0 } : undefined}
+          style={[listWindow > 0 ? { height: listWindow, flexGrow: 0, flexShrink: 0 } : undefined, listMotion]}
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
-          ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
+          ListHeaderComponent={<View testID="discovery-scrolling-header" style={s.scrollingHeader}>
+            <View pointerEvents="none" accessible={false} style={{ height: capsuleSpace }} />{header}</View>}
           extraData={sectionsSignature}
           onEndReached={!refreshing && props.p6Seam?.pageHasMore && !props.p6Seam.loadingMore ? () => { if (currentList()) props.p6Seam?.onNextPage(); } : undefined}
           onEndReachedThreshold={props.p6Seam?.pageHasMore ? 0.4 : undefined}
@@ -1397,6 +1426,19 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         </CellLayoutContext.Provider>
         </DiscoveryScrollReadiness>
       </DiscoveryListSheet>
+      <DiscoverySearchBar where={searchedWords}
+        onSearch={() => openPanel('search')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
+        onClearWhere={searchedWords ? clearSearch : undefined}
+        filters={{ count: conditionCount, onPress: () => openPanel('filters') }}
+        onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
+        onSearchLayout={bottom => setSearchBottom(current => current === bottom ? current : bottom)}
+        motion={{ sheetTop: position, offset: chromeOffset, compactTop: listTop, capsules: capsuleSpace, hidden: chipsHidden }}
+        chips={chipRow}
+        below={<>
+          {canLocate && nearby.message ? <NearbyNotice message={nearby.message} onSettings={nearby.settings} /> : null}
+          {props.forMeRefused ? <ForMeNotice message={FOR_ME_REFUSED} entry={WORK_PROFILE_ENTRY} onEntry={props.onWorkProfile}
+            onClose={() => props.onDismissForMeRefused?.()} /> : null}
+        </>} />
       {/* At the full height the same map is one tap away: a floating dark-green "Mapa" that lowers the list to its top line.
           It fades in and out only when motion is allowed; under reduced motion it is simply there. */}
       {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillRow, { bottom: sys.space.base + barHeight, opacity: pillFade.opacity }]}
@@ -1415,7 +1457,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         style={[s.pagingRow, { bottom: sys.space.base + barHeight + (pillShown ? 48 + sys.space.sm : 0) }]}>
         <Surface kind="float" style={s.paging}><T variant="note" style={s.pagingText}>{PAGING_WORDS}</T></Surface>
       </View> : null}
-      {cardShown ? <DiscoveryPeek key={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
+      {cardShown ? <DiscoveryPeek selectionKey={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
         item={chosen} place={placeTasks} placeTotalCount={props.p6Seam?.peek?.placeTotalCount} relation={relation} active={focused} bottomInset={cardBottom} reduced={reduced}
         maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
@@ -1423,7 +1465,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     </BlurTargetView>
     {panel ? <DiscoverySearchPanel blurTarget={searchBlurTarget} items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
       mode={panel} reduced={reduced} readiness={readiness} p6Search={props.p6Seam?.search} recent={recents.items}
-      onApply={apply} onClose={() => setPanel(null)} /> : null}
+      onApply={apply} onClose={() => setPanel(null)} onOpenTask={openItem} /> : null}
     {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
       ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),
       { key: 'profile', label: 'Moj profil', icon: 'person', onPress: props.onProfile },

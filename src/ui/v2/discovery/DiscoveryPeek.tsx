@@ -63,7 +63,8 @@ function PinTask({ item, relation, onOpen, onLayout }: {
  * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
  * text it may take more of the window than other cards rather than be cut off.
  */
-export function DiscoveryPeek({ item, place, placeTotalCount, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
+export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
+  selectionKey?: string;
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
   /** The tasks on the chosen place, in the list's order. */ place: readonly MarketplaceItem[];
   /** Exact POINT_MEMBERS total, independent of its bounded preview. Legacy supplies the complete place array. */
@@ -102,6 +103,7 @@ export function DiscoveryPeek({ item, place, placeTotalCount, relation, active, 
     if (content > 0) { measuredHeight.current = PEEK_FRAME + content; onHeight?.(Math.min(PEEK_FRAME + content, cap)); }
   };
   return <PeekSheet label={item ? 'Zadatak na mapi' : 'Zadaci na ovom mestu'} active={active} bottomInset={bottomInset} reduced={reduced}
+    contentKey={selectionKey ?? (item ? `task:${item.id}` : place.map(task => task.id).join(':'))}
     handle={false} maxShare={share} onClose={onClose} scrollable
     overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvori pregled zadatka' : 'Zatvori pregled zadataka'}
       glyph="close" onPress={dismiss} /></View>}>

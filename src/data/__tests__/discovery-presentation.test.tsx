@@ -92,6 +92,7 @@ jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 jest.mock('../../ui/v2/TaskPublisherPortrait', () => ({ TaskPublisherPortrait: 'TaskPublisherPortrait' }));
 import { AREA_ANNOUNCE_MS, DiscoveryPresentation, HIDDEN, OFFSET_SETTLE_MS, RESTORE_STALL_MS, type DiscoveryV1PresentationSeam } from '../../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
+import { DiscoveryListSheet } from '../../ui/v2/discovery/DiscoveryListSheet';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
 import { DiscoveryChipRow } from '../../ui/v2/discovery/DiscoveryChipRow';
 import { CONTROL_SIZE } from '../../ui/v2/discovery/mapClearBand';
@@ -236,7 +237,7 @@ const radioOf = (label: string) => tree.root.findAll(node => String(node.type) =
 // The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4); the green action applies them with the place chosen before.
 const search = async (words: string) => {
   await tap('Pretraži zadatke');
-  await act(async () => press('Šta tražiš').props.onChangeText(words));
+  await act(async () => press('Grad ili zadatak').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
 beforeEach(() => {
@@ -273,10 +274,11 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.re
 // The approved plan, U4: "skorašnje pretrage". A search that was made is kept on this phone for this account, and is one tap away the next time the search opens.
 test('what was searched is kept for this account and offered the next time the search opens, one tap away; another account sees none', async () => {
   rows = [row('a', { podrucjeTekst: 'Liman, Novi Sad' }), row('b', { podrucjeTekst: 'Vračar, Beograd' })];
+  initial = { ...initial, query: 'pomoć' };
   await render();
   await tap('Pretraži zadatke');
   expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(0);
-  await act(async () => press('Šta tražiš').props.onChangeText('pomoć'));
+  await act(async () => press('Grad ili zadatak').props.onChangeText('Beograd'));
   await act(async () => radioOf('Vračar, Beograd, 1 zadatak').props.onPress());
   expect(snapshot).toMatchObject({ query: 'pomoć', place: 'Vračar, Beograd' }); expect(panel()).toHaveLength(0);
   // kept under this account's own key, as the words and the place of the search and nothing else
@@ -311,7 +313,7 @@ test('a tap on the handle goes to the next height and round again; the full list
   expect(countLine().props.accessibilityHint).toBe('Otvara celu listu.');
   await act(async () => countLine().props.onPress());
   expect(listSheet().props.index).toBe(2);
-  expect(listSheet().props.snapPoints[2]).toBe(760 - fullTop(116));
+  expect(listSheet().props.snapPoints[2]).toBe(760 - fullTop(68));
   // the handle is still the handle at the full height: it takes the list back to the map
   expect(countLine().props.accessibilityHint).toBe('Spušta listu i prikazuje mapu.');
   expect(countLine().props.accessibilityState).toEqual({ expanded: true, busy: false });
@@ -320,19 +322,24 @@ test('a tap on the handle goes to the next height and round again; the full list
   expect(userIntent).toHaveBeenCalledTimes(3);
 });
 
-test('the sheet keeps its corners, its hairline and its lift at every height, the full one included: it is a sheet over the map, not a page', async () => {
+test('the floating sheet joins a flat white surface at FULL without invalid platform shadow values', async () => {
   await render();
   const Background = listSheet().props.backgroundComponent;
   let background: ReactTestRenderer;
-  await act(async () => { background = create(<Background style={{}} animatedIndex={{ value: 1 }} animatedPosition={{ value: 400 }} />); });
-  const style = () => StyleSheet.flatten(background!.root.findByProps({ testID: 'discovery-sheet-background' }).props.style);
+  const frame = (top: number) => <DiscoveryListSheet index={2} snapPoints={[68, 400, 728]} reduced onIndex={() => {}} header={null}
+    compactTop={72} capsuleSpace={66}><Background style={{}} animatedIndex={{ value: 2 }} animatedPosition={{ value: top }} /></DiscoveryListSheet>;
+  await act(async () => { background = create(frame(400)); });
+  const style = () => StyleSheet.flatten(background!.root.findByProps({ testID: 'discovery-sheet-floating' }).props.style);
+  const flat = () => StyleSheet.flatten(background!.root.findByProps({ testID: 'discovery-sheet-joined' }).props.style);
   const kept = { backgroundColor: sys.color.surface, borderTopLeftRadius: sys.radius.sheet, borderTopRightRadius: sys.radius.sheet, borderWidth: 1 };
   expect(style()).toMatchObject(kept);
-  await act(async () => background!.update(<Background style={{}} animatedIndex={{ value: 2 }} animatedPosition={{ value: 188 }} />));
-  expect(style()).toMatchObject(kept);
-  // the docked lift is still drawn: the full sheet is not joined to the search surface any more
+  expect(style().opacity).toBe(1); expect(flat().opacity).toBe(0);
   expect(style().boxShadow ?? style().elevation).toBeTruthy();
-  expect(style().boxShadow).not.toEqual([]);
+  await act(async () => background!.update(frame(105)));
+  expect(style().opacity).toBe(0.5); expect(flat().opacity).toBe(0.5);
+  await act(async () => background!.update(frame(72)));
+  expect(style().opacity).toBe(0); expect(flat()).toMatchObject({ opacity: 1, backgroundColor: sys.color.surface });
+  expect(flat().boxShadow ?? flat().elevation).toBeUndefined();
   await act(async () => background!.unmount());
 });
 
@@ -435,7 +442,7 @@ test('the remote quick filter clears an old point and place, keeps the camera an
   await layOutBody(800);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(112));
   // no map: the list stands one gap under the tools, as it does with a map (nothing of the map is left above a full list)
-  expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(112));
+  expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(68));
 });
 
 test('the full list stands directly under the tools: the map stays on show and locks while the list is full, and keeps its camera when returning', async () => {
@@ -445,7 +452,7 @@ test('the full list stands directly under the tools: the map stays on show and l
   await render(); await layOutBody(760);
   await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(116));
   const layer = () => tree.root.findByProps({ testID: 'discovery-map-layer' });
-  const top = fullTop(116);
+  const top = fullTop(68);
   expect(listSheet().props.snapPoints[2]).toBe(760 - top);
   // The map is told where the tools end: its furniture (the sources, and "moja lokacija" beside it) rides the list but never goes above the tools' edge and one gap.
   expect(map().props).toMatchObject({ locked: false, controlsMinTop: 116 + 12, locateShown: true, toolsBottom: 116 });
@@ -654,6 +661,7 @@ test.each(['native probe', 'onChange'] as const)('confirming a requested peek th
   // Matching native evidence clears command ownership without rewriting the unchanged React index.
   // A render here also re-registers Gorhom's scrollable during its initial native settlement.
   expect(committed).not.toHaveBeenCalled();
+  expect(map().props.listDetent.value).toBe(0);
   nativeDetent(1); await deliverUi();
   // The pending request was actually fulfilled: a later native detent is no longer rejected by it.
   expect(listSheet().props.index).toBe(1); expect(snapshot.sheet).toBe('half');
@@ -1371,7 +1379,7 @@ test('native return restores into an explicitly bounded viewport without waiting
     // second bounded onLayout after EXTENDED, so waiting for one leaves the list at zero.
     await readyList(2611.4, 2611.4);
     expect(scrollToOffset).toHaveBeenCalledWith({ offset: 313, animated: false });
-    const frame = listSheet().props.snapPoints[2] - 68; // compact grab/count header before native measurement
+    const frame = listSheet().props.snapPoints[2]; // count and capsule spacer belong to the same scrolling list
     expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: frame, flexGrow: 0, flexShrink: 0 });
     await act(async () => {
       list().props.onScroll({ nativeEvent: { contentOffset: { y: 0 } } });
@@ -1433,7 +1441,7 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   // Discovery V47: the search over the map is one pill that says what is SEARCHED in one line (nothing, until something is) and opens the panel; the words
   // searched there narrow the list, and the pill's own × takes them away again, keeping everything else. The conditions are the capsules under it.
   expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
-  expect(texts(press('Pretraži zadatke'))).toBe('Šta tražiš · Gde');
+  expect(texts(press('Pretraži zadatke'))).toBe('Grad ili zadatak');
   expect(pressable('Prikaži sve zadatke')).toHaveLength(0);
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await search('bb');
@@ -1962,14 +1970,14 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tap('Pretraži zadatke');
     expect(panel()).toHaveLength(1);
-    expect(pressable('Šta tražiš')).toHaveLength(1);
+    expect(pressable('Grad ili zadatak')).toHaveLength(1);
     for (const filter of ['Kada', 'Iznos', 'Sa iznosom', 'Tražim ponude']) expect([filter, panel()[0].findAllByProps({ accessibilityLabel: filter }).length]).toEqual([filter, 0]);
     expect(pressable('Zatvori pretragu')).toHaveLength(1); expect(pressable('Zatvori filtere')).toHaveLength(0);
     expect(action('Očisti')).toBeDefined();
     await tap('Zatvori pretragu'); expect(panel()).toHaveLength(0);
     await tapFilters(); expect(panel()).toHaveLength(1);
     expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Gde'); expect(texts(panel()[0])).toContain('Iznos');
-    expect(pressable('Šta tražiš')).toHaveLength(0);
+    expect(pressable('Grad ili zadatak')).toHaveLength(0);
     expect(pressable('Zatvori filtere')).toHaveLength(1); expect(pressable('Zatvori pretragu')).toHaveLength(0);
     expect(action('Očisti')).toBeDefined();
   });
@@ -2021,7 +2029,7 @@ test('reading, not read and nothing in this view keep their meanings, through th
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(listSheet().props.index).toBe(0);
   // Words that find nothing: the panel's one action says so and cannot apply them; the list keeps what it had.
-  await tap('Pretraži zadatke'); await act(async () => press('Šta tražiš').props.onChangeText('nema takvog'));
+  await tap('Pretraži zadatke'); await act(async () => press('Grad ili zadatak').props.onChangeText('nema takvog'));
   expect(showAction().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
   await tap('Zatvori pretragu'); expect(snapshot.query).toBe('');
   // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
@@ -2202,29 +2210,78 @@ test('where the sheet rests and how far the list is scrolled are kept in the rou
 
 // The row of capsules is the TOOLS' own (the owner's phone of 8 Oct 2026): it stands over the map under the pill at every height of the list and is never inside the sheet, so
 // the list scrolls under nothing of it and there is no loop between its room and the list's window to guard. The list, when it is up, stands directly under it.
-test('the capsules stay put through any scroll, and the list\'s viewport is the sheet less its top line', async () => {
+test.each([0, 1])('a short FULL list with %i rows reserves native scroll space for its capsules', async count => {
+  rows = Array.from({ length: count }, (_, i) => row(`short${i}`)); initial = { ...initial, sheet: 'full' };
+  await render(); await layOutBody(); await dragSheet(2);
+  listSheet().props.animatedPosition.value = fullTop(68);
+  const window = StyleSheet.flatten(list().props.style).height;
+  const minimum = StyleSheet.flatten(list().props.contentContainerStyle).minHeight;
+  expect(minimum - window).toBe(66);
+  await readyList(minimum, window);
+  for (const y of [66, 0]) {
+    await nativeScroll(y); await deliverUi(); await update();
+    const chips = tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
+    expect(StyleSheet.flatten(chips.props.style).transform).toEqual([{ translateY: -y }]);
+    expect(chips.props.accessibilityElementsHidden).toBe(y === 66);
+  }
+});
+
+test('capsules collapse with native scrolling and return at the first row without changing FULL geometry', async () => {
   jest.useFakeTimers();
   try {
     mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
     rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render(); await layOutBody();
-    const scroll = async (y: number) => act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y } } }));
     await dragSheet(2); await readyList();
+    listSheet().props.animatedPosition.value = fullTop(68);
     await act(async () => list().props.onContentSizeChange(400, 3000));
-    for (const y of [30, 300, 1200, 4, 0]) { await scroll(y); expect(capsules()).toHaveLength(1); expect(press('Pretraži zadatke')).toBeTruthy(); }
+    const stops = [...listSheet().props.snapPoints];
+    for (const y of [30, 300, 1200, 4, 0]) {
+      await nativeScroll(y); await deliverUi(); await update();
+      const chips = tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
+      expect(StyleSheet.flatten(chips.props.style).transform).toEqual([{ translateY: -Math.min(66, y) }]);
+      expect(chips.props.accessibilityElementsHidden).toBe(y >= 66);
+      expect(listSheet().props.snapPoints).toEqual(stops); expect(press('Pretraži zadatke')).toBeTruthy();
+    }
     // The row is not in the sheet at all: nothing of it scrolls with the rows, and nothing of it is pinned above them.
     expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
     const [, , full] = listSheet().props.snapPoints as number[];
     // Until the tools are measured the list stands under their estimate: the pill's distance from the top (12), the pill (56), 8, and a row of capsules 58 high.
-    expect(full).toBe(800 - fullTop(12 + 56 + 8 + 58));
-    expect(StyleSheet.flatten(list().props.style).height).toBe(full - 68);
-    // Taller tools (larger text) lower the top of the list by exactly what they take, and nothing else moves.
+    expect(full).toBe(800 - fullTop(68));
+    expect(StyleSheet.flatten(list().props.style).height).toBe(full);
+    // Taller capsules grow the fixed spacer, not the compact FULL detent. A taller search field changes that detent.
     await act(async () => tree.root.findByType(DiscoverySearchBar).props.onLayout(150));
-    expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(150));
-    expect(StyleSheet.flatten(list().props.style).height).toBe(800 - fullTop(150) - 68);
+    expect(listSheet().props.snapPoints[2]).toBe(full);
+    await act(async () => tree.root.findByType(DiscoverySearchBar).props.onSearchLayout(90));
+    expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(90));
+    expect(StyleSheet.flatten(list().props.style).height).toBe(800 - fullTop(90));
   } finally { jest.useRealTimers(); }
 });
 
 // Review r3 item 4: a list whose tasks all lack a pin must be seen, not left under a top line over an empty map.
+test.each([0, 160])('a native locked position %s replaces stale chrome offset on FULL to HALF to FULL without another scroll', async locked => {
+  rows = Array.from({ length: 8 }, (_, i) => row(`lock${i}`));
+  await render(); await layOutBody(); await dragSheet(2); await readyList();
+  const mounted = listSheet();
+  mounted.props.animatedPosition.value = fullTop(68);
+  await nativeScroll(500); await deliverUi(); await update();
+  const chips = () => tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
+  expect(chips().props.accessibilityElementsHidden).toBe(true);
+  await dragSheet(1); mockNativeScrollStatus.value = 0;
+  mounted.props.animatedPosition.value = 400;
+  // Default Gorhom's LOCKED target is zero unless a handle drag explicitly holds its initial position.
+  const context = { shouldLockInitialPosition: locked > 0, initialContentOffsetY: locked };
+  const incoming = { contentOffset: { y: 500 } };
+  await act(async () => list().props.nativeHandlers.handleOnScroll(incoming, context));
+  expect(mockDefaultScroll).toHaveBeenLastCalledWith(incoming, context);
+  mockNativeScrollStatus.value = 1; await dragSheet(2);
+  mounted.props.animatedPosition.value = fullTop(68);
+  await deliverUi(); await update();
+  expect(listSheet()).toBe(mounted);
+  expect(StyleSheet.flatten(chips().props.style).transform).toEqual([{ translateY: -Math.min(66, locked) }]);
+  expect(chips().props.accessibilityElementsHidden).toBe(locked >= 66);
+  expect(chips().props.pointerEvents).toBe(locked >= 66 ? 'none' : 'box-none');
+});
+
 test('when a search or filter leaves only tasks without a point on the map, the list rises to the whole screen', async () => {
   rows = [...Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))), row('prevod', { priblizno: null })];
   await render();
@@ -2531,7 +2588,7 @@ test('the full list stands directly under the tools while a selected preview sti
   await pillBottom(144);
   // The list stands under the tools' edge (12 + 144) and one small gap: no strip of map is left between them.
   const toolsEdge = 156;
-  expect(500 - listSheet().props.snapPoints[2]).toBe(fullTop(toolsEdge));
+  expect(500 - listSheet().props.snapPoints[2]).toBe(fullTop(68));
   await act(async () => map().props.onSelect('bb'));
   const preview = () => tree.root.findByType(DiscoveryPeek);
   const cap = peek()!.props.maxDynamicContentSize;
@@ -2559,9 +2616,9 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   await act(async () => tree.root.findByProps({ testID: 'discovery-list-header-lead' }).props.onLayout({ nativeEvent: { layout: { height: 88 } } }));
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
   // The tools' edge 156 and a small gap put the full list's top at 160: it is 180 high. Nothing is pinned above the rows, the tall header scrolls with them.
-  expect(listSheet().props.snapPoints).toEqual([96, 168, 180]);
-  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 180, flexGrow: 0, flexShrink: 0 });
-  expect(340 - listSheet().props.snapPoints[2]).toBe(fullTop(156));
+  expect(listSheet().props.snapPoints).toEqual([96, 168, 268]);
+  expect(StyleSheet.flatten(list().props.style)).toMatchObject({ height: 268, flexGrow: 0, flexShrink: 0 });
+  expect(340 - listSheet().props.snapPoints[2]).toBe(fullTop(68));
   expect(340 - listSheet().props.snapPoints[1]).toBe(fullTop(156) + sys.space.md);
   expect(list().findByProps({ testID: 'discovery-scrolling-header' }).findByProps({ testID: 'discovery-list-header' })).toBe(header());
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
@@ -2572,18 +2629,18 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   expect(quick('Narednih 7 dana').props.accessibilityState).toEqual({ selected: true }); // a time with no capsule of its own says itself once, and removes itself
   // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
-  expect(listSheet().props.snapPoints[2]).toBe(180);
+  expect(listSheet().props.snapPoints[2]).toBe(268);
   await act(async () => listSheet().props.onChange(2));
   expect(listSheet().props.index).toBe(2);
-  expect(StyleSheet.flatten(list().props.style).height).toBe(180); // same highest-detent viewport at half and full
+  expect(StyleSheet.flatten(list().props.style).height).toBe(268); // same highest-detent viewport at half and full
   if (empty) expect(StyleSheet.flatten(press('Mapa').parent!.props.style).backgroundColor).toBe(sys.color.surface);
   await tap('Prikaži sve zadatke');
   expect(snapshot.place).toBeNull(); expect(snapshot.query).toBe(''); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
-  // Once the map has room again the exact same header can return to the fixed slot.
+  // The same header remains in the native scroll; no reparenting or duplicate header on resize.
   await layOutBody(700);
-  expect(tree.root.findAllByProps({ testID: 'discovery-scrolling-header' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'discovery-scrolling-header' })).toHaveLength(1);
   expect(tree.root.findAllByProps({ testID: 'discovery-list-header' })).toHaveLength(1);
-  expect(StyleSheet.flatten(list().props.style).height).toBe(listSheet().props.snapPoints[2] - 240);
+  expect(StyleSheet.flatten(list().props.style).height).toBe(listSheet().props.snapPoints[2]);
 });
 
 describe('Moja lokacija: an explicit camera-only location capture', () => {
@@ -3108,7 +3165,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
     expect(snapshot.selectedId).toBe('t1'); expect(map().props.selectedId).toBe('t1');
     // The card is a detached sheet that a drag down closes (Gorhom calls onClose when it has left), as the × and Back do.
     expect(peek()!.props).toMatchObject({ detached: true, enablePanDownToClose: true, handleComponent: null });
-    await act(async () => peek()!.props.onClose());
+    await act(async () => { peek()!.props.onAnimate(0, -1); peek()!.props.onClose(); });
     expect(snapshot.selectedId).toBeNull(); expect(peek()).toBeUndefined();
     expect(map().props.selectedId).toBeNull();
     // the list's top line is back where it was

@@ -50,10 +50,10 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
 let rows: MarketplaceItem[] = [], view: MarketplaceView, mine: ReadonlySet<string> | undefined, mapArea: PublicBounds | null, mode: PanelMode, recent: readonly RecentSearch[];
 let readiness: SearchReadiness = 'ready', p6Search: DiscoveryV1SearchPanelSeam | undefined, reduced = true;
 let blurTarget: { current: null } | undefined;
-const apply = jest.fn(), close = jest.fn();
+const apply = jest.fn(), close = jest.fn(), openTask = jest.fn();
 let tree: ReactTestRenderer;
 const panelOf = () => <DiscoverySearchPanel items={rows} view={view} mine={mine} now={NOW} mapArea={mapArea} blurTarget={blurTarget}
-  mode={mode} reduced={reduced} readiness={readiness} p6Search={p6Search} recent={recent} onApply={apply} onClose={close} />;
+  mode={mode} reduced={reduced} readiness={readiness} p6Search={p6Search} recent={recent} onApply={apply} onClose={close} onOpenTask={openTask} />;
 const render = async () => act(async () => { tree = create(panelOf()); });
 const byId = (testID: string) => tree.root.findAll(node => node.props.testID === testID)[0];
 const byLabel = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label);
@@ -118,7 +118,7 @@ beforeEach(() => {
   view = { ...initialMarketplaceView(), mode: 'map' }; mine = new Set(['mine']); mapArea = null; mode = 'search'; readiness = 'ready'; p6Search = undefined;
   reduced = true; blurTarget = undefined; recent = [];
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
-  apply.mockReset(); close.mockReset(); mockKeyboardVisible = false; mockKeyboardDismiss.mockReset();
+  apply.mockReset(); close.mockReset(); openTask.mockReset(); mockKeyboardVisible = false; mockKeyboardDismiss.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
@@ -130,6 +130,52 @@ const p6Snapshot = (patch: Partial<DiscoveryV1SearchSnapshot> = {}, within = '')
 });
 const p6Seam = (snapshot: DiscoveryV1SearchSnapshot): DiscoveryV1SearchPanelSeam => ({ snapshot, onDraft: jest.fn(), onNextPlaces: jest.fn() });
 
+const taskSuggestion = (): NonNullable<DiscoveryV1SearchSnapshot['tasks']>[number] => ({
+  id: '11111111-1111-4111-8111-111111111111', revision: 4, title: 'Selidba polica', category: 'Selidbe',
+  sortAt: NOW.toISOString(), publishedAt: NOW.toISOString(), status: 'PUBLISHED', urgent: false,
+  scheduleKind: 'FLEXIBLE', startsAt: null, endsAt: null, executionLocationMode: 'STATIONARY',
+  taskCountryCode: 'RS', taskTimezone: 'Europe/Belgrade', verifiedIdentityRequired: false,
+  approximateCity: 'Novi Sad', approximateArea: 'Liman', pin: { lat: 45.25, lng: 19.84, precision: 'COARSE_1KM' },
+  requiredSlots: 1, coveredSlots: 0, requiredSkills: [], requiredTools: [], requiredVehicles: [], requiredLicenses: [],
+  minimumExperienceYears: null, priceMode: 'OFFERS', requesterPriceRsd: null, priceBasis: null,
+  requesterProfileId: '22222222-2222-4222-8222-222222222222', responseDeadline: null, acceptsApplications: true,
+  publicTopology: null, criticalConditions: null,
+});
+
+test('typing a city filters place suggestions and choosing it does not also search tasks for that city text', async () => {
+  await render(); await typeWhat('Novi');
+  expect(offered().some(name => name.includes('Beograd'))).toBe(false);
+  await choose('Liman, Novi Sad, 2 zadatka');
+  expect(lastDraft()).toMatchObject({ query: '', place: 'Liman, Novi Sad' });
+});
+test('returning to all cities preserves the previously committed task query, while explicitly clearing it does not', async () => {
+  view = { ...view, query: 'pomoć' }; await render(); await typeWhat('Novi'); await tap('Svi gradovi');
+  expect(whatField().props.value).toBe('pomoć');
+  await choose('Vračar, Beograd, 1 zadatak'); expect(lastDraft().query).toBe('pomoć');
+  await act(async () => tree.unmount()); await render(); await tap('Obriši reč'); await typeWhat('Novi');
+  await choose('Liman, Novi Sad, 2 zadatka'); expect(lastDraft().query).toBe('');
+});
+test('a public task suggestion opens exactly once after the search has closed without applying its typed query', async () => {
+  view = { ...view, query: 'selidba' }; reduced = false; holdAnimations();
+  p6Search = p6Seam(p6Snapshot({ tasks: [taskSuggestion()] })); await render(); await finishAnimations();
+  expect(texts()).toContain('Zadaci'); expect(texts()).toContain('Liman, Novi Sad');
+  const pick = byLabel('Otvori zadatak: Selidba polica, Novi Sad')[0].props.onPress;
+  await act(async () => { pick(); pick(); });
+  expect(openTask).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
+  await finishAnimations(); expect(close).toHaveBeenCalledTimes(1);
+  expect(openTask).toHaveBeenCalledTimes(1);
+  expect(openTask.mock.calls[0][0]).toMatchObject({ id: taskSuggestion().id, revision: 4, naslov: 'Selidba polica' });
+});
+test.each(['before click', 'during close'])('a stale suggestion cannot open a task %s', async boundary => {
+  view = { ...view, query: 'selidba' }; reduced = false; holdAnimations();
+  p6Search = p6Seam(p6Snapshot({ tasks: [taskSuggestion()] })); await render(); await finishAnimations();
+  const pick = byLabel('Otvori zadatak: Selidba polica, Novi Sad')[0].props.onPress;
+  if (boundary === 'during close') await act(async () => pick());
+  p6Search = p6Seam(p6Snapshot({ status: 'loading', tasks: [] })); await act(async () => tree.update(panelOf()));
+  if (boundary === 'before click') await act(async () => pick());
+  await finishAnimations(); expect(openTask).not.toHaveBeenCalled(); expect(apply).not.toHaveBeenCalled();
+});
+
 describe('the SEARCH is a whole screen with a word, a place and what was searched before', () => {
   test('it fills the window with a way back and the field on top, "Gde" under them, and none of the filters', async () => {
     await render();
@@ -138,8 +184,8 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(byId('search-sheet').props).toMatchObject({ accessibilityViewIsModal: true, accessibilityLabel: 'Pretraga' });
     const header = byId('search-header');
     expect(header.findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel)).toContain('Zatvori pretragu');
-    expect(whatField().props).toMatchObject({ accessibilityLabel: 'Šta tražiš', placeholder: 'Šta tražiš?', autoFocus: true, returnKeyType: 'search' });
-    expect(texts()).toContain('Gde');
+    expect(whatField().props).toMatchObject({ accessibilityLabel: 'Grad ili zadatak', placeholder: 'Grad ili naziv zadatka', autoFocus: true, returnKeyType: 'search' });
+    expect(texts()).toContain('Mesta');
     expect(byLabel('Zatvori pretragu')).toHaveLength(1); expect(byLabel('Zatvori filtere')).toHaveLength(0);
     // the filters are the round button's: no days, no amount, no way of working here
     for (const filter of ['Kada', 'Iznos', 'Danas', 'Sutra', 'Sa iznosom', 'Datumi']) expect([filter, byLabel(filter).length + radio(filter).length]).toEqual([filter, 0]);
@@ -170,9 +216,9 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(offered().some(label => /^Na daljinu/.test(label))).toBe(false);
   });
 
-  test('a place chosen from the rows is the end of the search: it applies at once, with the words typed, and the panel closes', async () => {
-    await render();
-    await typeWhat('pomoć');
+  test('a place chosen from the rows consumes its typed name while preserving an already applied task query', async () => {
+    view = { ...view, query: 'pomoć' }; await render();
+    await typeWhat('Vračar');
     await choose('Vračar, Beograd, 1 zadatak');
     expect(apply).toHaveBeenCalledTimes(1);
     expect(lastDraft()).toMatchObject({ place: 'Vračar, Beograd', query: 'pomoć', area: null, pinPlace: null, where: 'any' });
@@ -359,12 +405,13 @@ describe('the server preview (P6) of the search', () => {
     await render();
     expect(seam.onDraft).toHaveBeenCalledWith(expect.objectContaining({ query: '', placeSearch: '' }), mapArea);
     await act(async () => actionNamed('Prikaži još mesta').props.onPress()); expect(seam.onNextPlaces).toHaveBeenCalledTimes(1);
-    // Typing a word asks the server about the tasks, not about places.
+    // The same typed input previews tasks and cities; neither selection is silently committed.
     await typeWhat('selidba');
-    expect(seam.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ query: 'selidba', placeSearch: '' }), mapArea);
+    expect(seam.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ query: 'selidba', placeSearch: 'selidba' }), mapArea);
+    await typeWhat('');
     // Going into a city asks for the places that contain its name.
     await act(async () => byLabel('Subotica')[0].props.onPress());
-    expect(seam.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ query: 'selidba', placeSearch: 'Subotica' }), mapArea);
+    expect(seam.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ query: '', placeSearch: 'Subotica' }), mapArea);
     expect(show().props.label).toBe('Učitavamo zadatke…');
   });
 
@@ -768,7 +815,7 @@ describe('the parts of the panel', () => {
   test('the narrow search retains one input line and keeps typed text and clear available', async () => {
     mockWindow = { width: 361, height: 779, scale: 3.5, fontScale: 1.15 };
     await render();
-    expect(whatField().props).toMatchObject({ multiline: false, numberOfLines: 1, placeholder: 'Šta tražiš?' });
+    expect(whatField().props).toMatchObject({ multiline: false, numberOfLines: 1, placeholder: 'Grad ili naziv zadatka' });
     await typeWhat('Pomoć pri preseljenju u Novi Sad');
     expect(whatField().props.value).toBe('Pomoć pri preseljenju u Novi Sad');
     await tap('Obriši reč'); expect(whatField().props.value).toBe('');

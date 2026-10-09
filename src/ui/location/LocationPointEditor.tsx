@@ -91,6 +91,8 @@ type Props = {
    *  standing on it instead of asking the person to search for what they just said. Opt-in: a
    *  lookup leaves a proposal pending confirmation. Only the long form treats automatic lookup as an unsaved change. */
   autoLocate?: boolean;
+  /** City-only conversational input asks for a closer place before making an automatic geocoder request. */
+  initialQuestion?: string;
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
   /** Visible selected-role summary above this editor; omit only its exact repeated text. */
@@ -108,7 +110,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, initialQuestion, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const conversation = presentation === 'conversation';
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
@@ -263,10 +265,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   // but dismissing an untouched suggestion must not claim an unsaved manual change.
   // A saved point wins: nothing here may move a point the person already confirmed.
   useEffect(() => {
-    if (!autoLocate || located.current || !focused || disabled || point || !searchText.trim()) return;
+    if (!autoLocate || initialQuestion || located.current || !focused || disabled || point || !searchText.trim()) return;
     located.current = true;
     void runSearch(!conversation);
-  }, [autoLocate, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoLocate, initialQuestion, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
   const useHere = async () => {
     if (!owns() || hereRequest.current) return;
     retireSearch();
@@ -293,6 +295,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         // Nothing confirms or saves it until the person presses the existing confirmation.
         setPosition({ latitude: result.point.latitude, longitude: result.point.longitude });
         setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
+        if (conversation) {
+          setAddress(''); setSelectedLabel(null); setCorrectionOpen(false);
+          void lookupAddress({ latitude: result.point.latitude, longitude: result.point.longitude }, true);
+        }
         return;
       }
       setHere(result.kind === 'CANCELLED' ? null : result.kind === 'DENIED' ? 'DENIED' : 'UNAVAILABLE');
@@ -324,6 +330,28 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     if (!owns() || !selectedLabel || !position) return;
     const label = selectedLabel;
     retireSearch(); setAddress(label); invalidate();
+  };
+  // Explicit manual-map entry may use the city as camera context, never as a chosen/confirmed point.
+  const openManualMap = async () => {
+    if (!owns()) return;
+    const context = lookupMode === 'search' && lookup.status === 'PROPOSALS'
+      ? lookup.candidates.map(candidate => ({ ...candidate.position })) : undefined;
+    retireSearch();
+    if (context?.length || !initialQuestion || !searchText.trim()) {
+      setCameraHint(context?.length ? context : undefined); setPlaceByHand(true); return;
+    }
+    const epoch = requestEpoch.current, owner = sesijaSada();
+    const currentRequest = () => alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current
+      && sesijaSada().user?.id === owner.user?.id && sesijaSada().accountRevision === owner.accountRevision;
+    setLookupMode('search'); setLookup({ status: 'LOADING' });
+    try {
+      const result = await resolver.search({ text: searchText, countryCode, scopeKey });
+      if (!currentRequest()) return;
+      setCameraHint(result.status === 'PROPOSALS' ? result.candidates.map(candidate => candidate.position) : undefined);
+      setLookup({ status: 'IDLE' }); setPlaceByHand(true);
+    } catch {
+      if (currentRequest()) { setLookup({ status: 'UNAVAILABLE' }); setPlaceByHand(true); }
+    }
   };
   const cancelSearch = () => { if (owns()) { retireSearch(lookupMode === 'search'); if (lookupMode === 'search') invalidate(); } };
   const confirm = () => {
@@ -385,7 +413,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   useEffect(() => {
     promptChanged.current?.(conversation && focused && !disabled && lookup.status !== 'LOADING' ? {
       context: { version: 1, promptToken, phase,
-        question: phase === 'PROPOSAL' ? pointQuestion : phase === 'AMBIGUOUS' ? clarificationQuestion : `Gde je ${title.toLocaleLowerCase()}?`,
+        question: phase === 'PROPOSAL' ? pointQuestion : phase === 'AMBIGUOUS' ? clarificationQuestion : initialQuestion ?? `Gde je ${title.toLocaleLowerCase()}?`,
         query: searchText.slice(0, 1000),
         proposal: position ? { id: proposalId, label: promptLabel.slice(0, 1000) } : null,
         alternatives: promptAlternatives.map((candidate, index) => ({ id: `${promptToken}:${index}`, label: candidate.label.slice(0, 1000) })) },
@@ -439,7 +467,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           ? 'Tražimo mesto iz razgovora…' : ambiguous
             ? 'Pronađeno je više mesta. Izaberi ono koje tražiš, pa proveri tačku.' : contextOnly
               ? 'Tačna tačka nije pronađena. Dodirni pravo mesto na mapi ili ispravi opis.'
-              : 'Dopuni opis mesta ili ga označi na mapi.'}</T>
+              : initialQuestion ?? 'Dopuni opis mesta ili ga označi na mapi.'}</T>
         {initialQuery && conversationSummary?.description !== initialQuery
           ? <T variant="note" tone="muted">Opis iz razgovora: {initialQuery}</T> : null}
       </View> : null}
@@ -447,6 +475,12 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         {lookupMessage}
       </T> : null}
       {contextOnly ? <T variant="note" tone="muted">Mapa kao orijentir: {toSerbianLatin(alternatives[0].label)}</T> : null}
+      {!position || correctionOpen ? <>
+        <Button tone="neutral" label={here === 'BUSY' ? 'Tražimo gde si…' : 'Ovde gde sam'} kind="secondary"
+          disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} />
+        {here === 'DENIED' ? <T variant="note" accessibilityRole="alert">Lokacija nije dozvoljena. Reci ulicu ili označi mesto na mapi.</T> : null}
+        {here === 'UNAVAILABLE' ? <T variant="note" accessibilityRole="alert">Ne možemo da očitamo gde si. Reci ulicu ili označi mesto na mapi.</T> : null}
+      </> : null}
       {!position && searchOpen ? <>
         <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađi mesto" value={searchText}
           maxLength={1000} editable={!controlDisabled && focused && !loading} onChangeText={changeSearch} />
@@ -458,16 +492,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
       {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Označi na mapi" kind="quiet"
-        disabled={controlDisabled || !focused} onPress={() => {
-          if (!owns()) return;
-          const context = lookupMode === 'search' && lookup.status === 'PROPOSALS'
-            ? lookup.candidates.map(candidate => ({ ...candidate.position })) : undefined;
-          retireSearch(); setCameraHint(context?.length ? context : undefined); setPlaceByHand(true);
-        }} /> : null}
+        disabled={controlDisabled || !focused} onPress={openManualMap} /> : null}
       {position || placeByHand || ambiguous || contextOnly ? <>
         {/* The expand control is the small map's own top-right corner (owner, 2026-10-07), not a button under it. */}
         <ResolvedPinMap position={position} cameraHint={shownCameraHint}
-          cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={scopeKey}
+          cameraHintZoom={streetContextOnly ? 16.5 : initialQuestion && placeByHand ? 12 : undefined} onChoose={choose} scopeKey={scopeKey}
           disabled={controlDisabled || !focused} height={156} compact
           expand={{ label: `Uvećaj mapu za: ${title}`, disabled: controlDisabled || !focused,
             onPress: () => { if (owns()) setExpandedMap(true); } }} />
@@ -482,7 +511,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             </View>
             <View style={editorStyles.fullMap}>
               <ResolvedPinMap position={position} cameraHint={shownCameraHint}
-                cameraHintZoom={streetContextOnly ? 16.5 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
+                cameraHintZoom={streetContextOnly ? 16.5 : initialQuestion && placeByHand ? 12 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
                 disabled={controlDisabled || !focused} compact fill />
             </View>
             <FlowFooter>
@@ -530,7 +559,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       </> : null}
       {!ambiguous && (correctionOpen || !position) && onCorrectInConversation ? <Button tone="neutral" label="Ispravi u razgovoru" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
-      {lookup.status === 'PROPOSALS' ? <Press accessibilityRole="link" accessibilityLabel="Pretraga: LocationIQ · izvori podataka"
+      {lookup.status === 'PROPOSALS' || cameraHint?.length ? <Press accessibilityRole="link" accessibilityLabel="Pretraga: LocationIQ · izvori podataka"
         onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}
         style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
         <T variant="meta" tone="muted">Pretraga: LocationIQ · izvori podataka</T>
