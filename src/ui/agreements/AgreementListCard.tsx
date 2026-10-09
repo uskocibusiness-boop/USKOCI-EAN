@@ -52,9 +52,17 @@ function AcceptedAmount({ item }: { item: DogovorProjekcija }) {
   </View>;
 }
 
+/** The timezone explains the accepted time, so it stays directly beneath it at the secondary text size. */
+function AcceptedTime({ when, place, zone }: { when: string; place: string; zone?: string | null }) {
+  return <View style={s.whenBlock}>
+    <T variant="note" style={s.when}>{`${when} · ${place}`}</T>
+    {zone ? <T variant="meta" tone="muted">{zone}</T> : null}
+  </View>;
+}
+
 /**
- * One Dogovor of the list (composition spec 4.8; at most 160 dp and four kinds of type: the title 18/600, the facts 14/500, the
- * amount 16/700 and the chip 12/600). A `record`: the whole card is touched, so it has the shadow and nothing inside it is a card.
+ * One Dogovor of the list. Its height follows the accepted facts and the person's text size; the timezone is secondary to the time.
+ * A `record`: the whole card is touched, so it has the shadow and nothing inside it is a card.
  *
  * Four lines. The other person's face with the work's title (black, two lines) and "ime · uloga" under it; when and where in one
  * grey line ("Danas 14:00 · Novi Sad"); the state chip on the left and the accepted amount on the right; and the orange foot ONLY
@@ -115,8 +123,7 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
             </View>
           </View>
           {/* Accepted facts keep the full row width: the time is the adapter's or the accepted instant's, never shortened or parsed from text. */}
-          <T variant="note" style={s.when}>{`${when} · ${place}`}</T>
-          {term.zone ? <T variant="note" tone="muted">{term.zone}</T> : null}
+          <AcceptedTime when={when} place={place} zone={term.zone} />
           <View style={s.stateRow}>
             <AgreementStatusChip chip={chip} detail={changed} />
             {/* A missing amount is said in words, quiet and never a figure. */}
@@ -216,8 +223,7 @@ function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onR
         <Glyph name="caret-right" size={20} tone="muted" />
       </View>
       {readableTitle(item.naslov) !== taskTitle ? <T variant="note">{readableTitle(item.naslov)}</T> : null}
-      <T variant="note" tone="muted">{when} · {place}</T>
-      {term.zone ? <T variant="note" tone="muted">{term.zone}</T> : null}
+      <AcceptedTime when={when} place={place} zone={term.zone} />
       <View style={s.stateRow}><AgreementStatusChip chip={chip} detail={item.verzija > 1 ? 'izmenjeni uslovi' : undefined} />
         <AcceptedAmount item={item} />
       </View>
@@ -240,6 +246,7 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   headCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   when: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
+  whenBlock: { gap: sys.space.xs },
   stateRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: sys.space.md, rowGap: sys.space.sm },
   amount: { color: sys.color.money, flexShrink: 1 },
   amountBlock: { alignItems: 'flex-end', flexShrink: 1, gap: sys.space.xs },

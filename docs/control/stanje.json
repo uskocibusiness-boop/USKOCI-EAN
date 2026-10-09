@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T04:13:43Z",
+  "osvezeno": "2026-10-09T04:27:00Z",
   "grana": "integration/spoj-20261006",
-  "head": "c62b85d8",
-  "head_poruka": "Use measured native content for group latest position and preserve device findings",
+  "head": "caf48ecf",
+  "head_poruka": "Preserve exact place totals across bounded pin previews",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2487,7 +2487,18 @@
    "fullRegression": "37877246409 SUCCESS:603suites13391tests;native still pending",
    "nativeEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-a48162a7/emulator-review.json",
    "native": "Actuala481font1.15Home/roleworkerreveal/count/historyreturnPASS.NoTalkBackorphoneclaim.",
-   "refinement": "Independentvisualreview:reduceheader/controlverticalspace andtimezoneprominence inlatercoherentcomposition;notclippingblocker."
+   "refinement": "Independentvisualreview:reduceheader/controlverticalspace andtimezoneprominence inlatercoherentcomposition;notclippingblocker.",
+   "compositionRevision": {
+    "state": "SOURCE_CHECKS_PASS / NATIVE_PENDING",
+    "implementation": "Local header/toolbar/list spacing reduced by4dp each, group-heading-to-card8dp, card-to-card12dp unchanged. Time/place and full timezone grouped with4dp internal gap; zone uses existing meta13/18 muted in both individual and grouped collaboration rows.",
+    "checks": "72 existing targeted tests PASS (45presentation+27screen), TypeScript PASS, independent source review no blocker.",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/agreement-rhythm-20261009/receipt.json",
+    "limits": [
+     "Source geometry suggests16dp less before first card in observed Active/History compositions; not native measurement.",
+     "No fixed card height or truncation added.",
+     "Not included in local c62 APK currently building. Native1.15/1.30 pending."
+    ]
+   }
   },
   "client_regression_a48162a7_20261009": {
    "run": 37877246409,

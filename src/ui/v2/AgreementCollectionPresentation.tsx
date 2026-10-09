@@ -60,8 +60,8 @@ const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 
 /** The Aktivni list is groups, each a heading followed by its cards; one flat list keeps the virtualised window and the row memo. */
 type ListRow = { id: string; kind: 'group'; title: string } | { id: string; kind: 'item'; task: AgreementTaskGroup };
 const keyOf = (row: ListRow) => row.id;
-/** A heading is closer to the card under it than the card above it is: the heading carries its own top space (12 + the card gap 12 = 24 above, 12 below). */
-const Separator = () => <View style={s.separator} />;
+/** Group titles belong to the next card; keep the full separation between two task cards. */
+const Separator = ({ leadingItem }: { leadingItem?: ListRow }) => <View style={leadingItem?.kind === 'group' ? s.headingSeparator : s.separator} />;
 /** Cells scrolled out of view are detached on Android; iOS gains nothing from it. No row holds a text input. */
 const CLIP_OFFSCREEN = Platform.OS === 'android';
 /** The minute the day groups are taken at: a number that changes once a minute, so rows memoised on it are not drawn again inside one. */
@@ -206,19 +206,20 @@ export function AgreementCollectionPresentation(props: Props) {
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
-  // The bar, 8, the row of controls, 12 (the list's own top), then the content: the root template of the composition spec.
-  controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
+  // Local rhythm keeps all controls visible while bringing the first task closer; touch targets retain their full height.
+  controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs },
   tabRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tabs: { flex: 1, minWidth: 0 },
   // Istorija keeps this strip's height whether its chips are drawn yet or not, so the list does not slide down when the read settles.
-  toolbar: { flexDirection: 'row', alignItems: 'center', minHeight: layout.touch, paddingTop: sys.space.sm },
+  toolbar: { flexDirection: 'row', alignItems: 'center', minHeight: layout.touch, paddingTop: sys.space.xs },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: layout.touch, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.surface },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },
   attentionLink: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   attentionText: { flex: 1, color: sys.color.ink, fontWeight: '600' },
-  list: { paddingHorizontal: layout.gutter, paddingTop: sys.space.md, paddingBottom: layout.zone, flexGrow: 1 },
+  list: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.zone, flexGrow: 1 },
   empty: { flex: 1 },
   separator: { height: layout.group },
+  headingSeparator: { height: sys.space.sm },
 });

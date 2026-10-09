@@ -430,3 +430,14 @@ Postojeća dodatna galerija dobija dugu, inertnu prepisku sa40poruka: prvo posle
 **NIJE DOKAZANO:** novi native prikaz i kapacitet servera. Ovo je ispravka ograničenog P6 klijentskog prikaza, bez uključivanja rollout-a ili promene DEV-a. Fixture 4.000/50 nije opterećenje niti 4.000 istovremenih korisnika. Lokalni APK c62b85d8 koji se gradi ne sadrži ovu kasniju promenu.
 
 **SLEDEĆE:** završiti stvarnu c62 APK izgradnju i proveriti grupni skrol, dugu prepisku i publisher footer. Offline Gradle nije našao keširan tačan Kotlin plugin; jedan ponovljeni build koristi normalno razrešavanje postojećih verzija, bez izmene aplikacionog izvora ili potpisa. GitHub dijagnostika i dalje nije započela zbog naplate. Vizuelni pregled Dogovora predlaže manji lokalni razmak i diskretniju vremensku zonu; to još nije ugrađeno niti nativno dokazano.
+
+
+## Dopuna — sažetiji pregled Dogovora
+
+**URADIO:** prema stvarnim a481 snimcima, lokalni razmaci oko kontrola i liste smanjeni su za 4 dp, a naslov grupe je bliži svojoj prvoj kartici. Razmak između dve kartice ostaje 12 dp. Aktivni/Istorija, kalendar, uloge, statusi, broj zadataka i Čeka tebe ostaju dostupni sa istim dodirnim površinama. Termin/mesto i puna vremenska zona čine jednu celinu: zona je sada postojeći sekundarni meta tekst uz razmak 4 dp, i u pojedinačnoj i u grupnoj kartici. Važeći iznosi, uslovi, izgovor i radnje nisu promenjeni.
+
+**DOKAZAO:** 72 postojeća ciljana testa PASS (45 prikaz + 27 screen), TypeScript PASS, nezavisan read-only pregled bez blokera. Dva početna testa uhvatila su promenu oblika jednog tekstualnog čvora; zadržan je prvobitni ceo string, bez menjanja testova. Dokaz: `evidence/agreement-rhythm-20261009/receipt.json`.
+
+**NIJE DOKAZANO:** novi native izgled na 1,15 i 1,30. Račun iz izvora daje približno 16 dp manje pre prve kartice u posmatranim kompozicijama; to nije merenje novog APK-a. Dorada nije u c62b85d8 buildu koji trenutno proverava grupni skrol.
+
+**SLEDEĆE:** pregledati oba prikaza i povratak iz istorije na narednom objedinjenom APK-u, bez skraćivanja teksta ili smanjivanja dodirnih meta. Sada prednost ima završetak započete c62 native provere.

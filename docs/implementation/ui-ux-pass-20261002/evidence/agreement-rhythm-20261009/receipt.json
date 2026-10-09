@@ -1,0 +1,30 @@
+{
+  "kind": "SOURCE_CHECKS_NOT_NATIVE",
+  "sourceBase": "caf48ecf",
+  "files": {
+    "src/ui/v2/AgreementCollectionPresentation.tsx": "b5676f569a32335f778f1b4f56ce3e16f6f6e8262c8b3ee3585e4d80d39edec5",
+    "src/ui/agreements/AgreementListCard.tsx": "32e6855e26184f5a5ebdfd832c7ebb53b96c209f8792f6b6830340f96959bc51"
+  },
+  "tests": {
+    "presentation": 45,
+    "screen": 27,
+    "distinctTotal": 72,
+    "logsSha256": {
+      "agreement-rhythm-tests.json": "c77452ff8b953407a136eae61f3a7b6058a792e4cc974a2593727e6744b18bcb",
+      "agreement-rhythm-presentation-final.json": "663dbc670f4ea222829f5316e89ba98700757d813dc04bf3f1ca08f22ab3a9da"
+    },
+    "initial": "70 PASS,2 FAIL after AcceptedTime split a single text node into children. Kept original single-string text; existing tests unchanged; final45 presentation cases PASS."
+  },
+  "tsc": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit --pretty false",
+    "exit": 0,
+    "observedSession": 28655
+  },
+  "review": "Independent read-only review: leadingItem is row before separator; no blocker. Both accepted facts/a11y unchanged; touch48dp and natural text wrapping retained.",
+  "implementation": "Local header/toolbar/list spacing reduced by4dp each, group-heading-to-card8dp, card-to-card12dp unchanged. Time/place and full timezone grouped with4dp internal gap; zone uses existing meta13/18 muted in both individual and grouped collaboration rows.",
+  "limits": [
+    "Source geometry suggests16dp less before first card in observed Active/History compositions; not native measurement.",
+    "No fixed card height or truncation added.",
+    "Not included in local c62 APK currently building. Native1.15/1.30 pending."
+  ]
+}
