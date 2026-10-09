@@ -70,6 +70,7 @@ jobs:
           python3 supabase/proofs/match-v1/check_source.py > "$DISCOVERY_GRAD_ARTIFACT_DIR/predecessor-source-check.txt"
           python3 supabase/candidates/worker-personal-profile-20261003/check-source.py > "$PRE_V3_ARTIFACT_DIR/wpp01-source-check.txt"
           for f in supabase/proofs/discovery-grad/*.mjs supabase/proofs/match-v1/chain.mjs supabase/proofs/match-v1/fidelity.mjs; do node --check "$f"; done
+          node --test supabase/proofs/discovery-grad/read-transport.test.mjs
           find supabase/candidates/discovery-grad-20261008 supabase/proofs/discovery-grad -type f -print0 | sort -z | xargs -0 sha256sum > "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           sha256sum .github/workflows/discovery-grad-proof.yml >> "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/npm.log" 2>&1
@@ -111,6 +112,13 @@ jobs:
           assert.equal(report.sourceSha, process.env.GITHUB_SHA);
           assert.equal(report.result, 'PASS');
           assert.equal(report.failures.length, 0);
+          const recoveries = report.httpTransportRecoveries ?? [];
+          assert.equal(report.httpTransport, recoveries.length ? 'PASS_WITH_RECORDED_SOCKET_RECOVERY' : 'ALL_FIRST_ATTEMPTS_SUCCEEDED');
+          for (const recovery of recoveries) {
+            assert.equal(recovery.outcome, 'RECOVERED'); assert.equal(recovery.status, 0); assert.ok(!recovery.code);
+            assert.match(recovery.details, /\bUND_ERR_SOCKET\b/);
+            assert.ok(recovery.totalElapsedMs >= recovery.initialElapsedMs);
+          }
           assert.equal(report.liveAccess, false);
           assert.equal(report.providerCalls, 0);
           assert.equal(report.pushSends, 0);

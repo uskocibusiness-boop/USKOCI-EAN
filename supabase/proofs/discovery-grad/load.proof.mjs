@@ -9,6 +9,7 @@ import {execFileSync} from 'node:child_process';
 import * as rt from '../pre_v3/closure_runtime.mjs';
 import {createFixtures} from '../ex06/lib/fixtures.mjs';
 import {proveAreaDedup, areaExperimentSummary} from './area-dedup.proof.mjs';
+import {readWithSocketRecovery} from './read-transport.mjs';
 
 const {assert, sql, q, ok, env} = rt;
 const DB = env.DB_URL;
@@ -125,7 +126,18 @@ async function httpMs(client, request, runs = 3, expected = null) {
   const times = [];
   for (let i = 0; i < runs; i++) {
     const started = Date.now();
-    const r = await client.rpc('rpc_discovery_v1', {p_request: request}).abortSignal(AbortSignal.timeout(HARD_S * 1000));
+    const signal = AbortSignal.timeout(HARD_S * 1000);
+    let recovery;
+    const r = await readWithSocketRecovery(() => client.rpc('rpc_discovery_v1', {p_request: request}).abortSignal(signal), (state, response) => {
+      if (state === 'RETRYING') {
+        recovery = {phase: report.areaExperiment?.phase ? {...report.areaExperiment.phase} : {transport: 'BASELINE_HTTP'},
+          mode: request.mode, sample: i + 1, initialElapsedMs: Date.now() - started, status: response.status,
+          code: response.error.code, message: String(response.error.message ?? '').slice(0, 500),
+          details: String(response.error.details ?? '').slice(0, 500), outcome: state};
+        (report.httpTransportRecoveries ??= []).push(recovery);
+      } else Object.assign(recovery, {outcome: state, finalStatus: response?.status ?? null, totalElapsedMs: Date.now() - started});
+      write();
+    });
     if (r.error) throw new Error('DISCOVERY_HTTP_FAILED:' + JSON.stringify({sample: i + 1, elapsedMs: Date.now() - started,
       status: r.status, statusText: r.statusText, code: r.error.code,
       message: String(r.error.message ?? '').slice(0, 500), details: String(r.error.details ?? '').slice(0, 500), hint: String(r.error.hint ?? '').slice(0, 250)}));
@@ -378,7 +390,9 @@ try {
     `- default page, NEW: ${prof('NEW', 'pageDefault')}`, `- default page, NEW + S3: ${prof('NEW_S3', 'pageDefault')}`);
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
   }
+  report.httpTransport = report.httpTransportRecoveries?.length ? 'PASS_WITH_RECORDED_SOCKET_RECOVERY' : 'ALL_FIRST_ATTEMPTS_SUCCEEDED';
   report.result = 'PASS'; write();
+  fs.appendFileSync(path.join(out, 'load-summary.md'), `\nHTTP transport: ${report.httpTransport}; reconnects: ${report.httpTransportRecoveries?.length ?? 0}. Each sample includes the initial failed attempt and recovery in one shared deadline. No HTTP/API/timeout retries.\n`);
   console.log('PASS DISCOVERY_GRAD_LOAD');
 } catch (error) {
   if (report.areaExperiment?.state === 'RUNNING') report.areaExperiment.state = 'FAIL';

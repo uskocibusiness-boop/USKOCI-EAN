@@ -20,7 +20,7 @@
     "supabase/functions/uskoci-push-transport/index.ts": "6d27f508c53f8fed23b12e14ae873b633749aa4c7d457602d1e0d3a4f62ee1de",
     "build.py": "9687a717d14226e40f4605f41d7a5346556f11fc9743325e3fd17804a285b73b",
     "certificate-proof.mjs": "461a305b6eb45843f66d825a9e8b13bfd98394f63d83adb1d2842777e405df20",
-    "edge.test.mjs": "e663be09a89b62f8e2dfd3a69e317318024e12c11350821f82e624ba79531253",
+    "edge.test.mjs": "83eb04938f40f2257e1f5ab508a2f224e9451a6343d468167050f35dbc4143f1",
     "proof.mjs": "d630ccc7ebfde03a4e31ab6b8e31445ae06ab320fd7911ba3f55262e4a27e733",
     "package-proof.py": "c25f43ecb491b155f0625da5c3174bbbd04d782ef9bc831bd4bd2127c5f1f47f",
     "prepare-d12.mjs": "bd0dbcdcbf2f17a9c902aee9c7579874d0b42c938787770eb578e772f3146ace",

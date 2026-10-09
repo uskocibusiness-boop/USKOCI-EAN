@@ -189,3 +189,18 @@ Mapina navigacija sada ima zaseban Animated host; unutrašnji stvarni BottomTabB
 **NIJE DOKAZANO:** novi native prikaz i popravkaPEEK;44e8 prethodniAPK je ostaoFAIL. Uzrok moguće AnimatedProps reattachment kolizije je hipoteza, ne konačan runtime dokaz. Nije pun novi regression run. Nisu menjani server ugovori ili autoriteti za grupisanje.
 
 **SLEDEĆE:** jedan objedinjeni push-capable phone APK preko postojećeg namenskog workflow-a i visual emulatorAPK istog izvora. Phone workflow sada zadržava USKOCI_PUSH_PROOF_BUILD=1 i tokom Gradle bundle-a i proverava RNR patch; uključen ograničen preview trace. Manifest/paket/potpis pre install-r, bez brisanja sesije. Native Firebase inicijalizacija može obnoviti već izričito registrovan uređaj; ne uključuje serverski transport. Tačna poruka nema poseban client flag; serverski exact-message flag i jednociljni transport ostaju zasebni. Pre live single-target dokaza dopuniti offline exact-payload test (postojećih6 proverava legacyINBOX).
+
+
+## Dopuna — konkretan transportni uzrok i jednociljni payload
+
+**URADIO/DOKAZAO:** diagnosticrun37863338193/source89bb5e85 jeFAIL na prvomHTTP uzorku repeatedLocations/baseline/pageDefault:7ms,status0,SocketError other side closed(UND_ERR_SOCKET). SQL530,9ms median/count40000/50rows i124JSONpoređenja pre togaPASS; teardown0. Sačuvan originalni boundedreport u evidence/discovery-area-diagnostic-37863338193. IdleUndici socket posle dugog syncSQL je verovatno objašnjenje, ne nezavisno potvrđen mehanizam.
+
+Korekcija isključivo testnog read pokretača: najviše jedan pokušaj obnove samo za taj transportni kod, isti zahtev/anchor, zajednički90s deadline, ukupan latency uključuje prvi neuspeh. Početna greška/faza/ishod trajno ostaju; HTTP/SQL/timeout/shape nema retry.4offline testaPASS i nezavisni source pregled. Uspeh sa obnovom dobija poseban httpTransport marker. KandidatSQL, timeout i semantičke provere nisu ublaženi.
+
+Push offline dodatak10/10PASS: exact-message metadata sa jednociljnim admission-om/globaloff, tačno3polja i1mockproviderpoziv; neispravan eventID ne stiže do providera, legacy/default-off ostaju. Popunjen stvaran raniji test gap; server/Edgekandidat bajtovi nisu menjani. SOURCE_REVIEW ažuriran stvarnim current99 rezultatom.
+
+**NIJE DOKAZANO:** novi area runtime/brzina, stvarni push/APKtap, release. **SLEDEĆE:** jedan novi isolatedrun i provera sledećih APK-ova. ObjedinjeniUIpush je d0295e1c na obe kanonske grane; phonepush-capable37864877643 i emulator37864877365 su u izradi, nisu još instalirani.
+
+### Sledeći lifecycle dokaz — konkretan mali scenario
+
+Read-only stručni pregled je odredio4nova scenarioAuth nalogaR/A/B/C i1zadatak/2mesta. EX06createFixtures needPath=product (PRODUCT_PATH, bez droppedFacts/mismatches), applyA/B→selectA/B→privateR/A i groupR/A/B→cancelA→close/reopen sa owner-read expectedClosedAt→apply/selectC. Proveriti cutoff: AvidiG1, neG2/G3; CnevidiG1/G2, vidiG3; neovlašćen privatni read odbijen; identičan commandreplay istiID, promenjenbody odbijen; read sam ne markira. OriginalEX06Ereopen ima zastareli4argumentni ugovor, uzetiR3 petargumentni. EX05fixture SQLpublication se ne koristi, samo RPCassertioni. Grupa ostaje ista posle otkaza/zamene. Discovery/MATCHchain izostavlja chat/voice, zato prvo sastaviti eksplicitno pinovanu EX05+EX06R3disposable osnovu i dokazati metadata/grants/RLS/certificate; bezparkForeign koji suspenduje40kpozadinu. Ovo je plan najmanjeg pravogRPCdokaza, ne tvrdnja o njegovom izvršenju ili40kaktivnihkorisnika.
