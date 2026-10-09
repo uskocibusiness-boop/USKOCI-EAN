@@ -32,3 +32,18 @@
 @media(max-width:1100px){.screen-gallery{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:980px){.hero-clean .hero-grid,.ai-real{grid-template-columns:1fr}.hero-copy-block{text-align:center}.hero-wordmark{margin-left:auto;margin-right:auto}.hero-clean .hero-lead{margin-left:auto;margin-right:auto}.hero-proofline{justify-content:center}.real-stage{min-height:680px}.screen-switcher{right:6%}.stage-backshot{right:12%}.real-app-head{display:block}.screen-gallery{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.brand-wide img{width:122px}.hero.hero-clean{padding-top:112px;padding-bottom:54px}.hero-clean h1{font-size:48px}.hero-clean .hero-lead{font-size:17px}.hero-wordmark{width:300px;margin-bottom:25px}.real-stage{min-height:590px}.device-real{width:250px;border-width:8px;border-radius:40px}.device-real img{border-radius:31px}.stage-backshot{width:150px;right:0;top:38px}.stage-chip{left:0;top:78px}.screen-switcher{right:0;bottom:10px;width:180px;padding:8px}.screen-switcher button{padding:8px 9px}.real-app-section{padding-top:72px}.screen-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.screen-card{padding:7px;border-radius:19px}.screen-card .screen-image{border-radius:14px}.screen-caption{padding:10px 3px 3px}.screen-caption b{font-size:12px}.screen-caption span{font-size:10px}.ai-device-wrap{min-height:510px}.ai-device{width:235px}.ai-note{right:0;bottom:32px;max-width:180px}.clean-separator{width:calc(100% - 28px)}}
+
+
+/* mobile refinement: keep the real app as the hero, controls secondary */
+@media(max-width:680px){
+  .real-stage{min-height:680px;padding-bottom:80px}
+  .stage-backshot{display:none}
+  .stage-chip{left:50%;top:12px;transform:translateX(-50%);white-space:nowrap}
+  .device-real{margin-top:45px}
+  .screen-switcher{left:0;right:0;bottom:0;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border-radius:18px}
+  .screen-switcher strong{display:none}
+  .screen-switcher button{text-align:center;padding:9px 3px;font-size:10px;line-height:1.15}
+  .screen-gallery{display:flex;overflow-x:auto;gap:12px;margin-left:-14px;margin-right:-14px;padding:0 14px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .screen-gallery::-webkit-scrollbar{display:none}
+  .screen-card{min-width:72vw;scroll-snap-align:center}
+}
