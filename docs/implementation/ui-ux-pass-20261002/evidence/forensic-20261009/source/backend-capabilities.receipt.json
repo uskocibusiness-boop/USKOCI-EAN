@@ -1,0 +1,26 @@
+{
+  "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "finishedAt": "2026-10-09T16:33:47.118235+00:00",
+  "canonicalModified": false,
+  "newTests": false,
+  "liveCalls": false,
+  "rowCount": 62,
+  "artifacts": [
+    {
+      "file": "backend-capabilities.json",
+      "bytes": 417373,
+      "sha256": "176be5fafe8a1bb80ef1f7e3723d8720ff5028b2d7e58fc7eff002e5b3b247c9"
+    },
+    {
+      "file": "backend-capabilities.md",
+      "bytes": 68931,
+      "sha256": "7333c1bd53b11389a6c538fd131b56e5e77fdcf296c7e1c58ed2aec659f4bd8e"
+    },
+    {
+      "file": "backend-matrix.py",
+      "bytes": 16398,
+      "sha256": "4c403a85f4dabb868829007faa120ea44935fafd7b446e1fbd6753238a4cb1d7"
+    }
+  ],
+  "exportNormalization": "Trailing whitespace only; original scratch report retained."
+}

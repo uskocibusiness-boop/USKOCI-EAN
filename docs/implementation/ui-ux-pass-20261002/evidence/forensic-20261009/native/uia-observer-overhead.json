@@ -1,0 +1,10 @@
+{
+  "samplesMs": [
+    2488.54,
+    2379.49,
+    3480.93,
+    2746.21,
+    2518.71
+  ],
+  "limits": "UIAutomator idle wait and ADB overhead are included in visibleHome upper bounds; do not publish those upper bounds as user TTI or warm-resume latency."
+}

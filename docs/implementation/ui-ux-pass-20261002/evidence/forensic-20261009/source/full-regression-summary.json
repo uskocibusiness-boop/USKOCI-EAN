@@ -1,0 +1,45 @@
+{
+  "summary": {
+    "success": false,
+    "numTotalTestSuites": 604,
+    "numPassedTestSuites": 603,
+    "numFailedTestSuites": 1,
+    "numTotalTests": 13486,
+    "numPassedTests": 13476,
+    "numFailedTests": 1,
+    "numPendingTests": 9,
+    "numTodoTests": 0,
+    "startTime": 1791563702171,
+    "failedTests": [
+      {
+        "file": "CANONICAL\\src\\data\\__tests__\\p5-matching-field-contract.test.ts",
+        "message": "  ● EX-06 S05 field-to-consumer map: consumer-without-collector findings G04-1..G04-9 (source text, not live proof) › G04-5: need.minimum_experience_years is AI-proposable, hard for every worker, and the interview never asks for it\n\n    marker not found: const missing = ['need.description'\n\n      125 | const between = (text: string, from: string, to: string): string => {\n      126 |   const start = text.indexOf(from);\n    > 127 |   if (start < 0) throw new Error(`marker not found: ${from}`);\n          |                        ^\n      128 |   const end = text.indexOf(to, start + from.length);\n      129 |   if (end < 0) throw new Error(`end marker not found: ${to}`);\n      130 |   return text.slice(start, end);\n\n      at between (src/data/__tests__/p5-matching-field-contract.test.ts:127:24)\n      at Object.between (src/data/__tests__/p5-matching-field-contract.test.ts:355:19)\n",
+        "assertions": [
+          {
+            "name": "EX-06 S05 field-to-consumer map: consumer-without-collector findings G04-1..G04-9 (source text, not live proof) G04-5: need.minimum_experience_years is AI-proposable, hard for every worker, and the interview never asks for it",
+            "status": "failed",
+            "failureMessages": [
+              "Error: marker not found: const missing = ['need.description'\n    at between (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\src\\data\\__tests__\\p5-matching-field-contract.test.ts:127:24)\n    at Object.between (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\src\\data\\__tests__\\p5-matching-field-contract.test.ts:355:19)\n    at Promise.then.completed (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at _runTest (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006\\node_modules\\jest-runner\\build\\runTest.js:444:34)"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "receipt": {
+    "at": "2026-10-09T16:33:53.035468+00:00",
+    "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+    "runs": [
+      {
+        "name": "tsc",
+        "exit": 0,
+        "seconds": 67.85
+      },
+      {
+        "name": "full-jest",
+        "exit": 1,
+        "seconds": 802.32
+      }
+    ]
+  }
+}

@@ -1,0 +1,1019 @@
+{
+  "recordedAt": "2026-10-09T16:20:12.598046+00:00",
+  "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "scope": "Read-only artifact/config/source/network observation; no source/device/server changes",
+  "resolvedProduction": {
+    "package": "rs.uskoci",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "environment": "production",
+    "distribution": "store",
+    "buildType": "app-bundle",
+    "credentialsSource": "remote",
+    "autoIncrement": true,
+    "runtime": "uskoci-v1-production-r1",
+    "channel": "production",
+    "updates": true,
+    "canonicalDevBackend": true,
+    "googleServicesFile": false,
+    "iosBundleIdentifier": null,
+    "configuredPermissions": [
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.ACCESS_COARSE_LOCATION"
+    ],
+    "submitConfigured": false
+  },
+  "configHashes": {
+    "app.config.js": "c002201253fb320c4456c78c0a3571a9b24a201ef9551079bf4c26eed9534d99",
+    "app.json": "805013bbd18ef3ce17f07a8fad634bbd14bccddfd7718037a1a5b1a5fefd2f55",
+    "eas.json": "831610a12825f4e9ce50848c977edf2ab30cf720fef5b0cd8aba95787ed97c7a"
+  },
+  "apk": {
+    "path": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\apk-phone-ce23eb06\\USKOCI-test-ce23eb06.apk",
+    "sha256": "d9b875a0e8293eaf07c34190a0b59f119d50d281f9322854a796726826762e16",
+    "bytes": 99690208,
+    "badgingExit": 0,
+    "manifestFacts": [
+      "package: name='rs.uskoci.preview' versionCode='35' versionName='1.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+      "minSdkVersion:'24'",
+      "targetSdkVersion:'36'",
+      "uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'",
+      "uses-permission: name='android.permission.ACCESS_FINE_LOCATION'",
+      "uses-permission: name='android.permission.INTERNET'",
+      "uses-permission: name='android.permission.MODIFY_AUDIO_SETTINGS'",
+      "uses-permission: name='android.permission.READ_EXTERNAL_STORAGE' maxSdkVersion='32'",
+      "uses-permission: name='android.permission.RECORD_AUDIO'",
+      "uses-permission: name='android.permission.SYSTEM_ALERT_WINDOW'",
+      "uses-permission: name='android.permission.VIBRATE'",
+      "uses-permission: name='android.permission.WRITE_EXTERNAL_STORAGE' maxSdkVersion='32'",
+      "uses-permission: name='android.permission.ACCESS_NETWORK_STATE'",
+      "uses-permission: name='android.permission.ACCESS_WIFI_STATE'",
+      "uses-permission: name='android.permission.CAMERA'",
+      "uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'",
+      "uses-permission: name='android.permission.POST_NOTIFICATIONS'",
+      "uses-permission: name='android.permission.WAKE_LOCK'",
+      "uses-permission: name='com.google.android.c2dm.permission.RECEIVE'",
+      "uses-permission: name='rs.uskoci.preview.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'",
+      "uses-permission: name='com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE'",
+      "uses-permission: name='com.sec.android.provider.badge.permission.READ'",
+      "uses-permission: name='com.sec.android.provider.badge.permission.WRITE'",
+      "uses-permission: name='com.htc.launcher.permission.READ_SETTINGS'",
+      "uses-permission: name='com.htc.launcher.permission.UPDATE_SHORTCUT'",
+      "uses-permission: name='com.sonyericsson.home.permission.BROADCAST_BADGE'",
+      "uses-permission: name='com.sonymobile.home.permission.PROVIDER_INSERT_BADGE'",
+      "uses-permission: name='com.anddoes.launcher.permission.UPDATE_COUNT'",
+      "uses-permission: name='com.majeur.launcher.permission.UPDATE_BADGE'",
+      "uses-permission: name='com.huawei.android.launcher.permission.CHANGE_BADGE'",
+      "uses-permission: name='com.huawei.android.launcher.permission.READ_SETTINGS'",
+      "uses-permission: name='com.huawei.android.launcher.permission.WRITE_SETTINGS'",
+      "uses-permission: name='android.permission.READ_APP_BADGE'",
+      "uses-permission: name='com.oppo.launcher.permission.READ_SETTINGS'",
+      "uses-permission: name='com.oppo.launcher.permission.WRITE_SETTINGS'",
+      "uses-permission: name='me.everything.badger.permission.BADGE_COUNT_READ'",
+      "uses-permission: name='me.everything.badger.permission.BADGE_COUNT_WRITE'",
+      "native-code: 'arm64-v8a'"
+    ],
+    "signature": {
+      "exit": 0,
+      "stdout": "Signer #1 certificate DN: CN=Android Debug, OU=Android, O=Unknown, L=Unknown, ST=Unknown, C=US\nSigner #1 certificate SHA-256 digest: fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c\nSigner #1 certificate SHA-1 digest: 5e8f16062ea3cd2c4a0d547876baa6f38cabf625\nSigner #1 certificate MD5 digest: 20f46148b72d8e5e5ca23d37a4f41490\n",
+      "stderr": ""
+    },
+    "nativeLibraries": [
+      {
+        "name": "lib/arm64-v8a/libandroidx.graphics.path.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 23616,
+            "memsz": 960,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libanimation-decoder-gif.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 272688,
+            "memsz": 18128,
+            "endModulo16384": 12288
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libappmodules.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 2472672,
+            "memsz": 91424,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libavif_android.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 884736,
+            "memsz": 16384,
+            "endModulo16384": 0
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libc++_shared.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 1282800,
+            "memsz": 40208,
+            "endModulo16384": 12288
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libdatastore_shared_counter.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 20928,
+            "memsz": 3648,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libexpo-modules-core.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 1456416,
+            "memsz": 42720,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libexpo-updates.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 111600,
+            "memsz": 3088,
+            "endModulo16384": 0
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libfbjni.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 187536,
+            "memsz": 4976,
+            "endModulo16384": 12288
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libgesturehandler.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 51360,
+            "memsz": 1888,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libgifimage.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 314992,
+            "memsz": 20880,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libhermestooling.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 149328,
+            "memsz": 6320,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libhermesvm.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 2453488,
+            "memsz": 40976,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libimagepipeline.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 22336,
+            "memsz": 2240,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libjsi.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 417264,
+            "memsz": 12816,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libmaplibre.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 10274416,
+            "memsz": 248208,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libnative-filters.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 37344,
+            "memsz": 3616,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libnative-imagetranscoder.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 581552,
+            "memsz": 20560,
+            "endModulo16384": 12288
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreact_codegen_rnscreens.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 1171488,
+            "memsz": 45024,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreact_codegen_rnsvg.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 779760,
+            "memsz": 27152,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreact_codegen_safeareacontext.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 167968,
+            "memsz": 8160,
+            "endModulo16384": 12288
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreactnative.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 6832016,
+            "memsz": 163952,
+            "endModulo16384": 0
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libreanimated.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 1461472,
+            "memsz": 54048,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/librnscreens.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 111296,
+            "memsz": 7488,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libsqliteJni.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 1081344,
+            "memsz": 16384,
+            "endModulo16384": 0
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libstatic-webp.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 498480,
+            "memsz": 17616,
+            "endModulo16384": 8192
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libworklets.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 1081376,
+            "memsz": 36832,
+            "endModulo16384": 4096
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      },
+      {
+        "name": "lib/arm64-v8a/libzstd-kmp.so",
+        "compression": 0,
+        "dataOffsetMod16384": 0,
+        "loadAlignment": [
+          16384,
+          16384,
+          16384
+        ],
+        "relro": [
+          {
+            "vaddr": 729024,
+            "memsz": 20544,
+            "endModulo16384": 12288
+          }
+        ],
+        "loadPass": true,
+        "zipPass": true
+      }
+    ],
+    "static16KB": {
+      "count": 28,
+      "loadAndZipPass": true,
+      "relroEndAlignmentPass": false,
+      "runtimeTested": false,
+      "productionAABTested": false,
+      "relroMisalignedLibraryCount": 24,
+      "interpretation": "All 28 LOAD/ZIP checks pass. 24 GNU_RELRO endpoints fail current Android documentation 16KB formula; llvm-readelf independently confirms MapLibre. Compatibility risk, not observed runtime crash. Requires fixed build and real 16KB runtime proof; does not certify production AAB."
+    },
+    "independentReadelfMaplibre": {
+      "exit": 0,
+      "stdout": "\nElf file type is DYN (Shared object file)\nEntry point 0x0\nThere are 9 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  PHDR           0x000040 0x0000000000000040 0x0000000000000040 0x0001f8 0x0001f8 R   0x8\n  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x9c8670 0x9c8670 R E 0x4000\n  LOAD           0x9c8670 0x00000000009cc670 0x00000000009cc670 0x03c4d8 0x03c990 RW  0x4000\n  LOAD           0xa04b48 0x0000000000a0cb48 0x0000000000a0cb48 0x003c48 0x00fa70 RW  0x4000\n  DYNAMIC        0x9f6840 0x00000000009fa840 0x00000000009fa840 0x000210 0x000210 RW  0x8\n  GNU_RELRO      0x9c8670 0x00000000009cc670 0x00000000009cc670 0x03c4d8 0x03c990 R   0x1\n  GNU_EH_FRAME   0x3c09f8 0x00000000003c09f8 0x00000000003c09f8 0x037dcc 0x037dcc R   0x4\n  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x0\n  NOTE           0x000238 0x0000000000000238 0x0000000000000238 0x0000bc 0x0000bc R   0x4\n\n Section to Segment mapping:\n  Segment Sections...\n   00     \n   01     .note.android.ident .note.gnu.build-id .dynsym .gnu.version .gnu.version_r .gnu.hash .dynstr .rela.dyn .rela.plt .gcc_except_table .rodata .eh_frame_hdr .eh_frame .text __lcxx_override .plt \n   02     .data.rel.ro .fini_array .init_array .dynamic .got .got.plt .relro_padding \n   03     .data .bss \n   04     .dynamic \n   05     .data.rel.ro .fini_array .init_array .dynamic .got .got.plt .relro_padding \n   06     .eh_frame_hdr \n   07     \n   08     .note.android.ident .note.gnu.build-id \n   None   .comment .shstrtab \n",
+      "stderr": ""
+    },
+    "zipalign16KB": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "aabSearch": {
+    "canonical": {
+      "root": "C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006",
+      "exit": 1,
+      "paths": [],
+      "errors": ""
+    },
+    "scratch": {
+      "root": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008",
+      "exit": 1,
+      "paths": [],
+      "errors": ""
+    },
+    "phoneExport": {
+      "root": "C:\\Users\\user\\Documents\\Codex\\ub2",
+      "exit": 1,
+      "paths": [],
+      "errors": ""
+    }
+  },
+  "git": {
+    "status": "",
+    "recent": [
+      "6311804dbac2323069e927f9a8dc49f8f0bb1f14 Record finite release audit and verified ce23 preview package",
+      "ce23eb06befd0260b71e0c334e5557da5df7639d Apply owner-approved proportional pricing with nearest-dinar rounding",
+      "9fc70507a9538a9d07c4c43245b71e4abd0df194 Add editable application headcount and verified proportional price candidate",
+      "7658b925dc5057a5d20943d0270b52efb7bdaff8 Record isolated opportunity certificate transition and rollback guards",
+      "b7ffcc1686b8c099c7f7ae59a0b8fa11e44f329e Prove bounded opportunity push behavior and cancellation races locally",
+      "7bdeb1242e2e0276df6f6bccde9a9627fc9cb597 Record verified b52 APK delivery and bounded native and SQL results",
+      "b52f670437789b2c31a3cfd46a236f435d65d1a5 Polish task review and map sources with verified publication evidence",
+      "5c74949a82a8ba29903330eb6f237e1651eb5a7b Complete AI draft readiness and clarify location choices"
+    ],
+    "remotes": [
+      "novi\thttps://github.com/uskocibusiness-boop/USKOCI-EAN.git (fetch)",
+      "novi\thttps://github.com/uskocibusiness-boop/USKOCI-EAN.git (push)",
+      "origin\thttps://github.com/Uskoci1/USKOCI-CLEAN.git (fetch)",
+      "origin\thttps://github.com/Uskoci1/USKOCI-CLEAN.git (push)"
+    ],
+    "remoteHeads": {
+      "novi": {
+        "exit": 0,
+        "stdout": "6311804dbac2323069e927f9a8dc49f8f0bb1f14\trefs/heads/integration/spoj-20261006\n",
+        "stderr": ""
+      },
+      "origin": {
+        "exit": 0,
+        "stdout": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661\trefs/heads/clean-alpha-backend\n",
+        "stderr": ""
+      }
+    }
+  },
+  "publicURLs": [
+    {
+      "url": "https://uskoci.rs",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 200,
+        "finalURL": "https://uskoci.rs",
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 0
+      },
+      "GET": {
+        "status": 200,
+        "finalURL": "https://uskoci.rs/",
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 4915777,
+        "truncated": false,
+        "sha256": "449ba0d92c21979c2019fc3298fd5cbc2b040d2edd6675b4b3180474842ba1d7",
+        "title": [
+          "USKOČI — V48 dorađen · V50"
+        ],
+        "links": [
+          "#glavni-sadrzaj",
+          "#pocetak",
+          "#sta-je-uskoci",
+          "#prica",
+          "#mapa",
+          "#druga-strana",
+          "#poverenje",
+          "#ukratko",
+          "https://www.google.com/maps/search/?api=1&query=44.8008%2C20.4701",
+          "https://openfreemap.org/",
+          "https://openmaptiles.org/",
+          "https://www.openstreetmap.org/copyright"
+        ],
+        "visibleTextExcerpt": "USKOČI — V48 dorađen · V50 Tvoj partner za svaki zadatak. Preskoči uvod ↗ Pređi na sadržaj Tvoj partner za svaki zadatak. Mogućnosti Kako radi Istraži Pogledaj uvod Uskoči i zaradi Ljudi pomažu ljudima. Ne moraš sve sam. USKOČI povezuje ljude kojima treba pomoć sa ljudima koji mogu da uskoče — u blizini i na daljinu. Objavi zadatak Uskoči i zaradi Jedan nalog. Dve mogućnosti. Izaberi šta želiš ili nastavi skrolom Upoznaj USKOČI Fotografska AI demonstracija ISTI GRAD. RAZLIČITE MOGUĆNOSTI. Neko nema vremena. Neko baš to ume. Od pomoći u kući do zadatka na daljinu. Upoznaj mogućnosti ↓ 01 / Mnogo načina da neko uskoči Za sve što čeka svoj red. Od čekanja u redu do radova na kući. Od kupovine do digitalnog posla. Jedno mesto za različite zadatke. Montaža Čekanje u redu Radovi na kući Kupovina Paket Digitalni posao Skroluj za sledeći primer 01 / 06 A kako izgleda ceo tok? Od jedne potrebe. Do Dogovora. Jedna potreba postaje zadatak. Prijava se pretvara u Dogovor. Skrolom prati svaki korak. Jedan primer. Korak po korak. Pogledaj jedan primer Pusti demonstraciju Želim ručno da menjam korake 02 / Pogledaj kako radi Od „treba mi“. Do rešeno. Ispričaj šta ti treba. Zadatak, prijave i Dogovor nastavljaju se iz tog istog razgovora. Skroluj svojim tempom. Kartica nastaje pred tobom. Jedan zadatak · demo Preskoči priču 02 / Jedan zadatak. Od početka do kraja. Dve police. Jedna obaveza manje. Treba mi neko da postavi dve zidne police, sutra oko 18h. Fotografski AI primer · ilustracija vrste posla Novi zadatak Opiši. Pregledaj. Objavi. Demo Treba mi neko da postavi dve zidne police, sutra oko 18h. Montaža polica · foto-primer Naravno. Gde je zadatak i koliko ljudi ti treba? Vračar, Beograd. Jedna osoba. Zid je od cigle. Koji je budžet i treba li posebna oprema? Oko 4.000 RSD. Police i nosači su tu. Trebaju bušilica, tiplovi i libela. Termin 18–19h. Sve je jasno. Ovako izgleda zadatak pre objave: Glas prvo postaje tekst. Ti potvrđuješ slanje. Pregled pre objave Nacrt Pročitaj detalje Montaža dve zidne police Vračar 18–19h 1 osoba 4.000 RSD Budžet zadatka Pregledaj Dve zidne police i nosači su spremni. Potrebna je montaža na zid od cigle. Ponesi bušilicu, tiplove i libelu. Jelen"
+      }
+    },
+    {
+      "url": "https://uskoci.rs/privacy",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/privacy"
+      },
+      "GET": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/privacy"
+      }
+    },
+    {
+      "url": "https://uskoci.rs/terms",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/terms"
+      },
+      "GET": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/terms"
+      }
+    },
+    {
+      "url": "https://uskoci.rs/support",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/support"
+      },
+      "GET": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/support"
+      }
+    },
+    {
+      "url": "https://uskoci.rs/delete-account",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/delete-account"
+      },
+      "GET": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/delete-account"
+      }
+    },
+    {
+      "url": "https://uskoci.rs/privacy-choices",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/privacy-choices"
+      },
+      "GET": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/privacy-choices"
+      }
+    },
+    {
+      "url": "https://uskoci.rs/safety",
+      "discovery": "Existing website plus intended URLs from remote work/uskoci-web-release-20261009 RELEASE_WEB_CHECKLIST.md; not assumed deployed",
+      "HEAD": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/safety"
+      },
+      "GET": {
+        "status": 404,
+        "finalURL": "https://uskoci.rs/safety"
+      }
+    }
+  ],
+  "ci": {
+    "runs": [
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T16:01:57Z",
+        "databaseId": 37956120590,
+        "headSha": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+        "name": "Control tracker refresh",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T15:37:30Z",
+        "databaseId": 37953118735,
+        "headSha": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+        "name": "D12 written review comment proof",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T15:37:30Z",
+        "databaseId": 37953118593,
+        "headSha": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+        "name": "PKG-006 application identity and selection proof",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T15:37:30Z",
+        "databaseId": 37953118591,
+        "headSha": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+        "name": "Control tracker refresh",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T15:37:30Z",
+        "databaseId": 37953118589,
+        "headSha": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+        "name": "EX-04 S2 own applications page proof",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T15:37:30Z",
+        "databaseId": 37953118571,
+        "headSha": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+        "name": "PKG-049 price authority characterization",
+        "status": "completed"
+      },
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-10-09T14:37:32Z",
+        "databaseId": 37945569832,
+        "headSha": "7658b925dc5057a5d20943d0270b52efb7bdaff8",
+        "name": "Control tracker refresh",
+        "status": "completed"
+      }
+    ],
+    "currentJobs": [
+      {
+        "id": 113906951450,
+        "run_id": 37956120590,
+        "workflow_name": "Control tracker refresh",
+        "head_branch": "work/uskoci-ui-unification-20260924",
+        "run_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/runs/37956120590",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOU---088AAAAahWIlGg",
+        "head_sha": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+        "url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/actions/jobs/113906951450",
+        "html_url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/37956120590/job/113906951450",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-09T16:01:57Z",
+        "started_at": "2026-10-09T16:01:57Z",
+        "completed_at": "2026-10-09T16:02:00Z",
+        "name": "refresh",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/uskocibusiness-boop/USKOCI-EAN/check-runs/113906951450",
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "runner_id": 0,
+        "runner_name": "",
+        "runner_group_id": 0,
+        "runner_group_name": ""
+      }
+    ],
+    "annotations": [
+      {
+        "path": ".github",
+        "blob_href": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/6311804dbac2323069e927f9a8dc49f8f0bb1f14/.github",
+        "start_line": 1,
+        "start_column": null,
+        "end_line": 1,
+        "end_column": null,
+        "annotation_level": "failure",
+        "title": "",
+        "message": "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+        "raw_details": ""
+      },
+      {
+        "path": ".github",
+        "blob_href": "https://github.com/uskocibusiness-boop/USKOCI-EAN/blob/6311804dbac2323069e927f9a8dc49f8f0bb1f14/.github",
+        "start_line": 1,
+        "start_column": null,
+        "end_line": 1,
+        "end_column": null,
+        "annotation_level": "notice",
+        "title": "",
+        "message": "\"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748\"",
+        "raw_details": ""
+      }
+    ],
+    "interpretation": "Latest canonical-HEAD tracker job ran zero steps; billing/spending-limit annotation. This is infrastructure-blocked, not a failed code assertion. No fresh green CI claimed."
+  },
+  "sourceEvidence": {
+    "app.config.js": {
+      "sha256": "c002201253fb320c4456c78c0a3571a9b24a201ef9551079bf4c26eed9534d99",
+      "lines": 89
+    },
+    "eas.json": {
+      "sha256": "831610a12825f4e9ce50848c977edf2ab30cf720fef5b0cd8aba95787ed97c7a",
+      "lines": 49
+    },
+    "src/contracts/needFactsV2.ts": {
+      "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+      "lines": 125
+    },
+    "src/ui/aiFirst/AiConversationShell.tsx": {
+      "sha256": "a139bc3d8904f2f598ce44ef2de206c2b5e5f40aaa762fabb53f085f0be3e804",
+      "lines": 547
+    },
+    "src/data/authClientService.ts": {
+      "sha256": "8ca78b4fd93a3f17deeeaac7a9bf6525e3e0bd3e491fa5cc88438c055e4bf40d",
+      "lines": 138
+    },
+    "src/data/supabaseClient.ts": {
+      "sha256": "b4eb52ec7aa25ba8dd44805afc867028d2d2fe8298d4b90140634c096a83192e",
+      "lines": 65
+    },
+    "src/data/mediaClientService.ts": {
+      "sha256": "2be12e8bb42ee3de3e096ef74202b7e6a044f9700b408855e27b74d0b6081a7c",
+      "lines": 149
+    },
+    "src/data/agreementVoiceClientService.ts": {
+      "sha256": "6df18d6c8fd2f7fbe2fd837cf7fe1a5606448c4fcc57b1bb4d9ca992dd3e6ce8",
+      "lines": 111
+    },
+    "src/data/agreementCurrentLocationService.ts": {
+      "sha256": "b2c5c0082d855e223bf8e188e905b6dd3a37fb8b02345816673cc0c3fc2b37f7",
+      "lines": 55
+    },
+    "src/data/locationClientService.ts": {
+      "sha256": "d073390a4b9e34072005c846c58fdba07922c4e0987ba8362ed96ec35de27e6c",
+      "lines": 107
+    },
+    "src/data/safetyClientService.ts": {
+      "sha256": "35d27a35c63e1591e259cc57c9222e5ad222b56521d0e03aad6f4a300d46d1c0",
+      "lines": 147
+    },
+    "src/data/nativePushDevice.ts": {
+      "sha256": "01fbc7b615adb11eb1d1c0f40bdfd9c93ba5803d9882775149aecca64d6e3927",
+      "lines": 34
+    },
+    "src/data/pushDeviceClientService.ts": {
+      "sha256": "acdacc388da492d981c64eadb8faf874ad7cab0875170e04dc55cbb94fb35075",
+      "lines": 69
+    },
+    "src/data/closureExecutionClientService.ts": {
+      "sha256": "ae73f189f31238871c52daba5797ab7f0ee9ebdf513bb015c8f187fc237ebdbc",
+      "lines": 66
+    },
+    "src/ui/closure/ClosurePresentation.tsx": {
+      "sha256": "7abd8fd894f5d81f39c129c1d2c66c5118e49f81fdffab0c30b6f455171a2aff",
+      "lines": 229
+    },
+    "src/data/dataExportClientService.ts": {
+      "sha256": "a33099bc8e552df4106a30ce198655c39be10758d0f1ac4e10d810e8580028fb",
+      "lines": 150
+    },
+    "src/data/dataExportDeliveryService.ts": {
+      "sha256": "c1a110bcde0243724af4fd9ed318adacbb4cfb5770f960bf11ce693af8ec7ef8",
+      "lines": 125
+    },
+    "src/data/retentionPolicyClientService.ts": {
+      "sha256": "01f2ea4e7ca56ec98e0199478453f59bb4023cc96e1f9342460658dae81816ad",
+      "lines": 84
+    },
+    "src/data/legalClientService.ts": {
+      "sha256": "7b51bbc6af3cb744ecf74484102fc0be1d7df84b1af692e35a69c85eb2934ea6",
+      "lines": 129
+    },
+    "supabase/functions/uskoci-ai-interview/index.ts": {
+      "sha256": "c04850996a4f9b54cec4a7e59dbe8b5f448775e4d7f22cfd5ab9d4a1e7829dd4",
+      "lines": 938
+    },
+    "supabase/functions/uskoci-account-closure-worker/index.ts": {
+      "sha256": "33f42de6a79bec2c09d84c0a39975ee462046f1a6686f89fe5a4ae1382db4a14",
+      "lines": 27
+    },
+    "supabase/functions/uskoci-account-closure-worker/closure.ts": {
+      "sha256": "53f3324418477fa0e5cc729f10c8358a6fffd7ee3834b9e821a7148ee91b7e65",
+      "lines": 114
+    },
+    "supabase/functions/uskoci-location-search/index.ts": {
+      "sha256": "6c1e968536c5069b510cc674d9f5c709615957e95ba799b9451c03652bfe15d9",
+      "lines": 245
+    },
+    "supabase/functions/uskoci-media/index.ts": {
+      "sha256": "10629c40e3af2e2f8565c40e6ca8373aa6de27d3c83554ee44cee6e33ca1e327",
+      "lines": 379
+    },
+    "supabase/functions/_shared/mediaImageSanitizer.mjs": {
+      "sha256": "29d5edd690e6fcb276c88faaf09b4785f621c01f9bdd89f99650ecbb1fafdb94",
+      "lines": 47
+    },
+    "supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql": {
+      "sha256": "433901a31e90b393727aef46776147bc6331d8383f0eed1953f7938c698a1409",
+      "lines": 870
+    }
+  }
+}

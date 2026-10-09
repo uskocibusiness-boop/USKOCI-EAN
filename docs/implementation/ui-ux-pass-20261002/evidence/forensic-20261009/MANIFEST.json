@@ -1,0 +1,250 @@
+{
+  "inspectedHead": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "createdAt": "2026-10-09T16:51:08.525073+00:00",
+  "artifacts": [
+    {
+      "path": "source/REPORT.md",
+      "sha256": "dff3a29b799a1c8327a360d5e993a5813b9946527966fb164d75b88faa742e8d",
+      "bytes": 20941
+    },
+    {
+      "path": "source/findings.json",
+      "sha256": "dbe33cf94a48a4359107e926fbe5ffd201ea37a07756e3080011c61f82ba0e1a",
+      "bytes": 2829
+    },
+    {
+      "path": "source/scope-summary.json",
+      "sha256": "43b595bca6c00420cd8aa2807406c2d0155311785a9c610befa78807d1357032",
+      "bytes": 22624
+    },
+    {
+      "path": "source/source-inventory.json",
+      "sha256": "3739aee89dae51d49bd32e5f775994bd179dbcef9f14924b860288beb623ae30",
+      "bytes": 914986
+    },
+    {
+      "path": "source/test-inventory.json",
+      "sha256": "dc4bf74eb56a4cb62780a87e9f8e3d64eb73ba2848506ab3f321cca2594a1d8f",
+      "bytes": 650060,
+      "redactedSyntheticFixtureExamples": 2
+    },
+    {
+      "path": "source/repository-inventory.json",
+      "sha256": "ef8960a9daac35d9b901b87e57e995346cc4ac17f7dd91385d9ac428404dc0ce",
+      "bytes": 97028
+    },
+    {
+      "path": "source/backend-capabilities.md",
+      "sha256": "7333c1bd53b11389a6c538fd131b56e5e77fdcf296c7e1c58ed2aec659f4bd8e",
+      "bytes": 68931
+    },
+    {
+      "path": "source/backend-capabilities.json",
+      "sha256": "176be5fafe8a1bb80ef1f7e3723d8720ff5028b2d7e58fc7eff002e5b3b247c9",
+      "bytes": 417373
+    },
+    {
+      "path": "source/backend-capabilities.receipt.json",
+      "sha256": "d9e8269bae144c46ead9caa0f07fde04a14981f9221c009fc68ef244106a92e6",
+      "bytes": 809
+    },
+    {
+      "path": "source/full-regression-summary.json",
+      "sha256": "7564393bf0869db169aab45cbb65fe9996a297ab74437ca61c188274612808e4",
+      "bytes": 4504
+    },
+    {
+      "path": "source/full-regression-receipt.json",
+      "sha256": "1985b4916aeca8419ae4462015f86a5a8dea4f6ea53f67d398f12a3d01fef26f",
+      "bytes": 286
+    },
+    {
+      "path": "source/bounded-tests.json",
+      "sha256": "1d20462aa8bad7a8d66d4b5b2fd5d56e861efce8b8e747a8dbfc59f519fe6fc6",
+      "bytes": 28845
+    },
+    {
+      "path": "source/FAILED_TEST_TRIAGE.md",
+      "sha256": "f115981e4ad50f1eb82a69d2c44b142e8fef9a92754cdd16ab9b48c5dd0d2d49",
+      "bytes": 1854
+    },
+    {
+      "path": "source/edge-context.log",
+      "sha256": "e6222319cf1011bd3a5f743e13c119fd42f056c07e3804d038d7dcbc4d111e7a",
+      "bytes": 8680
+    },
+    {
+      "path": "design/DESIGN_UX_FORENSIC_6311804d.md",
+      "sha256": "93bd0c2cc2122a553409510542cd465adbd740b3013a6da91ef79e187accc6c9",
+      "bytes": 21835
+    },
+    {
+      "path": "design/DESIGN_UX_FORENSIC_6311804d.json",
+      "sha256": "85d75027ceaf6fc195b1c38e2ac7627902bb28a30f0266664f2eee5f57a765b4",
+      "bytes": 94100
+    },
+    {
+      "path": "design/RPC13_DISCOVERY_SUPPLEMENT_6311804d.md",
+      "sha256": "2c1ef93488d397388c0ec0231b5de115a333972024b7fe82cdf742be86de9c1d",
+      "bytes": 9247
+    },
+    {
+      "path": "design/RPC13_DISCOVERY_SUPPLEMENT_6311804d.json",
+      "sha256": "24add9c98cb3e468284136cc9a6a853bdd4006ebb4b139495f1153991bbd6def",
+      "bytes": 11553
+    },
+    {
+      "path": "design/NATIVE_VISUAL_ADDENDUM.md",
+      "sha256": "5ba187a3e9aa4d43c7a54d0ace0eb9cade28e4e704eefa942f0dbb0f7865a661",
+      "bytes": 7668
+    },
+    {
+      "path": "design/NATIVE_VISUAL_ADDENDUM.json",
+      "sha256": "acdfb1b87bace6396d1db1778d0d8d5569c600735a92293512562e2e9b8a07dd",
+      "bytes": 13014
+    },
+    {
+      "path": "release/RELEASE_FORENSIC_REPORT.md",
+      "sha256": "fb30af38aa220810bcb9c09f58f83028e4bc3e533d70aceb2dd1f63a8cb3715f",
+      "bytes": 28215
+    },
+    {
+      "path": "release/release-observations.json",
+      "sha256": "89cbf51dfadc76f93cff304827fef1d88f1fc2ec1c1970357c40361cfcea3959",
+      "bytes": 36420
+    },
+    {
+      "path": "release/store-matrix.json",
+      "sha256": "e9842482eccc698a8d7d8824d03e31da738a92eec98572040eaec49ac638647f",
+      "bytes": 9090
+    },
+    {
+      "path": "release/privacy-data-map.json",
+      "sha256": "d30106b43d2b760d9e7e876cc98ddfc2ca30a7db15b2c0e4f19fc5be8fa1fb8d",
+      "bytes": 11277
+    },
+    {
+      "path": "release/primary-sources.json",
+      "sha256": "fc8d3cd5899a5e27154a32b5e818b447cb38eb0d63316f3f48a1a4d41cd1c47e",
+      "bytes": 966
+    },
+    {
+      "path": "backend/server-inventory.json",
+      "sha256": "3eeb52eb89e6a753fa13f937954aff9c9eb08ca8cb4b5a3a4d3bf929521cb7f9",
+      "bytes": 1037
+    },
+    {
+      "path": "backend/edge-inventory.json",
+      "sha256": "34ce771493b48f54d583a2a91b993223a0f81ba48e82b89c244e3be379ab0079",
+      "bytes": 5739
+    },
+    {
+      "path": "backend/critical-bodies.json",
+      "sha256": "930c7d770979133e68b4c7765668fb9277cbb7183e6187be5c395519c643c48a",
+      "bytes": 1018
+    },
+    {
+      "path": "backend/readiness.json",
+      "sha256": "c36530ad2d7406b8120a9ab3c2e3951784243f1e350cd8439f39a92ede0964e4",
+      "bytes": 922
+    },
+    {
+      "path": "backend/legal-readiness.json",
+      "sha256": "9d8df031a26c19a8557f18778ada8224855f9e3065bf685b3b7c42657c7df9a3",
+      "bytes": 874
+    },
+    {
+      "path": "backend/closure-readiness.json",
+      "sha256": "54bec91c5f1fa3e8d76d7cfb5c07adb51462fb7f16932f10ad10a4a3e4690e93",
+      "bytes": 1187
+    },
+    {
+      "path": "backend/security-advisors.json",
+      "sha256": "879d02bedefbc0d75f03632556710e6614698cd5ecba642919b487da7fd6bf48",
+      "bytes": 159449
+    },
+    {
+      "path": "backend/performance-advisors.json",
+      "sha256": "84d9d39dc63441e3ac85d078bca397d6fb40221a2919e78937e0ad70c9c0027b",
+      "bytes": 73993
+    },
+    {
+      "path": "backend/isolated-read-probe.json",
+      "sha256": "725edde5c9081c560a5c7cf2a00cbf6ff8cdcbb84d5a2448a2c09f7844cc192f",
+      "bytes": 1931
+    },
+    {
+      "path": "native/device.json",
+      "sha256": "2c502263df26996fa39309dce1f6e57fb26ee77d02c28c1ff0698ab8c5bcbc1d",
+      "bytes": 636
+    },
+    {
+      "path": "native/route-receipt.json",
+      "sha256": "e0cb0fa3b0412ea3d15c1cd11575c3677d1fd295055b56334dd55dc8f82c383a",
+      "bytes": 7060
+    },
+    {
+      "path": "native/bounded-launch-followup.json",
+      "sha256": "bd1accbfb24d9079dcab90538fff22132f64c708ed73ebc11c8e247a710ef323",
+      "bytes": 2015
+    },
+    {
+      "path": "native/uia-observer-overhead.json",
+      "sha256": "297e5f6f49e89c44b60a86d49eb0b167300f534720c38d11a95c54c880757ec1",
+      "bytes": 263
+    },
+    {
+      "path": "native/map-settled.png",
+      "sha256": "f56ab599f96eb89fd408316663f1d3ad980bd96d5f82a99791d3da7324ac3d26",
+      "bytes": 336472
+    },
+    {
+      "path": "native/route-nova.png",
+      "sha256": "0c7a4e0305b9931b7adf729a1809fe46682889e1c73414aebac9b6d38ed5b77e",
+      "bytes": 362381
+    },
+    {
+      "path": "native/route-raspored.png",
+      "sha256": "d62418a9c77b1e16c9caa6d26eb5914573afb716ae3b82296e1e391b89070d9f",
+      "bytes": 218770
+    },
+    {
+      "path": "native/route-profil-pravna.png",
+      "sha256": "cd8989292a93cb776f4a18572a29b01495f596df7c32d317fda565bb295cb5c2",
+      "bytes": 83784
+    },
+    {
+      "path": "native/route-profil-izvoz.png",
+      "sha256": "a734b659705b22f55621060480c913080d6e1d96a640233a8045d19f08fd8803",
+      "bytes": 183452
+    },
+    {
+      "path": "native/route-poruke.png",
+      "sha256": "d416d3a57e177e746309e542228784150e1a9155bd0877b31d844f532f1204e6",
+      "bytes": 365872
+    },
+    {
+      "path": "native/sheet-cycle-1.png",
+      "sha256": "3a426ba14e354b4843578e085f38fb348eb0bac76d2583eec46c4a1f66dc36c9",
+      "bytes": 284016
+    },
+    {
+      "path": "native/sheet-cycle-2.png",
+      "sha256": "9e507a5ff2e5729945cfa3483aeea586477798d631c1b8fce582d0829229d078",
+      "bytes": 348405
+    },
+    {
+      "path": "native/map-detail-back.png",
+      "sha256": "a598513a07e5f5498b31707954feb2b35eddecd343cdaaff6f852c0d4de3bcce",
+      "bytes": 348000
+    },
+    {
+      "path": "source/backend-matrix.py",
+      "sha256": "4c403a85f4dabb868829007faa120ea44935fafd7b446e1fbd6753238a4cb1d7",
+      "bytes": 16398
+    }
+  ],
+  "localPrivateEvidence": "C:\\Users\\user\\Documents\\Codex\\uskoci-forensic-20261009\\native",
+  "limits": "Raw app logs and personal-account screenshots are not copied to repository. Artifact filenames referenced by appendix may point to private local scratch; their hashes remain in native addendum. Full Jest raw output stays local; committed summary carries failing assertions and counts.",
+  "localAuditWorkspace": "C:/Users/user/Documents/Codex/uskoci-forensic-20261009"
+}

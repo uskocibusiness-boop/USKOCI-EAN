@@ -1,0 +1,215 @@
+{
+  "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "scope": "READ-ONLY supplemental SOURCE classification, no live validation",
+  "inventorySource": "docs/control/stanje.json / server_ume_aplikacija_ne_koristi",
+  "rpcCount": 13,
+  "rpcClassification": [
+    {
+      "rpc": "rpc_agreement_invalidation_visible_v1",
+      "classification": "INTERNAL_GUARD",
+      "explanation": "RLS predicate for realtime invalidation table; client subscribes to INSERT/UPDATE, not direct RPC.",
+      "sources": [
+        "supabase/candidates/chat_b3c_private_invalidation.sql:100",
+        "supabase/candidates/chat_b3c_private_invalidation.sql:122",
+        "src/data/agreementInvalidationService.ts:152"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_ai_open_conversation",
+      "classification": "SUPERSEDED_WRAPPER",
+      "explanation": "Legacy generic AI opener. NEED uses owned v2 opener; worker uses rpc_open_worker_ai. No missing screen follows from absence of legacy direct call.",
+      "sources": [
+        "supabase/migrations/20260829184024_clean_rpc_ai_intake.sql:4",
+        "src/data/aiNeedV2Production.ts:314",
+        "src/data/workerAiClientService.ts:154"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_ai_open_need_conversation_v2",
+      "classification": "SUPERSEDED_WRAPPER",
+      "explanation": "No-argument opener replaced at client boundary by rpc_ai_open_need_conversation_owned_v2 with clientRequestId.",
+      "sources": [
+        "supabase/migrations/20260903190000_clean_ru2_need_v2_draft.sql:429",
+        "src/data/aiNeedV2Production.ts:314"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_ai_read_need_location_turn_v1",
+      "classification": "ALTERNATIVE_INTERNAL_EDGE_PATH",
+      "explanation": "Authenticated document reader is not the client recovery path. Edge uses service variant over the same private document; client has read/recover_need_turn_v2. Not evidence location conversation is missing.",
+      "sources": [
+        "supabase/operations/dev-alpha/ledger/20261002185306_dev_alpha_ai_location_01_contextual_map_dialogue.sql:111",
+        "supabase/operations/dev-alpha/ledger/20261002185306_dev_alpha_ai_location_01_contextual_map_dialogue.sql:119",
+        "supabase/functions/uskoci-ai-interview/index.ts:793",
+        "src/data/aiNeedV2Production.ts:353",
+        "src/data/aiNeedV2Production.ts:360"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_authorize_data_export_download",
+      "classification": "INTERNAL_EDGE",
+      "explanation": "Actually used by export download Edge; not supposed to be a direct UI command.",
+      "sources": [
+        "supabase/functions/uskoci-data-export-download/index.ts:11"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_closure_api_guard",
+      "classification": "INTERNAL_GUARD",
+      "explanation": "PostgREST pre-request hook; absence of client invocation is correct.",
+      "sources": [
+        "supabase/migrations/20260912230039_clean_v5_policy_bound_closure.sql:275",
+        "supabase/migrations/20260912230039_clean_v5_policy_bound_closure.sql:277",
+        "supabase/migrations/20260913045824_clean_v5_support_case_authority.sql:494",
+        "src/data/accountClosingStanding.ts:15"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_confirm_need_edit",
+      "classification": "SUPERSEDED_CLIENT_ENTRY",
+      "explanation": "Older material edit entry is not the UI submit contract; current reviewed edit calls rpc_confirm_need_edit_from_review_v2 with expected revision. Classification does not authorize deleting older SQL function or dependencies.",
+      "sources": [
+        "supabase/migrations/20260904214500_clean_ru4_owner_edit_lock.sql:305",
+        "src/data/aiNeedV2Production.ts:453",
+        "src/data/aiNeedV2Production.ts:465"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_get_my_safety_report",
+      "classification": "ALTERNATIVE_RECEIPT_READER",
+      "explanation": "Returns only reportId/received/createdAt/authoritative, not a richer case status UI. Client recovers exact submission by clientRequestId and has support-case context path. No distinct missing user capability established by unused getter.",
+      "sources": [
+        "supabase/migrations/20260912091000_clean_pre_v3_safety_authority.sql:164",
+        "supabase/migrations/20260912091000_clean_pre_v3_safety_authority.sql:172",
+        "src/data/safetyClientService.ts:107",
+        "src/data/supportCaseClientService.ts:213"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_get_push_device",
+      "classification": "SUPERSEDED_WRAPPER",
+      "explanation": "Owned variant includes expected user identity and token; generic read not required on screen.",
+      "sources": [
+        "src/data/pushDeviceClientService.ts:44"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_list_my_agreements",
+      "classification": "SUPERSEDED_WRAPPER",
+      "explanation": "Client uses paged agreements reader, not the unpaged predecessor.",
+      "sources": [
+        "src/data/agreementClientService.ts:588"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_send_agreement_message",
+      "classification": "SUPERSEDED_WRAPPER",
+      "explanation": "Current text send uses v2; photos use v5 and voice its specific protocol. Do not duplicate send action.",
+      "sources": [
+        "src/data/agreementMessageClientService.ts:48",
+        "src/ui/messages/threadModel.ts:177"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_storage_account_open",
+      "classification": "INTERNAL_GUARD",
+      "explanation": "RLS closure fence on storage and user tables. Invoked by policy, not a user capability.",
+      "sources": [
+        "supabase/migrations/20260912230039_clean_v5_policy_bound_closure.sql:297",
+        "supabase/migrations/20260912230039_clean_v5_policy_bound_closure.sql:302",
+        "supabase/migrations/20260912230039_clean_v5_policy_bound_closure.sql:308"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    },
+    {
+      "rpc": "rpc_submit_classified_preselection_qa",
+      "classification": "INTERNAL_EDGE",
+      "explanation": "uskoci-qa-classify commits classified preselection Q&A via RPC. It is actually used indirectly, not a missing public form.",
+      "sources": [
+        "supabase/functions/uskoci-qa-classify/index.ts:219"
+      ],
+      "evidence": "SOURCE only; no backend query or execution"
+    }
+  ],
+  "conclusion": "No real missing user capability established solely from these13 entries. Static direct-call absence is not unused-system proof. Do not delete functions on this basis.",
+  "discoveryLoading": [
+    {
+      "case": "Cold first open, no accepted snapshot",
+      "visible": "Loading StateView with task skeleton and Učitavamo zadatke. No prior map/list to retain. Failure replaces skeleton with error/retry.",
+      "sources": [
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:76",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:270",
+        "src/ui/v2/discovery/DiscoveryListState.tsx:47"
+      ]
+    },
+    {
+      "case": "Explicit refresh or non-warm restore",
+      "visible": "loading=true empties presentation mapped/list; mapShown=false draws neutral ground. Skeleton in sheet, not old rows. After success new list/map returns; true empty has compact empty state over map.",
+      "sources": [
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:98",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:199",
+        "src/ui/v2/DiscoveryPresentation.tsx:440",
+        "src/ui/v2/DiscoveryPresentation.tsx:570",
+        "src/ui/v2/DiscoveryPresentation.tsx:1218",
+        "src/ui/v2/DiscoveryPresentation.tsx:1333"
+      ]
+    },
+    {
+      "case": "Filter/search apply or user pans map",
+      "visible": "execute default busy=false; coordinator retains last complete snapshot until new read applies. Filter askedView changes immediately while rows/markers can still be old. No explicit refreshing state is sent for this wait. Delayed result is not blank, but old results can look current under new conditions.",
+      "sources": [
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:190",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:195",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:245",
+        "src/data/discoveryV1RouteCoordinator.ts:57",
+        "src/data/discoveryV1RouteCoordinator.ts:63",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:277"
+      ]
+    },
+    {
+      "case": "Next page",
+      "visible": "Existing rows remain; presentation contains a polite floating paging label when loadingMore reaches it. Coordinator sets mutable loadingMore before await but route commits after await; no immediate notification at this assignment. Indicator is not guaranteed without an unrelated optional commit. Need deferred-promise render test, not assume it shows just because component exists.",
+      "sources": [
+        "src/data/discoveryV1RouteCoordinator.ts:268",
+        "src/data/discoveryV1RouteCoordinator.ts:287",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:256",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:103",
+        "src/ui/v2/DiscoveryPresentation.tsx:1271",
+        "src/ui/v2/DiscoveryPresentation.tsx:1412"
+      ]
+    },
+    {
+      "case": "RPC error/timeout after prior results",
+      "visible": "General error=true empties mapped/list and hides map. Error says Ne možemo da učitamo zadatke / Proveri internet vezu i pokušaj ponovo, with explicit retry. This can misattribute server timeout to internet. Source does not preserve a dim stale list after error.",
+      "sources": [
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx:104",
+        "src/ui/v2/DiscoveryPresentation.tsx:440",
+        "src/ui/v2/DiscoveryPresentation.tsx:570",
+        "src/ui/v2/discovery/DiscoveryListState.tsx:27",
+        "src/ui/v2/discovery/DiscoveryListState.tsx:48"
+      ]
+    },
+    {
+      "case": "Slow or superseded transport",
+      "visible": "Individual request deadline15s; abort/timeout reported, timer cleared, no transport retry. Coordinator has one explicit expired-anchor renewal, which is a separate behavior. Account/generation stale results are discarded.",
+      "sources": [
+        "src/data/discoveryV1ClientTransport.ts:16",
+        "src/data/discoveryV1ClientTransport.ts:27",
+        "src/data/discoveryV1ClientTransport.ts:32",
+        "src/data/discoveryV1RouteCoordinator.ts:274"
+      ]
+    }
+  ],
+  "recommendation": "Keep complete old map/list during scope replacement but explicitly mark results updating and retain accepted versus requested scope; commit loadingMore before awaiting paging. For refresh/error decide stale-with-retry display with ownership guards, rather than replacing map with ground. Verify via deferred transport tests plus native slow-network capture."
+}

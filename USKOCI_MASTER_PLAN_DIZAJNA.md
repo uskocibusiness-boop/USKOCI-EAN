@@ -1,5 +1,7 @@
 > **HONOR pregled i plan, 8.10. uveče:** [stvarne slike, prioriteti i put do kontrolisanog push-a](docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#telefon-plan-20261008). Instalirani APK vezan SHA-256 dokazom za4e0ea506. HALF/FULL navigacija radi u pregledanim stanjima; uočeni search clipping i nečitljivo prelamanje settings reda. DEV235/digest3a785d42;0aktivnih push uređaja. Bounded pregled, bez novog whole-flow PASS-a; predlozi nisu implementirani.
 
+> **09.10 — nezavisni pre-release audit: NO-GO.** [Dokazi,62-row matrica,ocene,FREEZE i konačnih5paketa](docs/implementation/ui-ux-pass-20261002/FORENSIC_PRE_RELEASE_20261009.md). Puni aktuelniJest603/604suite;1zastareli source-texttestFAIL. Legal/processor/export,productionAAB/Firebase/16KB,real-device/security/performance ostaju otvoreni. Ovo je dokazni presek istog registra, ne novi master.
+
 > **Revizija 2, posle vlasnikovog pregleda:** [povezana mapa/lista, radni prostor i kratko uvođenje](docs/implementation/ui-ux-pass-20261002/NACRT_PROIZVODA_20261008.md#revizija2-20261008). HALF/FULL navigacija već postoji u app source-u; sada je i u skici. Galerija ima 78 prikaza (uključuje 8 ilustrativnih task detalja), tri glavna taba su početni predlog po poslednjoj komandi. Novi hub, search i onboarding čekaju izbor. SOURCE/HTML provere nisu PHONE dokaz.
 
 <!-- DESIGN-REVIEW-20261008 START -->

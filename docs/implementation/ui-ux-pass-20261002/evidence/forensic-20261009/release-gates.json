@@ -1,0 +1,134 @@
+[
+  {
+    "gate": "Core flows",
+    "status": "NOT VERIFIED ceo aktuelni krug",
+    "evidence": "62-row matrica; 20 read-only native prikaza",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Authentication",
+    "status": "PARTIAL",
+    "evidence": "Sesija očuvana u 10/10 pokretanja; fresh login/logout/recovery nisu ponovljeni",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Task creation",
+    "status": "PARTIAL",
+    "evidence": "Raniji stvarni publish; aktuelni welcome; resume/edit/finish-only otvoreni",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Applications",
+    "status": "PARTIAL",
+    "evidence": "Ledger 237, rounding SQL proof, ce23 inertni broj ljudi i pregled",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Agreements",
+    "status": "PARTIAL",
+    "evidence": "Connected SQL; aktuelni cancel/replacement/completion krug otvoren",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Chat",
+    "status": "PARTIAL",
+    "evidence": "Raniji privatni tekst; kompletan grupni/audio/photo native tok nije dokazan",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Location",
+    "status": "PARTIAL",
+    "evidence": "Source/geocoder dokazi; current drag/reopen/private/multi-stop otvoreni",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Map",
+    "status": "FAIL prihvatnog pregleda",
+    "evidence": "ce23 geometrija bez vidljivih naziva; list/detail/Back delimično PASS",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Notifications",
+    "status": "PARTIAL / FAIL pokrivenosti",
+    "evidence": "Jedan owner-confirmed MESSAGE; opportunity/group/production otvoreni",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Account deletion",
+    "status": "NOT VERIFIED",
+    "evidence": "Adapter binding postoji, legal false, execution prazno; bez punog Auth/Storage testa",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Security",
+    "status": "NOT VERIFIED",
+    "evidence": "Managed scan pre-start error; dependency triage otvoren",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Privacy",
+    "status": "FAIL",
+    "evidence": "0 legal dokumenata / 0 processor mapa / export binding null / URL404",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Performance",
+    "status": "FAIL prihvatnog kriterijuma",
+    "evidence": "C4 P95 ~6,7 s; C16 timeout-i; sveži izolovani SQL timeout-i",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Crash stability",
+    "status": "NOT VERIFIED release",
+    "evidence": "10 uspešnih povrataka na Home; prvi harness timeout; 16KB runtime neproveren",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Visual polish",
+    "status": "PARTIAL; osnova FREEZE",
+    "evidence": "20 stanja pregledano; mapa i sve varijante nisu prihvaćeni",
+    "blocksRelease": "Samo ozbiljni nalazi"
+  },
+  {
+    "gate": "UX",
+    "status": "PARTIAL",
+    "evidence": "AI resume, private unread, pending filter i copy nalazi",
+    "blocksRelease": "DA za ključne tokove"
+  },
+  {
+    "gate": "Accessibility",
+    "status": "NOT VERIFIED cela aplikacija",
+    "evidence": "Veliki tekst delimično; nema TalkBack/focus/contrast matrice",
+    "blocksRelease": "DA za osnovne kontrole"
+  },
+  {
+    "gate": "Store compliance",
+    "status": "FAIL",
+    "evidence": "Legal/deletion/AI/config/declarations otvoreni",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Production build",
+    "status": "NOT VERIFIED",
+    "evidence": "Nema pronađenog AAB; production konfiguracija vodi na DEV",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "Signing",
+    "status": "FAIL za dostavljeni release kandidat",
+    "evidence": "Preview APK koristi debug ključ; pravi upload/Play potpis nije proveren",
+    "blocksRelease": "DA"
+  },
+  {
+    "gate": "CI",
+    "status": "BLOCKED; lokalni Jest FAIL",
+    "evidence": "CI 0 koraka/billing; lokalno 603/604 suite-a, jedan zastareli source-text test pada",
+    "blocksRelease": "DA ili dokumentovana ekvivalentna reproduktivna release provera"
+  },
+  {
+    "gate": "Real-device test",
+    "status": "NOT VERIFIED aktuelni kandidat",
+    "evidence": "Fizički telefon nije povezan; ranija push potvrda ograničena",
+    "blocksRelease": "DA"
+  }
+]

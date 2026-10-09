@@ -72,3 +72,7 @@ Na konkretno pitanje10000RSD/3osobe vlasnik izričito odgovara: „Zaokruži na 
 ### 09.10 — određen plan, presek i kraj rada
 
 Najnoviji zahtev traži profesionalnu timsku analizu trenutnog stanja, šta je završeno, šta sledi i kada je APK spreman; vlasnik izričito ne želi neograničen rad bez jasnog plana i završetka. Prioritet su AI radni profil, stvaranje/izmena zadatka i profila, lokacije/pin/ruta, saradnje, čet/mediji i brzina baze. Čitanje: nastaviti postojeći posao uz ograničene prihvatne scenarije i jasne release uslove; ne pretvoriti raniji „u krug“ nalog u beskonačne estetske iteracije. Postojećih62 redova i master ostaju autoritet evidencije. Izveštaj STATUS_I_KRITERIJUMI_ZAVRSETKA_20261009.md je presek, ne nova paralelna lista. Ovo nije odobrenje javnog izdanja niti promena već pauzirane30-minutne automatizacije.
+
+### 09.10 — nezavisni pre-release forensic audit i granica završetka
+
+Vlasnik izričito traži nezavisnu procenu stvarnog trenutnog proizvoda kroz27oblasti, sa dokazima, dvadeset stručnih perspektiva, P0–P3 i release gate tabelom. Zabranjuje ulepšavanje i beskonačni redizajn; dovoljno dobra rešenja označitiFREEZE. Audit razlikuje implementirano/povezano/testirano/emulator/fizičkiuređaj/productionready. Ovaj zahtev odobrava potrebne bezbedne audite i testove, ne objavu neodobrenog release paketa ili nasumičan arhitektonski rewrite. Sadašnji rezultat i tačne granice su u docs/implementation/ui-ux-pass-20261002/FORENSIC_PRE_RELEASE_20261009.md. Postojeći62redni registar i master ostaju jedini;30-minutna automatizacijaPAUSED.

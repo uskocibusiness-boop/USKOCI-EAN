@@ -1,0 +1,81 @@
+{
+  "at": "2026-10-09T16:27:38.504882+00:00",
+  "samples": [
+    {
+      "kind": "cold_process",
+      "i": 0,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 10890.44,
+      "polls": 2
+    },
+    {
+      "kind": "cold_process",
+      "i": 1,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 10107.94,
+      "polls": 2
+    },
+    {
+      "kind": "cold_process",
+      "i": 2,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 8595.94,
+      "polls": 2
+    },
+    {
+      "kind": "cold_process",
+      "i": 3,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 7300.19,
+      "polls": 1
+    },
+    {
+      "kind": "cold_process",
+      "i": 4,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 9769.98,
+      "polls": 2
+    },
+    {
+      "kind": "warm_resume",
+      "i": 0,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 6143.37,
+      "polls": 1
+    },
+    {
+      "kind": "warm_resume",
+      "i": 1,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 6745.43,
+      "polls": 1
+    },
+    {
+      "kind": "warm_resume",
+      "i": 2,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 6344.34,
+      "polls": 1
+    },
+    {
+      "kind": "warm_resume",
+      "i": 3,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 6445.12,
+      "polls": 1
+    },
+    {
+      "kind": "warm_resume",
+      "i": 4,
+      "ready": true,
+      "visibleHomeUpperBoundMs": 5752.44,
+      "polls": 1
+    }
+  ],
+  "limits": [
+    "5 samples per mode; small-sample percentiles descriptive only. UIAutomator visible Home polling is an upper bound, not frame-level TTI.",
+    "Warm resumes use launcher MAIN/LAUNCHER NEW_TASK/RESET_TASK flags, unlike failed am start -W harness.",
+    "Shared Windows host, x86 emulator, DEV APK, preserved existing session. No claim for physical phone, first install or production load.",
+    "Original30-cold loop lost samples after warm timeout120s; no metrics reconstructed."
+  ]
+}

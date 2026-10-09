@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-09T16:28:51.156066+00:00",
+  "target": "127.0.0.1:55439/uskoci_plan_cache_20261009",
+  "identity": {
+    "md5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "needs": 40049,
+    "postgres": "PostgreSQL 17.11 on x86_64-windows, compiled by msvc-19.44.35229, 64-bit"
+  },
+  "population": {
+    "syntheticTasks": 40000,
+    "retainedTasks": 49,
+    "users": 5,
+    "activeSqlReaders": 1,
+    "httpRequests": 0
+  },
+  "samples": [
+    {
+      "mode": "auto",
+      "elapsedMs": 8307.19,
+      "exitCode": 3,
+      "statementTimeout": true,
+      "errorClass": "statement_timeout"
+    },
+    {
+      "mode": "auto",
+      "elapsedMs": 7760.35,
+      "exitCode": 0,
+      "counts": {
+        "kind": "exact_live",
+        "inArea": null,
+        "everywhere": 40007,
+        "observedAt": "2026-10-09T16:28:59.551635+00:00"
+      },
+      "responseSha256": "172ede365dcf8b4885b6cd596b20315387353bc9f804d2e1c9db044ba45629fe",
+      "responseBytes": 5592
+    },
+    {
+      "mode": "auto",
+      "elapsedMs": 8266.8,
+      "exitCode": 3,
+      "statementTimeout": true,
+      "errorClass": "statement_timeout"
+    },
+    {
+      "mode": "force_generic_plan",
+      "elapsedMs": 8424.48,
+      "exitCode": 3,
+      "statementTimeout": true,
+      "errorClass": "statement_timeout"
+    }
+  ],
+  "limits": [
+    "Read-only isolated partial clone; not DEV/production benchmark or 40000 concurrent users.",
+    "PG17.11 versus live17.6; same rpc body but no full dependency parity claim.",
+    "Shared host; wall time includes psql process and connection overhead; not HTTP/phone latency.",
+    "Three cold SQL sessions plus one forced generic diagnostic; insufficient sample for meaningful p95.",
+    "No new users/tasks, no writes, 8s statement timeout per call; generic-plan forcing is diagnostic not a production-mode proof."
+  ],
+  "identityAndCountUnchanged": true
+}

@@ -1,0 +1,150 @@
+{
+  "recordedAt": "2026-10-09T16:30:13.209987+00:00",
+  "sourceCommit": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "sourceScope": "Source and selected exact preview artifact; no server/device mutations",
+  "securityScan": "NOT_VERIFIED: managed tool failure; no replacement scan",
+  "verdict": "NO_GO_PUBLIC_RELEASE_OR_10000_NEW_USERS",
+  "reportSha256": "fb30af38aa220810bcb9c09f58f83028e4bc3e533d70aceb2dd1f63a8cb3715f",
+  "gates": [
+    {
+      "id": 1,
+      "gate": "Permanent Android identity",
+      "status": "PASS",
+      "scope": "PASS, config only",
+      "evidenceAndExit": "Resolved `rs.uskoci`; confirm same identity in signed production bundle and Play entry."
+    },
+    {
+      "id": 2,
+      "gate": "Production backend and environment isolation",
+      "status": "FAIL",
+      "scope": "FAIL",
+      "evidenceAndExit": "Production resolves to DEV; approve/provision the already-decided production target and bind migrations/Auth/Edge/storage/cron/keys/OTA to it. No development accounts or conversation copies should be imported by default."
+    },
+    {
+      "id": 3,
+      "gate": "Signed production AAB and Play signing",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED",
+      "evidenceAndExit": "No AAB in three inspected roots. Exact phone APK uses debug key and preview package. Produce one source-bound AAB, verify upload certificate/Play app signing, versionCode and final manifest."
+    },
+    {
+      "id": 4,
+      "gate": "Exact delivery and native acceptance",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED",
+      "evidenceAndExit": "Ce23 emulator fixture interactions pass; ce23 phone installation/runtime source and complete live journey remain unverified. OTA must not silently substitute another source."
+    },
+    {
+      "id": 5,
+      "gate": "Android target API",
+      "status": "PASS",
+      "scope": "PASS for ce23 APK; production unverified",
+      "evidenceAndExit": "APK targets36. Current rule requires API36 for ordinary new mobile apps/updates from31 August2026. [Google target API](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en)"
+    },
+    {
+      "id": 6,
+      "gate": "16KB native compatibility",
+      "status": "FAIL",
+      "scope": "FAIL static supplemental check; runtime unverified",
+      "evidenceAndExit": "LOAD/ZIP28/28 pass, RELRO24/28 fail documented formula. Validate compatible NDK/prebuilt dependencies, recheck final AAB and launch/map/voice/photo on16KB device/emulator. Do not label a crash as reproduced. [Android guidance](https://developer.android.com/guide/practices/page-sizes)"
+    },
+    {
+      "id": 7,
+      "gate": "Permissions and runtime disclosures",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED",
+      "evidenceAndExit": "Preview inventory captured; production manifest/runtime denial/revocation and rationale not audited here. SYSTEM_ALERT_WINDOW needs necessity review. Source disables background location/audio."
+    },
+    {
+      "id": 8,
+      "gate": "Production push and promised event coverage",
+      "status": "FAIL",
+      "scope": "FAIL",
+      "evidenceAndExit": "Production Firebase Android client is absent. Earlier real MESSAGE push is proven, but newer-source/store-package token→event→provider→device→tap is not. OPPORTUNITY candidate and group events are not established as deployed end-to-end."
+    },
+    {
+      "id": 9,
+      "gate": "Play developer verification/testing access",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED",
+      "evidenceAndExit": "No current Console receipt for account verification/production access. New personal accounts require12 opted-in testers continuously14days before applying; a load generator cannot satisfy this. [Google testing](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en)"
+    },
+    {
+      "id": 10,
+      "gate": "Public privacy policy and operator/contact identity",
+      "status": "FAIL",
+      "scope": "FAIL",
+      "evidenceAndExit": "Intended `/privacy`404; live legal inventory empty and published processor-map count0. Branch draft still contains operator/address/retention/processor placeholders. Publish reviewed real data and bind exact documents in app/Console. [Google User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en)"
+    },
+    {
+      "id": 11,
+      "gate": "Terms and acceptance before UGC / age policy",
+      "status": "FAIL",
+      "scope": "FAIL",
+      "evidenceAndExit": "`authCopy.legal` says documents unpublished; acceptance is wired only in `/profil/pravna`, no first-use age/terms gating found in examined entry. `/terms`404. Existing truthful refusal must not be replaced by a fake acceptance. [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en)"
+    },
+    {
+      "id": 12,
+      "gate": "External account/data deletion request",
+      "status": "FAIL",
+      "scope": "FAIL",
+      "evidenceAndExit": "Intended `/delete-account`404. Email draft is not a proven receiving/verification/fulfillment/completion workflow. Google requires in-app and external request paths. [Google User Data](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en)"
+    },
+    {
+      "id": 13,
+      "gate": "In-app account closure really completes",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED end-to-end",
+      "evidenceAndExit": "Entry/review/prepare/start/status and executable worker exist; fresh source certification is ready. No current real Auth+Storage deletion completion probe was performed here. Need ordinary-account completion plus narrow evidence exception proof, not account freezing."
+    },
+    {
+      "id": 14,
+      "gate": "Export, retention and deletion claims",
+      "status": "FAIL",
+      "scope": "FAIL policy readiness; execution NOT VERIFIED",
+      "evidenceAndExit": "Live export policy binding is null. Client checks owned request, exact generation/hash/expiry and authenticated download. Published schedules and runnable adapters are separate. Need policy plus actual delivery/expiry/revocation and real legal periods."
+    },
+    {
+      "id": 15,
+      "gate": "Third-party AI disclosure and permission",
+      "status": "FAIL",
+      "scope": "FAIL in reviewed text-AI entry",
+      "evidenceAndExit": "History/free text and structured exact_address/access_notes reach Gemini. Only speech notice is found; no explicit text-AI consent surface in entry. Apple explicitly requires disclosure and permission for personal data sent to third-party AI. [Apple5.1.2](https://developer.apple.com/app-store/review/guidelines/)"
+    },
+    {
+      "id": 16,
+      "gate": "UGC/AI reporting, block and operations",
+      "status": "FAIL",
+      "scope": "FAIL for AI reporting; other evidence partial",
+      "evidenceAndExit": "Account/user report and block paths exist; no AI-message report/flag action found. Active support moderation response and escalation not proved. [Google AI policy](https://support.google.com/googleplay/android-developer/answer/13985936?hl=en)"
+    },
+    {
+      "id": 17,
+      "gate": "Store Data safety/privacy declarations",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED",
+      "evidenceAndExit": "Sep30 declaration is a draft with stale assumptions about audio/reviews/flags. Reconcile final build/backend/provider practice, data map below, operator-approved periods and sharing. [Apple privacy details](https://developer.apple.com/app-store/app-privacy-details/)"
+    },
+    {
+      "id": 18,
+      "gate": "Reproducible release, CI, monitoring and rollback",
+      "status": "NOT_VERIFIED",
+      "scope": "NOT VERIFIED",
+      "evidenceAndExit": "Latest CI never started; local targeted tests/build are useful but not fresh CI. Need exact release build acceptance, crash/ANR visibility, staged rollout, OTA/runtime compatibility and backup/restore evidence. Independent security assessment remains explicitly unverified."
+    },
+    {
+      "id": 19,
+      "gate": "iOS binary/signing/review",
+      "status": "NA",
+      "scope": "NA for Android-first scope; not ready for Apple",
+      "evidenceAndExit": "No iOS bundleID, signed archive/IPA, APNs, privacy manifest, device QA or App Store metadata proof. When activated, Xcode26+/iOS26SDK+ is the current minimum. [Apple requirements](https://developer.apple.com/news/upcoming-requirements/?id=04282026a)"
+    },
+    {
+      "id": 20,
+      "gate": "10,000 new users tomorrow / high concurrency",
+      "status": "FAIL",
+      "scope": "FAIL acceptance gate",
+      "evidenceAndExit": "No successful realistic population/concurrency/API/AI/Auth/mail/push workload proof. Existing40k means synthetic tasks, not users; measured p95 at4 concurrency~6.7s and16 warmup5timeouts/27requests. Do not perform a mass real-DEV test. Root owns further isolated capacity diagnosis."
+    }
+  ]
+}

@@ -1,0 +1,1606 @@
+{
+  "observed": "2026-10-09",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "type": "performance",
+  "lints": [
+    {
+      "name": "unindexed_foreign_keys",
+      "title": "Unindexed foreign keys",
+      "level": "INFO",
+      "facing": "EXTERNAL",
+      "categories": [
+        "PERFORMANCE"
+      ],
+      "description": "Identifies foreign key constraints without a covering index, which can impact database performance.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys",
+      "count": 91,
+      "findings": [
+        {
+          "detail": "Table \\`private.account_block_commands\\` has a foreign key \\`account_block_commands_target_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "account_block_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "account_block_commands_target_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.account_blocks\\` has a foreign key \\`account_blocks_blocked_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "account_blocks",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "account_blocks_blocked_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.agreement_media_snapshots_v5\\` has a foreign key \\`agreement_media_snapshots_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreement_media_snapshots_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "agreement_media_snapshots_v5_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.agreement_media_snapshots_v5\\` has a foreign key \\`agreement_media_snapshots_v5_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreement_media_snapshots_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "agreement_media_snapshots_v5_need_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.closure_actions_v5\\` has a foreign key \\`closure_actions_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "closure_actions_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "closure_actions_v5_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.closure_executions_v5\\` has a foreign key \\`closure_executions_v5_policy_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "closure_executions_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "closure_executions_v5_policy_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.closure_redaction_steps_v5\\` has a foreign key \\`closure_redaction_steps_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "closure_redaction_steps_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "closure_redaction_steps_v5_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.closure_scope_sources_v5\\` has a foreign key \\`closure_scope_sources_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "closure_scope_sources_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "closure_scope_sources_v5_account_id_fkey",
+            "fkey_columns": [
+              1
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.connection_activations\\` has a foreign key \\`connection_activations_beneficiary_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "connection_activations",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "connection_activations_beneficiary_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.connection_activations\\` has a foreign key \\`connection_activations_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "connection_activations",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "connection_activations_need_id_fkey",
+            "fkey_columns": [
+              10
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.connection_activations\\` has a foreign key \\`connection_activations_policy_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "connection_activations",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "connection_activations_policy_fkey",
+            "fkey_columns": [
+              6,
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.connection_activations\\` has a foreign key \\`connection_activations_response_version_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "connection_activations",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "connection_activations_response_version_fkey",
+            "fkey_columns": [
+              14,
+              15
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.connection_activations\\` has a foreign key \\`connection_activations_worker_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "connection_activations",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "connection_activations_worker_account_id_fkey",
+            "fkey_columns": [
+              17
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.connection_activations\\` has a foreign key \\`connection_activations_worker_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "connection_activations",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "connection_activations_worker_profile_id_fkey",
+            "fkey_columns": [
+              18
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.data_export_artifacts\\` has a foreign key \\`data_export_artifacts_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "data_export_artifacts",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "data_export_artifacts_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.data_export_artifacts\\` has a foreign key \\`data_export_artifacts_policy_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "data_export_artifacts",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "data_export_artifacts_policy_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.group_conversations_v5\\` has a foreign key \\`group_conversations_v5_requester_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "group_conversations_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "group_conversations_v5_requester_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.group_memberships_v5\\` has a foreign key \\`group_memberships_v5_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "group_memberships_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "group_memberships_v5_profile_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.media_evidence_gaps_v5\\` has a foreign key \\`media_evidence_gaps_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "media_evidence_gaps_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "media_evidence_gaps_v5_account_id_fkey",
+            "fkey_columns": [
+              1
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.media_evidence_gaps_v5\\` has a foreign key \\`media_evidence_gaps_v5_source_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "media_evidence_gaps_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "media_evidence_gaps_v5_source_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_draft_save_commands\\` has a foreign key \\`need_draft_save_commands_conversation_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_draft_save_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_draft_save_commands_conversation_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_draft_save_commands\\` has a foreign key \\`need_draft_save_commands_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_draft_save_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_draft_save_commands_need_id_fkey",
+            "fkey_columns": [
+              6
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_draft_save_commands\\` has a foreign key \\`need_draft_save_commands_requester_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_draft_save_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_draft_save_commands_requester_profile_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_edit_commands\\` has a foreign key \\`need_edit_commands_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_edit_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_edit_commands_need_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_edit_commands\\` has a foreign key \\`need_edit_commands_revision_event_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_edit_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_edit_commands_revision_event_id_fkey",
+            "fkey_columns": [
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_publication_decisions\\` has a foreign key \\`need_publication_decisions_policy_bundle_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_publication_decisions",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_publication_decisions_policy_bundle_id_fkey",
+            "fkey_columns": [
+              10
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_publish_commands\\` has a foreign key \\`need_publish_commands_decision_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_publish_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_publish_commands_decision_id_fkey",
+            "fkey_columns": [
+              6
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_publish_commands\\` has a foreign key \\`need_publish_commands_decision_sequence_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_publish_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_publish_commands_decision_sequence_fkey",
+            "fkey_columns": [
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_publish_commands\\` has a foreign key \\`need_publish_commands_policy_bundle_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_publish_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_publish_commands_policy_bundle_id_fkey",
+            "fkey_columns": [
+              9
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.need_revision_events\\` has a foreign key \\`need_revision_events_created_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_revision_events",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "need_revision_events_created_by_account_id_fkey",
+            "fkey_columns": [
+              8
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.preselection_qa_materiality_decisions\\` has a foreign key \\`preselection_qa_materiality_decisions_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "preselection_qa_materiality_decisions",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "preselection_qa_materiality_decisions_need_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.preselection_qa_policy_decisions\\` has a foreign key \\`preselection_qa_policy_decisions_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "preselection_qa_policy_decisions",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "preselection_qa_policy_decisions_need_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.preselection_qa_policy_decisions\\` has a foreign key \\`preselection_qa_policy_decisions_policy_bundle_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "preselection_qa_policy_decisions",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "preselection_qa_policy_decisions_policy_bundle_id_fkey",
+            "fkey_columns": [
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.preselection_qa_policy_decisions\\` has a foreign key \\`preselection_qa_policy_decisions_question_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "preselection_qa_policy_decisions",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "preselection_qa_policy_decisions_question_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.processor_map_entries\\` has a foreign key \\`processor_map_entries_provider_code_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "processor_map_entries",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "processor_map_entries_provider_code_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.remaining_search_close_commands\\` has a foreign key \\`remaining_search_close_commands_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "remaining_search_close_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "remaining_search_close_commands_need_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.requester_identity_commands\\` has a foreign key \\`requester_identity_commands_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "requester_identity_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "requester_identity_commands_profile_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.response_application_snapshots\\` has a foreign key \\`response_application_snapshots_worker_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "response_application_snapshots",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "response_application_snapshots_worker_profile_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.response_revision_resolution_commands\\` has a foreign key \\`response_revision_resolution_commands_response_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "response_revision_resolution_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "response_revision_resolution_commands_response_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.response_submit_commands\\` has a foreign key \\`response_submit_commands_response_id_response_version_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "response_submit_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "response_submit_commands_response_id_response_version_fkey",
+            "fkey_columns": [
+              4,
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.response_withdraw_commands\\` has a foreign key \\`response_withdraw_commands_response_id_response_version_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "response_withdraw_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "response_withdraw_commands_response_id_response_version_fkey",
+            "fkey_columns": [
+              4,
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.retention_jobs\\` has a foreign key \\`retention_jobs_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "retention_jobs",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "retention_jobs_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.retention_jobs\\` has a foreign key \\`retention_jobs_policy_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "retention_jobs",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "retention_jobs_policy_id_fkey",
+            "fkey_columns": [
+              9
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.retention_policy_rules\\` has a foreign key \\`retention_policy_rules_data_class_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "retention_policy_rules",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "retention_policy_rules_data_class_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.safety_reports\\` has a foreign key \\`safety_reports_agreement_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "safety_reports",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "safety_reports_agreement_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.safety_reports\\` has a foreign key \\`safety_reports_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "safety_reports",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "safety_reports_need_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.safety_reports\\` has a foreign key \\`safety_reports_target_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "safety_reports",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "safety_reports_target_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.selection_commands\\` has a foreign key \\`selection_commands_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "selection_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "selection_commands_need_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.selection_commands\\` has a foreign key \\`selection_commands_response_version_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "selection_commands",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "selection_commands_response_version_fkey",
+            "fkey_columns": [
+              6,
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_appeals_v5\\` has a foreign key \\`support_appeals_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_appeals_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_appeals_v5_account_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_appeals_v5\\` has a foreign key \\`support_appeals_v5_case_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_appeals_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_appeals_v5_case_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_appeals_v5\\` has a foreign key \\`support_appeals_v5_decision_result_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_appeals_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_appeals_v5_decision_result_id_fkey",
+            "fkey_columns": [
+              6
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_commands_v5\\` has a foreign key \\`support_commands_v5_case_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_commands_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_commands_v5_case_id_fkey",
+            "fkey_columns": [
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_decisions_v5\\` has a foreign key \\`support_decisions_v5_case_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_decisions_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_decisions_v5_case_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_decisions_v5\\` has a foreign key \\`support_decisions_v5_operator_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_decisions_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_decisions_v5_operator_account_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_decisions_v5\\` has a foreign key \\`support_decisions_v5_prior_decision_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_decisions_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_decisions_v5_prior_decision_id_fkey",
+            "fkey_columns": [
+              11
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_evidence_v5\\` has a foreign key \\`support_evidence_v5_case_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_evidence_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_evidence_v5_case_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_evidence_v5\\` has a foreign key \\`support_evidence_v5_submitted_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_evidence_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_evidence_v5_submitted_by_account_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_grant_commands_v5\\` has a foreign key \\`support_grant_commands_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_grant_commands_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_grant_commands_v5_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_operator_audit_v5\\` has a foreign key \\`support_operator_audit_v5_actor_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_operator_audit_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_operator_audit_v5_actor_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_operator_grants_v5\\` has a foreign key \\`support_operator_grants_v5_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_operator_grants_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_operator_grants_v5_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`private.support_read_markers_v5\\` has a foreign key \\`support_read_markers_v5_case_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "support_read_markers_v5",
+            "type": "table",
+            "schema": "private",
+            "fkey_name": "support_read_markers_v5_case_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.access_grants\\` has a foreign key \\`access_grants_granted_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "access_grants",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "access_grants_granted_by_account_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.access_grants\\` has a foreign key \\`access_grants_granted_to_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "access_grants",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "access_grants_granted_to_account_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.account_legal_acceptance_events\\` has a foreign key \\`account_legal_acceptance_events_privacy_document_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "account_legal_acceptance_events",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "account_legal_acceptance_events_privacy_document_id_fkey",
+            "fkey_columns": [
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.account_legal_acceptance_events\\` has a foreign key \\`account_legal_acceptance_events_terms_document_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "account_legal_acceptance_events",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "account_legal_acceptance_events_terms_document_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_change_proposals\\` has a foreign key \\`agreement_change_proposals_proposed_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreement_change_proposals",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "agreement_change_proposals_proposed_by_account_id_fkey",
+            "fkey_columns": [
+              8
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_change_proposals\\` has a foreign key \\`agreement_change_proposals_responded_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreement_change_proposals",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "agreement_change_proposals_responded_by_account_id_fkey",
+            "fkey_columns": [
+              10
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_execution\\` has a foreign key \\`agreement_execution_problem_opened_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreement_execution",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "agreement_execution_problem_opened_by_fkey",
+            "fkey_columns": [
+              11
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_versions\\` has a foreign key \\`agreement_versions_created_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreement_versions",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "agreement_versions_created_by_account_id_fkey",
+            "fkey_columns": [
+              7
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreements\\` has a foreign key \\`agreements_requester_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreements",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "agreements_requester_profile_id_fkey",
+            "fkey_columns": [
+              6
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreements\\` has a foreign key \\`agreements_worker_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "agreements",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "agreements_worker_profile_id_fkey",
+            "fkey_columns": [
+              8
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_action_proposals\\` has a foreign key \\`ai_action_proposals_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_action_proposals",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_action_proposals_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_action_proposals\\` has a foreign key \\`ai_action_proposals_conversation_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_action_proposals",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_action_proposals_conversation_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_conversations\\` has a foreign key \\`ai_conversations_bound_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_conversations",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_conversations_bound_need_id_fkey",
+            "fkey_columns": [
+              5
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_messages\\` has a foreign key \\`ai_messages_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_messages",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_messages_account_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_structured_facts\\` has a foreign key \\`ai_structured_facts_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_structured_facts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_structured_facts_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_structured_facts\\` has a foreign key \\`ai_structured_facts_confirmed_by_user_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_structured_facts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_structured_facts_confirmed_by_user_id_fkey",
+            "fkey_columns": [
+              12
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_structured_facts\\` has a foreign key \\`ai_structured_facts_subject_need_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_structured_facts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_structured_facts_subject_need_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_structured_facts\\` has a foreign key \\`ai_structured_facts_superseded_by_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "ai_structured_facts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "ai_structured_facts_superseded_by_fkey",
+            "fkey_columns": [
+              15
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.data_export_requests\\` has a foreign key \\`data_export_requests_active_export_attempt_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "data_export_requests",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "data_export_requests_active_export_attempt_id_fkey",
+            "fkey_columns": [
+              12
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.marketplace_responses\\` has a foreign key \\`marketplace_responses_worker_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "marketplace_responses",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "marketplace_responses_worker_profile_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.need_selections\\` has a foreign key \\`need_selections_selected_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_selections",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "need_selections_selected_by_account_id_fkey",
+            "fkey_columns": [
+              4
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.need_selections\\` has a foreign key \\`need_selections_worker_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_selections",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "need_selections_worker_account_id_fkey",
+            "fkey_columns": [
+              9
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.need_selections\\` has a foreign key \\`need_selections_worker_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "need_selections",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "need_selections_worker_profile_id_fkey",
+            "fkey_columns": [
+              10
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.needs\\` has a foreign key \\`needs_remaining_search_closed_by_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "needs",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "needs_remaining_search_closed_by_account_id_fkey",
+            "fkey_columns": [
+              38
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.needs\\` has a foreign key \\`needs_requester_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "needs",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "needs_requester_profile_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.notification_push_attempts\\` has a foreign key \\`notification_push_attempts_device_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "notification_push_attempts",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "notification_push_attempts_device_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.opportunity_deliveries\\` has a foreign key \\`opportunity_deliveries_dispatch_round_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "opportunity_deliveries",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "opportunity_deliveries_dispatch_round_id_fkey",
+            "fkey_columns": [
+              6
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.opportunity_deliveries\\` has a foreign key \\`opportunity_deliveries_worker_profile_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "opportunity_deliveries",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "opportunity_deliveries_worker_profile_id_fkey",
+            "fkey_columns": [
+              3
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.worker_match_preferences\\` has a foreign key \\`worker_match_preferences_worker_account_id_fkey\\` without a covering index. This can lead to suboptimal query performance.",
+          "metadata": {
+            "name": "worker_match_preferences",
+            "type": "table",
+            "schema": "public",
+            "fkey_name": "worker_match_preferences_worker_account_id_fkey",
+            "fkey_columns": [
+              2
+            ]
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        }
+      ]
+    },
+    {
+      "name": "auth_rls_initplan",
+      "title": "Auth RLS Initialization Plan",
+      "level": "WARN",
+      "facing": "EXTERNAL",
+      "categories": [
+        "PERFORMANCE"
+      ],
+      "description": "Detects if calls to \\`current_setting()\\` and \\`auth.<function>()\\` in RLS policies are being unnecessarily re-evaluated for each row",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan",
+      "count": 18,
+      "findings": [
+        {
+          "detail": "Table \\`public.need_selections\\` has a row level security policy \\`selections_requester\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "need_selections",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreements\\` has a row level security policy \\`agreements_parties_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "agreements",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_versions\\` has a row level security policy \\`agreement_versions_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "agreement_versions",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.marketplace_response_versions\\` has a row level security policy \\`response_versions_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "marketplace_response_versions",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_execution\\` has a row level security policy \\`agreement_execution_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "agreement_execution",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_messages\\` has a row level security policy \\`agreement_messages_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "agreement_messages",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.access_grants\\` has a row level security policy \\`access_grants_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "access_grants",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_structured_facts\\` has a row level security policy \\`ai_facts_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "ai_structured_facts",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.user_activity_events\\` has a row level security policy \\`events_own\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "user_activity_events",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.worker_match_preferences\\` has a row level security policy \\`wmp_own_select\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "worker_match_preferences",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.worker_match_preferences\\` has a row level security policy \\`wmp_own_insert\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "worker_match_preferences",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.worker_match_preferences\\` has a row level security policy \\`wmp_own_update\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "worker_match_preferences",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.opportunity_deliveries\\` has a row level security policy \\`od_worker_select\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "opportunity_deliveries",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.marketplace_responses\\` has a row level security policy \\`responses_worker_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "marketplace_responses",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.needs\\` has a row level security policy \\`needs_owner_select\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "needs",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.needs\\` has a row level security policy \\`needs_owner_insert\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "needs",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.agreement_change_proposals\\` has a row level security policy \\`agreement_change_proposals_participant_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "agreement_change_proposals",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.ai_messages\\` has a row level security policy \\`ai_messages_own_read\\` that re-evaluates current_setting() or auth.<function>() for each row. This produces suboptimal query performance at scale. Resolve the issue by replacing \\`auth.<function>()\\` with \\`(select auth.<function>())\\`. See [docs](https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select) for more info.",
+          "metadata": {
+            "name": "ai_messages",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        }
+      ]
+    },
+    {
+      "name": "unused_index",
+      "title": "Unused Index",
+      "level": "INFO",
+      "facing": "EXTERNAL",
+      "categories": [
+        "PERFORMANCE"
+      ],
+      "description": "Detects if an index has never been used and may be a candidate for removal.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index",
+      "count": 15,
+      "findings": [
+        {
+          "detail": "Index \\`needs_open_idx\\` on table \\`public.needs\\` has not been used",
+          "metadata": {
+            "name": "needs",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`need_revision_events_need_idx\\` on table \\`private.need_revision_events\\` has not been used",
+          "metadata": {
+            "name": "need_revision_events",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`preselection_qa_questions_need_revision_idx\\` on table \\`private.preselection_qa_questions\\` has not been used",
+          "metadata": {
+            "name": "preselection_qa_questions",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`preselection_qa_materiality_lookup_idx\\` on table \\`private.preselection_qa_materiality_decisions\\` has not been used",
+          "metadata": {
+            "name": "preselection_qa_materiality_decisions",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`processor_map_entries_map_idx\\` on table \\`private.processor_map_entries\\` has not been used",
+          "metadata": {
+            "name": "processor_map_entries",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`retention_policy_rules_policy_idx\\` on table \\`private.retention_policy_rules\\` has not been used",
+          "metadata": {
+            "name": "retention_policy_rules",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`export_artifact_cleanup_idx\\` on table \\`private.data_export_artifacts\\` has not been used",
+          "metadata": {
+            "name": "data_export_artifacts",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`retention_jobs_retry_idx\\` on table \\`private.retention_jobs\\` has not been used",
+          "metadata": {
+            "name": "retention_jobs",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`agreement_review_comments_v1_target_idx\\` on table \\`private.agreement_review_comments_v1\\` has not been used",
+          "metadata": {
+            "name": "agreement_review_comments_v1",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`agreement_review_comments_v1_author_idx\\` on table \\`private.agreement_review_comments_v1\\` has not been used",
+          "metadata": {
+            "name": "agreement_review_comments_v1",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`group_visibility_unread_v5\\` on table \\`private.group_message_visibility_v5\\` has not been used",
+          "metadata": {
+            "name": "group_message_visibility_v5",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`support_cases_inbox_v5\\` on table \\`private.support_cases_v5\\` has not been used",
+          "metadata": {
+            "name": "support_cases_v5",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`support_events_actor_v5\\` on table \\`private.support_events_v5\\` has not been used",
+          "metadata": {
+            "name": "support_events_v5",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`agreement_photo_rate_v5\\` on table \\`private.agreement_photo_uploads_v5\\` has not been used",
+          "metadata": {
+            "name": "agreement_photo_uploads_v5",
+            "type": "table",
+            "schema": "private"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Index \\`marketplace_responses_worker_idx\\` on table \\`public.marketplace_responses\\` has not been used",
+          "metadata": {
+            "name": "marketplace_responses",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        }
+      ]
+    },
+    {
+      "name": "multiple_permissive_policies",
+      "title": "Multiple Permissive Policies",
+      "level": "WARN",
+      "facing": "EXTERNAL",
+      "categories": [
+        "PERFORMANCE"
+      ],
+      "description": "Detects if multiple permissive row level security policies are present on a table for the same \\`role\\` and \\`action\\` (e.g. insert). Multiple permissive policies are suboptimal for performance as each policy must be executed for every relevant query.",
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies",
+      "count": 5,
+      "findings": [
+        {
+          "detail": "Table \\`public.marketplace_responses\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{responses_requester_read,responses_worker_read}\\`",
+          "metadata": {
+            "name": "marketplace_responses",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.need_geography\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{need_geography_market_read,need_geography_owner_read}\\`",
+          "metadata": {
+            "name": "need_geography",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.need_requirement_details\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{need_requirement_details_market_read,need_requirement_details_owner_read}\\`",
+          "metadata": {
+            "name": "need_requirement_details",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.need_sensitive\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{need_sensitive_granted_read,need_sensitive_owner}\\`",
+          "metadata": {
+            "name": "need_sensitive",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        },
+        {
+          "detail": "Table \\`public.needs\\` has multiple permissive policies for role \\`authenticated\\` for action \\`SELECT\\`. Policies include \\`{needs_owner_select,needs_participant_read,needs_public_discovery}\\`",
+          "metadata": {
+            "name": "needs",
+            "type": "table",
+            "schema": "public"
+          },
+          "observed_at": "2026-10-09T16:15:48.576Z"
+        }
+      ]
+    }
+  ],
+  "limits": "Supabase advisor output, not exploit validation or deep-security scan completion.",
+  "ruleGroups": {
+    "INFO unindexed_foreign_keys": 1,
+    "WARN auth_rls_initplan": 1,
+    "INFO unused_index": 1,
+    "WARN multiple_permissive_policies": 1
+  },
+  "findingCounts": {
+    "INFO unindexed_foreign_keys": 91,
+    "WARN auth_rls_initplan": 18,
+    "INFO unused_index": 15,
+    "WARN multiple_permissive_policies": 5
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "recordedAt": "2026-10-09T16:30:13.209987+00:00",
+  "sourceCommit": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "sourceScope": "Source and selected exact preview artifact; no server/device mutations",
+  "securityScan": "NOT_VERIFIED: managed tool failure; no replacement scan",
+  "verdict": "NO_GO_PUBLIC_RELEASE_OR_10000_NEW_USERS",
+  "reportSha256": "fb30af38aa220810bcb9c09f58f83028e4bc3e533d70aceb2dd1f63a8cb3715f",
+  "dataFlows": [
+    {
+      "data": "Email, login, name, city",
+      "originSendStore": "Signup inputs → Supabase Auth over HTTPS; first_name/last_name/full_name/city in Auth metadata; linked app account/profile. Session/refresh state uses AsyncStorage.",
+      "visibility": "Own authenticated session; public profile exposes intended name/city fields, not a blanket permission to expose email.",
+      "retentionDeleteLimits": "Logout clears session-related caches. Closure blanks app email/phone/name/city and profile fields, then Auth soft-deletes identity and verifies metadata/password/session outcome; pseudonymous UUID/audit retained. Mail-provider retention not established.",
+      "source": "`src/data/authClientService.ts:55`; `src/data/supabaseClient.ts:22`; erasure migration:281; policy-bound closure migration:212."
+    },
+    {
+      "data": "Avatar",
+      "originSendStore": "User picker/camera → authenticated media Edge → orientation-aware sanitization → private profile-media bucket; profile holds reference.",
+      "visibility": "Authorized profile/avatar reads via RPC/media worker; must not infer all Storage objects are public.",
+      "retentionDeleteLimits": "Clear/discard exists. Closure schedules owned unprotected Storage deletion before relational wipe; scoped evidence may be held. EXIF/GPS stripped, but pixels may still reveal a face/address.",
+      "source": "`src/data/mediaClientService.ts:83`; `uskoci-media/index.ts:285`; `_shared/mediaImageSanitizer.mjs:39`."
+    },
+    {
+      "data": "Precise address, pins, access notes",
+      "originSendStore": "User text/map/GPS and confirmed location review → owned RPC/private location structures. Typed/reverse query → LocationIQ EU endpoint. Structured address/access notes and free-text history may also reach Gemini.",
+      "visibility": "Owner review; selected bilateral Agreement private location requires grant/readback and expires/revokes with session/participant/state; public map is a separate approximate projection.",
+      "retentionDeleteLimits": "Closure erases private location/need-sensitive material and address-containing AI rows except narrowly protected material. No proof that provider-side logs/backups are erased by app closure.",
+      "source": "`src/data/locationClientService.ts:68`; `src/ui/AgreementPrivateLocation.tsx:28,78`; `uskoci-location-search/index.ts:23`; `needFactsV2.ts:42`; AI interview:301."
+    },
+    {
+      "data": "Public place / work area",
+      "originSendStore": "Confirmed city/area/public geography → needs/profile matching/discovery. Client fetches OpenFreeMap map assets, revealing network/view-area metadata to tile service; explicit external map opening sends coordinates to Google Maps.",
+      "visibility": "Task discovery and profile matching readers; no assumption of anonymous visibility beyond actual readers.",
+      "retentionDeleteLimits": "Closure blanks approximate city/area/lat/lng and profile city/area fields; external map provider requests have separate retention.",
+      "source": "`src/ui/location/mapStyle.ts`; `src/ui/location/locationMapLinks.ts`; erasure migration:283–290; discovery source/proofs."
+    },
+    {
+      "data": "Bilateral/group messages and sender identity",
+      "originSendStore": "Typed text → owned Agreement/group RPC → public.agreement_messages/private.group_messages_v5 plus visibility rows. UI resolves sender name/avatar.",
+      "visibility": "Bilateral requester/selected worker; task group membership and per-message visibility. Participants cannot create private conversations with each other through this model; canceled member future access is restricted.",
+      "retentionDeleteLimits": "Closure replaces author body, removes photo references, clears ordinary group body; selected support snapshots may remain as separate protected evidence. Recipient copies/exports outside app cannot be retroactively erased.",
+      "source": "Erasure migration:227,314–318; `src/data/conversationInboxClientService.ts`; connected lifecycle evidence described below."
+    },
+    {
+      "data": "Task/Agreement photos",
+      "originSendStore": "Picker/camera → media Edge sanitizes → private Storage and asset metadata. Task publication evaluator can send selected sanitized JPEG bytes inline to Gemini.",
+      "visibility": "Task publication decides public photo projection; Agreement photo endpoint is scoped to Agreement/message. Profile avatar is a separate scope; worker AI has no task-photo attachment mandate.",
+      "retentionDeleteLimits": "Remove/cancel/discard and closure object-first deletion exist. Strip metadata does not remove private information visibly photographed. Provider retention for image review is unverified.",
+      "source": "`src/data/mediaClientService.ts`; `uskoci-media/index.ts:252,354`; `uskoci-publication-evaluate/index.ts:348–379`."
+    },
+    {
+      "data": "AI task/profile conversations",
+      "originSendStore": "User input + up to30 history messages (each capped4000chars) + allowed structured facts/candidate → Edge → Gemini. Durable AI messages/proposals/reviews/commands in private/public AI tables.",
+      "visibility": "Owner conversation, service AI processing; confirmed public task/profile is separately reviewed, not all raw chat public.",
+      "retentionDeleteLimits": "Ordinary closure erases/redacts AI conversation/facts/proposals/review envelopes; active turn and evidence conditions block unsafe closure. Provider retention/training contract is not inferred from code.",
+      "source": "`uskoci-ai-interview/index.ts:34–39,301–309,539–564`; `uskoci-worker-interview/index.ts:152`; erasure migration:253,291."
+    },
+    {
+      "data": "AI microphone audio/transcript",
+      "originSendStore": "Held foreground PCM → speech session/proxy/Google transient transcription → text draft/chat. This is distinct from Agreement voice recording.",
+      "visibility": "User and speech processor; final transcript may enter durable AI history and its next provider context.",
+      "retentionDeleteLimits": "No app audio archive intended for AI transcription; provider transient/security retention not verified. Existing VOICE_PROCESSING_NOTICE still mentions removed voice mode/auto-send and must be reconciled with actual behavior.",
+      "source": "`src/features/voice/useHoldToTalk.ts`; `nativeSpeechAdapter.ts`; `uskoci-speech-session/index.ts`; `app.config.js`."
+    },
+    {
+      "data": "Agreement voice messages",
+      "originSendStore": "Foreground recording → explicit send/upload → authenticated media Edge → agreement-voice private bucket (.m4a), asset metadata and message reference.",
+      "visibility": "Authorized Agreement participants via authenticated binary playback, not a public/signed URL.",
+      "retentionDeleteLimits": "Private local cache is retired with session; server audio persists for conversation until applicable deletion. Closure worker explicitly supports agreement-voice objects. Therefore blanket “USKOČI never stores audio” is false outside AI-only scope.",
+      "source": "`src/data/agreementVoiceClientService.ts:7,50`; `src/features/voiceMessages/nativeVoiceFiles.ts`; `authClientService.ts:132`; closure.ts:24."
+    },
+    {
+      "data": "Ratings / written review",
+      "originSendStore": "Completion-based rating RPC → private.agreement_reviews → role/account reputation projection. Optional comment v2 → private.agreement_review_comments_v1.",
+      "visibility": "Authorized/public reputation projection; comments reader respects moderation/block rules. D12 build flag is absent in checked-in production env, so do not automatically claim every final build enables comments; remote env remains unknown.",
+      "retentionDeleteLimits": "Author closure erases comment; target closure/moderation can hide while retaining another author's comment. Numeric/shared reputation and pseudonymous relation require declared retention. Existing candidate header “NOT APPLIED” is historical; use current ledger for status.",
+      "source": "`src/data/reviewCommentsClientService.ts`; `src/data/reviewCommentGate.ts`; `supabase/candidates/d12_review_comment.sql:223`."
+    },
+    {
+      "data": "Safety reports, support, evidence",
+      "originSendStore": "User targets account/task/Agreement with category/reason/narrative → owned report RPC → restricted safety/support records and deliberate evidence snapshots.",
+      "visibility": "Reporter/authorized support workflows; not a public feed. User block is separate from moderation decision.",
+      "retentionDeleteLimits": "Closure has named scoped/media/history/shared-decision exceptions. Ordinary unrelated profile/chat must not be retained just because a case exists; final closure waits for exception resolution. Who resolves, under what period/SLA and appeal path is not proven.",
+      "source": "`src/data/safetyClientService.ts:6,135`; erasure migration:129,173–179; closure.ts:76–81."
+    },
+    {
+      "data": "Push token/preferences/event delivery",
+      "originSendStore": "Explicit device connection/permission → Expo token → account-owned registration/rotation RPC → notification_push_devices/preferences and attempts. Service sends token + generic title/body + opaque event identity to Expo/FCM/APNs.",
+      "visibility": "Account/device and internal transport; message body/private address is not placed in the shown push payload. Lock-screen channel PRIVATE.",
+      "retentionDeleteLimits": "Deactivate/rotate supported. Closure deletes tokens/preferences/attempts/delivery rows. Expo ticket/receipt success is not device delivery. Current production registration lacks its Firebase client.",
+      "source": "`src/data/nativePushDevice.ts:8`; `pushDeviceClientService.ts`; `uskoci-push-transport/index.ts:126–141`; erasure migration:267–269."
+    },
+    {
+      "data": "Exports and command/audit identifiers",
+      "originSendStore": "Owned request → bounded export worker → private data-export-artifacts → authenticated binary download with generation/size/hash/expiry checks. Journals store opaque request coordinates for uncertain writes.",
+      "visibility": "Account owner; support/audit functions narrowly authorized; download never enabled by mere intake receipt.",
+      "retentionDeleteLimits": "Artifact revoke/expiry and closure deletion precede final Auth erasure. User-saved export leaves app control. Minimal pseudonymous command/security records may remain; numerical legal periods not proven by source alone.",
+      "source": "`src/data/dataExportClientService.ts:80`; `dataExportDeliveryService.ts:46–100`; `src/ui/closure/closureIntent.ts`; closure.ts."
+    }
+  ]
+}

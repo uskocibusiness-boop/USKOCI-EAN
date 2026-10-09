@@ -1,0 +1,22 @@
+{
+  "package": "rs.uskoci.dev",
+  "installed": true,
+  "versionName": "1.0.0",
+  "versionCode": "35",
+  "uid": "10227",
+  "lastUpdateTime": "2026-10-09 17:42:26",
+  "firstInstallTime": "2026-09-22 16:45:30",
+  "installer": "null",
+  "primaryCpuAbi": "x86_64",
+  "signature": "51ed3f60",
+  "apkPath": "/data/app/~~k0AFEmkC1zu-yULwPdaMHg==/rs.uskoci.dev-610EZ6NfASDoPm_BpQ6K-w==/base.apk",
+  "apkSha256": "3a3da9ea72f39b7d278384ddc869d5b1b6da53bb256a529b82b3725082db999b",
+  "recordedAt": "2026-10-09T16:17:35.954190+00:00",
+  "screen": [
+    1264,
+    2728
+  ],
+  "font": "1.15",
+  "android": "16",
+  "sdk": "36"
+}

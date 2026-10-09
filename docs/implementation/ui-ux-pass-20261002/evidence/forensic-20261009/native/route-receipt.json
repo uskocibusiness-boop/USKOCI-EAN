@@ -1,0 +1,282 @@
+[
+  {
+    "route": "zadaci",
+    "observedAt": "2026-10-09T16:28:23.375239+00:00",
+    "snapshotElapsedMs": 12358.68,
+    "xml": "route-zadaci.xml",
+    "image": "route-zadaci.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "poruke",
+    "observedAt": "2026-10-09T16:28:29.496901+00:00",
+    "snapshotElapsedMs": 6026.72,
+    "xml": "route-poruke.xml",
+    "image": "route-poruke.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "dogovori",
+    "observedAt": "2026-10-09T16:28:35.171951+00:00",
+    "snapshotElapsedMs": 5591.16,
+    "xml": "route-dogovori.xml",
+    "image": "route-dogovori.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil",
+    "observedAt": "2026-10-09T16:28:40.420863+00:00",
+    "snapshotElapsedMs": 5146.89,
+    "xml": "route-profil.xml",
+    "image": "route-profil.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/radnik",
+    "observedAt": "2026-10-09T16:28:45.711145+00:00",
+    "snapshotElapsedMs": 5228.6,
+    "xml": "route-profil-radnik.xml",
+    "image": "route-profil-radnik.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/razgovor",
+    "observedAt": "2026-10-09T16:28:50.799555+00:00",
+    "snapshotElapsedMs": 5014.09,
+    "xml": "route-profil-razgovor.xml",
+    "image": "route-profil-razgovor.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "nova",
+    "observedAt": "2026-10-09T16:28:55.387076+00:00",
+    "snapshotElapsedMs": 4498.2,
+    "xml": "route-nova.xml",
+    "image": "route-nova.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "moje-prijave",
+    "observedAt": "2026-10-09T16:29:00.695417+00:00",
+    "snapshotElapsedMs": 5168.15,
+    "xml": "route-moje-prijave.xml",
+    "image": "route-moje-prijave.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "potrebe",
+    "observedAt": "2026-10-09T16:29:05.649313+00:00",
+    "snapshotElapsedMs": 4877.62,
+    "xml": "route-potrebe.xml",
+    "image": "route-potrebe.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "raspored",
+    "observedAt": "2026-10-09T16:29:11.620132+00:00",
+    "snapshotElapsedMs": 5888.33,
+    "xml": "route-raspored.xml",
+    "image": "route-raspored.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/dostupnost",
+    "observedAt": "2026-10-09T16:29:17.666904+00:00",
+    "snapshotElapsedMs": 5956.94,
+    "xml": "route-profil-dostupnost.xml",
+    "image": "route-profil-dostupnost.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/privatnost",
+    "observedAt": "2026-10-09T16:29:22.267712+00:00",
+    "snapshotElapsedMs": 4512.07,
+    "xml": "route-profil-privatnost.xml",
+    "image": "route-profil-privatnost.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/izvoz",
+    "observedAt": "2026-10-09T16:29:26.797473+00:00",
+    "snapshotElapsedMs": 4430.93,
+    "xml": "route-profil-izvoz.xml",
+    "image": "route-profil-izvoz.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/pravna",
+    "observedAt": "2026-10-09T16:29:31.114232+00:00",
+    "snapshotElapsedMs": 4221.09,
+    "xml": "route-profil-pravna.xml",
+    "image": "route-profil-pravna.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/obavestenja",
+    "observedAt": "2026-10-09T16:29:36.308599+00:00",
+    "snapshotElapsedMs": 5098.0,
+    "xml": "route-profil-obavestenja.xml",
+    "image": "route-profil-obavestenja.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/blokirani",
+    "observedAt": "2026-10-09T16:29:41.150338+00:00",
+    "snapshotElapsedMs": 4754.18,
+    "xml": "route-profil-blokirani.xml",
+    "image": "route-profil-blokirani.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/ocene",
+    "observedAt": "2026-10-09T16:29:45.983765+00:00",
+    "snapshotElapsedMs": 4758.66,
+    "xml": "route-profil-ocene.xml",
+    "image": "route-profil-ocene.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "bezbednost",
+    "observedAt": "2026-10-09T16:29:50.622308+00:00",
+    "snapshotElapsedMs": 4537.0,
+    "xml": "route-bezbednost.xml",
+    "image": "route-bezbednost.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/prijava-greske",
+    "observedAt": "2026-10-09T16:29:55.320951+00:00",
+    "snapshotElapsedMs": 4618.93,
+    "xml": "route-profil-prijava-greske.xml",
+    "image": "route-profil-prijava-greske.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  },
+  {
+    "route": "profil/o-aplikaciji",
+    "observedAt": "2026-10-09T16:29:59.996343+00:00",
+    "snapshotElapsedMs": 4592.58,
+    "xml": "route-profil-o-aplikaciji.xml",
+    "image": "route-profil-o-aplikaciji.png",
+    "notProved": [
+      "all states/buttons",
+      "writes",
+      "real phone",
+      "screen-reader",
+      "network failures"
+    ]
+  }
+]

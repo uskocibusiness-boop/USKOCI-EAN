@@ -1,0 +1,99 @@
+{
+  "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "scope": "read-only mobile/QA/maintainability, not security scan",
+  "findings": [
+    {
+      "id": "DEP-01",
+      "priority": "P1_REVIEW",
+      "file": "package-lock.json",
+      "line": 11008,
+      "classification": "advisory-triage-needed-not-proven-runtime-vulnerability",
+      "evidence": "npm-audit.json",
+      "remedy": "Trace shell-quote/toolchain exposure and choose reviewed Expo-compatible update; never audit fix --force"
+    },
+    {
+      "id": "OBS-01",
+      "priority": "P2",
+      "file": "src/ui/system/AppErrorBoundary.tsx",
+      "line": 18,
+      "classification": "release-observability-gap",
+      "remedy": "Approved bounded sanitized error/build/route diagnosis and symbolication, no user payloads"
+    },
+    {
+      "id": "OBS-02",
+      "priority": "P2",
+      "file": "src/ui/notifications/PushRuntime.tsx",
+      "line": 87,
+      "classification": "release-observability-gap",
+      "remedy": "Privacy-reviewed fixed reason counters for reconcile/cold-response failures; preserve fail-closed ownership"
+    },
+    {
+      "id": "QA-01",
+      "priority": "P2",
+      "file": "jest.config.cjs",
+      "line": 26,
+      "classification": "coverage-claim-gap",
+      "remedy": "Explicit multi-runner/feature matrix; no actual coverage percentage available"
+    },
+    {
+      "id": "QA-02",
+      "priority": "P2",
+      "file": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
+      "line": 480,
+      "classification": "current-full-and-native-evidence-gap",
+      "remedy": "Current frozen-source full regression and relevant current native vertical scenarios"
+    },
+    {
+      "id": "MAINT-01",
+      "priority": "P2",
+      "file": "src/ui/v2/DiscoveryPresentation.tsx",
+      "line": 1,
+      "classification": "maintenance-concentration-proxy",
+      "remedy": "Incremental pure extraction only with behavior/native parity; no restart"
+    },
+    {
+      "id": "MAINT-02",
+      "priority": "P3",
+      "file": "scripts/control/osvezi.mjs",
+      "line": 66,
+      "classification": "static-reachability-overclaims-runtime",
+      "remedy": "State static source/gallery/flag and actual runtime proof separately"
+    }
+  ],
+  "safeDelete": [],
+  "scores": {
+    "mobile": {
+      "value": 7,
+      "outOf": 10,
+      "criteria": [
+        2,
+        2,
+        1,
+        1,
+        1
+      ]
+    },
+    "qa": {
+      "value": 6,
+      "outOf": 10,
+      "criteria": [
+        2,
+        2,
+        0,
+        1,
+        1
+      ]
+    },
+    "maintainabilityObservability": {
+      "value": 4,
+      "outOf": 10,
+      "criteria": [
+        2,
+        1,
+        0,
+        0,
+        1
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-09",
+  "sources": [
+    "https://developer.android.com/guide/practices/page-sizes",
+    "https://support.google.com/googleplay/android-developer/answer/11926878?hl=en",
+    "https://support.google.com/googleplay/android-developer/answer/14151465?hl=en",
+    "https://support.google.com/googleplay/android-developer/answer/10144311?hl=en",
+    "https://support.google.com/googleplay/android-developer/answer/9876937?hl=en",
+    "https://developer.apple.com/app-store/review/guidelines/",
+    "https://support.google.com/googleplay/android-developer/answer/13985936?hl=en",
+    "https://developer.apple.com/app-store/app-privacy-details/",
+    "https://developer.apple.com/news/upcoming-requirements/?id=04282026a"
+  ],
+  "limits": "Official primary documentation only. Google account-deletion standalone page fetch failed; official search and User Data full policy support requirement. All citations paraphrased in report."
+}

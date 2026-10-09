@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T16:00:51Z",
+  "osvezeno": "2026-10-09T16:52:17Z",
   "grana": "integration/spoj-20261006",
-  "head": "ce23eb06",
-  "head_poruka": "Apply owner-approved proportional pricing with nearest-dinar rounding",
+  "head": "6311804d",
+  "head_poruka": "Record finite release audit and verified ce23 preview package",
   "server": {
    "snimljeno": "2026-10-09T15:35:15Z",
    "migracije": 237,
@@ -3050,6 +3050,56 @@
    "automation": "PAUSED",
    "next": "AI active-profile edit/task edit/draft resume/location route on same current source; follow existing rows and finite acceptance in dated report.",
    "limits": "No new all-buttons/native/full-load acceptance. Existing history preserved; no phone light upgraded."
+  },
+  "independent_forensic_audit_20261009": {
+   "at": "2026-10-09T16:52:11.866856+00:00",
+   "inspectedHead": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+   "appSource": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+   "verdict": "NO_GO",
+   "report": "docs/implementation/ui-ux-pass-20261002/FORENSIC_PRE_RELEASE_20261009.md",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/forensic-20261009/MANIFEST.json",
+   "scope": "Four read-only executors,20 disciplinary perspectives;704 appTS/TSX,74 route/layout,28UI families,62 existing rows;20 live native route states plusHome/map-sheet/detailBack; no complete all-buttons or real-phone claim.",
+   "tests": {
+    "tscExit": 0,
+    "fullJest": {
+     "suitesPass": 603,
+     "suitesFail": 1,
+     "testsPass": 13476,
+     "testsFail": 1,
+     "skipped": 9,
+     "snapshotsPass": 6
+    },
+    "edgeHandlerMock": {
+     "pass": 94,
+     "fail": 0
+    },
+    "failedTest": "p5-matching-field-contract G04-5 stale source-text marker; read-only triage, not fixed, no behavior regression inferred"
+   },
+   "freshServer": {
+    "ledger": 237,
+    "publicRpc": 260,
+    "edgesActive": 11,
+    "activeLegalDocuments": 0,
+    "publishedProcessorMaps": 0,
+    "exportPolicyBinding": null,
+    "closureAdapterBinding": true,
+    "closureLegalPolicyAttested": false,
+    "closureExecutions": 0
+   },
+   "security": "NOT_VERIFIED: Deep Scan invocation failed before start (managed filesystem permission profile). No replacement scan or clean-security claim.",
+   "performance": "Fresh isolated40000synthetic+49retainedtasks,5users,1SQLreader,0HTTP;auto2/3timeouts at8s,1success7760ms;forcedgenerictimeout. Not production error rate or40000user capacity. Prior C4 HTTPp95~6707ms.",
+   "device": "ce23DEV emulator only;5cold+5warmHomevisible. UIAutomator bounds are NOT TTI.20currentroute snapshots and map/list/detailBack; current physical phone and 16KBruntime NOT_VERIFIED.",
+   "release": "Production environment/signing/AAB/Firebase/privacy/Console gates remain open; preview debug-keyAPK does not establish store readiness. CI37956120590 zero steps duebilling; local fullJestFAIL staysred.",
+   "freeze": "Four tabs, white/green/orange design system, current roles, approved rounding, oneAIhold-to-talk, private location/participant/command boundaries. No general redesign.",
+   "next": [
+    "Approved legal/provider/disclosure/publicURL/export/closure package",
+    "AIresume/location/edits + opportunity/group push + actual two-account lifecycle",
+    "Discovery plan/capacity + independent security/dependencytriage",
+    "One signed productionAAB/Firebase/16KB + physical/accessibility/fault acceptance",
+    "FinalCI/Consoledeclarations/monitoring/rollback and explicit concrete release approval"
+   ],
+   "automation": "PAUSED; no new automation",
+   "publication": "Local existing master/register refreshed; public dashboard not republished in this audit; no store submission."
   }
  },
  "redovi": [

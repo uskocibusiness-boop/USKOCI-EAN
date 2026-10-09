@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-09T16:33:53.035468+00:00",
+  "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "runs": [
+    {
+      "name": "tsc",
+      "exit": 0,
+      "seconds": 67.85
+    },
+    {
+      "name": "full-jest",
+      "exit": 1,
+      "seconds": 802.32
+    }
+  ]
+}

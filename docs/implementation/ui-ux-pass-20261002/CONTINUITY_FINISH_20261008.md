@@ -775,3 +775,13 @@ NIJE DOKAZANO: galerija nije live slanje/izbor; fizički telefon ce23,fullAIedit
 SLEDEĆE: aktuelni AI profil/task edit i nastavak nacrta, zatim ograničeni lifecycle/media/push/performance/release blokovi iz postojećih redova. Zatvoreno se ne otvara zbog kozmetike. Testni APK isporučiti privatnim prerelease-om, bez tvrdnje o Play spremnosti.30minautomatizacija ostajePAUSED.
 
 DOSTAVLJENO: qa-phone-20261009-ce23eb06 u postojećem privatnom repo-u. GitHub asset SHA256/veličina jednaki attestiranom telefonskom APK-u. evidence/application-people-20261009/phone-private-release.json; fizička instalacija/runtime još nisu potvrđeni. Isključivo testni prerelease, ne produkcija.
+
+## 09.10 — nezavisni forensic pre-release audit (6311804d)
+
+URADIO: četiri read-only izvršioca,20 stručnih perspektiva, source/backend/release/UX inventar;20 aktuelnih native prikaza i map/list/detailBack. Izvor aplikacije i server nisu menjani.
+
+DOKAZAO: TypeScript0; puni Jest603/604suite,13476PASS/1FAIL/9skipped;94mock-Edge testaPASS. Jedini JestFAIL je zastareo source marker G04-5, ne potvrđena AIregresija; ostaje nepopravljen. Live legal0/processor0/exportnull; closure bindingtrue/legalfalse/executions0. Production i preview nisu isti release. Nova izolovana40000tasks provera potvrđuje timeout rizik, ne kapacitet40000korisnika.
+
+NIJE DOKAZANO: nezavisni securityscan nije ni startovao (managed permission profile), physicalphonecurrent, puna Auth/Storage eliminacija, svih62tokova na jednomkandidatu, svi push događaji,16KBruntime, store readiness. Ocena58/100 i planski~60% su procena zrelosti, ne empirijski completion. VerdictNO-GO.
+
+SLEDEĆE: pet konačnih paketa i22gate-a u [forensic izveštaju](FORENSIC_PRE_RELEASE_20261009.md); prvo politike/release granice, zatim povezani AI/lokacija/push tok, perf/security, jedanproductionkandidat ireviewpaket. FREEZE dobru navigaciju/dizajn/ownership/obračun; bez novog mastera ili beskonačnog redizajna. Automatizacija ostajePAUSED.

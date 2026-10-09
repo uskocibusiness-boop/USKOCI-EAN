@@ -1,0 +1,2620 @@
+{
+  "observedAt": "2026-10-09T16:20:35.330536+00:00",
+  "canonical": "C:\\Users\\user\\Desktop\\USKOCI_CANONICAL_WORKSPACE_2026-09-08\\USKOCI-CLEAN-spoj-20261006",
+  "branch": "integration/spoj-20261006",
+  "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+  "status": "",
+  "worktrees": [
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN",
+      "head": "4ac53fcf8a64ec679f9fcc23626e79a736b86eb8",
+      "branch": "refs/heads/fix/r04-need-edit-route-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2270\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/ucb",
+      "head": "2fb0172ea4f8dca5d6014e9a14a94e511116a9af",
+      "branch": "refs/heads/build/combined-20260920",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1575\t2",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/agent-a9d761e35b5fb1915",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/worktree-agent-a9d761e35b5fb1915",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/agent-a9f17bcca50ba283f",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/worktree-agent-a9f17bcca50ba283f",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/github-repo-review-86868c",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/claude/github-repo-review-86868c",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/jolly-brahmagupta-fc30ed",
+      "head": "855eda56cc66bed28a8845b324385904d3c065d2",
+      "branch": "refs/heads/design/premium-pass-20261002",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "579\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/uskoci-kompletan-audit-2e715e",
+      "head": "636d1d4012dbeba27923faec7244617209828bda",
+      "branch": "refs/heads/work/uskoci-ui-unification-20260924",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "M .claude/launch.json"
+      ],
+      "aheadBehindCanonical": "388\t5",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_159b69a7-ef8-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/worktree-wf_159b69a7-ef8-1",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_20f24fd5-090-1",
+      "head": "d7c935114c9edf3659b581c04b4f883487420939",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/gfxinfo_cycles.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/gateway-rpc_discovery_v1.json",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/before_quiet_focused_20260930_1913/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run5_partial_detail_read_error/cycle_10_detail_read_failed_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run6_legacy_baseline/01_list_full_sheet_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/gfxinfo_gestures.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/js-trace-extract.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/05_after_zoom_out_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/21_search_typed_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/23_search_applied_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/30_filter_remote_status_bar_cropped_half.png"
+      ],
+      "aheadBehindCanonical": "627\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_2c112a3b-11c-1",
+      "head": "c97be190e152d33494995f0d1e17a3a4ec890fb1",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/gfxinfo_cycles.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/gateway-rpc_discovery_v1.json",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/before_quiet_focused_20260930_1913/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run5_partial_detail_read_error/cycle_10_detail_read_failed_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run6_legacy_baseline/01_list_full_sheet_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/gfxinfo_gestures.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/js-trace-extract.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/05_after_zoom_out_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/21_search_typed_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/23_search_applied_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/30_filter_remote_status_bar_cropped_half.png"
+      ],
+      "aheadBehindCanonical": "606\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_2c112a3b-11c-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/worktree-wf_2c112a3b-11c-2",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_3c00f8f3-78a-11",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "branch": "refs/heads/g-round5-obavestenja",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "M src/ui/settings/SettingsPresentation.tsx"
+      ],
+      "aheadBehindCanonical": "1190\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_3c00f8f3-78a-12",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "branch": "refs/heads/g-round5-profil",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "M src/ui/system/PickerTile.tsx",
+        " M src/ui/workerProfile/workerProfileDraft.ts"
+      ],
+      "aheadBehindCanonical": "1190\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_3c00f8f3-78a-9",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "branch": "refs/heads/g-round5-privatnost",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1190\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_61acb326-792-1",
+      "head": "5f5930ed81c9a963984902850d2dc23bf8693cc1",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/gfxinfo_cycles.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/gateway-rpc_discovery_v1.json",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/before_quiet_focused_20260930_1913/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run5_partial_detail_read_error/cycle_10_detail_read_failed_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run6_legacy_baseline/01_list_full_sheet_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/gfxinfo_gestures.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/js-trace-extract.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/05_after_zoom_out_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/21_search_typed_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/23_search_applied_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/30_filter_remote_status_bar_cropped_half.png"
+      ],
+      "aheadBehindCanonical": "616\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_80ed72c6-0c2-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/worktree-wf_80ed72c6-0c2-1",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_a4bee745-b29-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "branch": "refs/heads/worktree-wf_a4bee745-b29-1",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1542\t1",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_c531123e-0d9-1",
+      "head": "2f3d739046348676bd87f9f96bc1de66ba6030cd",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/gfxinfo_cycles.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/gateway-rpc_discovery_v1.json",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/before_quiet_focused_20260930_1913/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run5_partial_detail_read_error/cycle_10_detail_read_failed_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run6_legacy_baseline/01_list_full_sheet_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/gfxinfo_gestures.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/js-trace-extract.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/05_after_zoom_out_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/21_search_typed_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/23_search_applied_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/30_filter_remote_status_bar_cropped_half.png"
+      ],
+      "aheadBehindCanonical": "611\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/wf_e71a382c-94e-1",
+      "head": "5f5930ed81c9a963984902850d2dc23bf8693cc1",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [
+        "D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/gfxinfo_cycles.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_ex03d_rows_stay_mounted_20260930_2225/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/gateway-rpc_discovery_v1.json",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/after_quiet_focused_20260930_2101/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/ex03-physical-honor/before_quiet_focused_20260930_1913/timeline-pin-events-and-slow-frames.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run5_partial_detail_read_error/cycle_10_detail_read_failed_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round73-physical-honor/run6_legacy_baseline/01_list_full_sheet_status_bar_cropped.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/gfxinfo_gestures.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run1_first_full_marker_detection_FAIL/js-trace-extract.txt",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/05_after_zoom_out_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/21_search_typed_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/23_search_applied_status_bar_cropped_half.png",
+        " D docs/implementation/product-v1-closure-20260926/finalization-20260927/round74-physical-honor/run_consolidated_PASS/30_filter_remote_status_bar_cropped_half.png"
+      ],
+      "aheadBehindCanonical": "616\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-cb1",
+      "head": "770c2e4a3b88e4e66a53ac6d8be1a52593fa83f0",
+      "branch": "refs/heads/feat/cb1-qa-need-lifecycle-binding-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2270\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-d140a",
+      "head": "a42364be14575d2fbfea7df6e70b98331f68ae90",
+      "branch": "refs/heads/feat/d0140a-policy-bundle-registration-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2249\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-grad-20261008",
+      "head": "715bca3ce7c55763898756d0f036fcb4a9a4b6c4",
+      "branch": "refs/heads/candidate/discovery-grad-20261008",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "187\t26",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-inbox-naslov",
+      "head": "1428e16cd29c0738f9680fa0b0038c338055f9c5",
+      "branch": "refs/heads/candidate/inbox-naslov-20261008",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "126\t4",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-match-20261007",
+      "head": "1ab323d8adfe955d8c94fff4480a7f6fffa8875f",
+      "branch": "refs/heads/candidate/match-v1-20261007",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "187\t22",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-p0e",
+      "head": "6cde7b4391673a243a163c482eacfa288afbd278",
+      "branch": "refs/heads/fix/p0e-completion-guards-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2266\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-p1",
+      "head": "15d1c3cc009898b8bc339b7eb633ef9b01049de0",
+      "branch": "refs/heads/feat/p1-legal-consent-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2267\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-p2",
+      "head": "165c233cff425f6d6371d3d56e0a729d35057433",
+      "branch": "refs/heads/feat/p2-data-export-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2251\t4",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-p3",
+      "head": "049a45079734d66d0bba9047ae50514dae93449f",
+      "branch": "refs/heads/feat/p3-retention-schedule-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2248\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-p4",
+      "head": "4de9f423c3169714ab906115f00dc580afbfc5f9",
+      "branch": "refs/heads/feat/p4-processor-map-20260908",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "2243\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-spoj-20261006",
+      "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+      "branch": "refs/heads/integration/spoj-20261006",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "0\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN-trust-20261007",
+      "head": "c73509ebce999e0d29b072454fa21d5c9eabd633",
+      "branch": "refs/heads/candidate/profile-trust-20261007",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "187\t20",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-SAJT-20261008",
+      "head": "9190d6ca2c270b1db81536cb72b99cda6f50fd83",
+      "branch": "refs/heads/sajt/cinematic-20261008",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "105\t2",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/outputs/r6-integration/r18-proof-checkout",
+      "head": "74f514d79fa323e135c9ddc23a6cb6b5b934c730",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1095\t0",
+      "ancestorOfCanonical": true
+    },
+    {
+      "path": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/work/uskoci-html-native",
+      "head": "88af02e854a660653fdc2aab649e41ae1a51aee8",
+      "branch": "refs/heads/work/ai-reservation-unblock-20260920",
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "1584\t9",
+      "ancestorOfCanonical": false
+    },
+    {
+      "path": "C:/Users/user/Documents/Codex/2026-09-19/supabase-app-store-ios-apple-store/work/uskoci-r6-integration",
+      "head": "bb68735a3843f3a210520745ae6d83ffdbbca599",
+      "branch": null,
+      "exists": true,
+      "statusExit": 0,
+      "trackedChanges": [],
+      "aheadBehindCanonical": "962\t0",
+      "ancestorOfCanonical": true
+    }
+  ],
+  "refs": [
+    {
+      "name": "backup/lokalnih-5-20261006",
+      "head": "636d1d4012dbeba27923faec7244617209828bda",
+      "date": "2026-10-06T23:14:00+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "build/combined-20260920",
+      "head": "2fb0172ea4f8dca5d6014e9a14a94e511116a9af",
+      "date": "2026-09-20T10:34:36+02:00",
+      "upstream": "origin/build/combined-20260920"
+    },
+    {
+      "name": "candidate/discovery-grad-20261008",
+      "head": "715bca3ce7c55763898756d0f036fcb4a9a4b6c4",
+      "date": "2026-10-08T02:05:05+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "candidate/inbox-naslov-20261008",
+      "head": "1428e16cd29c0738f9680fa0b0038c338055f9c5",
+      "date": "2026-10-08T15:34:32+02:00",
+      "upstream": "novi/work/uskoci-ui-unification-20260924"
+    },
+    {
+      "name": "candidate/match-v1-20261007",
+      "head": "1ab323d8adfe955d8c94fff4480a7f6fffa8875f",
+      "date": "2026-10-08T00:41:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "candidate/profile-trust-20261007",
+      "head": "c73509ebce999e0d29b072454fa21d5c9eabd633",
+      "date": "2026-10-07T22:09:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "claude/github-ledger-execute-41b2bf",
+      "head": "916ffb498ba5ad47a307a3c66477757b6753095a",
+      "date": "2026-09-11T01:49:31+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "claude/github-repo-review-86868c",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "claude/mystifying-jackson-6daa1c",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "claude/uskoci-kompletan-audit-2e715e",
+      "head": "916ffb498ba5ad47a307a3c66477757b6753095a",
+      "date": "2026-09-11T01:49:31+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "clean-alpha-backend",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": "origin/clean-alpha-backend"
+    },
+    {
+      "name": "design/premium-pass-20261002",
+      "head": "855eda56cc66bed28a8845b324385904d3c065d2",
+      "date": "2026-10-01T22:26:57Z",
+      "upstream": "origin/work/uskoci-ui-unification-20260924"
+    },
+    {
+      "name": "feat/cb1-qa-need-lifecycle-binding-20260908",
+      "head": "770c2e4a3b88e4e66a53ac6d8be1a52593fa83f0",
+      "date": "2026-09-08T15:54:11+02:00",
+      "upstream": "origin/feat/cb1-qa-need-lifecycle-binding-20260908"
+    },
+    {
+      "name": "feat/d0140a-policy-bundle-registration-20260908",
+      "head": "a42364be14575d2fbfea7df6e70b98331f68ae90",
+      "date": "2026-09-08T17:08:38+02:00",
+      "upstream": "origin/feat/d0140a-policy-bundle-registration-20260908"
+    },
+    {
+      "name": "feat/p1-legal-consent-20260908",
+      "head": "15d1c3cc009898b8bc339b7eb633ef9b01049de0",
+      "date": "2026-09-08T15:55:26+02:00",
+      "upstream": "origin/feat/p1-legal-consent-20260908"
+    },
+    {
+      "name": "feat/p2-data-export-20260908",
+      "head": "165c233cff425f6d6371d3d56e0a729d35057433",
+      "date": "2026-09-08T17:08:33+02:00",
+      "upstream": "origin/feat/p2-data-export-20260908"
+    },
+    {
+      "name": "feat/p3-retention-schedule-20260908",
+      "head": "049a45079734d66d0bba9047ae50514dae93449f",
+      "date": "2026-09-08T17:08:27+02:00",
+      "upstream": "origin/feat/p3-retention-schedule-20260908"
+    },
+    {
+      "name": "feat/p4-processor-map-20260908",
+      "head": "4de9f423c3169714ab906115f00dc580afbfc5f9",
+      "date": "2026-09-08T17:05:29+02:00",
+      "upstream": "origin/feat/p4-processor-map-20260908"
+    },
+    {
+      "name": "fix/p0e-completion-guards-20260908",
+      "head": "6cde7b4391673a243a163c482eacfa288afbd278",
+      "date": "2026-09-08T15:41:04+02:00",
+      "upstream": "origin/fix/p0e-completion-guards-20260908"
+    },
+    {
+      "name": "fix/r04-need-edit-route-20260908",
+      "head": "4ac53fcf8a64ec679f9fcc23626e79a736b86eb8",
+      "date": "2026-09-08T12:31:58+02:00",
+      "upstream": "origin/fix/r04-need-edit-route-20260908"
+    },
+    {
+      "name": "g-round1-ia",
+      "head": "417f4431b7460cfef50559b70f4284b72d29fee0",
+      "date": "2026-09-24T00:38:16+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round1-quickfix",
+      "head": "09923d5682b211a7be24e0fa6b9b4eed9cf5d1b3",
+      "date": "2026-09-24T00:35:24+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2-chrome",
+      "head": "8093fe7e5edd358e4befb8d2e3d7c4258bf263c2",
+      "date": "2026-09-24T01:23:01+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2-sheets",
+      "head": "03b4fadbc32ad5ed5613c1b0f74525d758acfece",
+      "date": "2026-09-24T01:28:04+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2-tokens-motion",
+      "head": "1fc564ab8dbbc7a074abc4f1277ad761b856911e",
+      "date": "2026-09-24T01:20:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2b-actions",
+      "head": "516a33f9e063ee6f0319e3406d62dc358ac89916",
+      "date": "2026-09-24T02:13:28+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2b-foundation",
+      "head": "c8855cfaac532cc01f1e90e205fad4c7cccfb41c",
+      "date": "2026-09-24T02:16:35+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2b-sheets",
+      "head": "5c877515569b87d8d8c51e79c7cb8ee6879a2b0f",
+      "date": "2026-09-24T02:09:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round2c-fixes",
+      "head": "43a76c638e86724bdd237ce7a0917b843777bd41",
+      "date": "2026-09-24T03:29:47+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3-card",
+      "head": "260042bf42e39c6bdfb088b8191d2b2cac63c723",
+      "date": "2026-09-24T03:23:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3-detail",
+      "head": "2b965ff320d7696329cc25f77929d41f3a52e2dd",
+      "date": "2026-09-24T03:35:52+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3-zadaci",
+      "head": "15e9bab9070053bb522cb5a7f730aea9f1ee47ce",
+      "date": "2026-09-24T03:44:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3b-card",
+      "head": "78dabbdbfdaf34c2d94b26929a30d1dc736f6475",
+      "date": "2026-09-24T04:28:38+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3b-detail",
+      "head": "77cfe1fcb4ec93b815f604da84f9a273b025244e",
+      "date": "2026-09-24T04:26:35+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3b-zadaci",
+      "head": "04100c1ab03abc27da603ea1e2019a0bb356aced",
+      "date": "2026-09-24T04:24:53+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round3c-fixes",
+      "head": "afe4425d3fc9c8fbcbf8140487d0a6e3fdbd28df",
+      "date": "2026-09-24T05:01:56+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round4-ai",
+      "head": "914922076165d55b585d36233606adf507c10ff9",
+      "date": "2026-09-24T05:55:05+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round4-dogovori",
+      "head": "311f94a49730c00ef62b52f69f2fabfbaef68313",
+      "date": "2026-09-24T05:42:59+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round4-kandidati",
+      "head": "9ad394c820e14c38b6de76db9aa640442f548af8",
+      "date": "2026-09-24T05:54:08+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round4-prijave",
+      "head": "462f40fe7872d5d1524424a593b91ecd46d67631",
+      "date": "2026-09-24T05:40:03+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round4b-fixes",
+      "head": "a04cceae51057dbd19cb5fddf344bb963ef0df2b",
+      "date": "2026-09-24T06:45:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5-kalendar",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "date": "2026-09-24T06:47:38+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5-obavestenja",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "date": "2026-09-24T06:47:38+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5-privatnost",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "date": "2026-09-24T06:47:38+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5-profil",
+      "head": "f88216cd49b8e9d838f043f92b8a42954b961d6a",
+      "date": "2026-09-24T06:47:38+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5b-kalendar",
+      "head": "8e108076708335505baac06eec78228def60ada6",
+      "date": "2026-09-24T08:01:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5b-obavestenja",
+      "head": "250b41c9a14807c5408f7ea31310032d38fa6002",
+      "date": "2026-09-24T08:00:52+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5b-privatnost",
+      "head": "43b135ccce57f936b6548a543f1c5a259ddb8b19",
+      "date": "2026-09-24T08:13:47+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5b-profil",
+      "head": "094a9a050f0691d11e1479408aaf7bcc344dfb92",
+      "date": "2026-09-24T08:15:49+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5c-kalendar",
+      "head": "7dfcc154fb31d058391e0a63a9e21c3059ba1d7e",
+      "date": "2026-09-24T16:00:18+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5c-obavestenja",
+      "head": "4075a36211c47ccc33ae89d48955f374e0dfaead",
+      "date": "2026-09-24T16:00:18+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5c-privatnost",
+      "head": "d4a66c82215b111cdfe0acf726b0ce061e31b482",
+      "date": "2026-09-24T16:00:19+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5c-profil",
+      "head": "cd82c078a1ab91ed4269bcf0f4a086e606a158c4",
+      "date": "2026-09-24T16:00:17+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5c-r4",
+      "head": "d1896db9b78b45ff490630afa6ad8fc1bad01787",
+      "date": "2026-09-24T16:14:57+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5d-kalendar",
+      "head": "a1ac60a13f5b6e4e05f5e594435a2ef07ee2bb9d",
+      "date": "2026-09-24T16:15:48+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5d-obavestenja",
+      "head": "dd9998b4d7b25cfcb4636fdc623e51ed178f8160",
+      "date": "2026-09-24T16:13:40+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5d-privatnost",
+      "head": "e9a82226ca70caea62eff03c094e03b0ecdcda38",
+      "date": "2026-09-24T16:20:45+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "g-round5d-profil",
+      "head": "21d7448d93acc2771614f7e09aeafd690ff78fbc",
+      "date": "2026-09-24T16:21:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "integration/spoj-20261006",
+      "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+      "date": "2026-10-09T18:01:41+02:00",
+      "upstream": "novi/work/uskoci-ui-unification-20260924"
+    },
+    {
+      "name": "pkg051-fix",
+      "head": "19e8761e30025daa50d4c55a18ae8d5c01055076",
+      "date": "2026-09-24T21:54:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "pkg051-impl",
+      "head": "2041ba93569d1513c7f212e4c68e878c0b225be0",
+      "date": "2026-09-24T21:26:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "r6fix-grupa",
+      "head": "385171a17596f4f3d1f3c818a84422752d4232ed",
+      "date": "2026-09-24T23:40:10+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "r6fix-izmene",
+      "head": "6976f9605d9126ee0e20d94036c8bef46ee6e177",
+      "date": "2026-09-25T01:52:23+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "r6fix-pinmap",
+      "head": "1e019b87d3adbccec20d111513c3821ff98d0333",
+      "date": "2026-09-24T23:42:22+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "r6fix-prijava",
+      "head": "2bc92808954ecb39ea4c3cb7fbbcfeadd3f1fd30",
+      "date": "2026-09-24T23:39:17+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "r6fix-qa",
+      "head": "d9295f8b2bd159e2c83a619a086b347943877d2d",
+      "date": "2026-09-24T23:40:27+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "r6fix-system",
+      "head": "7057fa2b9b9a245f526692aa411ed8041f9458da",
+      "date": "2026-09-24T23:37:34+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "sajt/cinematic-20261008",
+      "head": "9190d6ca2c270b1db81536cb72b99cda6f50fd83",
+      "date": "2026-10-08T20:29:04+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "tmp/cutover-apk",
+      "head": "9d418db68f805bfb2d17c1c980df8984f14f085c",
+      "date": "2026-09-30T07:22:34+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "tmp/cutover-apk2",
+      "head": "fdedabdb93b05447e775e98a0f4dc29f544a3857",
+      "date": "2026-09-30T10:46:30+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "tmp/cutover-apk3",
+      "head": "42371918440f0fbf056b9c3aad1e29a0c93a4dcb",
+      "date": "2026-09-30T12:52:57+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "tmp/journey3",
+      "head": "4fc0b6f048934b5d7e6d3739091153359435c434",
+      "date": "2026-09-30T05:18:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "wip/r6fix-izmene",
+      "head": "6976f9605d9126ee0e20d94036c8bef46ee6e177",
+      "date": "2026-09-25T01:52:23+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "work/ai-reservation-unblock-20260920",
+      "head": "88af02e854a660653fdc2aab649e41ae1a51aee8",
+      "date": "2026-09-20T20:32:20+02:00",
+      "upstream": "origin/work/ai-reservation-unblock-20260920"
+    },
+    {
+      "name": "work/codex-agreement-polish-20261002",
+      "head": "ce859c2f2814674dec31ae3bea504f3b9fc035e7",
+      "date": "2026-10-02T14:26:16Z",
+      "upstream": ""
+    },
+    {
+      "name": "work/html-home-native-20260920",
+      "head": "56e4f4f2ce0a7e6fc87b971c791102a43cbebfe1",
+      "date": "2026-09-20T20:21:35+02:00",
+      "upstream": "origin/work/html-home-native-20260920"
+    },
+    {
+      "name": "work/pre-v3-engine-integration-20260911",
+      "head": "724f4ed1a1168b8671f241e925ed013d192fcbc1",
+      "date": "2026-09-24T00:00:14+02:00",
+      "upstream": "origin/work/pre-v3-engine-integration-20260911"
+    },
+    {
+      "name": "work/uskoci-ui-unification-20260924",
+      "head": "636d1d4012dbeba27923faec7244617209828bda",
+      "date": "2026-10-06T23:14:00+02:00",
+      "upstream": "origin/work/uskoci-ui-unification-20260924"
+    },
+    {
+      "name": "worktree-agent-a01b1e5ae795ebde5",
+      "head": "b24a854d6c66d9356d25f0ef3b20c3951c761850",
+      "date": "2026-09-30T16:06:12+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a039cc043f559562f",
+      "head": "949d8267a1dc3a50f485c94ff52b21415ebba62f",
+      "date": "2026-09-30T15:51:59+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a120af0682eef3882",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a15d21924101411dc",
+      "head": "dac17fe79245d058fe9f1159d8f259719a7da5ce",
+      "date": "2026-09-30T15:51:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a55584d4786a9ea9d",
+      "head": "4dfb1a6e34302a5604ce5c8259f528166dd1b3cd",
+      "date": "2026-09-30T15:59:35+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a5e95a83a7b5217ab",
+      "head": "e665673f47f6a713e8a1a092662a4ec4cde4fc21",
+      "date": "2026-09-30T13:03:28+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a747fb9dcb8b67bc2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a764393d4b5a60a5a",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a7f636fe6fe7e9c64",
+      "head": "49f6a493d493314fff4643a5a7e7ad6accf3e327",
+      "date": "2026-09-30T15:47:10+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a830d1a41b2d7a913",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a8646eed33c4ecdd2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a9d761e35b5fb1915",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-a9f17bcca50ba283f",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-aa9884a2bf4a60a56",
+      "head": "0fd351032358defe02ccb2464af1888a0cf27a4b",
+      "date": "2026-09-30T12:20:08+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-aafc49c00d5a77f3a",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-acc4b68989b127aff",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-acec59ac9735612ca",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-ae577b373e66758a4",
+      "head": "efca815c3678908ac14b5a2583df1e8bc468b0d2",
+      "date": "2026-09-30T16:11:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-agent-af2b7f2dcbc76ea8a",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_159b69a7-ef8-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_20f24fd5-090-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_2912f786-78c-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_2912f786-78c-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_2912f786-78c-3",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_2c112a3b-11c-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_2c112a3b-11c-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3346a1cb-6c5-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3346a1cb-6c5-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3346a1cb-6c5-3",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-10",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-11",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-12",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-5",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-6",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-7",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-8",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_3c00f8f3-78a-9",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_61acb326-792-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_6f7600b3-c18-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_6f7600b3-c18-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_6f7600b3-c18-3",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_6f7600b3-c18-4",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_6f7600b3-c18-5",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_80d0484a-9ba-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_80d0484a-9ba-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_80d0484a-9ba-3",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_80d0484a-9ba-4",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_80ed72c6-0c2-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a4bee745-b29-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a4d8498c-933-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a4d8498c-933-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a4d8498c-933-3",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a756424b-9e6-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a756424b-9e6-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_a756424b-9e6-3",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_bc037000-0ee-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_bc037000-0ee-2",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_c531123e-0d9-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_d8e25e9f-19e-5",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_d8e25e9f-19e-9",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "worktree-wf_e71a382c-94e-1",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi",
+      "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+      "date": "2026-10-09T18:01:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/backup/lokalnih-5-20261006",
+      "head": "636d1d4012dbeba27923faec7244617209828bda",
+      "date": "2026-10-06T23:14:00+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/backup/telefon-20261008-1",
+      "head": "57d051b3c44b06ac75d76cb68e90c3d86e0eb82d",
+      "date": "2026-10-08T16:17:30+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/candidate/discovery-grad-20261008",
+      "head": "715bca3ce7c55763898756d0f036fcb4a9a4b6c4",
+      "date": "2026-10-08T02:05:05+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/candidate/inbox-naslov-20261008",
+      "head": "1428e16cd29c0738f9680fa0b0038c338055f9c5",
+      "date": "2026-10-08T15:34:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/candidate/match-v1-20261007",
+      "head": "1ab323d8adfe955d8c94fff4480a7f6fffa8875f",
+      "date": "2026-10-08T00:41:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/candidate/profile-trust-20261007",
+      "head": "c73509ebce999e0d29b072454fa21d5c9eabd633",
+      "date": "2026-10-07T22:09:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/explore/varijante-20261008",
+      "head": "bcc9e87d2f4b46aa68424c60e10c441adc525161",
+      "date": "2026-10-08T08:39:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/integration/spoj-20261006",
+      "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+      "date": "2026-10-09T18:01:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/proof/connected-lifecycle-20261009",
+      "head": "8b1c3da7f9f62ac032ee649481d589aac7354c94",
+      "date": "2026-10-09T02:52:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/proof/discovery-baseline-40k-20261009",
+      "head": "19572d736879733c45c3c5bb73d10ed39a922761",
+      "date": "2026-10-09T04:36:42+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/proof/push-single-target-235-20261009",
+      "head": "c70dd513d0896628b9958a8be2bd272a7180b383",
+      "date": "2026-10-09T01:52:35+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/sajt/cinematic-20261008",
+      "head": "9190d6ca2c270b1db81536cb72b99cda6f50fd83",
+      "date": "2026-10-08T20:29:04+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emu-20261007-1",
+      "head": "eeedf15e54c3a613fcdaed9a8c40bfb32d52cb23",
+      "date": "2026-10-07T21:34:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emulator-20261008-continuity",
+      "head": "dce7c463447326f18ef9a3cc5901c1800d3544e7",
+      "date": "2026-10-08T23:39:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emulator-20261009-1",
+      "head": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+      "date": "2026-10-09T00:02:08+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emulator-20261009-2",
+      "head": "66275774407b2cb4ccebafac508ea237aa59e930",
+      "date": "2026-10-09T00:46:01+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emulator-20261009-3",
+      "head": "44e8eaffdd9fcbd9ccf25cab174ea2374236003d",
+      "date": "2026-10-09T01:31:15+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emulator-collaborations-bar-20261009",
+      "head": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5",
+      "date": "2026-10-09T02:27:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/emulator-existing-dev-20261009",
+      "head": "a48162a7232d486f239beddd04f1d23c50f72b4b",
+      "date": "2026-10-09T05:00:12+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261007-1",
+      "head": "8ab698a06e59c4eac59036f1595230ff94e710c4",
+      "date": "2026-10-07T22:16:13+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261008-1",
+      "head": "ba5d83694c5b2e08e39e309f8229690393a956f0",
+      "date": "2026-10-08T06:32:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261008-2",
+      "head": "6a7b7ac764568943512ae35c27c1f4e68397d714",
+      "date": "2026-10-08T10:51:51+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261008-3",
+      "head": "4e0ea50614dc74af9a1dee771eb8fb7e53034892",
+      "date": "2026-10-08T17:34:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261008-continuity",
+      "head": "dce7c463447326f18ef9a3cc5901c1800d3544e7",
+      "date": "2026-10-08T23:39:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261009-1",
+      "head": "787a337d0da814cb1fe24ba8a17457fd29996aaa",
+      "date": "2026-10-09T00:02:08+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261009-2",
+      "head": "66275774407b2cb4ccebafac508ea237aa59e930",
+      "date": "2026-10-09T00:46:01+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/visual/phone-20261009-3",
+      "head": "44e8eaffdd9fcbd9ccf25cab174ea2374236003d",
+      "date": "2026-10-09T01:31:15+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/work/uskoci-promo-legal-release-20261009",
+      "head": "de181efab5820ebe55191306a73240916c666b18",
+      "date": "2026-10-09T09:39:01+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/work/uskoci-ui-unification-20260924",
+      "head": "6311804dbac2323069e927f9a8dc49f8f0bb1f14",
+      "date": "2026-10-09T18:01:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/work/uskoci-web-premium-20261009",
+      "head": "19a1e152a4d3956ac50b20b8328adda5f2f56bd9",
+      "date": "2026-10-09T15:17:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "novi/work/uskoci-web-release-20261009",
+      "head": "aa165ed9dabc05107ac46d826e8b8698e387a060",
+      "date": "2026-10-09T12:10:06+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/ai-conversation-poc",
+      "head": "cad80b10c8c938b1a2013cb63de87d024b3dfbff",
+      "date": "2026-09-11T09:13:35+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/ai-uskoci-council",
+      "head": "9de653595fb9e8a4d23e31ae4320e25b67667b3e",
+      "date": "2026-09-11T17:46:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/automation/ru3-b05-live-reconcile-20260904",
+      "head": "fe1a20573b2e6c85120012dfd51ffa7c46834ef3",
+      "date": "2026-09-04T11:06:15+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/automation/ru3-b05-promote-20260904",
+      "head": "932b0585959635f952a6d08f2ad8bd90a81e854b",
+      "date": "2026-09-04T10:46:06+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/automation/ru3-b06-live-reconcile-20260904",
+      "head": "fd93354bf43b2fbe51dbb8c10113295a0e9c99a3",
+      "date": "2026-09-04T12:29:05+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/automation/ru3-b06-promote-20260904",
+      "head": "2a8d9a4823cfaedac7817b7fa32c1ad6e0c78b7b",
+      "date": "2026-09-04T12:15:28+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/build/combined-20260920",
+      "head": "2fb0172ea4f8dca5d6014e9a14a94e511116a9af",
+      "date": "2026-09-20T10:34:36+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/chat5-phase2-candidate-20260911",
+      "head": "9de653595fb9e8a4d23e31ae4320e25b67667b3e",
+      "date": "2026-09-11T17:46:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/chore/execution-ledger-v20-20260915",
+      "head": "6e706e319c273b87bc2bd860bf95c574bff50ae2",
+      "date": "2026-09-15T10:23:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/chore/w00-pending-proof-hardening-20260909",
+      "head": "a353a421ec715c9d89139059f44199b40f7062dd",
+      "date": "2026-09-09T02:44:49+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/clean-alpha-backend",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/closure/ru5-p0c02-live-20260905",
+      "head": "9d46993fbfb6fe20eb9316f19890139366476f0a",
+      "date": "2026-09-05T21:07:02+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/closure/ru5-p0c03-live-20260905",
+      "head": "d8f979ded813cb3157d279a70d21298676e4daaa",
+      "date": "2026-09-05T22:46:36+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/closure/ru5-selection-eligibility-final-status-20260906",
+      "head": "516bebebb0762b63545e02b9617357a4b7e82389",
+      "date": "2026-09-06T09:27:07+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/closure/ru5-selection-eligibility-live-20260906",
+      "head": "3a37f316f1b02910bc8c995ce411cf0c9b56b9b5",
+      "date": "2026-09-06T09:19:27+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/continuity/ru4b-live71-20260905",
+      "head": "a4f4f09d5ec44c5c2243dc6306959c0733370ec9",
+      "date": "2026-09-05T09:02:55+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/control/uskoci-control-v0-20261004",
+      "head": "e70c44f9f125e3c060be6ff33dd679b45ec1a679",
+      "date": "2026-10-04T22:28:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/ai-live87-provenance-20260907",
+      "head": "07251f29fd3f0d87b7822a0f7c930862da4e5479",
+      "date": "2026-09-07T16:20:29+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/checkpoint-label-fix-20260906",
+      "head": "97ba400589c3e9a81aaa03efc634beb54ab2d90f",
+      "date": "2026-09-06T14:13:48+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/continuity-reconcile-20260904",
+      "head": "e17591f8e54f60ec9cc391864be295d5c30106d4",
+      "date": "2026-09-04T19:43:16+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/d03-live86-20260907",
+      "head": "1f6db1e9d8f3a15aedc8c96b91af63d899339861",
+      "date": "2026-09-07T15:27:34+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/n07-live84-20260907",
+      "head": "58eb2f91b15c2c9b285dc8371a7bd79adb00c9d0",
+      "date": "2026-09-07T11:21:40+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/n08-live85-20260907",
+      "head": "42cf1b6d0c96e7e6418ec4a5f98f0de9fb772481",
+      "date": "2026-09-07T12:33:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/notifications-closure-state-20260907",
+      "head": "899b545fce97844de0d69fded32547b749bd678a",
+      "date": "2026-09-07T10:23:20+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/notifications-n02-n03-continuity-20260907",
+      "head": "f8a6dcb8038c24736e4461aa4361383f3e05eb8b",
+      "date": "2026-09-07T09:42:30+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/p0d02-selection-semantic-idempotency-live-closure-20260906",
+      "head": "4fcc95f6460adaced20e29370cdd3b0015babaa5",
+      "date": "2026-09-06T09:11:59Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/p0d03-postmerge-status-normalization-20260906",
+      "head": "cc658041fece3a967379c1506ee6b9e801308e4c",
+      "date": "2026-09-06T14:09:49+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/p0d03-requester-connection-live-closure-20260906",
+      "head": "364e4cffb8abb1526ddd027dbe7c3ee4b7393df9",
+      "date": "2026-09-06T13:11:53+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/ru3-b07-live-reconcile-20260904",
+      "head": "93935a247248ff7153d14f8633714fe95b227cfd",
+      "date": "2026-09-04T18:26:45Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/ru5-fastest-autofill-live-closure-20260906",
+      "head": "b9965b0818b17a07301058f1cfde718a6f10a9b6",
+      "date": "2026-09-06T17:40:19+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/ru5-two-account-proof-closure-20260906",
+      "head": "1c04110ac95cadcb64c4872451e693318189ddd1",
+      "date": "2026-09-06T18:43:10+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/safe-handoff-20260911",
+      "head": "146daf020dfdd0d5eab104e3c858f9ca78b95fef",
+      "date": "2026-09-11T07:22:07+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/docs/uskoci-confirmed-three-zone-navigation",
+      "head": "4dd2387a02f3cd24d88820eefb0490d4a610e0da",
+      "date": "2026-09-08T10:55:19+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/batch-execution-ci-20260910",
+      "head": "1daf690d126d94ce3b61c6add693e04cab74507a",
+      "date": "2026-09-10T12:49:04+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/cb1-qa-need-lifecycle-binding-20260908",
+      "head": "9e4c65778855e638f6eb3622ed6770fa0ab70220",
+      "date": "2026-09-08T23:44:28+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/d0140a-policy-bundle-registration-20260908",
+      "head": "73f992c3f6d7dbc7398899517062f73c554ac1d6",
+      "date": "2026-09-09T02:07:48+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/expo-push-transport-20260910",
+      "head": "75348db7781f58a013570a6e46f8ceaa98f8ab64",
+      "date": "2026-09-11T01:14:06+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/figma-entry-20260907",
+      "head": "331ce82ab34844db7cfdad1908aa235eba5a498b",
+      "date": "2026-09-08T00:16:48+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/locationiq-reverse-20260910",
+      "head": "4dabe6bf23d6007168d31f925a1a6d1a8745b622",
+      "date": "2026-09-10T20:52:31+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/owner-completion-20260911",
+      "head": "df167547c469f5b4cb5679058526b697dae8ba48",
+      "date": "2026-09-11T07:59:11Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/p1-legal-consent-20260908",
+      "head": "0bc15acafccc093a024cc4f9a9447c770db5a05a",
+      "date": "2026-09-08T16:55:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/p2-data-export-20260908",
+      "head": "df79d5ac7a5d7bf9ce0e51752ed2fe7aaed329a7",
+      "date": "2026-09-09T02:24:28+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/p2-export-delivery-20260910",
+      "head": "314189d36ef92727009f6d051644e5b249b4fa7b",
+      "date": "2026-09-10T18:36:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/p3-retention-execution-20260910",
+      "head": "8400345602168eb8bba52689fc20d76f6643ac0d",
+      "date": "2026-09-10T19:34:49+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/p3-retention-schedule-20260908",
+      "head": "03053ae5a0eda445c1f2e72911a4b2c37faa6223",
+      "date": "2026-09-08T17:12:02+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/p4-processor-map-20260908",
+      "head": "4de9f423c3169714ab906115f00dc580afbfc5f9",
+      "date": "2026-09-08T17:05:29+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/public-task-material-20260907",
+      "head": "da7ce1d5efe88c2f5022f813f84de52e436566cc",
+      "date": "2026-09-08T00:41:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/shared-exploration-ui-20260907",
+      "head": "37a8ec98b31c4c8d81e7c30808581cd6cdcccc1a",
+      "date": "2026-09-08T01:00:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/v2-agreement-changes-20260911",
+      "head": "60a3ce68e52cbf461639f392db877d93ba0405c7",
+      "date": "2026-09-11T06:38:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/v2-agreement-messages-20260910",
+      "head": "1ec86c6711d868ba031258c2fe9c693140ba4a8d",
+      "date": "2026-09-10T23:35:13+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/v2-native-journey-closure-20260911",
+      "head": "58e842e883db71f9118efc474c5011f3b261824c",
+      "date": "2026-09-11T06:27:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/v2-push-foreground-20260911",
+      "head": "cba0a2645fdb31d9f19414ca7afe6a6bc93f1e0f",
+      "date": "2026-09-11T06:46:29+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/v2-signature-entry-auth-20260910",
+      "head": "aabe29aa26d2c5fcdcfc0edf03150ef6be09da37",
+      "date": "2026-09-10T23:46:10+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w00-w01-account-recovery-20260908",
+      "head": "b75477bfe4bce88f851dfabe96c53015442e6fa4",
+      "date": "2026-09-08T23:27:57Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-availability-20260909",
+      "head": "0a002547a9c88134b1b042d05316fd7a5e9c3ecb",
+      "date": "2026-09-09T20:04:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-calendar-authority-20260909",
+      "head": "5a33a02c10ace82c63d7d2cc58a7c1ad3f34bcbe",
+      "date": "2026-09-09T15:29:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-location-native-completion-20260910",
+      "head": "e44cdf33c54624a034883e9ad40ff50f3b6b9082",
+      "date": "2026-09-10T15:02:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-location-shared-20260909",
+      "head": "ff82226b5293ddf30f47a67fe3e587cbb5fe67fd",
+      "date": "2026-09-09T21:49:43+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-regional-country-authority-20260910",
+      "head": "f1f18343d0658c25d789cc407422af410f198800",
+      "date": "2026-09-10T10:04:59+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-resolved-location-20260910",
+      "head": "f2388d76709eb314a901721a203a6fac46c22fc6",
+      "date": "2026-09-10T16:14:15+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w02-shared-capability-validation-20260910",
+      "head": "22803b5e5ea1d4f2d926c571f8c4271e9cc8ca34",
+      "date": "2026-09-10T07:58:18+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w03-ai-owned-intake-20260910",
+      "head": "6a0c784f72987d2ee1d959026f16fa94e6211e1a",
+      "date": "2026-09-10T23:33:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/feat/w05-publication-admission-20260910",
+      "head": "3b50eaaa64ec630a4812e862ea759993cf43f41d",
+      "date": "2026-09-10T17:56:33+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/action-pins-20260907",
+      "head": "698063bce70e26262ce893a375309cc39bc1bce7",
+      "date": "2026-09-07T11:08:58+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/ai-draft-authority-20260907",
+      "head": "f5b955011636496bde134b792f6cc1c94253cb24",
+      "date": "2026-09-07T15:36:17+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/ai-provider-selector-20260907",
+      "head": "49fe98ade0ceb9a0bab53e3c6b7087fb6bb48b88",
+      "date": "2026-09-07T16:14:33+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/ai-server-context-20260907",
+      "head": "655973d83d43ac4eeb49f94035e4188e00f1901f",
+      "date": "2026-09-07T15:49:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/ai-vertical-recovery-20260907",
+      "head": "663b69bc9a007f29abd89ce2f2f8b9281e046bdf",
+      "date": "2026-09-07T16:50:57+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/d03-chat-recovery-20260907",
+      "head": "d521c6b0814e789ff0bc02dc7e3deba23ff861bb",
+      "date": "2026-09-07T20:09:08+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/d03-message-retry-20260907",
+      "head": "eb28d612ef6ff836911eeaa17d4501fcea4d7268",
+      "date": "2026-09-07T14:51:27+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/dependency-security-20260907",
+      "head": "7c208d53682d5c212d90059469f1fa262c1fdf0d",
+      "date": "2026-09-07T11:23:10+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/existing-eas-identity-20260907",
+      "head": "98061d17ab9387b4b69705657180c002be17953c",
+      "date": "2026-09-07T15:10:40+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/intent-shell-20260907",
+      "head": "1133a889f58cdabe57c85c57a2a7f6628df05f10",
+      "date": "2026-09-07T14:35:36+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/n08-notification-preferences-20260907",
+      "head": "8777c14961f2ad30a9ebf2c5333b79b6f26bbe36",
+      "date": "2026-09-07T12:10:13+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/p0e-completion-guards-20260908",
+      "head": "6cde7b4391673a243a163c482eacfa288afbd278",
+      "date": "2026-09-08T15:41:04+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/r04-need-edit-route-20260908",
+      "head": "4ac53fcf8a64ec679f9fcc23626e79a736b86eb8",
+      "date": "2026-09-08T12:31:58+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/svg-web-accessibility-20260908",
+      "head": "c07dad963f2d1b8e5c07973df5bba9f99aa8bda3",
+      "date": "2026-09-08T06:26:23+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/task-detail-recovery-20260907",
+      "head": "35cfabe4bb990f3d90ab56bcdf6e7f048ed3b519",
+      "date": "2026-09-07T23:05:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/url-decoder-security-20260907",
+      "head": "6e5af6bfe8ddc571d5f7c6e9bb954c570dc5aa62",
+      "date": "2026-09-07T11:42:29+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/w00-proof-prefix-continuation-20260908",
+      "head": "661e16a944af4e2a02ed7463fdc19b2d4964febd",
+      "date": "2026-09-09T00:11:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/fix/windows-metro-cache-20260907",
+      "head": "7d8cbc6129d4818fbbf5d392ac2fb6a787a5a1f8",
+      "date": "2026-09-07T19:56:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promote/ru3-b07-canonical-publish-20260904",
+      "head": "00b7f14bff79b41eda29e73715a3d01bdb8c5d52",
+      "date": "2026-09-04T20:19:03+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promotion/ru1-worker-readiness-20260903",
+      "head": "e99876189ba4625e00a887ee7771da8d3b7ec1c1",
+      "date": "2026-09-03T20:39:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promotion/ru3-b05-live-reconcile-20260904",
+      "head": "ee0a089bec9141c3fd5d9c2bc2314b7245e69c46",
+      "date": "2026-09-04T09:06:24Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promotion/ru3-b05-policy-bundle-20260904",
+      "head": "ac70e1e66375a9e1be602808a3d4d3a2735f1b3b",
+      "date": "2026-09-04T08:44:20Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promotion/ru3-b06-decision-20260904",
+      "head": "4d735390e32c530a323b24dad95ddaa0422bd493",
+      "date": "2026-09-04T10:15:41Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promotion/ru4-owner-edit-lock-20260905",
+      "head": "a271d6084b4648e757d2230d0a208f558c802a14",
+      "date": "2026-09-05T00:34:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/promotion/ru4b-foundation-20260905",
+      "head": "795f3251942c49a4f43c36490ddecc17d6a98b67",
+      "date": "2026-09-05T06:56:58Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/android-visual-proof-20260905",
+      "head": "f22b6ed424073e5fd2fd05a543bcf75aa26d445f",
+      "date": "2026-09-05T07:54:37+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-agreement-mutations-20260905",
+      "head": "de8d4af7f7fbe4c1cda1e02911ec0fe2436fab94",
+      "date": "2026-09-05T09:54:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-agreement-read-20260905",
+      "head": "0b84c3b4f792fe228d263762df9514cc277afa34",
+      "date": "2026-09-05T09:27:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-ai-command-shadow-20260905",
+      "head": "e85017b31c9f798829e00239242c4ed1ffb1e86c",
+      "date": "2026-09-05T14:21:25+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-ai-conversation-shadow-20260905",
+      "head": "53441d831e4035fb1bf86756e1887b1443a1a6fe",
+      "date": "2026-09-05T14:37:06+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-ai-publish-shadow-20260905",
+      "head": "2d57f41259d0da5f832ee25db6bc99ab2c63e9ba",
+      "date": "2026-09-05T14:52:44+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-completion-mark-20260905",
+      "head": "43e7c95c790423a21876bd5bbff9de65dfb74c6f",
+      "date": "2026-09-05T12:47:27+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-exact-location-20260905",
+      "head": "f940ffb55c8ebc7316fe74e1963c2d9dd1586bfc",
+      "date": "2026-09-05T12:59:10+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-need-reads-20260905",
+      "head": "0aeed66de8cb7b16b0a527fbf3ccad56ac985383",
+      "date": "2026-09-05T10:09:27+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-phone-grants-20260905",
+      "head": "f95631d4d45f803efc70e098f922238d13b42fb4",
+      "date": "2026-09-05T11:19:13+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-problem-report-20260905",
+      "head": "9952ab02d8b53d244e2501b4b7f1de6d41098bd2",
+      "date": "2026-09-05T12:10:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-response-viewed-20260905",
+      "head": "ecf7e7709c05d41481a9cc674a2b58042fedf1fa",
+      "date": "2026-09-05T11:07:19+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/client-data-worker-profile-20260905",
+      "head": "ca941c4e9a6c7bb4885fb99d56860dbcbe03ea20",
+      "date": "2026-09-05T13:07:53+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n01-message-events-20260907",
+      "head": "96b39ec67f046a8611f2e3a1c432daab20de79bb",
+      "date": "2026-09-07T08:09:22+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n02-selection-event-20260907",
+      "head": "3022ffb538205e3ea1e01110006ae09854c30c87",
+      "date": "2026-09-07T09:12:53+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n03-inbox-20260907",
+      "head": "c7aae94988c78058903d06393d2e5a3f380a6c7b",
+      "date": "2026-09-07T09:20:48+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n04-inbox-mobile-20260907",
+      "head": "576e56b6f4da1db509f4a269962654ff928a1e3f",
+      "date": "2026-09-07T09:38:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n05-agreement-change-20260907",
+      "head": "3a0b90a1199c6556cf70f7b3e732215b25129efe",
+      "date": "2026-09-07T09:50:19+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n06-push-registry-20260907",
+      "head": "fabd58075b3a4dcc6165e6f4d606ce9e89ad5046",
+      "date": "2026-09-07T09:54:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/notifications-n07-forward-promotions-20260907",
+      "head": "8a6075bbdc6594161ffe1b8a91327db80d092aa5",
+      "date": "2026-09-07T10:09:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/p0d02-live-transport-diagnostic-20260906",
+      "head": "36bec21c1df86ed465e78404621035f60a80d2e6",
+      "date": "2026-09-06T11:07:48+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/p0d02-selection-semantic-idempotency-20260906",
+      "head": "c3ada4219b9c8427be0c7b35bc36afa30b4302cc",
+      "date": "2026-09-06T10:54:42+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/p0d03-requester-connection-activation-v1-20260906",
+      "head": "01b514289091ad9c9ced7d1d5ed4598eaa2994c5",
+      "date": "2026-09-06T12:09:56+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/pre-v3-pr101-exact-baseline-20260911",
+      "head": "85a42facf0ae48a19975a8b56dc277ae34b48430",
+      "date": "2026-09-11T22:29:01+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru0-disposable-ci-20260903",
+      "head": "6496065940dea7310152cdae23d3766a617398e7",
+      "date": "2026-09-03T16:54:45+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru1-disposable-ci-20260903",
+      "head": "1d62a6195df9a288ca92cdf358a10a445d3a1f52",
+      "date": "2026-09-03T20:28:45+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru2-need-v2-r07-20260903",
+      "head": "d7eb80b3403e5549a78cec18b1c8c87f42d9cf99",
+      "date": "2026-09-03T23:14:36+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru2-promotion-integrity-20260904",
+      "head": "239d421ece8172f92a407271f54310cf34a1e07f",
+      "date": "2026-09-04T00:06:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru2-promotion-integrity-20260904b",
+      "head": "16dc09fca73320306b72e10132fb65a16255deb8",
+      "date": "2026-09-04T00:09:59+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru3-admission-infra-20260904",
+      "head": "b7d57b510f5c5f32e85b82e4afec9295d270f2fa",
+      "date": "2026-09-04T08:14:02+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru3-b05-policy-bundle-20260904",
+      "head": "edd8525e2c6f58077a7cb0f3b814a2e3d1130405",
+      "date": "2026-09-04T10:35:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru3-b06-decision-20260904",
+      "head": "082d4d3be590ed2538b979056e1e4f142cc1b0bd",
+      "date": "2026-09-04T11:19:06+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru3-b07-canonical-publish-20260904",
+      "head": "7351198577685641ab9a7c08cb753a1094c41ea1",
+      "date": "2026-09-04T19:55:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru3-d0140-rs-publication-v1-20260904",
+      "head": "363354ee1e50c62b77f67ece3e6acd9f4e46de22",
+      "date": "2026-09-04T19:17:29+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-clean-ai-final-20260905",
+      "head": "a271d6084b4648e757d2230d0a208f558c802a14",
+      "date": "2026-09-05T00:34:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-clean-ai-isolation-20260905",
+      "head": "a271d6084b4648e757d2230d0a208f558c802a14",
+      "date": "2026-09-05T00:34:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-clean-ai-isolation-20260905-rerun",
+      "head": "a271d6084b4648e757d2230d0a208f558c802a14",
+      "date": "2026-09-05T00:34:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-clean-ai-isolation-final-20260905",
+      "head": "3e215c6c6d2086c1e82771dd6992b35934448c84",
+      "date": "2026-09-05T07:14:37+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-clean-promotion-20260905",
+      "head": "34ec17285c5cdbc026aa669777bbbbde54711b4c",
+      "date": "2026-09-05T00:40:33+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-live-transfer-reconcile-20260905",
+      "head": "73e2118b8d7524ba53d9a39355a6fbae44660e86",
+      "date": "2026-09-05T07:25:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-material-revision-20260904",
+      "head": "d5e2cdae7e01192566ba2f62ecf633e5b6479809",
+      "date": "2026-09-04T21:07:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-owner-edit-lock-20260904",
+      "head": "eeb8a29036cdcbd9ee008ae789334e55c9cbfbea",
+      "date": "2026-09-05T00:24:21+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4-promotion-metadata-20260905",
+      "head": "0ac95167c78c8b0ea1f4d0213febc24433c52b37",
+      "date": "2026-09-05T00:28:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru4b-public-preselection-qa-20260905",
+      "head": "bb3677d8fbb2775ade2d02195769954366fb4e33",
+      "date": "2026-09-05T08:51:32+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-application-integrity-20260905",
+      "head": "7b4bebb71eab53139e10a76727bdcfabf5a9206d",
+      "date": "2026-09-05T13:40:46+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-c01-public-profile-20260905",
+      "head": "4b2d3057f9c0cf2cbbd93a70468fb35123bc11a0",
+      "date": "2026-09-05T15:04:48Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-continuity-generator-20260907",
+      "head": "36de48ed7cca3ded1f7c30e239ff473e3658b64d",
+      "date": "2026-09-07T07:51:11+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-fastest-autofill-retirement-20260906",
+      "head": "e7b5ce501c2b9708bd176075ab4b41575edf0832",
+      "date": "2026-09-06T15:04:40+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-p0c01-public-profile-20260905",
+      "head": "484106785b2d76d405a0c1f68ef9a06109bb3839",
+      "date": "2026-09-05T18:34:27+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-p0c02-atomic-application-20260905",
+      "head": "2d6b1a64d9760bddcca1e4751945fdccc8a5e6ba",
+      "date": "2026-09-05T19:50:42+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-p0c02-atomic-application-20260905-tempcheck",
+      "head": "b815e5bfb1fc3731e57edd581d3dbfd12e7f0ad5",
+      "date": "2026-09-05T19:23:14+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-p0c03-my-applications-20260905",
+      "head": "bffc533996a7f629846eaf51de231320df41e09b",
+      "date": "2026-09-05T21:55:53+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-p0d01-candidate-projection-20260905",
+      "head": "bc4dacbd853ca506845e8bf0253b91cd55f6629a",
+      "date": "2026-09-05T23:27:42+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-physical-continuity-20260907",
+      "head": "fe092b6837da7e6070d45558cb5873382acd829f",
+      "date": "2026-09-07T05:51:31Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-physical-device-ui-journey-20260906",
+      "head": "65443681732fe6b290a8216d72d045a1c1b2f840",
+      "date": "2026-09-07T07:16:57+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-readonly-source-snapshot-20260907",
+      "head": "dc6b580e7488f6efe70b0e6b4686410729417a52",
+      "date": "2026-09-07T07:23:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-selection-eligibility-revalidation-20260906",
+      "head": "d71c6e08b518e2955020c21538c1238358b14df3",
+      "date": "2026-09-06T08:48:00+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-source-readonly-export-20260906",
+      "head": "c48f96b2828586db6b34d9cc250674555f8e3e34",
+      "date": "2026-09-06T23:20:51+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/proof/ru5-two-account-auth-journey-20260906",
+      "head": "bedca53d2d0bff336a2ea912b3489f4fbf5402aa",
+      "date": "2026-09-06T18:23:31+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/qa/p6-native-driver-hardening-20260930",
+      "head": "efca815c3678908ac14b5a2583df1e8bc468b0d2",
+      "date": "2026-09-30T16:11:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/reconcile-live-migration-20260831120157",
+      "head": "5d859174e4c9880ef41b608a72b355a6e146d4a3",
+      "date": "2026-08-31T16:30:20+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/repair/ru0-ru1-backend-20260902",
+      "head": "d19902a330930073df1376134ec4f8428a57e9e4",
+      "date": "2026-09-02T21:26:24+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/repair/ru5-fastest-autofill-retirement-20260906",
+      "head": "500ba0c8f138dfee39268ac51fdf3b9f3b7e18b4",
+      "date": "2026-09-06T16:08:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/ru5/w03-w04-route-closure-20260906",
+      "head": "4ff28bfc8394da80fad4b8853958a60903f4262e",
+      "date": "2026-09-06T18:08:34+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/stage/ru2-canonical-promotion-20260903",
+      "head": "47ce475030cc1ab5908f014d6d7398a0e2cb7754",
+      "date": "2026-09-04T00:09:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/stage/ru2-live-closure-20260904",
+      "head": "60afa008e5608a4479b06817eb7f78ecb7f4b015",
+      "date": "2026-09-04T07:52:58+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/test/mass-user-chaos-harness-20260916",
+      "head": "6a35296b53c6bcfa2f6f6b7112a4bad05df2ee16",
+      "date": "2026-09-17T00:17:22+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp-ru0-tracking-closure-20260903",
+      "head": "1c14e9ba79e3fa25f302be8400a37d16ef946d69",
+      "date": "2026-09-03T18:16:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp-ru0-tracking-closure-20260903b",
+      "head": "1c14e9ba79e3fa25f302be8400a37d16ef946d69",
+      "date": "2026-09-03T18:16:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp-ru0-tracking-closure-20260903c",
+      "head": "1c14e9ba79e3fa25f302be8400a37d16ef946d69",
+      "date": "2026-09-03T18:16:39+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp-unused-do-not-use",
+      "head": "9e7415ca4557aa4ed5ddc6fb14708f80c7d620cb",
+      "date": "2026-09-03T19:41:05Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp/cutover-apk",
+      "head": "9d418db68f805bfb2d17c1c980df8984f14f085c",
+      "date": "2026-09-30T07:22:34+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp/cutover-apk2",
+      "head": "fdedabdb93b05447e775e98a0f4dc29f544a3857",
+      "date": "2026-09-30T10:46:30+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp/cutover-apk3",
+      "head": "42371918440f0fbf056b9c3aad1e29a0c93a4dcb",
+      "date": "2026-09-30T12:52:57+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tmp/ru2-md5-20260903",
+      "head": "85f43ea010ecc485d8b7ae33d409381f9f17106a",
+      "date": "2026-09-03T23:19:40+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tracking/ru3-b05-live-reconcile-20260904",
+      "head": "ac70e1e66375a9e1be602808a3d4d3a2735f1b3b",
+      "date": "2026-09-04T08:44:20Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/tracking/ru3-b06-live-20260904",
+      "head": "7d2ad4ad774eab29acafc0deac623744a691628d",
+      "date": "2026-09-04T10:29:18Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/wip/r6fix-izmene",
+      "head": "6976f9605d9126ee0e20d94036c8bef46ee6e177",
+      "date": "2026-09-25T01:52:23+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/ai-reservation-unblock-20260920",
+      "head": "88af02e854a660653fdc2aab649e41ae1a51aee8",
+      "date": "2026-09-20T20:32:20+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/html-home-native-20260920",
+      "head": "131c851f0c76854305ad397c26bd57aea4d1fa4a",
+      "date": "2026-09-20T22:10:29+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/legal-privacy-ai-context-minimization-20260927",
+      "head": "d18e830a428f06de181674b622c05273c6e5efab",
+      "date": "2026-09-27T09:46:43+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/legal-privacy-processor-inventory-truth-20260927",
+      "head": "1ab01e781c86d0f96f0d24de5607c2fa62d0d9e6",
+      "date": "2026-09-27T09:50:09+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/legal-privacy-retention-scopes-20260927",
+      "head": "a047bc0e38c0a3ab5130736906ebbc2f0fa6e661",
+      "date": "2026-09-21T01:57:54+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/owner-completion-runner-20260911",
+      "head": "30080d921e0d022e6e55a5136b8fc5c0d0b1b3e2",
+      "date": "2026-09-11T18:20:56+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pkg002-strict-boundaries-20260915",
+      "head": "7f823ea48b27cc004442e56405d3f35c1b168b07",
+      "date": "2026-09-15T09:42:13+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pkg002-ts-fix-20260915",
+      "head": "690bece2a1a37837b51f512038e32b04fd8d4f4b",
+      "date": "2026-09-15T09:47:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pre-html-stabilization-20260911",
+      "head": "1138d4f727735519b15d9b834bf261954e8013fe",
+      "date": "2026-09-11T18:32:03+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pre-v3-engine-closure-20260911",
+      "head": "94bda947c68b981972c53d4372a7e4bc8549b542",
+      "date": "2026-09-11T19:07:40Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pre-v3-engine-integration-20260911",
+      "head": "019eb5269d5d56209923c816e3f1482c913dfe25",
+      "date": "2026-09-23T23:43:53+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pre-v3-exact-verifier-20260911",
+      "head": "745996bf4cfc688c9057e9b4e1df79a2e556c515",
+      "date": "2026-09-12T12:24:41+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pre-v3-proof-repair-20260911",
+      "head": "e5579800a066247a2e235883371be98bda5ed3d9",
+      "date": "2026-09-11T20:34:26Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/pre-v3-proof-runner-20260911",
+      "head": "a3e3c932b4294dd2633c1b3aac9484a911c5a992",
+      "date": "2026-09-13T21:54:59+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/ru2-edge-rn-20260903",
+      "head": "d7eb80b3403e5549a78cec18b1c8c87f42d9cf99",
+      "date": "2026-09-03T23:14:36+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/ru4-clean-promotion-build-20260905",
+      "head": "99bb6f7fc4c8099710c8e61209aa62e3d7051152",
+      "date": "2026-09-04T22:33:53Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/ru4-live-continuity-reconcile-20260905",
+      "head": "a225734d35892c18685097c44bea2b3150c504e3",
+      "date": "2026-09-05T07:30:57+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/ru4-live-continuity-reconcile-v2-20260905",
+      "head": "bd0d03b37068e3584511498b1d284e211fdf5beb",
+      "date": "2026-09-05T05:35:36Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/ui-unification-20260923",
+      "head": "42f69cf2337f45ff395349b9ebeb9b2f6d939d8e",
+      "date": "2026-09-24T08:22:26+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/uskoci-r6-dodaci-20260924",
+      "head": "edf196974fa099f7717dd2820611d1828eb83916",
+      "date": "2026-09-24T17:15:41Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/uskoci-r6-objava-20260924",
+      "head": "1ebebe87f380625ec06c820b92fe8c3b5781b5c7",
+      "date": "2026-09-24T17:11:05Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/uskoci-r6-prijava-20260924",
+      "head": "47ca91f80b9e29eeb8858ef00d4e34039a2cd4c7",
+      "date": "2026-09-24T17:09:03Z",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/uskoci-ui-unification-20260924",
+      "head": "196e339f7d939388d5423855dd9440dd0fe96d81",
+      "date": "2026-10-06T20:17:28+02:00",
+      "upstream": ""
+    },
+    {
+      "name": "origin/work/uskoci-ui-unification-20260924-poazkl",
+      "head": "b3cd5771414ddb6b477de48bb32c26b7221f30c3",
+      "date": "2026-09-24T19:33:29Z",
+      "upstream": ""
+    },
+    {
+      "name": "pr/102/merge",
+      "head": "7c837b57f35d886c0322df56a37edb436b5cd0e1",
+      "date": "2026-09-16T14:23:16Z",
+      "upstream": ""
+    }
+  ],
+  "limits": [
+    "Dirty noncanonical worktree is not necessarily an active implementation or safe to delete.",
+    "No branches/checkouts deleted or merged; ancestry alone does not establish retirement."
+  ]
+}
