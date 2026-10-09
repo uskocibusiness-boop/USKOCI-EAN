@@ -522,3 +522,14 @@ Izmene f61d91f7425aeb028b27443a5d218ce3cd92d136 poslate i očitane na obe kanons
 **SLEDEĆE:** isti neizmenjeni f61 export nastavlja Gradle iz warm cache-a kroz privatni `resume-phone-f61d91f7.py`,1800s limit; nije APK PASS dok ne završi i prođe attest. Potom fizički telefon samo kad nije aktivno korišćen, install-r uz tačan potpis i runtime proveru. Za svež push potreban normalan drugi profil/događaj; ne reaktivirati stare delivery redove. Lokacijski patch uključiti u naredni objedinjeni APK; pripremljene donor tekstove uskladiti sa sadašnjim Edge24 pre zasebne proverene promocije. Kapacitet zahteva usklađen SEND/RECEIPT budžet i postojeći25s deadline, ne slepo kopiranje40s recepta.
 
 **UREĐAJ:** pri narednoj read-only proveri `qa_device.pick(prefer='physical')` prijavljuje0uređaja, `attached:none`. Telefon više nije priključen. Vlasniku je asinhrono zatraženo ponovno USB povezivanje; to je potreban fizički pristup, ne ponovni zahtev za odobrenje. Nema instalacije/input-a. Ne pretpostavljati da je stari serial ponovo prisutan.
+
+
+## Push canonical sync i nova odluka za uređaj — 09.10.
+
+**URADIO:** canonical `supabase/functions/uskoci-push-transport/index.ts` sada je tačno već primenjeni Edge24 index SHA6d27f508…e1de. Time budući običan deploy neće izgubiti single-target lane. Istih10 target scenarija sada testira i canonical, ne samo proof-local handler. Istorijski generator odbija već integrisan input pre prvog upisa.
+
+**DOKAZAO:** BEFORE9FAIL/11PASS potvrđuje stvarnu source razliku; AFTER121PASS/0FAIL preko N09/N10/obe target instance. SHAcanonical=SHAfrozen=SHAapplied receipt; frozenpromotion neizmenjen. Pre/post svih proof file hashova pri odbijenom generatoru isti. Nezavisan read-only pregled bez blokera. `evidence/push-source-sync-20261009/receipt.json`.
+
+**NIJE DOKAZANO:** bez novog server/flag/provider/send poteza. Tri donor copy-v2 para još nisu integrisana: zahtevaju promenu aktualnog proof/shared formattera/manifesta bez menjanja frozenpromotion, kao i `push-runtime.test.tsx` dokaz novih aktivnih + starih istorijskih parova. Transportni kapacitet nije unapređen. Source audit dodatno nalazi da group sender nema notification emitter;24 tekstualna tipa nisu24 fizički dokazana toka. PodsetnikP05 ostaje odložen, HITNO vanV1.
+
+**SLEDEĆE / VLASNIK:** vlasnik odgovara „Poslsces ti meni apk pa. Vu ga skinuti a ti radi na emulatoru“: APK za njegovo preuzimanje/instalaciju, agent nastavlja emulator. Ne tražiti ponovo USB. Telefon ne dirati; emulator nije dokaz prijema na njegovom telefonu. Repo USKOCI-EAN je PRIVATE (readback); privatni APK se može isporučiti uz jasnu test oznaku i tačan source, nikada kao store-ready. f61 local resume nastavlja pakovanje; originalni timeout je sačuvan.

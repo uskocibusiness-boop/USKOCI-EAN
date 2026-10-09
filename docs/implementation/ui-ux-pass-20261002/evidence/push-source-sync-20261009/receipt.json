@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-09T07:37:19.898060+00:00",
+  "state": "CANONICAL_SOURCE_EQUALS_APPLIED_EDGE24 / NO_DEPLOY",
+  "baseCommit": "42e269839d516ca1df09dd0289d3a6d4c2aea44c",
+  "indexSha256LF": "6d27f508c53f8fed23b12e14ae873b633749aa4c7d457602d1e0d3a4f62ee1de",
+  "frozenEvidenceUnchanged": true,
+  "before": "9FAIL/11PASS: frozen handler passed10; canonical rejected9 single-target cases.",
+  "after": "121PASS/0FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
+  "logsSha256": {
+    "canonical-push-before.log": "aed9d6cdf0fcb3c0dcf71adb342c996b08d70a64f3f7fc41d2d65fd35ad22b2c",
+    "canonical-push-after.log": "73db1f5e41af4a41390e7efef0d443fe0c1e5b528b0d02e7562b7a72cd4d9373"
+  },
+  "generator": "Historical build.py explicitly refuses already-integrated input before writing. Recursive before/after proof file hashes equal.",
+  "review": "Read-only independent review: no blocker. Existing current99 workflow does not invoke historical generator.",
+  "limits": [
+    "No new deployment, migration, flag change, provider request, device input, or push receipt.",
+    "Transport capacity remains one SEND and one RECEIPT per tick; copy-v2 donor remains unintegrated.",
+    "Mock IO tests do not prove current physical delivery or production capacity."
+  ],
+  "next": "Apply reviewed donor copy-v2 only with explicit separation of frozen/current proof formatter; update foreground current-vs-historical text test, retain negative cases; no old proof reuse as new runtime proof.",
+  "documentation": [
+    "https://supabase.com/docs/guides/functions/deploy",
+    "https://supabase.com/changelog.md"
+  ]
+}

@@ -4767,7 +4767,7 @@
         "flow": "Slanje obaveštenja na telefon",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "DEV210/EDGE22 BRIDGE_APPLIED / EXACT_FLAG_OFF. Telefonb589994e ima kompatibilan klijent; postojeći Inbox→tačna poruka native PASS. Novo provider→tap→exact→ACK i kompatibilnost svih aktivnih registracija nisu dokazani.",
+        "backend": "Current09Oct: SQL/Edge24 applied,ledger236/roster108; all flags OFF. Canonical handler now equals applied index. No new provider send.",
         "state_sync": "Push još nosi samo INBOX. Odabrano obaveštenje je sada povezano sa tačnom porukom. Jedan dodir push→tačna poruka zahteva transport eventId i uređajski dokaz.",
         "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
         "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
@@ -4829,6 +4829,12 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "PUSH-KAPACITET pripremljen, nije dozvola slanja.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "canonical_source_sync_20261009": {
+          "state": "CANONICAL_SOURCE_EQUALS_APPLIED_EDGE24 / NO_DEPLOY",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-source-sync-20261009/receipt.json",
+          "checks": "121PASS/0FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
+          "scope": "Exact already-applied Edge24 source integration; no new server behavior or send. Frozen promotion unchanged; historical generator guarded before writes."
         }
       }
     },
@@ -8868,7 +8874,13 @@
       "certificateAfter": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
       "edgeAfter": 24,
       "allFlagsOff": true,
-      "historicalSnapshotScope": "checkedAt/ledger/edgeVersion and original flag fields above describe the retained pre-application recapture; applicationReceipt/ledgerAfter/edgeAfter/allFlagsOff are the current applied checkpoint."
+      "historicalSnapshotScope": "checkedAt/ledger/edgeVersion and original flag fields above describe the retained pre-application recapture; applicationReceipt/ledgerAfter/edgeAfter/allFlagsOff are the current applied checkpoint.",
+      "canonicalSourceSync": {
+        "state": "CANONICAL_SOURCE_EQUALS_APPLIED_EDGE24 / NO_DEPLOY",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-source-sync-20261009/receipt.json",
+        "checks": "121PASS/0FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
+        "scope": "Exact already-applied Edge24 source integration; no new server behavior or send. Frozen promotion unchanged; historical generator guarded before writes."
+      }
     },
     "agreement_tasks_20261009": {
       "state": "SOURCE_TARGETED_PASS / NATIVE_PENDING",
@@ -9306,6 +9318,10 @@
       "historicalPhone": "PUSH_REAL_DEVICE_EVIDENCE.md/source463215ef preserves actual owner receipt26Sep; synthetic event/olderAPK, not current real-message exact tap proof.",
       "current": "1724d24d verified on both canonical remote branches; applied ledger236/Edge24 with all flags off. No hidden uncommitted push work found in three relevant inspected checkouts; not exhaustive all old worktrees.",
       "ci": "Run37897728095 at1724:0steps. GitHub annotation says recent payments failed or spending limit needs increase; not a failed test. Other latest workflows show failure but not independently diagnosed."
+    },
+    "owner_device_preference_20261009": {
+      "instruction": "Owner will download/install the phone APK; agent continues on emulator. Supersedes current request to reconnect phone USB.",
+      "boundary": "No phone receipt/tap claim from emulator or local build. Deliver verified private test APK; not store release."
     }
   }
 }

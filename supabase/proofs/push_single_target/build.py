@@ -4,6 +4,10 @@ import hashlib, json, re
 root = Path(__file__).resolve().parent
 repo = next((p for p in root.parents if (p/'package.json').is_file() and (p/'supabase/functions/uskoci-push-transport/index.ts').is_file()),
  Path(r'C:/Users/user/Desktop/USKOCI_CANONICAL_WORKSPACE_2026-09-08/USKOCI-CLEAN/.claude/worktrees/uskoci-kompletan-audit-2e715e'))
+# This historical generator patches a predecessor. Refuse before writing any proof output
+# once canonical contains the applied feature; keep the frozen promotion evidence intact.
+if 'const targeted =' in (repo/'supabase/functions/uskoci-push-transport/index.ts').read_text(encoding='utf-8'):
+    raise SystemExit('Historical generator: single-target is already integrated. Run existing proof tests; do not regenerate the frozen promotion bundle.')
 baseline = json.loads((root / 'baseline.json').read_text(encoding='utf-8'))
 definitions = {r['signature']: r['definition'] for r in baseline['definitions']}
 def replace_once(text, old, new):

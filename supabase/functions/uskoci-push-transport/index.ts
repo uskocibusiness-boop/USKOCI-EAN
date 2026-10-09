@@ -81,12 +81,16 @@ Deno.serve(async req => {
  let reportFailure: (() => Promise<void>) | undefined;
  try {
   const input = await read(req.body, 256, signal);
-  if (!row(input) || !only(input, ['action']) || !['tick', 'probe'].includes(String(input.action))) return json({ code: 'INVALID_REQUEST' }, 400);
+  if (!row(input)) return json({ code: 'INVALID_REQUEST' }, 400);
+  const targeted = input.action === 'single_target' || input.action === 'single_target_receipt';
+  if (targeted ? (!only(input, ['action', 'admissionId']) || !uuid(input.admissionId))
+   : (!only(input, ['action']) || !['tick', 'probe'].includes(String(input.action)))) return json({ code: 'INVALID_REQUEST' }, 400);
+  if (targeted && Deno.env.get('EXPO_PUSH_SINGLE_TARGET_ENABLED') !== 'true') return json({ kind: 'DISABLED' });
   if (!enabled && input.action === 'tick') return json({ kind: 'DISABLED' });
   const rawURL = Deno.env.get('SUPABASE_URL'); if (!rawURL) throw new Invalid();
   const base = new URL(rawURL);
   if (base.protocol !== 'https:' || !/^[a-z0-9-]+\.supabase\.co$/.test(base.hostname) || base.username || base.password || base.port || base.pathname !== '/' || base.search || base.hash) throw new Invalid();
-  async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport' | 'rpc_record_push_readiness', args: Row) {
+  async function rpc(name: 'rpc_claim_push_transport' | 'rpc_begin_push_send' | 'rpc_complete_push_transport' | 'rpc_record_push_readiness' | 'rpc_claim_push_single_target' | 'rpc_claim_push_single_target_receipt', args: Row) {
    if (signal.aborted) throw new Invalid();
    const result = await request(`${base.origin}/rest/v1/rpc/${name}`, { method: 'POST', redirect: 'error', signal,
     headers: { apikey: service!, Authorization: `Bearer ${service}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
@@ -103,9 +107,12 @@ Deno.serve(async req => {
    await observe(enabled ? 'PROBE_ENABLED' : 'PROBE_DISABLED');
    return json({ kind: 'READINESS_RECORDED', enabled });
   }
-  reportFailure = () => observe('TICK_FAILED');
-  async function once(kind: 'SEND' | 'RECEIPT') {
-   const claim = await rpc('rpc_claim_push_transport', { p_kind: kind });
+  // Targeted actions never record a global tick observation.
+  if (!targeted) reportFailure = () => observe('TICK_FAILED');
+  async function once(kind: 'SEND' | 'RECEIPT', admissionId?: string) {
+   const claim = admissionId
+    ? await rpc(kind === 'SEND' ? 'rpc_claim_push_single_target' : 'rpc_claim_push_single_target_receipt', { p_admission_id: admissionId })
+    : await rpc('rpc_claim_push_transport', { p_kind: kind });
    if (row(claim) && only(claim, ['kind']) && claim.kind === 'NONE') return 'NONE';
    if (!row(claim) || !only(claim, ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'ticketId']) || claim.kind !== kind
     || !uuid(claim.attemptId) || !uuid(claim.leaseId) || !live(claim.leaseExpiresAt)
@@ -165,6 +172,11 @@ Deno.serve(async req => {
     RETRYABLE: kind === 'SEND' ? ['RETRYABLE', 'FINAL'] : ['TICKET_PENDING'], RECEIPT_RATE_EXCEEDED: ['RETRYABLE', 'FINAL'], FATAL: ['FINAL'], UNKNOWN: ['UNKNOWN'], RECEIPT_PENDING: ['TICKET_PENDING'] };
    if (!row(done) || !only(done, ['attemptId', 'state']) || done.attemptId !== claim.attemptId || !states[parsed.result].includes(String(done.state))) throw new Invalid();
    return String(done.state);
+  }
+  // Exactly one selected lane. Never fall through to global receipt/send scans.
+  if (targeted) {
+   const state = await once(input.action === 'single_target' ? 'SEND' : 'RECEIPT', input.admissionId as string);
+   return json({ kind: 'SINGLE_TARGET_COMPLETED', state });
   }
   const receipt = await once('RECEIPT'); const send = await once('SEND');
   const unhealthy = [receipt, send].some(state => ['UNKNOWN', 'FINAL', 'RETRYABLE'].includes(state));

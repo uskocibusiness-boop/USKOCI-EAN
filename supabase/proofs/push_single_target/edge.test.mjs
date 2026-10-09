@@ -1,6 +1,9 @@
-import test from 'node:test';
+import test, {describe} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadCandidate} from './candidate-runtime.mjs';
+import {loadPushHandler} from '../notifications/n09_push_transport_runtime.mjs';
+for (const [name, loadHandler] of [['frozen candidate', loadCandidate], ['canonical handler', loadPushHandler]]) {
+describe(name, () => {
 const id='11111111-1111-4111-8111-111111111111', lease='22222222-2222-4222-8222-222222222222';
 const key='synthetic-service-key';
 const response=x=>new Response(JSON.stringify(x));
@@ -8,7 +11,7 @@ const request=(action='single_target',extra={},auth=key)=>new Request('https://w
 function runtime({enabled=false,receipt=false,none=false,providerStatus=200,exact=false,eventId}={}) {
  const calls=[],reads=[],expiry=new Date(Date.now()+60000).toISOString();
  const env=k=>{reads.push(k);return {SUPABASE_SERVICE_ROLE_KEY:key,SUPABASE_URL:'https://proof.supabase.co',EXPO_PUSH_SINGLE_TARGET_ENABLED:enabled?'true':'false',EXPO_PUSH_TRANSPORT_ENABLED:'false',EXPO_PUSH_MESSAGE_TARGET_ENABLED:exact?'true':'false'}[k];};
- const {handler}=loadCandidate({env,fetch:async(url,init)=>{
+ const {handler}=loadHandler({env,fetch:async(url,init)=>{
   const body=JSON.parse(init.body);calls.push({url,body});
   if(url==='https://exp.host/--/api/v2/push/send')return providerStatus===200?response({data:[{status:'ok',id:'synthetic_ticket'}]}):new Response('',{status:providerStatus});
   if(url==='https://exp.host/--/api/v2/push/getReceipts')return response({data:{synthetic_ticket:{status:'ok'}}});
@@ -58,3 +61,5 @@ test('malformed event identity fails before provider IO or completion, with no g
   assert.deepEqual(r.calls.map(x=>new URL(x.url).pathname.split('/').at(-1)),['rpc_claim_push_single_target','rpc_begin_push_send']);
  }
 });
+});
+}
