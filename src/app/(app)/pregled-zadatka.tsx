@@ -618,9 +618,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmeni, Fotografije' : 'Dodaj fotografije', ...(hasPhotos ? {} : { word: 'Dodaj' }),
     onPress: () => { if (!canAct() || !conversationId || edit || locationEditor || deadlineEditor) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined;
-  const peopleShown = (need?.pokrivenost.ukupno ?? 1) > 1;
-  // What the page of others draws no line for: lists with nothing in them, and how many people when it is one.
-  const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && (item.key === 'need.people_needed' ? !peopleShown : MORE_LISTS.includes(item.key) && blankList(item)));
+  const peopleFact = factOf('need.people_needed');
+  const knownPeopleCount = peopleFact?.status !== 'UNKNOWN' && typeof peopleFact?.value === 'number'
+    && Number.isSafeInteger(peopleFact.value) && peopleFact.value >= 1 && peopleFact.value <= 50 ? peopleFact.value : undefined;
+  // Existing headcount is an editable fact, not something missing from the task.
+  const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && MORE_LISTS.includes(item.key) && blankList(item));
   /** The card opens the page: the owner is taken to it, as a touch on the card takes everybody else. */
   const openDetail = () => {
     const node = detail.current, host = content.current;
@@ -707,7 +709,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           <ReviewCard need={need} onOpen={openDetail} pencil={pencil('Izmeni zadatak', editInConversation)} portrait={reviewer?.photo(reviewer.profileId, 40)} />
           <View ref={detail} collapsable={false}>
             <ReviewCaption>Ovako izgleda kad ga otvore</ReviewCaption>
-            <ReviewDetail need={need} parts={parts} person={reviewer}
+            <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
               photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />
                 : <AddPhotos title={hasPhotos ? 'Fotografije' : undefined} pencil={photosAt} />}
               map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}

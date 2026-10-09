@@ -725,8 +725,8 @@ describe('the review reads as a task', () => {
     mockPrepare.mockResolvedValue(ok({ ...base, publicProjection: [...base.publicProjection,
       { id: 'people', key: 'need.people_needed', value: 1, displayValue: '1', privacyClass: 'PUBLIC', source: 'SYSTEM', status: 'CONFIRMED' }] }));
     await render();
-    expect(text()).toContain('Dodaj još podataka'); expect(text()).toContain('Broj ljudi'); expect(text()).not.toContain('Traži 1 osobu');
-    await act(async () => { commands('Dodaj još podataka: Broj ljudi')[0].props.onPress(); });
+    expect(text()).not.toContain('Dodaj još podataka'); expect(text()).toContain('Traži 1 osobu');
+    expect(commands('Izmeni, Broj ljudi')).toHaveLength(1);
     expect(text()).toContain('Podrazumevana vrednost');
     await act(async () => tree.unmount());
     mockPrepare.mockResolvedValue(ok({ ...base, publicProjection: [...base.publicProjection,

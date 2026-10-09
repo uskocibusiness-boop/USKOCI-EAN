@@ -480,7 +480,7 @@
   "edge": [
     {
       "slug": "uskoci-ai-interview",
-      "version": 53,
+      "version": 59,
       "verify_jwt": true
     },
     {
@@ -755,5 +755,10 @@
     "sendCount": 1,
     "ownerConfirmedPhysicalArrivalAndTap": true,
     "allFlagsOffAfter": true
+  },
+  "intake_v59_refresh_20261009": {
+    "observedAt": "2026-10-09T12:29:05.793Z",
+    "scope": "Only interview version59 six-file byte readback, ledger236/full computed digest/both cert rows/binding and retention readiness refreshed. Other Edge, cron, RPC and timestamps remain historical.",
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/intake-completion-20261009/v59-deployed-native.json"
   }
 }

@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type LngLatBounds } from '@maplibre/maplibre-react-native';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { T } from '../Text';
-import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
 import { sys } from '../system/tokens';
+import { useReducedMotion } from '../system/motion';
+import { MapCredits, MapSources } from '../v2/discovery/MapCredits';
 import { V2Action } from '../v2/V2Action';
 import { useMapStyle } from './mapStyle';
-import { LOCATION_MAP_CREDITS, overviewDisplayPoints, type LocationOverviewMapProps, type OverviewDisplayPoint } from './LocationOverviewMap.types';
+import { overviewDisplayPoints, type LocationOverviewMapProps, type OverviewDisplayPoint } from './LocationOverviewMap.types';
 export type { LocationOverviewMapProps, LocationOverviewPoint } from './LocationOverviewMap.types';
 
 /** A place on its own is a pin of 40; a numbered stop is a pin of 24 beside its number. */
@@ -22,7 +23,8 @@ const foreground = () => AppState.currentState !== 'background' && AppState.curr
 function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOverviewMapProps, 'points'> & {
   points: readonly OverviewDisplayPoint[]; owns: () => boolean; retry: () => void;
 }) {
-  const mapStyle = useMapStyle();
+  const mapStyle = useMapStyle(), reduced = useReducedMotion();
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const camera = useRef<CameraRef>(null), mounted = useRef(true);
   const state = useRef<Status>('loading');
   const [status, setStatus] = useState<Status>('loading');
@@ -82,14 +84,7 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
     try { await Linking.openURL(url); }
     catch { if (current()) setLinkError(true); }
   };
-  // The credit OpenFreeMap asks for, once and small (the owner's phone, 8 Oct 2026: it was a big two-line text under the map). A preview carries it
-  // as one quiet line over its own corner; the full-screen map keeps it under the map, in its own scroll. The text is fine print and does not grow
-  // with the system's size, so the three links stay on one line; each is still a link of its own.
-  const links = LOCATION_MAP_CREDITS.map(credit => <Press key={credit.url} accessibilityRole="link" accessibilityLabel={credit.text}
-    style={s.creditLink} hitSlop={sys.space.xs} onPress={() => { void openCredit(credit.url); }}>
-    <T variant="label" tone="muted" maxFontSizeMultiplier={1} style={s.creditText}>{credit.text}</T></Press>);
   const linkProblem = linkError ? <T variant="meta" accessibilityRole="alert">Veza ka izvoru mape nije otvorena. Pokušaj ponovo.</T> : null;
-  const credits = <View style={s.container}><View style={s.credits}>{links}</View>{linkProblem}</View>;
   return <View testID={props.testID} style={[s.container, props.height === 'fill' && s.fill]}>
     <View testID="location-overview-frame" style={[s.frame, props.height === 'fill' ? s.fill : { height: props.height }]}
       onLayout={event => {
@@ -128,10 +123,13 @@ function OverviewSession({ points, owns, retry, ...props }: Omit<LocationOvervie
           : <><T accessibilityRole="alert" variant="bodyStrong">Mapa nije učitana.</T>
             <V2Action label="Pokušaj ponovo sa mapom" kind="secondary" onPress={() => { if (current()) retry(); }} /></>}
       </View> : null}
-      {props.height === 'fill' ? null : <View testID="location-overview-credits" pointerEvents="box-none" style={s.creditCorner}><View style={s.creditPill}>{links}</View></View>}
+      {status === 'ready' ? <MapCredits locate={false} onPress={() => {
+        if (current() && state.current === 'ready') setSourcesOpen(true);
+      }} /> : null}
     </View>
-    {props.height === 'fill' ? <ScrollView testID="location-overview-credits" style={s.creditScroll}
-      contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled">{credits}</ScrollView> : linkProblem}
+    {linkProblem}
+    {sourcesOpen && status === 'ready' ? <MapSources reduced={reduced} onClose={() => setSourcesOpen(false)}
+      onOpenUrl={url => { void openCredit(url); }} /> : null}
   </View>;
 }
 
@@ -171,7 +169,6 @@ export function LocationOverviewMap(props: LocationOverviewMapProps) {
 const s = StyleSheet.create({
   container: { gap: sys.space.xs }, frame: { backgroundColor: sys.color.wash, borderRadius: sys.radius.card, overflow: 'hidden' },
   fill: { flex: 1, minHeight: 0 },
-  creditScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: '50%' },
   map: { flex: 1 }, empty: { padding: sys.space.md },
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.sm, padding: sys.space.md },
   // A place on its own is the pin and its soft shadow; a stop of a route is a white pill with a small pin and its number.
@@ -180,11 +177,5 @@ const s = StyleSheet.create({
     borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.lineStrong, ...sys.elevation.soft },
   selectedPin: { borderWidth: 2, borderColor: sys.color.orange, backgroundColor: sys.color.surface },
   number: { color: sys.color.ink, fontWeight: '700', flexShrink: 1 }, selectedNumber: { color: sys.color.orangeInk },
-  credits: { flexDirection: 'row', flexWrap: 'wrap', columnGap: sys.space.sm },
-  creditLink: { minHeight: 32, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.xs },
-  creditText: { letterSpacing: 0, fontWeight: '500' },
-  // The preview's credit lies in the corner of the map, on white, in one line: it is read when it is looked for and not before.
-  creditCorner: { position: 'absolute', left: sys.space.sm, right: sys.space.sm, bottom: sys.space.sm, alignItems: 'flex-start' },
-  creditPill: { flexDirection: 'row', flexWrap: 'wrap', maxWidth: '100%', backgroundColor: sys.color.surface, borderRadius: sys.radius.pill,
-    paddingHorizontal: sys.space.xs },
+
 });

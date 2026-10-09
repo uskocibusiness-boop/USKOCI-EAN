@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T12:27:16Z",
+  "osvezeno": "2026-10-09T12:51:19Z",
   "grana": "integration/spoj-20261006",
-  "head": "b9eca855",
-  "head_poruka": "Preserve rapid location edits and expose ambiguous place choices",
+  "head": "5c74949a",
+  "head_poruka": "Complete AI draft readiness and clarify location choices",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -29,7 +29,7 @@
    "edge": [
     {
      "slug": "uskoci-ai-interview",
-     "version": 53,
+     "version": 59,
      "verify_jwt": true
     },
     {
@@ -2949,14 +2949,19 @@
    "limits": "Other phone categories unproved; no global drain enabled."
   },
   "intake_completion_20261009": {
-   "state": "SOURCE_PASS_DEPLOY_AND_NEW_UI_NATIVE_PENDING",
-   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/intake-completion-20261009/receipt.json",
-   "result": "Actual native review found missing category; source readiness and bounded finish classification repaired; UI offers truthful incomplete review. Tests pass, real provider and latest native pending."
+   "state": "EDGE_V59_BYTE_VERIFIED_NATIVE_PUBLICATION_PASS_FINISH_ONLY_UNRESOLVED",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/intake-completion-20261009/v59-deployed-native.json",
+   "result": "v59 six-file byte readback and unchanged DB certificate; native normal clarification/review/publish proven. Finish-only missing-category recovery and other-account opportunity still unresolved."
   },
   "discovery_area_key_local_20261009": {
    "state": "LOCAL_AREA_KEY_ONCE_PASS_CERT_COMPUTATION_UNAVAILABLE",
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/area-key-once.json",
    "result": "Seven equal full PLACES responses,7.2–13.7s, exact rollback;1SQLreader,0HTTP,40000synthetic tasks. No DEV changes or capacity claim."
+  },
+  "review_map_finish_20261009": {
+   "state": "SOURCE_PASS_NATIVE_AND_EDGE_FOLLOWUP_PENDING",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/review-map-finish-20261009/receipt.json",
+   "result": "155 UI and94 context checks pass; known headcount and compact overview credits fixed; final native/finish-only provider follow-up pending."
   }
  },
  "redovi": [

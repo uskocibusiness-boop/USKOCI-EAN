@@ -32,7 +32,7 @@
   "tests": {
     "context": {
       "passed": 91,
-      "logSha256": null
+      "logSha256": "7250fe329dffa8972cc976b9d209b5e2628f6276c7e69f8cb6a29c95f8c561e8"
     },
     "httpStreamAdmissionDiagnosticsHistorical": {
       "passed": 128,
@@ -74,5 +74,6 @@
     "No claim all push categories or full store readiness.",
     "No second-account matching or new-task push proof yet.",
     "Old phoneb9 APK built/attested but not delivered and lacks this UI package; delivered phone remainsf64."
-  ]
+  ],
+  "followup": "v59-deployed-native.json"
 }

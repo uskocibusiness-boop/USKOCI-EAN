@@ -679,3 +679,14 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **LOKALNA BAZA:** window+jedan AREAkey kandidat,1generic+6auto punih odgovora jednaki oracle-u,7.2–13.7s i tačno vraćanje. Deljeni host, nema poštenog procenta ubrzanja;1SQLreader/0HTTP/40000sintetičkihzadataka, ne aktivni korisnici. Computed cert lokalno i dalje nedokazan zbog storage stuba. DEV nije menjan. Evidence/discovery-local-plan-20261009/area-key-once.json.
 
 **NIJE DOKAZANO / SLEDEĆE:** postaviti provereni intake bundle sa JWT, byte readback i isti DBcert; jedan stvarni nastavak razgovora i potpuna objava; novaUI kroz tačanAPK. HostGPU eksperiment izazvaoSystemUI/GboardANR, vraćenSwiftShader; mape imaju geometriju ali labelsostaju nedokazani. b9phoneAPK izgrađen/attestovan ali nije dostavljen i nema ovuUI; poslednji dostavljenf64. Drugi nalog/matching/OPPORTUNITYpush/storeotvoreni.30minautomatizacijaPAUSED.
+
+
+## Stvarna objava zadatka; pregled broja ljudi i kompaktni izvori — 09.10.
+
+**URADIO / DOKAZAO:** intake v59 ACTIVE/JWT true, svih6 fajlova byte-equal. Ledger236, puni computed digest/oba sertifikata/binding0201a7cc i retentionReady ostali isti. Na b9 emulatoru prirodno pojašnjenje dovelo do kategorije, potpuni pregled i izričita objava uspeli. Nezavisno očitan PUBLISHED/revision1/published12:34:27UTC i završen razgovor. Sopstveni radni profil ispravno isključen OWN_NEED; prirodni matching nema drugog pogodnog kandidata. Preview instalacija emulatora nije prijavljena. Nema auth bypass-a ni novog slanja push-a.
+
+**OTKRIVENO / ISPRAVLJENO U IZVORU:** v59 „To je to“ nije dopunilo kategoriju; bez sirovog odgovora ne znamo da li je izostavljena ili odbačena. Novi uslovni prompt traži samo nedostajuća interna polja iz već poznatog opisa, bez dodatnog poziva ili popuštanja filtera. Pregled poznat broj ljudi više ne nudi kao nedostajuću dopunu; jedna osoba vidljiva i bez olovke. Overview mapa koristi zajedničku malu kontrolu izvora dole levo, sa sačuvanim ownership/Back/link-error granicama. UI155/4suite, context94, TypeScript i nezavisan source review prošli.
+
+**NIJE DOKAZANO:** novi prompt još nije deployovan; stvarni završetak samo komandom nije popravljen dokazom. Novi pregled/overview još nije u instaliranom5c APK-u. Drugi account, OPPORTUNITY/grupni push, voice, telefonski aktuelni UI i store kriterijumi ostaju otvoreni. Ulice bez naziva na SwiftShaderu ostaju ograničenje. Poslednji dostavljen telefonf64;30min automatizacijaPAUSED.
+
+**SLEDEĆE:** zamrznuti objedinjeni paket, deploy sa tačnim rollback/preflight/readback, jedan APK/native pregled i ugnježdeni Back. Nastaviti lokalni AREA-key eksperiment bez DEV opterećenja. Ne ponavljati reset podataka ili globalni push red.

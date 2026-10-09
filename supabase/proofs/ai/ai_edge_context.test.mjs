@@ -387,6 +387,17 @@ test('finish-only can recover only missing presentation from the existing descri
  await f.invoke({text:'To je to.'});const result=materialWrites(f)[0].body;
  assert.deepEqual(result.p_proposals.map(x=>x.key),['need.category','need.title']);
  assert.ok(!result.p_assistant_message.includes('Objavljeno'));assert.equal(providerCalls(f).length,1);
+ const instruction=providerCalls(f)[0].body.systemInstruction.parts[0].text;
+ assert.match(instruction,/obavezno predložite nedostajuća polja u facts u ovoj istoj poruci/);
+ assert.ok(instruction.includes(JSON.stringify({existingDescription:'Prenošenje nekoliko kesa od ulaza do stana.',missingPresentation:['need.title','need.category']})));
+});
+for(const variant of ['unknown-description','complete','normal-turn'])
+test('explicit finish completion instruction is absent outside its narrow context: '+variant,async()=>{
+ const activeFacts=completionFacts().filter(x=>variant==='complete'||x.fact_key!=='need.category');
+ if(variant==='unknown-description')activeFacts.find(x=>x.fact_key==='need.description').status='UNKNOWN';
+ const f=fixture({activeFacts});await f.invoke({text:variant==='normal-turn'?'Hvala na objašnjenju.':'To je to.'});
+ assert.ok(!providerCalls(f)[0].body.systemInstruction.parts[0].text.includes('obavezno predložite nedostajuća polja u facts u ovoj istoj poruci'));
+ assert.equal(providerCalls(f).length,1);
 });
 for(const variant of ['no-description','unknown-description','wrong-evidence','existing-category','different-task'])
  test('finish-only summary recovery stays bounded: '+variant,async()=>{

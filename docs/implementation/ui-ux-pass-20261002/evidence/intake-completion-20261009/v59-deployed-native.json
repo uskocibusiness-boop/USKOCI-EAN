@@ -1,0 +1,50 @@
+{
+  "state": "EDGE_V59_BYTE_VERIFIED_NATIVE_PUBLICATION_PASS_FINISH_ONLY_UNRESOLVED",
+  "observedAt": "2026-10-09T12:50:54.922383+00:00",
+  "deployment": {
+    "source": "5c74949a82a8ba29903330eb6f237e1651eb5a7b",
+    "version": 59,
+    "active": true,
+    "verifyJwt": true,
+    "filesByteEqual": 6,
+    "ezbrSha256": "5a2fee32c53629663b3a9dc61b9d3d2c4944fe7077553c13879f412436e0ce36"
+  },
+  "database": {
+    "ledger": 236,
+    "computedBothCertificatesAndBinding": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "retentionReady": true,
+    "beforeAfterEqual": true
+  },
+  "native": {
+    "source": "b9eca855245f343f53798e2a87a93882b1b90543",
+    "apkSha256": "fa55c2f75f45b481e257465bd2fcb8960930ad8af84fb972efeba5fedb44786d",
+    "result": "Normal clarification produced category; complete review and explicit publish succeeded. Independent readback PUBLISHED revision1, conversation COMPLETED.",
+    "publishedAt": "2026-10-09T12:34:27.120454+00:00",
+    "people": 1
+  },
+  "matching": {
+    "result": "Own need correctly excluded (OWN_NEED), area and service matched; natural round1 STOPPED/NO_ELIGIBLE_CANDIDATES, no opportunities.",
+    "positiveOtherAccount": false,
+    "secondInstallation": "Preview installation on emulator is signed out; no credentials or auth bypass used."
+  },
+  "finishOnly": {
+    "result": "To je to did not recover missing category in actual v59 turn. Raw provider output unavailable; omission versus strict-filter rejection not distinguished.",
+    "next": "Conditional instruction for known description and exact missing presentation keys; keep existing evidence/material filters."
+  },
+  "privateEvidence": [
+    {
+      "file": "native-task-publication-v59.json",
+      "sha256": "10f3bc2347ed1d93c3ddbece46c5f27cdee2bdeb7c22a31fb7d9391679e298ba"
+    },
+    {
+      "file": "intake-v59-deployment-receipt.json",
+      "sha256": "155dc7c403fd5fa504f18194277b7ca0318ce912923511fb95c10e9b4b04c099"
+    }
+  ],
+  "limits": [
+    "No second-account positive match or OPPORTUNITY push proof.",
+    "One private MESSAGE phone arrival/tap proof remains the only physical push proof.",
+    "No new phone installation or store readiness.",
+    "Private raw conversations and account IDs remain outside repository."
+  ]
+}

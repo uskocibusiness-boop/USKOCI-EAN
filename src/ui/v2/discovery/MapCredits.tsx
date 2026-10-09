@@ -35,10 +35,10 @@ export function MapCredits({ bottom = 0, covered = false, locate, onPress }: {
 }
 
 /** The sources, as the licences ask them to be reachable: each opens its own page. */
-export function MapSources({ reduced, onClose }: { reduced: boolean; onClose: () => void }) {
+export function MapSources({ reduced, onClose, onOpenUrl }: { reduced: boolean; onClose: () => void; onOpenUrl?: (url: string) => void }) {
   return <ActionSheet title="Izvori mape" reduced={reduced} onClose={onClose} actions={CREDITS.map(credit => ({
     key: credit.url, label: credit.text, icon: 'map' as const, hint: 'Otvara izvor u pregledaču.',
-    onPress: () => { void Linking.openURL(credit.url).catch(() => {}); },
+    onPress: () => { if (onOpenUrl) onOpenUrl(credit.url); else void Linking.openURL(credit.url).catch(() => {}); },
   }))} />;
 }
 

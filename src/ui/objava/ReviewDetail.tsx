@@ -71,7 +71,7 @@ export function requirementValues(value: string): string {
 
 const noop = () => undefined;
 
-export function ReviewDetail({ need, parts, photos, map, address, more, person }: {
+export function ReviewDetail({ need, parts, photos, map, address, more, person, knownPeopleCount }: {
   need: PrilikaProjekcija; parts: ReviewDetailParts;
   /** The photos, which lead the page of others: the gallery of the draft's photos, or the owner's way to add them. */
   photos?: ReactNode;
@@ -82,12 +82,14 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person }
   /** What can still be added to the task (`ReviewMoreFacts`). */
   more?: ReactNode;
   person?: DetailPerson | null;
+  /** An actual owner fact, including one person. Never infer this from the public fallback. */
+  knownPeopleCount?: number;
 }) {
   const place = taskPlace(need);
   const time = need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
   const people = placesText(need.pokrivenost, 'worker');
   // How many people it needs is a fact only when it is more than one (or all the places are taken), as on the page of others.
-  const showPeople = need.pokrivenost.ukupno > 1 || need.pokrivenost.preostalo <= 0;
+  const showPeople = need.pokrivenost.ukupno > 1 || need.pokrivenost.preostalo <= 0 || knownPeopleCount === 1;
   const remote = need.detalji?.rezimLokacije === 'REMOTE';
   const moves = !!need.detalji?.geografija && need.detalji.geografija.mode !== 'STATIONARY' && !remote;
   const stops = moves && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];

@@ -72,6 +72,14 @@ const real = (need: PrilikaProjekcija) => <PublicNeedPresentation need={need} lo
   relation={{ kind: 'NONE' }} onOwnTask={noop} onOwnApplication={noop} back={noop} retry={noop} apply={noop} map={<React.Fragment>{null}</React.Fragment>} />;
 const preview = (need: PrilikaProjekcija) => <ReviewDetail need={need} parts={NO_PARTS} person={need.narucilacIme ? { ...PERSON, profile: null } : null} />;
 
+it('owner-only known single headcount stays visible without an edit pencil; an absent fact stays absent', async () => {
+  const need=reviewAsTask({reviewId:'r',draftId:null,responseDeadline:null,location:null,publicProjection:[]});
+  await render(<ReviewDetail need={need} parts={NO_PARTS} knownPeopleCount={1} />);
+  expect(facts().some(row=>row.art==='users'&&row.value==='Traži 1 osobu')).toBe(true);
+  await act(async()=>tree.update(<ReviewDetail need={need} parts={NO_PARTS} />));
+  expect(facts().some(row=>row.art==='users')).toBe(false);
+});
+
 describe.each(CASES)('the review says what the published page says: %s', (_name, facts_, location) => {
   const need = () => reviewAsTask({ reviewId: 'review-1', draftId: null, responseDeadline: null, location, publicProjection: facts_ }, facts_.length ? PERSON : null);
 

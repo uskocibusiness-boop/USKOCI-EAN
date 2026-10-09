@@ -1,0 +1,40 @@
+{
+  "state": "SOURCE_PASS_NATIVE_AND_EDGE_FOLLOWUP_PENDING",
+  "observedAt": "2026-10-09T12:50:54.922383+00:00",
+  "sourceLfSha256": {
+    "src/app/(app)/pregled-zadatka.tsx": "89a42718d8953f2d3163e165beb3648b35a1b79b1e60486e039da402b7bd6768",
+    "src/ui/objava/ReviewDetail.tsx": "67e940f0241a599e5c1427bbcfbe2874a5e1fc2f97db71470e8dc4d880cbad8c",
+    "src/ui/location/LocationOverviewMap.tsx": "18133dbd797d8e4289de360b7af308f2e863b663647d99df78b6c990dbb7a067",
+    "src/ui/v2/discovery/MapCredits.tsx": "871c1c4297e42ea0b995d08fe060c777c222fb70abc5d9f2a53a7f84c8d2d1d3",
+    "supabase/functions/uskoci-ai-interview/index.ts": "c04850996a4f9b54cec4a7e59dbe8b5f448775e4d7f22cfd5ab9d4a1e7829dd4"
+  },
+  "changes": [
+    "Known validated owner headcount1 remains visible and is not labeled a missing fact. Public fallback is never used as owner evidence.",
+    "Overview preview and fullscreen use the same small bottom-left map sources control; guarded URL errors retained. No camera/privacy/geometry change.",
+    "Finish-only prompt names missing title/category with existing description as data, in same response; no extra call or relaxation of fact filter."
+  ],
+  "tests": {
+    "ui": {
+      "suites": 4,
+      "passed": 155,
+      "file": "review-map-finish-tests.log",
+      "sha256": "55fe1d7068b05ea71f1eddc955253f3a2d61cce3685f9818e2fabbba7ce925c6"
+    },
+    "context": {
+      "passed": 94,
+      "file": "intake-finish-guidance.tap",
+      "sha256": "e92ff6bea96c3397c666f8bbc203c5024278cedf5697112a79e1d1b4cf50f33f"
+    },
+    "typescript": {
+      "result": "PASS",
+      "file": "review-map-finish-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "independentReview": "Read-only source review found no blocker; nested native modal Back remains required.",
+  "limits": [
+    "New headcount/overview UI not in installed5c APK yet.",
+    "Finish-only provider recovery not proven and prompt follow-up not deployed at this source freeze.",
+    "No phone/store acceptance."
+  ]
+}
