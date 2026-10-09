@@ -4748,8 +4748,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
-      "problem": "Aktuelno09.10: Owner pristup rešen; dokazani jednociljni SQL i Edge24 primenjeni, postflightPASS/ledger236. Sva3flaga false, admission0/provider0. Prvi fizički prijem/tap još nije dokazan; postojeće4MESSAGE_RECEIVED isporuke su SENT/SUPPRESSED i ne koriste se ponovo.",
-      "sledece": "Potvrditi trenutnu registraciju telefona kroz aplikaciju; nova prirodna poruka sa drugog postojećeg vlasničkog naloga, tačan admission tuple, jedan send i receipt/tap. Bez lažne poruke, auth bypass-a ili pražnjenja reda. Dokaz: supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
+      "problem": "SQL/Edge24 applied, all3flagsOFF. One fresh natural message successfully sent on owner emulator; new PUSH delivery CREATED without suppression or attempt. Phonef61 download delivered; owner install/current binding and single-target receipt/tap pending.",
+      "sledece": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -4835,6 +4835,12 @@
           "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-source-sync-20261009/receipt.json",
           "checks": "121PASS/0FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
           "scope": "Exact already-applied Edge24 source integration; no new server behavior or send. Frozen promotion unchanged; historical generator guarded before writes."
+        },
+        "fresh_message_20261009": {
+          "state": "BOUNDED_EMULATOR_PRIVATE_MESSAGE_PASS / PHONE_PUSH_PENDING",
+          "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json",
+          "scope": "One normal private message on existingc62 emulator; new IN_APP+PUSH rows. No admission/provider.",
+          "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone."
         }
       }
     },
@@ -8866,7 +8872,7 @@
       "freshEdgeBeforeEqualsFrozen": true,
       "expectedMigrationLedgerChange": "235 precondition;236 after normal apply_migration. Applied20261009070352; see applicationReceipt. Frozen revert has no235count guard.",
       "authenticatedRole": "OWNER_LOGIN_CONFIRMED_AND_SECRET_WRITE_SUCCEEDED",
-      "next": "Verify current phone binding and obtain one fresh MESSAGE_RECEIVED event from the other existing owner test account through normal authenticated UI/RPC. Existing4 message deliveries are SENT/SUPPRESSED and cannot be reused. Then exact one-target admission/send/receipt and physicaltap. No global queue drain.",
+      "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone.",
       "accessRecheckRecordedAt": "2026-10-09T06:58:34.533851+00:00",
       "applicationReceipt": "supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
       "ledgerAfter": 236,
@@ -8880,6 +8886,12 @@
         "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-source-sync-20261009/receipt.json",
         "checks": "121PASS/0FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
         "scope": "Exact already-applied Edge24 source integration; no new server behavior or send. Frozen promotion unchanged; historical generator guarded before writes."
+      },
+      "freshMessageProof": {
+        "state": "BOUNDED_EMULATOR_PRIVATE_MESSAGE_PASS / PHONE_PUSH_PENDING",
+        "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json",
+        "scope": "One normal private message on existingc62 emulator; new IN_APP+PUSH rows. No admission/provider.",
+        "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone."
       }
     },
     "agreement_tasks_20261009": {
@@ -9249,9 +9261,9 @@
       "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/receipt.json",
       "cleanup": {
         "fontScale": "RESTORED1.15; read back from Android settings.",
-        "keyboardPreferences": "RESTORE_PENDING: Gboard Physical keyboard / Show on-screen keyboard originally false, last observed true; Write in text fields / Use stylus originally true, last observed false. Restore through settings before next QA; post-reboot state not verified.",
+        "keyboardPreferences": "RESTORED09Oct after recovered boot: Show on-screen keyboard false; Use stylus true; both actual UI states read back. See emulator-message-20261009.json.",
         "secureShowImeWithHardKeyboard": "Original1 unchanged.",
-        "avd": "STOPPED with adb emu kill after diagnostics; no snapshot save, no wipe, no emulator config file change.",
+        "avd": "REOPENED per owner09Oct;4GB/2CPU/swiftshader/noVulkan per-launch. Bounded private chat PASS after startup ANR/Wait. Currently open on USKOCI; no wipe or snapshot save.",
         "phone": "Untouched; prior512 APK remains."
       },
       "noVulkanFollowup": {
@@ -9278,7 +9290,8 @@
           "c62-no-vulkan-boot.png": "dd74979e323b6ac92ad254d692650fb25ca22be7bd82ab1d18db1afed87c24fa"
         }
       },
-      "next": "Owner now explicitly prefers phone. Prepare current-source preview/ARM64/push-proof-compatible APK; attest signature/package/runtime then install-r only when idle, preserving data/session. Emulator Gboard cleanup stays pending."
+      "next": "Owner now explicitly prefers phone. Prepare current-source preview/ARM64/push-proof-compatible APK; attest signature/package/runtime then install-r only when idle, preserving data/session. Emulator Gboard cleanup stays pending.",
+      "ownerRequestedEmulatorFollowup": "Per-launch4GB/2CPU/swiftshader/noVulkan/noSnapshot after phone build. SystemUI/Gboard/Assistant startup ANRs recur; one observed Wait recovers launcher, then normal app opens. Not a smooth startup or proven renderer fix. docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json"
     },
     "discovery_place_total_20261009": {
       "state": "SOURCE_CHECKS_PASS / P6_GATED / NATIVE_PENDING",
@@ -9322,6 +9335,16 @@
     "owner_device_preference_20261009": {
       "instruction": "Owner will download/install the phone APK; agent continues on emulator. Supersedes current request to reconnect phone USB.",
       "boundary": "No phone receipt/tap claim from emulator or local build. Deliver verified private test APK; not store release."
+    },
+    "phone_apk_f61d91f7_20261009": {
+      "state": "BUILD_AND_ATTESTATION_PASS / PRIVATE_DOWNLOAD_DELIVERED / OWNER_INSTALL_PENDING",
+      "source": "f61d91f7425aeb028b27443a5d218ce3cd92d136",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-f61d91f7/receipt.json",
+      "releaseUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/tag/qa-phone-20261009-f61d91f7",
+      "apkSha256": "99b17c9eb68ea0ed399b8ca275c8951224d2b0acf55649eea1be2bece9c723ae",
+      "deviceInstalled": false,
+      "scope": "ARM64 preview35, same signature,5794 source files byte-equal except documented app/package metadata. Firebase+OTA verified; runtime may load OTA.",
+      "limits": "Owner installation/runtime/current push not verified. Source42e Cyrillic/moved-pin followup not included. Not store ready."
     }
   }
 }

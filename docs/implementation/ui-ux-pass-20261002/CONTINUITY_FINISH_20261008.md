@@ -533,3 +533,25 @@ Izmene f61d91f7425aeb028b27443a5d218ce3cd92d136 poslate i očitane na obe kanons
 **NIJE DOKAZANO:** bez novog server/flag/provider/send poteza. Tri donor copy-v2 para još nisu integrisana: zahtevaju promenu aktualnog proof/shared formattera/manifesta bez menjanja frozenpromotion, kao i `push-runtime.test.tsx` dokaz novih aktivnih + starih istorijskih parova. Transportni kapacitet nije unapređen. Source audit dodatno nalazi da group sender nema notification emitter;24 tekstualna tipa nisu24 fizički dokazana toka. PodsetnikP05 ostaje odložen, HITNO vanV1.
 
 **SLEDEĆE / VLASNIK:** vlasnik odgovara „Poslsces ti meni apk pa. Vu ga skinuti a ti radi na emulatoru“: APK za njegovo preuzimanje/instalaciju, agent nastavlja emulator. Ne tražiti ponovo USB. Telefon ne dirati; emulator nije dokaz prijema na njegovom telefonu. Repo USKOCI-EAN je PRIVATE (readback); privatni APK se može isporučiti uz jasnu test oznaku i tačan source, nikada kao store-ready. f61 local resume nastavlja pakovanje; originalni timeout je sačuvan.
+
+
+## f61 telefonski APK napravljen, proveren i isporučen za preuzimanje
+
+**URADIO / DOKAZAO:** isti f61 export završio Gradle resume, BUILD SUCCESSFUL8m37s/940tasks; sačuvan početni2700s timeout. APK99,682,384B SHA99b17c9eb68ea0ed399b8ca275c8951224d2b0acf55649eea1be2bece9c723ae. Potpisfac617…9c, preview35, ARM64, Firebase i OTA preview/runtimeuskoci-v1-preview-r1 potvrđeni. 5.794sourcefajla byteequal, samo ranije opisani app.json/package.json override-i. `evidence/native-f61d91f7/receipt.json`.
+
+Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. GitHub digest i veličina uploaded APK-a jednaki lokalno attestovanom fajlu. URL: https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/tag/qa-phone-20261009-f61d91f7 . Vlasniku poslat link i uputstvo Assets→APK, instalacija preko postojeće aplikacije bez brisanja podataka. Privatnost repozitorijuma potvrđena pre i posle; nije store/production release.
+
+**NIJE DOKAZANO:** vlasnik još nije potvrdio instalaciju; nema runtimeAbout, novog push receipt/tap dokaza. Današnji42e26983 Cyrillic/moved-pin fix nije u f61 paketu, što je vlasniku i u release notes izričito navedeno. Ne tvrditi da ovaj paket sadrži sve najnovije izmene ili da je cela aplikacija završena.
+
+**EMULATOR / SLEDEĆE:** vlasnik traži rad na emulatoru. Pokrenut istiUSKOCI_V5_TEST bezwipe/snapshot sa per-launch4GB/2CPU/swiftshader/noVulkan, nakon završetka builda, bez izmeneAVDconfig. Boot1 i c62APK hash/UID/firstInstall očuvani. Startup opet prijavio SystemUI/Gboard/Assistant ANR; screenshot potvrđuje SystemUIWait dijalog. JedanWait pokušaj kroz stvarni UI; dalje proveriti stanje, ne računati boot kao nativePASS. Dve stare Gboard preference još treba vratiti pri stabilnom startu. Sledeći objedinjeni APK uključuje42e ispravke; nastavak copy-v2/kapacitet/grouppush u postojećem planu uz čuvanje svih dozvola i istorijskog push dokaza.
+
+
+## Emulator oporavljen; stvarna nova privatna poruka pripremljena za push
+
+**URADIO / DOKAZAO:** posle jednogWait na stvarnom SystemUIANR dijalogu launcher se oporavio, zatim USKOČI otvoren uz postojeću sesiju. Paket/hash/UID/firstInstall i dalje c62. Početna→Poruke→postojeći privatni razgovor sa drugim vlasničkim nalogom. Jedna tačno pregledana probna poruka poslata kroz normalnu aplikaciju; UI prikazujePoslato i prazancomposer. Read-only server preflight07:50:09UTC:4MESSAGEevents/0eligible/1activebounddevice; sve3CLIflag metadataOFF. After07:51:12UTC:jedan novi event,IN_APP iPUSH CREATED, bezsuppression/pushStarted/attempta. Tačan privatni tuple u `fresh-push-message-20261009.json` vanrepo. Nema admin impersonacije ili izmišljenog SQL događaja.
+
+**CLEANUP:** obe ranije Gboard opcije vraćene kroz UI i očitane: Show on-screen keyboard=false; Use stylus=true. Font1.15 i secure show_ime_with_hard_keyboard1 ostali isti. Emulator otvoren naUSKOČI, bezbrisanja/snapshot-a. Dokaz: `evidence/native-c62b85d8/emulator-message-20261009.json`. Prvi brziadb unos bio je nepotpun; obrisan i sporije unet/tačno proveren PRE jedinogsend-a. Prvi sendhelper odustao bezinput-a zbog očekivanja starog zaglavlja; novo kompaktnoIME zaglavlje provereno pre slanja. To nije dokaz greške običnog korisničkog unosa.
+
+**NIJE DOKAZANO:** nema admission/provider slanja ili fizičkogpush prijema. StartupANR nije rešen i jedanWait recovery ne dokazuje performanse. c62 nije najnoviji izvor. Vlasnik je dobio f61 APK za privatno preuzimanje i asinhrono pitanje da posle instalacije potvrdi Profil→Obaveštenja→Ovaj telefon povezan. To je nedostajuća aktuelna fizička veza, ne nova dozvola.
+
+**SLEDEĆE:** po potvrdi vlasnika ponovo očitati binding/session/prefs/suppression, pa sa stvarnim novim tuple-om pripremiti admission/one-send/receipt. Nema globalnogtick-a, preuzimanja starih isporuka niti biranja uređaja samo po poslednjem vremenu. Source copy-v2 i transportcapacity ostaju sledeći provereni paketi; Gboardrestore više nije otvoren blokator. Novi objedinjeni APK treba42e fix; ne tvrditi da ga sadrži već isporučenif61.

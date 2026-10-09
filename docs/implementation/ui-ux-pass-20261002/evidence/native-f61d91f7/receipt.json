@@ -1,0 +1,80 @@
+{
+  "state": "BUILD_AND_ATTESTATION_PASS / PRIVATE_DOWNLOAD_DELIVERED / OWNER_INSTALL_PENDING",
+  "recordedAt": "2026-10-09T07:38:29.697267+00:00",
+  "source": "f61d91f7425aeb028b27443a5d218ce3cd92d136",
+  "tree": "0428350b091772fab97b7fe40bd6a399093da4b9",
+  "sourceArchiveSha256": "678b1af8ae2f5a616a6b55afec5b703963a4a93363268831e6fbcd90bc94679d",
+  "sourceFilesByteEqual": 5794,
+  "allowedOverrides": {
+    "app.json": "573213a0c56388506e5fd96b79fe9e71a0a11a9af5234176383ed91d480da553",
+    "package.json": "2325c3fd021694383ac80711806b5c9c1e6ce835e69d3164c4bb8e8e784d89ad"
+  },
+  "apkSha256": "99b17c9eb68ea0ed399b8ca275c8951224d2b0acf55649eea1be2bece9c723ae",
+  "apkBytes": 99682384,
+  "identity": {
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false
+  },
+  "architectures": [
+    "arm64-v8a"
+  ],
+  "certificateSha256": [
+    "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+  ],
+  "embeddedBuildIdentity": {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "sourceCommit": "f61d91f7425aeb028b27443a5d218ce3cd92d136",
+    "sourceDirty": {},
+    "backendTarget": "canonical",
+    "backendRelease": {},
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "updateChannel": "preview"
+  },
+  "firebaseMessagingMerge": "PASS",
+  "sourceBuildReceiptSha256": "68ddb366a07857ac7d7b02d1c4833ab2f29ea936abc72919ac0c9043a5e70794",
+  "deviceInstalled": false,
+  "runtimeIdentityChecked": false,
+  "pushDelivered": false,
+  "ci": "NOT_THIS_LOCAL_BUILD",
+  "storeReady": false,
+  "limits": [
+    "Native runtime may select OTA; verify phone About before source acceptance.",
+    "APK capability is not push registration, dispatch, receipt or display proof."
+  ],
+  "releaseUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/tag/qa-phone-20261009-f61d91f7",
+  "downloadUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/releases/download/qa-phone-20261009-f61d91f7/USKOCI-test-f61d91f7.apk",
+  "releaseId": 407659718,
+  "githubAssetSha256": "sha256:99b17c9eb68ea0ed399b8ca275c8951224d2b0acf55649eea1be2bece9c723ae",
+  "githubAssetBytes": 99682384,
+  "ownerInstruction": "Owner downloads/installs phone APK; agent uses emulator. No USB reconnection requested.",
+  "sourceLimit": "Later Cyrillic/moved-pin fix42e26983 is not included; canonical push source syncde181efa is server source, not an app change.",
+  "gradleSteps": [
+    {
+      "name": "gradle",
+      "state": "ABORTED",
+      "elapsedSeconds": 2701.1,
+      "timeoutSeconds": 2700,
+      "reason": "TimeoutExpired",
+      "logSha256": "98cbf1701f0fede283261867f81b02dfdeb75055a4e7fb3eff9b7d905e957412"
+    },
+    {
+      "name": "gradle-resume",
+      "state": "PASS",
+      "exit": 0,
+      "elapsedSeconds": 519.1,
+      "timeoutSeconds": 1800,
+      "reason": "Same immutable source/config, warm compilation outputs after bounded 2700s timeout; no app changes.",
+      "logSha256": "d17d9cd6cd5328da86df81cf934a1b7f8f237952117424313dbf0912c3a90404"
+    }
+  ]
+}

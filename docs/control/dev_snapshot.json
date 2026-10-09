@@ -742,5 +742,14 @@
     "providerCalls": 0,
     "pushSends": 0,
     "allFlagsOff": true
+  },
+  "owner_message_qa_20261009": {
+    "scope": "Bounded event/delivery readback after one authorized normal owner-to-owner app message. Not a refresh of schema/certificate/whole inventory.",
+    "eventCreatedAt": "2026-10-09 07:51:12.218641+00",
+    "freshEvents": 1,
+    "pushDeliveryState": "CREATED",
+    "hasAttempt": false,
+    "providerCallsByThisOperation": 0,
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json"
   }
 }

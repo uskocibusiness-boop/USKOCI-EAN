@@ -1,0 +1,50 @@
+{
+  "recordedAt": "2026-10-09T07:57:37.964381+00:00",
+  "state": "BOUNDED_EMULATOR_PRIVATE_MESSAGE_PASS / PHONE_PUSH_PENDING",
+  "source": "c62b85d89a4a7173e36ed006bb8125784dc813b0",
+  "apkSha256": "ea57d3e1e09306a3e9e4c6caf20cf48830060fd908c4655408c3b89e354d959f",
+  "package": "rs.uskoci.dev",
+  "uid": 10227,
+  "firstInstallTime": "2026-09-22 16:45:30",
+  "versionCode": 35,
+  "boot": "Per-launch4GB/2CPU/swiftshader/noVulkan/noSnapshot after phone build. SystemUI/Gboard/Assistant startup ANRs recur; one observed Wait recovers launcher, then normal app opens. Not a smooth startup or proven renderer fix.",
+  "scenario": "Existing signed-in owner personal account -> Poruke -> existing private thread with other owner test account -> one reviewed test message -> Poslato and empty composer.",
+  "inputLimit": "Initial fast adb text injection was incomplete/duplicated; cleared and retyped slowly, exact intended draft verified before sole send. First send helper aborted on old full-header assertion before any tap; compact IME header read and correct recipient rechecked. No partial/wrong message sent.",
+  "server": {
+    "beforeEligibleUnattempted": 0,
+    "freshEventCount": 1,
+    "newInAppDeliveries": 1,
+    "newPushDeliveries": 1,
+    "pushState": "CREATED",
+    "suppressionReason": null,
+    "pushStarted": false,
+    "hasAttempt": false,
+    "createdAt": "2026-10-09 07:51:12.218641+00",
+    "privateTupleReceiptSha256": "85f48e88e365046a9d7ea8090625b0c32a4fb5f21422b3c13382809f9603057a"
+  },
+  "flags": "All3OFF from CLI metadata check immediately before message scenario. No change.",
+  "keyboardCleanup": {
+    "showOnScreenKeyboard": false,
+    "useStylus": true,
+    "fontScale": "1.15",
+    "secureShowImeWithHardKeyboard": "1",
+    "method": "Original two Gboard options restored through actual UI, checked states read back. Font/secure values read-only."
+  },
+  "evidenceSha256": {
+    "emulator-owner-4gb-boot.png": "5c4b2f12a71e9ee15bf175ca54af890e3a913e38c490743f718bf0e308494e08",
+    "emulator-owner-4gb-app-ready.png": "e46242c414a21333e9c9cedf4139dfe1b43963a51fc1dbe642ef396e9cf3691e",
+    "emulator-owner-4gb-inbox.png": "5791907f29e4f4d9f547efd6373dddfd4feb324691597d3dab3102c73280a392",
+    "emulator-owner-4gb-thread.png": "e578231902612dadeb003503318cf10a719a0c8b4611315fba7b69ec62ff61e8",
+    "emulator-owner-4gb-message-reviewed.xml": "ddf61e65e2990ddbe12ecee411823517e3d8fc5a9d2432a1125d4bb640e42af6",
+    "emulator-owner-4gb-message-sent.xml": "ec3ee3408e7eebbcbce92b3535efc056b0e00e042a2af357efd70d082b3d9cdc",
+    "emulator-keyboard-physical-restored.xml": "5b52dc21ca561341f809a0e2676f8d43a6e25a7ae4bb03cd7f79fe37ef608e79",
+    "emulator-keyboard-stylus-restored.xml": "779aa3a09a26af7c03d5cab7264c288a5589911956f4c14cacaa27f10ce31d3b"
+  },
+  "limits": [
+    "One real normal-message write between existing owner test accounts; no fabricated SQL event or auth impersonation.",
+    "No provider request, admission, push delivery/tap proof, or global backlog drain.",
+    "Olderc62 emulator does not contain latest42e location fixes or all f61 app changes.",
+    "PhoneAPK f61 delivered privately; owner installation/device binding confirmation pending. No phone input/install.",
+    "No full native flow, performance or store-readiness claim. Emulator remains open on USKOCI; sessions/data kept."
+  ]
+}
