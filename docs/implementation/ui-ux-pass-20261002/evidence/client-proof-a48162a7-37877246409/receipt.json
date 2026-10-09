@@ -1,0 +1,41 @@
+{
+  "run": 37877246409,
+  "source": "a48162a7232d486f239beddd04f1d23c50f72b4b",
+  "tree": "0fb0b90a3c17e9c5f01421f69820de72aff9bd6f",
+  "result": "SUCCESS",
+  "tsc": "SUCCESS",
+  "files": {
+    "focused.json": "0e90d45c74255410e400e4380200e7e0b0e3541bdbf79424b0200ede54615ffe",
+    "full.json": "85a8068a243da3736dac98dea4762c9d33362994593c5ac3ac57fe2159e91a56",
+    "summary.json": "e038438c1e851194498a460665b502c5832324bb027a2d7641b601fb3c3c4006",
+    "source-binding.txt": "b8c754dafb318f77cd0c259e76edad3c3458c349f112e8b7e5153fe2f1c97228",
+    "tsc.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "summary": {
+    "focused": {
+      "numTotalTestSuites": 37,
+      "numPassedTestSuites": 37,
+      "numFailedTestSuites": 0,
+      "numTotalTests": 824,
+      "numPassedTests": 824,
+      "numFailedTests": 0,
+      "success": true,
+      "failedSuites": []
+    },
+    "full": {
+      "numTotalTestSuites": 603,
+      "numPassedTestSuites": 603,
+      "numFailedTestSuites": 0,
+      "numTotalTests": 13391,
+      "numPassedTests": 13391,
+      "numFailedTests": 0,
+      "success": true,
+      "failedSuites": []
+    }
+  },
+  "limits": [
+    "Focused824 included in full13391; do not sum.",
+    "New TaskRecordBody capacity/publisher changes are later than this CI source.",
+    "No native/push/provider/store claim."
+  ]
+}

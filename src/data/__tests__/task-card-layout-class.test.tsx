@@ -114,19 +114,21 @@ describe('the owner\'s phone is a compact window, not a stacked one', () => {
   });
 });
 
-describe('the task card stacks only in the resilience cases', () => {
-  it.each(WINDOWS)('width %s dp, text scale %s: stacked = %s', async (width, scale, stacked) => {
+describe('the task card keeps publisher and capacity on independent full-width rows', () => {
+  it.each(WINDOWS)('width %s dp, text scale %s: publisher keeps full width', async (width, scale) => {
     mockWidth = width; mockScale = scale;
     await render(<TaskCard item={task({ naslov: 'Montaža police' })} onOpen={jest.fn()} />);
     expect(style(textNode('Montaža police')).flex).toBeUndefined();
     expect(textNode('Montaža police').props.numberOfLines).toBeUndefined();
-    expect(style(foot()).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(style(foot()).alignSelf).toBe('stretch');
+    expect(foot().findAll(node => node.props.testID === 'task-face-capacity')).toHaveLength(0);
   });
 
-  it.each(WINDOWS)('my own task met in discovery, width %s dp, text scale %s: the count of people ends the face, on its own line only when stacked', async (width, scale, stacked) => {
+  it.each(WINDOWS)('my own task met in discovery, width %s dp, text scale %s: capacity stays a fact without an empty publisher footer', async (width, scale) => {
     mockWidth = width; mockScale = scale;
     await render(<TaskCard item={mine({ brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
-    expect(style(foot()).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-foot')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-capacity')).toHaveLength(1);
     expect(textNode('2.000 RSD')).toBeTruthy();
   });
 

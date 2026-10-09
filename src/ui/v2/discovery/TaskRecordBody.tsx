@@ -22,7 +22,7 @@ import { distanceOf, useDistanceFrom } from './taskDistance';
  * The face of a task as the Zadaci family draws it (composition spec 2026-10-07, 4.2; the owner's pick of 8 Oct 2026, "Etiketa" with his
  * note): the list's card, the pin's card on the map and, by the same words in the same order, the head of the detail. One face, so a task
  * does not change its clothes between the map, the list and the page that opens: [state] -> title -> what it pays -> where -> when ->
- * (one condition) -> who posted it, and how long ago, with the count of people at the end of that line.
+ * (one condition) -> how many places -> who posted it, and how long ago.
  *
  * What this account is to the task ("Tvoj", "Prijava poslata") is a small mark beside the amount or just below it, not above the title.
  * The short owner mark stays inline; worker states take their own line after the 361 dp / 1.15 phone review (9 Oct 2026); what is above the title is only HITNO and a task's own life (a draft, a closed task). The place says how far it is ("Liman, Novi Sad · oko 3 km") only
@@ -119,15 +119,6 @@ function spokenWithOffers(spoken: string, value: TaskValue, word: string): strin
   return value.kind === 'offers' ? spoken.replace('Tražim ponude', word) : spoken;
 }
 
-/** The count of people, with its picture and in words ("Treba 3 osobe"): only for a task that needs more than one person. */
-function Places({ model }: { model: TaskRecordModel }) {
-  if (!model.capacity) return null;
-  return <View style={s.places}>
-    <FactArt kind="users" size={16} tone="quiet" />
-    <T variant="note" tone="muted" style={s.fraction}>{model.capacity.text}</T>
-  </View>;
-}
-
 /**
  * What the task pays, as the first fact of the face: the money picture on the left like the picture of every other fact, the sum in the
  * amount's type and what it buys beside it. No word says what it is (the picture and the figure do). A task with no sum is the same row
@@ -153,10 +144,12 @@ function Person({ model, portrait }: { model: TaskRecordModel; portrait?: ReactN
   return <View style={s.person}>
     <View style={s.face}>{portrait ?? <Avatar initials={inicijali(person.name)} size={40} />}</View>
     <View style={s.personText}>
-      <T variant="note" style={s.name} numberOfLines={1}>{person.name}</T>
+      <T variant="note" style={s.name}>{person.name}</T>
       {trust || age ? <View style={s.trustRow}>
-        {trust?.star ? <FactArt kind="star" size={16} /> : null}
-        {trust ? <T variant="note" tone="muted" style={s.trust}>{trust.text}</T> : null}
+        {trust ? <View style={s.rating}>
+          {trust.star ? <FactArt kind="star" size={16} /> : null}
+          <T variant="note" tone="muted" style={s.trust}>{trust.text}</T>
+        </View> : null}
         {age ? <T variant="note" tone="muted">{trust ? `· ${age}` : age}</T> : null}
       </View> : null}
     </View>
@@ -187,12 +180,12 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
       <FactRow art={model.place.remote ? 'remote' : 'pin'} value={model.distance ? `${model.place.text} · ${model.distance}` : model.place.text} />
       <FactRow art="calendar" value={model.schedule} />
       {model.requirement ? <FactRow art={REQUIREMENT_ART[model.requirement.kind]} value={model.requirement.text} /> : null}
+      {model.capacity ? <FactRow testID="task-face-capacity" art="users" value={model.capacity.text} /> : null}
     </View>
-    {/* The person and, for a task that needs several people, how many, end the face on one line; where the window is narrow or the text large they
-        stand one under the other. A face with neither has no foot (an empty one would only add a gap). */}
-    {model.person || model.capacity ? <View testID="task-face-foot" style={[s.foot, stacked && s.footStacked]}>
-      {model.person ? <Person model={model} portrait={portrait} /> : <View style={s.grow} />}
-      <Places model={model} />
+    {/* The 361 dp / 1.15 native review showed capacity squeezing the name and rating into a narrow column.
+        Capacity is now a fact; the publisher always has the full remaining width, with no name truncation. */}
+    {model.person ? <View testID="task-face-foot" style={s.foot}>
+      <Person model={model} portrait={portrait} />
     </View> : null}
   </View>;
 }
@@ -217,15 +210,12 @@ const s = StyleSheet.create({
   valueCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm,
     paddingTop: Math.max(0, (FACT_ROW_ART - (sys.type.priceRow.lineHeight ?? FACT_ROW_ART)) / 2) },
   amount: { color: sys.color.money, flexShrink: 0 },
-  grow: { flex: 1 },
-  foot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  footStacked: { flexDirection: 'column', alignItems: 'stretch', gap: sys.space.sm },
-  places: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 0 },
-  fraction: { fontWeight: '600', fontVariant: ['tabular-nums'] },
-  person: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  foot: { alignSelf: 'stretch' },
+  person: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   face: { width: 40, height: 40, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 },
   personText: { flex: 1, minWidth: 0 },
   name: { color: sys.color.ink, fontWeight: '600' },
   trustRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.xs },
-  trust: { fontVariant: ['tabular-nums'] },
+  rating: { flexDirection: 'row', alignItems: 'center', columnGap: sys.space.xs, maxWidth: '100%' },
+  trust: { fontVariant: ['tabular-nums'], flexShrink: 1 },
 });

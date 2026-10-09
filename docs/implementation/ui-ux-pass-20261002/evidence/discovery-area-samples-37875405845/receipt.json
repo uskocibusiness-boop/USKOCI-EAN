@@ -1,0 +1,164 @@
+{
+  "run": 37875405845,
+  "source": "19572d736879733c45c3c5bb73d10ed39a922761",
+  "result": "ACTUAL_FAIL / INDIVIDUAL_SIXTH_CALL_SQL_TIMEOUT / BOTH_EXACT_CORPORA_PASS",
+  "files": {
+    "load-report.json": "2193bf28c76e9409f9f88a5a3cefba51c9a83c6ea08df5001b50332519a2c582",
+    "load-checks.txt": "564e26f73373d1179a54b8ecb92ffda8f043fce35fdd97a31a21acbe9561f4dd",
+    "load-summary.md": "b904c76f9d52eec67b53a0174546f34067ac8b5dce569c57d0f8226db193b004",
+    "source-binding.txt": "c3dd8b38c1e3e82502375df40800b566781a6f2065928810b6109fa78900fa80",
+    "source-manifest-sha256.txt": "0df3f2eadbc516de9cfd58e05890b49378724abd385ae47ef6cccbaf333bc60d",
+    "teardown.txt": "e6326040a1b78fbb37908b37ad51f89592239973c26e4a2ffedbd1cdbec4237d",
+    "predecessor-fidelity.json": "9caec0fefd3cd7bb7747265e3a6137fc3ed8556d9642e3350e8580fbee3a1120",
+    "source-check.txt": "181d9e49f46df1f7255475151f61556ea6d9aa6af952f037d0147ea9dc48a732"
+  },
+  "exact": {
+    "repeatedLocations": {
+      "requests": 62,
+      "fullResponseComparisons": 124,
+      "timestampMasking": false,
+      "terminalPages": {
+        "corpus0": 14,
+        "placesCorpus": 3
+      },
+      "pagesByRequest": {
+        "pageDefault": 2,
+        "pageTextCiscenje": 2,
+        "pageTextSelidba": 2,
+        "pageTextNoHit": 1,
+        "pagePlaceCity": 2,
+        "pagePlaceLabel": 1,
+        "pagePlaceAndText": 2,
+        "pageAreaToday": 2,
+        "mapDefault": 1,
+        "mapPlaceCity": 1,
+        "placesDefault": 2,
+        "placesPrefix": 1,
+        "placesCity": 1,
+        "placesCityPrefix": 1,
+        "pageRemote": 2,
+        "mapCityDense": 1,
+        "corpus0": 14,
+        "corpus1": 2,
+        "corpus2": 2,
+        "corpus3": 2,
+        "corpus4": 2,
+        "corpus5": 1,
+        "corpus6": 2,
+        "corpus7": 2,
+        "corpus8": 2,
+        "corpus9": 1,
+        "corpus10": 1,
+        "corpus11": 1,
+        "corpus12": 1,
+        "mapCrossField": 1,
+        "mapRemoteText": 1,
+        "placesCorpus": 3
+      },
+      "timeoutSPerTriple": 90,
+      "complete": true
+    },
+    "uniqueLocations": {
+      "requests": 63,
+      "fullResponseComparisons": 126,
+      "timestampMasking": false,
+      "terminalPages": {
+        "corpus0": 14,
+        "placesCorpus": 3
+      },
+      "pagesByRequest": {
+        "pageDefault": 2,
+        "pageTextCiscenje": 2,
+        "pageTextSelidba": 2,
+        "pageTextNoHit": 1,
+        "pagePlaceCity": 2,
+        "pagePlaceLabel": 1,
+        "pagePlaceAndText": 2,
+        "pageAreaToday": 2,
+        "mapDefault": 1,
+        "mapPlaceCity": 1,
+        "placesDefault": 2,
+        "placesPrefix": 2,
+        "placesCity": 1,
+        "placesCityPrefix": 1,
+        "pageRemote": 2,
+        "mapCityDense": 1,
+        "corpus0": 14,
+        "corpus1": 2,
+        "corpus2": 2,
+        "corpus3": 2,
+        "corpus4": 2,
+        "corpus5": 1,
+        "corpus6": 2,
+        "corpus7": 2,
+        "corpus8": 2,
+        "corpus9": 1,
+        "corpus10": 1,
+        "corpus11": 1,
+        "corpus12": 1,
+        "mapCrossField": 1,
+        "mapRemoteText": 1,
+        "placesCorpus": 3
+      },
+      "timeoutSPerTriple": 90,
+      "complete": true
+    }
+  },
+  "sqlFailure": {
+    "phase": {
+      "fixture": "uniqueLocations",
+      "stage": "baseline",
+      "request": "placesDefault",
+      "transport": "SQL"
+    },
+    "ok": false,
+    "timedOut": true,
+    "elapsedMs": 105659,
+    "status": 3,
+    "signal": null,
+    "processCode": null,
+    "error": "ERROR:  57014: canceling statement due to statement timeout",
+    "diagnostic": {
+      "headline": "ERROR:  57014: canceling statement due to statement timeout",
+      "lastProbe": null,
+      "stderrStart": "NOTICE:  00000: DG_MEASURE_BEGIN:0\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_DONE:0:3176.5\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_BEGIN:1\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_DONE:1:3163.8\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_BEGIN:2\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_DONE:2:3101.5\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_BEGIN:3\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_DONE:3:3104.7\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_BEGIN:4\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_DONE:4:3052.9\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nNOTICE:  00000: DG_MEASURE_BEGIN:5\nLOCATION:  exec_stmt_raise, pl_exec.c:3911\nERROR:  57014: canceling statement due to statement timeout\nCONTEXT:  SQL statement \"with place_base as materialized (\n   select n.id,n.published_at,n.execution_location_mode,n.approximate_city,n.approximate_area,\n    n.approximate_lat,n.approximate_lng,n.required_slots,n.mode,n.schedule_kind,n.starts_at,n.ends",
+      "stderrEnd": "acet_page) then\n    (select jsonb_build_object('count',count,'text',text,'key',key) from facet_shown\n     order by count,text collate pg_catalog.\"sr-Latn-RS-x-icu\" desc,key collate pg_catalog.\"C\" desc limit 1)\n    else null end,\n   'counts',jsonb_build_object('kind','exact_live','observedAt',now_at,\n    'everywhere',(select count(*) from place_qualified where time_ok),\n    'inArea',case when scope_mode='ALL' then null else\n      (select count(*) from place_qualified where time_ok and has_point and in_area) end)\n  )\"\nPL/pgSQL function public.rpc_discovery_v1(jsonb) line 163 at SQL statement\nPL/pgSQL function inline_code_block line 9 at assignment\nLOCATION:  ProcessInterrupts, postgres.c:3405\n"
+    },
+    "measurementProgress": {
+      "valid": true,
+      "plannedSamples": 6,
+      "completedSamples": 5,
+      "activeSample": 5,
+      "completed": [
+        {
+          "index": 0,
+          "elapsedMs": 3176.5
+        },
+        {
+          "index": 1,
+          "elapsedMs": 3163.8
+        },
+        {
+          "index": 2,
+          "elapsedMs": 3101.5
+        },
+        {
+          "index": 3,
+          "elapsedMs": 3104.7
+        },
+        {
+          "index": 4,
+          "elapsedMs": 3052.9
+        }
+      ]
+    },
+    "plannedSamples": 6,
+    "statementTimeoutS": 90,
+    "processTimeoutMs": 570000
+  },
+  "limits": [
+    "Shared CI;40k task rows,twoAuth,oneSQLreader. Not40kusers/concurrency.",
+    "Repeated candidate nontext regressions remain; not promotable.",
+    "Generic-plan switch is a hypothesis pending controlled diagnosis; no DEV changes."
+  ]
+}

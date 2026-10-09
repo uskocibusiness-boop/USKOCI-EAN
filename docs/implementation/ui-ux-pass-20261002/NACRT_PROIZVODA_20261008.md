@@ -1563,3 +1563,8 @@ Dogovori: Aktivni/Istorija ostaju mirna dva segmenta uz Raspored. Uloga je jedan
 Početna: kada nema sledećeg termina, u prvom bloku Čeka te vodi stvarni naslov zadatka, pa konkretna radnja (npr.2 prijave · čeka tvoj izbor). I čitač ekrana koristi taj redosled. Bez naslova ostaju radnja i objašnjenje. Dva velika polja i sledeći prihvaćeni termin zadržavaju svoje mesto.
 
 Nivo dokaza: ove dve revizije SOURCE149 testova+89guards/TSC, native sledeći paket. U prethodnom512 APK-u oba naloga/sesije očuvana, phone fullIME/lastmessage PASS i emulator4-person/125000/longname/pendingidentity1,15/1,3 boundedPASS. Inertna galerija ne dokazuje transport ili ovlašćenja. Detalji i granice su u postojećem CONTINUITY_FINISH i registru; release nije proglašen.
+
+
+### Nativna dorada — broj mesta i naručilac na kartici (09.10)
+
+Stvarni emulator512,361dp/1,15, pokazuje da bočni broj mesta odvlači širinu imenu i oceni. Revizija: broj mesta je zaseban red činjenica sa postojećim2.5D users28dp; naručilac zatvara karticu punom širinom, ime se ne skraćuje, zvezda i ocena ostaju zajedno. Sve postojeće činjenice, klik i čitački opis ostaju.139ciljanih+121guardtestPASS/TSC/source-review; ovaj raspored je poslea481 i još nije native prihvaćen. Dokaz problema: evidence/native-512c740e/taskcard-followup.json.

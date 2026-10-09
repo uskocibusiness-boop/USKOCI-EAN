@@ -13,6 +13,7 @@ import {readWithSocketRecovery} from './read-transport.mjs';
 import {sqlFailure} from './sql-failure.mjs';
 import {measureEnvelope, measureSql, measureProgress, measureResult} from './measure-sql.mjs';
 import {proveReadConcurrency, readConcurrencySummary} from './read-concurrency.proof.mjs';
+import {provePlanCache} from './plan-cache.proof.mjs';
 
 const {assert, sql, q, ok, env} = rt;
 const DB = env.DB_URL;
@@ -226,6 +227,18 @@ async function deployedBaseline(viewer, requester, open) {
   const requests = {...REQUESTS, ...NEW_ONLY,
     pageRemote: {...REQUESTS.pageDefault, filter: {...FILTER, where: 'remote'}},
     mapCityDense: {...REQUESTS.mapDefault, bounds: [19.7, 45.15, 19.95, 45.4], grid: 16}};
+  if (env.DG_PLAN_CACHE_DIAGNOSTIC) {
+    await provePlanCache({env, run, sql, q, viewer, requester, request: requests.placesDefault, report, write, verify, closure});
+    report.baseline.after = verify();
+    pass('PLAN_DIAGNOSTIC_AUTHORITY_PRESERVED');
+    const proof = report.planCacheDiagnostic;
+    const lines = ['### Isolated PLACES plan-cache diagnosis', '', proof.state, '', proof.fixture, '', proof.limits,
+      '', proof.semanticComparison, '', '| Session mode | Completed samples | Failure | Elapsed ms |', '|---|---:|---|---:|'];
+    for (const [mode, result] of Object.entries(proof.modes)) lines.push(`| ${mode} | ${result.progress.completedSamples} | ${result.failure ?? 'none'} | ${result.elapsedMs} |`);
+    lines.push('', 'Diagnostic completion is not a capacity PASS. Native traces are separate instrumented calls; absent plans are reported explicitly. No DEV change.');
+    fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
+    return;
+  }
   const measured = {}, http = {};
   report.load.DEPLOYED_BASELINE = measured; report.load.DEPLOYED_BASELINE_HTTP = http; write();
   for (const [key, request] of Object.entries(requests)) {
@@ -390,12 +403,13 @@ try {
     `- default page, NEW: ${prof('NEW', 'pageDefault')}`, `- default page, NEW + S3: ${prof('NEW_S3', 'pageDefault')}`);
   fs.writeFileSync(path.join(out, 'load-summary.md'), lines.join('\n') + '\n');
   }
-  report.httpTransport = report.httpTransportRecoveries?.length ? 'PASS_WITH_RECORDED_SOCKET_RECOVERY' : 'ALL_FIRST_ATTEMPTS_SUCCEEDED';
-  report.result = 'PASS'; write();
+  report.httpTransport = env.DG_PLAN_CACHE_DIAGNOSTIC ? 'NOT_EXERCISED' : report.httpTransportRecoveries?.length ? 'PASS_WITH_RECORDED_SOCKET_RECOVERY' : 'ALL_FIRST_ATTEMPTS_SUCCEEDED';
+  report.result = env.DG_PLAN_CACHE_DIAGNOSTIC ? 'DIAGNOSTIC_COMPLETE' : 'PASS'; write();
   fs.appendFileSync(path.join(out, 'load-summary.md'), `\nHTTP transport: ${report.httpTransport}; reconnects: ${report.httpTransportRecoveries?.length ?? 0}. Each sample includes the initial failed attempt and recovery in one shared deadline. No HTTP/API/timeout retries.\n`);
-  console.log('PASS DISCOVERY_GRAD_LOAD');
+  console.log(env.DG_PLAN_CACHE_DIAGNOSTIC ? 'PASS PLAN_DIAGNOSTIC_COMPLETED_NOT_CAPACITY_ACCEPTANCE' : 'PASS DISCOVERY_GRAD_LOAD');
 } catch (error) {
   if (report.areaExperiment?.state === 'RUNNING') report.areaExperiment.state = 'FAIL';
+  if (report.planCacheDiagnostic?.state === 'RUNNING') report.planCacheDiagnostic.state = 'FAIL';
   report.result = 'FAIL'; report.failures.push({name: 'LOAD', detail: String(error?.stack ?? error).slice(0, 2500)}); write();
   console.error('FAIL DISCOVERY_GRAD_LOAD ' + String(error?.stack ?? error).slice(0, 2500));
   process.exitCode = 1;

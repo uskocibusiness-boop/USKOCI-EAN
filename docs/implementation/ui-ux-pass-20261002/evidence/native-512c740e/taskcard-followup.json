@@ -1,0 +1,29 @@
+{
+  "source": "512c740e8cade2cefa18383554cb11299f1e02df",
+  "package": "rs.uskoci.dev",
+  "fontScale": 1.15,
+  "captures": {
+    "emu-512c740e-taskcards-lower": {
+      ".png": {
+        "path": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\emu-512c740e-taskcards-lower.png",
+        "sha256": "977eb7d129165b8cce52293ab44e77203a135da9c4290709c38e429b1b74a441"
+      },
+      ".xml": {
+        "path": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\emu-512c740e-taskcards-lower.xml",
+        "sha256": "5898208ada6ed985ed8ca84e1fa33aef8bf457496f4efab20f9366a5e419d565"
+      }
+    },
+    "emu-512c740e-taskcards-applied": {
+      ".png": {
+        "path": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\emu-512c740e-taskcards-applied.png",
+        "sha256": "2461f06822efda0fbefb6fd39669d3c298b191602a3f501b31f9374467281ef3"
+      },
+      ".xml": {
+        "path": "C:\\Users\\user\\Documents\\Codex\\uskoci-finish-20261008\\emu-512c740e-taskcards-applied.xml",
+        "sha256": "c16870cc47a315f60ae36805e9543377353113a62dc59ac906f63d065f022707"
+      }
+    }
+  },
+  "proof": "Applied worker mark below full-width missing-price fact. No sending/retry. Inert native gallery.",
+  "finding": "Capacity occupies publisher width at361dp; full name truncated, star/rating/age broken into a narrow column. Later source fix still native pending."
+}

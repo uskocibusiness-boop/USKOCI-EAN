@@ -1,0 +1,22 @@
+{
+ "focused": {
+  "numTotalTestSuites": 37,
+  "numPassedTestSuites": 37,
+  "numFailedTestSuites": 0,
+  "numTotalTests": 824,
+  "numPassedTests": 824,
+  "numFailedTests": 0,
+  "success": true,
+  "failedSuites": []
+ },
+ "full": {
+  "numTotalTestSuites": 603,
+  "numPassedTestSuites": 603,
+  "numFailedTestSuites": 0,
+  "numTotalTests": 13391,
+  "numPassedTests": 13391,
+  "numFailedTests": 0,
+  "success": true,
+  "failedSuites": []
+ }
+}

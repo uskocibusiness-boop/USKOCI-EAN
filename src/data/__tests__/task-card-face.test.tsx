@@ -63,10 +63,10 @@ beforeEach(() => { mockScale = 1; mockReduced = false; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 describe('the face, in its order', () => {
-  it('says title, amount with what it buys, where, when, who and the count of people, in that order, and nothing else', async () => {
+  it('says title, amount with what it buys, where, when, count of people and who, in that order, and nothing else', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Nikola Petrović', '4,8 (12)', 'Treba 2 osobe']);
-    expect(facts()).toEqual(['money', 'pin', 'calendar', 'star', 'users']);
+    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Treba 2 osobe', 'Nikola Petrović', '4,8 (12)']);
+    expect(facts()).toEqual(['money', 'pin', 'calendar', 'users', 'star']);
   });
 
   // The owner, 8 Oct 2026: not the price on the right but under the title with its picture on the left like everything else, and no word
@@ -168,17 +168,19 @@ describe('the value slot', () => {
     expect(texts()).not.toContain('ukupno'); expect(texts()).not.toContain('po osobi');
   });
 
-  it('keeps the whole title and the whole amount at larger text, and stacks the count under the person', async () => {
+  it('keeps the whole title, amount and publisher at larger and ordinary text without sharing width with capacity', async () => {
     mockScale = 1.3;
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 1250000, valuta: 'RSD', prikaz: '1.250.000 RSD' } })} onOpen={jest.fn()} />);
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     expect(textNode('1.250.000 RSD').props.numberOfLines).toBeUndefined();
     const foot = () => tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-foot');
-    expect(style(foot()).flexDirection).toBe('column');
+    expect(style(foot()).alignSelf).toBe('stretch');
+    expect(foot().findAll(node => node.props.testID === 'task-face-capacity')).toHaveLength(0);
     await act(async () => tree.unmount());
     mockScale = 1;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(style(foot()).flexDirection).toBe('row');
+    expect(style(foot()).alignSelf).toBe('stretch');
+    expect(foot().findAll(node => node.props.testID === 'task-face-capacity')).toHaveLength(0);
   });
 
   it('says the same words to the owner of a task found in discovery as to everybody and as the page of the task does ("Tražim ponude"), never "Tražiš ponude"', async () => {
@@ -452,7 +454,7 @@ describe('the face holds under a narrow window and large text', () => {
       narucilacIme: 'Aleksandra Stojanović-Petrović', vremeTekst: 'Fleksibilan raspon · 24. sep – 30. sep' })} onOpen={jest.fn()} />);
     expect(textNode('Pomoć pri selidbi stana sa trećeg sprata bez lifta i rasklapanje velikog ormara').props.numberOfLines).toBeUndefined();
     expect(textNode('Fleksibilan raspon · 24. sep – 30. sep').props.numberOfLines).toBeUndefined();
-    expect(textNode('Aleksandra Stojanović-Petrović').props.numberOfLines).toBe(1);
+    expect(textNode('Aleksandra Stojanović-Petrović').props.numberOfLines).toBeUndefined();
     expect(textNode('Treba 2 osobe').props.numberOfLines).toBeUndefined();
   });
 });

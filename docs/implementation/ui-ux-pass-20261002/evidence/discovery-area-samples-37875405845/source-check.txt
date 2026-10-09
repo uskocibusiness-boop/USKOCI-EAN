@@ -1,0 +1,6 @@
+PASS DISCOVERY-GRAD 1 body replacement (9 anchored edits), 1 helper, 6 dependency pins, 26 fold probes; generated files checked
+PASS DISCOVERY-ZAMENE 1 body replacement, 2 helpers, 3 MATCH-V1 pins; generated files checked
+PASS measurement grammar: 6/12 separate sample statements, 18 PLpgSQL units, shared anchor/session
+PASS DISCOVERY-GRAD offline: generators exact, 22 SQL/PLpgSQL units parsed, fold oracle 26 probes, reader boundaries hold; runtime proof pending
+PASS AREA-DEDUPE offline: candidate and 21 captured SQL statements parsed; runtime NOT proven
+PASS concurrency timeout catalog SQL parsed; actual HTTP settings/runtime NOT proven

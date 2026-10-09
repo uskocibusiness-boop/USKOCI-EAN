@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       workload:
-        description: 'Isolated area A/B/revert or concurrent reads of the applied baseline'
+        description: 'Isolated area A/B/revert, concurrent reads, or bounded PLACES plan diagnosis'
         required: true
         default: area
         type: choice
-        options: [area, concurrency]
+        options: [area, concurrency, plan-cache]
   push:
     branches: [proof/discovery-baseline-40k-20261009]
     paths:
@@ -50,8 +50,9 @@ jobs:
       DISCOVERY_GRAD_ARTIFACT_DIR: /tmp/discovery-grad-artifacts
       DG_LOAD_TASKS: '40000'
       DG_LOAD_MODE: deployed-baseline
-      DG_AREA_EXPERIMENT: ${{ inputs.workload != 'concurrency' && 'DISPOSABLE_AREA_DEDUP' || '' }}
+      DG_AREA_EXPERIMENT: ${{ inputs.workload != 'concurrency' && inputs.workload != 'plan-cache' && 'DISPOSABLE_AREA_DEDUP' || '' }}
       DG_READ_CONCURRENCY: ${{ inputs.workload == 'concurrency' && 'DISPOSABLE_READ_CONCURRENCY' || '' }}
+      DG_PLAN_CACHE_DIAGNOSTIC: ${{ inputs.workload == 'plan-cache' && 'DISPOSABLE_PLAN_CACHE' || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -81,6 +82,8 @@ jobs:
           node --test supabase/proofs/discovery-grad/read-transport.test.mjs
           node --test supabase/proofs/discovery-grad/sql-failure.test.mjs
           node --test supabase/proofs/discovery-grad/measure-sql.test.mjs
+          node --test supabase/proofs/discovery-grad/plan-cache.test.mjs
+          python3 supabase/proofs/discovery-grad/test_plan_cache_trace.py
           node --test supabase/proofs/discovery-grad/read-concurrency.test.mjs
           find supabase/candidates/discovery-grad-20261008 supabase/proofs/discovery-grad -type f -print0 | sort -z | xargs -0 sha256sum > "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           sha256sum .github/workflows/discovery-grad-proof.yml >> "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
@@ -121,10 +124,10 @@ jobs:
           const dir = process.env.DISCOVERY_GRAD_ARTIFACT_DIR;
           const report = JSON.parse(readFileSync(dir + '/load-report.json', 'utf8'));
           assert.equal(report.sourceSha, process.env.GITHUB_SHA);
-          assert.equal(report.result, 'PASS');
+          assert.equal(report.result, process.env.DG_PLAN_CACHE_DIAGNOSTIC ? 'DIAGNOSTIC_COMPLETE' : 'PASS');
           assert.equal(report.failures.length, 0);
           const recoveries = report.httpTransportRecoveries ?? [];
-          assert.equal(report.httpTransport, recoveries.length ? 'PASS_WITH_RECORDED_SOCKET_RECOVERY' : 'ALL_FIRST_ATTEMPTS_SUCCEEDED');
+          assert.equal(report.httpTransport, process.env.DG_PLAN_CACHE_DIAGNOSTIC ? 'NOT_EXERCISED' : recoveries.length ? 'PASS_WITH_RECORDED_SOCKET_RECOVERY' : 'ALL_FIRST_ATTEMPTS_SUCCEEDED');
           for (const recovery of recoveries) {
             assert.equal(recovery.outcome, 'RECOVERED'); assert.equal(recovery.status, 0); assert.ok(!recovery.code);
             assert.match(recovery.details, /\bUND_ERR_SOCKET\b/);
@@ -138,7 +141,17 @@ jobs:
           assert.equal(report.population.simultaneousRequests, 1);
           assert.equal(report.baseline.readerMd5, 'a9b0985991f4ebfe4e95143e5cf57222');
           assert.equal(report.baseline.foldMd5, '41353abe05d434d513495ae5974b9802');
-          if (process.env.DG_READ_CONCURRENCY) {
+          if (process.env.DG_PLAN_CACHE_DIAGNOSTIC) {
+          assert.equal(report.areaExperiment, undefined); assert.equal(report.readConcurrency, undefined);
+          const diagnostic = report.planCacheDiagnostic;
+          assert.ok(['DIAGNOSTIC_COMPLETE', 'DIAGNOSTIC_COMPLETE_WITH_TIMEOUTS'].includes(diagnostic.state));
+          assert.equal(diagnostic.taskCount, 40000);
+          assert.deepEqual(Object.keys(diagnostic.modes), ['auto', 'force_custom_plan', 'force_generic_plan']);
+          assert.deepEqual(Object.keys(diagnostic.traces), ['force_custom_plan', 'force_generic_plan']);
+          assert.equal(diagnostic.identityUnchanged, true); assert.equal(diagnostic.certificateUnchanged, true);
+          assert.ok(diagnostic.elapsedMs <= diagnostic.budgetMs + 30000);
+          assert.ok(report.checks.some(c => c.name === 'PLAN_DIAGNOSTIC_AUTHORITY_PRESERVED' && c.result === 'PASS'));
+          } else if (process.env.DG_READ_CONCURRENCY) {
           assert.equal(report.areaExperiment, undefined);
           assert.equal(report.readConcurrency.state, 'SEMANTICS_PASS_PERFORMANCE_REPORTED');
           assert.equal(report.readConcurrency.activeViewerAccounts, 1);
@@ -169,7 +182,9 @@ jobs:
           }
           for (const file of ['chain/chain-fidelity.json', 'predecessor-fidelity.json'])
             assert.equal(JSON.parse(readFileSync(dir + '/' + file, 'utf8')).result, 'PASS');
-          const required = ['DISCOVERY_GRAD_LOAD_SEEDED', 'DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE',
+          const required = process.env.DG_PLAN_CACHE_DIAGNOSTIC
+            ? ['DISCOVERY_GRAD_LOAD_SEEDED', 'DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE', 'PLAN_DIAGNOSTIC_AUTHORITY_PRESERVED']
+            : ['DISCOVERY_GRAD_LOAD_SEEDED', 'DEPLOYED_BASELINE_EXACT_BODY_ACL_DEPENDENCIES_CERTIFICATE',
             'DEPLOYED_BASELINE_COUNTS_FILTERS_RESPONSE_BOUNDS', 'DEPLOYED_BASELINE_AUTHENTICATED_HTTP',
             'DEPLOYED_BASELINE_POSTLOAD_FIDELITY', 'DEPLOYED_BASELINE_RELEVANT_CHAIN_FIDELITY',
             'DEPLOYED_BASELINE_FOUR_REQUEST_PROFILES'];
