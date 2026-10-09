@@ -220,3 +220,21 @@ Read-only stručni pregled je odredio4nova scenarioAuth nalogaR/A/B/C i1zadatak/
 **DOKAZAO / SOURCE:** Node/YAML sintaksa PASS. Dva read-only pregleda: ispravljena očekivana idempotentReplay razlika, svako negativno očekivanje ima stvarni denial razlog (transportni kvar ne sme glumiti zabranu), current V2 reader/window i teardown fallback kada bootstrap ne stigne do GITHUB_ENV. Poređenje AI/chat/voice pg_proc metapodataka pre/posle slaganja, puni katalog/RLS/policy/cert guard pre/posle scenarija.
 
 **NIJE DOKAZANO:** kombinovani runtime, četiri stvarna scenario naloga, 40k aktivnih korisnika, konkurentni lifecycle, native i push. **SLEDEĆE:** jedan izolovani CI run i stvarni rezultat, paralelno završetak D029 APK provera. Ovo je proširenje postojećih EX05/EX06 provera, ne novi master plan.
+
+
+## Dopuna — area52 rezultat, emulator D029 i povezani CI
+
+**DOKAZAO:** area run37865279345/source52c4965b završioFAIL, teardown0. Repeatedlocations:124 fullJSON checks i svih16×3 SQL/HTTP merenja završeno. Jedan socket recovery je200/486ms sa sačuvanim početnim7ms neuspehom. Repeated SQL medijane baseline→candidate→revert: čišćenje1215.7→610.1→1173.4; bez pogotka1138.3→584.5→1135.1; grad+tekst962.1→402.8→927.2; obična lista376.5→430.3→420.5; mapa317.1→376.1→314.5. Poboljšanje teksta ima cenu na netekstualnom putu, nije ukupni acceptance.
+
+**FAIL / granica:** uniqueLocations pao u baseline exactDO pre candidateapply. Stari phase zapis je ostao repeated/reverted/HTTP i stderr-tail je odsekao praviERROR; timeout je moguć, nije dokazan. Novi source čuva headline/SQLSTATE (psqlverbose), elapsed/status/signal/timeout, ograničen početak/kraj i poslednji AREA_PROBE marker; exactphase se upisuje pre poziva. Kandidat i vremenski limiti nepromenjeni.7offline transport/SQLdiagnostic testovaPASS. Sačuvan originalni boundedreport u evidence/discovery-area-recovery-37865279345.
+
+**APK:** emulatorD029/run37864877365 SUCCESS, SHA b3dffb50d40ce182953d6707327e5b21146c1038427bdec53e302eaf0cbe8e75; potpisfac61745…, rs.uskoci.preview/35/x86_64, install-rPASS. Postojeći logged-outpreview ostao logged-out; stvaran početni ekran viđen. Nema Discovery ili dva naloga acceptance iz toga. Phonepushbuild37864877643 još traje.
+
+**SLEDEĆE:** povezani lifecycle run37867079947/source8b1c3da7 aktivan nakon jednog ručnog dispatch-a (novabranchpush nije kreirao run). Obe kanonske grane su dobile paket. Nastaviti telefon i jedan area diagnosticrun; DEV/Edge/push nije menjan.
+
+
+### Phone D029: Gradle uspešan, alat za attestaciju neuspešan
+
+Run37864877643: GradleSUCCESS, završna APKattestacijaFAIL. apkanalyzer manifest application-id prijavljuje SAXParseException/meta-data line217 zbog rawJSONquotes iz Expo OTA header-a. Identična greška reprodukovana na stvarnom instaliranom emulatorD029APK-u; manifest print radi, postojeći attest_ota_preview._manifest_fields pravilno čita package/version/Firebasefalse. Ovo je konkretno dokazan problem alata za reparse, nije dokaz da push-capable APK sam ispunjava uslove (artifact nije sačuvan u tom run-u).
+
+Sourcefix: compiledmanifestprint→postojeći quote-aware parser, stroga provera previewpackage/debuggablefalse/Firebaseaction/autoinit absent-or-true; unresolved ili false odbijeni.7novih unittest+19postojećihOTA testovaPASS; nezavisni pregled je dopunio odbijanje duplog/nested metadata zapisa i debuggabletrue, stvarni nonpushEMUAPK pravilno odbijen. Jedini novi workflow dodatak čuva budući neuspešni APK kao UNVERIFIED, bez uspešne attestacije. Telefon nije menjan. Izvor alata: https://developer.android.com/tools/aapt2; lokalni apkanalyzer rezultat je glavni dokaz ovog renderer problema. Sledeća objedinjena izgradnja nosi isti UI sa ispravljenom proverom, nije ponovni dizajn ekrana.

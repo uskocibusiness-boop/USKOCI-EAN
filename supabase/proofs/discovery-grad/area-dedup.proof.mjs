@@ -27,6 +27,7 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
     limits: 'Serial read experiment on two Auth accounts. Not lifecycle, concurrency or a DEV promotion. Bulk fixtures use disabled triggers.'};
   const execute = (text, timeoutS = 180) => {
     const result = run(text, {timeoutS});
+    if (!result.ok) { proof.sqlFailure = {phase: {...proof.phase}, timeoutS, ...result}; write(); }
     assert.ok(result.ok, 'AREA_EXPERIMENT_SQL:' + result.error);
     return result.output;
   };
@@ -78,6 +79,7 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
     placesCorpus: {...requests.placesDefault, prefix: 'areafacet', limit: 1},
   };
   const exact = label => {
+    proof.phase = {fixture: label, stage: 'exact', transport: 'SQL'}; write();
     // One outer statement fixes statement_timestamp for A/B/revert, including every timestamp in the public envelope.
     // Store baseline cursors and replay them verbatim. No sorting, field removal or time masking.
     const output = execute(`begin; set local lock_timeout='5s';
@@ -87,6 +89,7 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
         for spec in select key,value from jsonb_each(${q(JSON.stringify(comparisons))}::jsonb) loop
           req:=spec.value; pages:=0;
           loop
+            raise notice 'AREA_PROBE:%:baseline:%:%',${q(label)},spec.key,pages;
             answer:=public.rpc_discovery_v1(req);
             if spec.key in ('corpus1','corpus2','corpus3','corpus4') and pages=0 and jsonb_array_length(answer->'items')=0 then
               raise exception 'AREA_CROSS_FIELD_FIXTURE_EMPTY:%',spec.key; end if;
@@ -112,6 +115,7 @@ export async function proveAreaDedup({env, run, sql, q, viewer, requester, reque
         for phase in 1..2 loop
           ${auth}
           for entry in select value from jsonb_array_elements(replay) loop
+            raise notice 'AREA_PROBE:%:phase%:%:%',${q(label)},phase,entry->>'key',checks;
             answer:=public.rpc_discovery_v1(entry->'request');
             if answer is distinct from entry->'answer' then raise exception 'AREA_FULL_RESPONSE_DIFF:%:%',phase,entry->>'key'; end if;
             checks:=checks+1;

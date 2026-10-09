@@ -7,6 +7,9 @@ on:
     paths:
       - 'app.config.js'
       - 'scripts/__tests__/firebase-config.test.ts'
+      - 'scripts/ci/attest_push_manifest.py'
+      - 'scripts/ci/test_attest_push_manifest.py'
+      - 'scripts/ci/attest_ota_preview.py'
       - '.github/workflows/build-android-push-proof.yml'
   workflow_dispatch:
 
@@ -103,6 +106,7 @@ jobs:
       - name: Verify generated Firebase enrollment inputs
         run: |
           set -euo pipefail
+          python3 -m unittest discover -s scripts/ci -p 'test_attest_push_manifest.py'
           cmp config/firebase/google-services.json android/app/google-services.json
           if grep -R -n 'firebase_messaging_auto_init_enabled.*false' android/app/src/main android/app 2>/dev/null; then
             echo 'Push proof still disables Firebase Messaging auto-init'
@@ -128,10 +132,10 @@ jobs:
           sha256sum USKOCI-PUSH-PROOF.apk > USKOCI-PUSH-PROOF.apk.sha256
           APKS=$(find "$ANDROID_HOME" -type f -name apkanalyzer | sort -V | tail -1)
           test -n "$APKS"
-          test "$("$APKS" manifest application-id USKOCI-PUSH-PROOF.apk)" = 'rs.uskoci.preview'
           "$APKS" manifest print USKOCI-PUSH-PROOF.apk > /tmp/push-proof-manifest.xml
-          grep -q 'com.google.firebase.MESSAGING_EVENT' /tmp/push-proof-manifest.xml
-          ! grep -q 'firebase_messaging_auto_init_enabled[^>]*false' /tmp/push-proof-manifest.xml
+          # application-id reparses apkanalyzer's own invalid XML when an Expo header contains JSON quotes.
+          # The existing OTA attestor handles that exact renderer case; still inspect the compiled APK.
+          python3 scripts/ci/attest_push_manifest.py /tmp/push-proof-manifest.xml
           node <<'NODE'
           const fs=require('fs'),crypto=require('crypto'),cp=require('child_process');
           const apk=fs.readFileSync('USKOCI-PUSH-PROOF.apk');
@@ -163,3 +167,15 @@ jobs:
             USKOCI-PUSH-PROOF.apk
             USKOCI-PUSH-PROOF.apk.sha256
             USKOCI-PUSH-PROOF-attestation.json
+
+      - name: Preserve unverified APK diagnostics after an attestation failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: USKOCI-PUSH-PROOF-UNVERIFIED
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            USKOCI-PUSH-PROOF.apk
+            USKOCI-PUSH-PROOF.apk.sha256
+            /tmp/push-proof-manifest.xml

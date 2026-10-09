@@ -10,6 +10,7 @@ import * as rt from '../pre_v3/closure_runtime.mjs';
 import {createFixtures} from '../ex06/lib/fixtures.mjs';
 import {proveAreaDedup, areaExperimentSummary} from './area-dedup.proof.mjs';
 import {readWithSocketRecovery} from './read-transport.mjs';
+import {sqlFailure} from './sql-failure.mjs';
 
 const {assert, sql, q, ok, env} = rt;
 const DB = env.DB_URL;
@@ -28,12 +29,12 @@ const pass = (name, detail) => { report.checks.push({name, result: 'PASS', ...(d
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function run(text, {timeoutS = HARD_S} = {}) {
+  const started = Date.now();
   try {
-    return {ok: true, output: execFileSync('psql', [DB, '-X', '-q', '-At', '-v', 'ON_ERROR_STOP=1'],
+    return {ok: true, output: execFileSync('psql', [DB, '-X', '-q', '-At', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose'],
       {input: `set statement_timeout='${timeoutS}s';\nset lock_timeout='5s';\n${text}`, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: (timeoutS + 30) * 1000, maxBuffer: 1 << 24}).trim()};
   } catch (error) {
-    const detail = String(error.stderr ?? '') + String(error.message ?? '');
-    return {ok: false, timedOut: /statement timeout|canceling statement|ETIMEDOUT/i.test(detail), error: detail.slice(-500)};
+    return sqlFailure(error, Date.now() - started);
   }
 }
 const lastLine = text => text.split('\n').filter(Boolean).at(-1);

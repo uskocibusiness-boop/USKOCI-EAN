@@ -71,6 +71,7 @@ jobs:
           python3 supabase/candidates/worker-personal-profile-20261003/check-source.py > "$PRE_V3_ARTIFACT_DIR/wpp01-source-check.txt"
           for f in supabase/proofs/discovery-grad/*.mjs supabase/proofs/match-v1/chain.mjs supabase/proofs/match-v1/fidelity.mjs; do node --check "$f"; done
           node --test supabase/proofs/discovery-grad/read-transport.test.mjs
+          node --test supabase/proofs/discovery-grad/sql-failure.test.mjs
           find supabase/candidates/discovery-grad-20261008 supabase/proofs/discovery-grad -type f -print0 | sort -z | xargs -0 sha256sum > "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           sha256sum .github/workflows/discovery-grad-proof.yml >> "$DISCOVERY_GRAD_ARTIFACT_DIR/source-manifest-sha256.txt"
           npm ci --include=dev > "$PRE_V3_ARTIFACT_DIR/npm.log" 2>&1
