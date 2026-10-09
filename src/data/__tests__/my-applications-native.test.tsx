@@ -109,21 +109,35 @@ it('reconfirmation calculates the task per-person price for the current headcoun
   expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 15000, pokrivenaMesta: 3,
     ocekivanaPotrebaRevizija: 4, predlozeniPocetak: interval.start, predlozeniKraj: interval.end });
 });
-it('reconfirmation of a total-price task covers every place with the task total', async () => {
+it('reconfirmation shares a total-price task by the chosen headcount', async () => {
   mockInterval.mockResolvedValue({ ok: true, podatak: { ...interval, pricing: {
     rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 9000 }, pokrivenost: { ukupno: 3 },
   } } });
   await editing();
   const people = tree!.root.findAll(n => String(n.type) === 'TextInput' && n.props.accessibilityLabel === 'Broj ljudi')[0];
-  expect(people.props.editable).toBe(false); expect(people.props.value).toBe('3');
-  await edit('Broj ljudi', '1'); await edit('Cena ponude (RSD)', '1');
+  expect(people.props.editable).toBe(true); expect(people.props.value).toBe('2');
+  await tap('Jedna osoba manje'); await edit('Cena ponude (RSD)', '1');
   await tap('Sačuvaj izmenjenu prijavu');
-  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 9000, pokrivenaMesta: 3 });
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 3000, pokrivenaMesta: 1 });
+});
+it('keeps an uncomputable fixed-price edit unsent and recovers with a valid headcount', async () => {
+  mockInterval.mockResolvedValue({ ok: true, podatak: { ...interval, pricing: {
+    rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 10000 }, pokrivenost: { ukupno: 3 },
+  } } });
+  await editing(); await edit('Broj ljudi', '1');
+  const save = () => tree!.root.findAll(n => String(n.type) === 'Press' && n.props.accessibilityLabel === 'Sačuvaj izmenjenu prijavu')[0];
+  expect(save().props.disabled).toBe(true);
+  await act(async () => save().props.onPress());
+  expect(mockResolve).not.toHaveBeenCalled();
+  expect(text()).toContain('Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.');
+  await edit('Broj ljudi', '3'); expect(save().props.disabled).toBe(false);
+  await tap('Sačuvaj izmenjenu prijavu');
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', cenaRsd: 10000, pokrivenaMesta: 3 });
 });
 it('a definite price refusal leads to review after readback, without treating the result as a network loss', async () => {
   mockResolve.mockResolvedValueOnce({ ok: false, kod: 'FIXED_PRICE_MISMATCH', poruka: 'hidden backend detail' });
   await review(); await tap('Zadrži prijavu');
-  expect(text()).toContain('Cena u prijavi mora da bude ista kao cena u zadatku');
+  expect(text()).toContain('Cena prijave mora da prati cenu zadatka i broj ljudi koje obezbeđuješ');
   expect(text()).not.toContain('hidden backend detail'); expect(text()).not.toContain('Ne znamo da li je radnja uspela');
   await tap('Proveri da li je poslato'); expect(press('Pošalji ponovo')).toBeUndefined();
   await tap('Pregledaj trenutnu prijavu'); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
@@ -446,4 +460,29 @@ it.each(['blur', 'account', 'background'])('a late named-row confirmation after 
   if (change === 'background') await background('background');
   await act(async () => d.resolve({ ok: true, podatak: commandState(row({ stanje: 'WITHDRAWN' })) }));
   expect(mockCommandState).toHaveBeenCalled(); expect(text()).not.toContain('Prijava je povučena.');
+});
+
+
+it('steps an edited application and sends exactly that headcount with its preserved interval', async () => {
+  await editing();
+  const people = () => tree!.root.findAll(n => String(n.type) === 'TextInput' && n.props.accessibilityLabel === 'Broj ljudi')[0];
+  expect(people().props.value).toBe('2');
+  await tap('Jedna osoba manje'); expect(people().props.value).toBe('1');
+  await tap('Jedna osoba manje'); expect(people().props.value).toBe('1');
+  await tap('Jedna osoba više'); await tap('Jedna osoba više');
+  await tap('Jedna osoba više'); expect(people().props.value).toBe('3');
+  await tap('Sačuvaj izmenjenu prijavu');
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'UPDATE', pokrivenaMesta: 3, cenaRsd: 4500,
+    predlozeniPocetak: interval.start, predlozeniKraj: interval.end });
+});
+
+
+it('does not send an edited headcount over the known task total even through a retained callback', async () => {
+  await editing();
+  await edit('Broj ljudi', '4');
+  const save = tree!.root.findAll(n => String(n.type) === 'Press' && n.props.accessibilityLabel === 'Sačuvaj izmenjenu prijavu')[0];
+  expect(save.props.disabled).toBe(true);
+  await act(async () => save.props.onPress());
+  expect(mockResolve).not.toHaveBeenCalled();
+  expect(text()).toContain('Možeš da prijaviš najviše 3.');
 });

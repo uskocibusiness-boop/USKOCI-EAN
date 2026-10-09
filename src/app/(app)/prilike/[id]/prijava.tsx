@@ -4,7 +4,7 @@ import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, Radni
 import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
 import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal } from '../../../../data/applicationSelectionClientService';
 import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
-import { fixedApplicationPeople, fixedApplicationPrice } from '../../../../data/needDetailPresentation';
+import { fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
@@ -21,8 +21,7 @@ type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opport
 /** A price the task names is never typed: it follows the people this application brings (deep read 8.10). */
 function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
   if (need.rezimCene !== 'MY_PRICE') return draft;
-  const fixedPeople = fixedApplicationPeople(need);
-  const people = fixedPeople === null ? draft.people : String(fixedPeople);
+  const people = draft.people;
   const price = fixedApplicationPrice(need, /^\d+$/.test(people) ? Number(people) : NaN);
   return { ...draft, people, price: price === null ? '' : String(price) };
 }

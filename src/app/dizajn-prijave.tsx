@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../contracts/projections';
+import { fixedApplicationPrice } from '../data/needDetailPresentation';
 import { novac } from '../lib/novac';
 import { useConfirmSheet } from '../ui/system/ConfirmSheet';
 import { Segmented } from '../ui/system/Segmented';
@@ -98,7 +99,8 @@ export default function DizajnPrijave() {
           busy={false} editingLoading={false} pending={scene === 'ceka'} canRetry={scene === 'ceka'} canReset={false}
           onRefresh={noop} onExplore={noop} onProfile={noop} onBack={() => router.back()}
           onReview={p => setExpanded(p.prijavaId)} onClose={() => { setExpanded(null); setDraft(null); }} onEdit={() => setDraft(DRAFT)}
-          onChange={setDraft} onCancelEdit={() => setDraft(null)} onKeep={noop} onUpdate={noop} onWithdraw={ask}
+          onChange={next => setDraft(next.pricing.rezimCene === 'MY_PRICE'
+            ? { ...next, price: String(fixedApplicationPrice(next.pricing, Number(next.people)) ?? '') } : next)} onCancelEdit={() => setDraft(null)} onKeep={noop} onUpdate={noop} onWithdraw={ask}
           onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />
       </LayoutClassOverride.Provider>
     </View>

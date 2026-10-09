@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../contracts/projections';
+import { fixedApplicationPrice } from '../data/needDetailPresentation';
 import { Press } from '../ui/Press';
 import { LARGE_LAYOUT, LayoutClassOverride } from '../ui/system/textScale';
 import { sys } from '../ui/system/tokens';
@@ -22,10 +23,10 @@ import { ApplicationComposerPresentation, type ApplicationDraft } from '../ui/v2
  * title and a long message, `dugo` a long title. (The rest of the states of this screen and the rating are in
  * `dizajn-prijava`, which is another family's.)
  */
-const SCENES = ['prazna', 'ponuda', 'veliko', 'pregled', 'pregled-veliko', 'po-osobi', 'bez-cene', 'profil', 'ishod', 'poslato', 'poslato-dugo', 'dugo'] as const;
+const SCENES = ['prazna', 'ponuda', 'veliko', 'pregled', 'pregled-veliko', 'po-osobi', 'cela-ekipa', 'bez-cene', 'profil', 'ishod', 'poslato', 'poslato-dugo', 'dugo'] as const;
 type Scene = typeof SCENES[number];
 const LABELS: Record<Scene, string> = { prazna: 'Prazna', ponuda: 'Popunjena', veliko: 'Veliki tekst', pregled: 'Pregled', 'pregled-veliko': 'Pregled: veliki tekst',
-  'po-osobi': 'Po osobi', 'bez-cene': 'Bez cene', profil: 'Profil nije aktivan', ishod: 'Ishod nepoznat', poslato: 'Poslato', 'poslato-dugo': 'Poslato: dugi nazivi', dugo: 'Dugačak naslov' };
+  'po-osobi': 'Po osobi', 'cela-ekipa': 'Srazmerna cena', 'bez-cene': 'Bez cene', profil: 'Profil nije aktivan', ishod: 'Ishod nepoznat', poslato: 'Poslato', 'poslato-dugo': 'Poslato: dugi nazivi', dugo: 'Dugačak naslov' };
 const isScene = (value: unknown): value is Scene => typeof value === 'string' && (SCENES as readonly string[]).includes(value);
 const noop = () => {};
 
@@ -36,6 +37,7 @@ const NEED = { id: 'galerija-zadatak', revizija: 3, naslov: 'Unos ormara na tre�
 const task = (patch: Partial<PotrebaProjekcija> = {}) => ({ ...NEED, ...patch }) as PotrebaProjekcija;
 const opportunity = (need: PotrebaProjekcija) => ({ ...need, primaNovePrijave: true, rokZaPrijaveIso: null }) as unknown as PrilikaProjekcija;
 const PER_PERSON = task({ rezimCene: 'MY_PRICE', osnovaCene: 'PER_PERSON', ponudjenaCena: { iznos: 2500, valuta: 'RSD', prikaz: '2.500 RSD' } } as Partial<PotrebaProjekcija>);
+const TOTAL = task({ ...PER_PERSON, osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 9000, valuta: 'RSD', prikaz: '9.000 RSD' } });
 const UNPRICED = task({ rezimCene: 'MY_PRICE', ponudjenaCena: undefined } as Partial<PotrebaProjekcija>);
 const LONG = task({ naslov: 'Pomoć oko selidbe dvosobnog stana sa trećeg sprata bez lifta, uz rasklapanje ormara i kreveta',
   podrucjeTekst: 'Lenke Dunđerski, Novi Sad → Dositejeva, Novi Sad', vremeTekst: 'Fleksibilan raspon · 26. okt – 30. okt',
@@ -47,12 +49,12 @@ const FILLED: ApplicationDraft = { price: '4500', people: '2', note: 'Dolazimo n
 const LONG_NOTE = 'Imamo iskustva sa selidbama stanova i kancelarija, donosimo sav alat, ćebad za zaštitu nameštaja i folije za pod. Klavir nosimo sa posebnim kaiševima.';
 function draftOf(scene: Scene): ApplicationDraft {
   return scene === 'prazna' || scene === 'bez-cene' ? EMPTY : scene === 'po-osobi' ? { ...EMPTY, price: '2500' }
-    : scene === 'poslato-dugo' ? { ...FILLED, price: '125000', people: '3', note: LONG_NOTE } : FILLED;
+    : scene === 'cela-ekipa' ? { ...EMPTY, price: '3000' } : scene === 'poslato-dugo' ? { ...FILLED, price: '125000', people: '3', note: LONG_NOTE } : FILLED;
 }
 
 function Form({ scene }: { scene: Scene }) {
   const [draft, setDraft] = useState<ApplicationDraft>(() => draftOf(scene));
-  const need = scene === 'po-osobi' ? PER_PERSON : scene === 'bez-cene' ? UNPRICED : scene === 'dugo' || scene === 'poslato-dugo' ? LONG : NEED;
+  const need = scene === 'cela-ekipa' ? TOTAL : scene === 'po-osobi' ? PER_PERSON : scene === 'bez-cene' ? UNPRICED : scene === 'dugo' || scene === 'poslato-dugo' ? LONG : NEED;
   const state = scene === 'profil' ? { canSubmit: false, blocked: { reason: 'Radni profil još nije aktivan — bez njega ponuda ne može da se pošalje.', actionLabel: 'Dopuni radni profil', onAction: noop } }
     : scene === 'ishod' ? { pending: true, uncertain: true, error: 'Ne znamo da li je prijava stigla. Izaberi „Proveri da li je poslato“.' }
     : scene === 'poslato' || scene === 'poslato-dugo' ? { confirmed: true }
@@ -60,7 +62,7 @@ function Form({ scene }: { scene: Scene }) {
     : {};
   const body = <ApplicationComposerPresentation need={need} opportunity={opportunity(need)} draft={draft}
     // The per-person total follows the people, as the route's own rule does; nothing leaves the phone.
-    change={next => setDraft(need.osnovaCene === 'PER_PERSON' && /^\d+$/.test(next.people) ? { ...next, price: String(2500 * Number(next.people)) } : next)}
+    change={next => setDraft(need.rezimCene === 'MY_PRICE' ? { ...next, price: String(fixedApplicationPrice(need, Number(next.people)) ?? '') } : next)}
     submit={noop} back={() => router.back()} busy={false} pending={!!(state as { pending?: boolean }).pending} uncertain={!!(state as { uncertain?: boolean }).uncertain}
     refresh={noop} error={(state as { error?: string }).error ?? null} confirmed={!!(state as { confirmed?: boolean }).confirmed} openApplications={noop}
     canSubmit={(state as { canSubmit?: boolean }).canSubmit ?? true} blocked={(state as { blocked?: never }).blocked ?? null}

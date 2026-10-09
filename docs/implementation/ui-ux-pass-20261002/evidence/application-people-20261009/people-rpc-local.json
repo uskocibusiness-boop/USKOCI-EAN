@@ -1,0 +1,51 @@
+{
+  "state": "LOCAL_RPC_PARTIAL_TOTAL_PASS",
+  "db": "uskoci_proof_people_6c282aee",
+  "tests": [
+    "revert-blocked-after-partial-admission",
+    "stale-update-to1-at3000",
+    "stale-keep-legacy3-at9000",
+    "zero-rejected",
+    "over-required-rejected",
+    "wrong-price-rejected",
+    "submit1-at3000",
+    "identical-replay",
+    "changed-replay-rejected",
+    "submit3-at9000",
+    "select1",
+    "submit2-after-one-selected-at6000",
+    "select2",
+    "open-task-overfill-rejected",
+    "full-task-selection-rejected",
+    "agreement-terms-exact"
+  ],
+  "terms": [
+    {
+      "price": "3000",
+      "people": "1"
+    },
+    {
+      "price": "6000",
+      "people": "2"
+    }
+  ],
+  "fixturesRolledBack": true,
+  "liveDev": false,
+  "candidateSha256": "fa382564ac84b49589eca42dba1f5a005d130e801e8e0642ce84cc6082a794c0",
+  "programBodyMd5": {
+    "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)": "66aab6df0d625e24e0073c27bfe2aa91",
+    "public.rpc_select_response(uuid,integer,uuid,integer,text,text)": "6a8fd871a60779bc438119b21a900dca",
+    "public.rpc_resolve_stale_response_after_need_edit(uuid,integer,integer,text,text,integer,integer,timestamptz,timestamptz,text)": "9634b0333c3bd5dab208286f04d8e556",
+    "private.need_candidate_states_v5(uuid)": "112ed258e838b2cae22b248ac94ebe7c",
+    "private.need_candidate_states_v5(uuid,uuid[])": "20092ecb2a781776ddb0ce9c46ba8aa5",
+    "private.assert_application_price_v5(public.needs,integer,integer)": "dfae6f56acd6a76979ff19d96e80c41d"
+  },
+  "localAuditSequenceBefore": {
+    "max": 36,
+    "last": 40
+  },
+  "revertSha256": "e6d229b17f77d7d68fcc3d111c6e35cba77932de8490293221282a1debc9fa64",
+  "fixtureBoundary": "Synthetic direct-DML seed with triggers/FK disabled ONLY during setup; real RPC calls with origin and authenticated role. Not profile/publication/HTTP/JWT-provider proof.",
+  "sqlSha256": "93d019d6e68681e660f6c544d26fcf30218d3b1f7019f690f0a21e2f0a3c29dc",
+  "harnessSha256": "3703e174a8b1b939107060d81341c0c1a55f7365910de36e1bf2c331885c0b87"
+}

@@ -5,19 +5,20 @@ import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { ApplicationEditPricing } from '../../data/myApplicationsClientService';
 // The same rule Početna's "Moje prijave" row counts by (2026-09-23).
 import { applicationSection, type ApplicationCounts, type ApplicationSection } from '../../data/myApplicationsView';
-import { needScheduleText } from '../../data/needDetailPresentation';
+import { fixedApplicationPrice, needScheduleText } from '../../data/needDetailPresentation';
 import { Appear, useAppear } from '../system/Appear';
 import { DetailTopBar } from '../system/DetailTopBar';
 import { layout, ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { Segmented } from '../system/Segmented';
-import { prijava } from '../system/plural';
+import { osobuAkuz, prijava } from '../system/plural';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { brandAction, field, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
 import { ApplicationCard } from './ApplicationFace';
+import { ApplicationPeopleInput, applicationPeopleCount } from './ApplicationPeopleInput';
 import { V2Action } from './V2Action';
 
 export type ApplicationsTab = 'all' | ApplicationSection;
@@ -122,6 +123,10 @@ export function MyApplicationsPresentation(props: Props) {
   const expandedRow = props.expanded ? visible.find(p => p.prijavaId === props.expanded && p.stanje === 'STALE_REVIEW_REQUIRED') ?? null : null;
   function reviewOf(p: MojaPrijavaProjekcija) {
     const draft = props.draft;
+    const people = draft ? applicationPeopleCount(draft.people) : null;
+    const invalidPeople = !!draft && (people === null || people > draft.pricing.pokrivenost.ukupno);
+    const invalidFixedPrice = !!draft && draft.pricing.rezimCene === 'MY_PRICE' && !invalidPeople
+      && fixedApplicationPrice(draft.pricing, people!) === null;
     return <View testID="application-review">
       <View pointerEvents="none" style={s.rule} />
       <View style={s.review}>
@@ -133,16 +138,18 @@ export function MyApplicationsPresentation(props: Props) {
           <T accessibilityRole="header" variant="heading">Izmeni svoju prijavu</T>
           <T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
             : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
-            : draft.pricing.osnovaCene === 'TOTAL' ? 'Ukupna cena važi za ceo zadatak. Prijava pokriva sva mesta.' : 'Cena je određena u zadatku.'}</T>
+            : draft.pricing.osnovaCene === 'TOTAL' ? 'Tvoja cena se računa srazmerno broju ljudi koje obezbeđuješ.' : 'Cena je određena u zadatku.'}</T>
           <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T>
           <TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
+          {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.</T> : null}
           <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T>
-          <TextInput accessibilityLabel="Broj ljudi" value={draft.people} keyboardType="number-pad" editable={!disabled && !(draft.pricing.rezimCene === 'MY_PRICE' && draft.pricing.osnovaCene === 'TOTAL')} onChangeText={people => props.onChange({ ...draft, people })} style={s.input} />
+          <ApplicationPeopleInput label="Broj ljudi" value={draft.people} maximum={draft.pricing.pokrivenost.ukupno} disabled={disabled}
+            onChange={people => props.onChange({ ...draft, people })} help={`Zadatak traži ${osobuAkuz(draft.pricing.pokrivenost.ukupno)}.`} />
           <T variant="meta" tone="muted">Napomena</T>
           <TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
           <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
             ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, deviceZone()) : 'Nije naveden u prijavi.'}</T>
-          <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled} style={brandAction} />
+          <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || invalidPeople || invalidFixedPrice} style={brandAction} />
           <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>
           {/* The sentence above says what keeping keeps; each row says what it does by its name, and no row explains itself (J4). */}

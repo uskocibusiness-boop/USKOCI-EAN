@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T14:36:13Z",
+  "osvezeno": "2026-10-09T15:22:47Z",
   "grana": "integration/spoj-20261006",
-  "head": "b7ffcc16",
-  "head_poruka": "Prove bounded opportunity push behavior and cancellation races locally",
+  "head": "7658b925",
+  "head_poruka": "Record isolated opportunity certificate transition and rollback guards",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2977,6 +2977,13 @@
    "result": "Faithful108surface:0function/ACL/supplement differences;10exact CHECK pairs have equal local AST with2negative controls,418+14catalog identities explicit. Committed local install/revert/reapply preserves15dataset/52export entries.6drift rejections,2canonical EXECUTING refusals,3post-admission refusals;129row multisets unchanged,identity sequence movement recorded.",
    "limits": "Local PG17.11 fixture, not DEV recertification or engine identity. No provider/phone send. Selected phone worker still DRAFT/empty at14:29:19UTC.",
    "next": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history."
+  },
+  "application_people_20261009": {
+   "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
+   "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
+   "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
+   "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
   }
  },
  "redovi": [
@@ -7033,6 +7040,13 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Jasno ukupno za sve ljude; nema skrivenog množenja ili finansijske funkcije.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "application_people_20261009": {
+     "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
+     "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
+     "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
+     "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
     }
    },
    "ukupno": "PROBLEM",
@@ -7173,6 +7187,13 @@
      "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
      "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
      "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+    },
+    "application_people_20261009": {
+     "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
+     "source": "Shared application headcount counter, explicit validation and proportional TOTAL candidate authorized for exact divisions.",
+     "proof": "339/339 in11suites + tsc0;8925localvectors and localSQLRPC lifecycle, metadata/certificate/revert guards. Negative certificate guards passed; no DEV apply.",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/application-people-20261009/README.md",
+     "next": "Internal emulator APK/interactions; rounding decision pending before DEV price promotion/phone release."
     }
    },
    "ukupno": "PROBLEM",

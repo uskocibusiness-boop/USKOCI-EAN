@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } from 'react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
-import { fixedApplicationPeople, fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
+import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
 import { novac } from '../../lib/novac';
 import { CivilField } from '../calendar/CalendarControls';
@@ -18,13 +18,13 @@ import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba, plural } from '../system/plural';
-import { ChromeIconButton } from '../system/ScreenChrome';
+import { ApplicationPeopleInput, applicationPeopleCount as wholePeople } from './ApplicationPeopleInput';
 import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
 import { StateView } from '../system/StateView';
 import { StatusChip } from '../system/StatusChip';
 import { Surface } from '../system/Surface';
-import { useLayoutClass, useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { brandAction, fieldBox, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
@@ -72,11 +72,7 @@ function wholePrice(value: string): number | null {
   const amount = Number(value);
   return Number.isSafeInteger(amount) && amount >= 1 && amount <= MAX_PRICE ? amount : null;
 }
-function wholePeople(value: string): number | null {
-  if (!/^[0-9]+$/.test(value)) return null;
-  const count = Number(value);
-  return Number.isSafeInteger(count) && count >= 1 ? count : null;
-}
+
 
 /**
  * What still stands between this draft and its review, said in the words the grey button carries. It mirrors the
@@ -88,23 +84,20 @@ export function composerDraftIssue(draft: ApplicationDraft, need: Pick<PotrebaPr
   const offers = need.rezimCene !== 'MY_PRICE';
   const price = offers ? draft.price === '' ? 'empty' : wholePrice(draft.price) === null ? 'invalid' : null
     // The task names its price: missing only when the task itself has none (the route then leaves the price empty).
-    : fixedApplicationPrice(need, 1) === null ? 'missing' : null;
+    : !Number.isSafeInteger(need.ponudjenaCena?.iznos) || (need.ponudjenaCena?.iznos ?? 0) < 1 ? 'missing' : null;
   const count = wholePeople(draft.people);
   const people = count === null ? 'invalid' : count > need.pokrivenost.preostalo ? 'over' : null;
   // A per-person total the route could not send (above its 32-bit limit) is said here too, not only after the tap.
   const total = !offers && price === null && count !== null ? fixedApplicationPrice(need, count) : null;
   const tooMuch = !offers && price === null && count !== null && (total === null || total > MAX_PRICE);
-  const locked = fixedApplicationPeople(need) !== null;
   // The reason under the grey button is an instruction in the one wording the field beside it uses (r6: the price field
   // and the button said the same error in two sentences; the stepper's count line and the button said the same count).
   const reason = price === 'missing' ? 'Zadatak nema navedenu cenu. Osveži zadatak.'
     : price === 'empty' ? 'Upiši svoju cenu da pregledaš prijavu.'
     : price === 'invalid' ? 'Upiši ceo iznos u dinarima, bez tačaka i slova.'
     : people === 'invalid' ? 'Upiši koliko ljudi dolazi.'
-    // A price for the whole task covers every place, so fewer free places cannot be fixed here, only by a fresh read.
-    : people === 'over' ? locked ? 'Zadatak više nema sva mesta slobodna. Osveži zadatak.'
-      : need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš prijavu.` : 'Sva mesta su popunjena. Osveži zadatak.'
-    : tooMuch ? 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
+    : people === 'over' ? need.pokrivenost.preostalo > 0 ? `Smanji broj ljudi na ${need.pokrivenost.preostalo} da pregledaš prijavu.` : 'Sva mesta su popunjena. Osveži zadatak.'
+    : tooMuch ? total === null ? 'Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.' : 'Ukupan iznos je veći nego što može da se pošalje. Smanji broj ljudi.'
     : null;
   return { reason, price, people };
 }
@@ -326,7 +319,6 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const reviewKey = JSON.stringify([need.id, need.revizija, need.naslov, need.vremeTekst, need.taskTimezone, need.schedule, draft]);
   const [editingTime, setEditingTime] = useState(initialSheet === 'time');
   const [review, setReview] = useState<{ key: string } | null>(() => initialSheet === 'review' ? { key: reviewKey } : null);
-  const large = useTextScale() >= 1.3;
   const [focused, setFocused] = useState<'price' | 'note' | null>(null);
   // The success mark springs only when the send was confirmed while this screen was open.
   const confirmedAtMount = useRef(confirmed).current;
@@ -358,7 +350,6 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   const shownPrice = price !== null ? novac(price) : null;
   const issue = composerDraftIssue(draft, need);
   const offers = opportunity.rezimCene !== 'MY_PRICE';
-  const peopleLocked = fixedApplicationPeople(need) !== null;
   const left = need.pokrivenost.preostalo;
   const shownBlock = !canSubmit && !confirmed && !pending && blocked ? blocked : null;
   // The footer's last branch: nothing sent, nothing uncertain, nothing in flight, so "Pregledaj prijavu" is the action.
@@ -377,13 +368,12 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
     : pending || busy ? <V2Action label={busy ? 'Slanje…' : 'Pošalji ponovo'} onPress={submit} disabled={busy} loading={busy} style={brandAction} />
     : <V2Action label="Pregledaj prijavu" onPress={openReview} disabled={!canSubmit || reviewing || !!issue.reason} style={brandAction} />;
   // A reason that names a fresh read of the task has the read under it: the task without its price, or without the
-  // places this application would take (a price for the whole task cannot take fewer).
-  const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && (peopleLocked || left < 1));
+  // places this application would take, including a proportional share of a TOTAL budget.
+  const refreshFixes = issue.price === 'missing' || (issue.people === 'over' && left < 1);
   const summary = shownPrice ? `${shownPrice} ukupno`
     : offers ? draft.price === '' ? 'Cena još nije upisana' : 'Cena nije ispravna'
     : issue.price === 'missing' ? 'Cena nije navedena' : 'Cena zavisi od broja ljudi';
-  /** A count stepped by a button is said aloud: the line under the stepper does not change with it. */
-  const step = (next: number) => { change({ ...draft, people: String(next) }); AccessibilityInfo.announceForAccessibility(capitalised(dolaziOsoba(next))); };
+
   // Why the green action cannot be pressed yet stands ABOVE it, in the foot (a line under a button reads as the next thing, not as the cause).
   // While a send runs, or after one, the reason of a block is still said, there.
   const footReason = reviewAction ? reviewReason : shownBlock?.reason ?? null;
@@ -440,22 +430,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
         </View>
       </Section> : <FixedPrice need={need} />}
       <Section title="Koliko vas dolazi">
-        <View style={s.group}>
-          {/* A whole-task price fixes the count; show that count as a fact, never an editable control. */}
-          {peopleLocked ? <View accessible accessibilityLabel={`Koliko ljudi dolazi: ${capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}, cena važi za ceo zadatak`}>
-            <T variant="bodyStrong">{capitalised(dolaziOsoba(fixedApplicationPeople(need)!))}</T>
-          </View> : <View style={s.stepper}>
-            <ChromeIconButton label="Jedna osoba manje" glyph="minus" disabled={disabled || count === null || count <= 1}
-              onPress={() => { if (!disabled && count !== null && count > 1) step(count - 1); }} />
-            <TextInput accessibilityLabel="Koliko ljudi dolazi" keyboardType="number-pad" maxLength={4} value={draft.people} editable={!disabled}
-              style={[s.peopleInput, large && s.peopleInputLarge, issue.people === 'over' && s.fieldDanger]}
-              onChangeText={value => { if (!disabled) change({ ...draft, people: value }); }} />
-            <ChromeIconButton label="Jedna osoba više" glyph="plus" disabled={disabled || (count !== null ? count >= left : left < 1)}
-              onPress={() => { const next = count === null ? 1 : count + 1; if (!disabled && next <= left) step(next); }} />
-          </View>}
-          <T variant="note" tone={issue.people === 'over' ? 'danger' : 'muted'} accessibilityLiveRegion="polite">
-            {placesText(need.pokrivenost, 'worker').text}</T>
-        </View>
+        <ApplicationPeopleInput value={draft.people} maximum={left} disabled={disabled}
+          onChange={people => change({ ...draft, people })} help={placesText(need.pokrivenost, 'worker').text} />
       </Section>
       <Section title="Kada možeš">
         <ListRow title={time} subtitle={exact ? `Tvoj predlog termina${proposedTaskTime ? ` · termin zadatka je ${proposedTaskTime}` : ''}` : 'Termin zadatka. Možeš da predložiš drugi.'}
@@ -506,6 +482,7 @@ function FixedPrice({ need }: { need: PotrebaProjekcija }) {
         <T variant="pageTitle" style={s.money}>{amount}</T><T variant="note" tone="muted">{basis}</T>
       </> : <T variant="bodyStrong">Cena nije navedena</T>}
     </View>
+    {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi koje obezbeđuješ.</T> : null}
   </Section>;
 }
 
@@ -523,10 +500,6 @@ const s = StyleSheet.create({
   fieldDanger: { borderColor: sys.color.danger },
   fixed: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: sys.space.sm, minHeight: layout.touch },
   money: { fontVariant: ['tabular-nums'], maxWidth: '100%', flexShrink: 1 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, alignSelf: 'flex-start' },
-  peopleInput: withInter({ ...sys.type.price, width: 80, minHeight: 56, textAlign: 'center', color: sys.color.ink,
-    paddingHorizontal: sys.space.xs, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control }),
-  peopleInputLarge: { width: 88 },
   note: withInter({ ...fieldBox, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface,
     minHeight: 96, textAlignVertical: 'top', padding: sys.space.base }),
   // "Etiketa odlazi": the tag's place is reserved (96 and a gap) so nothing moves when it goes; the tag is at the top of it, the small row at its foot.

@@ -24,9 +24,8 @@ export const applicationSelectionErrors: Readonly<Record<string, string>> = {
   INVALID_COVERED_SLOTS: 'Unesi ceo broj ljudi koje obezbeđuješ.',
   INVALID_PRICE: 'Unesi iznos u dinarima, bez decimala.',
   FIXED_PRICE_NOT_READY: 'Cena zadatka trenutno nije spremna. Ponovo otvori zadatak.',
-  FIXED_PRICE_MISMATCH: 'Cena u prijavi mora da bude ista kao cena u zadatku. Izmeni prijavu.',
-  // pkg025b. A task whose price is the price of the WHOLE task is taken by one application that
-  // covers all of it. Hiring people separately is what a per-person price is for.
+  FIXED_PRICE_MISMATCH: 'Cena prijave mora da prati cenu zadatka i broj ljudi koje obezbeđuješ. Izmeni prijavu.',
+  // Legacy pkg025b compatibility until the proportional TOTAL server package is applied.
   TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog zadatka važi za ceo zadatak, pa prijava mora da pokrije sva mesta.',
   UNKNOWN_PRICE_BASIS: 'Ova verzija aplikacije ne podržava način računanja cene na ovom zadatku. Ažuriraj aplikaciju.',
   INVALID_PROPOSED_INTERVAL: 'Kraj predloženog termina mora biti posle početka.',

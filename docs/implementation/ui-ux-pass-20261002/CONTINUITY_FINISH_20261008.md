@@ -728,3 +728,27 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **NIJE DOKAZANO:** exactDEVpromotion wrapper/primena,ACTIVE_TRANSPORT i concurrentinstall,profile/preference/calendar/time-boundary/full-capacityselection trke,HTTPAuth,puno erasure izvršenje,provider/phoneOPPORTUNITY,sve kategorije ili store. Raniji neuspeli harness koraci saTEMPuREADONLY i pogrešnimreceiptfilename sačuvani. Istorijski source-bound harness fajlovi zahtevaju privatne snimke i nisu portableCLI/DEVinstaller. RanijaMESSAGE fizička dostava ostaje zasebno potvrđena.14:29:19UTC: izabraniuskocibusiness1activebounddevice;workerDRAFT/prazan grad i veštine. Nema izmišljenog profila/slanja.30minautomatizacija ostajePAUSED.
 
 **SLEDEĆE:** tačan promotivni omotač i preostale konkurentne/clock provere,pa prirodna ponuda aktivnom izabranom profilu/jednom uređaju. Posleadmission-a čuvati istoriju: stop novih poziva i revoke samo neposlatih; stariCHECKrollback nije dozvoljen. Native mapa: sledeći diskriminacioni test postojećegMapLabelsProbe jeste isti proverenNotoSansRegular0–255PBF lokalno preko file:// i prekoHTTPS,sa konstantnim123ABC,kružnom i samostalnomicon-only kontrolom; bezpromeneSDK/grafike. Izostavljanjeglyphs nije podržanAndroidlocal-fonttest. HostGPUANR se ne ponavlja. Nezavisni read-only pregled nalazi i ograničenja zabeleženi uz paket.
+
+
+## 2026-10-09 — broj ljudi pri prijavi (source checkpoint)
+
+URADIO: Jedan kontroler za novu i izmenjenu prijavu: minus, plus i direktan unos, fokus, lokalna greška i očuvanje ručnog nacrta. Početno 1 ostaje. Popravljen edit CTA i route guard za broj preko poznatog ukupnog zahteva. Cena po osobi ostaje vezana za broj. TOTAL ima jasno objašnjenje cele ekipe; srazmerna podela ukupne cene nije uvedena bez odluke o iznosima.
+
+DOKAZAO: 305/305 testova u 9 ciljanih grupa; tsc exit0. Granica50/51, manje slobodnih mesta tokom uređivanja, stepper u izmeni i tačan covered_slots u komandi. Read-only aktuelni DEV potvrđuje existing1..50/remaining guards i TOTAL_PRICE_REQUIRES_ALL_SLOTS; nema migracije ni poslovnih write-ova. Dokaz: evidence/application-people-20261009/source-tests.json.
+
+NIJE DOKAZANO: Novi APK/native prihvatanje, realna nova višeljudna prijava, telefon, kompletni tokovi, prodavnica i serverski kapacitet.
+
+SLEDEĆE: Jedan čisti source commit, objedinjeni emulator APK, attest/same-signature install-r; default/plus/minus/type/keyboard/review/TOTAL/edit/large-text native provera. Postojeći push i release otvoreni zadaci ostaju; automation ostaje PAUSED.
+
+
+### Broj ljudi — vlasnik menja TOTAL politiku; kandidat pre native provere
+
+URADIO: Po odgovoru9000/3=>3000 uklonjeno zaključavanje cele ekipe u source-u. Novi i izmenjeni draft računaju ukupan iznos za izabrani broj/originalni required count; sačuvani pending i Dogovor iznosi ne menjaju se. Jedan postojeći privatni helper je SQL kandidat, sa tačnim pinovima, istim ACL/metadata, closure guard i revert admission barijerom. Pitanje o nedeljivim dinarima je i dalje otvoreno; zaokruživanje se ne podrazumeva.
+
+DOKAZAO:338/338testova u11grupa,tsc0. Izolovani PG17.11:8925vektora plus wrong-price probes; stvarni lokalni SQL RPC1+2prijave i izbori daju Dogovor3000/1 i6000/2; open-taskOVERFILL, stare izmene/KEEP, replay guard. Jedina trajna razlika helperprosrc; closure/ACL/metadata ostaju; revert prolazi pre admission-a i odbija posle partial-a. Svi RPC fixture redovi rollback. Dokazi i tačan lokalni harness: evidence/application-people-20261009/.
+
+NIJE DOKAZANO: Ovo nije DEV primena, HTTP/Auth-provider, profil/objava zadatka, novi telefon ili store release dokaz. Drugog finansijskog odgovora još nema. Nema novih live business write-ova, push-a ili recertifikacije.
+
+SLEDEĆE: Interni emulator APK i interakcije brojača/pregleda/izmene; obračunsko pitanje ostaje pending pre primene i izdavanja telefonskog APK-a.
+
+Dopuna pre build-a:339 testova/11grupa; tsc0. Ispravljen i readonly fixed-price edit CTA kada iznos nije izračunljiv; ruta odbija pre komande sa konkretnim razlogom. Dva odvojena negativna certificate testa PASS; kompletni cert redovi/binding pinovani, RPC receipt vezan za stvarne helper/caller/candidate hashove. Nezavisni read-only pregled završen bez novih blokirajućih nalaza. Pogrešne putanje5testfajlova u jednom QA pozivu sačuvane kao harness greška; ispravljeni poziv prolazi.

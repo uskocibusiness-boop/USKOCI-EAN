@@ -10,7 +10,7 @@ import { ownApplicationsScope, type OwnApplicationsPageRequest } from '../../dat
 import { ownApplicationsPagedBuilt } from '../../data/ownApplicationsPagedGate';
 import { ru4Production, type Ru4RazresiPrijavuInput } from '../../data/ru4Production';
 import { positiveInteger, sameId } from '../../data/serverReceipt';
-import { fixedApplicationPeople, fixedApplicationPrice, readableTitle } from '../../data/needDetailPresentation';
+import { fixedApplicationPrice, readableTitle } from '../../data/needDetailPresentation';
 import { useOwnApplicationsPager } from '../../hooks/useOwnApplicationsPager';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../lib/idempotencija';
@@ -47,8 +47,7 @@ const useNoPagedApplications = (_source: Izvor, _tab: ApplicationsTab, _destinat
 const usePagedApplicationRows: (source: Izvor, tab: ApplicationsTab, destination: string | null) => PagedApplications | null =
   ownApplicationsPagedBuilt() ? usePagedApplications : useNoPagedApplications;
 function pricedOffer(draft: OfferEdit): OfferEdit {
-  const fixedPeople = fixedApplicationPeople(draft.pricing);
-  const people = fixedPeople === null ? draft.people : String(fixedPeople);
+  const people = draft.people;
   const price = draft.pricing.rezimCene === 'MY_PRICE'
     ? String(fixedApplicationPrice(draft.pricing, /^\d+$/.test(people) ? Number(people) : NaN) ?? '') : draft.price;
   return { ...draft, people, price };
@@ -223,7 +222,12 @@ export default function MojePrijave() {
     if (action === 'UPDATE') {
       if (!draft) return;
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
+      if (positiveInteger(people) && people <= draft.pricing.pokrivenost.ukupno && draft.pricing.rezimCene === 'MY_PRICE'
+        && fixedApplicationPrice(draft.pricing, people) === null) {
+        session.message = 'Za ovaj broj ljudi nije moguće obračunati cenu u celim dinarima. Proveri broj ljudi.'; render(v => v + 1); return;
+      }
       if (!positiveInteger(price) || !positiveInteger(people)) { session.message = 'Unesi cenu u dinarima i broj ljudi, bez decimala.'; render(v => v + 1); return; }
+      if (people > draft!.pricing.pokrivenost.ukupno) { session.message = `Možeš da prijaviš najviše ${draft!.pricing.pokrivenost.ukupno}.`; render(v => v + 1); return; }
       // Existing RU4 SQL limit, not a new UI/business policy.
       if (Array.from(draft.note.trim()).length > 1200) { session.message = errors.SCOPE_NOTE_TOO_LONG; render(v => v + 1); return; }
     }

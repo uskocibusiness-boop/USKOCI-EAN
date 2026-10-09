@@ -1,0 +1,20 @@
+{
+  "state": "PROPORTIONAL_TOTAL_CANDIDATE_TESTED_NOT_APPLIED",
+  "tests": {
+    "success": true,
+    "numPassedTests": 339,
+    "numFailedTests": 0,
+    "numPassedTestSuites": 11,
+    "numFailedTestSuites": 0
+  },
+  "typecheckExit": 0,
+  "testProcessExit": 0,
+  "testReportSha256": "da55e6835489a3e8a7a6adf1fb088cddd074a4e3b79d2b0f6f3fe55c0840667d",
+  "localProof": "8925 exact-proportion vectors + mismatch rejection; real authenticated local SQL RPC submit/replay/select1+2/overfill/staleUPDATE/KEEP; unchanged certificates; exact revert before admission and refusal after partial admission. Both certificate corruption controls rejected; full certificate rows unchanged.",
+  "openDecision": "Owner approved proportional TOTAL9000/3=3000. Whole-dinar rounding for10000/3 still asked and pending; no rounding assumed.",
+  "limits": [
+    "Local direct-DML synthetic fixtures, not profile/task creation or HTTP/JWT/provider proof.",
+    "No DEV price change yet, no new phone build.",
+    "Native QA pending; no whole-app or store acceptance."
+  ]
+}

@@ -150,34 +150,19 @@ export function needPriceBasisNote(input: {
   return `po osobi · ukupno ${novac(amount * people)}`;
 }
 
-/**
- * The price an application must carry when the task names its own price — the rule
- * `rpc_submit_response` enforces since pkg025b, stated once for the composer (deep read 8.10).
- *
- * No basis: the task's amount, whatever the application covers. PER_PERSON: the amount for each
- * person this application brings. TOTAL: the amount, and the application covers every place
- * (`fixedApplicationPeople`). OFFERS, or no usable amount: null — the worker names the price, or
- * there is nothing that could pass.
- */
+/** The stored task price is a budget; a new application carries only its own headcount's amount. */
 export function fixedApplicationPrice(input: {
-  rezimCene?: string; ponudjenaCena?: { iznos: number }; osnovaCene?: PriceBasis;
+  rezimCene?: string; ponudjenaCena?: { iznos: number }; osnovaCene?: PriceBasis; pokrivenost?: { ukupno: number };
 }, people: number): number | null {
   if (input.rezimCene !== 'MY_PRICE') return null;
   const amount = input.ponudjenaCena?.iznos;
   if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1) return null;
-  if (input.osnovaCene !== 'PER_PERSON') return amount;
+  if (input.osnovaCene !== 'PER_PERSON' && input.osnovaCene !== 'TOTAL') return amount;
   if (!Number.isSafeInteger(people) || people < 1) return null;
-  const total = amount * people;
-  return Number.isSafeInteger(total) ? total : null;
-}
-
-/** A TOTAL price buys the whole task, so an application for it covers every place; otherwise the worker chooses. */
-export function fixedApplicationPeople(input: {
-  rezimCene?: string; osnovaCene?: PriceBasis; pokrivenost?: { ukupno: number };
-}): number | null {
-  if (input.rezimCene !== 'MY_PRICE' || input.osnovaCene !== 'TOTAL') return null;
-  const places = input.pokrivenost?.ukupno;
-  return typeof places === 'number' && Number.isSafeInteger(places) && places >= 1 ? places : null;
+  const required = input.pokrivenost?.ukupno;
+  if (input.osnovaCene === 'TOTAL' && (typeof required !== 'number' || !Number.isSafeInteger(required) || required < 1 || people > required)) return null;
+  const total = input.osnovaCene === 'TOTAL' ? amount * people / required! : amount * people;
+  return Number.isSafeInteger(total) && total >= 1 ? total : null;
 }
 
 export function needGeographyRows(need: Pick<PotrebaProjekcija, 'detalji' | 'podrucjeTekst'>): { label: string; value: string }[] {

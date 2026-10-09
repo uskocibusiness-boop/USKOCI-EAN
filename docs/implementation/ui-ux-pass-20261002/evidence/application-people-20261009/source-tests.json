@@ -1,0 +1,33 @@
+{
+  "state": "SOURCE_AND_TARGETED_TEST_PASS_NATIVE_PENDING",
+  "recordedAt": "2026-10-09T14:56:13.615283+00:00",
+  "tests": {
+    "success": true,
+    "numPassedTests": 305,
+    "numFailedTests": 0,
+    "numPassedTestSuites": 9,
+    "numFailedTestSuites": 0
+  },
+  "typecheckExit": 0,
+  "testProcessExit": 0,
+  "testReportSha256": "2453734ef96cef391105b15dd07e512658c83774e68171de09df3065fda1da3e",
+  "testCases": [
+    "the composer as a checkout step keeps typed 51 visible, refuses it, then sends the explicitly corrected 50",
+    "the composer as a checkout step keeps a draft visible when fewer places remain and requires an explicit correction",
+    "steps an edited application and sends exactly that headcount with its preserved interval",
+    "does not send an edited headcount over the known task total even through a retained callback"
+  ],
+  "serverReadOnly": {
+    "submitMd5": "66aab6df0d625e24e0073c27bfe2aa91",
+    "selectMd5": "6a8fd871a60779bc438119b21a900dca",
+    "staleEditMd5": "9634b0333c3bd5dab208286f04d8e556",
+    "max": 50,
+    "totalRequiresAllSlots": true,
+    "write": false
+  },
+  "limits": [
+    "No new server application/selection or phone test in this package.",
+    "Current TOTAL pricing rule retained pending owner price decision.",
+    "No store or load-capacity acceptance."
+  ]
+}

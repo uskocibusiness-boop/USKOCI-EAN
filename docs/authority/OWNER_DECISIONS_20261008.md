@@ -59,3 +59,8 @@ Na zahtev da se obrišu stari zadaci, radni profili, Dogovori i obaveštenja, pr
 ### 09.10 — zaustavi30-minutno automatsko ponavljanje, nastavi tekući rad
 
 Vlasnik: „i ovaj zatak sot se na skvom 30m inuta ppanvlaj zasuravi ga a nastavidlaj iradk ao sam difnsaio“. Čitanje: pauzirati postojeću Codexheartbeat automatizaciju usko-i-kontinuirano-usavr-avanje; tekući rad naUSKOČI nastaviti po dosadašnjem obuhvatu. Tool je potvrdioPAUSED. Ne aktivirati je ponovo niti praviti zamenu bez nove vlasnikove naredbe. Ovo se ne odnosi na redovne serverske poslove aplikacije.
+
+
+### 09.10 — broj ljudi po prijavi i srazmerna ukupna cena
+
+Vlasnik traži početni broj1, minus/plus i direktan unos broja ljudi koje podnosilac obezbeđuje, uz nastavak UI/UX i emulator provera. Na konkretno pitanje9000RSD ukupno za3osobe izričito bira: „3.000 RSD za jednu osobu — srazmerna podela“. Time menja ranije pravilo TOTAL zahteva sve članove ekipe; obračun za novu prijavu treba da prati pokrivena mesta/ukupno traženih. Ne menja retroaktivno već sačuvane iznose i uslove Dogovora. Poseban slučaj nedeljivog iznosa u celim dinarima postavljen je kao kratko pitanje; odgovor se ne podrazumeva. Primena i APK tek posle usaglašenih server/klijent provera.

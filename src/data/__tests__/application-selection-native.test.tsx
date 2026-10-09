@@ -339,7 +339,7 @@ it('keeps offered price total and rejects trailing garbage or overfill', async (
   await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '4');
   // The capacity appears once beside the count; the button says how to fix an overfill.
   expect(review().props.disabled).toBe(true); expect(footReason()).toBe('Smanji broj ljudi na 3 da pregledaš prijavu.');
-  expect(text().split('Traži 3 osobe')).toHaveLength(2);
+  expect(text()).toContain('Možeš da prijaviš najviše 3.');
   await act(async () => review().props.onPress()); expect(press('Pošalji ovu prijavu')).toBeUndefined();
   await routeSubmit(); expect(mockSubmit).not.toHaveBeenCalled(); expect(mockStorage.size).toBe(0);
 });
@@ -576,16 +576,23 @@ it('prices a per-person task by the people this application brings', async () =>
   await sendOffer();
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 10000, pokrivenaMesta: 2, potrebaRevizija: 3 });
 });
-it('covers every place on a task whose price is for the whole task', async () => {
-  const total = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 18000, valuta: 'RSD', prikaz: '18.000 RSD' } };
+it('shares the task total by original headcount and sends the selected part', async () => {
+  const total = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'TOTAL', ponudjenaCena: { iznos: 9000, valuta: 'RSD', prikaz: '9.000 RSD' } };
   mockNeed.mockResolvedValue(total); mockTask.mockResolvedValue({ ...total, primaNovePrijave: true });
   await render();
-  expect(text()).toContain('18.000 RSD ukupno'); expect(text()).toContain('18.000 RSD za ceo zadatak');
+  expect(text()).toContain('3.000 RSD ukupno'); expect(text()).toContain('9.000 RSD za ceo zadatak');
   expect(text()).toContain('Traži 3 osobe');
-  expect(tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Koliko ljudi dolazi')).toHaveLength(0);
-  expect(text()).toContain('Dolaze 3 osobe'); expect(press('Jedna osoba više')).toBeUndefined();
+  const people = () => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Koliko ljudi dolazi')[0];
+  expect(people().props.value).toBe('1'); expect(people().props.editable).toBe(true);
+  await tap('Jedna osoba više'); expect(text()).toContain('6.000 RSD ukupno');
+  await tap('Jedna osoba više'); expect(text()).toContain('9.000 RSD ukupno');
+  await edit('Koliko ljudi dolazi', '2');
+  const fewer = { ...total, pokrivenost: { ukupno: 3, preostalo: 2, popunjeno: 1 } };
+  mockNeed.mockResolvedValue(fewer); mockTask.mockResolvedValue({ ...fewer, primaNovePrijave: true });
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(text()).toContain('6.000 RSD ukupno');
   await sendOffer();
-  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 18000, pokrivenaMesta: 3 });
+  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ cenaRsd: 6000, pokrivenaMesta: 2 });
 });
 it('rejects newly elapsed deadline on tap and exposes a fresh read, without dispatch', async () => {
   mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: '2020-01-01T00:00:00Z' });
@@ -753,6 +760,33 @@ describe('the composer as a checkout step', () => {
     await edit('Koliko ljudi dolazi', '0'); expect(footReason()).toBe('Upiši koliko ljudi dolazi.');
     await edit('Koliko ljudi dolazi', '2'); expect(step('Pregledaj prijavu').props.disabled).toBe(false);
     expect(mockSubmit).not.toHaveBeenCalled();
+  });
+  it('keeps typed 51 visible, refuses it, then sends the explicitly corrected 50', async () => {
+    const largeTask = { ...need(), pokrivenost: { ukupno: 50, preostalo: 50, popunjeno: 0 } };
+    mockNeed.mockResolvedValue(largeTask); mockTask.mockResolvedValue({ ...largeTask, primaNovePrijave: true });
+    await render();
+    expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('1');
+    await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500');
+    await edit('Koliko ljudi dolazi', '51');
+    expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('51');
+    expect(text()).toContain('Možeš da prijaviš najviše 50.');
+    expect(step('Pregledaj prijavu').props.disabled).toBe(true);
+    expect(step('Jedna osoba više').props.disabled).toBe(true);
+    await tap('Jedna osoba manje');
+    expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('50');
+    await sendOffer();
+    expect(mockSubmit.mock.calls[0][0]).toMatchObject({ pokrivenaMesta: 50, cenaRsd: 4500 });
+  });
+  it('keeps a draft visible when fewer places remain and requires an explicit correction', async () => {
+    await offer();
+    const fewer = { ...need(), pokrivenost: { ukupno: 3, preostalo: 1, popunjeno: 2 } };
+    mockNeed.mockResolvedValue(fewer); mockTask.mockResolvedValue({ ...fewer, primaNovePrijave: true });
+    mockFocused = false; await update(); mockFocused = true; await update();
+    expect(inputs('Koliko ljudi dolazi')[0].props.value).toBe('2');
+    expect(step('Pregledaj prijavu').props.disabled).toBe(true);
+    expect(text()).toContain('Možeš da prijaviš najviše 1.');
+    await tap('Jedna osoba manje'); await sendOffer();
+    expect(mockSubmit.mock.calls[0][0]).toMatchObject({ pokrivenaMesta: 1 });
   });
   it('the stepper starts again from one when the typed count is not a number, and steps down from too many', async () => {
     await render(); await edit('Koliko ljudi dolazi', 'abc');
