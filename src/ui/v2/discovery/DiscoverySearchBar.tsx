@@ -67,9 +67,10 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
       * chromeJoin(motion.sheetTop.value, motion.compactTop, motion.capsules);
     return { transform: [{ translateY: -collapse }] };
   });
-  return <View pointerEvents="box-none" style={s.bar}>
+  return <>
     {motion ? <Animated.View testID="discovery-chrome-backing" pointerEvents="none" accessible={false}
       style={[s.backing, { height: motion.compactTop + motion.capsules }, backing]} /> : null}
+    <View pointerEvents="box-none" style={s.bar}>
     <View testID="discovery-search-stack" pointerEvents="box-none" style={s.stack} onLayout={measure}>
       <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}
         onLayout={event => onSearchLayout?.(Math.ceil(BAR_TOP + event.nativeEvent.layout.y + event.nativeEvent.layout.height))}>
@@ -104,7 +105,7 @@ export function DiscoverySearchBar({ where, onSearch, onMore, onClearWhere, filt
       </View>
     </View>
     {below}
-  </View>;
+  </View></>;
 }
 
 /**
@@ -164,7 +165,7 @@ export function ForMeNotice({ message, entry, onEntry, onClose }: { message: str
 }
 
 const s = StyleSheet.create({
-  backing: { position: 'absolute', top: -BAR_TOP, left: 0, right: 0, backgroundColor: sys.color.surface },
+  backing: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: sys.color.surface },
   chipsClip: { overflow: 'hidden' },
   bar: { position: 'absolute', top: BAR_TOP, left: 0, right: 0, gap: sys.space.sm },
   // The pill and its row of capsules: 8 between them (the capsules carry 2 above and 8 below them for the lift of their shadow).

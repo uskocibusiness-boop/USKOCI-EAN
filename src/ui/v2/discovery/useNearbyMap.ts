@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, Platform } from 'react-native';
 import { createNearbyCapture, type NearbyStatus } from './nearbyCapture';
 import type { NearbyCameraTarget } from '../DiscoveryMap.types';
-import { loadNearbyLocation } from './nearbyLocation';
+import { loadNearbyLocation, traceNearby } from './nearbyLocation';
 import { askForLocation } from '../../permissions/locationPermission';
 
 export const NEARBY_COPY: Partial<Record<NearbyStatus, string>> = {
@@ -32,20 +32,20 @@ export function useNearbyMap(scopeKey: string, focused: boolean) {
     const owns = () => incarnation.current === owner && active && latest.current.focused && latest.current.scopeKey === scopeKey
       && AppState.currentState !== 'background';
     const controller = createNearbyCapture({
-      load: loadNearbyLocation, owns, onStatus: setStatus, beforePermission: askForLocation,
-      onPoint: point => { if (owns()) setLocated({ scopeKey, owner, target: { key: ++sequence.current, center: [point.longitude, point.latitude] },
+      load: loadNearbyLocation, owns, onStatus: status => { traceNearby?.(status); setStatus(status); }, beforePermission: askForLocation,
+      onPoint: point => { traceNearby?.('fix'); if (owns()) setLocated({ scopeKey, owner, target: { key: ++sequence.current, center: [point.longitude, point.latitude] },
         me: [point.longitude, point.latitude] }); },
     });
     capture.current = controller;
     setStatus('idle'); setLocated(null);
     const listener = AppState.addEventListener('change', next => {
       // Native permission dialogs may report inactive on iOS. Only leaving for the background retires the attempt.
-      if (next === 'background') {
+      if (next === 'background') { traceNearby?.('background');
         active = false; controller.cancel(); setStatus('idle'); setLocated(null); setForeground(false);
       } else if (next === 'active') { active = focused; setForeground(true); }
     });
     return () => {
-      active = false; controller.cancel(); listener.remove();
+      traceNearby?.('retired'); active = false; controller.cancel(); listener.remove();
       if (incarnation.current === owner) incarnation.current = null;
       if (capture.current === controller) capture.current = null;
     };
@@ -53,7 +53,7 @@ export function useNearbyMap(scopeKey: string, focused: boolean) {
   const start = () => {
     if (latest.current.scopeKey !== scopeKey || !latest.current.focused || !foreground || AppState.currentState === 'background') return false;
     if (Platform.OS === 'web') { setStatus('unsupported'); return false; }
-    return capture.current?.start() ?? false;
+    traceNearby?.('start'); return capture.current?.start() ?? false;
   };
   // Camera requests are commands, not a remembered location. A native map remount must restore its normal viewport,
   // never replay a previous Nearby command. Keep only the fact that a map was requested until its first region arrives.

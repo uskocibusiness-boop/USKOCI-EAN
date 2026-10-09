@@ -364,7 +364,7 @@ describe('Discovery V47: the words of the search', () => {
     expect(FILTER_WHEN.map(([, words]) => words)).toEqual(['Danas', 'Sutra', 'Ovaj vikend']);
     expect(QUICK_WHEN).toEqual(['today', 'weekend']);
     expect(FILTER_GROUP).toEqual({ when: 'Kada', where: 'Gde', amount: 'Iznos' });
-    expect(SEARCH_WORDS.what).toBe('Šta tražiš'); expect(SEARCH_WORDS.recent).toBe('Skorašnje pretrage');
+    expect(SEARCH_WORDS.what).toBe('Grad ili zadatak'); expect(SEARCH_WORDS.recent).toBe('Skorašnje pretrage');
   });
   // The row under the list's count (the owner's phone of 8 Oct 2026, "lak pristup zadacima koji nisu na mapi"): the number leads, in the right Serbian plural.
   it.each([[1, '1 nije na mapi'], [2, '2 nisu na mapi'], [4, '4 nisu na mapi'], [5, '5 nisu na mapi'], [11, '11 nisu na mapi'], [21, '21 nije na mapi'], [22, '22 nisu na mapi']])(

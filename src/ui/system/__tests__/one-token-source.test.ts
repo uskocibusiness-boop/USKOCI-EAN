@@ -183,7 +183,8 @@ it('the list sheet and the PeekSheet take their lift from sheetLift and spell no
   for (const [path, form] of [['src/ui/v2/discovery/DiscoveryListSheet.tsx', 'docked'], ['src/ui/system/PeekSheet.tsx', 'detached']]) {
     const source = read(path);
     expect(source).toMatch(new RegExp(`\\.\\.\\.sheetLift\\.${form}\\b`));
-    expect(withoutDockedFullLift(source, form)).not.toMatch(INLINE_SHEET_SHADOW);
+    // Documentation can name the native property; only declarations violate the token rule.
+    expect(withoutDockedFullLift(source.replace(/\/\*[\s\S]*?\*\//g, ''), form)).not.toMatch(INLINE_SHEET_SHADOW);
   }
 });
 

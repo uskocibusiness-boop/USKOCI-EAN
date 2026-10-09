@@ -409,7 +409,8 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     sheetCamera.current = { ...previous, detent };
     if (detent === undefined || previous.detent === undefined || status !== 'ready' || !owns() || !viewport || !frame
       || props.cameraLayoutReady === false || initialFitPending.current || serverMap?.selectedKey || props.selectedId || props.selectedPlace
-      || props.fitTo || props.centerNearby || pendingServerFocus.current || pendingFocus.current) { resetSheetCamera(); return; }
+      || props.fitTo || props.centerNearby || areaTimer.current !== null || (openedCluster.current && Date.now() - openedCluster.current.at <= CLUSTER_OPEN_MS)
+      || pendingServerFocus.current || pendingFocus.current) { resetSheetCamera(); return; }
     const baseZoom = previous.baseZoom ?? Math.min(18, (settledZoom.current ?? viewport.zoom) + sheetZoomOffset(previous.detent));
     const center = previous.center ?? viewport.center;
     sheetCamera.current = { detent, baseZoom, center };

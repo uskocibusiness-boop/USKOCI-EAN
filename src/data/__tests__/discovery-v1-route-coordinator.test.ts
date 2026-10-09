@@ -40,7 +40,8 @@ function harness(){
   if(request.mode==='MAP')return map(request.bounds);
   if(request.mode==='PLACES')return places();
   if(request.mode==='EXACT_PUBLIC')return exact();
-  return page(request.limit===1?19:12);
+  // The server count follows the search, never the page size (suggestions now read five rows).
+  return page(request.filter.text==='nov'?19:12);
  });
  const relations=jest.fn(async(ids:readonly string[])=>taskRelationIndex([],ids));
  const overlay={relations,profile:jest.fn(async()=>null),urgencies:jest.fn(async()=>new Map())};
@@ -85,6 +86,8 @@ it('search preview is separate from displayed session and uses exact server coun
  expect(result.kind).toBe('applied');expect(route.snapshot().search).toMatchObject({status:'ready',count:19,everywhere:12,inMapArea:7});
  expect(route.snapshot().screen.items.map(x=>x.id)).toEqual(before);
  expect(h.calls.slice(-2).map(x=>x.mode)).toEqual(['PAGE','PLACES']);
+ expect(h.calls.at(-2)).toMatchObject({mode:'PAGE',limit:5,filter:{text:'nov'}});
+ expect(route.snapshot().search.tasks).toHaveLength(1); // count 19 is authoritative, not suggestion length
 });
 
 it('TASK selection uses exact public read and coordinator owns selected marker key',async()=>{
@@ -110,7 +113,7 @@ it('retire is terminal for route screen overlay and search owners',async()=>{
 
 it('coordinator snapshot feeds the real presentation bridge including authoritative search seam',async()=>{
  const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);await route.open(view());
- await route.previewSearch({query:'',place:null,area:null,pinPlace:null,when:'any',dates:null,where:'any',places:1,price:'all'},[19,44,21,46],5);
+ await route.previewSearch({query:'nov',place:null,area:null,pinPlace:null,when:'any',dates:null,where:'any',places:1,price:'all'},[19,44,21,46],5);
  const state=route.snapshot(),actions:DiscoveryV1PresentationActions={
   onSelectMarker:jest.fn(),onArea:jest.fn(),onClearPeek:jest.fn(),onShowPlace:jest.fn(),onShowAll:jest.fn(),onNextPage:jest.fn(),
   onSearchDraft:jest.fn(),onNextSearchPlaces:jest.fn(),

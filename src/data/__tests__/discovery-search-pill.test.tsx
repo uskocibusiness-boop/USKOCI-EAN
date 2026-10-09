@@ -1,3 +1,4 @@
+import { chromeJoin, capsuleCollapse } from '../../ui/v2/discovery/discoveryChrome';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -51,7 +52,7 @@ test('with nothing searched the pill is a place to start, quiet, and it claims n
   const words = summary.findAllByType('T' as React.ElementType);
   expect(words.map(text => text.children)).toEqual([[SEARCH_PLACEHOLDER]]);
   // the two things a search is, the one thing the pill opens (the approved plan, U1)
-  expect(SEARCH_PLACEHOLDER).toBe('Šta tražiš · Gde');
+  expect(SEARCH_PLACEHOLDER).toBe('Grad ili zadatak');
   expect(words[0].props).toMatchObject({ variant: 'body', tone: 'muted' });
   // the placeholder is not "Svi zadaci": the capsules and the count say which tasks the list is about
   expect(words[0].children).not.toContain('Svi zadaci');
@@ -112,7 +113,10 @@ test('the capsules stand under the pill and the button, inside what is measured;
   // pill and button, then capsules, in the measured stack; the notice is a sibling after it
   expect(stack.children.indexOf(rowOfPill as never)).toBe(0);
   expect(stack.findAllByProps({ testID: 'the-capsules' })).toHaveLength(1);
-  expect(stack.children.indexOf(stack.findByProps({ testID: 'the-capsules' }) as never)).toBe(1);
+  const collapsing = stack.findByProps({ testID: 'discovery-collapsing-chips' });
+  expect(collapsing.findAllByProps({ testID: 'the-capsules' })).toHaveLength(1);
+  expect(stack.children.indexOf(collapsing.parent as never)).toBe(1);
+  expect(StyleSheet.flatten(collapsing.parent!.props.style).overflow).toBe('hidden');
   expect(stack.findAllByProps({ testID: 'nearby-notice' })).toHaveLength(0);
   const bar = stack.parent!;
   expect(bar.children.indexOf(stack as never)).toBeLessThan(bar.children.findIndex(child => typeof child !== 'string' && child.type === NearbyNotice));
@@ -171,4 +175,19 @@ test('"Moja lokacija" says why it could not help in a quiet live line, with the 
   expect(settings).toHaveBeenCalledTimes(1);
   await act(async () => tree.update(<NearbyNotice message="Tražimo tvoju lokaciju…" />));
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Podešavanja lokacije' })).toHaveLength(0);
+});
+
+test('fractional native stops fully join paint and hide capsules within the final layout dp', () => {
+  expect(chromeJoin(72.2, 72, 66)).toBe(1);
+  expect(capsuleCollapse(65.8, 66)).toBe(66);
+  expect(chromeJoin(74, 72, 66)).toBeLessThan(1);
+  expect(capsuleCollapse(64, 66)).toBe(64);
+});
+test('FULL white backing starts at map top outside the offset search bar', async () => {
+  await render({ motion: { sheetTop: { value: 72 } as never, offset: { value: 66 } as never, compactTop: 72, capsules: 66, hidden: true }, chips: <React.Fragment /> });
+  const backing = tree.root.findByProps({ testID: 'discovery-chrome-backing' });
+  expect(StyleSheet.flatten(backing.props.style).top).toBe(0);
+  const stack = tree.root.findByProps({ testID: 'discovery-search-stack' });
+  expect(stack.parent!.findAllByProps({ testID: 'discovery-chrome-backing' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'discovery-collapsing-chips' }).props.importantForAccessibility).toBe('no-hide-descendants');
 });

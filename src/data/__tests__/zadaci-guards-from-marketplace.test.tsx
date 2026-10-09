@@ -61,7 +61,7 @@ const showAction = () => tree.root.findAllByType('Action' as React.ElementType).
 // The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4).
 const search = async (words: string) => {
   await tap('Pretraži zadatke');
-  await act(async () => press('Šta tražiš').props.onChangeText(words));
+  await act(async () => press('Grad ili zadatak').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
 // The one primary action is the element whose own surface is the brand surface (last style wins, as in React Native).
@@ -121,7 +121,9 @@ test('reduced motion opens search at once; Nearby waits for its own tap and no d
   expect(loadNearbyLocation).not.toHaveBeenCalled();
   await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
   expect(loadNearbyLocation).not.toHaveBeenCalled(); // applying a search asks nothing of the phone
-  expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|km od|geocod/i);
+  // Inspect user-visible words, not animated refs/React owners (which are cyclic).
+  const labels = tree.root.findAll(() => true).flatMap(node => [node.props.accessibilityLabel, node.props.accessibilityHint, node.props.accessibilityValue?.text]).filter(value => typeof value === 'string').join(' ');
+  expect(texts() + ' ' + labels).not.toMatch(/GPS|km od|geocod/i);
 });
 
 // From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.

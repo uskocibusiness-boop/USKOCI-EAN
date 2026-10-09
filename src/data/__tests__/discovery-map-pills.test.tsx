@@ -1046,6 +1046,7 @@ test('ten list cycles return to the same zoom and center, without changing the l
   }
   expect(mockEase).toHaveBeenCalledTimes(20); expect(search).not.toHaveBeenCalled();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...saved, center: [19.8, 45.2], zoom: 15, userInteraction: true } }));
+  await act(async () => jest.advanceTimersByTime(450)); // The user's area update finishes before decorative camera motion.
   listDetent.value = 1; await update();
   expect(mockEase).toHaveBeenLastCalledWith(expect.objectContaining({ center: [19.8, 45.2], zoom: 14.45 }));
 });
@@ -1074,4 +1075,29 @@ test('a P6 map restored with its saved viewport reports the region it settles in
   await render(); await measureFrame(800); await ready();
   await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...saved, userInteraction: false } }));
   expect(onViewportSettled).not.toHaveBeenCalled();
+});
+
+test('a late PEEK detent cannot overwrite a consumed Nearby flight before the native region settles', async () => {
+  const listDetent = { value: 1 }, saved = { center: [20.4, 44.8], zoom: 16, bounds: [20.3, 44.7, 20.5, 44.9] };
+  const consumed = jest.fn();
+  extra = { viewport: saved, listDetent, onNearbyConsumed: consumed };
+  await render(); await measureFrame(); await ready(); mockEase.mockClear(); mockFit.mockClear();
+  extra = { ...extra, centerNearby: { key: 8, center: [19.83, 45.25] } }; await update();
+  expect(consumed).toHaveBeenCalledWith(8); expect(mockFit).toHaveBeenCalledTimes(1);
+  extra = { ...extra, centerNearby: null }; listDetent.value = 0; await update();
+  expect(mockEase).not.toHaveBeenCalled();
+});
+
+test('Nearby list refresh survives a late PEEK detent after region settle and before its debounce', async () => {
+  const listDetent = { value: 1 }, saved = { center: [20.4, 44.8], zoom: 16, bounds: [20.3, 44.7, 20.5, 44.9] };
+  extra = { viewport: saved, listDetent };
+  await render(); await measureFrame(); await ready(); mockEase.mockClear(); mockFit.mockClear();
+  extra = { ...extra, centerNearby: { key: 9, center: [19.83, 45.25] } }; await update();
+  const target = mockFit.mock.calls[0][0];
+  extra = { ...extra, centerNearby: null }; await update();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 12, bounds: target, userInteraction: false } }));
+  listDetent.value = 0; await update();
+  expect(mockEase).not.toHaveBeenCalled();
+  await act(async () => jest.advanceTimersByTime(450));
+  expect(search).toHaveBeenCalledTimes(1); expect(search.mock.calls[0][1]).toEqual(target);
 });

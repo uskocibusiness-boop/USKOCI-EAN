@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { discoveryV1Opportunity } from '../../../data/discoveryV1MarketplaceAdapter';
-import { Keyboard, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, ScrollView, StyleSheet, View, type TextInput, useWindowDimensions } from 'react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount, workMode,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { DISCOVERY_V1_PLACES_BY_CITY, discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot, type SearchPreviewView } from '../../../data/discoveryV1SearchOwner';
@@ -132,6 +132,12 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const [leaving] = useState({ value: false });
   const chosenTask = useRef<{ item: MarketplaceItem; key: string } | null>(null);
   const alive = useRef(true);
+  const searchInput = useRef<TextInput | null>(null), shownOnce = useRef(false);
+  // Android must own the Modal window before requesting the keyboard. An early autoFocus only places the cursor.
+  const focusSearch = () => {
+    if (!alive.current || leaving.value || shownOnce.current || mode !== 'search') return;
+    shownOnce.current = true; searchInput.current?.focus();
+  };
   useEffect(() => { alive.current = true; return () => { alive.current = false; chosenTask.current = null; }; }, []);
   const taskState = useRef({ serverKey, serverCurrent, p6Search, onOpenTask });
   taskState.current = { serverKey, serverCurrent, p6Search, onOpenTask };
@@ -231,13 +237,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     const header = <View style={s.searchHeader}>
       <ChromeIconButton glyph="back" label="Zatvori pretragu" hint="Lista ostaje kakva je bila." quiet onPress={onCloseButton} />
       <View style={s.grow}>
-        <SearchField testID="search-what-field" autoFocus value={draft.query} onChangeText={query => {
+        <SearchField testID="search-what-field" inputRef={searchInput} value={draft.query} onChangeText={query => {
           setTyping(true); setWithin(''); if (!query) setCommittedQuery(''); edit({ query });
         }} label={SEARCH_WORDS.what}
           placeholder={SEARCH_WORDS.whatPlaceholder} clearLabel="Obriši reč" returnKeyType="search" onSubmit={() => { if (!show.disabled) apply(); }} />
       </View>
     </View>;
-    return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header}
+    return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header} onShown={focusSearch}
       title={SEARCH_WORDS.searchTitle} closeLabel="Zatvori pretragu" closeHint="Lista ostaje kakva je bila."
       footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={closed}>
       <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>

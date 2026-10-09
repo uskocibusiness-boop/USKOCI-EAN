@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
@@ -31,13 +32,13 @@ export function Choice<K extends string>({ label, options, value, compact = fals
  * The system's one text field, with the search glass before it and a clear button in it. The glass is a hint of what the
  * field does; the field's name is its `label`, spoken, and its placeholder is only the example.
  */
-export function SearchField({ value, onChangeText, label, placeholder, clearLabel, returnKeyType, onSubmit, testID, autoFocus = false, maxLength = 1000 }: {
+export function SearchField({ value, onChangeText, label, placeholder, clearLabel, returnKeyType, onSubmit, testID, inputRef, autoFocus = false, maxLength = 1000 }: {
   value: string; onChangeText: (text: string) => void; label: string; placeholder: string; clearLabel: string;
-  returnKeyType?: TextInputProps['returnKeyType']; onSubmit?: () => void; testID?: string; autoFocus?: boolean; maxLength?: number;
+  returnKeyType?: TextInputProps['returnKeyType']; onSubmit?: () => void; testID?: string; inputRef?: Ref<TextInput>; autoFocus?: boolean; maxLength?: number;
 }) {
   return <View style={s.field}>
     <Glyph name="search" tone="muted" />
-    <TextInput testID={testID} accessibilityLabel={label} placeholder={placeholder} placeholderTextColor={sys.color.muted}
+    <TextInput ref={inputRef} testID={testID} accessibilityLabel={label} placeholder={placeholder} placeholderTextColor={sys.color.muted}
       value={value} onChangeText={text => onChangeText(text.slice(0, maxLength))} maxLength={maxLength} style={s.input}
       multiline={false} numberOfLines={1} returnKeyType={returnKeyType} onSubmitEditing={onSubmit} autoFocus={autoFocus} />
     {value ? <Press accessibilityRole="button" accessibilityLabel={clearLabel} haptic="select" hitSlop={0} style={s.clear}

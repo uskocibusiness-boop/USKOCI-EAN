@@ -46,7 +46,7 @@ const easeOut = Easing.bezier(...sys.motion.easeOut);
  * unmount it. Android Back calls `onRequestClose`; a tap on the strip of screen above a sheet does what the × does (`onCloseButton`).
  */
 export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, closeLabel, closeHint, footer, ratio = SHEET_RATIO, screen = false, header,
-  onCloseButton, onRequestClose, onClosed, children }: {
+  onCloseButton, onRequestClose, onClosed, onShown, children }: {
   reduced: boolean; backdrop: BackdropKind; blurTarget?: RefObject<View | null>;
   closing: boolean;
   title: string; closeLabel: string; closeHint: string;
@@ -54,7 +54,7 @@ export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, clo
   /** How much of the screen a sheet rests at. */ ratio?: number;
   /** The whole window, behind the status bar: no backdrop, no corners, no strip of the screen behind. */ screen?: boolean;
   /** The first row, instead of the title and its close button (a `screen` has its own: the way back and the field). */ header?: ReactNode;
-  onCloseButton: () => void; onRequestClose: () => void; onClosed: () => void;
+  onCloseButton: () => void; onRequestClose: () => void; onClosed: () => void; onShown?: () => void;
   children: ReactNode;
 }) {
   const { height: windowHeight } = useWindowDimensions();
@@ -109,7 +109,7 @@ export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, clo
 
   const corner = screen ? 0 : sys.radius.sheet;
 
-  return <Modal visible transparent hardwareAccelerated animationType="none" statusBarTranslucent onRequestClose={onRequestClose}>
+  return <Modal visible transparent hardwareAccelerated animationType="none" statusBarTranslucent onShow={onShown} onRequestClose={onRequestClose}>
     <View testID="search-root" style={s.root} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setMeasured(next); }}>
       {screen ? null : <SearchBackdrop kind={backdrop} blurTarget={blurTarget} fade={fade} onPress={onCloseButton} />}
       {/* The footer rides above the keyboard while words are typed (the app's own keyboard rule). */}

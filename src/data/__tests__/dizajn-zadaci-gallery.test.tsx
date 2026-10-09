@@ -114,7 +114,7 @@ describe('the map and the list', () => {
 describe('the search and the filters', () => {
   test('pretraga is the search that fills the screen: the field, the cities with their counts and what was searched before, and none of the filters', async () => {
     await render({ scene: 'pretraga' });
-    expect(labels()).toContain('Zatvori pretragu'); expect(labels()).toContain('Šta tražiš');
+    expect(labels()).toContain('Zatvori pretragu'); expect(labels()).toContain('Grad ili zadatak');
     expect(texts()).toContain('Skorašnje pretrage');
     expect(labels()).toContain('Novi Sad, 23 zadatka'); expect(labels()).toContain('Na daljinu');
     expect(texts()).not.toMatch(/Kada|Iznos/);

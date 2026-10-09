@@ -184,7 +184,7 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(byId('search-sheet').props).toMatchObject({ accessibilityViewIsModal: true, accessibilityLabel: 'Pretraga' });
     const header = byId('search-header');
     expect(header.findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel)).toContain('Zatvori pretragu');
-    expect(whatField().props).toMatchObject({ accessibilityLabel: 'Grad ili zadatak', placeholder: 'Grad ili naziv zadatka', autoFocus: true, returnKeyType: 'search' });
+    expect(whatField().props).toMatchObject({ accessibilityLabel: 'Grad ili zadatak', placeholder: 'Grad ili naziv zadatka', autoFocus: false, returnKeyType: 'search' });
     expect(texts()).toContain('Mesta');
     expect(byLabel('Zatvori pretragu')).toHaveLength(1); expect(byLabel('Zatvori filtere')).toHaveLength(0);
     // the filters are the round button's: no days, no amount, no way of working here
@@ -872,4 +872,32 @@ describe('the parts of the panel', () => {
     expect(byId('search-footer-reason').children.join('')).toBe('Pokušaj sa širom oblašću ili drugim danom.');
     expect(show().props.disabled).toBe(true);
   });
+});
+
+// HONOR 2026-10-09: premature autoFocus drew a cursor without opening the keyboard.
+it('focuses search once after the native Modal is shown and never after closing or unmount', async () => {
+  mode = 'search';
+  const focus = jest.fn();
+  await act(async () => { tree = create(panelOf(), { createNodeMock: element => (element.props as { testID?: string }).testID === 'search-what-field' ? { focus } : null }); });
+  const onShow = tree.root.findByType('Modal' as React.ElementType).props.onShow;
+  expect(focus).not.toHaveBeenCalled();
+  await act(async () => onShow());
+  expect(focus).toHaveBeenCalledTimes(1);
+  await act(async () => onShow());
+  expect(focus).toHaveBeenCalledTimes(1);
+  await act(async () => tree.unmount());
+  await act(async () => onShow());
+  expect(focus).toHaveBeenCalledTimes(1);
+});
+it('a late native shown event cannot reopen the keyboard after search close', async () => {
+  mode = 'search'; const focus = jest.fn();
+  await act(async () => { tree = create(panelOf(), { createNodeMock: element => (element.props as { testID?: string }).testID === 'search-what-field' ? { focus } : null }); });
+  const onShow = tree.root.findByType('Modal' as React.ElementType).props.onShow;
+  await tap('Zatvori pretragu');
+  await act(async () => onShow());
+  expect(focus).not.toHaveBeenCalled();
+});
+it('filters never request the search keyboard when the native Modal appears', async () => {
+  mode = 'filters'; await render();
+  expect(tree.root.findByType('Modal' as React.ElementType).props.onShow).toBeUndefined();
 });
