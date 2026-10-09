@@ -1,0 +1,52 @@
+{
+  "state": "LOCAL_SQL_BEHAVIOR_AND_CANCEL_RACE_PASS_NOT_DEPLOYED",
+  "candidateSha256": "0a295c777c59def4dedc7473b6262df789db22658821f9bb202081ad5c3368a6",
+  "source": "supabase/proofs/push_opportunity/README.md",
+  "serial": {
+    "receipt": "serial.json",
+    "markers": 33,
+    "negativeDriftCases": 26,
+    "strictShapeCases": 22,
+    "actualSqlRoleCases": 15,
+    "messageDifferentialRoles": 2,
+    "restoredTableCount": 127,
+    "definitionMetadataRowsAndSequenceObservationsRestored": true
+  },
+  "race": {
+    "receipt": "cancel-race.json",
+    "connections": 2,
+    "readOnlyObservers": 1,
+    "cancelFirst": "SUPPRESSED/sendCount0",
+    "beginFirst": "SEND_STARTED/sendCount1",
+    "blockingObserved": true,
+    "createdClonesRemoved": true
+  },
+  "ownerSelectedTarget": {
+    "observedAt": "2026-10-09T13:48:52.095347+00:00",
+    "accountAlias": "uskocibusiness",
+    "activeBoundDeviceRows": 1,
+    "workerStatus": "DRAFT",
+    "cityEmpty": true,
+    "skillsEmpty": true,
+    "availableNow": false,
+    "changesMade": false
+  },
+  "externalEffects": {
+    "providerCalls": 0,
+    "httpTestCalls": 0,
+    "devMutations": 0,
+    "newPhoneDelivery": false
+  },
+  "failureHistory": [
+    "Earlier negative fixture failed remaining-search lifecycle guard; corrected fixture GUC, no business guard removed.",
+    "First race attempt failed because cloned audit identity sequence lagged restored rows; failed clone removed and synchronization limited to each newly created clone.",
+    "Runner construction errors (placeholder replacement, snapshot quoting, argument shadowing) corrected before the exact final passing receipts; no earlier failed run treated as PASS."
+  ],
+  "limits": [
+    "Full108closure/certificate proof and post-admission rollback policy remain incomplete; candidate not promoted.",
+    "Actual Supabase HTTP/Auth, provider, new-task phone delivery and all notification categories not proven.",
+    "Profile/preference/calendar/time-boundary and full-capacity selection races remain open.",
+    "No store readiness or user-capacity claim; zero HTTP/provider load.",
+    "Thirty-minute automation remains paused."
+  ]
+}

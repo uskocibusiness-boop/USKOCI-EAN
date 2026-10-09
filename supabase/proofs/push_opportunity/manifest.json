@@ -1,0 +1,18 @@
+{
+  "state": "CANDIDATE_ONLY_NOT_PROMOTABLE",
+  "baselineSha256": "4c385a01c49a8cc485f06a7c363b1ad2b79a48b64e56d64f3c6500aaaa6450c9",
+  "candidateSha256": "0a295c777c59def4dedc7473b6262df789db22658821f9bb202081ad5c3368a6",
+  "sourceBodyMd5": {
+    "private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamp with time zone,timestamp with time zone)": "5c3ff77eae79eeaf043298fb91490577",
+    "rpc_begin_push_send(uuid,uuid)": "0de54bdd7ddcea92dfa697ade808155f"
+  },
+  "candidateBodyMd5": {
+    "private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamp with time zone,timestamp with time zone)": "c7241b091b7085724fd332a02ba0a3a9",
+    "rpc_begin_push_send(uuid,uuid)": "88998745a7402cebc3cd4560bd2e044d"
+  },
+  "limits": [
+    "Two existing functions and one CHECK; no grants, schedules, flags, profile or events changed.",
+    "Full closure digest changes; exact recertification and post-admission rollback policy are not part of this behavioral candidate.",
+    "No provider or physical delivery proof."
+  ]
+}

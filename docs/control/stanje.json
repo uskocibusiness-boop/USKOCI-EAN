@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T13:20:12Z",
+  "osvezeno": "2026-10-09T13:58:49Z",
   "grana": "integration/spoj-20261006",
-  "head": "b52f6704",
-  "head_poruka": "Polish task review and map sources with verified publication evidence",
+  "head": "7bdeb124",
+  "head_poruka": "Record verified b52 APK delivery and bounded native and SQL results",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2963,6 +2963,13 @@
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/review-map-finish-20261009/deployed-native-phone.json",
    "result": "Edge60 six-file byte equality and unchanged ledger/certificate; b52 emulator known1 and nested map Back PASS. Signed ARM64 private test APK delivered. Map native text, finish-only provider, phone acceptance and store remain open.",
    "phoneTargetEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/review-map-finish-20261009/phone-target-status.json"
+  },
+  "push_opportunity_local_20261009": {
+   "state": "LOCAL_SQL_BEHAVIOR_AND_CANCEL_RACE_PASS_NOT_DEPLOYED",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-opportunity-local-20261009/receipt.json",
+   "result": "Natural local matching/emitter plus baseline refusal/candidate single SEND;33required markers including26drift,22shape,15SQL-role cases and MESSAGE differential both roles.127table rollback comparison. Two actual connections: cancel-first suppresses, begin-first permits at most1 SEND; clones removed.",
+   "limits": "Partial Auth/Storage clone; no full108certificate/provider/phone or capacity claim. Worker on owner-selected phone account remains DRAFT/empty. No DEV mutations.",
+   "next": "Complete faithful108certificate surface and rebind/revert policy, then one natural opportunity to the active owner-selected worker/device. Keep global queue disabled."
   }
  },
  "redovi": [
@@ -9322,8 +9329,8 @@
    },
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
-   "problem": "One actual MESSAGE_RECEIVED path completed: provider accepted, send_count1, owner confirmed phone arrival and correct conversation. All3flagsOFF. Automatic all-category/group push, independent native runtime identity and full-store gates remain open.",
-   "sledece": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND.",
+   "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. New OPPORTUNITY path now has local matching, transport, ACL and cancellation-race proof but is NOT DEPLOYED: full108certificate and post-admission rollback remain open. Selected phone worker is still DRAFT/empty. All-category/group/automatic push and store remain unproven.",
+   "sledece": "Complete faithful108certificate surface and rebind/revert policy, then one natural opportunity to the active owner-selected worker/device. Keep global queue disabled.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -9429,6 +9436,13 @@
      "phone": "Owner confirmed arrival and tap to intended conversation; runtime About unobserved.",
      "flags": "All3OFF; global never enabled; unrelated backlog unchanged.",
      "next": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND."
+    },
+    "opportunity_local_20261009": {
+     "state": "LOCAL_SQL_BEHAVIOR_AND_CANCEL_RACE_PASS_NOT_DEPLOYED",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-opportunity-local-20261009/receipt.json",
+     "result": "Natural local matching/emitter plus baseline refusal/candidate single SEND;33required markers including26drift,22shape,15SQL-role cases and MESSAGE differential both roles.127table rollback comparison. Two actual connections: cancel-first suppresses, begin-first permits at most1 SEND; clones removed.",
+     "limits": "Partial Auth/Storage clone; no full108certificate/provider/phone or capacity claim. Worker on owner-selected phone account remains DRAFT/empty. No DEV mutations.",
+     "next": "Complete faithful108certificate surface and rebind/revert policy, then one natural opportunity to the active owner-selected worker/device. Keep global queue disabled."
     }
    },
    "ukupno": "PROBLEM",

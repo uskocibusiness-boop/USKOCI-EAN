@@ -1,0 +1,44 @@
+{
+  "state": "LOCAL_TWO_CONNECTION_RACE_PASS",
+  "at": "2026-10-09T13:55:29.134278+00:00",
+  "candidateSha256": "0a295c777c59def4dedc7473b6262df789db22658821f9bb202081ad5c3368a6",
+  "harnessSha256": "53cfc80e4d455e6fb389e8e45d702845c914409db4e427d2734f78d87ff5df9c",
+  "providerCalls": 0,
+  "httpCalls": 0,
+  "cases": [
+    {
+      "order": "cancel_first",
+      "state": "PASS",
+      "database": "uskoci_proof_opportunity_b1237137_cancel_first",
+      "clonedAuditSequenceSynchronized": true,
+      "waitingLockObserved": true,
+      "beginKind": "SUPPRESSED",
+      "attempt": {
+        "state": "SUPPRESSED",
+        "sendCount": 0,
+        "needStatus": "CANCELLED"
+      },
+      "isolatedCloneRemoved": true
+    },
+    {
+      "order": "begin_first",
+      "state": "PASS",
+      "database": "uskoci_proof_opportunity_b1237137_begin_first",
+      "clonedAuditSequenceSynchronized": true,
+      "waitingLockObserved": true,
+      "beginKind": "SEND",
+      "attempt": {
+        "state": "SEND_STARTED",
+        "sendCount": 1,
+        "needStatus": "CANCELLED"
+      },
+      "isolatedCloneRemoved": true
+    }
+  ],
+  "fixtureSqlSha256": "5e19aa8b83027387a0844b298bb3e7d0518893a0eac1caf0915270647e30e530",
+  "limits": [
+    "Two actual PostgreSQL connections plus an observer, not HTTP or provider capacity.",
+    "Actual rpc_cancel_need with JWT GUC and service-role begin in partial Auth clone.",
+    "No profile/preferences/time-boundary races, full-capacity selection or closure-certificate proof."
+  ]
+}

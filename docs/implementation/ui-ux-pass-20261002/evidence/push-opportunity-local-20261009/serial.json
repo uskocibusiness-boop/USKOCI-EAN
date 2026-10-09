@@ -1,0 +1,174 @@
+{
+  "state": "LOCAL_BEHAVIOR_PASS",
+  "at": "2026-10-09T13:48:37.189858+00:00",
+  "target": "127.0.0.1:55439/uskoci_plan_cache_20261009",
+  "candidateSha256": "0a295c777c59def4dedc7473b6262df789db22658821f9bb202081ad5c3368a6",
+  "sqlSha256": "5e19aa8b83027387a0844b298bb3e7d0518893a0eac1caf0915270647e30e530",
+  "providerCalls": 0,
+  "httpCalls": 0,
+  "harnessSha256": "c0ed675bee04a096e7d04d37268aabf7fbe94148614aa1b6bd3c39c5408f5fef",
+  "sqlRoleInventory": [
+    {
+      "role": "anon",
+      "execute": false,
+      "signature": "private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamp with time zone,timestamp with time zone)",
+      "schemaUsage": false
+    },
+    {
+      "role": "anon",
+      "execute": false,
+      "signature": "rpc_begin_push_send(uuid,uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "anon",
+      "execute": false,
+      "signature": "rpc_claim_push_single_target(uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "anon",
+      "execute": false,
+      "signature": "rpc_claim_push_single_target_receipt(uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "authenticated",
+      "execute": false,
+      "signature": "private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamp with time zone,timestamp with time zone)",
+      "schemaUsage": false
+    },
+    {
+      "role": "authenticated",
+      "execute": false,
+      "signature": "rpc_begin_push_send(uuid,uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "authenticated",
+      "execute": false,
+      "signature": "rpc_claim_push_single_target(uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "authenticated",
+      "execute": false,
+      "signature": "rpc_claim_push_single_target_receipt(uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "service_role",
+      "execute": false,
+      "signature": "private.admit_push_single_target_v1(uuid,uuid,uuid,text,uuid,uuid,uuid,bigint,uuid,timestamp with time zone,timestamp with time zone)",
+      "schemaUsage": false
+    },
+    {
+      "role": "service_role",
+      "execute": true,
+      "signature": "rpc_begin_push_send(uuid,uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "service_role",
+      "execute": true,
+      "signature": "rpc_claim_push_single_target(uuid)",
+      "schemaUsage": true
+    },
+    {
+      "role": "service_role",
+      "execute": true,
+      "signature": "rpc_claim_push_single_target_receipt(uuid)",
+      "schemaUsage": true
+    }
+  ],
+  "limits": [
+    "Actual PostgreSQL roles plus JWT GUC with synthetic Auth/session compatibility columns; not Supabase HTTP authentication.",
+    "No computed certificate/promotion acceptance.",
+    "All synthetic business setup and candidate DDL rolled back; no live DB calls.",
+    "Serial cases only; concurrent lock races and full capacity still pending. MESSAGE regression uses synthetic events, not natural chat business commands.",
+    "Worker matching uses statement_timestamp; no availability-clock-boundary acceptance."
+  ],
+  "sqlExit": 0,
+  "messages": "NOTICE:  NATURAL_MATCH_EMITTER_BASELINE_REJECTION_PASS\r\nNOTICE:  MESSAGE_BASELINE_BOTH_ROLES_PASS\r\nNOTICE:  FUNCTION_METADATA_PRESERVED_PASS\r\nNOTICE:  ACTUAL_SQL_ROLE_ACL_AND_BODY_GUARD_PASS\r\nNOTICE:  MESSAGE_DIFFERENTIAL_BOTH_ROLES_PASS\r\nNOTICE:  STRICT_SHAPE_MATRIX_PASS\r\nNOTICE:  NEGATIVE_ADMIT_OPPORTUNITY_SEEN_PASS\r\nNOTICE:  NEGATIVE_BEGIN_OPPORTUNITY_SEEN_PASS\r\nNOTICE:  NEGATIVE_ADMIT_OPPORTUNITY_EXPIRED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_OPPORTUNITY_EXPIRED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_NEED_REVISION_PASS\r\nNOTICE:  NEGATIVE_BEGIN_NEED_REVISION_PASS\r\nNOTICE:  NEGATIVE_ADMIT_REMAINING_SEARCH_CLOSED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_REMAINING_SEARCH_CLOSED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_NEED_CANCELLED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_NEED_CANCELLED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_SERVICE_CHANGED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_SERVICE_CHANGED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_PROACTIVE_DISABLED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_PROACTIVE_DISABLED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_DEVICE_REVOKED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_DEVICE_REVOKED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_DEVICE_REVISION_PASS\r\nNOTICE:  NEGATIVE_BEGIN_DEVICE_REVISION_PASS\r\nNOTICE:  NEGATIVE_ADMIT_SESSION_EXPIRED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_SESSION_EXPIRED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_CATEGORY_DISABLED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_CATEGORY_DISABLED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_DELIVERY_EXPIRED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_DELIVERY_EXPIRED_PASS\r\nNOTICE:  NEGATIVE_ADMIT_PROFILE_BINDING_CHANGED_PASS\r\nNOTICE:  NEGATIVE_BEGIN_PROFILE_BINDING_CHANGED_PASS\r\nNOTICE:  CANDIDATE_ADMIT_BEGIN_SINGLE_SEND_UNKNOWN_AND_EXPIRED_REPLAY_PASS\r\n",
+  "checks": [
+    "NATURAL_MATCH_EMITTER_BASELINE_REJECTION_PASS",
+    "MESSAGE_BASELINE_BOTH_ROLES_PASS",
+    "FUNCTION_METADATA_PRESERVED_PASS",
+    "ACTUAL_SQL_ROLE_ACL_AND_BODY_GUARD_PASS",
+    "MESSAGE_DIFFERENTIAL_BOTH_ROLES_PASS",
+    "STRICT_SHAPE_MATRIX_PASS",
+    "NEGATIVE_ADMIT_OPPORTUNITY_SEEN_PASS",
+    "NEGATIVE_BEGIN_OPPORTUNITY_SEEN_PASS",
+    "NEGATIVE_ADMIT_OPPORTUNITY_EXPIRED_PASS",
+    "NEGATIVE_BEGIN_OPPORTUNITY_EXPIRED_PASS",
+    "NEGATIVE_ADMIT_NEED_REVISION_PASS",
+    "NEGATIVE_BEGIN_NEED_REVISION_PASS",
+    "NEGATIVE_ADMIT_REMAINING_SEARCH_CLOSED_PASS",
+    "NEGATIVE_BEGIN_REMAINING_SEARCH_CLOSED_PASS",
+    "NEGATIVE_ADMIT_NEED_CANCELLED_PASS",
+    "NEGATIVE_BEGIN_NEED_CANCELLED_PASS",
+    "NEGATIVE_ADMIT_SERVICE_CHANGED_PASS",
+    "NEGATIVE_BEGIN_SERVICE_CHANGED_PASS",
+    "NEGATIVE_ADMIT_PROACTIVE_DISABLED_PASS",
+    "NEGATIVE_BEGIN_PROACTIVE_DISABLED_PASS",
+    "NEGATIVE_ADMIT_DEVICE_REVOKED_PASS",
+    "NEGATIVE_BEGIN_DEVICE_REVOKED_PASS",
+    "NEGATIVE_ADMIT_DEVICE_REVISION_PASS",
+    "NEGATIVE_BEGIN_DEVICE_REVISION_PASS",
+    "NEGATIVE_ADMIT_SESSION_EXPIRED_PASS",
+    "NEGATIVE_BEGIN_SESSION_EXPIRED_PASS",
+    "NEGATIVE_ADMIT_CATEGORY_DISABLED_PASS",
+    "NEGATIVE_BEGIN_CATEGORY_DISABLED_PASS",
+    "NEGATIVE_ADMIT_DELIVERY_EXPIRED_PASS",
+    "NEGATIVE_BEGIN_DELIVERY_EXPIRED_PASS",
+    "NEGATIVE_ADMIT_PROFILE_BINDING_CHANGED_PASS",
+    "NEGATIVE_BEGIN_PROFILE_BINDING_CHANGED_PASS",
+    "CANDIDATE_ADMIT_BEGIN_SINGLE_SEND_UNKNOWN_AND_EXPIRED_REPLAY_PASS"
+  ],
+  "expectedChecks": 33,
+  "shapeCases": 22,
+  "aclCases": 15,
+  "allChecksPresent": true,
+  "definitionsAndMetadataRestored": true,
+  "businessAndAuthRowsRestored": true,
+  "tableCount": 127,
+  "sequenceValuesBefore": [
+    {
+      "name": "private.marketplace_audit_log_id_seq",
+      "value": null
+    },
+    {
+      "name": "private.need_publication_decisions_decision_sequence_seq",
+      "value": null
+    },
+    {
+      "name": "private.support_cases_v5_case_number_seq",
+      "value": null
+    },
+    {
+      "name": "public.ai_messages_sequence_no_seq",
+      "value": null
+    }
+  ],
+  "sequenceValuesAfter": [
+    {
+      "name": "private.marketplace_audit_log_id_seq",
+      "value": null
+    },
+    {
+      "name": "private.need_publication_decisions_decision_sequence_seq",
+      "value": null
+    },
+    {
+      "name": "private.support_cases_v5_case_number_seq",
+      "value": null
+    },
+    {
+      "name": "public.ai_messages_sequence_no_seq",
+      "value": null
+    }
+  ],
+  "sequenceValuesUnchanged": true,
+  "exactRestoration": true,
+  "restorationScope": "Two pg_proc rows, CHECK, Auth user columns and all public/private/auth table row multisets. Sequences reported separately, not reset."
+}
