@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T01:12:28Z",
+  "osvezeno": "2026-10-09T01:13:14Z",
   "grana": "integration/spoj-20261006",
-  "head": "6c755dff",
-  "head_poruka": "merge: synchronize generated control views",
+  "head": "2e35be8e",
+  "head_poruka": "test: measure bounded concurrent discovery reads and record connected lifecycle proof",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
