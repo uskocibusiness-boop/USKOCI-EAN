@@ -84,7 +84,9 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: p.onRefresh }} /> : null}
     {group ? <>
-      <T variant="copy" tone="muted">Zajedničke poruke za koordinaciju zadatka. Cenu, lične uslove i probleme dogovori u svom privatnom Dogovoru.</T>
+      <T variant="note" tone="muted">{p.onPrivate
+        ? 'Cenu, lične uslove i probleme dogovori privatno.'
+        : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovori privatno.'}</T>
       {/* A finished conversation says so once, where the pill would be. */}
       {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
       {p.showPeople ? <View style={s.people}>
@@ -118,7 +120,7 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
     {/* New messages come on focus, after my own send or by pulling down, and a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}
-    {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" style={s.centred} onPress={p.onRefresh} /> : null}
+    {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={p.onRefresh} /> : null}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ScreenChrome variant="detail" title={group?.title ?? 'Grupni razgovor'} subtitle={group ? 'Grupni razgovor' : undefined}

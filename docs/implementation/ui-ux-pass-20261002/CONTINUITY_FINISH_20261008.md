@@ -313,3 +313,17 @@ Concurrency paket poslat na obe kanonske grane, source98ed64d2; jedan opt-in run
 Run 37869838906/source ea456e15 SUCCESS; stvarno pročitana attestacija, lokalni SHA i compiled package/ABI, isti fac61745… potpis. APK SHA `7f5e94b5d10bc625c6e8bec4944dd585d032e8ee50fbfa356eeed8ee6a7811a3`, rs.uskoci.dev/35/x86_64/OTAoff. `adb install -r` SUCCESS; installed base hash odgovara, UID10227 i prvi install ostali isti. Početna i Dogovori prikazuju postojeći prijavljeni drugi nalog bez prijave ili kopiranja tokena. Receipt: `evidence/native-emulator-ea456e15/receipt.json`.
 
 **NATIVE / OGRANIČENO:** interna 1:1 fixture na font1,15 zaista prikazuje inicijale i ime pošiljaoca na početku sačuvanih nizova, skrol starije istorije i povratak ka najnovijim. Fokus unosa otvorio je plutajuću IME traku, ne punu donju tastaturu; iz tog kadra nema keyboard-inset dokaza. Uočen sledeći konkretan nedostatak: niz neposlatih sopstvenih poruka posle tuđeg sačuvanog niza nema svoj avatar/ime. To ostaje za naredni ciljani zahvat, bez menjanja outbox/retry ugovora. Nisu poslate poruke ili promenjeni poslovni podaci. Ovaj APK ne sadrži još nove dorade kartica i grouped-list fixture.
+
+
+## Dopuna — identitet neposlatih poruka, posle native nalaza
+
+**URADIO:** prvi lokalni niz sada dobija ime/inicijale preko stvarnog accountId iz zadržane komande i postojećeg ovlašćenog spiska učesnika. Callback prima samo identitet, bez izmišljenog canonical ID-a, vremena ili potvrde. Uzastopni sopstveni niz ne duplira potpis; neučitana novija istorija (`hasNewer`) razdvaja nizove. Slanje, retry, poravnanje sa serverom, readACK i account zaštite ostaju isti.
+
+**VIZUELNA KRITIKA I REVIZIJA:** native grupni razgovor pokazuje veliku uvodnu poruku i naglašeno zeleno osvežavanje. Pomoćna rečenica sada kratko kaže da se cena, lični uslovi i problemi dogovaraju privatno, dok postojeći birač kanala kaže ko vidi poruke. Bez birača ostaje eksplicitna rečenica o svim učesnicima. Osvežavanje dobija neutralan manji tekst, uz isti dodirni prostor i radnju.
+
+**DOKAZAO / SOURCE:** 128 testova privatnog razgovora/thread-a/galerije i 38 grupnog ekrana/galerije PASS; završna TypeScript provera PASS. Pet granica identiteta, zamena lokalnog niza canonical porukom bez duplikata i stvarno ime/inicijali u fixture-u. Nezavisan pregled identity diff-a nema bloker. Native group fixture iz prethodnog ea456 APK-a pokazuje imena i inicijale uz sačuvane grupne nizove, ali ne dokazuje ove nove izmene.
+
+**NIJE DOKAZANO / SLEDEĆE:** objedinjena izgradnja treba da ponese kartice, grouped-list, lokalni identitet i mirniji grupni uvod. Poseban nalaz ostaje: grupa sa više sadržaja kreće od starijih poruka, bez politike praćenja poslednje poruke. Planirati početak na najnovijim uz očuvanje čitanja istorije, backfill-a, panela učesnika i actual-visibility ACK; ne dodavati bezuslovni scrollToEnd na svako osvežavanje. Ovo je sledeći ciljani paket, ne prepravljanje proverene isporuke.
+
+
+**Granica naredne scroll dorade:** read-only pregled kontrolera potvrđuje da refresh i readback posle slanja zamenjuju niz poslednjom stranicom, dok older prepend zadržava niz. Zato stari anchor može nestati iz novog autoritativnog čitanja; ne obećavati njegovo očuvanje i ne spajati tiho zastarele poruke. Native follow-latest mora imati scope/RAF zaštitu, prekinuti praćenje pri ručnom čitanju, poštovati panel učesnika i ostaviti ACK isključivo stvarnoj viewability proveri.

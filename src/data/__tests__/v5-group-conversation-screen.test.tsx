@@ -55,7 +55,7 @@ beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mockListeners.size).toBe(0);mockListeners.clear();});
 it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
- await render();expect(text()).toContain(message.body);expect(text()).toContain('svom privatnom Dogovoru');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
+ await render();expect(text()).toContain(message.body);expect(text()).toContain('Cenu, lične uslove i probleme dogovori privatno.');expect(text()).toContain('Ove poruke vide svi učesnici zadatka.');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
  expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Tvoji pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{

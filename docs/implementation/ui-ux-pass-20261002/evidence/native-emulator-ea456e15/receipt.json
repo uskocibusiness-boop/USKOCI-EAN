@@ -105,6 +105,19 @@
           "sha256": "24a165f51cd49ce1ca733b68cc883c70add984c7e993974a9e89754a7b9882f9"
         }
       }
+    },
+    {
+      "name": "group-fixture",
+      "files": {
+        "png": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-group-fixture.png",
+          "sha256": "bcf029a5e17fe65ec2c64199acc0022f3e5f736f191e8cca4bb2b8cf19fa1544"
+        },
+        "xml": {
+          "privatePath": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-ea456-group-fixture.xml",
+          "sha256": "dd7ab9f9f20b576e456730e0ea5b50f5d5048bc8c477a55c9de213aa978f5800"
+        }
+      }
     }
   ],
   "proved": [
@@ -112,13 +125,15 @@
     "Existing authenticated second account preserved.",
     "Live Home/Agreements read-only navigation visible.",
     "Internal1:1 fixture shows incoming and own initials/name at saved message run starts.",
-    "Older history scroll reveals identity rows and Latest messages return control."
+    "Older history scroll reveals identity rows and Latest messages return control.",
+    "Native group fixture displays initial sender identities and joins consecutive messages by same author."
   ],
   "notProved": [
     "New uncommitted card readability/grouped-list fixtures are absent from this APK.",
     "No live send or multi-person/group RLS proof.",
     "Focused input opened a floating IME toolbar, not full bottom keyboard; no keyboard-inset PASS from this capture.",
     "Pending outgoing run has no sender header; followup finding remains open.",
-    "Not release/store/push delivery acceptance."
+    "Not release/store/push delivery acceptance.",
+    "Long group fixture initially displays oldest visible messages; no follow-latest policy exists in current group FlatList. Separate followup needed."
   ]
 }

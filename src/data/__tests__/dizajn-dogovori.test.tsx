@@ -183,3 +183,13 @@ it('shows one task with separate accepted terms and expands the fourth collabora
   expect(people()).toHaveLength(4); expect(text()).toContain('Iva Petrović'); expect(text()).toContain('4.500 RSD');
   for (const reader of ['ProfilePhoto', 'AuthorizedPhoto', 'NeedPhotos']) expect(tree.root.findAllByType(reader as React.ElementType)).toHaveLength(0);
 });
+
+it('shows the existing account identity once for the new local outgoing run', async () => {
+  await open('chat');
+  const first = tree.root.findByProps({ testID: 'agreement-local-message-galerija-salje' });
+  const second = tree.root.findByProps({ testID: 'agreement-local-message-galerija-greska' });
+  const words = (node: typeof first) => node.findAllByType('T' as React.ElementType).flatMap(item => item.children.filter(word => typeof word === 'string'));
+  expect(words(first)).toEqual(expect.arrayContaining(['Ana Petrović', 'AP']));
+  expect(words(second)).not.toContain('Ana Petrović'); expect(words(second)).not.toContain('AP');
+  expect(tree.root.findAllByType('ProfilePhoto' as React.ElementType)).toHaveLength(0);
+});

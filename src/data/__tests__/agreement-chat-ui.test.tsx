@@ -93,15 +93,18 @@ describe('D03 actual message component', () => {
     await render({ state: { ...state, entries: [confirmed] }, hasNewer: true });
     expect(texts()).not.toContain('Stižem uskoro.');
     await act(async () => tree.unmount());
+    props.sender = identity => React.createElement('SenderIdentity', identity);
     await render(); // A new command can transition directly to confirmed in one batched render.
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, entries: [confirmed] }} />));
     // The newly confirmed send stands in its own bubble with the one check, until the read returns it.
     expect(texts()).toContain('Stižem uskoro.'); expect(localBubbles()).toHaveLength(1); expect(marks('Poslato')).toHaveLength(1);
+    expect(tree.root.findAllByType('SenderIdentity' as React.ElementType)).toHaveLength(1);
     const canonical = { id: messageId, telo: command.body, moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null,
       posiljalacAccountId: account, clientMessageId: command.clientMessageId };
     await act(async () => tree.update(<AgreementChat {...props} messages={[canonical]} state={{ ...state, entries: [confirmed] }} />));
     // The read's own row replaces it: one bubble with the text, no local copy.
     expect(localBubbles()).toHaveLength(0); expect(texts().split('Stižem uskoro.')).toHaveLength(2);
+    expect(tree.root.findAllByType('SenderIdentity' as React.ElementType)).toHaveLength(1);
     await act(async () => tree.update(<AgreementChat {...props} messages={[]} hasNewer state={{ ...state, entries: [confirmed] }} />));
     expect(texts()).not.toContain('Stižem uskoro.'); expect(localBubbles()).toHaveLength(0); expect(marks('Poslato')).toHaveLength(0);
     const unknown = { command: { ...command, clientMessageId: 'another_send_attempt' }, state: 'unknown' as const, persisted: true, attempt: 1 };

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T02:02:28Z",
+  "osvezeno": "2026-10-09T02:11:47Z",
   "grana": "integration/spoj-20261006",
-  "head": "0d3f5c82",
-  "head_poruka": "fix(ui): clarify application status and accepted agreement amounts",
+  "head": "4cc2eae0",
+  "head_poruka": "merge: refresh control projections after UI batch",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2411,6 +2411,15 @@
    "checks": "Four targeted suites:152 distinct tests PASS (two fixture-suite reruns after correcting assertions/coverage); TypeScript PASS. Existing token source checks PASS. Independent review corrected bilateral fixture covered_slots1, not task total4. Group mock now passes index and checks actual message bodies, sender initials/names and run boundaries.",
    "native": "Current installed phone6c and emulator build ea456 predate these source edits. New typography/grouped fixture is not yet native acceptance.",
    "next": "Finish checks and independent review, push coherent batch to both canonical branches; bundled native validation at font1.15 and1.3. Keep business navigation/RLS/provider tests separate."
+  },
+  "chat_pending_identity_20261009": {
+   "state": "SOURCE_VALIDATED / NATIVE_PENDING",
+   "finding": "Exact emulator ea456 native gallery: saved own/incoming runs show identity, first local outgoing run after incoming lacks it. Group copy/refresh competes with conversation.",
+   "implementation": "Identity-only sender callback from actual command.accountId and authorized participants; local first gets identity unless immediately adjoining own canonical run, with hasNewer gap separating runs. No fabricated canonical id/time/status. Group privacy helper shorter; audience already in channel selector, explicit fallback without it. Refresh neutral compact with same touch area and handler.",
+   "checks": "128 private-chat/thread/gallery cases +38 group-screen/gallery cases PASS; no double-count of prior batches. Independent identity diff review no blocker; exact final TypeScript PASS.",
+   "limits": "No outbox/RPC/retry/readACK/auth changes; new layout not installed. Group follow-latest/anchor behavior remains separate open finding.",
+   "next": "Finish exact source checks; canonical push and one combined emulator/phone build for grouped-list, card clarity, local identity and group helper. Native font1.15/1.3 and keyboard proof remain.",
+   "nextGroupScroll": "Separate native finding: chronological group FlatList has no initial/follow-latest policy. Controller refresh/send readback replaces loaded page, so preserve only still-authorized present anchors; no silent stale merge. Keep actual-viewability ACK, scope/RAF fences, manual Latest action and people-panel restore."
   }
  },
  "redovi": [

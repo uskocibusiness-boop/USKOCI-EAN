@@ -247,3 +247,26 @@ describe('the pill: plus, text, microphone (or send)', () => {
     expect(texts()).toContain('skrati poruku');
   });
 });
+
+
+describe('identity at the canonical and local run boundary', () => {
+  it.each([
+    ['incoming', false, false, false, true],
+    ['same sender', true, false, false, false],
+    ['unloaded newer window', true, true, false, true],
+    ['failed history read', true, false, true, true],
+    ['empty history', null, false, false, true],
+  ] as const)('%s gives the first local run its identity only when needed', async (_case, lastMine, hasNewer, error, expected) => {
+    const sender = jest.fn((identity: Parameters<NonNullable<typeof props.sender>>[0]) => React.createElement('SenderIdentity', identity));
+    const local = [entry('identity_send', 'sending'), entry('identity_failed', 'failed', { error: 'STORAGE_UNAVAILABLE' })];
+    await render({ messages: lastMine === null ? [] : [row(lastMine, 'Sačuvana poruka', at(0, 9))],
+      hasNewer, error, sender, state: { ...props.state, entries: local } });
+    const first = tree.root.findByProps({ testID: 'agreement-local-message-identity_send' });
+    const second = tree.root.findByProps({ testID: 'agreement-local-message-identity_failed' });
+    const identities = first.findAllByType('SenderIdentity' as React.ElementType);
+    expect(identities).toHaveLength(expected ? 1 : 0);
+    if (expected) expect(identities[0].props).toEqual({ moja: true, posiljalacAccountId: account });
+    expect(second.findAllByType('SenderIdentity' as React.ElementType)).toHaveLength(0);
+    expect(outbox.sendDraft).not.toHaveBeenCalled(); expect(outbox.retry).not.toHaveBeenCalled();
+  });
+});

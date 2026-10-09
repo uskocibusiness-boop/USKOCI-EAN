@@ -54,7 +54,8 @@ type Props = {
   support?: { canAct: () => boolean; navigate: (action: () => void) => void };
   /** The surrounding frame moves identity/accepted terms into history when the keyboard or text needs the space. */
   context?: ReactNode;
-  sender?: (message: ThreadMessage) => ReactNode;
+  /** Identity only: local outbox entries have no canonical id or timestamp yet. */
+  sender?: (message: Pick<ThreadMessage, 'moja' | 'posiljalacAccountId'> & Partial<Pick<ThreadMessage, 'posiljalacIme'>>) => ReactNode;
   compact?: boolean;
   readingPosition?: { current: AgreementReadingPosition };
   hasOlder?: boolean;
@@ -573,9 +574,12 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           const kind = entryMark(entry);
           const what = entry.command.body || (entry.command.voice ? 'glasovna poruka' : entry.command.photos ? 'fotografija' : 'poruka');
           const summary = { accessibilityRole: 'text' as const, accessibilityLabel: `Ti: ${what}, ${MARK_WORDS[kind].toLowerCase()}`, scaleTo: 1 as const };
-          const common = { mine: true, first: index === 0 ? !thread[thread.length - 1]?.message.moja : false, last: index === local.length - 1,
+          // An unloaded newer window separates this local run from the last visible canonical message.
+          const first = index === 0 && (hasNewer || !thread[thread.length - 1]?.message.moja);
+          const common = { mine: true, first, last: index === local.length - 1,
             afterSeparator: false, summary, failed, mark: failed ? null : <MessageMark kind={kind} live /> };
           return <View key={entry.command.clientMessageId} testID={`agreement-local-message-${entry.command.clientMessageId}`}>
+            {first && sender ? sender({ moja: true, posiljalacAccountId: entry.command.accountId }) : null}
             {entry.command.photos ? <PhotoBubble {...common} caption={entry.command.body || null}
               photos={entry.command.photos.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
                 agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
