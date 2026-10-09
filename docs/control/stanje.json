@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T08:30:48Z",
+  "osvezeno": "2026-10-09T09:47:22Z",
   "grana": "integration/spoj-20261006",
-  "head": "abf3dddb",
-  "head_poruka": "Integrate neutral push copy and record owner-confirmed phone delivery",
+  "head": "72c62da0",
+  "head_poruka": "Record terminal phone push proof and authorized reset preflight",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2845,12 +2845,20 @@
    "next": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND."
   },
   "owner_test_reset_20261009": {
-   "state": "AUTHORIZED_SCOPE / ENCRYPTED_SNAPSHOT_SAVED / RESET_NOT_APPLIED",
-   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/owner-test-reset-20261009/preflight.json",
+   "state": "DEV_BUSINESS_TEST_RESET_APPLIED_AND_VERIFIED",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/owner-test-reset-20261009/applied.json",
    "approval": "All5test accounts business data authorized; Auth/session/device preserved.",
-   "backup": "123tables/7314rows encrypted locally; decryption roundtrip PASS, DBrestore NOTPROVEN.",
-   "blocker": "Existing immutable guard graph needs named reset package; isolated restore environment unavailable (Vercel403, no localPG, knownCIbilling).",
-   "next": "Prepare named per-row owner-test-reset authority and complete isolated restore/apply/rollback proof. Preserve provider journals and immutable safeguards; no partial deletion before whole dependency plan is proven. Then reset approved five-account business cohort and run fresh AI worker profile/task/agreement/chat/push scenarios. Owner scope authorization already granted."
+   "backup": "Fresh123-table encrypted snapshot, exact plan and inverse retained privately; committed local inverse and final-byte source checks PASS.",
+   "blocker": null,
+   "next": "Native fresh worker-AI→task→agreement/chat flow, incorporating tested completed-conversation restart fix in next bundled APK.",
+   "localProof": "docs/implementation/ui-ux-pass-20261002/evidence/owner-test-reset-20261009/local-proof.json",
+   "appliedAt": "2026-10-09T09:42:16.011417+00:00",
+   "result": "49needs/10agreements/16applications/15messages removed;5worker profiles DRAFT. 2912DELETE+169UPDATE. All5 RPC business lists empty. Login/device/provider/media/certificate preserved.",
+   "workerAiTerminalRestart": {
+    "state": "SOURCE_FIXED_TESTED_NOT_YET_IN_APK",
+    "tests": "75 worker recovery tests PASS; first cold run timed out existing first test at5s, rerun PASS."
+   },
+   "heartbeat": "Owner explicitly paused the30-minute Codex automation; active work continues. Do not re-enable it without a new request."
   }
  },
  "redovi": [

@@ -284,10 +284,16 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     confirmSheet.ask({title:'Pokrenuti nov razgovor?',message:'Predlog iz ovog razgovora ostaje u istoriji. Novi razgovor kreće od sačuvanog profila.',
       cancelLabel:'Nastavi ovaj razgovor',confirmLabel:'Novi razgovor',onConfirm:()=>{
         // Returned so the confirmation waits on the command it started instead of closing before it is sent.
-        if(!canAct()||voiceBusy)return;return editor.save(async()=>{const result=await api.abandon(data.conversationId);if(!current())return unavailable();
-          if(!result.ok)return result;
+        if(!canAct()||voiceBusy)return;return editor.save(async()=>{
+          // Completed conversations stay completed on the server. Reconcile their
+          // journal before leaving, without issuing another abandon command.
+          if(data.status==='OPEN'){
+            const result=await api.abandon(data.conversationId);if(!current())return unavailable();
+            if(!result.ok)return result;
+          }
           const confirmed=await read();if(!current())return unavailable();
-          if(confirmed.ok&&confirmed.podatak.status==='ABANDONED'&&!pending.current)router.replace('/profil/razgovor');return confirmed;});
+          if(confirmed.ok&&(confirmed.podatak.status==='ABANDONED'||confirmed.podatak.status==='COMPLETED')&&!pending.current)
+            router.replace('/profil/razgovor');return confirmed;});
       }});
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':

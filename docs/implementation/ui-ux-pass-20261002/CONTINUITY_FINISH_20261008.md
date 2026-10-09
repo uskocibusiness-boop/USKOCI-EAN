@@ -579,3 +579,35 @@ Privatni prerelease407659718/qa-phone-20261009-f61d91f7 vezan za tačan commit. 
 **NIJE URAĐENO / PREPREKA:** još0obrisanih redova. Storagebytes nisu kopirani. Restore na bazi nije dokazan. Liveimmutableguardovi potvrđeni, nije dovoljno običan child-firstDELETE. Lokalno nema docker/psql/pg_dump; ranijiCIbillingblok ostaje. Vercel existinguskoci-web readprošao, listSandbox404, boundednonpersistent5mincreate403(no permission); nije nastao sandbox niti su privatni podaci preneti. Nema instaliranogVercelCLI. Ne ponavljati isti403, ne zaobilaziti guard ili glumiti accountclosure. `evidence/owner-test-reset-20261009/preflight.json`.
 
 **SLEDEĆE:** napraviti imenovan, precizno ograničen reset paket sa per-rowautoritetom i stvarnom izolovanom restore/apply/rollback proverom prebrisanja. Potrošnja i neizvesni provider ishodi se čuvaju. Posle uspešnogreseta novi AIradniprofil→zadatak→Dogovor→poruke→push. Za isti obuhvat ne tražiti ponovno odobrenje. Copy-v2 SOURCE testiran i pushovanabf3dddb na obegrane, nijedeployovan.
+
+
+## Lokalni reset i stvarno vraćanje podataka dokazani — 09.10.
+
+**URADIO:** portable PostgreSQL17.11/PostGIS3.6.2 u privatnom scratch-u, samo loopback55439, bez Windows servisa/admin instalacije. EDB i OSGeo zvanični izvori, PostGIS MD5 potvrđen, SHA256 sačuvani; binariji nisu Authenticode potpisani. PostGIS ZIP je prepisao OpenSSL DLL-ove: vraćene tačne2 datoteke iz PG ZIP-a i lokalni server ponovo pokrenut. Nema Vercel/Docker workaround-a niti prenosa podataka u cloud.
+
+**DOKAZAO:** schema579funkcija/933ograničenja/116triggera; backup123tabele/7314reda vraćen sa istim punim vrednostima (numerički1=1.0), bez stvarnogAuth/tokena. Četiri stvarna immutableDELETE odbijanja reprodukovana. Tačan plan2912brisanja+169izmena prošao rollback, namerni prekid poslebrisanja, COMMIT i zaseban inverseCOMMIT sa svim prvobitnim redovima. Sve5lokalne role imaju prazne zadatke/prijave/Dogovore/inbox.13negativnih proba uključuju drugi connection, pogrešanred/operator/PID/txID/vlasnik manifesta, ponovljenu dozvolu, neodobrenu izmenu i originalnu deferredactivation proveru. Materialized kandidat koristi PK/hash/patch, ne upisuje originalne razgovore u SQLfajl;125preflight hashova i precommit all-row audit. `evidence/owner-test-reset-20261009/local-proof.json`.
+
+**ISTORIJSKE GRANICE:**2CONFIRMEDDogovora iz30.08 već nemajuactivation. Inverse ih vraća samo preko tačnog preimage izuzetka; ostalih8 i dalje prolazi originalnu proveru. Stare činjenice imaju neusaglašen timestampformat; istorijski inverse vraća iste vrednosti bez menjanja validatora. Ne proglašavati takvu istoriju današnjim ispravnim novim podacima. Generatedkolone računaju se posleBEFOREtriggera i proveravaju punim završnim auditom.
+
+**SERVER:** fresh09:16:20 backup i read-onlypreflight:49tasks/5accounts/7314rows, ledger236,579functiondefs iste,0providerPROCESSING/EVALUATING,0mediaDISPATCHING,0pushleases,0closureexecutions, sva3pushflagaOFF. Cert/source/erasureRow0201a7cc nepromenjeni. Erasure componentdab1… je druga funkcija/digest, ne serverski drift.
+
+**NIJE DOKAZANO:** još nema DEVbrisanja, fizičkogstoragepurge-a niti novih AI/nativejourney proba. Provider/budget/mediajournals i istorijskiAIkontekst ostaju zbog dedup/unknownoutcome; poslovni ekrani se prazne. LokalniAuthstub nije SupabaseAuth/API/performanse dokaz.
+
+**SLEDEĆE:** završni read-onlypregled pripremljenog672KBpaketa, tačanpreflight125tablehashs, jedna atomska odobrenaprimena i postflight. Ne tražiti ponovno odobrenje svih5testnaloga. Originalibackupa i privatni SQL/skripte ostaju vanGit-a; SHA u receipt-u.
+
+
+## Poslovni test reset primenjen i potvrđen — 09.10.09:42 UTC
+
+**URADIO:** odobreni reset svih5testnaloga u canonical DEV:2912DELETE+169UPDATE, jedan uspešan COMMIT. Nestali49zadataka,10Dogovora,16prijava,15poruka i vidljiviIN_APPinbox;5radnih profila vraćeno uDRAFT. Auth/prijave/lozinke/sesije, app_account identiteti i pushdevice/preferences sačuvani. Provider/budget/replay/unknownoutcome istorija, push dokaz i mediajournals/storagebytes ostaju namerno. Nije fizičko brisanje svake istorijske informacije.
+
+**DOKAZAO:** finalniSQL a93a3a2c…4a3f2e; freshbackup→exactplan→inverse vezaniSHA. Lokalni COMMIT+inverseCOMMIT i negativne probe, timestamp canonicalNEW, tačni bytepreimages restorefunkcija. NaDEV svi125preflight hashes i precommitrowaudit;579functiondefs i closure cert0201a7cc ostaliisti, ledger236. PosleCOMMIT sve123backup tabele odgovaraju tačno predviđenom rezultatu, hashsvake netaknute tabele među125 (uključujućiaccounts/pushdevices) jednak. Svih5authenticatedDBrole RPC konteksta ima0tasks/applications/agreements/inbox. To nije stvarniJWT/HTTP/nativeAuth dokaz. `evidence/owner-test-reset-20261009/applied.json`.
+
+**SAČUVANI NEUSPEŠNI POKUŠAJI:** prvi odustao preDML zbog cron1 match_v1_profile_requeue promene. Drugi vratio čitavu transakciju jer je Windowswrite_text promenio LF→CRLF u10obnovljenih functionbodies i componentcert je to odbio. Original49/10/5 i cert provereni posle. Ispravka je write_bytes, pre-send exactbody bytecheck i završna provera579definicija pri originalnomsearch_path; zaštita nije oslabljena.
+
+**ODRŽAVANJE:** samo cron1uskoci_marketplace_tick privremeno pauziran, tačanjobID/commandMD5/preActive, idleprovera pre/poslepauze. Cron2 nije diran. Finally vratio i očitao cron1active=true09:42:29UTC. Stari frozeninverse posle novih cron/userupisa mora prvo biti ponovo procenjen; ne pregaziti nove podatke.
+
+**NASTAVAK IZVORA:** source audit našao da Novi razgovor iz COMPLETEDworkerAI čeka ABANDONED koji server ne pravi. Popravka terminalne razgovore prvo canonicalread/reconcile, bezabandon; navigacija samo terminalreadback+bezpending i sa živimaccount/focusguardom.75recoverytestovaPASS (prvi coldmodule testprešao5s, ponovljen ceosuitePASS); nije u vlasnikovomf61 niti emulatorskomc62APK-u.
+
+**VLASNIK:** u toku rada izričito traži zaustavljanje zadatka koji se ponavlja svakih30min, uz nastavak tekućeg rada. Postojeća Codexautomation usko-i-kontinuirano-usavr-avanje postavljenaPAUSED i tool potvrdio. Ne praviti novu/ne vraćatiACTIVE bez vlasnikove nove naredbe. To nije pauza rootrada.
+
+**NIJE DOKAZANO / SLEDEĆE:** sveži puni nativeAI→profil→objava→Dogovor→chat/push tokovi jošslede; novoAPK pakovanje, svepushkategorije, kapacitet40k i storespremnost nisu proglašeni. Naemulatoru stari cachedchat može stajati do normalnogrefresh/focus; proveriti normalno učitavanje bezbrisanja sesije ili aplikacijskih podataka.

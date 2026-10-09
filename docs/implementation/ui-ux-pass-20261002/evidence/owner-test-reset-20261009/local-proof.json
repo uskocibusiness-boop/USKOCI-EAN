@@ -1,0 +1,264 @@
+{
+  "state": "LOCAL_RESTORE_RESET_COMMITTED_INVERSE_PASS / DEV_RESET_NOT_APPLIED",
+  "recordedAt": "2026-10-09T09:20:29.266978+00:00",
+  "proofs": {
+    "restore-verification.json": {
+      "state": "LOCAL_DATABASE_RESTORE_AND_GUARD_PROBES_PASS",
+      "tables": 123,
+      "rows": 7314,
+      "fullRowEquality": true,
+      "constraints": 933,
+      "triggersVerified": 116,
+      "guardProbes": [
+        {
+          "table": "private.need_publication_decisions",
+          "result": "DELETE_REJECTED_TRANSACTION_ROLLED_BACK",
+          "error": "ERROR:  PUBLICATION_DECISION_IMMUTABLE"
+        },
+        {
+          "table": "private.connection_activations",
+          "result": "DELETE_REJECTED_TRANSACTION_ROLLED_BACK",
+          "error": "ERROR:  CONNECTION_LEDGER_IMMUTABLE"
+        },
+        {
+          "table": "private.agreement_reviews",
+          "result": "DELETE_REJECTED_TRANSACTION_ROLLED_BACK",
+          "error": "ERROR:  REVIEW_IMMUTABLE"
+        },
+        {
+          "table": "private.agreement_media_snapshots_v5",
+          "result": "DELETE_REJECTED_TRANSACTION_ROLLED_BACK",
+          "error": "ERROR:  MEDIA_EVIDENCE_IMMUTABLE"
+        }
+      ],
+      "localCatalogDigest": "1f168628191430e8ce31ed27e573b2b22eff0f21242fa1892ffd67285f05ec5c",
+      "limits": [
+        "Local Windows PostgreSQL17.11/PostGIS3.6.2 versus DEV17.6/PostGIS3.3.7.",
+        "Synthetic Auth UUID/device FK stubs; no real credentials, tokens or sessions copied.",
+        "No pg_net/Vault/cron workers; not full Supabase parity or server-capacity proof.",
+        "Local catalog digest is only a local before/after baseline; original certificates not changed.",
+        "Reset candidate and committed inverse restore not yet tested.",
+        "Storage bytes not backed up or deleted."
+      ],
+      "liveWrites": 0
+    },
+    "rehearsal-fault.receipt.json": {
+      "at": "2026-10-09T09:06:09.992434+00:00",
+      "mode": "fault",
+      "result": "PASS",
+      "plannedRows": 3081,
+      "admissions": 425,
+      "wrappedFunctions": 11,
+      "catalogRestored": true,
+      "fullRowEqualityAfter": true,
+      "liveWrites": 0
+    },
+    "rehearsal-commit.receipt.json": {
+      "at": "2026-10-09T09:09:12.707216+00:00",
+      "mode": "commit",
+      "result": "PASS",
+      "plannedRows": 3081,
+      "admissions": 425,
+      "wrappedFunctions": 11,
+      "catalogRestored": true,
+      "fullRowEqualityAfter": false,
+      "liveWrites": 0
+    },
+    "rehearsal-inverse.receipt.json": {
+      "at": "2026-10-09T09:09:56.772244+00:00",
+      "mode": "inverse",
+      "result": "PASS",
+      "plannedRows": 3081,
+      "admissions": 4037,
+      "wrappedFunctions": 26,
+      "catalogRestored": true,
+      "fullRowEqualityAfter": true,
+      "liveWrites": 0
+    },
+    "negative-reset-receipt.json": {
+      "state": "LOCAL_NEGATIVE_PROBES_PASS",
+      "results": [
+        {
+          "probe": "wrong-old",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_ROW_NOT_ADMITTED"
+        },
+        {
+          "probe": "wrong-new",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_ROW_NOT_ADMITTED"
+        },
+        {
+          "probe": "wrong-pid",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_OPERATOR_MISMATCH"
+        },
+        {
+          "probe": "wrong-txid",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_OPERATOR_MISMATCH"
+        },
+        {
+          "probe": "wrong-actor",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_OPERATOR_MISMATCH"
+        },
+        {
+          "probe": "wrong-owner",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_MANIFEST_OWNER_MISMATCH"
+        },
+        {
+          "probe": "other-table",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_ROW_NOT_ADMITTED"
+        },
+        {
+          "probe": "reuse",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_ROW_NOT_ADMITTED"
+        },
+        {
+          "probe": "extra-unplanned-write",
+          "result": "REJECTED_AND_FULLY_ROLLED_BACK",
+          "error": "RESET_UNEXPECTED_ROW_DIFF"
+        },
+        {
+          "probe": "different-account-set",
+          "result": "REJECTED_BEFORE_CHANGES"
+        },
+        {
+          "probe": "second-connection",
+          "result": "ORIGINAL_FUNCTION_VISIBLE_WRITES_BLOCKED_AND_ROLLED_BACK"
+        }
+      ],
+      "liveWrites": 0
+    },
+    "inverse-negative-receipt.json": {
+      "state": "LOCAL_INVERSE_NEGATIVE_PROBES_PASS",
+      "checks": [
+        "Missing activation for one of8 normally valid agreements rejects transaction using original deferred guard.",
+        "Changed state on one of2 grandfathered legacy rows rejects exact-row admission.",
+        "Both failures preserve entire post-reset database and original catalog."
+      ],
+      "liveWrites": 0
+    },
+    "post-reset-rpc-receipt.json": {
+      "state": "LOCAL_POST_RESET_RPC_MATRIX_PASS",
+      "accounts": [
+        {
+          "accountIndex": 1,
+          "needs": 0,
+          "applications": 0,
+          "agreements": 0,
+          "inbox": 0,
+          "counts": {
+            "total": 0,
+            "active": 0,
+            "drafts": 0,
+            "history": 0,
+            "waiting": 0
+          }
+        },
+        {
+          "accountIndex": 2,
+          "needs": 0,
+          "applications": 0,
+          "agreements": 0,
+          "inbox": 0,
+          "counts": {
+            "total": 0,
+            "active": 0,
+            "drafts": 0,
+            "history": 0,
+            "waiting": 0
+          }
+        },
+        {
+          "accountIndex": 3,
+          "needs": 0,
+          "applications": 0,
+          "agreements": 0,
+          "inbox": 0,
+          "counts": {
+            "total": 0,
+            "active": 0,
+            "drafts": 0,
+            "history": 0,
+            "waiting": 0
+          }
+        },
+        {
+          "accountIndex": 4,
+          "needs": 0,
+          "applications": 0,
+          "agreements": 0,
+          "inbox": 0,
+          "counts": {
+            "total": 0,
+            "active": 0,
+            "drafts": 0,
+            "history": 0,
+            "waiting": 0
+          }
+        },
+        {
+          "accountIndex": 5,
+          "needs": 0,
+          "applications": 0,
+          "agreements": 0,
+          "inbox": 0,
+          "counts": {
+            "total": 0,
+            "active": 0,
+            "drafts": 0,
+            "history": 0,
+            "waiting": 0
+          }
+        }
+      ],
+      "limit": "Authenticated-role SQL with local auth.uid stub, not real Supabase Auth/API/native proof. No live writes."
+    },
+    "materialized-reset-receipt.json": {
+      "state": "LOCAL_MATERIALIZED_RESET_PASS",
+      "plannedRows": 3081,
+      "admissions": 425,
+      "wrappedFunctions": 11,
+      "rowHashesChecked": 125,
+      "wrongHashRejectedBeforeChanges": true,
+      "sqlContains": "PK identifiers and explicit reset patches; original row content materialized privately inside DB transaction.",
+      "liveWrites": 0
+    }
+  },
+  "privateScriptSha256": {
+    "local_pg.py": "2bf527c015e5d92d92ae37222c42367ab432f81b85056319812c23a941a38b44",
+    "restore-local-business.py": "6b375c2b7e3c80f2559e17c1d73abad3061072a1af24c14b1f4a0dae8d2f5b5a",
+    "verify-local-restore.py": "cd81354f1f262639e7cbb77bc81c577d2e6c50a55f4d11d9a463d24a6bb7924d",
+    "reset-scope.py": "e5f884d56a63764e1f7b53b418066ae3711346c25e45cf9ad3b549c0fdf37b00",
+    "rehearse-test-reset.py": "63a94c5f281d61e7de02f0105b0264e1b3c96e3595414999b43c3dd169c54cbc",
+    "test-reset-negative-local.py": "fceea8fa16ed3d481484312ba62c094ef3b51473dea0712a65176fc6e66dab5e",
+    "test-reset-inverse-negative-local.py": "f089056c4b0c3b998c2b7b76f9b789db155a377f1189f1253b498c4722134ef3",
+    "test-materialized-reset-local.py": "a227821869ed1b6150e3155b704d896ac46c631e8397d90003c6dd11472095ed",
+    "prepare-owner-reset-package.py": "2b61fbfc7cb91a2f89a41d089e108d80ef83696193f5a66d8ee6af8dbec6c560"
+  },
+  "historicalRestoreExceptions": [
+    "Two original CONFIRMED agreements dated2026-08-30 have no activation. Exact inverse-only NEW-row admissions restore those2 preimages; missing activation for any of8 normal agreements still fails original deferred guard.",
+    "Historical task facts contain timestamps incompatible with current validator. Exact-row inverse restores original data; validator is restored unchanged.",
+    "BEFORE NEW admissions omit generated columns only until PostgreSQL computes them; complete final rows remain in precommit audit."
+  ],
+  "precommitAudit": "All125 public/private tables compared with exact predicted mutation set; every other row, including budget/provider/media/identity/device/config/certificate, must remain equal. All guard definitions restored before commit; no trigger disable.",
+  "runtime": {
+    "postgres": "17.11 Windows portable",
+    "postgis": "3.6.2",
+    "connection": "127.0.0.1:55439 / uskoci_restore",
+    "windowsServiceInstalled": false,
+    "cloudSandboxUsed": false,
+    "downloadSource": "Official PostgreSQL-linked EDB ZIP and official PostGIS-linked OSGeo ZIP; PostGIS published MD5 matched; local SHA256 captured; executable files were not Authenticode signed."
+  },
+  "limits": [
+    "This is SQL/guard/local-role proof, not full Supabase Auth/Storage/Edge/cron parity or production capacity.",
+    "No business rows deleted on DEV yet.",
+    "Physical media bytes and provider history are retained; no claim that every historical byte is erased.",
+    "Fresh09:16 encrypted snapshot reconciles terminal push receipt; older08:21 backup retained."
+  ]
+}

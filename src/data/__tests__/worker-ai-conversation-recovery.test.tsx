@@ -521,6 +521,34 @@ it('explicit abandon clears dispatched journal only after exact canonical parent
  await click('Novi razgovor');await answer('confirm-sheet-confirm');expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
  expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');expect(mockApi.send).not.toHaveBeenCalled();
 });
+it.each(['COMPLETED','ABANDONED'])('starts a fresh route from a confirmed %s conversation without abandoning or sending again',async status=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(),status}));
+ await render();await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.read).toHaveBeenCalledTimes(2);expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');
+ expect(mockApi.abandon).not.toHaveBeenCalled();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockJournal.clear).not.toHaveBeenCalled();
+});
+it('a completed view cannot leave while canonical recovery still has an unresolved open turn',async()=>{
+ mockStored=intent();mockApi.read.mockResolvedValue(ok({...snapshot(turn('UNKNOWN_OUTCOME')),status:'COMPLETED'}));
+ mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
+ await render();await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.recoverTurn).toHaveBeenCalledTimes(2);expect(mockStored).toEqual(intent());
+ expect(mockJournal.clear).not.toHaveBeenCalled();expect(mockRouter.replace).not.toHaveBeenCalled();
+ expect(mockApi.abandon).not.toHaveBeenCalled();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('failed terminal readback keeps the current route instead of starting a fresh conversation',async()=>{
+ mockApi.read.mockResolvedValueOnce(ok({...snapshot(),status:'COMPLETED'}));
+ await render();mockApi.read.mockResolvedValueOnce({ok:false,kod:'NETWORK',poruka:'Proveri vezu.'});
+ await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockRouter.replace).not.toHaveBeenCalled();expect(mockApi.abandon).not.toHaveBeenCalled();expect(mockApi.open).not.toHaveBeenCalled();
+});
+it('scope loss during terminal readback prevents the previous account from navigating',async()=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(),status:'COMPLETED'}));await render();
+ const reading=deferred();mockApi.read.mockReturnValueOnce(reading.promise);
+ await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ await act(async()=>{mockRevision++;tree.update(<Screen/>);reading.resolve(ok({...snapshot(),status:'COMPLETED'}));});
+ expect(mockRouter.replace).not.toHaveBeenCalled();expect(mockApi.abandon).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
 it('keeps the new-conversation question open with a busy confirm while the old one is abandoned, and closes it once that settles',async()=>{
  // The screen returns its command to the sheet; a `void` there would close the question before the command is sent.
  let settle!:(value:unknown)=>void;mockApi.abandon.mockImplementationOnce(()=>new Promise(done=>{settle=done;}));

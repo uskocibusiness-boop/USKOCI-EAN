@@ -1,0 +1,230 @@
+{
+  "state": "DEV_BUSINESS_TEST_RESET_APPLIED_AND_VERIFIED",
+  "recordedAt": "2026-10-09T09:46:45.713123+00:00",
+  "package": {
+    "preparedAt": "2026-10-09T09:40:17.713521+00:00",
+    "sqlSha256": "a93a3a2c75d4029c885b959ad499dc8fda03c43219a17ebd1fbead6a3e4a3f2e",
+    "bytes": 692525,
+    "sourceScriptSha256": "63a94c5f281d61e7de02f0105b0264e1b3c96e3595414999b43c3dd169c54cbc",
+    "backupEncryptedSha256": "c864b66cbd3dcfa4edd9964908207e4e8a52108f69f784c214b3d9fd026aed8b",
+    "backupCapturedAt": "2026-10-09T09:39:57.945266+00:00",
+    "accountCount": 5,
+    "needCount": 49,
+    "plannedRows": 3081,
+    "deleteRows": 2912,
+    "updateRows": 169,
+    "admissions": 425,
+    "temporaryGuardFunctions": 11,
+    "certificateBeforeAndRequiredAfter": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "preflightHashTables": 125,
+    "authAndPushDevices": "Untouched; all public/private rows audited inside transaction. No Auth writes.",
+    "preserved": [
+      "AI/provider journals, budget/usage/reservations, parent historical AI records",
+      "Push attempt/delivery/event evidence",
+      "Media upload/owned-asset journals and stored bytes",
+      "Identity/preferences/lineage/configuration/certificates/support/retention"
+    ],
+    "notClaimed": [
+      "Physical media purge",
+      "All previous AI content physically deleted",
+      "New full app/store readiness",
+      "Full Supabase parity from local clone"
+    ],
+    "preparerScriptSha256": "be41a1508aaff1acced3ddc1011ce33f5409d6baab4c1d075e641b3825146eef",
+    "exactPlanPlainSha256": "1819e56c312870cde58fcb18f17b875f1e19e499815b9a97081fbf98fc022fc9",
+    "exactPlanEncryptedSha256": "0f7628d40b4c2491ee82b6f024d1dded60c3704e464146e74855e97d65669a06",
+    "inverseSqlPlainSha256": "63338fdcb3156b1506f161bca65f4b68a7e01de4e5c9cc86c20eb0a363c0616a",
+    "inverseSqlEncryptedSha256": "36d17c89a1a532a2a2a1124b194df731b2f3ee9d63f80db522419cbdbb9c68a4",
+    "inverseFence": "All125 tables: exact predicted full post-state for changed tables, original server hashes for untouched tables. Any new write fails before restoration.",
+    "typedNewValues": true,
+    "backupPlainSha256": "8d4a7b9540866fd52e62ab1d5af1895b01faeb1848245bd577ace413648147cb"
+  },
+  "maintenance": {
+    "state": "COMMITTED_ALL_TABLE_POSTFLIGHT_PASS",
+    "startedAt": "2026-10-09T09:39:45.702101+00:00",
+    "jobId": 1,
+    "jobName": "uskoci_marketplace_tick",
+    "commandMd5": "93518fd0382301fc76f79037123bccfc",
+    "preActive": true,
+    "cron2Untouched": true,
+    "pauseReadback": {
+      "active": false,
+      "command_md5": "93518fd0382301fc76f79037123bccfc",
+      "jobid": 1,
+      "jobname": "uskoci_marketplace_tick"
+    },
+    "idleReadback": {
+      "runs": 0,
+      "transactions": 0
+    },
+    "execution": {
+      "state": "COMMIT_RECEIPT_RECEIVED_POSTFLIGHT_REQUIRED",
+      "startedAt": "2026-10-09T09:42:04.434290+00:00",
+      "project": "leqcwgzvjsxugfgzdmth",
+      "sqlSha256": "a93a3a2c75d4029c885b959ad499dc8fda03c43219a17ebd1fbead6a3e4a3f2e",
+      "inverseSqlPlainSha256": "63338fdcb3156b1506f161bca65f4b68a7e01de4e5c9cc86c20eb0a363c0616a",
+      "backupEncryptedSha256": "c864b66cbd3dcfa4edd9964908207e4e8a52108f69f784c214b3d9fd026aed8b",
+      "ownerAuthorization": "All five accounts are test accounts; erase business test data while retaining login and push binding.",
+      "elapsedSeconds": 11.881,
+      "returncode": 0,
+      "receipt": {
+        "accounts": 5,
+        "agreements": 0,
+        "applications": 0,
+        "certificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+        "checkedAt": "2026-10-09T09:42:16.011417+00:00",
+        "messages": 0,
+        "needs": 0,
+        "providerAttemptCount": 2,
+        "state": "OWNER_TEST_BUSINESS_RESET_COMMITTED",
+        "visibleInbox": 0,
+        "workerDrafts": 5
+      },
+      "finishedAt": "2026-10-09T09:42:16.317724+00:00"
+    },
+    "postflightCapturedAt": "2026-10-09T09:42:19.410744+00:00",
+    "postflightEncryptedSha256": "03f3a881fd664c3bd19ee9feb57f2faee618b510a15b1a02181611540c1cf40e",
+    "all123TableRowsMatchExpected": true,
+    "protected125TableHashesUnchanged": true,
+    "functionsUnchanged": 579,
+    "ledger": 236,
+    "cronRestored": true,
+    "restoreReadback": {
+      "active": true,
+      "command_md5": "93518fd0382301fc76f79037123bccfc",
+      "jobid": 1,
+      "jobname": "uskoci_marketplace_tick"
+    },
+    "finishedAt": "2026-10-09T09:42:29.968932+00:00"
+  },
+  "preparedLocalProof": {
+    "state": "EXACT_PREPARED_FORWARD_AND_INVERSE_LOCAL_PASS",
+    "sqlSha256": "a93a3a2c75d4029c885b959ad499dc8fda03c43219a17ebd1fbead6a3e4a3f2e",
+    "inverseSqlPlainSha256": "63338fdcb3156b1506f161bca65f4b68a7e01de4e5c9cc86c20eb0a363c0616a",
+    "exactPlanPlainSha256": "1819e56c312870cde58fcb18f17b875f1e19e499815b9a97081fbf98fc022fc9",
+    "forwardCommit": true,
+    "inverseCommit": true,
+    "allOriginalRowsRestored": true,
+    "catalogRestored": true,
+    "newUnrelatedWriteRejected": true,
+    "all125InverseFencesPassed": true,
+    "typedTimestampTrailingZeroTest": true,
+    "environmentAdapters": [
+      "Live ledger/certificate/function PRE checks removed on local clone only; live read-only preflight validates them.",
+      "Component digest comparison rebound to real local catalog. Full source digest unavailable in clone; its POST check removed locally only.",
+      "Pre-existing table hashes rebound to exact local baseline, which includes synthetic Auth/account/device support."
+    ],
+    "liveWrites": 0,
+    "byteExactRestoredFunctionSources": 37
+  },
+  "rpcMatrix": {
+    "state": "DEV_READ_ONLY_RPC_MATRIX_PASS",
+    "accounts": [
+      {
+        "accountIndex": 1,
+        "needs": 0,
+        "applications": 0,
+        "agreements": 0,
+        "inbox": 0,
+        "counts": {
+          "active": 0,
+          "drafts": 0,
+          "history": 0,
+          "total": 0,
+          "waiting": 0
+        }
+      },
+      {
+        "accountIndex": 2,
+        "needs": 0,
+        "applications": 0,
+        "agreements": 0,
+        "inbox": 0,
+        "counts": {
+          "active": 0,
+          "drafts": 0,
+          "history": 0,
+          "total": 0,
+          "waiting": 0
+        }
+      },
+      {
+        "accountIndex": 3,
+        "needs": 0,
+        "applications": 0,
+        "agreements": 0,
+        "inbox": 0,
+        "counts": {
+          "active": 0,
+          "drafts": 0,
+          "history": 0,
+          "total": 0,
+          "waiting": 0
+        }
+      },
+      {
+        "accountIndex": 4,
+        "needs": 0,
+        "applications": 0,
+        "agreements": 0,
+        "inbox": 0,
+        "counts": {
+          "active": 0,
+          "drafts": 0,
+          "history": 0,
+          "total": 0,
+          "waiting": 0
+        }
+      },
+      {
+        "accountIndex": 5,
+        "needs": 0,
+        "applications": 0,
+        "agreements": 0,
+        "inbox": 0,
+        "counts": {
+          "active": 0,
+          "drafts": 0,
+          "history": 0,
+          "total": 0,
+          "waiting": 0
+        }
+      }
+    ],
+    "limit": "Real DEV RPCs under authenticated database role with test-account claim context. This is not proof of actual Auth token, HTTP or native UI.",
+    "writes": 0
+  },
+  "earlierAttempts": [
+    {
+      "sqlSha256": "7b5c25c150726868bc160fa1469276771aed1d95b6ea024daeab95e410121d56",
+      "result": "ROLLED_BACK_BEFORE_DML",
+      "reason": "Marketplace cron changed match_v1_profile_requeue; all-table hash fence refused drift."
+    },
+    {
+      "sqlSha256": "964b579de751cdd6b96e22c7de07418e83747d01ad1250ca2d2a7d55b3896e7e",
+      "result": "ROLLED_BACK_BEFORE_COMMIT",
+      "reason": "Windows text writer changed LF to CRLF in10 restored function bodies. Component certificate rejected it. Fixed with byte-preserving output and exact artifact body checks; final579 definition checks also added."
+    }
+  ],
+  "preserved": [
+    "All5 Auth accounts, passwords, sessions and app-account identities; no Auth writes.",
+    "Push devices/preferences unchanged in transaction and postflight.",
+    "AI provider/replay/budget/unknown-outcome journals and required historical parents.",
+    "Push proof chain, media journals/assets, physical Storage objects.",
+    "Certificate,579 function definitions, schema ledger236 and original guards."
+  ],
+  "rollback": "Exact encrypted inverse and backup retained on owner machine. Inverse refuses changed current state; after cron resumes or new user writes, re-audit before any rollback. No automatic rollback over fresh user data.",
+  "limits": [
+    "Business test reset is not physical erasure of all historical data/media.",
+    "Read-only DEV role RPC matrix is not real Auth token/HTTP or full native journey proof.",
+    "One prior real MESSAGE push is owner-confirmed, not all notification categories or global transport readiness.",
+    "No new APK or store readiness asserted."
+  ],
+  "privateScriptSha256": {
+    "prepare-owner-reset-package.py": "be41a1508aaff1acced3ddc1011ce33f5409d6baab4c1d075e641b3825146eef",
+    "execute-owner-reset-once.py": "375277640cee018b5db07fe42f5921ac0d3a5126ba066635c9d1cc00a4d3bedc",
+    "run-reset-maintenance-window.py": "ffecb6e9e3e9b3e8cefcd77def96abd75ed026b98947a176b4e97ef19d1bb68d",
+    "test-prepared-reset-local.py": "60152cade6a5dbc532798305a8be833373b2b7c6e1fd0e15c6ff2f9a49b28af4",
+    "verify-reset-rpcs-dev.py": "bd3e0cbe9acec2a3b33ee62b1c62595e332187b538f329661e2a2e65b2045e24"
+  }
+}
