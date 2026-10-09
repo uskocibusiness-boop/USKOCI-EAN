@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T01:13:14Z",
+  "osvezeno": "2026-10-09T01:25:48Z",
   "grana": "integration/spoj-20261006",
-  "head": "2e35be8e",
-  "head_poruka": "test: measure bounded concurrent discovery reads and record connected lifecycle proof",
+  "head": "98ed64d2",
+  "head_poruka": "merge: refresh generated control views",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
@@ -2150,12 +2150,14 @@
    "profileEvidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-profile-40k-37858643191"
   },
   "ai_location_order_20261009": {
-   "state": "SOURCE_FOCUSED_PASS / FULL_FAILURES_RESOLVED / NATIVE_PROVIDER_PENDING",
+   "state": "FULL_IMMUTABLE_D029_REGRESSION_PASS / NATIVE_PROVIDER_PENDING",
    "checks": "212 tests across 3 suites PASS; full regression in progress, earlier attribution expectations corrected; Firebase config timeout needs isolated retest.",
    "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
    "scope": "Known continuation waits for all canonical points; contextual clarifications visible; scoped ID-only memory survives new/resumed route. Task response buffered until facts, worker streaming unchanged.",
    "open": "Exact APK/provider proof; cold subtype reconstruction; phase-aware task streaming.",
-   "verification": "Focused final: 4 suites /225 tests PASS (intake-location-order, ai-owned-intake-screen, discovery-map-pills, firebase-config); final TypeScript PASS. Whole regression:598/600 suites,13326 passed,3 failed,9 skipped; all3 failures resolved in focused rerun. Whole suite not rerun on immutable final head."
+   "verification": "Focused final: 4 suites /225 tests PASS (intake-location-order, ai-owned-intake-screen, discovery-map-pills, firebase-config); final TypeScript PASS. Whole regression:598/600 suites,13326 passed,3 failed,9 skipped; all3 failures resolved in focused rerun. Whole suite not rerun on immutable final head.",
+   "laterFullRegression": "R20run37864877598/sourceD029:601suites/13355testsPASS,0failed/0skipped; actual JSON artifacts read and SHA bound. Includes prior location-order fixes; no native/provider claim.",
+   "phaseReview": "Current task stream has only accepted/text_delta/final/safe_error, no semantic phase. Raw fragments stay hidden until canonical facts/location order. Busy indicator already covers readback. Genuine gradual task text remains open; do not simulate typewriter or declare solved. Worker streaming unchanged."
   },
   "native_66275774_20261009": {
    "state": "PHYSICAL_BOUNDED_PASS / GROUP_AI_PENDING",
@@ -2322,7 +2324,7 @@
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/connected-lifecycle-37867079947"
   },
   "discovery_read_concurrency_20261009": {
-   "state": "SOURCE_REVIEWED / OFFLINE8_PASS / RUNTIME_PENDING",
+   "state": "ISOLATED_CI_RUNNING",
    "scope": "40000 synthetic task rows,2 scenario Auth accounts,1 active viewer;actual loopback PostgREST read levels1/4/16/32.15swarmup+60smeasurement perlevel,90sdeadline,2048samplecaps,no retries.7 request shapes/10slot deterministic mix including cursor page2/denseMAP.",
    "verification": "8 new offline tests PASS; existing4 socket/3SQLdiagnostic tests PASS; Node and workflow YAML PASS. Two independent read-only reviews no blocker; separate HTTP+JSON latency added; proof90s versus app15s explicitly disclosed.",
    "limits": "Closedloop sharedCIhost;no40000user/servercapacity claim,no concurrent lifecycle/background workers/DEV changes; client abort cannot prove server cancellation. All semantic/HTTP/transport failures retained and fail proof.",
@@ -2331,7 +2333,60 @@
     "supabase/proofs/discovery-grad/read-concurrency.proof.mjs",
     "supabase/proofs/discovery-grad/read-concurrency.test.mjs"
    ],
-   "next": "One opt-in isolated concurrency run; exact source and real failure/latency evidence before any capacity claim."
+   "next": "One opt-in isolated concurrency run; exact source and real failure/latency evidence before any capacity claim.",
+   "run": 37868724376,
+   "source": "98ed64d28406b9b42b4ffe581f3a43a8c38118d4"
+  },
+  "client_regression_d029_20261009": {
+   "run": 37864877598,
+   "workflow": "R20 Discovery retained-mount proof",
+   "source": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5",
+   "tree": "93189fcefb71ec896ef81fe5f15c546e77558b3b",
+   "ci": "SUCCESS",
+   "typeScriptStep": "SUCCESS",
+   "reports": {
+    "r20-discovery-full.json": {
+     "sha256": "6736520aa21e170ae7700754c97aa375ea615e9c553c429ea8c613f782e584fe",
+     "success": true,
+     "numTotalTestSuites": 601,
+     "numPassedTestSuites": 601,
+     "numFailedTestSuites": 0,
+     "numTotalTests": 13355,
+     "numPassedTests": 13355,
+     "numFailedTests": 0,
+     "numPendingTests": 0,
+     "wasInterrupted": false
+    },
+    "r20-discovery-focused.json": {
+     "sha256": "7618caf0d4478e2168bec1288f99f75666b8546acdaf2b4bd078a071d0e838d3",
+     "success": true,
+     "numTotalTestSuites": 1,
+     "numPassedTestSuites": 1,
+     "numFailedTestSuites": 0,
+     "numTotalTests": 213,
+     "numPassedTests": 213,
+     "numFailedTests": 0,
+     "numPendingTests": 0,
+     "wasInterrupted": false
+    }
+   },
+   "limits": [
+    "Jest/TypeScript do not prove native, provider, push or store readiness.",
+    "Current6c APK UI/source/dependencies/patches identical toD029 by git diff; build attestation workflow changed separately.",
+    "Focused213 are already included in full13355; do not sum repeated cases."
+   ],
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/client-proof-d029-37864877598"
+  },
+  "emulator_existing_dev_20261009": {
+   "state": "EXISTING_AUTH_SESSION_FOUND / CORRECT_PACKAGE_BUILD_PREPARED",
+   "observed": "rs.uskoci.dev is authenticated on emulator; preview remains logged out. No login, token transfer or data changes. Existing build lastUpdated2026-10-06; cannot attest current UI.",
+   "installedApkSha256": "27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d",
+   "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+   "scope": "Existing visual workflow explicit visual/emulator-existing-dev-* branch; CI-only appconfig overlay rs.uskoci.dev, no preview Firebase,OTAoff,x86_64. No source/auth/storage/permission change.",
+   "checks": "2 actual-config/guard tests and YAML PASS; independent SOURCE review no blocker; compiledAPK attestation beforeartifact.",
+   "limits": "New APK/signature/install-r/session-preservation/native not yet verified. Build identity dirty expected from config overlay, receipt binds exact overlay/config hashes.",
+   "privateEvidence": "C:/Users/user/Documents/Codex/uskoci-finish-20261008/emu-existing-dev.png",
+   "next": "Build correct existing dev package, check exact APK/signature then install-r, preserve second session."
   }
  },
  "redovi": [

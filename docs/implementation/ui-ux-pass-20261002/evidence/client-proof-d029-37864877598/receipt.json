@@ -1,0 +1,39 @@
+{
+  "run": 37864877598,
+  "workflow": "R20 Discovery retained-mount proof",
+  "source": "d0295e1c3f5177b0109a08a966b96ad56b2d23c5",
+  "tree": "93189fcefb71ec896ef81fe5f15c546e77558b3b",
+  "ci": "SUCCESS",
+  "typeScriptStep": "SUCCESS",
+  "reports": {
+    "r20-discovery-full.json": {
+      "sha256": "6736520aa21e170ae7700754c97aa375ea615e9c553c429ea8c613f782e584fe",
+      "success": true,
+      "numTotalTestSuites": 601,
+      "numPassedTestSuites": 601,
+      "numFailedTestSuites": 0,
+      "numTotalTests": 13355,
+      "numPassedTests": 13355,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "wasInterrupted": false
+    },
+    "r20-discovery-focused.json": {
+      "sha256": "7618caf0d4478e2168bec1288f99f75666b8546acdaf2b4bd078a071d0e838d3",
+      "success": true,
+      "numTotalTestSuites": 1,
+      "numPassedTestSuites": 1,
+      "numFailedTestSuites": 0,
+      "numTotalTests": 213,
+      "numPassedTests": 213,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "wasInterrupted": false
+    }
+  },
+  "limits": [
+    "Jest/TypeScript do not prove native, provider, push or store readiness.",
+    "Current6c APK UI/source/dependencies/patches identical toD029 by git diff; build attestation workflow changed separately.",
+    "Focused213 are already included in full13355; do not sum repeated cases."
+  ]
+}

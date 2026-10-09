@@ -254,3 +254,19 @@ Izvori: postojeći tačan reader i Supabase client u repozitorijumu; [Node perfo
 **SLEDEĆE:** izmeriti stvarni concurrency paket; završiti aktivni area diagnostic37867659562 i phoneAPK37867659756, oba source6c755dff. PhoneAPK još nije preuzet ili instaliran; PEEK/HALF/FULL ne zatvarati bez nativnog rezultata. Stvarni Supabase secretWRITE blok za push ostaje.
 
 **SOURCE/OFFLINE završna provera paketa:**8 novih testovaPASS; postojeće4 socket i3 SQLdiagnostic proverePASS; Node/YAML sintaksaPASS. Dva nezavisna read-only pregleda nisu našla bloker. Dopuna meri HTTP+JSON odvojeno od semantic hash provere i posebno broji odgovore preko15s aplikacijskog roka (`discoveryV1ClientTransport.ts`). Proof rok90s služi posmatranju zagušenja, ne znači da je odziv prihvatljiv u aplikaciji. PASS semantike nije performance acceptance. PythonYAML modul nije dostupan; isti workflow je stvarno parsiran postojećim js-yaml, bez instaliranja zavisnosti.
+
+### Puna regresija poslednjeg UI paketa — artefakti pročitani
+
+Run37864877598/sourceD029, tree93189fcefb71ec896ef81fe5f15c546e77558b3b:601/601 grupa i13.355/13.355 testovaPASS,0failed/0pending; TypeScript korakSUCCESS. Fokusiranih213 je već sadržano u punom broju, ne sabirati. Preuzet i pročitan originalni JestJSON, SHA256 vezan u evidence/client-proof-d029-37864877598/receipt.json. Ovo zatvara staru neizvesnost pune regresije posle tri ranije ispravljena pada. Gitdiff D029→98ed64d2 nema izmene src/appconfig/package/patches; kasniji source menja proof/CI/dokumentaciju. Nema novih native/provider tvrdnji.
+
+TaskAI read-only pregled potvrđuje da buffer sprečava pitanje o sledećoj temi iznad otvorene mape. Postojeći stream nema semantičku fazu; uvodni fragment ne može pouzdano biti odvojen od sledećeg pitanja. Animirane tačke i status već traju kroz readback. Nije dodata kozmetička rečenica ili lažni typewriter; pravi postepeni task tekst ostaje otvorena ugovorna dorada. Worker streaming ostaje.
+
+Concurrency paket poslat na obe kanonske grane, source98ed64d2; jedan opt-in run37868724376, bez novog area rerun-a ili drugog APK-a.
+
+### Drugi nalog pronađen u postojećem dev paketu emulatora
+
+**URADIO/DOKAZAO:** emulator ima i rs.uskoci.preview i rs.uskoci.dev. Preview je odjavljen, ali stvarno otvoreni postojeći dev prikazuje prijavljeni drugi nalog i njegove aktivnosti. Nema login-a, kopiranja tokena ili upisa poslovnih podataka. Instalirani devAPK od6.10: SHA27f8ada49fb0fc58aaa5c35058bc341556af7647ea2a2f61cc8cf0c71bff203d; čitanje stvarnog APK-a i apksigner potvrđuju fac61745… sertifikat. To je stari UI, nije novi native acceptance.
+
+**URADIO / SOURCE:** postojeći visualworkflow dobija eksplicitan ogranak visual/emulator-existing-dev-*. Samo njegov disposableCI checkout menja package na rs.uskoci.dev i isključuje OTA; nema preview Firebase klijenta. Normalni preview/phone/store izvori ostaju isti. Dve actualconfig/guard provere i YAML PASS, nezavisan pregled bez blokera. CompiledAPK package/debuggable/OTAoff/x86_64 provera pre artifact-a; receipt čuva source+overlay/configSHA. Dirtysource je očekivan zbog ove konfiguracije, nije predstavljen kao byte-identičan neizmenjeni commit.
+
+**NIJE DOKAZANO / SLEDEĆE:** novAPK i očuvana prijava posle install-r tek treba da se provere. Ovo uklanja pogrešnu pretpostavku da emulator nema prijavljen nalog; ne tražiti vlasnika da se ponovo prijavi. Nastaviti kontrolisane provere sa dva već postojeća naloga kad je pravi paket ažuriran.

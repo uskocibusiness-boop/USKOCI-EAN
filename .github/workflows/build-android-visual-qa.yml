@@ -61,6 +61,18 @@ jobs:
       - name: Verify the Reanimated patch (RNR-01)
         run: node scripts/verify-native-patches.cjs
 
+      # The owner's second signed-in account is in the existing rs.uskoci.dev emulator app.
+      # This explicit branch family preserves its sandbox/session with install-r; no session copying.
+      - name: Bind the existing emulator dev package to bundled source
+        if: startsWith(github.ref_name, 'visual/emulator-existing-dev-')
+        env:
+          EAS_BUILD_PROFILE: preview
+          USKOCI_OTA_TARGET: preview
+          USKOCI_PUSH_PROOF_BUILD: '0'
+        run: |
+          node --test scripts/ci/test-existing-dev-qa.cjs
+          node scripts/ci/configure-existing-dev-qa.cjs
+
       - name: Generate native Android project
         env:
           EAS_BUILD_PROFILE: preview
@@ -106,6 +118,37 @@ jobs:
             cat USKOCI-VISUAL-QA.apk.sha256
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Attest the compiled existing-dev emulator APK
+        if: startsWith(github.ref_name, 'visual/emulator-existing-dev-')
+        run: |
+          set -euo pipefail
+          APKS=$(find "$ANDROID_HOME" -type f -name apkanalyzer | sort -V | tail -1)
+          test -n "$APKS"
+          "$APKS" manifest print USKOCI-VISUAL-QA.apk > /tmp/existing-dev-manifest.xml
+          python3 - <<'PY'
+          import hashlib, json, os, sys, zipfile
+          from pathlib import Path
+          sys.path.insert(0, 'scripts/ci')
+          from attest_ota_preview import _manifest_fields
+          identity, metadata = _manifest_fields(Path('/tmp/existing-dev-manifest.xml').read_text())
+          assert identity['package'] == 'rs.uskoci.dev'
+          assert identity['debuggable'] == 'false'
+          assert metadata['expo.modules.updates.ENABLED'] == 'false'
+          apk = Path('USKOCI-VISUAL-QA.apk')
+          with zipfile.ZipFile(apk) as z:
+            abis = sorted({p.split('/')[1] for p in z.namelist() if p.startswith('lib/') and p.endswith('.so')})
+          assert abis == ['x86_64']
+          Path('USKOCI-VISUAL-QA-attestation.json').write_text(json.dumps({
+            'source': os.environ['GITHUB_SHA'], 'run': os.environ['GITHUB_RUN_ID'],
+            'package': identity['package'], 'versionCode': identity['versionCode'], 'abis': abis,
+            'updatesEnabled': False, 'apkSha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
+            'configOverlay': 'scripts/ci/configure-existing-dev-qa.cjs', 'sourceDirtyExpected': True,
+            'configSha256': {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in ['app.json', 'app.config.js']},
+            'deviceInstalled': False, 'release': False,
+          }, indent=2) + '\n')
+          print('PASS existing dev emulator package, release mode, OTA disabled and x86_64')
+          PY
+
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
@@ -113,5 +156,6 @@ jobs:
           path: |
             USKOCI-VISUAL-QA.apk
             USKOCI-VISUAL-QA.apk.sha256
+            USKOCI-VISUAL-QA-attestation.json
           if-no-files-found: error
           retention-days: 3
