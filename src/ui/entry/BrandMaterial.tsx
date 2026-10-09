@@ -13,27 +13,27 @@ export function BrandMaterialDefs({ id }: { id: string }) {
   return <Defs>
     <LinearGradient id={`${id}-green`} x1="12%" y1="0%" x2="78%" y2="100%">
       <Stop offset="0" stopColor="#79CABA" />
-      <Stop offset=".21" stopColor="#24A28A" />
-      <Stop offset=".57" stopColor="#087E68" />
-      <Stop offset=".86" stopColor="#00624F" />
+      <Stop offset={0.21} stopColor="#24A28A" />
+      <Stop offset={0.57} stopColor="#087E68" />
+      <Stop offset={0.86} stopColor="#00624F" />
       <Stop offset="1" stopColor="#124D40" />
     </LinearGradient>
     <LinearGradient id={`${id}-orange`} x1="12%" y1="0%" x2="78%" y2="100%">
       <Stop offset="0" stopColor="#FFD18A" />
-      <Stop offset=".22" stopColor="#FFA32A" />
-      <Stop offset=".58" stopColor="#FF830C" />
-      <Stop offset=".88" stopColor="#E36105" />
+      <Stop offset={0.22} stopColor="#FFA32A" />
+      <Stop offset={0.58} stopColor="#FF830C" />
+      <Stop offset={0.88} stopColor="#E36105" />
       <Stop offset="1" stopColor="#B94B04" />
     </LinearGradient>
     <LinearGradient id={`${id}-rim`} x1="18%" y1="0%" x2="65%" y2="100%">
       <Stop offset="0" stopColor="#FFFFFF" stopOpacity=".72" />
-      <Stop offset=".38" stopColor="#FFFFFF" stopOpacity=".12" />
-      <Stop offset=".68" stopColor="#193D32" stopOpacity=".08" />
+      <Stop offset={0.38} stopColor="#FFFFFF" stopOpacity=".12" />
+      <Stop offset={0.68} stopColor="#193D32" stopOpacity=".08" />
       <Stop offset="1" stopColor="#173B30" stopOpacity=".28" />
     </LinearGradient>
     <RadialGradient id={`${id}-light`} cx="30%" cy="13%" rx="56%" ry="45%">
       <Stop offset="0" stopColor="#FFFFFF" stopOpacity=".35" />
-      <Stop offset=".32" stopColor="#FFFFFF" stopOpacity=".12" />
+      <Stop offset={0.32} stopColor="#FFFFFF" stopOpacity=".12" />
       <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
     </RadialGradient>
   </Defs>;

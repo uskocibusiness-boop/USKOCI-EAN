@@ -80,6 +80,17 @@ beforeEach(() => {
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
+test('the small brand mark sends distinct enamel stops to native SVG without invalid offset warnings', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  await act(async () => { tree = create(<BrandMark size={24} />); });
+  const gradients = tree.root.findAll(node => typeof node.type === 'string' && Array.isArray(node.props.gradient));
+  const offsets = Object.fromEntries(gradients.map(node => [String(node.props.name).split('-').at(-1),
+    node.props.gradient.filter((_: number, index: number) => index % 2 === 0)]));
+  expect(offsets).toEqual({ green: [0, 0.21, 0.57, 0.86, 1], orange: [0, 0.22, 0.58, 0.88, 1],
+    rim: [0, 0.38, 0.68, 1], light: [0, 0.32, 1] });
+  expect(warn.mock.calls.flat().join(' ')).not.toContain('not a valid number or percentage string');
+});
+
 test('pins that stand alone become price pills; the native source still holds only IDs and rounded points', async () => {
   await render(); await ready();
   expect(sourceData().features.map((item: { properties: object }) => item.properties)).toEqual(rows.map(item => ({ needId: item.id })));

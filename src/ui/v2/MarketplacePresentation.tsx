@@ -138,7 +138,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     [items, paging, loading, error]);
   const grouped = view.section === 'active';
   // Every number in a group's name is exact: a whole list counts itself, a paged read only once it has read to its end (a refined set is read to its end by the route).
-  const exact = !paging || (!paging.hasMore && !paging.loadingMore);
+  const exact = !paging || (!paging.hasMore && !paging.loadingMore && !paging.moreError);
   const hasOthers = !!counts && (counts.drafts > 0 || counts.history > 0);
   // What the person chose to narrow the list with. A set is not a refinement: an empty Nacrti or Istorija says what that set is, and has
   // nothing to "clear" (plan 2.2). Search is one of the filters now, so it counts as one.
@@ -157,7 +157,7 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   const appearRef = useRef(appear); appearRef.current = appear;
 
   const rows = useMemo<Row[]>(() => {
-    if (reading || error) return [];
+    if (reading || error || (paging?.moreError && visible.length === 0)) return [];
     const out: Row[] = [];
     if (grouped) {
       let n = 0;
@@ -224,6 +224,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     {reading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'plain' }} />
       : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+        : paging?.moreError ? <StateView kind="error" art="tasks" title="Nismo učitali sve rezultate" body="Preostali zadaci trenutno nisu dostupni."
+          primary={{ label: 'Pokušaj ponovo', onPress: paging.onLoadMore }} />
         : filterActive ? <StateView art="map" title="Nema zadataka u ovom prikazu" body="Promeni pretragu ili filtere."
           primary={{ label: 'Poništi filtere', onPress: () => change({ query: '', price: 'all', attention: false, selectedId: null }) }} />
           : view.section === 'drafts' ? <StateView art="tasks" title="Nemaš nacrt" body="Nacrt pregledaš pre objave." />

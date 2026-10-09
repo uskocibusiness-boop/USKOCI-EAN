@@ -1,0 +1,53 @@
+{
+  "state": "SOURCE_TARGETED_PASS / PHONE_BUILD_NEXT",
+  "recordedAt": "2026-10-09T06:26:15.882329+00:00",
+  "sourceParent": "a5d9d2dc781670bd8647ceb4b2be22fbbbd8d691",
+  "sourceSha256": {
+    "src/ui/entry/BrandMaterial.tsx": "201c9136d3e9fb7d5954a5c92be80a7d57f690d9cad688d0718282efb9d7e4e7",
+    "src/ui/v2/MarketplacePresentation.tsx": "2fa0822ec653e730474ace689b6150af9353f19a3405ebd8504df2f55c12109d",
+    "src/data/__tests__/discovery-map-pills.test.tsx": "4c48cb1cf74207ce2c872462adaa197e04626ccc7bf32e75df636ff02fc04ecf",
+    "src/data/__tests__/own-tasks-paging-presentation.test.tsx": "6f271e1e8657fd246615c327216e715bde25325cdf455c7f19a604e77712eb5c"
+  },
+  "changes": [
+    "Nine leading-dot string SVG offsets parsed as zero; numeric stops restore intended small BrandMark gradients. Colors, paths and animation unchanged.",
+    "Failed continuation with zero matching visible tasks now offers onLoadMore retry, preserving query/section/filters; cannot claim empty. Loaded results retain footer recovery. Incomplete failed page cannot claim exact counts."
+  ],
+  "before": {
+    "failures": 3,
+    "proof": "Actual four native gradient offset arrays were zero instead of expected fractions; two query cases falsely reported empty."
+  },
+  "checks": {
+    "tests": 93,
+    "suites": 3,
+    "typescriptExit": 0,
+    "independentReview": "Read-only peer review, no blocker found. No native acceptance inferred.",
+    "suiteCounts": {
+      "discovery-map-pills.test.tsx": 66,
+      "own-tasks-paging-presentation.test.tsx": 14,
+      "firebase-config.test.ts": 13
+    },
+    "privateEvidenceSha256": {
+      "enamel-paging-before.json": "82d57ed48fb0f9f48ee5f651dcfbfd36505964612e69304c3fef26c9fe5ba989",
+      "enamel-paging-after.json": "ac83afdc545ef5509296765425d8205ec0f18d257ebda139944f4c44d934b66b",
+      "enamel-paging-tsc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "fullRegression": {
+    "source": "a5d9d2dc781670bd8647ceb4b2be22fbbbd8d691",
+    "tree": "7936813ab271c49e719d2dc091a5cfb91c6ea9fd",
+    "state": "INCOMPLETE_CONTROLLED_STOP_AFTER_FINDINGS",
+    "reason": "One Firebase config child exceeded existing15s limit; repeated real SVG gradient parse warnings led to verified source defect. Stop owned Jest PID32960 before correcting source; no full-suite PASS.",
+    "reportedPassSuites": 79,
+    "reportedFailSuites": 1,
+    "logSha256": "4a0a301f4b05faaed39e6a8efd40b0b5051a9e863f6d87450ac3163b6cc41464",
+    "node": "24.18.0",
+    "os": "Windows",
+    "recordedAt": "2026-10-09T06:18:19.791476+00:00"
+  },
+  "configRetry": "The unchanged Firebase config suite subsequently passed13/13 in targeted run, retaining original15s child timeout. Earlier full run remains incomplete; host cause not proven.",
+  "limits": [
+    "No native screenshot of this change yet.",
+    "No server, Edge, push delivery, dependency or store mutation.",
+    "Not full current-source regression or server capacity proof."
+  ]
+}
