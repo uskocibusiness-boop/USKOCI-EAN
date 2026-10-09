@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T06:26:28Z",
+  "osvezeno": "2026-10-09T07:10:51Z",
   "grana": "integration/spoj-20261006",
-  "head": "a5d9d2dc",
-  "head_poruka": "Guard retired location replies and retain paged private conversations",
+  "head": "f61d91f7",
+  "head_poruka": "Restore enamel gradients and retry incomplete task searches",
   "server": {
-   "snimljeno": "2026-10-08T16:45:35Z",
-   "migracije": 235,
+   "snimljeno": "2026-10-09T07:08:33.959021Z",
+   "migracije": 236,
    "dev_alpha": 86,
-   "poslednja": "dev_alpha_inbox_naslov_application",
+   "poslednja": "push_single_target_v1_current99",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -69,7 +69,7 @@
     },
     {
      "slug": "uskoci-push-transport",
-     "version": 22,
+     "version": 24,
      "verify_jwt": false
     },
     {
@@ -2313,7 +2313,7 @@
    "measurementResult": "250 unmasked JSON comparisons complete. Unique baseline placesDefault:0-4=3176.5/3163.8/3101.5/3104.7/3052.9ms;sample5SQL57014statement90s,105659msoverall,process570snotexpired;candidateuniqueperfnotstarted. Repeated candidate text42-53%faster but remote25.4%/denseMAP22.6%/city21.4%slower;notpromotable. Teardown0."
   },
   "push_recapture235_20261009": {
-   "state": "SOURCE_AND_DISPOSABLE_PASS / FRESH_PREFLIGHT_PASS / SECRET_WRITE_DENIED / LIVE_NOT_APPLIED",
+   "state": "DEV_SQL_AND_EDGE_APPLIED / ALL_FLAGS_OFF / FIRST_PHONE_DELIVERY_PENDING",
    "checkedAt": "2026-10-08T23:50:17.042064+00:00",
    "ledger": 235,
    "functionBodiesAndMetadataCompared": 13,
@@ -2331,9 +2331,9 @@
    "closureExecuting": 0,
    "globalTransportFlag": "SHA256_METADATA_MATCH_FALSE",
    "singleTargetFlag": "ABSENT_DEFAULT_OFF",
-   "flagsWritePrivilege": "DENIED_BY_SUPABASE_ACCOUNT_PRIVILEGES",
+   "flagsWritePrivilege": "PROVEN_WITH_EXACT_FALSE_TARGET_FLAGS",
    "sourceChecks": "22DO+4outerSQL parsed;6offlineEdgePASS",
-   "liveWrites": 0,
+   "liveWrites": "Two target secrets false; bounded cron pause/restore; one exact migration; one exact Edge deployment. No admission/provider.",
    "providerCalls": 0,
    "pushSends": 0,
    "candidateSha256": "239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac",
@@ -2343,10 +2343,19 @@
    "proof": "28/28 source hashes verified; current99 wrapper install108/revert99/reapply/revert99,17AI+13definition checks,13 behavioral groups,6offlineEdge; teardownPASS. Local wrapper ledger147/OID/certificate-specific, not literal live235SQL or full235 replay. Mockprovider concurrency exactly1; no real provider.",
    "exactPayloadOffline": "10/10Edge testsPASS: globaloff/single-targeton/exacton produces exactly3metadata fields from validated begin event,1mockprovider call; malformed event fails before provider; flags-off/legacy-compatible preserved. No Edge candidate byte change, no real delivery.",
    "accessEvidence": "supabase/proofs/push_single_target/promotion/recapture-20261009/access-check.json",
-   "freshPreflightCheckedAt": "2026-10-09T00:33:00.438608+00:00",
+   "freshPreflightCheckedAt": "2026-10-09T07:03:42.604899+00:00",
    "freshEdgeVersion": 22,
    "freshEdgeBeforeEqualsFrozen": true,
-   "expectedMigrationLedgerChange": "235 precondition;236 after normal apply_migration. Postflight reports new ledger; frozen revert has no235count guard. No migration applied."
+   "expectedMigrationLedgerChange": "235 precondition;236 after normal apply_migration. Postflight reports new ledger; frozen revert has no235count guard. No migration applied.",
+   "authenticatedRole": "OWNER_LOGIN_CONFIRMED_AND_SECRET_WRITE_SUCCEEDED",
+   "next": "Verify current phone binding and obtain one fresh MESSAGE_RECEIVED event from the other existing owner test account through normal authenticated UI/RPC. Existing4 message deliveries are SENT/SUPPRESSED and cannot be reused. Then exact one-target admission/send/receipt and physicaltap. No global queue drain.",
+   "accessRecheckRecordedAt": "2026-10-09T06:58:34.533851+00:00",
+   "applicationReceipt": "supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
+   "ledgerAfter": 236,
+   "rosterAfter": 108,
+   "certificateAfter": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+   "edgeAfter": 24,
+   "allFlagsOff": true
   },
   "agreement_tasks_20261009": {
    "state": "SOURCE_TARGETED_PASS / NATIVE_PENDING",
@@ -9120,8 +9129,8 @@
    },
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
-   "problem": "Raniji stvarni Android push i otvaranje aplikacije su dokazani i vlasnik ih je ponovo potvrdio. Precizni noviji message→exact-message transport i store provider konfiguracija imaju svoj zaseban preostali opseg; to ne znači da push nije napravljen.",
-   "sledece": "Sačuvati postojeći uspešan push i nastaviti vizuelno završavanje. Ne ponavljati uređajski dokaz niti graditi novi push projekat. Eventualne server/provider promene ostaju konkretan imenovani paket. Krug03.10: Single-target CI37077621475/74cdca32:13 grupa+6 Edge provera prolazi u izolaciji. Disposable cert88→97 nije DEV99. Nema pravog provider/device dokaza ni DEV primene; priprema se tačan trenutni preflight. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. 03.10: current99 promotion wrapper prepared/reviewed; isolated exact predecessor proof pending. Push-capable edd20976 APK installed-r over existing preview with UID/session retained. No new registration/send yet. Nastavak03.10: preview telefon registrovan kroz stvarni UI, oba postojeća skupa enabled; delivery readiness nepoznat. CI37081147485 stao na strict AI-location predecessor pre novog push install-a; izolovana newline-dijagnostika pripremljena, bez DEV promene. 04.10 push scheduler read-only + disposable proof: EXPO_PUSH je live active=false; 4 actionable PUSH delivery reda + 1 stari TICKET_PENDING drže minutni worker budnim iako je transport gated/off. Source-only kandidat + strogi revert su dokazani run37205976592; inactive provider=0 push Edge poziva, active=tačno1, backlog netaknut, revert hash vraća f9485392…. NIJE PRIMENJENO NA DEV; čeka eksplicitno „primeni“.",
+   "problem": "Aktuelno09.10: Owner pristup rešen; dokazani jednociljni SQL i Edge24 primenjeni, postflightPASS/ledger236. Sva3flaga false, admission0/provider0. Prvi fizički prijem/tap još nije dokazan; postojeće4MESSAGE_RECEIVED isporuke su SENT/SUPPRESSED i ne koriste se ponovo.",
+   "sledece": "Potvrditi trenutnu registraciju telefona kroz aplikaciju; nova prirodna poruka sa drugog postojećeg vlasničkog naloga, tačan admission tuple, jedan send i receipt/tap. Bez lažne poruke, auth bypass-a ili pražnjenja reda. Dokaz: supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [

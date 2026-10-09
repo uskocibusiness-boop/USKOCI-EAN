@@ -27,5 +27,64 @@
   "admissionCreated": false,
   "providerCalls": 0,
   "pushSends": 0,
-  "next": "Authorized project secret write access is required; then fresh preflight and exact apply_migration expected235to236, postflight, Edge readback. Do not bypass access using SQL vault writes."
+  "next": "Authorized project secret write access is required; then fresh preflight and exact apply_migration expected235to236, postflight, Edge readback. Do not bypass access using SQL vault writes.",
+  "latestRecheck": {
+    "preflightCheckedAt": "2026-10-09T06:29:18.075513+00:00",
+    "preflightProblems": [],
+    "ledgerRows": 235,
+    "sourceRoster": 99,
+    "candidateAbsent": true,
+    "writeAttempt": {
+      "checkedAt": "2026-10-09T06:29:56.245485+00:00",
+      "flags": {
+        "EXPO_PUSH_TRANSPORT_ENABLED": "METADATA_FALSE",
+        "EXPO_PUSH_SINGLE_TARGET_ENABLED": "ABSENT",
+        "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "ABSENT"
+      },
+      "setExit": 1,
+      "code": "SecretsSetUnexpectedStatusError",
+      "message": "Your account does not have the necessary privileges to access this endpoint.",
+      "flagsChanged": false,
+      "pushSends": 0
+    },
+    "authRecovery": "Completed twice through normal CLI browser login; separate profile whoami matched. Dashboard confirms current user Developer. Owner login required for secrets-write."
+  },
+  "authenticatedRoleCheck": {
+    "recordedAt": "2026-10-09T06:58:34.533851+00:00",
+    "state": "AUTHENTICATED_DEVELOPER / SECRET_WRITE_DENIED / OWNER_LOGIN_REQUIRED",
+    "normalLogin": "CLI browser verification completed on a new private named profile; expected whoami matched. Existing credentials not deleted or extracted.",
+    "roleEvidence": "Authenticated dashboard organization Team page explicitly labels current account You / Developer; a separate account is Owner. Email addresses remain private.",
+    "writeResult": "SecretsSetUnexpectedStatusError: Your account does not have the necessary privileges to access this endpoint.",
+    "attemptedValues": {
+      "EXPO_PUSH_SINGLE_TARGET_ENABLED": "false",
+      "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "false"
+    },
+    "readAfter": {
+      "EXPO_PUSH_TRANSPORT_ENABLED": "metadata value equals SHA256(false)",
+      "EXPO_PUSH_SINGLE_TARGET_ENABLED": "ABSENT",
+      "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "ABSENT"
+    },
+    "metadataCheckCorrection": "CLI2.119 list JSON carries the digest under value, not digest; initial missing-field comparison was inconclusive, corrected read confirmed SHA256(false). No secret values printed.",
+    "flagsChanged": false,
+    "migrationApplied": false,
+    "edgeDeployed": false,
+    "admissionCreated": false,
+    "providerCalls": 0,
+    "pushSends": 0,
+    "ownerAction": "Owner asked to sign in using existing organization Owner account. No password/token requested in chat. No permission changes or alternative writes attempted.",
+    "limits": "Login success is not project-admin privilege. Windows credential precedence theory was not proven and does not explain away observed Developer role.",
+    "references": [
+      "https://supabase.com/docs/guides/functions/secrets",
+      "https://supabase.com/docs/guides/platform/access-control"
+    ]
+  },
+  "ownerResolution": {
+    "state": "OWNER_AUTHENTICATED / SECRET_WRITE_PROVEN / PACKAGE_APPLIED_FLAGS_OFF",
+    "ownerRequestedLoginConfirmed": true,
+    "normalCliWhoamiMatchedOwner": true,
+    "falseTargetFlagsWriteExit": 0,
+    "allThreeFlagDigestsMatchFalse": true,
+    "applicationReceipt": "supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
+    "limits": "Earlier Developer denials and no-write observations remain historical. No admission/provider/phone delivery yet."
+  }
 }

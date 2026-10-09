@@ -24,3 +24,8 @@ The full current99 install/postflight/revert/reapply proof and existing13 behavi
 ## Exact-message target offline extension —09.10
 
 Ten Edge tests now pass, adding the single-target exact-message path with global transport off, validated opaque event identity and exactly three metadata fields; one mock provider request, no global claim/readiness path. Malformed event identities fail before provider IO. Exact flag off and legacy begin receipts keep INBOX compatibility; target off stays zero IO even when exact is on. Only tests and their source manifest changed; candidate Edge bytes and SQL remain frozen. No real provider delivery, DEV deployment or native tap has been proven by these tests.
+
+
+## Applied current99 package —09.10.07:04UTC
+
+The Owner account authenticated through the normal CLI browser flow and both target=false secret writes succeeded. All3 metadata digests verifiedfalse. Corrected dispatcher discovery found shared cron2 uskoci_edge_workers (its name contains no push): paused07:02:48, freshdrain/preflightPASS07:03:40–42, restored07:04:48 unchanged. Marketplacejob1 remainedactive. Exact migration20261009070352 storedSHAbe8782a4834857f3d2507a40e6bcf9757fc61f753e6857977fa02360867f9ace; ledger236, roster108, postflightproblems[], certificate0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb. Edge24 bothfiles exactcandidate, verify_jwt=false/customserviceauth retained. Admission0/provider0/push0; allflagsfalse. Receipt: `supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json`. Prior NOT_APPLIED/access-denied sections are history. No repeated application; proceed to actual owned device/fresh event admission. Frozen proof inputs/manifests remain unchanged.

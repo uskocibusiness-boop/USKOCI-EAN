@@ -480,3 +480,30 @@ Postojeća dodatna galerija dobija dugu, inertnu prepisku sa40poruka: prvo posle
 **NIJE DOKAZANO:** puna lokalna regresija a5d9d2dc zaustavljena je posle79prijavljenih PASS grupa i1FAIL, bez konačnog rezultata. Firebase config child tada nije završio u svom15s okviru; isti neizmenjeni suite posle prolazi13/13 u ciljanoj proveri. Uzrok host zastoja nije dokazan; to nije kompletna regresija. Nema telefonskog dokaza novih boja niti svih izmena ovog paketa. Nema izmene servera/Edge-a, slanja push-a ili zaključka da je proizvod spreman za prodavnicu.
 
 **SLEDEĆE:** vlasnik sada izričito daje prednost fizičkom telefonu. Novi objedinjeni preview/ARM64 APK pripremiti iz čistog tačnog commita uz postojeći push-proof Firebase/OTA profil, proveriti potpis, paket i stvarni runtime identitet, pa `install -r` u trenutku kada telefon nije u aktivnoj upotrebi. Sesija/podaci ostaju. Telefon trenutno ima512c740e (poslednja potvrđena instalacija09.10.04:43:45), emulatorc62 je stariji od kasnijih popravki i ugašen zbog SystemUI/Gboard startup ANR-a. Vraćanje dve Gboard opcije i dalje je otvoreno, ne prepreka pripremi telefonskog APK-a. Izolovani PLACES plan-cache ostaje sledeći serverski eksperiment: spori40k test nije dokaz trenutne brzine celog DEV-a; CI naplata sprečava novi izvršeni trace. Nema masovnog DEV testa.
+
+
+## Push pristup i telefonski build — aktivni nastavak09.10.06:35UTC
+
+Nov zahtev vlasnika: aktivirati i dokazati push; pita kako da poveže nalog. Fresh preflight06:29:18UTC problems[],235ledger/99roster, kandidat odsutan. CLI pokušaj dva target flaga=false ponovo odbijen od Supabase endpoint-a zbog nedovoljnih prava, read-after potvrđuje globalfalse/targetabsent; provider0/push0. Ovo je Supabase odbijanje, ne auto-review. Standardna CLI browser prijava uskoci-push-owner čeka vlasnikov login u otvorenom Supabase tabu. Ne tražiti lozinku/token u chatu; po prijavi potvrditi prava, fresh preflight i postojeći jednociljni paket.
+
+Izmene f61d91f7425aeb028b27443a5d218ce3cd92d136 poslate i očitane na obe kanonske grane. Privatni lokalni phone build je u toku kroz build-local-phone-f61d91f7.py --resume-source-export (ub2). Prvi pokušaj zaustavila je stroga CRLF/LF lock provera pre zavisnosti; neuspeh sačuvan, izvozni source proverava se prema arhivi bez semantičkog menjanja lock-a. Pratiti local-phone-f61d91f7-build.json; nije APK PASS niti instalacija. Samo uspešno građenje, potpis/ABI/OTA/Firebase attest i runtime očitanje omogućavaju instalaciju/probu. Telefon ostaje512.
+
+
+## Dopuna — prijava uspela; stvarna Developer uloga blokira push podešavanja
+
+**URADIO / DOKAZAO:** obe normalne CLI browser prijave uspešne; drugi pokušaj koristi nov privatni imenovani profil bez brisanja postojećih pristupa. whoami odgovara prijavljenom nalogu. Organizacija → Team nedvosmisleno prikazuje You / Developer i poseban Owner nalog. Jedan pokušaj oba target flaga=false i dalje je odbijen od Supabase endpoint-a. Read-after: globalni metadata digest=false, oba target flaga odsutna. Napomena instrumenta: CLI list JSON digest je polje value; prvobitno poređenje nepostojećeg digest polja nije bilo validno i korigovano je bez čitanja tajnih vrednosti. Windows keyring teorija nije lokalno dokazana. Dokaz: `supabase/proofs/push_single_target/promotion/recapture-20261009/access-check.json`.
+
+**NIJE DOKAZANO:** nema DEV SQL/certificate/Edge/admission promene, provider poziva ili stvarnog push-a. Nije automatski approval-review problem; u pitanju su stvarna prava naloga. Nova prijava sama ne proširuje prava.
+
+**SLEDEĆE:** vlasniku je navedeno koji njegov postojeći nalog ima Owner ulogu i zatražena prijava, bez traženja lozinke/tokena u razgovoru. Posle nje ponoviti normalan CLI login i ograničene guardove; ne zaobilaziti pravo kroz Vault ili drugi write put. Nezavisni APK rad se nastavlja. Aktuelni f61 build je u Android ARM64 kompilaciji. Telefon i dalje512: hash/UID/prvi install/lastUpdate09.10.04:43:45 ponovo očitani; Chrome je u prvom planu, zato nema uređajskog input-a niti instalacije u ovom koraku.
+
+
+## Dopuna — push SQL i Edge primenjeni posle stvarne Owner prijave
+
+**URADIO:** vlasnik se prijavio kao postojeći Owner. CLI whoami potvrđen; oba target flaga postavljenafalse i sva3metadata digestafalse proverena. Pronađen stvarni zajednički cron dispatcher uskoci_edge_workers (ne vidi se prostim traženjem push u nazivu); pauziran120s uz očuvano stanje, pa vraćen. Marketplacecron ostaoactive. Tačan dokazani SQL primenjen normalnim apply_migration i tačan Edge kandidat postavljen CLIjem.
+
+**DOKAZAO:** freshpreflight235/99 problems[]; drain0queued/0leases/0SEND_STARTED/0executing/0unfinished. Storedmigration20261009070352 SHAbe8782a jednak odobrenim bajtovima bez finalnewline. Postflight236/108 problems[], oba certifikata/binding0201a7cc; legalPolicyAttestedfalse. Edge24 obe datoteke jednake kandidatu, customserviceauth/verify_jwt=false očuvani. Cron2 posle ponovoactive, ista komanda/schedule. Ceo receipt: `supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json`.
+
+**NIJE DOKAZANO:** admission0/provider0/push0. Sva3flaga sufalse. Jedan aktivan Android uređaj u bazi ima važeću vezanu sesiju i rev5, ali aktuelnu fizičku vezu još potvrditi kroz app. Četiri postojeće MESSAGE_RECEIVED isporuke za taj vlasnički nalog su1SENT/3SUPPRESSED, bez pogodnog neokušavanog događaja; ne oživljavati ih. Normalna druga test sesija je potrebna za svežu poruku, bez lažnih događaja ili admin impersonacije.
+
+**SLEDEĆE:** završiti f61 ARM64 APK, attest, install-r kada telefon nije aktivno u upotrebi, proveriti stvarni runtime i Ovaj telefon. Vlasnik u07:09 koristi USKOČI; nije slat input. Zatim normalan drugi vlasnički profil na emulatoru/drugoj autentifikovanoj površini i tačan prvi send/receipt/tap. Tokovi, serverkapacitet i prodavnica ostaju otvoreni.

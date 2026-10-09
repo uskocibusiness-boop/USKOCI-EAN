@@ -1,0 +1,112 @@
+{
+  "state": "DEV_SQL_AND_EDGE_APPLIED / ALL_FLAGS_OFF / NO_ADMISSION_OR_SEND",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "source": "f61d91f7425aeb028b27443a5d218ce3cd92d136",
+  "isolatedProof": {
+    "run": 37861832231,
+    "source": "c70dd513d0896628b9958a8be2bd272a7180b383",
+    "scope": "current99 local fixture wrapper install/revert/reapply/revert,17AI+13definition checks,13behavior groups,6offlineEdge. Later10offlineEdge include exact-message. Not literal235 migration replay."
+  },
+  "authorization": "Owner explicitly requested actual push and existing bounded prepared package; authenticated organization Owner login resolved Developer secrets-write denial.",
+  "flags": {
+    "EXPO_PUSH_TRANSPORT_ENABLED": false,
+    "EXPO_PUSH_SINGLE_TARGET_ENABLED": false,
+    "EXPO_PUSH_MESSAGE_TARGET_ENABLED": false,
+    "proof": "All3 metadata value digests equal SHA256(false) before migration. No flags enabled.",
+    "afterEdgeAndCronRestore": {
+      "checkedAt": "2026-10-09T07:11:08.437645+00:00",
+      "flags": {
+        "EXPO_PUSH_TRANSPORT_ENABLED": "METADATA_FALSE",
+        "EXPO_PUSH_SINGLE_TARGET_ENABLED": "METADATA_FALSE",
+        "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "METADATA_FALSE"
+      }
+    }
+  },
+  "preflight": {
+    "package": "PUSH_SINGLE_TARGET_V1",
+    "problems": [],
+    "checkedAt": "2026-10-09T07:03:42.604899+00:00",
+    "sourceSha": "74cdca32bc48b9dfb95622bdd26920878797b805",
+    "ledgerRows": 235,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "sourceRoster": 99,
+    "storedDigest": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+    "candidateAbsent": true,
+    "admissionCreated": false
+  },
+  "drain": {
+    "checkedAt": "2026-10-09T07:03:40.334967+00:00",
+    "queuedPush": 0,
+    "sendStarted": 0,
+    "activeLeases": 0,
+    "workerPaused": true,
+    "ticketPending": 1,
+    "closureExecuting": 0,
+    "unfinishedWorkerRuns": 0
+  },
+  "workerPause": {
+    "jobid": 2,
+    "jobname": "uskoci_edge_workers",
+    "pausedAt": "2026-10-09T07:02:48.892074+00:00",
+    "restoredAt": "2026-10-09T07:04:48.729753+00:00",
+    "commandMd5": "6abaf04335ccd2f8240bafcd4dbfb314",
+    "originalAndRestoredActive": true,
+    "schedule": "* * * * *",
+    "scope": "Shared PUSH/DATA_EXPORT/ACCOUNT_CLOSURE dispatcher paused120seconds; marketplace job1 remained active. Previous push-name-only cron search was insufficient and corrected."
+  },
+  "migration": {
+    "version": "20261009070352",
+    "name": "push_single_target_v1_current99",
+    "statement_count": 1,
+    "stored_sha256": "be8782a4834857f3d2507a40e6bcf9757fc61f753e6857977fa02360867f9ace"
+  },
+  "candidateSha256": "239ccd181e2787ad7624bc638c3b6bf88eb928e1419f332f0d709e8f6adc45ac",
+  "postflight": {
+    "binding": {
+      "sha256": "cd4d984005b0483b7f34f19093b89e375f9e7563ebb27f286131ba8744be3bc2",
+      "trigger": "CLOSURE_REQUESTED",
+      "authAction": "AUTH_IDENTITY_ERASED_SUBJECT_RETAINED",
+      "provenance": "OWNER_AF_D22",
+      "mediaAction": "DELETE_UNPROTECTED_OWNED_OBJECTS",
+      "sourceSha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+      "adapterVersion": "OWNER_AF_D22_EVENT_ERASURE_V1",
+      "exceptionAction": "SCOPED_REVIEW_REQUIRED",
+      "relationalAction": "ERASE_ORDINARY_PERSONAL_CONTENT",
+      "legalPolicyAttested": false
+    },
+    "package": "PUSH_SINGLE_TARGET_V1",
+    "problems": [],
+    "checkedAt": "2026-10-09T07:04:07.258761+00:00",
+    "sourceRow": {
+      "sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+      "singleton": true
+    },
+    "sourceSha": "74cdca32bc48b9dfb95622bdd26920878797b805",
+    "erasureRow": {
+      "sha256": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+      "singleton": true
+    },
+    "ledgerRows": 236,
+    "sourceRoster": 108,
+    "computedDigest": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "admittedAttempts": 0
+  },
+  "edge": {
+    "beforeVersion": 23,
+    "afterVersion": 24,
+    "verifyJwt": false,
+    "customServiceAuthenticationPreserved": true,
+    "beforeBothFilesMatchFrozen": true,
+    "afterBothFilesMatchCandidate": true,
+    "indexSha256": "6d27f508c53f8fed23b12e14ae873b633749aa4c7d457602d1e0d3a4f62ee1de",
+    "sharedSha256": "a14fa35d3428f25b55ec68ad0e10dd881de238dfde164f834651c06e121e7c57",
+    "method": "CLI2.119.0 functions deploy exactname --use-api --no-verify-jwt with normal Owner profile"
+  },
+  "admissions": 0,
+  "providerCalls": 0,
+  "pushSends": 0,
+  "rollback": "Frozen revert-before-admission.sql only before any admission, requires exactpostflight/drain/flagsOff; preserve migration history. After admission flagsOff and forwardrepair, never erase evidence.",
+  "next": "Read actual owned phone registration/event and prepare one exact admission tuple. No global tick or old queue drain.",
+  "storeReady": false,
+  "counterScope": "admissions/providerCalls/pushSends are for this promotion operation; historical attempts remain unchanged."
+}

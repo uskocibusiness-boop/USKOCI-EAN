@@ -5,11 +5,11 @@
     "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
     "concurrencyAcceptance": false
   },
-  "generated_at": "2026-10-08T16:45:35Z",
-  "ledger_total": 235,
+  "generated_at": "2026-10-09T07:08:33.959021Z",
+  "ledger_total": 236,
   "ledger_dev_alpha": 86,
-  "ledger_last": "dev_alpha_inbox_naslov_application",
-  "certificate_certified": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "ledger_last": "push_single_target_v1_current99",
+  "certificate_certified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
   "cron": [
     {
       "job": "uskoci_edge_workers",
@@ -82,6 +82,8 @@
     "rpc_claim_data_export",
     "rpc_claim_data_export_cleanup",
     "rpc_claim_media_upload_service",
+    "rpc_claim_push_single_target",
+    "rpc_claim_push_single_target_receipt",
     "rpc_claim_push_transport",
     "rpc_claim_qa_classification_service",
     "rpc_claim_retention_job",
@@ -469,9 +471,9 @@
     "rpc_write_agreement_current_location"
   ],
   "project": "leqcwgzvjsxugfgzdmth",
-  "certificate_live": "3a785d423a564a5b39f55f916c536753ac73c4a76664ce0a09394ee68909cd23",
+  "certificate_live": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
   "retention_ai_ready": true,
-  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change). | 2026-10-02 04:55 UTC: after the owner-approved D12 application (ledger 221, migration 20261002044950): ledger counts, the certified row (NOW 0579191d..., was 58447d77...), the live digest and readiness re-read by read-only SQL and by three independent verifiers; the rpc lists gain the four D12 functions (three authenticated, one service_role); the cron and edge lists are carried from the 2026-10-01 read (the package changes no cron and no Edge function). | 2026-10-02T18:58:41.775Z: AI-LOCATION-01 SQL and Edge v51 applied after explicit owner approval. Exact17-function catalog readback includes13 candidate bodies,3 unchanged definitions and one readiness constant replacement; ledger223/75, new certificate3a785d42 and both bindings agree. Four new RPC names/ACLs observed and Edge five-file hashes match. Other inventory/cron retains its prior timestamps; no provider/native probe.",
+  "how": "Catalog, cron, certified row, live digest and readiness read directly by read-only SQL at generated_at (11:42 UTC), after the owner-approved EX-04 S1-S4 applications (ledger 219, migrations 20261001113449, 20261001113629, 20261001113815, 20261001113949) and the common final postflight at 11:42:14Z (problems: none; certificate unchanged in all places). The rpc lists were verified by md5 against the database (242 names, 170 callable by authenticated). The Edge list (11 ACTIVE functions, unchanged versions) was read with list_edge_functions at 11:43 UTC. | 2026-10-02 02:28 UTC: after the owner-approved EX-06 ex06a application (ledger 220, migration 20261002022631): ledger counts, the certified row, the live digest and readiness re-read by read-only SQL (certificate unchanged); the cron, edge and rpc lists are carried from the 2026-10-01 read (the package is function-only: no new rpc, no Edge change). | 2026-10-02 04:55 UTC: after the owner-approved D12 application (ledger 221, migration 20261002044950): ledger counts, the certified row (NOW 0579191d..., was 58447d77...), the live digest and readiness re-read by read-only SQL and by three independent verifiers; the rpc lists gain the four D12 functions (three authenticated, one service_role); the cron and edge lists are carried from the 2026-10-01 read (the package changes no cron and no Edge function). | 2026-10-02T18:58:41.775Z: AI-LOCATION-01 SQL and Edge v51 applied after explicit owner approval. Exact17-function catalog readback includes13 candidate bodies,3 unchanged definitions and one readiness constant replacement; ledger223/75, new certificate3a785d42 and both bindings agree. Four new RPC names/ACLs observed and Edge five-file hashes match. Other inventory/cron retains its prior timestamps; no provider/native probe. | 2026-10-09 07:04–07:08UTC: verified current99 single-target SQL migration20261009070352 and Edge24 applied. Ledger236/86, certificate0201a7cc roster108 and both bindings agree; legalPolicyAttested remainsfalse. Two new RPCs service-only. Shared cron2 paused120s then restored unchanged; marketplacejob1 untouched. All flagsfalse/noadmission/noprovider. Other inventories and24hcounts remain historical; see push_single_target_refresh.",
   "private_current_status": "FRESH",
   "private_observed_at": "2026-10-01T11:42:14Z",
   "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",
@@ -518,7 +520,7 @@
     },
     {
       "slug": "uskoci-push-transport",
-      "version": 22,
+      "version": 24,
       "verify_jwt": false
     },
     {
@@ -731,5 +733,14 @@
     "cron": "uskoci_edge_workers and uskoci_marketplace_tick every minute, 2880 runs / 0 failures in 24 h",
     "data": "5 accounts (all test); needs 48 (7 PUBLISHED, 3 ACTIVE, 1 SELECTION, 4 DRAFT, 20 EXPIRED, 10 CANCELLED, 3 COMPLETED); 16 applications; agreements 3 CONFIRMED / 4 COMPLETED / 3 CANCELLED; 89 inbox events; push deliveries 1 SENT, 1 CREATED (stale, from the d15 closures of 7 Oct), 8 EXPIRED, 79 SUPPRESSED; app_profiles 5 WORKER + 5 REQUESTER",
     "switches": "match_v1_dispatch ceiling 10000 remoteWaves true; profile_trust_visibility OWN_ONLY; received_reviews_detail COMMENTED_ONLY; urgent_activation_policy enabled false; platform_payments enabled false; prices 0 RSD"
+  },
+  "push_single_target_refresh": {
+    "capturedAt": "2026-10-09T07:08:33.959021Z",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
+    "scope": "Only exact push package, ledger/cert/bindings/readiness, two new service-only RPC ACLs, push Edge24 exactfiles and restored cron2 refreshed. Other inventory and historical24h counters retain previous timestamps.",
+    "admittedAttempts": 0,
+    "providerCalls": 0,
+    "pushSends": 0,
+    "allFlagsOff": true
   }
 }
