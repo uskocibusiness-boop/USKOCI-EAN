@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T00:31:08Z",
+  "osvezeno": "2026-10-09T00:32:06Z",
   "grana": "integration/spoj-20261006",
-  "head": "d0295e1c",
-  "head_poruka": "merge: synchronize generated control views",
+  "head": "4f23ed49",
+  "head_poruka": "test: expose socket recovery and verify targeted message payload",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
