@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T02:59:01Z",
+  "osvezeno": "2026-10-09T03:00:12Z",
   "grana": "integration/spoj-20261006",
-  "head": "19572d73",
-  "head_poruka": "merge: refresh control views after isolated performance instrumentation",
+  "head": "2061ead0",
+  "head_poruka": "Clarify waiting tasks and compact agreement role filters after native review",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
