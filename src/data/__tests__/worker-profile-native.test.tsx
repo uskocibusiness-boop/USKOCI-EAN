@@ -41,6 +41,7 @@ jest.mock('../../ui/profile/RatingLine', () => ({ RatingLine: 'RatingLine' }));
 jest.mock('../workerAvailabilityClientService', () => ({ workerAvailabilityClientService: {
   read: (...args: unknown[]) => mockAvailabilityRead(...args), save: (...args: unknown[]) => mockAvailabilitySave(...args) } }));
 import Profile from '../../app/(app)/profil/radnik';
+import { WorkerProfileForm } from '../../ui/workerProfile/WorkerProfilePresentation';
 import { Avatar } from '../../ui/system/Avatar';
 import { inicijali } from '../../lib/inicijali';
 const profile = { id: '20000000-0000-4000-8000-000000000001', ime: 'Ana', grad: 'Novi Sad', biografija: '',
@@ -71,12 +72,13 @@ const settle = async () => { await act(async () => {}); };
 async function renderReading() { await act(async () => { tree = create(<Profile />, {
   createNodeMock: element => element.type === 'ScrollView' ? { scrollTo: mockScrollTo } : element.type === 'TextInput' ? { focus: mockFocusField } : null,
 }); }); }
-// T4b1 (2026-10-07), arranged as the product draft the owner approved on 8 Oct 2026 (P3): a finished profile is READ first, and a row of it that changes something
-// turns it into the editor with THAT part open. So the tests of the editor open it the way a person does, by "Šta radiš", and close that part again: every section
-// starts closed, as it did when the editor was one button. A draft, and a profile that does not exist yet, are the editor from the start.
+// Guard tests below still exercise the legacy editor through its component command
+// boundary. The saved-card UI no longer admits that path; its real affordances
+// are covered separately in "the saved profile is read first". Legacy deep links
+// and DRAFT editing remain a separate migration, not silently removed here.
 const toEditor = () => {
   if (tree.root.findAllByProps({ testID: 'worker-skills-row' }).length === 0) return;
-  act(() => control('Šta radiš').props.onPress());
+  act(() => tree.root.findByType(WorkerProfileForm).props.onEditPart('skills'));
   act(() => control('Gotovo: Veštine i usluge').props.onPress());
 };
 async function render() { await renderReading(); toEditor(); }
@@ -112,7 +114,7 @@ it('opens the personal editor explicitly and keeps its regular field on the bund
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Koliko ljudi možeš da obezbediš' })).toHaveLength(0);
 });
 
-it.each(['ACTIVE', 'SUSPENDED'])('a clean %s profile has no save footer, while editing and validation retain it', async stanje => {
+it.each(['ACTIVE'])('a clean %s profile has no save footer, while editing and validation retain it', async stanje => {
   mockRead.mockResolvedValue({ ...profile, stanje }); await render();
   expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
@@ -407,8 +409,8 @@ it('a hanging transport becomes unknown without automatic replay or a late succe
   await act(async () => late({ ok: true, podatak: null })); expect(mockRead).toHaveBeenCalledTimes(1);
   expect(mockWrite).toHaveBeenCalledTimes(1); expect(texts()).not.toContain('Izmene profila su sačuvane');
 });
-it('owned related settings navigation avoids losing a dirty draft and suspended profiles cannot request activation', async () => {
-  mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await render();
+it('owned related settings navigation avoids losing a dirty active-profile draft', async () => {
+  await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
   click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
   input('O meni', 'Lokalna izmena'); click('Područje rada');
@@ -487,7 +489,7 @@ it('says a draft profile is offered nothing, not merely that it is incomplete', 
 
 it('says the same about a suspended profile, and nothing at all about an active one', async () => {
   mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' });
-  await render();
+  await renderReading();
   expect(texts()).toContain('Dok traje suspenzija, zadaci ti se ne nude.');
   await act(async () => tree.unmount());
   mockRead.mockResolvedValue(profile);
@@ -532,8 +534,9 @@ describe('manual corrections after a summary edit tap', () => {
 
 // Review of step 9 (2026-09-24): the support row is not a setting, so a dirty draft gets its own sentence.
 it('asks to save a dirty draft before writing to support, in words about support', async () => {
-  mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await render();
-  input('O meni', 'Lokalna izmena'); click('Obrati se podršci');
+  await render();
+  input('O meni', 'Lokalna izmena');
+  act(() => tree.root.findByType(WorkerProfileForm).props.navigate('/podrska'));
   expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(texts()).toContain('Sačuvaj unos pre nego što pišeš podršci.');
   expect(texts()).not.toContain('Sačuvaj unos pre otvaranja drugog podešavanja.');
 });
@@ -563,13 +566,13 @@ describe('activation checklist', () => {
 });
 
 // T4b1 (2026-10-07), M3, arranged as the product draft the owner approved on 8 Oct 2026 (P3): a finished profile is READ first, as the card others see, the rows
-// "Šta radiš" and "Gde", "Kada", "Oprema" and the white "Popuni uz asistenta". A row that changes something opens the editor of THAT part; nothing is written by a tap.
+// "Šta radiš" and "Gde", "Kada", "Oprema" and the white "Uredi kroz razgovor". A row that changes something opens the editor of THAT part; nothing is written by a tap.
 describe('the saved profile is read first', () => {
   it('reads the card, the rows and the white button: no field, no pencil, no footer, and nothing written', async () => {
     await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
-    expect(texts()).toContain('Kako te vide kad uskačeš'); expect(texts()).toContain('Ana');
+    expect(texts()).toContain('Tvoj radni profil'); expect(texts()).toContain('Ana');
     expect(texts()).toContain('Šta radiš'); expect(texts()).toContain('Prevoz, utovar');
     expect(texts()).toContain('Gde'); expect(texts()).toContain('Novi Sad · 20 km');
     expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Nedeljni raspored');
@@ -580,7 +583,7 @@ describe('the saved profile is read first', () => {
     // "Na šta utiče" was a block of rows; it is the sentences behind the "ⓘ" in the bar now.
     expect(texts()).not.toContain('Na šta utiče'); expect(texts()).not.toContain('Javni profil');
     expect(control('Objašnjenje: Na šta utiče radni profil')).toBeTruthy();
-    expect(control('Popuni uz asistenta')).toBeTruthy();
+    expect(control('Uredi kroz razgovor')).toBeTruthy();
     // A clean finished profile has no save footer: there is nothing here to save.
     expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
     expect(mockWrite).not.toHaveBeenCalled();
@@ -617,8 +620,8 @@ describe('the saved profile is read first', () => {
     expect(infoLines()).toContain('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
     expect(texts()).not.toContain('Samo informacija');
   });
-  it('"Popuni uz asistenta" opens the guarded conversation, and writes nothing', async () => {
-    await renderReading(); click('Popuni uz asistenta');
+  it('"Uredi kroz razgovor" opens the guarded conversation, and writes nothing', async () => {
+    await renderReading(); click('Uredi kroz razgovor');
     expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
   it('"Gde" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
@@ -627,29 +630,28 @@ describe('the saved profile is read first', () => {
     click('Nedeljni raspored'); expect(mockRouter.navigate).toHaveBeenLastCalledWith('/profil/dostupnost');
     expect(mockWrite).not.toHaveBeenCalled();
   });
-  it.each([['Šta radiš', 'Veštine i usluge'], ['Alat', 'Alat i oprema'], ['Vozila', 'Vozila']])(
-    '"%s" opens the editor of that part with the part open and no keyboard up, and writes nothing', async (row, section) => {
-      await renderReading(); click(row);
-      expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(0);
-      expect(control(`Gotovo: ${section}`)).toBeTruthy(); expect(control(`Nova stavka: ${section}`).props.value).toBe('');
-      expect(mockFocusField).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
-      // The other parts stay closed, each with its own way to open.
-      for (const other of ['Veštine i usluge', 'Alat i oprema', 'Vozila'].filter(name => name !== section)) expect(control(`Izmeni: ${other}`)).toBeTruthy();
-    });
+  it('saved skills and equipment stay readable without opening a manual editor', async () => {
+    await renderReading();
+    for (const label of ['Šta radiš', 'Alat', 'Vozila']) {
+      expect(tree.root.findAll(node => node.props.accessibilityLabel === label && typeof node.props.onPress === 'function')).toHaveLength(0);
+    }
+    expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+    expect(mockWrite).not.toHaveBeenCalled();
+  });
   it('a row does not open the editor while a save is running or the screen is not ready', async () => {
     let finish!: (result: unknown) => void;
     mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue({ ...profile, ime: 'Pera peric' }); await renderReading();
     click('Koristi „Milos“'); await settle();
     // While the name is being written the rows are locked.
-    expect(control('Šta radiš').props.disabled).toBe(true); expect(control('Gde').props.disabled).toBe(true);
-    act(() => control('Šta radiš').props.onPress());
+    expect(control('Uredi kroz razgovor').props.disabled).toBe(true); expect(control('Gde').props.disabled).toBe(true);
+    act(() => tree.root.findByType(WorkerProfileForm).props.onEditPart('skills'));
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });
     await act(async () => finish({ ok: true, podatak: null }));
   });
   it('"Nazad" leaves the editor it opened, and the profile is read again next time', async () => {
-    await renderReading(); click('Šta radiš');
+    await renderReading(); toEditor();
     expect(control('Izmeni: O meni')).toBeTruthy();
     click('Nazad'); expect(mockRouter.back).toHaveBeenCalledTimes(1);
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
@@ -658,6 +660,11 @@ describe('the saved profile is read first', () => {
     mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     expect(texts()).toContain('Profil je trenutno suspendovan'); expect(control('Obrati se podršci')).toBeTruthy();
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi kroz razgovor' })).toHaveLength(0);
+    const form = tree.root.findByType(WorkerProfileForm);
+    act(() => { form.props.openConversation(); form.props.navigate('/profil/lokacija'); form.props.navigate('/profil/dostupnost'); form.props.onEditPart('skills'); });
+    expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     // It says its state and cannot be touched: a suspended profile is not switched by its owner.
     expect(tree.root.findAllByProps({ testID: 'worker-available-now' })).toHaveLength(0); expect(texts()).toContain('Uključeno');
     await act(async () => tree.unmount());
@@ -866,4 +873,61 @@ describe('one name for the account and the work profile', () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(null); await render();
     click('Uredi kroz razgovor'); expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
+});
+
+
+it('suspension retires callbacks captured before a same-focus authoritative read', async () => {
+  mockAccountName = { state: 'ready', name: 'Milos' };
+  await renderReading(); const retained = tree.root.findByType(WorkerProfileForm).props;
+  mockRead.mockResolvedValue({ ...profile, ime: 'Milos', stanje: 'SUSPENDED' });
+  click('Koristi „Milos“'); await settle();
+  expect(texts()).toContain('Profil je trenutno suspendovan');
+  act(() => { retained.openConversation(); retained.navigate('/profil/dostupnost');
+    retained.navigate('/profil/lokacija'); retained.onEditPart('skills'); retained.availableNow.onChange(false); });
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(mockAvailabilityRead).not.toHaveBeenCalled(); expect(mockAvailabilitySave).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
+  click('Obrati se podršci'); expect(mockRouter.navigate).toHaveBeenCalledWith('/podrska');
+});
+it('a biography deep link cannot reopen editing of a suspended profile', async () => {
+  mockParams = { uredi: 'o-meni', n: 'suspended' }; mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' });
+  await renderReading(); expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+
+it('a suspended profile cannot synchronize a different name, including through a retained handler', async () => {
+  mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' });
+  await renderReading(); expect(control('Koristi „Milos“').props.disabled).toBe(true);
+  act(() => tree.root.findByType(WorkerProfileForm).props.onUseAccountName());
+  expect(mockWrite).not.toHaveBeenCalled();
+});
+it('suspension during a legacy edit preserves the draft and pending readback but admits no further save', async () => {
+  await render(); input('O meni', 'Moj sačuvani lokalni unos');
+  const retained = tree.root.findByType(WorkerProfileForm).props;
+  const save = control('Sačuvaj izmene').props.onPress;
+  mockWrite.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Nepotvrđeno' });
+  click('Sačuvaj izmene'); await settle();
+  mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED', biografija: 'Ranije sačuvan opis' });
+  click('Pogledaj sačuvani profil'); await settle();
+  expect(texts()).toContain('Ranije sačuvan opis');
+  expect(texts()).toContain('Nesačuvani unos je zadržan.');
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+  act(() => { retained.change({ ...retained.draft, biografija: 'Zastarela promena' }); save(); }); await settle();
+  expect(mockWrite).toHaveBeenCalledTimes(1);
+  // Resolving the restriction later must not replace the authored local text.
+  mockRead.mockResolvedValue(profile); click('Pogledaj sačuvani profil'); await settle();
+  click('Izmeni podatke'); openEditor('O meni');
+  expect(control('O meni').props.value).toBe('Moj sačuvani lokalni unos');
+});
+
+it('suspended support has no impossible save prerequisite and retains an unsaved local draft', async () => {
+  await render(); input('O meni', 'Moj lokalni opis');
+  const background = async () => { await act(async () => { for (const listener of [...mockListeners]) listener('background'); }); };
+  const resume = async () => { await act(async () => { for (const listener of [...mockListeners]) listener('active'); }); };
+  await background(); mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await resume();
+  click('Obrati se podršci'); expect(mockRouter.navigate).toHaveBeenCalledWith('/podrska');
+  expect(mockWrite).not.toHaveBeenCalled();
+  await background(); mockRead.mockResolvedValue(profile); await resume();
+  openEditor('O meni'); expect(control('O meni').props.value).toBe('Moj lokalni opis');
 });

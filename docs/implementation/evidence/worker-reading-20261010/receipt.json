@@ -1,0 +1,41 @@
+{
+  "state": "BOUNDED_SOURCE_PASS_NATIVE_PENDING",
+  "base": "a0b7b9194cb70c27ed4e7345ce45aee1a20221bc",
+  "checks": [
+    {
+      "file": "worker-reading-final-tests.json",
+      "sha256": "25a8c665a50af8b03d0b78b027daa75679f2e2a53da7d7d7ef922d84aaefd9b8",
+      "suites": 16,
+      "passed": 436,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "worker-reading-suspension-tests.json",
+      "sha256": "86b2abb9105eb093cc7c49085b2f016645317ffc0735ca18393915a04487de70",
+      "suites": 3,
+      "passed": 136,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "file": "worker-reading-support-tests.json",
+      "sha256": "bd899f7f6892d2650abe054125f6ebc4c16560e422cbfb62fde5b61f1dfd3128",
+      "suites": 1,
+      "passed": 92,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "uniqueSuites": 16,
+  "uniqueTestCounts": {
+    "passed": 439
+  },
+  "tscExit": 0,
+  "server": "UNCHANGED",
+  "device": "NOT_TESTED_THIS_PATCH; installed600efd10 is previous media source",
+  "aiOnlyMigration": "OPEN: DRAFT/absent profile and personal biography deep link still have manual flow; conversation still has manual business editors and lacks candidate pin panel",
+  "review": "Final bounded independent read-only review: no remaining findings after suspension/support corrections. Native and AI-only migration remain open.",
+  "store": "NO-GO",
+  "automation": "PAUSED"
+}

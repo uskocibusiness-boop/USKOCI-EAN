@@ -70,6 +70,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proveri vezu pa pokušaj ponovo.' }; }
   }, [izvor, owns]);
   const editor = useOwnedEditor(read);
+  const latestStatus = useRef(editor.data?.profile?.stanje);
+  latestStatus.current = editor.data?.profile?.stanje;
   const [draft, setDraft] = useState<Draft | null>(null), draftRef = useRef<Draft | null>(null), draftGeneration = useRef(0);
   const [pending, setPending] = useState<Attempt | null>(null), pendingRef = useRef<Attempt | null>(null);
   const [transportBusy, setTransportBusy] = useState(false), transportRef = useRef(false);
@@ -128,7 +130,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (router.canGoBack()) router.back(); else router.replace('/profil');
   };
   const change = (value: WorkerDraft) => {
-    if (!enabled || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
+    if (!enabled || latestStatus.current === 'SUSPENDED' || transportRef.current || pendingRef.current || renderedDraft !== draftGeneration.current || !draftRef.current || !current()) return;
     setLocal({ ...draftRef.current, value }); setMessage(null); setValidation(null); setFocusRequest(null);
   };
   // One attempt at a time: a command is sent once, its whole pipeline stays owned until it settles, and the profile is read back before it is called saved.
@@ -152,7 +154,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     });
   };
   const save = async (activate: boolean) => {
-    if (!enabled || !current() || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
+    if (!enabled || !current() || latestStatus.current === 'SUSPENDED' || transportRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
     const built = pendingRef.current ? { command: pendingRef.current.command, expected: pendingRef.current.expected } : workerCommand(draftRef.current.value, draftRef.current.initial, activate, accountName);
     if (!built.command) {
       setValidation(built.error ?? 'Proveri popunjena polja.');
@@ -166,7 +168,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // "Koristi „<ime naloga>“" (the person's own action, never automatic): writes the account's name into the work profile through the same owned
   // writer and the same readback as every other save. Unsaved edits are not thrown away by it: they have to be saved first.
   const adoptAccountName = async () => {
-    if (!enabled || !current() || transportRef.current || pendingRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
+    if (!enabled || !current() || latestStatus.current === 'SUSPENDED' || transportRef.current || pendingRef.current || !draftRef.current || renderedDraft !== draftGeneration.current) return;
     const name = accountName?.trim();
     if (!name || draftRef.current.profileId === null) return;
     if (JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) { setValidation('Sačuvaj unos pre promene imena.'); return; }
@@ -180,7 +182,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   };
   const navigate = (path: WorkerNavigation) => {
     if (!enabled || !current() || transportRef.current || pendingRef.current) return;
-    if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
+    if (latestStatus.current === 'SUSPENDED' && (path === '/profil/lokacija' || path === '/profil/dostupnost')) return;
+    if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)
+      && !(path === '/podrska' && latestStatus.current === 'SUSPENDED')) {
       // Support is not a setting, so it has its own sentence (review of step 9, 2026-09-24).
       setValidation(path === '/podrska' ? 'Sačuvaj unos pre nego što pišeš podršci.' : 'Sačuvaj unos pre otvaranja drugog podešavanja.'); return;
     }
@@ -192,12 +196,12 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   };
   // A row of the read profile that changes something opens the editor of ITS part. Nothing is written by the tap; unsaved work and a save in flight keep it out.
   const editPart = (part: SavedProfilePart) => {
-    if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+    if (!enabled || !current() || transportRef.current || pendingRef.current || latestStatus.current === 'SUSPENDED') return;
     setManual(true); setMessage(null); setValidation(null);
     setOpenSection({ section: part, token: ++openSectionSequence.current });
   };
   const changeAvailable = (next: boolean) => {
-    if (!enabled || !current() || switchSaving.current || pendingRef.current || !draftRef.current
+    if (!enabled || !current() || latestStatus.current !== 'ACTIVE' || switchSaving.current || pendingRef.current || !draftRef.current
       || JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) return;
     switchSaving.current = true;
     setSwitching({ value: next, busy: true, failed: false });
@@ -238,13 +242,13 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // Read, not edited: a finished profile with nothing unsaved or in flight. Any edit in progress means the editor is already open. A write of ONLY the name
   // ("Koristi „<ime naloga>“") leaves the profile read: its button spins in place, and the screen does not turn into the editor for the length of one write.
   const nameOnly = !!pending && isNameOnly(pending.command);
-  const reading = profile !== null && (status === 'ACTIVE' || status === 'SUSPENDED') && !manual && !localDirty && (!pending || nameOnly) && (!transportBusy || nameOnly);
+  const reading = profile !== null && (status === 'SUSPENDED' || status === 'ACTIVE' && !manual && !localDirty && (!pending || nameOnly) && (!transportBusy || nameOnly));
   // The next read of the profile is the truth about the switch again, so it takes this screen's own answer away.
   useEffect(() => { setSwitching(held => held.busy || held.value === null && !held.failed ? held : { value: null, busy: false, failed: false }); }, [editor.data]);
   // "Lični podaci" led here to write "O meni": the editor opens on that part, once for each tap.
   useEffect(() => {
     const token = params.uredi === 'o-meni' && params.n ? params.n : null;
-    if (!token || openedFor.current === token || profile === null || !enabled || !current()) return;
+    if (!token || openedFor.current === token || profile === null || profile.stanje === 'SUSPENDED' || !enabled || !current()) return;
     openedFor.current = token;
     setManual(true); setOpenSection({ section: 'identity', token: ++openSectionSequence.current });
   }, [params.uredi, params.n, profile, enabled]);
@@ -274,7 +278,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // `activates` marks the one branch that really offers activation; the status note says "ready" only then, never while
   // the primary still has to save a change first.
   const primary: { label: string; run: () => void; activates?: boolean } = (() => {
-    if (status === 'ACTIVE' || status === 'SUSPENDED') return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
+    if (status === 'SUSPENDED') return { label: 'Proveri profil', run: refresh };
+    if (status === 'ACTIVE') return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (firstSave) return localDirty
       ? { label: 'Sačuvaj profil', run: () => { void save(false); } }
       : { label: 'Uredi kroz razgovor', run: () => openConversation() };
@@ -289,7 +294,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   })();
   // The main setup entry preserves the same ownership and pending-save guards as manual corrections.
   const openConversation = () => {
-    if (!enabled || !current() || transportRef.current || pendingRef.current) return;
+    if (!enabled || !current() || transportRef.current || pendingRef.current || latestStatus.current === 'SUSPENDED') return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
       setValidation('Sačuvaj unos pre otvaranja razgovora.'); return;
     }
@@ -307,9 +312,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     ? { value: switching.value ?? value.dostupanOdmah, onChange: changeAvailable, busy: switching.busy, failed: switching.failed } : undefined;
   return <WorkerProfileFrame back={back} scrollRef={scroll} onScroll={rememberReading} onScrollBeginDrag={beginReading}
     right={visible ? <HeaderInfo title="Na šta utiče radni profil" testID="worker-profile-info" info={workerProfileInfoLines(!reading)} /> : undefined}
-    footer={visible && showFooter ? <WorkerProfileFooter message={message} error={validation ?? editor.error}
+    footer={visible && showFooter ? <WorkerProfileFooter message={message ?? (status === 'SUSPENDED' && localDirty ? 'Nesačuvani unos je zadržan. Izmene nisu dostupne dok traje suspenzija.' : null)} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
-    {pending && (editor.uncertain || editor.error) ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
+    {pending && (editor.uncertain || editor.error || status === 'SUSPENDED') ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />
       : <V2Action label={transportBusy ? 'Čuvamo profil…' : pending ? 'Sačuvaj ponovo' : primary.label}
         disabled={!enabled || (!!primary.activates && !pending && account.state === 'loading')} loading={transportBusy} success={!!message}
         onPress={() => { if (pending) void save(false); else primary.run(); }}
@@ -318,7 +323,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {pending && enabled ? <V2Action tone="neutral" label="Izmeni podatke" kind="quiet" onPress={editAfterRead} /> : null}
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
-      : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
+      : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={reading ? workerDraft(profile) : draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
         openConversation={openConversation} profileExists={profile !== null}
         reading={reading} onEditPart={editPart} openSection={openSection} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}

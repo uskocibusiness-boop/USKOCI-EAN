@@ -58,5 +58,54 @@
   },
   "device": "Installed 600efd10 is the media package, not this email source patch. No signup callback/device/delivery proof claimed.",
   "store": "NO-GO",
-  "automation": "PAUSED"
+  "automation": "PAUSED",
+  "ci": {
+    "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
+    "fullSourceProof": {
+      "run": 38003407101,
+      "status": "SUCCESS",
+      "suites": 606,
+      "tests": 13627,
+      "snapshots": 6
+    },
+    "signupRecovery": {
+      "run": 38003398451,
+      "status": "SUCCESS",
+      "focusedSuites": 4,
+      "focusedTests": 117,
+      "fullTests": 13627
+    },
+    "integrity": {
+      "runs": [
+        38003398618,
+        38003398487
+      ],
+      "status": "SUCCESS",
+      "scope": "full606/13627/6; migration/domain database jobs skipped"
+    },
+    "authCallbacks": {
+      "run": 38003398495,
+      "offlineLogic": "SUCCESS159Python+22Jest",
+      "isolatedProvider": "14PASS/3OBSERVATION/0FAIL",
+      "nativeApk": "SUCCESS x86_64 proof package; not phone APK",
+      "nativeEmulator": "IN_PROGRESS",
+      "liveServer": "NOT VERIFIED"
+    },
+    "codeql": {
+      "run": 38003398209,
+      "execution": "SUCCESS",
+      "languages": [
+        "javascript-typescript",
+        "python",
+        "actions"
+      ],
+      "javaKotlin": "NOT_RUN",
+      "results": {
+        "javascriptTypescript": 22,
+        "python": 3,
+        "actions": 0
+      },
+      "securityClean": false
+    }
+  }
 }

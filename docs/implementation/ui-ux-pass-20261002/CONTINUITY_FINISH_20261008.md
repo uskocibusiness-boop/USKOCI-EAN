@@ -862,3 +862,14 @@ DOKAZAO:600efd CI puna regresija605suite/13603testa PASS; native About600efd1, i
 NIJE DOKAZANO: auth config apply odbijen403; nijedna auth/email promena nije primenjena. Free ugrađeni pošiljalac u dashboard-u blokira custom šablon; kandidat nije pokušavan drugim kanalom. Novi izvor nije u instaliranom600APK-u. Stvarno email slanje/callback i novi media upload/uklanjanje/two-account chat/QA ostaju otvoreni. Telefon nije odjavljen niti su dirane stare slike/razgovor. NO-GO i automatizacijaPAUSED.
 
 SLEDEĆE: objavi provereni izvor obegrane i proveri tačan CI. Za završetak email paketa čeka se Owner prijava i podatak o postojećem SMTP servisu (bez tajni u chatu); rollback i precizan config su pripremljeni. Nastavi nezavisan AI-only worker paket i ostale otvorene redove, bez ponavljanja završenih testova ili novog mastera. Dokazi: media-qa-finish-20261010/REPORT.md i signup-email-return-20261010/REPORT.md pod docs/implementation/evidence/.
+
+
+## 10.10 — sačuvana radna kartica i activation OFF
+
+URADIO: puna biografija i proširive liste na kanonskoj radnoj kartici; jasan AI ulaz; aktivacija ostaje izbor tog razgovora kroz Back/turn/patch. Suspendovan profil odbija nove upise i stare callback-e, čuva lokalni unos i dopušta podršku kad nema pending komande. Bot a0b7 sačuvan fast-forward-om; root jedini pisac.
+
+DOKAZAO:16jedinstvenih grupa/439PASS bezskip,tsc0; read-only pregled konkretnih mutacionih/support granica i regresije. Stari manual guard testovi ostaju pošteno označeni komponentnom granicom. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.
+
+NIJE DOKAZANO: AI-only celina nije završena; DRAFT/manual/deep-link i candidate mapa ostaju. Nema ovog source-a na telefonu, novog AI/provider poziva ili serverskih promena. NO-GO i PAUSED ostaju.
+
+SLEDEĆE: provereni izvor na obe grane, tačanCI; nastaviti B00/B01 po postojećem planu, zatim objedinjeniAPK. Email još čeka Owner/SMTP; isolatedCI ne znači stvarno slanje.

@@ -16,8 +16,8 @@ import { FOR_ME_SWITCH_EXISTS, PEOPLE_COUNT_NOTE, SKILLS_IN_CARD, profileEffects
 import { brandAction, sys } from '../../system/tokens';
 
 /**
- * The saved work profile, read (T4b1, 2026-10-07, M3; arranged as the product draft the owner approved on 8 Oct 2026, P3): the card "Kako te vide kad uskačeš",
- * the rows "Šta radiš" and "Gde", "Kada" (the switch "Mogu odmah" and "Nedeljni raspored"), "Oprema" ("Alat", "Vozila") and the white "Popuni uz asistenta".
+ * The saved work profile, read (T4b1, 2026-10-07, M3; arranged as the product draft the owner approved on 8 Oct 2026, P3): the card "Tvoj radni profil",
+ * the rows "Šta radiš" and "Gde", "Kada" (the switch "Mogu odmah" and "Nedeljni raspored"), "Oprema" ("Alat", "Vozila") and the white "Uredi kroz razgovor".
  * It draws no state of its own; the route decides when a profile is read and what the status line says.
  *
  * Owner's phone, 8 Oct 2026: the block of sentences "Na šta utiče" is behind the "ⓘ" in the bar (`workerProfileInfoLines`), the equipment's note behind the "ⓘ" at
@@ -33,7 +33,7 @@ const action = (label: string) => tree.root.findAll(node => String(node.type) ==
 const press = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
 const toggle = () => tree.root.findAll(node => String(node.type) === 'Switch')[0];
 const show = async (patch: Partial<React.ComponentProps<typeof WorkerProfileSaved>> = {}, value: WorkerDraft = draft()) => {
-  const spies = { navigate: jest.fn(), openConversation: jest.fn(), onEditPart: jest.fn() };
+  const spies = { navigate: jest.fn(), openConversation: jest.fn() };
   const props = { draft: value, status: <></>, disabled: false, ...spies, ...patch };
   await act(async () => { tree = create(<WorkerProfileSaved {...props} />); });
   return spies;
@@ -44,9 +44,9 @@ describe('what the saved profile shows', () => {
   it('reads the card, the two rows, "Kada", "Oprema" and the white button, without a pencil on any line', async () => {
     await show({ rating: <RatingLineView average={4.8} count={12} /> });
     const copy = all();
-    for (const part of ['Kako te vide kad uskačeš', 'Ana Petrović', 'Selidbe · Nošenje', '4,8 · 12 ocena', 'Šta radiš', 'Selidbe', 'Nošenje', 'Gde', 'Novi Sad · 20 km',
+    for (const part of ['Tvoj radni profil', 'Ana Petrović', 'Selidbe · Nošenje', '4,8 · 12 ocena', 'Šta radiš', 'Selidbe', 'Nošenje', 'Gde', 'Novi Sad · 20 km',
       'Kada', 'Mogu odmah', 'Nedeljni raspored', 'Oprema', 'Alat', 'Bušilica', 'Vozila', 'Kombi']) expect(copy).toContain(part);
-    expect(action('Popuni uz asistenta')).toBeTruthy();
+    expect(action('Uredi kroz razgovor')).toBeTruthy();
     // 8 Oct 2026 (owner's phone): "Mogu odmah · dostupnost" said the same thing twice; the profile of the old design said it, and so did "samo informacija" and a row of notifications.
     expect(copy).not.toContain('Mogu odmah · dostupnost'); expect(copy.join(' ')).not.toMatch(/Izmeni razgovorom|Izmeni ručno|Obaveštenja o zadacima|Na šta utiče|samo informacija/);
     expect(tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Izmeni: '))).toHaveLength(0);
@@ -55,7 +55,7 @@ describe('what the saved profile shows', () => {
 
   it('names the card without a grammatical gender, and puts the ACCOUNT\'s name in it', async () => {
     await show({ accountName: 'Milos' }, draft({ ime: 'Milos' }));
-    expect(all()).toContain('Kako te vide kad uskačeš'); expect(all().join(' ')).not.toMatch(/radnik|radnica/i);
+    expect(all()).toContain('Tvoj radni profil'); expect(all().join(' ')).not.toMatch(/radnik|radnica/i);
     const title = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')[0];
     expect(textOf(title)).toBe('Milos');
   });
@@ -63,28 +63,25 @@ describe('what the saved profile shows', () => {
   it('draws the face it is given in the card, and the rating line it is given, and no rating when it has none', async () => {
     await show({ face: React.createElement('Face', { testID: 'the-face' }), rating: <RatingLineView average={4.8} count={12} /> });
     expect(tree.root.findAllByProps({ testID: 'the-face' }).length).toBeGreaterThan(0); expect(tree.root.findAllByProps({ testID: 'rating-line' }).length).toBeGreaterThan(0);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} onEditPart={jest.fn()} />));
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} />));
     expect(tree.root.findAllByProps({ testID: 'rating-line' })).toHaveLength(0); expect(all().join(' ')).not.toMatch(/ocena|★/);
   });
 
-  it('leads each row to where it is changed: the area and the week to their screens, the kinds of work and the two lists to their editors, and writes nothing itself', async () => {
-    const { navigate, onEditPart } = await show();
-    await act(async () => { press('Gde').props.onPress(); });
-    await act(async () => { press('Nedeljni raspored').props.onPress(); });
-    await act(async () => { press('Šta radiš').props.onPress(); });
-    await act(async () => { press('Alat').props.onPress(); });
-    await act(async () => { press('Vozila').props.onPress(); });
+  it('opens only the area, week and conversation; saved lists are facts, not hidden editors', async () => {
+    const { navigate, openConversation } = await show();
+    await act(async () => { press('Gde').props.onPress(); press('Nedeljni raspored').props.onPress(); });
     expect(navigate.mock.calls).toEqual([['/profil/lokacija'], ['/profil/dostupnost']]);
-    expect(onEditPart.mock.calls).toEqual([['skills'], ['tools'], ['vehicles']]);
+    expect(press('Šta radiš')).toBeUndefined(); expect(press('Alat')).toBeUndefined(); expect(press('Vozila')).toBeUndefined();
+    expect(openConversation).not.toHaveBeenCalled();
   });
 
   it('says what is missing in one plain sentence each, and invents nothing', async () => {
     await show({}, draft({ ime: '', biografija: '', vestine: [], alati: [], vozila: [], grad: '', radius: '', dostupanOdmah: false }));
     const copy = all();
-    expect(copy).toContain('Koje zadatke možeš da preuzmeš?'); expect(copy).toContain('Izaberi gde želiš da radiš');
+    expect(copy).toContain('Nema sačuvanih veština.'); expect(copy).toContain('Izaberi gde želiš da radiš');
     // A list with nothing in it is "Dodaj", never a zero; with neither a name nor a kind of work the card is not drawn.
-    expect(copy.filter(text => text === 'Dodaj')).toHaveLength(2); expect(copy.join(' ')).not.toMatch(/\b0\b/);
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-card' })).toHaveLength(0); expect(copy).not.toContain('Kako te vide kad uskačeš');
+    expect(copy.filter(text => text === 'Nije navedeno')).toHaveLength(2); expect(copy.join(' ')).not.toMatch(/\b0\b/);
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-card' })).toHaveLength(0); expect(copy).not.toContain('Tvoj radni profil');
     expect(copy).not.toContain('Pogledaj i uredi dostupnost'); expect(copy.join(' ')).not.toMatch(/undefined|null|NaN/);
   });
 
@@ -93,7 +90,12 @@ describe('what the saved profile shows', () => {
     await show({}, draft({ vestine: skills }));
     const chips = tree.root.findByProps({ testID: 'worker-profile-skills' });
     const words = chips.findAll(node => String(node.type) === 'T').map(node => textOf(node));
-    expect(words).toEqual([...skills.slice(0, SKILL_CHIPS_MAX), `+${11 - SKILL_CHIPS_MAX}`]);
+    expect(words).toEqual(skills.slice(0, SKILL_CHIPS_MAX));
+    expect(press('Prikaži sve: Veštine').props.accessibilityState.expanded).toBe(false);
+    await act(async () => press('Prikaži sve: Veštine').props.onPress());
+    expect(all()).toContain('Veština 11');
+    await act(async () => press('Prikaži manje: Veštine').props.onPress());
+    expect(all()).not.toContain('Veština 11');
     // The card names three and the rest as a number.
     expect(all()).toContain('Veština 1 · Veština 2 · Veština 3 +8');
   });
@@ -123,7 +125,7 @@ describe('"Mogu odmah"', () => {
   it('says it saves, waits meanwhile, and says when the save did not take', async () => {
     await show({ availableNow: { value: true, onChange: jest.fn(), busy: true } });
     expect(all()).toContain('Čuvamo…'); expect(toggle().props.disabled).toBe(true);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} onEditPart={jest.fn()}
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()}
       availableNow={{ value: false, onChange: jest.fn(), failed: true }} />));
     expect(all()).toContain('Nije sačuvano. Pokušaj ponovo.'); expect(toggle().props.value).toBe(false); expect(toggle().props.disabled).toBe(false);
   });
@@ -136,7 +138,7 @@ describe('"Mogu odmah"', () => {
   it('only tells where there is no switch (a suspended profile): "Uključeno" or "Isključeno", and nothing to touch', async () => {
     await show({}, draft({ dostupanOdmah: true }));
     expect(toggle()).toBeUndefined(); expect(all()).toContain('Mogu odmah'); expect(all()).toContain('Uključeno');
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft({ dostupanOdmah: false })} status={<></>} disabled={false} navigate={jest.fn()} onEditPart={jest.fn()} />));
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft({ dostupanOdmah: false })} status={<></>} disabled={false} navigate={jest.fn()} />));
     expect(all()).toContain('Isključeno'); expect(all()).not.toContain('Uključeno');
   });
 });
@@ -202,12 +204,14 @@ describe('what the person brings', () => {
     expect(all().some(text => text.includes('Alat 1') || text.includes('Vozilo 1'))).toBe(false);
   });
 
-  it('opens the editor of the list from the row, long or short, and not while the screen is busy', async () => {
-    const { onEditPart } = await show({}, draft({ alati: many(10, 'Alat'), vozila: ['Kombi'] }));
-    await act(async () => { press('Alat').props.onPress(); }); await act(async () => { press('Vozila').props.onPress(); });
-    expect(onEditPart.mock.calls).toEqual([['tools'], ['vehicles']]);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled navigate={jest.fn()} onEditPart={jest.fn()} />));
-    expect(press('Alat').props.disabled).toBe(true); expect(press('Vozila').props.disabled).toBe(true); expect(press('Šta radiš').props.disabled).toBe(true);
+  it('reveals all equipment without navigation, even while a write elsewhere is pending', async () => {
+    const { navigate, openConversation } = await show({ disabled: true }, draft({ alati: many(10, 'Alat'), vozila: many(12, 'Vozilo') }));
+    await act(async () => { press('Prikaži sve: Alat').props.onPress(); press('Prikaži sve: Vozila').props.onPress(); });
+    expect(all()).toContain('Alat 10'); expect(all()).toContain('Vozilo 12');
+    expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
+    expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+    await act(async () => press('Prikaži manje: Alat').props.onPress());
+    expect(all()).not.toContain('Alat 10'); expect(all()).toContain('Vozilo 12');
   });
 
   it('puts the area, the week and the equipment in rows of the same kind: every picture in the same slot, every title at the same edge', async () => {
@@ -230,7 +234,7 @@ describe('one name', () => {
     await show({ accountName: 'Milos' }, draft({ ime: 'Pera peric' }));
     expect(textOf(header())).toBe('Milos');
     await act(async () => tree.update(<WorkerProfileSaved draft={draft({ ime: 'Pera peric' })} status={<></>} disabled={false} navigate={jest.fn()}
-      onEditPart={jest.fn()} accountName={null} />));
+      accountName={null} />));
     expect(textOf(header())).toBe('Pera peric');
   });
 
@@ -240,7 +244,7 @@ describe('one name', () => {
     expect(all()).toContain('Na radnom profilu piše „Pera peric“.');
     expect(action('Koristi „Milos“').props).toMatchObject({ kind: 'secondary', disabled: false, loading: false });
     // There is no green primary on this screen: the button of the assistant is white as well.
-    expect(action('Popuni uz asistenta').props.style).toBeUndefined(); expect(action('Popuni uz asistenta').props.tone).toBe('neutral');
+    expect(action('Uredi kroz razgovor').props.style).toBeUndefined(); expect(action('Uredi kroz razgovor').props.tone).toBe('neutral');
     expect(Object.values(tree.root.findAll(node => String(node.type) === 'Action').map(node => node.props.style)).filter(style => style === brandAction)).toHaveLength(0);
     await act(async () => { action('Koristi „Milos“').props.onPress(); }); expect(onUse).toHaveBeenCalledTimes(1);
   });
@@ -254,23 +258,52 @@ describe('one name', () => {
     await show({ accountName: 'Ana Petrović', onUseAccountName: jest.fn() });
     expect(tree.root.findAllByProps({ testID: 'worker-name-difference' })).toHaveLength(0);
     await act(async () => tree.update(<WorkerProfileSaved draft={draft({ ime: 'Pera peric' })} status={<></>} disabled={false} navigate={jest.fn()}
-      onEditPart={jest.fn()} accountName="Milos" />));
+      accountName="Milos" />));
     expect(tree.root.findAllByProps({ testID: 'worker-name-difference' })).toHaveLength(0);
     await act(async () => tree.update(<WorkerProfileSaved draft={draft({ ime: '' })} status={<></>} disabled={false} navigate={jest.fn()}
-      onEditPart={jest.fn()} accountName="Milos" onUseAccountName={jest.fn()} />));
+      accountName="Milos" onUseAccountName={jest.fn()} />));
     expect(tree.root.findAllByProps({ testID: 'worker-name-difference' })).toHaveLength(0);
     expect(textOf(header())).toBe('Milos');
   });
 });
 
 describe('the assistant', () => {
-  it('"Popuni uz asistenta" is the one white button at the end, opens the conversation, and is not drawn without one', async () => {
+  it('"Uredi kroz razgovor" is the one white button at the end, opens the conversation, and is not drawn without one', async () => {
     const { openConversation } = await show();
-    expect(action('Popuni uz asistenta').props.tone).toBe('neutral'); expect(action('Popuni uz asistenta').props.disabled).toBe(false);
-    await act(async () => { action('Popuni uz asistenta').props.onPress(); }); expect(openConversation).toHaveBeenCalledTimes(1);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled navigate={jest.fn()} onEditPart={jest.fn()} openConversation={jest.fn()} />));
-    expect(action('Popuni uz asistenta').props.disabled).toBe(true);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} onEditPart={jest.fn()} />));
-    expect(action('Popuni uz asistenta')).toBeUndefined();
+    expect(action('Uredi kroz razgovor').props.tone).toBe('neutral'); expect(action('Uredi kroz razgovor').props.disabled).toBe(false);
+    await act(async () => { action('Uredi kroz razgovor').props.onPress(); }); expect(openConversation).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled navigate={jest.fn()} openConversation={jest.fn()} />));
+    expect(action('Uredi kroz razgovor').props.disabled).toBe(true);
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} />));
+    expect(action('Uredi kroz razgovor')).toBeUndefined();
   });
+});
+
+
+describe('saved biography and suspended state', () => {
+  it('shows the complete short biography and permits expansion of a long one without writing', async () => {
+    await show(); expect(all()).toContain('Radim sa bratom.');
+    const bio = 'Dugo iskustvo u montaži i prevozu. '.repeat(20) + 'Poslednja rečenica.';
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft({ biografija: bio })} status={<></>} disabled={false} navigate={jest.fn()} />));
+    const copy = () => tree.root.findAll(node => String(node.type) === 'T' && textOf(node) === bio)[0];
+    expect(copy().props.numberOfLines).toBe(4);
+    await act(async () => press('Prikaži sve: O meni').props.onPress());
+    expect(copy().props.numberOfLines).toBeUndefined(); expect(textOf(copy())).toBe(bio);
+    await act(async () => press('Prikaži manje: O meni').props.onPress()); expect(copy().props.numberOfLines).toBe(4);
+  });
+  it('keeps facts readable while a suspended profile has no editing or availability entry', async () => {
+    const onChange = jest.fn();
+    const { navigate, openConversation } = await show({ readOnly: true, accountName: 'Milos', onUseAccountName: jest.fn(), availableNow: { value: true, onChange } },
+      draft({ alati: Array.from({ length: 5 }, (_, index) => `Alat ${index}`) }));
+    expect(action('Uredi kroz razgovor')).toBeUndefined(); expect(press('Gde')).toBeUndefined();
+    expect(action('Koristi „Milos“').props.disabled).toBe(true);
+    expect(press('Nedeljni raspored')).toBeUndefined(); expect(toggle()).toBeUndefined();
+    await act(async () => press('Prikaži sve: Alat').props.onPress()); expect(all()).toContain('Alat 4');
+    expect(onChange).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
+  });
+});
+
+it('does not hide a saved biography when the name and skills are missing', async () => {
+  await show({}, draft({ ime: '', vestine: [], biografija: 'Moj opis iskustva.' }));
+  expect(all()).toContain('Moj opis iskustva.'); expect(all()).toContain('Tvoj radni profil');
 });

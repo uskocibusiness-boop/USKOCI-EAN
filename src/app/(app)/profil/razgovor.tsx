@@ -59,6 +59,10 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
+  // A prepared review is authoritative. Retain its activation choice when a
+  // later conversation turn retires the review; returning to review must not
+  // silently turn a deliberate "keep draft" back into activation.
+  const activationChoice=useRef<{conversationId:string;activate:boolean}|null>(null);
   // Leaving, or the app going to the background, makes an open question stale (its answer checks canAct), so it goes too.
   const confirmSheet=useConfirmSheet(),retireConfirmation=confirmSheet.close;
   useFocusEffect(useCallback(()=>{const token={};focus.current=token;setLeaving(false);return()=>{
@@ -111,6 +115,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   },[invalid,owns,openKey,accountId]);
   const editor=useOwnedEditor(read);refreshRef.current=editor.refresh;
   const data=editor.data,renderedFocus=focus.current;
+  useEffect(()=>{
+    if(data?.review)activationChoice.current={conversationId:data.conversationId,activate:data.review.activate};
+  },[data?.conversationId,data?.review]);
   const reviewNeedsRestart=!!rejectedReviewId&&data?.review?.reviewId===rejectedReviewId&&!data.saved;
   useEffect(()=>{if(data&&data.review?.reviewId!==rejectedReviewId)setRejectedReviewId(null);},[data?.review?.reviewId,rejectedReviewId]);
   const [,expireReview]=useState(0);
@@ -236,7 +243,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   };
   // The proposal takes the account's name while it carries another (the assistant's own, or the profile's old one). Nothing is sent when they agree.
   const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
-  const review=async(activate=data?.profileStatus==='DRAFT')=>{
+  const reviewActivation=data?.review?.activate??(activationChoice.current?.conversationId===data?.conversationId
+    ?activationChoice.current?.activate:data?.profileStatus==='DRAFT')??false;
+  const review=async(activate=reviewActivation)=>{
     if(!canAct()||!enabled||!writable||!data)return;
     await savePanel(async()=>{
       // The review is made of the proposal as it stands, so the name goes into the proposal first (one patch, then the same prepare).
@@ -254,7 +263,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // followed by a fresh review of the new proposal (the same prepare, in the same single flight), and the person lands on it.
   const patch=async(value:WorkerAiPatch,thenReview=false)=>{
     if(!canAct()||!enabled||!writable||!data)return;
-    const activate=data.review?.activate??data.profileStatus==='DRAFT';
+    const activate=reviewActivation;
     // Any change of the proposal puts the account's name into it too, while it carries another.
     const body=value.displayName===undefined?{...value,...rename(data)}:value;
     await savePanel(async()=>{const result=await api.patch(data.conversationId,data.revision,body);

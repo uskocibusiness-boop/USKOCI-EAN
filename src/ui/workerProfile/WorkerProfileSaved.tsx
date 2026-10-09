@@ -1,11 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { cityLabel } from '../profile/cityLabel';
 import { FactArt } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
-import { Glyph } from '../system/Glyph';
 import { layout, ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { Surface } from '../system/Surface';
@@ -22,34 +21,24 @@ export type SavedProfilePath = '/profil/lokacija' | '/profil/dostupnost';
 /** The parts of the profile a row opens the editor of. */
 export type SavedProfilePart = 'skills' | 'tools' | 'vehicles';
 
-/** A list this short is said in the row itself; a longer one is a count (12 vehicles were five lines of words, owner's phone, 8 Oct 2026). */
+/** Short equipment lists fit in their row; longer lists have a disclosure. */
 export const KIT_INLINE_MAX = 3;
-/** How many kinds of work the row "Šta radiš" draws as chips before it says how many more. */
+/** Number of skill chips shown before the disclosure. */
 export const SKILL_CHIPS_MAX = 8;
 
 /** The switch "Mogu odmah": its state, what it does when it is touched, and whether it is saving or the last save failed. The route owns the save. */
 export type AvailableNowControl = { value: boolean; onChange: (value: boolean) => void; busy?: boolean; failed?: boolean };
 
 /**
- * The saved work profile, read (M3; arranged as the product draft the owner approved on 8 Oct 2026, P3). It draws no state of its own: the route decides when a
- * profile is read and when it is edited, and what the status line says. What the data is used for ("Na šta utiče") is behind the "ⓘ" in the bar (the route's
- * `HeaderInfo`), the equipment's note behind the "ⓘ" at "Oprema".
- *
- * From the top: the status line; the card "Kako te vide kad uskačeš" (the face, the ACCOUNT's name, the kinds of work, the rating when there is one: what another
- * person sees of the worker, with no grammatical gender); the difference of names when the work profile still carries another one (owner, 8 Oct 2026: one name for
- * everything, `NameDifference`); one group of two rows, "Šta radiš" (the kinds of work as chips) and "Gde" (the area), each leading to where it is changed;
- * "Kada": "Mogu odmah" as a switch of its own and "Nedeljni raspored", which opens the week; "Oprema": "Alat" and "Vozila", a short list said in the row and a
- * longer one as its count, both opening the lists; and last, as a white button, "Popuni uz asistenta". There is no green primary: nothing here is saved.
- *
- * Every row that changes something is a row that leads to the editor of THAT part (`onEditPart`); none of them writes by itself. The one exception is the
- * switch, which is the person's own act and is saved by the route exactly as Početna saves it (`availableNow`); without it (a suspended profile) the row only tells.
- * A list with nothing in it is "Dodaj", never a zero; nothing is made up.
+ * The saved card reads all canonical facts. Disclosures reveal long lists without
+ * entering an editor or sending a command. Editing is an explicit conversation action.
+ * The route owns status, available-now writes and restrictions on a suspended profile.
  */
-export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, onEditPart, accountName = null, onUseAccountName, nameWorking = false,
-  face, rating, availableNow }: {
+export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
+  face, rating, availableNow, readOnly = false }: {
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   /** The assistant fills the profile in with the person: the white button at the end. Without it the button is not drawn. */ openConversation?: () => void;
-  /** Opens the editor of one part of the profile. */ onEditPart: (part: SavedProfilePart) => void;
+  /** A suspended profile remains readable; its area and week cannot be edited. */ readOnly?: boolean;
   /** The name of the account, when it could be read. */ accountName?: string | null;
   /** Writes the account's name into the work profile; without it the difference is only said. */ onUseAccountName?: () => void;
   /** That write is in flight. */ nameWorking?: boolean;
@@ -63,8 +52,8 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   const kinds = skillsLine(draft.vestine);
   return <View testID="worker-profile-saved" style={s.saved}>
     {status}
-    {name || kinds ? <Surface kind="panel" testID="worker-profile-card" style={s.card}>
-      <T variant="meta" tone="muted">Kako te vide kad uskačeš</T>
+    {name || kinds || draft.biografija.trim() ? <Surface kind="panel" testID="worker-profile-card" style={s.card}>
+      <T variant="meta" tone="muted">Tvoj radni profil</T>
       <View style={s.cardRow}>
         <View style={s.face}>{face}</View>
         <View style={s.cardCopy}>
@@ -73,68 +62,87 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
           {rating}
         </View>
       </View>
+      {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
     </Surface> : null}
     {onUseAccountName && namesDiffer(draft.ime, accountName)
-      ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking} working={nameWorking} onUse={onUseAccountName} /> : null}
+      ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
     <SettingsGroup>
-      <SkillsRow skills={draft.vestine} disabled={disabled} onPress={() => onEditPart('skills')} />
-      <SettingsRow label="Gde" value={area || undefined} detail={area ? undefined : 'Izaberi gde želiš da radiš'} icon={<FactArt kind="pin" size={32} />}
-        disabled={disabled} onPress={() => navigate('/profil/lokacija')} last />
+      <SkillsRow skills={draft.vestine} />
+      {readOnly ? <ListRow title="Gde" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
+        : <SettingsRow label="Gde" value={area || undefined} detail={area ? undefined : 'Izaberi gde želiš da radiš'} icon={<FactArt kind="pin" size={32} />}
+          disabled={disabled} onPress={() => navigate('/profil/lokacija')} last />}
     </SettingsGroup>
     <SettingsGroup title="Kada">
-      {availableNow
+      {availableNow && !readOnly
         ? <ListRow leading={<ClockArt size={32} quiet={disabled} />} title="Mogu odmah"
           subtitle={availableNow.failed ? 'Nije sačuvano. Pokušaj ponovo.' : availableNow.busy ? 'Čuvamo…' : undefined}
           trailing={<Switch testID="worker-available-now" value={availableNow.value} disabled={disabled || !!availableNow.busy} onValueChange={availableNow.onChange}
             accessibilityLabel="Mogu odmah" trackColor={{ true: sys.color.green, false: sys.color.control }} thumbColor={sys.color.surface} />} />
         : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
-      <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')} last />
+      {!readOnly ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')} last /> : null}
     </SettingsGroup>
     {/* The tools and the vehicles are information only; that is the sentence behind the "ⓘ" at the title, not a chip or a line on the screen. */}
     <View testID="worker-profile-kit" style={s.group}>
       <InfoTitle title="Oprema" testID="worker-kit-info" info={[toolsAndVehiclesNote()]} />
       <SettingsGroup>
-        <KitRow label="Alat" art="tool" items={draft.alati} disabled={disabled} onPress={() => onEditPart('tools')} />
-        <KitRow label="Vozila" art="vehicle" items={draft.vozila} disabled={disabled} onPress={() => onEditPart('vehicles')} last />
+        <KitRow label="Alat" art="tool" items={draft.alati} />
+        <KitRow label="Vozila" art="vehicle" items={draft.vozila} last />
       </SettingsGroup>
     </View>
-    {openConversation ? <V2Action label="Popuni uz asistenta" tone="neutral" disabled={disabled} onPress={openConversation} /> : null}
+    {openConversation && !readOnly ? <V2Action label="Uredi kroz razgovor" tone="neutral" disabled={disabled} onPress={openConversation} /> : null}
   </View>;
 }
 
-/**
- * "Šta radiš": the row of the kinds of work, which are its chips (up to `SKILL_CHIPS_MAX`, then "+N"); a profile with none says what to do about it. The whole
- * row, chips included, is the one touch that opens the editor of the skills. It is a `ListRow` by measure: the picture's slot, the words 52 from the edge, the
- * divider inset and 12 above and below, so it stands in a group with the rows beside it as one of them.
- */
-function SkillsRow({ skills, disabled, onPress }: { skills: readonly string[]; disabled: boolean; onPress: () => void }) {
-  const shown = skills.slice(0, SKILL_CHIPS_MAX), more = skills.length - shown.length;
-  return <Press testID="worker-skills-row" accessibilityRole="button" accessibilityLabel="Šta radiš" accessibilityHint={skills.length ? skills.join(', ') : undefined}
-    accessibilityState={{ disabled }} disabled={disabled} haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row} onPress={onPress} style={s.skillsRow}>
-    <View style={s.slot}><FactArt kind="tasks" size={32} muted={disabled} /></View>
+/** All skills are readable; the disclosure changes only presentation. */
+function SkillsRow({ skills }: { skills: readonly string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? skills : skills.slice(0, SKILL_CHIPS_MAX);
+  return <View testID="worker-skills-row" style={s.skillsRow}>
+    <View style={s.slot}><FactArt kind="tasks" size={32} /></View>
     <View style={s.skillsCopy}>
-      <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'}>Šta radiš</T>
+      <T variant="bodyStrong">Šta radiš</T>
       {skills.length
         ? <View testID="worker-profile-skills" style={s.chips}>
           {shown.map((skill, index) => <View key={`${index}:${skill}`} style={s.chip}><T selectable variant="note" style={s.chipText}>{skill}</T></View>)}
-          {more > 0 ? <View style={s.chip}><T variant="note" style={s.chipText}>{`+${more}`}</T></View> : null}
         </View>
-        : <T variant="note" tone="muted">Koje zadatke možeš da preuzmeš?</T>}
+        : <T variant="note" tone="muted">Nema sačuvanih veština.</T>}
+      {skills.length > SKILL_CHIPS_MAX ? <Disclosure label="Veštine" expanded={expanded} onPress={() => setExpanded(value => !value)} /> : null}
     </View>
-    <Glyph name="caret-right" size={20} tone="muted" />
     <View pointerEvents="none" style={s.rule} />
+  </View>;
+}
+
+/** A long equipment list opens in place without entering an editor. */
+function KitRow({ label, art, items, last = false }: { label: string; art: 'tool' | 'vehicle'; items: readonly string[]; last?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const inline = items.length > 0 && items.length <= KIT_INLINE_MAX;
+  return <View>
+    <ListRow title={label} leading={<FactArt kind={art} size={32} />} last={last || items.length > KIT_INLINE_MAX}
+      subtitle={inline ? items.join(', ') : items.length === 0 ? 'Nije navedeno' : undefined}
+      value={items.length > KIT_INLINE_MAX ? String(items.length) : undefined} />
+    {items.length > KIT_INLINE_MAX ? <View style={s.details}>
+      {expanded ? items.map((item, index) => <T key={`${index}:${item}`} selectable variant="note">{item}</T>) : null}
+      <Disclosure label={label} expanded={expanded} onPress={() => setExpanded(value => !value)} />
+    </View> : null}
+  </View>;
+}
+
+function Disclosure({ label, expanded, onPress }: { label: string; expanded: boolean; onPress: () => void }) {
+  return <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Prikaži manje' : 'Prikaži sve'}: ${label}`}
+    accessibilityState={{ expanded }} onPress={onPress} haptic="select" style={s.disclosure}>
+    <T variant="note" style={s.ink}>{expanded ? 'Prikaži manje' : 'Prikaži sve'}</T>
   </Press>;
 }
 
-/**
- * "Alat" and "Vozila": a short list (up to `KIT_INLINE_MAX`) is said under the title in words; a longer one is its count at the end of the row, never a wall of
- * words; a list with nothing in it is "Dodaj". Either way the row opens the editor of that list.
- */
-function KitRow({ label, art, items, disabled, onPress, last = false }: { label: string; art: 'tool' | 'vehicle'; items: readonly string[]; disabled: boolean; onPress: () => void; last?: boolean }) {
-  const inline = items.length > 0 && items.length <= KIT_INLINE_MAX;
-  return <SettingsRow label={label} icon={<FactArt kind={art} size={32} />} disabled={disabled} onPress={onPress} last={last}
-    detail={inline ? items.join(', ') : undefined} value={items.length > KIT_INLINE_MAX ? String(items.length) : items.length === 0 ? 'Dodaj' : undefined} />;
+function Biography({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = Array.from(text).length > 240;
+  return <View style={s.group}>
+    <T variant="bodyStrong">O meni</T>
+    <T selectable variant="note" numberOfLines={long && !expanded ? 4 : undefined}>{text}</T>
+    {long ? <Disclosure label="O meni" expanded={expanded} onPress={() => setExpanded(value => !value)} /> : null}
+  </View>;
 }
 
 const s = StyleSheet.create({
@@ -153,6 +161,8 @@ const s = StyleSheet.create({
   chipText: { color: sys.color.ink, flexShrink: 1 },
   // The title of the equipment and its rows stand 12 apart, as every `Section` does.
   group: { gap: layout.group },
+  details: { marginLeft: layout.slot + sys.space.md, gap: sys.space.sm },
+  disclosure: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },
   // The divider is not a border: it begins where the words begin, like the one of a `ListRow`.
   rule: { position: 'absolute', left: layout.slot + sys.space.md, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },
 });

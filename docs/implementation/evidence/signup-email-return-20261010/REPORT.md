@@ -19,7 +19,7 @@ Postojeći Auth ekran pokazuje rezultat i ponovnu potvrdu uz validan email, bez 
 
 ## NIJE DOKAZANO
 
-**N02 ostaje otvoren / release blocker za registraciju stvarnih korisnika.** Novi izgled nije aktivan. Povratak na kanonskom serveru još nije omogućen. Nema novog email slanja, realnog tap-a iz sandučeta, nove native instalacije ovog email patch-a, promene DNS-a, SMTP-a, naloga ili ključeva. Instalirani600efd10 je prethodni media paket i ne sadrži ove nove callback poruke. Puna CI regresija novog izvora tek sledi.
+**N02 ostaje otvoren / release blocker za registraciju stvarnih korisnika.** Novi izgled nije aktivan. Povratak na kanonskom serveru još nije omogućen. Nema novog email slanja, realnog tap-a iz sandučeta, nove native instalacije ovog email patch-a, promene DNS-a, SMTP-a, naloga ili ključeva. Instalirani600efd10 je prethodni media paket i ne sadrži ove nove callback poruke. Puna CI regresija novog izvora je prošla; stvarno slanje i telefon ostaju nepotvrđeni.
 
 Podrazumevani Supabase email servis ograničen je na članove tima i nije namenjen produkciji. Samo otključavanje dizajna preko plaćenog plana ne dokazuje javnu email dostavu. Globalni SiteURL i ponašanje na uređaju bez instalirane aplikacije zahtevaju stvarno proverenu web destinaciju; nije izmišljena nova adresa.
 
@@ -28,3 +28,12 @@ Podrazumevani Supabase email servis ograničen je na članove tima i nije namenj
 Owner prijava za tačan Auth config, postojeći ili posebno izabran SMTP servis sa verifikovanim pošiljaocem, snapshot/rollback njegovih konkretnih podešavanja, zatim bounded apply i readback. Jedna registracija odobrenog testnog naloga, stvarno slanje, resend, istek/iskorišćen link i tap→USKOČI→prijava na novom APK-u. Lozinku/ključ korisnik ne šalje u razgovor. Do tada kandidat ostaje lokalni izvor; NO-GO i pauzirana automatizacija ostaju.
 
 Zvanični izvori: [template ograničenje, 03.06.2026](https://supabase.com/changelog/46599-changes-to-email-template-customisation-on-free-tier), [SMTP i ograničenja podrazumevanog pošiljaoca](https://supabase.com/docs/guides/auth/auth-smtp), [email verification šabloni](https://supabase.com/docs/guides/auth/auth-email-templates).
+
+
+## CI dopuna za7440be36
+
+[OTA source proof38003407101](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38003407101) i P7 signup38003398451 SUCCESS:606suite/13627testa/6snapshots. P7 fokus4/117. Oba PRE-P4 run-a38003398618/38003398487 SUCCESS sa istom punom regresijom; migration/domain DB poslovi su preskočeni, ne predstavljaju novi serverski dokaz.
+
+[EX07S03 run38003398495](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38003398495): offline159Python+22Jest PASS; isolated GoTrue/Mailpit HTTP14PASS/3OBSERVATION/0FAIL. Opažanja: resend zamenjuje raniji link, pet sličnih redirect-a odbijeno i vraćeno na SiteURL, recovery opoziva stari refresh dok recovery sesija ostaje upotrebljiva. Ovo nije live canonical SMTP/allowlist dokaz. x86_64 proofAPK buildSUCCESS; native-emulator job još IN_PROGRESS pri ovoj dopuni.
+
+CodeQL38003398209 izvršen SUCCESS zaJS/TS/Python/Actions, bezJava/Kotlin. Rezultati22JS/TS+3Python+0Actions: izvršena analiza nije tvrdnja da nema bezbednosnih nalaza.

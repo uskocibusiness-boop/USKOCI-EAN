@@ -1646,8 +1646,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 HONOR517 fizički prolaz: Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
       },
-      "problem": "Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren.",
-      "sledece": "10.10: AI-only create/edit; sve ispravke biografije, veština, opreme i područja vraćaju u isti razgovor. Sačuvati activation OFF kroz ispravku, unet tekst i unknown-command recovery. Raniji dokaz/sledeće: Zatvoriti povezani radni profil kroz AI i njegovu izmenu; ne menjati dobar početni ulaz radi kozmetike.",
+      "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
+      "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1843,7 +1843,21 @@
           ],
           "followupTests": 451
         },
-        "owner_followup_20261009": "Jedan AI ulaz za podešavanje profila; sačuvana kartica read-only; područje i dostupnost ostaju unutar razgovora/review-a. SOURCE AUDIT DONE / IMPLEMENTATION OPEN."
+        "owner_followup_20261009": "Jedan AI ulaz za podešavanje profila; sačuvana kartica read-only; područje i dostupnost ostaju unutar razgovora/review-a. SOURCE AUDIT DONE / IMPLEMENTATION OPEN.",
+        "worker_reading_20261010": {
+          "status": "BOUNDED_SOURCE_PASS_NATIVE_PENDING",
+          "evidence": "docs/implementation/evidence/worker-reading-20261010/REPORT.md",
+          "tests": "16 suites / 439 unique tests PASS; tsc0",
+          "device": "NOT VERIFIED for this patch; installed600efd10 remains previous source",
+          "previous": {
+            "problem": "Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren.",
+            "sledece": "10.10: AI-only create/edit; sve ispravke biografije, veština, opreme i područja vraćaju u isti razgovor. Sačuvati activation OFF kroz ispravku, unet tekst i unknown-command recovery. Raniji dokaz/sledeće: Zatvoriti povezani radni profil kroz AI i njegovu izmenu; ne menjati dobar početni ulaz radi kozmetike.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "09.10 HONOR517 fizički prolaz: Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
+            }
+          }
+        }
       },
       "native_6d4_checkpoint_20261003": {
         "source": "6d4ce57c827cac496f18a61c24d32638e6e1e8fa",
@@ -1898,8 +1912,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "Stvarni AI→review→save na f64 i DEV ACTIVE/COMPLETED dokaz postoje. Aktuelna AI izmena aktivnog profila, matching/push i zasebne WPP02 preference nisu zatvoreni.",
-      "sledece": "10.10: radna kartica iz potvrđenog server profila za DRAFT/ACTIVE/SUSPENDED; ceo opis i čitljive proširive liste; jedan AI edit ulaz. Bez konkurentne ručne forme ili prikazivanja pending izmena kao sačuvanih. Raniji dokaz/sledeće: Aktivni profil→Uredi kroz razgovor→jedna stvarna izmena→pregled→save/reopen; proveriti uticaj na podobnost. Proširene WPP02 preference ostaju zaseban nedovršen obuhvat.",
+      "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
+      "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2079,6 +2093,20 @@
           "report": "docs/implementation/ui-ux-pass-20261002/STATUS_I_KRITERIJUMI_ZAVRSETKA_20261009.md",
           "source": "ce23eb06befd0260b71e0c334e5557da5df7639d",
           "phoneAcceptanceUpgraded": false
+        },
+        "worker_reading_20261010": {
+          "status": "BOUNDED_SOURCE_PASS_NATIVE_PENDING",
+          "evidence": "docs/implementation/evidence/worker-reading-20261010/REPORT.md",
+          "tests": "16 suites / 439 unique tests PASS; tsc0",
+          "device": "NOT VERIFIED for this patch; installed600efd10 remains previous source",
+          "previous": {
+            "problem": "Stvarni AI→review→save na f64 i DEV ACTIVE/COMPLETED dokaz postoje. Aktuelna AI izmena aktivnog profila, matching/push i zasebne WPP02 preference nisu zatvoreni.",
+            "sledece": "10.10: radna kartica iz potvrđenog server profila za DRAFT/ACTIVE/SUSPENDED; ceo opis i čitljive proširive liste; jedan AI edit ulaz. Bez konkurentne ručne forme ili prikazivanja pending izmena kao sačuvanih. Raniji dokaz/sledeće: Aktivni profil→Uredi kroz razgovor→jedna stvarna izmena→pregled→save/reopen; proveriti uticaj na podobnost. Proširene WPP02 preference ostaju zaseban nedovršen obuhvat.",
+            "telefon": {
+              "stanje": "DELIMIČNO",
+              "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
+            }
+          }
         }
       },
       "history_before_status_audit_20261009": {
@@ -5480,7 +5508,13 @@
           "evidence": "docs/implementation/evidence/signup-email-return-20261010/REPORT.md",
           "tests": "14 suites / 281 unique tests PASS; tsc0",
           "server": "Allowlist empty, SiteURL localhost; bounded CLI apply denied403. SMTP off; free built-in template editing unavailable. Nothing applied.",
-          "device": "600efd10 installed for media. New email callbacks require next APK + real delivery proof."
+          "device": "600efd10 installed for media. New email callbacks require next APK + real delivery proof.",
+          "ci": {
+            "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
+            "full": "38003407101 SUCCESS606/13627/6",
+            "isolatedAuth": "38003398495 logic/provider/nativeBuild SUCCESS; emulator IN_PROGRESS",
+            "live": "still blocked Owner/SMTP; no email sent"
+          }
         }
       }
     },
@@ -5546,7 +5580,13 @@
           "evidence": "docs/implementation/evidence/signup-email-return-20261010/REPORT.md",
           "tests": "14 suites / 281 unique tests PASS; tsc0",
           "server": "Allowlist empty, SiteURL localhost; bounded CLI apply denied403. SMTP off; free built-in template editing unavailable. Nothing applied.",
-          "device": "600efd10 installed for media. New email callbacks require next APK + real delivery proof."
+          "device": "600efd10 installed for media. New email callbacks require next APK + real delivery proof.",
+          "ci": {
+            "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
+            "full": "38003407101 SUCCESS606/13627/6",
+            "isolatedAuth": "38003398495 logic/provider/nativeBuild SUCCESS; emulator IN_PROGRESS",
+            "live": "still blocked Owner/SMTP; no email sent"
+          }
         }
       }
     },
@@ -5605,7 +5645,13 @@
           "evidence": "docs/implementation/evidence/signup-email-return-20261010/REPORT.md",
           "tests": "14 suites / 281 unique tests PASS; tsc0",
           "server": "Allowlist empty, SiteURL localhost; bounded CLI apply denied403. SMTP off; free built-in template editing unavailable. Nothing applied.",
-          "device": "600efd10 installed for media. New email callbacks require next APK + real delivery proof."
+          "device": "600efd10 installed for media. New email callbacks require next APK + real delivery proof.",
+          "ci": {
+            "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
+            "full": "38003407101 SUCCESS606/13627/6",
+            "isolatedAuth": "38003398495 logic/provider/nativeBuild SUCCESS; emulator IN_PROGRESS",
+            "live": "still blocked Owner/SMTP; no email sent"
+          }
         }
       }
     },

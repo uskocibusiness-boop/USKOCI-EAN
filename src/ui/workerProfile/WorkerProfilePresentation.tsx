@@ -275,8 +275,8 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const name = accountName?.trim() || draft.ime.trim();
   const difference = namesDiffer(draft.ime, accountName) && onUseAccountName
     ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking} working={nameWorking} onUse={onUseAccountName} /> : null;
-  if (reading && onEditPart) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
-    onEditPart={onEditPart} face={face} rating={rating} availableNow={availableNow}
+  if (reading) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
+    readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
     status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />} />;
   return <View style={s.form}>

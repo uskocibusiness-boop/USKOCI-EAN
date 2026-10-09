@@ -12,6 +12,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
  */
 const mockAccount = '11111111-1111-4111-8111-111111111111', mockProfile = '22222222-2222-4222-8222-222222222222', mockConversation = '33333333-3333-4333-8333-333333333333';
 const A = mockAccount, B = mockProfile, C = mockConversation;
+let mockRouteId = C;
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
@@ -29,7 +30,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockConversation }),
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId }),
   useFocusEffect: (fn: () => void) => require('react').useEffect(() => fn(), [fn]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
@@ -78,7 +79,7 @@ const openReview = async () => {
   await act(async () => { shell().props.card(false).props.review(); });
 };
 beforeEach(() => {
-  jest.clearAllMocks(); mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
+  jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -304,5 +305,51 @@ describe('one name: the review is made under the account\'s name', () => {
     await click('Učitaj novi pregled');
     expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' }); expect(mockApi.prepare).toHaveBeenLastCalledWith(C, 1, true);
     expect(review().props.review.missingRequired).toEqual([]);
+  });
+});
+
+
+describe('activation choice belongs to the conversation', () => {
+  const prepareFalse = async () => {
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
+      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
+    });
+    await render(); await act(async () => shell().props.card(false).props.review());
+    await act(async () => tree.root.findByType('Activation' as never).props.change(false));
+    expect(review().props.review.activate).toBe(false);
+    await click('Nazad na razgovor'); mockApi.prepare.mockClear();
+  };
+  it('keeps an explicit draft choice on Back then review, without saving', async () => {
+    await prepareFalse(); await act(async () => shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
+    expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
+  });
+  it('retains false when a candidate patch retires the frozen review', async () => {
+    await prepareFalse();
+    await act(async () => shell().props.attach.onPress());
+    await act(async () => menuRow('Alat i vozilo').props.onPress());
+    mockApi.patch.mockResolvedValue(ok(snapshot(1)));
+    await act(async () => manual().props.apply({ tools: ['Bušilica'], vehicles: [] }));
+    await act(async () => shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
+    expect(mockApi.save).not.toHaveBeenCalled();
+  });
+  it('keeps the draft choice after a conversation turn retires the review', async () => {
+    await prepareFalse();
+    mockApi.send.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(snapshot(1)));
+    await act(async () => shell().props.onChange('Dodaj da radim vikendom.'));
+    await act(async () => shell().props.onSend());
+    expect(mockApi.send).toHaveBeenCalledTimes(1);
+    await act(async () => shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false); expect(mockApi.save).not.toHaveBeenCalled();
+  });
+  it('does not inherit false after leaving and opening a different conversation', async () => {
+    await prepareFalse();
+    const other = '55555555-5555-4555-8555-555555555555';
+    mockApi.read.mockResolvedValue(ok({ ...snapshot(), conversationId: other }));
+    mockApi.prepare.mockResolvedValue(ok({})); mockRouteId = other;
+    await act(async () => tree.update(<Screen />));
+    await act(async () => shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenCalledWith(other, 0, true);
   });
 });
