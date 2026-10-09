@@ -1856,6 +1856,18 @@
               "stanje": "DELIMIČNO",
               "dokaz": "09.10 HONOR517 fizički prolaz: Telefon517: prvo pitanje odmah prisutno, vidljiv Novi razgovor i cancel potvrde vraća isti ulaz. Ceo worker razgovor/edit/persistence ostaje otvoren. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md."
             }
+          },
+          "ci": {
+            "source": "a12187be7eb85fe4cdb2fc22006d194196f64040",
+            "integrityRuns": [
+              38004881566,
+              38004880923
+            ],
+            "status": "SUCCESS",
+            "selectedSuites": 74,
+            "selectedTests": 1806,
+            "snapshots": 0,
+            "scope": "Selected regression, not new full suite. Migration/domain database jobs skipped. Native pending."
           }
         }
       },
@@ -2106,6 +2118,18 @@
               "stanje": "DELIMIČNO",
               "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
             }
+          },
+          "ci": {
+            "source": "a12187be7eb85fe4cdb2fc22006d194196f64040",
+            "integrityRuns": [
+              38004881566,
+              38004880923
+            ],
+            "status": "SUCCESS",
+            "selectedSuites": 74,
+            "selectedTests": 1806,
+            "snapshots": 0,
+            "scope": "Selected regression, not new full suite. Migration/domain database jobs skipped. Native pending."
           }
         }
       },
@@ -5512,7 +5536,7 @@
           "ci": {
             "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
             "full": "38003407101 SUCCESS606/13627/6",
-            "isolatedAuth": "38003398495 logic/provider/nativeBuild SUCCESS; emulator IN_PROGRESS",
+            "isolatedAuth": "38003398495: logic/provider/nativeBuild SUCCESS; native HARNESS_BROKEN6PASS/2OBS/3ERROR/5NOT_RUN. Diagnostics164testsPASS; fresh API35 run required.",
             "live": "still blocked Owner/SMTP; no email sent"
           }
         }
@@ -5534,7 +5558,7 @@
       ],
       "server": [],
       "telefon": null,
-      "problem": "Live preflight10.10: email redirect allowlist prazan, SiteURL localhost; podešavanje odbijeno403 zbog prava trenutne prijave. Custom SMTP isključen; trenutni free ugrađeni pošiljalac ne dopušta novi šablon. Izvor/testovi gotovi, stvarna dostava/povratak nisu dokazani.",
+      "problem": "Live preflight10.10: email redirect allowlist prazan, SiteURL localhost; podešavanje odbijeno403 zbog prava trenutne prijave. Custom SMTP isključen; trenutni free ugrađeni pošiljalac ne dopušta novi šablon. Izvor/testovi gotovi, stvarna dostava/povratak nisu dokazani. Isolated Android CI38003398495 nije prošao: prelaz na registraciju i prvi unos emaila timeout; lokalni API36.1 prolaz ne objašnjava originalni API35 pad.",
       "sledece": "Owner prijava + podržan SMTP sa verifikovanim pošiljaocem; primeniti samo tačan redirect i potvrdu uz snapshot/rollback, zatim jedno odobreno slanje i tap na novom APK-u. Bez novog naloga/troška/ključeva na svoju ruku. Dokaz: docs/implementation/evidence/signup-email-return-20261010/REPORT.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -5584,7 +5608,7 @@
           "ci": {
             "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
             "full": "38003407101 SUCCESS606/13627/6",
-            "isolatedAuth": "38003398495 logic/provider/nativeBuild SUCCESS; emulator IN_PROGRESS",
+            "isolatedAuth": "38003398495: logic/provider/nativeBuild SUCCESS; native HARNESS_BROKEN6PASS/2OBS/3ERROR/5NOT_RUN. Diagnostics164testsPASS; fresh API35 run required.",
             "live": "still blocked Owner/SMTP; no email sent"
           }
         }
@@ -5649,7 +5673,7 @@
           "ci": {
             "source": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
             "full": "38003407101 SUCCESS606/13627/6",
-            "isolatedAuth": "38003398495 logic/provider/nativeBuild SUCCESS; emulator IN_PROGRESS",
+            "isolatedAuth": "38003398495: logic/provider/nativeBuild SUCCESS; native HARNESS_BROKEN6PASS/2OBS/3ERROR/5NOT_RUN. Diagnostics164testsPASS; fresh API35 run required.",
             "live": "still blocked Owner/SMTP; no email sent"
           }
         }

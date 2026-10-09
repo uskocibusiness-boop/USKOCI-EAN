@@ -873,3 +873,13 @@ DOKAZAO:16jedinstvenih grupa/439PASS bezskip,tsc0; read-only pregled konkretnih 
 NIJE DOKAZANO: AI-only celina nije završena; DRAFT/manual/deep-link i candidate mapa ostaju. Nema ovog source-a na telefonu, novog AI/provider poziva ili serverskih promena. NO-GO i PAUSED ostaju.
 
 SLEDEĆE: provereni izvor na obe grane, tačanCI; nastaviti B00/B01 po postojećem planu, zatim objedinjeniAPK. Email još čeka Owner/SMTP; isolatedCI ne znači stvarno slanje.
+
+## 10.10 — stvarni CI ishod i dijagnostika Auth unosa
+
+URADIO:7440 fullCI606/13627/6 PASS; a121 PRE-P4obegrane74/1806 PASS,tsc0. Sačuvan bot41a073. Naknadni stvarni7440 nativeCI38003398495 je HARNESS_BROKEN6PASS/2OBS/3ERROR/5NOT_RUN, ne završena potvrda emaila. Dorada isključivo test drivera: input exitcode, fokus pre clear/type, bezbedna geometrijska dijagnostika i odvojene E01/E02 faze.
+
+DOKAZAO:164Python+22Jest PASS i nezavisan read-only pregled. Tačan7440 CI APK na lokalnom API36.1 prelazi na registraciju i prima sintetički email; novi focus guard takođe prolazi. Nema slanja, live Auth ili vlasnikovih kredencijala. Dokaz i detalji originalnog neuspeha u postojećem signup-email-return-20261010/REPORT.md.
+
+NIJE DOKAZANO: originalni API35 uzrok, cela registracija/resend/other-account native putanja, nova radna kartica na telefonu, hosted SMTP i stvarno sanduče. Nema promene aplikacionih auth zaštita da bi test postao zelen. N02 ostaje release blocker; NO-GO i automatizacijaPAUSED.
+
+SLEDEĆE: push proverene dijagnostike obegrane i ponovi izolovaniAPI35CI sa tačnim izvorom; pročitaj konkretan focus/tap ishod ako opet padne. Owner prijava/SMTP ostaju jedine spoljne prepreke email primeni. Zatim već otvoren B00/B01 AI-only candidate map tok, bez novog master plana ili beskonačnog redizajna.

@@ -148,12 +148,18 @@ def s_fixtures(ctx: AndroidCtx) -> None:
     ctx.expiry['signup'] = (x, link, ctx.clock.now())
 
 
-def s_g1a_signup_ui(ctx: AndroidCtx) -> None:
+def s_g1a_open_login(ctx: AndroidCtx) -> None:
     dev, r = ctx.dev, ctx.report
     scr = open_login_cold(ctx)
     r.expect('E01', scr.state == 'LOGIN_FORM', 'cold uskociapp://auth?form=login', state=scr.state)
     dev.shot('01-login-form')
     if scr.state != 'LOGIN_FORM':
+        raise Precondition('login form not reached')
+
+
+def s_g1a_signup_ui(ctx: AndroidCtx) -> None:
+    dev, r = ctx.dev, ctx.report
+    if dev.screen().state != 'LOGIN_FORM':
         raise Precondition('login form not reached')
     a = ctx.account('ui')
     ctx.ui_account = a
@@ -524,7 +530,8 @@ def s_final(ctx: AndroidCtx) -> None:
 
 SCENARIOS: list[tuple[str, tuple[str, ...], Callable[[AndroidCtx], None]]] = [
     ('fixtures', (), s_fixtures),
-    ('g1a-signup-ui', ('E01', 'E02'), s_g1a_signup_ui),
+    ('g1a-open-login', ('E01',), s_g1a_open_login),
+    ('g1a-signup-ui', ('E02',), s_g1a_signup_ui),
     ('g1b-resend-ui', ('E04',), s_g1b_resend_ui),
     ('g1c-warm-confirmation', ('E05',), s_g1c_warm_confirmation),
     ('g2a-other-confirmation-while-signed-in', ('E08',), s_g2a_other_confirmation),
@@ -552,6 +559,7 @@ def run_all(ctx: AndroidCtx, scenarios: Optional[list[tuple[str, tuple[str, ...]
             for check_id in ids:
                 ctx.report.error(check_id, error)
             failure = {'step': name, 'outcome': 'ERROR', 'error': core.sanitize_exception(error, ctx.secrets)}
+            failure['inputTrace'] = list(getattr(ctx.dev, 'input_trace', [])[-12:])
             try:
                 failure['screenshot'] = ctx.dev.shot('failure-' + name)
                 failure['visibleWords'] = ctx.dev.inventory()
@@ -621,6 +629,7 @@ def _finish(report: core.Report, out_dir: Path, secrets: core.SecretSet, dev: De
     data = report.finalize()
     data['seconds'] = round(time.time() - started)
     data['screenshots'] = list(dev.shots)
+    data['inputTrace'] = list(getattr(dev, 'input_trace', []))
     if dev.leaks:
         # A credential was visible on screen: the screenshots would publish it. Keep the finding, withhold the pictures.
         for picture in out_dir.glob('*.png'):

@@ -99,6 +99,25 @@ class BehavesAsDesigned(unittest.TestCase):
 
 
 class BreaksOneRule(unittest.TestCase):
+    def test_signup_tap_failure_does_not_overwrite_completed_login_assertion(self):
+        original = fake_app.FakeApp.tap
+        def tap(device, label_id, *args, **kwargs):
+            if label_id == 'login.to_signup':
+                raise proof.UiTimeout('SIGNUP_FORM_NOT_REACHED')
+            return original(device, label_id, *args, **kwargs)
+        with mock.patch.object(fake_app.FakeApp, 'tap', tap):
+            data, *_ = run()
+        self.assertEqual(row(data, 'E01')['status'], 'PASS')
+        self.assertEqual(row(data, 'E02')['status'], 'ERROR')
+        self.assertEqual(row(data, 'E04')['status'], 'NOT_RUN')
+        self.assertEqual(data['result'], 'HARNESS_BROKEN')
+
+    def test_later_part_of_same_assertion_still_invalidates_an_earlier_pass(self):
+        with mock.patch.object(proof, 'sign_in_succeeds', side_effect=proof.UiTimeout('SIGNIN_FAILED')):
+            data, *_ = run()
+        self.assertEqual(row(data, 'E06')['status'], 'ERROR')
+        self.assertIn('SIGNIN_FAILED', row(data, 'E06')['detail'])
+
     def assertFinds(self, bug, *failing):
         data, *_ = run(bugs=[bug])
         for check_id in failing:

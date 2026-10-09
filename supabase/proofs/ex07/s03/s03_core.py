@@ -367,6 +367,8 @@ class Node:
     password: bool
     bounds: Optional[tuple[int, int, int, int]]
     order: int
+    focused: bool = False
+    focusable: bool = False
 
 
 _BOUNDS = re.compile(r'\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]')
@@ -399,7 +401,8 @@ def parse_ui_dump(xml_text: str) -> list[Node]:
         nodes.append(Node(text=norm(el.get('text')), desc=norm(el.get('content-desc')), cls=el.get('class') or '',
                           rid=el.get('resource-id') or '', pkg=el.get('package') or '',
                           clickable=el.get('clickable') == 'true', enabled=el.get('enabled') != 'false',
-                          password=el.get('password') == 'true', bounds=parse_bounds(el.get('bounds')), order=i))
+                          password=el.get('password') == 'true', bounds=parse_bounds(el.get('bounds')), order=i,
+                          focused=el.get('focused') == 'true', focusable=el.get('focusable') == 'true'))
     return nodes
 
 

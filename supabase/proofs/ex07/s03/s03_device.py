@@ -98,6 +98,7 @@ class Device:
         self.leaks: list[dict[str, Any]] = []
         self.shots: list[str] = []
         self.last_screen: Optional[Screen] = None
+        self.input_trace: list[dict[str, Any]] = []
         self._log_proc: Optional[subprocess.Popen] = None
         self._log_file: Any = None
         self._app_log_proc: Optional[subprocess.Popen] = None
@@ -235,14 +236,14 @@ class Device:
     def _tap_point(self, bounds: tuple[int, int, int, int], nodes: list[core.Node]) -> None:
         size = self.screen_size or (1080, 2400)
         x, y = core.tap_point(bounds, size, core.navigation_bar_top(nodes))
-        self.adb.shell('input', 'touchscreen', 'swipe', str(x), str(y), str(x), str(y), '120', check=False)
+        self.adb.shell('input', 'touchscreen', 'swipe', str(x), str(y), str(x), str(y), '120')
         self.clock.sleep(0.4)
 
     def _scroll(self, attempt: int) -> None:
         width, height = self.screen_size or (1080, 2400)
         lower, upper = int(height * 0.7), int(height * 0.35)
         start, end = (lower, upper) if attempt % 3 != 2 else (upper, lower)      # mostly down, now and then back up
-        self.adb.shell('input', 'swipe', str(width // 2), str(start), str(width // 2), str(end), '350', check=False)
+        self.adb.shell('input', 'swipe', str(width // 2), str(start), str(width // 2), str(end), '350')
         self.clock.sleep(0.5)
 
     def find(self, label_id: str, *, timeout: float = 30.0, scroll: bool = False) -> tuple[Screen, core.Node]:
@@ -270,28 +271,62 @@ class Device:
     def tap(self, label_id: str, *, timeout: float = 30.0, scroll: bool = True) -> None:
         screen, node = self.find(label_id, timeout=timeout, scroll=scroll)
         assert node.bounds is not None
+        self._note_target(label_id, 'tap', screen, node)
         self._tap_point(node.bounds, screen.nodes)
+
+    def _note_target(self, label_id: str, phase: str, screen: Screen, node: core.Node) -> None:
+        # Never persist text, descriptions, resource ids, URLs, or the value being typed. Only a catalog label and geometry.
+        row = self.labels.row(label_id)
+        size = self.screen_size or (1080, 2400)
+        nav_top = core.navigation_bar_top(screen.nodes)
+        self.input_trace.append({'label': label_id, 'phase': phase, 'screen': screen.state,
+            'bounds': node.bounds, 'tapPoint': core.tap_point(node.bounds, size, nav_top) if node.bounds else None,
+            'screenSize': size, 'navigationBarTop': nav_top, 'isInput': node.cls == 'android.widget.EditText',
+            'clickable': node.clickable, 'enabled': node.enabled, 'focused': node.focused, 'focusable': node.focusable,
+            'candidateCount': sum(n.pkg == self.package and core.node_matches(n, row['text'], row['match'],
+                field=row['kind'] == 'field') for n in screen.nodes)})
+        self.input_trace = self.input_trace[-32:]
+
+    def _focus_field(self, label_id: str) -> core.Node:
+        row = self.labels.row(label_id)
+        if row['kind'] != 'field':
+            raise ValueError('TARGET_IS_NOT_FIELD')
+        for _attempt in range(3):
+            screen, node = self.find(label_id, timeout=15.0, scroll=True)
+            assert node.bounds is not None
+            self._note_target(label_id, 'focus-tap', screen, node)
+            self._tap_point(node.bounds, screen.nodes)
+            deadline = self.clock.now() + 3.0
+            while self.clock.now() < deadline:
+                seen = self._try_screen()
+                if seen is not None:
+                    target = core.find_target([n for n in seen.nodes if n.pkg == self.package], row['text'],
+                                              match=row['match'], field=True, screen=self.screen_size)
+                    if target is not None:
+                        self._note_target(label_id, 'focus-readback', seen, target)
+                        if target.focused:
+                            return target
+                self.clock.sleep(0.3)
+        raise UiTimeout('FIELD_NOT_FOCUSED ' + label_id)
 
     def ime_shown(self) -> Optional[bool]:
         return core.parse_ime_shown(self.adb.shell('dumpsys', 'input_method', check=False, timeout=30))
 
     def hide_ime(self) -> None:
         if self.ime_shown() is True:
-            self.adb.shell('input', 'keyevent', 'KEYCODE_BACK', check=False)
+            self.adb.shell('input', 'keyevent', 'KEYCODE_BACK')
             self.clock.sleep(0.5)
 
     def set_field(self, label_id: str, value: str) -> None:
         if not re.fullmatch(r'[A-Za-z0-9@._-]+', value):
             raise ValueError('FIELD_VALUE_NOT_SHELL_SAFE')
         for _attempt in range(3):
-            screen, node = self.find(label_id, timeout=40.0, scroll=True)
-            assert node.bounds is not None
-            self._tap_point(node.bounds, screen.nodes)
+            node = self._focus_field(label_id)
             # Clear what the field already holds (the entered e-mail survives a trip between forms), then type.
-            self.adb.shell('input', 'keyevent', 'KEYCODE_MOVE_END', check=False)
+            self.adb.shell('input', 'keyevent', 'KEYCODE_MOVE_END')
             count = min(80, len(node.text) + 3)
-            self.adb.shell('input', 'keyevent', *(['KEYCODE_DEL'] * count), check=False)
-            self.adb.shell('input', 'text', value, check=False)
+            self.adb.shell('input', 'keyevent', *(['KEYCODE_DEL'] * count))
+            self.adb.shell('input', 'text', value)
             self.clock.sleep(0.3)
             self.hide_ime()
             try:

@@ -88,8 +88,12 @@
       "offlineLogic": "SUCCESS159Python+22Jest",
       "isolatedProvider": "14PASS/3OBSERVATION/0FAIL",
       "nativeApk": "SUCCESS x86_64 proof package; not phone APK",
-      "nativeEmulator": "IN_PROGRESS",
-      "liveServer": "NOT VERIFIED"
+      "nativeEmulator": "HARNESS_BROKEN: 6PASS/2OBSERVATION/3ERROR/5NOT_RUN; original run preserved",
+      "liveServer": "NOT VERIFIED",
+      "nativeJob": 114069591595,
+      "nativeArtifact": 11650736698,
+      "aggregateArtifact": 11651235280,
+      "cause": "UNDETERMINED: signup transition and first email input timed out; completed login assertion E01 contaminated by later E02 exception"
     },
     "codeql": {
       "run": 38003398209,
@@ -107,5 +111,30 @@
       },
       "securityClean": false
     }
+  },
+  "harnessFollowup": {
+    "appSource": "7440be3670f6f95b5ba69d63fa0aaf8334f54375",
+    "apkSha256": "051c27afadedb9ab0905a9456cc52d44786075bc2f0e0aece91812bb06667cd5",
+    "localEmulator": "API36.1 x86_64 existing USKOCI_V5_TEST; signup switch and synthetic email input passed, no submit; unlike CI API35",
+    "offlineTests": 164,
+    "status": "DIAGNOSTICS_TESTED_ORIGINAL_CAUSE_NOT_PROVEN",
+    "limits": "No hosted Auth, mailbox, physical phone or full signup proof. App code/guards unchanged by diagnostics.",
+    "checks": [
+      {
+        "file": "harness-tests.txt",
+        "sha256": "81f45f25c804ef1e2020b7bce39ed0b186dcd7847010ef90c0094057838f49c5"
+      },
+      {
+        "file": "routing-tests.txt",
+        "sha256": "e17927e2afd5b184bf53ad815b89e560175a7d2d3fbd923027cd5345fde9be5c"
+      },
+      {
+        "file": "local-focus-guard.txt",
+        "sha256": "ef413cbd7f0e1ebf72d6b6e75995baf835c0648cfa38ccf565eb5c81684173d1"
+      }
+    ],
+    "routingTests": 22,
+    "focusGuardLocal": "PASS: synthetic email entered and read back; no submit",
+    "review": "Independent read-only review: no blocking regression or privacy finding; original API35 cause still unproven."
   }
 }

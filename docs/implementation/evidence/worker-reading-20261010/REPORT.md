@@ -23,3 +23,7 @@ Nema nove native instalacije, screenshot prihvatanja ili stvarnog AI poziva za o
 ## SLEDEĆE
 
 Nastaviti isti B00/B01 paket: DRAFT kao sačuvana kartica; AI kao jedini poslovni editor; izbor približne tačke kao kandidat unutar razgovora, bez upisa live lokacije uz otvoren predlog; ručni kalendar ostaje. Sačuvati journal, revision/expiry, name/readback, Back i privacy zaštite. Zatim jedan objedinjeni APK i stvarni create/edit/save/reopen put. Ne širiti redizajn niti novi plan.
+
+## CI dopuna za a12187be
+
+PRE-P4 [38004881566](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38004881566) i [38004880923](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38004880923) SUCCESS na obe grane. Izabrana regresija74suite/1806testova PASS, uz TypeScript i Node provere. To nije nova puna regresija606suite; migration/domain database poslovi su preskočeni. Završni lokalni TypeScript posle poslednje support izmene exit0. CodeQL38004881304 SUCCESS označava izvršenu analizu, ne nula nalaza. Bot41a073e7 sačuvan fast-forward-om. Native radna kartica ostaje neproverena.

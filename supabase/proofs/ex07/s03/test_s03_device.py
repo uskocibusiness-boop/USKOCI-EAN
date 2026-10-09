@@ -107,10 +107,11 @@ def make_device(handler, env=None, serial_ok=True):
     return device, adb, secrets
 
 
-def xml_for(*nodes):
+def xml_for(*nodes, focused_label=None):
     body = ''.join(
         f'<node index="{i}" text="{t}" resource-id="{rid}" class="{cls}" package="{pkg}" content-desc="{desc}" clickable="{str(click).lower()}" '
-        f'enabled="true" password="{str(pw).lower()}" bounds="[{b[0]},{b[1]}][{b[2]},{b[3]}]" />'
+        f'enabled="true" focused="{str(desc == focused_label).lower()}" focusable="{str(cls == "android.widget.EditText").lower()}" '
+        f'password="{str(pw).lower()}" bounds="[{b[0]},{b[1]}][{b[2]},{b[3]}]" />'
         for i, (t, desc, cls, pkg, click, pw, b, rid) in enumerate(nodes))
     return f"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation=\"0\">{body}</hierarchy>"
 
@@ -285,7 +286,7 @@ class ScreenTests(unittest.TestCase):
             if words[:3] == ('shell', 'uiautomator', 'dump'):
                 return 0, b'UI hierarchy dumped to: x\n'
             if words[:2] == ('shell', 'cat'):
-                return 0, xml_for(et('Email', typed['text'])).encode()
+                return 0, xml_for(et('Email', typed['text']), focused_label='Email').encode()
             if words[:3] == ('shell', 'input', 'text'):
                 typed['attempts'] += 1
                 typed['text'] = words[3][:-1] if typed['attempts'] == 1 else words[3]      # the first try drops the last character
@@ -301,13 +302,67 @@ class ScreenTests(unittest.TestCase):
             if words[:3] == ('shell', 'uiautomator', 'dump'):
                 return 0, b'UI hierarchy dumped to: x\n'
             if words[:2] == ('shell', 'cat'):
-                return 0, xml_for(et('Email', 'never-what-was-typed')).encode()
+                return 0, xml_for(et('Email', 'never-what-was-typed'), focused_label='Email').encode()
             return None
         device, _, _ = make_device(emulator_handler(extra))
-        with self.assertRaises(UiTimeout):
+        with self.assertRaisesRegex(UiTimeout, 'FIELD_NOT_ACCEPTED'):
             device.set_field('login.field.email', 'a@example.test')
         with self.assertRaises(ValueError):
             device.set_field('login.field.email', 'a b;rm -rf')
+
+    def test_unfocused_or_wrong_field_never_receives_clear_or_text(self):
+        for focused in (None, 'Lozinka'):
+            with self.subTest(focused=focused):
+                def extra(words):
+                    if words[:3] == ('shell', 'uiautomator', 'dump'):
+                        return 0, b'UI hierarchy dumped to: x\n'
+                    if words[:2] == ('shell', 'cat'):
+                        return 0, xml_for(et('Email'), et('Lozinka', pw=True), focused_label=focused).encode()
+                    return None
+                device, adb, _ = make_device(emulator_handler(extra))
+                with self.assertRaisesRegex(UiTimeout, 'FIELD_NOT_FOCUSED'):
+                    device.set_field('login.field.email', 'a@example.test')
+                self.assertFalse(any(c[:3] in [('shell', 'input', 'text'), ('shell', 'input', 'keyevent')] for c in adb.calls))
+                self.assertEqual(sum(c[:3] == ('shell', 'input', 'touchscreen') for c in adb.calls), 3)
+
+    def test_delayed_focus_retries_tap_before_typing_and_diagnostics_hold_no_values(self):
+        state = {'taps': 0, 'text': JWT}
+        def extra(words):
+            if words[:3] == ('shell', 'uiautomator', 'dump'):
+                return 0, b'UI hierarchy dumped to: x\n'
+            if words[:2] == ('shell', 'cat'):
+                return 0, xml_for(et('Email', state['text']), focused_label='Email' if state['taps'] >= 2 else None).encode()
+            if words[:3] == ('shell', 'input', 'touchscreen'):
+                state['taps'] += 1
+            if words[:3] == ('shell', 'input', 'text'):
+                self.assertGreaterEqual(state['taps'], 2)
+                state['text'] = words[3]
+                return 0, b''
+            return None
+        device, adb, _ = make_device(emulator_handler(extra))
+        device.set_field('login.field.email', 'a@example.test')
+        self.assertEqual(state['taps'], 2)
+        self.assertEqual(sum(c[:3] == ('shell', 'input', 'text') for c in adb.calls), 1)
+        trace = json.dumps(device.input_trace)
+        self.assertNotIn(JWT, trace)
+        self.assertNotIn('a@example.test', trace)
+        self.assertTrue(device.input_trace[-1]['focused'])
+        self.assertEqual(device.input_trace[-1]['tapPoint'], (500, 350))
+        self.assertEqual(device.input_trace[-1]['candidateCount'], 1)
+
+    def test_failed_input_command_reports_only_exit_code(self):
+        def extra(words):
+            if words[:3] == ('shell', 'uiautomator', 'dump'):
+                return 0, b'UI hierarchy dumped to: x\n'
+            if words[:2] == ('shell', 'cat'):
+                return 0, xml_for(et('Email'), tv('Prijavi se')).encode()
+            if words[:3] == ('shell', 'input', 'touchscreen'):
+                return 1, ('sensitive command ' + JWT).encode()
+            return None
+        device, adb, _ = make_device(emulator_handler(extra))
+        with self.assertRaisesRegex(dev_mod.AdbError, '^ADB_COMMAND_FAILED rc=1$'):
+            device.tap('login.submit')
+        self.assertFalse(any(c[:3] == ('shell', 'input', 'text') for c in adb.calls))
 
     def test_the_keyboard_is_hidden_only_when_it_is_shown(self):
         shown = {'v': 'mInputShown=false'}

@@ -37,5 +37,17 @@
   "aiOnlyMigration": "OPEN: DRAFT/absent profile and personal biography deep link still have manual flow; conversation still has manual business editors and lacks candidate pin panel",
   "review": "Final bounded independent read-only review: no remaining findings after suspension/support corrections. Native and AI-only migration remain open.",
   "store": "NO-GO",
-  "automation": "PAUSED"
+  "automation": "PAUSED",
+  "ci": {
+    "source": "a12187be7eb85fe4cdb2fc22006d194196f64040",
+    "integrityRuns": [
+      38004881566,
+      38004880923
+    ],
+    "status": "SUCCESS",
+    "selectedSuites": 74,
+    "selectedTests": 1806,
+    "snapshots": 0,
+    "scope": "Selected regression, not new full suite. Migration/domain database jobs skipped. Native pending."
+  }
 }
