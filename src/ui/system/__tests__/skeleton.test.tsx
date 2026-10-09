@@ -223,11 +223,19 @@ describe('a record is the card of a task', () => {
     });
 
     it('is as tall as the least the real card is: a title of one line, the amount, where, when, and the person; and 4 between the facts, 12 between the parts', async () => {
-      await render(<TaskCard item={NEED} onOpen={() => undefined} />);
+      await render(<TaskCard item={{ ...NEED, pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } }} onOpen={() => undefined} />);
       const real = heightOfRender();
       await act(async () => tree.update(<SkeletonCard variant="task" />));
       expect(heightOfRender()).toBe(real);
       expect(real).toBe(sys.type.heading.lineHeight + sys.space.md + (3 * FACT_ROW_ART + 2 * sys.space.xs) + sys.space.md + layout.slot + 2 * layout.card + 2);
+    });
+
+    it('matches a multi-person task when its extra capacity fact is included', async () => {
+      await render(<TaskCard item={NEED} onOpen={() => undefined} />);
+      const real = heightOfRender();
+      await act(async () => tree.update(<SkeletonCard variant="task" rows={3} />));
+      expect(heightOfRender()).toBe(real);
+      expect(real).toBe(sys.type.heading.lineHeight + sys.space.md + (4 * FACT_ROW_ART + 3 * sys.space.xs) + sys.space.md + layout.slot + 2 * layout.card + 2);
     });
 
     it('takes `rows` more facts after the amount, and stands 12 from the next card', async () => {

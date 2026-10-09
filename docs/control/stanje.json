@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T10:06:38Z",
+  "osvezeno": "2026-10-09T10:34:57Z",
   "grana": "integration/spoj-20261006",
-  "head": "f0bc0f05",
-  "head_poruka": "Record verified test-data reset and fix completed worker AI restart",
+  "head": "f64b6bb4",
+  "head_poruka": "Keep empty Discovery map visible with compact recovery",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2861,19 +2861,27 @@
    "heartbeat": "Owner explicitly paused the30-minute Codex automation; active work continues. Do not re-enable it without a new request."
   },
   "empty_map_20261009": {
-   "state": "SOURCE_TARGETED_PASS / BUNDLED_NATIVE_PENDING",
+   "state": "SOURCE_TARGETED_PASS / EMULATOR_MAP_PROVEN / PHONE_PENDING",
    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/empty-map-20261009/receipt.json",
-   "checks": "377 targeted tests/4 suites PASS, TypeScript PASS, independent read-only review no blocker; full regression running.",
-   "next": "Freeze source, bundle emulator and phone previews, inspect empty-map HALF/FULL/peek and fresh worker AI/task/matching. Phone f61 not current."
+   "source": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+   "checks": "377 targeted map tests + TypeScript PASS; full602/603 with one stale skeleton assertion, then strict corrected skeleton25/25 PASS. Emulator exact signed APK/map HALF/FULL/collapse verified.",
+   "next": "Finish phone preview attestation and fresh worker/task/matching; polish empty HALF secondary-action visibility. No store-ready claim."
   },
   "release_flow_readonly_20261009": {
    "state": "GAPS_CONFIRMED / NO_RELEASE_CLAIM",
    "newTaskPush": "Natural matching can emit OPPORTUNITY_AVAILABLE, but current single-target admission, begin-send guard and CHECK accept MESSAGE_RECEIVED only. Prepare a new exact certified bounded opportunity package; do not enable global sending.",
    "store": "Production config still uses canonical DEV and excludes preview Firebase; real production package identity/push/signing/AAB plus legal/privacy/deletion evidence incomplete.",
    "capacity": "Existing40k is synthetic task count, not concurrent users. One viewer:1.28 req/s p95=2054.83ms at parallelism1;1.43 req/s p95=6707.04ms at4. Parallelism16 failed in warmup with5 HTTP500/57014. No production capacity acceptance.",
-   "localDiagnostic": "Portable local restore has49 original tasks, not40k; missing per-column ACL/auth schema grants means separate diagnostic clone must reconstruct compatibility before authenticated Discovery measurement. Reset/inverse proof scope unchanged.",
+   "localDiagnostic": "Completed separate local40k clone diagnosis; auto6th and generic1st timeout90s, custom6/6 exact responses. See discovery_local_plan_20261009. Original baseline count49 preserved; not full-hash proof.",
    "nativeAlignment": "Exact f61 APK:28 native libraries statically aligned >=16KB for ELF LOAD and uncompressed ZIP offsets; no16KB runtime/AAB proof.",
    "ci": "Run37913827086 refresh job113765091836 had zero steps; annotation confirms account billing/spending limit block. No code-test failure claimed."
+  },
+  "discovery_local_plan_20261009": {
+   "state": "DIAGNOSIS_REPRODUCED_TIMEOUT_GENERIC_PLAN_MISSING",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/discovery-local-plan-20261009/receipt.json",
+   "scope": "40000 synthetic tasks+49 retained,5local Auth stubs,1SQLreader,0HTTP requests; noDEV load. Auto6th/generic1st hit90s; custom6/6 match.",
+   "cause": "Generic plan capture missing; custom trace reveals severe cardinality underestimate and spill, not proof of generic join cause.",
+   "next": "Read-only estimated EXPLAIN for exact parameterized inner query on isolated clone; runtime cause remains unproven. No DEV optimizer changes or load."
   }
  },
  "redovi": [
@@ -6034,10 +6042,11 @@
      "boundary": "Fail-before/PASS-after binding proof; existing6dbd38e0 APK jobs do not include this later change. No server/library change."
     },
     "empty_map_20261009": {
-     "state": "SOURCE_TARGETED_PASS / BUNDLED_NATIVE_PENDING",
+     "state": "SOURCE_TARGETED_PASS / EMULATOR_MAP_PROVEN / PHONE_PENDING",
      "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/empty-map-20261009/receipt.json",
-     "checks": "377 targeted tests/4 suites PASS, TypeScript PASS, independent read-only review no blocker; full regression running.",
-     "next": "Freeze source, bundle emulator and phone previews, inspect empty-map HALF/FULL/peek and fresh worker AI/task/matching. Phone f61 not current."
+     "source": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+     "checks": "377 targeted map tests + TypeScript PASS; full602/603 with one stale skeleton assertion, then strict corrected skeleton25/25 PASS. Emulator exact signed APK/map HALF/FULL/collapse verified.",
+     "next": "Finish phone preview attestation and fresh worker/task/matching; polish empty HALF secondary-action visibility. No store-ready claim."
     }
    },
    "ukupno": "PROBLEM",

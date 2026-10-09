@@ -1,7 +1,7 @@
 {
   "recordedAt": "2026-10-09T10:06:26.261295+00:00",
   "base": "f0bc0f05e7c6c9adf29a61b0cc4d3b34935dc097",
-  "state": "SOURCE_TARGETED_PASS / BUNDLED_NATIVE_PENDING",
+  "state": "SOURCE_TARGETED_PASS / EMULATOR_MAP_PROVEN / PHONE_PENDING",
   "before": "Old c62 emulator after approved data reset: authenticated Home and Inbox empty as expected; Zadaci had no map and oversized first-use state hid body/actions. Four targeted regressions fail before the source patch.",
   "after": [
     "A successful empty local/P6 result mounts the map without GPS permission. Remote-only/loading/error behavior retained.",
@@ -16,7 +16,24 @@
     "jsonSha256": "cad3fb347d68da278abdab614379de513a1b4c7923f538bbd73b24a4c4666a0b",
     "typeScript": "PASS",
     "review": "Independent read-only review: no concrete blocker; existing loading/error map removal remains.",
-    "fullRegression": "RUNNING; not yet accepted"
+    "fullRegression": {
+      "state": "ONE_STALE_TEST_FAILURE_CORRECTED_SEPARATELY",
+      "passedSuites": 602,
+      "failedSuites": 1,
+      "passedTests": 13436,
+      "failedTests": 1,
+      "skippedTests": 9,
+      "passedSnapshots": 6,
+      "jsonSha256": "ab9f489d6add793ff66830e16155914b1b6106abbe14fba9ded87fd9248f9fcc",
+      "failure": "Minimum skeleton compared to a two-person card, which now has an extra fact row."
+    },
+    "correctedSkeleton": {
+      "passed": 25,
+      "failed": 0,
+      "jsonSha256": "4799ed782f6b79779d2dc2f433b557dc15cf114fb5dd03d5abcf05d829b2c092",
+      "change": "Test-only minimum one-person fixture plus separate strict equality for multi-person skeleton/card. No runtime change after APK source freeze.",
+      "review": "Independent read-only review confirms strict assertions and no lowered tolerance."
+    }
   },
   "sourceSha256LF": {
     "src/ui/v2/DiscoveryMap.tsx": "47f27a13c2cb062ac3a1881fd1573b3929ef2f0f92cb153dca13652cf425e7e8",
@@ -32,9 +49,37 @@
     "emu-c62-postreset-discovery.png": "aefa0eef98cb3ee33efd8376941a36778257cc4a2df59e80cd5f2078ac4523a7"
   },
   "limits": [
-    "Old c62 screenshots reproduce the bug, not the new source fix.",
-    "Latest phone f61 and emulator c62 do not contain this change.",
-    "No provider or Supabase mutation in this source package.",
-    "Fresh worker/task/matching/new-task push journey and store release remain open."
-  ]
+    "Full run remains602/603; corrected skeleton has separate25/25 pass. No claim of a rerun603/603.",
+    "HALF compact body and refresh fit; secondary Publish action needs scroll/expansion. FULL exposes both. Empty HALF illustration can be reduced in a later polish.",
+    "One initial UIAutomator hierarchy extraction failed; later actual screenshot/XML verified native UI. No stability or TalkBack acceptance implied.",
+    "Phone build and real profile/task/matching/new-task push acceptance remain separate.",
+    "No Supabase mutation in map source package; native fresh-profile scenario is separately authorized and recorded.",
+    "Not store-ready."
+  ],
+  "runtimeSource": "f64b6bb4beb1a6ebe919dc5bfac50884836ac825",
+  "native": {
+    "apkSha256": "cc968bfca09d3485586a0c359c63d054593535f2984beeb0cb9f6370d8844103",
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "package": "rs.uskoci.dev",
+    "sourceFilesByteEqual": 5804,
+    "otaEnabled": false,
+    "installReplaceOnly": true,
+    "sameUidAndFirstInstall": true,
+    "authenticatedWorkerAiEntry": true,
+    "mapVisibleWithoutTasks": true,
+    "halfToFullGesture": true,
+    "fullMapButtonCollapses": true,
+    "secondaryActionVisibleInFull": true,
+    "physicalPhone": false,
+    "evidenceSha256": {
+      "emu-f64b6bb4-map-half.png": "579fee4a0b74ade8c096b3073a0c068fc3924e1bcb5516168e963ca6ba743f94",
+      "emu-f64b6bb4-map-half.xml": "256593fc023cf71957b58e1716e6955aadd237ce1f7c824e1b3977f1912bcb08",
+      "emu-f64b6bb4-map-full.png": "6b8d1174fe630116c640b9ed0daa175bd1454aa25b65a0a1c95d387fe0632d0a",
+      "emu-f64b6bb4-map-full.xml": "5af326b1c4a838e6e70b887702223245dae325a11a5e8fcfee06d9a350e9f38c",
+      "emu-f64b6bb4-map-collapsed.png": "588240b09812b88da78927b1e429971220fd270d04b83b050e56fb1eb010efeb",
+      "emu-f64b6bb4-map-collapsed.xml": "601dc363aa30ecc58a4f822a52f2e20e31ae2e470f7cadd34f7baf49c80781fe",
+      "emu-f64b6bb4-worker-start.png": "dd23749c137cd37b6ce298a28f994c0b8051cf29a8040fd6cbd7793c4c6b0ec3",
+      "emu-f64b6bb4-worker-start.xml": "27fe19ae9fab4ab6f514efbb3226170d37019f5591c0826b55da5067cbf96f54"
+    }
+  }
 }

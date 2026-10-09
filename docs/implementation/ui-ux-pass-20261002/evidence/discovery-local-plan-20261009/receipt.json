@@ -1,0 +1,228 @@
+{
+  "recordedAt": "2026-10-09T10:34:44.392307+00:00",
+  "state": "DIAGNOSIS_REPRODUCED_TIMEOUT_GENERIC_PLAN_MISSING",
+  "target": "127.0.0.1:55439/uskoci_plan_cache_20261009",
+  "fixture": {
+    "syntheticTasks": 40000,
+    "retainedTasks": 49,
+    "initialDiscoverableRows": 7,
+    "populationUsers": 5,
+    "activeSqlReaders": 1,
+    "httpRequests": 0
+  },
+  "reader": {
+    "acl": [
+      "postgres=X/postgres",
+      "authenticated=X/postgres"
+    ],
+    "md5": "a9b0985991f4ebfe4e95143e5cf57222",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "definer": false
+  },
+  "oracle": {
+    "elapsedMs": 18798.387499991804,
+    "everywhere": 40007,
+    "responseSha256": "11c0ac88f9668f526513c202baef26a450e4894978e4d0f9b33886e6e968c559"
+  },
+  "modes": {
+    "auto": {
+      "environment": {
+        "jit": "on",
+        "mode": "auto",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 147648.72669999022,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 6,
+        "completedSamples": 5,
+        "activeSample": 5,
+        "completed": [
+          {
+            "index": 0,
+            "elapsedMs": 16026.4
+          },
+          {
+            "index": 1,
+            "elapsedMs": 14069.2
+          },
+          {
+            "index": 2,
+            "elapsedMs": 9934.3
+          },
+          {
+            "index": 3,
+            "elapsedMs": 8396.7
+          },
+          {
+            "index": 4,
+            "elapsedMs": 8678.2
+          }
+        ]
+      },
+      "sessionStable": false,
+      "completedResponseComparisons": 5,
+      "failure": "STATEMENT_TIMEOUT",
+      "sqlstate": "57014",
+      "status": 3,
+      "processCode": null
+    },
+    "force_custom_plan": {
+      "environment": {
+        "jit": "on",
+        "mode": "force_custom_plan",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 85251.91049999557,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 6,
+        "completedSamples": 6,
+        "activeSample": null,
+        "completed": [
+          {
+            "index": 0,
+            "elapsedMs": 14166.4
+          },
+          {
+            "index": 1,
+            "elapsedMs": 12338.6
+          },
+          {
+            "index": 2,
+            "elapsedMs": 13804.7
+          },
+          {
+            "index": 3,
+            "elapsedMs": 14999.3
+          },
+          {
+            "index": 4,
+            "elapsedMs": 16063.3
+          },
+          {
+            "index": 5,
+            "elapsedMs": 13686.1
+          }
+        ]
+      },
+      "sessionStable": true,
+      "completedResponseComparisons": 6,
+      "failure": null,
+      "sqlstate": null,
+      "status": 0,
+      "processCode": null
+    },
+    "force_generic_plan": {
+      "environment": {
+        "jit": "on",
+        "mode": "force_generic_plan",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 91352.86610003095,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 6,
+        "completedSamples": 0,
+        "activeSample": 0,
+        "completed": []
+      },
+      "sessionStable": false,
+      "completedResponseComparisons": 0,
+      "failure": "STATEMENT_TIMEOUT",
+      "sqlstate": "57014",
+      "status": 3,
+      "processCode": null
+    }
+  },
+  "traces": {
+    "force_custom_plan": {
+      "environment": {
+        "jit": "on",
+        "mode": "force_custom_plan",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 71150.28399997391,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 1,
+        "completedSamples": 1,
+        "activeSample": null,
+        "completed": [
+          {
+            "index": 0,
+            "elapsedMs": 70444.3
+          }
+        ]
+      },
+      "traceSetupStage": null,
+      "sessionStable": true,
+      "completedResponseComparisons": 1,
+      "failure": null,
+      "sqlstate": null,
+      "status": 0,
+      "processCode": null,
+      "traceParserExit": 0
+    },
+    "force_generic_plan": {
+      "environment": {
+        "jit": "on",
+        "mode": "force_generic_plan",
+        "role": "authenticated",
+        "workMem": "4MB",
+        "lockTimeout": "5s",
+        "serverVersion": "170011",
+        "statementTimeout": "90s"
+      },
+      "elapsedMs": 90785.61920009088,
+      "progress": {
+        "valid": true,
+        "plannedSamples": 1,
+        "completedSamples": 0,
+        "activeSample": 0,
+        "completed": []
+      },
+      "traceSetupStage": null,
+      "sessionStable": false,
+      "completedResponseComparisons": 0,
+      "failure": "STATEMENT_TIMEOUT",
+      "sqlstate": "57014",
+      "status": 3,
+      "processCode": null,
+      "traceParserExit": 0
+    }
+  },
+  "readerUnchanged": true,
+  "baselineNeedsCountUnchanged": true,
+  "genericNativePlanCaptured": false,
+  "privateReceiptSha256": "df0e2489a5dde7ca064a9468771515475a494b022bf7533182a0d4f9374ec558",
+  "customNativePlan": "Exact PLACES query SHA3f63aaf71e9aff49e00ad0afc1a6224fe79c147010c67e0d8568808e0148133b:45 projected nodes; final groups38005 actual vs200 estimate. facet_raw Merge Join; facets Hash Join. Root temp reads6449/writes12855, shared hits4776/reads0. Instrumented70.4s is not comparable with ordinary samples.",
+  "limits": [
+    "Isolated Postgres clone with Auth UUID stubs, not full Supabase/JWT/API/native parity.",
+    "40,000 synthetic TASKS, not users or concurrency.",
+    "Original49 rows preserved; fresh local role/grant compatibility reconstruction, not a live ACL snapshot.",
+    "Shared host may be running a build/regression; timings cannot establish production capacity.",
+    "Original baseline unchanged check compares task count only, not full data hashes.",
+    "Generic native trace timed out with zero plans; exact slow join cause remains unproven.",
+    "Custom instrumented trace timing is not comparable with ordinary calls."
+  ],
+  "next": "Read-only estimated EXPLAIN for exact parameterized inner query on isolated clone; runtime cause remains unproven. No DEV optimizer changes or load."
+}
