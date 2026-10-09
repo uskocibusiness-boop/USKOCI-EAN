@@ -1,0 +1,26 @@
+{
+  "source_head": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+  "runtime_parent": "ce23eb06befd0260b71e0c334e5557da5df7639d",
+  "definitions": [
+    {
+      "signature": "public.rpc_get_agreement_workspace(uuid)",
+      "before_body_md5": "afa60817d35f0efd1317e4b9915aa872",
+      "after_body_md5": "0eb9b60cf7a52bdef85d8dc166690e0b",
+      "before_definition_sha256": "91d2bf93278e00924e3d291022c48255091f614b4bcec49b118b71145f7be555"
+    },
+    {
+      "signature": "public.rpc_list_my_agreements()",
+      "before_body_md5": "f4c56eca5c3c247ffb284e91265d81b0",
+      "after_body_md5": "06489ae3fe13b822cb3d026381ac3899",
+      "before_definition_sha256": "8f6acee975f60f463a5d27a28823e94dd93c95455eb2affc8c3192336ce78a6d"
+    },
+    {
+      "signature": "public.rpc_list_my_agreements_page(text,integer,timestamptz,uuid)",
+      "before_body_md5": "5017f90ff8d9e5cd29ead0f88a6b0106",
+      "after_body_md5": "02c73cc4db95c2198f54888d7a377003",
+      "before_definition_sha256": "44ff4fdba8d1de8dbe9226f6aafa36c5938de8c4d64b0c58c6689c06ffb52261"
+    }
+  ],
+  "candidate_sha256": "c345730c125d97fef5251907082a61b6563c477495a0115da6c3e10d3842502e",
+  "revert_sha256": "3d23792db19404880360a34a89665e043ecb345e969b03aed2cf54f5c44ebeda"
+}

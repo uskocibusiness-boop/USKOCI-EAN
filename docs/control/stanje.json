@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T16:52:17Z",
-  "grana": "integration/spoj-20261006",
-  "head": "6311804d",
-  "head_poruka": "Record finite release audit and verified ce23 preview package",
+  "osvezeno": "2026-10-09T17:29:57Z",
+  "grana": null,
+  "head": null,
+  "head_poruka": null,
   "server": {
-   "snimljeno": "2026-10-09T15:35:15Z",
-   "migracije": 237,
+   "snimljeno": "2026-10-09T17:27:02Z",
+   "migracije": 238,
    "dev_alpha": 86,
-   "poslednja": "application_people_proportional_total_rounding_20261009",
+   "poslednja": "r01_phone_read_consent_20261009",
    "sertifikat_ok": true,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -28,59 +28,147 @@
    "cron_greske_24h": 0,
    "edge": [
     {
+     "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
      "slug": "uskoci-ai-interview",
+     "name": "uskoci-ai-interview",
+     "status": "ACTIVE",
      "version": 60,
-     "verify_jwt": true
+     "created_at": 1788261764727,
+     "updated_at": 1791550401052,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_60/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "c14bf229ea7e2e0507813219ac08b695580baea76f090d06570ea86760a93c2e"
     },
     {
+     "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
      "slug": "uskoci-location-search",
+     "name": "uskoci-location-search",
+     "status": "ACTIVE",
      "version": 19,
-     "verify_jwt": true
+     "created_at": 1789051259284,
+     "updated_at": 1789291048806,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_3/source/supabase/functions/uskoci-location-search/index.ts",
+     "ezbr_sha256": "fbbbde04842356594b8408cec04e3d33b13d3248e459e26d5c08204c75ce8434"
     },
     {
+     "id": "daaabf21-7be3-48d6-b49c-ad2472b832b9",
      "slug": "uskoci-publication-evaluate",
+     "name": "uskoci-publication-evaluate",
+     "status": "ACTIVE",
      "version": 19,
-     "verify_jwt": true
+     "created_at": 1789057551628,
+     "updated_at": 1790034934318,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_daaabf21-7be3-48d6-b49c-ad2472b832b9_14/source/supabase/functions/uskoci-publication-evaluate/index.ts",
+     "ezbr_sha256": "9e4af73429a0f973edbbdecb708dae8b5e9b266f630bec5f6d63663fb6e7fa4c"
     },
     {
+     "id": "5765c92d-73fe-49ad-b0e8-ba02212088eb",
      "slug": "uskoci-data-export-worker",
+     "name": "uskoci-data-export-worker",
+     "status": "ACTIVE",
      "version": 19,
-     "verify_jwt": false
+     "created_at": 1789060327220,
+     "updated_at": 1790015379615,
+     "verify_jwt": false,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_5765c92d-73fe-49ad-b0e8-ba02212088eb_14/source/supabase/functions/uskoci-data-export-worker/index.ts",
+     "ezbr_sha256": "37c6e8d7acd5f705cd1a118bd4010bdf8647762b7fa628be2e669f9531fba679"
     },
     {
+     "id": "1172fb20-f74f-4bed-89d0-bc5a0ccc2c21",
      "slug": "uskoci-data-export-download",
+     "name": "uskoci-data-export-download",
+     "status": "ACTIVE",
      "version": 19,
-     "verify_jwt": true
+     "created_at": 1789060338554,
+     "updated_at": 1790015536362,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_1172fb20-f74f-4bed-89d0-bc5a0ccc2c21_14/source/supabase/functions/uskoci-data-export-download/index.ts",
+     "ezbr_sha256": "9a592d9bb329a7a26e0a854d53a2c799f712ae96ebc2c9949f3457b24f652e66"
     },
     {
+     "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
      "slug": "uskoci-worker-interview",
+     "name": "uskoci-worker-interview",
+     "status": "ACTIVE",
      "version": 23,
-     "verify_jwt": true
+     "created_at": 1789291116219,
+     "updated_at": 1791050450429,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_18/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "98ac102cd78e9335c406f56fe26a88297b115fb4f349b0e54a6f8cc2ad580e84"
     },
     {
+     "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
      "slug": "uskoci-speech-session",
+     "name": "uskoci-speech-session",
+     "status": "ACTIVE",
      "version": 20,
-     "verify_jwt": true
+     "created_at": 1789291120076,
+     "updated_at": 1789666914573,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_1ba4db69-a390-4b55-a071-97bee74d2598_14/source/supabase/functions/uskoci-speech-session/index.ts",
+     "ezbr_sha256": "114e2bc8c684ff9972eaa03349964391621e57120cd68b24b523561c80695abf"
     },
     {
+     "id": "eb0f75d5-d1ce-4936-9a84-68763d4727bd",
      "slug": "uskoci-qa-classify",
+     "name": "uskoci-qa-classify",
+     "status": "ACTIVE",
      "version": 18,
-     "verify_jwt": true
+     "created_at": 1789291124175,
+     "updated_at": 1790042491953,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_eb0f75d5-d1ce-4936-9a84-68763d4727bd_13/source/supabase/functions/uskoci-qa-classify/index.ts",
+     "ezbr_sha256": "088f4381a10c57e5f12b1da4d1f3db40d7e2ea2fa905f13b8e1715ea62d1b25a"
     },
     {
+     "id": "d9bde875-0cd9-4998-b395-76fa3de0af92",
      "slug": "uskoci-push-transport",
+     "name": "uskoci-push-transport",
+     "status": "ACTIVE",
      "version": 28,
-     "verify_jwt": false
+     "created_at": 1789291177945,
+     "updated_at": 1791529463031,
+     "verify_jwt": false,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_24/source/supabase/functions/uskoci-push-transport/index.ts",
+     "ezbr_sha256": "4aa0e6314186c847df386bbc0cf1b6d2af0cb4a5b05c8fa6c10b425632e3dc7b"
     },
     {
+     "id": "8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c",
      "slug": "uskoci-media",
+     "name": "uskoci-media",
+     "status": "ACTIVE",
      "version": 19,
-     "verify_jwt": true
+     "created_at": 1789291187416,
+     "updated_at": 1790827911619,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c_14/source/supabase/functions/uskoci-media/index.ts",
+     "ezbr_sha256": "34e4a23149d30c4abbf606aa5b1fddf12fd370fbf3904b6a20eb29c7a446d1ac"
     },
     {
+     "id": "41dd529a-fcea-4866-a296-1dea5a70c08c",
      "slug": "uskoci-account-closure-worker",
+     "name": "uskoci-account-closure-worker",
+     "status": "ACTIVE",
      "version": 9,
-     "verify_jwt": false
+     "created_at": 1789587374051,
+     "updated_at": 1790827630415,
+     "verify_jwt": false,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_41dd529a-fcea-4866-a296-1dea5a70c08c_4/source/supabase/functions/uskoci-account-closure-worker/index.ts",
+     "ezbr_sha256": "9f7373f9452ef85fb8c615bef64fc2a564aad32b39b9df80bad2152bd2c2ae11"
     }
    ]
   },
@@ -3100,6 +3188,18 @@
    ],
    "automation": "PAUSED; no new automation",
    "publication": "Local existing master/register refreshed; public dashboard not republished in this audit; no store submission."
+  },
+  "r01_phone_consent_read_repair_20261009": {
+   "state": "DEV_APPLIED_POSTFLIGHT_VERIFIED_DEVICE_PENDING",
+   "date": "2026-10-09",
+   "sourceBefore": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+   "scope": "Six PHONE consent predicates in three read RPCs use existing safety_grant_valid. Active block and pre-block consent invalidated; unblock needs fresh grant. No client shape/ACL/table/policy/trigger/Edge changes.",
+   "proof": "docs/implementation/release-fixes-20261009/phone-consent/README.md",
+   "receipt": "supabase/operations/dev-alpha/ledger/20261009_r01_phone_read_consent.receipt.json",
+   "localPostgres": "67 PASS,0 FAIL and12 FAIL-before on PG17.5 and PG18.3/WASM; synthetic minimal schema, not complete deployment/RLS/Auth integration.",
+   "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
+   "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
+   "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
   }
  },
  "redovi": [
@@ -7708,6 +7808,18 @@
      "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
      "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
      "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+    },
+    "r01_phone_consent_read_repair_20261009": {
+     "state": "DEV_APPLIED_POSTFLIGHT_VERIFIED_DEVICE_PENDING",
+     "date": "2026-10-09",
+     "sourceBefore": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+     "scope": "Six PHONE consent predicates in three read RPCs use existing safety_grant_valid. Active block and pre-block consent invalidated; unblock needs fresh grant. No client shape/ACL/table/policy/trigger/Edge changes.",
+     "proof": "docs/implementation/release-fixes-20261009/phone-consent/README.md",
+     "receipt": "supabase/operations/dev-alpha/ledger/20261009_r01_phone_read_consent.receipt.json",
+     "localPostgres": "67 PASS,0 FAIL and12 FAIL-before on PG17.5 and PG18.3/WASM; synthetic minimal schema, not complete deployment/RLS/Auth integration.",
+     "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
+     "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
+     "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
     }
    },
    "ukupno": "PROBLEM",
@@ -10417,6 +10529,18 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Jednostavan red sa imenom i posledicom, bez dekorativne ilustracije preko upozorenja.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "r01_phone_consent_read_repair_20261009": {
+     "state": "DEV_APPLIED_POSTFLIGHT_VERIFIED_DEVICE_PENDING",
+     "date": "2026-10-09",
+     "sourceBefore": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+     "scope": "Six PHONE consent predicates in three read RPCs use existing safety_grant_valid. Active block and pre-block consent invalidated; unblock needs fresh grant. No client shape/ACL/table/policy/trigger/Edge changes.",
+     "proof": "docs/implementation/release-fixes-20261009/phone-consent/README.md",
+     "receipt": "supabase/operations/dev-alpha/ledger/20261009_r01_phone_read_consent.receipt.json",
+     "localPostgres": "67 PASS,0 FAIL and12 FAIL-before on PG17.5 and PG18.3/WASM; synthetic minimal schema, not complete deployment/RLS/Auth integration.",
+     "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
+     "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
+     "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
     }
    },
    "ukupno": "PROBLEM",
@@ -12599,102 +12723,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 37818622934,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-08T17:42:20Z"
-  },
-  {
-   "id": 36901345565,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-01T17:42:23Z"
-  },
-  {
-   "id": 36242064743,
-   "ime": "Build Android development APK",
-   "sha": "cc8649a8",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-26T12:29:15Z"
-  },
-  {
-   "id": 36039980994,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-24T18:15:35Z"
-  },
-  {
-   "id": 35546202528,
-   "ime": "CodeQL",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-09-20T23:59:00Z"
-  },
-  {
-   "id": 35546157605,
-   "ime": "Dependency Graph",
-   "sha": "a047bc0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-20T23:58:00Z"
-  },
-  {
-   "id": 35254406698,
-   "ime": "CodeQL",
-   "sha": "916ffb49",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-17T17:42:55Z"
-  },
-  {
-   "id": 34778854343,
-   "ime": "PRE-P4 integrity",
-   "sha": "b35893c1",
-   "stanje": "completed",
-   "ishod": "action_required",
-   "vreme": "2026-09-13T19:49:19Z"
-  },
-  {
-   "id": 34778852570,
-   "ime": "CodeQL",
-   "sha": "b35893c1",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-13T19:49:17Z"
-  },
-  {
-   "id": 34778359520,
-   "ime": "PRE-P4 integrity",
-   "sha": "5218a685",
-   "stanje": "completed",
-   "ishod": "action_required",
-   "vreme": "2026-09-13T19:39:23Z"
-  },
-  {
-   "id": 34778356840,
-   "ime": "CodeQL",
-   "sha": "5218a685",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-09-13T19:39:20Z"
-  },
-  {
-   "id": 34778246902,
-   "ime": "PRE-P4 integrity",
-   "sha": "91a1e0d7",
-   "stanje": "completed",
-   "ishod": "action_required",
-   "vreme": "2026-09-13T19:37:12Z"
-  }
- ]
+ "ci": null
 }

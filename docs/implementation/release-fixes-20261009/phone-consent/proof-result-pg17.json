@@ -1,0 +1,363 @@
+{
+  "sourceHead": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+  "scope": "Real PostgreSQL/WASM, synthetic minimal relational fixture. Actual three read definitions, safety predicate, closure restriction predicate, grant/revoke command, block/unblock command, pair key, audit write and agreement action-state definitions execute unchanged. Supabase JWT verification, full schema/RLS/trigger integration and real device are not claimed.",
+  "checks": [
+    {
+      "name": "exact production expected-digest guard rejects synthetic catalog",
+      "status": "PASS"
+    },
+    {
+      "name": "unready certificate guard rejects before changing readers",
+      "status": "PASS"
+    },
+    {
+      "name": "actual transactional candidate runs and digest is unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "unblocked valid consent exact JSON shape/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "unblocked valid consent exact JSON shape/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "unblocked valid consent exact JSON shape/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "valid grants A sees B/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "valid grants A sees B/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "valid grants A sees B/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "valid grants B sees A/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "valid grants B sees A/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "valid grants B sees A/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "active A block hides both grants/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "active A block hides both grants/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "active A block hides both grants/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "active A block symmetric B read/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "active A block symmetric B read/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "active A block symmetric B read/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "unblock does not restore old consent A/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "unblock does not restore old consent A/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "unblock does not restore old consent A/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "unblock does not restore old consent B/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "unblock does not restore old consent B/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "unblock does not restore old consent B/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "new post-unblock consent A/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "new post-unblock consent A/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "new post-unblock consent A/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "new post-unblock consent B/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "new post-unblock consent B/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "new post-unblock consent B/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "B revocation hides phone for A/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "B revocation hides phone for A/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "B revocation hides phone for A/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "B revocation myPhoneShared false/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "B revocation myPhoneShared false/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "B revocation myPhoneShared false/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "expired B consent hides phone for A/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "expired B consent hides phone for A/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "expired B consent hides phone for A/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "expired B consent myPhoneShared false/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "expired B consent myPhoneShared false/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "expired B consent myPhoneShared false/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "closure restricted peer invalidates consent A/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "closure restricted peer invalidates consent A/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "closure restricted peer invalidates consent A/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "closure restricted peer invalidates consent B/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "closure restricted peer invalidates consent B/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "closure restricted peer invalidates consent B/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "reverse B block hides A read/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "reverse B block hides A read/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "reverse B block hides A read/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "reverse B block hides B read/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "reverse B block hides B read/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "reverse B block hides B read/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "inactive Agreement does not reveal phone/workspace",
+      "status": "PASS"
+    },
+    {
+      "name": "inactive Agreement does not reveal phone/legacy",
+      "status": "PASS"
+    },
+    {
+      "name": "inactive Agreement does not reveal phone/paged",
+      "status": "PASS"
+    },
+    {
+      "name": "foreign agreement ID workspace denied",
+      "status": "PASS"
+    },
+    {
+      "name": "foreign account legacy list empty",
+      "status": "PASS"
+    },
+    {
+      "name": "foreign account paged list empty",
+      "status": "PASS"
+    },
+    {
+      "name": "direct phone table read denied",
+      "status": "PASS"
+    },
+    {
+      "name": "missing auth denied",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid paging retains 22023",
+      "status": "PASS"
+    },
+    {
+      "name": "anon EXECUTE denied",
+      "status": "PASS"
+    },
+    {
+      "name": "exact revert executes and restores all stored body hashes",
+      "status": "PASS"
+    },
+    {
+      "name": "revert keeps fixture closure digest unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "candidate is reapplicable after exact revert",
+      "status": "PASS"
+    }
+  ],
+  "baselineExpectedFailures": [
+    {
+      "caller": "A",
+      "reader": "workspace",
+      "field": "theirPhone",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "A",
+      "reader": "workspace",
+      "field": "myPhoneShared",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "A",
+      "reader": "legacy",
+      "field": "theirPhone",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "A",
+      "reader": "legacy",
+      "field": "myPhoneShared",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "A",
+      "reader": "paged",
+      "field": "theirPhone",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "A",
+      "reader": "paged",
+      "field": "myPhoneShared",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "B",
+      "reader": "workspace",
+      "field": "theirPhone",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "B",
+      "reader": "workspace",
+      "field": "myPhoneShared",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "B",
+      "reader": "legacy",
+      "field": "theirPhone",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "B",
+      "reader": "legacy",
+      "field": "myPhoneShared",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "B",
+      "reader": "paged",
+      "field": "theirPhone",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    },
+    {
+      "caller": "B",
+      "reader": "paged",
+      "field": "myPhoneShared",
+      "status": "FAIL_BEFORE_CONFIRMED"
+    }
+  ],
+  "limitations": [
+    "PG17 fixture maps extensions.digest SHA-256 to native PostgreSQL sha256 bytea/text wrappers because PGlite0.3.14 does not ship pgcrypto. Phone authorization logic is not stubbed. PG18 companion proof uses real pgcrypto.",
+    "The fixture closure digest uses the exact canonical program-digest function on an isolated synthetic catalog. Equality proves this candidate does not change that algorithm's protected fixture surface; the live certificate value is independently checked at integration. It is not the complete canonical schema or live certificate reproduction.",
+    "PGlite is PostgreSQL compiled to WASM; no PostgREST, JWT signature verification, production concurrency/load, provider call or physical-device execution occurred."
+  ],
+  "engine": "PostgreSQL 17.5 on aarch64-unknown-linux-gnu, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+  "fixtureDigestBefore": "427d11f740bf6d103eaa8fbcfcca10593ad406e58db452950ef8b9e6ad3d3553",
+  "certificateGuardSubstitutions": {
+    "expectedDigest": "synthetic fixture digest replaces live expected digest",
+    "retentionSourceReady": "fixture SQL function reads a synthetic ready setting because canonical certificate objects are not present; guard runs, but not counted as certificate readiness proof"
+  },
+  "result": "PASS",
+  "passed": 67,
+  "failed": 0,
+  "candidateSha256": "c345730c125d97fef5251907082a61b6563c477495a0115da6c3e10d3842502e"
+}

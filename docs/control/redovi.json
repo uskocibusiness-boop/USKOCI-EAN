@@ -3698,6 +3698,18 @@
           "state": "SOURCE + FOCUSED TEST; NEW APK NATIVE PENDING",
           "evidence": "docs/implementation/ui-ux-pass-20261002/CONTINUITY_FINISH_20261008.md",
           "boundary": "No whole-flow, phone, push-delivery or store readiness claim. Prior device evidence remains scoped to its APK."
+        },
+        "r01_phone_consent_read_repair_20261009": {
+          "state": "DEV_APPLIED_POSTFLIGHT_VERIFIED_DEVICE_PENDING",
+          "date": "2026-10-09",
+          "sourceBefore": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+          "scope": "Six PHONE consent predicates in three read RPCs use existing safety_grant_valid. Active block and pre-block consent invalidated; unblock needs fresh grant. No client shape/ACL/table/policy/trigger/Edge changes.",
+          "proof": "docs/implementation/release-fixes-20261009/phone-consent/README.md",
+          "receipt": "supabase/operations/dev-alpha/ledger/20261009_r01_phone_read_consent.receipt.json",
+          "localPostgres": "67 PASS,0 FAIL and12 FAIL-before on PG17.5 and PG18.3/WASM; synthetic minimal schema, not complete deployment/RLS/Auth integration.",
+          "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
+          "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
+          "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
         }
       }
     },
@@ -5564,6 +5576,18 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Jednostavan red sa imenom i posledicom, bez dekorativne ilustracije preko upozorenja.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "r01_phone_consent_read_repair_20261009": {
+          "state": "DEV_APPLIED_POSTFLIGHT_VERIFIED_DEVICE_PENDING",
+          "date": "2026-10-09",
+          "sourceBefore": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+          "scope": "Six PHONE consent predicates in three read RPCs use existing safety_grant_valid. Active block and pre-block consent invalidated; unblock needs fresh grant. No client shape/ACL/table/policy/trigger/Edge changes.",
+          "proof": "docs/implementation/release-fixes-20261009/phone-consent/README.md",
+          "receipt": "supabase/operations/dev-alpha/ledger/20261009_r01_phone_read_consent.receipt.json",
+          "localPostgres": "67 PASS,0 FAIL and12 FAIL-before on PG17.5 and PG18.3/WASM; synthetic minimal schema, not complete deployment/RLS/Auth integration.",
+          "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
+          "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
+          "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
         }
       },
       "native_e572_account_readonly_20261003": {
@@ -9797,6 +9821,18 @@
       ],
       "automation": "PAUSED; no new automation",
       "publication": "Local existing master/register refreshed; public dashboard not republished in this audit; no store submission."
+    },
+    "r01_phone_consent_read_repair_20261009": {
+      "state": "DEV_APPLIED_POSTFLIGHT_VERIFIED_DEVICE_PENDING",
+      "date": "2026-10-09",
+      "sourceBefore": "35a55f8a4e4900220c14b10f0c0ffb850810b64e",
+      "scope": "Six PHONE consent predicates in three read RPCs use existing safety_grant_valid. Active block and pre-block consent invalidated; unblock needs fresh grant. No client shape/ACL/table/policy/trigger/Edge changes.",
+      "proof": "docs/implementation/release-fixes-20261009/phone-consent/README.md",
+      "receipt": "supabase/operations/dev-alpha/ledger/20261009_r01_phone_read_consent.receipt.json",
+      "localPostgres": "67 PASS,0 FAIL and12 FAIL-before on PG17.5 and PG18.3/WASM; synthetic minimal schema, not complete deployment/RLS/Auth integration.",
+      "dev": "20261009172613; ledger238; exact statement and stored body hashes verified; closure source/program/certificates unchanged and ready.",
+      "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
+      "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
     }
   }
 }

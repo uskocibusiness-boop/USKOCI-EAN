@@ -1,0 +1,71 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "args": "2950 2950 1184",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "result": "16",
+      "strict": false,
+      "bodyMd5": "5d658dd5d719427b0ee0b03a5d872866",
+      "definer": true,
+      "language": "14",
+      "signature": "private.safety_grant_valid(uuid,uuid,timestamp with time zone)",
+      "volatility": "s"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "args": "2950",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "result": "3802",
+      "strict": false,
+      "bodyMd5": "afa60817d35f0efd1317e4b9915aa872",
+      "definer": true,
+      "language": "13619",
+      "signature": "rpc_get_agreement_workspace(uuid)",
+      "volatility": "s"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "args": "25 23 1184 2950",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "result": "3802",
+      "strict": false,
+      "bodyMd5": "5017f90ff8d9e5cd29ead0f88a6b0106",
+      "definer": true,
+      "language": "13619",
+      "signature": "rpc_list_my_agreements_page(text,integer,timestamp with time zone,uuid)",
+      "volatility": "s"
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "args": "",
+      "owner": "16388",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "result": "3802",
+      "strict": false,
+      "bodyMd5": "f4c56eca5c3c247ffb284e91265d81b0",
+      "definer": true,
+      "language": "13619",
+      "signature": "rpc_list_my_agreements()",
+      "volatility": "s"
+    }
+  ],
+  "capturedAt": "2026-10-09T17:24:36.469017+00:00",
+  "sourceReady": true,
+  "sourceDigest": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "programDigest": "dab1d731ee99625c6685bbd4df391228e0857e8fbb08fde35539815b7484af65",
+  "sourceCertified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "erasureCertified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+}
