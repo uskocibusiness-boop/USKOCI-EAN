@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+# Preview only. Production cutover: Allow: / and keep sitemap public.
