@@ -744,12 +744,16 @@
     "allFlagsOff": true
   },
   "owner_message_qa_20261009": {
-    "scope": "Bounded event/delivery readback after one authorized normal owner-to-owner app message. Not a refresh of schema/certificate/whole inventory.",
+    "scope": "Bounded natural message/admission/send/receipt/postflight. Not a refresh of schema/certificate/whole inventory.",
     "eventCreatedAt": "2026-10-09 07:51:12.218641+00",
     "freshEvents": 1,
-    "pushDeliveryState": "CREATED",
-    "hasAttempt": false,
+    "pushDeliveryState": "SENT",
+    "hasAttempt": true,
     "providerCallsByThisOperation": 0,
-    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json"
+    "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-real-message-20261009/receipt.json",
+    "providerState": "PROVIDER_ACCEPTED",
+    "sendCount": 1,
+    "ownerConfirmedPhysicalArrivalAndTap": true,
+    "allFlagsOffAfter": true
   }
 }

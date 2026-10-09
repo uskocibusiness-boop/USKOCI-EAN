@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T08:20:05Z",
+  "osvezeno": "2026-10-09T08:30:48Z",
   "grana": "integration/spoj-20261006",
-  "head": "7b1d5446",
-  "head_poruka": "Record private APK delivery and real emulator message evidence",
+  "head": "abf3dddb",
+  "head_poruka": "Integrate neutral push copy and record owner-confirmed phone delivery",
   "server": {
    "snimljeno": "2026-10-09T07:08:33.959021Z",
    "migracije": 236,
@@ -2355,7 +2355,7 @@
    "freshEdgeBeforeEqualsFrozen": true,
    "expectedMigrationLedgerChange": "235 precondition;236 after normal apply_migration. Applied20261009070352; see applicationReceipt. Frozen revert has no235count guard.",
    "authenticatedRole": "OWNER_LOGIN_CONFIRMED_AND_SECRET_WRITE_SUCCEEDED",
-   "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone.",
+   "next": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND.",
    "accessRecheckRecordedAt": "2026-10-09T06:58:34.533851+00:00",
    "applicationReceipt": "supabase/operations/dev-alpha/ledger/20261009_push_single_target_v1_application.receipt.json",
    "ledgerAfter": 236,
@@ -2374,7 +2374,8 @@
     "state": "BOUNDED_EMULATOR_PRIVATE_MESSAGE_PASS / PHONE_PUSH_PENDING",
     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/native-c62b85d8/emulator-message-20261009.json",
     "scope": "One normal private message on existingc62 emulator; new IN_APP+PUSH rows. No admission/provider.",
-    "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone."
+    "next": "Owner confirms phone APK installed and Ovaj telefon connected; re-read exact device/session binding and suppression, then one-target admission/send/receipt/tap. Private tuple retained locally; never select device by latest timestamp alone.",
+    "supersededBy": "docs/implementation/ui-ux-pass-20261002/evidence/push-real-message-20261009/receipt.json"
    }
   },
   "agreement_tasks_20261009": {
@@ -2835,24 +2836,21 @@
    "tests": "121 Node +168 foreground PASS; manifest13match; frozen32unchanged; no deploy."
   },
   "push_phone_real_message_20261009": {
-   "state": "ONE_REAL_MESSAGE_PHONE_ARRIVAL_AND_TAP_OWNER_CONFIRMED / PROVIDER_RECEIPT_PENDING",
-   "source": "Deployed Edge24; owner manually installed f61 preview APK; runtime About not independently observed.",
-   "sentAt": "2026-10-09T08:11:25.288304+00:00",
+   "state": "ONE_REAL_PUSH_PROVIDER_ACCEPTED_AND_PHONE_TAP_OWNER_CONFIRMED",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-real-message-20261009/receipt.json",
    "sendCount": 1,
-   "transportState": "TICKET_PENDING",
-   "receiptDueAt": "2026-10-09T08:26:25.288304+00:00",
-   "ownerReport": "Stiglo je i otvara taj razgovor",
-   "allFlagsRestoredOffAt": "2026-10-09T08:12:13.560Z",
-   "unrelatedBacklogUnchanged": true,
-   "next": "At or after due time, exact admission receipt only, then restore all3OFF. Preserve target proof until terminal postflight. No repeat SEND."
+   "provider": "PROVIDER_ACCEPTED",
+   "phone": "Owner confirmed arrival and tap to intended conversation; runtime About unobserved.",
+   "flags": "All3OFF; global never enabled; unrelated backlog unchanged.",
+   "next": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND."
   },
   "owner_test_reset_20261009": {
-   "state": "AUTHORIZED_ALL_FIVE_TEST_ACCOUNTS / READ_ONLY_INVENTORY / NOT_DELETED",
-   "ownerDecision": "Svih pet naloga su testni — očisti sve probne podatke",
-   "preserve": "Auth/password/sessions/app_accounts/push devices and preferences; system authority/certificates and provider spend/outcome evidence.",
-   "scope": "49 needs across5accounts/10profiles. Owner pair42needs/8agreements;2cross-accountagreements covered by explicit five-account authorization.",
-   "inventory": "125relations/204FK/116triggers; immutable publication/connection/review/media guards confirmed live; no existing supported business reset that preserves Auth.",
-   "next": "Encrypted private snapshot and exact scoped reset candidate, prove restore/transaction before deletion. Do not bypass closure or erase pending provider attempts. No new approval for same five-account scope."
+   "state": "AUTHORIZED_SCOPE / ENCRYPTED_SNAPSHOT_SAVED / RESET_NOT_APPLIED",
+   "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/owner-test-reset-20261009/preflight.json",
+   "approval": "All5test accounts business data authorized; Auth/session/device preserved.",
+   "backup": "123tables/7314rows encrypted locally; decryption roundtrip PASS, DBrestore NOTPROVEN.",
+   "blocker": "Existing immutable guard graph needs named reset package; isolated restore environment unavailable (Vercel403, no localPG, knownCIbilling).",
+   "next": "Prepare named per-row owner-test-reset authority and complete isolated restore/apply/rollback proof. Preserve provider journals and immutable safeguards; no partial deletion before whole dependency plan is proven. Then reset approved five-account business cohort and run fresh AI worker profile/task/agreement/chat/push scenarios. Owner scope authorization already granted."
   }
  },
  "redovi": [
@@ -9205,8 +9203,8 @@
    },
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
-   "problem": "One real message sent once; owner confirmed push arrival and tap to correct conversation on phone. Provider receipt due08:26:25UTC; global/single/exact flags restoredOFF. All-category automatic push, group push and full native runtime identity remain unproven.",
-   "sledece": "At or after due time, exact admission receipt only, then restore all3OFF. Preserve target proof until terminal postflight. No repeat SEND.",
+   "problem": "One actual MESSAGE_RECEIVED path completed: provider accepted, send_count1, owner confirmed phone arrival and correct conversation. All3flagsOFF. Automatic all-category/group push, independent native runtime identity and full-store gates remain open.",
+   "sledece": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -9305,16 +9303,13 @@
      "tests": "121 Node +168 foreground PASS; manifest13match; frozen32unchanged; no deploy."
     },
     "phone_real_message_20261009": {
-     "state": "ONE_REAL_MESSAGE_PHONE_ARRIVAL_AND_TAP_OWNER_CONFIRMED / PROVIDER_RECEIPT_PENDING",
-     "source": "Deployed Edge24; owner manually installed f61 preview APK; runtime About not independently observed.",
-     "sentAt": "2026-10-09T08:11:25.288304+00:00",
+     "state": "ONE_REAL_PUSH_PROVIDER_ACCEPTED_AND_PHONE_TAP_OWNER_CONFIRMED",
+     "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-real-message-20261009/receipt.json",
      "sendCount": 1,
-     "transportState": "TICKET_PENDING",
-     "receiptDueAt": "2026-10-09T08:26:25.288304+00:00",
-     "ownerReport": "Stiglo je i otvara taj razgovor",
-     "allFlagsRestoredOffAt": "2026-10-09T08:12:13.560Z",
-     "unrelatedBacklogUnchanged": true,
-     "next": "At or after due time, exact admission receipt only, then restore all3OFF. Preserve target proof until terminal postflight. No repeat SEND."
+     "provider": "PROVIDER_ACCEPTED",
+     "phone": "Owner confirmed arrival and tap to intended conversation; runtime About unobserved.",
+     "flags": "All3OFF; global never enabled; unrelated backlog unchanged.",
+     "next": "Authorized test reset preparation; later all-category and group push coverage. No duplicate SEND."
     }
    },
    "ukupno": "PROBLEM",

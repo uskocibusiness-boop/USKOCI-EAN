@@ -1,0 +1,46 @@
+{
+  "state": "ONE_REAL_PUSH_PROVIDER_ACCEPTED_AND_PHONE_TAP_OWNER_CONFIRMED",
+  "recordedAt": "2026-10-09T08:30:35.903852+00:00",
+  "messageSource": "One normal reviewed UI message from existing owner emulator account to existing owner phone account. No SQL-fabricated business event.",
+  "device": "Previously known Android device, same account/session, current revision6 equals boundRevision6. Owner confirmed f61 preview APK installed and phone connected.",
+  "runtimeLimit": "About/runtime JS identity not independently observed; preview OTA enabled.",
+  "server": "Existing applied SQL ledger236/roster108/Edge24, not new copy-v2 source.",
+  "send": {
+    "httpStatus": 200,
+    "state": "TICKET_PENDING",
+    "sendCount": 1,
+    "sentAt": "2026-10-09T08:11:25.288304+00:00"
+  },
+  "providerReceipt": {
+    "httpStatus": 200,
+    "state": "PROVIDER_ACCEPTED",
+    "sendCount": 1,
+    "errorCode": null,
+    "nextAttemptAt": null,
+    "checkedAt": "2026-10-09T08:28:46.252642+00:00"
+  },
+  "physical": {
+    "method": "Owner report after seeing notification and tapping it",
+    "answer": "Stiglo je i otvara taj razgovor",
+    "arrival": true,
+    "correctConversationOpened": true,
+    "adbObserved": false
+  },
+  "flags": {
+    "globalStayedOff": true,
+    "singleTargetAndExactEnabledOnlyForNamedSend": true,
+    "receiptEnabledOnlySingleTarget": true,
+    "allThreeRestoredFalseAt": "2026-10-09T08:27:05.052Z"
+  },
+  "unrelatedBacklog": {
+    "deliveriesUnchanged": true,
+    "attemptsUnchanged": true
+  },
+  "privateTupleReceiptSha256": "b785086e62862e684cfee06ee6e32eff813a335e656b33732f8c171eb40d7893",
+  "limits": [
+    "This proves one actual MESSAGE_RECEIVED path, not all event types, group push or automatic global delivery.",
+    "Provider acceptance is separate from owner-reported physical arrival. Server delivery remains SENT/delivered_at null; no fabricated DELIVERED state.",
+    "IN_APP read_at was still false at08:15:58; owner tap confirmation does not assert a server read marker.",
+    "No repeat SEND, global tick, old queue retirement or account impersonation."
+  ]
+}

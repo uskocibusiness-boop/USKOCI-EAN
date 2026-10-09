@@ -1,0 +1,106 @@
+{
+  "state": "AUTHORIZED_SCOPE / ENCRYPTED_SNAPSHOT_SAVED / RESET_NOT_APPLIED",
+  "ownerDecision": "Svih pet naloga su testni — očisti sve probne podatke",
+  "keep": "Auth/passwords/sessions, app_accounts, push device binding/preferences, system authority/config/certificates, paid/provider outcome evidence.",
+  "inventory": {
+    "accounts": 5,
+    "profiles": 10,
+    "needs": 49,
+    "relations": 125,
+    "foreignKeys": 204,
+    "triggers": 116
+  },
+  "backup": {
+    "state": "ENCRYPTED_SNAPSHOT_SAVED / DECRYPTION_ROUNDTRIP_PASS / DATABASE_RESTORE_NOT_PROVEN",
+    "capturedAt": "2026-10-09T08:21:20.239678+00:00",
+    "accountCount": 5,
+    "tableCount": 123,
+    "rowCount": 7314,
+    "plaintextSha256": "3a15c3913a6a2466cf3f1cd557495acde76692ff1a44453e0e64079283453e86",
+    "encryptedFileSha256": "f739d35ba1bb1d6c67df4bda156327f8c7a98c00c72dfac480937c6d41dfe7e9",
+    "encryptedBytes": 4726668,
+    "method": "Windows DPAPI current-user; no plaintext dump written; auth schema/app_accounts/push devices excluded and must be preserved.",
+    "databaseMutations": 0,
+    "storageObjectsCopied": false,
+    "restoreTestedOnDatabase": false
+  },
+  "liveGuardHashes": {
+    "private.reject_need_publication_decision_mutation()": "8b11af614fcd34bb609343cccad18e5120d110c7c9315062f623f8fa87828b59",
+    "private.reject_connection_ledger_mutation()": "60382376a7fc175209d56ac525b7e74e5e30c333d66b335c6a1024d2ec01410e",
+    "private.guard_review_immutable()": "0da18d827e08e53171a5995554d03cfd1bec2fa5d0976e651af331f38d0e99e5",
+    "private.media_evidence_immutable_v5()": "847cefbbb0094342042ea8d87ff7087010e6c4fccefab4ed0a6102864537dfb4",
+    "private.agreement_voice_asset_guard_v1()": "dcc395dbb420183a04697a8b30427547a34b9fb6f32259f37ef05feacbd3fc1d"
+  },
+  "liveGuardResult": "Publication and voice guards admit only actual certified closure redaction. Connection ledger, review and media-evidence guards unconditionally reject DELETE in captured definitions. No existing business-only reset preserves account/session/device.",
+  "providerStateCounts": [
+    {
+      "source": "ai_need_turn_commands",
+      "state": "SUCCEEDED",
+      "provider_dispatched": true,
+      "count": 430,
+      "active_leases": 0
+    },
+    {
+      "source": "ai_need_turn_commands",
+      "state": "FAILED",
+      "provider_dispatched": true,
+      "count": 33,
+      "active_leases": 0
+    },
+    {
+      "source": "ai_need_turn_commands",
+      "state": "FAILED",
+      "provider_dispatched": false,
+      "count": 18,
+      "active_leases": 0
+    },
+    {
+      "source": "worker_ai_turns",
+      "state": "FAILED",
+      "provider_dispatched": true,
+      "count": 1,
+      "active_leases": 0
+    },
+    {
+      "source": "worker_ai_turns",
+      "state": "FAILED",
+      "provider_dispatched": false,
+      "count": 3,
+      "active_leases": 0
+    },
+    {
+      "source": "worker_ai_turns",
+      "state": "SUCCEEDED",
+      "provider_dispatched": true,
+      "count": 50,
+      "active_leases": 0
+    },
+    {
+      "source": "qa_ai_commands",
+      "state": "COMMITTED",
+      "provider_dispatched": true,
+      "count": 1,
+      "active_leases": 0
+    },
+    {
+      "source": "qa_ai_commands",
+      "state": "REJECTED",
+      "provider_dispatched": true,
+      "count": 4,
+      "active_leases": 0
+    }
+  ],
+  "executionAvailability": {
+    "local": "No docker/psql/pg_dump available; existing WSL binary is not a running local database.",
+    "ci": "Previously verified run37897728095 had no executed jobs because billing/limit; no new retry or billing change.",
+    "isolatedVercel": "Existing uskoci-web project found. List named sandboxes404; bounded nonpersistent5minute creation rejected403: no permission to create sandbox. No sandbox/data upload/session created. No installed Vercel CLI fallback.",
+    "reference": "https://vercel.com/docs/sandbox"
+  },
+  "notDone": [
+    "No business rows deleted or profile fields reset.",
+    "Storage object bytes have not been backed up or removed.",
+    "Database restore has not been rehearsed; DPAPI read/decrypt roundtrip is not DB restore proof.",
+    "No trigger disabling, fake closure authorization, new cleanup API or certificate change."
+  ],
+  "next": "Prepare named per-row owner-test-reset authority and complete isolated restore/apply/rollback proof. Preserve provider journals and immutable safeguards; no partial deletion before whole dependency plan is proven. Then reset approved five-account business cohort and run fresh AI worker profile/task/agreement/chat/push scenarios. Owner scope authorization already granted."
+}
