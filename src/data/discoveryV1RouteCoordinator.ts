@@ -15,6 +15,7 @@ export type DiscoveryV1RouteSnapshot = {
   search: ReturnType<ReturnType<typeof createDiscoveryV1SearchOwner>['snapshot']>;
   selectedMarkerKey: string | null;
   loadingMore: boolean;
+  replacing: boolean;
 };
 
 /** A return to the screen reads at most this many pages again before it restores the list offset (8 pages of 50 rows). */
@@ -78,7 +79,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     return routeView?{...value,view:cloneView(routeView)}:value;
   };
   const snapshot=():DiscoveryV1RouteSnapshot=>({active,generation,view:routeView?cloneView(routeView):null,screen:screenSnapshot(),
-    overlay:overlay.snapshot(),search:search.snapshot(),selectedMarkerKey,loadingMore});
+    overlay:overlay.snapshot(),search:search.snapshot(),selectedMarkerKey,loadingMore,replacing:reading>0});
 
   // EX-03: the first row of the overlay window (see DISCOVERY_V1_OVERLAY_LEAD). Every read that replaces the list starts it at the top again.
   let overlayStart=0;
@@ -266,6 +267,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
   };
 
   async function nextPage(){
+    if(!driven()||loadingMore||reading>0)return {kind:'noop' as const,snapshot:snapshot()};
     let g=generation;loadingMore=true;
     try{
       let result;

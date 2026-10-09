@@ -294,9 +294,11 @@ it('a read that replaces the list keeps the last complete picture on the snapsho
  const reading=route.updateView(view({query:'kombi'}));
  await Promise.resolve();await Promise.resolve();
  const during=route.snapshot();
+ expect(during.replacing).toBe(true);
  expect(during.view).toMatchObject({query:'kombi'});
  expect(during.screen.items).toHaveLength(1);expect(during.screen.mapMarkers).toHaveLength(1);expect(during.screen.counts?.listed).toBe(12);
  gate.page.resolve();const result=await reading;expect(result.kind).toBe('applied');
+ expect(route.snapshot().replacing).toBe(false);
  const after=route.snapshot().screen;expect(after.counts?.listed).toBe(7);expect(after.items).toHaveLength(1);expect(after.mapMarkers).toHaveLength(1);
 });
 it('a quiet map refresh keeps the markers on the snapshot until the new ones land, and a failing read never leaves the old picture stuck',async()=>{
@@ -305,6 +307,7 @@ it('a quiet map refresh keeps the markers on the snapshot until the new ones lan
  gate.map=deferred<void>();
  const refreshing=route.refreshMap([19.5,44.5,20.5,45.5]);
  await Promise.resolve();await Promise.resolve();
+ expect(route.snapshot().replacing).toBe(false);
  expect(route.snapshot().screen.mapMarkers).toHaveLength(1);
  gate.map.resolve();await refreshing;
  expect(route.snapshot().screen.mapMarkers).toHaveLength(1);
@@ -313,6 +316,7 @@ it('a quiet map refresh keeps the markers on the snapshot until the new ones lan
  const other=createDiscoveryV1RouteCoordinator(failing,h.overlay);
  await other.open(view());
  await expect(other.updateView(view({query:'boom'}))).rejects.toThrow('DISCOVERY_V1_TRANSPORT_FAILED');
+ expect(other.snapshot().replacing).toBe(false);
  expect(other.snapshot().screen.items).toHaveLength(0);
 });
 // Independent review, finding 3: the hold wrapped reads that only ADD to the picture too. A next page that landed during a map refresh or a selection stayed hidden behind the

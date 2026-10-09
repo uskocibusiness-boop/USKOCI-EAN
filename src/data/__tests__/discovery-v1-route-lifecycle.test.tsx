@@ -93,11 +93,88 @@ const bridge = () => tree!.root.findAllByType('Bridge' as unknown as React.Eleme
 const errorState = () => tree!.root.findAllByProps({ title: 'Ne možemo da učitamo zadatke' });
 const flush = async () => { for (let i = 0; i < 80; i++) await act(async () => { await Promise.resolve(); }); };
 const modes = () => mockTransportCalls.map(request => request.mode);
+const pendingRead = () => { let resolve!: () => void, reject!: (error: Error) => void;
+  const promise = new Promise<void>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 let info: jest.SpyInstance;
 const traced = () => info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_P6_TRACE]'));
 beforeEach(() => {
   mockFocused = true; mockRevision = 1; mockSource = mockOriginalSource; mockTransportCalls.length = 0; mockTransport = async request => server(request); mockRouter.navigate.mockClear();
   info = jest.spyOn(console, 'info').mockImplementation(() => {});
+});
+
+test('a delayed filter and area read publish refreshing immediately without removing the previous picture', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const oldIds = bridge().props.snapshot.items.map((row: any) => row.id);
+  for (const kind of ['filter', 'area'] as const) {
+    const gate = pendingRead(); mockTransport = async request => { await gate.promise; return server(request); };
+    await act(async () => {
+      if (kind === 'filter') bridge().props.onView({ ...bridge().props.snapshot.view, query: 'knjige' });
+      else bridge().props.actions.onArea(NATIVE_BOUNDS);
+    });
+    expect(bridge().props.refreshing).toBe(true); expect(bridge().props.loading).toBe(false);
+    expect(bridge().props.snapshot.items.map((row: any) => row.id)).toEqual(oldIds);
+    expect(bridge().props.snapshot.mapMarkers).toHaveLength(1);
+    await act(async () => { gate.resolve(); }); await flush();
+    expect(bridge().props.refreshing).toBe(false); expect(bridge().props.error).toBe(false);
+  }
+  mockTransportCalls.length = 0;
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, sheet: 'full', listOffset: 120 }); });
+  expect(bridge().props.refreshing).toBe(false); expect(mockTransportCalls).toHaveLength(0);
+});
+
+test.each(['older first', 'newer first'])('overlapping filter replies (%s) cannot drop the pending hold or publish the older intent', async order => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const gates = [pendingRead(), pendingRead()]; let called = 0;
+  mockTransport = async request => {
+    if (request.mode === 'PAGE') { const index = called++; await gates[index].promise; }
+    return server(request);
+  };
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, query: 'prvo' }); });
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, query: 'drugo' }); });
+  expect(bridge().props.refreshing).toBe(true);
+  await act(async () => { gates[order === 'older first' ? 0 : 1].resolve(); }); await flush();
+  expect(bridge().props.snapshot.view.query).toBe('drugo'); expect(bridge().props.refreshing).toBe(true);
+  await act(async () => { gates[order === 'older first' ? 1 : 0].resolve(); }); await flush();
+  expect(bridge().props.snapshot.view.query).toBe('drugo'); expect(bridge().props.refreshing).toBe(false);
+  expect(bridge().props.error).toBe(false);
+});
+
+test('failed replacement ends refreshing with error; retry succeeds without a stuck busy label', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const gate = pendingRead(); mockTransport = async request => { await gate.promise; return server(request); };
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, query: 'knjige' }); });
+  expect(bridge().props.refreshing).toBe(true);
+  await act(async () => { gate.reject(new Error('DISCOVERY_V1_READ_FAILED')); }); await flush();
+  expect(bridge().props.refreshing).toBe(false); expect(bridge().props.error).toBe(true);
+  mockTransport = async request => server(request);
+  await act(async () => { bridge().props.onRefresh(); }); await flush();
+  expect(bridge().props.refreshing).toBe(false); expect(bridge().props.error).toBe(false);
+});
+
+test('paging publishes its busy state before reply and duplicate callbacks cannot clear it', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const gate = pendingRead(); mockTransportCalls.length = 0;
+  mockTransport = async request => { await gate.promise; return server(request); };
+  await act(async () => { bridge().props.actions.onNextPage(); });
+  expect(bridge().props.loadingMore).toBe(true); expect(bridge().props.refreshing).toBe(false);
+  await act(async () => { bridge().props.actions.onNextPage(); });
+  expect(bridge().props.loadingMore).toBe(true); expect(bridge().props.snapshot.items).toHaveLength(50);
+  await act(async () => { gate.resolve(); }); await flush();
+  expect(bridge().props.loadingMore).toBe(false); expect(bridge().props.snapshot.items).toHaveLength(100);
+  expect(modes()).toEqual(['PAGE']);
+});
+
+test('an old pending replacement cannot publish into an account revision that has already returned', async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  const gate = pendingRead(); mockTransport = async request => { await gate.promise; return server(request); };
+  await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, query: 'stari razgovor' }); });
+  expect(bridge().props.refreshing).toBe(true);
+  mockRevision++; mockTransport = async request => server(request);
+  await act(async () => { tree!.update(<DiscoveryV1Route />); }); await flush();
+  const next = bridge().props.snapshot;
+  expect(bridge().props.refreshing).toBe(false);
+  await act(async () => { gate.resolve(); }); await flush();
+  expect(bridge().props.snapshot).toEqual(next); expect(bridge().props.refreshing).toBe(false);
 });
 afterEach(async () => { if (tree) await act(async () => tree!.unmount()); tree = undefined; info.mockRestore(); clock?.mockRestore(); clock = undefined; });
 let clock: jest.SpyInstance | undefined;

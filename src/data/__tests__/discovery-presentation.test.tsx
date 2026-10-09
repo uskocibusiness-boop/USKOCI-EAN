@@ -314,7 +314,7 @@ test('a tap on the handle goes to the next height and round again; the full list
   expect(listSheet().props.snapPoints[2]).toBe(760 - fullTop(116));
   // the handle is still the handle at the full height: it takes the list back to the map
   expect(countLine().props.accessibilityHint).toBe('Spušta listu i prikazuje mapu.');
-  expect(countLine().props.accessibilityState).toEqual({ expanded: true });
+  expect(countLine().props.accessibilityState).toEqual({ expanded: true, busy: false });
   await act(async () => countLine().props.onPress());
   expect(listSheet().props.index).toBe(0);
   expect(userIntent).toHaveBeenCalledTimes(3);
@@ -3368,6 +3368,34 @@ describe('"Nisu na mapi": the way to the tasks that are not on the map, honest t
 
 
 // Owner 8 Oct: at the top of FULL, the content drag lowers the sheet instead of refreshing.
+test.each(['half', 'full'] as const)('replacement at %s keeps map and cards, announces pending instead of an obsolete count and pauses paging', async sheet => {
+  rows = p6Rows(); initial = { ...initial, sheet };
+  p6Seam = { ...p6Seam_(), counts: p6Counts(100, 100), pageHasMore: true }; await render();
+  const before = cards(), mapItems = map().props.items, index = listSheet().props.index;
+  refreshing = true; await update();
+  expect(cards()).toEqual(before); expect(map().props.items).toBe(mapItems); expect(listSheet().props.index).toBe(index);
+  const count = tree.root.findByProps({ testID: 'list-count' });
+  expect(count.props.accessibilityLabel).toBe('Osvežavamo zadatke…');
+  expect(count.props.accessibilityState.busy).toBe(true); expect(count.props.accessibilityLiveRegion).toBe('polite');
+  expect(texts(count)).toBe('Osvežavamo zadatke…'); expect(count.props.accessibilityValue).toBeUndefined();
+  expect(list().props.onEndReached).toBeUndefined();
+  refreshing = false; p6Seam = { ...p6Seam, counts: p6Counts(5, 5) }; await update();
+  expect(texts(tree.root.findByProps({ testID: 'list-count' }))).toContain('5 zadataka');
+  expect(tree.root.findByProps({ testID: 'list-count' }).props.accessibilityState.busy).toBe(false);
+  expect(list().props.onEndReached).toBeDefined();
+});
+
+test('an empty held picture during replacement does not claim no results or raise the sheet', async () => {
+  rows = []; initial = { ...initial, sheet: 'peek' }; refreshing = true;
+  p6Seam = { ...p6Seam_(), counts: p6Counts(0) }; await render();
+  expect(map()).toBeDefined(); expect(listSheet().props.index).toBe(0);
+  expect(texts()).toContain('Osvežavamo zadatke…'); expect(texts()).not.toContain('Nema zadataka');
+  expect(action('Objavi zadatak')).toBeUndefined();
+  refreshing = false; await update();
+  expect(tree.root.findByProps({ testID: 'list-count' }).props.accessibilityState.busy).toBe(false);
+  expect(listSheet().props.index).toBe(1);
+});
+
 test('the full discovery list leaves its downward gesture to the sheet', async () => {
   initial = { ...initial, sheet: 'full' };
   refreshing = true; await render();

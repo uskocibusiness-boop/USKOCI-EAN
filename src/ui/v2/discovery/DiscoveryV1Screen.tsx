@@ -93,14 +93,17 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   }, [coordinator, live]);
   optionalCommitRef.current = commit;
 
-  const execute = useCallback(async (action: () => Promise<unknown>, busy = false) => {
+  const execute = useCallback(async (action: () => Promise<unknown>, busy = false, publishPending = false) => {
     if (!live()) return;
     if (busy && live()) { setLoading(true); setError(false); }
     try {
-      const result = await action();
+      const pending = action();
+      // Only replacement/paging actions publish their start. Pin feedback deliberately keeps
+      // the halo in its own frame before the known card, even while another read is pending.
+      if (publishPending) commit();
+      const result = await pending;
       // A read that failed keeps the error state until a later read APPLIES: a passive or superseded action proves nothing.
       if (live() && (result as { kind?: string } | undefined)?.kind === 'applied') setError(false);
-      commit();
     } catch (failure) {
       if (live()) {
         // The one refusal that is about the person and not about the read: the list is read again WITHOUT "Za mene" and the reason is said beside it.
@@ -109,6 +112,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
       }
     } finally {
       if (busy && live()) setLoading(false);
+      commit();
     }
   }, [commit, live]);
 
@@ -192,13 +196,13 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     // Asking "Za mene" again is a new attempt: the last refusal is not repeated until this one is refused too.
     if (view.forMe) setForMeRefused(false);
     askedView.current = view; showAsked(count => count + 1);
-    void execute(() => coordinator.updateView(view)).finally(() => {
+    void execute(() => coordinator.updateView(view), false, true).finally(() => {
       if (askedView.current === view) { askedView.current = null; if (live()) showAsked(count => count + 1); }
     });
   }, [coordinator, execute, live]);
   const handleRefresh = useCallback(() => {
     const view = coordinator.snapshot().view;
-    if (view) void execute(() => coordinator.open(view), true);
+    if (view) void execute(() => coordinator.open(view), true, true);
   }, [coordinator, execute]);
   // A cluster is navigation only: the map's camera goes into it and the settled region reads the list and the map (`onArea`).
   // A touch on a task or a place answers at once: the bucket's halo shows while the exact read is on its way and the card follows when that lands. The halo
@@ -242,7 +246,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     });
   }, [coordinator, execute]);
   // The list reads what the person can see; the map reads its whole frame.
-  const onArea = useCallback((bounds: PublicBounds, frame?: PublicBounds) => { void execute(() => coordinator.settleMap(bounds, frame)); }, [coordinator, execute]);
+  const onArea = useCallback((bounds: PublicBounds, frame?: PublicBounds) => { void execute(() => coordinator.settleMap(bounds, frame), false, true); }, [coordinator, execute]);
   // The rows the list shows: their details are read in the background when they are outside the window read so far; the overlay commits when it lands.
   const onVisibleRange = useCallback((first: number, last: number) => { if (live()) coordinator.showRows(first, last); }, [coordinator, live]);
   // The markers follow a camera move that is not the person's own; the list and the peek are not touched, and a read that proves nothing about
@@ -250,10 +254,10 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const onViewportSettled = useCallback((bounds: PublicBounds) => { void execute(async () => { await coordinator.refreshMap(bounds); }); }, [coordinator, execute]);
   const onShowPlace = useCallback(() => {
     const peek = coordinator.snapshot().screen.peek;
-    if (peek?.kind === 'PLACE') void execute(() => coordinator.showPoint(peek.point));
+    if (peek?.kind === 'PLACE') void execute(() => coordinator.showPoint(peek.point), false, true);
   }, [coordinator, execute]);
-  const onShowAll = useCallback(() => { void execute(() => coordinator.showAll()); }, [coordinator, execute]);
-  const onNextPage = useCallback(() => { void execute(() => coordinator.nextPage()); }, [coordinator, execute]);
+  const onShowAll = useCallback(() => { void execute(() => coordinator.showAll(), false, true); }, [coordinator, execute]);
+  const onNextPage = useCallback(() => { void execute(() => coordinator.nextPage(), false, true); }, [coordinator, execute]);
   const onClearPeek = useCallback(() => { if (!live()) return; coordinator.clearPeek(); commit(); }, [coordinator, commit, live]);
 
   const onSearchDraft = useCallback((draft: SearchDraft, mapArea: PublicBounds | null) => {
@@ -278,7 +282,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}
     actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces, onVisibleRange }}
     canRetainMap={props.canRetainMap}
-    loading={loading} refreshing={loading} error={error} scopeKey={props.scopeKey}
+    loading={loading} refreshing={state.replacing} error={error} scopeKey={props.scopeKey}
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
     trace={props.trace} onView={handleView} onRefresh={handleRefresh}
     onOpen={item => { if (live()) props.onOpen(item, discoveryV1OverlayRelation(state.overlay, item.id)); }}

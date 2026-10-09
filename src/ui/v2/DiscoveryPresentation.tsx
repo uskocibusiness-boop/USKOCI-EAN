@@ -324,7 +324,7 @@ function usePillFade(shown: boolean, reduced: boolean) {
 }
 
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
-  const { items, loading, error } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
+  const { items, loading, error, refreshing = false } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
   const userIntent = props.onUserIntent;
   const traceRef = useRef(props.trace); traceRef.current = props.trace;
   const trace = useCallback<DiscoveryTrace>((...args) => traceRef.current?.(...args), []);
@@ -548,22 +548,23 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   }, [sheetIndex, change]);
   // Where the sheet starts is decided once from public pin coverage; labels cannot move it afterward.
   useEffect(() => {
-    if (started.current || loading || error) return;
+    if (started.current || loading || refreshing || error) return;
     started.current = true;
     const start = discoveryStartSnap(mapped.length, mappedWithoutPin);
     setSheetIndex(INDEX[start]);
     // Remembered at once: a start equal to the height the sheet already had changes no state to remember it by later.
     if (latestView.current.sheet !== start) change({ sheet: start });
-  }, [loading, error, mapped.length, mappedWithoutPin, change]);
+  }, [loading, refreshing, error, mapped.length, mappedWithoutPin, change]);
   // What is found must be seen. A sheet resting at its top line rises to show why nothing is found; and when nothing found
   // has a point on the map (a filter left only "Na daljinu"), it takes the screen, over a map with nothing on it. The map's
   // area is not a reason: moving the map never moves the sheet the person is looking past.
   useEffect(() => {
+    if (refreshing) return;
     if (!loading && where === 'remote') { setSheetIndex(SNAP.full); return; }
     if (!started.current || loading) return;
     if (mapped.length > 0 && mappedWithoutPin === mapped.length) setSheetIndex(SNAP.full);
     else if (!mapped.length && sheetIndex === SNAP.peek) setSheetIndex(SNAP.half);
-  }, [loading, mapped.length, mappedWithoutPin, where, sharedFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, refreshing, mapped.length, mappedWithoutPin, where, sharedFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Empty results still belong on a map: keep geography available without requiring GPS or a first task.
   // Relations never remove a public pin, so the first map fit does not wait for the account overlay.
@@ -1203,11 +1204,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // "Nisu na mapi": the number is the server's own count of the tasks that have no point (never counted from what happens to be loaded), the list shows
   // those of them that are loaded, and while some are still to come on later pages they are asked for, one page at a time, until they are all here.
   const offMapNeeded = offMap ? exactPinless : 0;
-  const offMapMore = !!p6 && offMap && !loading && !error && p6.pageHasMore && !p6.loadingMore && listed.length < offMapNeeded;
+  const offMapMore = !!p6 && offMap && !loading && !refreshing && !error && p6.pageHasMore && !p6.loadingMore && listed.length < offMapNeeded;
   useEffect(() => { if (offMapMore && currentList()) p6?.onNextPage(); }, [offMapMore, listed.length]); // eslint-disable-line react-hooks/exhaustive-deps
   // The way in is a row under the count, only while some tasks are not on the map; the way out is its capsule. When nothing is left off the map (the
   // conditions changed, the remote filter came on) the choice has nothing to say and goes.
-  useEffect(() => { if (offMap && !loading && !error && !props.collectionStatus && exactPinless === 0) setOffMap(false); }, [offMap, loading, error, props.collectionStatus, exactPinless]);
+  useEffect(() => { if (offMap && !loading && !refreshing && !error && !props.collectionStatus && exactPinless === 0) setOffMap(false); }, [offMap, loading, refreshing, error, props.collectionStatus, exactPinless]);
 
   // The one state view: reading, not read, nothing here, nothing for these conditions, nothing at all. The map and the list always show every
   // published task (owner, 2026-10-07): an empty list is never about the person's profile, only about where the map stands and what is searched.
@@ -1215,7 +1216,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const elsewhere = p6 ? (p6.counts?.mapped ?? 0) > 0 : mapped.length > 0;
   const conditionsOn = !!view.query.trim() || discoveryFiltered(view) || !!view.place;
   // "Za mene" on, and nothing else narrowing the list: what the person asked for is what leaves nothing, and the way on is every task again.
-  const listState: DiscoveryListStateKind = loading || props.collectionStatus === 'loading' || offMapMore || (offMap && !!p6?.loadingMore && !listed.length) ? { kind: 'loading' }
+  const listState: DiscoveryListStateKind = loading || refreshing || props.collectionStatus === 'loading' || offMapMore || (offMap && !!p6?.loadingMore && !listed.length) ? { kind: 'loading' }
     : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList }
       // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
       : (pinPlace || area) && elsewhere && !offMap ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
@@ -1233,16 +1234,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     withoutPoint: exactWithoutPoint, pinless: exactPinless, area: !!area, pinPlace: !!pinPlace });
   const collectionWords = props.collectionStatus === 'loading' ? 'Učitavamo ostale zadatke…'
     : props.collectionStatus === 'error' ? 'Ostali zadaci nisu učitani' : null;
+  const replacingWords = refreshing && !loading ? 'Osvežavamo zadatke…' : null;
   // With "Nisu na mapi" on the list is those tasks alone, and the top line counts exactly them.
   const shownCount = offMap && !loading && !error ? exactPinless : exactListed;
-  const spoken = collectionWords ?? (offMap && !loading && !error ? `${countWords(shownCount)} · ${OFF_MAP_CHIP.toLocaleLowerCase('sr-Latn-RS')}` : `${line.words}${line.extra}`);
+  const spoken = replacingWords ?? collectionWords ?? (offMap && !loading && !error ? `${countWords(shownCount)} · ${OFF_MAP_CHIP.toLocaleLowerCase('sr-Latn-RS')}` : `${line.words}${line.extra}`);
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="note" style={s.count}>
-    {collectionWords ?? (loading || error ? line.words : shownCount ? countWords(shownCount) : 'Nema zadataka')}
+    {replacingWords ?? collectionWords ?? (loading || error ? line.words : shownCount ? countWords(shownCount) : 'Nema zadataka')}
   </T>;
   // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
-  const sorted = !!p6 && !loading && !error && !collectionWords && shownCount > 1;
+  const sorted = !!p6 && !loading && !refreshing && !error && !collectionWords && shownCount > 1;
   // What the pill says is searched (a place, words, the map's area, one point), and its "×" ("Prikaži sve zadatke") takes all of that away in one step. A place has taken
   // over the area, so it goes with the area; words alone leave the area as it was (the list still follows the map); a point and the area go through the reader's own command.
   const searchedWords = searchWords(view);
@@ -1253,7 +1255,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     if (pinPlace || (!words && area)) showAll();
   };
   // The row under the top line (the way in to "Nisu na mapi"): only while some are not on the map and the list is the whole list.
-  const showOffMap = !offMap && !loading && !error && !collectionWords && exactPinless > 0;
+  const showOffMap = !offMap && !loading && !refreshing && !error && !collectionWords && exactPinless > 0;
   const openOffMap = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); clearSelection(); setOffMap(true); setSheetIndex(SNAP.half); };
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
   const spokenRef = useRef(spoken); spokenRef.current = spoken;
@@ -1268,7 +1270,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The top line is the sheet's handle: a tap goes to the next height (lowered, half, full, and round again); a drag of it, of the header
   // or of the list moves the same sheet, and the sheet never overshoots.
   // Another page of the server's list is being read, and the person is looking at the list (not at the map under a lowered sheet).
-  const paging = !!props.p6Seam?.loadingMore && !loading && !error && hasRows && sheetIndex > SNAP.peek;
+  const paging = !!props.p6Seam?.loadingMore && !loading && !refreshing && !error && hasRows && sheetIndex > SNAP.peek;
   const cycleSheet = () => { userIntent?.(); Keyboard.dismiss(); clearSelection(); setSheetIndex(nextSheetIndex(sheetIndex)); };
   const header = <View testID="discovery-list-header" style={s.header}
     onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
@@ -1279,7 +1281,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
     <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityValue={sorted ? { text: NEWEST_FIRST } : undefined}
-      accessibilityState={{ expanded: sheetIndex > SNAP.peek }} accessibilityHint={handleHint(sheetIndex)} accessibilityLiveRegion="polite"
+      accessibilityState={{ expanded: sheetIndex > SNAP.peek, busy: loading || refreshing }} accessibilityHint={handleHint(sheetIndex)} accessibilityLiveRegion="polite"
       haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
       {count}{sorted ? <T variant="note" tone="muted" style={s.sortedBy}>{NEWEST_FIRST}</T> : null}
     </Press>
@@ -1374,7 +1376,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           viewabilityConfig={portraitViewability} onViewableItemsChanged={onVisibleRows}
           ListHeaderComponent={scrollHeader ? <View testID="discovery-scrolling-header" style={s.scrollingHeader}>{header}</View> : null}
           extraData={sectionsSignature}
-          onEndReached={props.p6Seam?.pageHasMore && !props.p6Seam.loadingMore ? () => { if (currentList()) props.p6Seam?.onNextPage(); } : undefined}
+          onEndReached={!refreshing && props.p6Seam?.pageHasMore && !props.p6Seam.loadingMore ? () => { if (currentList()) props.p6Seam?.onNextPage(); } : undefined}
           onEndReachedThreshold={props.p6Seam?.pageHasMore ? 0.4 : undefined}
           {...scrollProps} onContentSizeChange={onContentSizeChange}
           onLayout={event => {

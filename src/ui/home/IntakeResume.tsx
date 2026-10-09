@@ -38,6 +38,8 @@ export function IntakeResume({ onOpen }: { onOpen: (id: string) => void }) {
   if (!page?.rows.length && !resource.error) return null;
   return <>
     <ListRow leading={<FactArt kind="chat" size={32} />} title="Nastavi razgovor o zadatku" last accessibilityLabel="Nastavi razgovor o zadatku"
+      accessibilityHint={resource.error ? 'Razgovori nisu učitani. Pokušaj ponovo.'
+        : page?.rows.length === 1 && !page.next ? `Otvara razgovor započet ${vreme(page.rows[0].createdAt)}.` : 'Otvara listu započetih razgovora.'}
       subtitle={resource.error ? 'Razgovori nisu učitani. Dodirni da pokušaš ponovo.'
         : page?.rows.length === 1 && !page.next ? `Započeto ${vreme(page.rows[0].createdAt)}` : 'Izaberi započeti razgovor.'}
       onPress={() => {
