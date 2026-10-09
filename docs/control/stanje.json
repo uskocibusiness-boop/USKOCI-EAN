@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-09T02:30:41Z",
+  "osvezeno": "2026-10-09T02:31:56Z",
   "grana": "integration/spoj-20261006",
-  "head": "512c740e",
-  "head_poruka": "merge: reconcile generated control views after chat batch",
+  "head": "ef1dfd49",
+  "head_poruka": "fix(chat): follow group messages without interrupting history",
   "server": {
    "snimljeno": "2026-10-08T16:45:35Z",
    "migracije": 235,
