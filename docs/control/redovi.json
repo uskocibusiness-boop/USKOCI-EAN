@@ -3040,7 +3040,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "Pan bez rasta headera, stvarna grad/zadatak pretraga i blur filteri/datumi potvrđeni; brojčani min otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
+        "dokaz": "59876dc6: pretraga prikazuje stvarne rezultate, ali lupa dva puta nije otvorila tastaturu bez dodatnog dodira; fix čeka APK. docs/implementation/evidence/visual-rounds-20261010/search-ime-followup.json"
       },
       "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
       "sledece": "10.10: reference14501–14504: blur, izdignute bele sekcije, jedna otvorena i sažeci ostalih, jasan reset/potvrda. Zadržati draft/cancel/count autoritet. Numerički minimum budžeta traži ceo server PAGE/MAP/PLACES ugovor, nije postojeći priceType. Raniji dokaz/sledeće: Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
@@ -3517,6 +3517,11 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "search_ime_followup_20261010": {
+          "state": "SOURCE_TESTED_NATIVE_PENDING",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/search-ime-followup.json",
+          "storeReady": false
         }
       }
     },
@@ -10818,6 +10823,11 @@
       "offlineAiTests": 210,
       "edgeDeployed": false,
       "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
+      "storeReady": false
+    },
+    "search_ime_followup_20261010": {
+      "state": "SOURCE_TESTED_NATIVE_PENDING",
+      "evidence": "docs/implementation/evidence/visual-rounds-20261010/search-ime-followup.json",
       "storeReady": false
     }
   }

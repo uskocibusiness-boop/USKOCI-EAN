@@ -886,20 +886,64 @@ describe('the parts of the panel', () => {
   });
 });
 
-// HONOR 2026-10-09: premature autoFocus drew a cursor without opening the keyboard.
+// HONOR 2026-10-10: even onShow can run before the Modal accepts keyboard focus.
+const holdSearchFocusFrames = () => {
+  let sequence = 0;
+  const pending = new Map<number, FrameRequestCallback>();
+  jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { pending.set(++sequence, callback); return sequence; });
+  jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (typeof id === 'number') pending.delete(id); });
+  return { pending, next: async () => act(async () => {
+    const callbacks = [...pending.values()]; pending.clear(); callbacks.forEach(callback => callback(0));
+  }) };
+};
 it('focuses search once after the native Modal is shown and never after closing or unmount', async () => {
-  mode = 'search';
+  mode = 'search'; const frames = holdSearchFocusFrames();
   const focus = jest.fn();
   await act(async () => { tree = create(panelOf(), { createNodeMock: element => (element.props as { testID?: string }).testID === 'search-what-field' ? { focus } : null }); });
   const onShow = tree.root.findByType('Modal' as React.ElementType).props.onShow;
   expect(focus).not.toHaveBeenCalled();
   await act(async () => onShow());
+  expect(focus).not.toHaveBeenCalled();
+  await frames.next();
+  expect(focus).not.toHaveBeenCalled();
+  await frames.next();
   expect(focus).toHaveBeenCalledTimes(1);
   await act(async () => onShow());
   expect(focus).toHaveBeenCalledTimes(1);
   await act(async () => tree.unmount());
   await act(async () => onShow());
   expect(focus).toHaveBeenCalledTimes(1);
+});
+it.each(['close', 'back', 'keyboard-back', 'unmount'] as const)('cancels scheduled search focus on %s before it can steal the keyboard', async action => {
+  mode = 'search'; const frames = holdSearchFocusFrames(), focus = jest.fn();
+  await act(async () => { tree = create(panelOf(), { createNodeMock: element => (element.props as { testID?: string }).testID === 'search-what-field' ? { focus } : null }); });
+  await act(async () => tree.root.findByType('Modal' as React.ElementType).props.onShow());
+  await frames.next();
+  const late = [...frames.pending.values()][0];
+  expect(late).toBeDefined();
+  if (action === 'close') await tap('Zatvori pretragu');
+  else if (action === 'back' || action === 'keyboard-back') {
+    mockKeyboardVisible = action === 'keyboard-back';
+    await withPlatform('android', 35, async () => act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose()));
+    if (action === 'keyboard-back') expect(close).not.toHaveBeenCalled();
+  }
+  else await act(async () => tree.unmount());
+  expect(frames.pending.size).toBe(0);
+  await act(async () => late(0));
+  expect(focus).not.toHaveBeenCalled();
+});
+it('cancels focus before the first scheduled frame and preserves the typed draft on keyboard Back', async () => {
+  const frames = holdSearchFocusFrames(), focus = jest.fn();
+  await act(async () => { tree = create(panelOf(), { createNodeMock: element => (element.props as { testID?: string }).testID === 'search-what-field' ? { focus } : null }); });
+  const onShow = tree.root.findByType('Modal' as React.ElementType).props.onShow;
+  await act(async () => onShow());
+  const late = [...frames.pending.values()][0];
+  await typeWhat('Petrovaradin'); mockKeyboardVisible = true;
+  await withPlatform('android', 35, async () => act(async () => tree.root.findByType('Modal' as React.ElementType).props.onRequestClose()));
+  expect(frames.pending.size).toBe(0); expect(close).not.toHaveBeenCalled();
+  await act(async () => { late(0); onShow(); });
+  expect(frames.pending.size).toBe(0); expect(focus).not.toHaveBeenCalled();
+  expect(whatField().props.value).toBe('Petrovaradin');
 });
 it('a late native shown event cannot reopen the keyboard after search close', async () => {
   mode = 'search'; const focus = jest.fn();

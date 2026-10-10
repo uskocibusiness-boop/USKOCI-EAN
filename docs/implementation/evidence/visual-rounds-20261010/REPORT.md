@@ -141,3 +141,16 @@ Na tačnom source-u 59876dc6: puna CI klijentska regresija 38031937885 **607/607
 **NIJE DOKAZANO:** prirodnost pravog modela, ASR, popunjeni grupni/privatni razgovori i kompletan lifecycle, brojčani minimum budžeta u svim čitačima, puna AI-only mapa radnog profila, aktuelna push isporuka, email dostava, skaliranje, privacy/deletion i store uslovi. Podešavanja telefona kažu da je dozvola uključena, ali stanje slanja još nije potvrđeno; ovaj pregled nije novi push test. Jedan UIAutomator snimak nije vratio XML; sledeće čitanje istog ekrana je uspelo bez ponavljanja dodira.
 
 **SLEDEĆE:** primena konkretnog Edge paketa tek uz važeće odobrenje, zatim meren razgovorni test uz zasebno ograničenje provider troška; zajednički brojčani filter PAGE/MAP/PLACES i dovršetak AI-only profila; popunjeni two-account tokovi. Ne redizajnirati ponovo potvrđene filter sekcije i map/nav popravke bez novog problema. Jedini registar ostaje 62 reda, automatizacija 30 min PAUSED, store NO-GO. Nema tvrdnje da je javna Claude tabla ponovo objavljena.
+
+
+## Dodatni native nalaz: tastatura pri otvaranju pretrage
+
+URADIO: na 59876dc6 dva puta je reprodukovano da lupa postavi kursor, ali ne otvori tastaturu; dodatni dodir polja je otvori. Raniji uspešan pokušaj nije dovoljan za opštu tvrdnju. U lokalnom React Native kodu onShow može prethoditi skidanju FLAG_NOT_FOCUSABLE sa dijaloga. Prvi focus se sada odlaže preko dva render frame-a; close, Back i unmount otkazuju i generacijski odbacuju zakasnelu komandu. Nema blur/refocus trika ni vraćanja tastature posle korisnikovog Back-a.
+
+DOKAZAO: 75/75 testova pretrage, uključujući odloženi fokus, otkazivanje pre i između frame-ova, Back sa vidljivom tastaturom i očuvan unos; TypeScript PASS. Prvi TypeScript neuspeh mock potpisa sačuvan, zatim ispravljen. Nezavisan read-only pregled pronašao native redosled prozora i potvrdio ograničen kandidat. Detalji u search-ime-followup.json.
+
+CI DOPUNA: af69e0d4 PRE-P4 obe grane PASS (5 grupa / 140 testova), CodeQL za 59876dc6 SUCCESS, bez tvrdnje da nema dependency nalaza. PKG-049 38032576530 prošao je 40 unit testova i ranije DB faze, ali P6 je pozvao uklonjeni fixedApplicationPeople. Istorijski TOTAL fixture sada eksplicitno bira celu ekipu od 3, preko aktuelnog fixedApplicationPrice; app i istorijski SQL ostaju nepromenjeni. Lokalnih 40 pure testova PASS; nova potpuna istorijska provera tek sledi.
+
+NIJE DOKAZANO: vidljiva tastatura u novom APK-u; dva frame-a nisu formalna potvrda native window fokusa. Zato ide još jedna ograničena fizička provera, sa jasnim prethodnim neuspehom. AI Edge paket i dalje nije primenjen; odobrenje je zatraženo za tačno dve pripremljene funkcije. Numerički minimum i svi širi release tokovi ostaju otvoreni.
+
+SLEDEĆE: isti potpis, install-r, ponovljeno otvaranje pretrage/IME/Back/unos na HONOR-u; zatim preostali brojčani filter i AI-only radni profil iz postojećeg plana. Store NO-GO, automatizacija PAUSED.

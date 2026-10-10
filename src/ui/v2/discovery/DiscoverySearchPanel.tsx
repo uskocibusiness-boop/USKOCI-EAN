@@ -135,12 +135,31 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const chosenTask = useRef<{ item: MarketplaceItem; key: string } | null>(null);
   const alive = useRef(true);
   const searchInput = useRef<TextInput | null>(null), shownOnce = useRef(false);
-  // Android must own the Modal window before requesting the keyboard. An early autoFocus only places the cursor.
+  const focusFrame = useRef<number | null>(null);
+  const focusGeneration = useRef(0);
+  const cancelSearchFocus = () => {
+    focusGeneration.current += 1;
+    if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current);
+    focusFrame.current = null;
+  };
+  // onShow can still precede Android's window/input connection hand-off. Wait for
+  // the modal's next painted frame; focusing immediately can leave only a cursor.
   const focusSearch = () => {
     if (!alive.current || leaving.value || shownOnce.current || mode !== 'search') return;
-    shownOnce.current = true; searchInput.current?.focus();
+    shownOnce.current = true;
+    const generation = ++focusGeneration.current;
+    focusFrame.current = requestAnimationFrame(() => {
+      focusFrame.current = null;
+      if (!alive.current || leaving.value || generation !== focusGeneration.current) return;
+      focusFrame.current = requestAnimationFrame(() => {
+        focusFrame.current = null;
+        if (alive.current && !leaving.value && generation === focusGeneration.current) searchInput.current?.focus();
+      });
+    });
   };
-  useEffect(() => { alive.current = true; return () => { alive.current = false; chosenTask.current = null; }; }, []);
+  useEffect(() => { alive.current = true; return () => {
+    alive.current = false; chosenTask.current = null; cancelSearchFocus();
+  }; }, []);
   const taskState = useRef({ serverKey, serverCurrent, p6Search, onOpenTask });
   taskState.current = { serverKey, serverCurrent, p6Search, onOpenTask };
   const closed = () => {
@@ -157,12 +176,14 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const beginClose = () => {
     if (leaving.value) return;
     leaving.value = true;
+    cancelSearchFocus();
     Keyboard.dismiss();
     if (reduced) closed(); else setClosing(true);
   };
   const onCloseButton = () => { if (!leaving.value) beginClose(); };
   const requestClose = () => {
     if (leaving.value) return;
+    cancelSearchFocus();
     // Android Modal owns Back: first leave the keyboard, keeping this same draft and field mounted.
     if (Platform.OS === 'android' && Keyboard.isVisible()) { Keyboard.dismiss(); return; }
     beginClose();

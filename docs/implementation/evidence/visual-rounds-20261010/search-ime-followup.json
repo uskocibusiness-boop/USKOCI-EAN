@@ -1,0 +1,35 @@
+{
+  "state": "SOURCE_TESTED_NATIVE_PENDING",
+  "baselineSource": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+  "nativeFailure": "On two search opens, cursor focused but Android IME hidden; tapping the input made it visible. Previous successful first-open observation is not universal acceptance.",
+  "beforeSha256": {
+    "12-search.png": "19f3770d00584814e870975fdc0bd69a4a7df49f3ae56c8415a698d8f365dcf8",
+    "13-search-settled.png": "0a0daeb346172caed8de5ca178fc48ef4e985768172dd361641d04b391ac0131",
+    "14-search-input.png": "ba861ae6d25febdadceb903135018c76dc300411ea6610b83924a28feea39d48",
+    "17-search-reopened.png": "10f7cee121e67c8f738eff0d5cad5099c022d4fbf12022b7bd56f2bb315e63b4"
+  },
+  "screenshotsPrivate": true,
+  "change": "Schedule first focus after native Modal show across two animation frames; cancel/generation-guard close, keyboard Back and unmount. No blur/refocus retry and no global keyboard policy change.",
+  "nativeSourceEvidence": [
+    "ReactModalHostView.kt sets FLAG_NOT_FOCUSABLE before Dialog.show and clears after show.",
+    "ReactEditText.kt calls showSoftInput immediately; TextInputState skips focus when already focused."
+  ],
+  "tests": 75,
+  "testsSha256": "e07f19e4f416882ad128049f05cb91fbacf6000d3b9e420282938bc8897fe083",
+  "typescriptExit": 0,
+  "typescriptSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "limits": [
+    "Two frames are not a formal OS window-focus signal; exact APK visible keyboard verification required.",
+    "Native original failure is retained.",
+    "First TypeScript test mock mismatch corrected; original search-ime-tsc.log retained."
+  ],
+  "pkg049": {
+    "failedRun": 38032576530,
+    "failure": "Historical real-client proof still called removed fixedApplicationPeople; database phases before P6 passed, later phases not proven.",
+    "fix": "Explicit full-crew fixture people=3 uses current fixedApplicationPrice. Historical SQL and app semantics unchanged; not a proof of partial-crew server capacity.",
+    "localPureTests": 40,
+    "databaseReplay": "PENDING_CI",
+    "logSha256": "2addd6f1642563545bfd7298c7bca5cfca6428d0c44ad3894e0980e70aabbdc9"
+  },
+  "storeReady": false
+}

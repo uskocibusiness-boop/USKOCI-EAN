@@ -812,7 +812,9 @@ async function main() {
     const flows = [
       {id: 'null_basis', task: {mode: 'MY_PRICE', price: 3000, basis: null, slots: 3}, people: 2, typed: null, label: lib.OPEN_CELLS.D1},
       {id: 'per_person', task: {mode: 'MY_PRICE', price: 3000, basis: 'PER_PERSON', slots: 3}, people: 2, typed: null, label: {defined: true, decision: null}},
-      {id: 'total', task: {mode: 'MY_PRICE', price: 9000, basis: 'TOTAL', slots: 3}, people: null, typed: null, label: {defined: true, decision: null}},
+      // This historical server accepts the full crew. Explicitly choose that case;
+      // today's UI also permits partial crews, proven in the separate proportional-price package.
+      {id: 'total', task: {mode: 'MY_PRICE', price: 9000, basis: 'TOTAL', slots: 3}, people: 3, typed: null, label: {defined: true, decision: null}},
       {id: 'offers', task: {mode: 'OFFERS', price: null, basis: null, slots: 3}, people: 2, typed: 12345, label: lib.OPEN_CELLS.D4},
     ];
     for (const flow of flows) {
@@ -822,7 +824,7 @@ async function main() {
       assert.ok(task, 'THE_APPLICANT_READS_THE_TASK ' + flow.id);
       assert.equal(task.rezimCene, flow.task.mode, flow.id + ' decoded price mode'); assert.equal(task.osnovaCene, flow.task.basis ?? null, flow.id + ' decoded price basis (osnovaCene)');
       assert.equal(task.ponudjenaCena?.iznos ?? null, flow.task.price ?? null, flow.id + ' decoded task price'); assert.equal(task.pokrivenost.ukupno, flow.task.slots, flow.id + ' decoded required slots');
-      const people = presentation.fixedApplicationPeople(task) ?? flow.people;
+      const people = flow.people;
       const price = presentation.fixedApplicationPrice(task, people) ?? flow.typed;
       assert.ok(Number.isInteger(price) && price > 0, 'THE_CLIENT_COMPOSES_A_PRICE ' + flow.id);
       assert.equal(price, lib.canonicalPrice(flow.task, people) ?? flow.typed, 'THE_CLIENTS_DERIVATION_FROM_THE_DECODED_TASK_EQUALS_THE_SERVERS_RULE ' + flow.id);
