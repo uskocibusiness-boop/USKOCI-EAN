@@ -82,6 +82,40 @@ const succeedWorkerTurn=()=>{
  mockApi.send.mockImplementation(async(_cid,_text,key)=>ok(turn('SUCCEEDED',key)));
  mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery('SUCCEEDED'),clientRequestId:key,turn:turn('SUCCEEDED',key)}));
 };
+// A saved AI profile is not the same as a worker with a point for radius
+// matching. This opt-in handoff is only shown after a canonical saved result.
+const completedWithArea=(point:WorkerAiProfile['location']['approximatePosition'])=>({
+ ...snapshot(),status:'COMPLETED',profileStatus:'ACTIVE',
+ candidate:{...candidate(),location:{...candidate().location,city:'Novi Sad',approximatePosition:point}},
+ saved:{reviewId:K,conversationId:C,accountId:A,profileId:B,profileStatus:'ACTIVE',saved:true,authoritative:true},
+});
+it('after AI save, a worker without a map center is told the truth and can open the existing area editor',async()=>{
+ mockApi.read.mockResolvedValue(ok(completedWithArea(null)));
+ await render();
+ expect(visibleText()).toContain('zadaci se porede po gradu, ne po radijusu');
+ expect(visibleText()).toContain('bez GPS dozvole');
+ expect(action('Podesi radijus na mapi')).toBeTruthy();
+ expect(action('Otvori sačuvani profil')).toBeTruthy();
+ await click('Podesi radijus na mapi');
+ expect(mockRouter.replace).toHaveBeenCalledWith('/profil/lokacija');
+ expect(mockApi.save).not.toHaveBeenCalled();
+ expect(mockApi.patch).not.toHaveBeenCalled();
+});
+it('a confirmed map center keeps a single saved-profile primary action',async()=>{
+ mockApi.read.mockResolvedValue(ok(completedWithArea({latitude:45.25,longitude:19.84})));
+ await render();
+ expect(tree.root.findAllByProps({label:'Podesi radijus na mapi'})).toHaveLength(0);
+ expect(visibleText()).not.toContain('zadaci se porede po gradu');
+ await click('Otvori sačuvani profil');
+ expect(mockRouter.replace).toHaveBeenCalledWith('/profil/radnik');
+ expect(mockApi.save).not.toHaveBeenCalled();
+});
+it('an unsaved AI draft is not treated as a finished work area',async()=>{
+ await render();
+ expect(tree.root.findAllByProps({label:'Podesi radijus na mapi'})).toHaveLength(0);
+ expect(visibleText()).not.toContain('zadaci se porede po gradu');
+});
+
 it('a new empty interview starts with the invitation instead of an empty profile card',async()=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
  await render();

@@ -118,7 +118,9 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
     {country && city.trim() ? <View style={locationStyles.section}>
       {/* The instruction stays; how precisely the point is kept is behind the "ⓘ" at the title (owner's phone, 8 Oct 2026: too much explaining text). */}
       <InfoTitle title="Približno područje na mapi" testID="area-map-info" info={['Čuva se približna tačka, zaokružena na oko kilometar.']} />
-      <T variant="note" tone="muted">Označi centar područja.</T>
+      <T variant="note" tone="muted">{position
+        ? 'Centar je označen. Sačuvaj područje da bi radijus važio.'
+        : 'Bez označenog centra zadaci se porede po gradu, ne po radijusu. Označi približnu tačku.'}</T>
       <WorkerAreaSearch city={city} countryCode={country} disabled={disabled} resolver={resolver}
         scopeKey={`${location.accountId}:${location.profileId}:${location.revision}:${mapEpoch}:${searchEpoch}`}
         onChoose={next => { if (!disabled) { setPosition(next); setError(false); } }} />

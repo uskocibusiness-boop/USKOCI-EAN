@@ -172,6 +172,23 @@ it('renders only the two-decimal coarse position and emits only a user-selected 
   expect(annotation().props.lngLat).toEqual([19.65, 45.12]); // Parent owns accepting the proposal.
 });
 
+it('a real map pan proposes the new center but zoom and automatic camera changes do not', async () => {
+  await render({ position: { latitude: 45, longitude: 19 } }); await ready();
+  const settled = (zoom: number, userInteraction: boolean, center: [number, number]) => {
+    map().props.onRegionWillChange({ nativeEvent: { zoom: 15, center: [19, 45], userInteraction } });
+    map().props.onRegionDidChange({ nativeEvent: { zoom, center, userInteraction } });
+  };
+  await act(async () => settled(15, false, [19.8, 45.8]));
+  expect(onChoose).not.toHaveBeenCalled();
+  await act(async () => settled(16, true, [19.8, 45.8]));
+  expect(onChoose).not.toHaveBeenCalled();
+  await act(async () => settled(15, true, [19.84, 45.25]));
+  expect(onChoose).toHaveBeenCalledTimes(1);
+  expect(onChoose).toHaveBeenCalledWith({ latitude: 45.25, longitude: 19.84 });
+  // The marker remains at its parent-confirmed position until the person accepts.
+  expect(annotation().props.lngLat).toEqual([19, 45]);
+});
+
 it('keeps the original native overlay asset and resolves real marker movement through native projection once', async () => {
   await render({ position: { latitude: 45, longitude: 19 } }); await dragReady();
   expect(annotation().props.lngLat).toEqual([19, 45]); expect(annotation().props.anchor).toBe('bottom');
