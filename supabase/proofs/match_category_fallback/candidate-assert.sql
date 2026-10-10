@@ -63,6 +63,67 @@ END $owner_match$;
 ROLLBACK TO SAVEPOINT owner_profile_match_cases;
 RELEASE SAVEPOINT owner_profile_match_cases;
 
+-- True geographic regression. Radius and Haversine here execute the
+-- read-only captured DEV helpers, while all identities/points are SYNTHETIC.
+-- This proves city is a fallback ONLY when one of the coordinates is absent.
+SAVEPOINT geo_radius_cases;
+UPDATE public.app_profiles SET skills=ARRAY['Čišćenje'],city='Novi Sad',radius_km=10
+ WHERE id='22222222-2222-4222-8222-222222222222';
+UPDATE public.needs SET requester_account_id='44444444-4444-4444-8444-444444444444',
+ category='Čišćenje stana',required_skills='{}',
+ execution_location_mode='STATIONARY',approximate_city='Petrovaradin',
+ approximate_lat=45.2650,approximate_lng=19.8500
+ WHERE id='11111111-1111-4111-8111-111111111111';
+UPDATE public.worker_match_preferences SET approximate_lat=45.2671,approximate_lng=19.8335
+ WHERE worker_profile_id='22222222-2222-4222-8222-222222222222';
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,true,true,
+ 'geographic_petrovaradin_within_10km');
+DO $geo_radius$
+DECLARE full_doc jsonb; fast_doc jsonb;
+BEGIN
+ full_doc:=private.worker_need_fit_v1('11111111-1111-4111-8111-111111111111',
+   '22222222-2222-4222-8222-222222222222',false);
+ fast_doc:=private.worker_need_fit_v1('11111111-1111-4111-8111-111111111111',
+   '22222222-2222-4222-8222-222222222222',true);
+ IF (full_doc->>'distanceKm')::numeric NOT BETWEEN 0 AND 10
+    OR (full_doc->>'effectiveRadiusKm')::numeric IS DISTINCT FROM 10
+    OR (fast_doc->>'matches')::boolean IS DISTINCT FROM true THEN
+   RAISE EXCEPTION 'GEOGRAPHIC_WITHIN_RADIUS_DISPATCH_DIFFERS';
+ END IF;
+END $geo_radius$;
+-- A task in the SAME textual city must fail if its actual point is > 10 km away.
+UPDATE public.needs SET approximate_city='Novi Sad',approximate_lat=45.3700
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,false,false,
+ 'same_city_but_outside_10km');
+DO $geo_radius$
+DECLARE doc jsonb;
+BEGIN
+ doc:=private.worker_need_fit_v1('11111111-1111-4111-8111-111111111111',
+   '22222222-2222-4222-8222-222222222222',true);
+ IF (doc->>'matches')::boolean IS DISTINCT FROM false
+    OR (doc->>'area')::boolean IS DISTINCT FROM false THEN
+   RAISE EXCEPTION 'GEOGRAPHIC_OUTSIDE_RADIUS_DISPATCH_ADMITTED';
+ END IF;
+END $geo_radius$;
+-- Unset the worker's center: there is NO distance, so municipality text rules.
+UPDATE public.worker_match_preferences SET approximate_lat=NULL,approximate_lng=NULL
+ WHERE worker_profile_id='22222222-2222-4222-8222-222222222222';
+UPDATE public.needs SET approximate_city='Petrovaradin',approximate_lat=45.2650
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,false,false,
+ 'petrovaradin_without_worker_center_rejected');
+UPDATE public.needs SET approximate_city='Novi Sad'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,true,true,
+ 'novi_sad_without_worker_center_city_fallback');
+UPDATE public.needs SET execution_location_mode='REMOTE',approximate_city='Petrovaradin'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,true,true,
+ 'remote_task_without_center');
+ROLLBACK TO SAVEPOINT geo_radius_cases;
+RELEASE SAVEPOINT geo_radius_cases;
+
 -- The AI category must never become a wildcard for an unrelated worker.
 SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,true,true,'category_cleaner');
 SELECT private.check_fit('33333333-3333-4333-8333-333333333333',false,true,false,'category_excludes_mover');
