@@ -218,15 +218,32 @@ describe('the review (M2)', () => {
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
   });
 
-  it('after the save there is nothing left to edit: the saved profile is the one green next step', async () => {
+  it('after AI save without a center, area is optional next step; the saved profile remains reachable', async () => {
     await render(); await openReview();
     const saved = { ...reviewed(), status: 'COMPLETED', saved: { reviewId: '44444444-4444-4444-8444-444444444444', conversationId: C, accountId: A, profileId: B, profileStatus: 'ACTIVE', saved: true, authoritative: true } };
     mockApi.save.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(saved));
     await click('Sačuvaj i aktiviraj profil');
     expect(mockApi.save).toHaveBeenCalledTimes(1);
     expect(review().props.onEdit).toBeUndefined();
-    expect(action('Otvori sačuvani profil').props.style).toBe(brandAction);
+    expect(action('Podesi radijus na mapi').props.style).toBe(brandAction);
+    expect(action('Otvori sačuvani profil').props.style).toBeUndefined();
     expect(tree.root.findAllByProps({ label: 'Nazad na razgovor' })).toHaveLength(0);
+    await click('Podesi radijus na mapi');
+    expect(mockRouter.replace).toHaveBeenCalledWith('/profil/lokacija');
+    expect(mockApi.save).toHaveBeenCalledTimes(1); // opening map never re-saves the AI review
+  });
+
+  it('a saved AI review with an existing center keeps one original green profile action', async () => {
+    await render(); await openReview();
+    const original = reviewed(), saved = { ...original, status:'COMPLETED',
+      candidate:{ ...candidate(),location:{ ...candidate().location,approximatePosition:{latitude:45.25,longitude:19.84} } },
+      saved:{reviewId:'44444444-4444-4444-8444-444444444444',conversationId:C,accountId:A,profileId:B,
+        profileStatus:'ACTIVE',saved:true,authoritative:true} };
+    mockApi.save.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(saved));
+    await click('Sačuvaj i aktiviraj profil');
+    expect(tree.root.findAllByProps({label:'Podesi radijus na mapi'})).toHaveLength(0);
+    expect(action('Otvori sačuvani profil').props.style).toBe(brandAction);
+    expect(mockApi.save).toHaveBeenCalledTimes(1);
   });
 });
 
