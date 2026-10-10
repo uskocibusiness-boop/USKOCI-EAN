@@ -15,16 +15,35 @@ CREATE TABLE public.worker_match_preferences (
  worker_profile_id uuid PRIMARY KEY, approximate_lat numeric, approximate_lng numeric);
 CREATE TABLE private.marketplace_config (key text PRIMARY KEY, value jsonb NOT NULL);
 CREATE TABLE private.synthetic_time (pid uuid PRIMARY KEY, allowed boolean NOT NULL);
--- Only the kind classifier and full worker_need_fit body are actual live SQL.
--- All other helpers are synthetic, NOT evidence of production Auth, RLS,
--- geodesic accuracy, availability, event delivery or release readiness.
+-- Worker matcher and 11-kind classifier have real canonical function bodies.
+-- Radius and Haversine definitions below come from read-only canonical DEV
+-- pg_get_functiondef on 2026-10-10. Other helpers and data are still SYNTHETIC,
+-- not evidence of full Auth, RLS, calendar, notification or closure readiness.
 CREATE FUNCTION private.lower_arr(text[]) RETURNS text[] LANGUAGE sql IMMUTABLE
-AS $$ select coalesce(array_agg(lower(btrim(v))), '{}'::text[]) from unnest($1) v $$;
-CREATE FUNCTION private.effective_radius_km(integer) RETURNS numeric LANGUAGE sql IMMUTABLE
-AS $$ select coalesce($1,30)::numeric $$;
-CREATE FUNCTION private.haversine_km(numeric,numeric,numeric,numeric) RETURNS numeric LANGUAGE sql IMMUTABLE
-AS $$ select case when $1 is null or $2 is null or $3 is null or $4 is null then null::numeric
-else abs($1-$3)*111+abs($2-$4)*78 end $$;
+AS $ select coalesce(array_agg(lower(btrim(v))), '{}'::text[]) from unnest($1) v $;
+CREATE OR REPLACE FUNCTION private.effective_radius_km(base_radius integer)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog'
+AS $function$
+  select greatest(1, least(300, coalesce(base_radius, 15)))::numeric;
+$function$;
+CREATE OR REPLACE FUNCTION private.haversine_km(lat1 numeric, lng1 numeric, lat2 numeric, lng2 numeric)
+ RETURNS numeric
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog'
+AS $function$
+  select case
+    when lat1 is null or lng1 is null or lat2 is null or lng2 is null then null
+    else round((6371.0 * 2 * asin(least(1, sqrt(
+        power(sin(radians((lat2-lat1)::double precision)/2),2) +
+        cos(radians(lat1::double precision))*cos(radians(lat2::double precision)) *
+        power(sin(radians((lng2-lng1)::double precision)/2),2)
+      ))))::numeric, 2)
+  end;
+$function$;
 CREATE FUNCTION private.accounts_same_world(uuid,uuid) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ select true $$;
 CREATE FUNCTION private.identity_admitted(uuid) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ select true $$;
 CREATE FUNCTION private.worker_need_time_tier_v1(uuid,uuid) RETURNS integer LANGUAGE sql STABLE
