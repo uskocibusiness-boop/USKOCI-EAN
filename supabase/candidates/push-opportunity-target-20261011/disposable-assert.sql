@@ -9,7 +9,7 @@ begin
  if v->>'kind'<>'OPPORTUNITY' or v->>'needId'<>'55555555-5555-4555-8555-555555555555'
   or v->>'eventId'<>'44444444-4444-4444-8444-444444444444'
   or v->>'role'<>'WORKER' or v->>'authoritative'<>'true'
-  or jsonb_object_length(v)<>7 then raise exception 'VALID_TARGET_MISMATCH %',v;end if;
+  or (select count(*) from jsonb_object_keys(v))<>7 then raise exception 'VALID_TARGET_MISMATCH %',v;end if;
  if (public.rpc_resolve_activity_opportunity_v1('11111111-1111-4111-8111-111111111111',
    '99999999-9999-4999-8999-999999999999')->>'kind')<>'UNAVAILABLE'
  then raise exception 'UNKNOWN_EVENT_ADMITTED'; end if;
