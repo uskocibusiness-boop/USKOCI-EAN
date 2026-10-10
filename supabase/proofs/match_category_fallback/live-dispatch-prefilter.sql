@@ -3,6 +3,17 @@
 -- For candidate testing these execute exactly the deployed dispatch cheap gate,
 -- wrapper included. This DOES NOT execute dispatch_next_wave or send a push.
 -- SHA source-body guards are in source.test.mjs.
+-- Install wrapper first: PostgreSQL validates referenced SQL functions at creation.
+CREATE OR REPLACE FUNCTION private.worker_need_match_v1(nid uuid, pid uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
+  -- MATCH-V1 (owner 2026-10-07): "Odgovara mi" as one boolean. Notifications (dispatch) and "Za mene" read exactly this.
+  select coalesce((private.worker_need_fit_v1(nid,pid,true)->>'matches')::boolean,false);
+$function$;
+
 CREATE OR REPLACE FUNCTION private.dispatch_cheap_candidate_admitted(nid uuid, pid uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -30,14 +41,4 @@ AS $function$
           and od.need_id = n.id
           and od.need_revision = n.revision)
   );
-$function$;
-
-CREATE OR REPLACE FUNCTION private.worker_need_match_v1(nid uuid, pid uuid)
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'pg_catalog'
-AS $function$
-  -- MATCH-V1 (owner 2026-10-07): "Odgovara mi" as one boolean. Notifications (dispatch) and "Za mene" read exactly this.
-  select coalesce((private.worker_need_fit_v1(nid,pid,true)->>'matches')::boolean,false);
 $function$;
