@@ -239,3 +239,25 @@ test('exact candidate source and fake-geometry boundary are explicit',()=>{
  for(const name of ['candidate-spatial-disposable-fixture.sql','live-candidate-stream.sql','candidate-live-assert.sql'])
   assert.ok(workflow.includes('run_pg < "$root/'+name+'"'),'Missing CI file '+name);
 });
+
+
+test('separate real PostGIS service never points to DEV/PROD',()=>{
+ const workflow=readFileSync(join(folder,'../../../.github/workflows/match-category-fallback-proof.yml'),'utf8');
+ assert.match(workflow,/spatial-postgis:[\s\S]*?image: postgis\/postgis:16-3\.5/);
+ assert.match(workflow,/CREATE DATABASE geo_proof TEMPLATE template0/);
+ assert.match(workflow,/CREATE EXTENSION postgis WITH SCHEMA extensions/);
+ assert.match(workflow,/REAL_POSTGIS_PROOF_PASS; synthetic coordinates/);
+ const fixture=readFileSync(join(folder,'spatial-postgis-fixture.sql'),'utf8');
+ assert.match(fixture,/ADD COLUMN approx_geog extensions\.geography/);
+ assert.match(fixture,/ADD COLUMN approximate_geog extensions\.geography/);
+ assert.doesNotMatch(fixture,/CREATE DOMAIN extensions\.geography/);
+ const testSql=readFileSync(join(folder,'spatial-postgis-assert.sql'),'utf8');
+ for(const marker of [
+  'REAL_POSTGIS_NEAREST_FIRST','REAL_POSTGIS_LIMIT_ONE',
+  'REAL_POSTGIS_DAILY_CAP_NEXT_WORKER','REAL_POSTGIS_300KM_GATE',
+  'REAL_POSTGIS_NO_CENTER_CITY_FALLBACK','REAL_POSTGIS_UNRELATED_SERVICE_ADMITTED']){
+  assert.ok(testSql.includes(marker),'Missing actual spatial assertion '+marker);
+ }
+ assert.match(testSql,/ROLLBACK TO SAVEPOINT postgis_real_search;/);
+ assert.match(testSql,/ROLLBACK;\s*$/);
+});
