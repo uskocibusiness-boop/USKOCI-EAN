@@ -189,13 +189,15 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
         onRegionWillChange={event => {
           if (!owns()) return;
-          const state = event.nativeEvent;
-          panStart.current = typeof state.zoom === 'number' && Number.isFinite(state.zoom)
+          // Native map events include nativeEvent; legacy QA mocks may call
+          // the former zero-argument callback. Ignore those inert callbacks.
+          const state = event?.nativeEvent;
+          panStart.current = typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
             ? { zoom: state.zoom, userInteraction: state.userInteraction === true } : null;
           idle.current = null; cancelDrag(); setIdleToken(null); setCenteredToken(null);
         }}
         onRegionDidChange={event => {
-          if (!owns()) return;
+          if (!owns() || !event?.nativeEvent) return;
           observeCenter(event.nativeEvent);
           const point = panFinishedProposal({
             start: panStart.current, finish: event.nativeEvent, current: pin,
