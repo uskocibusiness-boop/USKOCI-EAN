@@ -82,4 +82,12 @@ jobs:
           extract_definition "$sql_dir/candidate.sql"
           run_pg < "$RUNNER_TEMP/match-category-function.sql"
           run_pg < "$root/candidate-assert.sql"
+          echo 'STAGE 6: full guarded candidate + exact guarded revert SQL transactions'
+          extract_definition "$sql_dir/revert.sql"
+          run_pg < "$RUNNER_TEMP/match-category-function.sql"
+          run_pg < "$root/baseline-assert.sql"
+          run_pg < "$sql_dir/candidate.sql"
+          run_pg < "$root/candidate-assert.sql"
+          run_pg < "$sql_dir/revert.sql"
+          run_pg < "$root/baseline-assert.sql"
           echo 'ISOLATED_SQL_PROOF_PASS; production Supabase NOT accessed'
