@@ -192,28 +192,22 @@ describe('Lični podaci is more than the name', () => {
     expect(mockRouter.push.mock.calls).toEqual([[{ pathname: '/profil/fotografija', params: { profileId: PROFILE_ID } }]]);
   });
 
-  // Approved draft, P2: "O meni" is the work profile's text and is written in its editor, so the row leads to the work profile's editor of THAT part:
-  // `uredi=o-meni`, and a nonce `n` so that each tap is its own request (the work profile opens the editor once per nonce).
-  it('shows "O meni" as the work profile has it, and opens the work profile\'s editor of that part, once per tap', async () => {
+  // Normal "O meni" edits belong to the existing AI profile conversation (10 Oct 2026).
+  // This tap only navigates; no prompt is sent, no name or worker profile is written.
+  it('shows the saved "O meni" and opens AI conversation exactly once for a double tap', async () => {
     await render();
     expect(detailOf('O meni')).toBe('Radim sa bratom, imamo kombi.'); expect(texts()).toContain('Radim sa bratom, imamo kombi.');
     await act(async () => { rowPress('O meni').props.onPress(); rowPress('O meni').props.onPress(); });
-    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/profil/radnik', params: { uredi: 'o-meni', n: expect.stringMatching(/^\d+$/) } }]]);
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/razgovor']]);
+    expect(mockSave).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
   });
 
-  it('gives every tap on "O meni" its own nonce, so the work profile opens its editor again after the person came back', async () => {
-    const now = jest.spyOn(Date, 'now');
-    try {
-      now.mockReturnValue(1_700_000_000_000);
-      await render();
-      await act(async () => { rowPress('O meni').props.onPress(); });
-      // Coming back from the work profile is a fresh visit of this screen; the next tap is a new request.
-      now.mockReturnValue(1_700_000_005_000);
-      await act(async () => tree.unmount()); await render();
-      await act(async () => { rowPress('O meni').props.onPress(); });
-      const nonces = mockRouter.navigate.mock.calls.map(call => call[0].params.n);
-      expect(nonces).toEqual(['1700000000000', '1700000005000']);
-    } finally { now.mockRestore(); }
+  it('opens the AI conversation again after a fresh visit, with no legacy editor nonce', async () => {
+    await render();
+    await act(async () => { rowPress('O meni').props.onPress(); });
+    await act(async () => tree.unmount()); await render();
+    await act(async () => { rowPress('O meni').props.onPress(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/razgovor'], ['/profil/razgovor']]);
   });
 
   it('shows the city of the work area as the answer of its row, with no sentence under it, and opens that screen', async () => {
@@ -248,7 +242,7 @@ describe('Lični podaci is more than the name', () => {
     expect(mockSave).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
   });
 
-  it('clips a long "O meni" to a stretch of it and the line breaks to spaces; the whole text is on the work profile it opens', async () => {
+  it('clips a long "O meni" and keeps the full saved text on the work profile that the AI edits', async () => {
     const long = `Radim sa bratom.\n\nImamo kombi i trake. ${'Dolazimo tačno. '.repeat(30)}`;
     mockWork.mockResolvedValue(work({ biografija: long }));
     await render();
