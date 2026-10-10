@@ -117,3 +117,47 @@ jobs:
           run_pg < "$root/live-candidate-stream.sql"
           run_pg < "$root/candidate-live-assert.sql"
           echo 'ISOLATED_SQL_PROOF_PASS; production Supabase NOT accessed'
+
+
+  spatial-postgis:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_PASSWORD: synthetic_disposable_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Real PostGIS KNN and DWithin against anonymous synthetic points (NO DEV)
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          root=supabase/proofs/match_category_fallback
+          sql_dir=supabase/candidates/match-category-fallback-20261010
+          pg_admin() { docker exec -i "$PG_CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1; }
+          pg_proof() { docker exec -i "$PG_CONTAINER" psql -X -U postgres -d geo_proof -v ON_ERROR_STOP=1; }
+          # Fresh template0 DB: avoid public-schema default PostGIS installation.
+          printf '%s\n' 'CREATE DATABASE geo_proof TEMPLATE template0;' | pg_admin
+          printf '%s\n' 'CREATE SCHEMA extensions; CREATE EXTENSION postgis WITH SCHEMA extensions;' | pg_proof
+          pg_proof < "$root/disposable-schema.sql"
+          pg_proof < "$root/live-work-kinds-v5.sql"
+          awk '/^CREATE OR REPLACE FUNCTION private[.]worker_need_fit_v1[(]/ { printing=1 }
+            printing { print }
+            printing && /^\$function\$;$/ { exit }' "$sql_dir/candidate.sql" > "$RUNNER_TEMP/match-category-postgis-candidate.sql"
+          grep -qF '$function$;' "$RUNNER_TEMP/match-category-postgis-candidate.sql"
+          pg_proof < "$RUNNER_TEMP/match-category-postgis-candidate.sql"
+          pg_proof < "$root/live-dispatch-prefilter.sql"
+          pg_proof < "$root/spatial-postgis-fixture.sql"
+          pg_proof < "$root/live-candidate-stream.sql"
+          pg_proof < "$root/spatial-postgis-assert.sql"
+          echo 'REAL_POSTGIS_PROOF_PASS; synthetic coordinates; canonical DEV NOT accessed'
