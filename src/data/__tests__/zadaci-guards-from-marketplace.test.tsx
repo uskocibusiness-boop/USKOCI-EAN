@@ -129,10 +129,11 @@ test('reduced motion opens search at once; Nearby waits for its own tap and no d
 // From pkg011-slice1: in the search panel (Discovery V47) the one filled green action is the one that applies it.
 test('the filters offer the amount as radios and their apply action is the only brand action', async () => {
   await render(); await tap('Filteri');
-  // The round button opens the filters: Kada, Gde (when a task says how the work is done) and Iznos, every choice in sight at once.
+  // One section is open at a time; the amount becomes interactive after its visible header is opened.
+  await act(async () => tree.root.findByProps({ testID: 'filters-amount-toggle' }).props.onPress());
   const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Tražim ponude');
   expect(radio).toHaveLength(1);
-  expect(tree.root.findByProps({ testID: 'filters-amount' })).toBeTruthy();
+  expect(tree.root.findByProps({ testID: 'filters-amount-toggle' }).props.accessibilityState.expanded).toBe(true);
   const brand = tree.root.findAllByType('Action' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);
   expect(brand.map(node => node.props.label)).toEqual(['Prikaži 2 zadatka']);
 });

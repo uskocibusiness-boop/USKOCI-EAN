@@ -134,8 +134,12 @@ describe('the search and the filters', () => {
 
   test('filteri-izabrano has a day and an amount chosen', async () => {
     await render({ scene: 'filteri-izabrano' });
-    const chosen = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityState?.checked)
+    const chosen = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityState?.checked)
       .map(node => node.props.accessibilityLabel);
-    expect(chosen).toEqual(expect.arrayContaining(['Ovaj vikend', 'Sa iznosom']));
+    expect(chosen()).toContain('Ovaj vikend');
+    expect(tree.root.findByProps({ testID: 'filters-amount-toggle' }).props.accessibilityValue.text).toBe('Sa iznosom');
+    await act(async () => tree.root.findByProps({ testID: 'filters-amount-toggle' }).props.onPress());
+    expect(chosen()).toContain('Sa iznosom');
+    expect(tree.root.findByProps({ testID: 'filters-when-toggle' }).props.accessibilityValue.text).toBe('Ovaj vikend');
   });
 });
