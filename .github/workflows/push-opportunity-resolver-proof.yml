@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - run: node --test supabase/candidates/push-opportunity-target-20261011/source.test.mjs supabase/candidates/push-opportunity-target-20261011/operator.test.mjs supabase/candidates/push-opportunity-target-20261011/begin.test.mjs
+      - run: node --test supabase/candidates/push-opportunity-target-20261011/source.test.mjs supabase/candidates/push-opportunity-target-20261011/operator.test.mjs supabase/candidates/push-opportunity-target-20261011/begin.test.mjs supabase/candidates/push-opportunity-target-20261011/rollback.test.mjs
   disposable-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -55,6 +55,8 @@ jobs:
           run_sql < "$root/begin-before.sql"
           run_sql < "$root/begin-candidate.sql"
           run_sql < "$root/begin-assert.sql"
+          run_sql < "$root/rollback.sql"
+          run_sql < "$root/rollback-assert.sql"
 
   edge-contract:
     runs-on: ubuntu-latest
