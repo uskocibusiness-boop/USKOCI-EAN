@@ -28,7 +28,7 @@ UPDATE public.app_profiles SET profile_status='SUSPENDED' WHERE id='22222222-222
 SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,true,false,'suspended_worker_blocks');
 DO $$ DECLARE doc jsonb; BEGIN
  doc := private.worker_need_fit_v1('11111111-1111-4111-8111-111111111111','33333333-3333-4333-8333-333333333333',true);
- IF (doc->>'service')::boolean IS DISTINCT FROM false OR doc ? 'matches' THEN
+ IF (doc->>'service')::boolean IS DISTINCT FROM false OR (doc->>'matches')::boolean IS DISTINCT FROM false THEN
   RAISE EXCEPTION 'DISPATCH_FIRST_REFUSAL_DIFFERS'; END IF;
 END $$;
 DO $$ BEGIN
