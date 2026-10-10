@@ -68,7 +68,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Install locked JS toolchain without native or provider postinstall
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install locked dependencies and apply mandatory native patch-package postinstall
+        run: npm ci --no-audit --no-fund
       - name: Execute injected offline Expo single-target transport proof, with global flag OFF
         run: node --test supabase/proofs/push_single_target/edge.test.mjs
