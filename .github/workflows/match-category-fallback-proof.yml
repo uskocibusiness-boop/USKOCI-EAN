@@ -95,4 +95,9 @@ jobs:
           run_pg < "$root/dispatch-prefilter-assert.sql"
           run_pg < "$sql_dir/revert.sql"
           run_pg < "$root/baseline-assert.sql"
+          echo 'STAGE 7: real DEV timezone/availability/calendar function bodies, synthetic weekly/Dogovor rows'
+          extract_definition "$sql_dir/candidate.sql"
+          run_pg < "$RUNNER_TEMP/match-category-function.sql"
+          run_pg < "$root/live-calendar-helpers.sql"
+          run_pg < "$root/calendar-live-assert.sql"
           echo 'ISOLATED_SQL_PROOF_PASS; production Supabase NOT accessed'
