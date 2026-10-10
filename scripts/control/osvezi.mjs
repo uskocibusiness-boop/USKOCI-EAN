@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import rpcSuccessorEvidence from './rpc-successor-evidence.cjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CONTROL = join(ROOT, 'docs', 'control');
@@ -143,7 +144,12 @@ const computed = rows.redovi.map(row => {
 });
 
 // Server functions a signed-in user may call that the app never calls (directly or through an Edge function).
-const serverOnly = [...rpcAuth].filter(r => !refs(r, appFiles).length).map(r => ({ rpc: r, preko_edge: refs(r, edgeFiles).length > 0 }));
+const serverOnly = [...rpcAuth].filter(r => !refs(r, appFiles).length).map(r => ({
+  rpc: r,
+  preko_edge: refs(r, edgeFiles).length > 0,
+  // A suggested successor is only source evidence, NOT proof of equivalent server semantics.
+  ...rpcSuccessorEvidence(r, appFiles, reachable),
+}));
 // Keep every source reference, but distinguish a screen-reachable call from a
 // prepared/unwired module. Neither a filename nor a test import activates an RPC.
 // This is the same static relative-import graph used by each row's Code light,
