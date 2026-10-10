@@ -5,12 +5,13 @@ import { messagePushIntent } from '../../store/messagePushIntent';
 import { pendingRoute } from '../../store/pendingRoute';
 import { publicPushTarget } from '../../ui/notifications/pushTarget';
 
-const mockResolve = jest.fn(), mockTarget = jest.fn();
+const mockResolve = jest.fn(), mockOpportunityResolve = jest.fn(), mockTarget = jest.fn();
 let mockFocused = true, mockApp = 'active';
 const mockAppListeners = new Set<(state: string) => void>();
 const owner = { accountId: '11111111-1111-4111-8111-111111111111', accountRevision: 1, sessionEpoch: 1 };
 let mockSession = { user: { id: owner.accountId }, accountRevision: 1, sessionEpoch: 1 };
 jest.mock('../../data/activityMessageTargetService', () => ({ activityMessageTargetService: { resolve: (...args: unknown[]) => mockResolve(...args) } }));
+jest.mock('../../data/activityOpportunityTargetService', () => ({ activityOpportunityTargetService: { resolve: (...args: unknown[]) => mockOpportunityResolve(...args) } }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => void) => require('react').useEffect(() => mockFocused ? callback() : undefined, [callback, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); const app = { get currentState() { return mockApp; }, addEventListener: (_: string, listener: (state: string) => void) => {
@@ -82,4 +83,22 @@ it('waits for initial foreground instead of losing a tap during native resume', 
 it('a foreign-owner intent is retired without any resolver', async () => {
   messagePushIntent.remember(event, { ...owner, accountRevision: 0 }, null); await mount();
   expect(mockResolve).not.toHaveBeenCalled(); expect(messagePushIntent.snapshot()).toBeNull();
+});
+
+it('an opportunity event uses the separately authenticated need resolver and never the message resolver', async () => {
+ const needId='66666666-6666-4666-8666-666666666666';
+ mockOpportunityResolve.mockResolvedValue({ ok:true, podatak:{kind:'OPPORTUNITY', eventId:event, needId} });
+ messagePushIntent.rememberOpportunity(event, owner, pendingRoute.remember('/obavestenja'));
+ await mount();
+ expect(mockResolve).not.toHaveBeenCalled();
+ expect(mockOpportunityResolve).toHaveBeenCalledWith(event, { signal: expect.any(AbortSignal) }, { accountId: owner.accountId, accountRevision: 1 });
+ expect(mockTarget).toHaveBeenCalledWith({kind:'OPPORTUNITY',eventId:event,needId});
+ expect(messagePushIntent.snapshot()).toBeNull();
+ expect(pendingRoute.takeDecision(owner)).toEqual({kind:'DELIVERED'});
+});
+it('a rejected opportunity never guesses a need id and never falls back to message routing', async () => {
+ mockOpportunityResolve.mockResolvedValue({ok:true,podatak:{kind:'UNAVAILABLE'}});
+ messagePushIntent.rememberOpportunity(event,owner,null); await mount();
+ expect(ui.phase).toBe('unavailable'); expect(mockTarget).not.toHaveBeenCalled();
+ expect(mockResolve).not.toHaveBeenCalled();
 });
