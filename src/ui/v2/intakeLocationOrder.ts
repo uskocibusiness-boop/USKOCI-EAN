@@ -34,6 +34,12 @@ export function orderIntakeLocation(previous: IntakeLocationOrder | null, input:
   const base = previous?.scope === input.scope ? previous : { scope: input.scope, seen: new Set<string>(), active: null, released: [] };
   const { messages, roles } = input;
   let active = base.active, released = [...base.released];
+  // Ordinary turns can still ask for a material clarification. Keep that question visible
+  // before the map is confirmed, including a later authoritative readback of a held turn.
+  const clarifications = new Set(messages.filter(message => message.fromAi && (message.safety === 'CLARIFY'
+    || roles[message.id] === 'CLARIFY' || roles[message.id] === 'CORRECT')).map(message => message.id));
+  if (active !== null) active = active.filter(id => !clarifications.has(id));
+  released = released.map(span => ({ ...span, ids: span.ids.filter(id => !clarifications.has(id)) })).filter(span => span.ids.length > 0);
   const alreadyReleased = new Set(released.flatMap(span => [...span.ids]));
   const continuing = (id: string) => roles[id] === 'ordinary' || roles[id] === 'CONTINUE' || roles[id] === 'CONFIRM_DISPLAYED';
   const lastUser = messages.reduce((last, message, index) => message.fromAi ? last : index, -1);
@@ -41,8 +47,8 @@ export function orderIntakeLocation(previous: IntakeLocationOrder | null, input:
   else if (input.pendingLocation || active !== null) {
     const held = new Set(active ?? []);
     for (const [index, message] of messages.entries()) {
-      if (!message.fromAi || alreadyReleased.has(message.id)) continue;
-      const causal = active === null && index > lastUser && message.id === input.causalMessageId && roles[message.id] !== 'CLARIFY' && roles[message.id] !== 'CORRECT';
+      if (!message.fromAi || alreadyReleased.has(message.id) || clarifications.has(message.id)) continue;
+      const causal = active === null && index > lastUser && message.id === input.causalMessageId;
       if (causal || (!base.seen.has(message.id) && continuing(message.id))) held.add(message.id);
     }
     active = [...held];

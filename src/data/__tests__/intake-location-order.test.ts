@@ -34,6 +34,30 @@ it('does not guess the type of old history or hide an explicit contextual reply'
     .toEqual(['user', 'next', 'answered', 'unknown-next']);
 });
 
+it.each<Parameters<typeof orderIntakeLocation>[1]['roles']>([{}, { next: 'ordinary' }])('keeps an authoritative clarification visible before the map, including restored ordinary turns: %j', roles => {
+  const messages = [m('user', false), { ...m('next'), safety: 'CLARIFY' as const }];
+  const first = orderIntakeLocation(null, { ...base, messages, roles });
+  expect(ids(first)).toEqual(['user', 'next']);
+  const store = intakeLocationMemory('clarification-owner:1'); store.write(base.scope, first.state);
+  const resumed = orderIntakeLocation(store.read(base.scope), { ...base, messages, roles: {} });
+  expect(ids(resumed)).toEqual(['user', 'next']);
+  expect(resumed.state.active).toEqual([]);
+});
+
+it('reveals a held clarification on readback while the ordinary next question still waits for location', () => {
+  const messages = [...base.messages, m('price-next')];
+  const first = orderIntakeLocation(null, { ...base, messages, roles: { next: 'ordinary', 'price-next': 'ordinary' } });
+  expect(ids(first)).toEqual(['user']);
+  const canonical = messages.map(message => message.id === 'next' ? { ...message, safety: 'CLARIFY' as const } : message);
+  const updated = orderIntakeLocation(first.state, { ...base, messages: canonical, roles: { next: 'ordinary', 'price-next': 'ordinary' } });
+  expect(ids(updated)).toEqual(['user', 'next']);
+  expect(updated.state.active).toEqual(['price-next']);
+  const confirmed = orderIntakeLocation(updated.state, { ...base, messages: canonical, pendingLocation: false, confirmedLocation: true });
+  expect(ids(confirmed)).toEqual(['user', 'next', 'price-next']);
+  expect(confirmed.placement?.after).toBe('next');
+  expect(canonical.map(message => message.id)).toEqual(['user', 'next', 'price-next']);
+});
+
 it('retains ID placements across remount but clears them on account revision changes', () => {
   const store = intakeLocationMemory('test-owner:1');
   const held = orderIntakeLocation(null, base);

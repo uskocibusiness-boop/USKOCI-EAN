@@ -64,6 +64,18 @@ test('distinct owned profile streams real Unicode text, reserves approved budget
 test('completed/unknown claim replay cannot reserve or call the provider again',async()=>{
  const f=fixture({replay:true});assert.deepEqual(await(await f.invoke()).json(),turn());assert.equal(providers(f).length,0);assert.equal(f.calls.length,2);
 });
+test('contextual worker clarification survives completion and stream without invented profile changes',async()=>{
+ const output={assistantMessage:'Izvini, nije mi sasvim jasno na šta misliš. Možeš li to da kažeš drugim rečima?',safety:'CLARIFY',patch:{}};
+ const f=fixture({output}),es=await events(f,{text:'SYNTHETIC_UNCLEAR_TEXT'});
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);
+ assert.deepEqual(completions(f)[0].body.p_output,output);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
+ const prompt=providers(f)[0].body.systemInstruction.parts[0].text;
+ assert.ok(prompt.includes('warm, natural and attentive'));
+ assert.ok(prompt.includes('safety CLARIFY with an empty patch'));
+ assert.ok(prompt.includes('You receive text only, not sound'));
+ assert.ok(!prompt.includes('Prefer the question alone'));
+});
 for(const env of [{USKOCI_GEMINI_PAID_TEST_ENABLED:''},{AI_PROVIDER:'openai'},{GEMINI_MODEL:'another-model'}])test('unapproved config remains closed before reservation/provider',async()=>{
  const f=fixture({env});assert.equal((await f.invoke()).status,503);assert.equal(providers(f).length,0);assert.equal(failures(f).length,1);assert.ok(!f.calls.some(c=>c.url.includes('budget')));
 });

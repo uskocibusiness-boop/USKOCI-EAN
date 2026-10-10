@@ -1,6 +1,6 @@
 # Tri objedinjena vizuelna kruga — 10.10.2026.
 
-Status: **52720d99 instaliran i ograničeno fizički potvrđen; dodatna popravka broja završenih Dogovora proverena u izvoru, native čeka. NO-GO za store.**
+Status: **00450330 instaliran; brojač fizički potvrđen. Prethodni52720 vizuelni krug ima zasebne native i pune CI dokaze. NO-GO za store.**
 
 Vlasnik je tražio nekoliko većih krugova, jasne radne kartice, AI podešavanje, mirne bele površine, filtere prema svojim Airbnb referencama, identitet uz poruke i manje ručnih/duplih kontrola. Root je jedini pisac; tri stručna agenta dala su nezavisne read-only preglede.
 
@@ -100,3 +100,27 @@ Telefon potvrdio nedostupan broj na DRAFT radnom profilu. Uzrok u aplikaciji: br
 DOKAZAO U IZVORU: četiri povezane grupe107PASS; dodatne service/focus/presentation granice i ponovljen review-fix test zabeleženi u profile-counter-checks.json (brojevi se preklapaju). TypeScript0. Stvarni focused-resource model proverava kasni odgovor posle promene naloga, revizije i ID-ja profila. Nezavisan read-only pregled bez blokirajućeg nalaza. Ova popravka nije deo instaliranog52720APK; čeka svoj runtime dokaz.
 
 SLEDEĆE: objaviti source brojača, jedan mali nadogradni APK istog identiteta i potvrda broja na istom nalogu. Zatim AI prompt ugovor/toplo razjašnjenje, numerički PAGE/MAP/PLACES filter i AI-only profil po postojećem planu. Dovoljno dobre filter sekcije i potvrđene nav/map popravke FREEZE bez nove regresije;30-minutna automatizacija PAUSED.
+
+
+## Fizički dokaz brojača 00450330 — 10.10. 06:33 UTC
+
+URADIO: nadogradnja tačnog APK00450330 isključivo install-r, sertifikat nepromenjen, sačuvani UID/firstInstallTime/prijava. About pokazuje0045033. Dokaz: native-installed-00450330.json; snimci ostaju privatni.
+
+DOKAZAO: na istom DRAFT profilu stvarni broj0 zamenio je grešku; otvara izabranu Istoriju Dogovora sa donjom navigacijom; Back vraća profil/broj; radna kartica i Nastavi kroz razgovor sačuvani. PRE-P4 oba run-a38031058416/38031058293 SUCCESS:40suites/1131tests iTypeScript, ciljani opseg. Puna regresija606/13665 ostaje dokaz prethodnog52720, ne tvrdi se ponovljena na00450330.
+
+NIJE DOKAZANO: pozitivan broj, PAUSED/error/retry/account-swap na fizičkom telefonu (te granice imaju source testove); popunjeni grupni i privatni razgovori, stvarni ASR/AI, numeric budget, store. Nisu menjana sistemska podešavanja, backend ili poslovni podaci.
+
+SLEDEĆE: objediniti preostalo zvono/semantiku prazne istorije/profila i ispraviti pronađeno skrivanje pravog AI razjašnjenja iza nepotvrđene mape. Live task Edgev60 byte-equal trenutnom izvornom entrypointu još sadrži staro objašnjenje TOTAL ekipe; pripremiti tačan prompt paket, bez tvrdnje o primeni. Worker Edgev23 nije byte-equal lokalnom entrypointu/shared stream helperu; nikakav slepi deploy.
+
+
+## Razjašnjenje uz mapu i dosledne komande — izvor proveren, native sledi
+
+URADIO: prava CLARIFY poruka ostaje vidljiva i pri nepotvrđenoj mapi; uklanja se i iz već zadržanih ID-jeva i naknadno pročitanog rasporeda. Obično sledeće pitanje ostaje iza potvrde lokacije; kanonska istorija se ne menja. Profil više ne kaže Nova ocena kada nijedna ne postoji, nego Još nema / ocena. Komande Obaveštenja u profilu/radnom profilu imaju isti Glyph kao zaglavlje, istu destinaciju i disabled zaštitu. Istorija sada opisuje završene i otkazane Dogovore, uključujući odgovarajući prazan filter; aktivni početni tok i CTA ostaju.
+
+DOKAZAO:271/271ciljanih klijentskih testova, TypeScript0;126/126offline Edge testova. Dva nezavisna read-only pregleda bez blokera. Prvi neuspeh zadržan: dva copy assertiona i TypeScript tip parametarskog testa ispravljeni; postojeći candidateTrust spoken tekst ostao nepromenjen.
+
+AI SERVER: read-only preflight iz živog taskv60 potvrđuje byte-equal prethodni source i zastarelo pravilo TOTAL cela ekipa. Pripremljena prompt-only izmena prema odobrenom round(total×covered/required), bez izmene cene zadatka/Dogovora, uz ljubazno razjašnjenje bez izmišljenog audio sluha. Svih6deployfajlova ima hash i privatni tačanv60revert. Nije primenjeno. Workerprompt pripremljen za1–3prirodne rečenice/povremeni emodži/empty-patch kod nerazumljivog unosa; živi workerv23 ima dodatni raniji source/shared drift pa nije spreman za slepi deploy.
+
+NIJE DOKAZANO: nova native semantika i složen razgovor tek slede; offline prompt test ne dokazuje ponašanje pravog modela. Ne menjaju se produkcija, DB, provider konfiguracija, push ili poslovni podaci. APK ne primenjuje Edge prompt. Store ostajeNO-GO.
+
+SLEDEĆE: jedan zbirni APK ovog klijentskog kruga, potpis/runtime/nadogradnja/telefon; zasebna primena tačnog Edge paketa po važećoj autorizaciji. Numeric budget PAGE/MAP/PLACES i popunjeni grupni/privatni lifecycle ostaju otvoreni u istom registru.30-minutna automatizacijaPAUSED.

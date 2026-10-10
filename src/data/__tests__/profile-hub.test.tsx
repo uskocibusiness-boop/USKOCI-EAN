@@ -628,7 +628,9 @@ describe('the profile composed as one calm list', () => {
     const kinds = labels.map(label => {
       const row = tree.root.findByProps({ label });
       expect([label, row.props.tone]).toEqual([label, undefined]);
-      return (row.props.icon as { props: { kind: string } }).props.kind;
+      const icon = (row.props.icon as { props: { kind?: string; name?: string; size: number } }).props;
+      if (label === 'Obaveštenja') expect(icon).toMatchObject({ name: 'notifications', size: 24 });
+      return icon.kind ?? icon.name;
     });
     expect(new Set(kinds).size).toBe(kinds.length);
     expect(kinds.filter(kind => kind === 'lock')).toEqual(['lock']);

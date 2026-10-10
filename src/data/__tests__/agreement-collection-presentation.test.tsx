@@ -149,9 +149,10 @@ test.each(['loading', 'error'])('%s hides stale private rows and error retry use
   if (error) { await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress()); expect(refresh).toHaveBeenCalledTimes(1); }
 });
 test('empty history still offers a real task route, with no invented review or unread controls', async () => {
-  rows = []; await render(); await tap('Istorija'); expect(texts()).toContain('Još nemaš Dogovor');
-  // The first encounter ("Predmet vrata", the owner's pick of 2026-10-08): the link of the Dogovor at the size of a door, and one sentence that teaches.
-  expect(texts()).toContain('Dogovor nastaje kad izabereš prijavu ili te izaberu.');
+  rows = []; await render(); expect(texts()).toContain('Još nemaš Dogovor');
+  await tap('Istorija'); expect(texts()).toContain('Istorija je prazna');
+  // History explains what it will contain; the active first encounter retains its task actions.
+  expect(texts()).toContain('Ovde će biti završeni i otkazani Dogovori.');
   expect(tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'agreements' && node.props.size === 144)).toHaveLength(1);
   await act(async () => tree.root.findByProps({ label: 'Idi na Početnu' }).props.onPress()); expect(tasks).toHaveBeenCalledTimes(1);
   expect(texts()).not.toMatch(/Oceni|nepročitan/);
@@ -469,7 +470,7 @@ test('an empty set leads to the set that holds Dogovori and turns the confirmati
   // And back: an empty history leads to the active Dogovori.
   await act(async () => tree.unmount());
   rows = [agreement('live', 'CONFIRMED')]; await render(); await tap('Istorija');
-  expect(texts()).toContain('Još nema završenih Dogovora');
+  expect(texts()).toContain('Istorija je prazna');
   await act(async () => tree.root.findByProps({ label: 'Pogledaj aktivne Dogovore' }).props.onPress());
   expect(titles()).toEqual(['Otvori Dogovor Posao live']);
 });

@@ -404,6 +404,14 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "clarity_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
+          "clientTests": 271,
+          "offlineEdgeTests": 126,
+          "edgeDeployed": false,
+          "storeReady": false
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -1726,7 +1734,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+        "dokaz": "00450330: DRAFT broj0, Istorija i povratak potvrđeni; ostale profilne granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-00450330.json"
       },
       "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
       "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
@@ -1963,9 +1971,20 @@
           }
         },
         "own_completed_counter_20261010": {
+          "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+          "source": "00450330a4a1ac0b4a0d8bd38ae99339e17c4405",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-00450330.json",
+          "ciRun": 38031058416,
+          "ciMode": "targeted",
+          "storeReady": false
+        },
+        "clarity_followup_20261010": {
           "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
-          "scope": "Own DRAFT/PAUSED completed count plus reliability from one validated myStats; no server change."
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
+          "clientTests": 271,
+          "offlineEdgeTests": 126,
+          "edgeDeployed": false,
+          "storeReady": false
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -4248,6 +4267,14 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "clarity_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
+          "clientTests": 271,
+          "offlineEdgeTests": 126,
+          "edgeDeployed": false,
+          "storeReady": false
         }
       }
     },
@@ -5334,6 +5361,14 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "clarity_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
+          "clientTests": 271,
+          "offlineEdgeTests": 126,
+          "edgeDeployed": false,
+          "storeReady": false
         }
       }
     },
@@ -10760,8 +10795,19 @@
       "evidence": "docs/implementation/evidence/signup-email-return-20261010/REPORT.md"
     },
     "own_completed_counter_20261010": {
+      "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+      "source": "00450330a4a1ac0b4a0d8bd38ae99339e17c4405",
+      "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-00450330.json",
+      "ciRun": 38031058416,
+      "ciMode": "targeted",
+      "storeReady": false
+    },
+    "clarity_followup_20261010": {
       "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-      "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+      "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
+      "clientTests": 271,
+      "offlineEdgeTests": 126,
+      "edgeDeployed": false,
       "storeReady": false
     }
   }

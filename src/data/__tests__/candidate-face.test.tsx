@@ -648,7 +648,7 @@ describe('the public profile sheet', () => {
     const onPress = jest.fn(), onClose = jest.fn();
     await render(<PublicProfileSheet state={{ loading: false, data: profile() }} onClose={onClose} onRetry={noop} safety={{ onPress, busy: false, error: null }} />);
     expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1);
-    expect(texts()).toContain('Marko Marković'); expect(texts()).toContain('Nova ocena'); expect(texts()).toContain('još nema ocena'); expect(texts()).not.toContain('Javni profil');
+    expect(texts()).toContain('Marko Marković'); expect(texts()).toContain('Još nema'); expect(texts()).toContain('ocena'); expect(texts()).not.toContain('Javni profil');
     const entry = pressNamed('Prijavi ili blokiraj osobu: Marko Marković');
     expect(texts(entry)).toContain('Prijavi ili blokiraj osobu');
     await act(async () => entry.props.onPress()); expect(onPress).toHaveBeenCalledTimes(1);
@@ -677,7 +677,7 @@ describe('the public profile sheet', () => {
     await render(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} photo={photo} />);
     expect(photo).toHaveBeenCalledWith('profile-1', 72);
     // (8 Oct 2026: a rating the server says is not available is not drawn at all: no figure, no word about it.)
-    expect(texts()).not.toContain('Ocena nije dostupna'); expect(texts()).not.toContain('Nova ocena'); expect(texts()).not.toContain('4,9'); expect(texts()).not.toContain('27 ocena');
+    expect(texts()).not.toContain('Ocena nije dostupna'); expect(texts()).not.toContain('Još nema'); expect(texts()).not.toContain('4,9'); expect(texts()).not.toContain('27 ocena');
     expect(texts()).not.toContain('Identitet je potvrđen');
     await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} />));
     const portrait = tree.root.findAll(node => node.props.testID === 'public-profile-portrait')[0];
@@ -693,7 +693,7 @@ describe('the public profile sheet', () => {
     const data = { ...profile(), biografija: 'Radim sa bratom. '.repeat(35) };
     await render(<PublicProfileSheet state={{ loading: false, data }} onClose={noop} onRetry={noop} />);
     const rating = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'public-profile-figure-rating')[0];
-    expect(rating.props.accessibilityLabel).toBe('Nova ocena još nema ocena');
+    expect(rating.props.accessibilityLabel).toBe('Još nema ocena');
     const figures = tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'public-profile-figures')[0];
     expect(flat(figures.props.style).flexDirection).toBe('row');
     expect(tree.root.findAll(node => node.props.accessibilityLabel === '2 završena')).toHaveLength(1);

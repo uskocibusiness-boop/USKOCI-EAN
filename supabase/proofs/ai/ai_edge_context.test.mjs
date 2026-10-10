@@ -95,6 +95,18 @@ const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_
 const prompt=call=>call.body.systemInstruction?.parts[0].text??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{[^}]+\})\./)[1]);
 
+test('task prompt preserves proportional TOTAL applications and clarification without invented audio access',async()=>{
+  const f=fixture();assert.equal((await f.invoke()).status,200);
+  const instruction=prompt(providerCall(f));
+  assert.ok(instruction.includes('TOTAL dozvoljava prijavu i za deo traženih ljudi'));
+  assert.ok(instruction.includes('jedna dobija 3333, a dve 6667'));
+  assert.ok(instruction.includes('need.price_rsd ostaje ukupna cena zadatka'));
+  assert.ok(!instruction.includes('jedna prijava pokriva ceo zadatak'));
+  assert.ok(!instruction.includes('cuo sam od tebe'));
+  assert.ok(instruction.includes('safety CLARIFY i bez novih činjenica'));
+  assert.equal(f.calls.filter(call=>call.url.includes('googleapis')).length,1);
+});
+
 test('Gemini intake wire schema has no empty enum member, including no-question dialogue',async()=>{
   const f=fixture();assert.equal((await f.invoke()).status,200);
   const call=providerCall(f),schema=call.body.generationConfig.responseSchema;

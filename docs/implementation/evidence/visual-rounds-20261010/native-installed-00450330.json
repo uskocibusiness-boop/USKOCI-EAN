@@ -1,0 +1,53 @@
+{
+  "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+  "source": "00450330a4a1ac0b4a0d8bd38ae99339e17c4405",
+  "installedAt": "2026-10-10T06:32:42.075376+00:00",
+  "apkSha256": "e58331f8ef9650c27bca1c387b454a6554aa54ad8499775e3b331f73466abffb",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "sameUid": true,
+  "sameFirstInstallTime": true,
+  "runtimeAbout": "0045033",
+  "sessionPreservedObserved": true,
+  "fontScale": 1.15,
+  "observed": [
+    "Own DRAFT profile reads real zero completed instead of unavailable count.",
+    "Completed figure opens selected History tab with bottom navigation.",
+    "Back restores own profile and count.",
+    "DRAFT reading card remains available with AI continuation action."
+  ],
+  "ci": {
+    "runs": [
+      38031058416,
+      38031058293
+    ],
+    "mode": "targeted",
+    "suites": 40,
+    "tests": 1131,
+    "status": "SUCCESS",
+    "types": "PASS",
+    "fullRegressionForThisSource": false
+  },
+  "ciReceiptSha256": "0d9abfd1dce8222c2ed2977ecb72520f1469d402e20c9032d0ba66ad7f6494bb",
+  "screenshotsPrivate": true,
+  "evidenceSha256": {
+    "01-about.png": "96a9d0f9cf263708702c3ef010736eac8fc5e61485dbd6db4603206b5e431578",
+    "01-about.xml": "2c81f826f833c0cc9388d9d127c38201b3b796c9980327930566276db79f5f83",
+    "02-profile.png": "2db3c9ad2ab2a1d27695ec6acf44b3ac06fc5ad4a18d21a8a64c55c380cfd158",
+    "02-profile.xml": "daebeb75e7470ac9f0433edce51a1ccc804c906af6af2346174268c392c711b5",
+    "03-completed.png": "2f031f2df2a1e9735a48b9be6243102112a1405c3c678ed77f9d525d84051bf4",
+    "03-completed.xml": "541d83fdebd36f42b5d2fdd22caab33a47d3d48c428746d079ae9187e6ac5e15",
+    "04-back-profile.png": "2ea829543fa193fe4e45e8043eaa6eae6a59ecff8abe4c1897cc683ac840bce2",
+    "04-back-profile.xml": "daebeb75e7470ac9f0433edce51a1ccc804c906af6af2346174268c392c711b5",
+    "05-worker.png": "a053ae16a7f0712ba2d7122c450b05bfb51fb644bcda1de3d9b630d7c1d8179a",
+    "05-worker.xml": "882edf4354ffa3cfee2044804f19c6daad82758590209fb79344d6b52b2865d3",
+    "06-return-agreements.png": "c0f577828bbe153c8e54e4123d36c08ed2bd09c79dc65f0cba8e87c3420ae54c",
+    "06-return-agreements.xml": "541d83fdebd36f42b5d2fdd22caab33a47d3d48c428746d079ae9187e6ac5e15"
+  },
+  "limits": [
+    "This account has zero completed and no populated agreements; positive count on device not exercised.",
+    "PAUSED/error/retry/account revision boundaries are source tests, not claimed physical scenarios.",
+    "No live ASR/model call, business mutation, backend change, performance claim or store approval."
+  ],
+  "systemSettingsChanged": false,
+  "storeReady": false
+}

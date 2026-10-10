@@ -1,0 +1,97 @@
+{
+  "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+  "at": "2026-10-10T06:43:18.214938+00:00",
+  "base": "1126bb17",
+  "clientChecks": {
+    "suites": 7,
+    "tests": 271,
+    "failed": 0,
+    "artifactSha256": "db955603cd92a3da60f40e2e5560fbda46d6a015f9d061ae6a96b061f5b3573f",
+    "typescriptExit": 0
+  },
+  "edgeOffline": {
+    "tests": 126,
+    "failed": 0,
+    "logSha256": "80b76571e4ff50cc5b2b95fb71918f0e0885831ee49fa3694e57412b2ce74dc5",
+    "providerCalls": 0,
+    "syntheticTransport": true
+  },
+  "failedAttemptsPreserved": [
+    "clarity-ui-tests.json",
+    "clarity-tsc.log"
+  ],
+  "peerReview": "Two read-only peers found no blocker; stale copy assertions corrected; CLARIFY late readback placement checked.",
+  "sourceSha256": {
+    "src/data/__tests__/agreement-collection-presentation.test.tsx": "88f0bbc9f2af86d2d8231c48c2578ccf3172f20b88c4a5b4eb8d5bcfa6febcb7",
+    "src/data/__tests__/candidate-face.test.tsx": "c347e0fd2a8183ae8e515bc3ec8bf6f4bac31f3d9a32a5a431d0044f04f21f51",
+    "src/data/__tests__/intake-location-order.test.ts": "db8d43698c3f123d6e96f5a7349a89c7044258bf122228437bd24d35f394d14a",
+    "src/data/__tests__/profile-hub.test.tsx": "29cd5dd6df8807dad48d5d8f2aa49492dbef4d31c67df59db69f262c79286618",
+    "src/ui/profile/ProfileFigures.tsx": "97ef484c2b16137c6fa143420b7cd77aad0882b50cc07b782d87e7f74b3a5c7a",
+    "src/ui/profile/ProfileHubPresentation.tsx": "1ef8028a99eefb150efe3325069d65973f96091c3aabe4ed5deb163d6316e3e4",
+    "src/ui/profile/__tests__/profile-figures.test.tsx": "c656d3349ce2c8fa65ed6d0fa3a152cdc77f76556b72afd005a9e9c3d36821f8",
+    "src/ui/reviews/__tests__/review-screen.test.tsx": "fe62a10d2408f1e4326733122b4312d65e5fe4bb42b943039ed56cfaea3fbd5f",
+    "src/ui/system/__tests__/public-profile-sheet.test.tsx": "4ef903dd542b2f79b311340929a58c531411b7b3b73b9bb515b857c3b7fd82f0",
+    "src/ui/v2/AgreementCollectionPresentation.tsx": "353d94979b7b08cef82122930c4deee0027b8fce24bc832e87ccd5b9ca2e9b0a",
+    "src/ui/v2/intakeLocationOrder.ts": "b2788e75749291502313367660b2ad30c772f58e7f9f9c2a9a87569b2eea5fdf",
+    "src/ui/workerProfile/WorkerProfilePresentation.tsx": "b582dff3f08dfb086adf38114fe3a5e84a2e133c73095be5d4c8b9df00e6c8e0",
+    "supabase/functions/uskoci-ai-interview/index.ts": "d509fb412de3b447f2a384678467700f4bd11e03122dc26940b9391871139d17",
+    "supabase/functions/uskoci-worker-interview/index.ts": "ba933d47b06bb27768060705e3db2cab0ad60176261e51af3d034c7781e8cc01",
+    "supabase/proofs/ai/ai_edge_context.test.mjs": "1f8d01cc40f2dc36be1c3f4144a8775257d9026078e09cf0070c41d96aeb3dab",
+    "supabase/proofs/ai/v5_worker_edge.test.mjs": "bc7baf4b7c4add32d5a69fedcc62004a232d4387272b204df0246f96feecedcb"
+  },
+  "taskEdgeCandidate": {
+    "function": "uskoci-ai-interview",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "preflightVersion": 60,
+    "verifyJwt": true,
+    "files": [
+      {
+        "path": "supabase/functions/uskoci-ai-interview/index.ts",
+        "candidateSha256": "d509fb412de3b447f2a384678467700f4bd11e03122dc26940b9391871139d17",
+        "revertSha256": "c04850996a4f9b54cec4a7e59dbe8b5f448775e4d7f22cfd5ab9d4a1e7829dd4",
+        "changed": true
+      },
+      {
+        "path": "src/contracts/aiAvailability.ts",
+        "candidateSha256": "a875fafef0509b2f6905489bf186b8c7c6c0147d0155b0aa22212ce6080dc1a5",
+        "revertSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+        "changed": false
+      },
+      {
+        "path": "src/contracts/needFactsV2.ts",
+        "candidateSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+        "revertSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+        "changed": false
+      },
+      {
+        "path": "supabase/functions/_shared/locationReply.ts",
+        "candidateSha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+        "revertSha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+        "changed": false
+      },
+      {
+        "path": "supabase/functions/_shared/aiTestBudget.ts",
+        "candidateSha256": "922127b5485dc78fbac7de8f238db10c4a6bf67f5330344fd8a974123d87a2f8",
+        "revertSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+        "changed": false
+      },
+      {
+        "path": "supabase/functions/_shared/geminiTaskStream.ts",
+        "candidateSha256": "9ecbba9b34bda3252b4d56d063bbe7208d56a189cd3a6eb8ff16323a8de8299a",
+        "revertSha256": "3ff2fdb7a82ff53e78d8ff75d3550ed539c1740ce7efab6e57cb075789b17049",
+        "changed": false
+      }
+    ],
+    "revertPrepared": true,
+    "deployed": false,
+    "scope": "Prompt-only TOTAL proportional amount explanation, text-only input and whole/partial clarification. No SQL/business arithmetic/auth/budget/dispatch changes."
+  },
+  "workerEdgeCandidate": {
+    "preflightVersion": 23,
+    "deployed": false,
+    "additionalExistingSourceDrift": true,
+    "limit": "Complete dependency drift review required before exact deployment package."
+  },
+  "nativeProven": false,
+  "storeReady": false
+}

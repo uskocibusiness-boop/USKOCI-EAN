@@ -41,7 +41,7 @@ describe('the figures as the server gave them', () => {
   });
 
   it('says a person without a rating in words, with no number and no star', () => {
-    expect(NEW_RATING).toEqual({ value: null, word: 'Nova ocena', label: 'još nema ocena' });
+    expect(NEW_RATING).toEqual({ value: null, word: 'Još nema', label: 'ocena' });
   });
 
   it.each([[0, '0', 'završenih'], [1, '1', 'završen'], [2, '2', 'završena'], [11, '11', 'završenih'], [21, '21', 'završen'], [1234, '1.234', 'završena']])(
@@ -68,7 +68,7 @@ describe('a cell of the row', () => {
 
   it('draws the words that stand where a figure does not exist, at 16/600, and never a figure beside them', async () => {
     await draw(<FigureCell figure={NEW_RATING} />);
-    expect(texts()).toEqual(['Nova ocena', 'još nema ocena']);
+    expect(texts()).toEqual(['Još nema', 'ocena']);
     expect(hosts('T')[0].props.variant).toBe('bodyStrong');
     expect(hosts('FactArt')).toHaveLength(0);
   });

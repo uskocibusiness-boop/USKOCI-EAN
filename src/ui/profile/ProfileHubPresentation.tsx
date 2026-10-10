@@ -126,7 +126,8 @@ export function ProfileHub({ identity, capabilityDetail, capabilityNeedsAttentio
     <SettingsGroup title="Nalog">
       {/* The sign-in is said once, as a quiet row: it is a fact about the account, not a way onward. */}
       {email ? <KeyValueRow label="E-pošta" value={email} /> : null}
-      {hubRow('Obaveštenja', 'bell', '/profil/obavestenja')}
+      <SettingsRow label="Obaveštenja" disabled={busy} onPress={go('/profil/obavestenja')}
+        icon={<Glyph name="notifications" size={24} />} />
       {hubRow('Promeni lozinku', 'lock', '/profil/lozinka', { last: true })}
     </SettingsGroup>
 

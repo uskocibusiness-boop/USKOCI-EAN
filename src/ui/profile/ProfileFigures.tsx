@@ -13,7 +13,7 @@ import { sys } from '../system/tokens';
  * profile and on the public one.
  *
  * Every figure is the server's or it is not drawn: a figure the server did not return (a reliability the viewer may not read, a rating
- * that is not available) leaves its place to the other two, and a rating that does not exist YET says so in words ("Nova ocena") instead of
+ * that is not available) leaves its place to the other two, and a rating that does not exist YET says so in words ("Još nema ocena") instead of
  * a zero nobody counted. The person's own profile does not draw a reliability that does not exist yet either (owner's phone, 8 Oct 2026: what is
  * not there is not drawn); `reliabilityFigure(null)` is only what a visitor's sheet still says for a person with too few Dogovori. Nothing here
  * computes a figure; it only writes down what came back.
@@ -44,7 +44,7 @@ export function ratingFigure(average: number, count: number | null): Figure {
   return { value: ratingText(average), label, star: true, spoken: `Ocena ${ratingText(average)}, ${label}` };
 }
 /** A person without a rating yet: the words, never a star and never a zero average. */
-export const NEW_RATING: Figure = { value: null, word: 'Nova ocena', label: 'još nema ocena' };
+export const NEW_RATING: Figure = { value: null, word: 'Još nema', label: 'ocena' };
 /** How many Dogovori the person finished: "9 završenih", "1 završen". Zero is said as zero: the server counted it. */
 export function finishedFigure(count: number): Figure {
   return { value: count.toLocaleString('sr-Latn-RS'), label: plural(count, 'završen', 'završena', 'završenih').replace(/^\S+\s/, '') };

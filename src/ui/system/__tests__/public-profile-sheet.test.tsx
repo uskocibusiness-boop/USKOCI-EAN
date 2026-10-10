@@ -5,7 +5,7 @@ import type { JavniProfilPoverenje, JavniProfilProjekcija } from '../../../contr
 /**
  * A person's public profile (T4/T5, 2026-10-07; UI/UX pass 2026-10-08, F6; the owner's pick of 8 Oct 2026, "Lice i tri broja"), in every
  * state it can be in. It shows only what the server really carries: the face (72, centred, with its sticker edge), the person's own line
- * and the city, then the three figures in one row (the rating with the count it stands on or "Nova ocena", "završenih", and how reliably
+ * and the city, then the three figures in one row (the rating with the count it stands on or "Još nema", "završenih", and how reliably
  * they come as agreed, each only when the server returned it), "O meni" when the person wrote one, the confirmations as the system's
  * `FactRow`s ("Identitet je potvrđen" only when it is true, and what the trust read, PROFILE-TRUST R30, returned for this viewer); the
  * safety entry is last. What the server does not return - a HIDDEN trust block, a part it left out - is not drawn: no figure, no row, no
@@ -127,9 +127,9 @@ describe('the three figures', () => {
       expect(publicRatingFigure(trust({ brojRecenzija: count }))).toMatchObject({ value: '4,8', label: written });
     });
 
-  it('says "Nova ocena" and "još nema ocena" when there are no reviews, without a number and without the star that stands for a rating', async () => {
+  it('says "Još nema" and "ocena" when there are no reviews, without a number and without the star that stands for a rating', async () => {
     await show(person({}, { ocenaProsek: null, brojRecenzija: 0, ocenaDostupna: false, recenzijeDostupne: true }));
-    expect(said('rating')).toEqual(['Nova ocena', 'još nema ocena']);
+    expect(said('rating')).toEqual(['Još nema', 'ocena']);
     expect(figure('rating').findAllByType('FactArt' as never)).toHaveLength(0);
     expect(all()).not.toMatch(/0,0|\b0 ocena/);
   });

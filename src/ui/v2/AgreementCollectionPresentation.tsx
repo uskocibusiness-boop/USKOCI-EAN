@@ -140,6 +140,8 @@ export function AgreementCollectionPresentation(props: Props) {
     if (!groupAgreementTasks(items).some(task => isActiveAgreementTask(task) === (section === 'active'))) props.onSection(section === 'active' ? 'history' : 'active');
   };
   const historyInActive = section === 'history' && activeItems.some(task => task.items.some(item => item.stanje === 'COMPLETED' || item.stanje === 'CANCELLED'));
+  const historyEmptyTitle = historyFilter === 'completed' ? 'Nema završenih Dogovora'
+    : historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Istorija je prazna';
   // The one state view: reading, not read, nothing in this set, nothing yet - each in the same look. Nothing yet leads to the two
   // ways a Dogovor begins (look at the tasks; publish one) when the route can take the person there, and otherwise to Početna.
   const first = props.onTasks ? { label: 'Pogledaj zadatke', onPress: props.onTasks } : { label: 'Idi na Početnu', onPress: props.onHome };
@@ -151,11 +153,12 @@ export function AgreementCollectionPresentation(props: Props) {
         : emptyRole ? <StateView art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikaži sve uloge', onPress: clearRole }} />
         : items.length ? <StateView art="agreements"
           title={filtering ? 'Nijedan Dogovor ne čeka tvoju potvrdu' : section === 'active' ? 'Nema aktivnih Dogovora'
-            : narrowedEmpty ? (historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Nema završenih Dogovora') : historyInActive ? 'Saradnje su uz aktivne zadatke' : 'Još nema završenih Dogovora'}
+            : historyInActive && !narrowedEmpty ? 'Saradnje su uz aktivne zadatke' : historyEmptyTitle}
           body={historyInActive ? 'Završene i otkazane saradnje ostaju uz isti zadatak dok još ima obaveza. Pronađi ih u Aktivni.' : undefined}
           primary={narrowedEmpty ? { label: 'Prikaži sve', onPress: () => setHistoryFilter('all') }
             : { label: target === 'history' ? 'Pogledaj istoriju' : 'Pogledaj aktivne Dogovore', onPress: showOther }} />
-          : <StateView hero art="agreements" title="Još nemaš Dogovor" body="Dogovor nastaje kad izabereš prijavu ili te izaberu."
+          : <StateView hero art="agreements" title={section === 'history' ? historyEmptyTitle : 'Još nemaš Dogovor'}
+            body={section === 'history' ? 'Ovde će biti završeni i otkazani Dogovori.' : 'Dogovor nastaje kad izabereš prijavu ili te izaberu.'}
             primary={first} quiet={second} />}
   </View>;
   // Aktivni: the one filter. Istorija: "Sve · Završeni · Otkazani". A chip is a choice of what is shown, not a command.

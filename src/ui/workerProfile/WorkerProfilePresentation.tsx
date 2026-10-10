@@ -323,7 +323,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')}
         detail={availabilityRowDetail(draft.dostupanOdmah)} />
-      <SettingsRow label="Obaveštenja o zadacima" icon={<FactArt kind="bell" size={32} />}
+      <SettingsRow label="Obaveštenja o zadacima" icon={<Glyph name="notifications" size={24} />}
         disabled={disabled} last onPress={() => navigate('/profil/obavestenja')} />
     </SettingsGroup>
     <ProfileSection title="Alat i oprema" summary={draft.alati.join(' · ')}
