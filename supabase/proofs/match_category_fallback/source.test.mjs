@@ -69,3 +69,37 @@ test('disposable dispatch prefilter pins byte-exact canonical helper bodies',()=
  assert.match(cases,/ROLLBACK TO SAVEPOINT dispatch_prefilter_cases;/);
  assert.match(cases,/ROLLBACK;\s*$/);
 });
+
+
+test('captured exact DEV calendar SQL bodies and isolated-only staging',()=>{
+ const calendar=readFileSync(join(folder,'live-calendar-helpers.sql'),'utf8');
+ const hashes=[
+  ['availability_timezone_valid','be95520dabe35febd8e9fa15f0ce0309'],
+  ['availability_is_future','3a1aee763e9fe3d0f06d6ba04ef21aac'],
+  ['worker_calendar_conflict','417c9db16bbe70ed9ad652380790900c'],
+  ['worker_available_periods','5107af3020a3beb7bb45e6e90e7a203b'],
+  ['schedule_fit','e29a7bade1437e3f2067924b5179ddfd'],
+  ['worker_need_time_tier_v1','753027749309ccc110f486cbfb4866e4']
+ ];
+ for(const [name,expected] of hashes) {
+  const re=new RegExp('CREATE OR REPLACE FUNCTION private\\.'+name+'\\([\\s\\S]*?AS \\$function\\$([\\s\\S]*?)\\$function\\$;');
+  const m=calendar.match(re);
+  assert.ok(m,'Missing canonical calendar body '+name);
+  assert.equal(md5(m[1]),expected,'Calendar source changed '+name);
+ }
+ const caseSql=readFileSync(join(folder,'calendar-live-assert.sql'),'utf8');
+ for(const marker of [
+  'fixed_future_without_availability','fixed_future_with_available_window',
+  'blocked_agreement_intersects_fixed','unblocked_agreement_recovers',
+  'unavailable_window_overrides_available','belgrade_weekly_rule_covers_fixed',
+  'disabled_weekly_rule_refuses','unknown_worker_timezone_refuses',
+  'today_available_now_tier1','today_blocked_by_agreement']){
+   assert.ok(caseSql.includes(marker),'Missing real-calendar case '+marker);
+ }
+ assert.match(caseSql,/ROLLBACK TO SAVEPOINT true_calendar_cases;/);
+ assert.match(caseSql,/ROLLBACK;\s*$/);
+ const workflow=readFileSync(join(folder,'../../../.github/workflows/match-category-fallback-proof.yml'),'utf8');
+ assert.match(workflow,/STAGE 7: real DEV timezone\/availability\/calendar/);
+ assert.match(workflow,/run_pg < "\$root\/live-calendar-helpers\.sql"/);
+ assert.match(workflow,/run_pg < "\$root\/calendar-live-assert\.sql"/);
+});
