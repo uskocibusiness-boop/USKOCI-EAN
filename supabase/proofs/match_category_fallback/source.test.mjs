@@ -103,3 +103,38 @@ test('captured exact DEV calendar SQL bodies and isolated-only staging',()=>{
  assert.match(workflow,/run_pg < "\$root\/live-calendar-helpers\.sql"/);
  assert.match(workflow,/run_pg < "\$root\/calendar-live-assert\.sql"/);
 });
+
+
+test('isolated wave executes pinned server function with local-only delivery adapter',()=>{
+ const src=readFileSync(join(folder,'live-wave-entry.sql'),'utf8');
+ for(const [name,hash] of [
+  ['need_search_time_admitted_v1','b830cd07c2a5db101a3a28096256a75b'],
+  ['dispatch_config_v1b','7aa34ff0b5f4a3637c433bec317c1c13'],
+  ['dispatch_next_wave','d3cdfe2bdd6e5d40a74e6029793c89c5']
+ ]){
+  const re=new RegExp('CREATE OR REPLACE FUNCTION private\\.'+name+'\\([\\s\\S]*?AS \\$function\\$([\\s\\S]*?)\\$function\\$;');
+  const matched=src.match(re);
+  assert.ok(matched,'Missing live wave function '+name);
+  assert.equal(md5(matched[1]),hash,'Wave function source drift '+name);
+ }
+ const fixture=readFileSync(join(folder,'wave-disposable-fixture.sql'),'utf8');
+ assert.match(fixture,/CREATE FUNCTION private\.emit_event\(/);
+ assert.match(fixture,/CREATE TABLE public\.user_activity_events/);
+ assert.match(fixture,/CREATE FUNCTION private\.candidate_profile_ids_v1b\(/);
+ assert.match(fixture,/CREATE FUNCTION private\.match_detail\(/);
+ assert.doesNotMatch(fixture,/\b(?:http_post|net\.http|pg_notify|pg_cron|expo\.dev)\b/i);
+ const assertions=readFileSync(join(folder,'wave-live-assert.sql'),'utf8');
+ for(const marker of [
+  'LIVE_WAVE_SIM_FIRST_SEND','LIVE_WAVE_SIM_DUPLICATE',
+  'LIVE_WAVE_SIM_UNRELATED','LIVE_WAVE_SIM_NEW_REVISION','LIVE_WAVE_SIM_OWN_TASK',
+  'LIVE_WAVE_SIM_PROACTIVE_DISABLED','LIVE_WAVE_SIM_SUSPENDED',
+  'LIVE_WAVE_SIM_CLOSED_SEARCH']){
+   assert.ok(assertions.includes(marker),'Missing wave case '+marker);
+ }
+ assert.match(assertions,/ROLLBACK TO SAVEPOINT synthetic_wave_cases;/);
+ assert.match(assertions,/ROLLBACK;\s*$/);
+ const yml=readFileSync(join(folder,'../../../.github/workflows/match-category-fallback-proof.yml'),'utf8');
+ for(const name of ['wave-disposable-fixture.sql','live-wave-entry.sql','wave-live-assert.sql']){
+  assert.ok(yml.includes('run_pg < "$root/'+name+'"'),'Missing CI stage for '+name);
+ }
+});
