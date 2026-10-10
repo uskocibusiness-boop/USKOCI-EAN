@@ -60,7 +60,9 @@ const readyDraft = (change: Record<string, unknown> = {}) => ({
 let tree: ReactTestRenderer | undefined;
 const action = (label: string) => tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === label)[0];
 const form = () => tree!.root.findByType('WorkerProfileForm' as React.ElementType);
-async function render() { await act(async () => { tree = create(<Profile />); }); await act(async () => {}); }
+async function render(legacy = false) { await act(async () => { tree = create(<Profile />); }); await act(async () => {});
+  if (legacy) await act(async () => form().props.onEditPart('skills'));
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -70,9 +72,18 @@ beforeEach(() => {
 afterEach(async () => { if (tree) await act(async () => tree?.unmount()); tree = undefined; });
 
 describe('PKG-005 progressive Worker onboarding', () => {
+  it('a pristine DRAFT has one AI continuation and no direct activation or duplicate draft save', async () => {
+    readProfile.mockResolvedValue(readyDraft()); await render();
+    expect(form().props.reading).toBe(true);
+    expect(form().props.openConversation).toBeUndefined();
+    expect(action('Sačuvaj kao nacrt')).toBeUndefined(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
+    await act(async () => action('Nastavi kroz razgovor').props.onPress());
+    expect(mockPush).toHaveBeenCalledWith('/profil/razgovor'); expect(writeProfile).not.toHaveBeenCalled();
+  });
+
   it('saves the first canonical draft before exposing any activation attempt, then routes the missing area prerequisite', async () => {
     readProfile.mockResolvedValueOnce(null).mockResolvedValue(readyDraft({ grad: '' }));
-    await render();
+    await render(true);
 
     expect(action('Uredi kroz razgovor')).toBeTruthy();
     expect(action('Sačuvaj profil')).toBeUndefined();
@@ -93,7 +104,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
 
   it('activates a ready personal profile without requiring legacy capacityRevision', async () => {
     readProfile.mockResolvedValue(readyDraft({ capacityRevision: null }));
-    await render();
+    await render(true);
 
     expect(action('Učitaj kapacitet profila')).toBeUndefined();
     expect(action('Proveri i aktiviraj profil')).toBeTruthy();
@@ -103,7 +114,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
 
   it('exposes activation when canonical draft, area and minimum personal profile facts are present', async () => {
     readProfile.mockResolvedValue(readyDraft());
-    await render();
+    await render(true);
 
     expect(action('Proveri i aktiviraj profil')).toBeTruthy();
     await act(async () => { action('Proveri i aktiviraj profil').props.onPress(); });
@@ -113,7 +124,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
 
   it('guides an incomplete pristine DRAFT to the missing visible field without calling activation', async () => {
     readProfile.mockResolvedValue(readyDraft({ ime: '', vestine: [] }));
-    await render();
+    await render(true);
 
     expect(action('Dopuni osnovne podatke')).toBeTruthy();
     await act(async () => action('Dopuni osnovne podatke').props.onPress());
@@ -124,7 +135,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
 
   it('activates under the account\'s name, even when the work profile carries a one-character name of its own', async () => {
     readProfile.mockResolvedValue(readyDraft({ ime: 'A', vestine: ['Selidbe'] }));
-    await render();
+    await render(true);
 
     expect(action('Dopuni osnovne podatke')).toBeUndefined();
     await act(async () => action('Proveri i aktiviraj profil').props.onPress());
@@ -134,7 +145,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
   it('leads to "Lični podaci" when neither the account nor the profile has a name, and activates nothing', async () => {
     mockAccountName = { state: 'ready', name: null };
     readProfile.mockResolvedValue(readyDraft({ ime: '' }));
-    await render();
+    await render(true);
 
     expect(action('Dodaj ime')).toBeTruthy(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
     await act(async () => action('Dodaj ime').props.onPress());
@@ -170,9 +181,9 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(footer().props.error).toBe('Sačuvaj unos pre otvaranja razgovora.');
   });
 
-  it('keeps the guide instruction in the footer answer while the field it focuses opens the keyboard', async () => {
+  it('keeps the guide instruction in the retained editor footer while the field it focuses opens the keyboard', async () => {
     readProfile.mockResolvedValue(readyDraft({ ime: '', vestine: [] }));
-    await render();
+    await render(true);
     await act(async () => action('Dopuni osnovne podatke').props.onPress());
     expect(tree!.root.findByType('Footer' as React.ElementType).props.error).toBe('Pre aktivacije dodaj bar jednu veštinu.');
   });
@@ -180,7 +191,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
   // The approved draft of the product (8 Oct 2026, P3): a finished profile is read, a row of it opens the editor of ITS part, and the card has a face and a rating.
   describe('the profile read first, and what the route hands the form for it', () => {
     it('reads a clean active or suspended profile, and edits a draft, an edited one and a profile that does not exist yet', async () => {
-      for (const [stanje, reading] of [['ACTIVE', true], ['SUSPENDED', true], ['DRAFT', false]] as const) {
+      for (const [stanje, reading] of [['ACTIVE', true], ['SUSPENDED', true], ['DRAFT', true]] as const) {
         readProfile.mockResolvedValue(readyDraft({ stanje })); await render();
         expect([stanje, form().props.reading]).toEqual([stanje, reading]);
         await act(async () => tree!.unmount()); tree = undefined;

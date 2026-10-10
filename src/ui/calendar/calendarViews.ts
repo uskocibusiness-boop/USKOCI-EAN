@@ -160,6 +160,9 @@ export function layoutDay(entries: readonly PlannerEntry[], day: string): { bloc
     group = []; columnEnds = []; groupEnd = -1;
   };
   for (const span of spans) {
+    // The day clips at midnight. Late starts belong in readable rows, not
+    // a ten-pixel target; their actual timestamps stay unchanged.
+    if (span.drawnTo - span.from < MIN_BLOCK_MINUTES) { overflow.push(span.entry); continue; }
     if (group.length && span.from >= groupEnd) settle();
     let column = columnEnds.findIndex(end => end <= span.from);
     if (column < 0) column = columnEnds.length;

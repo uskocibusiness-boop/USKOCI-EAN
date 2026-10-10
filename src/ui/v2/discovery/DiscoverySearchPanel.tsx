@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { discoveryV1Opportunity } from '../../../data/discoveryV1MarketplaceAdapter';
 import { Keyboard, Platform, ScrollView, StyleSheet, View, type TextInput, useWindowDimensions } from 'react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount, workMode,
@@ -8,6 +8,7 @@ import { Press } from '../../Press';
 import { T } from '../../Text';
 import { TurningCaret } from '../../system/Disclosure';
 import { FlowFooter } from '../../system/FlowFooter';
+import { Surface } from '../../system/Surface';
 import { ChromeIconButton } from '../../system/ScreenChrome';
 import { layout } from '../../system/layout';
 import { zadataka } from '../../system/plural';
@@ -89,6 +90,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
 }) {
   const [draft, setDraft] = useState<SearchDraft>(() => draftOf(view));
   const [datesOpen, setDatesOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<'when' | 'where' | 'amount' | null>('when');
   /** The first tap of a range: where it starts, until its end is tapped (the draft already holds that one day). */
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   /** The city whose parts the rows show (the row that "leads to" its parts); '' for the cities. It is not part of the draft: it filters no task. */
@@ -293,12 +295,14 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     setRangeStart(null);
     edit({ dates: { from: rangeStart, to: day }, when: 'any' });
   };
-  return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} ratio={FILTERS_RATIO}
+  const section = (key: NonNullable<typeof openSection>, title: string, summary: string, children: ReactNode) =>
+    <FilterSection key={key} id={key} title={title} summary={summary} open={openSection === key}
+      onToggle={() => setOpenSection(current => current === key ? null : key)}>{children}</FilterSection>;
+  return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} ratio={FILTERS_RATIO} separated
     title={SEARCH_WORDS.filtersTitle} closeLabel="Zatvori filtere" closeHint="Lista ostaje kakva je bila."
     footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={onClose}>
     <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
-      <View testID="filters-when" style={s.group}>
-        <T variant="bodyStrong" accessibilityRole="header" style={s.groupName}>{FILTER_GROUP.when}</T>
+      {section('when', FILTER_GROUP.when, whenWords(draft, now), <>
         {/* A day that is chosen is taken away by tapping it again: there is no "any day" choice among the days. */}
         <Choice compact label={FILTER_GROUP.when} options={whenOptions} value={whenValue}
           onChange={when => { setRangeStart(null); edit({ when: draft.when === when && !draft.dates ? 'any' : when, dates: null }); }} />
@@ -314,21 +318,34 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
           {draft.dates ? <V2Action label="Gotovo" kind="secondary" onPress={() => { setDatesOpen(false); setRangeStart(null); }} /> : null}
         </View> : null}
         {counted && undated ? <T variant="note" tone="muted">{undatedWords(undated)}</T> : null}
-      </View>
-      {workModes ? <View testID="filters-where" style={s.group}>
-        <T variant="bodyStrong" accessibilityRole="header" style={s.groupName}>{FILTER_GROUP.where}</T>
+      </>)}
+      {workModes ? section('where', FILTER_GROUP.where, said(WHERE, draft.where), <>
         <Choice compact label={FILTER_GROUP.where} options={WHERE} value={draft.where} onChange={where => edit({ where })} />
-      </View> : null}
-      <View testID="filters-amount" style={s.group}>
-        <T variant="bodyStrong" accessibilityRole="header" style={s.groupName}>{FILTER_GROUP.amount}</T>
+      </>) : null}
+      {section('amount', FILTER_GROUP.amount, said(PRICE, draft.price), <>
         <Choice compact label={FILTER_GROUP.amount} options={PRICE} value={draft.price} onChange={price => edit({ price })} />
-      </View>
+      </>)}
     </ScrollView>
   </SearchSheet>;
 }
 
-/** The filters rise to this much of the screen: they are three rows of choices and a foot, not a page. */
-const FILTERS_RATIO = 0.78;
+/** More room for the date grid; only one section is expanded at a time. */
+const FILTERS_RATIO = 0.92;
+
+function FilterSection({ id, title, summary, open, onToggle, children }: {
+  id: string; title: string; summary: string; open: boolean; onToggle: () => void; children: ReactNode;
+}) {
+  return <Surface kind="float" testID={`filters-${id}`} style={s.filterSection}>
+    <Press testID={`filters-${id}-toggle`} accessibilityRole="button" accessibilityLabel={title}
+      accessibilityValue={{ text: summary }} accessibilityState={{ expanded: open }} onPress={onToggle}
+      haptic="select" hitSlop={0} scaleTo={sys.motion.scale.row} style={s.filterHeading}>
+      <View style={s.grow}><T variant={open ? 'heading' : 'bodyStrong'} tone={open ? 'ink' : 'muted'}>{title}</T>
+        {!open ? <T variant="note" style={s.ink}>{summary}</T> : null}</View>
+      <TurningCaret open={open} />
+    </Press>
+    {open ? <View testID={`filters-${id}-body`} style={s.filterBody}>{children}</View> : null}
+  </Surface>;
+}
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
@@ -336,8 +353,10 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   // The groups stand 20 from the edge like every screen; a group is its name and its choices, parted from the next by air, not by a line or a card.
   sections: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: sys.space.base, gap: sys.space.lg },
-  group: { gap: sys.space.md },
   groupName: { color: sys.color.ink },
+  filterSection: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs },
+  filterHeading: { minHeight: layout.rowMin, flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.sm },
+  filterBody: { gap: sys.space.md, paddingTop: sys.space.sm, paddingBottom: sys.space.base },
   recent: { gap: sys.space.xs },
   // The search's first row: the way back and the field, the field as wide as is left.
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingLeft: sys.space.sm, paddingRight: sys.space.base, paddingTop: sys.space.sm, paddingBottom: sys.space.xs },

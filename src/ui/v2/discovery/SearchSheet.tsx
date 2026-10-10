@@ -45,7 +45,7 @@ const easeOut = Easing.bezier(...sys.motion.easeOut);
  * sections as `children`, and the pinned `footer`. `closing` starts the exit; `onClosed` is called once the sheet is gone, and only then does the caller
  * unmount it. Android Back calls `onRequestClose`; a tap on the strip of screen above a sheet does what the × does (`onCloseButton`).
  */
-export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, closeLabel, closeHint, footer, ratio = SHEET_RATIO, screen = false, header,
+export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, closeLabel, closeHint, footer, ratio = SHEET_RATIO, screen = false, header, separated = false,
   onCloseButton, onRequestClose, onClosed, onShown, children }: {
   reduced: boolean; backdrop: BackdropKind; blurTarget?: RefObject<View | null>;
   closing: boolean;
@@ -53,6 +53,7 @@ export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, clo
   /** Pinned under the sections, above the keyboard. */ footer: ReactNode;
   /** How much of the screen a sheet rests at. */ ratio?: number;
   /** The whole window, behind the status bar: no backdrop, no corners, no strip of the screen behind. */ screen?: boolean;
+  /** Separate filter sections float over the shared backdrop; the frame itself carries no white slab. */ separated?: boolean;
   /** The first row, instead of the title and its close button (a `screen` has its own: the way back and the field). */ header?: ReactNode;
   onCloseButton: () => void; onRequestClose: () => void; onClosed: () => void; onShown?: () => void;
   children: ReactNode;
@@ -116,13 +117,13 @@ export function SearchSheet({ reduced, backdrop, blurTarget, closing, title, clo
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={s.avoider} pointerEvents={closing ? 'none' : 'box-none'}>
         <Animated.View testID="search-sheet-rise" style={[s.rise, { transform: [{ translateY: rise }] }]}>
           <Animated.View testID="search-sheet" accessibilityViewIsModal accessibilityLabel={title}
-            style={[s.sheet, { height, borderTopLeftRadius: corner, borderTopRightRadius: corner }]}>
-            {header ? <View testID="search-header" style={{ paddingTop: screen ? top : 0 }}>{header}</View> : <View style={[s.top, screen && { paddingTop: top + sys.space.sm }]}>
+            style={[s.sheet, { height, borderTopLeftRadius: corner, borderTopRightRadius: corner }, separated && s.separated]}>
+            {header ? <View testID="search-header" style={{ paddingTop: screen ? top : 0 }}>{header}</View> : <View style={[s.top, screen && { paddingTop: top + sys.space.sm }, separated && s.separatedTop]}>
               <T variant="heading" accessibilityRole="header" style={s.title}>{title}</T>
               <ChromeIconButton glyph="close" label={closeLabel} hint={closeHint} quiet onPress={onCloseButton} />
             </View>}
             {children}
-            <View testID="search-footer-slot" style={{ paddingBottom: keyboard ? 0 : bottom }}>{footer}</View>
+            <View testID="search-footer-slot" style={[s.footer, { paddingBottom: keyboard ? 0 : bottom }]}>{footer}</View>
           </Animated.View>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -137,6 +138,10 @@ const s = StyleSheet.create({
   // because a node cannot be moved by the native driver and the JS driver at once.
   rise: { width: '100%', flexShrink: 1 },
   sheet: { flexShrink: 1, overflow: 'hidden', backgroundColor: sys.color.surface, ...sheetLift.docked },
+  separated: { backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0, boxShadow: [] },
+  separatedTop: { marginHorizontal: sys.layout.gutter, marginBottom: sys.space.md, paddingVertical: sys.space.sm,
+    paddingLeft: sys.space.base, backgroundColor: sys.color.surface, borderRadius: sys.radius.card },
+  footer: { backgroundColor: sys.color.surface },
   top: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingLeft: sys.space.lg, paddingRight: sys.space.base,
     paddingTop: sys.space.sm, paddingBottom: sys.space.xs },
   title: { flex: 1, minWidth: 0, color: sys.color.ink },

@@ -589,7 +589,7 @@ describe('the day on its hours', () => {
     expect(byId('day-block')).toHaveLength(3);
     expect(byId('day-overflow')).toHaveLength(1);
     expect(cards()).toEqual(['Otvori Dogovor Zadatak d']);
-    expect(headings()).toContain('Još u isto vreme');
+    expect(headings()).toContain('Još termina');
   });
   it('steps by a day with the arrows and with a swipe, and names the day in the heading', async () => {
     const given = await draw(afternoon());
@@ -858,4 +858,35 @@ describe('the foot, the pull and the screen reader', () => {
     await draw(busy());
     expect(text()).not.toMatch(/Naručilac|Uskočer/i);
   });
+});
+
+
+it('puts a late-only appointment in a readable row before the hours and does not scroll past it to now', async () => {
+  const given = await draw({ initialView: 'day', list: { state: 'ready', agreements: [start('late', serbian(DAY, '23:50'))] } });
+  expect(byId('day-block')).toHaveLength(0); expect(byId('day-overflow')).toHaveLength(1);
+  const choices = presses().filter(node => /^Otvori Dogovor/.test(String(node.props.accessibilityLabel)));
+  expect(choices).toHaveLength(1);
+  await act(async () => choices[0].props.onPress()); expect(given.onOpen).toHaveBeenCalledWith('late');
+  await act(async () => byId('day-hours')[0].props.onLayout({ nativeEvent: { layout: { y: 160 } } }));
+  expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
+  const order = tree.root.findAll(node => String(node.type) === 'View' && ['day-overflow', 'day-hours'].includes(node.props.testID)).map(node => node.props.testID);
+  expect(order).toEqual(['day-overflow', 'day-hours']);
+});
+
+it('does not reuse a late-only rail offset when the retained view changes to a normal day and back', async () => {
+  const next = '2026-10-08';
+  const list = { state: 'ready' as const, agreements: [start('late', serbian(DAY, '23:50')), on(next, 'normal', '12:00', '13:00')] };
+  const given = await draw({ initialView: 'day', list });
+  await act(async () => byId('day-hours')[0].props.onLayout({ nativeEvent: { layout: { y: 160 } } }));
+  expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
+  await act(async () => tree.update(element(given, { selected: next, initialView: 'day', list })));
+  // The old measurement still says 160 until native layout reports the new rail.
+  const expected = { y: sys.space.md + 4 * HOUR_HEIGHT, animated: false };
+  expect(scrollTo).toHaveBeenLastCalledWith(expected);
+  await act(async () => byId('day-hours')[0].props.onLayout({ nativeEvent: { layout: { y: 0 } } }));
+  expect(scrollTo).toHaveBeenLastCalledWith(expected);
+  await act(async () => tree.update(element(given, { selected: DAY, initialView: 'day', list })));
+  expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
+  await act(async () => byId('day-hours')[0].props.onLayout({ nativeEvent: { layout: { y: 160 } } }));
+  expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: false });
 });

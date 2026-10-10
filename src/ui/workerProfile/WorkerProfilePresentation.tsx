@@ -235,11 +235,12 @@ export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; 
  * and while the work profile still carries another name, the difference is said quietly with its one button, "Koristi „<ime naloga>“"
  * (`onUseAccountName`, the person's own action, never automatic), which goes by itself once the two agree.
  */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true,
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true, introOnly = false,
   reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
+  /** Only a pristine first visit. Retained drafts and uncertain writes must keep their recovery editor. */ introOnly?: boolean;
   reading?: boolean;
   /** Opens the editor of one part (a row of the read profile). */ onEditPart?: (part: SavedProfilePart) => void;
   /** The face in the card of the read profile. */ face?: ReactNode;
@@ -278,7 +279,13 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   if (reading) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
     readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
-    status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />} />;
+    status={<ActivationStatus status={status} readyToActivate={false} disabled={disabled} navigate={navigate} />} />;
+  if (introOnly) return <View testID="worker-profile-intro" style={s.setupIntro}>
+    <ConversationArt size={96} />
+    <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričaj čime se baviš</T>
+    <T variant="body" tone="muted">Koje zadatke želiš da preuzmeš, gde i kada ti odgovara.</T>
+    <T variant="note" tone="muted">Razgovor možeš da nastaviš kasnije. Profil aktiviraš tek kad pregledaš podatke.</T>
+  </View>;
   return <View style={s.form}>
     {firstSetup ? <View style={s.setupIntro}>
       <ConversationArt size={96} />

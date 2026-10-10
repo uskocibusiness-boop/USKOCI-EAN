@@ -77,7 +77,7 @@ async function renderReading() { await act(async () => { tree = create(<Profile 
 // are covered separately in "the saved profile is read first". Legacy deep links
 // and DRAFT editing remain a separate migration, not silently removed here.
 const toEditor = () => {
-  if (tree.root.findAllByProps({ testID: 'worker-skills-row' }).length === 0) return;
+  if (tree.root.findAllByProps({ testID: 'worker-skills-row' }).length === 0 && tree.root.findAllByProps({ testID: 'worker-profile-intro' }).length === 0) return;
   act(() => tree.root.findByType(WorkerProfileForm).props.onEditPart('skills'));
   act(() => control('Gotovo: Veštine i usluge').props.onPress());
 };
@@ -669,8 +669,12 @@ describe('the saved profile is read first', () => {
     expect(tree.root.findAllByProps({ testID: 'worker-available-now' })).toHaveLength(0); expect(texts()).toContain('Uključeno');
     await act(async () => tree.unmount());
     mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(0);
-    expect(control('Proveri i aktiviraj profil')).toBeTruthy();
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
+    expect(control('Nastavi kroz razgovor')).toBeTruthy();
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
+    click('Nastavi kroz razgovor');
+    expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor');
+    expect(mockWrite).not.toHaveBeenCalled();
   });
 });
 
@@ -930,4 +934,14 @@ it('suspended support has no impossible save prerequisite and retains an unsaved
   expect(mockWrite).not.toHaveBeenCalled();
   await background(); mockRead.mockResolvedValue(profile); await resume();
   openEditor('O meni'); expect(control('O meni').props.value).toBe('Moj lokalni opis');
+});
+
+
+it('a first visit is only a calm AI entry; opening it creates no profile or manual fields', async () => {
+  mockRead.mockResolvedValue(null); await renderReading();
+  expect(tree.root.findAllByProps({ testID: 'worker-profile-intro' })).toHaveLength(1);
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
+  click('Uredi kroz razgovor');
+  expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
 });

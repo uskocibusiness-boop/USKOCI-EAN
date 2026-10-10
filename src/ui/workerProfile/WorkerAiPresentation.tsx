@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { StyleSheet, Switch, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
@@ -15,6 +15,7 @@ import { sys, field, brandAction } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
 import { FactListEditor } from '../aiFirst/FactValueEditors';
 import { V2Action } from '../v2/V2Action';
+import { FactChoiceEditor } from '../v2/FactChoiceEditor';
 import { cityLabel } from '../profile/cityLabel';
 import { ResolvedPinMap } from '../location/ResolvedPinMap';
 import { displayedPinPosition } from '../location/ResolvedPinMap.types';
@@ -292,8 +293,9 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
   </>;
 }
 export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;disabled:boolean;change:(v:boolean)=>void}){
-  return <Surface kind="note" style={s.activation}><View style={{flex:1}}><T variant="bodyStrong" style={s.ink}>Aktiviraj profil posle čuvanja</T><T variant="meta" tone="muted">Isključeno: profil ostaje nacrt.</T></View>
-    <Switch accessibilityLabel="Aktiviraj profil posle čuvanja" value={activate} disabled={disabled} onValueChange={change} trackColor={{true:sys.color.green,false:sys.color.muted}} thumbColor={sys.color.surface}/></Surface>;
+  return <View style={s.section}><T variant="bodyStrong" style={s.ink}>Posle čuvanja</T>
+    <FactChoiceEditor label="Status profila posle čuvanja" value={activate?'active':'draft'} disabled={disabled}
+      options={[{value:'active',label:'Aktivan profil'},{value:'draft',label:'Nacrt'}]} onChange={value=>change(value==='active')}/></View>;
 }
 const s=StyleSheet.create({
   ink:{color:sys.color.ink},
@@ -341,5 +343,4 @@ const s=StyleSheet.create({
   input:{...field},
   multiline:{minHeight:96,textAlignVertical:'top'},
   // A flat tint, not the orange budget (critique B19): the one orange on the review is not a switch row.
-  activation:{flexDirection:'row',gap:sys.space.md,alignItems:'center'},
 });

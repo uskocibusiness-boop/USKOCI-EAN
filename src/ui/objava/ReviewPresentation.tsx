@@ -4,6 +4,7 @@ import type { PrilikaProjekcija } from '../../contracts/projections';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
@@ -115,7 +116,7 @@ export function ReviewTodoList({ items, disabled, children }: { items: readonly 
 export function ReviewWaysOut({ onDelete, disabled }: { onDelete?: () => void; disabled: boolean }) {
   if (!onDelete) return null;
   return <Section>
-    <ListRow leading={<FactArt kind="document" size={32} />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
+    <ListRow leading={<Glyph name="trash" size={24} tone="danger" />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
       onPress={onDelete} />
   </Section>;
 }

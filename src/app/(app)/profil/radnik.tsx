@@ -242,7 +242,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   // Read, not edited: a finished profile with nothing unsaved or in flight. Any edit in progress means the editor is already open. A write of ONLY the name
   // ("Koristi „<ime naloga>“") leaves the profile read: its button spins in place, and the screen does not turn into the editor for the length of one write.
   const nameOnly = !!pending && isNameOnly(pending.command);
-  const reading = profile !== null && (status === 'SUSPENDED' || status === 'ACTIVE' && !manual && !localDirty && (!pending || nameOnly) && (!transportBusy || nameOnly));
+  const reading = profile !== null && (status === 'SUSPENDED' || (status === 'ACTIVE' || status === 'DRAFT') && !manual && !localDirty && (!pending || nameOnly) && (!transportBusy || nameOnly));
+  const introOnly = firstSave && !manual && !localDirty && !pending && !transportBusy && !editor.uncertain;
   // The next read of the profile is the truth about the switch again, so it takes this screen's own answer away.
   useEffect(() => { setSwitching(held => held.busy || held.value === null && !held.failed ? held : { value: null, busy: false, failed: false }); }, [editor.data]);
   // "Lični podaci" led here to write "O meni": the editor opens on that part, once for each tap.
@@ -284,6 +285,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       ? { label: 'Sačuvaj profil', run: () => { void save(false); } }
       : { label: 'Uredi kroz razgovor', run: () => openConversation() };
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
+    if (reading) return { label: 'Nastavi kroz razgovor', run: () => openConversation() };
     if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
     // The name is not typed here: when it is missing, the primary leads to the one place it is written.
@@ -319,13 +321,13 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         disabled={!enabled || (!!primary.activates && !pending && account.state === 'loading')} loading={transportBusy} success={!!message}
         onPress={() => { if (pending) void save(false); else primary.run(); }}
         style={brandAction} />}
-    {!pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
+    {!reading && !pending && status === 'DRAFT' && primary.label !== 'Sačuvaj izmene' ? <V2Action tone="neutral" label="Sačuvaj kao nacrt" kind="quiet" disabled={!enabled} onPress={() => { void save(false); }} /> : null}
     {pending && enabled ? <V2Action tone="neutral" label="Izmeni podatke" kind="quiet" onPress={editAfterRead} /> : null}
   </WorkerProfileFooter> : undefined}>
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={reading ? workerDraft(profile) : draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
-        openConversation={openConversation} profileExists={profile !== null}
+        openConversation={reading && status === 'DRAFT' ? undefined : openConversation} profileExists={profile !== null} introOnly={introOnly}
         reading={reading} onEditPart={editPart} openSection={openSection} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
         availableNow={availableNowControl}
         accountName={accountName} onUseAccountName={() => { void adoptAccountName(); }} nameWorking={nameWorking} /></View>}

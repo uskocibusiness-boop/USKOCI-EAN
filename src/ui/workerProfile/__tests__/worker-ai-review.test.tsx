@@ -134,11 +134,17 @@ it('manual personal-profile correction does not erase or write hidden legacy fie
   expect(profile.licenses).toEqual(['LEGACY_LICENSE']); expect(profile.teamCapacity).toBe(37);
 });
 
-it('draws the activation choice on a flat tint with a white thumb', async () => {
-  await act(async () => { tree = create(<WorkerAiActivation activate={false} disabled={false} change={() => {}} />); });
-  const toggle = tree.root.findByType('Switch' as React.ElementType);
-  expect(toggle.props.thumbColor).toBe(sys.color.surface);
-  expect(toggle.props.accessibilityLabel).toBe('Aktiviraj profil posle čuvanja');
+it('shows two explicit activation choices and only reports a changed, enabled choice', async () => {
+  const change = jest.fn();
+  await act(async () => { tree = create(<WorkerAiActivation activate={false} disabled={false} change={change} />); });
+  const option = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
+  expect(option('Nacrt').props.accessibilityState).toEqual({ checked: true, disabled: false });
+  await act(async () => option('Nacrt').props.onPress()); expect(change).not.toHaveBeenCalled();
+  await act(async () => option('Aktivan profil').props.onPress()); expect(change).toHaveBeenCalledWith(true);
+  await act(async () => tree.update(<WorkerAiActivation activate={true} disabled change={change} />));
+  change.mockClear();
+  await act(async () => option('Nacrt').props.onPress()); expect(change).not.toHaveBeenCalled();
+  expect(option('Aktivan profil').props.accessibilityState).toEqual({ checked: true, disabled: true });
 });
 
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));

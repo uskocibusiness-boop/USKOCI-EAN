@@ -62,15 +62,24 @@ export function DayView({ day, entries, spans, now, zoneNote, overlaps, photo, o
   // The page begins at the hour that matters: where "sada" is, or an hour above the first Dogovor. Once for a day, when the hours have a place on the page.
   const [top, setTop] = useState<number | null>(null);
   const focused = useRef<string | null>(null);
+  const onlyRows = blocks.length === 0 && overflow.length > 0;
   const focusMinute = at ?? (blocks.length ? blocks[0].from : null);
   useEffect(() => {
     // A day with nothing on it and not today has nothing to begin at: the page stays where the view began.
-    if (!onFocus || top === null || focusMinute === null || focused.current === day) return;
+    if (!onFocus || top === null || (!onlyRows && focusMinute === null) || focused.current === day) return;
     focused.current = day;
-    onFocus(Math.max(0, top + PAD + topOf(focusMinute, range) - HOUR_HEIGHT));
-  }, [onFocus, top, day, focusMinute, range]);
+    // In the normal composition the hours are first, at y=0. The last measured
+    // top can still belong to a previous late-only day with rows above the rail.
+    onFocus(onlyRows ? 0 : Math.max(0, PAD + topOf(focusMinute!, range) - HOUR_HEIGHT));
+  }, [onFocus, top, day, focusMinute, range, onlyRows]);
+
+  const extra = overflow.length ? <View testID="day-overflow" style={s.overflow}>
+    <T variant="bodyStrong" accessibilityRole="header">Još termina</T>
+    <View style={s.overflowList}>{overflow.map(entry => row(entry, day, overlaps.get(entry.key) ?? null))}</View>
+  </View> : null;
 
   return <View>
+    {onlyRows ? extra : null}
     <View testID="day-hours" onLayout={event => setTop(event.nativeEvent.layout.y)} style={[s.hours, { height: height + PAD * 2 }]}>
       {hours.map(hour => {
         const y = PAD + (hour - range.from) * HOUR_HEIGHT;
@@ -94,10 +103,7 @@ export function DayView({ day, entries, spans, now, zoneNote, overlaps, photo, o
           style={[s.now, { top: topOf(at, range) }]}><View style={s.nowDot} /></View> : null}
       </View>
     </View>
-    {overflow.length ? <View testID="day-overflow" style={s.overflow}>
-      <T variant="bodyStrong" accessibilityRole="header">Još u isto vreme</T>
-      <View style={s.overflowList}>{overflow.map(entry => row(entry, day, overlaps.get(entry.key) ?? null))}</View>
-    </View> : null}
+    {!onlyRows ? extra : null}
   </View>;
 }
 

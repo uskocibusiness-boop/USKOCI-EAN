@@ -163,10 +163,11 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
           // Mine carries the one small mark: sent, because the group's read holds it. A group has no single reader, so it is never "seen".
           const mark = item.mine ? 'sent' as const : null;
           const sender = group?.members.find(member => member.accountId === item.senderAccountId);
+          const senderFallback = <Avatar initials={sender ? inicijali(sender.displayName) : null} size={40} />;
           return <Appear index={index} animate={appear.isNew(item.messageId)}>
             {entry.separator ? <T accessibilityRole="header" variant="label" tone="muted" style={s.day}>{entry.separator}</T> : null}
             {entry.first ? <View testID={`group-message-sender-${item.messageId}`} style={[s.member, item.mine && s.supportMine]}>
-              <Avatar initials={sender ? inicijali(sender.displayName) : null} size={40} />
+              {sender && p.photo ? p.photo(sender, senderFallback) : senderFallback}
               <T variant="note" tone="muted">{sender?.displayName ?? name(item)}</T>
             </View> : null}
             {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood

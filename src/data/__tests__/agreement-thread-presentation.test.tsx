@@ -18,7 +18,7 @@ jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoCompos
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../../ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
-import { CLOSED_SENTENCE } from '../../ui/AgreementChat';
+import { AgreementChat, CLOSED_SENTENCE } from '../../ui/AgreementChat';
 import { AgreementThreadPresentation } from '../../ui/v2/AgreementThreadPresentation';
 
 const agreement = {
@@ -50,6 +50,20 @@ beforeEach(() => {
         message: null, versionConflict: false, canSubmit: () => false, capture: () => null, refresh: jest.fn().mockResolvedValue(undefined) } as any } };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it('uses the authorized sender identity for a message photo, with initials for an unknown sender', async () => {
+  props.agreement = { ...agreement, ucesnici: [{ ...agreement.ucesnici[0], profilId: 'authorized-profile' }] };
+  await render();
+  const sender = tree.root.findByType(AgreementChat).props.sender;
+  let row: ReactTestRenderer;
+  await act(async () => { row = create(sender({ moja: false, posiljalacAccountId: 'druga', posiljalacIme: 'Name from message' })); });
+  expect(row!.root.findByType('ProfilePhoto' as any).props.profileId).toBe('authorized-profile');
+  expect(text(row!.root)).toContain(agreement.ucesnici[0].ime);
+  await act(async () => row!.update(sender({ moja: false, posiljalacAccountId: 'unknown', posiljalacIme: 'Unknown sender' })));
+  expect(row!.root.findAllByType('ProfilePhoto' as any)).toHaveLength(0);
+  expect(text(row!.root)).toContain('Unknown sender');
+  await act(async () => row!.unmount());
+});
 
 it.each([844, 480])('keeps inbox Back separate from task context at height %s without remounting the draft', async height => {
   mockWindow = { ...mockWindow, height };

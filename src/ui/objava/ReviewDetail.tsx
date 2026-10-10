@@ -213,8 +213,7 @@ export function ReviewGallery({ assetIds, pencil, picture }: { assetIds: readonl
       <View style={s.gallery} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
         {picture ? <View style={s.standIn}>{picture(index)}</View>
           : <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }}
-            pending={<FactArt kind="photo" size={48} />}
-            unavailable={() => <View accessible accessibilityLabel="Fotografija trenutno nije dostupna." style={s.lost}><FactArt kind="photo" size={24} muted /></View>} />}
+            pending={<FactArt kind="photo" size={48} />} />}
         {assetIds.length > 1 ? <View pointerEvents="none" style={s.overlay}>
           <View style={s.counter}>
             <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${assetIds.length}`}>{`${index + 1} / ${assetIds.length}`}</T>
@@ -249,7 +248,6 @@ const s = StyleSheet.create({
   frameTitle: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   gallery: { borderRadius: sys.radius.cardCompact, overflow: 'hidden' },
   standIn: { width: '100%', aspectRatio: 4 / 3 },
-  lost: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   overlay: { position: 'absolute', bottom: sys.space.md, right: sys.space.md },
   counter: { minHeight: 32, justifyContent: 'center', paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface },

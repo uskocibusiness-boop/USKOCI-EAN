@@ -38,7 +38,7 @@ const journal={version:1,groupId:G,clientRequestId:KEY,bodySha256:groupBodyHash(
 let tree:ReactTestRenderer|undefined,entry=false;
 const page=()=>entry?<GroupConversationEntry agreementId={ID}/>:<GroupConversationScreen agreementId={ID}/>;
 const render=async()=>{await act(async()=>{tree=create(page());});};
-const action=(label:string)=>tree!.root.findByProps({label}).props;
+const action=(label:string)=>tree!.root.findAll(node=>(node.props.accessibilityLabel===label||node.props.label===label)&&typeof node.props.onPress==='function')[0].props;
 // Round 6: the send is the pill's round button, named by what it does; found on the outermost element that carries the name.
 const send=(label:string)=>tree!.root.findAll(node=>typeof node.type!=='string'&&node.props.accessibilityLabel===label)[0]?.props;
 // A message is held (long press) to offer it to support, as in Poruke.
@@ -56,7 +56,7 @@ beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService
 afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mockListeners.size).toBe(0);mockListeners.clear();});
 it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
  await render();expect(text()).toContain(message.body);expect(text()).toContain('Cenu, lične uslove i probleme dogovori privatno.');expect(text()).toContain('Ove poruke vide svi učesnici zadatka.');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
- expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(1);expect(text()).not.toContain('Tvoji pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
+ const avatars=tree!.root.findAllByType('Avatar' as never);expect(avatars).toHaveLength(2);expect(avatars.every(node=>node.props.profileId===B)).toBe(true);expect(text()).not.toContain('Tvoji pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
  // Round 6: the block is the requester's own, so the finish waits on "tvoju" confirmation (it said the impersonal "Čeka potvrdu završetka").
@@ -85,7 +85,7 @@ it.each(['blur','background','ABA'])('rejects a retained private-channel choice 
 });
 it('shows sender identity with the message before opening the people panel',async()=>{
  await render();expect(tree!.root.findByProps({testID:`group-message-sender-${M}`})).toBeDefined();
- expect(tree!.root.findAllByType('Avatar' as never)).toHaveLength(0); // no photo fetch per message run
+ expect(tree!.root.findAllByType('Avatar' as never)[0].props.profileId).toBe(B); // same authorized member photo as the roster
  expect(text()).toContain('Bojana');expect(text()).toContain(message.body);
 });
 it('the overview lists the authoritative roster and only the allowed private target',async()=>{
@@ -100,8 +100,8 @@ it('pages requester choices once, deduplicates IDs and keeps prior choices on a 
  const more=action('Još privatnih razgovora').onPress;await act(async()=>{more();more();});
  expect(mockService.context).toHaveBeenCalledTimes(2);
  await act(async()=>gate.resolve(ok({...c,group:{...c.group,management:[c.group.management![0],{...c.group.management![0],agreementId:KEY}],managementNextId:KEY}})));
- expect(tree!.root.findAllByProps({label:'Privatno: Bojana · Dogovor 1'})).toHaveLength(1);
- expect(tree!.root.findAllByProps({label:'Privatno: Bojana · Dogovor 2'})).toHaveLength(1);
+ expect(tree!.root.findAllByProps({accessibilityLabel:'Privatno: Bojana · Dogovor 1'})).toHaveLength(1);
+ expect(tree!.root.findAllByProps({accessibilityLabel:'Privatno: Bojana · Dogovor 2'})).toHaveLength(1);
  mockService.context.mockResolvedValueOnce(unknown);await tap('Još privatnih razgovora');
  expect(text()).toContain('Nisu učitani svi privatni razgovori');expect(action('Privatno: Bojana · Dogovor 2')).toBeDefined();
 });

@@ -883,3 +883,14 @@ DOKAZAO:164Python+22Jest PASS i nezavisan read-only pregled. Tačan7440 CI APK n
 NIJE DOKAZANO: originalni API35 uzrok, cela registracija/resend/other-account native putanja, nova radna kartica na telefonu, hosted SMTP i stvarno sanduče. Nema promene aplikacionih auth zaštita da bi test postao zelen. N02 ostaje release blocker; NO-GO i automatizacijaPAUSED.
 
 SLEDEĆE: push proverene dijagnostike obegrane i ponovi izolovaniAPI35CI sa tačnim izvorom; pročitaj konkretan focus/tap ishod ako opet padne. Owner prijava/SMTP ostaju jedine spoljne prepreke email primeni. Zatim već otvoren B00/B01 AI-only candidate map tok, bez novog master plana ili beskonačnog redizajna.
+
+
+## 10.10 — tri objedinjena vizuelna kruga
+
+URADIO: čist AI ulaz i DRAFT radna kartica; kompaktna activation odluka; odvojene filter sekcije na blur-u; autorizovan avatar uz poruke, privatna akcija uz učesnika; retry fotografije, trash ikona, čitljivi kasni termini. Tri read-only stručna pregleda; root jedini pisac, botd7ad sačuvan.
+
+DOKAZAO:15suite/475jedinstvenih PASS bezskip,tsc0, dodatna ponovljena filter70PASS posleboxShadow/inset popravke. Sačuvani pending/dirty/suspension/account/privatnost autoriteti. Konkretno popravljeni stale calendar offset, dugački privatni label i nasleđena senka. Dokaz: docs/implementation/evidence/visual-rounds-20261010/REPORT.md.
+
+NIJE DOKAZANO: novi APK/native/veliki font/dug chat/povezani tok. AI-only celina/candidate-map, emailOwner/SMTP, noviGPSfix/numeričkibudžet, security/privacy/deletion/push i store ostaju otvoreni. NO-GO i automatizacijaPAUSED.
+
+SLEDEĆE: obegrane+tačanCI, jedan inkrementalniQAphoneAPK sa600baseline i istimcert; native tek kad telefon nije u vlasnikovoj upotrebi. Zatim candidate-map i povlačenje normalnih ručnih ulaza bez gubitka oporavka. Ne ponavljati rešene mape/pin/FULL interakcije bez stvarne regresije.

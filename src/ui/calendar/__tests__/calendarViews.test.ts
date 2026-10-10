@@ -193,3 +193,24 @@ describe('the hours a day is drawn between', () => {
     expect(topOf(5 * 60, { from: 5, to: 22 })).toBe(0);
   });
 });
+
+
+describe('readable appointments at the midnight boundary', () => {
+  it('keeps a 48dp target at 23:15, and routes shorter clipped targets to a row with unchanged times', () => {
+    const edge = at('edge', '23:15', null), late = at('late', '23:16', null), latest = at('latest', '23:50', null);
+    const result = layoutDay([edge, late, latest], DAY);
+    expect(result.blocks.map(block => block.entry.key)).toEqual(['edge']);
+    expect(result.overflow).toEqual([late, latest]);
+    expect(latest.endsAt).toBeNull();
+  });
+  it('keeps a crossing appointment once per day, without changing its true end', () => {
+    const night = at('night', '23:50', null, { endsAt: serbian('2026-10-09', '00:10') });
+    expect(layoutDay([night], DAY)).toEqual({ blocks: [], overflow: [night] });
+    expect(layoutDay([night], '2026-10-09').blocks[0]).toMatchObject({ entry: night, from: 0, to: 10 });
+  });
+  it('retains every appointment exactly once when late starts and crowded columns coexist', () => {
+    const input = [at('a', '09:00', '11:00'), at('b', '09:10', '11:00'), at('c', '09:20', '11:00'), at('d', '09:30', '11:00'), at('late', '23:50', null)];
+    const result = layoutDay(input, DAY);
+    expect([...result.blocks.map(block => block.entry.key), ...result.overflow.map(item => item.key)].sort()).toEqual(input.map(item => item.key).sort());
+  });
+});

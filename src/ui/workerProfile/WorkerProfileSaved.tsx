@@ -51,7 +51,6 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   const name = accountName?.trim() || draft.ime.trim();
   const kinds = skillsLine(draft.vestine);
   return <View testID="worker-profile-saved" style={s.saved}>
-    {status}
     {name || kinds || draft.biografija.trim() ? <Surface kind="panel" testID="worker-profile-card" style={s.card}>
       <T variant="meta" tone="muted">Tvoj radni profil</T>
       <View style={s.cardRow}>
@@ -64,6 +63,8 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       </View>
       {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
     </Surface> : null}
+    {openConversation && !readOnly ? <V2Action label="Uredi kroz razgovor" tone="neutral" disabled={disabled} onPress={openConversation} /> : null}
+    {status}
     {onUseAccountName && namesDiffer(draft.ime, accountName)
       ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
@@ -90,7 +91,6 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
         <KitRow label="Vozila" art="vehicle" items={draft.vozila} last />
       </SettingsGroup>
     </View>
-    {openConversation && !readOnly ? <V2Action label="Uredi kroz razgovor" tone="neutral" disabled={disabled} onPress={openConversation} /> : null}
   </View>;
 }
 

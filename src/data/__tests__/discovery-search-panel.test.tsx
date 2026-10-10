@@ -182,6 +182,7 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(sheetHeight()).toBe(1334); expect(sheetCorner()).toBe(0);
     expect(byId('search-backdrop')).toBeUndefined(); // nothing of the map shows round it
     expect(byId('search-sheet').props).toMatchObject({ accessibilityViewIsModal: true, accessibilityLabel: 'Pretraga' });
+    expect(StyleSheet.flatten(byId('search-sheet').props.style).backgroundColor).toBe(sys.color.surface);
     const header = byId('search-header');
     expect(header.findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel)).toContain('Zatvori pretragu');
     expect(whatField().props).toMatchObject({ accessibilityLabel: 'Grad ili zadatak', placeholder: 'Grad ili naziv zadatka', autoFocus: false, returnKeyType: 'search' });
@@ -495,14 +496,16 @@ describe('the server preview (P6) of the search', () => {
 
 describe('the FILTERS are a sheet with the days, how the work is done and the amount', () => {
   const group = (id: string) => byId(id);
+  const open = async (id: string) => { const toggle = byId(`${id}-toggle`); if (!toggle.props.accessibilityState.expanded) await act(async () => toggle.props.onPress()); };
 
   test('it rises from the bottom over a backdrop, with Kada, Gde and Iznos in that order, and nothing of the search', async () => {
     mode = 'filters'; await render();
-    expect(sheetHeight()).toBe(1041); expect(sheetCorner()).toBe(sys.radius.sheet); // 78 % of the window: three rows of choices and a foot, not a page
+    expect(sheetHeight()).toBe(1227); expect(sheetCorner()).toBe(sys.radius.sheet); // 92 %: separate sections leave room for the date grid
     expect(byId('search-backdrop')).toBeDefined();
     expect(byId('search-sheet').props).toMatchObject({ accessibilityViewIsModal: true, accessibilityLabel: 'Filteri' });
+    expect(StyleSheet.flatten(byId('search-sheet').props.style)).toMatchObject({ backgroundColor: 'transparent', boxShadow: [], elevation: 0 });
     expect(byLabel('Zatvori filtere')).toHaveLength(1); expect(byLabel('Zatvori pretragu')).toHaveLength(0);
-    const order = tree.root.findAll(node => node.props.testID && /^filters-/.test(node.props.testID)).map(node => node.props.testID);
+    const order = tree.root.findAll(node => String(node.type) === 'View' && /^filters-(when|where|amount)$/.test(node.props.testID ?? '')).map(node => node.props.testID);
     expect(order).toEqual(['filters-when', 'filters-where', 'filters-amount']);
     expect(texts()).toContain('Kada'); expect(texts()).toContain('Gde'); expect(texts()).toContain('Iznos');
     expect(texts()).not.toMatch(/Broj ljudi|Osoba|osoba|Redosled/);
@@ -516,17 +519,23 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     rows = rows.filter(item => item.id !== 'remote'); mode = 'filters'; await render();
     expect(group('filters-where')).toBeUndefined();
     await act(async () => tree.unmount());
-    view = { ...view, where: 'onsite' }; await render();
+    view = { ...view, where: 'onsite' }; await render(); await open('filters-where');
     expect(radio('Na licu mesta', group('filters-where'))[0].props.accessibilityState.checked).toBe(true);
   });
 
   test('the choices are one row each and a draft: nothing is applied before "Prikaži", and the number follows the choice', async () => {
     mode = 'filters'; await render();
+    await open('filters-amount');
     expect(radio('Svejedno', group('filters-amount'))[0].props.accessibilityState.checked).toBe(true);
+    await open('filters-where');
     expect(radio('Svejedno', group('filters-where'))[0].props.accessibilityState.checked).toBe(true);
+    await open('filters-when');
     await choose('Ovaj vikend', group('filters-when'));
     expect(radio('Ovaj vikend')[0].props.accessibilityState).toEqual({ checked: true });
     expect(show().props.label).toBe('Prikaži 4 zadatka');
+    await open('filters-amount');
+    expect(byId('filters-when-body')).toBeUndefined();
+    expect(byId('filters-when-toggle').props.accessibilityValue.text).toContain('vikend');
     await choose('Tražim ponude', group('filters-amount'));
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
     await choose('Sa iznosom', group('filters-amount'));
@@ -565,7 +574,7 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
 
   test('choosing remote clears geographic scope in the draft, keeps the conditions, and applies only on confirmation', async () => {
     view = { ...view, place: 'Liman, Novi Sad', area: [19.8, 45.2, 19.9, 45.3], pinPlace: '45.25,19.84', price: 'MY_PRICE', query: 'Pomoć', places: 2 };
-    mode = 'filters'; await render(); await choose('Na daljinu', group('filters-where'));
+    mode = 'filters'; await render(); await open('filters-where'); await choose('Na daljinu', group('filters-where'));
     expect(show().props.label).toBe('Prikaži 1 zadatak');
     expect(apply).not.toHaveBeenCalled(); expect(view.pinPlace).toBe('45.25,19.84');
     await act(async () => show().props.onPress());
@@ -579,6 +588,7 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     // The place and the word are the search's: they stay, and the tasks of that place are what is counted.
     expect(show().props.label).toBe('Prikaži 1 zadatak');
     expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(false);
+    await open('filters-amount');
     expect(radio('Svejedno', group('filters-amount'))[0].props.accessibilityState.checked).toBe(true);
     await act(async () => show().props.onPress());
     expect(lastDraft()).toEqual({ ...NO_SEARCH, place: 'Vračar, Beograd', query: 'pomoć' });
@@ -737,7 +747,9 @@ describe('the frame, the backdrop and the motion', () => {
     await act(async () => tree.unmount()); mode = 'filters';
     await act(async () => { tree = create(<SafeAreaInsetsContext.Provider value={{ top: 30, bottom: 20, left: 0, right: 0 }}>{panelOf()}</SafeAreaInsetsContext.Provider>); });
     await act(async () => byId('search-root').props.onLayout({ nativeEvent: { layout: { height: 1000 } } }));
-    expect(sheetHeight()).toBe(780);
+    expect(sheetHeight()).toBe(920);
+    await act(async () => byId('search-root').props.onLayout({ nativeEvent: { layout: { height: 400 } } }));
+    expect(sheetHeight()).toBe(354); // status bar plus 16 dp wins over the percentage
   });
 
   test('the panel is a transparent modal without the platform\'s own fade: its motion is its own', async () => {
@@ -753,7 +765,7 @@ describe('the frame, the backdrop and the motion', () => {
     expect(fade).toBeDefined();
     await act(async () => tree.unmount()); runs = []; reduced = true; await render();
     expect(runs.filter(run => run.kind === 'spring' || run.config.duration === sys.motion.enter || run.config.duration === sys.motion.sheetClose)).toHaveLength(0);
-    expect(sheetHeight()).toBe(1041);
+    expect(sheetHeight()).toBe(1227);
   });
 
   test('it closes on the short timing and tells the screen only once it is gone; reduced motion closes at once', async () => {
