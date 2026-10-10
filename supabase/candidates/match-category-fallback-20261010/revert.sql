@@ -86,7 +86,7 @@ begin
   return jsonb_build_object('matches',cardinality(hard)=0 and svc and area and tier is not null,
     'service',svc,'area',area,'timeTier',tier,'distanceKm',dist,'effectiveRadiusKm',radius,'hard',to_jsonb(hard));
 end;
-$function$
+$function$;
 
 do $postflight$
 declare oldrow match_category_before%rowtype; newrow record;
