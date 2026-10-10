@@ -39,3 +39,9 @@ Ne prepravljati bez konkretne regresije: bela FULL lista, kapsule/scroll, stabil
 2. Install-r i ograničen native prolaz samo u slobodnom prozoru telefona: filters/range/Back, radna kartica/AI ulaz, razgovor/identitet, kalendar. Ne dirati aktivnu vlasnikovu upotrebu.
 3. Najmanji naredni poslovni paket: revisioned AI mapa područja rada i normalni AI ulazi umesto ručnih, uz očuvan stari pending/dirty recovery i dozvoljenu ručnu dostupnost.
 4. Povezani lifecycle/two-account testovi, preostali sigurnosni i release blokatori; postojeći jedini registar ostaje autoritet. Automatizacija 30min ostaje PAUSED. Nema tvrdnje o udaljenoj objavi Claude table.
+
+## Integrisani CI — prvi ishod i korekcija test putanje
+
+Izvor aplikacije `63366e0fb231071d9bcc5a2d8f252aec4682e6ab` objavljen na obe kanonske grane. R20 run **38027742416 FAIL**: TypeScript PASS, fokusirani Discovery 222 PASS / 5 FAIL, puna regresija SKIPPED. Pet testova pokušalo je da direktno pritisne opciju sada zatvorene sekcije. Testovi sada izvode vidljivu korisničku radnju otvaranja sekcije, pa zadržavaju sve tvrdnje o broju rezultata, primeni/otkazivanju nacrta, kapsulama i account-scoped skorašnjoj pretrazi. Lokalni integrisani suite: **227/227 PASS**; dodate su i tvrdnje da je samo jedna sekcija proširena. Nezavisni pregled potvrdio je svih pet mesta. Ovo nije promena aplikacije da bi test prošao. Novi full CI se beleži po stvarnom ishodu.
+
+Otvoren performance detalj: `ProfilePhoto` za tuđu fotografiju trenutno čita pri svakom montiranju; nova slika po nizu poruka povećava broj takvih čitanja. Nema potvrde brzine dugog razgovora. Sledeća ciljana optimizacija mora objediniti čitanja unutar iste autorizovane posete, uz brisanje na blur/background/account promenu; ne uvoditi trajni cache tuđih fotografija bez zaštita. To ostaje razlog da se ovaj paket ne naziva proizvodno spremnim.

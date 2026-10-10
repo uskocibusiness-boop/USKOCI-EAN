@@ -229,6 +229,11 @@ const capsuleLabels = () => capsules()[0].findAll(node => String(node.type) === 
 /** The capsule "Filteri" (which opens the filters and only them). */
 const filters = (label = 'Filteri') => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
 const tapFilters = async (label = 'Filteri') => act(async () => filters(label).props.onPress());
+const openFilterSection = async (id: 'when' | 'where' | 'amount') => {
+  await act(async () => tree.root.findByProps({ testID: `filters-${id}-toggle` }).props.onPress());
+  expect(tree.root.findByProps({ testID: `filters-${id}-toggle` }).props.accessibilityState.expanded).toBe(true);
+  expect(tree.root.findAll(node => String(node.type) === 'Press' && /^filters-.*-toggle$/.test(node.props.testID ?? '') && node.props.accessibilityState?.expanded)).toHaveLength(1);
+};
 /** The pill and its row of capsules are measured as one stack, from the top of the map: the notice below them is not part of it. */
 const pillBottom = async (height: number) => act(async () => tree.root.findByProps({ testID: 'discovery-search-stack' }).props.onLayout(
   { nativeEvent: { layout: { x: 0, y: 0, width: 320, height } } }));
@@ -287,7 +292,7 @@ test('what was searched is kept for this account and offered the next time the s
   expect(JSON.parse(mockRecentStore.get('uskoci.zadaci.recent.v1.a')!)).toEqual([{ query: 'pomoć', place: 'Vračar, Beograd' }]);
   await tap('Prikaži sve zadatke'); expect(snapshot).toMatchObject({ query: '', place: null });
   // a filter changes no word and no place, so it keeps nothing
-  await tapFilters(); await act(async () => radioOf('Sa iznosom').props.onPress()); await act(async () => showAction().props.onPress());
+  await tapFilters(); await openFilterSection('amount'); await act(async () => radioOf('Sa iznosom').props.onPress()); await act(async () => showAction().props.onPress());
   expect(JSON.parse(mockRecentStore.get('uskoci.zadaci.recent.v1.a')!)).toHaveLength(1);
   await tap('Pretraži zadatke');
   expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(1);
@@ -1889,7 +1894,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(panel()).toHaveLength(1);
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
     await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
-    await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await openFilterSection('amount'); await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     expect(radio('Tražim ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
     await act(async () => showAction().props.onPress());
@@ -1914,10 +1919,11 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
     await tapFilters();
     expect(radio('Danas').props.accessibilityState).toEqual({ checked: false }); // the discarded draft is gone
-    await choose('Danas'); await choose('Sa iznosom');
+    await choose('Danas'); await openFilterSection('amount'); await choose('Sa iznosom');
     await act(async () => clearAction().props.onPress());
-    expect(radio('Danas').props.accessibilityState).toEqual({ checked: false });
     expect(radio('Svejedno').props.accessibilityState).toEqual({ checked: true });
+    await openFilterSection('when');
+    expect(radio('Danas').props.accessibilityState).toEqual({ checked: false });
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
   });
   test('"Gde" is offered only when a task says how the work is done, in the filters and as a quick capsule', async () => {
@@ -1929,7 +1935,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tapFilters();
     expect(texts(panel()[0])).toContain('Gde');
-    await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    await openFilterSection('where'); await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     await tap('Zatvori filtere');
     expect(chip('Na daljinu').props.accessibilityState).toEqual({ selected: false });
   });
@@ -1953,6 +1959,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     await act(async () => chip('Sa iznosom').props.onPress());
     expect(snapshot.price).toBe('MY_PRICE'); expect(cards()).toEqual(['danas', 'sutra']);
     await tapFilters('Filteri, 1 aktivan');
+    await openFilterSection('amount');
     expect(radio('Sa iznosom').props.accessibilityState).toEqual({ checked: true });
   });
   test('a place chosen in "Gde" applies at once, is said by the pill alone (no capsule repeats it), and is taken away there', async () => {
