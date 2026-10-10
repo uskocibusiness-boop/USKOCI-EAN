@@ -20,7 +20,7 @@ CREATE TABLE private.synthetic_time (pid uuid PRIMARY KEY, allowed boolean NOT N
 -- pg_get_functiondef on 2026-10-10. Other helpers and data are still SYNTHETIC,
 -- not evidence of full Auth, RLS, calendar, notification or closure readiness.
 CREATE FUNCTION private.lower_arr(text[]) RETURNS text[] LANGUAGE sql IMMUTABLE
-AS $ select coalesce(array_agg(lower(btrim(v))), '{}'::text[]) from unnest($1) v $;
+AS $$ select coalesce(array_agg(lower(btrim(v))), '{}'::text[]) from unnest($1) v $$;
 CREATE OR REPLACE FUNCTION private.effective_radius_km(base_radius integer)
  RETURNS numeric
  LANGUAGE sql
