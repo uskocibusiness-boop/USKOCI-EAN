@@ -3,7 +3,7 @@
 BEGIN;
 CREATE SCHEMA private;
 CREATE TABLE public.needs (
- id uuid PRIMARY KEY, requester_account_id uuid NOT NULL, category text,
+ id uuid PRIMARY KEY, requester_account_id uuid NOT NULL, revision integer NOT NULL DEFAULT 1, category text,
  required_skills text[] NOT NULL DEFAULT '{}', execution_location_mode text NOT NULL DEFAULT 'ONSITE',
  approximate_lat numeric, approximate_lng numeric, approximate_city text,
  verified_identity_required boolean NOT NULL DEFAULT false);
@@ -12,7 +12,11 @@ CREATE TABLE public.app_profiles (
  profile_status text NOT NULL DEFAULT 'ACTIVE', skills text[] NOT NULL DEFAULT '{}',
  exclusions text[] NOT NULL DEFAULT '{}', radius_km integer NOT NULL DEFAULT 30, city text);
 CREATE TABLE public.worker_match_preferences (
- worker_profile_id uuid PRIMARY KEY, approximate_lat numeric, approximate_lng numeric);
+ worker_profile_id uuid PRIMARY KEY, approximate_lat numeric, approximate_lng numeric,
+ proactive_notifications boolean NOT NULL DEFAULT true);
+-- Minimum synthetic projection consumed by the REAL dispatch prefilter.
+CREATE TABLE public.opportunity_deliveries (
+ worker_account_id uuid NOT NULL, need_id uuid NOT NULL, need_revision integer NOT NULL);
 CREATE TABLE private.marketplace_config (key text PRIMARY KEY, value jsonb NOT NULL);
 CREATE TABLE private.synthetic_time (pid uuid PRIMARY KEY, allowed boolean NOT NULL);
 -- Worker matcher and 11-kind classifier have real canonical function bodies.
