@@ -15,8 +15,8 @@ const cases = [
 test('actual current client contains the newer exact RPC literals, not old calls', () => {
   for (const [old, modern, filename] of cases) {
     const source = fs.readFileSync(path.join(root, filename), 'utf8');
-    assert.match(source, new RegExp("['\\"`]" + modern + "['\\"`]"));
-    assert.doesNotMatch(source, new RegExp("['\\"`]" + old + "['\\"`]"));
+    assert.ok(source.includes("'" + modern + "'") || source.includes('"' + modern + '"') || source.includes('`' + modern + '`'));
+    assert.ok(!source.includes("'" + old + "'") && !source.includes('"' + old + '"') && !source.includes('`' + old + '`'));
     const result = successor(old, { [filename]: source }, new Set([filename]));
     assert.equal(result.status_poziva, 'MOGUCA_NOVIJA_KLIJENTSKA_ZAMENA');
     assert.equal(result.kandidat_novijeg_rpc, modern);
