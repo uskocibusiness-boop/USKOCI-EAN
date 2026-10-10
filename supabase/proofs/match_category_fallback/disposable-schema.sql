@@ -53,26 +53,21 @@ AS $$ select case when coalesce((select allowed from private.synthetic_time wher
 CREATE FUNCTION private.closure_source_digest_v5() RETURNS text
 LANGUAGE sql STABLE AS $$ select 'SYNTHETIC_CLOSURE_NOT_CERTIFIED'::text $$;
 
-INSERT INTO private.marketplace_config(key,value)
-VALUES ('work_kinds_head',jsonb_build_object('schema','WORK_KINDS_HEAD_V1',
-'foldVersion','SR_LATIN_CYRILLIC_V1', 'kinds', to_jsonb(ARRAY[
-'SELIDBE_PREVOZ','FIZICKI_POSLOVI','MONTAZA_NAMESTAJA','SITNE_POPRAVKE','MOLERSKI_RADOVI',
-'ELEKTRO','VODOINSTALATER','CISCENJE','PRANJE_PEGLANJE','BASTA_DVORISTE','DOSTAVA']::text[])));
-INSERT INTO private.marketplace_config(key,value)
-SELECT 'work_kind:'||kind,jsonb_build_object('schema','WORK_KIND_V1','kind',kind,'stems',to_jsonb(stems))
-FROM (VALUES
- ('SELIDBE_PREVOZ',ARRAY['selid','prevoz']::text[]),
- ('FIZICKI_POSLOVI',ARRAY['fizick','nosenj']::text[]),
- ('MONTAZA_NAMESTAJA',ARRAY['montaz','sklapanj']::text[]),
- ('SITNE_POPRAVKE',ARRAY['poprav','majstor']::text[]),
- ('MOLERSKI_RADOVI',ARRAY['moler','krecenj']::text[]),
- ('ELEKTRO',ARRAY['elektr','struj']::text[]),
- ('VODOINSTALATER',ARRAY['vodoinst','slavin']::text[]),
- ('CISCENJE',ARRAY['cisc','usisav']::text[]),
- ('PRANJE_PEGLANJE',ARRAY['pegl','pranj']::text[]),
- ('BASTA_DVORISTE',ARRAY['bast','kosenj']::text[]),
- ('DOSTAVA',ARRAY['dostav','kurir']::text[])
-) AS registry(kind,stems);
+-- Public, non-personal work-kind registry captured read-only from
+-- canonical DEV on 2026-10-10. Data snapshot, not a live registry migration.
+INSERT INTO private.marketplace_config(key,value) VALUES
+ ('work_kind:BASTA_DVORISTE', '{"kind":"BASTA_DVORISTE","stems":["bast","dvorist","kosenj","travnjak","garden","lawn"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:CISCENJE', '{"kind":"CISCENJE","stems":["cisc","odrzavanj","clean","usisav"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:DOSTAVA', '{"kind":"DOSTAVA","stems":["dostav","kurir","delivery","courier"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:ELEKTRO', '{"kind":"ELEKTRO","stems":["elektr","electr","struj","uticnic","prekidac","rasvet","sijalic"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:FIZICKI_POSLOVI', '{"kind":"FIZICKI_POSLOVI","stems":["fizick","nosenj","nosac","utovar","istovar","iznosenj","unosenj","labor","labour","loading"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:MOLERSKI_RADOVI', '{"kind":"MOLERSKI_RADOVI","stems":["moler","krecenj","farbanj","gletovanj","painting","painter","ofarb"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:MONTAZA_NAMESTAJA', '{"kind":"MONTAZA_NAMESTAJA","stems":["montaz","namestaj","ikea","furniture","assembl","ikee","ikei","ikeu","ikeom"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:PRANJE_PEGLANJE', '{"kind":"PRANJE_PEGLANJE","stems":["pegl","pranje vesa","laundry","ironing"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:SELIDBE_PREVOZ', '{"kind":"SELIDBE_PREVOZ","stems":["selid","prevoz","transport","kombi","moving","removal"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:SITNE_POPRAVKE', '{"kind":"SITNE_POPRAVKE","stems":["popravk","majstor","handyman","repair"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:VODOINSTALATER', '{"kind":"VODOINSTALATER","stems":["vodoinst","vodovod","slavin","odvod","bojler","plumb"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kinds_head', '{"kinds":["SELIDBE_PREVOZ","FIZICKI_POSLOVI","MONTAZA_NAMESTAJA","SITNE_POPRAVKE","MOLERSKI_RADOVI","ELEKTRO","VODOINSTALATER","CISCENJE","PRANJE_PEGLANJE","BASTA_DVORISTE","DOSTAVA"],"schema":"WORK_KINDS_HEAD_V1","package":"EX-06 ex06b","previous":"PKG-031b hard-coded regular expressions, body md5 2113eb46ab7ea968b873e76d1de12377","foldVersion":"SR_LATIN_CYRILLIC_V1","classificationVersion":"WK-1"}'::jsonb);
 INSERT INTO public.needs(id,requester_account_id,category,approximate_city)
 VALUES ('11111111-1111-4111-8111-111111111111','44444444-4444-4444-8444-444444444444',
  'Čišćenje stana','Novi Sad');
