@@ -77,8 +77,9 @@ function OwnedPersonalProfile() {
           return { ok: true, podatak: result.podatak.identity };
         })} />
       {workNameFailed ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
-      {/* "O meni" is the work profile's text, written where the work profile is: its editor opens on that part. */}
-      <ProfileFactRows about={about} city={city} onAbout={() => go(() => router.navigate({ pathname: '/profil/radnik', params: { uredi: 'o-meni', n: String(Date.now()) } }))}
+      {/* "O meni" belongs to the work profile. Normal edits enter the existing AI conversation, never the legacy manual editor.
+          Opening the conversation does not send a paid turn or change the saved profile; the person reviews before saving. */}
+      <ProfileFactRows about={about} city={city} onAbout={() => go(() => router.navigate('/profil/razgovor'))}
         onCity={() => go(() => router.navigate('/profil/lokacija'))} />
       <VisibilityNote />
     </>
