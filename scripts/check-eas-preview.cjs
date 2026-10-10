@@ -4,6 +4,7 @@
 // No network, credential reads, environment writes, or key values in output.
 const fs = require('node:fs');
 const path = require('node:path');
+const { assertProductionBackend } = require('./production-backend-guard.cjs');
 
 const PROJECT_ID = '1e6cc490-9851-4741-9226-128612122db6';
 const SUPABASE_REF = 'leqcwgzvjsxugfgzdmth';
@@ -15,13 +16,13 @@ function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function isPublicKeyForm(value) {
+function isPublicKeyForm(value, expectedRef = SUPABASE_REF) {
   if (typeof value !== 'string' || value.trim() !== value) return false;
   if (/^sb_publishable_[A-Za-z0-9_-]+$/.test(value)) return true;
   if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value)) return false;
   try {
     const payload = JSON.parse(Buffer.from(value.split('.')[1], 'base64url').toString('utf8'));
-    return payload.role === 'anon' && payload.ref === SUPABASE_REF;
+    return payload.role === 'anon' && payload.ref === expectedRef;
   } catch {
     return false;
   }
@@ -46,7 +47,8 @@ function validateFirebase(firebase) {
  * The two reviewed Android builds this hook admits. `preview` is the internal APK the phones have run since
  * 2026-09; `production` is the store app bundle for Google Play (owner, 2026-09-23: "večeras šaljem app na Google
  * Play"). Both keep every other boundary below: the same project, package, version floor, public backend form,
- * fake-source ban and Firebase client. Any other profile is refused.
+ * fake-source ban and strict environment validation. The store build additionally requires an approved,
+ * isolated production backend; this is NOT a store-release certificate. Any other profile is refused.
  */
 const REVIEWED_PROFILES = {
   preview: profile => profile?.autoIncrement === true && profile?.distribution === 'internal' && profile?.environment === 'preview' &&
@@ -84,10 +86,18 @@ function validatePreview({ app, eas, env, firebase }) {
     'The EAS job project does not match the selected existing project.');
   requireCondition(env.EXPO_PUBLIC_USE_FAKE_SOURCE !== '1' && env.NODE_ENV !== 'test' &&
     env.JEST_WORKER_ID === undefined, 'Preview cannot use the fake or test data composition.');
-  requireCondition(env.EXPO_PUBLIC_SUPABASE_URL === `https://${SUPABASE_REF}.supabase.co`,
-    'EXPO_PUBLIC_SUPABASE_URL must identify the confirmed canonical Supabase project.');
-  requireCondition(isPublicKeyForm(env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
-    'EXPO_PUBLIC_SUPABASE_ANON_KEY must be a public publishable key or canonical-project anon JWT.');
+  let expectedRef = SUPABASE_REF;
+  if (store) {
+    requireCondition(!Object.prototype.hasOwnProperty.call(selected.env ?? {}, 'EXPO_PUBLIC_SUPABASE_URL') &&
+      !Object.prototype.hasOwnProperty.call(selected.env ?? {}, 'EXPO_PUBLIC_SUPABASE_ANON_KEY'),
+      'USKOCI_PRODUCTION_PROFILE_MUST_NOT_PIN_DEV_BACKEND');
+    expectedRef = assertProductionBackend(env);
+  } else {
+    requireCondition(env.EXPO_PUBLIC_SUPABASE_URL === `https://${SUPABASE_REF}.supabase.co`,
+      'EXPO_PUBLIC_SUPABASE_URL must identify the confirmed canonical Supabase project.');
+  }
+  requireCondition(isPublicKeyForm(env.EXPO_PUBLIC_SUPABASE_ANON_KEY, expectedRef),
+    'EXPO_PUBLIC_SUPABASE_ANON_KEY must be a public publishable key or project-bound anon JWT.');
   if (store) {
     // The reviewed Firebase client belongs to rs.uskoci.preview; the store package must not borrow it.
     requireCondition(!expo?.android?.googleServicesFile, 'The store bundle must not carry the preview Firebase client.');
