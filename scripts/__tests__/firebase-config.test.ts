@@ -25,6 +25,10 @@ function resolvePackage(packageName: string, extraEnv: Record<string, string | u
   fs.copyFileSync(path.join(root, 'app.config.js'), path.join(fixture, 'app.config.js'));
   fs.mkdirSync(path.join(fixture, 'scripts'));
   fs.copyFileSync(path.join(root, 'scripts/build-identity.cjs'), path.join(fixture, 'scripts/build-identity.cjs'));
+  // The real app config imports this fail-closed store guard even in preview mode.
+  // Mirror its dependency in the disposable Expo fixture; no production values are supplied.
+  fs.copyFileSync(path.join(root, 'scripts/production-backend-guard.cjs'),
+    path.join(fixture, 'scripts/production-backend-guard.cjs'));
   fs.mkdirSync(path.join(fixture, 'plugins'));
   fs.copyFileSync(path.join(root, enrollmentPlugin), path.join(fixture, enrollmentPlugin));
   // Use the same Node resolver as Expo CLI; Jest's browser module conditions

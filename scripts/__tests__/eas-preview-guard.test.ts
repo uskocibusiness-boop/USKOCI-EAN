@@ -73,34 +73,53 @@ describe('actual EAS preview pre-install guard', () => {
     expect(() => validatePreview(input)).toThrow(/preview/);
   });
 
-  // Store build, owner 2026-09-23: the production profile is the Google Play app bundle rs.uskoci and keeps every other
-  // boundary; it carries no Firebase client, because the reviewed one belongs to the preview package.
+  // Store route is fail-closed until an isolated backend is explicitly approved.
+  // Offline synthetic project IDs test admission logic, not a real release decision.
+  const storeRef = 'abcdefghijklmnopqrst';
   function storeFixture() {
-    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production'; input.env.USKOCI_OTA_TARGET = 'production';
-    const before = process.env.EAS_BUILD_PROFILE; process.env.EAS_BUILD_PROFILE = 'production';
-    try { input.app = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) }; }
-    finally { if (before === undefined) delete process.env.EAS_BUILD_PROFILE; else process.env.EAS_BUILD_PROFILE = before; }
+    const input = fixture();
+    input.env.EAS_BUILD_PROFILE = 'production';
+    input.env.USKOCI_OTA_TARGET = 'production';
+    input.env.EXPO_PUBLIC_SUPABASE_URL = `https://${storeRef}.supabase.co`;
+    input.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = jwt('anon', storeRef);
+    input.env.USKOCI_PRODUCTION_BACKEND_REF = storeRef;
+    input.env.USKOCI_PRODUCTION_BACKEND_APPROVED = '1';
+    const names = ['EAS_BUILD_PROFILE', 'USKOCI_OTA_TARGET', 'EXPO_PUBLIC_SUPABASE_URL',
+      'USKOCI_PRODUCTION_BACKEND_REF', 'USKOCI_PRODUCTION_BACKEND_APPROVED'];
+    const previous = names.map(name => [name, process.env[name]] as const);
+    try {
+      for (const name of names) {
+        const value = input.env[name];
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+      input.app = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) };
+    } finally {
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
     return input;
   }
-  it('admits the reviewed production store app bundle as rs.uskoci with the same public environment', () => {
+  it('admits only a synthetically approved isolated backend and the store package', () => {
     const input = storeFixture();
     expect(input.app.expo.android.package).toBe('rs.uskoci');
     expect(input.app.expo.android.googleServicesFile).toBeUndefined();
     expect(() => validatePreview(input)).not.toThrow();
   });
-  it('refuses a store bundle under the preview package or with the preview Firebase client', () => {
-    const preview = storeFixture(); preview.app.expo.android.package = 'rs.uskoci.preview';
-    expect(() => validatePreview(preview)).toThrow(/rs\.uskoci for the store/);
+  it('refuses a store bundle under preview package or with preview Firebase client', () => {
+    const wrong = storeFixture(); wrong.app.expo.android.package = 'rs.uskoci.preview';
+    expect(() => validatePreview(wrong)).toThrow(/rs\.uskoci for the store/);
     const borrowed = storeFixture(); borrowed.app.expo.android.googleServicesFile = './config/firebase/google-services.json';
     expect(() => validatePreview(borrowed)).toThrow(/must not carry the preview Firebase/);
   });
-  it('the store profile carries the canonical public backend address and a publishable key in eas.json', () => {
+  it('does not embed DEV URL or any backend public key in the production EAS profile', () => {
     const env = easSource.build.production.env;
-    expect(env.EXPO_PUBLIC_SUPABASE_URL).toBe(`https://${ref}.supabase.co`);
-    expect(env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toMatch(/^sb_publishable_[A-Za-z0-9_-]+$/);
+    expect(env.EXPO_PUBLIC_SUPABASE_URL).toBeUndefined();
+    expect(env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toBeUndefined();
   });
-
-  it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement', 'channel'])('rejects production store profile drift: %s', (field) => {
+  it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement', 'channel'])('rejects production profile drift: %s', field => {
     const input = storeFixture();
     const production = input.eas.build.production;
     if (field === 'buildType') production.android.buildType = 'apk';
@@ -109,10 +128,33 @@ describe('actual EAS preview pre-install guard', () => {
     else production[field] = 'other';
     expect(() => validatePreview(input)).toThrow(/production store app bundle/);
   });
-
-  it.each([{ EXPO_PUBLIC_USE_FAKE_SOURCE: '1' }, { EXPO_PUBLIC_SUPABASE_URL: 'https://another.supabase.co' }, { EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_secret_NEVER_LOG_THIS_KEY' }])('keeps the fake-source, backend and key checks for the store build: %j', (override) => {
+  it.each([
+    { EXPO_PUBLIC_USE_FAKE_SOURCE: '1' },
+    { EXPO_PUBLIC_SUPABASE_URL: 'https://leqcwgzvjsxugfgzdmth.supabase.co' },
+    { EXPO_PUBLIC_SUPABASE_URL: 'https://another.supabase.co' },
+    { EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_secret_NEVER_LOG_THIS_KEY' },
+    { USKOCI_PRODUCTION_BACKEND_APPROVED: '0' },
+    { USKOCI_PRODUCTION_BACKEND_REF: 'unapprovedref' },
+  ])('rejects fake, DEV, mismatched or unapproved store settings: %j', override => {
     const input = storeFixture(); Object.assign(input.env, override);
-    expect(() => validatePreview(input)).toThrow(/fake or test|confirmed canonical|must be a public/);
+    expect(() => validatePreview(input)).toThrow(/fake or test|USKOCI_PRODUCTION_BACKEND_|must be a public/);
+  });
+  it('refuses a production Expo config that points at DEV before native prebuild', () => {
+    const names = ['EAS_BUILD_PROFILE', 'USKOCI_OTA_TARGET', 'EXPO_PUBLIC_SUPABASE_URL',
+      'USKOCI_PRODUCTION_BACKEND_REF', 'USKOCI_PRODUCTION_BACKEND_APPROVED'];
+    const previous = names.map(name => [name, process.env[name]] as const);
+    try {
+      process.env.EAS_BUILD_PROFILE = 'production'; process.env.USKOCI_OTA_TARGET = 'production';
+      process.env.EXPO_PUBLIC_SUPABASE_URL = `https://${ref}.supabase.co`;
+      process.env.USKOCI_PRODUCTION_BACKEND_REF = ref;
+      process.env.USKOCI_PRODUCTION_BACKEND_APPROVED = '1';
+      expect(() => configure({ config: structuredClone(JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo) })).toThrow(/USKOCI_PRODUCTION_BACKEND_IS_NON_PRODUCTION/);
+    } finally {
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
   });
 
   it.each([undefined, 1, 34, 35.5])('rejects a version reset below the existing build lineage', (version) => {
