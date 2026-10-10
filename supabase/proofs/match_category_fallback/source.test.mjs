@@ -13,6 +13,13 @@ const md5=s=>createHash('md5').update(s).digest('hex');
 const body=s=>{const m=s.match(/AS \$function\$([\s\S]*?)\$function\$/); assert.ok(m,'PL/pgSQL function must retain its body');return m[1];};
 // PostgreSQL pg_get_functiondef renders the original body verbatim between dollar tags.
 const after=body(candidate),beforeFromRevert=body(revert);
+test('forward and revert DDL are executable terminated function statements',()=>{
+ for (const sql of [candidate,revert]) {
+   assert.match(sql,/end;\n\$function\$;\n\ndo \$postflight\$/);
+   assert.equal((sql.match(/CREATE OR REPLACE FUNCTION private\.worker_need_fit_v1\(/g)||[]).length,1);
+ }
+});
+
 test('the exact live predecessor is retained for a safe revert',()=>{
  assert.equal(md5(before),'ab221f0091d78856bb42f702ddecd016');
  assert.equal(beforeFromRevert,before);
