@@ -26,3 +26,60 @@ jobs:
           node-version: '24'
       - name: Source hash, exact scoped patch and rollback proof (NO DB)
         run: node --test supabase/proofs/match_category_fallback/source.test.mjs
+
+
+  disposable-postgresql:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_disposable_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Actual PostgreSQL before, candidate, rollback, and re-apply (synthetic only)
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          root=supabase/proofs/match_category_fallback
+          sql_dir=supabase/candidates/match-category-fallback-20261010
+          run_pg () {
+            docker exec -i "$PG_CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1
+          }
+          extract_definition () {
+            awk '/^CREATE OR REPLACE FUNCTION private[.]worker_need_fit_v1[(]/ { printing=1 }
+              printing { print }
+              printing && /^\$function\$;$/ { exit }' "$1" > "$RUNNER_TEMP/match-category-function.sql"
+            grep -qF '$function$;' "$RUNNER_TEMP/match-category-function.sql"
+            test "$(grep -c 'CREATE OR REPLACE FUNCTION private.worker_need_fit_v1' "$RUNNER_TEMP/match-category-function.sql")" -eq 1
+          }
+          echo 'STAGE 1: disposable schema, fake user fixtures and real 11-kind helper'
+          run_pg < "$root/disposable-schema.sql"
+          run_pg < "$root/live-work-kinds-v5.sql"
+          echo 'STAGE 2: real canonical predecessor, reproduce over-broad matching'
+          extract_definition "$sql_dir/revert.sql"
+          run_pg < "$RUNNER_TEMP/match-category-function.sql"
+          run_pg < "$root/baseline-assert.sql"
+          echo 'STAGE 3: real candidate SQL; service, area, time, exclusions, first-refusal'
+          extract_definition "$sql_dir/candidate.sql"
+          run_pg < "$RUNNER_TEMP/match-category-function.sql"
+          run_pg < "$root/candidate-assert.sql"
+          echo 'STAGE 4: exact revert must recover canonical predecessor'
+          extract_definition "$sql_dir/revert.sql"
+          run_pg < "$RUNNER_TEMP/match-category-function.sql"
+          run_pg < "$root/baseline-assert.sql"
+          echo 'STAGE 5: reapply candidate and ensure results are deterministic'
+          extract_definition "$sql_dir/candidate.sql"
+          run_pg < "$RUNNER_TEMP/match-category-function.sql"
+          run_pg < "$root/candidate-assert.sql"
+          echo 'ISOLATED_SQL_PROOF_PASS; production Supabase NOT accessed'
