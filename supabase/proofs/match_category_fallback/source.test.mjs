@@ -261,3 +261,15 @@ test('separate real PostGIS service never points to DEV/PROD',()=>{
  assert.match(testSql,/ROLLBACK TO SAVEPOINT postgis_real_search;/);
  assert.match(testSql,/ROLLBACK;\s*$/);
 });
+
+
+test('DEV E2E operator preflight contains only a read-only SELECT and fails closed', () => {
+ const s=readFileSync(join(folder,'dev-e2e-readiness.sql'),'utf8');
+ const executable=s.replace(/--[^\n]*/g,'').replace(/\/\*[\s\S]*?\*\//g,'').trim();
+ assert.match(executable,/^WITH\s+source\s+AS\s*\(/i);
+ assert.match(executable,/\bSELECT\s+[\s\S]*\bFROM\s+checks\s*;/i);
+ assert.doesNotMatch(executable,/\b(?:INSERT|UPDATE|DELETE|TRUNCATE|ALTER|DROP|CREATE|GRANT|REVOKE|CALL|PERFORM|EXECUTE|COPY)\b/i);
+ assert.match(executable,/live_matcher_md5\s*=\s*'d18c47226723ffbbec474aa4547e1af1'/);
+ for (const gate of ['active_marketplace_crons = 0','queued_needs = 0','active_session_bound_devices >= 1',
+   "'MANUAL_GATES_STILL_REQUIRED'","'BLOCKED'"]) assert.ok(executable.includes(gate),gate);
+});
