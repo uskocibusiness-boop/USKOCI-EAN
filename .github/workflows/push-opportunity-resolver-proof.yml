@@ -1,0 +1,47 @@
+name: Push opportunity event read-only resolver proof
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/push-opportunity-resolver-proof.yml'
+      - 'supabase/candidates/push-opportunity-target-20261011/**'
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288ca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test supabase/candidates/push-opportunity-target-20261011/source.test.mjs
+  disposable-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_disposable_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Synthetic Auth / Need / Opportunity / Event SQL assertions; NO DEV
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          run_sql() { docker exec -i "$PG_CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1; }
+          root=supabase/candidates/push-opportunity-target-20261011
+          run_sql < "$root/disposable-fixture.sql"
+          run_sql < "$root/candidate.sql"
+          run_sql < "$root/disposable-assert.sql"
