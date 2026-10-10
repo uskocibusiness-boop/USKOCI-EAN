@@ -110,7 +110,7 @@ describe('actual EAS preview pre-install guard', () => {
   });
   it('refuses a store bundle under preview package or with preview Firebase client', () => {
     const wrong = storeFixture(); wrong.app.expo.android.package = 'rs.uskoci.preview';
-    expect(() => validatePreview(wrong)).toThrow(/rs\\.uskoci for the store/);
+    expect(() => validatePreview(wrong)).toThrow(/rs\.uskoci for the store/);
     const borrowed = storeFixture(); borrowed.app.expo.android.googleServicesFile = './config/firebase/google-services.json';
     expect(() => validatePreview(borrowed)).toThrow(/must not carry the preview Firebase/);
   });
