@@ -173,3 +173,36 @@ test('exact SQL event emission and preference gates remain local-only',()=>{
   assert.ok(ci.includes('run_pg < "$root/'+name+'"'),'Missing CI event stage '+name);
  }
 });
+
+
+test('canonical detailed scoring source and calendar/score wave proof are pinned',()=>{
+ const src=readFileSync(join(folder,'live-match-detail.sql'),'utf8');
+ const bodies=[
+  ['match_detail_without_calendar','efd50886ff898f45129d33231761d189'],
+  ['match_detail_for_calendar_interval','781956cab666befab216b3ce2334ca1d'],
+  ['match_detail','38c7894a8cf43a8f32bd5a30bc2cbd09']
+ ];
+ for(const [name,digest] of bodies){
+  const re=new RegExp('CREATE OR REPLACE FUNCTION private\\.'+name+'\\([\\s\\S]*?AS \\$function\\$([\\s\\S]*?)\\$function\\$;');
+  const found=src.match(re);
+  assert.ok(found,'Missing exact server function '+name);
+  assert.equal(md5(found[1]),digest,'Scoring source drift '+name);
+ }
+ const fixture=readFileSync(join(folder,'match-detail-disposable-fixture.sql'),'utf8');
+ for(const input of ['rating_worker','same_day_urgent_notifications','created_at']){
+  assert.ok(fixture.includes(input),'Required local-only scoring input '+input);
+ }
+ const assertions=readFileSync(join(folder,'match-detail-live-assert.sql'),'utf8');
+ for(const scenario of ['REAL_SCORE_CLEANER_BASELINE','REAL_SCORE_RATING_WEIGHTS',
+ 'REAL_SCORE_EXPOSURE_FAIRNESS','REAL_SCORE_EXCLUSION_HARD_REFUSAL',
+ 'REAL_SCORE_OWN_NEED_HARD_REFUSAL','REAL_SCORE_CALENDAR_INTERVAL_CONFLICT',
+ 'REAL_SCORING_IN_WAVE']){
+  assert.ok(assertions.includes(scenario),'Missing real scoring assertion '+scenario);
+ }
+ assert.match(assertions,/ROLLBACK TO SAVEPOINT real_scoring_cases;/);
+ assert.match(assertions,/ROLLBACK;\s*$/);
+ const ci=readFileSync(join(folder,'../../../.github/workflows/match-category-fallback-proof.yml'),'utf8');
+ for(const name of ['match-detail-disposable-fixture.sql','live-match-detail.sql','match-detail-live-assert.sql']){
+  assert.ok(ci.includes('run_pg < "$root/'+name+'"'),'Missing isolated scoring job '+name);
+ }
+});
