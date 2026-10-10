@@ -9,7 +9,7 @@ UPDATE public.app_profiles SET skills=ARRAY['fizički poslovi','popravke','čiš
   city='Novi Sad',radius_km=10
 WHERE id='22222222-2222-4222-8222-222222222222';
 UPDATE public.needs SET category='Čišćenje stana',required_skills='{}',
-  approximate_city='Novi Sad', execution_location_mode='ONSITE'
+  approximate_city='Novi Sad', execution_location_mode='STATIONARY'
 WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,true,true,'new-requester-cleaning-same-city');
 UPDATE public.needs SET category='Popravka police';
@@ -23,7 +23,11 @@ SELECT private.check_fit('22222222-2222-4222-8222-222222222222',false,true,false
 UPDATE public.needs SET category='Selidba nameštaja';
 SELECT private.check_fit('22222222-2222-4222-8222-222222222222',false,true,false,'unrelated-moving-must-not-match');
 UPDATE public.needs SET category='Čišćenje stana',approximate_city='Beograd';
-SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,false,false,'onsite-different-city-must-not-match');
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,false,false,'stationary-different-city-must-not-match');
+-- When the worker has no approximate center, 10 km cannot bridge different
+-- municipality names: this deliberately documents the current city-only fallback.
+UPDATE public.needs SET approximate_city='Petrovaradin';
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,false,false,'petrovaradin_without_center_city_fallback');
 UPDATE public.needs SET approximate_city='Novi Sad';
 -- The dispatch's own fast-path must produce the SAME admit/deny result.
 DO $owner_match$
