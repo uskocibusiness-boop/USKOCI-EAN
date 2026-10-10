@@ -104,4 +104,8 @@ jobs:
           run_pg < "$root/wave-disposable-fixture.sql"
           run_pg < "$root/live-wave-entry.sql"
           run_pg < "$root/wave-live-assert.sql"
+          echo 'STAGE 9: real DEV event creation and notification preference gates, local PostgreSQL rows ONLY'
+          run_pg < "$root/notification-disposable-fixture.sql"
+          run_pg < "$root/live-notification-builder.sql"
+          run_pg < "$root/notification-live-assert.sql"
           echo 'ISOLATED_SQL_PROOF_PASS; production Supabase NOT accessed'
