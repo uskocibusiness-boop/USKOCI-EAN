@@ -7,6 +7,7 @@ import { needGeographyRows, needRequirementRows, readableTitle } from '../../dat
 import { DetailDescription, DetailRoute, routeAddsToArea, ProductHeader, useDetailScrollTitle } from '../product/ProductDetails';
 import type { SheetAction } from '../system/ActionSheet';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { FactRow } from '../system/FactRow';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
@@ -211,7 +212,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* A published task nobody has applied to for a day: the real ways to change it, each one row of one section (R16). Never a
             sentence about how many people would have applied, only what is true of this task. */}
         {help ? <Section title={help.sentence.replace(/\.$/, '')}>
-          {help.actions.map((action, index) => <ListRow key={action} leading={<FactArt kind={HELP_ROW[action].art} size={32} />}
+          {help.actions.map((action, index) => <ListRow key={action} leading={action === 'EDIT' ? <Glyph name="edit" size={24} /> : <FactArt kind={HELP_ROW[action].art} size={32} />}
             title={NO_APPLICATIONS_HELP_LABEL[action]} subtitle={HELP_ROW[action].subtitle} accessibilityLabel={NO_APPLICATIONS_HELP_LABEL[action]}
             disabled={busy} last={index === help.actions.length - 1} onPress={() => props.onWaitingHelp?.(action)} />)}
         </Section> : null}
@@ -244,7 +245,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* What ends or removes something stands at the end of the page, on the screen and not behind a "···" (rule J15, the owner's "nema lakog
             otkazivanja"): a row each, the red ones last. Each keeps its own question before it acts; the page only opens the door. */}
         {rows.length ? <Section>
-          {rows.map((row, index) => <ListRow key={row.key} leading={<FactArt kind={row.icon} size={32} />} title={row.label} accessibilityLabel={row.label}
+          {rows.map((row, index) => <ListRow key={row.key} leading={row.key === 'delete-draft' ? <Glyph name="trash" size={24} tone="danger" />
+            : row.key === 'cancel' ? <Glyph name="cancel" size={24} tone="danger" /> : <FactArt kind={row.icon} size={32} />} title={row.label} accessibilityLabel={row.label}
             tone={row.destructive ? 'danger' : 'default'} disabled={busy || row.disabled} last={index === rows.length - 1} onPress={row.onPress} />)}
         </Section> : null}
       </>}

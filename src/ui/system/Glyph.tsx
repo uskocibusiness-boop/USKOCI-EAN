@@ -2,7 +2,7 @@ import {
   ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut, ArrowUp, ArrowUpRight, ArrowsOutSimple, CalendarBlank, Camera, CaretDown, CaretLeft,
   CaretRight, CaretUp, Check, DotsThree, Eye, EyeSlash, Image, Info, MagnifyingGlass, MapTrifold, Microphone, Minus, PaperPlaneTilt, Plus,
   Bell, ChatCircle, GearSix, Handshake, HouseSimple, PencilSimpleLine,
-  SlidersHorizontal, Trash, User, Waveform, X, type Icon, type IconWeight,
+  SlidersHorizontal, Trash, User, Waveform, X, Prohibit, type Icon, type IconWeight,
 } from 'phosphor-react-native';
 import { sys } from './tokens';
 
@@ -40,7 +40,7 @@ import { sys } from './tokens';
  */
 export const GLYPH_NAMES = ['back', 'close', 'caret-right', 'caret-left', 'caret-down', 'caret-up', 'plus', 'minus', 'check', 'send',
   'search', 'filters', 'more', 'mic', 'wave', 'arrow-right', 'arrow-up', 'arrow-up-right', 'refresh', 'trash', 'camera', 'image', 'eye',
-  'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar', 'home', 'agreements', 'messages', 'notifications', 'edit', 'settings'] as const;
+  'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar', 'home', 'agreements', 'messages', 'notifications', 'edit', 'settings', 'cancel'] as const;
 export type GlyphName = (typeof GLYPH_NAMES)[number];
 
 /** In-text, row or beside a word, chrome. */
@@ -66,7 +66,7 @@ const REGISTRY: Record<GlyphName, Icon> = {
   map: MapTrifold, profile: User, calendar: CalendarBlank,
   home: HouseSimple, agreements: Handshake, messages: ChatCircle, notifications: Bell, edit: PencilSimpleLine,
   // The cog of "Podesi obaveštenja" (the inbox bar) and of every settings control after it: the notification screens drew it with a Phosphor import of their own.
-  settings: GearSix,
+  settings: GearSix, cancel: Prohibit,
 };
 
 /** The short marks that read thin at any size. */

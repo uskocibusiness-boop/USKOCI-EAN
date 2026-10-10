@@ -5,7 +5,7 @@ import { Check, HourglassMedium, Info, Microphone, StopCircle, Waveform, X } fro
 import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from '../v2/V2Action';
-import { VOICE_ERROR_COPY, type HoldToTalkController, type VoicePhase, type VoiceSnapshot } from '../../features/voice/holdToTalk';
+import { VOICE_ERROR_COPY, voiceErrorCopy, type HoldToTalkController, type VoicePhase, type VoiceSnapshot } from '../../features/voice/holdToTalk';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { PermissionRecovery } from '../system/PermissionRecovery';
@@ -146,18 +146,18 @@ function Levels({ level }: { level: number }) {
  * The line above the composer: what the microphone is doing and what it heard, or what went wrong and the way out.
  * `hint` is the composer's own quiet advice, shown only while the microphone has nothing to say.
  */
-export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?: { label: string; onPress: () => void }; transcriptInThread?: boolean }) {
+export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?: { label: string; onPress: () => void } }) {
   const reader = useScreenReader();
   const { state } = p;
   const active = voiceActive(state), listening = state.phase === 'LISTENING';
   if (active || state.phase === 'FINALIZING') {
     const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
-    const line = listening ? reviewing(state, reader) ? 'Zaustavi, pregledaj tekst i izaberi Pošalji.'
-      : 'Pusti da pošalješ, povuci nagore da odustaneš.' : PHASE_WORDS[state.phase] ?? '';
+    const line = listening ? reviewing(state, reader) ? 'Slušam… Zaustavi, pregledaj tekst i izaberi Pošalji.'
+      : 'Slušam… Pusti da pošalješ, povuci nagore da odustaneš.' : state.phase === 'FINALIZING' ? 'Prepoznajemo govor…' : PHASE_WORDS[state.phase] ?? '';
     return <View testID="voice-notice" style={s.notice}>
-      {words && !p.transcriptInThread ? <T selectable numberOfLines={3} style={s.heard}>{words}</T> : null}
+      {words ? <T testID="voice-live-transcript" selectable numberOfLines={3} style={s.heard}>{words}</T> : null}
       <View style={s.noticeRow}>
-        {listening && state.audioLevel !== null && !p.transcriptInThread ? <Levels level={state.audioLevel} /> : null}
+        {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
         <T accessibilityLiveRegion="polite" variant="note" style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
         {active ? <V2Action tone="neutral" kind="quiet" compact label="Otkaži govor" onPress={() => p.controller.cancel('gesture')} /> : null}
       </View>
@@ -166,7 +166,7 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
   if (state.error === 'MIC_PERMISSION_DENIED') return <PermissionRecovery compact message={VOICE_ERROR_COPY[state.error]} />;
   const keep = state.fallbackText && state.phase === 'IDLE';
   if (state.error || keep) return <View testID="voice-notice" style={s.notice}>
-    {state.error ? <T accessibilityLiveRegion="polite" variant="note" style={s.error}>{VOICE_ERROR_COPY[state.error]}</T> : null}
+    {state.error ? <T accessibilityLiveRegion="polite" variant="note" style={s.error}>{voiceErrorCopy(state.error, state.fallbackText)}</T> : null}
     {keep ? <V2Action tone="neutral" kind="quiet" compact label="Uredi sačuvani tekst" style={s.start}
       onPress={() => p.controller.useFallback(p.onKeepText)} /> : null}
   </View>;
@@ -177,20 +177,6 @@ export function VoiceNotice(p: VoiceInput & { hint?: string | null; hintAction?:
   return <View style={s.hintRow}>
     <T accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.hintText}>{p.hint}</T>
     {p.hintAction ? <V2Action tone="neutral" kind="quiet" compact label={p.hintAction.label} onPress={p.hintAction.onPress} /> : null}
-  </View>;
-}
-
-/** Live recognition only: neither a stored message nor an invented transcription. */
-export function VoiceTranscript({ state }: { state: VoiceSnapshot }) {
-  if (state.phase !== 'LISTENING' && state.phase !== 'FINALIZING') return null;
-  const words = [state.finalText, state.interimText].filter(Boolean).join(' ');
-  return <View testID="voice-live-transcript" style={{ gap: sys.space.sm }}>
-    <View style={s.noticeRow}>
-      <Microphone size={20} color={sys.color.green} />
-      <T variant="note" tone="muted" accessibilityLiveRegion="polite">{state.phase === 'LISTENING' ? 'Slušam…' : 'Završavamo tekst…'}</T>
-      {state.phase === 'LISTENING' && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
-    </View>
-    {words ? <T selectable variant="body">{words}</T> : null}
   </View>;
 }
 
@@ -280,7 +266,7 @@ export function VoiceMode(p: { voice: VoiceInput; prompt: string; answer: string
       </ScrollView>
       <View style={s.controls}>
         {state.error === 'MIC_PERMISSION_DENIED' ? <PermissionRecovery compact message={VOICE_ERROR_COPY[state.error]} />
-          : state.error ? <T accessibilityLiveRegion="polite" variant="note" style={[s.error, s.center]}>{VOICE_ERROR_COPY[state.error]}</T>
+          : state.error ? <T accessibilityLiveRegion="polite" variant="note" style={[s.error, s.center]}>{voiceErrorCopy(state.error, state.fallbackText)}</T>
             : line ? <T testID="voice-mode-line" accessibilityLiveRegion="polite" variant="note" tone="muted" style={s.center}>{line}</T> : null}
         {state.fallbackText && state.phase === 'IDLE' ? <V2Action tone="neutral" kind="quiet" compact label="Uredi sačuvani tekst"
           onPress={() => { if (controller.useFallback(onKeepText)) p.onClose('review'); }} /> : null}

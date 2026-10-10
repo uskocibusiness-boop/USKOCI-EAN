@@ -697,13 +697,26 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
 });
 
 describe('one microphone, no separate AI voice conversation', () => {
-  it('shows real live speech in the thread once, then the sent message and thinking state', async()=>{
+  it('keeps finalization without recognized words beside the microphone without inventing a message', async()=>{
+    const p=props(); p.value=''; p.voice=voice({state:{...idle,phase:'LISTENING'}});
+    await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
+    await act(async()=>tree.update(<AiConversationShell {...p} voice={voice({state:{...idle,phase:'FINALIZING'}})}/>));
+    expect(tree.root.findAllByProps({testID:'voice-live-transcript'})).toHaveLength(0);
+    expect(text()).toContain('Prepoznajemo govor…');
+    expect(text()).toContain('Šta ti treba?');
+    expect(p.onSend).not.toHaveBeenCalled();
+    await act(async()=>tree.update(<AiConversationShell {...p} voice={voice()} sentMessage="Treba mi prevoz" busy pending/>));
+    expect(text()).not.toContain('Prepoznajemo govor…');
+    expect(text().split('Treba mi prevoz')).toHaveLength(2);
+    expect(text()).toContain('Stiže odgovor…');
+  });
+  it('keeps real live speech beside the microphone, then puts only the sent message and thinking state in history', async()=>{
     const p=props();p.value='';p.voice=voice({state:{...idle,phase:'LISTENING',interimText:'Treba mi prevoz',audioLevel:0.6}});
     await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
-    expect(tree.root.findByProps({testID:'ai-conversation-thread'}).findAllByProps({testID:'voice-live-transcript'}).length).toBeGreaterThan(0);
-    expect(tree.root.findByProps({testID:'ai-composer-footer'}).findAllByProps({testID:'voice-live-transcript'})).toHaveLength(0);
+    expect(tree.root.findByProps({testID:'ai-conversation-thread'}).findAllByProps({testID:'voice-live-transcript'})).toHaveLength(0);
+    expect(tree.root.findByProps({testID:'ai-composer-footer'}).findAllByProps({testID:'voice-live-transcript'}).length).toBeGreaterThan(0);
     expect(text().split('Treba mi prevoz')).toHaveLength(2);
-    expect(text()).not.toContain('Šta ti treba?');
+    expect(text()).toContain('Šta ti treba?');
     await act(async()=>tree.update(<AiConversationShell {...p} voice={voice()} sentMessage="Treba mi prevoz" busy pending/>));
     expect(tree.root.findAllByProps({testID:'voice-live-transcript'})).toHaveLength(0);
     expect(text().split('Treba mi prevoz')).toHaveLength(2);

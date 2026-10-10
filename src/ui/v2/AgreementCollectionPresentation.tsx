@@ -179,12 +179,12 @@ export function AgreementCollectionPresentation(props: Props) {
   const holdsStrip = section === 'history' && !error && (loading || historyCount > 0);
   return <SafeAreaView edges={['top']} style={s.screen}>
     {/* The root bar is the same on all three tabs: profile · mark · bell (round-1 critique A12). */}
-    {props.header ?? <ScreenHeader title="Dogovori" onProfile={props.onProfile} />}
+    {props.header ?? <ScreenHeader title="Dogovori" showTitle onProfile={props.onProfile} />}
     {/* The one row of controls: two sets of equal width that never scroll and are never cut, and the planner as an icon at its end
         (its name is its spoken label). The filter follows only when needed. */}
     <View style={s.controls}>
       <View style={s.tabRow}>
-        <View style={s.tabs}><Segmented options={SECTIONS} value={section} onChange={props.onSection} /></View>
+        <View style={s.tabs}><Segmented appearance="underline" equal options={SECTIONS} value={section} onChange={props.onSection} /></View>
         <ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} />
       </View>
       {items.length > 0 || loading || roleFilter !== 'all' ? <View style={s.toolbar}>

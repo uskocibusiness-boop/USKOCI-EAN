@@ -6,7 +6,7 @@ import { brandAction } from '../../ui/system/tokens';
 let mockReduced = false;
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
-  const List = ({ data, renderItem, ListEmptyComponent, ...props }: any) => React.createElement('List', props,
+  const List = ({ data, renderItem, ListEmptyComponent, ListHeaderComponent, ...props }: any) => React.createElement('List', props, ListHeaderComponent,
     data.length ? data.map((item: any, index: number) => React.createElement(React.Fragment, { key: item.id }, renderItem({ item, index }))) : ListEmptyComponent);
   const Modal = ({ visible, children, ...props }: any) => visible ? React.createElement('Modal', props, children) : null;
   const Keyboard = { dismiss: () => undefined };
@@ -163,8 +163,9 @@ test('removing the searched words keeps the price and the area', async () => {
   expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„Pomoć“' });
   await tap('Prikaži sve zadatke');
   expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: [19, 45, 20, 46] });
-  // Nothing but the map's area is said now, and the same × takes that away too.
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
+  // Panning no longer grows the search header; the separate area command keeps the same reset semantics.
+  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+  expect(press('Prikaži sve zadatke').props.testID).toBe('clear-map-area');
   await tap('Prikaži sve zadatke');
   expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: null });
 });

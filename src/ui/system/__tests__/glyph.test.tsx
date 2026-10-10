@@ -24,7 +24,7 @@ const REGISTRY: Record<string, string> = {
   more: 'DotsThree', mic: 'Microphone', wave: 'Waveform', 'arrow-right': 'ArrowRight', 'arrow-up': 'ArrowUp', 'arrow-up-right': 'ArrowUpRight',
   refresh: 'ArrowClockwise', trash: 'Trash', camera: 'Camera', image: 'Image', eye: 'Eye', 'eye-off': 'EyeSlash', external: 'ArrowSquareOut',
   expand: 'ArrowsOutSimple', info: 'Info', map: 'MapTrifold', profile: 'User', calendar: 'CalendarBlank',
-  home: 'HouseSimple', agreements: 'Handshake', messages: 'ChatCircle', notifications: 'Bell', edit: 'PencilSimpleLine', settings: 'GearSix',
+  home: 'HouseSimple', agreements: 'Handshake', messages: 'ChatCircle', notifications: 'Bell', edit: 'PencilSimpleLine', settings: 'GearSix', cancel: 'Prohibit',
 };
 
 describe('the closed registry', () => {

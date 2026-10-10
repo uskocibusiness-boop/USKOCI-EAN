@@ -58,11 +58,13 @@ export const SEGMENTED_CHIPS_FROM = 4;
  * the indicator follows over the toggle duration, or settles immediately under reduced motion. Until
  * the selected segment is measured it paints its own selection, so the first frame is never empty.
  */
-export function Segmented<K extends string>({ options, value, onChange, scroll = false, style, appearance = 'pill', bleed = true, inline = false }: {
+export function Segmented<K extends string>({ options, value, onChange, scroll = false, style, appearance = 'pill', bleed = true, inline = false, equal = false }: {
   options: readonly SegmentedOption<K>[]; value: K; onChange: (key: K) => void;
   /** Accepted and ignored by the layout (see above); it only keeps the give of a tab waiting out the press delay. */ scroll?: boolean;
   style?: object;
   appearance?: 'pill' | 'underline';
+  /** A bounded underline set shares its width and wraps labels, instead of overflowing at large text sizes. */
+  equal?: boolean;
   /** Accepted and ignored: a set of up to three is always equal, and a set of four or more is always chips (see above). */
   contentSized?: boolean;
   /** Chips only: run the row out to the edges of the screen by the width of its gutter (`layout.gutter`), which is where a `Screen` puts it. False inside something narrower. */
@@ -74,6 +76,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
   inline?: boolean;
 }) {
   const underline = appearance === 'underline';
+  const equalUnderline = underline && equal && !scroll;
   const chips = !underline && options.length >= SEGMENTED_CHIPS_FROM;
   const hugging = inline && !chips && !underline;
   const sliding = !chips;
@@ -123,7 +126,8 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
       hitSlop={chips ? 0 : undefined}
       onPress={() => { if (!selected && !option.disabled) onChange(option.key); }} onLayout={measure(option.key)}
       style={chips ? [s.chip, selected && s.chipSelected]
-        : [s.segment, hugging && s.segmentInline, underline ? s.underlineSegment : selected && !target && s.selected, underline && selected && !target && s.underlineSelected]}>
+        : [s.segment, hugging && s.segmentInline, underline ? s.underlineSegment : selected && !target && s.selected,
+          equalUnderline && s.underlineEqualSegment, underline && selected && !target && s.underlineSelected]}>
       <T variant="meta" style={[s.text, selected && s.selectedText]}>{option.label}</T>
       {count !== null ? <View style={s.badge}><T variant="label" style={s.badgeText}>{count}</T></View> : null}
     </Press>;
@@ -140,7 +144,7 @@ export function Segmented<K extends string>({ options, value, onChange, scroll =
     style={[s.track, s.underlineTrack, style]} contentContainerStyle={s.scrollRow}>
     <View style={s.underlineScrollRow}>{indicator}{items}</View>
   </ScrollView>;
-  return <View accessibilityRole="tablist" style={[s.track, hugging && s.trackInline, underline && s.underlineTrack, style]}>
+  return <View accessibilityRole="tablist" style={[s.track, hugging && s.trackInline, underline && s.underlineTrack, equalUnderline && s.underlineEqualTrack, style]}>
     {indicator}
     {items}
   </View>;
@@ -169,6 +173,8 @@ const s = StyleSheet.create({
   underlineIndicator: { position: 'absolute', left: 0, bottom: 0, width: 1, height: 3, backgroundColor: sys.color.green },
   underlineSegment: { flexGrow: 0, flexBasis: 'auto', minHeight: layout.touch, paddingHorizontal: sys.space.xs, borderRadius: 0, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   underlineSelected: { borderBottomColor: sys.color.green },
+  underlineEqualTrack: { gap: sys.space.sm },
+  underlineEqualSegment: { flexGrow: 1, flexBasis: 0, minWidth: 0, flexShrink: 1 },
   // The chips: a row that scrolls sideways, and that runs to the edges of a screen with a gutter. A chip is 48 dp, the pill corner,
   // a 1 dp edge, a white ground; the chosen one is a quiet well with an ink edge (the chips over the map draw the same).
   chipsScroll: { flexGrow: 0 },

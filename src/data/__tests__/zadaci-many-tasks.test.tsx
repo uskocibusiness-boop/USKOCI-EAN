@@ -146,10 +146,11 @@ test('reading the next page is said over the list\'s end, in words, and it never
   // It stands outside the list, so the end the list measures (and the place a return restores to) does not move because of it.
   expect(list().findAllByProps({ accessibilityLabel: PAGING_WORDS })).toHaveLength(0);
   expect(list().props.ListFooterComponent).toBeNull();
-  // It rides above the "Mapa" pill when the whole list is up, and is not shown while the sheet is lowered to its top line over the map.
+  // This data/row fixture requests FULL but does not animate the native sheet. Do not reserve a phantom Mapa pill;
+  // physical coverage + the extra offset are exercised in discovery-presentation's explicit sheet-position fixture.
   await act(async () => countLine().props.onPress()); // half -> full
   expect(note()).toHaveLength(1);
-  expect(StyleSheet.flatten(note()[0].props.style).bottom).toBe(sys.space.base + 48 + sys.space.sm);
+  expect(StyleSheet.flatten(note()[0].props.style).bottom).toBe(sys.space.base);
   await act(async () => countLine().props.onPress()); // full -> lowered
   expect(note()).toHaveLength(0);
   await act(async () => tree.update(<Screen pass={1} />));

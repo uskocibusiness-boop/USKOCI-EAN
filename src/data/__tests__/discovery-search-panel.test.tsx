@@ -307,7 +307,7 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(radio('Niš, Nema zadataka')[0].props.accessibilityState).toEqual({ checked: true });
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
     const why = byId('search-footer-reason');
-    expect(why.props.accessibilityLiveRegion).toBe('polite'); expect(why.children.join('')).toBe('Pokušaj sa širom oblašću ili drugim danom.');
+    expect(why.props.accessibilityLiveRegion).toBe('polite'); expect(why.children.join('')).toBe('Promeni filtere ili ih očisti.');
     await choose(/^Svi zadaci/);
     expect(lastDraft()).toMatchObject({ place: null, when: 'weekend' });
   });
@@ -881,7 +881,7 @@ describe('the parts of the panel', () => {
     expect(foot.findAllByType('Action' as React.ElementType).map(action => action.props.label)).toEqual(['Očisti', 'Prikaži 5 zadataka']);
     await act(async () => tree.unmount());
     view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd' }; await render();
-    expect(byId('search-footer-reason').children.join('')).toBe('Pokušaj sa širom oblašću ili drugim danom.');
+    expect(byId('search-footer-reason').children.join('')).toBe('Promeni filtere ili ih očisti.');
     expect(show().props.disabled).toBe(true);
   });
 });

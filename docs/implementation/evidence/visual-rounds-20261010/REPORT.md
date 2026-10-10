@@ -1,6 +1,6 @@
 # Tri objedinjena vizuelna kruga — 10.10.2026.
 
-Status: **izvor i ciljane provere završeni; zajednički APK/native pregled čeka**. V1 ostaje **NO-GO**. Ovo je dopuna postojećeg plana, ne novi master.
+Status: **63366e0f je instaliran i ograničeno pregledan na telefonu; pronađene native regresije imaju proverenu naknadnu source ispravku, novi APK/native još čeka**. V1 ostaje **NO-GO**. Ovo je dopuna postojećeg plana, ne novi master.
 
 Vlasnik je tražio nekoliko većih krugova, jasne radne kartice, AI podešavanje, mirne bele površine, filtere prema svojim Airbnb referencama, identitet uz poruke i manje ručnih/duplih kontrola. Root je jedini pisac; tri stručna agenta dala su nezavisne read-only preglede.
 
@@ -53,3 +53,33 @@ Puna P5 regresija na63366e0f, run38027733293: **603suite PASS / 3FAIL; 13637test
 Lokalni63366e0f build uspešan: Gradle5m39s, 940tasks (912up-to-date), bez clean/prebuild/dependency promene. Attestation: paket`rs.uskoci.preview`, versionCode35,ARM64,debuggablefalse, isti sertifikat`fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c`, overlaydozvola odsutna. APK SHA256`217924351af9ce69ca16d2836c87685b072fb223d4a747b61a704ae05d4508c0`. Frozenarchive5972fajla byte-equal, embeddedsource63366e0f. QA/previewOTAON; nije produkcioniAAB. Posle633 menjani su samo testovi i dokumentacija, aplikacioni source ostaje isti.
 
 Telefon je u preflight-u pokazao aktivan ChatGPT i nove dodire; ništa nije instalirano preko aktivne upotrebe. Vlasnik je pitan tek nakon konkretnog proverljivog APK-a. Instalacija i native prihvatanje ostaju odvojeni od attestacije.
+
+
+## Native nalaz i sledeći objedinjeni paket
+
+Telefon je oslobođen izričitom porukom vlasnika. Nadogradnja63366e0f izvršena je10.10. u05:38UTC, isključivo install-r: isti UID i firstInstallTime, sačuvana prijava; About prikazuje63366e0f. Font1.15. Privatni snimci01–31 nisu objavljeni u javnom repozitorijumu; njihovi hash-evi i granice su u device-baseline-checks.json.
+
+Viđeni su radna kartica/AI prvo pitanje, odvojene filter sekcije, kalendar, Back koji otkazuje nacrt filtera, bela FULL lista bez trake mape i pretraga grada sa tastaturom. Nalog nema razgovore/Dogovore za dokaz popunjenih privatnih/grupnih stanja. Ovo nije kompletan prolaz proizvoda.
+
+Konkretne regresije: početni singleton bounds zumirao je u reku umesto da pokaže okolinu; Mapa kapsula ostala je preko otkrivene mape; posle Raspored → Zadaci → Back nestala je donja navigacija u Dogovorima. Na Profilu je prikazana nedostupnost broja završenih Dogovora; taj čitač još nije istražen/ispravljen. Prethodni R20 run38028137609 na98dec9ab:606suites/13644tests/6snapshots PASS. Njegov prolaz nije sprečio ove native probleme.
+
+### URADIO
+
+- Samo prvi server camera bounds dobija minimalan raspon0.04 stepena po osi; saved viewport, pin i filter ostaju izvorni. Mapa kapsula zavisi i od stvarnog pokrivanja mape listom, ne samo od zatraženog FULL stanja. Root nav dobija odvojen native host/reset transformacije posle povratka iz Discovery.
+- Pomeranje mape više ne dodaje Ova oblast u rastuće zaglavlje. Sve oblasti je kratka zasebna komanda uz stvarni broj rezultata; ostali filteri se čuvaju. Gradovi zadržavaju stvarni broj u blagoj neutralnoj pločici, zadaci namensku ilustraciju. Nulta pretraga nudi istinit izlaz kroz filtere; uputstvo za raspon datuma je pre kalendara.
+- Dogovori dobijaju vidljiv naslov i ravnomerne lakše podvučene tabove; isto razdvajanje u rasporedu. Semantičke edit/trash/cancel ikone, jednostavnije zvono; autoritet/confirm/callback ostaju. Završeno i otkazano su neutralni, razlikuju ih check/dash i reči. Predložena dodatna linija između saradnika odbačena je nakon postojeće provere design sistema; zadržan je razmak bez novih linija.
+- Slušanje i stvarne prepoznate reči stoje uz mikrofon, prvo pitanje ostaje vidljivo, u istoriju ulazi poslata poruka. Ćirilica govornog unosa prelazi u latinicu pre kontrole dužine; isti postojeći mapper koriste mesta i govor. Recovery više ne tvrdi da postoji sačuvan tekst kada ga nema. Malformed final zaštićen pre trim. Nema ponovnog posebnog glasovnog razgovora, izmišljenog transkripta ili novih provider poziva.
+
+### DOKAZAO
+
+Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI, lokalnih9SKIP se ne računaju kao PASS; TypeScript exit0. Tri read-only pregleda; očuvani authorizations/session/revision/late-request/voice-once/recovery guardovi. Novi slučajevi pokrivaju singleton bounds, fizičku pokrivenost, nav host, P6 area reset uz druge filtere,320/font2, dimenzije tabova i statusa, ćirilično proširenje do/iznad4000, stale/invalid final i prazno prepoznavanje. Izvor/hash/provere u native-followup-checks.json. Raniji failed ciljani pokušaji ostaju zabeleženi, nisu skriveni zelenim završnim rezultatom.
+
+### NIJE DOKAZANO
+
+Ovaj followup još nije instaliran. Posebno proveriti nestajanje nav, početni zoom, footer/tastaturu/uvećan tekst na fizičkom uređaju. Nema tvrdnje da je test sa renderer mockovima dokaz native geometrije ili server kapaciteta.
+
+Brojčani minimum budžeta ostaje otvoren: zahteva isti ugovor u PAGE/MAP i zasebnoj PLACES grani, cursor/count i jasno TOTAL/PER_PERSON značenje. AI prompt lokalno još sadrži zastarelo pravilo TOTAL/cela-ekipa (uskoci-ai-interview:365); otkriveno source-only, deploy nije proveren. Toplina i razumevanje stvarnog modela nisu dokazani ovim klijentskim paketom. AI-only profil/candidate-map, autentifikacioni email, photo-cache, two-account lifecycle, privacy/deletion/performance/store ostaju otvoreni. NO-GO;30min automatizacijaPAUSED.
+
+### SLEDEĆE
+
+Jedan novi APK ovog zamrznutog source-a sa istim potpisom; zatim ograničen phone prolaz u slobodnom prozoru i tačanCI. Ne povećavati scope dok native regresije nisu proverene. Sledeći zaseban paket: ispravka AI prompt ugovora/toplo razjašnjenje, zatim zajednički numerički filter i završetak AI-only profila. Čuvati već dobre filter sekcije, postojeći matching/RLS/podatke i cene; bez novog master plana ili tvrdnje o objavi Claude table.

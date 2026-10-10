@@ -197,7 +197,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     : effectiveReadiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
       : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
-  const emptyReason = counted && count === 0 ? 'Pokušaj sa širom oblašću ili drugim danom.' : null;
+  const emptyReason = counted && count === 0 ? 'Promeni filtere ili ih očisti.' : null;
   const retryPreview = effectiveReadiness === 'error' && p6Search
     ? () => p6Search.onDraft({ ...draft, placeSearch }, mapArea) : undefined;
   // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Očisti" beside the one green action, which says how many tasks the list will show;
@@ -251,7 +251,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
       <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
         {onOpenTask && tasks.length ? <View testID="search-task-suggestions" style={s.recent}>
           <T variant="bodyStrong" accessibilityRole="header">Zadaci</T>
-          {tasks.map(item => <Row key={item.id} text={item.title} note={[item.approximateArea, item.approximateCity].filter(Boolean).join(', ')}
+          {tasks.map(item => <Row key={item.id} art="tasks" text={item.title} note={[item.approximateArea, item.approximateCity].filter(Boolean).join(', ')}
             label={`Otvori zadatak: ${item.title}${item.approximateCity ? `, ${item.approximateCity}` : ''}`} role="button" onPress={() => {
               const latest = taskState.current;
               if (!alive.current || leaving.value || !latest.serverCurrent || latest.serverKey !== serverKey
@@ -313,8 +313,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
           <TurningCaret open={datesOpen} />
         </Press>
         {datesOpen ? <View testID="search-date-editor" style={s.dateEditor}>
-          <DateRangeGrid today={today} from={rangeStart ?? draft.dates?.from ?? null} to={rangeStart ? null : draft.dates?.to ?? null} now={now} onDay={tapDay} />
           <T variant="note" tone="muted" accessibilityLiveRegion="polite">{rangeStart ? 'Izaberi poslednji dan.' : 'Izaberi prvi i poslednji dan.'}</T>
+          <DateRangeGrid today={today} from={rangeStart ?? draft.dates?.from ?? null} to={rangeStart ? null : draft.dates?.to ?? null} now={now} onDay={tapDay} />
           {draft.dates ? <V2Action label="Gotovo" kind="secondary" onPress={() => { setDatesOpen(false); setRangeStart(null); }} /> : null}
         </View> : null}
         {counted && undated ? <T variant="note" tone="muted">{undatedWords(undated)}</T> : null}

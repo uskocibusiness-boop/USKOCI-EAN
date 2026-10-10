@@ -4,6 +4,7 @@ import { vreme } from '../../lib/vreme';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { FactArt } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { Section } from '../system/Section';
@@ -46,7 +47,7 @@ export function AgreementHead({ title, step, steps, info, children }: {
 }) {
   return <View style={s.head}>
     <T accessibilityRole="header" variant="pageTitle" style={s.title}>{title}</T>
-    <NextStepCard tone={step.tone} title={step.title} body={step.body} aside={info ? <InfoButton title={info.title} lines={info.lines} /> : undefined}>{children}</NextStepCard>
+    <NextStepCard tone={step.tone} status={step.status} title={step.title} body={step.body} aside={info ? <InfoButton title={info.title} lines={info.lines} /> : undefined}>{children}</NextStepCard>
     <View style={s.steps}><AgreementSteps {...steps} /></View>
   </View>;
 }
@@ -122,7 +123,7 @@ export function AgreementActions({ change, problem }: {
 }) {
   if (!change && !problem) return null;
   return <View testID="agreement-actions">
-    {change ? <ListRow leading={<FactArt kind="document" size={32} />} title="Izmeni uslove" last={!problem} accessibilityLabel="Izmeni uslove"
+    {change ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmeni uslove" last={!problem} accessibilityLabel="Izmeni uslove"
       accessibilityHint="Predlažeš novu cenu, obim ili termin. Druga strana mora da prihvati." disabled={change.disabled} onPress={change.onPress} /> : null}
     {problem ? <ListRow leading={<FactArt kind="alert" size={32} />} title="Prijavi problem" last accessibilityLabel="Prijavi problem"
       accessibilityHint="Zaustavlja automatski završetak, a druga strana vidi prijavu." disabled={problem.disabled} onPress={problem.onPress} /> : null}
@@ -142,7 +143,7 @@ export function AgreementDangerActions({ cancel, safety }: {
 }) {
   if (!cancel && !safety) return null;
   return <View testID="agreement-danger-actions">
-    {cancel ? <ListRow leading={<FactArt kind="tasks" size={32} muted />} tone="danger" arrow title="Otkaži Dogovor" last={!safety} accessibilityLabel="Otkaži Dogovor"
+    {cancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkaži Dogovor" last={!safety} accessibilityLabel="Otkaži Dogovor"
       accessibilityHint="Otkazivanje uz razlog. Pre slanja vidiš pregled." disabled={cancel.disabled} onPress={cancel.onPress} /> : null}
     {safety ? <ListRow leading={<FactArt kind="shield" size={32} muted />} tone="danger" arrow title="Prijavi ili blokiraj osobu" last
       accessibilityLabel="Prijavi ili blokiraj osobu" accessibilityHint="Blokiranje i poverljiva prijava podršci." disabled={safety.disabled} onPress={safety.onPress} /> : null}
@@ -226,7 +227,7 @@ export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled
       <ListRow leading={<FactArt kind="chat" size={32} />} title="Dogovorite se u Porukama" onPress={onMessages} disabled={disabled}
         accessibilityLabel="Dogovorite se u Porukama" accessibilityHint="Napišite šta je ostalo nerešeno." last={false} />
       {/* Red words are a command, but this one opens the cancelling with its reason, so it keeps the arrow of a way onward. */}
-      {onCancel ? <ListRow leading={<FactArt kind="tasks" size={32} muted />} tone="danger" arrow title="Otkaži Dogovor" onPress={onCancel} disabled={disabled}
+      {onCancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkaži Dogovor" onPress={onCancel} disabled={disabled}
         accessibilityLabel="Otkaži Dogovor" accessibilityHint="Uz razlog. Posle toga možeš ponovo da tražiš ljude." /> : null}
       <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi nedolazak" onPress={onNoShow} disabled={disabled}
         accessibilityLabel="Prijavi nedolazak" accessibilityHint="Otvara podršku sa ovim Dogovorom." last />

@@ -204,7 +204,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "HONOR600efd1 About; install-r preserves session/draft/3photos. Galerija/cancel, fullscreen/Next/Back passed. New upload/removal and complete AI publication unproved. docs/implementation/evidence/media-qa-finish-20261010/receipt.json"
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
       "sledece": "Nastaviti preostali native obuhvat: novi photo upload/uklanjanje, privatni čet dva naloga i javni odgovor na tačno pitanje.600efd10 instaliran; dokazan je samo navedeni postojeći draft/picker cancel/viewer put. docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.",
@@ -391,6 +391,16 @@
             "stanje": "DELIMIČNO",
             "dokaz": "09.10 fizički HONOR 725be7bd: R09 nastavak task razgovora zatvoren u b9 i ponovo fizički potvrđen u 725 sa sačuvanim mestom. Current edit, glas/foto i ceo publish tok ostaju zasebni. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
           }
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Prvo pitanje ostaje vidljivo tokom slušanja; poslata poruka i waiting ostaju u istoriji.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "HONOR600efd1 About; install-r preserves session/draft/3photos. Galerija/cancel, fullscreen/Next/Back passed. New upload/removal and complete AI publication unproved. docs/implementation/evidence/media-qa-finish-20261010/receipt.json"
+          }
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -443,7 +453,10 @@
       "server": [
         "uskoci-speech-session"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
+      },
       "problem": "CF01 ispravljen u klijentu i dokazan testovima. Android govorni unos postoji; AI odgovori su tekst. Govorni unos na iOS-u i odgovaranje AI-ja glasom nisu završeni.",
       "sledece": "10.10: stvarno slušanje/transkript uz donji composer, prepoznati tekst latinicom pre AI odgovora, pošteno stanje prepisivanja i jasno ponovno pitanje kad nema razumljivog teksta. Trenutni SSE ne isporučuje inkrementalni validirani odgovor; ne glumiti streaming. Raniji dokaz/sledeće: Uz vlasnika spremnog da govori proveriti mikrofon, prekid, povratak, odbijenu dozvolu i oporavak. Za govor AI-ja treba posebna odluka o rešenju i trošku. Aktivacija provajdera nije proverena ovom izmenom. docs/implementation/design-system/r7-cohesion-20260925/REPORT.md Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona.",
       "funkcionalni_audit": {
@@ -546,6 +559,13 @@
             "Bounded push delivery and store gates"
           ],
           "scope": "One hold/release mic; no separate fullscreen AI voice entry; real transcript in thread. Native speech delivery remains OPEN."
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Slušanje/transkript uz mikrofon, latinica, tačan recovery bez izmišljanja teksta.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": null
         }
       },
       "native_e444_compact_summary_20261003": {
@@ -839,7 +859,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "",
       "sledece": "Nastaviti preostali native obuhvat: novi photo upload/uklanjanje, privatni čet dva naloga i javni odgovor na tačno pitanje.600efd10 instaliran; dokazan je samo navedeni postojeći draft/picker cancel/viewer put. docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.",
@@ -894,6 +914,16 @@
           "previousTelefon": {
             "stanje": "DELIMIČNO",
             "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Pregled i ispravka naslova probnog zadatka prošli. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: "
+          }
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Semantičke edit/trash/cancel akcije bez promene autoriteta.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
           }
         }
       }
@@ -1472,7 +1502,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "",
       "sledece": "Aktuelni native cancel i delete-draft sa slikom, prekidom mreže i tačnim readback-om.",
@@ -1518,6 +1548,16 @@
           "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
           "checks": "15 suites / 475 unique PASS; tsc0; final filters70PASS. No phone acceptance yet.",
           "previousTelefon": null
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Namenska trash/cancel ikona uz istu potvrdu.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+          }
         }
       },
       "history_before_status_audit_20261009": {
@@ -2401,7 +2441,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "HONOR068 install-r/runtime: postojeći grant GPS fix, FULL/chips/HALF i prazno→prazno bez promene visine; compressed a11y tree PASS u uskom opsegu. GPS framing kvar pronađen; sledeći header/camera APK još pending. docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md"
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
       "sledece": "10.10: fizički proveriti Back u svim položajima liste; My location odmah koristi samo svež/precizan potvrđen uzorak uz permission/services provere, bez trajnog/background praćenja. Source trenutno čeka novo GPS očitavanje pri svakom kliku. Raniji dokaz/sledeće: Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
@@ -2924,6 +2964,16 @@
           "focusedTests": 366,
           "focusedSuites": 8,
           "typecheckExit": 0
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Singleton zoom, stvarno pokrivanje Mapa kapsule, nav povratak; native regresije čekaju ponovnu proveru.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "HONOR068 install-r/runtime: postojeći grant GPS fix, FULL/chips/HALF i prazno→prazno bez promene visine; compressed a11y tree PASS u uskom opsegu. GPS framing kvar pronađen; sledeći header/camera APK još pending. docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md"
+          }
         }
       }
     },
@@ -2947,7 +2997,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
       "sledece": "10.10: reference14501–14504: blur, izdignute bele sekcije, jedna otvorena i sažeci ostalih, jasan reset/potvrda. Zadržati draft/cancel/count autoritet. Numerički minimum budžeta traži ceo server PAGE/MAP/PLACES ugovor, nije postojeći priceType. Raniji dokaz/sledeće: Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
@@ -3410,6 +3460,16 @@
           "previousTelefon": {
             "stanje": "DELIMIČNO",
             "dokaz": "HONOR068 install-r/runtime: postojeći grant GPS fix, FULL/chips/HALF i prazno→prazno bez promene visine; compressed a11y tree PASS u uskom opsegu. GPS framing kvar pronađen; sledeći header/camera APK još pending. docs/implementation/ui-ux-pass-20261002/ANDROID_INTERACTION_FINISH_20261009.md"
+          }
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Mirno area zaglavlje; izdvojena Sve oblasti komanda, neutralni pretraživački redovi. Brojčani min još otvoren.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
           }
         }
       }
@@ -3940,7 +4000,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "RC-03 je ublažen u R18: četiri paralelne provere ocena i rok četiri sekunde posle stranica Dogovora. Ukupan broj ostaje P+C; potreban je zbirni server odgovor.",
       "sledece": "Kalendar i dostupnost su u APK-u 644cab09. Audit 24.09 je video dugu galerijsku karticu bez preklapanja (calendar-long.png), bez stvarnog upisa. Zajedničko čitanje Dogovora ima RC-03; zatim proveriti čuvanje dostupnosti, greške i vremenske zone na uređaju. Završni krug04: uklonjeni nepotrebni zahtevi za ocene u ovom prikazu. Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Krug03.10/759c327e: na emulatoru pročitani kalendar i dostupnost, otvoren novi termin pa odustajanje i povratak u isti kalendar; bez upisa termina/statusa. Fizički tok čuvanja nije ovim potvrđen. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
@@ -4029,6 +4089,16 @@
             "stanje": "DELIMIČNO",
             "dokaz": "2026-09-24: Kalendar sa sedam kolona i novim praznim danom viđen na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Otvoreno: Dogovor završen istog dana se ne vidi u kalendaru. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
           }
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Lakši podvučeni ravnomerni tabovi rasporeda.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
+          }
         }
       }
     },
@@ -4051,7 +4121,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "EX-04 S3 (ROUND_77, 2026-10-01, APK 93e48799 / izvor bf48a5db, fizički HONOR): lista Dogovora (Aktivni i Istorija 5/5) ima isti skup, redosled i sadržaj kao stari build, 0 čitanja ocena po Dogovoru; pozitivan put (ratingDue = true) NIJE proveren, stanje DELIMIČNO. Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-24: lista Dogovora i jedno zeleno „Oceni saradnju“ samo dok ocena čeka, viđeno na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno."
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "RC-03 ublažen: četiri paralelne provere ocena i četiri sekunde posle čitanja strana; ukupan broj i dalje P+C. R18-E04 ima ispravku u R19 i test, a potvrda na uređaju sledi.",
       "sledece": "10.10: klik na broj završenih saradnji mora da otvori upravo COMPLETED bilateralni skup (ne sve otkazane/istoriju); sačuvati obična Active/History pravila i grupnu projekciju. Raniji dokaz/sledeće: R19: prazna oznaka izričito uklanja raniji broj iz pristupačnosti; provera na uređaju još potrebna. Ocene ostaju ograničena dopuna iz R18, ne zbirni serverski poziv. docs/implementation/design-system/r19-task-agreement-20260925/REPORT.md Završni krug12 (27.09, 672804db): Redosled aktivnih Dogovora prati njihov prihvaćen termin i posle pomeranja posla. Kod ovog kruga uključen je u kasnije instalirane APK-ove; to samo po sebi ne potvrđuje sve ponašanje ove stavke. Važi najnoviji tačno ograničen device receipt. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md",
@@ -4139,7 +4209,17 @@
           "device": "NOT VERIFIED: legitimate-party block/phone UI scenario on final APK. Existing phone field remains unchanged; do not set device light green.",
           "regressionScope": "Valid-consent JSON parity, both-party block/unblock/regrant/revoke/expiry/closure, foreign ID, anonymous denial, exact revert/reapply."
         },
-        "owner_followup_20261009": "Root donja navigacija fizički potvrđena4b5. Doraditi uloge Tražim pomoć/Uskačem, status Aktivni/Istorija sa završenim+otkazanim i period/Raspored. OPEN."
+        "owner_followup_20261009": "Root donja navigacija fizički potvrđena4b5. Doraditi uloge Tražim pomoć/Uskačem, status Aktivni/Istorija sa završenim+otkazanim i period/Raspored. OPEN.",
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Vidljiv naslov Dogovori, lakši tabovi, postojeće grupe ljudi bez dodavanja novih linija.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "EX-04 S3 (ROUND_77, 2026-10-01, APK 93e48799 / izvor bf48a5db, fizički HONOR): lista Dogovora (Aktivni i Istorija 5/5) ima isti skup, redosled i sadržaj kao stari build, 0 čitanja ocena po Dogovoru; pozitivan put (ratingDue = true) NIJE proveren, stanje DELIMIČNO. Ranije: R17 8500bf29 je instaliran na telefonu, ali nova provera ovog dela na fizičkom telefonu nije završena zbog prekida USB veze. Opseg emulatora je u docs/implementation/design-system/r17-conversation-appointments-20260925/NATIVE_REVIEW.emulator.md. Ranije: 2026-09-24: lista Dogovora i jedno zeleno „Oceni saradnju“ samo dok ocena čeka, viđeno na emulatoru, build d7152e9f (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: novi Dogovor je prvi u listi Dogovora na emulatoru (izvođač), stanje Dogovoreno."
+          }
+        }
       }
     },
     {
@@ -4161,7 +4241,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "",
       "sledece": "Androidov povratak potvrđen na telefonu. Zadržati karticu zadatka i prihvaćene uslove; ostaju vizuelno skraćen podnaslov osobe i širi tokovi iz NEXT.md. 2026-09-27 R21: posebna kartica izvornog zadatka, pa postojeći sledeći korak, pa prihvaćeni uslovi; Poruke ostaju poseban prikaz. Izvor je pripremljen; nova nativna provera nije završena. docs/implementation/design-system/r21-flow-clarity-20260927/REPORT.md 2026-09-27: R21 APK f817336d: probni Dogovor prikazuje karticu zadatka, sledeći korak, prihvaćene uslove, pa odvojene poruke. Nema provere nove poslovne radnje ili fizičkog telefona. Završni krug 03 / 27.09: Ocena/bezbednost i potvrda čitanja traže tekuću posetu/nalog i spreman vidljiv Dogovor. Izvor pripremljen, bez testova ili telefona. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_03_CONNECTED_SOURCE.md Završni krug06 / 27.09: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_06_CONVERSATION_CONTINUITY.md. Jedna objedinjena ciljana provera, zatim odvojeno uređajsko prihvatanje; stari dokazi nisu potvrda novog paketa. Završni krug12 (27.09, 672804db): Prihvaćeni opis obima više ne nestaje posle izmene uslova; stoji uz cenu i termin. Objedinjena provera novog APK-a još nije urađena. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_12_HOME_AGREEMENT_CHAT.md",
@@ -4234,6 +4314,16 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Dogovor kao aktivna saradnja; istoriju koraka disclosure, ne timeline preko pola ekrana.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Jedinstven neutralan status završeno/otkazano uz različit oblik i tekst.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "R19 a69a26c6 / telefon36229901348: stvaran aktivni Dogovor, prazan razgovor i tastatura; Nazad redom zatvara tastaturu, vraća isti pregled, pa listu. Bez kucanja/slanja i promene Dogovora. docs/implementation/design-system/r19-task-agreement-20260925/NATIVE_REVIEW.deep-return-chat.md"
+          }
         }
       }
     },
@@ -4631,7 +4721,10 @@
         "rpc_respond_agreement_change",
         "rpc_withdraw_agreement_change"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
+      },
       "problem": "",
       "sledece": "25.09. integracija prekinutog rada: Predlog i pregled imaju fiksno glavno dugme, jasno poređenje uslova i ime druge osobe iz postojećeg odgovora. Tipovi čisti; Jest 305/5921. Kod b9aed185: APK i pet CI provera prošli; APK postavljen na emulator. Ograničene galerijske provere i snimci su u docs/implementation/design-system/r6-integration-20260925/REPORT.md; ovo ne potvrđuje ceo tok na telefonu niti zatvara ranije probleme. Ranije: 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: izmene Dogovora kao tok u dva koraka; obavezne reči nepromenjene. Galerija uskociapp://dizajn-dodaci. ",
       "funkcionalni_audit": {
@@ -4676,6 +4769,13 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Vizuelni diff samo promenjenih polja, ostala u disclosure.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Edit glyph uz postojeći predlog izmene.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": null
         }
       }
     },
@@ -4696,7 +4796,10 @@
       "server": [
         "rpc_cancel_agreement"
       ],
-      "telefon": null,
+      "telefon": {
+        "stanje": "DELIMIČNO",
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
+      },
       "problem": "",
       "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): Round 6: otkazivanje kao korak pregleda sa jasnim upozorenjem; razlog i zaštite nepromenjeni. ",
       "funkcionalni_audit": {
@@ -4730,6 +4833,13 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Bez opšteg Da/Ne dijaloga bez imena radnje.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Cancel glyph uz postojeće ovlašćenje i potvrdu.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": null
         }
       }
     },
@@ -5099,7 +5209,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka."
+        "dokaz": "63366e0f pregledan: konkretne regresije. Naknadni source čeka svoj APK/device; detalji u docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "Inbox/exact-target klijent je u current full regresiji zelen. Provider→tap→exact→displayed-ACK na jednom istom novom događaju nije dokazano na current artefaktu; exact transport ostaje OFF.",
       "sledece": "10.10: doraditi slab kontrast crteža zvona uz postojeći48dp cilj, badge, scope i reduced-motion; sačuvati jedan sistem obaveštenja. Raniji dokaz/sledeće: Kad bude odobrena provider/device provera, korelisati jedan novi message event kroz ceo lanac na finalnom Android kandidatu; zatim iOS. Do tada ne menjati transport flag.",
@@ -5173,6 +5283,16 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Task title vodi; isti rowCopy za govor i vizuelni tekst.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "visual_native_followup_20261010": {
+          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+          "scope": "Jednostavno sistemsko zvono, realni badge/error/session guard ostaje.",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+          "checks": "Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL, 13650 tests PASS / 6 FAIL; 6 snapshots PASS;9platformskih SKIP. Nalazi ispravljeni: dodatna linija odbačena; fixture-i usklađeni sa vidljivim naslovom, zvonom, fizičkom pokrivenošću mape i promenom nav hosta uz očuvane poslovne tvrdnje. Ponovljene pogođene provere: 358 PASS u9grupa. Cela regresija konačnog izvora čekaCI; tsc0",
+          "previousTelefon": {
+            "stanje": "DELIMIČNO",
+            "dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: četiri stvarna obaveštenja iz jednog toka (primljena, pregledana, izabrana prijava, nova poruka); dodir na „Nova poruka“ otvorio Dogovor na kartici Poruke sa porukom na ekranu. EXECUTION_STATE_CHANGED stiže kao „Dogovor je završen — Završetak Dogovora je potvrđen“ (zavrseno-12); sitnica: ikonica je iz porodice poruka."
+          }
         }
       }
     },
@@ -10564,6 +10684,36 @@
       ],
       "storeReady": false,
       "automaticHeartbeat": "PAUSED"
+    },
+    "visual_native_followup_20261010": {
+      "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+      "rows": [
+        "A02",
+        "A03",
+        "A06",
+        "A14",
+        "B04",
+        "B05",
+        "B12",
+        "D01",
+        "D02",
+        "D06",
+        "D07",
+        "P01"
+      ],
+      "evidence": "docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
+      "storeReady": false,
+      "automaticHeartbeat": "PAUSED"
+    },
+    "auth_native_ci_20261010": {
+      "run": 38006112748,
+      "source": "07bc81e0e78d697b5bfa926b781fca516fd7d235",
+      "nativeAttempt": 2,
+      "nativeArtifact": 11661026624,
+      "native": "14PASS/2OBSERVATION",
+      "provider": "14PASS/3OBSERVATION",
+      "canonicalEmailDeliveryProven": false,
+      "evidence": "docs/implementation/evidence/signup-email-return-20261010/REPORT.md"
     }
   }
 }

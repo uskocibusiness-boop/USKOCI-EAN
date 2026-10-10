@@ -73,6 +73,22 @@ const sheetZoomOffset = (detent: number | undefined) => detent === 2 ? 0.8 : det
 /** Camera-only regional overview when no public points, saved view or work area is available. Never a location fact or filter. */
 const EMPTY_OVERVIEW_BOUNDS: PublicBounds = [18.8, 42.2, 23, 46.2];
 
+/** A single coarse public point still needs neighbourhood context, not a maximum-zoom fit.
+ * Camera only: keep server bounds, result scope, saved viewports and marker coordinates untouched. */
+function initialCameraBounds(bounds: PublicBounds | null): PublicBounds | null {
+  if (!bounds) return null;
+  const [west, south, east, north] = bounds;
+  // Wrapped bounds describe a wide dateline view, not a tiny local cluster.
+  if (west > east) return bounds;
+  const span = (low: number, high: number, limit: number): [number, number] => {
+    if (high - low >= 0.04) return [low, high];
+    const start = Math.max(-limit, Math.min(limit - 0.04, (low + high) / 2 - 0.02));
+    return [start, start + 0.04];
+  };
+  const x = span(west, east, 180), y = span(south, north, 85);
+  return [x[0], y[0], x[1], y[1]];
+}
+
 const placeWords = (place: PinPlace) => `${zadataka(place.ids.length)} na ovom mestu`;
 
 /** Snapshot native vector paths only after the annotation has a measured view in the active rendered map. */
@@ -225,7 +241,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
   // offset, and need no new fit to the task dataset. This constructor runs only when this map session mounts.
   // A new map gets only an unoccluded provisional bounds view: the screen's
   // first render still holds whole-window sheet estimates, so those must never be frozen into the native camera.
-  const serverInitialBounds = serverMap?.wholeBounds ?? null;
+  const serverInitialBounds = initialCameraBounds(serverMap?.wholeBounds ?? null);
   const initialFitPending = useRef(!props.viewport);
   const [initial] = useState(() => props.viewport ? { bounds: props.viewport.bounds, padding: { top: 0, right: 0, bottom: 0, left: 0 } }
     : { bounds: (serverMap ? serverInitialBounds : publicInitialBounds(props.items)) ?? EMPTY_OVERVIEW_BOUNDS,
@@ -425,7 +441,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     // A deliberate camera destination always wins, even if it is still waiting for the layout below.
     if (props.fitTo || props.centerNearby) { initialFitPending.current = false; return; }
     if (!frame || props.cameraLayoutReady === false || !camera.current) return;
-    const resultBounds = serverMap ? serverMap.wholeBounds : publicInitialBounds(props.items);
+    const resultBounds = serverMap ? initialCameraBounds(serverMap.wholeBounds) : publicInitialBounds(props.items);
     const bounds = resultBounds ?? EMPTY_OVERVIEW_BOUNDS;
     initialFitPending.current = false;
     cancelArea(); intent.current = 0; openedCluster.current = null;

@@ -94,13 +94,13 @@ describe('the three tabs as the navigator draws them', () => {
 });
 
 describe('a change of tab', () => {
-  it('moves the choice to the right tab at once for a screen reader, and starts the fade, the cross-fade and one pop on the native driver', async () => {
+  it('moves between ordinary root tabs at once for a screen reader, and starts the fade, the cross-fade and one pop on the native driver', async () => {
     await opened('/');
     const timing = jest.spyOn(Animated, 'timing'), sequence = jest.spyOn(Animated, 'sequence');
-    await act(async () => router.navigate('/zadaci'));
+    await act(async () => router.navigate('/dogovori'));
     await settle();
     // The selected state is the first thing to change and does not wait for a frame of any animation.
-    expect(labels.map(label => tab(label)!.props.accessibilityState.selected)).toEqual([false, true, false]);
+    expect(labels.map(label => tab(label)!.props.accessibilityState.selected)).toEqual([false, false, true]);
     // The tab left and the tab entered each fade their capsule (two icons each); only the tab entered pops, once per copy.
     const calls = timing.mock.calls.map(([, config]) => config as { toValue: number; duration: number; useNativeDriver: boolean });
     expect(calls.every(call => call.useNativeDriver === true)).toBe(true);

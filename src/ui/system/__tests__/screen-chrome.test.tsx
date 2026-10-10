@@ -1,6 +1,5 @@
 import React from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
-import { Image } from 'expo-image';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockReduced = false;
@@ -20,7 +19,7 @@ jest.mock('../../../hooks/useInbox', () => ({ useInbox: () => ({ state: { error:
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { ArrowLeft, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X } from 'phosphor-react-native';
-import { GLYPH_NAMES } from '../Glyph';
+import { Glyph, GLYPH_NAMES } from '../Glyph';
 import { layout } from '../layout';
 import { chrome, ChromeIconButton, SCROLL_TITLE_MAX_SCALE, ScreenChrome, useChromeTitleOnScroll } from '../ScreenChrome';
 import { HeaderIconButton, ScreenHeader } from '../ScreenHeader';
@@ -182,7 +181,7 @@ describe('the one chrome icon button', () => {
     expect(press('Kalendar obaveza').props.accessibilityState).toEqual({ disabled: false });
   });
 
-  it('draws original bell art without a chrome circle; the real unread count keeps its orange badge', async () => {
+  it('draws the semantic bell without a chrome circle; the real unread count keeps its orange badge', async () => {
     const { InboxBell } = jest.requireActual('../../InboxBell') as typeof import('../../InboxBell');
     const bellLabel = (count: number) => hosts(node => typeof node.props.accessibilityLabel === 'string'
       && node.props.accessibilityLabel.startsWith(`Obaveštenja, ${count} `))[0].props.accessibilityLabel as string;
@@ -191,18 +190,15 @@ describe('the one chrome icon button', () => {
     const label = bellLabel(0);
     expect(flat(control(label))).toMatchObject({ width: 48, height: 48 });
     expect(circle(label)).toBeUndefined();
-    const art = tree.root.findByType(Image);
-    expect(art.props.source).toBe(require('../../../../assets/illustrations/uskoci-notification-bell-v1.png'));
-    expect(flat(art)).toMatchObject({ width: 40, height: 40 });
-    expect(art.props).toMatchObject({ accessible: false, contentFit: 'contain', transition: 0 });
+    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: 24 });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(0);
     await act(async () => tree.unmount());
     mockUnread = 3;
     await render(<InboxBell />);
     const spoken = bellLabel(3);
-    // The illustration does not invent an unread state; only the real count adds the badge.
+    // The glyph does not invent an unread state; only the real count adds the badge.
     expect(circle(spoken)).toBeUndefined();
-    expect(tree.root.findByType(Image).props.source).toBe(require('../../../../assets/illustrations/uskoci-notification-bell-v1.png'));
+    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: 24 });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(tree.root.findAllByType(Text).map(node => node.props.children)).toContain(3);
     mockUnread = undefined;

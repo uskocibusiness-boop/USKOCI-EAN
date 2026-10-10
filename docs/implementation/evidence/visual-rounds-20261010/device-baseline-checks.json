@@ -1,0 +1,60 @@
+{
+  "source": "63366e0fb231071d9bcc5a2d8f252aec4682e6ab",
+  "installedAt": "2026-10-10T05:38:19Z",
+  "sameUid": true,
+  "sameFirstInstallTime": true,
+  "runtimeIdentitySeen": true,
+  "fontScale": 1.15,
+  "observed": [
+    "Preserved signed-in profile; DRAFT reading card and AI opening question.",
+    "Separate blurred filter sections; Back cancels draft; reset and calendar open.",
+    "FULL list white to the header; map hide/reveal.",
+    "City search focuses keyboard and selecting city renders streets.",
+    "Empty Poruke and Dogovori; calendar month view."
+  ],
+  "failures": [
+    "Initial singleton camera showed only river at excessive zoom.",
+    "Mapa pill remained visible over uncovered map after search.",
+    "Bottom navigation disappeared on returning through Raspored to Dogovori.",
+    "Completed-agreement counter unavailable on profile (not fixed in this followup)."
+  ],
+  "notProven": [
+    "Populated group/private chat; no current conversations on inspected account.",
+    "Actual new voice transcription/provider response.",
+    "Whole end-to-end lifecycle or store readiness."
+  ],
+  "evidenceSha256": {
+    "01-about.png": "08562eb6843b37308513a2a0eb053f8ca379eb7ac556413a0910e40fed5e7ac3",
+    "02-profile.png": "687a4d257a33a3e65c55001ec81101790e2acc440c918dbbc86f69d4ccdc48d2",
+    "03-worker.png": "292d52d54e4d256a005dcabf61546d827fb3b1374ebcf61267b7457a0e61fbe7",
+    "04-worker-ai.png": "2f459dbe03dddc8ae7e658cbff93c0b49d9d6867e79184fa35f2dc6e29b3b58a",
+    "05-worker-back.png": "0f39e3eaa0371f04a2159782ab6ca9f78a1f4cc7f63243ad33e3a5ea793566e7",
+    "06-map.png": "317c55e588e107b6d5e22033f024401dafdd7f2134c2349108c38eb5dfbf0d1b",
+    "07-discovery.png": "03951ca8a40d50dce92a52898fff6425ca7aac63cae3df78ac14b484ad2b93ef",
+    "08-filters-when.png": "2a4115123a2da6c097ca5ccf8175194c2a835991fd73b7533a072e1e400e0ad3",
+    "09-filters-where.png": "1a86857f8055104177ca57c84cef964352900917304ea9f3e83446e0e5b8bf2d",
+    "10-filters-amount.png": "9cd20de1042953ca8691d9f85a6e8722701056689bb86578b98294b33f0846a8",
+    "11-filters-amount-draft.png": "8d5ab3b1c4e1df50ed455700c701c2599964f97088b99606af3496514c2ded26",
+    "12-map-cancelled.png": "41254cb1fca79834229aad4473552cff069270d6b241fc73f451ac54b53eabc2",
+    "13-filters-reopened.png": "d4154aee93dcf278d2e14c885f22be7c56fec649ef8e05621d467fc4f9ede1cc",
+    "14-filters-calendar.png": "5659a33ba2c30876f58d9f9333f0e40d07827fa0b52b242c94f798e61d23d932",
+    "15-filter-back.png": "41254cb1fca79834229aad4473552cff069270d6b241fc73f451ac54b53eabc2",
+    "16-messages.png": "76137a4da28e101fdb68420ac50558278ffcd271b868a0134bc9d92de0c3b3f3",
+    "17-agreements.png": "6ca723ee789336606701310b7c6c30722b8d3ea4dbb49c95e7a1dd40f0bb4fba",
+    "18-schedule.png": "7012aabe76101cbfad755a0425f08fd12b4e759ec3257c30c9d4b45c47ad917f",
+    "19-map-return.png": "8a8ad3fedc46b52c0d7c65bbf217602bc0537b298e5cd8aaa11f1f0365cbc8aa",
+    "20-list-full.png": "0333ad2e58492abdfad5ac4ff9ad079154e81c5b8030bcc0e73d2f788f4001a9",
+    "21-map-button.png": "e81b902fb848c147daf4b46b9c5dd4f7c9709ae1c9ab56ea5a5fc60c99286293",
+    "22-search.png": "ac79a83ab291efb2d4be52b4f17ea85a5bcc5eb0467599936290090760a0be69",
+    "23-search-place.png": "358490c8011133c51e5999843d56c7c85be96a908974a0cd476c926edcd622e9",
+    "24-clear-search.png": "085c8ad46e0689af982ed619eb858d5993913756a5f04829d8e0305750bce71f",
+    "25-nearby-off.png": "5b0ef7206c82e39e6741ce451c5d941033a612f087d07fb182d55a8f4dc350eb",
+    "26-nearby-settled.png": "5b0ef7206c82e39e6741ce451c5d941033a612f087d07fb182d55a8f4dc350eb",
+    "27-clear-nearby.png": "d2a5e6930f515ce237b1efc348a948b5d3cb31c60511687b9a0fba808b6bcbf6",
+    "28-return.png": "2a000525dc509515082251721b985d384b1feec1dfd25b9d8db45c6ea6169bd4",
+    "29-agreements-return.png": "2ef14fadbb27482827cd48a115711da2f7eb41d91b3db39db660831b7b84dcd4",
+    "30-home.png": "2ef14fadbb27482827cd48a115711da2f7eb41d91b3db39db660831b7b84dcd4",
+    "31-agreements-reset.png": "2ef14fadbb27482827cd48a115711da2f7eb41d91b3db39db660831b7b84dcd4"
+  },
+  "privateScreenshotsNotPublished": true
+}

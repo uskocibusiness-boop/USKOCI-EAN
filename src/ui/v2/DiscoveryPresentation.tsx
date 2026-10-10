@@ -871,7 +871,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }, [position, mapShown, bodyHeight, listTop, coverageSequenceValue, receiveCoverage]);
   const mapCovered = coverage?.owner === coverageOwner && coverage.covered;
   // The floating "Mapa" stands over the end of the list at the full height.
-  const pillShown = expanded && mapShown;
+  const pillShown = expanded && mapShown && mapCovered;
   const pillFade = usePillFade(pillShown, reduced);
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
   const halfSheet = typeof snapPoints[1] === 'number' ? snapPoints[1] : Math.round(windowHeight / 2);
@@ -1310,9 +1310,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   </T>;
   // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
   const sorted = !!p6 && !loading && !refreshing && !error && !collectionWords && shownCount > 1;
-  // What the pill says is searched (a place, words, the map's area, one point), and its "×" ("Prikaži sve zadatke") takes all of that away in one step. A place has taken
+  // A passive map pan must not grow the top bar or move its chips. Its reset belongs beside the list count.
+  const areaOnly = !!area && !view.place && !view.query.trim() && !pinPlace;
+  // What the pill says is searched (a place, words, one point), and its "×" ("Prikaži sve zadatke") takes all of that away in one step. A place has taken
   // over the area, so it goes with the area; words alone leave the area as it was (the list still follows the map); a point and the area go through the reader's own command.
-  const searchedWords = searchWords(view);
+  const searchedWords = areaOnly ? null : searchWords(view);
   const clearSearch = () => {
     const words = view.query.trim() !== '';
     if (view.place) { toggle({ place: null, query: '', area: null, pinPlace: null }); return; }
@@ -1345,11 +1347,17 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }}>
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
+    <View style={s.countLine}>
     <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityValue={sorted ? { text: NEWEST_FIRST } : undefined}
       accessibilityState={{ expanded: sheetIndex > SNAP.peek, busy: loading || refreshing }} accessibilityHint={handleHint(sheetIndex)} accessibilityLiveRegion="polite"
       haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
-      {count}{sorted ? <T variant="note" tone="muted" style={s.sortedBy}>{NEWEST_FIRST}</T> : null}
+      {count}{sorted && !areaOnly ? <T variant="note" tone="muted" style={s.sortedBy}>{NEWEST_FIRST}</T> : null}
     </Press>
+    {areaOnly ? <Press testID="clear-map-area" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
+      haptic="select" hitSlop={0} onPress={showAll} style={s.areaReset}>
+      <T variant="note" style={s.areaResetText}>Sve oblasti</T>
+    </Press> : null}
+    </View>
     {/* The way to the tasks that are not on the map: a quiet row under the count, which raises the list and shows only them. The number is the server's own. */}
     {showOffMap ? <Press testID="off-map-entry" accessibilityRole="button" accessibilityLabel={`${offMapWords(exactPinless)}. Prikaži samo te zadatke.`}
       haptic="select" scaleTo={sys.motion.scale.row} onPress={openOffMap} style={s.offMapRow}>
@@ -1521,8 +1529,11 @@ const s = StyleSheet.create({
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },
   grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: 0, backgroundColor: sys.color.lineStrong },
-  // The honest count on the sheet's top line, and how the list is ordered beside it: the whole line is the handle's button.
-  countRow: { minHeight: 48, paddingVertical: sys.space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  // Area reset is a separate target beside the handle; panning never adds another header row.
+  countLine: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  areaReset: { minHeight: 48, maxWidth: '50%', justifyContent: 'center', flexShrink: 0 },
+  areaResetText: { color: sys.color.green, fontWeight: '600' },
+  countRow: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: sys.space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     gap: sys.space.md, borderRadius: sys.radius.control },
   count: { color: sys.color.ink, fontWeight: '600', flexShrink: 1 },
   sortedBy: { textAlign: 'right' },

@@ -218,6 +218,14 @@ const readyList = async (content = 3000, window = 400) => {
 };
 /** The body under the chrome, laid out: the sheet's heights become numbers. */
 const layOutBody = async (height = 800) => act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height } } }));
+/** Physical position, independent of requested detents, native probe and onChange. Measure the body first. */
+const physicalSheetAt = async (index: number, bodyHeight = 800) => {
+  const height = listSheet().props.snapPoints[index];
+  expect(typeof height).toBe('number');
+  expect(Number.isFinite(height)).toBe(true);
+  listSheet().props.animatedPosition.value = bodyHeight - Number(height);
+  await deliverUi();
+};
 /** A quick chip over the map (a toggle, spoken as selected or not). */
 const quick = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
   && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
@@ -531,6 +539,7 @@ test.each([false, true])('a button-requested full sheet cancelled back to native
   await act(async () => countLine().props.onPress());
   expect(listSheet().props.index).toBe(2); // requested destination, native's last settled index is still 1
   expect(map().props.locked).toBe(false);
+  expect(pressable('Mapa')).toHaveLength(0);
   // Many intermediate frames schedule no repeated JS delivery while the physical boundary stays uncovered.
   for (const fraction of [0.2, 0.4, 0.7, 0.9]) {
     position.value = halfPosition + (fullPosition - halfPosition) * fraction; sampleUi();
@@ -541,12 +550,14 @@ test.each([false, true])('a button-requested full sheet cancelled back to native
     expect(mockRnDeliveries).toHaveLength(1);
     await deliverUi();
     expect(map().props.locked).toBe(true);
+    expect(pressable('Mapa')).toHaveLength(1);
   }
   // No onChange(2), no onAnimate back to 1, and no onChange(1): exactly the suppressed native callbacks.
   position.value = halfPosition;
   await deliverUi(); await update();
   expect(listSheet().props.index).toBe(2); // prove the physical boundary does not accidentally rely on a corrected request
   expect(map().props.locked).toBe(false);
+  expect(pressable('Mapa')).toHaveLength(0);
   expect(snapshot.viewport).toEqual(viewport);
   await act(async () => map().props.onSelect('bb'));
   expect(snapshot.selectedId).toBe('bb'); expect(peek()).toBeDefined();
@@ -775,7 +786,7 @@ test.each(['running', 'interrupted', 'content gesture', 'handle gesture', 'tempo
   });
 
 test('a queued full-detent sample cannot undo a newer requested peek', async () => {
-  initial = { ...initial, sheet: 'half' }; await render(); await readyList(); nativeDetent(2);
+  initial = { ...initial, sheet: 'half' }; await render(); await readyList(); await physicalSheetAt(2); nativeDetent(2);
   sampleUi(); // Full is observed on the UI thread, but its JS delivery is delayed.
   await act(async () => countLine().props.onPress()); await tap('Mapa');
   expect(listSheet().props.index).toBe(0);
@@ -795,7 +806,7 @@ test('a full request matching an already settled native detent refreshes a rejec
 
 test('a fresh sample carrying the new peek command cannot reconcile the previous full stop', async () => {
   initial = { ...initial, sheet: 'full', listOffset: 160 };
-  await render(); await readyList(); nativeDetent(2); await deliverUi(); await nativeScroll(160);
+  await render(); await readyList(); await physicalSheetAt(2); nativeDetent(2); await deliverUi(); await nativeScroll(160);
   const event = { contentOffset: { y: 160 } };
   await act(async () => list().props.nativeHandlers.handleOnMomentumBegin(event, {})); await deliverUi();
   await tap('Mapa');
@@ -806,7 +817,7 @@ test('a fresh sample carrying the new peek command cannot reconcile the previous
 
 test.each(['handle', 'content'] as const)('a new native %s gesture can interrupt an outstanding requested detent', async kind => {
   initial = { ...initial, sheet: 'full' };
-  await render(); await readyList(); nativeDetent(2); await deliverUi();
+  await render(); await readyList(); await physicalSheetAt(2); nativeDetent(2); await deliverUi();
   await tap('Mapa'); await deliverUi();
   const gesture = kind === 'handle' ? mockNativeHandleGesture : mockNativeContentGesture;
   gesture.value = 4; await deliverUi(); // A new gesture, observed after this command reached the native observer.
@@ -816,7 +827,7 @@ test.each(['handle', 'content'] as const)('a new native %s gesture can interrupt
 
 test('a gesture settled before its start reaches JS is resampled after request retirement', async () => {
   initial = { ...initial, sheet: 'full' };
-  await render(); await readyList(); nativeDetent(2); await deliverUi();
+  await render(); await readyList(); await physicalSheetAt(2); nativeDetent(2); await deliverUi();
   await tap('Mapa'); await deliverUi();
   mockNativeHandleGesture.value = 4; sampleUi();
   nativeDetent(1); mockNativeHandleGesture.value = 5; mockNativeSheetState.value = 0; sampleUi();
@@ -894,7 +905,7 @@ test.each(['rows', 'requirements', 'schedule', 'price basis', 'publisher', 'rela
 test('return after opening a task during a collapse rebuilds the native sheet at its requested stop and retires the old finish', async () => {
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };
   initial = { ...initial, viewport, sheet: 'full', listOffset: 160, price: 'MY_PRICE' };
-  await render(); await layOutBody(760);
+  await render(); await layOutBody(760); await physicalSheetAt(2, 760);
   const oldSheet = listSheet(), lateFinish = oldSheet.props.onChange;
   await tap('Mapa');
   expect(listSheet().props.index).toBe(0);
@@ -1691,7 +1702,7 @@ test.each([[1, '1 zadatak'], [3, '3 zadatka'], [5, '5 zadataka'], [11, '11 zadat
 test('at the full height a floating dark-green "Mapa" lowers the list to its top line; it fades only when motion is allowed', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(pressable('Mapa')).toHaveLength(0);
-  await dragSheet(2);
+  await layOutBody(); await dragSheet(2); await physicalSheetAt(2);
   const pill = press('Mapa');
   expect(pill.props).toMatchObject({ accessibilityRole: 'button', accessibilityHint: 'Spušta listu i prikazuje mapu.' });
   // A float in the green of the action, 48 high with its own 1 dp line (the press inside is 46).
@@ -1709,11 +1720,11 @@ test('at the full height a floating dark-green "Mapa" lowers the list to its top
   expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl);
   // Under reduced motion it is simply there, and simply gone.
   await act(async () => tree.unmount()); mockReduced = true; await render();
-  await dragSheet(2);
+  await layOutBody(); await dragSheet(2); await physicalSheetAt(2);
   expect(rowOf(press('Mapa')).props.entering).toBeUndefined(); expect(rowOf(press('Mapa')).props.exiting).toBeUndefined();
   expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).opacity).toBe(1);
   // Unlocated tasks keep their full list and a way back to the empty geographic overview.
-  await act(async () => tree.unmount()); mockReduced = false; rows = [row('remote', { priblizno: null })]; await render();
+  await act(async () => tree.unmount()); mockReduced = false; rows = [row('remote', { priblizno: null })]; await render(); await layOutBody(); await physicalSheetAt(2);
   expect(listSheet().props.index).toBe(2); expect(pressable('Mapa')).toHaveLength(1);
 });
 
@@ -2099,19 +2110,23 @@ test('the list follows the map area and the search pill clears it', async () => 
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
 });
 
-test('a map area stays in a separately clearable search context, never under the list count', async () => {
+test('panning keeps the compact header and real area filter, with a separate reset beside the list count', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
   const before = StyleSheet.flatten(press('Pretraži zadatke').props.style);
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
   expect(removable()).toHaveLength(0);
-  const clear = tree.root.findByProps({ testID: 'clear-where' });
+  expect(snapshot.area).toEqual([20.3, 44.7, 20.5, 44.9]);
+  expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
+  const clear = tree.root.findByProps({ testID: 'clear-map-area' });
   expect(clear.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži sve zadatke', hitSlop: 0 });
-  expect(StyleSheet.flatten(clear.props.style)).toMatchObject({ minHeight: 48, width: 48 });
+  expect(StyleSheet.flatten(clear.props.style)).toMatchObject({ minHeight: 48 });
+  expect(clear.parent).toBe(countLine().parent);
+  expect(texts(clear)).toBe('Sve oblasti');
   expect(StyleSheet.flatten(press('Pretraži zadatke').props.style)).toEqual(before);
-  expect(press('Aktivna pretraga').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
-  expect(texts(press('Aktivna pretraga'))).toBe('Ova oblast');
-  await tap('Aktivna pretraga'); expect(panel()).toHaveLength(1);
+  expect(pressable('Aktivna pretraga')).toHaveLength(0);
+  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+  await tap('Pretraži zadatke'); expect(panel()).toHaveLength(1);
   await tap('Zatvori pretragu');
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
   expect(pressable('Aktivna pretraga')).toHaveLength(0);
@@ -2403,9 +2418,9 @@ test('an empty list can remain fully open over the map without duplicating its g
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, { ...at(44.7 + i / 50, 20.4), ...tomorrowFlexible }));
   // A camera the person already looked at: the map stays even when the filter leaves no pin on it.
   initial = { ...initial, viewport: { center: [20.4, 44.8], zoom: 11, bounds: [20.2, 44.6, 20.6, 45] } };
-  await render();
-  await dragSheet(2); expect(press('Mapa')).toBeTruthy();
-  await act(async () => quick('Danas').props.onPress());
+  await render(); await layOutBody();
+  await dragSheet(2); await physicalSheetAt(2); expect(press('Mapa')).toBeTruthy();
+  await act(async () => quick('Danas').props.onPress()); await deliverUi();
   expect(cards()).toEqual([]); expect(listSheet().props.index).toBe(2);
   expect(StyleSheet.flatten(press('Mapa').parent!.props.style).backgroundColor).toBe(sys.color.surface);
   expect(action('Poništi filtere')).toBeDefined();
@@ -2413,7 +2428,7 @@ test('an empty list can remain fully open over the map without duplicating its g
   expect(texts(countLine())).toBe('Nema zadataka');
   await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeDefined();
   // With tasks again, the whole list is open to it.
-  await act(async () => quick('Danas').props.onPress()); await dragSheet(2);
+  await act(async () => quick('Danas').props.onPress()); await dragSheet(2); await physicalSheetAt(2);
   expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeTruthy();
 });
 
@@ -2543,6 +2558,7 @@ test('a time choice says under the list how many tasks it leaves out because the
 
 // At narrow widths the search context is its own line, preserving separate accessible tools.
 test('at large text the search stays one line with separate tools and the pin preview may use more room', async () => {
+  initial = { ...initial, place: 'Beograd' };
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
   const lines = () => press('Aktivna pretraga').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
@@ -2640,7 +2656,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
   expect(listSheet().props.snapPoints[2]).toBe(268);
-  await act(async () => listSheet().props.onChange(2));
+  await act(async () => listSheet().props.onChange(2)); await physicalSheetAt(2, 340);
   expect(listSheet().props.index).toBe(2);
   expect(StyleSheet.flatten(list().props.style).height).toBe(268); // same highest-detent viewport at half and full
   if (empty) expect(StyleSheet.flatten(press('Mapa').parent!.props.style).backgroundColor).toBe(sys.color.surface);
@@ -2696,7 +2712,8 @@ describe('Moja lokacija: an explicit camera-only location capture', () => {
     // The map's own move settles in its area, and that is what the list holds (the map hands it up as it does after a drag).
     await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
     expect(snapshot.area).toEqual([20.3, 44.7, 20.5, 44.9]);
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Ova oblast' });
+    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    expect(press('Prikaži sve zadatke')).toBeDefined();
   });
   test('the search has no position of its own: "Moja lokacija" is the map\'s button, and applying a search asks nothing of the phone', async () => {
     rows = [row('a'), row('b')]; await render();
@@ -2856,6 +2873,27 @@ test('EX-03: a pin card opening and closing leaves every row of the list mounted
 // Audit fix 8 (owner, 2026-10-07: the map and the list always show every task): an empty list says plainly why, and offers the one way out that fits.
 const AT_NOW = '2026-10-07T10:00:00.000000Z';
 const p6Counts = (mapped: number, listed = 0) => ({ kind: 'exact_live' as const, observedAt: AT_NOW, mapped, listed, inArea: listed, withoutPoint: 0, undated: 0 });
+test('a narrow P6 area header keeps sorting accessible and clears only through its area command', async () => {
+  mockWindow = { width: 320, height: 640, scale: 2, fontScale: 2 };
+  rows = p6Rows();
+  initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9], query: '', place: null, pinPlace: null, price: 'MY_PRICE', when: 'today', sheet: 'half' };
+  const onShowAll = jest.fn();
+  p6Seam = { ...p6Seam_(), counts: p6Counts(rows.length, rows.length), onShowAll };
+  await render(); await layOutBody(500);
+  const count = countLine(), reset = tree.root.findByProps({ testID: 'clear-map-area' });
+  expect(texts(count)).toBe('4 zadatka');
+  expect(texts(count)).not.toContain('Najnovije prvo');
+  expect(count.props.accessibilityValue).toEqual({ text: 'Najnovije prvo' });
+  expect(reset.parent === count.parent).toBe(true);
+  expect(reset.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži sve zadatke', hitSlop: 0 });
+  expect(texts(reset)).toBe('Sve oblasti');
+  expect(StyleSheet.flatten(reset.props.style)).toMatchObject({ minHeight: 48, maxWidth: '50%' });
+  expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
+  await act(async () => reset.props.onPress());
+  expect(onShowAll).toHaveBeenCalledTimes(1);
+  // Only the coordinator may change the accepted P6 scope after its PAGE response.
+  expect(snapshot).toMatchObject({ area: initial.area, price: 'MY_PRICE', when: 'today', query: '', place: null, pinPlace: null });
+});
 describe('an empty P6 list says what is true', () => {
   test('an area with nothing, while tasks exist elsewhere: zoom out or move the map, or show every task', async () => {
     rows = []; initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9], sheet: 'half' }; p6Seam = { ...p6Seam_(), counts: p6Counts(7) };
@@ -3275,13 +3313,13 @@ describe('the bottom navigation follows the list: away at the top line or behind
   });
 
   test('what the bar lies over is kept clear: the end of the list, the "Mapa" pill, the paging note, and the half stop is half of what the bar leaves', async () => {
-    barValue = makeBar(); initial = { ...initial, sheet: 'full' }; await render(); await layOutBody(800);
+    barValue = makeBar(); initial = { ...initial, sheet: 'full' }; await render(); await layOutBody(800); await physicallyAt(2);
     expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.huge + sys.space.xxl + BAR);
     expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).bottom).toBe(sys.space.base + BAR);
     // half of the 800 the body is and the 72 the bar covers: the map above the sheet and the list between the sheet and the bar are about as tall as each other
     expect(listSheet().props.snapPoints[1]).toBe(Math.round((800 + BAR) / 2));
     // without a bar nothing is reserved
-    await act(async () => tree.unmount()); barValue = undefined; await render(); await layOutBody(800);
+    await act(async () => tree.unmount()); barValue = undefined; await render(); await layOutBody(800); await physicallyAt(2);
     expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.huge + sys.space.xxl);
     expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).bottom).toBe(sys.space.base);
     expect(listSheet().props.snapPoints[1]).toBe(400);
@@ -3290,7 +3328,7 @@ describe('the bottom navigation follows the list: away at the top line or behind
   test('the note of the next page stands above the "Mapa" pill and above the bar, in the list\'s own width', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'full' };
     p6Seam = { ...p6Seam_(), loadingMore: true, pageHasMore: true };
-    await render(); await layOutBody(800);
+    await render(); await layOutBody(800); await physicallyAt(2);
     const note = tree.root.findByProps({ accessibilityLabel: 'Učitavamo još zadataka…' });
     expect(StyleSheet.flatten(note.props.style).bottom).toBe(sys.space.base + BAR + 48 + sys.space.sm);
   });

@@ -64,7 +64,7 @@ export function PlaceRow({ art, count, lead, text, note, label, hint, role = 'ra
   return <Press accessibilityRole={role} accessibilityLabel={label} accessibilityHint={hint}
     accessibilityState={role === 'radio' ? { checked } : undefined} aria-checked={role === 'radio' ? checked : undefined}
     haptic="select" scaleTo={sys.motion.scale.row} hitSlop={0} onPress={onPress} style={[s.place, checked && s.placeOn]}>
-    <View style={s.lead}>
+    <View style={[s.lead, (art || typeof count === 'number') && s.leadTile]}>
       {art ? <FactArt kind={art} size={LEAD_ART} />
         : typeof count === 'number' ? <T variant="priceRow" tone={count === 0 ? 'muted' : undefined} style={s.count}>{count}</T>
           : lead ? <T variant="meta" tone="muted" style={s.leadWords}>{lead}</T> : null}
@@ -104,6 +104,8 @@ const s = StyleSheet.create({
   placeOn: { backgroundColor: sys.color.greenSoft },
   // The lead column is as wide as a person's face slot, so every place of the list starts at the same edge; a figure or the words stand at its right.
   lead: { minWidth: layout.slotFace, alignItems: 'flex-end', justifyContent: 'center' },
+  leadTile: { minHeight: layout.slotFace, alignItems: 'center', borderRadius: sys.radius.control, backgroundColor: sys.color.wash,
+    paddingHorizontal: sys.space.xs, paddingVertical: sys.space.xs },
   count: { textAlign: 'right' },
   leadWords: { textAlign: 'right' },
   groupTitle: { paddingTop: sys.space.md, fontWeight: '600' },

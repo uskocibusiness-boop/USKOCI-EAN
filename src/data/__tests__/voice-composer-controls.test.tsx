@@ -29,6 +29,17 @@ import { VoiceComposer, VoiceMode, VoiceNotice } from '../../ui/aiFirst/VoiceCom
 import { AgreementVoiceMic } from '../../ui/media/AgreementVoiceControls';
 let tree:ReactTestRenderer;
 const idle:VoiceSnapshot={phase:'IDLE',session:null,finalText:'',interimText:'',audioLevel:null,fallbackText:'',error:null};
+
+it.each(['', 'Treba mi pomoć'])('a missing final offers editing only when there are actual retained words: %s', async retained => {
+  const c = controller(), keep = jest.fn();
+  await act(async () => { tree = create(<VoiceNotice controller={c as unknown as HoldToTalkController}
+    state={{ ...idle, error: 'FINAL_TRANSCRIPT_MISSING', fallbackText: retained }} disabled={false} onKeepText={keep} />); });
+  const words = tree.root.findAllByType('T' as React.ElementType).map(node => node.props.children).join(' ');
+  expect(tree.root.findAllByProps({ label: 'Uredi sačuvani tekst' })).toHaveLength(retained ? 1 : 0);
+  if (retained) expect(words).toContain('Prepoznati deo možeš da pregledaš');
+  else { expect(words).toContain('Govor nije prepoznat'); expect(words).not.toMatch(/sačuvan|Prepoznati deo/i); }
+  expect(c.useFallback).not.toHaveBeenCalled(); expect(keep).not.toHaveBeenCalled();
+});
 const controller=()=>({begin:jest.fn(()=>true),release:jest.fn(),cancel:jest.fn(),useFallback:jest.fn()});
 const text=()=>JSON.stringify(tree.toJSON());
 afterEach(async()=>{await act(async()=>tree?.unmount());jest.restoreAllMocks();});beforeEach(()=>{mockReader=false;mockReduced=false;mockAppState='active';mockAppStateListeners.clear();jest.clearAllMocks();});

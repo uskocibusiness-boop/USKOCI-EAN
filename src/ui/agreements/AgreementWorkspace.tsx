@@ -3,6 +3,7 @@ import { AccessibilityInfo, Platform, ScrollView, StyleSheet, useWindowDimension
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { FlowFooter } from '../system/FlowFooter';
 import { Surface } from '../system/Surface';
+import { STATUS_CHIPS, STATUS_MARK, StatusMark, type StatusKey } from '../system/StatusChip';
 import { brandAction, sys } from '../system/tokens';
 import { useTextScale } from '../system/textScale';
 import { T } from '../Text';
@@ -21,9 +22,10 @@ export type WorkspaceTone = 'green' | 'warn' | 'muted' | 'danger';
 const toneColor: Record<WorkspaceTone, string> = { green: sys.color.green, warn: sys.color.warn, muted: sys.color.muted, danger: sys.color.danger };
 
 export const stateTone = (state: DogovorProjekcija['stanje']): WorkspaceTone =>
-  state === 'CANCELLED' ? 'muted' : state === 'AWAITING_REQUESTER' ? 'warn' : 'green';
+  state === 'CANCELLED' || state === 'COMPLETED' ? 'muted' : state === 'AWAITING_REQUESTER' ? 'warn' : 'green';
 
-export type AgreementStep = { tone: WorkspaceTone; title: string; body: string | null };
+type EndStatus = Extract<StatusKey, 'task.completed' | 'task.cancelled'>;
+export type AgreementStep = { tone: WorkspaceTone; title: string; body: string | null; status?: EndStatus };
 
 /**
  * Where the Dogovor stands and what comes next, as the one place that says its state (round-1 critique A13: the bar,
@@ -43,11 +45,11 @@ export function agreementNextStep({ state, party, worker, change, ownRating, pro
   if (change.waits) return { tone: 'warn',
     title: change.mine === true ? 'Tvoj predlog izmene čeka odgovor' : change.mine === false ? CHANGE_WAITS_FOR_ME : 'Predlog izmene čeka odgovor',
     body: 'Završetak je moguć tek kada se predlog prihvati, odbije ili povuče.' };
-  if (state === 'COMPLETED') return { tone: 'green', title: 'Dogovor je završen', body: !party ? null
+  if (state === 'COMPLETED') return { tone: stateTone(state), status: 'task.completed', title: 'Dogovor je završen', body: !party ? null
     : ownRating === 'GIVEN' ? 'Hvala na saradnji. Tvoja ocena je sačuvana.'
       : ownRating === 'CLOSED' ? 'Hvala na saradnji.' : 'Hvala na saradnji. Ocena pomaže drugima da izaberu.' };
   // One form of the words across the app ("Dogovor je otkazan", as the task's own notice says it): the full stop that stood here was the only one.
-  if (state === 'CANCELLED') return { tone: 'muted', title: 'Dogovor je otkazan', body: null };
+  if (state === 'CANCELLED') return { tone: 'muted', status: 'task.cancelled', title: 'Dogovor je otkazan', body: null };
   if (state === 'AWAITING_REQUESTER') return { tone: 'warn', title: worker ? 'Čeka se potvrda druge strane' : CONFIRM_WAITS_FOR_ME,
     body: problemOpen ? 'Prijavljen je problem — automatski završetak je zaustavljen.' : `${deadline}. Bez odgovora se Dogovor zatvara sam.` };
   // Confirmed: the state is the title and the next step its one sentence (phone, 2026-10-08: two sentences stood over the steps). The
@@ -104,7 +106,7 @@ export function agreementStepsInfo({ worker }: { worker: boolean }): AgreementIn
  * lines) inside it; otherwise it is plain words on the white. `aside` is what stands at the end of the state's line: the "ⓘ" that opens how
  * a Dogovor goes.
  */
-export function NextStepCard({ title, body, tone = 'green', aside, children }: { title: string; body?: string | null; tone?: WorkspaceTone; aside?: ReactNode; children?: ReactNode }) {
+export function NextStepCard({ title, body, tone = 'green', status, aside, children }: { title: string; body?: string | null; tone?: WorkspaceTone; status?: EndStatus; aside?: ReactNode; children?: ReactNode }) {
   const previousTitle = useRef(title);
   useEffect(() => {
     if (title === previousTitle.current) return;
@@ -114,10 +116,11 @@ export function NextStepCard({ title, body, tone = 'green', aside, children }: {
   }, [title]);
   const waits = tone === 'warn' || tone === 'danger';
   const words = <>
-    <View style={s.nextHead}><View style={[s.dot, { backgroundColor: toneColor[tone] }]} />
+    <View style={s.nextHead}>{status ? <StatusMark shape={STATUS_CHIPS[status].shape} tone={STATUS_CHIPS[status].tone} />
+      : <View style={[s.dot, { backgroundColor: toneColor[tone] }]} />}
       <T variant={waits ? 'heading' : 'bodyStrong'} accessibilityRole="header" accessibilityLiveRegion="polite" style={s.nextTitle}>{title}</T>
       {aside}</View>
-    {body ? <T variant={waits ? 'copy' : 'note'} tone="muted" style={s.nextBody}>{body}</T> : null}
+    {body ? <T variant={waits ? 'copy' : 'note'} tone="muted" style={[s.nextBody, status && { paddingLeft: STATUS_MARK + sys.space.sm }]}>{body}</T> : null}
     {children}
   </>;
   return <View accessibilityRole="summary">

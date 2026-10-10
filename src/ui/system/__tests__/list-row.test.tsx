@@ -11,6 +11,7 @@ jest.mock('../textScale', () => ({ ...jest.requireActual('../textScale'),
 import { INTER_FACES } from '../../interFont';
 import { Press } from '../../Press';
 import { FactArt } from '../FactArt';
+import { Glyph } from '../Glyph';
 import { layout, ruleWidth } from '../layout';
 import { ListRow } from '../ListRow';
 import { sys } from '../tokens';
@@ -273,6 +274,15 @@ describe('the answer a row carries, and a row that opens in place', () => {
 });
 
 describe('tone, and not now', () => {
+  it('a disabled destructive control is muted and cannot look enabled after replacing its illustration', async () => {
+    await render(<ListRow title="Otkaži Dogovor" tone="danger" leading={<Glyph name="cancel" />} onPress={() => undefined} />);
+    expect(tree.root.findByType(Glyph).props.tone).toBe('danger');
+    await act(async () => tree.update(<ListRow title="Otkaži Dogovor" tone="danger" disabled leading={<Glyph name="cancel" tone="danger" />} onPress={() => undefined} />));
+    expect(tree.root.findByType(Glyph).props.tone).toBe('muted');
+    expect(tree.root.findByType(Press).props).toMatchObject({ disabled: true, accessibilityState: { disabled: true }, haptic: 'none' });
+    await act(async () => tree.update(<ListRow title="Izmeni" tone="quiet" leading={<Glyph name="edit" />} />));
+    expect(tree.root.findByType(Glyph).props.tone).toBe('muted');
+  });
   it('`danger` writes the words in red', async () => {
     await render(<ListRow title="Odjavi se" tone="danger" onPress={() => undefined} />);
     expect(flat(word('Odjavi se')).color).toBe(sys.color.danger);

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Image } from 'expo-image';
+import { Glyph } from './system/Glyph';
 import { useInbox } from '../hooks/useInbox';
 import { useReducedMotion } from './system/motion';
 import { Press } from './Press';
@@ -9,11 +9,8 @@ import { sys } from './system/tokens';
 import { T } from './Text';
 import { neprocitanih } from './system/plural';
 
-const BELL_ART = require('../../assets/illustrations/uskoci-notification-bell-v1.png');
-
 const s = StyleSheet.create({
   control: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  art: { width: 40, height: 40 },
   // The existing badge stays over the upper right edge of the same 48 px touch area.
   badge: { position: 'absolute', top: -1, right: -1, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 2, borderColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
@@ -53,12 +50,12 @@ export function InboxBell() {
     return () => { run.stop(); swing.setValue(0); };
   }, [count, reduced, swing]);
   const rotate = swing.interpolate({ inputRange: [0, 0.22, 0.48, 0.72, 1], outputRange: ['0deg', '-12deg', '9deg', '-5deg', '0deg'] });
-  // Original bundled art; the actual inbox count alone controls the badge and swing.
+  // The same quiet control family as navigation; only the real unread count controls badge and swing.
   return <Press accessibilityRole="button" accessibilityLabel={spoken} accessibilityState={{ disabled: false }} disabled={false}
     onPress={() => router.push('/obavestenja')} haptic="select" hitSlop={0} style={s.control}>
     <Animated.View testID="inbox-bell-drawing" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={{ transform: [{ rotate }] }}>
-      <Image source={BELL_ART} style={s.art} accessible={false} contentFit="contain" cachePolicy="memory" transition={0} allowDownscaling />
+      <Glyph name="notifications" size={24} />
     </Animated.View>
     {count != null && count > 0 && <View style={s.badge}>
       <T variant="label" maxFontSizeMultiplier={1} style={s.badgeText}>{count > 99 ? '99+' : count}</T>

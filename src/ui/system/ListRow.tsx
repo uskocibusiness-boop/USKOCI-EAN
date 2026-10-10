@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { FactArt } from './FactArt';
-import { Glyph } from './Glyph';
+import { Glyph, type GlyphTone } from './Glyph';
 import { layout, ruleWidth } from './layout';
 import { useLayoutClass } from './textScale';
 import { sys } from './tokens';
@@ -111,9 +111,14 @@ export function ListRow({ leading, title, subtitle, meta, trailing, onPress, ton
     accessibilityHint={accessibilityHint} style={[s.row, { minHeight }]}>{row}</View>;
 }
 
-/** A picture that is a `FactArt` goes quiet or red with its row; any other node (a face) is left as it was given. */
+/** Control drawings and fact pictures follow the row's state; personal images are left untouched. */
 function dressed(leading: ReactNode, tone: ListRowTone, disabled: boolean): ReactNode {
-  if (!isValidElement<{ muted?: boolean; tone?: 'danger' }>(leading) || leading.type !== FactArt) return leading;
+  if (!isValidElement<{ muted?: boolean; tone?: GlyphTone }>(leading)) return leading;
+  if (leading.type === Glyph) {
+    if (disabled || tone === 'quiet') return cloneElement(leading, { tone: 'muted' });
+    return tone === 'danger' ? cloneElement(leading, { tone: 'danger' }) : leading;
+  }
+  if (leading.type !== FactArt) return leading;
   if (disabled || tone === 'quiet') return cloneElement(leading, { muted: true });
   if (tone === 'danger') return cloneElement(leading, { tone: 'danger' });
   return leading;

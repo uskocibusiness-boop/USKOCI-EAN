@@ -18,7 +18,7 @@ import { useReducedMotion } from '../system/motion';
 import { useLayoutClass, useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import { HOLD_HINT, VoiceComposer, VoiceNotice, VoiceTranscript, type VoiceInput } from './VoiceComposer';
+import { HOLD_HINT, VoiceComposer, VoiceNotice, type VoiceInput } from './VoiceComposer';
 import { useConversationArrival } from './useConversationArrival';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
@@ -133,8 +133,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const interactiveContext = useRef<View>(null);
   const geometry = useRef({ offset: 0, content: 0, viewport: 0 });
   const followFrame = useRef<number | null>(null);
-  const liveSpeech = p.voice?.state.phase === 'LISTENING' || p.voice?.state.phase === 'FINALIZING';
-  const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText || liveSpeech);
+  const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText);
   const activity = useRef(hasActivity); activity.current = hasActivity;
   const cancelFollow = useCallback(() => {
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
@@ -242,7 +241,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const privacy = () => notice.ask({ title: 'Govorni unos i privatnost', message: VOICE_PROCESSING_NOTICE, confirmLabel: 'U redu', cancelLabel: null });
 
   const last = p.messages.at(-1);
-  const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText && !liveSpeech;
+  const welcomeShown = p.messages.length === 0 && !p.sentMessage && !p.pending && !p.busy && !p.streamingText;
   const openings = p.openings ?? [];
   // History notes are not messages: no entrance, no speaker, and nothing about them is docked outside the thread.
   const notes = p.threadNotes ?? [], anchored = new Set(p.messages.map(message => message.id));
@@ -351,7 +350,6 @@ export function AiConversationShell(p: AiConversationShellProps) {
           ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
             not yet part of the record. */}
-        {liveSpeech && p.voice ? <View style={s.person}><VoiceTranscript state={p.voice.state} /></View> : null}
         {p.sentMessage ? <View accessibilityLabel={`Ti, šalje se: ${p.sentMessage}`} style={[s.person, s.sending]}>
           <T selectable style={s.personText}>{p.sentMessage}</T>
         </View> : null}
@@ -383,7 +381,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {p.footerAction ? <View testID="ai-footer-action">{p.footerAction}</View> : null}
         {p.closed ? null : <>
         {/* A person who cannot hold uses the same microphone in start/stop mode with explicit review. */}
-        {p.voice ? <VoiceNotice {...p.voice} transcriptInThread hint={holdHint ? HOLD_HINT : null}
+        {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
           hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
             Keyboard.dismiss(); setHoldHint(false); setTapToTalk(true); } } : undefined} /> : null}
         {/* When the thread's own recovery note already explains the wait, the line here would say it twice; the send

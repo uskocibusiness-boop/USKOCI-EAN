@@ -826,6 +826,40 @@ const clusterMap = () => {
 };
 const settleAt = (bounds: number[]) => native().props.onRegionDidChange({ nativeEvent: { center: [(bounds[0] + bounds[2]) / 2, (bounds[1] + bounds[3]) / 2], zoom: 12, bounds, userInteraction: false } });
 
+test.each([
+  ['one public point', [19.83, 45.25, 19.83, 45.25]],
+  ['coincident task group', [20.46, 44.81, 20.46, 44.81]],
+  ['nearby public points', [19.83, 45.25, 19.84, 45.26]],
+  ['western edge', [-180, -85, -180, -85]],
+  ['eastern edge', [180, 85, 180, 85]],
+] as const)('initial P6 camera shows context around %s without changing results or public coordinates', async (_label, supplied) => {
+  const wholeBounds = [...supplied], onViewportSettled = jest.fn();
+  const markers = [{ ...layerMarkers[0], point: { lng: supplied[0], lat: supplied[1] } }];
+  const originalMarkers = JSON.stringify(markers);
+  extra = { p6Server: { markers, selectedKey: null, wholeBounds, onSelect: jest.fn(), onViewportSettled } };
+  await render();
+  const initial = tree.root.findByType('Camera' as React.ElementType).props.initialViewState.bounds;
+  expect(initial[2] - initial[0]).toBeCloseTo(0.04, 8);
+  expect(initial[3] - initial[1]).toBeCloseTo(0.04, 8);
+  expect(initial[0]).toBeLessThanOrEqual(supplied[0]); expect(initial[2]).toBeGreaterThanOrEqual(supplied[2]);
+  expect(initial[1]).toBeLessThanOrEqual(supplied[1]); expect(initial[3]).toBeGreaterThanOrEqual(supplied[3]);
+  expect(initial[0]).toBeGreaterThanOrEqual(-180); expect(initial[2]).toBeLessThanOrEqual(180);
+  expect(initial[1]).toBeGreaterThanOrEqual(-85); expect(initial[3]).toBeLessThanOrEqual(85);
+  await measureFrame(800); await ready();
+  expect(mockFit).toHaveBeenCalledTimes(1); expect(mockFit.mock.calls[0][0]).toEqual(initial);
+  await act(async () => settleAt(initial));
+  expect(wholeBounds).toEqual([...supplied]); expect(JSON.stringify(markers)).toBe(originalMarkers);
+  expect(search).not.toHaveBeenCalled(); expect(onViewportSettled).not.toHaveBeenCalled();
+});
+
+test('a remembered tight viewport is not widened to the initial P6 overview', async () => {
+  const saved = { center: [19.83, 45.25], zoom: 17, bounds: [19.829, 45.249, 19.831, 45.251] };
+  extra = { viewport: saved, p6Server: { markers: layerMarkers, selectedKey: null, wholeBounds: [19.83, 45.25, 19.83, 45.25], onSelect: jest.fn() } };
+  await render(); await measureFrame(800); await ready();
+  expect(tree.root.findByType('Camera' as React.ElementType).props.initialViewState.bounds).toEqual(saved.bounds);
+  expect(mockFit).not.toHaveBeenCalled();
+});
+
 test('empty P6 overview fits measured clear space and refreshes markers without filtering the list', async () => {
   const onViewportSettled = jest.fn(); rows = [];
   extra = { p6Server: { markers: [], selectedKey: null, wholeBounds: null, onSelect: jest.fn(), onViewportSettled }, toolsBottom: 60, fitBottom: 300 };

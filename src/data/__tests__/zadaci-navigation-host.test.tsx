@@ -33,9 +33,11 @@ test('PEEK/HALF and other routes keep one real bar inside a distinct stable moti
   expect(peek).toMatchObject({ position: 'absolute', height: 80, opacity: 0 });
   expect(transform[0].translateY.__getValue()).toBe(81);
   expect(host().props.pointerEvents).toBe('none'); expect(host().props.importantForAccessibility).toBe('no-hide-descendants');
+  const discoveryBar = tree.root.findByType(BottomTabBar);
   await act(async () => { bar.hidden.setValue(0); tree.update(<Shell bar={bar} visible />); });
   expect(StyleSheet.flatten(host().props.style).transform).toBe(transform);
   expect(host().props.pointerEvents).toBe('box-none');
+  expect(tree.root.findByType(BottomTabBar)).toBe(discoveryBar);
   await act(async () => { bar.hidden.setValue(1); tree.update(<Shell bar={bar} visible={false} />); });
   expect(StyleSheet.flatten(host().props.style).opacity).toBe(0);
   const taller = { ...bar, height: 96 };
@@ -44,8 +46,22 @@ test('PEEK/HALF and other routes keep one real bar inside a distinct stable moti
   await act(async () => navigation.navigate('index'));
   const ordinary = tree.root.findAll(node => typeof node.type !== 'string' && node.props.testID === 'navigation-bar')[0];
   expect(StyleSheet.flatten(ordinary.props.style)?.position).toBeUndefined(); expect(ordinary.props.pointerEvents).toBe('box-none');
+  expect(StyleSheet.flatten(ordinary.props.style)).toMatchObject({ opacity: 1, display: 'flex', transform: [{ translateY: 0 }] });
+  expect(tree.root.findByType(BottomTabBar)).not.toBe(discoveryBar);
   await act(async () => navigation.navigate('detail'));
   const full = tree.root.findAll(node => typeof node.type !== 'string' && node.props.testID === 'navigation-bar')[0];
   expect(StyleSheet.flatten(full.props.style).display).toBe('none');
   await act(async () => navigation.goBack()); expect(navigation.getCurrentRoute()?.name).toBe('index');
+  for (let visit = 0; visit < 2; visit++) {
+    await act(async () => navigation.navigate('zadaci'));
+    const hiddenDiscovery = tree.root.findByType(BottomTabBar);
+    await act(async () => navigation.navigate('detail'));
+    const hiddenFull = tree.root.findByType(BottomTabBar);
+    expect(hiddenFull).not.toBe(hiddenDiscovery);
+    await act(async () => navigation.navigate('index'));
+    const root = tree.root.findAll(node => typeof node.type !== 'string' && node.props.testID === 'navigation-bar')[0];
+    expect(tree.root.findByType(BottomTabBar)).not.toBe(hiddenFull);
+    expect(StyleSheet.flatten(root.props.style)).toMatchObject({ opacity: 1, display: 'flex', transform: [{ translateY: 0 }] });
+    expect(root.props.pointerEvents).toBe('box-none'); expect(root.props.accessibilityElementsHidden).toBe(false);
+  }
 });

@@ -467,11 +467,12 @@ it('a map settle after the anchor expired opens the area with a fresh anchor ins
 
 it('showing everything or a place after the anchor expired opens that scope with a fresh anchor',async()=>{
  const h=expiringPaged(3),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
- await route.open(view());await route.settleMap([19.5,44.5,20.5,45.5]);
+ await route.open(view({price:'MY_PRICE',when:'today'}));await route.settleMap([19.5,44.5,20.5,45.5]);
  h.expire();let before=h.calls.length;
  expect((await route.showAll()).kind).toBe('applied');
  const all=(h.calls.slice(before).filter(x=>x.mode==='PAGE'&&!(x as any).anchor) as any[]);
  expect(all).toHaveLength(1);expect(all[0].scope).toEqual({kind:'ALL'});expect(route.snapshot().view?.area).toBeNull();
+ expect(route.snapshot().view).toMatchObject({area:null,pinPlace:null,price:'MY_PRICE',when:'today'});
  h.expire();before=h.calls.length;
  const point={lat:45.25,lng:19.83};
  expect((await route.showPoint(point)).kind).toBe('applied');

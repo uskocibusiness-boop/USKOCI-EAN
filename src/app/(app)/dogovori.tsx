@@ -121,7 +121,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
         scope, generation: renderedReadGeneration, data: resource.data }); }).catch(() => undefined);
     return () => { live = false; };
   }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     cancellations={!resource.loading && !resource.refreshing && !resource.error && current() && cancellations?.key === cancelledKey && cancellations.scope === scope
       && cancellations.generation === renderedReadGeneration && cancellations.data === resource.data ? cancellations.value : null}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}

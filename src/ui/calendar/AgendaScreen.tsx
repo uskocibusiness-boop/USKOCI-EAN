@@ -225,7 +225,7 @@ export function AgendaScreen({ selected, today, schedule, list, availability = n
       header={<DetailTopBar title="Raspored" onBack={onBack} right={<View style={s.controls}>{narrow ? null : goToday}<LegendButton shading={shading} /></View>} />}>
       <View style={s.page}>
         <View style={s.fixed}>
-          <Segmented options={VIEW_OPTIONS} value={view} onChange={setView} />
+          <Segmented appearance="underline" equal options={VIEW_OPTIONS} value={view} onChange={setView} />
           {loose.length ? <LooseBar count={loose.length} hint={soleProposal ? 'Otvara predlog termina' : 'Otvara spisak'} onPress={openLoose} /> : null}
           <PeriodHeader view={view} title={periodTitle(view, selected, today, clock)} zoneNote={zoneNote} below={narrow ? <View style={s.todayLine}>{goToday}</View> : undefined}
             onPrevious={() => step(-1)} onNext={() => step(1)} onRefresh={onRefresh} />

@@ -167,6 +167,19 @@ describe('from four options on the set is a row of chips, the one place that scr
 });
 
 describe('the underline appearance is the same as it was, whatever the number of options', () => {
+  it.each([2, 3])('opt-in equal underlines keep %i long labels within their allocated width and preserve selection', async count => {
+    await render(make(count, { a: { label: 'Čekaju tvoj odgovor' } }), { appearance: 'underline', equal: true });
+    expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);
+    expect(flat(track()).gap).toBe(sys.space.sm);
+    for (const node of tabs()) {
+      expect(flat(node)).toMatchObject({ flexGrow: 1, flexBasis: 0, minWidth: 0, flexShrink: 1, minHeight: layout.touch, flexWrap: 'wrap' });
+    }
+    expect(word('Čekaju tvoj odgovor').props.numberOfLines).toBeUndefined();
+    await act(async () => tab('Nacrti').props.onPress());
+    expect(change).toHaveBeenCalledWith('b');
+    await act(async () => tree.update(<Segmented options={make(count)} value="b" onChange={change} appearance="underline" equal />));
+    expect(tab('Nacrti').props.accessibilityState.selected).toBe(true);
+  });
   it('keeps the underline tabs in a track for five options too: it is not the chips', async () => {
     await render(make(5), { appearance: 'underline' });
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);

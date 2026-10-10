@@ -49,3 +49,14 @@ Dijagnostička dorada proverava izlazni kod input komandi, stvarni fokus namerav
 **DOKAZAO za doradu:**164Python testova +22Jest routing testa PASS, bez preskočenih; lokalni novi focus guard takođe je uneo sintetički email i proverio readback. Negativni testovi dokazuju da bez fokusa ili uz fokus drugog polja nema ni brisanja ni teksta, odbijena input komanda vraća samo kod greške, odložen fokus se čeka i stvarni mismatch ostaje neuspeh. Nezavisan read-only pregled nema blokirajući nalaz. Jedan lokalni pokušaj testova je prvo pao zbog CRLF ui_labels.json; primenjeno je već postojeće eol=lf pravilo i cela164 grupa je zatim prošla. To nije serverski/provider test.
 
 **NIJE DOKAZANO:** uzrok originalnog API35 pada, novi puni API35 signup/resend/other-account prolaz, live email ili povratak iz stvarnog sandučeta. **SLEDEĆE:** isti izolovani CI sa konkretnom dijagnostikom, zatim Owner/SMTP i jedno stvarno slanje po prethodnom planu. N02 ostaje otvoren; NO-GO i PAUSED ostaju.
+
+
+## Naknadni tačan API35 rezultat — 10.10, 05:39UTC
+
+Run38006112748, HEAD07bc81e0e78d697b5bfa926b781fca516fd7d235 sada je SUCCESS, nakon drugog pokušaja. Offline164Python +22Jest PASS. Provider14PASS/3OBSERVATION, nativeAPI35 x86_64 14PASS/2OBSERVATION; zbir28PASS/5OBSERVATION,0FAIL/ERROR/NOT_RUN. Izolovani proof paket rs.uskoci.ex07s03proof, APK SHA256090591f883aae343471767700b715aa3380c98ce623badf7a66e12a690ef07e9.
+
+Prošli su signup/confirmation bez sesije, odbijanje login-a pre potvrde, resend/rate-limit, warm/cold callback, nevažeći/istekao/iskorišćen link, očuvanje drugog naloga, recovery/mismatch i promena samo odgovarajuće lozinke. Pregledani lokalni dokazi nisu sadržali callback tokene. Ovo zamenjuje raniji pending status novog API35 prolaza; originalni7440 HARNESS_BROKEN i nepoznat uzrok ostaju istorija.
+
+Provenance: native artifact11661026624/job114141967144/attempt2; provider artifact11651362344/attempt1. Najnoviji aggregate11660563644 netačno nosi runAttempt1; stariji istoimeni11650738989 se ne koristi. Zato se ne tvrdi first-attempt fullPASS. Privatni native-report.json SHA256bcac38a8a62fe5854a9e7997b2b398b72516d1f822114f9aa2d85dae99067122. Evidence nije javno objavljen.
+
+N02 ostaje otvoren: canonical SMTP/redirectallowlist, stvarno sanduče/emailklijent, fizički telefon/iOS još nisu dokazani. E12/P14 beleže retained recovery sesiju posle promene lozinke; ponovni link pokazuje isti nalog, drugi upis lozinke nije pokušavan. Nema live auth promene iz ovog dokaza.

@@ -84,14 +84,14 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     h.emit({ kind: 'segment', index: 0, final: false, text: 'stari deo' });
     h.emit({ kind: 'segment', index: 1, final: false, text: 'Сутра' });
     h.emit({ kind: 'level', value: 0.42 });
-    expect(h.controller.getSnapshot()).toMatchObject({ finalText: 'Треба ми помоћ.', interimText: 'Сутра', audioLevel: 0.42 });
+    expect(h.controller.getSnapshot()).toMatchObject({ finalText: 'Treba mi pomoć.', interimText: 'Sutra', audioLevel: 0.42 });
     expect(h.onTranscript).not.toHaveBeenCalled();
     h.controller.release('press-1'); h.controller.release('press-1');
     expect(h.capture.stopCapture).toHaveBeenCalled(); expect(h.capture.finalize).toHaveBeenCalledTimes(1);
     expect(h.canCapture()).toBe(false);
     h.final.resolve({ kind: 'final', text: 'Треба ми помоћ. Сутра.' }); await flush();
     expect(h.onTranscript).toHaveBeenCalledTimes(1);
-    expect(h.onTranscript.mock.calls[0][0]).toMatchObject({ text: 'Треба ми помоћ. Сутра.',
+    expect(h.onTranscript.mock.calls[0][0]).toMatchObject({ text: 'Treba mi pomoć. Sutra.',
       session: { accountId: 'account-a', conversationId: 'owned-conversation', accountRevision: 1 } });
     expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', error: null, fallbackText: '' });
   });
@@ -102,6 +102,55 @@ describe('native hold-to-talk ownership and gesture lifecycle (synthetic adapter
     h.final.resolve({ kind: 'final', text: 'zakašnjeli tekst' }); await flush();
     expect(h.capture.dispose).toHaveBeenCalledTimes(1); expect(h.onTranscript).not.toHaveBeenCalled();
     expect(h.controller.getSnapshot()).toMatchObject({ phase: 'IDLE', fallbackText: '', finalText: '' });
+  });
+
+  it.each([2000, 2001])('checks the Latin length after conversion for a %i-letter segment', async count => {
+    const h = harness(); await h.listen();
+    h.emit({ kind: 'segment', index: 0, final: true, text: 'љ'.repeat(count) });
+    if (count === 2000) {
+      expect(h.controller.getSnapshot().finalText).toBe('lj'.repeat(count));
+      expect(h.controller.getSnapshot().error).toBeNull();
+    } else {
+      expect(h.controller.getSnapshot()).toMatchObject({ error: 'TRANSCRIPT_TOO_LONG', fallbackText: '', phase: 'IDLE' });
+    }
+    expect(h.onTranscript).not.toHaveBeenCalled(); h.controller.dispose();
+  });
+
+  it('the combined Latin segments cannot exceed the limit; only the last valid words remain editable once', async () => {
+    const h = harness(); await h.listen();
+    h.emit({ kind: 'segment', index: 0, final: true, text: 'њ'.repeat(1999) });
+    h.emit({ kind: 'segment', index: 1, final: false, text: 'џ' });
+    expect(h.controller.getSnapshot()).toMatchObject({ error: 'TRANSCRIPT_TOO_LONG', fallbackText: 'nj'.repeat(1999) });
+    const keep = jest.fn(() => true);
+    expect(h.controller.useFallback(keep)).toBe(true); expect(h.controller.useFallback(keep)).toBe(false);
+    expect(keep).toHaveBeenCalledTimes(1); expect(keep).toHaveBeenCalledWith('nj'.repeat(1999));
+    expect(h.onTranscript).not.toHaveBeenCalled(); h.controller.dispose();
+  });
+
+  it.each([2000, 2001])('checks the independently finalized Latin text at %i digraphs before delivery', async count => {
+    const h = harness(); await h.listen();
+    h.emit({ kind: 'segment', index: 0, final: true, text: 'Помоћ' });
+    h.controller.release('press-1'); h.final.resolve({ kind: 'final', text: 'љ'.repeat(count) }); await flush();
+    if (count === 2000) expect(h.onTranscript.mock.calls[0][0].text).toBe('lj'.repeat(count));
+    else {
+      expect(h.onTranscript).not.toHaveBeenCalled();
+      expect(h.controller.getSnapshot()).toMatchObject({ error: 'TRANSCRIPT_TOO_LONG', fallbackText: 'Pomoć' });
+    }
+    h.controller.dispose();
+  });
+
+  it('changes only Serbian script, preserving mixed words, digits, diacritics, emoji and other alphabets', async () => {
+    const h = harness(); await h.listen(); h.controller.release('press-1');
+    h.final.resolve({ kind: 'final', text: 'Љуба i Његош, 2.000 RSD, čekić 👷 東京' }); await flush();
+    expect(h.onTranscript.mock.calls[0][0].text).toBe('Ljuba i Njegoš, 2.000 RSD, čekić 👷 東京');
+    h.controller.dispose();
+  });
+
+  it('a malformed final is rejected without an unhandled rejection or delivery', async () => {
+    const h = harness(); await h.listen(); h.controller.release('press-1');
+    h.final.resolve({ kind: 'final', text: 7 } as unknown as FinalTranscript); await flush();
+    expect(h.controller.getSnapshot()).toMatchObject({ error: 'TRANSCRIPT_INVALID', fallbackText: '', phase: 'IDLE' });
+    expect(h.onTranscript).not.toHaveBeenCalled(); h.controller.dispose();
   });
 
   it('fences account A to B to A even with the same account and conversation ids', async () => {

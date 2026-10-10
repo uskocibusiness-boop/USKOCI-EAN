@@ -193,7 +193,7 @@ test('old unknown ratings cannot preempt accepted appointments or confirmed rati
 });
 
 // Plan 2.6: Aktivni is groups, "Čeka tebe" first and always, then the days in Serbian time, each under its own heading.
-const headers = () => tree.root.findAllByType('T' as React.ElementType).filter(node => node.props.accessibilityRole === 'header').map(node => node.props.children);
+const headers = () => tree.root.findByType('List' as React.ElementType).findAllByType('T' as React.ElementType).filter(node => node.props.accessibilityRole === 'header').map(node => node.props.children);
 test('Aktivni is groups: Čeka tebe first, then Danas, Sutra, Ove nedelje, Kasnije and Termin još nije dogovoren, each with its heading', async () => {
   rows = [
     { ...agreement('no-term', 'CONFIRMED'), prihvacenPocetak: null },
@@ -413,20 +413,22 @@ describe('the rating strip is a press of its own', () => {
 
 // Round-1 critique A12: the header is profile · mark · bell on all three tabs; the calendar is a view of these Dogovori,
 // so it ends the Aktivni/Istorija tab row as a quiet icon with the same spoken label.
-test('the header is profile, mark and bell only, and the calendar ends the tab row under the same label', async () => {
+test('the visible Dogovori title, profile and bell lead a light equal tab row with the calendar', async () => {
   const calendar = jest.fn();
   await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} section="active"
     confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRefresh={refresh} onHome={tasks}
     onCalendar={calendar} onProfile={() => {}} />); });
-  const { ScreenChrome } = require('../../ui/system/ScreenChrome');
-  const bar = tree.root.findByType(ScreenChrome);
-  expect(bar.props).toMatchObject({ variant: 'root', title: 'Dogovori' });
+  const { ScreenHeader } = require('../../ui/system/ScreenHeader');
+  const bar = tree.root.findByType(ScreenHeader);
+  expect(bar.props).toMatchObject({ showTitle: true, title: 'Dogovori' });
+  expect(bar.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.props.children === 'Dogovori')).toHaveLength(1);
   expect(bar.props.right).toBeUndefined();
   expect(bar.findAll(node => node.props.accessibilityLabel === 'Raspored')).toHaveLength(0);
   // The calendar stands in the same row as the two sets, after them. The sets are equal halves of the room that is left, and
   // never slide sideways (composition spec 4.8): the control is cut off by nothing, at any text size.
   const scroller = tree.root.findByType(Segmented).parent!;
   expect(tree.root.findByType(Segmented).props.scroll).toBeUndefined();
+  expect(tree.root.findByType(Segmented).props).toMatchObject({ appearance: 'underline', equal: true });
   expect(scroller.type).toBe('View');
   const tabRow = scroller.parent!;
   const entry = tabRow.findAll(node => node.type === ('Press' as React.ElementType) && node.props.accessibilityLabel === 'Raspored');

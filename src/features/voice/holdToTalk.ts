@@ -1,3 +1,5 @@
+import { toSerbianLatin } from '../../lib/serbianLatin';
+
 /** Provider-neutral native speech lifecycle. No audio storage or publication writer. */
 export type VoiceScope = Readonly<{
   accountId: string;
@@ -28,17 +30,25 @@ export const VOICE_ERROR_COPY: Readonly<Record<VoiceErrorCode, string>> = {
   CAPTURE_FAILED: 'Govorni unos je prekinut. Možeš da nastaviš kucanjem.',
   SPEECH_UNAVAILABLE: 'Govorni servis trenutno nije dostupan. Pokušaj kasnije ili nastavi kucanjem.',
   SPEECH_CONNECTION_FAILED: 'Veza za govorni unos je prekinuta. Pokušaj ponovo ili nastavi kucanjem.',
-  CAPTURE_TIMEOUT: 'Govorni unos je zaustavljen zbog ograničenja trajanja. Sačuvani tekst možeš da dopuniš.',
-  AUDIO_INTERRUPTED: 'Zvuk je prekinut. Proveri sačuvani tekst ili pokreni novi unos.',
-  FINALIZATION_FAILED: 'Tekst govora nije potvrđen. Proveri i izmeni sačuvani tekst.',
-  FINALIZATION_TIMEOUT: 'Završavanje govora je trajalo predugo. Proveri sačuvani tekst.',
-  FINAL_TRANSCRIPT_MISSING: 'Nije stigao ceo tekst govora. Sačuvani deo možeš da izmeniš i pošalješ kucanjem.',
-  TRANSCRIPT_INVALID: 'Govorni unos nije mogao bezbedno da se pročita. Proveri sačuvani tekst.',
-  TRANSCRIPT_TOO_LONG: 'Govorni unos prelazi 4.000 znakova. Sačuvan je prethodni deo; skrati ili podeli poruku.',
+  CAPTURE_TIMEOUT: 'Snimanje je dostiglo ograničenje trajanja. Nastavi kraćom porukom.',
+  AUDIO_INTERRUPTED: 'Snimanje je prekinuto. Pokušaj ponovo ili napiši poruku.',
+  FINALIZATION_FAILED: 'Tekst govora nije potvrđen. Pokušaj ponovo ili napiši poruku.',
+  FINALIZATION_TIMEOUT: 'Tekst govora nije stigao na vreme. Pokušaj ponovo ili napiši poruku.',
+  FINAL_TRANSCRIPT_MISSING: 'Govor nije prepoznat. Pokušaj ponovo ili napiši poruku.',
+  TRANSCRIPT_INVALID: 'Tekst govora nije mogao da se prikaže. Pokušaj ponovo ili napiši poruku.',
+  TRANSCRIPT_TOO_LONG: 'Poruka može da ima do 4.000 znakova. Podeli je na kraće poruke.',
   AI_SPEAKING: 'Sačekaj da se čitanje odgovora završi pre govornog unosa.',
   DRAFT_NOT_ACCEPTED: 'Završni tekst je sačuvan. Otvori ga za izmenu pre slanja; ako je poruka puna, najpre je skrati.',
   VOICE_PREPARATION_FAILED: 'Govorni unos nije pripremljen. Proveri vezu i pokušaj ponovo ili nastavi kucanjem.',
 };
+
+/** Retention is a fact, not a promise attached to an error code. */
+export function voiceErrorCopy(code: VoiceErrorCode, retainedText = ''): string {
+  if (!retainedText.trim() || code === 'DRAFT_NOT_ACCEPTED') return VOICE_ERROR_COPY[code];
+  return code === 'FINAL_TRANSCRIPT_MISSING'
+    ? 'Nije stigao ceo tekst. Prepoznati deo možeš da pregledaš pre slanja.'
+    : `${VOICE_ERROR_COPY[code]} Prepoznati deo možeš da pregledaš pre slanja.`;
+}
 
 export type SpeechEvent =
   | { kind: 'segment'; index: number; final: boolean; text: string }
@@ -273,7 +283,7 @@ export class HoldToTalkController {
     const previous = session.segments.get(event.index);
     // Duplicate finals and late hypotheses never replace already-final words.
     if (previous?.final) return;
-    const text = event.text.trim();
+    const text = toSerbianLatin(event.text.trim());
     const candidate = new Map(session.segments);
     candidate.set(event.index, { text, final: event.final });
     if ([...candidate.values()].map(part => part.text).join(' ').trim().length > MAX_TEXT) {
@@ -303,10 +313,12 @@ export class HoldToTalkController {
     try { result = await session.capture!.finalize(); }
     catch { if (this.current(session)) this.fail(session, 'FINALIZATION_FAILED'); else this.contextChanged(); return; }
     if (!this.current(session) || session.completed) { this.contextChanged(); return; }
-    if (result.kind !== 'final' || !result.text?.trim()) { this.fail(session, 'FINAL_TRANSCRIPT_MISSING'); return; }
+    if (!result || result.kind !== 'final') { this.fail(session, 'FINAL_TRANSCRIPT_MISSING'); return; }
     if (!safeText(result.text)) { this.fail(session, 'TRANSCRIPT_INVALID'); return; }
-    if (result.text.length > MAX_TEXT) { this.fail(session, 'TRANSCRIPT_TOO_LONG'); return; }
-    const transcript = Object.freeze({ session: session.identity, text: result.text.trim() });
+    if (!result.text.trim()) { this.fail(session, 'FINAL_TRANSCRIPT_MISSING'); return; }
+    const text = toSerbianLatin(result.text.trim());
+    if (text.length > MAX_TEXT) { this.fail(session, 'TRANSCRIPT_TOO_LONG'); return; }
+    const transcript = Object.freeze({ session: session.identity, text });
     session.completed = true;
     this.clearDeadline(session);
     this.closeCapture(session);

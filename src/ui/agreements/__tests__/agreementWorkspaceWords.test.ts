@@ -53,6 +53,8 @@ describe('the sentence that stands where no button does', () => {
     const end = (state: 'COMPLETED' | 'CANCELLED') => agreementNextStep({ state, party: true, worker: true, change: none, ownRating: 'GIVEN', problemOpen: false, deadline: '' });
     expect(end('COMPLETED').title).toBe('Dogovor je završen');
     expect(end('CANCELLED').title).toBe('Dogovor je otkazan');
+    expect(end('COMPLETED')).toMatchObject({ tone: 'muted', status: 'task.completed' });
+    expect(end('CANCELLED')).toMatchObject({ tone: 'muted', status: 'task.cancelled' });
   });
 
   it('says nothing it cannot stand behind: unread permissions, or someone who is not a side of the Dogovor', () => {
