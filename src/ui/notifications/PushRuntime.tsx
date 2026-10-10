@@ -56,6 +56,7 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
    if (prior && ownsMessagePush(prior, identity)) pendingRoute.delivered(prior.coldRoute, prior);
    const coldRoute = cold ? pendingRoute.remember('/obavestenja') : null;
    if (target.kind === 'MESSAGE_EVENT') messagePushIntent.remember(target.eventId, identity, coldRoute);
+   else if (target.kind === 'OPPORTUNITY_EVENT') messagePushIntent.rememberOpportunity(target.eventId, identity, coldRoute);
    else messagePushIntent.clear();
    // Reuse an already open Inbox instead of stacking another copy on each tap.
    router.navigate('/obavestenja');

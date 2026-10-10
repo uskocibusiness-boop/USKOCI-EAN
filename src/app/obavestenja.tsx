@@ -38,7 +38,8 @@ export default function Obavestenja() {
   const ingress = useMessagePushIngress(target => {
     if (focus.current === null || navigating.current || !model.canNavigate()) return;
     navigating.current = true;
-    router.replace({pathname:'/dogovor/[id]',params:{id:target.agreementId,tab:'poruke',messageId:target.messageId}});
+    if (target.kind === 'OPPORTUNITY') router.replace({pathname:'/prilike/[id]',params:{id:target.needId}});
+    else router.replace({pathname:'/dogovor/[id]',params:{id:target.agreementId,tab:'poruke',messageId:target.messageId}});
   });
   useFocusEffect(useCallback(() => {
     const visit = {}; focus.current=visit; setRenderedFocus(visit); navigating.current=false;
@@ -109,8 +110,8 @@ export default function Obavestenja() {
       right={<ChromeIconButton label="Podesi obaveštenja" icon={GearSix} onPress={settings} />} />
     {ingress.phase ? <View style={styles.opening} accessibilityLiveRegion="polite">
       {ingress.phase === 'loading' ? <View style={styles.openingLine}><ActivityIndicator color={sys.color.green} />
-        <T variant="copy">Otvaramo poruku…</T></View> : <>
-        <T variant="copy" accessibilityRole="alert">{ingress.phase === 'error' ? 'Poruka nije učitana. Proveri vezu i pokušaj ponovo.' : 'Ova poruka više nije dostupna.'}</T>
+        <T variant="copy">Otvaramo obaveštenje…</T></View> : <>
+        <T variant="copy" accessibilityRole="alert">{ingress.phase === 'error' ? 'Nismo uspeli da otvorimo obaveštenje. Proveri vezu i pokušaj ponovo.' : 'Ovo obaveštenje više nije dostupno.'}</T>
         {ingress.phase === 'error' ? <V2Action label="Pokušaj ponovo" onPress={ingress.retry} compact /> : null}
       </>}
       <V2Action label="Prikaži obaveštenja" kind="quiet" onPress={ingress.cancel} compact />

@@ -71,8 +71,15 @@ export function isPublicInboxNotification(notification: Notification): boolean {
  const data = content.data, value = content as unknown as Record<string, unknown>;
  if (!isPublicInboxCopy(content.title, content.body)
   || !publicPushTarget(data)) return false;
- if (publicPushTarget(data)?.kind === 'MESSAGE_EVENT'
+ const target = publicPushTarget(data);
+ if (target?.kind === 'MESSAGE_EVENT'
   && (content.title !== 'Nova poruka u Dogovoru' || content.body !== 'Imaš novu poruku.')) return false;
+ if (target?.kind === 'OPPORTUNITY_EVENT'
+  && !([
+   ['Novi zadatak za tebe','Pojavila se nova prilika koja može da ti odgovara.'],
+   ['HITNO — nova prilika','Pojavila se nova prilika koja može da ti odgovara.'],
+   ['Novi zadatak za tebe','Pojavio se novi zadatak koji može da ti odgovara.'],
+  ] as const).some(([title,body]) => content.title === title && content.body === body)) return false;
  if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
   .some(key => value[key] != null && value[key] !== '')) return false;
  if (value.attachments != null && (!Array.isArray(value.attachments) || value.attachments.length !== 0)) return false;

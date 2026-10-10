@@ -2,11 +2,12 @@ import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { activityMessageTargetService, type ActivityMessageTarget } from '../data/activityMessageTargetService';
+import { activityOpportunityTargetService, type ActivityOpportunityTarget } from '../data/activityOpportunityTargetService';
 import { messagePushIntent, ownsMessagePush } from '../store/messagePushIntent';
 import { pendingRoute } from '../store/pendingRoute';
 import { sesijaSada, useSesija } from '../store/sesija';
 
-type Target = Extract<ActivityMessageTarget, { kind: 'AGREEMENT_MESSAGE' }>;
+type Target = Extract<ActivityMessageTarget, { kind: 'AGREEMENT_MESSAGE' }> | Extract<ActivityOpportunityTarget, { kind: 'OPPORTUNITY' }>;
 type Phase = 'loading' | 'error' | 'unavailable';
 
 /** A tapped event is resolved by the visible Inbox, never an asynchronous global
@@ -44,7 +45,8 @@ export function useMessagePushIngress(onTarget: (target: Target) => void) {
     const start = () => {
       if (started || !current()) return;
       started = true; setStatus({ serial: intent.serial, phase: 'loading' });
-      void activityMessageTargetService.resolve(intent.eventId, { signal: controller.signal }, { accountId, accountRevision })
+      void (intent.eventType === 'OPPORTUNITY_AVAILABLE' ? activityOpportunityTargetService : activityMessageTargetService)
+        .resolve(intent.eventId, { signal: controller.signal }, { accountId, accountRevision })
         .then(result => {
           if (!current()) return;
           if (!result.ok) { setStatus({ serial: intent.serial, phase: 'error' }); return; }
