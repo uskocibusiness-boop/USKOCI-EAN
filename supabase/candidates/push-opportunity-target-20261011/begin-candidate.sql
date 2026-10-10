@@ -135,8 +135,7 @@ begin
   ) || case when v_event_type in ('MESSAGE_RECEIVED','OPPORTUNITY_AVAILABLE')
     then jsonb_build_object('eventId',v_event_id) else '{}'::jsonb end;
 end
-$function$
-
+$function$;
 do $postflight$
 declare b push_begin_preflight%rowtype;a record;
 begin

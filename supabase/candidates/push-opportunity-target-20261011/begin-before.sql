@@ -91,5 +91,4 @@ begin
   ) || case when v_event_type='MESSAGE_RECEIVED'
     then jsonb_build_object('eventId',v_event_id) else '{}'::jsonb end;
 end
-$function$
-
+$function$;
