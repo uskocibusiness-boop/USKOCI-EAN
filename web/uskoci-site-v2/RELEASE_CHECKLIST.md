@@ -10,13 +10,15 @@
 - Public pages must be active, non-geofenced HTML, not PDF.
 
 ## Web deletion
-Preview backend: uskoci-alpha (wjxilkkyyuxyzbvhgmop).
-Browser ships only a Supabase publishable key.
-Edge endpoint: uskoci-web-account-close.
-Endpoint validates a real user session, accepts approved Origins, requires ZATVORI NALOG, performs r478 preparation, storage cleanup, Auth deletion and finalization, and reports CLOSED only on confirmed completion.
+Current V2 web candidate (branch work/uskoci-web-release-20261009) has **not** passed public release acceptance.
+The candidate `delete-account.js` is configured for the existing canonical DEV/ALPHA endpoint `leqcwgzvjsxugfgzdmth`, **not** the older `uskoci-alpha` project `wjxilkkyyuxyzbvhgmop`.
+The browser includes only a publishable Supabase key; it must never include privileged service credentials.
+The candidate uses session-authenticated canonical RPC commands for account closure (not the older `uskoci-web-account-close` Edge route). Confirm the exact RPC/revision/idempotency and Auth/Storage/relational cleanup against the selected production backend.
+**Safety gate:** `VERIFIED_PRODUCTION_ERASURE_ENABLED = false` and the host check deliberately block web sign-in/erasure even on `uskoci.rs`; previews are non-destructive. Do not present this as working external account deletion or flip the switch without disposable-account end-to-end proof on the isolated production backend.
+The status `CLOSED` must be shown only after authoritative closure readback; a successful HTTP response alone is insufficient.
 
 ## Before uskoci.rs production cutover
-1. Confirm the store backend project for rs.uskoci; update delete-account.js if production differs from uskoci-alpha.
+1. Provision and approve the isolated production backend for `rs.uskoci`; do **not** point the store client or web erasure at current DEV (`leqcwgzvjsxugfgzdmth`) or the old alpha (`wjxilkkyyuxyzbvhgmop`). Verify the web/API endpoint, production project identity, Auth redirect/allowed Origins and consistent in-app/web account closure.
 2. Final legal review and any operator/business address required by applicable law.
 3. Confirm production processor/AI provider list and mirror it in Privacy + Data Safety.
 4. Confirm age target/content rating.
