@@ -206,3 +206,36 @@ test('canonical detailed scoring source and calendar/score wave proof are pinned
   assert.ok(ci.includes('run_pg < "$root/'+name+'"'),'Missing isolated scoring job '+name);
  }
 });
+
+
+test('exact candidate source and fake-geometry boundary are explicit',()=>{
+ const src=readFileSync(join(folder,'live-candidate-stream.sql'),'utf8');
+ for(const [name,digest] of [
+ ['worker_notify_room_v1b','9aac9da0479327fdf82b2f9298e47719'],
+ ['candidate_profile_ids','5414fa5a122e2055c71dd37993a6ad83'],
+ ['candidate_profile_ids_v1b','9a2437fd9d6bed07c8338d12501e5cba']
+ ]){
+  const re=new RegExp('CREATE OR REPLACE FUNCTION private\\.'+name+'\\([\\s\\S]*?AS \\$function\\$([\\s\\S]*?)\\$function\\$;');
+  const found=src.match(re);
+  assert.ok(found,'Missing captured candidate source '+name);
+  assert.equal(md5(found[1]),digest,'Candidate source drift: '+name);
+ }
+ const spatial=readFileSync(join(folder,'candidate-spatial-disposable-fixture.sql'),'utf8');
+ assert.match(spatial,/CREATE DOMAIN extensions\.geography AS numeric/);
+ assert.match(spatial,/CREATE OPERATOR extensions\.<->/);
+ assert.match(spatial,/CREATE FUNCTION extensions\.ST_DWithin/);
+ assert.match(spatial,/-- Synthetic, reversible stand-in/);
+ const assertions=readFileSync(join(folder,'candidate-live-assert.sql'),'utf8');
+ for(const caseName of [
+ 'CANDIDATE_TWO_NEAREST_IN_ORDER','CANDIDATE_LIMIT_ONE',
+ 'CANDIDATE_CAP_ONE_SKIPS_PRIMARY','CANDIDATE_URGENT_NOT_EXEMPT',
+ 'CANDIDATE_CAP_REJECTS_BOTH','CANDIDATE_GEO_PREFILTER',
+ 'CANDIDATE_UNRELATED_SKILL_NOT_BLOCKED','CANDIDATE_FULL_LOCAL_WAVE']){
+  assert.ok(assertions.includes(caseName),'Missing real candidate test '+caseName);
+ }
+ assert.match(assertions,/ROLLBACK TO SAVEPOINT candidate_loop_cases;/);
+ assert.match(assertions,/ROLLBACK;\s*$/);
+ const workflow=readFileSync(join(folder,'../../../.github/workflows/match-category-fallback-proof.yml'),'utf8');
+ for(const name of ['candidate-spatial-disposable-fixture.sql','live-candidate-stream.sql','candidate-live-assert.sql'])
+  assert.ok(workflow.includes('run_pg < "$root/'+name+'"'),'Missing CI file '+name);
+});
