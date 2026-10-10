@@ -1,6 +1,8 @@
-# Tri objedinjena vizuelna kruga — 10.10.2026.
+# Objedinjeni UI/UX krugovi — 10.10.2026.
 
-Status: **59876dc6 instaliran; ograničeni fizički prolaz i puna klijentska CI regresija potvrđeni. Edge paket nije primenjen; store NO-GO.**
+Status: **2b1e5e5d instaliran; tastatura pretrage potvrđena tri puta na HONOR-u, ciljani CI i izolovani PKG-049 PASS. Puna klijentska regresija je na prethodnom 59876dc6. Edge nije primenjen; store NO-GO.**
+
+Napomena: ispod je sačuvan hronološki dokaz rada. Starija odeljanja DOKAZANO / NIJE DOKAZANO / SLEDEĆE opisuju svoj tadašnji izvor. Aktuelni ishod je u statusu iznad, završnom odeljku za 2b1e5e5d i jedinom registru docs/control/redovi.json.
 
 Vlasnik je tražio nekoliko većih krugova, jasne radne kartice, AI podešavanje, mirne bele površine, filtere prema svojim Airbnb referencama, identitet uz poruke i manje ručnih/duplih kontrola. Root je jedini pisac; tri stručna agenta dala su nezavisne read-only preglede.
 
@@ -154,3 +156,19 @@ CI DOPUNA: af69e0d4 PRE-P4 obe grane PASS (5 grupa / 140 testova), CodeQL za 598
 NIJE DOKAZANO: vidljiva tastatura u novom APK-u; dva frame-a nisu formalna potvrda native window fokusa. Zato ide još jedna ograničena fizička provera, sa jasnim prethodnim neuspehom. AI Edge paket i dalje nije primenjen; odobrenje je zatraženo za tačno dve pripremljene funkcije. Numerički minimum i svi širi release tokovi ostaju otvoreni.
 
 SLEDEĆE: isti potpis, install-r, ponovljeno otvaranje pretrage/IME/Back/unos na HONOR-u; zatim preostali brojčani filter i AI-only radni profil iz postojećeg plana. Store NO-GO, automatizacija PAUSED.
+
+
+## Zatvoren IME paket 2b1e5e5d — stvarna tastatura na HONOR-u
+
+URADIO: isti potpis, install-r, očuvani UID, prvobitna instalacija i prijava; About 2b1e5e5 potvrđen. APK SHA-256 82b8ece2861248874cacea7610a445516537145a2fc405484431133c62eb0de9. Nijedno sistemsko podešavanje niti poslovni podatak nije menjan.
+
+DOKAZAO: lupa je u sva tri otvaranja prikazala vidljivu tastaturu bez dodatnog dodira polja; za dva ponavljanja potvrđen i mInputShown=true. Petrovaradin daje stvarni zadatak i mesto. Prvo Back skloni tastaturu i zadrži unos; drugo zatvara pretragu. Strelica zatvara direktno; filteri se otvaraju bez tastature i Back vraća nepromenjenu mapu. Na sopstvenom objavljenom zadatku uočljivi su Izmeni sa olovkom i Otkaži nakon skrola; nisu izvršeni. Povratak čuva mapu, Dogovori imaju sva četiri donja ulaza. Privatni snimci i XML hash-evi su u native-installed-2b1e5e5d.json.
+
+PRE-P4 na obe grane 38033001120/38033001064 PASS: ciljano 28 grupa / 809 testova, TypeScript PASS. PKG-049 38033001100 PASS: 40 unit testova, 23 dokazna koraka, četiri klijentska toka, negativni uslovi i teardown. To je izolovan istorijski lanac bez DEV-a/provider poziva; TOTAL fixture eksplicitno pokriva tri osobe. Ne dokazuje današnji proporcionalni TOTAL backend. Ranija dva CI neuspeha ostaju sačuvana. Poslednja puna klijentska regresija je 59876dc6: 607 grupa / 13.672 testa / 6 snapshotova, ne nova puna regresija na 2b1e.
+
+NIJE DOKAZANO: univerzalni IME prolaz na drugim uređajima, izvršenje edit/cancel transakcija, popunjeni Dogovori i grupni/privatni chat, pravi AI/ASR, trenutna push isporuka, email dostava, privacy/deletion, opterećenje i store. Numerički minimum nije u ovom APK-u. AI Edge paket ostaje pripremljen i neprimenjen dok čeka konkretno odobrenje.
+
+SLEDEĆE: jedinstveni brojčani filter pre svih PAGE/MAP/PLACES brojanja, uz vidljivo značenje ukupno/po osobi; AI-only profil i povezani two-account tokovi. Sveže read-only stanje DEV-a: 238 migracija, poslednja 20261009172613, reader a9b0985991f4ebfe4e95143e5cf57222, certificateReady=true; stari GRAD ledger/certificate nisu današnji preflight. Dalji paket mora pinovati današnje telo i sertifikat. Postojeći vizuelni raspored filtera i popravljena pretraga se zamrzavaju osim nove konkretne regresije. Store NO-GO, automatizacija PAUSED.
+
+
+Završni CodeQL za tačan 2b1e5e5d, run 38033001013: SUCCESS za Actions, Python i JavaScript/TypeScript, poslednji posao završen 07:13:43 UTC. To nije potvrda zatvaranja postojećih Dependabot upozorenja.

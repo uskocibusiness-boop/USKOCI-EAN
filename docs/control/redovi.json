@@ -3040,10 +3040,10 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "59876dc6: pretraga prikazuje stvarne rezultate, ali lupa dva puta nije otvorila tastaturu bez dodatnog dodira; fix čeka APK. docs/implementation/evidence/visual-rounds-20261010/search-ime-followup.json"
+        "dokaz": "2b1e5e5d: vidljiva tastatura odmah 3/3, stvarna pretraga, Back/input i filteri potvrđeni; brojčani minimum još otvoren. docs/implementation/evidence/visual-rounds-20261010/native-installed-2b1e5e5d.json"
       },
-      "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
-      "sledece": "10.10: reference14501–14504: blur, izdignute bele sekcije, jedna otvorena i sažeci ostalih, jasan reset/potvrda. Zadržati draft/cancel/count autoritet. Numerički minimum budžeta traži ceo server PAGE/MAP/PLACES ugovor, nije postojeći priceType. Raniji dokaz/sledeće: Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
+      "problem": "Brojčani minimum iznosa još nije uveden kroz PAGE/MAP/PLACES; njegovu ukupnu/po-osobi osnovu treba jasno prikazati. Nearby/FULL/header popravke imaju ograničeni dokaz za 52720d99 dokaz, tastatura pretrage u 2b1e5e5d ima 3/3 stvarna otvaranja na HONOR-u. To nije puna geolokacijska/release potvrda.",
+      "sledece": "Zadržati potvrđen raspored filtera i Back/search ponašanje. Sledeći brojčani minimum: jasan izbor osnove, zajednički server uslov pre counts/paging/MAP/PLACES, tačan aktuelni preflight i revert, izolovan dokaz, kompatibilan APK. Primena filtera ne menja cene ni Dogovore.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -3519,8 +3519,11 @@
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
         },
         "search_ime_followup_20261010": {
-          "state": "SOURCE_TESTED_NATIVE_PENDING",
-          "evidence": "docs/implementation/evidence/visual-rounds-20261010/search-ime-followup.json",
+          "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+          "source": "2b1e5e5d77a8b8f24c26e0dd8c5e79060b73125a",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-2b1e5e5d.json",
+          "targetedCi": 38033001120,
+          "pkg049": 38033001100,
           "storeReady": false
         }
       }
@@ -10826,8 +10829,11 @@
       "storeReady": false
     },
     "search_ime_followup_20261010": {
-      "state": "SOURCE_TESTED_NATIVE_PENDING",
-      "evidence": "docs/implementation/evidence/visual-rounds-20261010/search-ime-followup.json",
+      "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+      "source": "2b1e5e5d77a8b8f24c26e0dd8c5e79060b73125a",
+      "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-2b1e5e5d.json",
+      "targetedCi": 38033001120,
+      "pkg049": 38033001100,
       "storeReady": false
     }
   }

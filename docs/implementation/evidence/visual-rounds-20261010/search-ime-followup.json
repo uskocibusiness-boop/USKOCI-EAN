@@ -1,5 +1,5 @@
 {
-  "state": "SOURCE_TESTED_NATIVE_PENDING",
+  "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
   "baselineSource": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
   "nativeFailure": "On two search opens, cursor focused but Android IME hidden; tapping the input made it visible. Previous successful first-open observation is not universal acceptance.",
   "beforeSha256": {
@@ -28,8 +28,9 @@
     "failure": "Historical real-client proof still called removed fixedApplicationPeople; database phases before P6 passed, later phases not proven.",
     "fix": "Explicit full-crew fixture people=3 uses current fixedApplicationPrice. Historical SQL and app semantics unchanged; not a proof of partial-crew server capacity.",
     "localPureTests": 40,
-    "databaseReplay": "PENDING_CI",
+    "databaseReplay": "PASS 38033001100; 23/23 historical isolated steps, not current DEV or proportional TOTAL",
     "logSha256": "2addd6f1642563545bfd7298c7bca5cfca6428d0c44ad3894e0980e70aabbdc9"
   },
-  "storeReady": false
+  "storeReady": false,
+  "nativeAfter": "docs/implementation/evidence/visual-rounds-20261010/native-installed-2b1e5e5d.json"
 }
