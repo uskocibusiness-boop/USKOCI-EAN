@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/push-opportunity-resolver-proof.yml'
       - 'supabase/candidates/push-opportunity-target-20261011/**'
+      - 'supabase/functions/uskoci-push-transport/index.ts'
+      - 'supabase/proofs/push_single_target/edge.test.mjs'
 permissions:
   contents: read
 jobs:
@@ -45,3 +47,18 @@ jobs:
           run_sql < "$root/disposable-fixture.sql"
           run_sql < "$root/candidate.sql"
           run_sql < "$root/disposable-assert.sql"
+
+  edge-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Install locked JS toolchain without native or provider postinstall
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Execute injected offline Expo single-target transport proof, with global flag OFF
+        run: node --test supabase/proofs/push_single_target/edge.test.mjs
