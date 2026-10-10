@@ -1,6 +1,6 @@
 # Matching fallback: AI category → worker skill-kind
 
-**Status: prepared source candidate, NOT applied to DEV or PROD; NOT proven in disposable PostgreSQL; NOT authorized for promotion.**
+**Status: prepared source candidate; real function SQL, exact revert and guarded transactions PASS in disposable PostgreSQL 16 with synthetic fixtures. NOT applied to DEV or PROD. NOT a full certificate/HTTP/provider/phone proof or authorization for promotion.**
 
 ## Observed defect (canonical DEV, read-only 2026-10-10)
 - The active task AI v60 makes `need.category` mandatory and `need.required_skills` optional. The server function `private.worker_need_fit_v1(uuid,uuid,boolean)` treated an empty required-skills array as a universal skill match.
@@ -21,7 +21,7 @@
 - MD5 identifies source drift only; not an authorization token or cryptographic security claim.
 
 ## Proof still required (do NOT run on canonical DEV)
-1. Verify source contract with `node --test supabase/proofs/match_category_fallback/source.test.mjs` and CI.
+1. **PASS:** Source contract and actual PostgreSQL 16 execution in GitHub Actions (including exact candidate/revert/reapply). [Run 38064158343](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38064158343) checks the anonymized active-worker skill categories with three matching kinds, three unrelated kinds, wrong city, fast dispatch and OWN_NEED. This is a disposable scenario, not a provider send.
 2. On an **isolated, disposable faithful DB restore**, prove full SQL before/after: 1) category-only cleaning task + cleaning worker match; 2) unrelated moving worker not matched; 3) empty/unrecognized category does not broadcast; 4) explicit required skills override unrelated category; 5) identical `Za mene`/dispatch decisions; 6) manual response/own task/identity/world/exclusions remain correct; 7) remote vs nearby vs same-city/no-GPS, calendar, urgent, edits and revisions; 8) exact revert/reapply, unchanged closure digest/ACL/RLS and no mutated fixtures.
 3. Recheck live exact predecessor SHA, owner decision gate, DEV transaction receipt and readback **before any promotion**. General continuation or push enthusiasm is **not** permission for a server write, Edge deploy, global push or notification send.
 4. After safe promotion: one **new naturally published task**, one matching/nonmatching worker, a bounded `OPPORTUNITY_AVAILABLE` sender proof with confirmed device, no historic backlog, and actual phone tap; only then consider broadening to other event types.
