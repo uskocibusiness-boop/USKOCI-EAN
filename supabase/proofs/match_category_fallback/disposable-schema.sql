@@ -75,7 +75,7 @@ AS $function$
 $function$;
 CREATE FUNCTION private.accounts_same_world(uuid,uuid) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ select true $$;
 CREATE FUNCTION private.identity_admitted(uuid) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ select true $$;
-CREATE FUNCTION private.worker_need_time_tier_v1(uuid,uuid) RETURNS integer LANGUAGE sql STABLE
+CREATE FUNCTION private.worker_need_time_tier_v1(nid uuid,pid uuid) RETURNS integer LANGUAGE sql STABLE
 AS $$ select case when coalesce((select allowed from private.synthetic_time where pid=$2),false) then 1 else null::integer end $$;
 -- Disposable-only closure digest stand-in for testing forward/rollback SQL
 -- transaction syntax and hash guards. NOT a real erasure certificate!
