@@ -28,7 +28,7 @@ test('missing RPC or wrong event fails closed, never guessing a task',async()=>{
 
 test('caller abort promptly releases an ignored network read without guessing a task',async()=>{
  let finish!: (value:unknown)=>void;
- const request=new jest.fn().mockImplementation((_name:string,_args:unknown,_signal:AbortSignal)=>
+ const request=jest.fn().mockImplementation((_name:string,_args:unknown,_signal:AbortSignal)=>
   new Promise<unknown>(resolve=>{finish=resolve;}));
  const service=createActivityOpportunityTargetService(request);
  const controller=new AbortController();
