@@ -24,7 +24,9 @@ const CANDIDATES = Object.freeze({
 
 function tokenPresent(source, token) {
   if (typeof source !== 'string') return false;
-  return new RegExp("['\\"`]" + token + "['\\"`]").test(source);
+  return source.includes("'" + token + "'") ||
+    source.includes('"' + token + '"') ||
+    source.includes('`' + token + '`');
 }
 
 function rpcSuccessorEvidence(rpc, sourceFiles, screenReachableFiles) {
