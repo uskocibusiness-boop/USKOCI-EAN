@@ -138,3 +138,37 @@ test('isolated wave executes pinned server function with local-only delivery ada
   assert.ok(yml.includes('run_pg < "$root/'+name+'"'),'Missing CI stage for '+name);
  }
 });
+
+
+test('exact SQL event emission and preference gates remain local-only',()=>{
+ const source=readFileSync(join(folder,'live-notification-builder.sql'),'utf8');
+ for(const [name,hash] of [
+  ['category_of_event','85389285506a1f5801ad204f60dfa2a1'],
+  ['notification_copy_v5','e725df74604d4b52c0a3fad90b748c51'],
+  ['in_quiet_hours','386e00eb4a7645addffac95fde09bea7'],
+  ['emit_event','67413effbbb3fa227397d355e0d4edfb']
+ ]){
+  const re=new RegExp('CREATE OR REPLACE FUNCTION private\\.'+name+'\\([\\s\\S]*?AS \\$function\\$([\\s\\S]*?)\\$function\\$;');
+  const found=source.match(re);
+  assert.ok(found,'Missing live notification helper '+name);
+  assert.equal(md5(found[1]),hash,'Unexpected event source drift '+name);
+ }
+ const fixture=readFileSync(join(folder,'notification-disposable-fixture.sql'),'utf8');
+ assert.match(fixture,/CREATE TABLE public\.notification_preferences/);
+ assert.match(fixture,/CREATE TABLE public\.notification_deliveries/);
+ assert.doesNotMatch(fixture,/\b(?:http_post|net\.http|expo\.dev|firebase|push_token|pg_notify)\b/i);
+ const scenarios=readFileSync(join(folder,'notification-live-assert.sql'),'utf8');
+ for(const marker of ['REAL_NOTIFICATION_FIRST_WAVE',
+  'REAL_NOTIFICATION_DUPLICATE_DETECTED','REAL_NOTIFICATION_OPPORTUNITIES_OFF',
+  'REAL_NOTIFICATION_PUSH_OFF','REAL_NOTIFICATION_QUIET_HOURS',
+  'REAL_NOTIFICATION_URGENT_OVERRIDE']){
+  assert.ok(scenarios.includes(marker),'Missing local event case '+marker);
+ }
+ assert.match(scenarios,/ROLLBACK TO SAVEPOINT real_notification_cases;/);
+ assert.match(scenarios,/ROLLBACK;\s*$/);
+ const ci=readFileSync(join(folder,'../../../.github/workflows/match-category-fallback-proof.yml'),'utf8');
+ for(const name of ['notification-disposable-fixture.sql','live-notification-builder.sql',
+  'notification-live-assert.sql']){
+  assert.ok(ci.includes('run_pg < "$root/'+name+'"'),'Missing CI event stage '+name);
+ }
+});
