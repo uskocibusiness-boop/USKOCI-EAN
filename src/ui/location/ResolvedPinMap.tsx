@@ -10,6 +10,7 @@ import { Glyph } from '../system/Glyph';
 import { useReducedMotion } from '../system/motion';
 import { MapCredits, MapSources } from '../v2/discovery/MapCredits';
 import { cameraHintBounds, displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
+import { panFinishedProposal, type PanStart } from './resolvedPinPan';
 import { useMapStyle } from './mapStyle';
 export type { ResolvedPinMapProps, ResolvedPinPosition } from './ResolvedPinMap.types';
 
@@ -42,6 +43,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   const map = useRef<MapRef>(null);
   const frameSize = useRef<Pixel | null>(null);
   const drag = useRef<PinDrag | null>(null);
+  const panStart = useRef<PanStart | null>(null);
   const [dragOffset, setDragOffset] = useState<{ token: object; delta: Pixel } | null>(null);
   const [imageToken, setImageToken] = useState<object | null>(null);
   const [idleToken, setIdleToken] = useState<object | null>(null);
@@ -185,8 +187,23 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         touchPitch={false} touchRotate={false} accessibilityLabel={mapName}
         importantForAccessibility={spokenByFrame ? 'no-hide-descendants' : 'auto'}
         onDidFinishLoadingMap={() => mark('ready')} onDidFailLoadingMap={() => mark('failed')}
-        onRegionWillChange={() => { if (owns()) { idle.current = null; cancelDrag(); setIdleToken(null); setCenteredToken(null); } }}
-        onRegionDidChange={event => observeCenter(event.nativeEvent)}
+        onRegionWillChange={event => {
+          if (!owns()) return;
+          const state = event.nativeEvent;
+          panStart.current = typeof state.zoom === 'number' && Number.isFinite(state.zoom)
+            ? { zoom: state.zoom, userInteraction: state.userInteraction === true } : null;
+          idle.current = null; cancelDrag(); setIdleToken(null); setCenteredToken(null);
+        }}
+        onRegionDidChange={event => {
+          if (!owns()) return;
+          observeCenter(event.nativeEvent);
+          const point = panFinishedProposal({
+            start: panStart.current, finish: event.nativeEvent, current: pin,
+            editable: !disabled && !coarse && !drag.current && (pin !== null || hintBounds !== null),
+          });
+          panStart.current = null;
+          if (point) choose([point.longitude, point.latitude]);
+        }}
         onPress={event => { if (!drag.current) choose(event.nativeEvent.lngLat); }}>
         <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 13 : 18} />
         {pin && area ? <Marker id="location-area" lngLat={[pin.longitude, pin.latitude]} anchor="center">
