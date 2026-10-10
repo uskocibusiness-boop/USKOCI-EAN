@@ -406,11 +406,13 @@
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
         },
         "clarity_followup_20261010": {
-          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
-          "clientTests": 271,
-          "offlineEdgeTests": 126,
+          "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+          "source": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
+          "fullClientCi": 38031937885,
+          "offlineAiTests": 210,
           "edgeDeployed": false,
+          "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
         }
       },
@@ -1734,7 +1736,7 @@
       ],
       "telefon": {
         "stanje": "DELIMIČNO",
-        "dokaz": "00450330: DRAFT broj0, Istorija i povratak potvrđeni; ostale profilne granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-00450330.json"
+        "dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json"
       },
       "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
       "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
@@ -1979,11 +1981,13 @@
           "storeReady": false
         },
         "clarity_followup_20261010": {
-          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
-          "clientTests": 271,
-          "offlineEdgeTests": 126,
+          "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+          "source": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
+          "fullClientCi": 38031937885,
+          "offlineAiTests": 210,
           "edgeDeployed": false,
+          "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
         }
       },
@@ -4269,11 +4273,13 @@
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
         },
         "clarity_followup_20261010": {
-          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
-          "clientTests": 271,
-          "offlineEdgeTests": 126,
+          "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+          "source": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
+          "fullClientCi": 38031937885,
+          "offlineAiTests": 210,
           "edgeDeployed": false,
+          "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
         }
       }
@@ -5363,11 +5369,13 @@
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
         },
         "clarity_followup_20261010": {
-          "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-          "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
-          "clientTests": 271,
-          "offlineEdgeTests": 126,
+          "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+          "source": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+          "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
+          "fullClientCi": 38031937885,
+          "offlineAiTests": 210,
           "edgeDeployed": false,
+          "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
         }
       }
@@ -10803,11 +10811,13 @@
       "storeReady": false
     },
     "clarity_followup_20261010": {
-      "state": "SOURCE_VERIFIED_NATIVE_PENDING",
-      "evidence": "docs/implementation/evidence/visual-rounds-20261010/clarity-source-checks.json",
-      "clientTests": 271,
-      "offlineEdgeTests": 126,
+      "state": "INSTALLED_SCOPED_NATIVE_VERIFIED",
+      "source": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+      "evidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
+      "fullClientCi": 38031937885,
+      "offlineAiTests": 210,
       "edgeDeployed": false,
+      "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
       "storeReady": false
     }
   }

@@ -1,6 +1,7 @@
 // Exact source, explicitly synthetic I/O. No live provider or database proof.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';import {resolve} from 'node:path';import vm from 'node:vm';import ts from 'typescript';
+import {loadWorkerRecoveryHandler} from './worker_recovery_edge_runtime.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
@@ -45,7 +46,7 @@ function fixture(options={}){
   {'../../../src/contracts/aiAvailability.ts':availability});
  evaluate('supabase/functions/uskoci-worker-interview/index.ts',{'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
   '../../../src/contracts/aiAvailability.ts':availability});
- return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},
+ return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...options.headers},
   body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_MESSAGE',...patch})}))};
 }
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
@@ -53,6 +54,23 @@ const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_t
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
+test('recovery proof loader binds the current four-file worker bundle without network',async()=>{
+ const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
+ assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
+  'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts'].sort());
+ assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
+});
+for(const status of [402,429])for(const diagnostics of [false,true])
+ test(`worker provider HTTP${status}, diagnostics ${diagnostics}: settles once without completion or leaking provider text`,async()=>{
+  const f=fixture({headers:diagnostics?{'x-client-info':'uskoci-app/ai-availability-v1'}:{},provider:()=>new Response('PRIVATE_PROVIDER_BODY',{status})});
+  const es=await events(f);
+  assert.deepEqual(es.map(e=>e.kind),['accepted','safe_error']);
+  assert.equal(es.at(-1).code,status===402&&diagnostics?'AI_CREDITS_UNAVAILABLE':'AI_TURN_NOT_CONFIRMED');
+  assert.equal(providers(f).length,1);assert.equal(failures(f).length,1);assert.equal(completions(f).length,0);
+  assert.ok(!JSON.stringify(es).includes('PRIVATE_PROVIDER_BODY'));
+  const reserves=f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_budget_reserve_service'));
+  assert.equal(reserves.length,1);assert.equal(reserves[0].body.p_max_cost_microusd,250000);
+ });
 test('distinct owned profile streams real Unicode text, reserves approved budget and completes candidate only',async()=>{
  const f=fixture(),es=await events(f);assert.equal(es[0].kind,'accepted');assert.equal(es.at(-1).kind,'final');assert.deepEqual(es.at(-1).turn,turn());
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),f.output.assistantMessage);

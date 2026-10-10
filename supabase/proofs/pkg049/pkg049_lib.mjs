@@ -339,7 +339,7 @@ export const SERBIAN_COPY = Object.freeze({
   application: Object.freeze({
     INVALID_PRICE: 'Unesi iznos u dinarima, bez decimala.',
     FIXED_PRICE_NOT_READY: 'Cena zadatka trenutno nije spremna. Ponovo otvori zadatak.',
-    FIXED_PRICE_MISMATCH: 'Cena u prijavi mora da bude ista kao cena u zadatku. Izmeni prijavu.',
+    FIXED_PRICE_MISMATCH: 'Cena prijave mora da prati cenu zadatka i broj ljudi koje obezbeđuješ. Izmeni prijavu.',
     TOTAL_PRICE_REQUIRES_ALL_SLOTS: 'Cena ovog zadatka važi za ceo zadatak, pa prijava mora da pokrije sva mesta.',
     UNKNOWN_PRICE_BASIS: 'Ova verzija aplikacije ne podržava način računanja cene na ovom zadatku. Ažuriraj aplikaciju.',
   }),

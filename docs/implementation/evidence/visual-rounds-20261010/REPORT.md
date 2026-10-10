@@ -1,6 +1,6 @@
 # Tri objedinjena vizuelna kruga — 10.10.2026.
 
-Status: **00450330 instaliran; brojač fizički potvrđen. Prethodni52720 vizuelni krug ima zasebne native i pune CI dokaze. NO-GO za store.**
+Status: **59876dc6 instaliran; ograničeni fizički prolaz i puna klijentska CI regresija potvrđeni. Edge paket nije primenjen; store NO-GO.**
 
 Vlasnik je tražio nekoliko većih krugova, jasne radne kartice, AI podešavanje, mirne bele površine, filtere prema svojim Airbnb referencama, identitet uz poruke i manje ručnih/duplih kontrola. Root je jedini pisac; tri stručna agenta dala su nezavisne read-only preglede.
 
@@ -124,3 +124,20 @@ AI SERVER: read-only preflight iz živog taskv60 potvrđuje byte-equal prethodni
 NIJE DOKAZANO: nova native semantika i složen razgovor tek slede; offline prompt test ne dokazuje ponašanje pravog modela. Ne menjaju se produkcija, DB, provider konfiguracija, push ili poslovni podaci. APK ne primenjuje Edge prompt. Store ostajeNO-GO.
 
 SLEDEĆE: jedan zbirni APK ovog klijentskog kruga, potpis/runtime/nadogradnja/telefon; zasebna primena tačnog Edge paketa po važećoj autorizaciji. Numeric budget PAGE/MAP/PLACES i popunjeni grupni/privatni lifecycle ostaju otvoreni u istom registru.30-minutna automatizacijaPAUSED.
+
+
+## Zatvoren klijentski krug 59876dc6 — fizički uređaj i puna regresija
+
+**URADIO:** APK 59876dc6 je nadograđen na vlasnikovom slobodnom HONOR-u isključivo `adb install -r`. Potpis, UID, prvobitna instalacija i prijava su sačuvani. About pokazuje 59876dc. Nisu menjana sistemska podešavanja niti poslovni podaci. Dokaz: `native-installed-59876dc6.json`; privatni snimci nisu deo javnog repozitorijuma.
+
+**DOKAZAO:** profil prikazuje „Još nema ocena“ i stvarnih 0 završenih; broj otvara izabranu Istoriju sa novim praznim stanjem i donjom navigacijom; Back vraća profil. Novo zvono u profilu vodi u podešavanja obaveštenja. DRAFT radna kartica, skrol i komanda Nastavi kroz razgovor ostaju. Worker zvono nije viđeno u ovom DRAFT ogranku, pa za njega ostaje samo izvorna provera.
+
+Na tačnom source-u 59876dc6: puna CI klijentska regresija 38031937885 **607/607 grupa, 13.672/13.672 testa i 6/6 snapshotova PASS**; dodatno 237 lokacijskih testova i TypeScript PASS. PRE-P4 na obe grane 38031937974/38031937640 PASS (ciljani opseg: 261 grupa / 6.892 testa). D12 38031937878 PASS odnosi se na izolovan istorijski lanac, ne na trenutni DEV. Source provera CLARIFY rasporeda i dalje je odvojena od stvarnog AI razgovora.
+
+**CI NEUSPEH I POPRAVKA:** PKG-049 38031937895 je stao na 39/40 pure testova jer je njegov očekivani tekst cene zastareo. Aplikacija je već koristila vlasnikovo odobreno pravilo cene prema broju ljudi. Ispravljen je samo literal u testnom ugovoru, bez vraćanja aplikacije ili promene cene. Lokalno sada 40/40 PASS. Istorijski DB replay posle ispravke čeka novi CI; prethodni neuspeh ostaje sačuvan. To nije dokaz da je ceo CI zelen.
+
+**AI PAKET PRIPREMLJEN, NIJE PRIMENJEN:** `ai-edge-candidate-59876dc6.json` sadrži tačne UTF-8/LF hash-eve iz zamrznutog Git izvora, task v60 (6 fajlova), worker v23 (novi paket 4 fajla) i kompletne sačuvane prethodne sadržaje za povratak. Time se precizira stariji receipt koji je poredio Windows CRLF hash sa LF readback-om uz tekstualnu jednakost. Task menja samo prompt. Worker uz topliji prompt uključuje prethodnu lokalnu ispravku dijagnostike HTTP 402, sa tačnim opt-in zaglavljem; stari klijenti zadržavaju generičku grešku. Model, vremenska ograničenja, dispatch/completion i rezervacija budžeta ostaju isti. Novi strogi loader povezuje sva 4 fajla; 210/210 offline testova PASS, bez spoljnog provider poziva i bez DB upisa. Deno provera nije pokrenuta jer alat nije dostupan. Za konkretan Edge deploy i dalje važi AGENTS §3.1.10.
+
+**NIJE DOKAZANO:** prirodnost pravog modela, ASR, popunjeni grupni/privatni razgovori i kompletan lifecycle, brojčani minimum budžeta u svim čitačima, puna AI-only mapa radnog profila, aktuelna push isporuka, email dostava, skaliranje, privacy/deletion i store uslovi. Podešavanja telefona kažu da je dozvola uključena, ali stanje slanja još nije potvrđeno; ovaj pregled nije novi push test. Jedan UIAutomator snimak nije vratio XML; sledeće čitanje istog ekrana je uspelo bez ponavljanja dodira.
+
+**SLEDEĆE:** primena konkretnog Edge paketa tek uz važeće odobrenje, zatim meren razgovorni test uz zasebno ograničenje provider troška; zajednički brojčani filter PAGE/MAP/PLACES i dovršetak AI-only profila; popunjeni two-account tokovi. Ne redizajnirati ponovo potvrđene filter sekcije i map/nav popravke bez novog problema. Jedini registar ostaje 62 reda, automatizacija 30 min PAUSED, store NO-GO. Nema tvrdnje da je javna Claude tabla ponovo objavljena.

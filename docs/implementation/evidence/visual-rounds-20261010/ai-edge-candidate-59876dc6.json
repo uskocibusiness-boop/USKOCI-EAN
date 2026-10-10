@@ -1,0 +1,111 @@
+{
+  "state": "PREPARED_NOT_DEPLOYED",
+  "source": "59876dc6ac40dd04c45e6feed5242911cbc1a6c4",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "at": "2026-10-10T06:51:45.891712+00:00",
+  "functions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "previousVersion": 60,
+      "verifyJwt": true,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "candidateSha256": "d509fb412de3b447f2a384678467700f4bd11e03122dc26940b9391871139d17",
+          "previousSha256": "c04850996a4f9b54cec4a7e59dbe8b5f448775e4d7f22cfd5ab9d4a1e7829dd4",
+          "change": "modified"
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "candidateSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "previousSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "change": "unchanged"
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "candidateSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "previousSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "change": "unchanged"
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "candidateSha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "previousSha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "change": "unchanged"
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "candidateSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "previousSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "change": "unchanged"
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "candidateSha256": "3ff2fdb7a82ff53e78d8ff75d3550ed539c1740ce7efab6e57cb075789b17049",
+          "previousSha256": "3ff2fdb7a82ff53e78d8ff75d3550ed539c1740ce7efab6e57cb075789b17049",
+          "change": "unchanged"
+        }
+      ],
+      "previousReadbackSha256": "ddbe0f3682fdcd474d4dcb70b96cfabd6a0f62547345c280465a9adbf56d8a71",
+      "candidateEncoding": "Exact git blob UTF-8 bytes (LF); compare readback content bytes, not Windows working-tree CRLF bytes.",
+      "revertPrepared": true,
+      "deployed": false
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "previousVersion": 23,
+      "verifyJwt": true,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "candidateSha256": "87c61662f476ed42daf4f3a3c87f61cb8c52d16631cc25e49d4eddfe9dd86b60",
+          "previousSha256": "f815dc27928893f625c460144edcb4c914ff2deebab69ad9da1124561b5a5064",
+          "change": "modified"
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "candidateSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "previousSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "change": "unchanged"
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "candidateSha256": "3ff2fdb7a82ff53e78d8ff75d3550ed539c1740ce7efab6e57cb075789b17049",
+          "previousSha256": "9d8066dfd05c311c52e79b29c5136671deb12d1f7c99cdef7c3de07bee8dbef3",
+          "change": "modified"
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "candidateSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "previousSha256": null,
+          "change": "added"
+        }
+      ],
+      "previousReadbackSha256": "7ec82d6aeb194ac61bbf9e6f45924cfd6a67404f3da658d24938219473849304",
+      "candidateEncoding": "Exact git blob UTF-8 bytes (LF); compare readback content bytes, not Windows working-tree CRLF bytes.",
+      "revertPrepared": true,
+      "deployed": false
+    }
+  ],
+  "verification": {
+    "offlineTests": 210,
+    "failed": 0,
+    "logSha256": "fe218ae60e9855676a3d921e531e2ec86bfac91620ca7ead880a5ba14c58fb85",
+    "externalProviderCalls": 0,
+    "realDatabaseCalls": 0,
+    "denoTypeCheck": "NOT RUN: Deno unavailable",
+    "liveModelQuality": "NOT VERIFIED"
+  },
+  "scope": {
+    "task": "Prompt only: warm text-only clarification and owner-approved proportional TOTAL explanation. No SQL/accounting change.",
+    "worker": "Warm clarification prompt plus previously local typed provider-402 diagnostic compatibility; exact x-client-info opt-in, old clients retain generic error; includes canonical shared helper and availability contract. No model, timeout, dispatch, completion or 250000 micro-USD reservation change."
+  },
+  "executionGate": [
+    "Explicit owner approval for these two Edge functions (AGENTS 3.1.10 excludes Edge from standing server allowance).",
+    "Immediately re-read both live bundles; stop if version or file bytes differ from saved preflight.",
+    "Deploy only each frozen entrypoint with the listed full dependency closure and verify_jwt=true; no secrets/configuration/database changes.",
+    "Read back all source files and compare exact candidate UTF-8 bytes plus JWT flag.",
+    "If deployment/readback fails, redeploy the complete saved previous bundle and verify its bytes; rollback receives a new version number.",
+    "No paid/live AI turns included. A model-quality probe needs its own bounded allowance."
+  ]
+}

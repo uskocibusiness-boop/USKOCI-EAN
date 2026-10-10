@@ -22,8 +22,11 @@ export function loadWorkerRecoveryHandler(options){
   return new vm.Script(`(function(exports,require){${compiled.outputText}\nreturn exports;})`,{filename:file}).runInContext(context)({},require);
  }
  const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts',()=>assert.fail('UNDECLARED_BUDGET_IMPORT'));
- const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',()=>assert.fail('UNDECLARED_STREAM_IMPORT'));
- const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream};
+ const availability=evaluate('src/contracts/aiAvailability.ts',()=>assert.fail('UNDECLARED_AVAILABILITY_IMPORT'));
+ const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',name=>{
+  assert.equal(name,'../../../src/contracts/aiAvailability.ts','UNDECLARED_STREAM_IMPORT');return availability;
+ });
+ const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:{kind:'CURRENT_SOURCE141'}};
 }
