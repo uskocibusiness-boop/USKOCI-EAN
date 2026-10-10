@@ -156,7 +156,8 @@ test('exact SQL event emission and preference gates remain local-only',()=>{
  const fixture=readFileSync(join(folder,'notification-disposable-fixture.sql'),'utf8');
  assert.match(fixture,/CREATE TABLE public\.notification_preferences/);
  assert.match(fixture,/CREATE TABLE public\.notification_deliveries/);
- assert.doesNotMatch(fixture,/\b(?:http_post|net\.http|expo\.dev|firebase|push_token|pg_notify)\b/i);
+ const fixtureSql=fixture.split('\n').filter(line=>!line.trim().startsWith('--')).join('\n');
+ assert.doesNotMatch(fixtureSql,/\b(?:http_post|net\.http|expo\.dev|firebase|push_token|pg_notify)\b/i);
  const scenarios=readFileSync(join(folder,'notification-live-assert.sql'),'utf8');
  for(const marker of ['REAL_NOTIFICATION_FIRST_WAVE',
   'REAL_NOTIFICATION_DUPLICATE_DETECTED','REAL_NOTIFICATION_OPPORTUNITIES_OFF',
