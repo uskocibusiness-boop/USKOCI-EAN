@@ -27,7 +27,7 @@ create table public.user_activity_events(id uuid primary key,recipient_user_id u
 create table public.notification_deliveries(event_id uuid,recipient_user_id uuid,recipient_role text,
  channel text,dedupe_key text,state text,suppression_reason text);
 create function private.safety_event_blocked(e public.user_activity_events) returns boolean
- language sql stable security definer as $$ select current_setting('test.blocked',true)='true' $$;
+ language sql stable security definer as $$ select coalesce(current_setting('test.blocked',true),'false')='true' $$;
 grant usage on schema public to authenticated;
 grant usage on schema auth to authenticated;
 grant usage on schema private to authenticated;
