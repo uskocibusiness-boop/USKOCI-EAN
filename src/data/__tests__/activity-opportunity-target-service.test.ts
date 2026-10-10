@@ -25,3 +25,35 @@ test('missing RPC or wrong event fails closed, never guessing a task',async()=>{
   expect((await service.resolve(eventId)).ok).toBe(false);
  }
 });
+
+test('caller abort promptly releases an ignored network read without guessing a task',async()=>{
+ let finish!: (value:unknown)=>void;
+ const request=new jest.fn().mockImplementation((_name:string,_args:unknown,_signal:AbortSignal)=>
+  new Promise<unknown>(resolve=>{finish=resolve;}));
+ const service=createActivityOpportunityTargetService(request);
+ const controller=new AbortController();
+ const pending=service.resolve(eventId,{signal:controller.signal});
+ await Promise.resolve();
+ const nativeSignal=request.mock.calls[0][2] as AbortSignal;
+ controller.abort();
+ const result=await pending;
+ expect(result).toEqual({ok:false,kod:'ACTIVITY_OPPORTUNITY_CANCELLED',poruka:'Čitanje je prekinuto.'});
+ expect(nativeSignal.aborted).toBe(true);
+ finish({data:valid,error:null});
+ await Promise.resolve();
+ expect(request).toHaveBeenCalledTimes(1);
+});
+test('changed session refuses the late response even when the request succeeds',async()=>{
+ let finish!: (value:unknown)=>void;
+ const request=jest.fn().mockImplementation(()=>new Promise<unknown>(resolve=>{finish=resolve;}));
+ const service=createActivityOpportunityTargetService(request);
+ const pending=service.resolve(eventId);
+ await Promise.resolve();
+ mockSession.accountRevision=2;
+ try {
+  finish({data:valid,error:null});
+  const result=await pending;
+  expect(result.ok).toBe(false);
+  if(!result.ok) expect(result.kod).toBe('AUTH_ACCOUNT_CHANGED');
+ } finally {mockSession.accountRevision=1;}
+});

@@ -33,17 +33,27 @@ export function createActivityOpportunityTargetService(rpc:Rpc) {
    if(!uuid(eventId)) return failure('ACTIVITY_OPPORTUNITY_INPUT_INVALID','Obaveštenje nije dostupno.');
    if(options.signal?.aborted) return failure('ACTIVITY_OPPORTUNITY_CANCELLED','Čitanje je prekinuto.');
    const controller=new AbortController();
-   const abort=()=>controller.abort();
-   options.signal?.addEventListener('abort',abort,{once:true});
+   let removeAbort=()=>{};
    try {
     const result=await readOwnedResult({
      account,errors:{},fallback:'ACTIVITY_OPPORTUNITY_UNCONFIRMED',invalid:'ACTIVITY_OPPORTUNITY_INVALID_RESPONSE',
      decode:raw=>decodeActivityOpportunityTarget(raw,account.accountId,eventId),
-     request:()=>rpc('rpc_resolve_activity_opportunity_v1',
-       {p_expected_user_id:account.accountId,p_event_id:eventId.toLowerCase()},controller.signal),
+     // A blurred/closed Inbox must release its pending request immediately,
+     // including a transport which ignores AbortSignal and never resolves.
+     request:()=>new Promise<unknown>((resolve,reject)=>{
+      const abort=()=>{controller.abort();reject(new Error('ACTIVITY_OPPORTUNITY_CANCELLED'));};
+      options.signal?.addEventListener('abort',abort,{once:true});
+      removeAbort=()=>options.signal?.removeEventListener('abort',abort);
+      if(options.signal?.aborted){abort();return;}
+      try {
+       Promise.resolve(rpc('rpc_resolve_activity_opportunity_v1',
+        {p_expected_user_id:account.accountId,p_event_id:eventId.toLowerCase()},controller.signal))
+        .then(resolve,reject);
+      } catch {reject(new Error('ACTIVITY_OPPORTUNITY_UNCONFIRMED'));}
+     }),
     });
     return options.signal?.aborted ? failure('ACTIVITY_OPPORTUNITY_CANCELLED','Čitanje je prekinuto.') : result;
-   } finally { options.signal?.removeEventListener('abort',abort);controller.abort(); }
+   } finally {removeAbort();controller.abort();}
   },
  };
 }
