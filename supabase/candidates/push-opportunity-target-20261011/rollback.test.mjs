@@ -18,6 +18,7 @@ test('rollback restores the exact canonical begin body, no guessed hand-edited v
 test('rollback drops only the new functions and never touches data, devices or transport',()=>{
  assert.match(rollback,/drop function private\.admit_push_opportunity_single_target_v1\(/i);
  assert.match(rollback,/drop function public\.rpc_resolve_activity_opportunity_v1\(/i);
- assert.doesNotMatch(rollback,/\b(?:insert|update|delete|truncate|net\.http_post|notify)\b/i);
+ const outer=rollback.replace(before.trimEnd(),'');
+ assert.doesNotMatch(outer,/\b(?:insert|update|delete|truncate|net\.http_post|notify)\b/i);
  assert.doesNotMatch(rollback,/drop\s+(?:table|schema|index|trigger)\b/i);
 });
