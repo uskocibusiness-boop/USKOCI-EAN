@@ -1,0 +1,40 @@
+{
+  "state": "SOURCE_VERIFIED_NATIVE_PENDING",
+  "base": "bb76e96ef771ec6ab5166c67069c01dbb55e515a",
+  "checks": [
+    {
+      "file": "profile-counter-tests.json",
+      "suites": 4,
+      "tests": 107,
+      "sha256": "354ee56a19e1ee68b3334cbc1bd1e257a525d2098751574bcbed97e3e62a147c"
+    },
+    {
+      "file": "profile-counter-boundaries.json",
+      "suites": 3,
+      "tests": 127,
+      "sha256": "965974d98190df5a4868a43d971c841ce47dfed8ae25884677efcba83523ab55"
+    },
+    {
+      "file": "profile-counter-reviewed.json",
+      "suites": 1,
+      "tests": 17,
+      "sha256": "992e1fdd0465827129488e44734a943f1496779428b82ea7bd852b4f97b429c2"
+    }
+  ],
+  "overlappingTestsDoNotSum": true,
+  "typescriptExit": 0,
+  "sourceSha256": {
+    "src/app/(app)/profil.tsx": "46a521adef9bb686dfb08a8738225e5eec95205b348e975882439f2a04a6d110",
+    "src/data/__tests__/profile-hub.test.tsx": "fd46f84f726fb55c90f4d2504f37dd76533a237c34661f29fbcf56d7144a71ab",
+    "src/ui/profile/ProfileStats.tsx": "637ade76fde73b54448a2f119fef957ddb6a93bf2e1995d6d945d5d62fcea565",
+    "src/ui/profile/ProfileWorkSummary.tsx": "8944490632a4216c1cc2ebfaf887bc4313b61a377ce637bdd898110346f357ac",
+    "src/ui/profile/__tests__/profile-stats.test.tsx": "fb6e4462cf0b9ad8b654ff00f4df00d7f0780681b918c8b3ada64bf8e4913550",
+    "src/ui/profile/__tests__/profile-work-summary.test.tsx": "af47a78879fec78ca6a4038ce148ab84a4128f00cf42fdbe7a6ed222d3642c02",
+    "src/ui/profile/__tests__/profile-work-read.test.tsx": "aedead3b5bbda6ac3a9bec441b744da84cf98de4c935157336972648bec11666"
+  },
+  "readOnlyPeerReview": "No source blocking findings; misleading fixture name and receipt consistency corrected.",
+  "backendChanged": false,
+  "usesExistingOwnRpc": "rpc_my_work_stats_v1",
+  "nativeProven": false,
+  "storeReady": false
+}

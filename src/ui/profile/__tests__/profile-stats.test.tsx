@@ -11,18 +11,13 @@ import type { MyWorkStats } from '../../../data/workTrustClientService';
  * through the service. Disposable doubles only.
  */
 const PROFILE = '30000000-0000-4000-8000-000000000001';
-let mockResource: { data: MyWorkStats | null; loading: boolean; error: boolean; refresh: jest.Mock };
-let mockLoad: (() => Promise<MyWorkStats>) | null = null;
-const mockMyStats = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return ['View'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
-jest.mock('../../../hooks/useFocusedResource', () => ({ useFocusedResource: (load: () => Promise<MyWorkStats>) => { mockLoad = load; return mockResource; } }));
-jest.mock('../../../data/workTrustClientService', () => ({ workTrustClientService: { myStats: (...args: unknown[]) => mockMyStats(...args) } }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
-import { ProfileStats, ReliabilityFigure } from '../ProfileStats';
+import { ReliabilityFigure } from '../ProfileStats';
 
 const stats = (patch: Partial<MyWorkStats> = {}): MyWorkStats => ({ hasWorkerProfile: true, profileId: PROFILE, profileStatus: 'ACTIVE', applicationsSent: 12, agreementsMade: 8,
   agreementsCompleted: 6, agreementsActive: 1, cancelledByMe: 1, cancelledByRequester: 0, cancelledSideUnknown: 0, reliabilityPercent: 85, reliabilityState: 'AVAILABLE',
@@ -33,10 +28,6 @@ const draw = async (element: React.ReactElement) => { await act(async () => { tr
 const hosts = (name: string) => tree.root.findAll(node => String(node.type) === name);
 const texts = () => hosts('T').flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
 const cell = () => hosts('View').find(node => node.props.testID === 'profile-stats')!;
-beforeEach(() => {
-  jest.clearAllMocks(); mockLoad = null;
-  mockResource = { data: stats(), loading: false, error: false, refresh: jest.fn() };
-});
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('the reliability figure', () => {
@@ -88,34 +79,5 @@ describe('the reliability figure', () => {
   it('keeps the wording free of anything it cannot promise', async () => {
     await draw(<ReliabilityFigure state={{ kind: 'ready', stats: stats() }} />);
     expect(texts().join(' ') + cell().props.accessibilityHint).not.toMatch(/anonim|garant|sigurno|uvek|nikad/i);
-  });
-});
-
-describe('the reading', () => {
-  it('asks the service for the person\'s own statistics, and nothing else, and hands over what it returned', async () => {
-    mockMyStats.mockResolvedValue({ ok: true, podatak: stats() });
-    await draw(<ProfileStats />);
-    expect(await mockLoad!()).toEqual(stats());
-    expect(mockMyStats.mock.calls).toEqual([[]]);
-  });
-
-  it('fails the reading, with the code the service gave, instead of drawing a half-known figure', async () => {
-    mockMyStats.mockResolvedValue({ ok: false, kod: 'WORK_STATS_READ_INVALID', poruka: 'x' });
-    await draw(<ProfileStats />);
-    await expect(mockLoad!()).rejects.toThrow('WORK_STATS_READ_INVALID');
-  });
-
-  it('draws the figure once it is read, and nothing while it is read or when it failed', async () => {
-    await draw(<ProfileStats />);
-    expect(texts()).toContain('85 %');
-    mockResource = { ...mockResource, data: null, loading: true };
-    await act(async () => tree.update(<ProfileStats />));
-    expect(tree.toJSON()).toBeNull();
-    mockResource = { ...mockResource, loading: false, error: true };
-    await act(async () => tree.update(<ProfileStats />));
-    expect(tree.toJSON()).toBeNull();
-    mockResource = { ...mockResource, data: stats({ reliabilityState: 'TOO_FEW', reliabilityPercent: null }), error: false };
-    await act(async () => tree.update(<ProfileStats />));
-    expect(tree.toJSON()).toBeNull();
   });
 });

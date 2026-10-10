@@ -1,6 +1,4 @@
-import { useCallback } from 'react';
-import { workTrustClientService, type MyWorkStats } from '../../data/workTrustClientService';
-import { useFocusedResource } from '../../hooks/useFocusedResource';
+import type { MyWorkStats } from '../../data/workTrustClientService';
 import { FigureCell, reliabilityFigure } from './ProfileFigures';
 import { RELIABILITY_MEANING } from './workTrustModel';
 
@@ -19,7 +17,7 @@ export type ProfileStatsState = { kind: 'loading' } | { kind: 'error'; onRetry: 
  * stand together in the middle of the row. The same goes while it reads and when it could not be read: a figure that has nothing to
  * say takes no room, so the row does not jump when the answer lands (most accounts have no percentage for a long time).
  *
- * Presentation only; `ProfileStats` below reads it.
+ * Presentation only; `ProfileWorkSummary` shares one private read with the completed count.
  */
 export function ReliabilityFigure({ state }: { state: ProfileStatsState }) {
   if (state.kind !== 'ready') return null;
@@ -27,17 +25,4 @@ export function ReliabilityFigure({ state }: { state: ProfileStatsState }) {
   if (!stats.hasWorkerProfile || stats.reliabilityState !== 'AVAILABLE' || stats.reliabilityPercent === null) return null;
   // What the percentage is made of stays a hint for a screen reader, so the explanation is not lost, only no longer a paragraph.
   return <FigureCell testID="profile-stats" figure={{ ...reliabilityFigure(stats.reliabilityPercent), hint: RELIABILITY_MEANING }} />;
-}
-
-/** Reads the person's own statistics. The route draws it only when the account has a work profile. */
-export function ProfileStats() {
-  const load = useCallback(async (): Promise<MyWorkStats> => {
-    const result = await workTrustClientService.myStats();
-    if (!result.ok) throw new Error(result.kod);
-    return result.podatak;
-  }, []);
-  const stats = useFocusedResource(load);
-  const state: ProfileStatsState = stats.loading ? { kind: 'loading' }
-    : stats.error || !stats.data ? { kind: 'error', onRetry: () => { void stats.refresh(); } } : { kind: 'ready', stats: stats.data };
-  return <ReliabilityFigure state={state} />;
 }

@@ -905,3 +905,20 @@ DOKAZAO:Puna lokalna regresija pre poslednje korekcije: 600 suites PASS / 6 FAIL
 NIJE DOKAZANO: followupnative; brojačzavršenih nedostupan; praviAI/prompts/TOTALpravilo otvoreno; budžetPAGE/MAP/PLACES i ostaliNO-GOgates.
 
 SLEDEĆE: obegrane, jedan633-based QAphoneAPK, isti cert, slobodanphone native. Zatim konkretan AI ugovor/toplina, brojčani filter iAI-onlyprofil. Dokaz: docs/implementation/evidence/visual-rounds-20261010/REPORT.md.
+
+
+## Završeni fizički prolaz 52720d99 — 10.10. 06:19–06:23 UTC
+
+URADIO: tačan APK52720d99 instaliran isključivo install-r; isti potpis, UID i firstInstallTime. About52720d9, prijava i profil sačuvani. Nisu menjana sistemska podešavanja, poslovni podaci, backend, provider ili push. Privatni snimci01–20 i XML ostaju van javnog repozitorijuma; hash-evi u native-installed-52720d99.json.
+
+DOKAZAO: R20 run38030187236 na istom source-u SUCCESS606/606suites,13665/13665tests,6/6snapshots,0skip/fail; focused228PASS iTypeScriptPASS. Jest log zadržava upozorenje o async zatvaranju procesa — čist cleanup nije dokazan samim zelenim poslom. Na HONOR-u: početni zoom pokazuje okolinu; FULL bela površina i nestajanje Mapa kapsule pri spuštanju; pan više ne povećava header; auto-focus pretrage i stvarni rezultat zadatka/grada; blur/sekcije/datumi; Dogovori/Raspored podvučeni tabovi/zvono; donja navigacija se vraća posle Discovery Back. Radna kartica i prvi AI upit vidljivi.
+
+NIJE DOKAZANO: popunjeni privatni/grupni razgovori, čitav lifecycle, stvarni ASR/AI ton, numerički minimum budžeta, AI-only kandidat mapa, email dostava, skaliranje, privacy/deletion/store. Dogovori su prazni na pregledanom nalogu. Ograničen native prolaz ne znači pregled svakog ekrana. Spremnost za prodavnicu ostaje NO-GO.
+
+### Sledeća konkretna popravka — sopstveni završeni Dogovori
+
+Telefon potvrdio nedostupan broj na DRAFT radnom profilu. Uzrok u aplikaciji: broj je čitan javnom ACTIVE-only projekcijom. Sada ProfileWorkSummary koristi postojeći privatni myStats i tačno proverava očekivani worker ID; ista jedna poruka daje broj završenih i pouzdanost. Ne otvara javno nacrt ili pauziran profil. Requester čitanje ostaje zasebno; neuspeh ili nepoznat broj nikada ne postaje0. Uklonjen drugi nezavisan myStats čitač sa istog ekrana. Izgled figure ostaje isti.
+
+DOKAZAO U IZVORU: četiri povezane grupe107PASS; dodatne service/focus/presentation granice i ponovljen review-fix test zabeleženi u profile-counter-checks.json (brojevi se preklapaju). TypeScript0. Stvarni focused-resource model proverava kasni odgovor posle promene naloga, revizije i ID-ja profila. Nezavisan read-only pregled bez blokirajućeg nalaza. Ova popravka nije deo instaliranog52720APK; čeka svoj runtime dokaz.
+
+SLEDEĆE: objaviti source brojača, jedan mali nadogradni APK istog identiteta i potvrda broja na istom nalogu. Zatim AI prompt ugovor/toplo razjašnjenje, numerički PAGE/MAP/PLACES filter i AI-only profil po postojećem planu. Dovoljno dobre filter sekcije i potvrđene nav/map popravke FREEZE bez nove regresije;30-minutna automatizacija PAUSED.

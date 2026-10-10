@@ -10,28 +10,32 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const WORKER = '11111111-1111-4111-8111-111111111111', REQUESTER = '22222222-2222-4222-8222-222222222222';
 type Fact = { role: 'narucilac' | 'uskocer'; count: number | null };
 let mockResource: { data: Fact[] | null; loading: boolean; error: boolean; refresh: jest.Mock };
-let mockLoad: ((signal: AbortSignal) => Promise<Fact[]>) | null = null;
 const mockJavniProfil = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) { return ['View'].includes(String(key)) ? key : Reflect.get(target, key); } });
 });
-jest.mock('../../../hooks/useFocusedResource', () => ({ useFocusedResource: (load: (signal: AbortSignal) => Promise<Fact[]>) => { mockLoad = load; return mockResource; } }));
 jest.mock('../../../data/publicProfileClientService', () => ({ publicProfileClientService: { javniProfil: (...args: unknown[]) => mockJavniProfil(...args) } }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
-import { FinishedAgreements, ProfileWorkSummary } from '../ProfileWorkSummary';
+import { FinishedAgreements } from '../ProfileWorkSummary';
 
+function FinishedFixture({ requesterProfileId, workerProfileId, onOpen }: { requesterProfileId: string | null; workerProfileId: string | null; onOpen?: () => void }) {
+  if (!requesterProfileId && !workerProfileId) return null;
+  const unread: Fact[] = [{ role: 'uskocer', count: null }];
+  return <FinishedAgreements view={mockResource.loading ? { kind: 'loading' } : { kind: 'ready', facts: mockResource.error || !mockResource.data ? unread : mockResource.data }}
+    onOpen={onOpen} onRefresh={mockResource.refresh} />;
+}
 let tree: ReactTestRenderer;
 const draw = async (onOpen?: () => void, ids: [string | null, string | null] = [REQUESTER, WORKER]) => {
-  await act(async () => { tree = create(<ProfileWorkSummary requesterProfileId={ids[0]} workerProfileId={ids[1]} onOpen={onOpen} />); });
+  await act(async () => { tree = create(<FinishedFixture requesterProfileId={ids[0]} workerProfileId={ids[1]} onOpen={onOpen} />); });
 };
 const hosts = (name: string) => tree.root.findAll(node => String(node.type) === name);
 const texts = () => hosts('T').flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
 const action = (label: string) => hosts('Press').find(node => node.props.accessibilityLabel === label);
 const cell = () => hosts('View').find(node => node.props.testID === 'profile-work-summary')!;
 beforeEach(() => {
-  mockLoad = null; mockJavniProfil.mockReset();
+  mockJavniProfil.mockReset();
   mockResource = { data: [{ role: 'uskocer', count: 4 }, { role: 'narucilac', count: 0 }], loading: false, error: false, refresh: jest.fn() };
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -43,7 +47,7 @@ describe('the finished figure', () => {
     expect(hosts('T').find(node => node.children.includes('4'))!.props.variant).toBe('priceLarge');
     expect(cell().props).toMatchObject({ accessible: true, accessibilityRole: 'text', accessibilityLabel: '4 završena' });
     mockResource = { ...mockResource, data: [{ role: 'uskocer', count: 9 }, { role: 'narucilac', count: 3 }] };
-    await act(async () => tree.update(<ProfileWorkSummary requesterProfileId={REQUESTER} workerProfileId={WORKER} />));
+    await act(async () => tree.update(<FinishedFixture requesterProfileId={REQUESTER} workerProfileId={WORKER} />));
     expect(texts()).toEqual(['12', 'završenih']);
   });
 
@@ -117,39 +121,5 @@ describe('the finished figure', () => {
     await act(async () => { tree = create(<FinishedAgreements view={{ kind: 'ready', facts: [{ role: 'uskocer', count: 12 }] }} onOpen={jest.fn()} onRefresh={jest.fn()} />); });
     expect(texts()).toEqual(['12', 'završenih']);
     expect(mockJavniProfil).not.toHaveBeenCalled();
-  });
-});
-
-describe('the reading', () => {
-  const profile = (id: string, role: string, count: unknown) => ({ profilId: id, uloga: role, poverenje: { zavrseniBroj: count } });
-
-  it('counts the finished Dogovori of each profile in its own role, the worker\'s first', async () => {
-    mockJavniProfil.mockImplementation(async (id: string) => id === WORKER ? profile(WORKER, 'uskocer', 4) : profile(REQUESTER, 'narucilac', 0));
-    await draw();
-    const signal = new AbortController().signal;
-    expect(await mockLoad!(signal)).toEqual([{ role: 'uskocer', count: 4 }, { role: 'narucilac', count: 0 }]);
-    expect(mockJavniProfil.mock.calls).toEqual([[WORKER, signal], [REQUESTER, signal]]);
-  });
-
-  it('counts one profile once when the same profile is both roles', async () => {
-    mockJavniProfil.mockImplementation(async (id: string) => profile(id, 'uskocer', 1));
-    await draw(undefined, [WORKER, WORKER]);
-    expect(await mockLoad!(new AbortController().signal)).toEqual([{ role: 'uskocer', count: 1 }]);
-  });
-
-  it.each([
-    ['another profile than the one asked', profile(REQUESTER, 'uskocer', 4)], ['another role than the one asked', profile(WORKER, 'narucilac', 4)],
-    ['a negative count', profile(WORKER, 'uskocer', -1)], ['a fractional count', profile(WORKER, 'uskocer', 1.5)], ['a count that is not a number', profile(WORKER, 'uskocer', '4')],
-    ['no count', { profilId: WORKER, uloga: 'uskocer', poverenje: {} }], ['no profile', null],
-  ])('says nothing it is not sure of: %s is a count that could not be read', async (_name, answer) => {
-    mockJavniProfil.mockResolvedValue(answer);
-    await draw(undefined, [null, WORKER]);
-    expect(await mockLoad!(new AbortController().signal)).toEqual([{ role: 'uskocer', count: null }]);
-  });
-
-  it('says a read that threw is a count that could not be read, in that role only', async () => {
-    mockJavniProfil.mockImplementation(async (id: string) => { if (id === WORKER) throw new Error('network'); return profile(REQUESTER, 'narucilac', 2); });
-    await draw();
-    expect(await mockLoad!(new AbortController().signal)).toEqual([{ role: 'uskocer', count: null }, { role: 'narucilac', count: 2 }]);
   });
 });

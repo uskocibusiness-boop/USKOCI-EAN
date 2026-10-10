@@ -10,7 +10,6 @@ import { publicProfileClientService } from '../../data/publicProfileClientServic
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
-import { ProfileStats } from '../../ui/profile/ProfileStats';
 import { ProfileWorkSummary } from '../../ui/profile/ProfileWorkSummary';
 import { cityLabel } from '../../ui/profile/cityLabel';
 import { hubWords, versionWord } from '../../ui/profile/hubStates';
@@ -146,8 +145,6 @@ export default function Profil() {
     workSummary={hubIdentity.state === 'ready' ? <ProfileWorkSummary
       requesterProfileId={identity?.kind === 'REQUESTER' ? identity.profileId : null}
       workerProfileId={capability?.profileId ?? null} onOpen={openFinished} /> : undefined}
-    // The reliability counts work, so it exists only for an account that has a work profile (and shows itself only with a percentage).
-    stats={hubIdentity.state === 'ready' && capability?.profileId ? <ProfileStats /> : undefined}
     onViewPublic={hubIdentity.state === 'ready' && publicProfileId ? openPublicProfile : undefined}
     sheet={publicView ? <PublicProfileSheet state={publicView} onClose={closePublicProfile} onRetry={openPublicProfile}
       photo={(profileId, size) => <ProfilePhoto profileId={profileId} size={size} initial={identity?.ime} own />} /> : undefined}

@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { publicProfileClientService } from '../../data/publicProfileClientService';
+import { workTrustClientService, type MyWorkStats } from '../../data/workTrustClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { FigureCell, FigureCellError, FigureCellPlaceholder, finishedFigure } from './ProfileFigures';
+import { ReliabilityFigure, type ProfileStatsState } from './ProfileStats';
 
 type Role = 'narucilac' | 'uskocer';
 /** How many Dogovori the person finished in one role, or null when that count could not be read (never a made-up zero). */
@@ -31,31 +33,41 @@ export function FinishedAgreements({ view, onOpen, onRefresh }: {
 }
 
 /**
- * Existing public projection counts COMPLETED Agreements per role, never tasks or payments.
- * Reads are independent of identity/reputation and fenced by useFocusedResource's account/revision/focus owner.
+ * Own worker statistics include drafts and paused profiles; the public projection intentionally does not.
+ * One private read supplies both the completed count and reliability. Requester counts stay independent,
+ * so a slow requester read cannot hide an available reliability figure. Both reads are account/focus fenced.
  */
 export function ProfileWorkSummary({ requesterProfileId, workerProfileId, onOpen }: {
   requesterProfileId: string | null; workerProfileId: string | null;
   /** Opens the finished Dogovori. Absent: the summary is only a summary. */ onOpen?: () => void;
 }) {
-  const load = useCallback(async (signal: AbortSignal): Promise<FinishedFact[]> => {
-    const targets: { id: string; role: Role }[] = [];
-    if (workerProfileId) targets.push({ id: workerProfileId, role: 'uskocer' });
-    if (requesterProfileId && requesterProfileId !== workerProfileId) targets.push({ id: requesterProfileId, role: 'narucilac' });
-    return Promise.all(targets.map(async ({ id, role }) => {
-      try {
-        const profile = await publicProfileClientService.javniProfil(id, signal);
-        const count = profile?.poverenje?.zavrseniBroj;
-        return { role, count: profile?.profilId === id && profile.uloga === role &&
-          typeof count === 'number' && Number.isSafeInteger(count) && count >= 0 ? count : null };
-      } catch { return { role, count: null }; }
-    }));
-  }, [requesterProfileId, workerProfileId]);
-  const resource = useFocusedResource(load);
+  const requesterId = requesterProfileId !== workerProfileId ? requesterProfileId : null;
+  const loadWorker = useCallback(async (): Promise<MyWorkStats | null> => {
+    if (!workerProfileId) return null;
+    const result = await workTrustClientService.myStats();
+    if (!result.ok) throw new Error(result.kod);
+    if (!result.podatak.hasWorkerProfile || result.podatak.profileId !== workerProfileId) throw new Error('WORK_STATS_PROFILE_MISMATCH');
+    return result.podatak;
+  }, [workerProfileId]);
+  const loadRequester = useCallback(async (signal: AbortSignal): Promise<number | null> => {
+    if (!requesterId) return null;
+    const profile = await publicProfileClientService.javniProfil(requesterId, signal);
+    const count = profile?.poverenje?.zavrseniBroj;
+    if (profile?.profilId !== requesterId || profile.uloga !== 'narucilac' ||
+      typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) throw new Error('REQUESTER_COUNT_UNAVAILABLE');
+    return count;
+  }, [requesterId]);
+  const worker = useFocusedResource(loadWorker);
+  const requester = useFocusedResource(loadRequester);
   if (!requesterProfileId && !workerProfileId) return null;
-  // A read that failed as a whole is a count nobody could read, in each role the person has.
-  const unread: FinishedFact[] = [...(workerProfileId ? [{ role: 'uskocer' as const, count: null }] : []),
-    ...(requesterProfileId && requesterProfileId !== workerProfileId ? [{ role: 'narucilac' as const, count: null }] : [])];
-  const view: FinishedView = resource.loading ? { kind: 'loading' } : { kind: 'ready', facts: resource.error || !resource.data ? unread : resource.data };
-  return <FinishedAgreements view={view} onOpen={onOpen} onRefresh={() => { void resource.refresh(); }} />;
+  const refresh = () => { if (workerProfileId) void worker.refresh(); if (requesterId) void requester.refresh(); };
+  const view: FinishedView = (workerProfileId && worker.loading) || (requesterId && requester.loading)
+    ? { kind: 'loading' } : { kind: 'ready', facts: [
+      ...(workerProfileId ? [{ role: 'uskocer' as const, count: worker.error ? null : worker.data?.agreementsCompleted ?? null }] : []),
+      ...(requesterId ? [{ role: 'narucilac' as const, count: requester.error ? null : requester.data }] : []),
+    ] };
+  const stats: ProfileStatsState = worker.loading ? { kind: 'loading' }
+    : worker.error || !worker.data ? { kind: 'error', onRetry: refresh } : { kind: 'ready', stats: worker.data };
+  return <><FinishedAgreements view={view} onOpen={onOpen} onRefresh={refresh} />
+    {workerProfileId ? <ReliabilityFigure state={stats} /> : null}</>;
 }

@@ -52,8 +52,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 // The reputation reads its own resource; here it is a named element, so the hub is tested for where it places it and the
 // line itself is tested directly in review-screen.test.tsx (review of step 9, 2026-09-24).
 jest.mock('../../ui/reviews/AccountReputation', () => ({ AccountReputation: 'AccountReputation' }));
-// "Moja statistika" reads its own resource (tested in profile-stats.test.tsx); here it is a named element, so the hub is tested for where it places it.
-jest.mock('../../ui/profile/ProfileStats', () => ({ ProfileStats: 'ProfileStats' }));
+// The summary owns one private read for both work figures; its behavior is tested with the real focused-resource hook.
 // "Završeni Dogovori" reads its own resource (tested in profile-work-summary.test.tsx); here it is a named element with its way in.
 jest.mock('../../ui/profile/ProfileWorkSummary', () => ({ ProfileWorkSummary: 'ProfileWorkSummary' }));
 
@@ -489,18 +488,17 @@ describe('the profile composed as one calm list', () => {
     const name = order(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.children.includes('Ana Petrović'));
     const rating = order(node => String(node.type) === 'AccountReputation');
     const finished = order(node => String(node.type) === 'ProfileWorkSummary');
-    const stats = order(node => String(node.type) === 'ProfileStats');
-    expect(rating).toBeGreaterThan(-1); expect(finished).toBeGreaterThan(-1); expect(stats).toBeGreaterThan(-1);
+    expect(rating).toBeGreaterThan(-1); expect(finished).toBeGreaterThan(-1);
     expect(name).toBeLessThan(rating);
-    expect(rating).toBeLessThan(finished); expect(finished).toBeLessThan(stats);
-    expect(stats).toBeLessThan(heading('Uskakanje'));
+    expect(rating).toBeLessThan(finished);
+    expect(finished).toBeLessThan(heading('Uskakanje'));
     expect(heading('Uskakanje')).toBeLessThan(heading('Nalog'));
     expect(heading('Nalog')).toBeLessThan(heading('Privatnost'));
     const row = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'profile-figures')[0];
     const { StyleSheet } = jest.requireActual('react-native');
     expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
-    expect(row.findAll(node => ['AccountReputation', 'ProfileWorkSummary', 'ProfileStats'].includes(String(node.type))).map(node => String(node.type)))
-      .toEqual(['AccountReputation', 'ProfileWorkSummary', 'ProfileStats']);
+    expect(row.findAll(node => ['AccountReputation', 'ProfileWorkSummary'].includes(String(node.type))).map(node => String(node.type)))
+      .toEqual(['AccountReputation', 'ProfileWorkSummary']);
   });
 
   it('draws no section "Završeni Dogovori" and no section "Moja statistika" any more: the figures replace them', async () => {
@@ -509,22 +507,25 @@ describe('the profile composed as one calm list', () => {
     expect(headers()).not.toContain('Završeni Dogovori'); expect(headers()).not.toContain('Moja statistika');
   });
 
-  it('draws no statistics for an account without a work profile: there is no work to count', async () => {
+  it('hands the shared reader the actual IDs, including a draft worker, without a second private reader', async () => {
     await render();
-    expect(tree.root.findAll(node => String(node.type) === 'ProfileStats')).toHaveLength(0);
-    mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'DRAFT' } } };
+    const summary = () => tree.root.findByType('ProfileWorkSummary' as never);
+    expect(summary().props.workerProfileId).toBeNull();
+    mockResource = { ...mockResource, data: { identity: { ...identity, kind: 'REQUESTER', profileId: 'profile-r' }, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'DRAFT', profileId: 'profile-w' } } };
     await act(async () => tree.update(<Profil />));
-    expect(tree.root.findAll(node => String(node.type) === 'ProfileStats')).toHaveLength(0);
+    expect(summary().props).toMatchObject({ workerProfileId: 'profile-w', requesterProfileId: 'profile-r' });
+    expect(tree.root.findAll(node => String(node.type) === 'ProfileWorkSummary')).toHaveLength(1);
+    expect(tree.root.findByType(require('../../ui/profile/ProfileHubPresentation').ProfileHub).props.stats).toBeUndefined();
   });
 
-  it('draws no statistics while the profile is still reading or could not be read', async () => {
+  it('draws neither work figure while the profile is still reading or could not be read', async () => {
     mockResource.data = { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE', profileId: 'profile-w' } };
     mockResource = { ...mockResource, loading: true };
     await render();
-    expect(tree.root.findAll(node => String(node.type) === 'ProfileStats')).toHaveLength(0);
+    expect(tree.root.findAll(node => String(node.type) === 'ProfileWorkSummary')).toHaveLength(0);
     mockResource = { ...mockResource, loading: false, error: true };
     await act(async () => tree.update(<Profil />));
-    expect(tree.root.findAll(node => String(node.type) === 'ProfileStats')).toHaveLength(0);
+    expect(tree.root.findAll(node => String(node.type) === 'ProfileWorkSummary')).toHaveLength(0);
   });
 
   // The sign-in is said ONCE, as a quiet row of "Nalog" (a label and its value, no arrow, no press); "Promeni lozinku" says nothing under it.
