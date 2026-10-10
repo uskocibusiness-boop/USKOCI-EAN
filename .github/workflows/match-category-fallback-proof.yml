@@ -100,4 +100,8 @@ jobs:
           run_pg < "$RUNNER_TEMP/match-category-function.sql"
           run_pg < "$root/live-calendar-helpers.sql"
           run_pg < "$root/calendar-live-assert.sql"
+          echo 'STAGE 8: actual DEV wave orchestration with synthetic recipient stream and local-only event sink'
+          run_pg < "$root/wave-disposable-fixture.sql"
+          run_pg < "$root/live-wave-entry.sql"
+          run_pg < "$root/wave-live-assert.sql"
           echo 'ISOLATED_SQL_PROOF_PASS; production Supabase NOT accessed'
