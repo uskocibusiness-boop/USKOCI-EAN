@@ -57,6 +57,24 @@ async function update(overrides: Partial<Props> = {}) {
 beforeEach(() => { mockFocused = true; jest.clearAllMocks(); mockProductionSearch.mockResolvedValue({ status: 'PROVIDER_ACTIVATION_BLOCKED' }); });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
+it('explains city-only fallback until a worker confirms a coarse map center', async () => {
+  await render({ location: { ...location, approximatePosition: null } });
+  expect(text()).toContain('Bez označenog centra zadaci se porede po gradu, ne po radijusu.');
+  expect(map().props.position).toBeNull();
+  expect(props.onSave).not.toHaveBeenCalled();
+  await press('Sačuvaj područje rada');
+  expect(props.onSave).toHaveBeenCalledWith({
+    operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 25, approximatePosition: null,
+  });
+});
+
+it('explains the selected radius without choosing or saving any point implicitly', async () => {
+  await render();
+  expect(text()).toContain('Centar je označen. Sačuvaj područje da bi radijus važio.');
+  expect(props.onSave).not.toHaveBeenCalled();
+  expect(map().props.position).toEqual(location.approximatePosition);
+});
+
 it('does not query on mount or typing and uses the production resolver only after explicit search', async () => {
   await render();expect(mockProductionSearch).not.toHaveBeenCalled();await edit('Grad ili mesto rada', 'Beograd');
   expect(mockProductionSearch).not.toHaveBeenCalled();await press('Pronađi područje za uneti grad');

@@ -222,10 +222,11 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     if (!owns()) return;
     retireSearch(); setCorrectionOpen(false);
     setPosition(next); setOrigin({ kind: 'MANUAL_PIN' }); invalidate();
+    // The old optional address belongs to the old pin, not to this new position.
+    // In the full form the user may fill it again; in AI conversation a guarded
+    // reverse geocode may offer a new label without changing the selected point.
+    setAddress('');
     if (conversation) {
-      // Conversation: a completed drag/map tap updates the draft address too.
-      // Clear the old address now; a newer edit/point/visit retires this lookup.
-      setAddress('');
       void lookupAddress(next, true);
     }
   };

@@ -329,6 +329,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     {manualDraftConflict?<V2Action tone="neutral" label="Odbaci izmene i nastavi" kind="quiet" disabled={manualBackBlocked.current||panelWrite.current} onPress={back}/>:null}
     {busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
     <V2Action tone="neutral" label="Proveri razgovor" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
+  // AI must not infer or silently persist a home address. Without a saved
+  // approximate center, the existing radius is city-only fallback until the
+  // person confirms the approximate map center in Područje rada.
+  const areaFollowup=!!data.saved&&data.candidate.location.approximatePosition===null;
+  const openArea=()=>leave(()=>router.replace('/profil/lokacija'));
   if(panel==='review'&&data.review){const frozen=data.review,
     // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
@@ -338,13 +343,19 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;
       if(next==='time')showPanel('availability',{from:'review'});else showPanel('manual',{part:next,from:'review'});
     };
-    return <WorkerProfileFrame back={back} title="Tvoj radni profil" footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:<>
+    return <WorkerProfileFrame back={back} title="Tvoj radni profil" footer={data.saved?<>{areaFollowup
+      ? <V2Action label="Podesi radijus na mapi" onPress={openArea} style={brandAction}/>
+      : null}
+      <V2Action tone={areaFollowup?'neutral':undefined} label="Otvori sačuvani profil"
+        onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={areaFollowup?undefined:brandAction}/>
+    </>:<>
       <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
         disabled={!enabled||!writable||reviewNeedsRestart||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
       <V2Action tone="neutral" label="Nazad na razgovor" disabled={editor.busy} onPress={back}/>
       {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
+      {areaFollowup?<T variant="note" tone="muted">Bez približne tačke na mapi zadaci se porede po gradu, ne po radijusu. Možeš ručno da potvrdiš centar područja bez GPS dozvole.</T>:null}
       <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
         onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
       {/* Owner 2026-10-07: the interview ends by saying what it is for, as a fixed line (no extra AI call, no server change). */}
@@ -417,7 +428,12 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
           disabled={!canAct()||voiceBusy} onPress={()=>{void cancelPending();}}/>
       </>:null}
       {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Pošalji ponovo" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
-      {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
+      {data.saved?<>
+        {areaFollowup?<><T variant="note" tone="muted">Bez približne tačke na mapi zadaci se porede po gradu, ne po radijusu. Centar možeš ručno da potvrdiš bez GPS dozvole.</T>
+          <V2Action label="Podesi radijus na mapi" onPress={openArea} style={brandAction}/></>:null}
+        <V2Action tone={areaFollowup?'neutral':undefined} label="Otvori sačuvani profil"
+          onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={areaFollowup?undefined:brandAction}/>
+      </>:null}
     </>}/>{confirmSheet.sheet}
     {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
       {key:'manual',label:'Ručno uredi podatke',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
