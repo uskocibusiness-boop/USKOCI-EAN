@@ -1,5 +1,6 @@
 'use strict';
 const { buildIdentity } = require('./scripts/build-identity.cjs');
+const { assertProductionBackend } = require('./scripts/production-backend-guard.cjs');
 
 // Expo supplies normalized app.json, including each disposable workflow's
 // package/label overrides. Never replace those with the preview identity.
@@ -18,6 +19,8 @@ module.exports = ({ config }) => {
     throw new Error('USKOCI_OTA_TARGET_PROFILE_MISMATCH');
   }
   const production = profile === 'production' || otaTarget === 'production';
+  // Fail closed before a store config can be generated from a DEV/ALPHA backend.
+  if (production) assertProductionBackend(process.env);
   const channel = production ? 'production' : 'preview';
   const runtimeVersion = production ? PRODUCTION_RUNTIME : PREVIEW_RUNTIME;
   const android = { ...config.android };
