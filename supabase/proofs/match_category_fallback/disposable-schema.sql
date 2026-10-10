@@ -3,21 +3,40 @@
 BEGIN;
 CREATE SCHEMA private;
 CREATE TABLE public.needs (
- id uuid PRIMARY KEY, requester_account_id uuid NOT NULL, revision integer NOT NULL DEFAULT 1, category text,
+ id uuid PRIMARY KEY, requester_account_id uuid NOT NULL, revision integer NOT NULL DEFAULT 1,
+ schedule_kind text NOT NULL DEFAULT 'FLEXIBLE', starts_at timestamptz, ends_at timestamptz,
+ published_at timestamptz DEFAULT statement_timestamp(), task_timezone text DEFAULT 'Europe/Belgrade',
+ category text,
  required_skills text[] NOT NULL DEFAULT '{}', execution_location_mode text NOT NULL DEFAULT 'ONSITE',
  approximate_lat numeric, approximate_lng numeric, approximate_city text,
  verified_identity_required boolean NOT NULL DEFAULT false);
 CREATE TABLE public.app_profiles (
  id uuid PRIMARY KEY, account_id uuid NOT NULL, kind text NOT NULL DEFAULT 'WORKER',
- profile_status text NOT NULL DEFAULT 'ACTIVE', skills text[] NOT NULL DEFAULT '{}',
+ profile_status text NOT NULL DEFAULT 'ACTIVE', available_now boolean NOT NULL DEFAULT false,
+ skills text[] NOT NULL DEFAULT '{}',
  exclusions text[] NOT NULL DEFAULT '{}', radius_km integer NOT NULL DEFAULT 30, city text);
 CREATE TABLE public.worker_match_preferences (
  worker_profile_id uuid PRIMARY KEY, approximate_lat numeric, approximate_lng numeric,
+ timezone text DEFAULT 'Europe/Belgrade',
  proactive_notifications boolean NOT NULL DEFAULT true);
 -- Minimum synthetic projection consumed by the REAL dispatch prefilter.
 CREATE TABLE public.opportunity_deliveries (
  worker_account_id uuid NOT NULL, need_id uuid NOT NULL, need_revision integer NOT NULL);
 CREATE TABLE private.marketplace_config (key text PRIMARY KEY, value jsonb NOT NULL);
+-- Synthetic future calendar fixtures for a SEPARATE stage; source calendar
+-- functions will be captured from DEV, but these tables are disposable only.
+CREATE TABLE public.profile_availability_rules (
+ profile_id uuid NOT NULL, weekdays integer[] NOT NULL,
+ start_time time NOT NULL, end_time time NOT NULL,
+ starts_on date NOT NULL, ends_on date,
+ active boolean NOT NULL DEFAULT true);
+CREATE TABLE public.profile_availability_windows (
+ profile_id uuid NOT NULL, starts_at timestamptz NOT NULL,
+ ends_at timestamptz NOT NULL, availability_state text NOT NULL);
+CREATE TABLE private.worker_calendar_events (
+ worker_profile_id uuid NOT NULL, agreement_id uuid NOT NULL,
+ starts_at timestamptz NOT NULL, ends_at timestamptz NOT NULL,
+ state text NOT NULL);
 CREATE TABLE private.synthetic_time (pid uuid PRIMARY KEY, allowed boolean NOT NULL);
 -- Worker matcher and 11-kind classifier have real canonical function bodies.
 -- Radius and Haversine definitions below come from read-only canonical DEV
