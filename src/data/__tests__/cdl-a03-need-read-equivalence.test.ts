@@ -383,7 +383,7 @@ describe('saved Need schedule and people presentation', () => {
   });
   it('writes minutes, never seconds, and never fabricates an unknown fixed endpoint', () => {
     const value = needScheduleText({ kind: 'FIXED_WINDOW', startsAt: '2026-09-10T16:00:00.123456Z', endsAt: null }, 'Europe/Belgrade');
-    expect(value).toContain('Od '); expect(value).toContain('18:00'); expect(value).not.toContain('18:00:00'); expect(value).not.toContain(' – ');
+    expect(value).toContain('Početak '); expect(value).toContain('18:00'); expect(value).not.toContain('18:00:00'); expect(value).not.toContain(' – ');
     expect(needScheduleText({ kind: 'FIXED_WINDOW', startsAt: null, endsAt: null })).toBe('Tačan termin nije potpun');
   });
   it('an end of day is a date, not "23:59:59" (seen on the phone 2026-09-23: "Do 31. dec 2026 · 23:59:59")', () => {
