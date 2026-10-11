@@ -73,13 +73,32 @@ begin
     we:=coalesce(n.ends_at,(anchor_day+1)::timestamp at time zone wtz);
     if not isfinite(ws) or not isfinite(we) or ws>=we or we<=at_now then return null; end if;
     -- "Mogu odmah" counts only while nothing blocks this moment (an unavailable window or a Dogovor).
-    live:=coalesce(p.available_now,false)
+    -- TODAY_START_GATE: 'available now' never means available before a declared future start.
+    live:=at_now>=ws and coalesce(p.available_now,false)
       and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
         and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
       and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
         and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
     if live then return 1; end if;
     if private.worker_available_periods(pid,greatest(ws,at_now),we,tz)<>'{}'::tstzmultirange then return 2; end if;
+    return null;
+  end if;
+  -- TOMORROW_END_ONLY_AVAILABLE: a deadline inside tomorrow does not imply
+  -- availability now or an unbounded, missing beginning. Search only tomorrow
+  -- from local midnight until the stated deadline, never beyond its named day.
+  if n.schedule_kind='TOMORROW_FLEXIBLE'
+     and n.starts_at is null and n.ends_at is not null then
+    if n.published_at is null or not isfinite(n.published_at)
+       or not isfinite(n.ends_at) then return null; end if;
+    wtz:=case when n.task_timezone is not null and private.availability_timezone_valid(n.task_timezone)
+      then n.task_timezone else 'Europe/Belgrade' end;
+    anchor_day:=(n.published_at at time zone wtz)::date;
+    ws:=(anchor_day+1)::timestamp at time zone wtz;
+    we:=(anchor_day+2)::timestamp at time zone wtz;
+    if n.ends_at<=ws or n.ends_at>we or n.ends_at<=at_now then return null; end if;
+    if private.worker_available_periods(pid,greatest(ws,at_now),n.ends_at,tz)<>'{}'::tstzmultirange then
+      return 2;
+    end if;
     return null;
   end if;
   -- PARTIAL_PERIOD_START_AVAILABLE: an explicitly stated earliest start for
@@ -149,7 +168,7 @@ end;
 $function$;
 DO $post$ BEGIN
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid='private.worker_need_time_tier_v1(uuid,uuid)'::regprocedure)
- IS DISTINCT FROM 'e93886f2bcd48cc287c713f74e797224'
+ IS DISTINCT FROM '0fdb69619e110109fdbda17f19435c25'
  THEN RAISE EXCEPTION 'TIME_TIER_POSTFLIGHT_DRIFT' USING errcode='PT409'; END IF;
 END $post$;
 COMMIT;
