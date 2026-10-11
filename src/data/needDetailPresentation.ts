@@ -74,7 +74,7 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   const range = wholeDay ? start!.dateText
     : tight ? (start!.time === end!.time ? start!.text : `${start!.text}–${endText}`)
     : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
-    : start ? `Od ${start.text}` : end ? `${deadlineOnly ? 'Rok do' : 'Do'} ${end.text}` : null;
+    : start ? `${schedule.kind === 'FIXED_WINDOW' ? 'Početak' : 'Od'} ${start.text}` : end ? `${deadlineOnly ? 'Rok do' : 'Do'} ${end.text}` : null;
   const preference = deadlineOnly ? (schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu · ' : '')
     : schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilno · ';
   // A zone the reader is already standing in does not need to be named; a different one does.
