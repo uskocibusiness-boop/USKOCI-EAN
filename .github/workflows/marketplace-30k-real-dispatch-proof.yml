@@ -58,6 +58,6 @@ jobs:
           run_pg < "$root/live-wave-entry.sql"
           echo 'SEED: 30,000 synthetic identities, 10,000 published tasks in disposable database'
           run_pg < "$root/marketplace-30k-seed.sql"
-          echo 'ASSERT: 55 distinct types/cities with negative matches and 12 actual dispatch waves'
+          echo 'ASSERT: 55 distinct types/cities with negative matches and 55 actual dispatch waves'
           run_pg < "$root/marketplace-30k-assert.sql"
           echo 'DISPOSABLE_REAL_DISPATCH_30K_PASS; no external Supabase writes or push'
