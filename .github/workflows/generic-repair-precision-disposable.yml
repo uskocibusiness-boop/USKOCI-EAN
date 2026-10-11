@@ -1,0 +1,61 @@
+name: Generic repair match precision disposable proof
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/generic-repair-precision-disposable.yml'
+      - 'supabase/candidates/generic-repair-precision-20261012/**'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - '.github/workflows/generic-repair-precision-disposable.yml'
+      - 'supabase/candidates/generic-repair-precision-20261012/**'
+permissions:
+  contents: read
+jobs:
+  precision-repair-disposable:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_disposable_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Prove old false positive, next candidate fix and restored predecessor
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          root=supabase/proofs/match_category_fallback
+          src=supabase/candidates/match-category-fallback-20261010/candidate.sql
+          precise=supabase/candidates/generic-repair-precision-20261012
+          pg() { docker exec -i "$PG_CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1; }
+          awk '/^CREATE OR REPLACE FUNCTION private[.]worker_need_fit_v1[(]/ { printing=1 }
+            printing { print }
+            printing && /^\$function\$;$/ { exit }' "$src" > "$RUNNER_TEMP/previous-matcher.sql"
+          grep -qF '$function$;' "$RUNNER_TEMP/previous-matcher.sql"
+          pg < "$root/disposable-schema.sql"
+          pg < "$root/live-work-kinds-v5.sql"
+          pg < "$RUNNER_TEMP/previous-matcher.sql"
+          pg < "$root/live-dispatch-prefilter.sql"
+          pg < "$root/wave-disposable-fixture.sql"
+          pg < "$root/live-wave-entry.sql"
+          pg < "$precise/disposable-fixture.sql"
+          echo 'BASELINE: current generic-repair matching incorrectly admits wrong specialty'
+          printf '%s\n' "DO \$\$ BEGIN IF NOT private.dispatch_cheap_candidate_admitted('82000000-0000-4000-8000-000000000001','80000000-0000-4000-8000-000000000001') THEN RAISE EXCEPTION 'EXPECTED_OLD_FALSE_POSITIVE_MISSING'; END IF; END \$\$;" | pg
+          echo 'CANDIDATE: replace matcher in disposable PG16 ONLY'
+          pg < "$precise/source-only-function.sql"
+          pg < "$precise/candidate-assert.sql"
+          echo 'REVERT: previous matched function body is restored in disposable PG16'
+          pg < "$RUNNER_TEMP/previous-matcher.sql"
+          printf '%s\n' "DO \$\$ BEGIN IF NOT private.dispatch_cheap_candidate_admitted('82000000-0000-4000-8000-000000000001','80000000-0000-4000-8000-000000000001') THEN RAISE EXCEPTION 'PREDECESSOR_NOT_RESTORED'; END IF; END \$\$;" | pg
+          echo 'REPAIR_PRECISION_SOURCE_ONLY_PASS; NO DEV/PROD ACCESS'
