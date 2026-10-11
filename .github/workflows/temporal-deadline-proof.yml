@@ -1,0 +1,49 @@
+name: Explicit deadline PostgreSQL 16-17 proof
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/temporal-deadline-proof.yml'
+      - 'supabase/candidates/temporal-deadline-20261011/**'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - '.github/workflows/temporal-deadline-proof.yml'
+      - 'supabase/candidates/temporal-deadline-20261011/**'
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.pg }}
+        env:
+          POSTGRES_PASSWORD: test_only
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: test_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Captured predecessor, candidate and exact rollback (synthetic only)
+        run: |
+          set -euo pipefail
+          root=supabase/candidates/temporal-deadline-20261011
+          for file in fixture.sql predecessor.sql baseline.sql candidate.sql candidate-assert.sql revert.sql baseline.sql; do
+            psql -X -v ON_ERROR_STOP=1 -f "$root/$file"
+          done
+          echo 'TEMPORAL_DEADLINE_PG_PASS; no canonical Supabase connection'
