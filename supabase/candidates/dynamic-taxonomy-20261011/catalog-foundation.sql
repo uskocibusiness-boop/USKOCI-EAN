@@ -216,6 +216,7 @@ DECLARE
  v_hourly_cap integer;
  v_inserted integer;
  v_alias_owner uuid;
+ v_existing_ids uuid[];
 BEGIN
  IF NOT EXISTS (SELECT 1 FROM private.work_taxonomy_control
                 WHERE singleton AND auto_registration_enabled) THEN
@@ -243,10 +244,20 @@ BEGIN
  SELECT catalog_version,max_auto_creates_per_hour
  INTO STRICT v_version,v_hourly_cap
  FROM private.work_taxonomy_control WHERE singleton FOR UPDATE;
- -- Reuse a trusted existing alias before creating a new canonical identity.
- SELECT a.category_id INTO v_id FROM private.work_taxonomy_aliases a
- JOIN private.work_taxonomy_categories c ON c.id=a.category_id
- WHERE a.locale='sr' AND a.normalized_key=v_key AND c.state <> 'RETIRED';
+ -- Identity reuse MUST be consistent with cross-locale preview. Never
+ -- create a new ID when an alias in another script/locale already identifies it.
+ SELECT array_agg(DISTINCT t.category_id) INTO v_existing_ids FROM (
+   SELECT c.id AS category_id FROM private.work_taxonomy_categories c
+    WHERE c.canonical_key=v_key AND c.state<>'RETIRED'
+   UNION
+   SELECT a.category_id FROM private.work_taxonomy_aliases a
+   JOIN private.work_taxonomy_categories c ON c.id=a.category_id
+    WHERE a.normalized_key=v_key AND c.state<>'RETIRED'
+ ) t;
+ IF coalesce(cardinality(v_existing_ids),0)>1 THEN
+   RAISE EXCEPTION 'TAXONOMY_ALIAS_COLLISION';
+ END IF;
+ v_id:=v_existing_ids[1];
  IF v_id IS NOT NULL THEN
    INSERT INTO private.work_taxonomy_audit
      (action,category_id,normalized_key,catalog_version)
