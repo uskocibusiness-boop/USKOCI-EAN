@@ -83,6 +83,23 @@ SELECT private.assert_deadline_tier(2,'TOMORROW_PARTIAL_AFTER_START_ADMITTED');
 UPDATE public.needs SET starts_at=starts_at+interval '2 days'
  WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.assert_deadline_tier(NULL,'TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED');
+-- Week with an explicit earliest start must not accept an unscheduled worker.
+-- The disposable fixture anchors its publication to an upcoming Monday so the
+-- assertion works even when CI executes late on Sunday or during DST changes.
+DELETE FROM public.profile_availability_windows;
+UPDATE public.needs SET schedule_kind='WEEK_FLEXIBLE',
+ published_at=((date_trunc('week',statement_timestamp() at time zone 'Europe/Belgrade') + interval '7 days') at time zone 'Europe/Belgrade'),
+ starts_at=((date_trunc('week',statement_timestamp() at time zone 'Europe/Belgrade') + interval '7 days 1 hour') at time zone 'Europe/Belgrade'),
+ ends_at=NULL WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'WEEK_PARTIAL_NO_SCHEDULE_REFUSED');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at-interval '2 minutes', starts_at+interval '15 minutes','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'WEEK_PARTIAL_AFTER_START_ADMITTED');
+UPDATE public.needs SET starts_at=starts_at+interval '8 days'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'WEEK_PARTIAL_OUTSIDE_WEEK_REFUSED');
 -- Start-only exact beginning; no fabricated finish or full-duration guarantee.
 UPDATE public.needs SET schedule_kind='FIXED_WINDOW',
  starts_at=statement_timestamp()+interval '25 hours',ends_at=NULL
