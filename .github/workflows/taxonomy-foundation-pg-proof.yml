@@ -49,7 +49,7 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-capability-assert.sql
       - name: Verify concurrent upsert is one stable identity
         run: |
-          psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true"
+          psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true,max_auto_creates_per_hour=100"
           psql -X -v ON_ERROR_STOP=1 -c "SELECT private.taxonomy_register_low_risk_v1('Dresiranje pasa','LOW_RISK_VERIFIED',true)" >/tmp/taxon-one.txt &
           pid1=$!
           psql -X -v ON_ERROR_STOP=1 -c "SELECT private.taxonomy_register_low_risk_v1('Дресирање паса','LOW_RISK_VERIFIED',true)" >/tmp/taxon-two.txt &
