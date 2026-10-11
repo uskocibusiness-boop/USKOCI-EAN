@@ -85,8 +85,10 @@ UPDATE public.needs SET schedule_kind='TOMORROW_FLEXIBLE',
  WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.assert_deadline_tier(NULL,'TOMORROW_END_ONLY_NOW_NOT_ENOUGH');
 INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
-VALUES('22222222-2222-4222-8222-222222222222',
- statement_timestamp(),statement_timestamp()+interval '10 minutes','AVAILABLE');
+SELECT '22222222-2222-4222-8222-222222222222',
+ (d + time '10:00') at time zone 'Europe/Belgrade',
+ (d + time '11:00') at time zone 'Europe/Belgrade','AVAILABLE'
+FROM (SELECT (statement_timestamp() at time zone 'Europe/Belgrade')::date AS d) today;
 SELECT private.assert_deadline_tier(NULL,'TOMORROW_END_ONLY_TODAY_AVAILABILITY_REFUSED');
 DELETE FROM public.profile_availability_windows;
 INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
