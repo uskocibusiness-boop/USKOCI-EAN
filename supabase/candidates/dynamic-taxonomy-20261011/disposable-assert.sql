@@ -114,6 +114,8 @@ BEGIN
  IF n<>0 THEN RAISE EXCEPTION 'AI_REGISTERED_WORKER_CAPABILITY'; END IF;
  IF EXISTS (SELECT 1 FROM private.work_taxonomy_relations WHERE verification='VERIFIED') THEN
   RAISE EXCEPTION 'AI_CREATED_VERIFIED_RELATION'; END IF;
+ -- Reset the synthetic hourly budget before the independent capability suite.
+ UPDATE private.work_taxonomy_control SET max_auto_creates_per_hour=100;
  UPDATE private.work_taxonomy_control SET auto_registration_enabled=false;
  BEGIN
   PERFORM private.taxonomy_register_low_risk_v1('Nova vrsta usluge','LOW_RISK_VERIFIED',true);
