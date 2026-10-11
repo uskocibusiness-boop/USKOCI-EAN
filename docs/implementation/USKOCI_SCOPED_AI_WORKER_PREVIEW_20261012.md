@@ -39,6 +39,14 @@ An initial additive public RPC migration was **rejected and rolled back atomical
 
 Corrected source `dev-service-only-scoped-ai-rpc.sql` now explicitly `REVOKE ALL ... FROM PUBLIC, anon, authenticated, service_role` and grants back service_role only. Dedicated GitHub test reproduces Supabase public-schema default grants before source installation. **This service-only RPC is not to be called installed until both corrected CI jobs PASS and live privileges are verified.**
 
+## Final service RPC and existing Gemini task assistant promotion
+
+- Corrected RPC permissions after reproducing Supabase default function grants; exact `dev-service-only-scoped-ai-rpc.sql` passed [PG16 and PG17 run 38185857924](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38185857924), **2/2 PASS**.
+- Owner-approved DEV `apply_migration` returned `success:true` for **`20261011235509_uskoci_taxonomy_service_scoped_preview_rpc_20261012`**, now **244 recorded migrations**.
+- Read-only DEV postflight: `public.rpc_taxonomy_ai_scoped_preview_service` and `public.rpc_taxonomy_worker_scoped_preview_service` are EXECUTE **true only for service_role** and **false for authenticated and anon**; actual scoped preview responses remain `classificationAuthority/capabilityAuthority='NONE'` and `notificationAuthority='NONE'`. Existing task count 7, deliveries 0, matcher unchanged and registry flag OFF.
+- Active `uskoci-ai-interview` Edge Function updated **v61 → v62**, status ACTIVE, JWT verification true; deployed only ONE new guidance line differentiating `NA LOKACIJI` vs `NA DALJINU`, refusing to guess mode from category and honoring user-confirmed mode. Old six-file bundle retained; all six files were read back and exact matched. [AI category matching source safety CI run 38185857975](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38185857975), **3/3 PASS** (source, PostgreSQL, PostGIS). No Gemini provider turn, real app E2E, profile saving or push transport was exercised.
+- **Limit:** The active Gemini Edge v62 prompt is now mode-aware, but still does not itself call the new scoped service RPC as part of the conversation completion or save; that wiring and actor-bound confirmation require a separate guarded integration and user/worker E2E.
+
 ## Still NOT done
 
 These previews are not yet invoked by the active mobile UI or Edge conversational turn. The live worker/profile and task saving RPCs still use legacy fields, and the old matcher still governs notifications. No new Gemini provider-turn, identity-bound task/worker confirmation flow, category CRUD, mode-specific remote worker onboarding, live FCM push or new APK E2E has been proven. All new category-writing privileges remain OFF.
