@@ -52,6 +52,12 @@ Source-only kandidat `supabase/candidates/dynamic-taxonomy-20261011/dev-executio
 
 **QA:** `disposable-execution-two-roots-assert.sql` i `.github/workflows/taxonomy-two-root-execution-proof.yml` verifikuju root, dubinu 2+ (ON_SITE/REMOTE), paginaciju, zabranu otvaranja parenta pogrešne grane, prava pristupa i fail-closed ponovno pokretanje migracije na PostgreSQL 16 i 17.
 
+## Obavezan sledeći bezbednosni uslov: bez orphan kategorija i lažnog dispatcha
+
+Kada je korisnik izabrao **ON_SITE** ili **REMOTE**, nova (AI-predložena) konkretna usluga mora da ima zapis veze sa tim režimom **u istoj autorizovanoj transakciji** koja potvrđuje identitet kategorije i reviziju zadatka. Nije dozvoljeno kreirati novu kategoriju kao nepovezan UUID koji ne može da se pronađe ni u jednom od dva stabla. Ako veza ne može da se potvrdi, AI vrati `CLARIFY/REVIEW`, a ne tihi publish/dispatched. Katalog može nuditi iste konkretne usluge u oba moda, ali nijedan režim ne sme nastati heuristički bez potvrde korisnika.
+
+Stari `taxonomy_register_low_risk_v1` trenutno NE prima `execution_scope` i **mora ostati default OFF** do atomskog mode-binding gatewaya. Takođe, `parent_id` mora imati kontrolu ciklusa i kompatibilnosti režima pre nego što runtime dobije upis. Izolovani test liste kategorija samo dokazuje browsanje; ne dokazuje pravilan root-mode autoritet pri objavi i ne predstavlja E2E.
+
 ## Naredni slojevi, još NISU aktivirani
 
 1. UI bira režim izvršenja u AI razgovoru ili iz korisničke namere, a zatim vodi kroz stablo; korisnik potvrđuje konačnu uslugu i da li je na lokaciji / daljinu. AI ne sme promeniti režim kad korisnik ručno odabere.
