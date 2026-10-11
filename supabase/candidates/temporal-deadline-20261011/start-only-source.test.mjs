@@ -54,7 +54,7 @@ test('Dogovor snapshots the declared start without fabricating a booking', () =>
   assert.ok(sql.includes("v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null"));
   assert.ok(ui.includes("terms.declared_start_at"));
   assert.ok(ui.includes("trajanje po dogovoru"));
-  assert.ok(read('src/data/__tests__/agreement-exact-window-mapping.test.ts').includes('start-only snapshot'));
+  assert.ok(read('src/data/__tests__/agreement-exact-window-mapping.test.ts').includes('preserves a declared start-only task'));
 });
 
 test('matching proves exact start instant without manufacturing duration', () => {
