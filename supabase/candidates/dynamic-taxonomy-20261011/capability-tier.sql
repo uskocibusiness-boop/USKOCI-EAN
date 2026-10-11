@@ -40,18 +40,15 @@ BEGIN
     AND s.classification_state='CONFIRMED' AND s.reviewed_by_requester
     AND s.category_id IS NOT NULL
  ) THEN RETURN 'NO_SAFE_MATCH'; END IF;
- -- Explicit required skills take precedence. If none, match the reviewed category.
- -- Every explicit requirement must be satisfied; never turn an empty list into a wildcard.
+ -- The primary work type is always mandatory. Explicit additional
+ -- competencies are conjunctive; they never replace the primary service.
+ -- This is a capability check only and grants no notification entitlement.
  FOR req IN
-  SELECT x.category_id FROM private.work_taxonomy_need_skills x
-  WHERE x.need_id=p_need_id AND x.need_revision=p_need_revision
-  UNION ALL
   SELECT s.category_id FROM private.work_taxonomy_need_snapshots s
   WHERE s.need_id=p_need_id AND s.need_revision=p_need_revision
-    AND NOT EXISTS (
-     SELECT 1 FROM private.work_taxonomy_need_skills x
-     WHERE x.need_id=s.need_id AND x.need_revision=s.need_revision
-    )
+  UNION ALL
+  SELECT x.category_id FROM private.work_taxonomy_need_skills x
+  WHERE x.need_id=p_need_id AND x.need_revision=p_need_revision
  LOOP
   found_requirement := true;
   -- A worker's explicit opt-out for the requested work always wins over
