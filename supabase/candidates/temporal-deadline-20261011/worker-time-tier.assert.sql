@@ -54,6 +54,35 @@ DELETE FROM public.profile_availability_windows;
 UPDATE public.needs SET schedule_kind='FLEXIBLE',starts_at=NULL,ends_at=NULL
 WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.assert_deadline_tier(1,'UNBOUNDED_FLEXIBILITY_KEPT');
+-- A tomorrow task with an explicit earliest start but no finishing time must
+-- match only after that start, inside the published tomorrow calendar day.
+-- "Available now" on the worker is never evidence of tomorrow availability.
+DELETE FROM public.profile_availability_windows;
+DELETE FROM private.worker_calendar_events;
+UPDATE public.app_profiles SET available_now=true
+ WHERE id='22222222-2222-4222-8222-222222222222';
+UPDATE public.needs SET schedule_kind='TOMORROW_FLEXIBLE',
+ published_at=statement_timestamp(),task_timezone='Europe/Belgrade',
+ starts_at=(
+    (((statement_timestamp() at time zone 'Europe/Belgrade')::date + 1)::timestamp + interval '10 hours')
+    at time zone 'Europe/Belgrade'
+ ),ends_at=NULL
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'TOMORROW_PARTIAL_NO_SCHEDULE_REFUSED');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at-interval '20 minutes',starts_at-interval '10 minutes','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'TOMORROW_PARTIAL_BEFORE_START_REFUSED');
+UPDATE public.profile_availability_windows SET
+ starts_at=(SELECT starts_at-interval '5 minutes' FROM public.needs
+   WHERE id='11111111-1111-4111-8111-111111111111'),
+ ends_at=(SELECT starts_at+interval '5 minutes' FROM public.needs
+   WHERE id='11111111-1111-4111-8111-111111111111');
+SELECT private.assert_deadline_tier(2,'TOMORROW_PARTIAL_AFTER_START_ADMITTED');
+UPDATE public.needs SET starts_at=starts_at+interval '2 days'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED');
 -- Start-only exact beginning; no fabricated finish or full-duration guarantee.
 UPDATE public.needs SET schedule_kind='FIXED_WINDOW',
  starts_at=statement_timestamp()+interval '25 hours',ends_at=NULL
