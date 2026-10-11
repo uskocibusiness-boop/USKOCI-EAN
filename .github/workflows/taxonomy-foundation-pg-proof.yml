@@ -69,6 +69,10 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/ai-claim-review.sql
       - name: Reject forged AI category, scope, quantity and send permissions
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-ai-claim-assert.sql
+      - name: Install existing Gemini need.category service adapter
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/existing-ai-category-bridge.sql
+      - name: Prove existing full-conversation AI output resolves safely
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-existing-ai-bridge-assert.sql
       - name: Verify concurrent upsert is one stable identity
         run: |
           psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true,max_auto_creates_per_hour=100"
