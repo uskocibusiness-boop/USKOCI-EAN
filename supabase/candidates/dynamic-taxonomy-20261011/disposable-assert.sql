@@ -13,6 +13,11 @@ BEGIN
     OR has_table_privilege('service_role','private.work_taxonomy_relations','INSERT') THEN
   RAISE EXCEPTION 'SERVICE_ROLE_MUST_NOT_FABRICATE_CONFIRMED_SKILLS';
  END IF;
+ IF has_table_privilege('service_role','private.work_taxonomy_control','UPDATE')
+    OR has_column_privilege('service_role','private.work_taxonomy_control','auto_registration_enabled','UPDATE')
+    OR NOT has_column_privilege('service_role','private.work_taxonomy_control','catalog_version','UPDATE') THEN
+  RAISE EXCEPTION 'SERVICE_ROLE_COULD_TOGGLE_RELEASE_GATE';
+ END IF;
  IF (SELECT auto_registration_enabled FROM private.work_taxonomy_control) THEN
   RAISE EXCEPTION 'FLAG_MUST_DEFAULT_OFF';
  END IF;
