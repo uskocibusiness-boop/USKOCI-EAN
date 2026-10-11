@@ -12,6 +12,18 @@ on:
 permissions:
   contents: read
 jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Existing Gemini + RPC + calendar start-only source contract
+        run: node --test supabase/candidates/temporal-deadline-20261011/start-only-source.test.mjs
   isolated-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 10
