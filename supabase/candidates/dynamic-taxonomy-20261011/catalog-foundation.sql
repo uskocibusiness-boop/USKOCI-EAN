@@ -23,6 +23,8 @@ $function$;
 CREATE TABLE private.work_taxonomy_control (
  singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
  auto_registration_enabled boolean NOT NULL DEFAULT false,
+ max_auto_creates_per_hour integer NOT NULL DEFAULT 100
+   CHECK (max_auto_creates_per_hour BETWEEN 1 AND 10000),
  catalog_version bigint NOT NULL DEFAULT 1 CHECK (catalog_version > 0),
  updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -47,6 +49,8 @@ CREATE TABLE private.work_taxonomy_categories (
  CHECK (parent_id IS NULL OR parent_id <> id),
  CHECK (canonical_key = private.taxonomy_normalize_v1(label))
 );
+CREATE INDEX work_taxonomy_category_created_idx
+ ON private.work_taxonomy_categories(created_at);
 CREATE INDEX work_taxonomy_category_parent_idx
  ON private.work_taxonomy_categories(parent_id,id) WHERE state <> 'RETIRED';
 
@@ -206,6 +210,7 @@ DECLARE
  v_key text;
  v_id uuid;
  v_version bigint;
+ v_hourly_cap integer;
  v_inserted integer;
  v_alias_owner uuid;
 BEGIN
@@ -231,8 +236,9 @@ BEGIN
  ELSIF private.taxonomy_risk_triage_v1(p_label) <> 'LOW_RISK_CANDIDATE' THEN
    RAISE EXCEPTION 'TAXONOMY_REVIEW_REQUIRED';
  END IF;
- -- A short-lived lock prevents duplicate category-version bumps.
- SELECT catalog_version INTO STRICT v_version
+ -- A short-lived lock serializes admission, version and rate budget.
+ SELECT catalog_version,max_auto_creates_per_hour
+ INTO STRICT v_version,v_hourly_cap
  FROM private.work_taxonomy_control WHERE singleton FOR UPDATE;
  -- Reuse a trusted existing alias before creating a new canonical identity.
  SELECT a.category_id INTO v_id FROM private.work_taxonomy_aliases a
@@ -244,6 +250,12 @@ BEGIN
    VALUES ('EXISTING_REUSED',v_id,v_key,v_version);
    RETURN jsonb_build_object('action','REUSE_EXISTING','categoryId',v_id,
            'catalogVersion',v_version,'notificationAuthority','NONE');
+ END IF;
+ -- Reusing aliases is always allowed; only new identities consume budget.
+ -- The lock above makes concurrent rate accounting serial and deterministic.
+ IF (SELECT count(*) FROM private.work_taxonomy_categories
+     WHERE created_at > now() - interval '1 hour') >= v_hourly_cap THEN
+   RAISE EXCEPTION 'TAXONOMY_AUTO_RATE_LIMITED';
  END IF;
  INSERT INTO private.work_taxonomy_categories
    (canonical_key,label,source,catalog_version)
