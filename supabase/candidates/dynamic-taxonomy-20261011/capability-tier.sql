@@ -54,6 +54,13 @@ BEGIN
     )
  LOOP
   found_requirement := true;
+  -- A worker's explicit opt-out for the requested work always wins over
+  -- equivalent or related grants from a *different* confirmed skill.
+  IF EXISTS (
+    SELECT 1 FROM private.work_taxonomy_worker_capabilities e
+    WHERE e.worker_account_id=p_worker_account_id
+      AND e.category_id=req AND e.excluded
+  ) THEN RETURN 'NO_SAFE_MATCH'; END IF;
   IF NOT EXISTS (SELECT 1 FROM private.work_taxonomy_categories c
                  WHERE c.id=req AND c.state<>'RETIRED') THEN
    RETURN 'NO_SAFE_MATCH';
