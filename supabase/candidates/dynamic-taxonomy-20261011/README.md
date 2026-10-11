@@ -140,3 +140,43 @@ Acceptance is tested in disposable-meaning-assert.sql, using real isolated
 PostgreSQL; not an installed DEV feature. The foundation SQL depends on
 service-meaning.sql and must not be applied alone. Operator approval,
 formal CLI migration, authenticated entrypoint and rollback remain blocked.
+
+## Natural Serbian task text: verified extraction before requester review
+
+New **source-only** candidate files: natural-task-preview.sql and
+ai-claim-review.sql; their executable fixtures are disposable-natural-assert.sql
+and disposable-ai-claim-assert.sql. They run on disposable PostgreSQL without
+AI-provider credentials, live users, writeable needs, notifications or dispatch.
+
+**Structured preview:** verified sentence prefixes, verb forms and room/object
+phrases are data; a narrowly recognized text such as:
+
+> Treba mi neko da okreči dnevnu sobu od 25 kvadrata.
+
+returns the existing 'Krečenje zidova' service UUID, a verified normalized
+verb and scope, and a numeric areaSqm=25. No room-specific service ID is made.
+Cyrillic, preexisting direct service phrases and a limited square-meter
+suffix are tested. A terminal sentence period can be stripped safely.
+
+**Fail closed:** unknown work forms, unseen spaces, combined jobs, missing
+object, unsupported quantities and unapproved synonyms are CLARIFY, never
+an automatic new category. Full-sentence blocked/review-needed policy runs
+BEFORE prefix/scope extraction so hidden risky clauses cannot be dropped.
+
+**AI contract:** an eventual model can submit a JSON category/action/scope/area
+proposal to taxonomy_ai_claim_review_v1. The server independently derives
+the answer from original user text and verified grammar; fabricated IDs,
+wrong scope, forged area or wrong types are rejected. Only the server-derived
+values can be returned. Successful output is READY_FOR_REQUESTER_REVIEW,
+**not publication, classification confirmation, skill authority, matchmaking
+eligibility, event creation, notification or automatic category admission.**
+
+**IMPORTANT LIMITATIONS:** This parser is NOT a general-purpose LLM or
+semantic understanding of free-form Serbian, nor is it integrated with
+the currently deployed app AI flow. Its verified templates are an initial
+closed proof, extendable via trusted catalog data and later reviewed AI
+extraction; only independent context-sensitive admission could enable
+safe open-world expansion. Do not call the SQL functions as public RPCs.
+
+Both SQL features remain unplugged, default OFF, and require owner-approved
+deployment/rollback and separate end-to-end dispatch/phone proof.
