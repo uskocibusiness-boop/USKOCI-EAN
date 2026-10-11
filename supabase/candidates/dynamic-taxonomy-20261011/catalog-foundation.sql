@@ -137,6 +137,61 @@ CREATE TABLE private.work_taxonomy_audit (
  at timestamptz NOT NULL DEFAULT now()
 );
 
+-- This is a conservative DATA-DRIVEN risk vocabulary, not the work catalog.
+-- New types have no fixed ceiling. Unrecognized actions are review-only until
+-- a separately validated admission policy is extended.
+CREATE TABLE private.work_taxonomy_risk_actions (
+ normalized_action text PRIMARY KEY,
+ policy_version bigint NOT NULL DEFAULT 1 CHECK (policy_version>0),
+ enabled boolean NOT NULL DEFAULT true,
+ CHECK (char_length(normalized_action) BETWEEN 3 AND 50)
+);
+INSERT INTO private.work_taxonomy_risk_actions(normalized_action) VALUES
+ ('servis'),('popravka'),('izrada'),('fotografisanje'),
+ ('dresiranje'),('3d stampanje'),('stampanje'),('krecenje'),
+ ('farbanje'),('ciscenje'),('montaza'),('sivenje'),('setanje'),
+ ('prevoz'),('odrzavanje'),('pravljenje'),('pakovanje');
+
+CREATE TABLE private.work_taxonomy_risk_rules (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ pattern text NOT NULL,
+ decision text NOT NULL CHECK (decision IN ('BLOCKED','REVIEW_REQUIRED')),
+ policy_version bigint NOT NULL DEFAULT 1 CHECK (policy_version>0),
+ enabled boolean NOT NULL DEFAULT true,
+ CHECK (char_length(pattern) BETWEEN 3 AND 300)
+);
+-- These rules are intentionally incomplete: conservative CI examples only,
+-- NOT a general content safety certificate for every possible task.
+INSERT INTO private.work_taxonomy_risk_rules(pattern,decision) VALUES
+ ('(oruzj|municij|eksploziv|bomb|droga|narkotik|kokain|heroin|falsifik|hakovanj|prostituc|pornograf)','BLOCKED'),
+ ('(elektric|elektroinstal|solarn|gasn|plinsk|dron|baterij|medicin|hirurg|lekov|pesticid|hemij|azbest|visinsk|licenc|vatren|opasn)','REVIEW_REQUIRED');
+
+CREATE OR REPLACE FUNCTION private.taxonomy_risk_triage_v1(p_label text)
+RETURNS text LANGUAGE plpgsql STABLE SECURITY INVOKER
+SET search_path=pg_catalog,private
+AS $risk$
+DECLARE v_key text;
+BEGIN
+ v_key:=private.taxonomy_normalize_v1(p_label);
+ IF v_key='' OR char_length(v_key)<6 OR v_key !~ '^[[:alnum:]]'
+    OR v_key !~ '[[:space:]]' THEN
+   RETURN 'NEEDS_CLARIFICATION';
+ END IF;
+ IF v_key ~ '(^|[[:space:]])(ostalo|drugo|razno|sve|svasta|poslovi|usluge)($|[[:space:]])'
+ THEN RETURN 'NEEDS_CLARIFICATION'; END IF;
+ IF EXISTS (SELECT 1 FROM private.work_taxonomy_risk_rules
+            WHERE enabled AND decision='BLOCKED' AND v_key ~ pattern)
+ THEN RETURN 'BLOCKED'; END IF;
+ IF EXISTS (SELECT 1 FROM private.work_taxonomy_risk_rules
+            WHERE enabled AND decision='REVIEW_REQUIRED' AND v_key ~ pattern)
+ THEN RETURN 'REVIEW_REQUIRED'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM private.work_taxonomy_risk_actions
+                WHERE enabled AND v_key LIKE normalized_action||' %')
+ THEN RETURN 'NEEDS_CLARIFICATION'; END IF;
+ RETURN 'LOW_RISK_CANDIDATE';
+END
+$risk$;
+
 -- All catalog mutations are barred from app roles. Even if this candidate is
 -- installed in the future, the feature flag starts OFF. This function only
 -- accepts server-admitted, owner-reviewed, low-risk labels. Its caller must
@@ -169,6 +224,12 @@ BEGIN
  v_key := private.taxonomy_normalize_v1(p_label);
  IF v_key IN ('ostalo','drugo','razno') OR char_length(v_key) < 3 THEN
    RAISE EXCEPTION 'TAXONOMY_AMBIGUOUS_LABEL';
+ END IF;
+ -- A caller-provided risk decision NEVER suffices for admission.
+ IF private.taxonomy_risk_triage_v1(p_label) = 'BLOCKED' THEN
+   RAISE EXCEPTION 'TAXONOMY_UNSAFE_LABEL';
+ ELSIF private.taxonomy_risk_triage_v1(p_label) <> 'LOW_RISK_CANDIDATE' THEN
+   RAISE EXCEPTION 'TAXONOMY_REVIEW_REQUIRED';
  END IF;
  -- A short-lived lock prevents duplicate category-version bumps.
  SELECT catalog_version INTO STRICT v_version
@@ -220,6 +281,8 @@ $function$;
 
 -- Defense in depth: explicitly enable RLS even though private is non-exposed.
 ALTER TABLE private.work_taxonomy_control ENABLE ROW LEVEL SECURITY;
+ALTER TABLE private.work_taxonomy_risk_actions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE private.work_taxonomy_risk_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private.work_taxonomy_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private.work_taxonomy_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private.work_taxonomy_relations ENABLE ROW LEVEL SECURITY;
@@ -229,12 +292,14 @@ ALTER TABLE private.work_taxonomy_need_skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE private.work_taxonomy_audit ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON FUNCTION private.taxonomy_normalize_v1(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION private.taxonomy_risk_triage_v1(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION private.taxonomy_register_low_risk_v1(text,text,boolean) FROM PUBLIC;
 REVOKE ALL ON
  private.work_taxonomy_control,private.work_taxonomy_categories,
  private.work_taxonomy_aliases,private.work_taxonomy_relations,
  private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
- private.work_taxonomy_need_skills,private.work_taxonomy_audit FROM PUBLIC;
+ private.work_taxonomy_need_skills,private.work_taxonomy_audit,
+ private.work_taxonomy_risk_actions,private.work_taxonomy_risk_rules FROM PUBLIC;
 -- Installer/operator owns objects. Only service_role gets private catalog access.
 GRANT USAGE ON SCHEMA private TO service_role;
 -- Service-only runtime can read eligibility inputs but cannot fabricate worker
@@ -244,7 +309,8 @@ GRANT SELECT ON
  private.work_taxonomy_control,private.work_taxonomy_categories,
  private.work_taxonomy_aliases,private.work_taxonomy_relations,
  private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
- private.work_taxonomy_need_skills,private.work_taxonomy_audit TO service_role;
+ private.work_taxonomy_need_skills,private.work_taxonomy_audit,
+ private.work_taxonomy_risk_actions,private.work_taxonomy_risk_rules TO service_role;
 -- The registrar alone needs these minimal underlying DML privileges.
 -- The runtime may increment catalog_version but cannot enable auto-registration.
 -- Gate flips require the separate owner-approved operator pathway.
@@ -255,5 +321,6 @@ GRANT INSERT ON
 GRANT USAGE,SELECT ON SEQUENCE
  private.work_taxonomy_aliases_id_seq,private.work_taxonomy_audit_id_seq TO service_role;
 GRANT EXECUTE ON FUNCTION private.taxonomy_normalize_v1(text) TO service_role;
+GRANT EXECUTE ON FUNCTION private.taxonomy_risk_triage_v1(text) TO service_role;
 GRANT EXECUTE ON FUNCTION private.taxonomy_register_low_risk_v1(text,text,boolean) TO service_role;
 COMMIT;
