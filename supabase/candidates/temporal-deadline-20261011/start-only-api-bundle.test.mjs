@@ -39,6 +39,9 @@ test('bundles are transaction-pinned with exact ACL, volatility and search path'
   for(const marker of ['BEGIN;','COMMIT;','SET LOCAL lock_timeout','SET LOCAL statement_timeout','DO $preflight$','DO $postflight$','p.prosecdef=true','p.provolatile=','p.proparallel=','p.proacl::text','p.proconfig::text']){
    assert.ok(sql.includes(marker),marker);
   }
-  assert.doesNotMatch(sql,/\b(?:update|delete|insert|truncate)\s+(?:into\s+|from\s+)?(?:public\.|private\.)?(?:needs|app_profiles|marketplace_responses|agreement_versions|notification_deliveries)\b/i);
+  // The stored RPC bodies legitimately contain DML executed only when called.
+  // The release transaction itself must never execute application-data DML.
+  const deploymentShell = sql.replace(/CREATE OR REPLACE FUNCTION[\s\S]*?\$function\$;/g,'');
+  assert.doesNotMatch(deploymentShell,/\b(?:update|delete|insert|truncate)\s+(?:into\s+|from\s+)?(?:public\.|private\.)?(?:needs|app_profiles|marketplace_responses|agreement_versions|notification_deliveries)\b/i);
  }
 });
