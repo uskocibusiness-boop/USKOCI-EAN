@@ -70,3 +70,14 @@ test('matching proves exact start instant without manufacturing duration', () =>
   assert.ok(assertSql.includes(marker),marker);
  }
 });
+
+test('time-elapsed direct API guard closes expired start-only offers and candidates',()=>{
+ const submit=read(dir+'start-only-submit.candidate.sql');
+ const select=read(dir+'start-only-select.candidate.sql');
+ assert.ok(submit.includes("n.starts_at<=statement_timestamp()"),'submit cannot allow past start');
+ assert.ok(select.includes("v_need.starts_at<=statement_timestamp()"),'selection cannot allow past start');
+ for(const file of ['start-only-candidate-states.candidate.sql','start-only-candidate-states-batch.candidate.sql']){
+  const sql=read(dir+file);
+  assert.ok(sql.includes("and n.starts_at<=statement_timestamp()) then 'CLOSED'"),file+' must show CLOSED after the start');
+ }
+});

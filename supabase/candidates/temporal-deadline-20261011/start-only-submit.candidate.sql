@@ -189,6 +189,11 @@ begin
       or (n.ends_at is not null and (not isfinite(n.ends_at) or n.starts_at>=n.ends_at))) then
     raise exception 'NEED_FIXED_INTERVAL_INVALID' using errcode='22023';
   end if;
+  -- Start-only appointment cannot accept a new offer after its start while lifecycle tick catches up.
+  if n.schedule_kind='FIXED_WINDOW' and n.ends_at is null
+     and n.starts_at is not null and n.starts_at<=statement_timestamp() then
+    raise exception 'FIXED_WINDOW_START_PASSED' using errcode='22023';
+  end if;
   v_match := private.match_detail_for_calendar_interval(p_need_id, p_worker_profile_id,
     coalesce(p_proposed_start_at,case when n.schedule_kind='FIXED_WINDOW' and n.ends_at is not null then n.starts_at end),
     coalesce(p_proposed_end_at,case when n.schedule_kind='FIXED_WINDOW' and n.ends_at is not null then n.ends_at end));

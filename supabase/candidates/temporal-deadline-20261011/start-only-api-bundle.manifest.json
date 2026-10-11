@@ -31,8 +31,8 @@
     "file": "start-only-submit.candidate.sql",
     "signature": "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)",
     "predecessorMd5": "66aab6df0d625e24e0073c27bfe2aa91",
-    "candidateMd5": "a806a327aef2c51a590e614275d67eb1",
-    "sourceLength": 10886,
+    "candidateMd5": "b058ee01fc16a6f3018969ac911afbe4",
+    "sourceLength": 11205,
     "security": {
       "definer": true,
       "volatility": "v",
@@ -45,8 +45,8 @@
     "file": "start-only-select.candidate.sql",
     "signature": "public.rpc_select_response(uuid,integer,uuid,integer,text,text)",
     "predecessorMd5": "6a8fd871a60779bc438119b21a900dca",
-    "candidateMd5": "ba3d1242fa9a186604d220043a03ec2b",
-    "sourceLength": 13960,
+    "candidateMd5": "faab1bde1460e904e9a083d2a8382b18",
+    "sourceLength": 14272,
     "security": {
       "definer": true,
       "volatility": "v",
@@ -73,8 +73,8 @@
     "file": "start-only-candidate-states.candidate.sql",
     "signature": "private.need_candidate_states_v5(uuid)",
     "predecessorMd5": "112ed258e838b2cae22b248ac94ebe7c",
-    "candidateMd5": "2493e693e9ec208c8a4957ca0d8766c6",
-    "sourceLength": 4143,
+    "candidateMd5": "3f24c4533d63cefdb6f8421443faf150",
+    "sourceLength": 4288,
     "security": {
       "definer": true,
       "volatility": "s",
@@ -87,8 +87,8 @@
     "file": "start-only-candidate-states-batch.candidate.sql",
     "signature": "private.need_candidate_states_v5(uuid,uuid[])",
     "predecessorMd5": "20092ecb2a781776ddb0ce9c46ba8aa5",
-    "candidateMd5": "7765b402fb2f83d20c127a6a5452a593",
-    "sourceLength": 4174,
+    "candidateMd5": "28e1422d1a74b24911242fd4577e4450",
+    "sourceLength": 4319,
     "security": {
       "definer": true,
       "volatility": "s",

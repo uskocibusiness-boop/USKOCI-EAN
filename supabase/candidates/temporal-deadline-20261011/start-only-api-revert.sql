@@ -22,14 +22,14 @@ BEGIN
      RAISE EXCEPTION 'START_ONLY_API_SOURCE_OR_PRIVILEGES_DRIFT: start-only-edit.candidate.sql' USING errcode='PT409';
  END IF;
  IF NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid='public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamptz,timestamptz,text,text)'::regprocedure
-   AND md5(p.prosrc)='a806a327aef2c51a590e614275d67eb1' AND p.prosecdef=true
+   AND md5(p.prosrc)='b058ee01fc16a6f3018969ac911afbe4' AND p.prosecdef=true
    AND p.provolatile='v' AND p.proparallel='u'
    AND coalesce(p.proacl::text,'')='{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}'
    AND coalesce(p.proconfig::text,'')='{search_path=pg_catalog}') THEN
      RAISE EXCEPTION 'START_ONLY_API_SOURCE_OR_PRIVILEGES_DRIFT: start-only-submit.candidate.sql' USING errcode='PT409';
  END IF;
  IF NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid='public.rpc_select_response(uuid,integer,uuid,integer,text,text)'::regprocedure
-   AND md5(p.prosrc)='ba3d1242fa9a186604d220043a03ec2b' AND p.prosecdef=true
+   AND md5(p.prosrc)='faab1bde1460e904e9a083d2a8382b18' AND p.prosecdef=true
    AND p.provolatile='v' AND p.proparallel='u'
    AND coalesce(p.proacl::text,'')='{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}'
    AND coalesce(p.proconfig::text,'')='{"search_path=public, pg_temp"}') THEN
@@ -43,14 +43,14 @@ BEGIN
      RAISE EXCEPTION 'START_ONLY_API_SOURCE_OR_PRIVILEGES_DRIFT: start-only-stale.candidate.sql' USING errcode='PT409';
  END IF;
  IF NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid='private.need_candidate_states_v5(uuid)'::regprocedure
-   AND md5(p.prosrc)='2493e693e9ec208c8a4957ca0d8766c6' AND p.prosecdef=true
+   AND md5(p.prosrc)='3f24c4533d63cefdb6f8421443faf150' AND p.prosecdef=true
    AND p.provolatile='s' AND p.proparallel='u'
    AND coalesce(p.proacl::text,'')='{postgres=X/postgres}'
    AND coalesce(p.proconfig::text,'')='{search_path=pg_catalog}') THEN
      RAISE EXCEPTION 'START_ONLY_API_SOURCE_OR_PRIVILEGES_DRIFT: start-only-candidate-states.candidate.sql' USING errcode='PT409';
  END IF;
  IF NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid='private.need_candidate_states_v5(uuid,uuid[])'::regprocedure
-   AND md5(p.prosrc)='7765b402fb2f83d20c127a6a5452a593' AND p.prosecdef=true
+   AND md5(p.prosrc)='28e1422d1a74b24911242fd4577e4450' AND p.prosecdef=true
    AND p.provolatile='s' AND p.proparallel='u'
    AND coalesce(p.proacl::text,'')='{postgres=X/postgres}'
    AND coalesce(p.proconfig::text,'')='{search_path=pg_catalog}') THEN

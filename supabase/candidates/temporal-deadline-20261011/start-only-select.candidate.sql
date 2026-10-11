@@ -176,6 +176,11 @@ begin
       or (v_need.ends_at is not null and (not isfinite(v_need.ends_at) or v_need.starts_at>=v_need.ends_at))) then
     raise exception 'NEED_FIXED_INTERVAL_INVALID' using errcode='22023';
   end if;
+  -- An old start-only task cannot be selected after its precise beginning.
+  if v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is null
+     and v_need.starts_at is not null and v_need.starts_at<=statement_timestamp() then
+    raise exception 'FIXED_WINDOW_START_PASSED' using errcode='22023';
+  end if;
   v_match := private.match_detail_for_calendar_interval(p_need_id, v_resp.worker_profile_id,
     coalesce(v_ver.proposed_start_at,case when v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null then v_need.starts_at end),
     coalesce(v_ver.proposed_end_at,case when v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null then v_need.ends_at end));

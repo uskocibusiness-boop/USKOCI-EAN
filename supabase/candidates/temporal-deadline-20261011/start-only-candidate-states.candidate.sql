@@ -34,7 +34,9 @@ begin
       when c.status='WITHDRAWN' then 'WITHDRAWN'
       when c.status in ('NOT_SELECTED','EXPIRED') then 'CLOSED'
       when n.status not in ('PUBLISHED','SELECTION')
-        or (n.response_deadline is not null and n.response_deadline<=statement_timestamp()) then 'CLOSED'
+        or (n.response_deadline is not null and n.response_deadline<=statement_timestamp())
+         or (n.schedule_kind='FIXED_WINDOW' and n.ends_at is null
+           and n.starts_at is not null and n.starts_at<=statement_timestamp()) then 'CLOSED'
       when c.kind is distinct from 'WORKER' or c.profile_account is distinct from c.worker_account_id
         or c.profile_status is distinct from 'ACTIVE'
         or char_length(btrim(coalesce(c.display_name,'')))<2
