@@ -226,6 +226,12 @@ begin
     'scope_note',v_ver.scope_note,'need_revision',v_need.revision,
     'response_version',v_ver.version
   );
+  -- Snapshot the requested exact start separately from the calendar reservation.
+  -- Calendar interval uses ONLY a complete proposed_start_at/proposed_end_at pair.
+  if v_ver.proposed_start_at is null and v_need.schedule_kind='FIXED_WINDOW'
+     and v_need.ends_at is null and v_need.starts_at is not null then
+    v_terms:=v_terms||jsonb_build_object('declared_start_at',v_need.starts_at);
+  end if;
 
   insert into public.agreements(
     need_id,selection_id,selected_response_id,requester_account_id,requester_profile_id,
