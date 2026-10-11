@@ -8,6 +8,11 @@ BEGIN
  OR private.taxonomy_normalize_v1('  PODEŠAVANJE  3D  ŠTAMPAČA ') <> 'podesavanje 3d stampaca' THEN
   RAISE EXCEPTION 'NORMALIZER_FAIL';
  END IF;
+ IF has_table_privilege('service_role','private.work_taxonomy_worker_capabilities','INSERT')
+    OR has_table_privilege('service_role','private.work_taxonomy_need_snapshots','INSERT')
+    OR has_table_privilege('service_role','private.work_taxonomy_relations','INSERT') THEN
+  RAISE EXCEPTION 'SERVICE_ROLE_MUST_NOT_FABRICATE_CONFIRMED_SKILLS';
+ END IF;
  IF (SELECT auto_registration_enabled FROM private.work_taxonomy_control) THEN
   RAISE EXCEPTION 'FLAG_MUST_DEFAULT_OFF';
  END IF;
