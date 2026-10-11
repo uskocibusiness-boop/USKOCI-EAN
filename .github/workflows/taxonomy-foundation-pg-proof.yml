@@ -52,5 +52,7 @@ jobs:
           pid2=$!
           wait "$pid1"
           wait "$pid2"
-          psql -X -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN count(*)=1 THEN 'CONCURRENT_UNIQUE_ID_PASS' ELSE 1/0::text END FROM private.work_taxonomy_categories WHERE canonical_key='dresiranje pasa'"
+          result=$(psql -X -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM private.work_taxonomy_categories WHERE canonical_key='dresiranje pasa'")
+          test "$result" = '1'
+          echo CONCURRENT_UNIQUE_ID_PASS
           psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=false"
