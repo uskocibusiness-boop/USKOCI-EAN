@@ -63,9 +63,15 @@ test('matching proves exact start instant without manufacturing duration', () =>
  const assertSql=read(dir+'worker-time-tier.assert.sql');
  assert.ok(matcher.includes("n.schedule_kind='FIXED_WINDOW' and n.starts_at is not null and n.ends_at is null"));
  assert.ok(matcher.includes("periods @> n.starts_at"));
+ assert.ok(matcher.includes('PARTIAL_PERIOD_START_AVAILABLE'));
+ assert.ok(matcher.includes("n.starts_at<ws or n.starts_at>=we"));
+ assert.ok(matcher.includes("greatest(n.starts_at,at_now),we"));
+ for(const marker of ['TOMORROW_PARTIAL_NO_SCHEDULE_REFUSED','TOMORROW_PARTIAL_BEFORE_START_REFUSED','TOMORROW_PARTIAL_AFTER_START_ADMITTED','TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED']){
+  assert.ok(assertSql.includes(marker),marker);
+ }
  assert.ok(matcher.includes("interval '1 second'"));
- assert.ok(matcher.includes('2540437fea2ba98f9e950b967666f517'));
- assert.ok(revert.includes('2540437fea2ba98f9e950b967666f517'));
+ assert.ok(matcher.includes('e93886f2bcd48cc287c713f74e797224'));
+ assert.ok(revert.includes('e93886f2bcd48cc287c713f74e797224'));
  for(const marker of ['START_ONLY_AVAILABLE_NOW_NOT_FUTURE_PROOF','START_ONLY_KNOWN_FREE_INSTANT','START_ONLY_BLOCKED_AT_BEGINNING','START_ONLY_PAST_START_CLOSED']){
   assert.ok(assertSql.includes(marker),marker);
  }
