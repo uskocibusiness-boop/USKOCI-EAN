@@ -49,6 +49,8 @@ test('Dogovor snapshots the declared start without fabricating a booking', () =>
   const sql = read(dir+'start-only-select.candidate.sql');
   const ui = read('src/data/agreementClientService.ts');
   assert.ok(sql.includes("jsonb_build_object('declared_start_at',v_need.starts_at)"));
+  assert.ok(sql.includes("WORKER_CALENDAR_CONFLICT"));
+  assert.ok(sql.includes("interval '1 microsecond'"));
   assert.ok(sql.includes("v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null"));
   assert.ok(ui.includes("terms.declared_start_at"));
   assert.ok(ui.includes("trajanje po dogovoru"));
