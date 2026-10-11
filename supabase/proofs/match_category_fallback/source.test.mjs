@@ -289,4 +289,19 @@ test('DEV E2E operator preflight contains only a read-only SELECT and fails clos
  }
  assert.ok(executable.includes('private.admit_push_opportunity_single_target_v1'));
  assert.ok(executable.includes('public.rpc_resolve_activity_opportunity_v1'));
+ assert.ok(executable.includes('exact_begin_send_source_installed'));
+ const opportunityDir=join(folder,'../../candidates/push-opportunity-target-20261011');
+ const guardedPushFunctions=[
+  ['candidate.sql','ac72682ce0b16066e726b374586923ca'],
+  ['operator-admission.sql','fca73a3a992b6dd3e9830d8baf0ff866'],
+  ['begin-candidate.sql','380a2f203da2a7ad344bd80f061abd13'],
+ ];
+ for (const [file,expectedMd5] of guardedPushFunctions) {
+  const source=readFileSync(join(opportunityDir,file),'utf8');
+  const match=source.match(/\\bas\\s+\\$function\\$([\\s\\S]*?)\\$function\\$;/i);
+  assert.ok(match,'source body missing '+file);
+  assert.equal(md5(match[1]),expectedMd5,'source drift '+file);
+  assert.ok(executable.includes(expectedMd5),'operator gate missing exact source '+file);
+ }
+
 });
