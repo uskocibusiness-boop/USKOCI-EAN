@@ -275,5 +275,18 @@ test('DEV E2E operator preflight contains only a read-only SELECT and fails clos
  assert.doesNotMatch(executable,/\b(?:INSERT|UPDATE|DELETE|TRUNCATE|ALTER|DROP|CREATE|GRANT|REVOKE|CALL|PERFORM|EXECUTE|COPY)\b/i);
  assert.match(executable,/live_matcher_md5\s*=\s*'d511b48f7f3b38f52aaffee420108f8a'/);
  for (const gate of ['active_marketplace_crons = 0','queued_needs = 0','active_session_bound_devices >= 1',
+   "live_time_tier_md5 = '34c977e537ce731587a37a0bc1562296'",
+   "live_discovery_time_md5 = '0fd72e91c11eeac2c2501f3a8f753734'",
+   'start_only_api_bundle_installed','exact_activity_resolver_installed',
+   'exact_target_admission_installed','to_regprocedure(',
    "'MANUAL_GATES_STILL_REQUIRED'","'BLOCKED'"]) assert.ok(executable.includes(gate),gate);
+ const manifest=JSON.parse(readFileSync(join(folder,
+  '../../candidates/temporal-deadline-20261011/start-only-api-bundle.manifest.json'),'utf8'));
+ assert.equal(manifest.length,7);
+ for (const rpc of manifest) {
+   assert.ok(executable.includes(rpc.signature),'missing RPC signature '+rpc.file);
+   assert.ok(executable.includes(rpc.candidateMd5),'missing candidate hash '+rpc.file);
+ }
+ assert.ok(executable.includes('private.admit_push_opportunity_single_target_v1'));
+ assert.ok(executable.includes('public.rpc_resolve_activity_opportunity_v1'));
 });
