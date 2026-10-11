@@ -4,11 +4,13 @@ on:
     paths:
       - '.github/workflows/temporal-deadline-proof.yml'
       - 'supabase/candidates/temporal-deadline-20261011/**'
+      - 'supabase/candidates/push-stale-receipt-20261011/**'
   push:
     branches: [fix/match-ai-category-fallback-20261010]
     paths:
       - '.github/workflows/temporal-deadline-proof.yml'
       - 'supabase/candidates/temporal-deadline-20261011/**'
+      - 'supabase/candidates/push-stale-receipt-20261011/**'
 permissions:
   contents: read
 jobs:
@@ -60,6 +62,11 @@ jobs:
           done
           echo 'Synthetic Dogovor: unchanged LIVE calendar parser must keep declared start, without inventing a duration'
           for file in live-agreement-calendar.sql agreement-calendar.assert.sql; do
+            psql -X -v ON_ERROR_STOP=1 -f "$root/$file"
+          done
+          echo 'Read-only captured worker tick: stale receipt timeout in offline fixture'
+          root=supabase/candidates/push-stale-receipt-20261011
+          for file in fixture.sql baseline.sql forward.sql assert.sql revert.sql rollback-assert.sql; do
             psql -X -v ON_ERROR_STOP=1 -f "$root/$file"
           done
           echo 'TEMPORAL_DEADLINE_PG_PASS; no canonical Supabase connection'
