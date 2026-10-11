@@ -132,8 +132,11 @@ SELECT private.check_fit('22222222-2222-4222-8222-222222222222',false,true,false
 UPDATE public.needs SET category=NULL;
 SELECT private.check_fit('33333333-3333-4333-8333-333333333333',false,true,false,'null_category_not_wildcard');
 UPDATE public.needs SET category='Čišćenje stana',required_skills=ARRAY['Selidbe'];
-SELECT private.check_fit('22222222-2222-4222-8222-222222222222',false,true,false,'explicit_requirement_overrides_category');
-SELECT private.check_fit('33333333-3333-4333-8333-333333333333',true,true,true,'explicit_requirement_matches_mover');
+SELECT private.check_fit('22222222-2222-4222-8222-222222222222',false,true,false,'extra_must_not_replace_primary');
+SELECT private.check_fit('33333333-3333-4333-8333-333333333333',false,true,false,'extra_only_cannot_replace_primary');
+UPDATE public.app_profiles SET skills=ARRAY['Selidbe','Čišćenje'] WHERE id='33333333-3333-4333-8333-333333333333';
+SELECT private.check_fit('33333333-3333-4333-8333-333333333333',true,true,true,'primary_and_extra_both_confirmed');
+UPDATE public.app_profiles SET skills=ARRAY['Selidbe'] WHERE id='33333333-3333-4333-8333-333333333333';
 UPDATE public.needs SET required_skills='{}',approximate_city='Beograd';
 SELECT private.check_fit('22222222-2222-4222-8222-222222222222',true,false,false,'different_city_blocks');
 UPDATE public.needs SET execution_location_mode='REMOTE';
@@ -157,6 +160,6 @@ DO $$ DECLARE doc jsonb; BEGIN
 END $$;
 DO $$ BEGIN
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid='private.worker_need_fit_v1(uuid,uuid,boolean)'::regprocedure)
- <> 'd18c47226723ffbbec474aa4547e1af1' THEN RAISE EXCEPTION 'CANDIDATE_SOURCE_DRIFT'; END IF;
+ <> 'd511b48f7f3b38f52aaffee420108f8a' THEN RAISE EXCEPTION 'CANDIDATE_SOURCE_DRIFT'; END IF;
 END $$;
 ROLLBACK;
