@@ -43,6 +43,10 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/catalog-foundation.sql
       - name: Verify gates, canonical aliases, no worker inference and no fixed limit
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-assert.sql
+      - name: Install isolated capability tier SQL (no dispatcher integration)
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/capability-tier.sql
+      - name: Verify unrelated workers blocked and related offers require explicit opt-in
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-capability-assert.sql
       - name: Verify concurrent upsert is one stable identity
         run: |
           psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true"
