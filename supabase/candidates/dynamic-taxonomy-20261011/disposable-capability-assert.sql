@@ -45,8 +45,10 @@ BEGIN
   (need_paint,1,cat_paint,version_now,true,'AI_PROPOSED','CONFIRMED'),
   (need_ambiguous,1,NULL,version_now,false,'AI_PROPOSED','NEEDS_CLARIFICATION'),
   (need_multi,1,cat_paint,version_now,true,'REQUESTER_CORRECTED','CONFIRMED');
+ -- The EXTRA skill is intentionally different from the primary painting
+ -- service. A craft-only worker must NOT be offered painting work.
  INSERT INTO private.work_taxonomy_need_skills(need_id,need_revision,category_id)
- VALUES (need_multi,1,cat_paint),(need_multi,1,cat_craft);
+ VALUES (need_multi,1,cat_craft);
 
  INSERT INTO private.work_taxonomy_worker_capabilities
  (worker_account_id,category_id,confirmed_at,origin,allow_related_offers)
@@ -72,6 +74,8 @@ BEGIN
   RAISE EXCEPTION 'NULL_WORKER_MATCHED'; END IF;
  IF private.taxonomy_capability_tier_v1(need_multi,1,worker_paint)<>'NO_SAFE_MATCH' THEN
   RAISE EXCEPTION 'SOME_BUT_NOT_ALL_SKILLS_MATCHED'; END IF;
+ IF private.taxonomy_capability_tier_v1(need_multi,1,worker_craft)<>'NO_SAFE_MATCH' THEN
+  RAISE EXCEPTION 'EXTRA_SKILL_CANNOT_OVERRIDE_PRIMARY_PAINTING'; END IF;
 
  INSERT INTO private.work_taxonomy_relations
  (source_id,target_id,relation,verification,evidence_ref,version)
