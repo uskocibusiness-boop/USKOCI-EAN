@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/marketplace-30k-real-dispatch-proof.yml'
       - 'supabase/proofs/match_category_fallback/marketplace-30k-*.sql'
+      - 'supabase/proofs/match_category_fallback/novel-category-dispatch-gap.sql'
   push:
     branches: [fix/match-ai-category-fallback-20261010]
     paths:
@@ -60,4 +61,6 @@ jobs:
           run_pg < "$root/marketplace-30k-seed.sql"
           echo 'ASSERT: 55 distinct types/cities with negative matches and 55 actual dispatch waves'
           run_pg < "$root/marketplace-30k-assert.sql"
+          echo 'NOVEL WORK: exact capability dispatch + expected old generic-repair taxonomy false positive'
+          run_pg < "$root/novel-category-dispatch-gap.sql"
           echo 'DISPOSABLE_REAL_DISPATCH_30K_PASS; no external Supabase writes or push'
