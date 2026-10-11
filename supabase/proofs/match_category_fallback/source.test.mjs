@@ -23,16 +23,20 @@ test('forward and revert DDL are executable terminated function statements',()=>
 test('the exact live predecessor is retained for a safe revert',()=>{
  assert.equal(md5(before),'ab221f0091d78856bb42f702ddecd016');
  assert.equal(beforeFromRevert,before);
- assert.equal(md5(after),'d18c47226723ffbbec474aa4547e1af1');
+ assert.equal(md5(after),'d511b48f7f3b38f52aaffee420108f8a');
 });
-test('only the three approved anchors change, never output/blocker/area/clock policy',()=>{
+test('primary service AND every explicitly required extra are independent gates',()=>{
  let expected=before;
- const anchors=[["  hard text[]:='{}'; svc boolean; area boolean; dist numeric; radius numeric; tier integer;","  hard text[]:='{}'; svc boolean; area boolean; dist numeric; radius numeric; tier integer;\n  effective_skills text[];"],["  -- Kind of work, first the same words: the task names none, or worker and task share a word.\n  svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0\n       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);","  -- Match on explicitly requested skills. If absent, match the AI-confirmed\n  -- category, never treat an empty skills array as \"every worker matches\".\n  -- A missing or unrecognized category is not a wildcard.\n  effective_skills := case when coalesce(cardinality(n.required_skills),0)>0 then n.required_skills\n    else array_remove(array[n.category]::text[],null) end;\n  svc:=coalesce(private.lower_arr(p.skills) && private.lower_arr(effective_skills),false);"],["  -- Kind of work in other words: the same hidden kind (PKG-031b / EX-06b), read only when no word is shared.\n  if not svc then\n    svc:=coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills),false);\n  end if;","  -- Existing canonical 11-kind vocabulary covers spelling differences for\n  -- both explicit requirements and the fallback task category.\n  if not svc then\n    svc:=coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(effective_skills),false);\n  end if;"]];
+ const anchors=[
+  ["  hard text[]:='{}'; svc boolean; area boolean; dist numeric; radius numeric; tier integer;","  hard text[]:='{}'; svc boolean; area boolean; dist numeric; radius numeric; tier integer;\n  effective_skills text[]; required_skill text;"],
+  ["  -- Kind of work, first the same words: the task names none, or worker and task share a word.\n  svc:=coalesce(coalesce(cardinality(n.required_skills),0)=0\n       or private.lower_arr(p.skills) && private.lower_arr(n.required_skills),false);","  -- The confirmed primary work type is mandatory, even when extra skills\n  -- are explicitly requested. Empty additions never mean all workers match.\n  effective_skills := array_remove(array[n.category]::text[],null);\n  svc:=coalesce(private.lower_arr(p.skills) && private.lower_arr(effective_skills),false);"],
+  ["  -- Kind of work in other words: the same hidden kind (PKG-031b / EX-06b), read only when no word is shared.\n  if not svc then\n    svc:=coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(n.required_skills),false);\n  end if;","  -- Use existing canonical aliases for the primary service; NO extras may\n  -- compensate when that primary type does not match the worker.\n  if not svc then\n    svc:=coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(effective_skills),false);\n  end if;\n  -- Each explicitly mandatory extra competency is an independent AND gate.\n  -- Normal everyday tools must not be added as implied requirements here.\n  if svc and coalesce(cardinality(n.required_skills),0)>0 then\n    foreach required_skill in array n.required_skills loop\n      if not (\n        coalesce(private.lower_arr(p.skills) && private.lower_arr(array[required_skill]),false)\n        or coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(array[required_skill]),false)\n      ) then\n        svc:=false;\n        exit;\n      end if;\n    end loop;\n  end if;"]
+ ];
  for(const [a,b] of anchors){assert.equal(expected.split(a).length,2);expected=expected.replace(a,b);}
  assert.equal(after,expected);
- assert.match(after,/effective_skills := case when coalesce\(cardinality\(n\.required_skills\),0\)>0 then n\.required_skills/);
- assert.match(after,/array_remove\(array\[n\.category\]::text\[\],null\)/);
- assert.doesNotMatch(after,/svc:=coalesce\(coalesce\(cardinality\(n\.required_skills\),0\)=0/);
+ assert.match(after,/effective_skills := array_remove\(array\[n\.category\]::text\[\],null\)/);
+ assert.match(after,/foreach required_skill in array n\.required_skills loop/);
+ assert.doesNotMatch(after,/effective_skills := case when/);
 });
 test('rollbacks have drift/closure/ACL gates and contain no dispatch, device or event writes',()=>{
  for(const s of [candidate,revert]) {
@@ -269,7 +273,7 @@ test('DEV E2E operator preflight contains only a read-only SELECT and fails clos
  assert.match(executable,/^WITH\s+source\s+AS\s*\(/i);
  assert.match(executable,/\bSELECT\s+[\s\S]*\bFROM\s+checks\s*;/i);
  assert.doesNotMatch(executable,/\b(?:INSERT|UPDATE|DELETE|TRUNCATE|ALTER|DROP|CREATE|GRANT|REVOKE|CALL|PERFORM|EXECUTE|COPY)\b/i);
- assert.match(executable,/live_matcher_md5\s*=\s*'d18c47226723ffbbec474aa4547e1af1'/);
+ assert.match(executable,/live_matcher_md5\s*=\s*'d511b48f7f3b38f52aaffee420108f8a'/);
  for (const gate of ['active_marketplace_crons = 0','queued_needs = 0','active_session_bound_devices >= 1',
    "'MANUAL_GATES_STILL_REQUIRED'","'BLOCKED'"]) assert.ok(executable.includes(gate),gate);
 });
