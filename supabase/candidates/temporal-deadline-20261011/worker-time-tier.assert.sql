@@ -54,6 +54,52 @@ DELETE FROM public.profile_availability_windows;
 UPDATE public.needs SET schedule_kind='FLEXIBLE',starts_at=NULL,ends_at=NULL
 WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.assert_deadline_tier(1,'UNBOUNDED_FLEXIBILITY_KEPT');
+-- TODAY_FUTURE_START: "mogu odmah" is false before the requested start,
+-- even when the worker toggled Available now. A future calendar slot is valid.
+DELETE FROM public.profile_availability_windows;
+UPDATE public.app_profiles SET available_now=true
+ WHERE id='22222222-2222-4222-8222-222222222222';
+UPDATE public.needs SET schedule_kind='TODAY_FLEXIBLE',
+ published_at=statement_timestamp(),task_timezone='Europe/Belgrade',
+ starts_at=statement_timestamp()+interval '30 minutes',
+ ends_at=statement_timestamp()+interval '2 hours'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'TODAY_FUTURE_START_NOT_AVAILABLE_NOW');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at+interval '10 minutes',starts_at+interval '20 minutes','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'TODAY_FUTURE_START_SCHEDULED');
+UPDATE public.needs SET starts_at=statement_timestamp()-interval '5 minutes'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(1,'TODAY_ALREADY_STARTED_AVAILABLE_NOW');
+
+-- TOMORROW_END_ONLY: a tomorrow deadline must look inside tomorrow, not
+-- accidentally admit current availability or deny a scheduled worker.
+DELETE FROM public.profile_availability_windows;
+UPDATE public.needs SET schedule_kind='TOMORROW_FLEXIBLE',
+ published_at=statement_timestamp(),starts_at=NULL,
+ ends_at=(
+  ((((statement_timestamp() at time zone 'Europe/Belgrade')::date+1)::timestamp + interval '10 hours')
+  at time zone 'Europe/Belgrade'))
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'TOMORROW_END_ONLY_NOW_NOT_ENOUGH');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+VALUES('22222222-2222-4222-8222-222222222222',
+ statement_timestamp(),statement_timestamp()+interval '10 minutes','AVAILABLE');
+SELECT private.assert_deadline_tier(NULL,'TOMORROW_END_ONLY_TODAY_AVAILABILITY_REFUSED');
+DELETE FROM public.profile_availability_windows;
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ ends_at-interval '2 hours',ends_at-interval '1 hour','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'TOMORROW_END_ONLY_SCHEDULED_ADMITTED');
+UPDATE public.needs SET ends_at=(
+ ((((statement_timestamp() at time zone 'Europe/Belgrade')::date+1)::timestamp - interval '1 minute')
+ at time zone 'Europe/Belgrade'))
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'TOMORROW_END_ONLY_WRONG_DAY_REFUSED');
+DELETE FROM public.profile_availability_windows;
 -- A tomorrow task with an explicit earliest start but no finishing time must
 -- match only after that start, inside the published tomorrow calendar day.
 -- "Available now" on the worker is never evidence of tomorrow availability.
