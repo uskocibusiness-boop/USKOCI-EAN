@@ -89,8 +89,8 @@ BEGIN
  IF (v->>'catalogVersion')::bigint<>version_before THEN
   RAISE EXCEPTION 'VERSION_BUMP_ONLY_ON_NEW_FAILED'; END IF;
  INSERT INTO private.work_taxonomy_aliases (category_id,locale,label)
- VALUES (first_id,'sr','Servisiranje dronova');
- w := private.taxonomy_register_low_risk_v1('Servisiranje dronova','LOW_RISK_VERIFIED',true);
+ VALUES (first_id,'sr','Servis bicikla');
+ w := private.taxonomy_register_low_risk_v1('Servis bicikla','LOW_RISK_VERIFIED',true);
  IF w->>'action'<>'REUSE_EXISTING' OR (w->>'categoryId')::uuid<>first_id THEN
   RAISE EXCEPTION 'ALIAS_REUSE_FAILED'; END IF;
  FOR i IN 1..50 LOOP
