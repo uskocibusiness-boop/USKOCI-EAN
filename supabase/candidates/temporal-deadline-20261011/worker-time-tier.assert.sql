@@ -54,6 +54,33 @@ DELETE FROM public.profile_availability_windows;
 UPDATE public.needs SET schedule_kind='FLEXIBLE',starts_at=NULL,ends_at=NULL
 WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.assert_deadline_tier(1,'UNBOUNDED_FLEXIBILITY_KEPT');
+-- Start-only exact beginning; no fabricated finish or full-duration guarantee.
+UPDATE public.needs SET schedule_kind='FIXED_WINDOW',
+ starts_at=statement_timestamp()+interval '25 hours',ends_at=NULL
+ WHERE id='11111111-1111-4111-8111-111111111111';
+DELETE FROM public.profile_availability_windows;
+DELETE FROM private.worker_calendar_events;
+UPDATE public.app_profiles SET available_now=true
+ WHERE id='22222222-2222-4222-8222-222222222222';
+SELECT private.assert_deadline_tier(NULL,'START_ONLY_AVAILABLE_NOW_NOT_FUTURE_PROOF');
+UPDATE public.app_profiles SET available_now=false
+ WHERE id='22222222-2222-4222-8222-222222222222';
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at-interval '5 minutes',starts_at+interval '5 minutes','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'START_ONLY_KNOWN_FREE_INSTANT');
+INSERT INTO private.worker_calendar_events(worker_profile_id,agreement_id,starts_at,ends_at,state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ '55555555-5555-4555-8555-555555555555',
+ starts_at-interval '1 minute',starts_at+interval '1 minute','BLOCKING'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'START_ONLY_BLOCKED_AT_BEGINNING');
+DELETE FROM private.worker_calendar_events;
+SELECT private.assert_deadline_tier(2,'START_ONLY_UNBLOCK_RECOVERY');
+UPDATE public.needs SET starts_at=statement_timestamp()-interval '1 minute'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'START_ONLY_PAST_START_CLOSED');
 ROLLBACK TO SAVEPOINT bounded_temporal_tiers;
 RELEASE SAVEPOINT bounded_temporal_tiers;
 ROLLBACK;
