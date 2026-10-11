@@ -74,6 +74,13 @@ BEGIN
  (cat_handyman,cat_paint,'RELATED_SUGGESTED','PROPOSED',NULL,version_now);
  IF private.taxonomy_capability_tier_v1(need_paint,1,worker_equiv)<>'EQUIVALENT' THEN
   RAISE EXCEPTION 'VERIFIED_EQUIVALENT_MISSING'; END IF;
+ INSERT INTO private.work_taxonomy_worker_capabilities
+ (worker_account_id,category_id,confirmed_at,origin,excluded)
+ VALUES (worker_equiv,cat_paint,now(),'WORKER_CONFIRMED',true);
+ IF private.taxonomy_capability_tier_v1(need_paint,1,worker_equiv)<>'NO_SAFE_MATCH' THEN
+  RAISE EXCEPTION 'EXPLICIT_TARGET_EXCLUSION_BYPASSED_BY_EQUIVALENT'; END IF;
+ DELETE FROM private.work_taxonomy_worker_capabilities
+ WHERE worker_account_id=worker_equiv AND category_id=cat_paint;
  IF private.taxonomy_capability_tier_v1(need_paint,1,worker_handyman)<>'NO_SAFE_MATCH' THEN
   RAISE EXCEPTION 'AI_SUGGESTED_RELATION_BECAME_MATCH'; END IF;
  DELETE FROM private.work_taxonomy_relations
