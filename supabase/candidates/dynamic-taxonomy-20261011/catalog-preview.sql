@@ -44,6 +44,8 @@ BEGIN
    JOIN private.work_taxonomy_categories c
      ON c.id=a.category_id
    WHERE a.normalized_key=v_key AND c.state<>'RETIRED'
+   UNION
+   SELECT unnest(private.taxonomy_service_meaning_ids_v1(p_label))
  ) t;
  IF coalesce(cardinality(v_ids),0)>1 THEN
    RETURN jsonb_build_object('action','CLARIFY','reason','AMBIGUOUS_ALIAS_COLLISION',
@@ -52,6 +54,12 @@ BEGIN
  IF coalesce(cardinality(v_ids),0)=1 THEN
    RETURN jsonb_build_object('action','REUSE_EXISTING','categoryId',v_ids[1],
                              'catalogVersion',v_version,'requiresRequesterReview',true,
+                             'notificationAuthority','NONE');
+ END IF;
+ IF private.taxonomy_service_needs_disambiguation_v1(p_label) THEN
+   RETURN jsonb_build_object('action','CLARIFY',
+                             'reason','POSSIBLE_EXISTING_SERVICE',
+                             'catalogVersion',v_version,
                              'notificationAuthority','NONE');
  END IF;
  -- Candidate ID is never invented by the model or this preview.
