@@ -13,7 +13,7 @@ from pg_proc p where p.oid = 'private.worker_need_fit_v1(uuid,uuid,boolean)'::re
 do $preflight$
 begin
  if (select count(*) from match_category_before)<>1 or
-    (select md5(body) from match_category_before) is distinct from 'd18c47226723ffbbec474aa4547e1af1' then
+    (select md5(body) from match_category_before) is distinct from 'd511b48f7f3b38f52aaffee420108f8a' then
    raise exception 'MATCH_CATEGORY_PREDECESSOR_DRIFT' using errcode='PT409';
  end if;
  if private.closure_source_digest_v5() is distinct from
