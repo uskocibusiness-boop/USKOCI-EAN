@@ -34,8 +34,12 @@ start_only_bundle AS (
 ),
 targeted_push AS (
  SELECT
-  to_regprocedure('public.rpc_resolve_activity_opportunity_v1(uuid,uuid)') IS NOT NULL AS exact_activity_resolver_installed,
-  to_regprocedure('private.admit_push_opportunity_single_target_v1(uuid,uuid,uuid,uuid,uuid,uuid,bigint,uuid,timestamptz,timestamptz)') IS NOT NULL AS exact_target_admission_installed
+  coalesce((SELECT md5(p.prosrc)='ac72682ce0b16066e726b374586923ca' FROM pg_proc p
+    WHERE p.oid=to_regprocedure('public.rpc_resolve_activity_opportunity_v1(uuid,uuid)')),false) AS exact_activity_resolver_installed,
+  coalesce((SELECT md5(p.prosrc)='fca73a3a992b6dd3e9830d8baf0ff866' FROM pg_proc p
+    WHERE p.oid=to_regprocedure('private.admit_push_opportunity_single_target_v1(uuid,uuid,uuid,uuid,uuid,uuid,bigint,uuid,timestamptz,timestamptz)')),false) AS exact_target_admission_installed,
+  coalesce((SELECT md5(p.prosrc)='380a2f203da2a7ad344bd80f061abd13' FROM pg_proc p
+    WHERE p.oid=to_regprocedure('public.rpc_begin_push_send(uuid,uuid)')),false) AS exact_begin_send_source_installed
 ),
 dispatch_config AS (
  SELECT value FROM private.marketplace_config WHERE key = 'match_v1_dispatch'
@@ -69,6 +73,7 @@ checks AS (
    (SELECT all_seven_installed FROM start_only_bundle) AS start_only_api_bundle_installed,
    (SELECT exact_activity_resolver_installed FROM targeted_push) AS exact_activity_resolver_installed,
    (SELECT exact_target_admission_installed FROM targeted_push) AS exact_target_admission_installed,
+   (SELECT exact_begin_send_source_installed FROM targeted_push) AS exact_begin_send_source_installed,
    (SELECT value FROM dispatch_config) AS dispatch_switch,
    (SELECT queued FROM queue) AS queued_needs,
    (SELECT created FROM opportunities) AS opportunity_deliveries,
@@ -86,6 +91,7 @@ SELECT
     AND start_only_api_bundle_installed
     AND exact_activity_resolver_installed
     AND exact_target_admission_installed
+    AND exact_begin_send_source_installed
     AND dispatch_switch->>'mode' = 'ALL'
     AND coalesce((dispatch_switch->>'ceiling')::int,10001) <= 1
     AND coalesce((dispatch_switch->>'remoteCeiling')::int,10001) <= 1
@@ -104,7 +110,7 @@ SELECT
  (live_discovery_time_md5 = '0fd72e91c11eeac2c2501f3a8f753734') AS discovery_time_candidate_installed,
  start_only_api_bundle_installed,
  exact_activity_resolver_installed,
- exact_target_admission_installed,
+ exact_target_admission_installed, exact_begin_send_source_installed,
  dispatch_switch->>'mode' AS dispatch_mode,
  dispatch_switch->>'ceiling' AS task_ceiling,
  dispatch_switch->>'remoteCeiling' AS remote_ceiling,
