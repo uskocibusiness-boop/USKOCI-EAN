@@ -47,6 +47,10 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/capability-tier.sql
       - name: Verify unrelated workers blocked and related offers require explicit opt-in
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-capability-assert.sql
+      - name: Install read-only server classification preview
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/catalog-preview.sql
+      - name: Verify preview safety branches and zero mutation
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-preview-assert.sql
       - name: Verify concurrent upsert is one stable identity
         run: |
           psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true,max_auto_creates_per_hour=100"
