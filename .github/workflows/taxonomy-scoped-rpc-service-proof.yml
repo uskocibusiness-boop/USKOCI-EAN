@@ -47,6 +47,8 @@ jobs:
           set -euo pipefail
           d=supabase/candidates/dynamic-taxonomy-20261011
           psql -X -v ON_ERROR_STOP=1 -f "$d/disposable-fixture.sql"
+          # Reproduce real Supabase explicit default grants on public RPCs.
+          psql -X -v ON_ERROR_STOP=1 -c "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon,authenticated,service_role"
           for file in dev-dark-launch-locked.sql dev-seed-legacy-families.sql dev-execution-scopes-two-root.sql dev-scoped-ai-worker-readonly-bridge.sql dev-service-only-scoped-ai-rpc.sql; do
             psql -X -v ON_ERROR_STOP=1 -1 -f "$d/$file"
           done
