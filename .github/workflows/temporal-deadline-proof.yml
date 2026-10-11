@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '24'
       - name: Existing Gemini + RPC + calendar start-only source contract
-        run: node --test supabase/candidates/temporal-deadline-20261011/start-only-source.test.mjs
+        run: node --test supabase/candidates/temporal-deadline-20261011/start-only-source.test.mjs supabase/candidates/temporal-deadline-20261011/start-only-api-bundle.test.mjs
   isolated-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 10
