@@ -47,7 +47,7 @@ checks AS (
 SELECT
  'READ_ONLY_SNAPSHOT_NOT_E2E_AUTHORIZATION' AS evidence_kind,
  CASE
-   WHEN live_matcher_md5 = 'd18c47226723ffbbec474aa4547e1af1'
+   WHEN live_matcher_md5 = 'd511b48f7f3b38f52aaffee420108f8a'
     AND dispatch_switch->>'mode' = 'ALL'
     AND coalesce((dispatch_switch->>'ceiling')::int,10001) <= 1
     AND coalesce((dispatch_switch->>'remoteCeiling')::int,10001) <= 1
@@ -59,7 +59,7 @@ SELECT
    ELSE 'BLOCKED'
  END AS preflight_state,
  live_matcher_md5,
- (live_matcher_md5 = 'd18c47226723ffbbec474aa4547e1af1') AS candidate_installed,
+ (live_matcher_md5 = 'd511b48f7f3b38f52aaffee420108f8a') AS candidate_installed,
  dispatch_switch->>'mode' AS dispatch_mode,
  dispatch_switch->>'ceiling' AS task_ceiling,
  dispatch_switch->>'remoteCeiling' AS remote_ceiling,
