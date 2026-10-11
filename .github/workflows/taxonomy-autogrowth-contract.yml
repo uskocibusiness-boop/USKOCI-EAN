@@ -1,0 +1,28 @@
+name: Automatic taxonomy growth source contract
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/taxonomy-autogrowth-contract.yml'
+      - 'supabase/proofs/dynamic_taxonomy/**'
+      - 'docs/architecture/matching-taxonomy-fallback-rfc-20261011.md'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - '.github/workflows/taxonomy-autogrowth-contract.yml'
+      - 'supabase/proofs/dynamic_taxonomy/**'
+      - 'docs/architecture/matching-taxonomy-fallback-rfc-20261011.md'
+permissions:
+  contents: read
+jobs:
+  source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Offline automatic catalog classification decisions (NO DATABASE/PROVIDER)
+        run: node --test supabase/proofs/dynamic_taxonomy/autogrow.test.mjs
