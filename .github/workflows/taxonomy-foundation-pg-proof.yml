@@ -1,0 +1,56 @@
+name: Dynamic taxonomy PostgreSQL foundation proof
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/taxonomy-foundation-pg-proof.yml'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/**'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - '.github/workflows/taxonomy-foundation-pg-proof.yml'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/**'
+permissions:
+  contents: read
+jobs:
+  disposable-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install postgres client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Install fixture and actual candidate SQL (no DEV credentials)
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/catalog-foundation.sql
+      - name: Verify gates, canonical aliases, no worker inference and no fixed limit
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-assert.sql
+      - name: Verify concurrent upsert is one stable identity
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true"
+          psql -X -v ON_ERROR_STOP=1 -c "SELECT private.taxonomy_register_low_risk_v1('Dresiranje pasa','LOW_RISK_VERIFIED',true)" >/tmp/taxon-one.txt &
+          pid1=$!
+          psql -X -v ON_ERROR_STOP=1 -c "SELECT private.taxonomy_register_low_risk_v1('Дресирање паса','LOW_RISK_VERIFIED',true)" >/tmp/taxon-two.txt &
+          pid2=$!
+          wait "$pid1"
+          wait "$pid2"
+          psql -X -v ON_ERROR_STOP=1 -Atc "SELECT CASE WHEN count(*)=1 THEN 'CONCURRENT_UNIQUE_ID_PASS' ELSE 1/0::text END FROM private.work_taxonomy_categories WHERE canonical_key='dresiranje pasa'"
+          psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=false"
