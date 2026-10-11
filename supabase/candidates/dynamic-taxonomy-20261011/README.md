@@ -107,3 +107,36 @@ requester/worker identity confirmation, full dispatcher and any external push
 remain **unintegrated**. Preview and risk evaluation have only isolated tests.
 No DEV/PROD mutation, no real notification, no deployment. These are
 incremental candidate milestones, not a launch certificate.
+
+## Work identity is not task scope: painting a room vs an apartment
+
+The additional candidate service-meaning.sql stores separately:
+- A verified **work intent** (canonical action + object, stable service UUID).
+- Verified action surfaces (e.g., krečenje and farbanje).
+- Verified place, target and size phrases including bounded numeric quantities.
+
+**Molerski radovi → Krečenje zidova** is one work identity. Variants
+such as 'Krečenje sobe', 'Krečenje stana', 'Krečenje 2 sobe',
+'Krečenje stanova', Cyrillic forms and 'Farbanje zidova' resolve to
+the same category ID, not separate work kinds.
+
+Both preview and guarded registration call the same verified meaning resolver.
+Only a COMPLETE, validated scope matches. Unverified phrases are routed
+to clarification instead of creating a duplicate or silently notifying.
+Painting woodwork or cars is NOT equivalent to wall painting; gletovanje
+is a distinct trade skill under the same broader family.
+
+Quantity, room, address and dimensions remain task attributes, not new
+work-category identities. The catalog has no fixed count limit and its
+verified vocabulary can grow as data without central matcher rewrites.
+
+**LIMITATION:** Sample meaning mappings are fixture-controlled, not generated
+by a running AI understanding arbitrary free text. Complex sentences such
+as 'Treba mi neko da okreči dnevnu sobu od 25 m2' still require a trustworthy
+AI action/object/scope extractor plus deterministic server validation and
+requester review. No model's similarity alone can grant worker eligibility.
+
+Acceptance is tested in disposable-meaning-assert.sql, using real isolated
+PostgreSQL; not an installed DEV feature. The foundation SQL depends on
+service-meaning.sql and must not be applied alone. Operator approval,
+formal CLI migration, authenticated entrypoint and rollback remain blocked.
