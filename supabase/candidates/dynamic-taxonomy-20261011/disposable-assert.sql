@@ -28,17 +28,43 @@ BEGIN
   RAISE EXCEPTION 'UNSAFE_PUBLIC_EXECUTE';
  END IF;
  BEGIN
-  PERFORM private.taxonomy_register_low_risk_v1('Servis dronova','LOW_RISK_VERIFIED',true);
+  PERFORM private.taxonomy_register_low_risk_v1('Servis bicikala','LOW_RISK_VERIFIED',true);
   RAISE EXCEPTION 'NEGATIVE_DISABLED_FAILED';
  EXCEPTION WHEN OTHERS THEN
   IF SQLERRM <> 'TAXONOMY_AUTO_REGISTRATION_DISABLED' THEN RAISE; END IF;
  END;
+ IF private.taxonomy_risk_triage_v1('Fotografisanje proslave') <> 'LOW_RISK_CANDIDATE'
+    OR private.taxonomy_risk_triage_v1('Дресирање паса') <> 'LOW_RISK_CANDIDATE'
+    OR private.taxonomy_risk_triage_v1('3D štampanje po narudžbini') <> 'LOW_RISK_CANDIDATE'
+    OR private.taxonomy_risk_triage_v1('Servis dronova') <> 'REVIEW_REQUIRED'
+    OR private.taxonomy_risk_triage_v1('Ugradnja solarnih panela') <> 'REVIEW_REQUIRED'
+    OR private.taxonomy_risk_triage_v1('Izrada eksploziva') <> 'BLOCKED'
+    OR private.taxonomy_risk_triage_v1('Obuka robota') <> 'NEEDS_CLARIFICATION'
+ THEN RAISE EXCEPTION 'INDEPENDENT_SAFETY_TRIAGE_FAILED'; END IF;
  UPDATE private.work_taxonomy_control SET auto_registration_enabled=true;
  BEGIN
-  PERFORM private.taxonomy_register_low_risk_v1('Servis dronova','AI_ASSERTED',true);
+  PERFORM private.taxonomy_register_low_risk_v1('Servis bicikala','AI_ASSERTED',true);
   RAISE EXCEPTION 'NEGATIVE_UNVERIFIED_FAILED';
  EXCEPTION WHEN OTHERS THEN
   IF SQLERRM <> 'TAXONOMY_ADMISSION_REFUSED' THEN RAISE; END IF;
+ END;
+ BEGIN
+  PERFORM private.taxonomy_register_low_risk_v1('Servis dronova','LOW_RISK_VERIFIED',true);
+  RAISE EXCEPTION 'NEGATIVE_REGULATED_FALSE_AUTO';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM <> 'TAXONOMY_REVIEW_REQUIRED' THEN RAISE; END IF;
+ END;
+ BEGIN
+  PERFORM private.taxonomy_register_low_risk_v1('Izrada eksploziva','LOW_RISK_VERIFIED',true);
+  RAISE EXCEPTION 'NEGATIVE_UNSAFE_FALSE_AUTO';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM <> 'TAXONOMY_UNSAFE_LABEL' THEN RAISE; END IF;
+ END;
+ BEGIN
+  PERFORM private.taxonomy_register_low_risk_v1('Obuka robota','LOW_RISK_VERIFIED',true);
+  RAISE EXCEPTION 'NEGATIVE_UNKNOWN_ACTION_FALSE_AUTO';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM <> 'TAXONOMY_REVIEW_REQUIRED' THEN RAISE; END IF;
  END;
  BEGIN
   PERFORM private.taxonomy_register_low_risk_v1('Drugo','LOW_RISK_VERIFIED',true);
@@ -52,11 +78,11 @@ BEGIN
  EXCEPTION WHEN OTHERS THEN
   IF SQLERRM <> 'TAXONOMY_INVALID_LABEL' THEN RAISE; END IF;
  END;
- v := private.taxonomy_register_low_risk_v1('Servis dronova','LOW_RISK_VERIFIED',true);
+ v := private.taxonomy_register_low_risk_v1('Servis bicikala','LOW_RISK_VERIFIED',true);
  IF v->>'action'<>'CREATE_AUTO_PROVISIONAL' OR v->>'notificationAuthority'<>'NONE' THEN
   RAISE EXCEPTION 'CREATE_FAILED: %',v; END IF;
  first_id := (v->>'categoryId')::uuid;
- w := private.taxonomy_register_low_risk_v1('Сервис дронова','LOW_RISK_VERIFIED',true);
+ w := private.taxonomy_register_low_risk_v1('Сервис бицикала','LOW_RISK_VERIFIED',true);
  IF w->>'action'<>'REUSE_EXISTING' OR (w->>'categoryId')::uuid <> first_id THEN
   RAISE EXCEPTION 'CYRILLIC_REUSE_FAILED'; END IF;
  SELECT catalog_version INTO version_before FROM private.work_taxonomy_control;
