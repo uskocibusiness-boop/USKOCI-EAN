@@ -982,7 +982,7 @@ BEGIN
  WHERE schemaname='private' AND tablename LIKE 'work_taxonomy%';
  SELECT count(*) INTO n_functions FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
  WHERE ns.nspname='private' AND p.proname LIKE 'taxonomy_%';
- IF n_tables<>17 OR n_functions<>10 THEN
+ IF n_tables<>15 OR n_functions<>10 THEN
   RAISE EXCEPTION 'TAXONOMY_DARK_INSTALL_OBJECT_COUNT_UNEXPECTED_tables_%_functions_%',n_tables,n_functions;
  END IF;
  IF (SELECT auto_registration_enabled FROM private.work_taxonomy_control WHERE singleton) IS DISTINCT FROM false
