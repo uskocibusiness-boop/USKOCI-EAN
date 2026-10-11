@@ -2,13 +2,13 @@
 DO $proof$
 DECLARE
  cat_paint uuid; cat_move uuid; cat_clean uuid; cat_handyman uuid;
- cat_equiv uuid; cat_drone uuid;
+ cat_equiv uuid; cat_craft uuid;
  worker_paint uuid:=gen_random_uuid();
  worker_move uuid:=gen_random_uuid();
  worker_clean uuid:=gen_random_uuid();
  worker_handyman uuid:=gen_random_uuid();
  worker_equiv uuid:=gen_random_uuid();
- worker_drone uuid:=gen_random_uuid();
+ worker_craft uuid:=gen_random_uuid();
  need_paint uuid:=gen_random_uuid();
  need_ambiguous uuid:=gen_random_uuid();
  need_multi uuid:=gen_random_uuid();
@@ -17,11 +17,11 @@ DECLARE
 BEGIN
  UPDATE private.work_taxonomy_control SET auto_registration_enabled=true;
  SELECT (private.taxonomy_register_low_risk_v1('Krečenje zidova','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_paint;
- SELECT (private.taxonomy_register_low_risk_v1('Selidbe nameštaja','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_move;
+ SELECT (private.taxonomy_register_low_risk_v1('Prevoz nameštaja','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_move;
  SELECT (private.taxonomy_register_low_risk_v1('Čišćenje stanova','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_clean;
- SELECT (private.taxonomy_register_low_risk_v1('Kućni majstor','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_handyman;
- SELECT (private.taxonomy_register_low_risk_v1('Soboslikarski poslovi','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_equiv;
- SELECT (private.taxonomy_register_low_risk_v1('Servis dronova','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_drone;
+ SELECT (private.taxonomy_register_low_risk_v1('Popravka nameštaja','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_handyman;
+ SELECT (private.taxonomy_register_low_risk_v1('Farbanje zidova','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_equiv;
+ SELECT (private.taxonomy_register_low_risk_v1('Izrada drvene makete','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_craft;
  UPDATE private.work_taxonomy_control SET auto_registration_enabled=false;
  SELECT catalog_version INTO version_now FROM private.work_taxonomy_control;
 
@@ -40,7 +40,7 @@ BEGIN
   (need_ambiguous,1,NULL,version_now,false,'AI_PROPOSED','NEEDS_CLARIFICATION'),
   (need_multi,1,cat_paint,version_now,true,'REQUESTER_CORRECTED','CONFIRMED');
  INSERT INTO private.work_taxonomy_need_skills(need_id,need_revision,category_id)
- VALUES (need_multi,1,cat_paint),(need_multi,1,cat_drone);
+ VALUES (need_multi,1,cat_paint),(need_multi,1,cat_craft);
 
  INSERT INTO private.work_taxonomy_worker_capabilities
  (worker_account_id,category_id,confirmed_at,origin,allow_related_offers)
@@ -50,7 +50,7 @@ BEGIN
  (worker_clean,cat_clean,now(),'WORKER_CONFIRMED',false),
  (worker_handyman,cat_handyman,now(),'WORKER_CONFIRMED',false),
  (worker_equiv,cat_equiv,now(),'WORKER_CONFIRMED',false),
- (worker_drone,cat_drone,now(),'WORKER_CONFIRMED',false);
+ (worker_craft,cat_craft,now(),'WORKER_CONFIRMED',false);
 
  IF private.taxonomy_capability_tier_v1(need_paint,1,worker_paint)<>'EXACT' THEN
   RAISE EXCEPTION 'DIRECT_MOLER_MISSING'; END IF;
@@ -121,8 +121,8 @@ BEGIN
  -- Novel work is matched only if THIS worker later confirms that exact skill.
  INSERT INTO private.work_taxonomy_worker_capabilities
  (worker_account_id,category_id,confirmed_at,origin)
- VALUES (worker_drone,cat_paint,now(),'WORKER_CONFIRMED');
- IF private.taxonomy_capability_tier_v1(need_multi,1,worker_drone)<>'EXACT' THEN
+ VALUES (worker_craft,cat_paint,now(),'WORKER_CONFIRMED');
+ IF private.taxonomy_capability_tier_v1(need_multi,1,worker_craft)<>'EXACT' THEN
   RAISE EXCEPTION 'TWO_EXPLICIT_CONFIRMED_SKILLS_FAILED'; END IF;
  RAISE NOTICE 'DISPOSABLE_CAPABILITY_TIERS_PASS';
 END
