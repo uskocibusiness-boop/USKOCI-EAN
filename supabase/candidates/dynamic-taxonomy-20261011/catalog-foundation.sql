@@ -237,11 +237,18 @@ REVOKE ALL ON
  private.work_taxonomy_need_skills,private.work_taxonomy_audit FROM PUBLIC;
 -- Installer/operator owns objects. Only service_role gets private catalog access.
 GRANT USAGE ON SCHEMA private TO service_role;
-GRANT SELECT,INSERT,UPDATE ON
+-- Service-only runtime can read eligibility inputs but cannot fabricate worker
+-- confirmations, evidence-verified relations or reviewed task snapshots.
+-- Those writes require separately designed identity-bound authorization APIs.
+GRANT SELECT ON
  private.work_taxonomy_control,private.work_taxonomy_categories,
  private.work_taxonomy_aliases,private.work_taxonomy_relations,
  private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
  private.work_taxonomy_need_skills,private.work_taxonomy_audit TO service_role;
+-- The registrar alone needs these minimal underlying DML privileges.
+GRANT INSERT,UPDATE ON
+ private.work_taxonomy_control,private.work_taxonomy_categories,
+ private.work_taxonomy_aliases,private.work_taxonomy_audit TO service_role;
 GRANT USAGE,SELECT ON SEQUENCE
  private.work_taxonomy_aliases_id_seq,private.work_taxonomy_audit_id_seq TO service_role;
 GRANT EXECUTE ON FUNCTION private.taxonomy_normalize_v1(text) TO service_role;
