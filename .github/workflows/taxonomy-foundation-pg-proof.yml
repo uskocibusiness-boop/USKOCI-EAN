@@ -41,6 +41,7 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-fixture.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/catalog-foundation.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/service-meaning.sql
       - name: Verify gates, canonical aliases, no worker inference and no fixed limit
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-assert.sql
       - name: Install isolated capability tier SQL (no dispatcher integration)
@@ -53,6 +54,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-preview-assert.sql
       - name: Verify registration and preview agree across locales
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-locale-assert.sql
+      - name: Verify task scope does not fragment the work catalog
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-meaning-assert.sql
       - name: Verify concurrent upsert is one stable identity
         run: |
           psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true,max_auto_creates_per_hour=100"
