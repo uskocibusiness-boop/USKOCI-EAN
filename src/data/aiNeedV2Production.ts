@@ -32,7 +32,7 @@ const NEED_EDIT_COPY: Record<string, string> = {
   EDIT_CONVERSATION_NOT_CONFIRMABLE: 'Ova izmena više nije otvorena. Pokreni izmenu ponovo iz zadatka.',
   EDIT_CONVERSATION_NEED_MISMATCH: 'Ova izmena ne pripada ovom zadatku.',
   MY_PRICE_AMOUNT_REQUIRED: 'Unesi cenu ili izaberi prikupljanje ponuda.',
-  FIXED_WINDOW_BOUNDS_REQUIRED: 'Termin mora imati početak i kraj.',
+  FIXED_WINDOW_BOUNDS_REQUIRED: 'Unesi početak termina. Kraj je opcioni; ako ga navedeš, mora biti kasnije.',
 };
 
 
