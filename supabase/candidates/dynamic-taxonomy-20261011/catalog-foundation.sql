@@ -246,7 +246,9 @@ GRANT SELECT ON
  private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
  private.work_taxonomy_need_skills,private.work_taxonomy_audit TO service_role;
 -- The registrar alone needs these minimal underlying DML privileges.
-GRANT UPDATE ON private.work_taxonomy_control TO service_role;
+-- The runtime may increment catalog_version but cannot enable auto-registration.
+-- Gate flips require the separate owner-approved operator pathway.
+GRANT UPDATE (catalog_version,updated_at) ON private.work_taxonomy_control TO service_role;
 GRANT INSERT ON
  private.work_taxonomy_categories,private.work_taxonomy_aliases,
  private.work_taxonomy_audit TO service_role;
