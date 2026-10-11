@@ -1,11 +1,12 @@
 -- USKOČI — CURRENT DEV deploy inventory; READ ONLY.
+-- Updated after owner-approved specialist repair migration (20261011230505).
 -- No writes, tokens, secret values, triggers, cron or push sends.
 -- Run only against the explicitly identified expected project; the caller
 -- must independently verify the project_ref before opening SQL editor.
 -- This is a source-body snapshot, NOT proof of actual app/HTTP/FCM behavior.
 WITH expected(label,signature,expected_md5) AS (
   VALUES
-   ('PRIMARY_MATCHER','private.worker_need_fit_v1(uuid,uuid,boolean)','d511b48f7f3b38f52aaffee420108f8a'),
+   ('PRIMARY_MATCHER','private.worker_need_fit_v1(uuid,uuid,boolean)','1e698d3d22c887f639e4837a4e588d01'),
    ('WORKER_TIME','private.worker_need_time_tier_v1(uuid,uuid)','34c977e537ce731587a37a0bc1562296'),
    ('NEED_SEARCH_DEADLINE','private.need_search_time_admitted_v1(uuid,timestamptz)','0fd72e91c11eeac2c2501f3a8f753734'),
    ('PUSH_IDLE_TICK','private.edge_worker_tick_v5(timestamptz)','7d03dc2c31a629785b5f222786bf4dd9'),
