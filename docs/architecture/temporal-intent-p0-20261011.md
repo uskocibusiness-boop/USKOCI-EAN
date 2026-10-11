@@ -22,9 +22,10 @@ Keep a **single** canonical time interpretation across AI, human review, SQL, di
 2. GitHub `supabase/functions/uskoci-ai-interview/index.ts` explicitly instructs the model that FIXED_WINDOW requires both timestamps, despite the general rule not to invent the end. Deployed Edge v60 differs from Draft PR source.
 3. Deployed `private.availability_is_future` requires both start and end. Deployed `private.worker_need_time_tier_v1` MD5 `753027749309ccc110f486cbfb4866e4` has no safe future start-only path: a FIXED_WINDOW with `starts_at` alone falls through to the "available now" path rather than proving availability **at the future start**. Do not enable such input before this is fixed.
 4. The same time-tier function computes TOMORROW/WEEK default windows only when **both** fields are absent. An end-only `WEEK_FLEXIBLE` value does not create a worker availability interval, leading to refusal; `FLEXIBLE` end-only can skip worker calendar entirely via its "bilo kad" branch.
-5. `private.need_search_time_admitted_v1` MD5 `b830cd07c2a5db101a3a28096256a75b` uses a derived publication-week end for `WEEK_FLEXIBLE` even when an explicit later deadline exists. The explicit end check constrains earlier ends but a later stated end can still be cut short by the derived relative-week boundary.
-6. `response_deadline` is only the window for worker *applications*; it is not the task completion deadline.
-7. The public task time controls already use named-zone civil instants and DST ambiguity/gap rejection (e.g. `src/data/__tests__/pkg003-timezone.test.ts`), which must remain.
+5. A `TOMORROW_FLEXIBLE` task with explicit starts_at but omitted ends_at can be saved (no FIXED_WINDOW bound check), yet the current time-tier calculation does not create a tomorrow window unless BOTH timestamps are missing. This is a cross-layer false-negative: matching/dispatch can refuse every otherwise qualified worker. The source `guardConversationTurn` also currently lists both timestamps as missing only for FIXED_WINDOW.
+6. `private.need_search_time_admitted_v1` MD5 `b830cd07c2a5db101a3a28096256a75b` uses a derived publication-week end for `WEEK_FLEXIBLE` even when an explicit later deadline exists. The explicit end check constrains earlier ends but a later stated end can still be cut short by the derived relative-week boundary.
+7. `response_deadline` is only the window for worker *applications*; it is not the task completion deadline.
+8. The public task time controls already use named-zone civil instants and DST ambiguity/gap rejection (e.g. `src/data/__tests__/pkg003-timezone.test.ts`), which must remain.
 
 ## Proposed minimal target semantics (no production changes in this commit)
 Single canonical task time category/intent:
