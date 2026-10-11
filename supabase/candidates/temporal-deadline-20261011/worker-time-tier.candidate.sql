@@ -29,16 +29,42 @@ begin
   select * into p from public.app_profiles where id=pid and kind='WORKER' and profile_status='ACTIVE';
   if not found then return null; end if;
   if n.ends_at is not null and n.ends_at<=at_now then return null; end if;
-  -- "bilo kad": FLEXIBLE / REMOTE_ANYTIME without a complete future window. The time does not matter: no zone, no
-  -- schedule and no calendar is read for it.
+  -- Fully unbounded means no user-specified start or completion deadline.
+  -- A *future start* is not "available now"; previously a non-null starts_at
+  -- accidentally widened FLEXIBLE / REMOTE_ANYTIME into an unconditional tier 1.
   if n.schedule_kind in ('FLEXIBLE','REMOTE_ANYTIME')
-     and (n.starts_at is not null or n.ends_at is null)
-     and not private.availability_is_future(n.schedule_kind,n.starts_at,n.ends_at,at_now) then
+     and n.starts_at is null and n.ends_at is null then
     return 1;
   end if;
   select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
   tz:=coalesce(tz,'Europe/Belgrade');
   if not private.availability_timezone_valid(tz) then return null; end if;
+  -- FLEXIBLE_NOT_BEFORE_START: explicit earliest start is an eligibility gate,
+  -- NOT a fabricated exact booking or automatic 'available now' admission.
+  -- A user-supplied end is authoritative; start-only has no task expiration.
+  if n.schedule_kind in ('FLEXIBLE','REMOTE_ANYTIME') and n.starts_at is not null then
+    if not isfinite(n.starts_at) or
+       (n.ends_at is not null and (not isfinite(n.ends_at) or n.ends_at<=n.starts_at)) then
+      return null;
+    end if;
+    -- Current availability counts only *after* the start and before a deadline.
+    if n.starts_at<=at_now then
+      live:=coalesce(p.available_now,false)
+        and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+          and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+        and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+          and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
+      if live then return 1; end if;
+    end if;
+    ws:=greatest(n.starts_at,at_now);
+    -- The 30-day bound is a performance limit on worker-availability LOOKUP,
+    -- NOT an implicit need completion deadline. Far-future-only capacity needs
+    -- a subsequent re-evaluation before this can be used for live dispatch.
+    we:=coalesce(n.ends_at,ws+interval '30 days');
+    if we<=ws then return null; end if;
+    if private.worker_available_periods(pid,ws,we,tz)<>'{}'::tstzmultirange then return 2; end if;
+    return null;
+  end if;
   -- START-ONLY FIXED_WINDOW: test availability at the declared start instant.
   -- A one-second probe is ONLY an interval representation for the calendar;
   -- it is not the proposed duration, job finish, or reserved shift.
@@ -168,7 +194,7 @@ end;
 $function$;
 DO $post$ BEGIN
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid='private.worker_need_time_tier_v1(uuid,uuid)'::regprocedure)
- IS DISTINCT FROM '0fdb69619e110109fdbda17f19435c25'
+ IS DISTINCT FROM '34c977e537ce731587a37a0bc1562296'
  THEN RAISE EXCEPTION 'TIME_TIER_POSTFLIGHT_DRIFT' USING errcode='PT409'; END IF;
 END $post$;
 COMMIT;
