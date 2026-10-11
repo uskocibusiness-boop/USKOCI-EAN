@@ -67,12 +67,16 @@ export function needScheduleText(schedule: NeedScheduleProjection, timezone?: st
   // Two times of one day are joined tightly ("12:00–19:00"); anything with a date or a word keeps spaces.
   const tight = sameDay && !start!.dayOnly && !end!.endOfDay && !shifted;
   const endText = end?.endOfDay ? (sameDay ? 'kraj dana' : end.text) : sameDay ? end!.time : end?.text;
+  // An end without a start is a completion deadline, not evidence that the
+  // requester explicitly chose an unbounded flexible appointment.
+  const deadlineOnly = flexible && !start && !!end;
   // Two ends inside one minute are one time: "10:00–10:00" reads as a mistake, not as a window.
   const range = wholeDay ? start!.dateText
     : tight ? (start!.time === end!.time ? start!.text : `${start!.text}–${endText}`)
     : start && end ? `${start.text}${shifted ? ` ${start.offset}` : ''} – ${endText}${shifted ? ` ${end.offset}` : ''}`
-    : start ? `Od ${start.text}` : end ? `Do ${end.text}` : null;
-  const preference = schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilno · ';
+    : start ? `Od ${start.text}` : end ? `${deadlineOnly ? 'Rok do' : 'Do'} ${end.text}` : null;
+  const preference = deadlineOnly ? (schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu · ' : '')
+    : schedule.kind === 'FIXED_WINDOW' ? '' : schedule.kind === 'REMOTE_ANYTIME' ? 'Na daljinu, fleksibilno · ' : 'Fleksibilno · ';
   // A zone the reader is already standing in does not need to be named; a different one does.
   // Naming it was not the problem — printing an instant in UTC and apologising for it was.
   // Serbian time is named the way the owner's rule says it (2026-09-21, deep read 8.27).
