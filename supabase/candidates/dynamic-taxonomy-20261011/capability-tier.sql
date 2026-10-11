@@ -16,7 +16,8 @@ CREATE INDEX work_taxonomy_related_target_idx
  ON private.work_taxonomy_related_acceptances(target_category_id,worker_account_id);
 ALTER TABLE private.work_taxonomy_related_acceptances ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON private.work_taxonomy_related_acceptances FROM PUBLIC;
-GRANT SELECT,INSERT,UPDATE ON private.work_taxonomy_related_acceptances TO service_role;
+-- Verified related acceptance must be written only through a later identity-bound flow.
+GRANT SELECT ON private.work_taxonomy_related_acceptances TO service_role;
 
 CREATE OR REPLACE FUNCTION private.taxonomy_capability_tier_v1(
  p_need_id uuid, p_need_revision integer, p_worker_account_id uuid
