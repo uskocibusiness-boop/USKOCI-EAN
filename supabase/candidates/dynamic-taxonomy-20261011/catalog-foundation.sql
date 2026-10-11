@@ -253,6 +253,8 @@ BEGIN
    SELECT a.category_id FROM private.work_taxonomy_aliases a
    JOIN private.work_taxonomy_categories c ON c.id=a.category_id
     WHERE a.normalized_key=v_key AND c.state<>'RETIRED'
+   UNION
+   SELECT unnest(private.taxonomy_service_meaning_ids_v1(p_label))
  ) t;
  IF coalesce(cardinality(v_existing_ids),0)>1 THEN
    RAISE EXCEPTION 'TAXONOMY_ALIAS_COLLISION';
@@ -264,6 +266,12 @@ BEGIN
    VALUES ('EXISTING_REUSED',v_id,v_key,v_version);
    RETURN jsonb_build_object('action','REUSE_EXISTING','categoryId',v_id,
            'catalogVersion',v_version,'notificationAuthority','NONE');
+ END IF;
+ -- The task may mention a different ROOM/PROJECT SCOPE for a known
+ -- service. An unverified scope is NOT automatically a new work kind.
+ -- Refuse and request clarification, rather than pollute the category catalog.
+ IF private.taxonomy_service_needs_disambiguation_v1(p_label) THEN
+   RAISE EXCEPTION 'TAXONOMY_POSSIBLE_EXISTING_SERVICE';
  END IF;
  -- Reusing aliases is always allowed; only new identities consume budget.
  -- The lock above makes concurrent rate accounting serial and deterministic.
