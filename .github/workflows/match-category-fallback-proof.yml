@@ -5,12 +5,14 @@ on:
       - '.github/workflows/match-category-fallback-proof.yml'
       - 'supabase/candidates/match-category-fallback-20261010/**'
       - 'supabase/proofs/match_category_fallback/**'
+      - 'supabase/candidates/temporal-deadline-20261011/**'
   push:
     branches: [fix/match-ai-category-fallback-20261010]
     paths:
       - '.github/workflows/match-category-fallback-proof.yml'
       - 'supabase/candidates/match-category-fallback-20261010/**'
       - 'supabase/proofs/match_category_fallback/**'
+      - 'supabase/candidates/temporal-deadline-20261011/**'
 permissions:
   contents: read
 jobs:
@@ -99,6 +101,11 @@ jobs:
           extract_definition "$sql_dir/candidate.sql"
           run_pg < "$RUNNER_TEMP/match-category-function.sql"
           run_pg < "$root/live-calendar-helpers.sql"
+          run_pg < "$root/calendar-live-assert.sql"
+          echo 'STAGE 7b: deadline-only calendar candidate, exact revert and canonical behavior re-proof'
+          run_pg < "supabase/candidates/temporal-deadline-20261011/worker-time-tier.candidate.sql"
+          run_pg < "supabase/candidates/temporal-deadline-20261011/worker-time-tier.assert.sql"
+          run_pg < "supabase/candidates/temporal-deadline-20261011/worker-time-tier.revert.sql"
           run_pg < "$root/calendar-live-assert.sql"
           echo 'STAGE 8: actual DEV wave orchestration with synthetic recipient stream and local-only event sink'
           run_pg < "$root/wave-disposable-fixture.sql"
