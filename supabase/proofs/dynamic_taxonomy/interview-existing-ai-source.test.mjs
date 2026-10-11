@@ -31,3 +31,10 @@ test('new bridge consumes old text interface and grants no job or send rights', 
   assert.match(bridge, /'notificationAuthority','NONE'/);
   assert.doesNotMatch(bridge, /\b(?:INSERT INTO|UPDATE public\.needs|DELETE FROM public\.needs)\b/i);
 });
+
+test('the existing task AI keeps two execution roots and never guesses online from service label', () => {
+  assert.match(edge, /USKOČI ima DVE glavne grane zadataka: NA LOKACIJI ili NA DALJINU/);
+  assert.match(edge, /ne zaključuj režim samo iz need\.category/);
+  assert.match(edge, /predloži need\.task_geography\.mode=REMOTE bez polazišta/);
+  assert.match(edge, /ne prebacuj ga neprimetno u drugu granu/);
+});
