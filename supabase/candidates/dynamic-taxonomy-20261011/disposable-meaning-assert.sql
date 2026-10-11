@@ -39,7 +39,9 @@ BEGIN
  (painting,'stana','PLACE','synthetic-reviewed-v1'),
  (painting,'trosobnog stana','SIZE','synthetic-reviewed-v1'),
  (painting,'zidova','TARGET','synthetic-reviewed-v1'),
- (painting,'dnevne sobe','PLACE','synthetic-reviewed-v1');
+ (painting,'dnevne sobe','PLACE','synthetic-reviewed-v1'),
+ (painting,'soba','PLACE','synthetic-reviewed-v1'),
+ (painting,'stanova','PLACE','synthetic-reviewed-v1');
 
  SELECT count(*) INTO before_count FROM private.work_taxonomy_categories;
  SELECT catalog_version INTO before_version FROM private.work_taxonomy_control;
@@ -51,6 +53,9 @@ BEGIN
   'Krečenje trosobnog stana',
   'Krečenje dnevne sobe',
   'Кречење собе',
+  'Krečenje 2 sobe',
+  'Krečenje 5 soba',
+  'Krečenje stanova',
   'Farbanje zidova'
  ] LOOP
   p:=private.taxonomy_preview_v1(label);
@@ -103,7 +108,8 @@ BEGIN
  -- A known "farbanje" verb NEVER proves ability to paint furniture/cars.
  FOREACH label IN ARRAY ARRAY[
  'Farbanje stolarije', 'Farbanje automobila',
- 'Krečenje broda', 'Krečenje sobe i zamena utičnice'
+ 'Krečenje 2 automobila', 'Krečenje broda',
+ 'Krečenje sobe i zamena utičnice'
  ] LOOP
   p:=private.taxonomy_preview_v1(label);
   IF p->>'action'='REUSE_EXISTING' THEN
