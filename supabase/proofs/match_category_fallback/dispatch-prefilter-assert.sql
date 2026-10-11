@@ -66,7 +66,7 @@ SELECT private.prove_dispatch_gate(true,'same_city_fallback');
 UPDATE public.needs SET approximate_city='Petrovaradin',
  execution_location_mode='REMOTE';
 SELECT private.prove_dispatch_gate(true,'remote_ignores_area');
--- Explicit required skills override the AI category for automatic selection.
+-- Mandatory extras must never replace the primary work type.
 UPDATE public.needs SET category='Čišćenje stana',
  required_skills=ARRAY['Selidbe'], execution_location_mode='STATIONARY',
  approximate_city='Novi Sad';
