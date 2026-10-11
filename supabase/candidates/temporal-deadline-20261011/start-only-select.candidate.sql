@@ -185,6 +185,15 @@ begin
       hint = 'Uskocer vise ne ispunjava uslove Potrebe.';
   end if;
 
+  -- Start-only selection must still reject an existing confirmed Dogovor
+  -- that blocks the precise declared start. One microsecond is only a
+  -- point-overlap probe, NOT a booked duration or task finish.
+  if v_ver.proposed_start_at is null and v_need.schedule_kind='FIXED_WINDOW'
+     and v_need.ends_at is null and
+     private.worker_calendar_conflict(v_resp.worker_profile_id,v_need.starts_at,
+       v_need.starts_at+interval '1 microsecond',null) then
+    raise exception 'WORKER_CALENDAR_CONFLICT' using errcode='P0001';
+  end if;
   v_covered := public.fn_need_covered_slots(p_need_id);
   if v_covered + v_resp.covered_slots > v_need.required_slots then
     raise exception 'OVERFILL' using errcode = 'P0001', hint = 'Ta prijava pokriva vise mesta nego sto je preostalo.'; end if;
