@@ -1,0 +1,63 @@
+name: USKOCI 30k real SQL dispatch disposable proof
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/marketplace-30k-real-dispatch-proof.yml'
+      - 'supabase/proofs/match_category_fallback/marketplace-30k-*.sql'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - '.github/workflows/marketplace-30k-real-dispatch-proof.yml'
+      - 'supabase/proofs/match_category_fallback/marketplace-30k-*.sql'
+permissions:
+  contents: read
+jobs:
+  real-dispatch-disposable:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: synthetic_disposable_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Seed 20k worker profiles plus 10k requester/job identities; execute canonical dispatch
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          root=supabase/proofs/match_category_fallback
+          candidate=supabase/candidates/match-category-fallback-20261010/candidate.sql
+          run_pg() {
+            docker exec -i "$PG_CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1
+          }
+          extract_definition() {
+            awk '/^CREATE OR REPLACE FUNCTION private[.]worker_need_fit_v1[(]/ { printing=1 }
+              printing { print }
+              printing && /^\$function\$;$/ { exit }' "$candidate" > "$RUNNER_TEMP/real-matcher.sql"
+            grep -qF '$function$;' "$RUNNER_TEMP/real-matcher.sql"
+            test "$(grep -c 'CREATE OR REPLACE FUNCTION private.worker_need_fit_v1' "$RUNNER_TEMP/real-matcher.sql")" -eq 1
+          }
+          echo 'SETUP: real matcher + real prefilter + real dispatch_next_wave; no live service or secrets'
+          run_pg < "$root/disposable-schema.sql"
+          run_pg < "$root/live-work-kinds-v5.sql"
+          extract_definition
+          run_pg < "$RUNNER_TEMP/real-matcher.sql"
+          run_pg < "$root/live-dispatch-prefilter.sql"
+          run_pg < "$root/wave-disposable-fixture.sql"
+          run_pg < "$root/live-wave-entry.sql"
+          echo 'SEED: 30,000 synthetic identities, 10,000 published tasks in disposable database'
+          run_pg < "$root/marketplace-30k-seed.sql"
+          echo 'ASSERT: 55 distinct types/cities with negative matches and 12 actual dispatch waves'
+          run_pg < "$root/marketplace-30k-assert.sql"
+          echo 'DISPOSABLE_REAL_DISPATCH_30K_PASS; no external Supabase writes or push'
