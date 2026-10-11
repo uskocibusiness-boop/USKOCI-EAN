@@ -63,15 +63,19 @@ test('matching proves exact start instant without manufacturing duration', () =>
  const assertSql=read(dir+'worker-time-tier.assert.sql');
  assert.ok(matcher.includes("n.schedule_kind='FIXED_WINDOW' and n.starts_at is not null and n.ends_at is null"));
  assert.ok(matcher.includes("periods @> n.starts_at"));
+ assert.ok(matcher.includes('TODAY_START_GATE')); 
+ assert.ok(matcher.includes('live:=at_now>=ws and coalesce(p.available_now,false)'));
+ assert.ok(matcher.includes('TOMORROW_END_ONLY_AVAILABLE'));
+ assert.ok(matcher.includes("n.ends_at<=ws or n.ends_at>we"));
  assert.ok(matcher.includes('PARTIAL_PERIOD_START_AVAILABLE'));
  assert.ok(matcher.includes("n.starts_at<ws or n.starts_at>=we"));
  assert.ok(matcher.includes("greatest(n.starts_at,at_now),we"));
- for(const marker of ['TOMORROW_PARTIAL_NO_SCHEDULE_REFUSED','TOMORROW_PARTIAL_BEFORE_START_REFUSED','TOMORROW_PARTIAL_AFTER_START_ADMITTED','TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED','WEEK_PARTIAL_NO_SCHEDULE_REFUSED','WEEK_PARTIAL_AFTER_START_ADMITTED','WEEK_PARTIAL_OUTSIDE_WEEK_REFUSED']){
+ for(const marker of ['TODAY_FUTURE_START_NOT_AVAILABLE_NOW','TODAY_FUTURE_START_SCHEDULED','TODAY_ALREADY_STARTED_AVAILABLE_NOW','TOMORROW_END_ONLY_NOW_NOT_ENOUGH','TOMORROW_END_ONLY_TODAY_AVAILABILITY_REFUSED','TOMORROW_END_ONLY_SCHEDULED_ADMITTED','TOMORROW_END_ONLY_WRONG_DAY_REFUSED','TOMORROW_PARTIAL_NO_SCHEDULE_REFUSED','TOMORROW_PARTIAL_BEFORE_START_REFUSED','TOMORROW_PARTIAL_AFTER_START_ADMITTED','TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED','WEEK_PARTIAL_NO_SCHEDULE_REFUSED','WEEK_PARTIAL_AFTER_START_ADMITTED','WEEK_PARTIAL_OUTSIDE_WEEK_REFUSED']){
   assert.ok(assertSql.includes(marker),marker);
  }
  assert.ok(matcher.includes("interval '1 second'"));
- assert.ok(matcher.includes('e93886f2bcd48cc287c713f74e797224'));
- assert.ok(revert.includes('e93886f2bcd48cc287c713f74e797224'));
+ assert.ok(matcher.includes('0fdb69619e110109fdbda17f19435c25'));
+ assert.ok(revert.includes('0fdb69619e110109fdbda17f19435c25'));
  for(const marker of ['START_ONLY_AVAILABLE_NOW_NOT_FUTURE_PROOF','START_ONLY_KNOWN_FREE_INSTANT','START_ONLY_BLOCKED_AT_BEGINNING','START_ONLY_PAST_START_CLOSED']){
   assert.ok(assertSql.includes(marker),marker);
  }
