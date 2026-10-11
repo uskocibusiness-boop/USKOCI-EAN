@@ -10,6 +10,8 @@ import { Glyph } from '../../ui/system/Glyph';
 import { TimedRow } from '../../ui/notifications/TimedRow';
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
+// UI-only push landing seam: the separate ingress tests retain Auth, event, and session responsibility.
+const mockIngress={onTarget:null as null | ((target:{kind:string;needId?:string;agreementId?:string;messageId?:string})=>void)};
 let mockIntent='narucilac';
 const at='2026-09-10T12:00:00Z';
 const item={id:'event',eventType:'RESPONSE_SELECTED',title:'Vaša Prijava je izabrana',body:'Otvori Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
@@ -38,7 +40,7 @@ jest.mock('../../ui/system/motion',()=>({useReducedMotion:()=>false}));
 jest.mock('expo-router',()=>({get router(){return mockRouter;},Stack:{Screen:'StackScreen'},useFocusEffect:(effect:()=>void)=>require('react').useEffect(effect,[effect])}));
 jest.mock('../../store/uloga',()=>({postaviUlogu:(role:string)=>mockRole(role),useUloga:()=>mockIntent,ulogaSada:()=>mockIntent}));
 jest.mock('../../hooks/useInbox',()=>({useInbox:()=>({state:mockState,model:mockModel})}));
-jest.mock('../../hooks/useMessagePushIngress',()=>({useMessagePushIngress:()=>({phase:null,cancel:jest.fn(),retry:jest.fn()})}));
+jest.mock('../../hooks/useMessagePushIngress',()=>({useMessagePushIngress:(onTarget:typeof mockIngress.onTarget)=>{mockIngress.onTarget=onTarget;return {phase:null,cancel:jest.fn(),retry:jest.fn()};}}));
 jest.mock('../../ui/Press',()=>({Press:'Press'}));
 jest.mock('../../ui/Text',()=>({T:'T'}));
 import Inbox from '../../app/obavestenja';
@@ -58,7 +60,7 @@ const openItem=async()=>act(async()=>unreadRow().props.onPress());
 const readAllPress=()=>presses().find(node=>typeof node.props.accessibilityLabel==='string'&&node.props.accessibilityLabel.startsWith('Označi sve kao pročitano'));
 /** The picture of a row: the app's own illustration of its kind, quiet once the row is read. */
 const picture=(prefix:string)=>row(prefix).findAll(node=>typeof node.type!=='string'&&node.props?.kind!==undefined&&node.props?.size===32)[0];
-beforeEach(()=>{jest.clearAllMocks();mockIntent='narucilac';mockModel.canNavigate.mockReturnValue(true);mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'WORKER'});
+beforeEach(()=>{jest.clearAllMocks();mockIngress.onTarget=null;mockIntent='narucilac';mockModel.canNavigate.mockReturnValue(true);mockModel.open.mockResolvedValue({kind:'AGREEMENT',id:'actual-agreement',role:'WORKER'});
   mockState={page:{items:[],unreadCount:0,hasMore:false,asOf:at},loading:false,paging:false,acting:null,error:null,unavailable:false};});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
 test('successful empty is the first encounter of the screen: the bell at the size of a door, the one green way and one owned settings destination',async()=>{
@@ -500,4 +502,33 @@ describe('the day groups follow the Serbian civil day',()=>{
     expect(labels([{id:'now',occurredAt:'2026-10-07T08:00:00Z'},{id:'old',occurredAt:'2026-03-02T09:00:00Z'},{id:'bad',occurredAt:'not a date'},{id:'last',occurredAt:'2025-12-31T09:00:00Z'}],'2026-10-07T10:00:00Z'))
       .toEqual(['# Danas','now','# 2. mar','old','bad','# 31. dec 2025','last']);
   });
+});
+
+test('server-confirmed opportunity push opens the exact worker Need once, never a guessed Inbox row or Agreement',async()=>{
+ await render();
+ const event={kind:'OPPORTUNITY',needId:'33333333-3333-4333-8333-333333333333'};
+ expect(mockIngress.onTarget).not.toBeNull();
+ await act(async()=>{mockIngress.onTarget!(event);mockIngress.onTarget!(event);});
+ expect(mockRouter.replace.mock.calls).toEqual([[{pathname:'/prilike/[id]',params:{id:event.needId}}]]);
+ expect(mockRouter.push).not.toHaveBeenCalled();
+ expect(mockModel.open).not.toHaveBeenCalled();
+});
+test('a message push still opens its exact Agreement message rather than a generic task',async()=>{
+ await render();
+ await act(async()=>mockIngress.onTarget!({
+  kind:'AGREEMENT_MESSAGE',agreementId:'44444444-4444-4444-8444-444444444444',
+  messageId:'55555555-5555-4555-8555-555555555555',
+ }));
+ expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{
+  id:'44444444-4444-4444-8444-444444444444',tab:'poruke',messageId:'55555555-5555-4555-8555-555555555555'}});
+});
+test('retired Inbox and denied navigation never accept a delayed push landing',async()=>{
+ await render();const late=mockIngress.onTarget!;
+ mockModel.canNavigate.mockReturnValue(false);
+ await act(async()=>late({kind:'OPPORTUNITY',needId:'33333333-3333-4333-8333-333333333333'}));
+ expect(mockRouter.replace).not.toHaveBeenCalled();
+ mockModel.canNavigate.mockReturnValue(true);
+ await act(async()=>tree.unmount());
+ await act(async()=>late({kind:'OPPORTUNITY',needId:'33333333-3333-4333-8333-333333333333'}));
+ expect(mockRouter.replace).not.toHaveBeenCalled();
 });
