@@ -216,10 +216,13 @@ begin
 
   v_terms := jsonb_build_object(
     'price_rsd',v_ver.price_rsd,'covered_slots',v_ver.covered_slots,
-    'proposed_start_at',coalesce(v_ver.proposed_start_at,case when v_need.schedule_kind='FIXED_WINDOW' then v_need.starts_at end),
-    'proposed_end_at',coalesce(v_ver.proposed_end_at,case when v_need.schedule_kind='FIXED_WINDOW' then v_need.ends_at end),
+    -- Agreement calendar terms stay an honest complete pair or BOTH NULL.
+    -- A declared start-only moment stays authoritative on the task; it is
+    -- not a fabricated booking in private.agreement_calendar_interval().
+    'proposed_start_at',coalesce(v_ver.proposed_start_at,case when v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null then v_need.starts_at end),
+    'proposed_end_at',coalesce(v_ver.proposed_end_at,case when v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null then v_need.ends_at end),
     'schedule_source',case when v_ver.proposed_start_at is not null then 'APPLICATION_PROPOSAL'
-      when v_need.schedule_kind='FIXED_WINDOW' then 'NEED_FIXED_WINDOW' else 'UNSCHEDULED' end,
+      when v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null then 'NEED_FIXED_WINDOW' else 'UNSCHEDULED' end,
     'scope_note',v_ver.scope_note,'need_revision',v_need.revision,
     'response_version',v_ver.version
   );
