@@ -298,7 +298,7 @@ test('DEV E2E operator preflight contains only a read-only SELECT and fails clos
  ];
  for (const [file,expectedMd5] of guardedPushFunctions) {
   const source=readFileSync(join(opportunityDir,file),'utf8');
-  const match=source.match(/\\bas\\s+\\$function\\$([\\s\\S]*?)\\$function\\$;/i);
+  const match=source.match(/\bas\s+\$function\$([\s\S]*?)\$function\$;/i);
   assert.ok(match,'source body missing '+file);
   assert.equal(md5(match[1]),expectedMd5,'source drift '+file);
   assert.ok(executable.includes(expectedMd5),'operator gate missing exact source '+file);
