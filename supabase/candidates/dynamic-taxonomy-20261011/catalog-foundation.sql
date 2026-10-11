@@ -246,9 +246,10 @@ GRANT SELECT ON
  private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
  private.work_taxonomy_need_skills,private.work_taxonomy_audit TO service_role;
 -- The registrar alone needs these minimal underlying DML privileges.
-GRANT INSERT,UPDATE ON
- private.work_taxonomy_control,private.work_taxonomy_categories,
- private.work_taxonomy_aliases,private.work_taxonomy_audit TO service_role;
+GRANT UPDATE ON private.work_taxonomy_control TO service_role;
+GRANT INSERT ON
+ private.work_taxonomy_categories,private.work_taxonomy_aliases,
+ private.work_taxonomy_audit TO service_role;
 GRANT USAGE,SELECT ON SEQUENCE
  private.work_taxonomy_aliases_id_seq,private.work_taxonomy_audit_id_seq TO service_role;
 GRANT EXECUTE ON FUNCTION private.taxonomy_normalize_v1(text) TO service_role;
