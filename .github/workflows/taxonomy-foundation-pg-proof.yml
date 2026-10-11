@@ -13,11 +13,16 @@ permissions:
   contents: read
 jobs:
   disposable-postgres:
+    name: Disposable PostgreSQL ${{ matrix.postgres }}
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
     runs-on: ubuntu-latest
     timeout-minutes: 8
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
