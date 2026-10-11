@@ -56,9 +56,15 @@ AS $function$
  WHERE c.state<>'RETIRED'
    AND v.normalized_action =
      split_part(private.taxonomy_normalize_v1(p_label),' ',1)
+   -- A numeric quantity (e.g. "2 sobe") is task SCOPE, not a work kind.
+   -- Strip it only when the remaining complete phrase is VERIFIED in the
+   -- trusted scope registry; "2 automobila" cannot become "sobe".
    AND s.normalized_scope =
-     substr(private.taxonomy_normalize_v1(p_label),
-            char_length(v.normalized_action)+2)
+     regexp_replace(
+       substr(private.taxonomy_normalize_v1(p_label),
+              char_length(v.normalized_action)+2),
+       '^[1-9][0-9]{0,2}[[:space:]]+', ''
+     )
 $function$;
 
 -- Used only when no exact verified meaning has matched. Prevent accidental
