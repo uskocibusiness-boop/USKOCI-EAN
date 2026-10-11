@@ -38,7 +38,7 @@ AS $function$
 declare
   n public.needs; p public.app_profiles; pref public.worker_match_preferences;
   hard text[]:='{}'; svc boolean; area boolean; dist numeric; radius numeric; tier integer;
-  effective_skills text[];
+  effective_skills text[]; required_skill text;
 begin
   select * into n from public.needs where id=nid;
   if not found then
@@ -65,20 +65,31 @@ begin
       else btrim(coalesce(n.approximate_city,''))<>'' and lower(coalesce(n.approximate_city,''))=lower(coalesce(p.city,'')) end,false);
   end if;
   if p_first_refusal and not area then return jsonb_build_object('matches',false,'area',false); end if;
-  -- Match on explicitly requested skills. If absent, match the AI-confirmed
-  -- category, never treat an empty skills array as "every worker matches".
-  -- A missing or unrecognized category is not a wildcard.
-  effective_skills := case when coalesce(cardinality(n.required_skills),0)>0 then n.required_skills
-    else array_remove(array[n.category]::text[],null) end;
+  -- The confirmed primary work type is mandatory, even when extra skills
+  -- are explicitly requested. Empty additions never mean all workers match.
+  effective_skills := array_remove(array[n.category]::text[],null);
   svc:=coalesce(private.lower_arr(p.skills) && private.lower_arr(effective_skills),false);
   if not private.accounts_same_world(n.requester_account_id,p.account_id) then hard:=array_append(hard,'OTHER_WORLD'); end if;
   if n.verified_identity_required and not private.identity_admitted(p.account_id)
     then hard:=array_append(hard,'IDENTITY_VERIFICATION_NOT_ADMITTED'); end if;
   if p_first_refusal and cardinality(hard)>0 then return jsonb_build_object('matches',false,'hard',to_jsonb(hard)); end if;
-  -- Existing canonical 11-kind vocabulary covers spelling differences for
-  -- both explicit requirements and the fallback task category.
+  -- Use existing canonical aliases for the primary service; NO extras may
+  -- compensate when that primary type does not match the worker.
   if not svc then
     svc:=coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(effective_skills),false);
+  end if;
+  -- Each explicitly mandatory extra competency is an independent AND gate.
+  -- Normal everyday tools must not be added as implied requirements here.
+  if svc and coalesce(cardinality(n.required_skills),0)>0 then
+    foreach required_skill in array n.required_skills loop
+      if not (
+        coalesce(private.lower_arr(p.skills) && private.lower_arr(array[required_skill]),false)
+        or coalesce(private.work_kinds_v5(p.skills) && private.work_kinds_v5(array[required_skill]),false)
+      ) then
+        svc:=false;
+        exit;
+      end if;
+    end loop;
   end if;
   if p_first_refusal and not svc then return jsonb_build_object('matches',false,'service',false); end if;
   -- Exclusions (any spelling of the same kind). An empty list can exclude nothing, so its kinds are never read.
@@ -100,7 +111,7 @@ begin
  select p.prosrc as body,p.proacl::text as acl,p.prosecdef as secdef,
    p.provolatile as volatility,p.proparallel as parallel,p.proconfig::text as settings
  into newrow from pg_proc p where p.oid='private.worker_need_fit_v1(uuid,uuid,boolean)'::regprocedure;
- if md5(newrow.body) is distinct from 'd18c47226723ffbbec474aa4547e1af1'
+ if md5(newrow.body) is distinct from 'd511b48f7f3b38f52aaffee420108f8a'
     or (newrow.acl,newrow.secdef,newrow.volatility,newrow.parallel,newrow.settings)
        is distinct from (oldrow.acl,oldrow.secdef,oldrow.volatility,oldrow.parallel,oldrow.settings)
     or private.closure_source_digest_v5() is distinct from oldrow.closure_digest then
