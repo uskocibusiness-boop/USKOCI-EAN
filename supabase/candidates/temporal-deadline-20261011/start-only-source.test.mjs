@@ -45,6 +45,16 @@ test('existing SQL APIs all have isolated source-pinned candidates', () => {
  }
 });
 
+test('Dogovor snapshots the declared start without fabricating a booking', () => {
+  const sql = read(dir+'start-only-select.candidate.sql');
+  const ui = read('src/data/agreementClientService.ts');
+  assert.ok(sql.includes("jsonb_build_object('declared_start_at',v_need.starts_at)"));
+  assert.ok(sql.includes("v_need.schedule_kind='FIXED_WINDOW' and v_need.ends_at is not null"));
+  assert.ok(ui.includes("terms.declared_start_at"));
+  assert.ok(ui.includes("trajanje po dogovoru"));
+  assert.ok(read('src/data/__tests__/agreement-exact-window-mapping.test.ts').includes('start-only snapshot'));
+});
+
 test('matching proves exact start instant without manufacturing duration', () => {
  const matcher=read(dir+'worker-time-tier.candidate.sql');
  const revert=read(dir+'worker-time-tier.revert.sql');
