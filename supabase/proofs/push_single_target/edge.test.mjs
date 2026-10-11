@@ -8,14 +8,20 @@ const id='11111111-1111-4111-8111-111111111111', lease='22222222-2222-4222-8222-
 const key='synthetic-service-key';
 const response=x=>new Response(JSON.stringify(x));
 const request=(action='single_target',extra={},auth=key)=>new Request('https://worker.invalid',{method:'POST',headers:{apikey:auth},body:JSON.stringify({action,admissionId:id,...extra})});
-function runtime({enabled=false,receipt=false,none=false,providerStatus=200,exact=false,opportunity=false,eventType='MESSAGE_RECEIVED',eventId}={}) {
+function runtime({enabled=false,receipt=false,none=false,providerStatus=200,exact=false,opportunity=false,globalEnabled=false,eventType='MESSAGE_RECEIVED',eventId}={}) {
  const calls=[],reads=[],expiry=new Date(Date.now()+60000).toISOString();
- const env=k=>{reads.push(k);return {SUPABASE_SERVICE_ROLE_KEY:key,SUPABASE_URL:'https://proof.supabase.co',EXPO_PUSH_SINGLE_TARGET_ENABLED:enabled?'true':'false',EXPO_PUSH_TRANSPORT_ENABLED:'false',EXPO_PUSH_MESSAGE_TARGET_ENABLED:exact?'true':'false',EXPO_PUSH_OPPORTUNITY_TARGET_ENABLED:opportunity?'true':'false'}[k];};
+ const env=k=>{reads.push(k);return {SUPABASE_SERVICE_ROLE_KEY:key,SUPABASE_URL:'https://proof.supabase.co',EXPO_PUSH_SINGLE_TARGET_ENABLED:enabled?'true':'false',EXPO_PUSH_TRANSPORT_ENABLED:globalEnabled?'true':'false',EXPO_PUSH_MESSAGE_TARGET_ENABLED:exact?'true':'false',EXPO_PUSH_OPPORTUNITY_TARGET_ENABLED:opportunity?'true':'false'}[k];};
  const {handler}=loadHandler({env,fetch:async(url,init)=>{
   const body=JSON.parse(init.body);calls.push({url,body});
   if(url==='https://exp.host/--/api/v2/push/send')return providerStatus===200?response({data:[{status:'ok',id:'synthetic_ticket'}]}):new Response('',{status:providerStatus});
   if(url==='https://exp.host/--/api/v2/push/getReceipts')return response({data:{synthetic_ticket:{status:'ok'}}});
   const name=new URL(url).pathname.split('/').at(-1);
+  if(name==='rpc_record_push_readiness')return response({recorded:true,observation:body.p_observation,observedAt:new Date().toISOString(),authoritative:true});
+  if(name==='rpc_claim_push_transport'){
+   if(body.p_kind==='RECEIPT')return response({kind:'NONE'});
+   assert.equal(body.p_kind,'SEND');
+   return response({kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expiry,ticketId:null});
+  }
   if(name===(receipt?'rpc_claim_push_single_target_receipt':'rpc_claim_push_single_target')){assert.deepEqual(body,{p_admission_id:id});return response(none?{kind:'NONE'}:{kind:receipt?'RECEIPT':'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expiry,ticketId:receipt?'synthetic_ticket':null});}
   if(name==='rpc_begin_push_send')return response({kind:'SEND',attemptId:id,leaseId:lease,leaseExpiresAt:expiry,expoPushToken:'ExpoPushToken[synthetic]',priority:'NORMAL',eventType,...(eventId===undefined?{}:{eventId})});
   if(name==='rpc_complete_push_transport')return response({attemptId:id,state:body.p_result==='TICKET'?'TICKET_PENDING':body.p_result==='PROVIDER_ACCEPTED'?'PROVIDER_ACCEPTED':body.p_result==='RETRYABLE'?'FINAL':'UNKNOWN'});
@@ -56,6 +62,20 @@ test('exact-message flag retains the explicitly supported legacy begin receipt',
  assert.deepEqual(r.calls[2].body[0].data,{kind:'INBOX'});
 });
 if(name==='canonical handler') {
+test('global tick never adds an opportunity event hint even when the single-target flag is on',async()=>{
+ const eventId='ABCDEF01-2345-4678-9ABC-0123456789AB';
+ const r=runtime({globalEnabled:true,opportunity:true,eventType:'OPPORTUNITY_AVAILABLE',eventId});
+ const reply=await r.handler(new Request('https://worker.invalid',{
+  method:'POST',headers:{apikey:key},body:JSON.stringify({action:'tick'}),
+ }));
+ assert.equal(reply.status,200);
+ assert.deepEqual(await reply.json(),{kind:'TICK_COMPLETED',receipt:'NONE',send:'TICKET_PENDING'});
+ const sends=r.calls.filter(x=>x.url==='https://exp.host/--/api/v2/push/send');
+ assert.equal(sends.length,1);
+ assert.deepEqual(sends[0].body[0].data,{kind:'INBOX'});
+ assert.ok(r.calls.some(x=>x.url.endsWith('/rpc/rpc_record_push_readiness')));
+ assert.ok(!r.calls.some(x=>x.url.endsWith('/rpc/rpc_claim_push_single_target')));
+});
 test('exact opportunity metadata is emitted for only one operator-admitted target when its own flag is true',async()=>{
  const eventId='ABCDEF01-2345-4678-9ABC-0123456789AB',r=runtime({enabled:true,opportunity:true,eventType:'OPPORTUNITY_AVAILABLE',eventId});
  assert.equal((await(await r.handler(request())).json()).state,'TICKET_PENDING');
