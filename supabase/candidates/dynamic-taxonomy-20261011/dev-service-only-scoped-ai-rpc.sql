@@ -38,8 +38,10 @@ AS $fn$
    p_execution_location_mode,p_skill_label)
 $fn$;
 
-REVOKE ALL ON FUNCTION public.rpc_taxonomy_ai_scoped_preview_service(text,text,text,text[]) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.rpc_taxonomy_worker_scoped_preview_service(text,text) FROM PUBLIC;
+-- Supabase public schema has explicit default EXECUTE grants to anon/authenticated.
+-- Revoke those as well as PUBLIC before granting only the service runtime.
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_ai_scoped_preview_service(text,text,text,text[]) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_worker_scoped_preview_service(text,text) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_ai_scoped_preview_service(text,text,text,text[]) TO service_role;
 GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_worker_scoped_preview_service(text,text) TO service_role;
 
