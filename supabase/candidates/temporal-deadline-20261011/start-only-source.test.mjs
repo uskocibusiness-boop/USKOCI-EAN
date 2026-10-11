@@ -66,7 +66,7 @@ test('matching proves exact start instant without manufacturing duration', () =>
  assert.ok(matcher.includes('PARTIAL_PERIOD_START_AVAILABLE'));
  assert.ok(matcher.includes("n.starts_at<ws or n.starts_at>=we"));
  assert.ok(matcher.includes("greatest(n.starts_at,at_now),we"));
- for(const marker of ['TOMORROW_PARTIAL_NO_SCHEDULE_REFUSED','TOMORROW_PARTIAL_BEFORE_START_REFUSED','TOMORROW_PARTIAL_AFTER_START_ADMITTED','TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED']){
+ for(const marker of ['TOMORROW_PARTIAL_NO_SCHEDULE_REFUSED','TOMORROW_PARTIAL_BEFORE_START_REFUSED','TOMORROW_PARTIAL_AFTER_START_ADMITTED','TOMORROW_PARTIAL_OUTSIDE_DAY_REFUSED','WEEK_PARTIAL_NO_SCHEDULE_REFUSED','WEEK_PARTIAL_AFTER_START_ADMITTED','WEEK_PARTIAL_OUTSIDE_WEEK_REFUSED']){
   assert.ok(assertSql.includes(marker),marker);
  }
  assert.ok(matcher.includes("interval '1 second'"));
