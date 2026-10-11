@@ -39,6 +39,15 @@ begin
   select timezone into tz from public.worker_match_preferences where worker_profile_id=pid;
   tz:=coalesce(tz,'Europe/Belgrade');
   if not private.availability_timezone_valid(tz) then return null; end if;
+  -- START-ONLY FIXED_WINDOW: test availability at the declared start instant.
+  -- A one-second probe is ONLY an interval representation for the calendar;
+  -- it is not the proposed duration, job finish, or reserved shift.
+  if n.schedule_kind='FIXED_WINDOW' and n.starts_at is not null and n.ends_at is null then
+    if not isfinite(n.starts_at) or n.starts_at<=at_now then return null; end if;
+    periods:=private.worker_available_periods(pid,n.starts_at,n.starts_at+interval '1 second',tz);
+    if periods @> n.starts_at then return 2; end if;
+    return null;
+  end if;
   -- An end-only task is a completion deadline, not unlimited free time.
   -- Actual availability must intersect the remaining time until that deadline.
   if n.starts_at is null and n.ends_at is not null
@@ -116,7 +125,7 @@ end;
 $function$;
 DO $post$ BEGIN
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid='private.worker_need_time_tier_v1(uuid,uuid)'::regprocedure)
- IS DISTINCT FROM 'bfbf7ef2affd05fc31728d5725258a59'
+ IS DISTINCT FROM '2540437fea2ba98f9e950b967666f517'
  THEN RAISE EXCEPTION 'TIME_TIER_POSTFLIGHT_DRIFT' USING errcode='PT409'; END IF;
 END $post$;
 COMMIT;
