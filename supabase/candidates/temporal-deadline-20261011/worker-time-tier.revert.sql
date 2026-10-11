@@ -4,7 +4,7 @@ SET LOCAL lock_timeout='5s';
 SET LOCAL statement_timeout='60s';
 DO $pre$ BEGIN
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid='private.worker_need_time_tier_v1(uuid,uuid)'::regprocedure)
- IS DISTINCT FROM '0fdb69619e110109fdbda17f19435c25'
+ IS DISTINCT FROM '34c977e537ce731587a37a0bc1562296'
  THEN RAISE EXCEPTION 'TIME_TIER_REVERT_SOURCE_DRIFT' USING errcode='PT409'; END IF;
 END $pre$;
 CREATE OR REPLACE FUNCTION private.worker_need_time_tier_v1(nid uuid, pid uuid)
