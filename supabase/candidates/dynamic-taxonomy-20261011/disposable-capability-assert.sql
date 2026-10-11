@@ -100,6 +100,15 @@ BEGIN
  WHERE worker_account_id=worker_handyman AND category_id=cat_handyman;
  IF private.taxonomy_capability_tier_v1(need_paint,1,worker_handyman)<>'RELATED_CONFIRMED' THEN
   RAISE EXCEPTION 'EXPLICITLY_ACCEPTED_RELATED_MISSING'; END IF;
+ INSERT INTO private.work_taxonomy_worker_capabilities
+ (worker_account_id,category_id,confirmed_at,origin,excluded)
+ VALUES (worker_handyman,cat_paint,now(),'WORKER_CONFIRMED',true);
+ IF private.taxonomy_capability_tier_v1(need_paint,1,worker_handyman)<>'NO_SAFE_MATCH' THEN
+  RAISE EXCEPTION 'EXPLICIT_TARGET_EXCLUSION_BYPASSED_BY_RELATED'; END IF;
+ DELETE FROM private.work_taxonomy_worker_capabilities
+ WHERE worker_account_id=worker_handyman AND category_id=cat_paint;
+ IF private.taxonomy_capability_tier_v1(need_paint,1,worker_handyman)<>'RELATED_CONFIRMED' THEN
+  RAISE EXCEPTION 'RELATED_ACCEPTANCE_NOT_RESTORED_AFTER_TARGET_OPT_IN'; END IF;
  UPDATE private.work_taxonomy_worker_capabilities SET excluded=true
  WHERE worker_account_id=worker_handyman AND category_id=cat_handyman;
  IF private.taxonomy_capability_tier_v1(need_paint,1,worker_handyman)<>'NO_SAFE_MATCH' THEN
