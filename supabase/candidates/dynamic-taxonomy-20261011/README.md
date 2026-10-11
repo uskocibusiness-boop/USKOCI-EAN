@@ -68,3 +68,42 @@ Disable catalog auto-registration and app integration feature flags in a
 separately authorized transaction. Preserve catalog/history records and existing
 11-kind fallback. Never DROP tables as an automatic rollback, never sweep a
 backlog into global push, and never treat re-enabling cron as harmless.
+
+
+## Incremental safety and read-only preview (11 October continuation)
+
+- The service role now has only **column-level UPDATE** access to
+  work_taxonomy_control.catalog_version and updated_at. It CANNOT enable the
+  automatic-registration switch or change the operator-controlled hourly budget.
+- New category creation is bounded by max_auto_creates_per_hour (default 100),
+  enforced under a row lock. This is **not a lifetime category ceiling**.
+  Canonical/alias reuse does not consume that hourly budget.
+- The registration function independently runs taxonomy_risk_triage_v1; an
+  untrusted LOW_RISK_VERIFIED parameter alone cannot authorize a category.
+  Rules and permitted action *vocabulary* are server/operator-owned **data**,
+  not an 11-kind catalog or a general AI safety model. Examples:
+  photographing a celebration / dog training / 3D printing are low-risk
+  candidates; drone service / solar panels require review; explicit explosive
+  manufacture is blocked; unknown/unclear actions need clarification.
+- **IMPORTANT**: The triage is deliberately incomplete and lexical. It is NOT
+  legally/regulatorily sufficient, cannot replace full context-sensitive content
+  safety or requester identity verification, and MUST NOT be treated as a
+  production-ready automatic admission gate. In particular, the service still
+  receives an owner-reviewed boolean supplied by its caller, not a separately
+  authenticated need/revision proof. The runtime switch must remain OFF.
+- catalog-preview.sql adds taxonomy_preview_v1: a read-only server-only preview
+  that resolves canonical labels and normalized aliases across locales, refuses
+  cross-locale ambiguous collisions, and returns REUSE_EXISTING,
+  PROPOSE_AUTO_PROVISIONAL, CLARIFY, REJECT, or SAFETY_REVIEW. It neither invents
+  a category ID for a novel proposal nor inserts anything nor creates events.
+- Explicit worker opt-out of the **target** category now overrides even an
+  otherwise verified equivalent/related skill match. The disposable tests
+  prove this for both equivalent and individually consented related offers.
+- Normalized alias lookups have a standalone index for locale-independent
+  matching, avoiding a catalog-wide synonym scan on each preview.
+
+The UI, actual publish transaction, safe context-aware auto-admission,
+requester/worker identity confirmation, full dispatcher and any external push
+remain **unintegrated**. Preview and risk evaluation have only isolated tests.
+No DEV/PROD mutation, no real notification, no deployment. These are
+incremental candidate milestones, not a launch certificate.
