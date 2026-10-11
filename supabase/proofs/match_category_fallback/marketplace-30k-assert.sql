@@ -66,12 +66,12 @@ BEGIN
   p_step,answer->>'status',answer->>'inserted',elapsed;
 END $prove$;
 
--- \gexec emits 12 separate SQL statements, hence 12 separate transactions.
+-- \gexec emits 55 separate SQL statements, one for EACH work-kind/city pair.
 -- This is vital because canonical dispatch tracks its per-transaction limit.
 SELECT format('SELECT private.prove_dispatch_task(%L::uuid,%L);',
  ('20000000-0000-4000-8000-'||lpad(i::text,12,'0')),
  'task_'||i::text)
-FROM generate_series(1,12) i
+FROM generate_series(1,55) i
 \gexec
 
 DO $prove$
@@ -79,7 +79,14 @@ DECLARE n integer; delivered integer; dispatched integer; events integer; duplic
 BEGIN
  SELECT count(*) INTO n FROM private.market_load_audit WHERE step LIKE 'task_%'
  AND result->>'status'='SENT' AND (result->>'inserted')::integer>0;
- IF n<>12 THEN RAISE EXCEPTION '12_REAL_DISPATCH_WAVES_NOT_PROVED_count_%',n; END IF;
+ IF n<>55 THEN RAISE EXCEPTION '55_REAL_DISPATCH_WAVES_NOT_PROVED_count_%',n; END IF;
+ IF (SELECT count(DISTINCT (need.category,need.approximate_city))
+     FROM private.market_load_audit audit
+     JOIN public.needs need ON need.id=
+        ('20000000-0000-4000-8000-'||lpad(substring(audit.step from 6),12,'0'))::uuid
+     WHERE audit.step LIKE 'task_%')<>55 THEN
+    RAISE EXCEPTION 'NOT_ALL_55_KIND_CITY_PAIRS_REAL_DISPATCHED';
+ END IF;
  SELECT count(*) INTO delivered FROM public.opportunity_deliveries;
  SELECT count(*) INTO events FROM public.user_activity_events
   WHERE event_type='OPPORTUNITY_AVAILABLE';
@@ -105,7 +112,7 @@ BEGIN
    OR coalesce(t.allowed,false)=false
    OR NOT private.worker_need_match_v1(n.id,p.id)
  ) THEN RAISE EXCEPTION 'DISPATCH_SENT_TO_INELIGIBLE_WORKER'; END IF;
- RAISE NOTICE '12_REAL_WAVES_PASS rows=% events=% dupes=0 correct_recipient=YES',
+ RAISE NOTICE '55_REAL_WAVES_PASS rows=% events=% dupes=0 correct_recipient=YES',
  delivered,events;
 END $prove$;
 
@@ -157,7 +164,7 @@ SELECT
  20000 AS synthetic_workers,
  10000 AS synthetic_requester_identities,
  10000 AS synthetic_needs,
- 12 AS sampled_real_dispatch_waves,
+ 55 AS sampled_real_dispatch_waves,
  (SELECT count(*) FROM public.opportunity_deliveries) AS deliveries,
  (SELECT count(*) FROM public.user_activity_events WHERE event_type='OPPORTUNITY_AVAILABLE') AS local_events,
  (SELECT max(elapsed_ms) FROM private.market_load_audit WHERE step LIKE 'task_%') AS max_wave_ms,
