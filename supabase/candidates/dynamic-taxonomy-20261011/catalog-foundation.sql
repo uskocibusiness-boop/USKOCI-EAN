@@ -173,6 +173,17 @@ BEGIN
  -- A short-lived lock prevents duplicate category-version bumps.
  SELECT catalog_version INTO STRICT v_version
  FROM private.work_taxonomy_control WHERE singleton FOR UPDATE;
+ -- Reuse a trusted existing alias before creating a new canonical identity.
+ SELECT a.category_id INTO v_id FROM private.work_taxonomy_aliases a
+ JOIN private.work_taxonomy_categories c ON c.id=a.category_id
+ WHERE a.locale='sr' AND a.normalized_key=v_key AND c.state <> 'RETIRED';
+ IF v_id IS NOT NULL THEN
+   INSERT INTO private.work_taxonomy_audit
+     (action,category_id,normalized_key,catalog_version)
+   VALUES ('EXISTING_REUSED',v_id,v_key,v_version);
+   RETURN jsonb_build_object('action','REUSE_EXISTING','categoryId',v_id,
+           'catalogVersion',v_version,'notificationAuthority','NONE');
+ END IF;
  INSERT INTO private.work_taxonomy_categories
    (canonical_key,label,source,catalog_version)
  VALUES (v_key,btrim(p_label),'AI_REVIEWED',v_version + 1)
@@ -219,7 +230,11 @@ ALTER TABLE private.work_taxonomy_audit ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON FUNCTION private.taxonomy_normalize_v1(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION private.taxonomy_register_low_risk_v1(text,text,boolean) FROM PUBLIC;
-REVOKE ALL ON ALL TABLES IN SCHEMA private FROM PUBLIC;
+REVOKE ALL ON
+ private.work_taxonomy_control,private.work_taxonomy_categories,
+ private.work_taxonomy_aliases,private.work_taxonomy_relations,
+ private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
+ private.work_taxonomy_need_skills,private.work_taxonomy_audit FROM PUBLIC;
 -- Installer/operator owns objects. Only service_role gets private catalog access.
 GRANT USAGE ON SCHEMA private TO service_role;
 GRANT SELECT,INSERT,UPDATE ON
@@ -227,7 +242,8 @@ GRANT SELECT,INSERT,UPDATE ON
  private.work_taxonomy_aliases,private.work_taxonomy_relations,
  private.work_taxonomy_worker_capabilities,private.work_taxonomy_need_snapshots,
  private.work_taxonomy_need_skills,private.work_taxonomy_audit TO service_role;
-GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA private TO service_role;
+GRANT USAGE,SELECT ON SEQUENCE
+ private.work_taxonomy_aliases_id_seq,private.work_taxonomy_audit_id_seq TO service_role;
 GRANT EXECUTE ON FUNCTION private.taxonomy_normalize_v1(text) TO service_role;
 GRANT EXECUTE ON FUNCTION private.taxonomy_register_low_risk_v1(text,text,boolean) TO service_role;
 COMMIT;
