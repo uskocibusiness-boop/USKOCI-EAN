@@ -1,5 +1,7 @@
 # USKOČI — šta postoji u GitHubu, a nije instalirano na DEV (12.10.2026)
 
+> **DEPLOY STATUS UPDATE, 12 OCT 2026 (Europe/Belgrade):** Owner-approved DEV promotion COMPLETED. Matcher `private.worker_need_fit_v1` migrated and source-verified at MD5 `1e698d3d22c887f639e4837a4e588d01` as migration `20261011230505_uskoci_specialist_repair_match_precision_20261012`. Worker AI Edge v24 and push Edge v29 deployed with exact GitHub index.ts + shared bundle readback. The following sections preserve the **PRE-DEPLOY** audit snapshot for traceability. The **still missing** part is dynamic taxonomy (0 tables/functions), full phone push proof and on-device E2E. The targeted opportunity-push feature flag was not changed. See `supabase/candidates/generic-repair-precision-20261012/DEV_DEPLOY_RECEIPT_20261012.md` and `supabase/proofs/deploy_inventory/DEV_EDGE_DEPLOY_RECEIPT_20261012.md`.
+
 **Svrha:** izvršni, read-only inventar `uskocibusiness-boop/USKOCI-EAN`, PR #6 (`fix/match-ai-category-fallback-20261010`) prema kanonskom Supabase DEV projektu **`leqcwgzvjsxugfgzdmth`**. Ovaj dokument ne odobrava deploy, ne šalje obaveštenja i ne pokreće SQL izmene.
 
 ## 1. Edge Function razlike: provereno direktnim poređenjem glavnog index.ts
