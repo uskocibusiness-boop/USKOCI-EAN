@@ -58,4 +58,8 @@ jobs:
           for file in fixture.sql predecessor.sql baseline.sql candidate.sql candidate-assert.sql revert.sql baseline.sql; do
             psql -X -v ON_ERROR_STOP=1 -f "$root/$file"
           done
+          echo 'Synthetic Dogovor: unchanged LIVE calendar parser must keep declared start, without inventing a duration'
+          for file in live-agreement-calendar.sql agreement-calendar.assert.sql; do
+            psql -X -v ON_ERROR_STOP=1 -f "$root/$file"
+          done
           echo 'TEMPORAL_DEADLINE_PG_PASS; no canonical Supabase connection'
