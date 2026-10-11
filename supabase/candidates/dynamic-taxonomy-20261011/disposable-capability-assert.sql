@@ -20,7 +20,13 @@ BEGIN
  SELECT (private.taxonomy_register_low_risk_v1('Prevoz nameštaja','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_move;
  SELECT (private.taxonomy_register_low_risk_v1('Čišćenje stanova','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_clean;
  SELECT (private.taxonomy_register_low_risk_v1('Popravka nameštaja','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_handyman;
- SELECT (private.taxonomy_register_low_risk_v1('Farbanje zidova','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_equiv;
+ -- A system-seeded legacy profession need not pass novel-category word policy.
+ SELECT catalog_version INTO version_now FROM private.work_taxonomy_control;
+ INSERT INTO private.work_taxonomy_categories
+  (canonical_key,label,source,catalog_version,state)
+ VALUES (private.taxonomy_normalize_v1('Soboslikarski poslovi'),
+         'Soboslikarski poslovi','SYSTEM',version_now,'ESTABLISHED')
+ RETURNING id INTO cat_equiv;
  SELECT (private.taxonomy_register_low_risk_v1('Izrada drvene makete','LOW_RISK_VERIFIED',true)->>'categoryId')::uuid INTO cat_craft;
  UPDATE private.work_taxonomy_control SET auto_registration_enabled=false;
  SELECT catalog_version INTO version_now FROM private.work_taxonomy_control;
