@@ -64,6 +64,9 @@ CREATE TABLE private.work_taxonomy_aliases (
  UNIQUE (locale,normalized_key)
 );
 CREATE INDEX work_taxonomy_alias_category_idx ON private.work_taxonomy_aliases(category_id);
+-- A locale-agnostic preview must not scan the complete synonym collection.
+CREATE INDEX work_taxonomy_alias_lookup_idx
+ ON private.work_taxonomy_aliases(normalized_key,category_id);
 
 CREATE TABLE private.work_taxonomy_relations (
  source_id uuid NOT NULL REFERENCES private.work_taxonomy_categories(id),
