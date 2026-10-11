@@ -82,6 +82,30 @@ begin
     if private.worker_available_periods(pid,greatest(ws,at_now),we,tz)<>'{}'::tstzmultirange then return 2; end if;
     return null;
   end if;
+  -- PARTIAL_PERIOD_START_AVAILABLE: an explicitly stated earliest start for
+  -- tomorrow/this publication week is not a complete execution interval.
+  -- Check availability only after that instant, within the named period;
+  -- never invent the job finish or award a priority-1 'available now' match.
+  if n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE')
+     and n.starts_at is not null and n.ends_at is null then
+    if n.published_at is null or not isfinite(n.published_at)
+       or not isfinite(n.starts_at) then return null; end if;
+    wtz:=case when n.task_timezone is not null and private.availability_timezone_valid(n.task_timezone)
+      then n.task_timezone else 'Europe/Belgrade' end;
+    anchor_day:=(n.published_at at time zone wtz)::date;
+    if n.schedule_kind='TOMORROW_FLEXIBLE' then
+      ws:=(anchor_day+1)::timestamp at time zone wtz;
+      we:=(anchor_day+2)::timestamp at time zone wtz;
+    else
+      ws:=anchor_day::timestamp at time zone wtz;
+      we:=(anchor_day+(8-extract(isodow from anchor_day)::integer))::timestamp at time zone wtz;
+    end if;
+    if n.starts_at<ws or n.starts_at>=we or we<=at_now then return null; end if;
+    if private.worker_available_periods(pid,greatest(n.starts_at,at_now),we,tz)<>'{}'::tstzmultirange then
+      return 2;
+    end if;
+    return null;
+  end if;
   -- Every other kind: the EX-06 rule as before (ex06a: a window-less TOMORROW / WEEK task reads the window its words mean).
   ws:=n.starts_at; we:=n.ends_at;
   if n.starts_at is null and n.ends_at is null and n.schedule_kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE') then
@@ -125,7 +149,7 @@ end;
 $function$;
 DO $post$ BEGIN
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid='private.worker_need_time_tier_v1(uuid,uuid)'::regprocedure)
- IS DISTINCT FROM '2540437fea2ba98f9e950b967666f517'
+ IS DISTINCT FROM 'e93886f2bcd48cc287c713f74e797224'
  THEN RAISE EXCEPTION 'TIME_TIER_POSTFLIGHT_DRIFT' USING errcode='PT409'; END IF;
 END $post$;
 COMMIT;
