@@ -180,3 +180,51 @@ safe open-world expansion. Do not call the SQL functions as public RPCs.
 
 Both SQL features remain unplugged, default OFF, and require owner-approved
 deployment/rollback and separate end-to-end dispatch/phone proof.
+
+## Existing server Gemini interview → work identity (not a new AI)
+
+**Important correction:** USKOČI already has a live **Gemini conversational
+AI** in the authenticated `uskoci-ai-interview` Edge Function, version 60
+(READ-ONLY checked on canonical DEV). It uses message history + structured
+`NEED_FACT_V2` facts and proposes `need.category` from full natural dialog.
+`uskoci-worker-interview` v23 similarly proposes worker skill profiles.
+The taxonomy feature MUST reuse those services; fixed phrase grammar is only
+a conservative offline verifier, not a replacement AI conversation.
+
+New `existing-ai-category-bridge.sql` is an **unconnected read-only adapter**
+for current fact shapes: `need.category` TEXT, `need.description` TEXT, and
+`need.required_skills` TEXT[]. It returns a stable service-category UUID
+**suggestion** for verified aliases/meanings (for example krečenje sobe,
+krečenje stana, farbanje zidova → the same verified painting service).
+Long conversational descriptions do **not** have to resemble a short SQL
+sentence template: the existing AI already supplies a proposed work label.
+
+Unknown legitimate AI labels yield `NOVEL_SERVICE_REVIEW`: they can
+eventually grow the unlimited catalog with independent semantic evidence,
+but never enter it or authorize push based solely on model assertion.
+Ambiguous or unverified labels yield `CLARIFY`; complete public descriptions
+undergo conservative risk prefiltering before the short label is reused.
+Worker exclusions and explicit required_skills are **not inferred**, merged,
+removed or replaced. If required skills are unknown vs truly empty, the
+adapter distinguishes those cases and fails closed on missing input.
+
+Most importantly, **model and SQL alike CANNOT prove semantic consistency
+of arbitrary long descriptions today**. An AI mislabel such as 'krečenje
+stana' with a description about cars can return ONLY an explicitly unverified
+review suggestion; it MUST NOT become a confirmed task classification,
+worker match or notification until an actor-bound user review, stronger
+context-aware semantic checks and the existing canonical eligibility gates.
+Adapter outputs `classificationAuthority=NONE`, `notificationAuthority=NONE`
+and `requiresTaskRevisionBinding=true`; it is NOT wired into the deployed
+interview or publisher. The existing draft can be edited as before.
+
+The source Gemini V2 prompt additionally clarifies work-kind vs room/quantity
+without restricting categories to eleven hard-coded kinds. The
+`interview-existing-ai-source.test.mjs` guard verifies that the real Gemini
+conversation, typed fact schema and read-only adapter remain connected
+**as source contracts only**; it calls no provider and gives no runtime proof.
+
+Proof SQL: `disposable-existing-ai-bridge-assert.sql`, run against actual
+PostgreSQL 16 and 17 containers in `taxonomy-foundation-pg-proof.yml`.
+Still NOT a deployment, actual model inference proof, semantic duplicate
+resolution for all language, or validated end-to-end recipient delivery.
