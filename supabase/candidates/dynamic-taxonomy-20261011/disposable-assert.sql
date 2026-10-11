@@ -97,6 +97,17 @@ BEGIN
   v := private.taxonomy_register_low_risk_v1('Servis preciznog senzora '||i,'LOW_RISK_VERIFIED',true);
   IF v->>'action'<>'CREATE_AUTO_PROVISIONAL' THEN RAISE EXCEPTION 'OPEN_CATALOG_FAILED'; END IF;
  END LOOP;
+ -- The rate budget is operational, not a fixed limit on catalog size.
+ -- Existing aliases must remain reusable even if new identities are paused.
+ UPDATE private.work_taxonomy_control SET max_auto_creates_per_hour=51;
+ w := private.taxonomy_register_low_risk_v1('Servis bicikala','LOW_RISK_VERIFIED',true);
+ IF w->>'action'<>'REUSE_EXISTING' THEN RAISE EXCEPTION 'RATE_LIMIT_BLOCKED_REUSE'; END IF;
+ BEGIN
+  PERFORM private.taxonomy_register_low_risk_v1('Izrada nove makete','LOW_RISK_VERIFIED',true);
+  RAISE EXCEPTION 'RATE_LIMIT_NOT_ENFORCED';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM <> 'TAXONOMY_AUTO_RATE_LIMITED' THEN RAISE; END IF;
+ END;
  SELECT count(*) INTO n FROM private.work_taxonomy_categories WHERE state='AUTO_PROVISIONAL';
  IF n<>51 THEN RAISE EXCEPTION 'CATEGORY_COUNT_EXPECTED_51_GOT_%',n; END IF;
  SELECT count(*) INTO n FROM private.work_taxonomy_worker_capabilities;
