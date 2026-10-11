@@ -54,6 +54,64 @@ DELETE FROM public.profile_availability_windows;
 UPDATE public.needs SET schedule_kind='FLEXIBLE',starts_at=NULL,ends_at=NULL
 WHERE id='11111111-1111-4111-8111-111111111111';
 SELECT private.assert_deadline_tier(1,'UNBOUNDED_FLEXIBILITY_KEPT');
+-- FLEXIBLE_START_BOUND: unconstrained flexibility may match everyone, but
+-- a stated earliest start must NOT become an unconditional tier-1 match.
+-- The worker's upcoming calendar, NOT today's available-now toggle, admits
+-- future starts in FLEXIBLE and REMOTE_ANYTIME.
+DELETE FROM public.profile_availability_windows;
+DELETE FROM private.worker_calendar_events;
+UPDATE public.app_profiles SET available_now=true
+ WHERE id='22222222-2222-4222-8222-222222222222';
+UPDATE public.needs SET schedule_kind='FLEXIBLE',
+ starts_at=statement_timestamp()+interval '2 days',ends_at=NULL
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'FLEXIBLE_START_ONLY_AVAILABLE_NOW_NOT_FUTURE');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at+interval '1 hour',starts_at+interval '2 hours','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'FLEXIBLE_START_ONLY_SCHEDULED_ADMITTED');
+DELETE FROM public.profile_availability_windows;
+UPDATE public.needs SET starts_at=statement_timestamp()-interval '5 minutes'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(1,'FLEXIBLE_START_ONLY_AFTER_START_AVAILABLE_NOW');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+VALUES('22222222-2222-4222-8222-222222222222',
+ statement_timestamp()-interval '1 minute',statement_timestamp()+interval '1 hour','UNAVAILABLE');
+SELECT private.assert_deadline_tier(NULL,'FLEXIBLE_START_ONLY_NOW_BLOCKED');
+DELETE FROM public.profile_availability_windows;
+
+-- A bounded flexible interval has both authoritative limits. A worker free
+-- now is not evidence for a job starting two days from now.
+UPDATE public.needs SET schedule_kind='FLEXIBLE',
+ starts_at=statement_timestamp()+interval '2 days',
+ ends_at=statement_timestamp()+interval '4 days'
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'FLEXIBLE_BOUNDED_FUTURE_NO_WINDOW');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at+interval '20 minutes',starts_at+interval '1 hour','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'FLEXIBLE_BOUNDED_INSIDE_WINDOW');
+UPDATE public.profile_availability_windows SET
+ starts_at=(SELECT ends_at+interval '1 hour' FROM public.needs
+  WHERE id='11111111-1111-4111-8111-111111111111'),
+ ends_at=(SELECT ends_at+interval '2 hours' FROM public.needs
+  WHERE id='11111111-1111-4111-8111-111111111111');
+SELECT private.assert_deadline_tier(NULL,'FLEXIBLE_BOUNDED_AFTER_END_REFUSED');
+DELETE FROM public.profile_availability_windows;
+
+-- A remote job is still bound by its explicitly declared earliest start.
+UPDATE public.needs SET schedule_kind='REMOTE_ANYTIME',
+ starts_at=statement_timestamp()+interval '3 days',ends_at=NULL
+ WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(NULL,'REMOTE_FUTURE_START_AVAILABLE_NOW_NOT_ENOUGH');
+INSERT INTO public.profile_availability_windows(profile_id,starts_at,ends_at,availability_state)
+SELECT '22222222-2222-4222-8222-222222222222',
+ starts_at+interval '5 hours',starts_at+interval '6 hours','AVAILABLE'
+FROM public.needs WHERE id='11111111-1111-4111-8111-111111111111';
+SELECT private.assert_deadline_tier(2,'REMOTE_FUTURE_START_CALENDAR_CONFIRMED');
+DELETE FROM public.profile_availability_windows;
 -- TODAY_FUTURE_START: "mogu odmah" is false before the requested start,
 -- even when the worker toggled Available now. A future calendar slot is valid.
 DELETE FROM public.profile_availability_windows;
