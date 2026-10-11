@@ -389,12 +389,12 @@ describe('saved Need schedule and people presentation', () => {
   it('an end of day is a date, not "23:59:59" (seen on the phone 2026-09-23: "Do 31. dec 2026 · 23:59:59")', () => {
     const now = new Date('2026-09-23T12:00:00Z');
     const at = (schedule: Parameters<typeof needScheduleText>[0]) => needScheduleText(schedule, 'Europe/Belgrade', now);
-    expect(at({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-12-31T22:59:59.999999Z' })).toBe('Fleksibilno · Do 31. dec (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-12-31T22:59:59.999999Z' })).toBe('Rok do 31. dec (po vremenu u Srbiji)');
     expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T21:59:59Z' })).toBe('Fleksibilno · 12. sep (po vremenu u Srbiji)');
     expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-12T21:59:59Z' })).toBe('Fleksibilno · 12. sep · 08:00 – kraj dana (po vremenu u Srbiji)');
     // A flexible range that ends at midnight ends with the day before it (review of 2026-09-23: it read a day too long).
     expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-12T06:00:00Z', endsAt: '2026-09-13T22:00:00Z' })).toBe('Fleksibilno · 12. sep · 08:00 – 13. sep (po vremenu u Srbiji)');
-    expect(at({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-09-13T22:00:00Z' })).toBe('Fleksibilno · Do 13. sep (po vremenu u Srbiji)');
+    expect(at({ kind: 'FLEXIBLE', startsAt: null, endsAt: '2026-09-13T22:00:00Z' })).toBe('Rok do 13. sep (po vremenu u Srbiji)');
     expect(at({ kind: 'FLEXIBLE', startsAt: '2026-09-11T22:00:00Z', endsAt: '2026-09-12T22:00:00Z' })).toBe('Fleksibilno · 12. sep (po vremenu u Srbiji)');
     // A fixed window keeps every instant it names, to the minute; one day is named once and its hours are joined.
     expect(at({ kind: 'FIXED_WINDOW', startsAt: '2026-09-11T18:00:00Z', endsAt: '2026-09-12T21:59:59Z' })).toBe('11. sep · 20:00 – 12. sep · 23:59 (po vremenu u Srbiji)');
